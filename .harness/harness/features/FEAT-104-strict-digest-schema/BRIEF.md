@@ -64,20 +64,27 @@ evidence a dying orchestrator must not lose. Historical run artifacts stay reada
   verify: automated      evidence: integration
 - SC-05: Every field a persona's DOCUMENTED output block instructs still validates — the 16
   documented-but-previously-undeclared fields, enumerated per persona with `file:line` in
-  `notes/research-FEAT-104-planfix-c1.md`, plus `adequacy_notes` and each of the eight
-  `PASSTHROUGH` rows on a lead return, plus each of the 21 step-schema keys and `evidence:` on a
+  `notes/research-FEAT-104-planfix-c1.md`, plus `adequacy_notes` and each of the five
+  `PASSTHROUGH` rows on a lead return (`sc_status`, `needs_approval`, `severity_max`, `matrix_ok`,
+  `coverage_gaps`), plus each of the 21 step-schema keys and `evidence:` on a
   `schema_version: 2` write. One assertion per key, never a matching count. The grading set is the
   documented blocks under `.omp/agents/` and the two shared skill blocks — never this plan's own
   triage output, which measured lead returns only and so could not fail on a key it never saw.
   verify: automated      evidence: integration
-- SC-06: The rejection half of the suite is red against the pre-change validator: copy
-  `git show <base>:.claude/skills/harness/bin/validate-digest.py` into a temp tree beside its
-  siblings and run the suite's unknown-key cases against it; they must fail. `<base>` is the
-  absolute 40-character commit id T-01 records in `notes/base-revision-pre-T-04.txt`, never a
-  relative ref, and the case re-derives both sides of the pin before using it: that blob contains
-  `DOCUMENTED_OPTIONAL`, so T-01 is in it, and does not contain `undeclared digest key`, so T-04
-  is not. An allow-only suite is insufficient because it passes unchanged against a validator that
-  rejects nothing — exactly how issue #103's gap survived a green suite.
+- SC-06: The rejection half of the suite is red against the pre-change validator, and the control is
+  hermetic: no repository history and no commit id, so it runs in a shallow CI checkout. It matches
+  the vendored-fixture mechanism this suite already uses for exactly this purpose
+  (`tests/integration/test-validate-digest.py:30-33`, `:2866-2869`). T-01 vendors its own
+  post-PART-2 / pre-T-04 `validate-digest.py` bytes as inert committed fixture data under
+  `tests/integration/fixtures/`, with a non-`.py` suffix so `code_grade._changed_python_files` never
+  selects them; the case writes those bytes into a temp directory beside their real siblings and
+  runs the suite's unknown-key payloads against them, which must exit 0 there while the same
+  payloads exit 2 against the current validator. **The vendored revision is proven to be the right
+  one by its own content, not by a commit id:** the fixture bytes contain `DOCUMENTED_OPTIONAL`, so
+  T-01 is in them, and do not contain `undeclared digest key`, so T-04 is not — both asserted in the
+  case, and either failing is a red case, not a skip. An allow-only suite is insufficient because it
+  passes unchanged against a validator that rejects nothing — exactly how issue #103's gap survived
+  a green suite.
   verify: automated      evidence: integration
 - SC-07: A return carrying three unknown keys produces **one** rejection naming all three, so the
   single re-prompt shot is sufficient; a message naming only the first is a failure.
@@ -95,9 +102,10 @@ evidence a dying orchestrator must not lose. Historical run artifacts stay reada
   i.e. `.claude/skills/harness-team/SKILL.md`'s lead block documents it (DEC-216). Omitting the
   documentation must redden the suite.
   verify: automated      evidence: integration
-- SC-11: A `steps[]` entry carrying an undeclared key is **accepted** when the file declares
-  `schema_version: 1` and **refused** at `schema_version: 2`. This is what makes REQ-08 true by
-  construction rather than by promise.
+- SC-11: A `steps[]` entry carrying an undeclared key is **accepted** on a run already carrying
+  `schema_version: 1` — an update to an already-existing version-1 file, which is what D-11's
+  creation floor leaves writable — and **refused** at `schema_version: 2`. This is what makes REQ-08
+  true by construction rather than by promise.
   verify: automated      evidence: integration
 - SC-12: No historical run artifact is modified by this feature — and the check can go RED. T-10
   records a `<sha256>  <path>` manifest of every run artifact under the owner root's

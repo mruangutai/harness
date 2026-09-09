@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-104 — corrected plan signature packet (c2)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-104-corrected-plan-signature-packet-c2">FEAT-104 — corrected plan signature packet (c2)</h1>
+<p><strong>Supersedes <code>ship-review-plan-signature-c1.md</code>.</strong> Your rulings are applied. Five of six landed; <strong>OD-5 has no legal write route and is the one thing still needing you.</strong> Nothing was implemented, nothing was signed, and all six proposed backlog rows are struck and appear nowhere.</p>
+<h2 id="your-rulings-one-line-each">Your rulings, one line each</h2>
+<div class="scroll"><table><thead><tr><th>Ruling</th><th>State</th><th>Where</th></tr></thead><tbody><tr><td>OD-1 — apply the hermetic inert fixture remedy</td><td><strong>APPLIED</strong></td><td><code>plan.yaml:108,120,255,563,577</code>; <code>BRIEF.md:74-88</code></td></tr><tr><td>OD-2 — drop <code>failures</code>/<code>suite</code>/<code>kinds</code></td><td><strong>APPLIED</strong></td><td><code>plan.yaml:132-134</code> (5 rows); D-02&#x27;s bar repaired</td></tr><tr><td>OD-3 — T-01 PART 1 precision correction</td><td><strong>APPLIED</strong></td><td><code>plan.yaml:141-147</code></td></tr><tr><td>OD-4 — SC-11 precision correction</td><td><strong>APPLIED</strong></td><td><code>BRIEF.md:105-108</code></td></tr><tr><td>OD-5 — strike T-02</td><td><strong>BLOCKED — needs you</strong></td><td>no delete verb exists; T-02 untouched</td></tr><tr><td>OD-6 — correct DEC-126</td><td><strong>VERIFIED, already carried</strong></td><td><code>plan.yaml:645-653</code>, WRITE 2, one clause</td></tr><tr><td>B-1..B-6 backlog</td><td><strong>ALL STRUCK</strong></td><td>none appears as task, decision, issue or note</td></tr></tbody></table></div>
+<p>I verified OD-1 through OD-4 on disk myself rather than accepting the report: the fixture path is present, the passthrough table is five rows, the optional-when-present sentence names <code>validate-digest.py:1190</code> and <code>:1197</code>, and SC-11 carries its qualifier. The only surviving <code>git show</code> string in either artifact is inside the verbatim panel finding text at <code>plan.yaml:743</code>, which must not be reworded because a <code>PF-</code> id is a content hash of it.</p>
+<h2 id="the-one-thing-still-yours-od-5">The one thing still yours — OD-5</h2>
+<p><strong>There is no legal route to remove a task from a plan.</strong> <code>plan-merge.py</code>&#x27;s verbs are <code>apply | add-tasks | set-task-station | set-feature-station | set-panel | sign-approval | amend</code>; <code>apply</code>&#x27;s own help string reads &quot;adds, never deletes&quot;, and <code>amend</code> replaces one field of one named task under compare-and-swap. pm confirmed this at source, the lead confirmed it independently, and neither invented a route or hand-edited the file — which is the correct refusal.</p>
+<p>T-02 therefore still sits at <code>status: abandoned</code>, subsumed into T-01. Two options:</p>
+<ol><li><strong>Amend T-02&#x27;s <code>title</code>/<code>intent</code> to record the strike in place.</strong> Legal today, one command, reversible. The entry stays in the file but says plainly that you struck it.</li><li><strong>Add a guarded delete verb to <code>plan-merge.py</code></strong> as its own feature. This weakens the add-only promise the tool is built on and needs its own guard, so it is not a side change.</li></ol>
+<p>My recommendation is (1). It costs one command, it makes the record say what you decided, and it does not touch a tool that eight other flows write through.</p>
+<h2 id="one-judgement-call-you-should-see-the-passthrough-table">One judgement call you should see — the passthrough table</h2>
+<p>Your ruling named three rows to drop. pm dropped exactly those three, then hit a consequence: with D-02&#x27;s bar repaired to &quot;documented in a lead block&quot;, <strong><code>matrix_ok</code> and <code>coverage_gaps</code> are grounded in no lead block that exists today</strong>. Rather than drop two rows you did not name, pm made T-01 PART 3&#x27;s new commented passthrough line (<code>plan.yaml:205-213</code>) the documentation that grounds them.</p>
+<p>That is in-pattern with D-09 and I judge it sound. But it means two of the five surviving rows depend on that one line landing at build time. Accept it, or strike those two as well — either is a one-line change and neither blocks the signature.</p>
+<h2 id="what-signing-gets-you">What signing gets you</h2>
+<p><code>BRIEF.md</code> — 9 requirements, 15 success criteria, every one with a verification method: 13 <code>automated</code> on the <code>integration</code> runner, 1 <code>inspection</code> (SC-12&#x27;s sha256 manifest), 1 <code>uat</code> (SC-13, you read the DEC-174 carve-out diff). <code>plan.yaml</code> — 12 decisions, 9 active tasks plus the abandoned T-02, the <code>lanes:</code> routing table, and the <code>panel:</code> record with all four <code>PF-</code> findings now at <code>disposition: resolved</code> and their ids, severities, readers and evidence unchanged.</p>
+<p>Traceability verified mechanically after the edits: every REQ has at least one SC and one active task, every active task traces at least one REQ, and no task cites a REQ that does not exist.</p>
+<h2 id="gate-state-at-signature">Gate state at signature</h2>
+<ul><li><code>check-state.sh</code> reports exactly <strong>two</strong> FEAT-104 violations. One is the signature gate itself (&quot;BRIEF.md is NOT approved&quot;), which is the gate working.</li><li>The other is the INV-26 false positive: its not-started skip requires <code>all(status == &quot;ready&quot;)</code>, so T-02&#x27;s <code>abandoned</code> value alone makes it demand <code>gh-sync.py open</code> — a command the mirror reference forbids before signed approval. <strong>You struck B-1, so this stays red.</strong> Recording it because taking OD-5 option (1) leaves it red too, and option (2) or removing T-02 is what clears it. No action implied; you have the facts.</li><li><code>check-plan-routes.py</code> exits 1 on the same pre-existing manifest deviation (this worktree&#x27;s <code>.harness/team-config.yaml</code> is behind the owner root by <code>4d81e460</code>). No task violation. You struck B-2, so this also stays as it is.</li><li><code>validate-digest.py lead</code> on the last run&#x27;s digest: <code>digest ok</code>.</li></ul>
+<h2 id="one-thing-that-went-wrong-in-the-machinery-recorded-not-proposed">One thing that went wrong in the machinery, recorded not proposed</h2>
+<p>The product lead completed this run correctly but could not write its own run directory: a stale <code>harness-product-lead</code> worktree claim on <code>FEAT-57-review-latency</code>, registered against its persona mid-run by a concurrent flow, refused every write after the first two succeeded. The claim had expired by the time the run returned (<code>inflight_registry.py list</code> → <code>NO CLAIMS</code>), so I wrote the digest from the lead&#x27;s returned DIGEST and closed its <code>state.yaml</code>, disclosing that in the file itself. You struck B-6, which covers the neighbouring transport defect; this one is recorded in <code>runs/sigfix-c2-product/digest.md</code> and nowhere else.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used: 3</code> of 10. The third is this ruling-application pass, counted as rework because the panel FAIL came back down to a squad. <code>runs: 7</code> of an informational 20. Both healthy.</p>
+<h2 id="artifacts">Artifacts</h2>
+<p>All under <code>/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/</code>:</p>
+<ul><li><code>BRIEF.md</code> — approval <code>pending</code></li><li><code>plan.yaml</code> — approval <code>pending</code>, feature station <code>plan</code>, <code>panel:</code> all four findings resolved</li><li><code>notes/research-FEAT-104-sigfix-c2.md</code> — what changed per ruling, and the OD-5 route finding</li><li><code>notes/research-FEAT-104-triage-c0.md</code> — the measurement and per-key triage</li><li><code>notes/research-FEAT-104-goalcheck-plan-c0.md</code> and <code>notes/research-FEAT-104-planfix-c1.md</code></li><li><code>notes/review-harness-code-reviewer-planpanel-c1.md</code></li><li><code>runs/sigfix-c2-product/digest.md</code> — this pass&#x27;s record</li></ul><p class='derived'>Derived from <code>ship-review-plan-signature-c2.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -45,8 +45,8 @@ decisions:
     because: a SCHEMAS member is REQUIRED under DEC-121 and DEC-216 would then force matrix_ok into every lead's documented block
     dec: none
   - id: D-02
-    choice: A field earns a PASSTHROUGH row when it is already declared for another persona, as a SCHEMAS member or a DOCUMENTED_OPTIONAL entry under D-10, and is seen riding up a lead roll-up; occurrence count decides nothing, and a field declared and documented nowhere is drift whatever its count
-    because: an occurrence bar classed four already-legitimate fields as drift, coverage_gaps and failures and suite and kinds, three of them declared members of SCHEMAS qa and the fourth documented at .omp/agents/harness-qa.md line 91, while promoting nothing, so the bar measured popularity where the question is provenance
+    choice: A field earns a PASSTHROUGH lead row only when a DOCUMENTED output block instructs a LEAD to carry it, whether the canonical lead block in .claude/skills/harness-team/SKILL.md or one of the three lead agent files; a field merely seen riding up a lead roll-up, and instructed by no lead-facing documentation, is drift whatever its measured count
+    because: REQ-04 fixes legitimate use as what a persona's own documented output block instructs and never as what observed traffic contained, so an occurrence bar and a seen-riding-up bar are the same mistake twice; the five surviving rows are sc_status, documented in the canonical lead block at .claude/skills/harness-team/SKILL.md line 255, needs_approval at .omp/agents/harness-product-lead.md line 90, severity_max at .omp/agents/harness-validator-lead.md line 135, and matrix_ok and coverage_gaps, which no lead block names today and which T-01 PART 3 therefore adds to that canonical block's commented passthrough line, coverage_gaps having already been ruled retained by goal-check F5 and matrix_ok being the adequacy verdict .omp/agents/harness-validator-lead.md line 83 documents a lead's duty to judge; failures, suite and kinds are struck because no lead-facing block instructs any of them and their only admission ground was one, one and four observed runs
     dec: none
   - id: D-03
     choice: adequacy_notes enters SCHEMAS lead as a REQUIRED list, lead-only, not universal
@@ -105,10 +105,10 @@ tasks:
     files:
     - .claude/skills/harness/bin/validate-digest.py
     - tests/integration/test-validate-digest.py
+    - tests/integration/fixtures/pre-t04-validate-digest.py.fixture
     - .claude/skills/harness-team/SKILL.md
     - .omp/agents/harness-validator-lead.md
     - .claude/agents/harness-validator-lead.md
-    - .harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt
     verify: |
       cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
       out=$(python3 tests/integration/test-validate-digest.py) || exit 1
@@ -117,6 +117,9 @@ tasks:
       printf '%s\n' "$out" | grep -q 'every documented key is declared' || exit 1
       grep -q 'DOCUMENTED_OPTIONAL' .claude/skills/harness/bin/validate-digest.py || exit 1
       grep -q '^  adequacy_notes:' .claude/skills/harness-team/SKILL.md || exit 1
+      F=tests/integration/fixtures/pre-t04-validate-digest.py.fixture
+      grep -q 'DOCUMENTED_OPTIONAL' "$F" || exit 1
+      if grep -q 'undeclared digest key' "$F"; then exit 1; fi
       python3 .claude/skills/harness/bin/sync-agent-adapters.py --check || exit 1
     intent: |
       This task subsumes the former T-02, which is abandoned: the declaration and its documentation
@@ -128,17 +131,31 @@ tasks:
 
         PASSTHROUGH = {"lead": {"sc_status": list, "needs_approval": bool,
                                 "severity_max": set(SEV), "matrix_ok": bool,
-                                "coverage_gaps": list, "failures": int,
-                                "suite": {"pass", "fail"}, "kinds": list}}
+                                "coverage_gaps": list}}
 
-      A PASSTHROUGH field is OPTIONAL, and that is the difference from SCHEMAS on purpose. When
-      present it is validated exactly as SCHEMAS validates a field of that type or enum, reusing the
-      existing field loop rather than a second one. When absent nothing is reported. Write a comment
-      stating why it is not in SCHEMAS: a SCHEMAS member is REQUIRED under DEC-121, and DEC-216 would
-      then force matrix_ok into every lead's documented output block. The last four rows are D-02's
-      repaired bar: coverage_gaps, failures and suite are declared members of SCHEMAS qa, and kinds is
-      documented at .omp/agents/harness-qa.md line 91, so all four are a lower tier's own field riding
-      up a roll-up rather than invented vocabulary, whatever their measured count.
+      FIVE rows, and no more. A PASSTHROUGH field is OPTIONAL, and that is the difference from SCHEMAS
+      on purpose. When PRESENT it is validated exactly as SCHEMAS validates a field of that type or
+      enum, reusing the existing field loop rather than a second one. When ABSENT nothing is reported
+      and nothing is required.
+      READ THAT SECOND SENTENCE LITERALLY, because the loop you are reusing does not behave that way
+      today: validate-digest.py line 1190 builds all_fields as schema merged with UNIVERSAL and line
+      1197 iterates it treating EVERY member as required-when-absent, with no optional branch at all.
+      An optional field - PASSTHROUGH and DOCUMENTED_OPTIONAL alike - is validated only WHEN PRESENT
+      and is NEVER reported absent. Adding these tables into all_fields unchanged would make all 21
+      optional fields mandatory and reject every conforming return; the reuse is of the per-field type
+      and enum checking, not of the required-when-absent sweep. PART 5's omission assertions are what
+      hold you to this.
+      Write a comment stating why these fields are not in SCHEMAS: a SCHEMAS member is REQUIRED under
+      DEC-121, and DEC-216 would then force matrix_ok into every lead's documented output block.
+      The five rows are exactly D-02's repaired bar - a documented output block instructs a LEAD to
+      carry the field. sc_status is documented in the canonical lead block at
+      .claude/skills/harness-team/SKILL.md line 255, needs_approval at
+      .omp/agents/harness-product-lead.md line 90, severity_max at
+      .omp/agents/harness-validator-lead.md line 135, and matrix_ok and coverage_gaps are documented by
+      PART 3 of this task, on the commented passthrough line it adds to the canonical lead block.
+      failures, suite and kinds are NOT rows: no lead-facing block instructs them, and being members of
+      SCHEMAS qa makes them legitimate on a QA return, which this change does not touch, not on a lead
+      roll-up. Do not add them, and do not alter SCHEMAS qa.
       Move sc_status OUT of SCHEMAS lead into PASSTHROUGH lead and delete the prose comment that
       described it as a passthrough, so there is one mechanism rather than a comment.
 
@@ -170,7 +187,7 @@ tasks:
       field. It is a list of one-line strings naming what the PASS does not cover; an explicit empty
       list is the DEC-121 spelling for none.
       Do NOT add unknown-key rejection in this task. That is T-04, and it lands in its own later
-      commit so T-08 has a base revision that contains this task and not that one.
+      commit, so the fixture PART 6 vendors carries this task and not that one.
 
       PART 3, .claude/skills/harness-team/SKILL.md carries the one canonical lead digest block at
       lines 237 to 258 and is the DEC-216 contract source for all three leads
@@ -181,10 +198,14 @@ tasks:
       Add one sentence of semantics beside the block: adequacy_notes is a qualification on a PASS, it
       means act on nothing but do not read this green as wider than it is. It is not must_fix, which
       gates, and not open_questions, which reaches the user.
-      Also add, in the same block, a commented line naming the optional passthrough fields a lead may
-      carry when rolling a member up - sc_status, needs_approval, severity_max, matrix_ok,
-      coverage_gaps, failures, suite, kinds - and stating that any OTHER field is rejected from T-04
-      onward and belongs in adequacy_notes or in the run state evidence container.
+      Also add, in the same block, a COMMENTED line - it must begin with a hash so the PART 5 reverse
+      parser, which collects a line of exactly two spaces then a lowercase identifier then a colon,
+      does not read it as a documented field and demand a declaration for it - naming the five optional
+      passthrough fields a lead may carry when rolling a member up: sc_status, needs_approval,
+      severity_max, matrix_ok, coverage_gaps. State on it that any OTHER field is rejected from T-04
+      onward and belongs in adequacy_notes or in the run state evidence container. This line is what
+      documents matrix_ok and coverage_gaps for a lead, which is the ground D-02's repaired bar keeps
+      them on.
 
       PART 4, .omp/agents/harness-validator-lead.md is the CANONICAL role file; .claude/agents is
       GENERATED from it by .claude/skills/harness/bin/sync-agent-adapters.py, which copies the body
@@ -198,10 +219,11 @@ tasks:
 
       PART 5, tests in tests/integration/test-validate-digest.py, each asserted SEPARATELY, never a
       count:
-        - a lead return carrying EACH of the eight PASSTHROUGH keys with a correct value validates -
+        - a lead return carrying EACH of the five PASSTHROUGH keys with a correct value validates -
           one assertion per key;
         - a lead return carrying severity_max set to the string sever is rejected naming the enum;
-        - a lead return OMITTING each PASSTHROUGH key validates - one assertion per key;
+        - a lead return OMITTING each PASSTHROUGH key validates - one assertion per key. This is the
+          case that reddens on the wrong reading of PART 1's reuse sentence;
         - a lead return omitting adequacy_notes is rejected; one with an empty list validates;
         - for EACH of the sixteen DOCUMENTED_OPTIONAL fields, its own persona's return carrying that
           field with a correct value validates, and carrying it with a wrong-typed value is rejected
@@ -222,14 +244,24 @@ tasks:
       run_documented_contract_cases must PASS at the end of this task - PART 3 is what closes it, and
       that is why the two former tasks are one.
 
-      PART 6, the base-revision pin, which is what makes SC-06 falsifiable on behaviour rather than on
-      ordering. Commit parts 1 to 5 as ONE commit. Then, as a second act of this same task, write the
-      40-character output of git rev-parse HEAD, as a single line with no trailing text, to
-      .harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt using
-      the Write tool (bash-write-guard.sh denies a shell redirect), and commit that one note file
-      alone. A separate commit is unavoidable: a commit cannot contain its own id. It touches one note
-      file, so git show of that pinned id for validate-digest.py returns the post-part-2,
-      pre-T-04 content either way. T-08 reads this file and re-derives both sides of the pin.
+      PART 6, vendor this task's own validator bytes as an INERT FIXTURE. This is what makes SC-06
+      falsifiable on behaviour while staying hermetic, and it replaces the commit-id pin an earlier
+      draft carried: this suite already removed that mechanism once, at
+      tests/integration/test-validate-digest.py lines 30 to 33 and 2866 to 2869, because a shallow CI
+      checkout carries no history to resolve a pinned id against. Do not reintroduce it. Follow the
+      mechanism that is there.
+      After PARTS 1 to 5 are written and the verify passes, copy the CURRENT content of
+      .claude/skills/harness/bin/validate-digest.py - post-PART-2, pre-T-04 - byte for byte into
+      tests/integration/fixtures/pre-t04-validate-digest.py.fixture, using the Write tool
+      (bash-write-guard.sh denies a shell copy). The .fixture suffix is load-bearing and is the same
+      one the existing prior-validate-digest.py.fixture uses: code_grade._changed_python_files never
+      selects a non-.py path, so the vendored bytes are inert data rather than a second copy of the
+      validator entering the graded set.
+      Commit PARTS 1 to 6 as ONE commit. No second commit and no commit id is needed anywhere: the
+      fixture is proven to be the right revision by its own CONTENT, which this task's verify asserts
+      and T-08's case asserts again - it CONTAINS DOCUMENTED_OPTIONAL, so this task is in it, and does
+      NOT contain the literal undeclared digest key, so T-04 is not. If you ever find both true, the
+      fixture was taken after T-04 and is wrong; retake it, never weaken the assertion.
 
   - id: T-02
     title: ABANDONED - subsumed by T-01, which now lands the declaration and its documentation together
@@ -287,10 +319,13 @@ tasks:
       python3 .claude/skills/harness/bin/sync-agent-adapters.py --check || exit 1
     intent: |
       The measured drift is leads answering questions their dispatch asked by inventing a digest
-      key: 61 drift keys, 56 of them used exactly once, minus the four rows D-02's repaired bar moves
-      into PASSTHROUGH (coverage_gaps, failures, suite, kinds). The full list is in
+      key: 61 drift keys, 56 of them used exactly once, minus the ONE row D-02's repaired bar moves
+      into PASSTHROUGH (coverage_gaps). failures, suite and kinds stay in that drift set on a LEAD
+      return: they are declared members of SCHEMAS qa and documented in the qa block, which makes them
+      legitimate on a QA return and on nothing else, and no lead-facing block instructs any of them.
+      The full list is in
       .harness/harness/features/FEAT-104-strict-digest-schema/notes/research-FEAT-104-triage-c0.md
-      and the four moved rows in notes/research-FEAT-104-planfix-c1.md
+      and the moved row in notes/research-FEAT-104-planfix-c1.md
       In .claude/skills/harness/SKILL.md, the orchestrator playbook, add one rule where the dispatch
       shape is described: when a dispatch asks a member or a lead a specific question, it names WHERE
       the answer goes - adequacy_notes for a qualification on a PASS, the run state steps evidence
@@ -525,13 +560,10 @@ tasks:
       - tests/integration/test-validate-digest.py
     verify: |
       cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
-      P=.harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt
-      V=.claude/skills/harness/bin/validate-digest.py
-      sha=$(tr -d '\n' < "$P")
-      printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$' || exit 1
-      git cat-file -e "$sha^{commit}" || exit 1
-      git show "$sha:$V" | grep -q 'DOCUMENTED_OPTIONAL' || exit 1
-      if git show "$sha:$V" | grep -q 'undeclared digest key'; then exit 1; fi
+      F=tests/integration/fixtures/pre-t04-validate-digest.py.fixture
+      grep -q 'DOCUMENTED_OPTIONAL' "$F" || exit 1
+      if grep -q 'undeclared digest key' "$F"; then exit 1; fi
+      grep -q 'undeclared digest key' .claude/skills/harness/bin/validate-digest.py || exit 1
       out=$(python3 tests/integration/test-validate-digest.py) || exit 1
       printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
       printf '%s\n' "$out" | grep -q 'pre-change validator' || exit 1
@@ -540,29 +572,37 @@ tasks:
       pass, which is true of a validator that rejects nothing. Add the other direction as an
       executable case, not a claim.
 
-      THE BASE REVISION IS PINNED, NOT DERIVED. It must be a commit that CONTAINS T-01 and does NOT
-      contain T-04: T-01 makes adequacy_notes required, so a base taken before T-01 rejects the
-      unknown-key payloads for the wrong reason and the case would redden on ordering rather than on
-      behaviour. The plan cannot know that commit id, so T-01 records it: T-01 PART 6 writes the
-      40-character git rev-parse HEAD of its own commit to
-      .harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt, a
-      tracked file. Read the id from that file. Never a relative ref such as one commit back, and
-      never a search of git log - later tasks land between the two and both drift.
-      Re-derive BOTH sides of the pin before using it, exactly as this task's verify does: the file
-      holds 40 hex characters; git cat-file -e resolves it to a commit; git show of
-      validate-digest.py at that id CONTAINS DOCUMENTED_OPTIONAL, proving T-01 is in it; and does NOT
-      contain the literal undeclared digest key, proving T-04 is not. If either side fails, the pin is
-      wrong - return BLOCKED naming which side, and do not fall back to a relative ref.
+      THE PRE-CHANGE VALIDATOR IS VENDORED, NOT FETCHED FROM HISTORY. T-01 PART 6 commits its own
+      post-PART-2, pre-T-04 validate-digest.py bytes as inert fixture data at
+      tests/integration/fixtures/pre-t04-validate-digest.py.fixture. Read that file. Use no commit id,
+      no relative ref and no repository history: this suite removed exactly that mechanism at
+      tests/integration/test-validate-digest.py lines 30 to 33 and 2866 to 2869, because a shallow CI
+      checkout resolves neither a pinned id nor a relative one, and check_prior_validator at line 2862
+      is the working model to copy - it writes the fixture bytes into a temp dir under the module's
+      real filename and runs them.
 
-      Add a case whose ok line contains the literal string pre-change validator. It copies that pinned
-      revision of validate-digest.py into a temporary directory INSIDE .claude/skills/harness/bin, so
-      its sibling imports harness_yaml, code_grade, gate_policy and harness_boundary still resolve,
-      then runs the unknown-key payloads against that copy and asserts they exit 0 there while
-      exiting 2 against the current file.
+      THE REVISION IS PROVEN BY CONTENT, and the proof is part of the case rather than a claim beside
+      it. The fixture bytes MUST contain DOCUMENTED_OPTIONAL, which proves T-01 is in them - without
+      that, a base taken before T-01 would reject the unknown-key payloads for the wrong reason, since
+      T-01 makes adequacy_notes required, and the case would redden on ordering instead of behaviour.
+      The fixture bytes MUST NOT contain the literal undeclared digest key, which proves T-04 is not in
+      them. Assert both, and read them as ASSERTIONS: if either fails, the case FAILS - return BLOCKED
+      naming which side, and never fall back to the current validator or to a relative ref.
 
-      Separately, add the legitimate-key replay: for adequacy_notes and for EACH of the eight
-      PASSTHROUGH keys, one assertion that a lead return carrying it validates. One assertion per key.
-      A single fixture carrying all nine, asserted once, is satisfied by the conformers alone.
+      Add a case whose ok line contains the literal string pre-change validator. It writes the fixture
+      bytes into a temporary directory INSIDE .claude/skills/harness/bin, under the filename
+      validate-digest.py, so its sibling imports harness_yaml, code_grade, gate_policy and
+      harness_boundary still resolve - a real file copy, never a symlink, because python resolves
+      sys.path[0] from the script's real location. It then runs the unknown-key payloads against that
+      copy and asserts they exit 0 there while exiting 2 against the current file.
+
+      Separately, add the legitimate-key replay: for adequacy_notes and for EACH of the FIVE
+      PASSTHROUGH keys - sc_status, needs_approval, severity_max, matrix_ok, coverage_gaps - one
+      assertion that a lead return carrying it validates. One assertion per key, six in all. A single
+      fixture carrying all six, asserted once, is satisfied by the conformers alone. failures, suite
+      and kinds are NOT passthrough keys and are not replayed here; they stay required members of
+      SCHEMAS qa, which this feature does not touch, and a lead return carrying one of them is
+      rejected from T-04 onward.
 
   - id: T-09
     title: Record the strict contract in the decision log
@@ -706,7 +746,10 @@ panel:
     evidence: tests/integration/test-validate-digest.py:30-33, :2866-2869, :3556-3557,
       :4008-4010; mandated by BRIEF.md SC-06, plan.yaml T-08 intent+verify, T-01 PART
       6
-    disposition: SURVIVES, GATING, apply first
+    disposition: resolved
+    note: 'operator ruling OD-1 applied at signature: the commit-id pin is deleted
+      everywhere and T-01 PART 6 now vendors its own pre-T-04 validator bytes as an
+      inert .fixture, proven by content'
   - id: PF-d2cefa75a1931540efa60d3561f7df6b
     rank: 2
     severity: med
@@ -716,7 +759,9 @@ panel:
       never observed traffic
     evidence: plan.yaml D-02 vs BRIEF.md REQ-04; planfix F5 table; T-03's 'never a
       new digest key'
-    disposition: SURVIVES at reader's med, non-gating; operator choice at signature
+    disposition: resolved
+    note: 'operator ruling OD-2 applied at signature: failures, suite and kinds are
+      struck, PASSTHROUGH lead is five rows, and D-02''s bar is now lead-documented-block-only'
   - id: PF-4d84bb7e52beff3ee62eb98a7115ae9e
     rank: 3
     severity: low
@@ -725,8 +770,9 @@ panel:
       loop, whose literal reading makes all 24 optional fields REQUIRED, reproducing
       goal-check F1
     evidence: validate-digest.py:1190, :1197
-    disposition: SURVIVES at low, non-gating; unlandable past T-01 PART 5's omission
-      assertions
+    disposition: resolved
+    note: 'operator ruling OD-3 applied at signature: T-01 PART 1 now states that
+      an optional field is validated only when present and is never reported absent'
   - id: PF-7469688fee994f7ec08ad85dea1d1f8b
     rank: 4
     severity: low
@@ -734,7 +780,9 @@ panel:
     summary: SC-11's text read standalone in BRIEF.md is falsified by D-11's creation
       floor; its accept case is necessarily an UPDATE to an existing version-1 file
     evidence: BRIEF.md SC-11 vs plan.yaml D-11 / T-06 CLAUSE B
-    disposition: SURVIVES at low, non-gating; add the qualifier to SC-11
+    disposition: resolved
+    note: 'operator ruling OD-4 applied at signature: SC-11''s accept case now reads
+      ''on a run already carrying schema_version 1'', an update to an existing file'
   dismissed:
   - reader: should-not-exist
     item: SC-12/T-10 run-artifact manifest is unnecessary ceremony

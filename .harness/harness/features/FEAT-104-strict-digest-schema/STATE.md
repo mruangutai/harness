@@ -3,33 +3,30 @@
 ## Current
 
 - feature: FEAT-104-strict-digest-schema
-- run: .harness/harness/features/FEAT-104-strict-digest-schema/runs/paneltranscribe-c1b-product/state.yaml
+- run: .harness/harness/features/FEAT-104-strict-digest-schema/runs/sigfix-c2-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Plan phase COMPLETE, at the operator signature gate. BRIEF.md and plan.yaml are drafted and
-`pending`; only the main session signs. The three-segment plan panel ran: pm's goal-check
-(FAIL, six findings, all closed in `planfix-c1`), the two adversarial readers (`fable-advisor`
-and `harness-code-reviewer`, both ran, four surviving findings, `severity_max: high`), and the
-transcription into `plan.yaml`'s `panel` key with all three readers recorded.
+Plan phase complete; operator rulings from the signature review APPLIED. OD-1 (hermetic inert
+fixture remedy, closing the high panel finding), OD-2 (three passthrough rows dropped), OD-3 and
+OD-4 (precision corrections) all landed and verified on disk by the orchestrator; OD-6 was already
+carried by T-09. All four `PF-` findings now read `disposition: resolved` with ids, severities,
+readers and evidence unchanged. Backlog rows B-1..B-6 all struck by the operator and recorded
+nowhere.
 
-PF-4bd91290deaf98062943319ff3ea5641 is high and GATING — the git-show base-revision pin
-contradicts this repository's own vendored-fixture ruling, and CI clones shallow today. Under
-DEC-176 it enters the operator's one batched signature review; neither the orchestrator nor pm
-may accept its risk.
+OD-5 (strike T-02) is BLOCKED: `plan-merge.py` has no delete verb — `apply` adds and never deletes,
+`amend` replaces one field of one named item. Nothing was hand-edited and no route was invented.
 
-Signature packet: `notes/ship-review-plan-signature-c1.md`. cycles_used 2/10, runs 6/20.
-Next on approval: `gh-sync.py open`, then the build phase (a new orchestrator, per DEC-159 —
-plan ends at the user gate).
+BRIEF.md and plan.yaml remain `pending`; only the main session signs. Corrected packet:
+`notes/ship-review-plan-signature-c2.md`, superseding the c1 packet. cycles_used 3/10, runs 7/20.
 
 ## Open Questions
 
-- OD-1 PF-4bd91290deaf98062943319ff3ea5641 (high, gating): accept the vendored-fixture remedy
-  rewriting SC-06 / T-01 PART 6 / T-08, or overrule with a recorded reason. Blocks signature.
-- OD-2 PF-d2cefa75a1931540efa60d3561f7df6b (med): drop the three observed-traffic PASSTHROUGH
-  rows, or record why D-02 overrides REQ-04's documented-block-only sentence.
-- OD-3 PF-4d84bb7e52beff3ee62eb98a7115ae9e (low) and OD-4 PF-7469688fee994f7ec08ad85dea1d1f8b
-  (low): two one-sentence wording corrections, to T-01 PART 1 and SC-11.
-- OD-5: keep or strike T-02, retained at `status: abandoned` (see backlog B-1 — it costs a false
-  INV-26 red).
-- OD-6: T-09 corrects one falsified clause in DEC-126's Applied record; the decision log is touched.
+- OD-5: no legal route to remove a task. Amend T-02's title/intent to record the strike in place
+  (recommended — one command, reversible), or add a guarded delete verb to `plan-merge.py` as its
+  own feature. Operator's call.
+- The passthrough table: the ruling named three rows to drop; with D-02's bar repaired,
+  `matrix_ok` and `coverage_gaps` are grounded only by a commented line T-01 will create
+  (`plan.yaml:205-213`). Accept, or strike those two as well.
+- The signature itself. Two `check-state.sh` violations stand at the gate: BRIEF not approved (the
+  gate working), and the INV-26 false positive the struck B-1 leaves in place.
