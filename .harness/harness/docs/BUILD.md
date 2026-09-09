@@ -85,7 +85,8 @@ matcher, so one registration each serves the whole roster.
 > page prose says "by default, a subagent can't spawn subagents of its own", which describes the
 > 2.1.217–218 band only; `env-vars` is authoritative and says the default is 3.
 
-**Version bands — the behavior changed three times, so the CLI version must be pinned:**
+**Version bands — the nesting default changed three times across CLI versions, which is why the
+depth is set explicitly rather than inferred from the version in play:**
 
 | CLI version | Nesting default | Configurable |
 |---|---|---|
@@ -93,10 +94,10 @@ matcher, so one registration each serves the whole roster.
 | 2.1.217 – 2.1.218 | **1** (off) | yes |
 | **≥ 2.1.219** | **3** (on) | yes |
 
-**CLI ≥ 2.1.217 is the floor for all three spawn env vars** — a compatibility fact to check against the
-bands above, declared nowhere in config — and set the depth explicitly to `3` in every project. Setting
-it explicitly is correct in *all* bands — relying on the
-default means the org silently reshapes the next time it moves.
+**CLI ≥ 2.1.217 is the floor for all three spawn env vars** — a compatibility fact to check against
+the bands above, declared nowhere in config — and set the depth explicitly to `3` in every project.
+Setting it explicitly is correct in *all* bands — relying on the default means the org silently
+reshapes the next time it moves.
 
 **Belt-and-suspenders, and the actually-reliable mechanism:** "members are always leaves" is enforced
 independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the

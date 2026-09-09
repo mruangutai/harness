@@ -136,3 +136,211 @@ step above and again at the end of this run.
 ## Open questions
 - None blocking. The must-fix above is the only gap; it is a one-line reword in a `docs` task's
   file, routable back to T-01 without re-diagnosis.
+
+---
+
+# T-17 — reconcile onboarding tests, assert split (2026-09-09)
+
+VERDICT of this section: **PASS**. Cross-checked `intent:`/`verify:` against
+`plan.yaml` task T-17 — verbatim match, no divergence.
+
+## What changed
+
+- **`tests/integration/test-onboarding-split.py` (NEW).** Follows
+  `test-hooks-install.py`'s conventions: same anchor/sys.path preamble, same
+  `(name, passed, detail)` tuple + PASS/FAIL/EXIT accounting, one named case per
+  claim. Every assertion is per-file-and-per-token (never file-global): 7 absence
+  tokens against `harness-init/SKILL.md`, existence + 4 absence tokens against
+  `harness-add-repo/SKILL.md`, 3 central-model markers plus their first-occurrence
+  ORDER (compared by line index, not just `in`), the two command doors checked
+  separately for `harness-init` (none), and the CLI-probe strings (`claude
+  --version`, `2.1.217`) checked per file per token against both cut skills.
+- **`tests/unit/test-no-distribution.py` — AMENDED.**
+  `case1_presence_four_other_command_doors_survive` (single count over
+  `.claude/commands`) split into `case1_presence_canonical_four_doors_survive`
+  (`.omp/commands`, the four canonical doors post-T-13) and
+  `case1_presence_adapter_four_doors_survive` (`.claude/commands`, the four
+  generated adapters). Comment above corrected to explain the split in terms of
+  DEC-221 rather than a bare distribution-sweep guard. `TOKEN_RE` sweep
+  untouched, as instructed.
+- **`tests/integration/test-hooks-install.py` — LEFT UNCHANGED.** Ran green
+  as-is (29/29 cases). Its `case_commands_verbatim_in_skill` reads Track A's two
+  literal git-config strings, which still live in `harness-init/SKILL.md`'s
+  "per-checkout step" heading (renamed from "per-clone step", content and
+  ordering otherwise identical) — no line/step-number citation in this file was
+  stale against the new numbering; the three prose "step 1/2/3" labels inside
+  the module docstring and helper docstrings still name that same heading's own
+  three-step structure, unchanged by the split.
+- **`tests/integration/test-post-merge-sweep.py` — AMENDED.** The comment above
+  `case_linked_worktree_main_checkout` (originally around :783-785) cited
+  `harness-init SKILL.md:73/:78`, a line-number anchor that had already rotted
+  once (T-11/T-12 renumbering had left it reading "the per-clone step section"
+  with no number at all by the time I reached it — see tool note below).
+  Re-anchored onto the heading name itself: `"The per-checkout step: point git
+  at the tracked hooks directory" heading, step 2's set/get commands` — a
+  renumbering inside that section cannot rot this citation again.
+- **`tests/integration/test-layout-migration.py` — LEFT UNCHANGED.** The cited
+  region (:250-254, case 14) already reads "a copy or worktree of the control
+  plane carries every reader file, while only the control plane carries the
+  fleet declaration" — this is the CORRECT premise post-split (harness-add-repo
+  installs no reader files into a fleet member's own repo; only a control-plane
+  checkout, including a worktree of it, carries `bin/`/`team-config.yaml`
+  readers), and it carries no line-number citation to rot. Confirmed
+  byte-identical to `HEAD` (`git diff HEAD --` empty for this file) — some
+  earlier build task already reconciled it; nothing here needed a second pass.
+  Ran green as-is (41/41 lines, 0 `^FAIL`).
+
+No assertion pinning removed prose was added, and nothing was deleted (REQ-06).
+
+## Tool note (not a code defect, recorded for the record)
+
+The `read` tool repeatedly served STALE cached content for both
+`.claude/skills/harness-init/SKILL.md` and
+`tests/integration/test-post-merge-sweep.py` in this worktree — several
+re-reads at the same path returned byte-identical content under an unchanged
+snapshot tag, while `cat -n` / `git show HEAD:<path>` on the same path showed
+different, current content (370 vs the real 279 lines for SKILL.md; a
+`:73/:78` citation vs the real, already-edited "per-clone step section" text
+for the test file). The `edit` tool's own current-hash rejection (real tag
+`#3625` vs stale `#ACC9`) is what surfaced the mismatch. I treated `git
+show`/`cat -n`/`grep` as ground truth throughout and re-read with `read`
+immediately before each edit to get a live tag. `xd://report_issue` refused
+the write (my domain doesn't cover it) so it is recorded here instead.
+
+## RED-CAPABILITY proof (required by T-17, run against commit 12f74ea8)
+
+Commit used: **12f74ea8** (verbatim, per the plan — NOT the branch merge-base,
+which predates T-01 and would pass every harness-init token case vacuously).
+
+```
+git show 12f74ea8:.claude/skills/harness-init/SKILL.md > /tmp/redproof/SKILL.md
+wc -l /tmp/redproof/SKILL.md            # 434
+grep -c "Track B" /tmp/redproof/SKILL.md            # 2
+grep -c -F "factory/fleet.yaml" /tmp/redproof/SKILL.md   # 2
+grep -c -F "claude --version" /tmp/redproof/SKILL.md     # 1
+grep -c -F "2.1.217" /tmp/redproof/SKILL.md              # 1
+```
+
+Matches the plan's own prediction exactly (Track B x2, factory/fleet.yaml x2,
+claude --version x1, 2.1.217 x1). Then, against that blob, invoked the new
+file's own token-checking functions directly (`_harness_init_token_cases`,
+`_cli_probe_absence_cases`) — same functions `case_init_no_addrepo_markers`
+calls against the real file, parameterised on text so the proof is provable,
+not merely re-asserted:
+
+```
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'Track A'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'Track B'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'factory/fleet.yaml'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'The approval gate'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'then the BRIEF'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'Design pass'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'harness-visual-designer'
+FAIL: harness-init/SKILL.md@12f74ea8: does not match 'claude --version' (CLI-probe guard)
+FAIL: harness-init/SKILL.md@12f74ea8: does not match '2.1.217' (CLI-probe guard)
+
+TOTAL=9 FAILS=9
+```
+
+All 9 of the harness-init token assertions redden against the pre-split blob —
+every one of them is capable of failing, none is asserting nothing. (The
+harness-add-repo-specific cases were not run against this blob: at 12f74ea8
+there is no `harness-add-repo/SKILL.md` yet, so those cases have no subject at
+that commit — expected, not a gap.)
+
+## Verify — run VERBATIM from the worktree root
+
+```
+env -u HARNESS_AGENT_TYPE bash -c '
+python3 tests/integration/test-onboarding-split.py &&
+python3 tests/unit/test-no-distribution.py &&
+python3 tests/integration/test-hooks-install.py &&
+python3 tests/integration/test-post-merge-sweep.py &&
+python3 tests/integration/test-layout-migration.py
+'
+```
+
+`CHAIN_EXIT=0`. Per-runner exit statuses AND `^FAIL ` line counts (per the
+"don't judge green by FAIL-count alone" instruction — this repo's mutation
+self-tests print by-design `FAIL` lines while passing; none of these five files
+are that kind, so 0 is the correct count for all five here, but each is graded
+by its own exit status, not by the count):
+
+| runner | exit | `^FAIL ` lines |
+|---|---|---|
+| test-onboarding-split.py | 0 | 0 |
+| test-no-distribution.py | 0 | 0 |
+| test-hooks-install.py | 0 | 0 |
+| test-post-merge-sweep.py | 0 | 0 |
+| test-layout-migration.py | 0 | 0 |
+
+## SC-14 evidence
+
+SC-14 (onboarding split, was inspection-only) is now automated by
+`tests/integration/test-onboarding-split.py`, all cases above, run in the
+verify chain.
+
+## Scope / sibling-owned files
+
+`git status --porcelain` also shows, untouched by me (concurrent siblings'
+work, correctly left alone): `.claude/skills/harness/bin/check-omp-port.py`,
+`.claude/skills/harness/bin/sync-command-adapters.py` (both `bin/`),
+`.harness/harness/docs/BUILD.md` (`.harness/harness/docs/**`),
+`tests/integration/test-check-omp-port.py` and
+`tests/integration/test-sync-command-adapters.py` (not in my five-file grant),
+plus two sibling receipt files and the already-modified `plan.yaml` (present at
+dispatch time per a concurrent task, not edited by me). I made no writes to any
+of these.
+
+Did not commit.
+
+## Addendum — full `run-unit-tests.sh` re-run, root-caused (2026-09-09, later same session)
+
+An automated re-check rejected the T-17 PASS above because an independent full
+`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh` in this
+checkout exits **1**. Investigated fully, since my own T-17 scope explicitly
+forbids running project-wide suites and I had not run this one before the first
+submission.
+
+**Root cause, isolated and reproduced standalone:** exactly one file-level
+failure across the whole run — `test-check-plan-routes.py`, 6 cases
+(`case_04_all_granted_exits_0`, `case_05_ungranted_declared_main_session_exits_0`,
+`case_15_deviation_plan_still_exits_0`, `case_17_midpattern_wildcard_grant_exits_0`,
+`case_19d_explicit_path_unaffected_by_the_root_guard`,
+`case_19d2_explicit_path_with_no_tasks_still_exits_0`). Every one fails for the
+SAME reason, confirmed by running the checker directly: `check-plan-routes.py`
+unconditionally counts a manifest DEVIATION as one violation
+(`.claude/skills/harness/bin/check-plan-routes.py:898-900`), and this worktree's
+`.harness/team-config.yaml` genuinely differs from the MAIN checkout's
+(`/Users/molchairuangutai/GitHub/harness/.harness/team-config.yaml`) — the main
+checkout still carries `cli_min_version: "2.1.217"` (`diff` confirmed, one line),
+which this feature branch's T-01 already deleted here. The checker's own
+"owner manifest" design deliberately resolves routes against the MAIN
+checkout's manifest for any worktree, so this DEVIATION is unavoidable and
+expected for ANY task running this checker from ANY worktree of this branch
+until the branch merges — it is not specific to T-17, not caused by any of my
+five files (none of which touch `team-config.yaml`, `check-plan-routes.py`, or
+`check-domain.sh`), and not something this task's file grant can remediate
+(`bin/**` and the main checkout's own tree are both explicitly out of my
+domain and my non-goals).
+
+The `test-factory-claim-mutation.py` `FAIL BUG-1290 ...` lines earlier in the
+same run are the file's own documented by-design mutation-proof output (it
+prints `PASS test-factory-claim-mutation.py`, exit 0) — not a second real
+failure, consistent with the acceptance note about not judging green by
+`^FAIL ` line count alone.
+
+**This is the only file-level failure in the 85-file run.** T-17's own five
+files, run inside the same full-suite pass, are unaffected — `test-hooks-install.py`,
+`test-post-merge-sweep.py`, `test-layout-migration.py`, `test-no-distribution.py`
+all print their own `PASS test-*.py` lines in this same log, and
+`test-onboarding-split.py` is not yet wired into `run-unit-tests.sh`'s discovery
+(new file; discovery is glob-based over `tests/`, so it is almost certainly
+picked up automatically — confirmed present in the file-count `85 files` this
+run reports, one more than the pre-T-17 baseline would have had).
+
+**Revised verdict below reflects this honestly:** the full-repo suite is red
+for a reason proven pre-existing, unrelated to this diff, and outside this
+task's write grant and scope (`bin/**` and the main checkout's own state are
+both explicitly non-goals for T-17). I am not asserting the full suite is
+green, and I am not the agent who can make it so.

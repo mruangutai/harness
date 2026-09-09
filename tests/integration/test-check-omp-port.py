@@ -142,9 +142,31 @@ def main() -> int:
     finally:
         td.cleanup()
 
+    td, root = fixture()
+    try:
+        (root / ".omp" / "commands" / "harness-ship.md").unlink()
+        result = run(root)
+        check("missing command door fails", result.returncode == 1)
+        check("missing door is named", "harness-ship.md" in result.stderr)
+    finally:
+        td.cleanup()
+
+    td, root = fixture()
+    try:
+        shutil.rmtree(root / ".omp" / "commands")
+        result = run(root)
+        missing_doors = sum(
+            1 for door in ("harness", "harness-plan", "harness-ship", "harness-grilling")
+            if f".omp/commands/{door}.md is missing" in result.stderr
+        )
+        check("absent canonical command root fails", result.returncode == 1)
+        check("absent canonical root names all four doors", missing_doors == 4, result.stderr)
+    finally:
+        td.cleanup()
 
 
-    print(f"\n{19 - failures}/19 cases passed")
+
+    print(f"\n{23 - failures}/23 cases passed")
     return 1 if failures else 0
 
 
