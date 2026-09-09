@@ -1309,6 +1309,22 @@ def cmd_status(feat_dir, station, repo, board):
       the lowercase `"review"` (operator ruling, D-23) — one `gh_board.set_station` call
       each. A parent that is not recorded prints one stderr line and the sub-issue writes
       still proceed; this does not raise and does not restate INV-21's finding.
+    - Building: `_record_station` records plan.yaml's own station as `building`, and the
+      early-return guard just below (unchanged) does not list `building`, so control falls
+      through it; neither the ready branch nor the review branch fires, so NO CARD IS WRITTEN
+      by this subcommand for building — the parent card reaches the board's Building column
+      by derivation from the task statuses `gh-sync.py start-task` writes. Nothing calls this
+      subcommand for building today: the orchestrator records the feature's building station
+      through `plan-merge.py set-feature-station --station building` (BUG-1507's addition to
+      SKILL.md's build phase, already landed on this branch), so this path is a stated
+      contract, not a live caller.
+
+      This is intentional (D-02), not a fallthrough left unstated: recording the station and
+      writing no card is the INTENDED behaviour for building, and building is deliberately not
+      added to the tuple below, because `load_recorded` — which the fallthrough reaches — raises
+      SystemExit on an unparseable or non-mapping feature.json, so short-circuiting building past
+      it would change observable behaviour in exactly the case the tuple is meant to be neutral
+      about (BUG-1507).
     - Plan, Done, Abandoned: no station write at all (Plan is board-station.py's own write;
       Done is written by `ship` alone, which is the only writer of the done station, so a
       Done feature's cards are already there by the time this runs; Abandoned has no column

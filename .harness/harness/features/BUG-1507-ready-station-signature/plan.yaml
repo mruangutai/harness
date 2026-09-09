@@ -258,7 +258,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
     verify: |
@@ -314,7 +314,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - tests/integration/test-station-argument-spelling.py
     verify: |
