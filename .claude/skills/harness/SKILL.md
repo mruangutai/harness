@@ -142,6 +142,10 @@ are orchestrator-sequenced squad segments, in this order.
    first, then `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/build.yaml` (`harness-team/SKILL.md` step 1). **You
    choose WHICH tasks go to `eng-lead`**; **the lead routes each one to the specialist that owns
    it** by `consult-when`. Two different decisions — it routes, it does not revisit your selection.
+   **As the segment starts dispatching — not after it finishes — record the FEATURE's own
+   station** with `plan-merge.py set-feature-station --station building`. That is the feature's
+   station and not a task's: `gh-sync.py start-task` writes only the task's, so without this
+   write nothing advances the feature (BUG-1507).
 2. **The qa segment**, a validator-squad segment. `harness-qa` writes and runs the tests and
    enforces the `test_matrix` hard gate (`harness.json` `gates.qa_gate: blocking`, the project's
    only blocking gate). On failure, `loop_back` to the dev that owns the task. The build is not done
