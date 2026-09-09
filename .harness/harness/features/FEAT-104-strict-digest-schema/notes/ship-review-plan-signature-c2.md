@@ -76,32 +76,45 @@ task, every active task traces at least one REQ, and no task cites a REQ that do
   struck B-2, so this also stays as it is.
 - `validate-digest.py lead` on the last run's digest: `digest ok`.
 
-## A correction to the c1 packet, and one thing that affects the build phase
+## Two corrections to the c1 packet, and what they mean for the build phase
 
-The product lead completed this run correctly but could not write its own run directory: every
+The product lead completed its run correctly but could not write its own run directory: every
 write after the first two was refused with
 `harness-product-lead holds worktree claim(s): .../FEAT-57-review-latency`.
 
-**In the c1 packet I told you that claim had cleared. That was wrong, and the evidence I gave for
-it was worthless.** I had run `inflight_registry.py list` from the main checkout and read
-`NO CLAIMS`; `REGISTRY_REL` resolves `.harness/.inflight-claims.json` per ROOT, so that command
-reports on the main checkout and says nothing whatever about another worktree's registry.
-Re-measured properly after the FEAT-56 flow corrected me: `list --root <FEAT-57 worktree>` shows
-two claims registered at 2026-09-09T18:49:11Z under `supervisor_pid 9988`, and `ps` confirms 9988
-is a running `omp` process whose start time matches the record's `supervisor_started_at`. **The
-claim is live.** I released nothing, so no running flow was harmed — the action was right for the
-wrong reason. I landed the lead's digest from my own tier instead, carrying its fenced contract
-block, and disclosed the substitution in the file.
+**Correction 1 — I told you that claim had cleared. It had not, and my evidence was worthless.**
+I had run `inflight_registry.py list` from the main checkout and read `NO CLAIMS`. `REGISTRY_REL`
+resolves `.harness/.inflight-claims.json` per ROOT, so that command reports on the main checkout
+and says nothing whatever about another worktree's registry.
 
-**Why this matters to your signature and not just to my bookkeeping.** `check-domain.sh` enforces
+**Correction 2 — my replacement evidence was also too strong.** I then cited `ps` showing
+`supervisor_pid 9988` alive with a start time matching `supervisor_started_at`, and concluded the
+claim was live. That proves the SUPERVISOR lives. A claim is retained for that supervisor's whole
+lifetime, so a claim leaked by an interrupted dispatch can never expire inside it, and `reconcile`
+returns `RECONCILED 0` correctly. PID liveness and run liveness are separable.
+
+**What actually discriminates, measured.** FEAT-57 holds two claims, both registered
+2026-09-09T18:49:11Z. Its own run states show exactly one non-complete run —
+`2026-09-09-02-validator`, step `q6-reachability` still `running`, touched 872s before I read it.
+That backs the `harness-validator-lead` claim. There is **no** non-complete product run in FEAT-57,
+so the `harness-product-lead` claim that blocked me has no run behind it that I can see, and may be
+a leak.
+
+**I released nothing, and am not asking you to.** An absent `state.yaml` is not proof of an absent
+run — a lead blocked from writing its own run dir is precisely the failure I just experienced — it
+is another flow's worktree, and you have stopped cross-worktree releases. The measurement is yours;
+the decision is not mine. I landed the lead's digest from my own tier instead, carrying its fenced
+contract block, and disclosed both corrections in the file rather than overwriting them.
+
+**Why this bears on your signature rather than on my bookkeeping.** `check-domain.sh` enforces
 single-flight by agent TYPE across every linked worktree, not per feature. So while another flow
 holds `harness-product-lead` or `harness-eng-lead`, this feature's build-phase dispatches will hit
 the same wall — mid-run, after earlier writes to the same path have succeeded, which is what makes
 it read as a transient. The blast radius is run bookkeeping only: `notes/` paths are granted per
 persona and are not what the claim blocks, so durable artifacts land fine and a lead can return its
 digest inline for the tier above to write. The FEAT-56 flow has hit this seven times today and has
-already escalated it to you as a structural collision; I am not re-proposing it, only telling you
-it will shape how the build phase runs if FEAT-56 and FEAT-57 are still live when you sign.
+already escalated it to you as one structural finding; I am citing it rather than re-filing it, and
+FEAT-104 is the second independent feature with the same failure and the same workaround.
 
 ## Budget
 
@@ -119,4 +132,4 @@ All under
 - `notes/research-FEAT-104-triage-c0.md` — the measurement and per-key triage
 - `notes/research-FEAT-104-goalcheck-plan-c0.md` and `notes/research-FEAT-104-planfix-c1.md`
 - `notes/review-harness-code-reviewer-planpanel-c1.md`
-- `runs/sigfix-c2-product/digest.md` — this pass's record, carrying the same correction
+- `runs/sigfix-c2-product/digest.md` — this pass's record, carrying both corrections
