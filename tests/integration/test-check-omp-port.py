@@ -25,9 +25,14 @@ def run(root: Path) -> subprocess.CompletedProcess[str]:
 def fixture() -> tuple[tempfile.TemporaryDirectory, Path]:
     td = tempfile.TemporaryDirectory()
     dst = Path(td.name)
+    # `.claude/worktrees/` holds every live feature checkout — ~1 GB here, growing with
+    # concurrent feature work — and check-omp-port.py never reads it: its only traversal is
+    # `agent_dir.glob("harness-*.md")`. Copying it made this file 239s of the integration
+    # suite's 240s wall clock (issue #1525).
+    skip_worktrees = shutil.ignore_patterns("worktrees")
     for rel in (".omp", ".agents", ".claude"):
         src = ROOT / rel
-        shutil.copytree(src, dst / rel, symlinks=True)
+        shutil.copytree(src, dst / rel, symlinks=True, ignore=skip_worktrees)
     shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
     shutil.copy2(ROOT / "CLAUDE.md", dst / "CLAUDE.md")
     return td, dst
