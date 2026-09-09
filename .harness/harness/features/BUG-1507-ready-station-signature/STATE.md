@@ -3,10 +3,10 @@
 ## Current
 
 - feature: BUG-1507-ready-station-signature
-- run: build phase — eng segment CLOSED, all five tasks landed and committed; qa segment next
-- squad: eng (returned PASS), validator next
-- status: in_progress
-- station: `building` (plan.yaml line 3), written 2026-09-09T04:58Z by the orchestrator
+- run: BUILD PHASE CLOSED — five tasks landed, qa_gate green, SIMPLIFY empty; validate panel next
+- squad: validator (the panel)
+- status: in_review
+- station: `review` (plan.yaml line 3), written by `gh-sync.py status <feature-dir> review`
 
 Log:
 
@@ -83,6 +83,22 @@ Log:
   conditionally skipped row (the disposition of PF-4d48a751). Orchestrator re-ran both `verify:`
   blocks itself: T-04 exit 0, T-05 exit 0 with 8 PASS rows and 0 FAIL. Committed `64bc9351`.
   `cycles_used` unchanged at 2 — a clean first-pass run adds none (DEC-157).
+- 2026-09-09: run `2026-09-08-qa-validator` PASS, 0 send-backs — the blocking `qa_gate`.
+  `integration` is the only kind the matrix demands, for the three `bugfix` tasks (T-01, T-02,
+  T-05); the two `docs` tasks require none. All three discharge to
+  `tests/integration/test-station-argument-spelling.py`, which the lead verified can report RED
+  rather than only green. SC-02, SC-03 and SC-09 all PASS; `must_fix: []`. The orchestrator re-ran
+  the two SC-09 suites itself: both exit 0. Note at `notes/qa-BUG-1507-build.md`.
+- 2026-09-09: run `2026-09-08-01-simplify-eng` PASS — SIMPLIFY, the last build step, run BEFORE
+  the pin. All four angles read the five-path diff; the pass is EMPTY BY RULE, not by omission.
+  Two findings, neither appliable: a redundant conjunct at the witness's line 139 (dropping it
+  would weaken an assertion after the qa gate) and a residual that D-05's `because:` does not name
+  every directory the sweep glob excludes (its only remedy edits a signed `plan.yaml`, which pm
+  alone may write). Both carried as non-blocking backlog rows. Working tree clean at `287aafb5`.
+- 2026-09-09: BUILD -> VALIDATE seam. `gh-sync.py status <feature-dir> review` run (lowercase),
+  plan station `building` -> `review`; no parent issue is recorded for this feature, so no card
+  was written and the mirror reported that in one line, exit 0. `review_sha` pinned at the seam
+  commit, which contains every deliverable and no later code change.
 
 ## Open Questions
 
