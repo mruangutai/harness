@@ -1,0 +1,751 @@
+schema: plan/1
+feature: FEAT-104-strict-digest-schema
+approval:
+  status: pending
+status: plan
+source_issues: [104, 37]
+
+lanes:
+  resolved_at: 7e0c2ec148c05786d2cbbc1bf1f352c3e0403738
+  rows:
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, the validator is the artifact doing the checking
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, registered gate script
+    - surface: .claude/skills/harness/bin/run-state-schema.json
+      lane: main-session-direct
+      reason: DEC-174 carve-out by category, it is the data the two gates enforce
+    - surface: tests/integration/test-validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, each gate's own test is inside the boundary
+    - surface: tests/integration/test-check-domain.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, each gate's own test is inside the boundary
+    - surface: tests/integration/test-check-state.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, each gate's own test is inside the boundary
+    - surface: .claude/skills/harness-team/SKILL.md and .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain --resolve returns NOBODY, an ungranted surface
+    - surface: .claude/agents and .omp/agents lead templates
+      lane: main-session-direct
+      reason: check-domain --resolve returns NOBODY, an ungranted surface
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: The lead passthrough becomes a declared typed table PASSTHROUGH in validate-digest.py, optional per key, checked against the origin persona's type or enum, rather than new members of SCHEMAS
+    because: a SCHEMAS member is REQUIRED under DEC-121 and DEC-216 would then force matrix_ok into every lead's documented block
+    dec: none
+  - id: D-02
+    choice: A field earns a PASSTHROUGH row when it is already declared for another persona, as a SCHEMAS member or a DOCUMENTED_OPTIONAL entry under D-10, and is seen riding up a lead roll-up; occurrence count decides nothing, and a field declared and documented nowhere is drift whatever its count
+    because: an occurrence bar classed four already-legitimate fields as drift, coverage_gaps and failures and suite and kinds, three of them declared members of SCHEMAS qa and the fourth documented at .omp/agents/harness-qa.md line 91, while promoting nothing, so the bar measured popularity where the question is provenance
+    dec: none
+  - id: D-03
+    choice: adequacy_notes enters SCHEMAS lead as a REQUIRED list, lead-only, not universal
+    because: all 78 measured producers are lead returns, and an optional field reproduces the unrelied-upon state issue 37 was filed about
+    dec: none
+  - id: D-04
+    choice: The steps entry shape is a closed 21-key set plus one container, and membership is decided by whether a fresh context needs the key to resume, not by how often it appears
+    because: DEC-191 puts the burden of proof on keeping a key, so severity_max at 20 runs is still evidence rather than schema
+    dec: DEC-191
+  - id: D-05
+    choice: The container is evidence, a mapping whose keys must match a lowercase identifier pattern and whose values are scalars or flat lists of scalars, governed in shape and free-form in content
+    because: DEC-191 refused a drawer in a permanent machine-read record, while a per-run step entry is append-only and no script routes on it, and blanket rejection pushes evidence back into a context that demonstrably vanishes
+    dec: DEC-191
+  - id: D-06
+    choice: Step-level enforcement is gated on schema_version 2, all 356 existing runs declare 1 and stay legal and unrewritten
+    because: it makes historical readability true by construction instead of by promise
+    dec: none
+  - id: D-07
+    choice: The stop_hook_active passthrough stays open, and the unknown-key error is emitted as ONE message listing every offending key with its declaration route
+    because: DEC-208 records the passthrough as deliberate, so the single shot must be sufficient rather than closed
+    dec: DEC-208
+  - id: D-08
+    choice: The step key set lives in one JSON schema file read by both gates, not duplicated in check-domain.sh and check-state.sh
+    because: feature-schema.json is the DEC-191 precedent and two copies of a key set drift
+    dec: DEC-191
+  - id: D-09
+    choice: Drifted spellings are fixed at the instruction surfaces, and no alias is added to either gate
+    because: an alias makes the wrong spelling permanently legal, which is the tolerance this feature removes
+    dec: none
+
+  - id: D-10
+    choice: The legal digest key set is derived from every persona's DOCUMENTED output block, and a documented field carrying no declaration enters a new module-level DOCUMENTED_OPTIONAL table in validate-digest.py, keyed by RAW agent type, optional and typed, rather than becoming a required SCHEMAS member
+    because: a SCHEMAS member is REQUIRED under DEC-121, so 16 new required fields across 7 personas would reject every conforming return that omits one, and the three reviewer agents collapse to one canonical persona at validate-digest.py lines 243 to 244, so only the raw key keeps mode illegal on a security review
+    dec: DEC-121
+  - id: D-11
+    choice: The step enforcement floor binds by refusing the CREATION of a run state.yaml whose write payload declares schema_version below 2 or omits it, checked on check-domain.sh's existing write-payload path and only when the target file does not yet exist
+    because: without a floor REQ-02 is satisfied by prose, since D-06 gates step enforcement on a version the writing agent picks for itself, and keying the refusal on creation leaves every existing version-1 file writable and unrewritten so REQ-08 does not weaken
+    dec: none
+  - id: D-12
+    choice: Agreement between a persona's documented output block and its declaration is asserted mechanically in BOTH directions by tests/integration/test-validate-digest.py, reusing the existing CONTRACT_SOURCES map and documented_block parser, with .omp/agents as the source of record because the .claude/agents copies are generated
+    because: DEC-216 asserts required to documented only, and the reverse gap is exactly the defect that made this feature's first draft reject seven personas' documented returns, so it must be findable by a test rather than by the next reader
+    dec: DEC-216
+tasks:
+  - id: T-01
+    title: Declare the passthrough and documented-optional tables, require adequacy_notes, and document it in the lead block
+    traces:
+    - REQ-04
+    - REQ-07
+    - REQ-09
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, validate-digest.py is the validator being changed
+    depends_on:
+    - T-10
+    status: ready
+    files:
+    - .claude/skills/harness/bin/validate-digest.py
+    - tests/integration/test-validate-digest.py
+    - .claude/skills/harness-team/SKILL.md
+    - .omp/agents/harness-validator-lead.md
+    - .claude/agents/harness-validator-lead.md
+    - .harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      out=$(python3 tests/integration/test-validate-digest.py) || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      printf '%s\n' "$out" | grep -q 'adequacy_notes' || exit 1
+      printf '%s\n' "$out" | grep -q 'every documented key is declared' || exit 1
+      grep -q 'DOCUMENTED_OPTIONAL' .claude/skills/harness/bin/validate-digest.py || exit 1
+      grep -q '^  adequacy_notes:' .claude/skills/harness-team/SKILL.md || exit 1
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check || exit 1
+    intent: |
+      This task subsumes the former T-02, which is abandoned: the declaration and its documentation
+      land as ONE commit, because a lead return omitting adequacy_notes exits 2 from the first of the
+      two onward and this feature's own build runs are lead returns.
+
+      PART 1, in .claude/skills/harness/bin/validate-digest.py, beside SCHEMAS (currently lines
+      183 to 229), add TWO module-level mappings.
+
+        PASSTHROUGH = {"lead": {"sc_status": list, "needs_approval": bool,
+                                "severity_max": set(SEV), "matrix_ok": bool,
+                                "coverage_gaps": list, "failures": int,
+                                "suite": {"pass", "fail"}, "kinds": list}}
+
+      A PASSTHROUGH field is OPTIONAL, and that is the difference from SCHEMAS on purpose. When
+      present it is validated exactly as SCHEMAS validates a field of that type or enum, reusing the
+      existing field loop rather than a second one. When absent nothing is reported. Write a comment
+      stating why it is not in SCHEMAS: a SCHEMAS member is REQUIRED under DEC-121, and DEC-216 would
+      then force matrix_ok into every lead's documented output block. The last four rows are D-02's
+      repaired bar: coverage_gaps, failures and suite are declared members of SCHEMAS qa, and kinds is
+      documented at .omp/agents/harness-qa.md line 91, so all four are a lower tier's own field riding
+      up a roll-up rather than invented vocabulary, whatever their measured count.
+      Move sc_status OUT of SCHEMAS lead into PASSTHROUGH lead and delete the prose comment that
+      described it as a passthrough, so there is one mechanism rather than a comment.
+
+        DOCUMENTED_OPTIONAL, keyed by RAW agent type, never by the canonical persona
+
+      Same optional-and-typed semantics as PASSTHROUGH, and keyed on the raw type deliberately
+      (D-10): the three reviewer agents collapse to the single canonical persona "reviewer" at
+      validate-digest.py lines 243 to 244, so only the raw key keeps mode illegal on a security
+      review. Read the raw type from the same value line 1341 already reads. The rows, each field
+      taken from that agent's own documented DIGEST block:
+
+        harness-code-reviewer:    spec_violations list, human_commits_in_scope list
+        harness-security-reviewer: in_scope bool, scope_reason str, threat_model list
+        harness-ui-reviewer:      mode {"A","B"}, in_scope bool, states_unspecified list,
+                                  contract_violations list, a11y list
+        harness-qa:               kinds list, sc_evidence list
+        harness-documentor:       stale_found list
+        harness-dev-ops:          test_kinds_written list
+        harness-visual-designer:  needs_prototype bool, why str, prototype str
+
+      Sixteen distinct field names, and every one of them is instructed by a documented block while
+      appearing nowhere in this file today; the persona-by-persona enumeration with its file and line
+      anchors is in
+      .harness/harness/features/FEAT-104-strict-digest-schema/notes/research-FEAT-104-planfix-c1.md
+      Add "prototype" to NULLABLE: its documented value is <path|none>, and NULLABLE is the one
+      mechanism DEC-173 established for an inapplicable scalar.
+
+      PART 2, still in validate-digest.py: add "adequacy_notes": list to SCHEMAS lead as a REQUIRED
+      field. It is a list of one-line strings naming what the PASS does not cover; an explicit empty
+      list is the DEC-121 spelling for none.
+      Do NOT add unknown-key rejection in this task. That is T-04, and it lands in its own later
+      commit so T-08 has a base revision that contains this task and not that one.
+
+      PART 3, .claude/skills/harness-team/SKILL.md carries the one canonical lead digest block at
+      lines 237 to 258 and is the DEC-216 contract source for all three leads
+      (tests/integration/test-validate-digest.py lines 311 to 313). Add to that block, at the same
+      indentation as the other DIGEST fields so the line begins with exactly two spaces, a field
+      adequacy_notes whose example value is a list naming what this PASS does not cover, with the
+      annotation that an empty list is used when there is nothing and that it is NEVER omitted.
+      Add one sentence of semantics beside the block: adequacy_notes is a qualification on a PASS, it
+      means act on nothing but do not read this green as wider than it is. It is not must_fix, which
+      gates, and not open_questions, which reaches the user.
+      Also add, in the same block, a commented line naming the optional passthrough fields a lead may
+      carry when rolling a member up - sc_status, needs_approval, severity_max, matrix_ok,
+      coverage_gaps, failures, suite, kinds - and stating that any OTHER field is rejected from T-04
+      onward and belongs in adequacy_notes or in the run state evidence container.
+
+      PART 4, .omp/agents/harness-validator-lead.md is the CANONICAL role file; .claude/agents is
+      GENERATED from it by .claude/skills/harness/bin/sync-agent-adapters.py, which copies the body
+      wholesale (sync-agent-adapters.py lines 191 to 226). Edit the .omp file only, then run
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply and confirm --check exits 0.
+      Two edits at .omp/agents/harness-validator-lead.md lines 135 to 136. First, the existing
+      adequacy_notes instruction stays but must now say the field is required of EVERY lead with an
+      explicit empty list, not a validator-lead extra. Second, its documented severity_max enum reads
+      info|low|med|high|critical, and info is not a member of SEV (validate-digest.py line 36), so the
+      documented value is one the validator rejects today: correct info to none.
+
+      PART 5, tests in tests/integration/test-validate-digest.py, each asserted SEPARATELY, never a
+      count:
+        - a lead return carrying EACH of the eight PASSTHROUGH keys with a correct value validates -
+          one assertion per key;
+        - a lead return carrying severity_max set to the string sever is rejected naming the enum;
+        - a lead return OMITTING each PASSTHROUGH key validates - one assertion per key;
+        - a lead return omitting adequacy_notes is rejected; one with an empty list validates;
+        - for EACH of the sixteen DOCUMENTED_OPTIONAL fields, its own persona's return carrying that
+          field with a correct value validates, and carrying it with a wrong-typed value is rejected
+          naming the field - one assertion per field, thirty-two assertions;
+        - the REVERSE-DIRECTION agreement case (D-12), which is the mechanical assertion that
+          documentation and declaration agree: for every persona in the existing CONTRACT_SOURCES map
+          (lines 297 to 314), take documented_block for its mapped source, collect every key matching
+          a line of exactly two spaces then a lowercase identifier then a colon, and assert that key
+          is a member of UNIVERSAL, or headline, or SCHEMAS for the canonical persona, or
+          PASSTHROUGH for it, or DOCUMENTED_OPTIONAL for the raw persona. One assertion per persona,
+          and the failure message must name the persona, the key and its source path. The ok line for
+          this case must contain the literal string: every documented key is declared
+        - one value-level assertion beside it: the severity_max enum documented for the leads is a
+          subset of set(SEV), which is what PART 4's info correction makes true;
+        - demonstrate the reverse case DISCRIMINATES rather than asserting it: with one
+          DOCUMENTED_OPTIONAL row temporarily removed in-process, the case must FAIL naming that
+          field, and the demonstration is part of the case, not a claim in a note.
+      run_documented_contract_cases must PASS at the end of this task - PART 3 is what closes it, and
+      that is why the two former tasks are one.
+
+      PART 6, the base-revision pin, which is what makes SC-06 falsifiable on behaviour rather than on
+      ordering. Commit parts 1 to 5 as ONE commit. Then, as a second act of this same task, write the
+      40-character output of git rev-parse HEAD, as a single line with no trailing text, to
+      .harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt using
+      the Write tool (bash-write-guard.sh denies a shell redirect), and commit that one note file
+      alone. A separate commit is unavoidable: a commit cannot contain its own id. It touches one note
+      file, so git show of that pinned id for validate-digest.py returns the post-part-2,
+      pre-T-04 content either way. T-08 reads this file and re-derives both sides of the pin.
+
+  - id: T-02
+    title: ABANDONED - subsumed by T-01, which now lands the declaration and its documentation together
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain --resolve returns NOBODY for skills and agent templates
+    depends_on: [T-01]
+    status: abandoned
+    files:
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/agents/harness-validator-lead.md
+      - .omp/agents/harness-validator-lead.md
+    verify: |
+      # T-02 is at station abandoned and is never dispatched. Its work is PART 3 and PART 4 of T-01,
+      # whose verify covers both halves. Nothing to run here.
+      true
+    intent: |
+      DO NOT DISPATCH. Station abandoned; the work moved into T-01 PART 3 and PART 4 verbatim.
+      Why it moved: as two tasks, T-01's own intent predicted that run_documented_contract_cases
+      would FAIL at T-01's completion, because the lead block did not yet document adequacy_notes -
+      while T-01's verify demanded ALL PASSED. The two clauses could not both hold, and any doer of
+      T-01 was instructed to end in a red suite. Landing the declaration and the documentation as one
+      commit is also what keeps this feature's own lead returns valid from the first commit onward,
+      since a lead omitting a required adequacy_notes exits 2.
+      The record is kept rather than deleted so a later reader can see the merge instead of a gap in
+      the id sequence. REQ-07 is delivered by T-01; this id's traces row is retained only so the
+      abandoned record stays well-formed, and it is not counted in the traceability tables in
+      notes/research-FEAT-104-planfix-c1.md.
+
+  - id: T-03
+    title: Stop the instruction surfaces asking for ad-hoc digest fields
+    traces: [REQ-01, REQ-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain --resolve returns NOBODY for skills and agent templates
+    depends_on:
+    - T-01
+    status: ready
+    files:
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/agents/harness-product-lead.md
+      - .claude/agents/harness-eng-lead.md
+      - .omp/agents/harness-product-lead.md
+      - .omp/agents/harness-eng-lead.md
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      grep -q 'never a new digest key' .claude/skills/harness/SKILL.md || exit 1
+      grep -q 'never a new digest key' .claude/skills/harness-team/SKILL.md || exit 1
+      grep -q 'never a new digest key' .omp/agents/harness-product-lead.md || exit 1
+      grep -q 'never a new digest key' .omp/agents/harness-eng-lead.md || exit 1
+      grep -q 'never a new digest key' .claude/agents/harness-product-lead.md || exit 1
+      grep -q 'never a new digest key' .claude/agents/harness-eng-lead.md || exit 1
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check || exit 1
+    intent: |
+      The measured drift is leads answering questions their dispatch asked by inventing a digest
+      key: 61 drift keys, 56 of them used exactly once, minus the four rows D-02's repaired bar moves
+      into PASSTHROUGH (coverage_gaps, failures, suite, kinds). The full list is in
+      .harness/harness/features/FEAT-104-strict-digest-schema/notes/research-FEAT-104-triage-c0.md
+      and the four moved rows in notes/research-FEAT-104-planfix-c1.md
+      In .claude/skills/harness/SKILL.md, the orchestrator playbook, add one rule where the dispatch
+      shape is described: when a dispatch asks a member or a lead a specific question, it names WHERE
+      the answer goes - adequacy_notes for a qualification on a PASS, the run state steps evidence
+      container for a per-step fact, the digest artifact for reasoning - and never a new digest key.
+      Add the same one-line rule, using that exact phrase never a new digest key, to
+      .claude/skills/harness-team/SKILL.md beside the lead digest block, and to
+      .omp/agents/harness-product-lead.md and .omp/agents/harness-eng-lead.md.
+      .claude/agents is GENERATED from .omp/agents by
+      .claude/skills/harness/bin/sync-agent-adapters.py, which copies the body wholesale
+      (sync-agent-adapters.py lines 191 to 226). Edit the two .omp files only, then run
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply and confirm --check exits 0.
+      The two .claude/agents paths stay in this task's files because the generator writes them; they
+      are never hand-edited.
+      Do not add an alias or a tolerance anywhere. D-09: a drifted spelling is fixed at the
+      instruction, never made permanently legal by the gate.
+
+  - id: T-04
+    title: Reject unknown digest keys with a one-shot actionable message
+    traces:
+    - REQ-01
+    - REQ-04
+    - REQ-05
+    - REQ-06
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, validate-digest.py is the validator being changed
+    depends_on: [T-01, T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+      - tests/integration/test-validate-digest.py
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      out=$(python3 tests/integration/test-validate-digest.py) || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      printf '%s\n' "$out" | grep -q 'undeclared digest key' || exit 1
+      grep -q 'undeclared digest key' .claude/skills/harness/bin/validate-digest.py || exit 1
+    intent: |
+      In validate-digest.py's validate(), after the existing required-field loop, compute the legal
+      key set for the return: UNIVERSAL, plus headline, plus SCHEMAS for the canonical persona, plus
+      PASSTHROUGH.get(canonical, {}), plus DOCUMENTED_OPTIONAL.get(raw_persona, {}), plus the reviewer
+      inline extension code_grade, reviewed and grade_2_reasons where it already applies. Every DIGEST
+      key at the block's own base indent that is not in that set is a contract violation.
+      The DOCUMENTED_OPTIONAL term is load-bearing and is not optional to include: without it every
+      conforming return from harness-code-reviewer, harness-security-reviewer, harness-ui-reviewer,
+      harness-qa, harness-documentor, harness-dev-ops and harness-visual-designer exits 2, because
+      each of those seven agents' own documented DIGEST block instructs fields this file did not
+      declare before T-01 (sixteen of them, enumerated in
+      .harness/harness/features/FEAT-104-strict-digest-schema/notes/research-FEAT-104-planfix-c1.md).
+      Report ALL offending keys in ONE error entry, never the first only. The message must carry, for
+      the whole set: the offending key names; the literal phrase undeclared digest key so a check can
+      find it; the sentence that the digest contract is closed; and the declaration route by name -
+      a lower tier's field riding up a lead roll-up is declared in PASSTHROUGH in
+      .claude/skills/harness/bin/validate-digest.py, a field a persona's own documented output block
+      instructs is declared in DOCUMENTED_OPTIONAL in the same file, a persona's own new REQUIRED
+      field is declared in SCHEMAS in the same file and must also be documented in that persona's
+      output block under DEC-216, and a per-dispatch answer is not a digest key at all and goes to
+      adequacy_notes or the run state steps evidence container.
+      Do not use the phrase unknown key as the message literal: validate-digest.py already contains
+      unknown keys are ignored in a comment (two occurrences today), so a check greping for it cannot
+      tell the new message from the old comment.
+      Why one message: validate-digest.py line 1744 is the stop_hook_active early return, read on
+      2026-09-09 as a guard returning 0 when that payload key is set, so a re-prompted return is NOT
+      revalidated and strictness gets exactly one shot. A message naming one key of three sends the
+      second attempt out unvalidated with two violations still in it. D-07 keeps that passthrough
+      open. Do NOT touch the stop_hook_active branch, and add this check AFTER it, never before -
+      SC-09 is what pins that ordering.
+      Tests, each asserted separately:
+        - one unknown key on a lead return exits 2 and names it;
+        - the same for each persona key in SCHEMAS - pm, dev, qa, reviewer, visual-designer,
+          documentor, dev-ops, lead, orchestrator;
+        - for EACH of the sixteen raw personas in CONTRACT_SOURCES, a return carrying its documented
+          block's FULL field set - every key that block instructs, not a minimal valid payload -
+          exits 0. One assertion per persona. A minimal payload is what made this defect invisible in
+          cycle 0, so the fixture must be built from the documented block, not hand-written;
+        - three unknown keys on one return produce ONE error naming all three;
+        - the message contains the literal substrings PASSTHROUGH, DOCUMENTED_OPTIONAL and SCHEMAS;
+        - the same three-unknown-key payload with stop_hook_active set exits 0.
+
+  - id: T-05
+    title: Declare the closed step shape and the evidence container
+    traces: [REQ-02, REQ-03, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out by category, this file is the data two gate scripts enforce
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/run-state-schema.json
+      - .claude/skills/harness-team/SKILL.md
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      python3 -c "
+      import json
+      p = json.load(open('.claude/skills/harness/bin/run-state-schema.json'))['properties']['steps']['items']
+      assert p['additionalProperties'] is False, 'additionalProperties must be false'
+      want = {'id','persona','task','seq','depends_on','outputs','mutates_repo','on_fail',
+              'status','verdict','lead_verdict','cycles','max_cycles','redispatches',
+              'dispatched_at','completed_at','redispatched_at','recompleted_at',
+              'routed_by','note','artifact','evidence'}
+      got = set(p['properties'])
+      assert got == want, 'symmetric difference: ' + repr(sorted(got ^ want))
+      assert 'evidence' in p['properties']
+      "
+      grep -q 'schema_version: 2' .claude/skills/harness-team/SKILL.md || exit 1
+    intent: |
+      Create .claude/skills/harness/bin/run-state-schema.json, modelled on the sibling
+      feature-schema.json (the DEC-191 precedent), describing a run state.yaml.
+      The steps items object carries additionalProperties false and exactly these 22 properties:
+        id, persona, task, seq, depends_on, outputs, mutates_repo, on_fail,
+        status, verdict, lead_verdict, cycles, max_cycles, redispatches,
+        dispatched_at, completed_at, redispatched_at, recompleted_at,
+        routed_by, note, artifact, evidence
+      Required per step: id and status. Give each property a description naming its reader, as
+      feature-schema.json does.
+      evidence is an object whose propertyNames carry the pattern for a lowercase identifier,
+      that is caret, a lowercase letter, then lowercase letters digits or underscore, anchored;
+      and each value is a scalar or an array of scalars. The container is governed, its contents
+      are not. Nested objects are refused, and a value that must be READ rather than MATCHED is
+      still in the wrong file under DEC-154.
+      Top level: schema_version must be an integer, and enforcement in T-06 and T-07 applies only
+      when it is 2 or more. Do not otherwise change the top-level key set, check-state.sh's
+      CHECKPOINT_KEYS (line 1394) stays the top-level authority.
+      In .claude/skills/harness-team/SKILL.md, where the seed is described (around line 54), state
+      that a new run seeds schema_version 2 with that literal spelling, list the 22 step keys, and
+      state the evidence rule: a per-step fact a dispatch asked for goes under evidence with an
+      identifier key, never as a new step key and never as a sentence used as a key. Seven such
+      sentences were measured on 2026-09-09.
+
+  - id: T-06
+    title: Refuse an undeclared step key on the state.yaml write path
+    traces: [REQ-02, REQ-03, REQ-05, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, check-domain.sh is a registered PreToolUse gate script
+    depends_on: [T-05]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - tests/integration/test-check-domain.py
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      out=$(python3 tests/integration/test-check-domain.py) || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      printf '%s\n' "$out" | grep -q 'undeclared step key' || exit 1
+      printf '%s\n' "$out" | grep -q 'schema_version floor' || exit 1
+      grep -q 'schema_version floor' .claude/skills/harness/bin/check-domain.sh || exit 1
+    intent: |
+      check-domain.sh already validates a run state.yaml write payload for non-whitelisted or
+      duplicate TOP-LEVEL keys (DEC-160). Extend the same payload path, not a new one. Two clauses.
+
+      CLAUSE A, the step-key check. Validate each steps entry against
+      .claude/skills/harness/bin/run-state-schema.json using jsonschema, which DEC-190 makes a
+      required dependency. Gate on schema_version: when the payload's schema_version is absent or
+      below 2, the steps check does not run and behaviour is exactly as today. When it is 2 or more,
+      an entry carrying a key outside the 22 declared, or an evidence key that is not a lowercase
+      identifier, or an evidence value that is a mapping, exits 2.
+      The refusal names every offending key at once and names the declaration route: a recovery field
+      is declared in run-state-schema.json, a per-dispatch fact goes under evidence. Include the
+      literal phrase undeclared step key so the verify can find it.
+
+      CLAUSE B, the schema_version floor (D-11). This is what makes REQ-02 bind. Without it CLAUSE A
+      governs only the runs that opt in, and the opting is done by the same agents whose drift it
+      governs, so REQ-02 would be satisfied by prose.
+      On the same write-payload path, when the write CREATES a run state.yaml - the target path
+      matches the run state.yaml pattern this path already recognises AND does not exist on disk at
+      gate time - a payload whose schema_version is absent, non-integer, or below 2 exits 2. Include
+      the literal phrase schema_version floor in the refusal, and name the seed instruction by path -
+      .claude/skills/harness-team/SKILL.md, section 2 - so a lead working from an older preloaded copy
+      of that skill is told what to write rather than only that it was wrong.
+      The floor keys on CREATION and on nothing else, deliberately: every one of the 356 existing
+      version-1 files stays writable and unrewritten, so REQ-08 does not weaken and SC-11's
+      version-1-accepted half stays true. An UPDATE to an existing version-1 state.yaml is
+      untouched by both clauses, which is what lets a run in flight when this lands finish.
+
+      Tests in tests/integration/test-check-domain.py, asserted separately, never a count:
+        CLAUSE A: schema_version 1 with an undeclared step key is ACCEPTED; schema_version 2 with the
+        same key exits 2 and names it; schema_version 2 with evidence carrying three identifier keys
+        is ACCEPTED; schema_version 2 with an evidence key containing a space exits 2; schema_version
+        2 with a nested mapping under an evidence key exits 2; a payload whose steps entry uses only
+        the 22 declared keys is ACCEPTED - assert each declared key individually in that last case.
+        CLAUSE B, and each of these is a separate fixture because the discrimination is the point:
+        creating a run state.yaml at schema_version 2 is ACCEPTED; creating one at schema_version 1
+        exits 2 and the message contains schema_version floor; creating one with schema_version
+        absent exits 2; creating one with schema_version as the string "2" exits 2 naming the type;
+        and writing to an ALREADY EXISTING state.yaml that declares schema_version 1 is ACCEPTED,
+        which is the clause that would redden if the floor were keyed on the write rather than on the
+        creation.
+
+  - id: T-07
+    title: Report undeclared step keys in the state sweep for schema_version 2
+    traces: [REQ-02, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, check-state.sh is a registered gate script
+    depends_on: [T-05]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - tests/integration/test-check-state.py
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      out=$(python3 tests/integration/test-check-state.py) || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      printf '%s\n' "$out" | grep -q 'undeclared step key' || exit 1
+      grep -q 'undeclared step key' .claude/skills/harness/bin/check-state.sh || exit 1
+    intent: |
+      check-state.sh reports top-level keys outside CHECKPOINT_KEYS (defined line 1394, reported
+      around line 1473). Add the step-level equivalent, reading the same
+      .claude/skills/harness/bin/run-state-schema.json as T-06 so the key set exists once.
+      The sweep runs the step check ONLY on files whose schema_version is 2 or more. All 356 run
+      state.yaml files on disk at 2026-09-09 declare schema_version 1, so the sweep's verdict over the
+      existing corpus is unchanged. Say that in a comment carrying that date, the way the
+      CHECKPOINT_KEYS comment records why the historical money key survives.
+      The report line names the run, the step id and every offending key, and carries the literal
+      phrase undeclared step key - the same vocabulary T-06's refusal uses, so one grep finds the
+      behaviour at both seams and a case merely NAMED for the version cannot satisfy the verify.
+      Tests in tests/integration/test-check-state.py, asserted separately: a fixture run at
+      schema_version 1 with an undeclared step key produces NO new report line; the same fixture at
+      schema_version 2 produces one naming the step id and the key; a schema_version 2 fixture using
+      only declared keys plus evidence produces none.
+
+  - id: T-08
+    title: Prove both directions, including that the suite reddens without the change
+    traces: [REQ-01, REQ-04]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, this is the digest gate's own test file
+    depends_on: [T-04, T-06]
+    status: ready
+    files:
+      - tests/integration/test-validate-digest.py
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      P=.harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt
+      V=.claude/skills/harness/bin/validate-digest.py
+      sha=$(tr -d '\n' < "$P")
+      printf '%s' "$sha" | grep -Eq '^[0-9a-f]{40}$' || exit 1
+      git cat-file -e "$sha^{commit}" || exit 1
+      git show "$sha:$V" | grep -q 'DOCUMENTED_OPTIONAL' || exit 1
+      if git show "$sha:$V" | grep -q 'undeclared digest key'; then exit 1; fi
+      out=$(python3 tests/integration/test-validate-digest.py) || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      printf '%s\n' "$out" | grep -q 'pre-change validator' || exit 1
+    intent: |
+      Issue 103's gap survived a green suite because the suite only asserted that legitimate values
+      pass, which is true of a validator that rejects nothing. Add the other direction as an
+      executable case, not a claim.
+
+      THE BASE REVISION IS PINNED, NOT DERIVED. It must be a commit that CONTAINS T-01 and does NOT
+      contain T-04: T-01 makes adequacy_notes required, so a base taken before T-01 rejects the
+      unknown-key payloads for the wrong reason and the case would redden on ordering rather than on
+      behaviour. The plan cannot know that commit id, so T-01 records it: T-01 PART 6 writes the
+      40-character git rev-parse HEAD of its own commit to
+      .harness/harness/features/FEAT-104-strict-digest-schema/notes/base-revision-pre-T-04.txt, a
+      tracked file. Read the id from that file. Never a relative ref such as one commit back, and
+      never a search of git log - later tasks land between the two and both drift.
+      Re-derive BOTH sides of the pin before using it, exactly as this task's verify does: the file
+      holds 40 hex characters; git cat-file -e resolves it to a commit; git show of
+      validate-digest.py at that id CONTAINS DOCUMENTED_OPTIONAL, proving T-01 is in it; and does NOT
+      contain the literal undeclared digest key, proving T-04 is not. If either side fails, the pin is
+      wrong - return BLOCKED naming which side, and do not fall back to a relative ref.
+
+      Add a case whose ok line contains the literal string pre-change validator. It copies that pinned
+      revision of validate-digest.py into a temporary directory INSIDE .claude/skills/harness/bin, so
+      its sibling imports harness_yaml, code_grade, gate_policy and harness_boundary still resolve,
+      then runs the unknown-key payloads against that copy and asserts they exit 0 there while
+      exiting 2 against the current file.
+
+      Separately, add the legitimate-key replay: for adequacy_notes and for EACH of the eight
+      PASSTHROUGH keys, one assertion that a lead return carrying it validates. One assertion per key.
+      A single fixture carrying all nine, asserted once, is satisfied by the conformers alone.
+
+  - id: T-09
+    title: Record the strict contract in the decision log
+    traces: [REQ-01, REQ-02, REQ-03, REQ-06, REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-04, T-06, T-07, T-08]
+    status: ready
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      grep -q 'closed digest contract' .harness/harness/docs/DECISIONS-INDEX.md || exit 1
+    intent: |
+      TWO WRITES to .harness/harness/docs/DECISIONS.md, and the second one is a CORRECTION, not an
+      amendment-as-changelog.
+
+      WRITE 1. Append ONE new decision entry at the end, taking the next unused DEC number. Do not
+      renumber anything.
+      The entry states, as current truth and without biography: the digest contract is closed, an
+      undeclared key on a new return is refused with one message naming every offending key and its
+      declaration route; the legal key set is derived from every persona's DOCUMENTED output block,
+      and a documented field with no declaration is carried by an optional typed DOCUMENTED_OPTIONAL
+      table keyed by RAW agent type rather than by SCHEMAS, because a SCHEMAS member is required under
+      DEC-121 and the three reviewer agents collapse to one canonical persona; a lower tier's field
+      riding up a lead roll-up is declared in the optional typed PASSTHROUGH table for the same
+      reason; agreement between a persona's documented block and its declaration is asserted
+      mechanically in BOTH directions, .omp/agents being the source of record because .claude/agents
+      is generated; adequacy_notes is required of every lead, closing issue 37; a run state steps
+      entry has a closed 22-key shape plus a governed free-form evidence container, enforced on
+      check-domain.sh's write payload path and reported by check-state.sh, gated on schema_version 2,
+      and the creation of a run state.yaml below that version is refused so no new run can opt out,
+      while the 356 historical runs at version 1 stay legal and unrewritten; and the stop_hook_active
+      passthrough stays open, which is why the message must be one-shot sufficient.
+      Refs: DEC-121, DEC-122, DEC-126, DEC-154, DEC-160, DEC-173, DEC-174, DEC-191, DEC-208, DEC-216.
+
+      WRITE 2, ONE CLAUSE ONLY. DEC-126's Applied record, at DECISIONS.md lines 2612 to 2613, reads
+      that the three leads' inline blocks were replaced with a pointer plus each lead's per-role
+      extras, listing needs_approval for the product lead and severity_max plus adequacy_notes for the
+      validator lead. D-03 FALSIFIES the adequacy_notes half: the field is required of every lead and
+      lives in the canonical harness-team block, so it is not a validator-lead per-role extra any
+      more. Correct that clause to say so - the validator lead's per-role extra is severity_max, and
+      adequacy_notes is required of all three leads in the canonical block. Under DEC-205 DECISIONS.md
+      states current truth, so a clause a later decision falsifies is corrected in place.
+      Touch nothing else in DEC-126, add no dated note, renumber nothing, and correct no other entry.
+      The reviewers' clause at lines 2614 to 2617 already names spec_violations, review_sha,
+      human_commits_in_scope, threat_model and scope_reason as inline extras and stays exactly as it
+      is: it is true, and D-10 is what finally declares those fields.
+
+      THEN the index. The index row's ruling text after the double-colon separator is hand-written,
+      gen-decisions-index.py does not produce it; it must contain the phrase closed digest contract.
+      Regenerate .harness/harness/docs/DECISIONS-INDEX.md with
+      python3 .claude/skills/harness/bin/gen-decisions-index.py and confirm the verify diff is empty.
+      The index stores a per-row source line, and WRITE 2 changes the length of an entry near the
+      middle of the file, so every later row's anchor shifts - the regeneration is not optional and is
+      committed with the same change.
+  - id: T-10
+    title: Capture the run-artifact baseline manifest, before any enforcement task lands
+    traces: [REQ-08]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: the manifest is taken at the OWNER ROOT, outside every worktree, because runs/ is gitignored so the worktree carries zero run artifacts and no team member's tools reach outside its tree
+    depends_on: []
+    status: ready
+    files:
+      - .harness/harness/features/FEAT-104-strict-digest-schema/notes/run-artifact-manifest-base.txt
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness
+      python3 -c "
+      import hashlib, sys
+      base = sys.argv[1] if 1 < len(sys.argv) else '.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/notes/run-artifact-manifest-base.txt'
+      changed, vanished, n = [], [], 0
+      for line in open(base):
+          line = line.strip()
+          if not line:
+              continue
+          want, path = line.split(None, 1)
+          n += 1
+          try:
+              got = hashlib.sha256(open(path, 'rb').read()).hexdigest()
+          except FileNotFoundError:
+              vanished.append(path)
+              continue
+          if got != want:
+              changed.append(path)
+      print('manifested', n, 'changed', len(changed), 'vanished', len(vanished))
+      for p in changed + vanished:
+          print('   ', p)
+      assert 726 <= n, 'manifest truncated: ' + str(n)
+      sys.exit(1 if (changed or vanished) else 0)
+      "
+    intent: |
+      This task exists so SC-12 can go red. It records the pre-change state of every historical run
+      artifact, so that a later comparison can FALSIFY the claim that this feature rewrote none.
+      It must land before T-01, the first task that touches anything.
+      Run at the OWNER ROOT /Users/molchairuangutai/GitHub/harness, not in the worktree: runs/ is
+      gitignored, so the worktree carries zero run artifacts (measured 2026-09-09,
+      notes/research-FEAT-104-triage-c0.md, Measurement section).
+      Compute, for every path matching the glob .harness/harness/features/*/runs/*/state.yaml and
+      the glob .harness/harness/features/*/runs/*/digest.md, one line
+        <sha256 hexdigest><two spaces><path relative to the owner root>
+      sorted by path. 726 paths matched at 2026-09-09 (356 state.yaml, 370 digest.md); the count
+      may only be higher when this runs, because runs are append-only.
+      Write those lines, and nothing else - no header, no blank lines - to
+      .harness/harness/features/FEAT-104-strict-digest-schema/notes/run-artifact-manifest-base.txt
+      inside the WORKTREE, so the baseline is a tracked file that merges to main and cannot be
+      silently altered. Use the Write tool: bash-write-guard.sh denies a shell redirect.
+      Then demonstrate the comparator discriminates, and record the two exit codes in the run
+      state steps evidence container: run the verify command as written and confirm exit 0; then
+      copy the manifest to a temp path with one hexdigest character altered, pass that copy as the
+      command's single argument, and confirm exit 1 with the offending path named. Do not mutate
+      any real run artifact to prove this - the mutated manifest copy is the proof.
+      A path present on disk but ABSENT from the manifest is ignored by construction: other
+      features write new runs into that same owner-root tree concurrently, and a new run must not
+      redden this criterion.
+panel:
+  last_run: planpanel-c1-validator
+  cycle: 1
+  severity_max: high
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+  findings:
+  - id: PF-4bd91290deaf98062943319ff3ea5641
+    rank: 1
+    severity: high
+    reader: should-not-exist
+    summary: T-01 PART 6 / T-08 / SC-06's git show <40-char pin> differential rebuilds
+      the mechanism test-validate-digest.py already removed and replaced with vendored
+      inert fixture bytes
+    evidence: tests/integration/test-validate-digest.py:30-33, :2866-2869, :3556-3557,
+      :4008-4010; mandated by BRIEF.md SC-06, plan.yaml T-08 intent+verify, T-01 PART
+      6
+    disposition: SURVIVES, GATING, apply first
+  - id: PF-d2cefa75a1931540efa60d3561f7df6b
+    rank: 2
+    severity: med
+    reader: should-not-exist
+    summary: D-02's repaired bar admits three lead PASSTHROUGH rows (failures, suite,
+      kinds) on observed-traffic grounds, and REQ-04 defines legitimate use as documented-block-only,
+      never observed traffic
+    evidence: plan.yaml D-02 vs BRIEF.md REQ-04; planfix F5 table; T-03's 'never a
+      new digest key'
+    disposition: SURVIVES at reader's med, non-gating; operator choice at signature
+  - id: PF-4d84bb7e52beff3ee62eb98a7115ae9e
+    rank: 3
+    severity: low
+    reader: scope
+    summary: T-01 PART 1's 'reuse the existing field loop' is inconsistent with that
+      loop, whose literal reading makes all 24 optional fields REQUIRED, reproducing
+      goal-check F1
+    evidence: validate-digest.py:1190, :1197
+    disposition: SURVIVES at low, non-gating; unlandable past T-01 PART 5's omission
+      assertions
+  - id: PF-7469688fee994f7ec08ad85dea1d1f8b
+    rank: 4
+    severity: low
+    reader: scope
+    summary: SC-11's text read standalone in BRIEF.md is falsified by D-11's creation
+      floor; its accept case is necessarily an UPDATE to an existing version-1 file
+    evidence: BRIEF.md SC-11 vs plan.yaml D-11 / T-06 CLAUSE B
+    disposition: SURVIVES at low, non-gating; add the qualifier to SC-11
+  dismissed:
+  - reader: should-not-exist
+    item: SC-12/T-10 run-artifact manifest is unnecessary ceremony
+    reason: 'RETRACTED by the reader itself and I concur: runs/ is gitignored at the
+      owner root, so a rogue historical rewrite is invisible to SC-13''s diff read
+      and to git; the manifest is the only detector'
+  - reader: scope
+    item: clearance that the base-revision pin is non-vacuous
+    reason: verified and true, but answers discrimination not hermeticity, so it does
+      not rebut finding 1; both stand, only their union gates
+  transcription_rule: ids computed by panel_findings.py from reader plus the digest's
+    own summary string, unaltered; panel_findings.py lowercases and collapses whitespace
+    only. rank is the validator lead's ordering (irreversibility, then severity).
+    Severities are the readers' own, transcribed verbatim; pm re-rated nothing.

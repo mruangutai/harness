@@ -1,0 +1,50 @@
+{
+  "feature_id": "FEAT-104-strict-digest-schema",
+  "branch": "feat/FEAT-104-strict-digest-schema",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheck-plan-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "planfix-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "planpanel-c1-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "paneltranscribe-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "paneltranscribe-c1b-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    }
+  ]
+}
