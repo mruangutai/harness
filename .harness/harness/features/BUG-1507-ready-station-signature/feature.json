@@ -2,7 +2,7 @@
   "feature_id": "BUG-1507-ready-station-signature",
   "branch": "feat/BUG-1507-ready-station-signature",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "ac5e24e51f2520e273580f66c372b5bd143001f1",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
