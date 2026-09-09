@@ -11,8 +11,11 @@ import harness_boundary
 
 # harness-init is excluded here because of the anchor rule, not because of ownership:
 # the anchor rule would rewrite its deliberately clone-relative core.hooksPath value.
+# harness-add-repo is excluded because it runs only in the main session, and its
+# content is deliberately clone-relative, so the anchor rule would rewrite it too.
 MAIN_SESSION_ONLY = (
     "harness-init",  # anchor rule would rewrite its clone-relative core.hooksPath; runs only in the main session
+    "harness-add-repo",  # runs only in the main session
     "harness-grilling",  # main session only
     "harness-wayfinding",  # main session only
 )

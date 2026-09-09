@@ -4,7 +4,7 @@ approval:
   date: '2026-09-09'
   approved_by: molchairuangutai
   status: approved
-status: plan
+status: ready
 source_issues: [206]
 
 lanes:
@@ -1208,7 +1208,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-instruction-paths.py
     verify: |
