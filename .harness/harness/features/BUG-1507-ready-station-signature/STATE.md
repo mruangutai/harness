@@ -14,21 +14,19 @@
 
 Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and `runs/*/digest.md`):
 
-- 2026-09-08: station `plan`. Premises re-verified on disk before any dispatch: `harness-plan.md:24`
-  carried `status <feature-dir> Ready`; `github-mirror.md:94,96` carried `Ready`/`Review`;
-  `SKILL.md`'s build phase named no feature-level `building` write; `cmd_status`'s docstring omitted
-  Building. `.agents/skills` is a symlink to `../.claude/skills`, so `.claude/...` is the one
-  canonical, git-tracked path for all four surfaces.
+- 2026-09-08: station `plan`. All four defects re-verified dead on disk before any dispatch:
+  `harness-plan.md:24` Ready, `github-mirror.md:94,96` Ready/Review, no feature-level `building`
+  write in SKILL.md's build phase, no Building in `cmd_status`'s docstring. `.agents/skills` is a
+  symlink to `../.claude/skills`, so `.claude/...` is the one canonical path for all four.
 - 2026-09-08: run `plan-product` PASS — BRIEF (6 REQ, 10 SC) and plan.yaml (5 tasks, 6 decisions)
   drafted. pm found a FIFTH live instance at `harness-plan.md:11` (`board-station.py <n> Plan`) and
   folded it in as D-06; the orchestrator confirmed it dead independently (exit 2).
 - 2026-09-08: run `2026-09-08-01-product` FAIL — the plan panel's goal-check against the operator's
   stated intent: 3 of 5 DoD bullets discharged, 9 findings, all repairs BRIEF-only.
   `notes/research-BUG-1507-goalcheck-plan-c0.md`. `cycles_used` 0 -> 1.
-- 2026-09-08: RECORD CORRECTION, disclosed. The draft run had been appended under the id the
-  goal-check lead later gave its own run DIRECTORY, so one id labelled two runs with opposite
-  verdicts, and it carried a `code_grade` that belongs only to a validator run. Ids and keys
-  corrected; no verdict or outcome altered.
+- 2026-09-08: RECORD CORRECTION, disclosed. One id had labelled two runs with opposite verdicts
+  (the lead reused it for its run DIRECTORY) and carried a validator-only `code_grade`. Ids and
+  keys corrected; no verdict or outcome altered.
 - 2026-09-08: run `2026-09-08-1-product` PASS — fix cycle, R-1..R-7 landed, F-08 accepted, F-09
   declined with reason. Q1 ruled to the disclosure route, Q2 to yes.
 - 2026-09-08: run `2026-09-08-01-validator` PASS — plan-panel, `cycle: 0`, `severity_max: med`,
