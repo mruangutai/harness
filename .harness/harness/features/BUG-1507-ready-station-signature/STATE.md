@@ -3,9 +3,10 @@
 ## Current
 
 - feature: BUG-1507-ready-station-signature
-- run: none — plan phase closed at the operator signature gate
-- squad: none
-- status: awaiting-user
+- run: build phase — eng segment CLOSED, all five tasks landed and committed; qa segment next
+- squad: eng (returned PASS), validator next
+- status: in_progress
+- station: `building` (plan.yaml line 3), written 2026-09-09T04:58Z by the orchestrator
 
 Log:
 
@@ -55,25 +56,46 @@ Log:
   that cannot go green blocks the build as surely as one that cannot go red ships a defect.
 - 2026-09-08: PLAN PHASE CLOSED at the operator signature gate. `notes/handoff-plan.md` written.
   `approval.status` stays `pending` in both plan.yaml and BRIEF.md — only the main session signs.
+- 2026-09-08: OPERATOR SIGNED (plan.yaml `approval.status: approved`, BRIEF `## Approval`
+  approved, at acc8bf63). Both open questions ruled by the operator: Q1 — accept the disclosed
+  limit that task-card Ready exclusivity (`gh_board.py` code work) stays out of scope; Q2 — keep
+  both T-05 and D-06, strike neither, retype nothing. The main session then ran the post-signature
+  `gh-sync.py status <feature-dir> ready` and recorded SC-01's transcript at
+  `notes/sc01-ready-write-transcript.md` (partial: (a) and (b) met, (c) not applicable — zero
+  sub-issues recorded).
+- 2026-09-09: BUILD PHASE OPENED, station `ready` -> `building`. The orchestrator ran
+  `plan-merge.py set-feature-station --station building` on this feature's own `plan.yaml` at the
+  moment the eng segment began, BY HAND from the worktree copy of T-03's instruction (the
+  control-plane checkout does not carry it until this branch merges). Observed `status: building`
+  at plan.yaml line 3; SC-05's record written to `notes/sc05-building-write-transcript.md`.
+- 2026-09-09: T-01, T-02, T-03 landed main-session-direct by the orchestrator (the DEC-174
+  carve-out `plan.yaml` `lanes:` records — `check-domain.sh --resolve` returns NOBODY for all three
+  `.claude/` doc surfaces). Commits `e5223f10` (T-01), `d9caec31` (T-02), `3063b1dc` (T-03). Each
+  task's own `verify:` re-run by the orchestrator after the edit: all three exit 0, each having
+  been RED on the same tree before the edit. T-02 additionally names `plan.yaml` explicitly in the
+  Building row so SC-06's "which writes the card and which writes the plan" is answerable from the
+  row alone.
+- 2026-09-09: run `2026-09-08-t04-t05-eng` PASS, 0 send-backs — `harness-eng-lead` hosted the
+  `build` team and routed both tasks to `harness-backend-dev`. T-04's Building bullet plus D-02's
+  decision paragraph added to `cmd_status`'s docstring (16 insertions, zero deletions, every line
+  inside the docstring — SC-08 holds); T-05's witness created with the accepted sets DERIVED from
+  `factory_config` and an in-process negative control, no subprocess self-reinvocation and no
+  conditionally skipped row (the disposition of PF-4d48a751). Orchestrator re-ran both `verify:`
+  blocks itself: T-04 exit 0, T-05 exit 0 with 8 PASS rows and 0 FAIL. Committed `64bc9351`.
+  `cycles_used` unchanged at 2 — a clean first-pass run adds none (DEC-157).
 
 ## Open Questions
 
-- Q1 (operator, decides at signature): the operator's DoD bullet 2 asks that a card at Ready ALWAYS
-  mean "signed, not started". Measured false today for TASK cards — `gh_board._task_statuses` reads
-  an absent task status as `ready` (`gh_board.py:192-202`), so a reconcile can place a task card at
-  Ready with no signature. The PARENT is protected (`derive_station` never returns `ready`, D-18).
-  Closing the task-card half is `gh_board.py` code work the issue's own scope line excludes. The
-  limit is disclosed in BRIEF.md `## Constraints`; the operator accepts it or widens scope.
-- Q2 (operator, decides at signature): T-05 (the regression witness test) and D-06 (repairing
-  `harness-plan.md:11`) are COUPLED — `:11` sits inside T-05's sweep scope, so striking T-05 makes
-  D-06 optional while keeping T-05 forces it. Striking T-05 also requires retyping T-01/T-02 from
-  `bugfix` to `docs`, or three tasks are left with no `test_matrix` evidence and the qa gate fails.
-  Both strike notes in BRIEF.md now name every casualty.
+- Q1 RESOLVED by the operator at signature: accept the disclosed limit. Task-card Ready
+  exclusivity is `gh_board.py` code work the issue's own scope line excludes; the limit stays
+  disclosed in BRIEF.md `## Constraints`.
+- Q2 RESOLVED by the operator at signature: keep both T-05 and D-06; strike neither, retype
+  neither T-01 nor T-02 to `docs`.
 - Q3 (harness owner, not a work item): a subagent return delivered as task status
   `failed (exit 1)` with "Subagent called yield with null data" while the transcript carried a
   complete, well-formed VERDICT/DIGEST/artifact block and every claimed artifact was present and
-  correct on disk. Observed twice this run, by two different tiers. A tier routing on the tool
-  status alone discards a passing run.
+  correct on disk. Observed twice in the plan phase, by two different tiers. A tier routing on the
+  tool status alone discards a passing run.
 - Q4 (harness owner, not a work item): the orchestrator playbook and the plan.yaml template both
   say `plan-merge.py apply` "unions by id", which reads as though re-emitting a same-id item with a
   corrected body changes it. It does not — `apply` refuses at exit 7 CONFLICT
