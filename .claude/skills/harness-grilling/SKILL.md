@@ -20,8 +20,7 @@ Three ways in, and they differ only in what follows:
 
 - **A loose idea or a feature request** — grill it to clarity, write the artifact, then offer
   `/harness-plan` with the artifact path as pm's input. Do not start planning unasked.
-- **Inside repository registration** — `harness-add-repo` runs the technical interview; `harness-init`
-  runs this checkout's interview.
+- **Inside repository registration** — `harness-add-repo` runs the technical interview.
 - **Standalone** ("stress-test this", "grill me on X") — write the artifact and stop. Nothing
   downstream is implied.
 

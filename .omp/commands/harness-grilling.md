@@ -1,4 +1,3 @@
-<!-- Generated from .omp/commands/harness-grilling.md; do not edit. Run bin/sync-command-adapters.py --apply. -->
 # /harness-grilling — dialog to clarity before anything is built
 
 Load `harness-grilling` and run it, here in the main session (no subagent has a user channel).

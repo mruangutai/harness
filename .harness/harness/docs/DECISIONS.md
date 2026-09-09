@@ -974,7 +974,11 @@ carries the version markers and wins.
 - **Set depth explicitly to `2` in every project.** It is the only value correct in all three bands.
 - **The primary control is capability, not the setting:** omit `Agent` from every worker's `tools:`. The
   depth cap is defence in depth.
-- **Pin CLI ≥ 2.1.217** — the floor for all three spawn env vars. Nothing pinned a version before.
+- **No `cli_min_version` is declared in any configuration file** — not in `.harness/harness.json`, not in
+  `.harness/team-config.yaml`, and not in the three templates — because nothing ever read it: no reader, no
+  schema entry, no reference under `.claude/skills/harness/bin/`. The 2.1.217 floor stands as the
+  documented compatibility fact of the band table above, consulted by a reader rather than enforced by a
+  gate; the three spawn env vars are available only from that band on.
 - **The GSD explanation offered for that reading is withdrawn.** It claimed GSD grants the spawn tool to none of its ~30
   agents "because nesting was off by default" — but nesting was *on* by default for the entire
   2.1.172–2.1.216 band, so that reasoning fails. GSD's flat topology is an unexplained data point, not

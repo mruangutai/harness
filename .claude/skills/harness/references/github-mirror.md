@@ -12,10 +12,10 @@ each with the surface that performs it (DEC-203 item 5).
 | whether an item is claimed | `start-task` |
 | which station it is at | `start-task` |
 | whether a blocker issue is finished | `factory_claim` — no `gh-sync.py` subcommand performs it |
-| which of a board's native workflows are enabled | `/harness-init`, at the registration step, against the board declared in that repository's own harness.json at its `default_branch`, and `ship`, which calls the audit |
+| which of a board's native workflows are enabled | `harness-add-repo`, at the registration step, against the board declared in that repository's own harness.json at its `default_branch`, and `ship`, which calls the audit |
 | which merged pull request a recorded branch resolves to | `record-pr`, and `ship`, which calls it |
 | which children a card's ticket has | `ship` |
-| which closed tickets a repository holds, with their reasons and labels, and which station options its board declares | `/harness-init`, at the registration step, against the board declared in that repository's own harness.json at its `default_branch`, and `ship`, which calls the audit |
+| which closed tickets a repository holds, with their reasons and labels, and which station options its board declares | `harness-add-repo`, at the registration step, against the board declared in that repository's own harness.json at its `default_branch`, and `ship`, which calls the audit |
 | whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in | The shared type-apply path in `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/gh_issue_types.py`, used by `gh-sync.py` and `factory_decompose.py`, plus `tests/manual/probe-issue-types.py` for the read-back clause |
 
 **No read-back ever reaches an approval-gated artifact.** That is the only stated bound on what a

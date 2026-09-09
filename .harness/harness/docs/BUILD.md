@@ -93,8 +93,9 @@ matcher, so one registration each serves the whole roster.
 | 2.1.217 – 2.1.218 | **1** (off) | yes |
 | **≥ 2.1.219** | **3** (on) | yes |
 
-**Pin the harness at CLI ≥ 2.1.217**, which is the floor for all three spawn env vars, and set the depth
-explicitly to `3` in every project. Setting it explicitly is correct in *all* bands — relying on the
+**CLI ≥ 2.1.217 is the floor for all three spawn env vars** — a compatibility fact to check against the
+bands above, declared nowhere in config — and set the depth explicitly to `3` in every project. Setting
+it explicitly is correct in *all* bands — relying on the
 default means the org silently reshapes the next time it moves.
 
 **Belt-and-suspenders, and the actually-reliable mechanism:** "members are always leaves" is enforced
@@ -432,7 +433,7 @@ repository, which is what keeps the first half dumb and safe.
 - **Merge, do not clobber.** Target projects have their own hooks — kaya-ai has five. Preserve them.
 
 **2. `.harness/harness.json`** — `test_matrix`, `test_kinds`, `gates`, `log_retention_days` (30),
-`commit_attribution`, `dirty_tree_whitelist`, `schema_version`, `cli_min_version: "2.1.217"`.
+`commit_attribution`, `dirty_tree_whitelist`, `schema_version`.
 
 **3. `.harness/team-config.yaml`** — from template, with `domain` globs seeded from detection, plus the
 `shared:` set and both team `conventions:`.

@@ -1588,7 +1588,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
     depends_on: [T-11]
-    status: ready
+    status: done
     files:
       - .claude/commands/harness.md
       - .claude/commands/harness-plan.md
@@ -1672,7 +1672,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-12]
-    status: ready
+    status: done
     files:
       - .omp/commands/harness.md
       - .omp/commands/harness-plan.md
@@ -2104,7 +2104,7 @@ tasks:
       - T-11
       - T-18
       - T-19
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md

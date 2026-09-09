@@ -1,4 +1,3 @@
-<!-- Generated from .omp/commands/harness-plan.md; do not edit. Run bin/sync-command-adapters.py --apply. -->
 # /harness-plan — plan a feature to an approved PLAN
 
 Read `.claude/commands/harness.md` and follow it with **mission: plan**. The differences:
