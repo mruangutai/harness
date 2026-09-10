@@ -1,0 +1,758 @@
+last_run: planpanelc6-validator
+cycle: 0
+severity_max: high
+note: 'Adversarial plan panel planpanelc6-validator FAILED this signature draft at severity_max high:
+  SIX new findings - four high and two med, none of them a re-report. THE HEADLINE, the lead''s own: PL-01..PL-04
+  all verifiably resolved and the rest of the plan is clean, but N-13 - the one surface no panel had read
+  - carries four high defects that make the PL-04 remedy itself either inert, wrong-subject or standing-red.
+  All four highs land on N-13, from two readers working independently, and that convergence is itself
+  the finding. BOTH READERS RAN: should-not-exist (fable-advisor, PASS, 3 findings) and scope (harness-code-reviewer,
+  DIGEST verdict FAIL, 3 findings, one of them in must_fix). NEITHER was skipped and no on_fail loop fired.
+  THE FOUR HIGHS (PP-01..PP-04) ARE RECORDED UNRESOLVED and reach the operator''s batched signature review
+  under DEC-207: no agent in this chain risk-accepted, waived, resolved or fixed one, and none may - risk
+  acceptance is approval.rulings, the main session''s write alone. PP-05 is routed as the panel''s own
+  open question Q1 (non-blocking) because its honest remedy edits SC-16 in BRIEF.md, an approval-gated
+  artifact; PP-06 carries the digest''s named remedy and no other disposition. THE FIX ORDER IS RECORDED
+  SEPARATELY IN fix_order AND MUST NOT BE COMPRESSED AWAY, because it changes what the operator is deciding:
+  PP-04 must land LAST among the PART 1 group. PL-01..PL-04, resolved at cycle 6 by the operator''s batched
+  ruling, are CARRIED FORWARD resolved with their resolved_by intact and each one''s cycle-6 verification
+  recorded per row in cycle6_panel_verification - the panel verified each at source, and that verification
+  is the operator''s evidence that the cycle-6 pass landed. PL-04''s carried verification keeps the digest''s
+  own caveat that it is resolved AS A SPECIFICATION. All nine of VL-01..VL-09 stay INSIDE findings: with
+  their PF- ids byte-for-byte so sign-approval --overrule PF-ID, which validates its argument against
+  panel.findings ids, can still reach them at the signature gate. Three premises were measured by the
+  ORCHESTRATOR at its own tier and are recorded under orchestrator_verified_premises; they are what make
+  PP-01, PP-05 and PP-02 load-bearing rather than plausible, and the third of them CONTRADICTS the DoD
+  note''s own claim about core.hooksPath travelling with a clone. Two record-accuracy facts the panel
+  lead reported are recorded under record_accuracy so a later reader is not misled. The full earlier-cycle
+  disposition is carried unchanged in prior_cycle: three batched passes landing is the operator''s evidence,
+  so this replacement preserves it rather than erasing what those passes bought. For the concrete change
+  per finding read runs/planpanelc6-validator/digest.md - and read the CORRECTED CONTRACT BLOCK at the
+  end of that file, which supersedes the block at its head for parsing. NOTHING IN THIS BLOCK IS A FIX:
+  DEC-207 routes panel findings into the batched review pass at the signature gate and forbids a separate
+  pre-signature fix dispatch, so no task, decision, REQ, SC, status or approval field was touched by this
+  transcription.'
+transcription_rule: 'Each PF- id is computed once by pm with panel_findings.py id --reader <reader> --summary
+  <summary>, taking that row''s OWN reader and summary values verbatim as recorded here, so a later sign-approval
+  --overrule PF-ID resolves against the recorded text and not against a reconstruction. Severities, readers,
+  lands_on, summaries, remedies, rankings and dispositions are the panel digest''s: nothing was re-ranked,
+  nothing was re-worded into a different claim, nothing was merged, nothing was split, and no row was
+  given a disposition the digest does not state. The digest carries SIX new findings and all six are transcribed;
+  the dispatching orchestrator named five, and dropping PP-06 would have falsified the record. The only
+  normalization applied to digest prose is the removal of markdown emphasis and backticks, which plan.yaml
+  values may not carry - ids are computed from the normalized value exactly as it is recorded here, never
+  from the pre-normalization digest bytes. The six new findings carry the run-local label series PP-01..PP-06
+  so they cannot collide with the carried PL-01..PL-04 or VL-01..VL-09 labels; the digest assigned no
+  ids. The carried PL and VL rows keep their existing PF- ids, labels, severities, summaries, reporters
+  and lands_on byte-for-byte; for the four PL rows only an additive cycle6_panel_verification key was
+  added, and prior_cycle is carried unchanged.'
+fix_order: 'Verbatim from the digest: PP-01 + PP-05 together (one respelling of PART 1''s invocation)
+  -> PP-03 (clause 1 wording) -> PP-04 (red proof, pinned to the corrected clause) -> PP-02 (independent,
+  PART 2) -> PP-06 (independent, N-06). PP-04 LAST AMONG THE PART 1 GROUP IS LOAD-BEARING AND EXPLICIT:
+  sequencing it first pins a red proof to an assertion three other findings are about to change. The order
+  is recorded because it changes what the operator is deciding, and it must not be compressed away. Recording
+  it is not executing it: under DEC-207 these findings are decided in the batched review pass at the signature
+  gate, not in a pre-signature fix dispatch.'
+orchestrator_verified_premises:
+- premise: 'PP-01: cwd is inert for check-state.sh, so N-13 PART 1''s ''run with cwd at the owner root''
+    cannot reach its stated subject.'
+  measured: check-state.sh:22-49 resolves its root from _selfdir through harness_boundary.resolve_root,
+    with its own comment reading verbatim 'never from the environment and never from the caller's cwd
+    (FEAT-42 T-12)'
+  verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator lead (the lead separately
+    verified the same property at source and the should-not-exist reader raised it)
+  bearing: 'This is what makes PP-01 load-bearing rather than plausible: PART 1''s invocation is INERT,
+    so the worktree''s own copy would audit the worktree and PART 1''s clauses would pass vacuously.'
+- premise: 'PP-05: check-state.sh carries no HARNESS_REVIEW_SHA mechanism, so PART 1''s reviewed-commit
+    framing has nothing to bind to.'
+  measured: grep -c HARNESS_REVIEW_SHA over check-state.sh returns 0
+  verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator lead (the scope
+    reader reported the same zero-match grep and the lead re-verified it at source)
+  bearing: 'This is what makes PP-05 load-bearing rather than plausible: there is no such mechanism in
+    that script, so the framing is either unhonourable or dead prose.'
+- premise: 'PP-02: core.hooksPath does not travel with a clone, so PART 2 clause 1''s post-checkout premise
+    is false in CI and in any un-onboarded clone.'
+  measured: git config --local core.hooksPath is .claude/skills/harness/hooks, and it is LOCAL config,
+    which is NOT cloned; no tracked gitconfig exists (git ls-files | grep gitconfig -> 0). The hook SCRIPTS
+    are tracked; the config pointing at them is not.
+  verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator lead (the lead separately
+    verified the workflow's step ordering in .github/workflows/tests.yml)
+  bearing: 'This is what makes PP-02 load-bearing rather than plausible - and it CONTRADICTS THE DoD NOTE''S
+    OWN CLAIM that core.hooksPath is ''tracked in the repository so it travels with a clone'': the note
+    conflates the tracked hook scripts with the untracked local config that points at them. The operator
+    is deciding PP-02 against a note whose premise the measurement falsifies.'
+record_accuracy:
+- fact: 'The scope reader''s own artifact is internally inconsistent. Its prose opens ''VERDICT: PASS,
+    with 3 non-blocking findings ... No must_fix'' (notes/review-harness-code-reviewer-planpanel-c6.md:3),
+    while its DIGEST returned VERDICT: FAIL with a non-empty must_fix on the same finding (PP-04).'
+  handling: The lead routed on the DIGEST fields, as the contract requires, and recorded the discrepancy
+    rather than re-adjudicating it. NO finding content and NO severity changed. Recorded here so a later
+    reader of that artifact is not misled by its opening line.
+  reported_by: the panel lead (planpanelc6-validator)
+- fact: A reader contradiction on N-13's benign-transient handling. scope reported probe 2 clean - 'N-13
+    distinguishes a real audit defect from a benign transient ... No standing-red risk - N-13 pins no
+    census figure' - while should-not-exist raised PP-03 on the same surface.
+  handling: 'Resolved in should-not-exist''s favour and LEAD-VERIFIED AT SOURCE rather than passed up:
+    scope answered the pinned-census-figure question, which is genuinely clean, and did not ask whether
+    clause 1''s absence assertion is compatible with N-06''s non-gating print path. It is not. The lead
+    records this as the union-of-two-lenses defect this feature keeps producing, callable from inside
+    neither reader''s own lens.'
+  reported_by: the panel lead (planpanelc6-validator)
+severity_reconciliations:
+- finding: PL-01
+  from: high
+  to: high
+  raised_by: lead (planpanelfinal-validator)
+  reason: 'Reconciled at the READER''S OWN severity (high) and deliberately NOT raised to critical: it
+    is a specification defect in an unsigned plan with a named one-line remedy, and gating is identical
+    at high. Decided, not averaged. Nothing was lowered.'
+- finding: PL-02
+  from: high
+  to: high
+  raised_by: lead (planpanelfinal-validator)
+  reason: 'Reconciled at the READER''S OWN severity (high) and deliberately NOT raised to critical: it
+    is a specification defect in an unsigned plan with a named one-line remedy, and gating is identical
+    at high. Decided, not averaged. Nothing was lowered.'
+- finding: PL-03
+  from: high
+  to: high
+  raised_by: reader (scope), unchanged by the lead
+  reason: The scope reader rated it high and the lead did not move it; the lead re-verified the premise
+    at source rather than adopting it. Nothing was lowered.
+- finding: PL-04
+  from: med
+  to: med
+  raised_by: lead (planpanelfinal-validator), its own finding
+  reason: 'Kept at med on its own merit and NOT raised to reflect its ranking: it is ranked to land with
+    the two highs because it is their common root, and ranking is not severity. Nothing was averaged and
+    nothing was lowered.'
+- finding: PP-01, PP-02, PP-03, PP-04
+  from: high
+  to: high
+  raised_by: lead (planpanelc6-validator)
+  reason: 'All four transcribed at THE READER''S OWN severity (high). None was raised to critical - decided,
+    not averaged: each is a specification defect in an unsigned plan that nobody may sign in this run,
+    and the remedy is a text edit before signature. Nothing was lowered. Cycle-6 panel.'
+- finding: PP-05, PP-06
+  from: med
+  to: med
+  raised_by: reader (scope), unchanged by the lead
+  reason: Both kept at the scope reader's own med. Neither was lowered and neither was raised; PP-05's
+    routing to the operator as question Q1 is a routing decision and not a severity change. Cycle-6 panel.
+readers:
+- reader: should-not-exist
+  persona: fable-advisor
+  status: ran
+  verdict: PASS
+  severity_max: high
+  findings_returned: 3
+  artifact: runs/planpanelc6-validator/digest.md
+  note: 'RAN. Not skipped, and no on_fail loop fired - it resolved on this host and returned the required
+    findings shape; the team digest''s contract block records its verdict as PASS. BECAUSE IT RETURNS
+    FINDINGS ONLY AND HOLDS NO WRITE GRANT, IT HAS NO ARTIFACT OF ITS OWN: its three findings (PP-01,
+    PP-02, PP-03) are TRANSCRIBED FROM THE LEAD''S DIGEST rather than from a reader artifact. Its headline:
+    nothing here should not be built; all three findings land on N-13, each an instance of one gap - its
+    spec was written against an idealized execution environment.'
+- reader: scope
+  persona: harness-code-reviewer
+  status: ran
+  verdict: FAIL
+  severity_max: high
+  findings_returned: 3
+  must_fix_returned: 1
+  artifact: notes/review-harness-code-reviewer-planpanel-c6.md
+  note: 'RAN. Not skipped, and no on_fail loop fired - its return parsed on the first pass. Its DIGEST
+    returned FAIL with one finding in must_fix (PP-04, high) plus the two med it reported (PP-05, PP-06).
+    Its artifact prose opens with PASS and ''No must_fix'' - see record_accuracy: the lead routed on the
+    DIGEST and no finding content or severity changed. It read plan.yaml and BRIEF.md in full and source-verified
+    branch-create-gate.sh, merge-gate.py, bash-write-guard.sh:855 and check-state.sh at the checkout.'
+findings:
+- label: PP-01
+  severity: high
+  reader: should-not-exist
+  lands_on: N-13 PART 1
+  summary: 'N-13 PART 1 says ''Run the SHIPPED check-state.sh with cwd at the owner root''. cwd is inert
+    here. check-state.sh:22-49 resolves its root from _selfdir via harness_boundary.resolve_root, with
+    the comment ''never from the environment and never from the caller''s cwd (FEAT-42 T-12)'', then cd
+    $root. Lead-verified at source. The plan records this property about itself twice (D-01 on merge-gate''s
+    ROOT; N-06 PART 3(c) on the extracted copy being ''wrong-rooted wherever it is staged''), so this
+    is the feature''s own known mechanism applied to the one task that forgot it. Consequence: run from
+    inside a feature worktree - where this suite runs during the build - the shipped copy audits the worktree,
+    so clause 3''s non-vacuity floor (>70) fails against a sparse worktree that reaches 1. And the natural
+    quiet resolution - invoking the copy of check-state.sh sitting at the owner root - runs the pre-change
+    audit, which has no mismatch machinery, passes all four clauses, and leaves SC-16 green forever while
+    proving nothing about shipped code. That is the wrong-subject fail-open this feature exists to remove.'
+  remedy: Respell the invocation to run the worktree's shipped check-state.sh with HARNESS_PROJECT_DIR=<owner_root>
+    - the marked override resolve_root honours at harness_boundary.py:66-78, and the owner root carries
+    MARKER - and assert the resolver's discard notice is ABSENT from stderr, so a marker-less override
+    cannot silently fall back to auditing the worktree (check-state.sh:36-46 keeps and replays that stderr).
+    State explicitly that invoking the owner root's own copy is FORBIDDEN.
+  reporter: should-not-exist (fable-advisor), transcribed from the lead's digest because that reader holds
+    no write grant and has no artifact of its own; premise re-verified at source by the lead and measured
+    again by the orchestrator at its own tier
+  disposition: 'UNRESOLVED - open at the operator''s batched signature review under DEC-207. No agent
+    in this chain risk-accepted it, waived it, resolved it or fixed it, and none may: risk acceptance
+    is approval.rulings, the main session''s write alone. The digest states no other disposition.'
+  fix_order: 'rank 1 of the digest fix order, TOGETHER WITH PP-05: the two are ONE respelling of PART
+    1''s invocation and land in one pass.'
+  id: PF-bad620b663538e3f588a594343f2cdb9
+- label: PP-02
+  severity: high
+  reader: should-not-exist
+  lands_on: N-13 PART 2
+  summary: 'PART 2 clause 1 asserts worktree-state.py --verify at the freshly created probe exits 0, on
+    the premise that post-checkout fired. core.hooksPath does not travel with a clone. Lead-verified in
+    .github/workflows/tests.yml: git config core.hooksPath is set only inside the Repository-state gate
+    step, which runs after the Integration suite step that would collect tests/integration/test-check-state-realdata.py.
+    So in CI the probe is born unrepaired, is a full checkout with a feature-id basename, and --verify
+    fails check 1 - wrong cone, exit 3. None of PART 2''s three announced-skip conditions (owner root
+    unresolvable, empty corpus, no free probe id) covers this. integration is the sole required branch-protection
+    context with enforce_admins: true - this reddens every PR in the repository from the day N-13 lands.
+    Clause 1''s own framing, ''a non-zero here is a real mechanism failure and not a precondition to work
+    around'', is false in that environment: it is deliberate CI state per the workflow''s own ordering.
+    The same holds for any clone that has not been onboarded.'
+  remedy: 'Add a fourth announced-skip condition, on the VL-02 shape PART 2 already uses - SKIP, printing
+    the reason and naming the condition and asserting the line was printed, when the owner repository''s
+    core.hooksPath does not resolve to the tracked .claude/skills/harness/hooks. The authoritative PART
+    2 run stays local. Not recommended, but named so the operator can weigh it: moving the workflow''s
+    hooksPath line ahead of the suite steps bends the CI runner to suit a check, the direction D-13 already
+    rejected.'
+  reporter: should-not-exist (fable-advisor), transcribed from the lead's digest because that reader holds
+    no write grant and has no artifact of its own; premise re-verified at source by the lead in .github/workflows/tests.yml
+    and measured again by the orchestrator at its own tier
+  disposition: 'UNRESOLVED - open at the operator''s batched signature review under DEC-207. No agent
+    in this chain risk-accepted it, waived it, resolved it or fixed it, and none may: risk acceptance
+    is approval.rulings, the main session''s write alone. The digest states no other disposition.'
+  fix_order: 'rank 4 of the digest fix order: independent, PART 2.'
+  id: PF-73b804f7e5c0bd6f233de7c70d63a886
+- label: PP-03
+  severity: high
+  reader: should-not-exist
+  lands_on: N-13 PART 1 clause 1
+  summary: 'Clause 1 asserts the N of M mismatch message ''is ABSENT from the output''. N-06 PART 1 says
+    the audit prints that message ''whenever either side is non-empty'', and that outside a linked worktree
+    an unexpected name ''is ordinary working state, a feature directory on disk that is not yet committed,
+    so it is REPORTED in the SAME message and is NON-GATING''. Both quoted from source by the lead. So
+    the moment anyone has a new feature directory sitting uncommitted at the owner root - the routine
+    state during any planning run - the collected test-check-state-realdata.py goes red on every branch,
+    through nobody''s edit. That is the standing-red shape the operator struck at cycle 3 (D-01: a check
+    that ''reddens for the WHOLE TEAM the next time anyone creates a feature'') and that N-12''s intent
+    rejects by name. Clause 1 is tighter than the criterion it traces: SC-16 asserts only ''NO expected-versus-reached
+    mismatch refusal''. Clause 4 already concedes the failure mode by promising to make the red legible
+    instead of preventing it.'
+  remedy: Reword clause 1 to SC-16's own wording - assert no REFUSAL (the run did not exit at the choke
+    point) and that the missing set in any printed message is EMPTY; an unexpected-only, non-gating report
+    is tolerated with its names printed, folding clause 4's diagnostic into the tolerated path. No BRIEF
+    edit needed - SC-16 already says 'refusal'.
+  reporter: should-not-exist (fable-advisor), transcribed from the lead's digest because that reader holds
+    no write grant and has no artifact of its own; both quoted premises re-verified at source by the lead
+  disposition: 'UNRESOLVED - open at the operator''s batched signature review under DEC-207. No agent
+    in this chain risk-accepted it, waived it, resolved it or fixed it, and none may: risk acceptance
+    is approval.rulings, the main session''s write alone. The digest states no other disposition.'
+  fix_order: 'rank 2 of the digest fix order: clause 1 wording, after PP-01 + PP-05.'
+  id: PF-52754958e4d64a215df4918ac414b471
+- label: PP-04
+  severity: high
+  reader: scope
+  lands_on: N-13 PART 1, SC-16, D-16
+  summary: 'PART 1''s four assertions carry no red-proof / discrimination instruction. Every other consequential
+    assertion in this plan does: N-01''s self-check exclusions, N-02 norepair, N-04''s merge/rebase pre-change
+    reproduction, N-05''s three separate discrimination proofs, N-07 case (c), N-08 clauses 2-4, N-09''s
+    discrimination clauses, N-12 HALF 2, N-06 PART 4''s own case 4. PART 2 of the same task has it internally
+    (clause 3 paired against clause 4''s structural control). The gap is specific to PART 1 - and PART
+    1 is the panel''s own named remedy for PL-04, ''a control found blind to the thing it existed to catch''.
+    Without a demonstrated red state, an implementation that mis-parses check-state.sh''s stderr passes
+    clause 1 while never exercising the claim it makes. This would be the fourth instance of exactly the
+    pattern PL-04 was raised to stop - and PP-01 is proof that the fourth instance is not hypothetical,
+    since a PART 1 that audits the worktree passes clauses 1 and 2 vacuously.'
+  remedy: Add an explicit red-proof step to PART 1 - run the same assertions once against a temp copy
+    of check-state.sh carrying the pre-fix feature.json-keyed derivation, record in the receipt that clause
+    1 reddens naming the 89-vs-79 mismatch, then revert. Sequence it after PP-01 and PP-03, or the red
+    proof pins an assertion that is about to change.
+  reporter: scope (harness-code-reviewer), finding 2 of its own artifact (notes/review-harness-code-reviewer-planpanel-c6.md);
+    carried into the lead's must_fix
+  disposition: 'UNRESOLVED - open at the operator''s batched signature review under DEC-207. No agent
+    in this chain risk-accepted it, waived it, resolved it or fixed it, and none may: risk acceptance
+    is approval.rulings, the main session''s write alone. The digest states no other disposition.'
+  fix_order: 'rank 3 of the digest fix order and LAST among the PART 1 group: the red proof is pinned
+    to the corrected clause. Sequencing it first pins a red proof to an assertion three other findings
+    are about to change - the digest calls this load-bearing.'
+  id: PF-d4323cbe23f4598bd94c529c017d0f17
+- label: PP-05
+  severity: med
+  reader: scope
+  lands_on: N-13 PART 1, SC-16
+  summary: 'PART 1 instructs resolving HARNESS_REVIEW_SHA ''DEFAULTING TO HEAD when unset, exactly as
+    N-08 does'' for check-state.sh. grep HARNESS_REVIEW_SHA check-state.sh returns zero matches (lead-verified)
+    - it is a filesystem scan of whatever is checked out at its resolved root, unlike N-08, which reads
+    records purely through git show <ref>:<path>. Read literally, honouring it would require checking
+    the owner root out to that ref, which PART 1''s own absolute rule forbids. Read loosely, the framing
+    is dead prose and the test audits whatever is on disk - materially weaker than ''at the reviewed commit''
+    advertises. SC-16 carries the same words, so the honest remedy is not task-local: it edits an approval-gated
+    artifact. Routed as Q1, not as a fix cycle.'
+  remedy: 'No task-local remedy: the honest remedy edits SC-16, an approval-gated artifact, so it is the
+    operator''s. Routed as the panel''s open question Q1 (non-blocking), not as a fix cycle. The reader''s
+    own two candidate shapes are on record in its artifact - drop the HARNESS_REVIEW_SHA framing from
+    PART 1 and state plainly that the audit runs against whatever is checked out at the owner root when
+    the test executes, or add an explicit precondition that fails or skips loudly, in PART 2''s announced-skip
+    style, when the owner root''s checked-out HEAD does not equal the resolved ref.'
+  reporter: scope (harness-code-reviewer), finding 3 of its own artifact (notes/review-harness-code-reviewer-planpanel-c6.md);
+    the zero-match grep re-verified at source by the lead and measured again by the orchestrator at its
+    own tier
+  disposition: 'UNRESOLVED - routed by the panel to the OPERATOR as its own open question Q1 (blocking:
+    false), explicitly NOT as a fix cycle, because the honest remedy edits SC-16 in BRIEF.md, an approval-gated
+    artifact no agent in this chain may amend. Not accepted, not waived, not resolved.'
+  fix_order: 'rank 1 of the digest fix order, TOGETHER WITH PP-01: the two are ONE respelling of PART
+    1''s invocation. PP-05''s own remedy is nevertheless the operator''s (Q1), not a fix cycle''s.'
+  id: PF-bfe22e776cceafd0a11b81eb64ca943a
+- label: PP-06
+  severity: med
+  reader: scope
+  lands_on: N-06 PART 1, SC-06
+  summary: The non-emptiness floor GC6-02 added - 'if the derivation returns zero names, the audit REFUSES,
+    naming the pathspec it ran and that it matched nothing' - exists in N-06 PART 1's prose and is graded
+    by nothing. PART 4's test-check-state-expected-dirs.py enumerates the worktree case, the non-worktree
+    case, the one-derivation property and the mismatch message; no case feeds a zero-match derivation
+    (lead-verified against PART 4's own case list). A future re-spelling of the pathspec that silently
+    matches nothing - precisely the .harness/*/features vs .harness/*/features/* bug this cycle already
+    found once - passes N-06's whole suite while every downstream comparison is vacuous. That is the fail-open
+    the clause was written to close.
+  remedy: Add a named case to test-check-state-expected-dirs.py feeding a canned zero-match derivation
+    and asserting refusal naming the pathspec.
+  reporter: scope (harness-code-reviewer), finding 1 of its own artifact (notes/review-harness-code-reviewer-planpanel-c6.md);
+    premise re-verified against PART 4's own case list by the lead
+  disposition: 'UNRESOLVED - open med carrying the digest''s own named remedy and no further disposition:
+    the digest states a change asked and nothing else, so it reaches the operator''s batched signature
+    review with the rest. Not accepted, not waived, not resolved.'
+  fix_order: 'rank 5 of the digest fix order: independent, N-06.'
+  id: PF-318dd276fba65cd3af032357fda5adaf
+- label: PL-01
+  severity: high
+  reader: should-not-exist
+  reporter: should-not-exist (finding 1 of the final panel); premise re-verified independently by the
+    lead (glob over the real owner root) and measured again by the orchestrator at its own tier
+  lands_on: N-06 PART 1, REQ-05, SC-12
+  summary: 'N-06 PART 1 keys the expected set and the reached set differently, so the audit reds on day
+    one at the owner root. The reached set is _feat_dirs - glob(H/*/features/*) filtered on isdir, check-state.sh:118-120
+    - while the expected set on the non-worktree arm is every feature directory the GIT INDEX names, from
+    git ls-files over .harness/*/features/*/feature.json. A tracked directory carrying no feature.json
+    is in one set and not the other: measured at the real owner root, 89 directories on disk against 79
+    feature.json records, the ten record-less directories being BUG-1033-config-shape-matrix, BUG-1106,
+    BUG-1124, BUG-1129, BUG-1187, BUG-613, BUG-671, BUG-720, BUG-981 and PR-922-omp-supervision, two of
+    which carry non-ignored tracked notes so a fresh clone materialises them too. N-06 PART 1 therefore
+    exits 2 with ''reached 89 of 79'' BEFORE any downstream site runs, at the owner root and in every
+    fresh clone. Change asked: key both sets identically - first-level directory names from git ls-files
+    over the whole .harness/*/features/ tree - or restrict both to feature.json-carrying directories.'
+  fix_order: rank 1 of the digest fix order; it and PL-02 both edit N-06 and MUST land in one pass. PL-04
+    is what makes both stay fixed and should land with them.
+  disposition: resolved at cycle 6 by the operator's batched ruling (notes/answers-operator-c6.md, Q1).
+    The finding, its severity and its summary stay recorded verbatim; only the disposition moved.
+  id: PF-1d3964400ea46a7edd0c8330c9e15668
+  resolved_by: 'N-06 PART 1 - remedy (a): ONE derivation used twice, first-level directory names from
+    git ls-files over .harness/*/features/, keying the expected set and the reached set identically. Remedy
+    (b) is REJECTED and the rejection is recorded in the task text; the ten record-less directories are
+    filed as issue 1640, are out of this feature''s scope, and are expected to be REPORTED accurately
+    meanwhile with no suppression.'
+  cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel. Verified in: N-06 PART
+    1: ''ONE DERIVATION, USED TWICE'', first-level directory names from git ls-files -- .harness/*/features/*.
+    Remedy (b) explicitly rejected in the plan''s own text with the reason. ''Add NO suppression, no allow-list,
+    no exemption and no feature.json-carrying filter anywhere''; N-13 repeats the non-suppression for
+    the ten record-less directories, which stay issue 1640.'
+- label: PL-02
+  severity: high
+  reader: should-not-exist
+  reporter: should-not-exist (finding 2 of the final panel); verified at source in the plan by the lead
+  lands_on: D-12, N-02 check 5, N-06 PART 3, N-09/N-06 preflight, SC-09
+  summary: 'The --verify preflight refuses on a dirty tree, so the pre-commit gate refuses ahead of the
+    very commit that is its own stated remedy. N-02 check 5 makes any non-empty git status --porcelain
+    a --verify exit 8, unconditionally; N-06 PART 3 and D-12 make the preflight EXIT NON-ZERO WITHOUT
+    RUNNING A SINGLE INVARIANT on any non-zero --verify, and no exit-8 carve-out exists anywhere. check-state.sh:24
+    states verbatim that it is the canonical pre-commit gate for the whole repository, a dirty tree is
+    the normal state of an active feature worktree, and N-02''s own message contract makes exit 8''s remedy
+    committing or stashing. Nothing real is lost by fixing it: check 5 runs LAST by N-02''s own ordering
+    rule, so the merge-wipe shape is already caught by check 2 (skip-bits, exit 4). Change asked: the
+    preflight refuses on exits 3-7 - the states where the audit''s view of the tree is not the tree -
+    and treats exit 8 as reported and non-gating. That remedy requires amending SC-09''s last sentence
+    in BRIEF.md, which reads that a failing --verify makes that gate REFUSE non-zero before a single invariant
+    runs: BRIEF.md is approval-gated, so the OPERATOR amends it - no agent in this chain may and no fix
+    cycle may.'
+  fix_order: rank 2 of the digest fix order; it and PL-01 both edit N-06 and MUST land in one pass. PL-04
+    should land with them.
+  remedy_route: 'The remedy is NOT wholly a plan edit: it requires the OPERATOR to amend SC-09''s last
+    sentence in BRIEF.md. BRIEF.md is approval-gated, so that amendment is neither pm''s write nor a fix
+    cycle''s; the panel routed it up as blocking open question Q1.'
+  disposition: 'resolved at cycle 6 by the operator''s batched ruling (notes/answers-operator-c6.md, Q2),
+    whose remedy he executed himself at source: the BRIEF.md amendment the panel routed up as blocking
+    question Q1 was made by the operator, not by an agent in this chain. The finding, its severity and
+    its summary stay recorded verbatim; only the disposition moved.'
+  id: PF-1cfbb60f627e9e729ce7f666a707ea4d
+  resolved_by: 'SC-09''s last clause, amended AT SOURCE by the operator at cycle 6 in BRIEF.md, plus D-12
+    and N-06 PART 3 brought to match it: the preflight gates on the STRUCTURAL exits 3 through 7 only,
+    and the dirty-tree exit 8 is REPORTED and NON-GATING, carrying the operator''s reason inline. N-02
+    check 5 is unchanged - exit 8 is still exit 8.'
+  cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel. Verified in: D-12 and
+    N-06 PART 3 match the operator''s amended SC-09 (BRIEF.md:239-252, read at source): gating set is
+    exits 3-7 only; exit 8 ''REPORTED and NON-GATING''; --verify still reports the dirty tree; N-02 check
+    5 untouched; any unclassifiable exit gates fail-closed. SC-09''s clause is unreworded.'
+- label: PL-03
+  severity: high
+  reader: scope
+  reporter: scope (harness-code-reviewer), read at source in .claude/skills/harness/bin/branch-create-gate.sh;
+    premise re-verified at source by the lead and measured again by the orchestrator at its own tier
+  lands_on: N-10 PART 7 clause (c), SC-14, REQ-03
+  summary: 'N-10 PART 7 clause (c) tells the executor to prove branch-create-gate.sh still ALLOWS a legal
+    flow by asserting exit 0, but the gate''s own deny() prints its permissionDecision deny JSON at :63-66
+    and then exits 0, and the flow-match allow path at :88-92 also exits 0 - the file''s own header states
+    it, Deny is a structured permissionDecision (exit 0 + JSON). An exit-0-only assertion is therefore
+    satisfied by a false denial, the exact regression N-10 PART 6 introduces and the plan itself calls
+    the clause this task is most likely to break. Clause (d) is correctly worded, and N-07 PART 4(b) already
+    carries the correct instruction plus an explicit never-assert-exit-status warning for the structurally
+    identical merge-gate.py. Change asked: reword (c) to assert the printed output is NOT a permissionDecision
+    deny payload, and carry N-07 PART 4(b)''s warning sentence into N-10 PART 7.'
+  fix_order: rank 3 of the digest fix order; independent of PL-01, PL-02 and PL-04, and scoped to one
+    clause.
+  disposition: resolved at cycle 6 by the operator's batched ruling (notes/answers-operator-c6.md, Q3).
+    The finding, its severity and its summary stay recorded verbatim; only the disposition moved.
+  id: PF-865cca158450fe71c0c7bec43669fe36
+  resolved_by: N-10 PART 7 clause (c), reworded to assert the printed output carries NO permissionDecision
+    deny payload and never an exit status, carrying N-07 PART 4(b)'s warning sentence across; and D-17,
+    which records gates-refuse-by-payload as the convention rather than as one clause's fix.
+  cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel. Verified in: N-10 PART
+    7(c) asserts the printed output is not a permissionDecision: deny payload and ''NEVER ASSERT AN EXIT
+    STATUS AS THE GATE''S DECISION'', carrying N-07 PART 4(b)''s warning at both sites. D-17 records the
+    convention as a decision, generalising past both sites.'
+- label: PL-04
+  severity: med
+  reader: validator-lead
+  reporter: validator-lead (planpanelfinal-validator) itself - neither member reported it; it is the lead's
+    own finding, raised in answer to the dispatch's third-blind-instance question
+  lands_on: N-09 PART 1, or N-06 PART 4
+  summary: 'No clause anywhere asserts the shipped check-state.sh is green over the REAL repository. N-09
+    PART 1 runs against f58_sparse_fixture''s owner root - five features whose directories and records
+    agree by construction - and no clause covers the real owner root or a dirty feature worktree, while
+    N-08 does exactly this for the uniqueness check (clean over the real records) and the audit narrowing
+    has no counterpart. This is the third blind control instance the dispatch asked about and the common
+    root of the two N-06 highs. Change asked: one real-tree assertion on N-08''s model - the shipped audit
+    exits 0 at the real owner root at the reviewed commit, and inside this feature''s own (dirty) worktree.'
+  fix_order: 'rank 4 of the digest fix order, and the panel''s own ranking rationale must not be compressed
+    away: PL-04 is med ON ITS OWN MERIT but is ranked to land WITH the two highs PL-01 and PL-02, because
+    it is their common root - point-fixing PL-01 and PL-02 without it leaves the same blind class free
+    to recur and a fourth instance free to ship the same way. PL-01 and PL-02 both edit N-06 and must
+    land in one pass; PL-03 is independent and scoped to one clause.'
+  disposition: resolved at cycle 6 by the operator's batched ruling (notes/answers-operator-c6.md, Q4),
+    which he took as the CLASS that PL-01 and PL-02 are instances of. The finding, its severity and its
+    summary stay recorded verbatim; only the disposition moved.
+  id: PF-329bd0b3fbc7c8a03dbcf45a87666f0f
+  resolved_by: N-13, the second real-data act in this plan on N-08's model - the shipped check-state.sh
+    asserted green at the REAL owner root and non-gating in a dirty DISPOSABLE worktree, with a structural
+    positive control in the same probe; D-16, which records why a self-consistent fixture cannot catch
+    it and that the DoD's fixture rule is about cost and not about reading the owner root; D-11, EXTENDED
+    rather than contradicted; and SC-16, the criterion that grades it.
+  cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel. Verified in: all three
+    operator constraints hold in N-13''s intent. (i) read-only - ''nothing in this task mutates the owner
+    root''s working tree, its index or its records, and nothing touches a LIVE worktree''; PART 1 never
+    writes, PART 2 writes only a probe it creates and removes. (ii) disposable - git worktree add --detach,
+    removed in a finally, never --force, removal run with cwd at the owner root. (iii) addition not substitution
+    - D-11 ''EXTENDED, NEVER REPLACED'', N-13 ''ADDITION, NEVER SUBSTITUTION: remove NO assertion from
+    any fixture test''. Cost rule intact: N-13 git inits nothing and copies nothing; it reads the real
+    owner root through feature_corpus.corpus_root. CAVEAT, the digest''s own: resolved AS A SPECIFICATION.
+    PP-01 and PP-04 are about whether it can execute as specified, and both land on that same remedy (N-13
+    PART 1).'
+- id: PF-f0281057320f2984492f8fba14508156
+  label: VL-01
+  severity: high
+  reader: scope
+  reporter: scope (NEW-01); premises re-verified by lead at source
+  lands_on: N-11 PART 1 + PART 5, REQ-08, SC-15
+  summary: N-11 PART 1 orders the hardlink scan to REFUSE when the corpus root cannot be resolved and
+    N-10 specifies corpus_root() to RAISE, but _hardlink_plan wraps only os.stat in try/except at check-domain.sh:1907-1922,
+    the glob line N-11 rewrites sits outside it, and _plan_route's sole caller at :1949 is bare, so the
+    raise propagates uncaught, Python exits 1, and the file's own header at :14 states that only exit
+    2 blocks while exit 1 is a NON-blocking error and the write proceeds - the very write SC-15 exists
+    to deny. No case in N-11 PART 4/5 exercises it, unlike N-07 PART 4(d) and N-10 PART 5 which both force
+    it for their sites, and it fires precisely when st_nlink >= 2, the hardlink case itself.
+  fix_order: rank 1 of the digest fix order; independent of VL-02 and VL-03 and one edit
+  disposition: 'resolved - DISSOLVED by the Q6 strike, not remedied and not fixed. D-14 strikes the code
+    the finding was against: no fifth denial case, no error conversion and no _hardlink_plan change exists
+    anywhere in the plan, and N-06 PART 2b is comment-only. Verified by the lead at source plus the scope
+    reader.'
+  resolved_by: D-14
+- id: PF-9e4a874e461968f2eb1d6be6e7f759b5
+  label: VL-02
+  severity: high
+  reader: should-not-exist
+  reporter: should-not-exist (finding 2, at med with the CI premise [unverified]); premise resolved and
+    severity reconciled UP to high by the lead
+  lands_on: N-09 PART 3 clauses 2-3, SC-12, SC-13, D-13
+  summary: 'The pinned form is durable against F-05''s failure but not against object availability. Measured,
+    not inferred: .github/workflows/tests.yml:50 is actions/checkout@v4 with no fetch-depth, so the default
+    depth-1 shallow clone applies, and that job runs run-unit-tests.sh --kind integration where test-nonregression-baseline.py
+    lands. Clause 3 runs git diff --name-only pre_change_sha..review_sha against the real repository and
+    asserts exit status 0, and clause 2 asserts pre_change_sha is an ancestor of review_sha; neither object
+    exists in a depth-1 clone, so both fail red. The SELF-SCOPE skip cannot save it because it fires only
+    when a literal is absent or not 40 hex, never when the literal is present but unresolvable. The job
+    id integration is the sole required branch-protection context with enforce_admins true, so this reds
+    every PR in the repository including FEAT-58''s own, and it falsifies SC-12''s own claim that a CI
+    runner behaves exactly as today and the existing suites gain no failure.'
+  fix_order: rank 2 of the digest fix order; independent of VL-01 and VL-03 and one edit
+  disposition: 'resolved - APPLIED. N-09 PART 3 SELF-SCOPE carries two conditions and the skip is ANNOUNCED
+    (it prints its reason, names the endpoint, and the test asserts that line was printed) with a resolves-to-no-object
+    discrimination case; fetch-depth: 0 was rejected and recorded. Verified by the lead at source.'
+  resolved_by: N-09 PART 3 SELF-SCOPE + D-13
+- id: PF-06cff062432fa2a378c86f484546aa67
+  label: VL-03
+  severity: high
+  reader: should-not-exist
+  reporter: should-not-exist (finding 1, at med); severity reconciled UP to high by the lead
+  lands_on: N-06 PART 2, N-12, SC-14
+  summary: 'Two tasks give contradictory orders about one comment. N-06 PART 2 mandates the marker corpus-scope:
+    owner-root on the linked_worktrees fix in harness_boundary.py, a site N-12''s narrowed subject cannot
+    detect because it enumerates .git/worktrees with no features segment, and harness_boundary.py is absent
+    from the measured 8-file census list. N-12 then asserts that every owner-root marked site sits in
+    a file that NAMES feature_corpus, a different quantifier from its own preceding every-detected-site
+    clause. Under the natural marker reading HALF 1 reds on harness_boundary.py with no authorised fix,
+    since feature_corpus imports harness_boundary so the reverse naming is circular and deleting the marker
+    defies N-06 - the unmeetable-census shape GC-01 was just fixed for, reintroduced. Under the detected-sites
+    reading the mandated marker is wrong-vocabulary decoration no test ever reads.'
+  fix_order: rank 3 of the digest fix order; independent of VL-01 and VL-02 and one edit, but it MUST
+    land before any implementer opens N-12 because it changes what that task's test asserts
+  disposition: resolved - APPLIED. N-06 PART 2 now reads DO NOT MARK THIS SITE, the marker instruction
+    struck, and N-12's assertions quantify over the DETECTED set. Verified by the lead (N-06) and the
+    scope reader (N-12).
+  resolved_by: D-15 + N-06 PART 2
+- id: PF-5d6b94e681529c8c10a29ace089faf1b
+  label: VL-04
+  severity: low
+  reader: both
+  reporter: both readers - should-not-exist (finding 3) and scope (Point 7 ruling), deduplicated by the
+    lead
+  lands_on: N-12, SC-14
+  summary: 'PANEL RULING on the question pm invited, given independently by both readers and deduplicated
+    into one finding. check-domain.sh:1052-1062''s _SWEEP_PATTERNS is a list of pattern strings consumed
+    through a for-loop binding, and N-12 resolves one level of assignment indirection only, so the canonical
+    checkout-local instance falls outside HALF 1 by construction. Both readers rule the same way, ACCEPTABLE
+    AS SCOPED: build no list-indirection resolver and leave the site undetected and unmarked, because
+    D-02 already rules that site correctly checkout-scoped and untouched and a resolver is machinery for
+    one hypothetical future site. The single requirement carried by the ruling is that the accepted blind
+    class - list-valued and for-loop pattern indirection - be named in N-12''s intent, in the artifact
+    the operator signs, because any future narrowing enumeration written in that spelling escapes HALF
+    1 silently.'
+  fix_order: rank 4 of the digest fix order; folds into the SAME N-12 edit as VL-03 - one visit to that
+    task discharges both
+  disposition: 'ruling, not a defect and not an open defect - both readers independently ruled the check-domain.sh
+    _SWEEP_PATTERNS list-indirection blind class ACCEPTABLE AS SCOPED: build no resolver, leave the site
+    undetected and unmarked. The ruling''s one requirement is now DISCHARGED - the accepted blind class
+    is named in N-12''s own intent, the artifact the operator signs, verified there verbatim by the scope
+    reader. It remains a panel ruling; it was never converted into a defect.'
+  resolved_by: the panel ruling itself, carried in N-12's intent (THE ACCEPTED BLIND CLASS, RECORDED HERE
+    AND NOT ONLY IN A NOTE)
+- id: PF-20fa406d84f713a4a16e046acaa5180f
+  label: VL-05
+  severity: low
+  reader: should-not-exist
+  reporter: should-not-exist (= F-10 maintained, reduced)
+  lands_on: N-09 change_type
+  summary: 'F-10 maintained and reduced. N-09''s parser cases are now behavioral - none-vs-absent, verbatim
+    compare, 40-hex guard - which retires the pins-internals half of the original finding. What stands
+    is that N-09 carries change_type: cross_module with zero production files in its files:, the label
+    that manufactures the unit-kind requirement the parser file exists to satisfy, while N-08 was relabelled
+    from config to scaffolding for exactly that shape in the same batch, so the plan applies its own rule
+    inconsistently across two adjacent tasks.'
+  fix_order: rank 5 of the digest fix order; one of the four unaddressed prior findings, mutually independent
+  disposition: 'resolved - APPLIED. N-09 is relabelled change_type: scaffolding with an in-task justification
+    citing VL-05 by name; test-nonregression-notes.py is struck and its four cases moved into PART 3 clauses
+    4-7. Verified by the lead at source.'
+  resolved_by: N-09
+- id: PF-e73f4795ba116f730872c14a973d41d8
+  label: VL-06
+  severity: low
+  reader: should-not-exist
+  reporter: should-not-exist (= F-11 maintained)
+  lands_on: N-01 EXCLUSION 1
+  summary: F-11 maintained. N-01 EXCLUSION 1 still embeds runtime plan.yaml parsing, the list-equals-plan
+    set comparison, and non-strict PENDING accounting into f58_sparse_fixture.py, baking the plan's location
+    and task-file schema into the one module every integration test imports, to deliver what a literal
+    list plus a --strict existence failure already delivers.
+  fix_order: rank 6 of the digest fix order; one of the four unaddressed prior findings, mutually independent
+  disposition: resolved - APPLIED. N-01's runtime list-equals-plan set comparison and its non-strict PENDING
+    accounting are struck; the literal list plus a --strict existence failure is retained and the discharge
+    site is N-09's --strict run only. Verified by the scope reader.
+  resolved_by: N-01
+- id: PF-f0a7225dad2cb03b19e82094f4e51448
+  label: VL-07
+  severity: low
+  reader: should-not-exist
+  reporter: should-not-exist (= F-12 maintained, premise re-verified)
+  lands_on: D-10, N-02 scope guard
+  summary: F-12 maintained, premise re-verified. The DoD note states verbatim that a QA probe worktree
+    now gets stripped automatically without QA knowing. N-02's _ID_RE scope guard no-ops on any basename
+    that is not a feature id and probe trees are named qa-*, so they keep the full replicated corpus.
+    The guard is right; the residual is recorded in neither D-10's because nor N-02's scope-guard block,
+    so the operator is asked to sign a sentence the plan deliberately does not deliver.
+  fix_order: rank 7 of the digest fix order; one of the four unaddressed prior findings, mutually independent
+  disposition: 'resolved - DISSOLVED by the operator''s DoD amendment, with NO residual in D-10 or N-02:
+    the operator withdrew the gets-stripped-automatically claim and ruled the _ID_RE scope-guard behaviour
+    correct, and N-02''s scope guard is justified as the hook tier not starting to refuse trees this feature
+    never claimed, carrying no probe-stripping language. Verified by the lead at source.'
+  resolved_by: the operator's DoD amendment (.harness/notes/dod-worktree-corpus-2026-09-10.md:136-143)
+  summary_caveat: HISTORICAL RECORD - DO NOT ACT ON THE QUOTED SENTENCE. This finding's summary is preserved
+    verbatim as it was frozen, and it quotes a DoD sentence (a QA probe worktree now gets stripped automatically
+    without QA knowing) that the OPERATOR HAS SINCE WITHDRAWN in the amended DoD note. The frozen panel
+    block is the only place that withdrawn sentence still survives, deliberately, under the never-falsify-the-record
+    rule. A reader must treat the quotation as history and must not act on it.
+- id: PF-f7a5ff34454ade8140ab5219a5b26687
+  label: VL-08
+  severity: low
+  reader: should-not-exist
+  reporter: should-not-exist (= F-13 maintained; GC-03 concurs)
+  lands_on: SC-01, SC-09, SC-11, SC-13, SC-14, SC-15
+  summary: 'F-13 maintained, GC-03 concurring. Test-construction language survives against the operator''s
+    own shape rule and grew with the two new criteria - demonstrated first, asserted by the invocation
+    it records, never as one aggregate, BOTH the stdout and the exit status asserted - across SC-01, SC-09,
+    SC-11, SC-13, SC-14 and SC-15. Each clause already exists verbatim in the owning task''s intent, so
+    the SC copies constrain nothing and give a future amendment two places to drift. Coverage-safe: the
+    previous panel verified each survives in N-05, N-06 PART 3, N-04 PART 2 and N-09 clause 3.'
+  fix_order: rank 8 of the digest fix order; one of the four unaddressed prior findings, mutually independent,
+    and the only one carrying an accept-it-explicitly-in-approval.rulings arm, which is the operator's
+    to take and not this chain's
+  disposition: resolved - APPLIED, verified per clause at each named survivor with the anchors re-derived
+    rather than trusted, by the scope reader.
+  resolved_by: the five SC edits
+- id: PF-00b183e742cf12a05cc19b0c25adce83
+  label: VL-09
+  severity: info
+  reader: should-not-exist
+  reporter: should-not-exist (finding 8); verified by lead
+  lands_on: this cycle's panel record and the signature packet
+  summary: 'RECORD ACCURACY, and it corrects this panel''s own dispatch premise. The dispatch stated that
+    the goal-check has been re-run and is clean; it had not been. notes/research-FEAT-58-goalcheck-plan-c3.md
+    is the PRE-fix grade and carries GC-01 at high and GC-02 at med as live findings, fixgoalcheck-product
+    then applied both remedies, so NO goal-check has graded the post-fix draft. Substance is not in question:
+    the panel verified both remedies landed at source - N-12 and SC-14 carry the narrowed subject, and
+    .harness/corpus is in REQUIRED_PATHS, N-05 group 2 and SC-01, each as its own named assertion - so
+    only the record''s lineage is wrong. The record must state that lineage precisely rather than re-run
+    clean.'
+  fix_order: rank 9 of the digest fix order; it changes no task - it changes what the signature packet
+    says about itself
+  disposition: 'resolved - discharged by the operator''s closure of the record-accuracy point: the post-fix
+    goal-check VL-09 asked for now exists (notes/research-FEAT-58-goalcheck-plan-c5.md) and PASSED. Verified
+    by the scope reader.'
+  resolved_by: the operator's closure of the record-accuracy point - the post-fix goal-check it asked
+    for exists and PASSED (notes/research-FEAT-58-goalcheck-plan-c5.md)
+assessed_and_dismissed:
+- item: should-not-exist finding 3 (info, affirmative)
+  ruling: 'Its claim is TRUE - N-10 PART 7 (c) textually survives the fold and REQ-08''s two-route denial
+    is intact - but survival is not sufficiency, and scope found the surviving clause non-discriminating.
+    Not a duplicate of PL-03: subsumed by it, and PL-03 carries the sharper description. Its second half
+    - that N-10 PART 6''s omitted refusal arm is correct because deny() is already the gate''s failure
+    direction - the lead verified at source and accepted.'
+- item: GC5-01, GC5-02, GC5-03
+  ruling: 'Per dispatch: known stale, not re-reported. GC5-01 is the disposition-open defect this record''s
+    correction discharges. scope re-derived the VL-08 survivor set rather than trusting GC5-02''s stale
+    anchors, as instructed.'
+- item: cycle-6 not-re-reported set (planpanelc6-validator)
+  ruling: 'Every settled item named in the dispatch was checked and left alone: DEC-174 lane assignment,
+    the frozen lanes: block and its migration-record.md vestige, SC-12''s split, the on-demand uniqueness
+    index, D-06 Arm B with the FEAT-02/FEAT-03 records uncorrected, the struck hardlink half (issue 1638),
+    and the ten record-less directories (issue 1640 - the audit reporting them is correct behaviour).
+    GC5-01/02/03 and VL-01..VL-09 were confirmed resolved per-clause and not re-litigated.'
+adequacy_notes:
+- 'Neither reader executed anything: both are reasoning-only over an unsigned plan (no code exists yet).
+  Every premise was re-verified by the lead at source, but nothing was run.'
+- fable-advisor read N-02/N-04/N-06/N-12/N-13 and all 17 decisions in full; N-01/N-03/N-05/N-07..N-10
+  at structure level only. code-reviewer read plan.yaml and BRIEF.md in full. The union covers every task,
+  but N-01/N-03/N-05/N-07..N-10 got one deep lens, not two.
+- Coverage ledger (45 rows) was cross-validated by chaining the three apply notes (36->42->41->45), a
+  different method than the goal-check's ledger-claim read. Consistent, and all four cycle-6 rows spot-checked
+  against task text - but the 45 rows were not individually re-matched to tasks one by one.
+- The severity_max of high rests on four findings that are all specification defects in an unsigned plan.
+  None describes shipped code.
+open_questions:
+- id: Q1
+  blocking: false
+  question: 'PP-05: N-13 PART 1 and SC-16 both say the owner root is read ''at the reviewed commit'',
+    but check-state.sh has no HARNESS_REVIEW_SHA mechanism (grep: zero matches) and honouring it literally
+    would require checking the owner root out to that ref, which N-13''s own absolute read-only rule forbids.
+    Dropping the framing from the task alone leaves BRIEF.md asserting it - the honest remedy edits SC-16,
+    an approval-gated artifact. Operator''s to decide, not a fix cycle.'
+prior_cycle:
+  last_run: planpanel3-validator
+  count: 9 of 13 answered, verified independently by both readers in the written artifacts. 4 of 13 (one
+    med, three low) genuinely unaddressed and honestly recorded as open; they were never in the operator's
+    Q1-Q4 batch and each maps forward to a maintained finding in this cycle.
+  carried_because: 'This mapping replaced the planpanel3-validator record whose 13 findings all stood
+    at disposition open. That disposition is the operator''s evidence that their batched answers landed,
+    so it survives the replacement here rather than being discarded by it. Carried again, unchanged, through
+    the planpanelfinal-validator replacement: two batched passes landing is the operator''s evidence,
+    so this replacement preserves the mapping byte-faithfully rather than erasing what those passes bought.'
+  findings:
+  - label: F-01
+    severity: high
+    disposition: ANSWERED
+    evidence: 'All nine choke points sit in a task with shape stated - N-06 P1 (check-state.sh, narrow+refuse)
+      and P2 (harness_boundary.py:151-174), N-07 (merge-gate.py), N-10 four read sites, N-11 two gates.
+      The trap is covered: N-11 PART 5 case (c) asserts the branch gate still ALLOWS a legal flow Y absent
+      from the worktree, before the deny clause and for that reason.'
+  - label: F-02
+    severity: high
+    disposition: ANSWERED
+    evidence: No persisted index survives anywhere - no generator, hook, staleness test, --check or cache.
+      Every feature-index mention outside the frozen panel record is D-01's recorded deletion or an explicit
+      prohibition (N-07, N-08). The replacement refusal is the deny payload.
+  - label: F-03
+    severity: high
+    disposition: ANSWERED
+    evidence: 'N-09''s verify: carries no inline git diff; PART 3 clause 3 is the single discharge site;
+      every Arm A carve-out struck.'
+  - label: F-04
+    severity: high
+    disposition: ANSWERED
+    evidence: N-06 PART 3 (c) demoted to a one-time receipt proof under PRE-CHANGE REPRODUCTION; the task
+      cannot pass until the heading carries a verdict.
+  - label: F-05
+    severity: high
+    disposition: ANSWERED
+    evidence: N-09 PART 3 clause 3 pins both endpoints to immutable literals and self-scopes with a named
+      skip line. Durable against the failure F-05 named - but see VL-02 for a different failure the pinned
+      form does not survive.
+  - label: F-06
+    severity: high
+    disposition: ANSWERED, re-verified at source
+    evidence: grep -c sys.exit merge-gate.py = 0; deny() at :144-145 prints the claimed JSON. D-01 and
+      N-07 assert the payload, never an exit.
+  - label: F-07
+    severity: med
+    disposition: ANSWERED
+    evidence: N-09 PART 1 (b) demoted to AUDIT UNCHANGED, pinned to pre_change_sha; (a)(c)(d) standing.
+  - label: F-08
+    severity: med
+    disposition: ANSWERED (dissolved)
+    evidence: No file is written anywhere, so the cone question has no subject. The raiser concurs with
+      the dissolution reasoning as written.
+  - label: F-09
+    severity: med
+    disposition: ANSWERED
+    evidence: 'N-06 depends_on: [N-01, N-02].'
+  - label: F-10
+    severity: med
+    disposition: NOT ANSWERED
+    forward_maps_to: VL-05
+    evidence: 'N-09 still change_type: cross_module with the full 4-case parser suite.'
+  - label: F-11
+    severity: low
+    disposition: NOT ANSWERED
+    forward_maps_to: VL-06
+    evidence: N-01 EXCLUSION 1 still carries the runtime list-equals-plan comparison and non-strict PENDING
+      mode verbatim.
+  - label: F-12
+    severity: low
+    disposition: NOT ANSWERED
+    forward_maps_to: VL-07
+    evidence: The accepted residual appears nowhere in D-10 or N-02; the only occurrence in plan.yaml
+      was the previous panel's own transcription.
+  - label: F-13
+    severity: low
+    disposition: NOT ANSWERED
+    forward_maps_to: VL-08
+    evidence: Construction language survives in SC-01/09/11/13 and grew into SC-14/SC-15. GC-03 independently
+      re-found it.

@@ -275,6 +275,10 @@ decisions:
                                             ONLY - the census marker at its single detected enumeration.
       Shared-file warning, repeated in N-06's intent: check-state.sh is also touched by FEAT-57's
       T-19, so those edits serialise across features.
+      THE lanes: BLOCK IS FROZEN AND UNWRITABLE - no plan-merge route can rewrite it - and its
+      .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/migration-record.md row is a
+      vestige of the migration task the DoD struck, produced by no task in this plan, so THIS table
+      and not that row is the live record.
     because: |
       DEC-174 rules by CATEGORY, not by enumeration, and names check-domain.sh,
       bash-write-guard.sh and check-state.sh explicitly: the artifact under change is the
@@ -369,6 +373,13 @@ decisions:
       tests/integration/f58_sparse_fixture.py, is built once by N-01 and imported by every
       integration test in this plan, and it also exports the add_worktree helper and the
       REQUIRED_PATHS constant so no test carries its own copy.
+      EXTENDED, NEVER REPLACED, BY D-16 (operator ruling, cycle 6, finding PL-04). The synthetic
+      fixture KEEPS EVERY ASSERTION IT ALREADY CARRIES and remains the place the MECHANISM is
+      tested; D-16 ADDS read-only assertions over the real repository beside it. The two coexist
+      by SUBJECT: the fixture grades behaviour whose inputs a test constructs, and the real-tree
+      assertions grade the one thing a fixture cannot - whether the shipped code holds over a
+      tree that DISAGREES WITH ITSELF. Nothing in D-16 copies this repository into a fixture, so
+      the cost rule this decision rests on is untouched.
     because: |
       Issue 1526 is the precedent: a fixture that copied .claude/worktrees accounted for 239 s of
       a 240 s suite. The host-scale figures this feature cites - 3337 paths reported deleted,
@@ -386,10 +397,16 @@ decisions:
     choice: |
       worktree-state.py --verify GETS A NAMED CALLER INSIDE THIS FEATURE: check-state.sh's
       preflight, wired by N-06. Inside a linked worktree, before any invariant runs,
-      check-state.sh runs worktree-state.py --verify and REFUSES non-zero when it fails,
-      printing the failing check and this repository's remedy tail; outside a linked worktree
-      the preflight is skipped. NO GATE EVER CALLS --repair - the hook tier is --repair's only
-      caller (D-03) - and check-state.sh repairs nothing.
+      check-state.sh runs worktree-state.py --verify. IT REFUSES non-zero ON THE STRUCTURAL EXITS
+      ONLY - 3 THROUGH 7, the states in which the audit's view of the tree is not the tree -
+      printing the failing check and this repository's remedy tail. THE DIRTY-TREE EXIT, 8, IS
+      REPORTED AND NON-GATING: check-state.sh prints what --verify observed about the dirty tree
+      and then RUNS ITS INVARIANTS. Outside a linked worktree the preflight is skipped. NO GATE
+      EVER CALLS --repair - the hook tier is --repair's only caller (D-03) - and check-state.sh
+      repairs nothing.
+      EXIT 8 ITSELF IS UNCHANGED in worktree-state.py: N-02 check 5 still makes a non-empty git
+      status --porcelain exit 8, with its own by-hand remedy text, and the six exits stay six.
+      Only the PREFLIGHT's gating behaviour changes here.
     because: |
       The DoD rules that --verify is what gates call and that it FAILS rather than repairing
       (note:117), and the cycle-0 draft wired only --repair, from the three hooks: --verify
@@ -405,10 +422,21 @@ decisions:
       than the audit that reads the corpus and would leave the audit reporting clean over a
       broken cone; and a human or CI step, which is precisely the prose-an-agent-is-expected-to-
       follow that M-1 (DoD) exists to replace.
+      THE EXIT-8 CARVE-OUT, AMENDED BY THE OPERATOR AT CYCLE 6 ON FINDING PL-02, with his reason
+      carried across so the plan and SC-09 say the same thing for the same reason: a dirty tree
+      is the NORMAL MID-TASK STATE of a feature worktree; check-state.sh is the canonical
+      pre-commit gate for the whole repository by its own header at :24; so gating on exit 8
+      would refuse ahead of the very commit that is exit 8's own stated remedy, deadlocking every
+      worktree it runs in. The structural exits 3-7 are different in kind - there the audit's
+      view of the tree is not the tree, and a verdict taken over it is a verdict about the wrong
+      tree - which is why they still gate. --verify continues to REPORT the dirty tree; it simply
+      does not gate on it. SC-09 carries the same amendment, made by the operator at source in
+      BRIEF.md; N-02 check 5 is untouched.
       THE WIRING IS CARRIED BY N-06 and asserted by
       tests/integration/test-check-state-verify-gate.py; SC-09's gate clause grades it - that
-      the gate invokes --verify, and that a failing --verify makes the gate refuse without
-      running an invariant.
+      the gate invokes --verify, that a STRUCTURAL failure makes the gate refuse without running
+      an invariant, and that a dirty tree does not. SC-16 grades the same pair over a real
+      disposable worktree rather than over the fixture.
     dec: none
   - id: D-13
     choice: |
@@ -549,53 +577,189 @@ decisions:
       not to audit comments. The one blind class this leaves is recorded in N-12's own intent, the
       artifact the operator signs, per the panel ruling on VL-04.
     dec: none
+  - id: D-16
+    choice: |
+      REAL-REPOSITORY ASSERTIONS SIT BESIDE THE SYNTHETIC FIXTURE, AND N-13 CARRIES THEM.
+      The shipped check-state.sh is asserted GREEN at the REAL owner root - no
+      expected-versus-reached mismatch refusal, the run proceeding past the choke point -
+      and asserted NON-GATING on a dirty DISPOSABLE worktree of this repository, paired
+      with a STRUCTURAL break in the same probe that must still refuse.
+      EVERY REAL-TREE READ IS READ-ONLY: nothing mutates the owner root, nothing touches a
+      live worktree, and the only tree written is a probe the task itself creates and
+      removes.
+      NO CENSUS FIGURE IS AN EXPECTATION anywhere. The assertion is the ABSENCE of a
+      mismatch finding at the reviewed commit, with a non-vacuity floor - more than 70
+      records reached - and never that a count equals a literal. The real tree gains
+      feature directories, and SC-11's host baseline is already labelled measured and NOT a
+      fixture expectation for the same reason.
+    because: |
+      A fixture whose directories and records agree BY CONSTRUCTION cannot catch a defect
+      that exists only because the real tree disagrees with itself. That is exactly what
+      finding PL-01 was: 89 feature directories against 79 feature.json records at the real
+      owner root, ten of them record-less and carrying tracked, non-ignored notes, which no
+      self-consistent fixture could ever have shown.
+      THIS IS THE THIRD TIME IN THIS FEATURE a control was found blind to the thing it
+      existed to catch - after the derivation that stripped six tracked .harness subtrees,
+      and .harness/corpus missing from REQUIRED_PATHS. Point-fixing the instances without
+      adding the class leaves a fourth free to ship the same way.
+      THE DoD's SYNTHETIC-FIXTURE RULE IS NOT VIOLATED, and the operator settled this at
+      cycle 6: "a synthetic fixture, never a copy of this repository" is a rule about COST -
+      the precedent is issue 1526, where a fixture copying .claude/worktrees accounted for
+      239 s of a 240 s suite - and about not mutating the real tree. IT WAS NEVER A RULE
+      AGAINST READING THE REAL OWNER ROOT. A read-only assertion against it is cheap and is
+      precisely what catches 89-versus-79.
+      N-08 is the precedent inside this plan: change_type scaffolding, one test, clean over
+      the real records. The audit narrowing had no counterpart until now.
+      REJECTED, recorded so it is not re-proposed: replacing fixture assertions with
+      real-tree ones. The fixture keeps every assertion it carries and stays where the
+      MECHANISM is tested - it is simply not sufficient alone (D-11).
+    dec: none
+  - id: D-17
+    choice: |
+      A GATE'S DECISION IS ASSERTED FROM ITS PRINTED PAYLOAD, NEVER FROM ITS EXIT STATUS.
+      Every criterion and every test in this plan that grades whether a registered hook gate
+      ALLOWED or DENIED parses the printed permissionDecision payload and asserts on that.
+      ANY FUTURE CRITERION ASSERTING A GATE'S DECISION BY EXIT CODE IS WRONG BY DEFAULT.
+    because: |
+      Two independent gates in this repository refuse by PAYLOAD and exit 0, which makes
+      this the CONVENTION here rather than an anomaly.
+      merge-gate.py's deny() has NO EXIT CONTRACT AT ALL - zero sys.exit calls - and refuses
+      by printing a PreToolUse JSON payload; that was finding F-06, two cycles ago.
+      branch-create-gate.sh's deny() prints its permissionDecision deny JSON and then exits
+      0 at :63-66, exactly as its allow path does at :91-92, and the file's own header
+      states it verbatim.
+      An exit-status assertion over either gate is therefore satisfied by a FALSE DENIAL: it
+      cannot distinguish the two outcomes it exists to distinguish. N-10 PART 7 clause (c)
+      carried that defect (finding PL-03) and is corrected; N-07 PART 4(b) already carried
+      the correct form and its warning sentence is now carried at both sites.
+      Recorded as a DECISION rather than as a task comment because it generalises past both
+      sites: it binds whoever writes the next gate criterion, in this feature or after it.
+    dec: none
 panel:
-  last_run: planpanelfinal-validator
+  last_run: planpanelc6-validator
   cycle: 0
   severity_max: high
-  note: 'Adversarial plan panel planpanelfinal-validator FAILED this signature draft
-    at severity_max high: four NEW findings, three high and one med, none of them
-    a re-report. THE HEADLINE: two independently-verified defects sit in N-06 and
-    both are instances of one control gap - nothing in this plan ever runs the shipped
-    check-state.sh against the REAL repository, every N-06/N-09 assertion running
-    against f58_sparse_fixture whose directories and records agree by construction.
-    As specified, the day N-06 lands the repository''s own canonical pre-commit gate
-    refuses at the owner root, in every fresh clone, and in every dirty feature worktree.
-    BOTH READERS RAN: scope (harness-code-reviewer) and should-not-exist (fable-advisor).
-    NEITHER was skipped, and NO on_fail loop fired - both returns parsed on the first
-    pass. The three highs (PL-01, PL-02, PL-03) reach the operator''s batched signature
-    review UNRESOLVED: no agent in this chain risk-accepted one and none may; risk
-    acceptance is approval.rulings, the main session''s write alone. PL-02''s remedy
-    additionally needs the OPERATOR to amend SC-09 in BRIEF.md, an approval-gated
-    artifact - routed up as blocking question Q1, not as a fix cycle. PL-04 is med
-    on its own merit and is ranked to land WITH the two highs because it is their
-    common root; its rationale is carried in its own fix_order and must not be compressed
-    away, because it changes what the operator is deciding. SEVERITY HANDLING: both
-    should-not-exist highs were reconciled at THE READER''S OWN SEVERITY (high) and
-    deliberately NOT raised to critical - decided, not averaged - and nothing was
-    lowered; see severity_reconciliations. THE GC5-01 CORRECTION IS APPLIED HERE:
-    all nine of VL-01..VL-09 previously read disposition open although the operator
-    answered every one and each remedy landed, so left as-is the signature packet
-    would report three open high findings against a draft that answered them. All
-    nine are carried forward inside findings: with their PF- ids, labels, severities,
-    summaries, readers, reporters and lands_on VERBATIM; only disposition changed,
-    resolved_by added, and VL-07 given a summary_caveat. VL-01 and VL-07 are DISSOLVED
-    rather than remedied and VL-04 stays a panel RULING, not a defect. Two lead-tier
-    premises were measured by the ORCHESTRATOR at its own tier and are recorded under
-    orchestrator_verified_premises; they are what make PL-01 and PL-03 load-bearing
-    rather than plausible. The full previous-cycle disposition is carried unchanged
-    in prior_cycle. For the concrete change per finding, and for the assessed-and-dismissed
-    set, read runs/planpanelfinal-validator/digest.md.'
+  note: 'Adversarial plan panel planpanelc6-validator FAILED this signature draft
+    at severity_max high: SIX new findings - four high and two med, none of them a
+    re-report. THE HEADLINE, the lead''s own: PL-01..PL-04 all verifiably resolved
+    and the rest of the plan is clean, but N-13 - the one surface no panel had read
+    - carries four high defects that make the PL-04 remedy itself either inert, wrong-subject
+    or standing-red. All four highs land on N-13, from two readers working independently,
+    and that convergence is itself the finding. BOTH READERS RAN: should-not-exist
+    (fable-advisor, PASS, 3 findings) and scope (harness-code-reviewer, DIGEST verdict
+    FAIL, 3 findings, one of them in must_fix). NEITHER was skipped and no on_fail
+    loop fired. THE FOUR HIGHS (PP-01..PP-04) ARE RECORDED UNRESOLVED and reach the
+    operator''s batched signature review under DEC-207: no agent in this chain risk-accepted,
+    waived, resolved or fixed one, and none may - risk acceptance is approval.rulings,
+    the main session''s write alone. PP-05 is routed as the panel''s own open question
+    Q1 (non-blocking) because its honest remedy edits SC-16 in BRIEF.md, an approval-gated
+    artifact; PP-06 carries the digest''s named remedy and no other disposition. THE
+    FIX ORDER IS RECORDED SEPARATELY IN fix_order AND MUST NOT BE COMPRESSED AWAY,
+    because it changes what the operator is deciding: PP-04 must land LAST among the
+    PART 1 group. PL-01..PL-04, resolved at cycle 6 by the operator''s batched ruling,
+    are CARRIED FORWARD resolved with their resolved_by intact and each one''s cycle-6
+    verification recorded per row in cycle6_panel_verification - the panel verified
+    each at source, and that verification is the operator''s evidence that the cycle-6
+    pass landed. PL-04''s carried verification keeps the digest''s own caveat that
+    it is resolved AS A SPECIFICATION. All nine of VL-01..VL-09 stay INSIDE findings:
+    with their PF- ids byte-for-byte so sign-approval --overrule PF-ID, which validates
+    its argument against panel.findings ids, can still reach them at the signature
+    gate. Three premises were measured by the ORCHESTRATOR at its own tier and are
+    recorded under orchestrator_verified_premises; they are what make PP-01, PP-05
+    and PP-02 load-bearing rather than plausible, and the third of them CONTRADICTS
+    the DoD note''s own claim about core.hooksPath travelling with a clone. Two record-accuracy
+    facts the panel lead reported are recorded under record_accuracy so a later reader
+    is not misled. The full earlier-cycle disposition is carried unchanged in prior_cycle:
+    three batched passes landing is the operator''s evidence, so this replacement
+    preserves it rather than erasing what those passes bought. For the concrete change
+    per finding read runs/planpanelc6-validator/digest.md - and read the CORRECTED
+    CONTRACT BLOCK at the end of that file, which supersedes the block at its head
+    for parsing. NOTHING IN THIS BLOCK IS A FIX: DEC-207 routes panel findings into
+    the batched review pass at the signature gate and forbids a separate pre-signature
+    fix dispatch, so no task, decision, REQ, SC, status or approval field was touched
+    by this transcription.'
   transcription_rule: 'Each PF- id is computed once by pm with panel_findings.py id
-    --reader <reader> --summary <summary>, taking the row''s own reader and summary
-    values verbatim as recorded here. Severities, reporters, rankings and dispositions
-    are the panel digest''s; nothing was re-ranked, re-worded into a different claim,
-    merged, split, or given a disposition the digest does not state. The four new
-    findings carry the run-local label series PL-01..PL-04 so they cannot collide
-    with the carried VL-01..VL-09 labels; the digest assigned no ids. The nine carried
-    VL rows keep their existing PF- ids byte-for-byte and stay INSIDE findings: so
-    that sign-approval --overrule PF-ID, which validates its argument against panel.findings
-    ids, can still reach them at the signature gate.'
+    --reader <reader> --summary <summary>, taking that row''s OWN reader and summary
+    values verbatim as recorded here, so a later sign-approval --overrule PF-ID resolves
+    against the recorded text and not against a reconstruction. Severities, readers,
+    lands_on, summaries, remedies, rankings and dispositions are the panel digest''s:
+    nothing was re-ranked, nothing was re-worded into a different claim, nothing was
+    merged, nothing was split, and no row was given a disposition the digest does
+    not state. The digest carries SIX new findings and all six are transcribed; the
+    dispatching orchestrator named five, and dropping PP-06 would have falsified the
+    record. The only normalization applied to digest prose is the removal of markdown
+    emphasis and backticks, which plan.yaml values may not carry - ids are computed
+    from the normalized value exactly as it is recorded here, never from the pre-normalization
+    digest bytes. The six new findings carry the run-local label series PP-01..PP-06
+    so they cannot collide with the carried PL-01..PL-04 or VL-01..VL-09 labels; the
+    digest assigned no ids. The carried PL and VL rows keep their existing PF- ids,
+    labels, severities, summaries, reporters and lands_on byte-for-byte; for the four
+    PL rows only an additive cycle6_panel_verification key was added, and prior_cycle
+    is carried unchanged.'
+  fix_order: 'Verbatim from the digest: PP-01 + PP-05 together (one respelling of
+    PART 1''s invocation) -> PP-03 (clause 1 wording) -> PP-04 (red proof, pinned
+    to the corrected clause) -> PP-02 (independent, PART 2) -> PP-06 (independent,
+    N-06). PP-04 LAST AMONG THE PART 1 GROUP IS LOAD-BEARING AND EXPLICIT: sequencing
+    it first pins a red proof to an assertion three other findings are about to change.
+    The order is recorded because it changes what the operator is deciding, and it
+    must not be compressed away. Recording it is not executing it: under DEC-207 these
+    findings are decided in the batched review pass at the signature gate, not in
+    a pre-signature fix dispatch.'
+  orchestrator_verified_premises:
+  - premise: 'PP-01: cwd is inert for check-state.sh, so N-13 PART 1''s ''run with
+      cwd at the owner root'' cannot reach its stated subject.'
+    measured: check-state.sh:22-49 resolves its root from _selfdir through harness_boundary.resolve_root,
+      with its own comment reading verbatim 'never from the environment and never
+      from the caller's cwd (FEAT-42 T-12)'
+    verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator
+      lead (the lead separately verified the same property at source and the should-not-exist
+      reader raised it)
+    bearing: 'This is what makes PP-01 load-bearing rather than plausible: PART 1''s
+      invocation is INERT, so the worktree''s own copy would audit the worktree and
+      PART 1''s clauses would pass vacuously.'
+  - premise: 'PP-05: check-state.sh carries no HARNESS_REVIEW_SHA mechanism, so PART
+      1''s reviewed-commit framing has nothing to bind to.'
+    measured: grep -c HARNESS_REVIEW_SHA over check-state.sh returns 0
+    verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator
+      lead (the scope reader reported the same zero-match grep and the lead re-verified
+      it at source)
+    bearing: 'This is what makes PP-05 load-bearing rather than plausible: there is
+      no such mechanism in that script, so the framing is either unhonourable or dead
+      prose.'
+  - premise: 'PP-02: core.hooksPath does not travel with a clone, so PART 2 clause
+      1''s post-checkout premise is false in CI and in any un-onboarded clone.'
+    measured: git config --local core.hooksPath is .claude/skills/harness/hooks, and
+      it is LOCAL config, which is NOT cloned; no tracked gitconfig exists (git ls-files
+      | grep gitconfig -> 0). The hook SCRIPTS are tracked; the config pointing at
+      them is not.
+    verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator
+      lead (the lead separately verified the workflow's step ordering in .github/workflows/tests.yml)
+    bearing: 'This is what makes PP-02 load-bearing rather than plausible - and it
+      CONTRADICTS THE DoD NOTE''S OWN CLAIM that core.hooksPath is ''tracked in the
+      repository so it travels with a clone'': the note conflates the tracked hook
+      scripts with the untracked local config that points at them. The operator is
+      deciding PP-02 against a note whose premise the measurement falsifies.'
+  record_accuracy:
+  - fact: 'The scope reader''s own artifact is internally inconsistent. Its prose
+      opens ''VERDICT: PASS, with 3 non-blocking findings ... No must_fix'' (notes/review-harness-code-reviewer-planpanel-c6.md:3),
+      while its DIGEST returned VERDICT: FAIL with a non-empty must_fix on the same
+      finding (PP-04).'
+    handling: The lead routed on the DIGEST fields, as the contract requires, and
+      recorded the discrepancy rather than re-adjudicating it. NO finding content
+      and NO severity changed. Recorded here so a later reader of that artifact is
+      not misled by its opening line.
+    reported_by: the panel lead (planpanelc6-validator)
+  - fact: A reader contradiction on N-13's benign-transient handling. scope reported
+      probe 2 clean - 'N-13 distinguishes a real audit defect from a benign transient
+      ... No standing-red risk - N-13 pins no census figure' - while should-not-exist
+      raised PP-03 on the same surface.
+    handling: 'Resolved in should-not-exist''s favour and LEAD-VERIFIED AT SOURCE
+      rather than passed up: scope answered the pinned-census-figure question, which
+      is genuinely clean, and did not ask whether clause 1''s absence assertion is
+      compatible with N-06''s non-gating print path. It is not. The lead records this
+      as the union-of-two-lenses defect this feature keeps producing, callable from
+      inside neither reader''s own lens.'
+    reported_by: the panel lead (planpanelc6-validator)
   severity_reconciliations:
   - finding: PL-01
     from: high
@@ -626,65 +790,245 @@ panel:
     reason: 'Kept at med on its own merit and NOT raised to reflect its ranking: it
       is ranked to land with the two highs because it is their common root, and ranking
       is not severity. Nothing was averaged and nothing was lowered.'
-  orchestrator_verified_premises:
-  - premise: The expected-set / reached-set key mismatch behind PL-01 is real.
-    measured: ls -d .harness/harness/features/*/ | wc -l = 89; ls .harness/harness/features/*/feature.json
-      | wc -l = 79
-    verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator
-      lead (the lead separately re-verified the same premise with two glob calls over
-      the real owner root and reports 89 and 79 as well)
-    bearing: 'This is what makes PL-01 load-bearing rather than plausible: with the
-      two sets keyed differently, N-06 PART 1 exits 2 reporting reached 89 of 79 at
-      the owner root and in every fresh clone.'
-  - premise: An ALLOW assertion on exit status genuinely cannot distinguish allow
-      from deny in branch-create-gate.sh.
-    measured: branch-create-gate.sh deny() at :63-66 prints the JSON payload and then
-      exit 0; the allow path at :91-92 is also exit 0
-    verified_by: the ORCHESTRATOR, at its own tier - not a reader and not the validator
-      lead (the scope reader read the same script at source and the lead re-verified
-      it, citing the allow path as :88-92)
-    bearing: 'This is what makes PL-03 load-bearing rather than plausible: N-10 PART
-      7 clause (c)''s literal exit-0 assertion is satisfied by a false denial.'
+  - finding: PP-01, PP-02, PP-03, PP-04
+    from: high
+    to: high
+    raised_by: lead (planpanelc6-validator)
+    reason: 'All four transcribed at THE READER''S OWN severity (high). None was raised
+      to critical - decided, not averaged: each is a specification defect in an unsigned
+      plan that nobody may sign in this run, and the remedy is a text edit before
+      signature. Nothing was lowered. Cycle-6 panel.'
+  - finding: PP-05, PP-06
+    from: med
+    to: med
+    raised_by: reader (scope), unchanged by the lead
+    reason: Both kept at the scope reader's own med. Neither was lowered and neither
+      was raised; PP-05's routing to the operator as question Q1 is a routing decision
+      and not a severity change. Cycle-6 panel.
   readers:
-  - reader: scope
-    persona: harness-code-reviewer
-    status: ran
-    verdict: PASS
-    severity_max: high
-    findings_returned: 1
-    artifact: notes/review-harness-code-reviewer-planpanel-c5.md
-    note: RAN. Not skipped, and no on_fail loop fired - its return parsed on the first
-      pass. One new high (PL-03), verified by the reader at source in branch-create-gate.sh
-      rather than from the plan's paraphrase; it also re-derived the VL-08 survivor
-      set and recounted the 41-row ledger by naming every row instead of trusting
-      the goal-check's telescoping arithmetic.
   - reader: should-not-exist
     persona: fable-advisor
     status: ran
-    verdict: n/a - returns findings only, holds no write grant (the team digest's
-      contract block records it as PASS)
+    verdict: PASS
     severity_max: high
     findings_returned: 3
-    artifact: runs/planpanelfinal-validator/digest.md
+    artifact: runs/planpanelc6-validator/digest.md
     note: 'RAN. Not skipped, and no on_fail loop fired - it resolved on this host
-      and returned the required findings shape. Because it returns findings only and
-      holds no write grant, it has no artifact of its own: its two highs (PL-01, PL-02)
-      are transcribed from the lead''s digest rather than from a reader artifact.
-      Its third return, an affirmative info finding, was assessed and subsumed rather
-      than dismissed on merit - see assessed_and_dismissed.'
-  assessed_and_dismissed:
-  - item: should-not-exist finding 3 (info, affirmative)
-    ruling: 'Its claim is TRUE - N-10 PART 7 (c) textually survives the fold and REQ-08''s
-      two-route denial is intact - but survival is not sufficiency, and scope found
-      the surviving clause non-discriminating. Not a duplicate of PL-03: subsumed
-      by it, and PL-03 carries the sharper description. Its second half - that N-10
-      PART 6''s omitted refusal arm is correct because deny() is already the gate''s
-      failure direction - the lead verified at source and accepted.'
-  - item: GC5-01, GC5-02, GC5-03
-    ruling: 'Per dispatch: known stale, not re-reported. GC5-01 is the disposition-open
-      defect this record''s correction discharges. scope re-derived the VL-08 survivor
-      set rather than trusting GC5-02''s stale anchors, as instructed.'
+      and returned the required findings shape; the team digest''s contract block
+      records its verdict as PASS. BECAUSE IT RETURNS FINDINGS ONLY AND HOLDS NO WRITE
+      GRANT, IT HAS NO ARTIFACT OF ITS OWN: its three findings (PP-01, PP-02, PP-03)
+      are TRANSCRIBED FROM THE LEAD''S DIGEST rather than from a reader artifact.
+      Its headline: nothing here should not be built; all three findings land on N-13,
+      each an instance of one gap - its spec was written against an idealized execution
+      environment.'
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    verdict: FAIL
+    severity_max: high
+    findings_returned: 3
+    must_fix_returned: 1
+    artifact: notes/review-harness-code-reviewer-planpanel-c6.md
+    note: 'RAN. Not skipped, and no on_fail loop fired - its return parsed on the
+      first pass. Its DIGEST returned FAIL with one finding in must_fix (PP-04, high)
+      plus the two med it reported (PP-05, PP-06). Its artifact prose opens with PASS
+      and ''No must_fix'' - see record_accuracy: the lead routed on the DIGEST and
+      no finding content or severity changed. It read plan.yaml and BRIEF.md in full
+      and source-verified branch-create-gate.sh, merge-gate.py, bash-write-guard.sh:855
+      and check-state.sh at the checkout.'
   findings:
+  - label: PP-01
+    severity: high
+    reader: should-not-exist
+    lands_on: N-13 PART 1
+    summary: 'N-13 PART 1 says ''Run the SHIPPED check-state.sh with cwd at the owner
+      root''. cwd is inert here. check-state.sh:22-49 resolves its root from _selfdir
+      via harness_boundary.resolve_root, with the comment ''never from the environment
+      and never from the caller''s cwd (FEAT-42 T-12)'', then cd $root. Lead-verified
+      at source. The plan records this property about itself twice (D-01 on merge-gate''s
+      ROOT; N-06 PART 3(c) on the extracted copy being ''wrong-rooted wherever it
+      is staged''), so this is the feature''s own known mechanism applied to the one
+      task that forgot it. Consequence: run from inside a feature worktree - where
+      this suite runs during the build - the shipped copy audits the worktree, so
+      clause 3''s non-vacuity floor (>70) fails against a sparse worktree that reaches
+      1. And the natural quiet resolution - invoking the copy of check-state.sh sitting
+      at the owner root - runs the pre-change audit, which has no mismatch machinery,
+      passes all four clauses, and leaves SC-16 green forever while proving nothing
+      about shipped code. That is the wrong-subject fail-open this feature exists
+      to remove.'
+    remedy: Respell the invocation to run the worktree's shipped check-state.sh with
+      HARNESS_PROJECT_DIR=<owner_root> - the marked override resolve_root honours
+      at harness_boundary.py:66-78, and the owner root carries MARKER - and assert
+      the resolver's discard notice is ABSENT from stderr, so a marker-less override
+      cannot silently fall back to auditing the worktree (check-state.sh:36-46 keeps
+      and replays that stderr). State explicitly that invoking the owner root's own
+      copy is FORBIDDEN.
+    reporter: should-not-exist (fable-advisor), transcribed from the lead's digest
+      because that reader holds no write grant and has no artifact of its own; premise
+      re-verified at source by the lead and measured again by the orchestrator at
+      its own tier
+    disposition: 'UNRESOLVED - open at the operator''s batched signature review under
+      DEC-207. No agent in this chain risk-accepted it, waived it, resolved it or
+      fixed it, and none may: risk acceptance is approval.rulings, the main session''s
+      write alone. The digest states no other disposition.'
+    fix_order: 'rank 1 of the digest fix order, TOGETHER WITH PP-05: the two are ONE
+      respelling of PART 1''s invocation and land in one pass.'
+    id: PF-bad620b663538e3f588a594343f2cdb9
+  - label: PP-02
+    severity: high
+    reader: should-not-exist
+    lands_on: N-13 PART 2
+    summary: 'PART 2 clause 1 asserts worktree-state.py --verify at the freshly created
+      probe exits 0, on the premise that post-checkout fired. core.hooksPath does
+      not travel with a clone. Lead-verified in .github/workflows/tests.yml: git config
+      core.hooksPath is set only inside the Repository-state gate step, which runs
+      after the Integration suite step that would collect tests/integration/test-check-state-realdata.py.
+      So in CI the probe is born unrepaired, is a full checkout with a feature-id
+      basename, and --verify fails check 1 - wrong cone, exit 3. None of PART 2''s
+      three announced-skip conditions (owner root unresolvable, empty corpus, no free
+      probe id) covers this. integration is the sole required branch-protection context
+      with enforce_admins: true - this reddens every PR in the repository from the
+      day N-13 lands. Clause 1''s own framing, ''a non-zero here is a real mechanism
+      failure and not a precondition to work around'', is false in that environment:
+      it is deliberate CI state per the workflow''s own ordering. The same holds for
+      any clone that has not been onboarded.'
+    remedy: 'Add a fourth announced-skip condition, on the VL-02 shape PART 2 already
+      uses - SKIP, printing the reason and naming the condition and asserting the
+      line was printed, when the owner repository''s core.hooksPath does not resolve
+      to the tracked .claude/skills/harness/hooks. The authoritative PART 2 run stays
+      local. Not recommended, but named so the operator can weigh it: moving the workflow''s
+      hooksPath line ahead of the suite steps bends the CI runner to suit a check,
+      the direction D-13 already rejected.'
+    reporter: should-not-exist (fable-advisor), transcribed from the lead's digest
+      because that reader holds no write grant and has no artifact of its own; premise
+      re-verified at source by the lead in .github/workflows/tests.yml and measured
+      again by the orchestrator at its own tier
+    disposition: 'UNRESOLVED - open at the operator''s batched signature review under
+      DEC-207. No agent in this chain risk-accepted it, waived it, resolved it or
+      fixed it, and none may: risk acceptance is approval.rulings, the main session''s
+      write alone. The digest states no other disposition.'
+    fix_order: 'rank 4 of the digest fix order: independent, PART 2.'
+    id: PF-73b804f7e5c0bd6f233de7c70d63a886
+  - label: PP-03
+    severity: high
+    reader: should-not-exist
+    lands_on: N-13 PART 1 clause 1
+    summary: 'Clause 1 asserts the N of M mismatch message ''is ABSENT from the output''.
+      N-06 PART 1 says the audit prints that message ''whenever either side is non-empty'',
+      and that outside a linked worktree an unexpected name ''is ordinary working
+      state, a feature directory on disk that is not yet committed, so it is REPORTED
+      in the SAME message and is NON-GATING''. Both quoted from source by the lead.
+      So the moment anyone has a new feature directory sitting uncommitted at the
+      owner root - the routine state during any planning run - the collected test-check-state-realdata.py
+      goes red on every branch, through nobody''s edit. That is the standing-red shape
+      the operator struck at cycle 3 (D-01: a check that ''reddens for the WHOLE TEAM
+      the next time anyone creates a feature'') and that N-12''s intent rejects by
+      name. Clause 1 is tighter than the criterion it traces: SC-16 asserts only ''NO
+      expected-versus-reached mismatch refusal''. Clause 4 already concedes the failure
+      mode by promising to make the red legible instead of preventing it.'
+    remedy: Reword clause 1 to SC-16's own wording - assert no REFUSAL (the run did
+      not exit at the choke point) and that the missing set in any printed message
+      is EMPTY; an unexpected-only, non-gating report is tolerated with its names
+      printed, folding clause 4's diagnostic into the tolerated path. No BRIEF edit
+      needed - SC-16 already says 'refusal'.
+    reporter: should-not-exist (fable-advisor), transcribed from the lead's digest
+      because that reader holds no write grant and has no artifact of its own; both
+      quoted premises re-verified at source by the lead
+    disposition: 'UNRESOLVED - open at the operator''s batched signature review under
+      DEC-207. No agent in this chain risk-accepted it, waived it, resolved it or
+      fixed it, and none may: risk acceptance is approval.rulings, the main session''s
+      write alone. The digest states no other disposition.'
+    fix_order: 'rank 2 of the digest fix order: clause 1 wording, after PP-01 + PP-05.'
+    id: PF-52754958e4d64a215df4918ac414b471
+  - label: PP-04
+    severity: high
+    reader: scope
+    lands_on: N-13 PART 1, SC-16, D-16
+    summary: 'PART 1''s four assertions carry no red-proof / discrimination instruction.
+      Every other consequential assertion in this plan does: N-01''s self-check exclusions,
+      N-02 norepair, N-04''s merge/rebase pre-change reproduction, N-05''s three separate
+      discrimination proofs, N-07 case (c), N-08 clauses 2-4, N-09''s discrimination
+      clauses, N-12 HALF 2, N-06 PART 4''s own case 4. PART 2 of the same task has
+      it internally (clause 3 paired against clause 4''s structural control). The
+      gap is specific to PART 1 - and PART 1 is the panel''s own named remedy for
+      PL-04, ''a control found blind to the thing it existed to catch''. Without a
+      demonstrated red state, an implementation that mis-parses check-state.sh''s
+      stderr passes clause 1 while never exercising the claim it makes. This would
+      be the fourth instance of exactly the pattern PL-04 was raised to stop - and
+      PP-01 is proof that the fourth instance is not hypothetical, since a PART 1
+      that audits the worktree passes clauses 1 and 2 vacuously.'
+    remedy: Add an explicit red-proof step to PART 1 - run the same assertions once
+      against a temp copy of check-state.sh carrying the pre-fix feature.json-keyed
+      derivation, record in the receipt that clause 1 reddens naming the 89-vs-79
+      mismatch, then revert. Sequence it after PP-01 and PP-03, or the red proof pins
+      an assertion that is about to change.
+    reporter: scope (harness-code-reviewer), finding 2 of its own artifact (notes/review-harness-code-reviewer-planpanel-c6.md);
+      carried into the lead's must_fix
+    disposition: 'UNRESOLVED - open at the operator''s batched signature review under
+      DEC-207. No agent in this chain risk-accepted it, waived it, resolved it or
+      fixed it, and none may: risk acceptance is approval.rulings, the main session''s
+      write alone. The digest states no other disposition.'
+    fix_order: 'rank 3 of the digest fix order and LAST among the PART 1 group: the
+      red proof is pinned to the corrected clause. Sequencing it first pins a red
+      proof to an assertion three other findings are about to change - the digest
+      calls this load-bearing.'
+    id: PF-d4323cbe23f4598bd94c529c017d0f17
+  - label: PP-05
+    severity: med
+    reader: scope
+    lands_on: N-13 PART 1, SC-16
+    summary: 'PART 1 instructs resolving HARNESS_REVIEW_SHA ''DEFAULTING TO HEAD when
+      unset, exactly as N-08 does'' for check-state.sh. grep HARNESS_REVIEW_SHA check-state.sh
+      returns zero matches (lead-verified) - it is a filesystem scan of whatever is
+      checked out at its resolved root, unlike N-08, which reads records purely through
+      git show <ref>:<path>. Read literally, honouring it would require checking the
+      owner root out to that ref, which PART 1''s own absolute rule forbids. Read
+      loosely, the framing is dead prose and the test audits whatever is on disk -
+      materially weaker than ''at the reviewed commit'' advertises. SC-16 carries
+      the same words, so the honest remedy is not task-local: it edits an approval-gated
+      artifact. Routed as Q1, not as a fix cycle.'
+    remedy: 'No task-local remedy: the honest remedy edits SC-16, an approval-gated
+      artifact, so it is the operator''s. Routed as the panel''s open question Q1
+      (non-blocking), not as a fix cycle. The reader''s own two candidate shapes are
+      on record in its artifact - drop the HARNESS_REVIEW_SHA framing from PART 1
+      and state plainly that the audit runs against whatever is checked out at the
+      owner root when the test executes, or add an explicit precondition that fails
+      or skips loudly, in PART 2''s announced-skip style, when the owner root''s checked-out
+      HEAD does not equal the resolved ref.'
+    reporter: scope (harness-code-reviewer), finding 3 of its own artifact (notes/review-harness-code-reviewer-planpanel-c6.md);
+      the zero-match grep re-verified at source by the lead and measured again by
+      the orchestrator at its own tier
+    disposition: 'UNRESOLVED - routed by the panel to the OPERATOR as its own open
+      question Q1 (blocking: false), explicitly NOT as a fix cycle, because the honest
+      remedy edits SC-16 in BRIEF.md, an approval-gated artifact no agent in this
+      chain may amend. Not accepted, not waived, not resolved.'
+    fix_order: 'rank 1 of the digest fix order, TOGETHER WITH PP-01: the two are ONE
+      respelling of PART 1''s invocation. PP-05''s own remedy is nevertheless the
+      operator''s (Q1), not a fix cycle''s.'
+    id: PF-bfe22e776cceafd0a11b81eb64ca943a
+  - label: PP-06
+    severity: med
+    reader: scope
+    lands_on: N-06 PART 1, SC-06
+    summary: The non-emptiness floor GC6-02 added - 'if the derivation returns zero
+      names, the audit REFUSES, naming the pathspec it ran and that it matched nothing'
+      - exists in N-06 PART 1's prose and is graded by nothing. PART 4's test-check-state-expected-dirs.py
+      enumerates the worktree case, the non-worktree case, the one-derivation property
+      and the mismatch message; no case feeds a zero-match derivation (lead-verified
+      against PART 4's own case list). A future re-spelling of the pathspec that silently
+      matches nothing - precisely the .harness/*/features vs .harness/*/features/*
+      bug this cycle already found once - passes N-06's whole suite while every downstream
+      comparison is vacuous. That is the fail-open the clause was written to close.
+    remedy: Add a named case to test-check-state-expected-dirs.py feeding a canned
+      zero-match derivation and asserting refusal naming the pathspec.
+    reporter: scope (harness-code-reviewer), finding 1 of its own artifact (notes/review-harness-code-reviewer-planpanel-c6.md);
+      premise re-verified against PART 4's own case list by the lead
+    disposition: 'UNRESOLVED - open med carrying the digest''s own named remedy and
+      no further disposition: the digest states a change asked and nothing else, so
+      it reaches the operator''s batched signature review with the rest. Not accepted,
+      not waived, not resolved.'
+    fix_order: 'rank 5 of the digest fix order: independent, N-06.'
+    id: PF-318dd276fba65cd3af032357fda5adaf
   - label: PL-01
     severity: high
     reader: should-not-exist
@@ -708,10 +1052,22 @@ panel:
       .harness/*/features/ tree - or restrict both to feature.json-carrying directories.'
     fix_order: rank 1 of the digest fix order; it and PL-02 both edit N-06 and MUST
       land in one pass. PL-04 is what makes both stay fixed and should land with them.
-    disposition: open - unresolved and carried to the operator's batched signature
-      review. No agent in this chain risk-accepted it and none may; risk acceptance
-      is approval.rulings, the main session's write alone.
+    disposition: resolved at cycle 6 by the operator's batched ruling (notes/answers-operator-c6.md,
+      Q1). The finding, its severity and its summary stay recorded verbatim; only
+      the disposition moved.
     id: PF-1d3964400ea46a7edd0c8330c9e15668
+    resolved_by: 'N-06 PART 1 - remedy (a): ONE derivation used twice, first-level
+      directory names from git ls-files over .harness/*/features/, keying the expected
+      set and the reached set identically. Remedy (b) is REJECTED and the rejection
+      is recorded in the task text; the ten record-less directories are filed as issue
+      1640, are out of this feature''s scope, and are expected to be REPORTED accurately
+      meanwhile with no suppression.'
+    cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel.
+      Verified in: N-06 PART 1: ''ONE DERIVATION, USED TWICE'', first-level directory
+      names from git ls-files -- .harness/*/features/*. Remedy (b) explicitly rejected
+      in the plan''s own text with the reason. ''Add NO suppression, no allow-list,
+      no exemption and no feature.json-carrying filter anywhere''; N-13 repeats the
+      non-suppression for the ten record-less directories, which stay issue 1640.'
   - label: PL-02
     severity: high
     reader: should-not-exist
@@ -740,10 +1096,22 @@ panel:
       to amend SC-09''s last sentence in BRIEF.md. BRIEF.md is approval-gated, so
       that amendment is neither pm''s write nor a fix cycle''s; the panel routed it
       up as blocking open question Q1.'
-    disposition: open - unresolved and carried to the operator's batched signature
-      review. No agent in this chain risk-accepted it and none may; risk acceptance
-      is approval.rulings, the main session's write alone.
+    disposition: 'resolved at cycle 6 by the operator''s batched ruling (notes/answers-operator-c6.md,
+      Q2), whose remedy he executed himself at source: the BRIEF.md amendment the
+      panel routed up as blocking question Q1 was made by the operator, not by an
+      agent in this chain. The finding, its severity and its summary stay recorded
+      verbatim; only the disposition moved.'
     id: PF-1cfbb60f627e9e729ce7f666a707ea4d
+    resolved_by: 'SC-09''s last clause, amended AT SOURCE by the operator at cycle
+      6 in BRIEF.md, plus D-12 and N-06 PART 3 brought to match it: the preflight
+      gates on the STRUCTURAL exits 3 through 7 only, and the dirty-tree exit 8 is
+      REPORTED and NON-GATING, carrying the operator''s reason inline. N-02 check
+      5 is unchanged - exit 8 is still exit 8.'
+    cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel.
+      Verified in: D-12 and N-06 PART 3 match the operator''s amended SC-09 (BRIEF.md:239-252,
+      read at source): gating set is exits 3-7 only; exit 8 ''REPORTED and NON-GATING'';
+      --verify still reports the dirty tree; N-02 check 5 untouched; any unclassifiable
+      exit gates fail-closed. SC-09''s clause is unreworded.'
   - label: PL-03
     severity: high
     reader: scope
@@ -765,10 +1133,19 @@ panel:
       into N-10 PART 7.'
     fix_order: rank 3 of the digest fix order; independent of PL-01, PL-02 and PL-04,
       and scoped to one clause.
-    disposition: open - unresolved and carried to the operator's batched signature
-      review. No agent in this chain risk-accepted it and none may; risk acceptance
-      is approval.rulings, the main session's write alone.
+    disposition: resolved at cycle 6 by the operator's batched ruling (notes/answers-operator-c6.md,
+      Q3). The finding, its severity and its summary stay recorded verbatim; only
+      the disposition moved.
     id: PF-865cca158450fe71c0c7bec43669fe36
+    resolved_by: N-10 PART 7 clause (c), reworded to assert the printed output carries
+      NO permissionDecision deny payload and never an exit status, carrying N-07 PART
+      4(b)'s warning sentence across; and D-17, which records gates-refuse-by-payload
+      as the convention rather than as one clause's fix.
+    cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel.
+      Verified in: N-10 PART 7(c) asserts the printed output is not a permissionDecision:
+      deny payload and ''NEVER ASSERT AN EXIT STATUS AS THE GATE''S DECISION'', carrying
+      N-07 PART 4(b)''s warning at both sites. D-17 records the convention as a decision,
+      generalising past both sites.'
   - label: PL-04
     severity: med
     reader: validator-lead
@@ -792,11 +1169,29 @@ panel:
       PL-01 and PL-02 without it leaves the same blind class free to recur and a fourth
       instance free to ship the same way. PL-01 and PL-02 both edit N-06 and must
       land in one pass; PL-03 is independent and scoped to one clause.'
-    disposition: open - med, unresolved, and carried to the operator's batched signature
-      review with the two highs it is the root of. No agent in this chain risk-accepted
-      it and none may; risk acceptance is approval.rulings, the main session's write
-      alone.
+    disposition: resolved at cycle 6 by the operator's batched ruling (notes/answers-operator-c6.md,
+      Q4), which he took as the CLASS that PL-01 and PL-02 are instances of. The finding,
+      its severity and its summary stay recorded verbatim; only the disposition moved.
     id: PF-329bd0b3fbc7c8a03dbcf45a87666f0f
+    resolved_by: N-13, the second real-data act in this plan on N-08's model - the
+      shipped check-state.sh asserted green at the REAL owner root and non-gating
+      in a dirty DISPOSABLE worktree, with a structural positive control in the same
+      probe; D-16, which records why a self-consistent fixture cannot catch it and
+      that the DoD's fixture rule is about cost and not about reading the owner root;
+      D-11, EXTENDED rather than contradicted; and SC-16, the criterion that grades
+      it.
+    cycle6_panel_verification: 'RESOLVED, verified at source by the cycle-6 panel.
+      Verified in: all three operator constraints hold in N-13''s intent. (i) read-only
+      - ''nothing in this task mutates the owner root''s working tree, its index or
+      its records, and nothing touches a LIVE worktree''; PART 1 never writes, PART
+      2 writes only a probe it creates and removes. (ii) disposable - git worktree
+      add --detach, removed in a finally, never --force, removal run with cwd at the
+      owner root. (iii) addition not substitution - D-11 ''EXTENDED, NEVER REPLACED'',
+      N-13 ''ADDITION, NEVER SUBSTITUTION: remove NO assertion from any fixture test''.
+      Cost rule intact: N-13 git inits nothing and copies nothing; it reads the real
+      owner root through feature_corpus.corpus_root. CAVEAT, the digest''s own: resolved
+      AS A SPECIFICATION. PP-01 and PP-04 are about whether it can execute as specified,
+      and both land on that same remedy (N-13 PART 1).'
   - id: PF-f0281057320f2984492f8fba14508156
     label: VL-01
     severity: high
@@ -959,7 +1354,7 @@ panel:
       and ruled the _ID_RE scope-guard behaviour correct, and N-02''s scope guard
       is justified as the hook tier not starting to refuse trees this feature never
       claimed, carrying no probe-stripping language. Verified by the lead at source.'
-    resolved_by: the operator's DoD amendment (notes/dod-worktree-corpus-2026-09-10.md:136-143)
+    resolved_by: the operator's DoD amendment (.harness/notes/dod-worktree-corpus-2026-09-10.md:136-143)
     summary_caveat: HISTORICAL RECORD - DO NOT ACT ON THE QUOTED SENTENCE. This finding's
       summary is preserved verbatim as it was frozen, and it quotes a DoD sentence
       (a QA probe worktree now gets stripped automatically without QA knowing) that
@@ -1010,6 +1405,49 @@ panel:
       and PASSED. Verified by the scope reader.'
     resolved_by: the operator's closure of the record-accuracy point - the post-fix
       goal-check it asked for exists and PASSED (notes/research-FEAT-58-goalcheck-plan-c5.md)
+  assessed_and_dismissed:
+  - item: should-not-exist finding 3 (info, affirmative)
+    ruling: 'Its claim is TRUE - N-10 PART 7 (c) textually survives the fold and REQ-08''s
+      two-route denial is intact - but survival is not sufficiency, and scope found
+      the surviving clause non-discriminating. Not a duplicate of PL-03: subsumed
+      by it, and PL-03 carries the sharper description. Its second half - that N-10
+      PART 6''s omitted refusal arm is correct because deny() is already the gate''s
+      failure direction - the lead verified at source and accepted.'
+  - item: GC5-01, GC5-02, GC5-03
+    ruling: 'Per dispatch: known stale, not re-reported. GC5-01 is the disposition-open
+      defect this record''s correction discharges. scope re-derived the VL-08 survivor
+      set rather than trusting GC5-02''s stale anchors, as instructed.'
+  - item: cycle-6 not-re-reported set (planpanelc6-validator)
+    ruling: 'Every settled item named in the dispatch was checked and left alone:
+      DEC-174 lane assignment, the frozen lanes: block and its migration-record.md
+      vestige, SC-12''s split, the on-demand uniqueness index, D-06 Arm B with the
+      FEAT-02/FEAT-03 records uncorrected, the struck hardlink half (issue 1638),
+      and the ten record-less directories (issue 1640 - the audit reporting them is
+      correct behaviour). GC5-01/02/03 and VL-01..VL-09 were confirmed resolved per-clause
+      and not re-litigated.'
+  adequacy_notes:
+  - 'Neither reader executed anything: both are reasoning-only over an unsigned plan
+    (no code exists yet). Every premise was re-verified by the lead at source, but
+    nothing was run.'
+  - fable-advisor read N-02/N-04/N-06/N-12/N-13 and all 17 decisions in full; N-01/N-03/N-05/N-07..N-10
+    at structure level only. code-reviewer read plan.yaml and BRIEF.md in full. The
+    union covers every task, but N-01/N-03/N-05/N-07..N-10 got one deep lens, not
+    two.
+  - Coverage ledger (45 rows) was cross-validated by chaining the three apply notes
+    (36->42->41->45), a different method than the goal-check's ledger-claim read.
+    Consistent, and all four cycle-6 rows spot-checked against task text - but the
+    45 rows were not individually re-matched to tasks one by one.
+  - The severity_max of high rests on four findings that are all specification defects
+    in an unsigned plan. None describes shipped code.
+  open_questions:
+  - id: Q1
+    blocking: false
+    question: 'PP-05: N-13 PART 1 and SC-16 both say the owner root is read ''at the
+      reviewed commit'', but check-state.sh has no HARNESS_REVIEW_SHA mechanism (grep:
+      zero matches) and honouring it literally would require checking the owner root
+      out to that ref, which N-13''s own absolute read-only rule forbids. Dropping
+      the framing from the task alone leaves BRIEF.md asserting it - the honest remedy
+      edits SC-16, an approval-gated artifact. Operator''s to decide, not a fix cycle.'
   prior_cycle:
     last_run: planpanel3-validator
     count: 9 of 13 answered, verified independently by both readers in the written
@@ -1796,20 +2234,65 @@ tasks:
             point has already asserted equals the expected set, so active-feature would be false in a
             full checkout and not-a-corpus-read would be untrue. Both values are from N-12's closed
             vocabulary; exactly one marker per site.
-      At :118-120, after _feat_dirs is built, compute the EXPECTED set and compare:
+      ONE DERIVATION, USED TWICE (operator ruling at cycle 6, finding PL-01). The expected set and
+      the reached set are keyed the SAME WAY, so the two can never disagree about what they are
+      counting. THE ONE SOURCE is FIRST-LEVEL DIRECTORY NAMES from git ls-files over the pathspec
+      .harness/*/features/* - SPELL IT WITH THE TRAILING /*, or name the resolved corpus directory
+      outright. A pathspec stopping at features or features/ matches NOTHING: measured at git 2.50.1
+      in this worktree on 2026-09-10 with git ls-files -- <pathspec> | wc -l, .harness/*/features
+      gives 0, .harness/*/features/ gives 0, .harness/*/features/* gives 3360. Every tracked path
+      that pathspec returns is reduced to the single path component immediately after features/,
+      de-duplicated. NOT git ls-files over
+      .harness/*/features/*/feature.json, which was the earlier spelling and is the defect this
+      ruling removes: a tracked directory carrying no feature.json was in one set and not the
+      other.
+      THE DERIVATION MUST YIELD A NON-EMPTY SET OVER THE REAL INDEX, and that is a passing
+      condition in its own right rather than a corollary of the comparison. If the derivation
+      returns zero names, the audit REFUSES - red, naming the pathspec it ran and that it matched
+      nothing - and NEVER passes silently. An empty expected set makes every downstream comparison
+      either vacuous or a guaranteed refusal, so a future re-spelling that quietly matches nothing
+      has to be loud. This is a non-emptiness floor and NOT a census figure: assert that the set is
+      non-empty, never that it holds any particular number.
+      At :118-120, after _feat_dirs is built, compute the EXPECTED set from that derivation and
+      compare it against the reached set:
         - inside a linked worktree, established by harness_boundary.worktree_owner(root), the
           expected set is exactly {os.path.basename(root)}. The worktree basename IS the feature
           id by the dest_for invariant at feature-worktree.py:58-61, whose sole accepted form is
           _ID_RE at :46 - this invents no new identifier;
-        - anywhere else - a fresh clone, a CI runner, the owner root - the expected set is every
-          feature directory the GIT INDEX names, from git ls-files over
-          .harness/*/features/*/feature.json. Not a working-tree glob: the point is to compare
-          what is ON DISK against what SHOULD be there.
-      If the reached set does not equal the expected set, print a message CARRYING THE COUNTS in
-      the form reached N of M expected feature directories, plus the sorted missing and
-      unexpected names, plus this repository's remedy tail form - Fix: <act> or Use <command> -
-      and exit 2 BEFORE any downstream site runs. If they are equal, behave exactly as today: a
-      full checkout with everything materialised must be untouched by this change.
+        - anywhere else - a fresh clone, a CI runner, the owner root - the expected set is the
+          WHOLE derivation above. The point is to compare what is ON DISK against what the INDEX
+          says should be there, so the expected side is the index and never a working-tree glob.
+      REMEDY (b) IS REJECTED AND THE REASON IS THIS FEATURE'S OWN PREMISE. Restricting BOTH sets
+      to feature.json-carrying directories would make the audit silently ignore every tracked
+      feature directory that holds no record - measured at the owner root as ten of them, each
+      carrying tracked, non-ignored notes, so a fresh clone materialises them too - and report
+      CLEAN over a subset. That is the exact defect this whole feature exists to remove, and a
+      green audit bought that way is not one the operator will take.
+      THE TEN RECORD-LESS DIRECTORIES ARE THEIR OWN RECORD DEFECT, FILED AS ISSUE 1640, AND ARE
+      NOT THIS FEATURE'S TO FIX. This audit is EXPECTED to REPORT them accurately meanwhile. Add
+      NO suppression, no allow-list, no exemption and no feature.json-carrying filter anywhere,
+      and do NOT read their being reported as a failure of this plan.
+      RE-DERIVE, NEVER PIN. No census figure is a passing condition anywhere in this task or its
+      tests. The real tree gains feature directories, so a literal 89 or 79 written as an
+      expectation reds on the next feature created.
+      GATE ON THE MISSING SIDE ALWAYS; GATE ON THE UNEXPECTED SIDE ONLY INSIDE A LINKED WORKTREE.
+      Missing is expected-but-not-reached; unexpected is reached-but-not-expected. Inside a linked
+      worktree - established by harness_boundary.worktree_owner(root), the same predicate this part
+      already uses above - an unexpected name IS the D-1 violation and GATES. ANYWHERE ELSE - the
+      owner root, a fresh clone, a CI runner - an unexpected name is ordinary working state, a
+      feature directory on disk that is not yet committed, so it is REPORTED in the SAME message and
+      is NON-GATING. Gating on it there would make check-state.sh - the canonical pre-commit gate
+      for the whole repository by its own header at :24 - refuse ahead of the very commit that is
+      its own remedy: PL-02's deadlock shape returning at a second site, and the standing-red shape
+      N-12 rejects by name. It is latent and not live - the two sets agree today, 88 = 88 - which is
+      exactly why it is specified now.
+      Whenever either side is non-empty, print ONE message CARRYING THE COUNTS in the form reached N
+      of M expected feature directories, plus the sorted missing names and the sorted unexpected
+      names, plus this repository's remedy tail form - Fix: <act> or Use <command>. When that
+      message GATES - any missing name, or an unexpected name inside a linked worktree - exit 2
+      BEFORE any downstream site runs. When it does not gate, print it and carry on. If the two sets
+      are equal, behave exactly as today: a full checkout with everything materialised must be
+      untouched by this change.
       This is specified against BEHAVIOUR and not against reproducing a pre-change exit code, per
       D-05, which records both disagreeing measurements. Do not build a test whose passing
       condition is that some earlier state exited 0.
@@ -1860,10 +2343,25 @@ tasks:
       :118-120 against the file you open; they are recorded at abff2a84.
       Add, at that site and BEFORE _feat_dirs at :118-120 is built: if root resolves to a linked
       worktree by harness_boundary.worktree_owner(root), RUN
-      .claude/skills/harness/bin/worktree-state.py --verify with cwd at root. On a NON-ZERO exit,
-      print worktree-state.py's own message, add one line naming the failing check and this
-      repository's remedy tail form - Fix: <act> or Use <command> - and EXIT NON-ZERO WITHOUT
-      RUNNING A SINGLE INVARIANT. Never call --repair from here: a gate that quietly fixes state
+      .claude/skills/harness/bin/worktree-state.py --verify with cwd at root.
+      THE GATING SET IS THE STRUCTURAL EXITS ONLY, 3 THROUGH 7 - wrong cone, skip-bits cleared,
+      corpus path absent, corpus path pointing elsewhere, more than one feature directory
+      materialised. On one of those, print worktree-state.py's own message, add one line naming
+      the failing check and this repository's remedy tail form - Fix: <act> or Use <command> -
+      and EXIT NON-ZERO WITHOUT RUNNING A SINGLE INVARIANT.
+      EXIT 8, THE DIRTY TREE, IS REPORTED AND NON-GATING (D-12, amended by the operator at cycle 6
+      on finding PL-02): print what --verify observed, say plainly that it does not gate, and
+      CONTINUE into the invariants. His reason is carried here verbatim in substance so a later
+      reader does not undo it - a dirty tree is the NORMAL MID-TASK STATE of a feature worktree,
+      check-state.sh is the canonical pre-commit gate for the whole repository by its own header
+      at :24, and gating on exit 8 would refuse ahead of the very commit that is exit 8's own
+      stated remedy, deadlocking every worktree it runs in.
+      DO NOT CHANGE EXIT 8 ITSELF. N-02 check 5 is untouched: a non-empty git status --porcelain
+      still makes --verify exit 8 and its remedy text stays by-hand-only. Only this PREFLIGHT's
+      gating behaviour changes. Any OTHER non-zero exit - 2, a usage error, or a code this
+      preflight cannot classify - GATES, on the fail-closed rule: an exit that cannot be
+      classified is not one to treat as clean.
+      Never call --repair from here: a gate that quietly fixes state
       hides that something broke it, and --repair's only caller is the hook tier (D-03).
       Outside a linked worktree the preflight is SKIPPED rather than run-and-ignored, so N-09
       clause (c)'s plain-checkout claim and worktree-state.py's own scope guard do not depend on
@@ -1873,15 +2371,16 @@ tasks:
       is exactly that condition one layer lower - a wrong cone or cleared skip-bits means the
       audit's view of the tree is not the tree. merge-gate.py would gate merges instead, leaving
       the audit reporting clean over a broken cone.
-      tests/integration/test-check-state-verify-gate.py, this part's own file, three cases, each
+      tests/integration/test-check-state-verify-gate.py, this part's own file, four cases, each
       its own named assertion:
         (a) THE GATE ACTUALLY INVOKES IT. In a sparse fixture worktree in GOOD state, run
             check-state.sh with a fixture copy whose resolved worktree-state.py is a recorder that
             writes a marker file carrying its own argv and exits 0. Assert the marker EXISTS and
             that the recorded argv carries --verify and NOT --repair. An exit-0 assertion alone
             cannot tell an invoked gate from an absent one.
-        (b) A FAILING --verify MAKES THE GATE REFUSE. Break the state - clear the skip-bits, the
-            shape measured at 3807 H and 0 S - and assert check-state.sh exits NON-ZERO, that its
+        (b) A STRUCTURAL --verify FAILURE MAKES THE GATE REFUSE. Break the state - clear the
+            skip-bits, the shape measured at 3807 H and 0 S, which is exit 4 - and assert
+            check-state.sh exits NON-ZERO, that its
             output names the failing check and carries the remedy tail, and that NO invariant line
             was printed, so the refusal is a preflight and not a verdict after a partial sweep.
             Assert also that the tree is UNCHANGED afterwards by f58_sparse_fixture manifest plus
@@ -1896,11 +2395,24 @@ tasks:
                   check-state.sh:68 and is wrong-rooted wherever it is staged, and staging a bin
                   directory around it is machinery whose only consumer is a proof already delivered.
                   This task does not pass until that heading exists with a verdict under it.
+        (d) A DIRTY TREE DOES NOT GATE - the case that pairs with (b) and without which "refuses
+            on a failing --verify" is indistinguishable from "refuses on any --verify". In a
+            sparse fixture worktree that is otherwise in GOOD state, dirty it by writing ONE
+            untracked file, assert worktree-state.py --verify exits 8 on that tree, then run
+            check-state.sh and assert THREE things: its output REPORTS the dirty tree and names it
+            as non-gating; AT LEAST ONE INVARIANT LINE IS PRINTED, so the run genuinely proceeded
+            past the preflight; and the exit status is whatever the invariants themselves produce,
+            never the preflight's. (b) and (d) run against the SAME fixture worktree differing only
+            in which break was applied, so the pair discriminates the gating set from a preflight
+            that gates on everything or on nothing.
 
       PART 4, THE TESTS.
       tests/unit/test-check-state-expected-dirs.py covers the expected-set computation as a pure
-      function over canned inputs: worktree case, non-worktree case, and the mismatch message,
-      which must contain both N and M, the missing names, and the remedy tail.
+      function over canned inputs: worktree case, non-worktree case, the ONE-DERIVATION property -
+      a canned index listing a tracked directory that holds NO feature.json puts that directory in
+      BOTH sets, so it produces no mismatch, which is the assertion remedy (b) would have failed -
+      and the mismatch message, which must contain both N and M, the missing names, and the remedy
+      tail. No case pins a census figure.
 
       tests/integration/test-check-state-scope.py, three cases, each its own:
         CASE 1, NO CORPUS REACH, by INSTRUMENTATION and never inferred from output: wrap
@@ -2137,6 +2649,7 @@ tasks:
     - N-08
     - N-10
     - N-12
+    - N-13
     status: ready
     files:
     - tests/integration/test-nonworktree-unchanged.py
@@ -2454,9 +2967,18 @@ tasks:
         (c) THE BRANCH GATE STILL ALLOWS - the clause this task is most likely to break, and it
             is asserted before the deny clause for that reason. From inside a sparse worktree
             materialising feature X, run branch-create-gate.sh over a branch naming a DIFFERENT,
-            LEGAL flow Y that exists at the owner root and NOT in the worktree, and assert it
-            ALLOWS, exit 0. Keep the pre-change run as the pinned reproduction: it DENIES, and
-            that false denial is a defect this task introduces if the clause is dropped.
+            LEGAL flow Y that exists at the owner root and NOT in the worktree, and assert THE
+            PRINTED OUTPUT IS NOT A DENIAL: parse the gate's output and assert it carries NO
+            permissionDecision deny payload.
+            NEVER ASSERT AN EXIT STATUS AS THE GATE'S DECISION - there is none. deny() prints its
+            permissionDecision deny JSON and then exits 0 at branch-create-gate.sh:63-66, and the
+            allow path at :91-92 also exits 0, so an exit-0 assertion is satisfied by a FALSE
+            DENIAL, which is exactly the regression PART 6 introduces if the widening is got
+            wrong. This is D-17's convention and it is the same warning N-07 PART 4(b) already
+            carries for merge-gate.py. Re-derive both anchors against the file you open.
+            Keep the pre-change run as the pinned reproduction: it DENIES - assert that deny
+            PAYLOAD is present, again never a status - and that false denial is a defect this task
+            introduces if the clause is dropped.
         (d) THE BRANCH GATE STILL DENIES: the same gate over a branch naming a flow that exists
             NOWHERE - not in the worktree and not at the owner root - denies with its existing
             message. (c) without (d) is satisfied by a gate that allows everything.
@@ -2593,3 +3115,118 @@ tasks:
       baseline file, no count pinned over the real tree. DO NOT ADD ONE. Because HALF 2 pins its
       count over the scratch directory only, legitimately DELETING a site can never redden this
       test, and adding a marked one cannot either.
+  - id: N-13
+    title: Assert the shipped audit is green at the real owner root and non-gating in a dirty disposable worktree
+    traces:
+    - REQ-03
+    - REQ-06
+    - SC-16
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: |
+      D-07 - it runs the shipped check-state.sh and worktree-state.py, both DEC-174
+      category, and it creates and removes a worktree, which is the main session's act
+    depends_on:
+    - N-02
+    - N-06
+    - N-10
+    status: ready
+    files:
+    - tests/integration/test-check-state-realdata.py
+    verify: |
+      python3 tests/integration/test-check-state-realdata.py
+    intent: |
+      THE SECOND REAL-DATA ACT IN THIS PLAN, on N-08's model and for the same reason: a
+      fixture whose directories and records agree BY CONSTRUCTION cannot catch a defect that
+      exists only because the real tree disagrees with itself (D-16, finding PL-04).
+
+      THE DoD RULE IS NOT BREACHED, and this sentence is here so a later reader does not
+      undo the task. "A synthetic fixture, never a copy of this repository" is a rule about
+      COST - the precedent is issue 1526, where a fixture copying .claude/worktrees
+      accounted for 239 s of a 240 s suite - and about not mutating the real tree. IT WAS
+      NEVER A RULE AGAINST READING THE REAL OWNER ROOT.
+      ADDITION, NEVER SUBSTITUTION: remove NO assertion from any fixture test to make room
+      for this one. D-11 states how the two coexist.
+      READ-ONLY, AND THE BOUNDARY IS ABSOLUTE: nothing in this task mutates the owner root's
+      working tree, its index or its records, and nothing touches a LIVE worktree. The only
+      tree written is a probe this task creates and removes.
+      RE-DERIVE, NEVER PIN: no census figure - not 89, not 79 - is a passing condition
+      anywhere in this file. The real tree gains feature directories, so a literal
+      expectation reds on the next feature created.
+
+      PART 1, THE OWNER ROOT, READ-ONLY. Resolve the owner root the way the shipped code
+      does, through feature_corpus.corpus_root, never by string arithmetic on a test's own
+      path. Run the SHIPPED check-state.sh with cwd at the owner root, reading records at
+      the reviewed commit - resolve the ref from HARNESS_REVIEW_SHA, DEFAULTING TO HEAD when
+      unset, exactly as N-08 does. Four named assertions, each with its own failure message:
+        1. NO MISMATCH REFUSAL. The run produces no expected-versus-reached refusal: the
+           N of M mismatch message that N-06 PART 1 introduces is ABSENT from the output and
+           the process did not exit on it. This is the assertion the pre-ruling spelling of
+           N-06 PART 1 would have failed at the owner root on day one.
+        2. IT GOT PAST THE CHOKE POINT. At least one invariant line was printed, so clause 1
+           is not satisfied by a run that refused earlier for some other reason or produced
+           nothing at all.
+        3. NON-VACUITY. The number of feature directories the run reached is GREATER THAN
+           70. A floor, never an equality: a read that errors reaches nothing and would
+           otherwise read as clean.
+        4. THE FAILURE MESSAGE IS DIAGNOSTIC. On failure, print the missing and unexpected
+           NAMES the audit reported, so a reader can tell an audit defect from a feature
+           directory that is legitimately uncommitted at the moment of the run.
+      THE TEN RECORD-LESS DIRECTORIES ARE NOT SUPPRESSED HERE EITHER. Under the one-source
+      derivation of N-06 PART 1 they appear in BOTH sets and produce no mismatch; they
+      remain a record defect filed as issue 1640 and out of this feature's scope. Add no
+      allow-list.
+      COST: this is the same audit the repository's own pre-commit gate runs at the owner
+      root today, so the run is not a new cost class. RECORD ITS MEASURED WALL TIME in your
+      receipt as evidence, and add no cache, no baseline file and no fixture substitute.
+
+      PART 2, THE DIRTY DISPOSABLE WORKTREE. A dirty tree is the normal mid-task state of a
+      feature worktree, and this is where the exit-8 carve-out (D-12) is proven over a REAL
+      worktree rather than over the fixture.
+      CHOOSE THE PROBE AT RUN TIME, never a pinned id: any feature directory name at the
+      corpus root that matches feature-worktree.py:46's _ID_RE and for which
+      <owner_root>/.claude/worktrees/harness/<id> does NOT already exist. PRINT the chosen
+      id. If no such id is free, the test SKIPS - see the announced skip below.
+      CREATE IT BY A ROUTE THE GUARD PERMITS, verified at source and re-derivable at
+      bash-write-guard.sh:624-741: git worktree add --detach <ABSOLUTE probe path> HEAD. The
+      creation door refuses a RELATIVE destination, a destination it cannot parse, a
+      destination outside WORKTREES_SEGMENT, and ANY --force flag; an absolute path under
+      <owner_root>/.claude/worktrees/harness/ satisfies all four. Detached, so no branch is
+      claimed and git's one-branch-one-worktree rule is not engaged.
+      Six named assertions, in order:
+        1. GOOD STATE FIRST. worktree-state.py --verify at the probe exits 0. post-checkout
+           fired on creation and its delegate is the --repair that establishes the state, so
+           a non-zero here is a real mechanism failure and not a precondition to work around.
+           Without this the later clauses cannot attribute a refusal to the break they made.
+        2. DIRTY IT. Write ONE untracked file inside the probe. Assert worktree-state.py
+           --verify now exits 8 and that its message names the dirty tree with its by-hand
+           remedy.
+        3. EXIT 8 DOES NOT GATE. Run the shipped check-state.sh with cwd at the probe and
+           assert its output REPORTS the dirty tree and names it as non-gating, AND that at
+           least one invariant line was printed, so the run genuinely proceeded past the
+           preflight.
+        4. THE STRUCTURAL POSITIVE CONTROL, and clause 3 is worthless without it. In the
+           SAME probe clear the skip-worktree bits - the shape measured at 3807 H and 0 S,
+           which is exit 4 - and assert check-state.sh REFUSES: non-zero, naming the failing
+           check, carrying the remedy tail, and with NO invariant line printed. "Does not
+           refuse on a dirty tree" is otherwise satisfied by a preflight that never runs.
+        5. RESTORE, THEN REMOVE. git sparse-checkout reapply to restore the skip-bits,
+           delete the one untracked file, assert git status --porcelain in the probe is
+           EMPTY, then run git worktree remove <ABSOLUTE probe path> WITH CWD AT THE OWNER
+           ROOT and never from inside the probe - git worktree remove exits 0 when run from
+           inside the tree it deletes - and NEVER with --force, which the guard refuses and
+           which is how uncommitted work is destroyed.
+        6. TEARDOWN HAPPENED. Assert the probe path no longer exists and that git worktree
+           list no longer names it. Run clause 5 from a finally block so a failure in 1 to 4
+           still removes the probe.
+      NO LIVE WORKTREE IS DIRTIED, INSPECTED OR REMOVED by this task, and this feature's own
+      worktree is not the subject of any clause.
+
+      THE ANNOUNCED SKIP, on the shape VL-02 required of N-09. The test SKIPS - printing its
+      REASON and NAMING the condition that fired, and ASSERTING that line was printed - when
+      the owner root cannot be resolved, when the corpus root holds no feature directory, or
+      when no probe id is free. A skip and a pass are not the same claim, and a check that
+      silently does not run in the environment it is most relied upon is the fail-open this
+      whole feature exists to remove.
+      DISCRIMINATION for the skip: drive the same code path with a corpus root that resolves
+      to no feature directory and assert the announced line names THAT condition.

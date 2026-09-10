@@ -89,10 +89,10 @@ read as either.
 |---|---|---|---|
 | **D-1 (DoD)** | Exactly one feature directory materialised | REQ-01 | SC-01 |
 | **D-2 (DoD)** | Every other feature readable on disk | REQ-02 | SC-01, SC-02 |
-| **D-3 (DoD)** | Audit: active feature only, no corpus, refuses | REQ-03 | SC-04, SC-05, SC-06, SC-14 |
+| **D-3 (DoD)** | Audit: active feature only, no corpus, refuses | REQ-03 | SC-04, SC-05, SC-06, SC-14, SC-16 |
 | **D-4 (DoD)** | No two features claim one branch | REQ-04 | SC-07 |
 | **D-5 (DoD)** | Fresh clone and CI unchanged | REQ-05 | SC-12 |
-| **M-1 (DoD)** | One idempotent `--verify`/`--repair`, verify never repairs, and a named gate calls `--verify` | REQ-06 | SC-09, SC-10 |
+| **M-1 (DoD)** | One idempotent `--verify`/`--repair`, verify never repairs, and a named gate calls `--verify` | REQ-06 | SC-09, SC-10, SC-16 |
 | **M-2 (DoD)** | It runs from `post-checkout`, `post-merge`, `post-rewrite` | REQ-07 | SC-11 |
 | — | Corpus path gitignored; writes through it refused | REQ-08 | SC-02, SC-03 |
 | — | The live FEAT-02 / FEAT-03 collision, on real data | REQ-09 | SC-08 |
@@ -127,19 +127,20 @@ task `N-03` and graded by SC-02 and SC-03: a governed write to a path under the
 corpus symlink is refused on both registered routes, and that is the requirement. The general
 weakness is filed as **#1638** against the guard surface generally.
 
-Fourteen criteria, not twenty-two. **A criterion states an observable outcome a consumer can
+Fifteen criteria, not twenty-two. **A criterion states an observable outcome a consumer can
 check; a line describing how a test is BUILT is not one** — positive controls, instrumentation,
 manifest comparisons, perturbation preconditions and red proofs are all still mandatory, and
-they live in the `verify:` and intent of the task that owns them (`plan.yaml`'s **eleven** tasks,
-`N-01 … N-12` with `N-11` retired and its id deliberately left as a gap so recorded citations
+they live in the `verify:` and intent of the task that owns them (`plan.yaml`'s **twelve** tasks,
+`N-01 … N-13` with `N-11` retired and its id deliberately left as a gap so recorded citations
 still resolve). Nothing was dropped as coverage: the assertion ledger in
 `runs/consolidate-eng/digest.md` maps every one of them to a landing place,
 `notes/research-FEAT-58-apply-consolidation.md` records the map,
 `notes/research-FEAT-58-apply-batch-c3.md` records the cycle-3 additions together with the three
 rows whose evidence form changed, `notes/research-FEAT-58-apply-c5.md` records the cycle-5
-pass — one ledger row removed, by name, and it is SC-15's — and
+pass — one ledger row removed, by name, and it is SC-15's —
 `notes/research-FEAT-58-fold-n11.md` records the N-11 fold, which **moved** one row's owning task
-and removed none.
+and removed none, and `notes/research-FEAT-58-apply-c6.md` records this cycle-6 pass — **four
+ledger rows added and none removed, 41 → 45**, each named there with its landing place.
 
 **Thirteen rather than twelve**, and this is the one place the count moved before cycle 3: SC-12
 and SC-13 were a single criterion carrying two failure modes that break alone — a new failure in
@@ -153,6 +154,14 @@ SC-14, because the cross-feature scan fail-open turned out to have NINE choke po
 break independently, and a site left unwidened reports clean over one feature of eighty-nine the
 day this ships.
 
+**Fifteen rather than fourteen**, the one addition from the operator's cycle-6 review: SC-16,
+because every assertion this plan made about the audit ran against a synthetic fixture whose
+directories and records agree *by construction*, and such a fixture cannot catch a defect that
+exists only because the real tree disagrees with itself — measured at the real owner root as 89
+feature directories against 79 `feature.json` records. "The mechanism is correct" and "the
+shipped code holds over the real tree" are two outcomes that break independently, and this is the
+third control in this feature found blind to the thing it existed to catch (plan decision D-16).
+
 **On `traces:`** — this plan's tasks carry SC ids alongside REQ ids in `traces:`, deliberately: the
 goal-check reads it to find which task grades which criterion, and no other field carries that
 edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
@@ -165,7 +174,11 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   size and a real-block bound is satisfiable by APFS clonefile.
 - **The fixture is a synthetic repository** — a real `git init`, a handful of fake feature
   directories — **never a copy of this repository.** Precedent #1526: a fixture that copied
-  `.claude/worktrees` accounted for 239 s of a 240 s suite.
+  `.claude/worktrees` accounted for 239 s of a 240 s suite. **That rule is about COST, and about
+  not mutating the real tree; it was never a rule against READING the real owner root** (operator,
+  cycle 6). SC-16's real-repository assertions are read-only, they ADD to the fixture's assertions
+  rather than replacing any of them, and the only tree they write is a disposable probe worktree
+  the task itself creates and removes (plan decisions D-11 and D-16).
 - **Exit 0 is never evidence.** `git sparse-checkout set` exits 0 both with no arguments and with
   patterns matching nothing, and the present audit fail-open exits 0 having swept 1 of 88. Every
   criterion asserts a named observable — a path that exists, a finding set, a count — not a status.
@@ -205,7 +218,12 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   verify: automated      evidence: integration
 - SC-06: When the audit cannot reach what it expects, it REFUSES — a non-zero exit whose message
   carries the counts in the form `N of M` and this repository's remedy tail — rather than reporting
-  clean.
+  clean. The refusal is asymmetric and both halves are graded: a **missing** name — expected but
+  not reached — gates ALWAYS; an **unexpected** name — reached but not expected — gates only
+  **inside a linked worktree**, where it is the one-feature violation itself, and anywhere else
+  (owner root, fresh clone, CI runner) is REPORTED in the same message and is NON-GATING, since
+  an uncommitted feature directory must not make the pre-commit gate refuse ahead of the commit
+  that is its own remedy.
   verify: automated      evidence: integration
 - SC-07: No two feature records claim one branch, and the merge gate acts on it: a duplicated head
   branch is DENIED with both feature ids named, the same merge is ALLOWED once one record is
@@ -225,7 +243,12 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   `--repair` is idempotent, announces each repair it actually made and is silent only on a true
   no-op. **And a named gate calls it:** `check-state.sh`'s preflight invokes `--verify`, and a
   failing `--verify` makes that gate REFUSE non-zero before a single invariant runs, leaving the
-  tree unrepaired (D-12).
+  tree unrepaired — **for the structural exits only (3 through 7). The dirty-tree exit (8) is
+  REPORTED and NON-GATING**, because a dirty tree is the normal mid-task state of a feature
+  worktree and `check-state.sh` is the canonical pre-commit gate for the whole repository (its own
+  header, `:24`); gating on exit 8 would refuse ahead of the very commit that is exit 8's own
+  stated remedy, deadlocking every worktree it runs in (D-12, amended by the operator at cycle 6
+  on PL-02).
   verify: automated      evidence: integration
 - SC-10: `--verify` never repairs: against a broken tree it exits non-zero and the tree is
   **byte-for-byte unchanged** afterwards, and its message claims no repair it did not make.
@@ -272,6 +295,20 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   caller-named feature id, which cannot narrow a count it never reports. The subject is source
   text, so the census reddens on the branch of whoever edits a scanner; it is quantified over the
   whole `bin/` tree and never over a file allow-list, and it pins no count over the real tree.
+  verify: automated      evidence: integration
+- SC-16: The shipped audit and its preflight hold over the REAL repository and not only over the
+  synthetic fixture. Two observations, both required, and both READ-ONLY with respect to the owner
+  root and to every live worktree. **At the real owner root**, read at the reviewed commit, the
+  shipped `check-state.sh` produces NO expected-versus-reached mismatch refusal and proceeds past
+  the choke point — at least one invariant line printed, and the number of feature directories it
+  reached greater than `70` so a read of nothing cannot pass. **No census figure is an
+  expectation:** the criterion is the ABSENCE of a mismatch, never that a count equals `89` or
+  `79`, because the real tree gains feature directories and a pinned literal reds on the next one
+  created. **And inside a DISPOSABLE worktree of this repository** — created and removed by the
+  task itself, never a live one — that is in good state and then made dirty, `check-state.sh`
+  REPORTS `--verify`'s dirty-tree exit and still runs its invariants, while the SAME probe carrying
+  a STRUCTURAL break instead refuses before any invariant runs. The pair is required: "does not
+  refuse on a dirty tree" is otherwise satisfied by a preflight that never ran.
   verify: automated      evidence: integration
 
 ## Verification gaps
@@ -330,9 +367,16 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   property of path-based guards rather than anything the corpus read path creates, and closing it
   inside this feature was struck by the operator at cycle 5 (plan decision D-14). REQ-08 is still
   delivered: a governed write to a path under the corpus symlink is refused on both routes.
+- **The ten tracked feature directories carrying no `feature.json`, filed as #1640.** Measured at
+  the real owner root at cycle 6: 89 feature directories against 79 records, the ten record-less
+  ones holding tracked, non-ignored notes. It is a RECORD defect and not a replication one, ruled
+  out of this feature by the operator at cycle 6. This feature's audit is expected to REPORT them
+  accurately meanwhile — no suppression, no allow-list, and no restriction of either audit set to
+  `feature.json`-carrying directories, which would report clean over a subset and is the exact
+  defect this feature exists to remove.
 - **Not this feature, by operator instruction:** the filed harness defects (#1595, #1596, #1597,
-  #1598, #1630, #1631, #1635, #1636, #1637 and #1638); `FEAT-53`'s 138 MB of untracked run dirs (a
-  retention defect, not replication); `597-omp-behavior-baseline`'s unlanded work.
+  #1598, #1630, #1631, #1635, #1636, #1637, #1638 and #1640); `FEAT-53`'s 138 MB of untracked run
+  dirs (a retention defect, not replication); `597-omp-behavior-baseline`'s unlanded work.
 
 ## Constraints
 
@@ -353,7 +397,7 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
 - **DEC-213 BLOCKS** test placement: `tests/unit/**` and `tests/integration/**`.
 - **The host already supplies the mechanism:** `core.hooksPath` is `.claude/skills/harness/hooks`,
   tracked so it travels with a clone; `post-merge` is already a shim delegating to
-  `bin/post-merge-sweep.sh` (FEAT-34 T-11, D-08) so a test can reach it. `bash-write-guard.sh:512`
+  `bin/post-merge-sweep.sh` (FEAT-34 T-11, D-08) so a test can reach it. `bash-write-guard.sh:611-741`
   already refuses `git worktree add` outside the sanctioned location.
 - **Shared file:** `.claude/skills/harness/bin/check-state.sh` is also touched by FEAT-57's T-19.
   Serialise the edits.

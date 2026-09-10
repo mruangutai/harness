@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-58-corpus-outside-worktree",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 6,
+  "cycles_used": 8,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -256,6 +256,37 @@
     },
     {
       "id": "panelrecordfinal-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "applyc6-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheckc6-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "fixgc6-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "planpanelc6-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "panelrecordc6-product",
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
