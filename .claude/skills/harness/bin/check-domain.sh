@@ -1630,11 +1630,10 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                 _offending = set()
                 _schema_errors = []
                 for _step in doc.get("steps", []):
+                    _schema_errors.extend(_validator.iter_errors(_step))
                     if not isinstance(_step, dict):
-                        _schema_errors.extend(_validator.iter_errors(_step))
                         _offending.add("<step>")
                         continue
-                    _schema_errors.extend(_validator.iter_errors(_step))
                     _offending.update(set(_step) - _declared)
                     _evidence = _step.get("evidence")
                     if isinstance(_evidence, dict):
