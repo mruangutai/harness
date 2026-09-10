@@ -386,7 +386,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out by category, this file is the data two gate scripts enforce
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/run-state-schema.json
       - .claude/skills/harness-team/SKILL.md
