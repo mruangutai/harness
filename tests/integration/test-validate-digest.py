@@ -3225,8 +3225,9 @@ def _t08_compare_payload(prior_path, persona, payload, env):
 
 def _t08_revision_failures(source, payloads):
     failures = []
-    with tempfile.TemporaryDirectory(
-            dir=os.path.dirname(VALIDATE), prefix=".t08-validator-") as td:
+    # Sibling imports resolve through PYTHONPATH below, so keep the temporary
+    # prior-validator copy outside the live checkout.
+    with tempfile.TemporaryDirectory(prefix="t08-validator-") as td:
         prior_path = os.path.join(td, "validate-digest.py")
         with open(prior_path, "w", encoding="utf-8") as handle:
             handle.write(source)
