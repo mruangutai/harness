@@ -131,7 +131,16 @@ So the same idempotent command runs however a worktree is made, and there is no 
 versus manual-route distinction to design around. This matters because agents legitimately DO run
 bare `git worktree add` — `harness-verification-rules` instructs QA to run perturbation proofs in a
 disposable worktree by exactly that route — so a rule depending on agent compliance would be
-violated by design. A QA probe worktree now gets stripped automatically without QA knowing.
+violated by design.
+
+**CORRECTED 2026-09-10, operator error.** This paragraph originally ended "A QA probe worktree now
+gets stripped automatically without QA knowing." That was wrong, and wrong in the direction that
+matters: it claimed coverage the design does not deliver. The scope guard keys on the feature-id
+form, so a `qa-*` probe tree is left alone — and that is CORRECT, not a gap. A perturbation proof
+runs against the tree as it really is; stripping a probe would make it measure something other than
+the thing being probed. A disposable probe carries a faithful full checkout. What survives from the
+claim is the part that was never about QA: the hook fires whoever creates the worktree, so the
+mechanism does not depend on anyone remembering a rule.
 
 A creation door already exists and stays: `bash-write-guard.sh:512` refuses `git worktree add`
 outside the sanctioned location, and refuses a destination it cannot parse rather than permitting

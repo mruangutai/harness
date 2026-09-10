@@ -94,7 +94,7 @@ read as either.
 | **D-5 (DoD)** | Fresh clone and CI unchanged | REQ-05 | SC-12 |
 | **M-1 (DoD)** | One idempotent `--verify`/`--repair`, verify never repairs, and a named gate calls `--verify` | REQ-06 | SC-09, SC-10 |
 | **M-2 (DoD)** | It runs from `post-checkout`, `post-merge`, `post-rewrite` | REQ-07 | SC-11 |
-| — | Corpus path gitignored; writes through it refused | REQ-08 | SC-02, SC-03, SC-15 |
+| — | Corpus path gitignored; writes through it refused | REQ-08 | SC-02, SC-03 |
 | — | The live FEAT-02 / FEAT-03 collision, on real data | REQ-09 | SC-08 |
 | — | Nothing altered outside the active feature | REQ-10 | SC-13 |
 
@@ -103,15 +103,43 @@ grades **D-2 (DoD)** — it asserts `.harness/corpus` as `islink` plus `realpath
 CREATION surface, which is where a worktree that cannot read the corpus is produced. `SC-02`
 continues to grade the READ surface. No REQ id, and no other SC id, changed row.
 
-Fifteen criteria, not twenty-two. **A criterion states an observable outcome a consumer can
+**One id LEFT at the cycle-5 review, and it is the only removal:** `SC-15`, the hardlink-alias
+denial, is **struck** on the operator's ruling (`plan.yaml` decision D-14,
+`notes/answers-operator-c5.md:6-27`), together with the task parts that built it. Three reasons,
+and none of them is cost: a hardlink alias is not the mistake class the write guard exists to stop
+— the realistic shape is the fumbled path (#1635), while writing through a deliberately created
+hardlink is evasion by an agent that already holds Bash, which has its own guard; path-based
+guards are defeated by hardlinks **universally**, so closing it here puts a general weakness at
+the wrong altitude and implies the rest of the guard surface is hardlink-safe, which it is not;
+and decisively, the remedy's own failure mode **was** the harm it was added to prevent — the
+widened scan fail-opened on exactly the class SC-15 existed to close, and a control whose failure
+mode is the harm is worse than no control because it also buys false confidence.
+
+**The strike reaches both of the hardlink half's gates, ruled at cycle 5:** the
+`check-domain.sh:1916` scan widening comes out with it, because that gate entered scope in the
+scan-site design as the hardlink hole and nothing else, keeping it would leave a widened guard
+with **no criterion and no test** whose only failure path is an uncaught `corpus_root()` raise —
+exit 1, which `check-domain.sh:14` declares non-blocking, so the write proceeds — and the only fix
+for that failure path is the error conversion the same ruling forbids. **REQ-08 is still
+delivered** by the surviving two-**route** denial — the Write/Edit route through
+`check-domain.sh` and the Bash route through `bash-write-guard.sh:855`, carried by `plan.yaml`
+task `N-03` and graded by SC-02 and SC-03: a governed write to a path under the
+corpus symlink is refused on both registered routes, and that is the requirement. The general
+weakness is filed as **#1638** against the guard surface generally.
+
+Fourteen criteria, not twenty-two. **A criterion states an observable outcome a consumer can
 check; a line describing how a test is BUILT is not one** — positive controls, instrumentation,
 manifest comparisons, perturbation preconditions and red proofs are all still mandatory, and
-they live in the `verify:` and intent of the task that owns them (`plan.yaml` tasks
-N-01 … N-12). Nothing was dropped as coverage: the assertion ledger in
+they live in the `verify:` and intent of the task that owns them (`plan.yaml`'s **eleven** tasks,
+`N-01 … N-12` with `N-11` retired and its id deliberately left as a gap so recorded citations
+still resolve). Nothing was dropped as coverage: the assertion ledger in
 `runs/consolidate-eng/digest.md` maps every one of them to a landing place,
-`notes/research-FEAT-58-apply-consolidation.md` records the map, and
+`notes/research-FEAT-58-apply-consolidation.md` records the map,
 `notes/research-FEAT-58-apply-batch-c3.md` records the cycle-3 additions together with the three
-rows whose evidence form changed.
+rows whose evidence form changed, `notes/research-FEAT-58-apply-c5.md` records the cycle-5
+pass — one ledger row removed, by name, and it is SC-15's — and
+`notes/research-FEAT-58-fold-n11.md` records the N-11 fold, which **moved** one row's owning task
+and removed none.
 
 **Thirteen rather than twelve**, and this is the one place the count moved before cycle 3: SC-12
 and SC-13 were a single criterion carrying two failure modes that break alone — a new failure in
@@ -119,14 +147,11 @@ an existing suite, and an edit to a feature directory other than this one. A dis
 mode earns its own criterion, and consolidating there would have dropped an assertion rather
 than removed padding.
 
-**Fifteen rather than thirteen**, added at the operator's cycle-3 review. SC-14, because the
-cross-feature scan fail-open turned out to have NINE choke points and not two: "the audit is
-narrowed" and "no other site under `bin/` silently narrows" are two outcomes that break
-independently, and a site left unwidened reports clean over one feature of eighty-nine the day
-this ships. SC-15, because the corpus read path opens a write-denial hole — a worktree-local
-hardlink aliasing another feature's `plan.yaml` — measured invisible to BOTH `_hardlink_plan`'s
-root-scoped glob and `worktree_owner()`, which is pure path arithmetic with no inode awareness,
-and which SC-03's symlink refusal cannot reach because a hardlink has no target to resolve.
+**Fourteen rather than thirteen**, the one addition surviving from the operator's cycle-3 review:
+SC-14, because the cross-feature scan fail-open turned out to have NINE choke points and not two
+— "the audit is narrowed" and "no other site under `bin/` silently narrows" are two outcomes that
+break independently, and a site left unwidened reports clean over one feature of eighty-nine the
+day this ships.
 
 **On `traces:`** — this plan's tasks carry SC ids alongside REQ ids in `traces:`, deliberately: the
 goal-check reads it to find which task grades which criterion, and no other field carries that
@@ -153,15 +178,13 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   including the dispatch-critical skills path under **both** the tracked `.claude/skills` spelling
   and the `.agents/skills` symlink every dispatch resolves through, **and each non-features
   `.harness` subtree the worktree needs — `.harness/factory/`, `.harness/expertise/` and the
-  NESTED `.harness/<repo>/docs/` — asserted individually, never as one aggregate clause**; **and
-  the corpus read path `.harness/corpus` is present as a SYMLINK, `os.path.islink` true and
-  `os.path.realpath` equal to the owner root's `.harness/harness/features`, its own clause and
-  never a bare existence check** — a `.harness/corpus` that exists as a materialised copy, or as
+  NESTED `.harness/<repo>/docs/`**; **and the corpus read path `.harness/corpus` is present as a
+  SYMLINK, `os.path.islink` true and `os.path.realpath` equal to the owner root's
+  `.harness/harness/features`** — a `.harness/corpus` that exists as a materialised copy, or as
   a link pointing elsewhere, is the state this feature removes; a
   non-active feature's directory is absent. It holds by the harness creation path and by a bare
   `git worktree add` alike — on both arms, because `post-checkout` fires on `git worktree add`
-  with cwd already inside the new tree and its delegate is the `--repair` that creates the link —
-  and the failing state — the full feature count materialised — is demonstrated first.
+  with cwd already inside the new tree and its delegate is the `--repair` that creates the link.
   verify: automated      evidence: integration
 - SC-02: From inside the worktree, every other feature's record is readable on disk with ordinary
   file tools at the same path in every worktree, byte-identical to the owner root's copy, and the
@@ -200,9 +223,9 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   wrong cone; skip-bits cleared; corpus path absent; corpus path pointing elsewhere; more than one
   feature directory materialised; dirty tree, whose remedy is by hand and never `--repair`.
   `--repair` is idempotent, announces each repair it actually made and is silent only on a true
-  no-op. **And a named gate calls it:** `check-state.sh`'s preflight invokes `--verify` — asserted
-  by the invocation it records, never by exit 0 — and a failing `--verify` makes that gate REFUSE
-  non-zero before a single invariant runs, leaving the tree unrepaired (D-12).
+  no-op. **And a named gate calls it:** `check-state.sh`'s preflight invokes `--verify`, and a
+  failing `--verify` makes that gate REFUSE non-zero before a single invariant runs, leaving the
+  tree unrepaired (D-12).
   verify: automated      evidence: integration
 - SC-10: `--verify` never repairs: against a broken tree it exits non-zero and the tree is
   **byte-for-byte unchanged** afterwards, and its message claims no repair it did not make.
@@ -212,9 +235,8 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   the skip-bit set equals the pre-rebase set — and a hook-fired failure is legibly attributed
   without failing the git operation it rides on: the git command still exits 0, the attributed line
   names the shim and its delegate, and the tree is visibly still broken rather than silently fixed.
-  **The merge case must FAIL today**; the pre-change shape is reproduced in the same file. Host
-  baseline, measured 2026-09-10 on the real corpus and NOT a fixture expectation: **3337 paths
-  reported deleted, 3807 skip-bits cleared, 0 remaining.**
+  **The merge case must FAIL today.** Host baseline, measured 2026-09-10 on the real corpus and
+  NOT a fixture expectation: **3337 paths reported deleted, 3807 skip-bits cleared, 0 remaining.**
   verify: automated      evidence: integration
 - SC-12: Nothing outside the target moved. A checkout that is NOT a linked worktree behaves exactly
   as today — full corpus materialised, audit finding set and exit status equal to pre-change,
@@ -225,19 +247,20 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
 - SC-13: Over this feature's own pinned commit range, no feature directory other than its own is
   altered — the strong form of "nothing lost", byte-identity and not citation resolvability:
   `git diff --name-only <pre_change_sha>..<review_sha> -- .harness/harness/features` names no
-  path outside `FEAT-58-corpus-outside-worktree/`, with BOTH the stdout and the exit status
-  asserted — `git diff` exits 0 whatever it prints, so a status check alone asserts nothing and
-  an output check alone cannot tell an empty result from a failed invocation. Both endpoints are
+  path outside `FEAT-58-corpus-outside-worktree/`. Both endpoints are
   the IMMUTABLE 40-hex literals this feature's own notes record — `pre_change_sha` in
   `notes/suite-baseline.md`, `review_sha` in `notes/nonregression.md` — never a merge-base and
-  never `HEAD`, and the check SKIPS with a named line when either literal is absent, so it never
-  grades a later feature's commit range. **No pathspec exclusion is authorised:** D-06 is decided
+  never `HEAD`. The check SKIPS, **printing its reason and NAMING the endpoint**, when either
+  literal is absent OR is present but resolves to no object in the clone it is running in, so it
+  never grades a later feature's commit range and never fails for the absence of history it was
+  not given; the authoritative observation is made once, locally, in a full clone and recorded in
+  `notes/nonregression.md`. **No pathspec exclusion is authorised:** D-06 is decided
   as Arm B, no record outside this feature's directory is corrected, and the criterion is whole.
   verify: automated      evidence: integration
 - SC-14: No cross-feature scan site under `.claude/skills/harness/bin/` silently narrows when a
   worktree materialises one feature directory. Two observations, both required. From inside a
   sparse worktree each widened site reaches the SAME number of feature records as the owner root
-  — not `1` — asserted per site with its own named case and never as one aggregate. And a census
+  — not `1`. And a census
   over every `.py` and `.sh` file under that directory finds ZERO **corpus enumerations** carrying
   no `corpus-scope` marker from the closed vocabulary, while a new unmarked site written into a
   scratch directory produces exactly one finding. **The census's subject is an enumeration and
@@ -249,11 +272,6 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   caller-named feature id, which cannot narrow a count it never reports. The subject is source
   text, so the census reddens on the branch of whoever edits a scanner; it is quantified over the
   whole `bin/` tree and never over a file allow-list, and it pins no count over the real tree.
-  verify: automated      evidence: integration
-- SC-15: A governed write to a worktree-local path that is a HARDLINK aliasing another feature's
-  `plan.yaml` is REFUSED through the registered guard entrypoint, with the aliased feature named,
-  while a write to the active feature's own `plan.yaml` through that same entrypoint still
-  SUCCEEDS. The failing state — the write allowed, neither guard firing — is demonstrated first.
   verify: automated      evidence: integration
 
 ## Verification gaps
@@ -270,11 +288,16 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   fixture assertion. What is therefore NOT proven automatically: that the real 3337-path corpus
   survives a merge. What carries it: the same command run once by hand on this host after the
   change, recorded under a `HOST-SCALE RESIDUAL` heading in N-04's receipt.
-- **SC-13's nothing-altered clause has no fixture.** It grades this feature's own commit range,
-  which no synthetic repository can hold, so its assertion runs `git` against the real repository
-  over a range pinned to two immutable literals its own notes record. That is a scope limit on
-  the fixture, not a downgrade of the method: the clause is still an integration assertion and
-  still fails loudly.
+- **SC-13's nothing-altered clause has no fixture, and CI cannot run it.** It grades this
+  feature's own commit range, which no synthetic repository can hold, so its assertion runs `git`
+  against the real repository over a range pinned to two immutable literals its own notes record.
+  Measured: `.github/workflows/tests.yml:50` is `actions/checkout@v4` with no `fetch-depth`, a
+  depth-1 shallow clone, so in CI neither pinned object exists and the clause **announces a skip
+  naming the endpoint** rather than reddening the sole required branch-protection context. What is
+  therefore NOT proven in CI: nothing-altered. What carries it: one authoritative local run in a
+  full clone, recorded verbatim under `## NOTHING ALTERED` in `notes/nonregression.md`, which the
+  collected clause cross-checks wherever the objects resolve. Setting `fetch-depth: 0` was
+  rejected — SC-12 asserts the CI runner is unchanged (plan decision D-13).
 - **Two pre-change comparisons are no longer standing tests, and that is a real reduction.** A
   permanently collected test may not derive its pre-change side from a moving git ref (plan
   decision D-13), because after this feature merges the merge-base already holds the post-change
@@ -301,9 +324,15 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   worktrees removed, 62 of 100 branches pruned, 1192 MB → 362 MB) and out of the feature.
 - **Reducing the number of standing worktrees.** The DoD is about what a worktree costs, not how
   many exist. Removing a worktree is additionally not an agent's act.
-- **Not this feature, by operator instruction:** the six filed harness defects (#1595, #1596, #1597,
-  #1598, #1630, #1631); `FEAT-53`'s 138 MB of untracked run dirs (a retention defect, not
-  replication); `597-omp-behavior-baseline`'s unlanded work.
+- **The hardlink-alias weakness in path-based guards, filed as #1638.** A worktree-local hardlink
+  aliasing another feature's `plan.yaml` is invisible to `_hardlink_plan`'s root-scoped glob and
+  to `worktree_owner()`, which is pure path arithmetic with no inode awareness. It is a general
+  property of path-based guards rather than anything the corpus read path creates, and closing it
+  inside this feature was struck by the operator at cycle 5 (plan decision D-14). REQ-08 is still
+  delivered: a governed write to a path under the corpus symlink is refused on both routes.
+- **Not this feature, by operator instruction:** the filed harness defects (#1595, #1596, #1597,
+  #1598, #1630, #1631, #1635, #1636, #1637 and #1638); `FEAT-53`'s 138 MB of untracked run dirs (a
+  retention defect, not replication); `597-omp-behavior-baseline`'s unlanded work.
 
 ## Constraints
 
