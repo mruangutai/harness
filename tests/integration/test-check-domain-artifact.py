@@ -477,30 +477,30 @@ def _bug1305_digest_write(root, path, content):
         env=_env(root))
 
 
-def run_bug1305_digest_repair_cases():
-    """BUG-1305 SC-05: legal append repair and actionable refusal wording."""
-    prior = "VERDICT: PASS\nDIGEST:\n  headline: recorded\n"
-    artifact = "  artifact: notes/x.md\n"
-    results = []
-
+def _bug1305_edit_append_result(prior, artifact):
     root, path = _feat50_digest_fixture()
     _feat50_write_text(path, prior)
     response = _fire_digest_edit(
         root, path, "  headline: recorded\n",
         "  headline: recorded\n" + artifact)
-    results.append(("digest Edit append repair remains allowed",
-                    response.returncode == 0, response.stderr))
+    return ("digest Edit append repair remains allowed",
+            response.returncode == 0, response.stderr)
 
+
+def _bug1305_edit_insertion_result(prior, artifact):
     root, path = _feat50_digest_fixture()
     _feat50_write_text(path, prior)
     response = _fire_digest_edit(
         root, path, "VERDICT: PASS\n", artifact + "VERDICT: PASS\n")
-    results.append(("digest Edit insertion is refused with complete-block append route",
-                    response.returncode == 2
-                    and "complete corrected VERDICT / DIGEST / artifact block"
-                    in response.stderr,
-                    response.stderr))
+    return (
+        "digest Edit insertion is refused with complete-block append route",
+        response.returncode == 2
+        and "complete corrected VERDICT / DIGEST / artifact block" in response.stderr,
+        response.stderr,
+    )
 
+
+def _bug1619_complete_correction_result():
     invalid = """VERDICT: PASS
 DIGEST:
   headline: simplify reader found a blocker
@@ -527,29 +527,42 @@ artifact: .harness/harness/features/FEAT-D-thing/runs/r1/digest.md
     validation = subprocess.run(
         [os.path.join(_anchor_bin, "validate-digest.py"), "lead"],
         input=combined, capture_output=True, text=True)
-    results.append(("a complete corrected block repairs an invalid digest append-only",
-                    response.returncode == 0 and validation.returncode == 0,
-                    f"guard={response.returncode}: {response.stderr}; "
-                    f"validator={validation.returncode}: {validation.stdout}"))
+    return (
+        "a complete corrected block repairs an invalid digest append-only",
+        response.returncode == 0 and validation.returncode == 0,
+        f"guard={response.returncode}: {response.stderr}; "
+        f"validator={validation.returncode}: {validation.stdout}",
+    )
 
+
+def _bug1305_digest_write_result(name, prior, candidate, allowed, witness=False):
     root, path = _feat50_digest_fixture()
     _feat50_write_text(path, prior)
-    response = _bug1305_digest_write(root, path, "wholly different digest\n")
-    results.append(("cross-run digest replacement remains refused",
-                    response.returncode == 2, response.stderr))
+    if witness:
+        _bug1305_write_marker(path)
+    response = _bug1305_digest_write(root, path, candidate)
+    expected = 0 if allowed else 2
+    return name, response.returncode == expected, response.stderr
 
-    root, path = _feat50_digest_fixture()
-    _feat50_write_text(path, prior)
-    response = _bug1305_digest_write(root, path, prior + artifact)
-    results.append(("digest Write append remains allowed",
-                    response.returncode == 0, response.stderr))
 
-    root, path = _feat50_digest_fixture()
-    _feat50_write_text(path, prior)
-    _bug1305_write_marker(path)
-    response = _bug1305_digest_write(root, path, prior + artifact)
-    results.append(("digest Write append remains allowed beside identity witness",
-                    response.returncode == 0, response.stderr))
+def run_bug1305_digest_repair_cases():
+    """BUG-1305/#1619: append-only preservation has an actionable repair route."""
+    prior = "VERDICT: PASS\nDIGEST:\n  headline: recorded\n"
+    artifact = "  artifact: notes/x.md\n"
+    results = [
+        _bug1305_edit_append_result(prior, artifact),
+        _bug1305_edit_insertion_result(prior, artifact),
+        _bug1619_complete_correction_result(),
+        _bug1305_digest_write_result(
+            "cross-run digest replacement remains refused",
+            prior, "wholly different digest\n", False),
+        _bug1305_digest_write_result(
+            "digest Write append remains allowed",
+            prior, prior + artifact, True),
+        _bug1305_digest_write_result(
+            "digest Write append remains allowed beside identity witness",
+            prior, prior + artifact, True, witness=True),
+    ]
 
     failures = 0
     for name, ok, detail in results:
