@@ -145,12 +145,19 @@ def _floor_creation_cases():
     ]
 
 
-def _floor_update_case():
-    update = _existing_write(
+def _floor_update_cases():
+    legacy = _existing_write(
         "existing", _state("1", ["    legacy_key: remains_writable"]),
         _state("1", ["    legacy_key: updated"]))
-    return ("schema_version floor allows an existing version-1 update",
-            update.returncode == 0, update)
+    downgrade = _existing_write(
+        "downgrade", _state("2"), _state("1"))
+    return [
+        ("schema_version floor allows an existing version-1 update",
+         legacy.returncode == 0, legacy),
+        ("schema_version floor refuses a version-2 checkpoint downgrade",
+         downgrade.returncode == 2
+         and "schema_version downgrade" in downgrade.stderr, downgrade),
+    ]
 
 
 def _report(cases):
@@ -173,7 +180,7 @@ def run_t06_cases():
     cases.extend(_evidence_cases())
     cases.append(_declared_shape_case())
     cases.extend(_floor_creation_cases())
-    cases.append(_floor_update_case())
+    cases.extend(_floor_update_cases())
     return _report(cases)
 
 

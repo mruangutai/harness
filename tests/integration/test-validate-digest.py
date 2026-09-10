@@ -3137,7 +3137,7 @@ def _t04_three_key_failures(validator, digest):
     message = errors[0]
     tokens = (
         "rogue_alpha", "rogue_beta", "rogue_gamma",
-        "digest contract is closed", "PASSTHROUGH",
+        "digest contract is closed", "validate-digest.py", "PASSTHROUGH",
         "DOCUMENTED_OPTIONAL", "SCHEMAS",
     )
     return [

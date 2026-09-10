@@ -1757,6 +1757,26 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                                      "parsing; refusing a Write that could silently replace "
                                      "it."))
                     return out
+                _prior_version = prior_doc.get("schema_version")
+                _prior_is_strict = (
+                    isinstance(_prior_version, int)
+                    and not isinstance(_prior_version, bool)
+                    and _prior_version >= 2
+                )
+                _version_decreased = (
+                    not isinstance(_version, int)
+                    or isinstance(_version, bool)
+                    or _version < _prior_version
+                ) if _prior_is_strict else False
+                if _version_decreased:
+                    out.append(_head("schema_version downgrade for a run checkpoint."))
+                    out.append(
+                        f"  this existing checkpoint declares schema_version "
+                        f"{_prior_version}; the proposed write declares {_version!r}. "
+                        "A strict checkpoint cannot opt out of its closed step schema. "
+                        "Keep schema_version unchanged or increase it."
+                    )
+                    return out
                 prior_run_id = prior_doc.get("run_id")
                 new_run_id = doc.get("run_id") if isinstance(doc, dict) else None
                 if prior_run_id is None:

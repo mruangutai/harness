@@ -1413,7 +1413,8 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
             names = ", ".join(repr(field) for field in undeclared)
             err.append(
                 f"undeclared digest key(s): {names}. The digest contract is closed. "
-                "A lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
+                "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
+                "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
                 "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
                 "a new required persona field belongs in SCHEMAS and must also be "
                 "documented under DEC-216. A per-dispatch answer is not a digest key: "
