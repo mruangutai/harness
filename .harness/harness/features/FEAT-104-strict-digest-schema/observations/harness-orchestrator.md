@@ -40,3 +40,19 @@
   amended while a validator cycle was live grading it, so the graded base became a SIBLING of the
   tip rather than its ancestor and everything needed re-grading. That is the expensive shape to
   watch for, not a high run count on its own.
+- 2026-09-10: FEAT-104 goal-check. A four-reviewer panel PASSED at 168f875f with must_fix empty, and
+  the pm goal-check at the SAME pin then found SC-08 unmet. The panel graded the diff; the goal-check
+  graded the CRITERIA. SC-08 named two seams (digest key, step key) and demanded each "asserted as a
+  substring"; delivery emitted both, only the digest seam had a test asserting it. Nobody reviewing a
+  correct diff can see a missing assertion the diff was never required to add. Direct evidence for
+  OQ-01: panel and goal-check have disjoint blind spots, and this is the first case where the
+  goal-check caught what the panel could not.
+- 2026-09-10: the SC-08 remedy was one assertion inside a DEC-174 carve-out test file, so no squad
+  could take it at any severity. The routing that mattered was not "who fixes it" but "which of the
+  two routes needs a signature": ADDING the assertion satisfies an already-approved criterion and
+  needs none; NARROWING the criterion amends a signed BRIEF and is the operator's alone. Naming that
+  split in the return turned an unroutable FAIL into a one-step decision for the tier above.
+- 2026-09-10: bash-write-guard misparsed `mktemp /tmp/orch-sc12-XXXX.txt` and refused the command,
+  reporting the redirect target as "xx" — the X-template, not the redirect, is what confused it.
+  Doing the same mutation in memory inside python -c produced identical evidence with no temp file.
+  A discrimination proof rarely needs a file on disk.
