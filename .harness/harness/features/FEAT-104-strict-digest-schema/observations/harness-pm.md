@@ -24,3 +24,17 @@
 - 2026-09-09: FEAT-104 T-01.intent single-clause amend. The dispatch spelled the write as `plan-merge.py amend --task T-01 --field intent --value "..."`; the control-plane script actually takes `--key tasks --id T-01 --field intent --expect-sha256 <from --show> --value-file <path>`. Ran `--show` first to get the block sha, built the value in Python (one `str.replace(..., 1)` + textwrap of the sentence's own lines at width 95), wrote it to a temp file, passed `--value-file`. Length assertions (10432 -> 10498, delta == len(new)-len(old)) ran pre-write; whitespace-normalised equality proved the rewrap only moved newlines.
 - 2026-09-09: T-09 validation. Dispatch acceptance said `git status --porcelain` would show digest.md as a modification predating my run. False premise: `.gitignore:7` matches `.harness/*/features/*/runs/**`, so run digest.md and state.yaml never appear in porcelain at all and `git show HEAD:<digest>` reports "exists on disk, but not in 'HEAD'". An empty porcelain is therefore NOT evidence a run artifact was committed. Before asserting a run-artifact provenance claim, run `git check-ignore -v <path>` — an ignored path makes both the tracked and the modified reading wrong, and only the extends-only #1058 guard protects the record.
 - 2026-09-09: validate-digest.py takes persona FIRST, path SECOND; the path-only invocation prints an `unknown persona` line that reads exactly like a malformed digest. Confirmed the clean result by re-running with stdout/stderr split to files and byte-counting (stdout 10 bytes `digest ok\n`, stderr 0), not by reading a tail — a single-stream capture cannot distinguish an empty stderr from an interleaved one.
+- 2026-09-10: FEAT-104 goal-check at pin 168f875f. SC-08 named two seams for the "route by file and
+  symbol, asserted as a substring" clause; the digest seam was fixed in both emission and assertion
+  (F3), the step seam in emission only (check-domain.sh:1655-1658). Grep of tests/ for
+  `run-state-schema` returned exactly one hit and it was an open(), not an assertion. Two earlier
+  gates called SC-08 satisfied on the digest half alone. Checking each seam of an enumerated
+  criterion separately is what found it.
+- 2026-09-10: BRIEF line anchors written pre-build rot against the pin: SC-09 cited
+  validate-digest.py:1744 for the stop_hook_active guard; at 168f875f :1744 is docstring text and
+  the guard is :1828 (:1807 in the pre-change fixture). Graded on substance and recorded the drift
+  rather than reporting unmet.
+- 2026-09-10: planfix c1 asserted PASSTHROUGH["lead"] had eight rows; delivery and the signed SC-05
+  both say five, and a later panel disposition inside plan.yaml (:731,:738) had already struck the
+  three extras with T-08 pinning failures/suite/kinds as REJECTED. Reading the plan's own later
+  disposition before flagging a note-vs-delivery divergence avoided a false finding.

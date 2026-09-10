@@ -133,6 +133,12 @@
       "squad": "validator",
       "verdict": "PASS",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-11-goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {
