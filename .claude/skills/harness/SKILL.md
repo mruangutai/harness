@@ -39,6 +39,9 @@ is namespaced under `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT
    dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
    validator run (INV-6). In the build phase, sequence the segments below rather than composing a
    step list at dispatch.
+   A dispatch asking a specific question names where its answer belongs:
+   `adequacy_notes` for a qualification on PASS, the run-state step's `evidence` container for a
+   per-step fact, or the digest artifact for reasoning — never a new digest key.
 4. **Let the host supervise the nested dispatch at the tool boundary.** Under OMP every lead and
    member is declared `blocking: true`; the `task` call remains in the host while your model is
    inactive. Under the Claude Code compatibility host, end a live-child turn only with

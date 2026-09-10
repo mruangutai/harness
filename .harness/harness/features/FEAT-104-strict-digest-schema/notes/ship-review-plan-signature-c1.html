@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-104 — plan signature packet</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-104-plan-signature-packet">FEAT-104 — plan signature packet</h1>
+<p><strong>Recommendation: sign, after ruling on PF-4bd91290 (high, gating).</strong> The plan is complete, traced and measured. One panel finding gates the signature and cannot be accepted by any agent — it is yours to accept, remedy, or overrule. Four further items are genuinely your call rather than pm&#x27;s; the rest is decided and recorded.</p>
+<p>Nothing was implemented. No gate script was edited. No test suite was run.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p>No report round was spawned. I read the run digests from disk. The paths:</p>
+<ul><li><code>runs/plan-product/digest.md</code> — BRIEF + plan drafting</li><li><code>runs/goalcheck-plan-product/digest.md</code> — panel segment 1, pm&#x27;s goal-check of the draft</li><li><code>runs/planfix-c1-product/digest.md</code> — the repair of that goal-check&#x27;s six findings</li><li><code>runs/planpanel-c1-validator/digest.md</code> — panel segment 2, the two adversarial readers</li><li><code>runs/paneltranscribe-c1-product/digest.md</code> and <code>runs/paneltranscribe-c1b-product/digest.md</code> — panel segment 3, the record written into <code>plan.yaml</code></li></ul>
+<p>All relative to <code>.harness/harness/features/FEAT-104-strict-digest-schema/</code>.</p>
+<h2 id="what-you-are-signing">What you are signing</h2>
+<p><code>BRIEF.md</code> — 9 requirements, 15 success criteria, every one carrying a verification method: <strong>13 <code>automated</code></strong> (all resolving to the <code>integration</code> runner, which exists and runs), <strong>1 <code>inspection</code></strong> (SC-12, the historical-artifact manifest), <strong>1 <code>uat</code></strong> (SC-13, you read the carve-out diff — DEC-174 requires a human there and no automated gate substitutes).</p>
+<p><code>plan.yaml</code> — 12 decisions (D-01..D-12), 10 tasks (T-02 is <code>abandoned</code>, subsumed into T-01), a <code>lanes:</code> table resolving every literal path through <code>check-domain.sh --resolve</code>, and the <code>panel:</code> record with all three readers and four findings.</p>
+<p>The substance: unknown keys on a new digest return get rejected instead of ignored; the same for keys inside a run <code>state.yaml</code> <code>steps[]</code> entry, which nothing governs today; a declared free-form-inside <code>evidence:</code> container so per-step evidence keeps a legal home; and issue <strong>#37 resolved in-feature</strong> — <code>adequacy_notes</code> becomes a required lead field rather than a load-bearing signal nothing enforces.</p>
+<h2 id="the-measurement-that-changed-the-shape-of-the-work">The measurement that changed the shape of the work</h2>
+<p>Issue #104&#x27;s tables were five weeks stale. Re-measured on 2026-09-09:</p>
+<div class="scroll"><table><thead><tr><th></th><th>#104 said (2026-08-05)</th><th>measured now</th></tr></thead><tbody><tr><td>distinct out-of-schema digest keys</td><td>8</td><td><strong>65</strong>, across 220 of 319 readable digests (69%)</td></tr><tr><td>distinct <code>steps[]</code> keys</td><td>95</td><td><strong>202</strong>, across 356 runs</td></tr><tr><td>invented once and never reused</td><td>72</td><td><strong>132</strong> — including 7 prose sentences used as mapping keys</td></tr></tbody></table></div>
+<h2 id="your-decisions">Your decisions</h2>
+<p><strong>OD-1 — PF-4bd91290deaf98062943319ff3ea5641 · high · gating.</strong> SC-06, T-01 PART 6 and T-08 pin the &quot;prove the suite reddens against the pre-change validator&quot; control on a <code>git show</code> of an absolute commit id. <code>tests/integration/test-validate-digest.py:30-33</code> records this repository&#x27;s own ruling that this exact mechanism was removed and replaced with vendored inert fixture bytes, because it &quot;needs no <code>git show</code> and no repository history to be hermetic in a shallow CI checkout&quot;; <code>:4008-4010</code> records the shallow-clone proof. I confirmed all of that verbatim at source. <strong>And CI does clone shallow today</strong> — <code>.github/workflows/tests.yml:50</code> is a bare <code>actions/checkout@v4</code> with no <code>fetch-depth</code>, which defaults to depth 1. So the spurious red is immediate, not latent. The panel&#x27;s remedy: T-01 vendors its own pre-T-04 validator bytes as an inert non-<code>.py</code> fixture, which deletes PART 6&#x27;s second commit, <code>base-revision-pre-T-04.txt</code> and T-08&#x27;s two-sided grep, and takes the F4 ordering hazard with it. SC-06&#x27;s substance survives intact. <strong>Neither I nor pm may accept this risk</strong> (DEC-176). Either the remedy enters your signature review as a change request, or you record <code>sign-approval --overrule PF-4bd91290deaf98062943319ff3ea5641:&lt;reason&gt;</code>. Signing with neither leaves <code>check-state.sh</code> INV-32 red the moment approval flips to <code>approved</code>.</p>
+<p><strong>OD-2 — PF-d2cefa75a1931540efa60d3561f7df6b · med.</strong> D-02&#x27;s repaired bar admits three lead <code>PASSTHROUGH</code> rows (<code>failures</code>, <code>suite</code>, <code>kinds</code>) on observed-traffic grounds, while REQ-04 defines legitimate use as documented-block-only. The plan&#x27;s own requirement and its own decision disagree, at the tier that is nearly all of the measured corpus. Drop the three rows, or record why D-02 overrides REQ-04&#x27;s sentence.</p>
+<p><strong>OD-3 — PF-4d84bb7e52beff3ee62eb98a7115ae9e · low.</strong> T-01 PART 1 says &quot;reuse the existing field loop&quot;, but that loop (<code>validate-digest.py:1190</code>, <code>:1197</code>) makes every field required when absent — a literal reading would make all 24 optional fields mandatory and reproduce the critical defect the repair just closed. I confirmed the loop&#x27;s shape. One clarifying sentence saves an implementer a cycle; T-01&#x27;s own omission assertions make the wrong reading unlandable either way.</p>
+<p><strong>OD-4 — PF-7469688fee994f7ec08ad85dea1d1f8b · low.</strong> SC-11 read standalone is falsified by D-11&#x27;s creation floor: its accept case is necessarily an update to an already-existing version-1 file. Add &quot;on a run already carrying <code>schema_version: 1</code>&quot;.</p>
+<p><strong>OD-5 — T-02.</strong> It is retained at <code>status: abandoned</code> rather than deleted, because <code>plan-merge.py</code> adds and never deletes and the merge is worth seeing in the record. Keep it, or strike the id. Note this is not free: see B-1.</p>
+<p><strong>OD-6 — the decision record.</strong> T-09 corrects one falsified clause in DEC-126&#x27;s Applied record (<code>DECISIONS.md:2612-2613</code> names <code>adequacy_notes</code> as the validator-lead&#x27;s per-role extra, which D-03 falsifies). Correcting a clause to current truth is what DEC-205 requires; it is still a write to the decision log and you should see it named.</p>
+<h2 id="what-the-panel-did">What the panel did</h2>
+<p>Both readers ran; neither was skipped.</p>
+<div class="scroll"><table><thead><tr><th>reader</th><th>persona</th><th>status</th><th>outcome</th></tr></thead><tbody><tr><td><code>goalcheck</code></td><td><code>harness-pm</code></td><td>ran</td><td>FAIL, 6 must_fix — <strong>all six closed</strong> in <code>planfix-c1</code>, plus 2 accepted/deleted criteria and 2 bonus fixes</td></tr><tr><td><code>should-not-exist</code></td><td><code>fable-advisor</code></td><td>ran</td><td>2 findings (1 high, 1 med)</td></tr><tr><td><code>scope</code></td><td><code>harness-code-reviewer</code></td><td>ran</td><td>2 findings (both low); <code>reviewed: plan:&lt;path&gt;</code>, <code>code_grade: n_a</code>, no <code>review_sha</code> invented</td></tr></tbody></table></div>
+<p>Two findings were assessed and dismissed with reasons, both recorded in <code>panel.dismissed</code>. One is worth your eye: the code-reviewer independently cleared the base-revision pin as <em>non-vacuous</em>, and that clearance is true — it answers discrimination, not hermeticity, so it does not rebut PF-4bd91290. Each reader was individually correct; only the union of their scopes gates.</p>
+<p>The goal-check&#x27;s own critical finding is the one worth knowing about, because it is what the panel exists for: the first draft derived its legal key set from observed digests, which were lead-only. Under it, <strong>every conforming non-lead return would have exited 2</strong> — 16 fields that seven personas&#x27; own documented output blocks instruct them to emit had no declaration. I verified four of those at source before spending the cycle. The repair re-derives the set from the documented blocks and adds a mechanical two-direction agreement assertion, so a documented field with no declaration becomes a test failure rather than the next reader&#x27;s discovery.</p>
+<h2 id="proposed-backlog-strike-any-row-by-id-unlisted-items-die-silently">Proposed backlog — strike any row by ID; unlisted items die silently</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><code>check-state.sh</code> INV-26&#x27;s not-started skip requires <code>all(status == &quot;ready&quot;)</code>, so one task legitimately recorded <code>abandoned</code> on an <strong>unsigned</strong> plan trips a false &quot;the mirror never ran — run <code>gh-sync.py open</code>&quot; violation. I measured this directly: with T-02 removed the skip fires; with it present it does not. The instruction is also wrong to follow — the mirror reference puts <code>gh-sync.py open</code> <em>after</em> signed approval. Remedy: treat <code>abandoned</code> as not-started in that skip</td></tr><tr><td>B-2</td><td>chore</td><td>This worktree&#x27;s <code>.harness/team-config.yaml</code> is behind the owner root by <code>4d81e460</code> (the pm <code>receipt-*.md</code> grant, #46/#71). It is why <code>check-plan-routes.py</code> exits 1 — one violation, the manifest header, no task. The hook reads the owner copy, so nothing executes wrongly; the gate is simply red at signature time and needs an owner</td></tr><tr><td>B-3</td><td>bug</td><td>44 of 370 run digests carry no yaml fence and 7 fail <code>safe_load</code> — pre-DEC-172 artifacts no validator can read. Out of scope here by your own ruling (nothing is rewritten), but nothing else is tracking them</td></tr><tr><td>B-4</td><td>enhancement</td><td>Closing the <code>stop_hook_active</code> re-prompt passthrough (<code>validate-digest.py:1744</code>). D-07 deliberately leaves it open and compensates with a one-shot-sufficient message; DEC-208 records it as intentional. Closing it is its own ruling, not this feature&#x27;s</td></tr><tr><td>B-5</td><td>enhancement</td><td>SC-16 asserts documentation/declaration agreement over <strong>keys</strong> only. One value-level disagreement already surfaced — <code>harness-validator-lead.md:135</code> documents <code>severity_max</code> including <code>info</code>, not a member of <code>SEV</code>. T-01 pins that one case; widening the check to compare documented enums against declared sets is unbuilt</td></tr><tr><td>B-6</td><td>bug</td><td>Harness transport defect, seen twice this run: a subagent&#x27;s job row returned <code>failed (exit 1) — Subagent called yield with null data</code> while its fenced digest and its artifact were both intact and well-formed. A PASSing reviewer looks failed to a router</td></tr></tbody></table></div>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used: 2</code> of 10 — one pm send-back inside the drafting run, one goal-check FAIL routed back as the repair cycle. <code>runs: 6</code> of an informational 20. Both healthy; every run resolved findings and advanced the criteria.</p>
+<h2 id="artifacts">Artifacts</h2>
+<p>All under <code>/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/</code>:</p>
+<ul><li><code>BRIEF.md</code> — approval <code>pending</code></li><li><code>plan.yaml</code> — approval <code>pending</code>, feature station <code>plan</code>, <code>panel:</code> recorded</li><li><code>notes/research-FEAT-104-triage-c0.md</code> — the measurement and the per-key triage</li><li><code>notes/research-FEAT-104-goalcheck-plan-c0.md</code> — panel segment 1</li><li><code>notes/research-FEAT-104-planfix-c1.md</code> — how each goal-check finding was closed</li><li><code>notes/review-harness-code-reviewer-planpanel-c1.md</code> — the <code>scope</code> reader&#x27;s own note</li><li><code>notes/research-FEAT-104-strict-digest-schema-panel-transcription-c1.md</code> — the transcription record</li><li><code>notes/research-FEAT-104-panel-goalcheck-reader-c1b.md</code> — the third reader entry</li></ul><p class='derived'>Derived from <code>ship-review-plan-signature-c1.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

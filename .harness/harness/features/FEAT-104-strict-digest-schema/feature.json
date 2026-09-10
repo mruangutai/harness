@@ -1,0 +1,217 @@
+{
+  "feature_id": "FEAT-104-strict-digest-schema",
+  "branch": "feat/FEAT-104-strict-digest-schema",
+  "pr": null,
+  "review_sha": "984bd26b",
+  "cycles_used": 10,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheck-plan-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "planfix-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "planpanel-c1-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "paneltranscribe-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "paneltranscribe-c1b-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "sigfix-c2-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "od5-c3-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "od5b-c3-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "q2-c4-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-09-01-t09-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-09-02-qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-03-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-09-04-panel-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-05-qa-gate-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-06-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-09-07-qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-09-simplify-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-09-08-simplify-eng",
+      "squad": "eng",
+      "verdict": "FAIL",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-09-10-panel-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-11-goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-10-12-qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-13-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-10-14-panel-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-15-qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-16-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-10-17-panel-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-18-goalcheck-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
+  ],
+  "github": {
+    "milestone": 65,
+    "parent": 1584,
+    "attached": [
+      "T-01",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 1585,
+      "T-03": 1586,
+      "T-04": 1587,
+      "T-05": 1588,
+      "T-06": 1589,
+      "T-07": 1590,
+      "T-08": 1591,
+      "T-09": 1592,
+      "T-10": 1593
+    },
+    "source_issues": [
+      104,
+      37
+    ],
+    "build_entry": "opened"
+  }
+}

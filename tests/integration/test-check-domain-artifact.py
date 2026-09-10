@@ -256,7 +256,9 @@ def _bug1124_prior_unparseable_case(root, path):
 
 
 def _bug1124_new_file_case(root, path):
-    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-gamma\nstatus: building\n")
+    # FEAT-104 D-11: this new checkpoint must satisfy the version floor so the
+    # case continues to isolate run-id collision admission.
+    result = _bug1124_state_fire(root, path, "schema_version: 2\nrun_id: run-gamma\nstatus: building\n")
     ok = result.returncode == 0
     return ("state-new-file-allowed", ok, f"{result.returncode}: {result.stderr}")
 
@@ -741,7 +743,9 @@ def _bug1305_marker_recovery_cases():
             _feat50_write_text(state, prior)
         response = _bug1124_state_fire(
             root, state,
-            "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
+            # "absent" creates a checkpoint and must satisfy the FEAT-104 floor;
+            # "zero-byte" is an update, but sharing the value keeps the cases uniform.
+            "schema_version: 2\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
         results.append((
             f"recovering owner with {label} prior is allowed",
             response.returncode == 0, response.stderr))
@@ -766,8 +770,10 @@ def _bug1305_marker_file_protection():
     edit = _fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
     unmatched_edit = _fire_digest_edit(
         root, identity, "not present", '{"run_id": "forged"}')
+    # The checkpoint is new, so satisfy the version floor while this case
+    # isolates run_uid legality.
     legal = _bug1124_state_fire(
-        root, state, "schema_version: 1\nrun_id: A\nrun_uid: U\n")
+        root, state, "schema_version: 2\nrun_id: A\nrun_uid: U\n")
     os.unlink(identity)
     create = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
     create_edit = _fire_digest_edit(
@@ -957,7 +963,12 @@ def _bug1305_identity_allow_cases():
     resumed = _bug1305_identity_write(prior, incoming, session_id="S2")
     # D-01 forbids session-keyed ownership: this same-uid S2 update catches it.
     absent = _bug1305_identity_write(
-        None, _bug1305_identity_doc(include_uid=False), marker=True)
+        None,
+        # `prior=None` creates a checkpoint; the helper remains version 1 for
+        # the legacy update-path cases below.
+        _bug1305_identity_doc(include_uid=False).replace(
+            "schema_version: 1", "schema_version: 2", 1),
+        marker=True)
     zeroed = _bug1305_identity_write(
         "", _bug1305_identity_doc(include_uid=False), marker=True)
     legacy = _bug1305_identity_doc(include_uid=False)

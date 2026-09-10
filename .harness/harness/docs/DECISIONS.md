@@ -2613,8 +2613,8 @@ Applied:
   agent files carry a pointer, not a copy.
 - **leads (3)** → the canonical copy already existed: `harness-team` "Reporting up", preloaded on
   all three since the collation work. The inline blocks written earlier today duplicated it and are
-  replaced with a pointer plus each lead's per-role extras (`needs_approval`; `severity_max` +
-  `adequacy_notes`).
+  replaced with a pointer plus each lead's per-role extras (`needs_approval`; `severity_max`),
+  with `adequacy_notes` required of all three leads in the canonical block.
 - **reviewers (3) stay inline, deliberately** — measured first: their blocks share only
   `severity_max/findings/must_fix`; the bulk is role-specific (code: `spec_violations`,
   `review_sha`, `human_commits_in_scope`; security: `threat_model`, `scope_reason`). Centralizing
@@ -7088,3 +7088,45 @@ skill, not a command — is exactly what `harness-add-repo` conforms to, and onl
 premise expired, when `deploy.sh` was deleted in commit 45859123.
 
 **Record:** refs DEC-221, DEC-06, DEC-120, DEC-174.
+
+## DEC-223 — The digest contract is closed, and the run-state step vocabulary with it
+
+**Chose:** a return carries declared keys only. An undeclared key on a new digest is refused, and
+refused with ONE message naming every offending key together with the route each would have to take
+to become legal: `PASSTHROUGH` for a lower-tier field a lead carries up, `DOCUMENTED_OPTIONAL` for a
+field in a persona's documented output block, `SCHEMAS` for a new required persona field — which
+DEC-216 then also requires be documented — and none of the three for a per-dispatch answer, which
+belongs in `adequacy_notes` or in a step's `evidence` container. One message for all offending keys,
+not one per key, because the message is the entire instruction the producer receives.
+
+**The legal set is derived from what every persona is documented to write.** A documented field that
+no schema declares is declared in an optional typed `DOCUMENTED_OPTIONAL` table keyed by the RAW
+agent type rather than in `SCHEMAS`: a `SCHEMAS` member is required under DEC-121, so every producer
+of that persona would have to carry it, and the three reviewer agents collapse to one canonical
+persona whose output modes are not interchangeable — `mode` is legal on a UI review and nowhere
+else, which a per-persona table can express and a shared schema cannot. A lower tier's field riding
+up a lead roll-up is declared in the optional typed `PASSTHROUGH` table for the same reason: a lead
+that ran no QA step must not be required to claim `matrix_ok`. Agreement between a persona's
+documented block and its declaration is asserted mechanically in BOTH directions — a required field
+missing from the block, and a documented field nothing declares — with `.omp/agents` the source of
+record, because `.claude/agents` is generated from it.
+
+**`adequacy_notes` is required of every lead**, which closes issue 37. An optional field for the one
+signal a lead's own assessment carries is indistinguishable from an absent one, so no consumer can
+rely on it; required, its absence is a rejected return rather than silence.
+
+**Run state is closed on the same terms.** A `steps[]` entry has a closed 22-key shape, of which
+`evidence` is a governed free-form container — lower-case identifier keys, scalar or scalar-array
+values — carrying matchable per-dispatch facts that do not belong in the step vocabulary. The shape
+is enforced on `check-domain.sh`'s write payload path and reported at rest by `check-state.sh`, both
+gated on `schema_version` 2. Creation of a run `state.yaml` below version 2 is refused, so no new run
+can opt out, while the 356 historical version-1 runs stay legal and unrewritten and updates to them
+keep working.
+
+**The one hole is named deliberately.** `stop_hook_active` short-circuits validation, so a
+re-prompted return is not re-validated; that passthrough stays open, and it is exactly why the
+refusal message must be one-shot sufficient — the producer may get one reading of it and no second
+gate behind it.
+
+**Record:** refs DEC-121, DEC-122, DEC-126, DEC-154, DEC-160, DEC-173, DEC-174, DEC-191, DEC-208,
+DEC-216.

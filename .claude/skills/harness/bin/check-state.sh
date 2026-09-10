@@ -1480,6 +1480,60 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
                    f"(DEC-154). Findings and assessment prose belong in that run's "
                    f"digest.md; a one-line note: per step entry is the ceiling.")
 
+    # FEAT-104 census, 2026-09-09: all 356 existing run state.yaml files were
+    # schema_version 1. The closed step sweep begins at version 2, so that corpus
+    # remains byte-for-byte untouched and receives exactly its prior verdict.
+    _schema_version = sdoc.get("schema_version")
+    if (isinstance(_schema_version, int)
+            and not isinstance(_schema_version, bool)
+            and _schema_version >= 2):
+        try:
+            import jsonschema
+            _run_schema_path = os.path.join(sys.argv[2], "run-state-schema.json")
+            with open(_run_schema_path, encoding="utf-8") as _run_schema_file:
+                _run_schema = json.load(_run_schema_file)
+            _step_schema = _run_schema["properties"]["steps"]["items"]
+            _step_validator = jsonschema.Draft202012Validator(_step_schema)
+            _declared_step_keys = set(_step_schema["properties"])
+            _evidence_name = re.compile(
+                _step_schema["properties"]["evidence"]["propertyNames"]["pattern"])
+            for _step_index, _step in enumerate(sdoc.get("steps", [])):
+                _errors = list(_step_validator.iter_errors(_step))
+                if not _errors:
+                    continue
+                _step_id = (
+                    str(_step.get("id") or f"index-{_step_index}")
+                    if isinstance(_step, dict) else f"index-{_step_index}"
+                )
+                _offending_step_keys = set()
+                if isinstance(_step, dict):
+                    _offending_step_keys.update(
+                        set(_step) - _declared_step_keys)
+                    _evidence = _step.get("evidence")
+                    if isinstance(_evidence, dict):
+                        for _key, _value in _evidence.items():
+                            if (not isinstance(_key, str)
+                                    or not _evidence_name.fullmatch(_key)
+                                    or isinstance(_value, dict)):
+                                _offending_step_keys.add(str(_key))
+                for _error in _errors:
+                    _path = list(_error.path)
+                    if _path:
+                        _offending_step_keys.add(str(_path[0]))
+                _names = sorted(_offending_step_keys) or ["<step>"]
+                bad.append(
+                    f"INV-16: {rel}: run {sdoc.get('run_id', '<unknown>')} step "
+                    f"{_step_id}: undeclared step key or evidence shape {_names} — "
+                    "declare recovery fields in "
+                    ".claude/skills/harness/bin/run-state-schema.json; put "
+                    "per-dispatch facts under evidence."
+                )
+        except Exception as _run_schema_error:
+            bad.append(
+                f"INV-16: {rel}: run-state schema CANNOT be checked: "
+                f"{type(_run_schema_error).__name__}: {_run_schema_error}"
+            )
+
     # INV-36 (BUG-1305): D-13 makes this self-limiting. Only a run directory
     # carrying the write-once witness is judged; witness-absent directories are
     # permanently legacy and remain silent. A witness uid with no checkpoint uid

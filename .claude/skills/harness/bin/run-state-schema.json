@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Harness team run checkpoint (state.yaml)",
+  "description": "FEAT-104: the closed schema for schema_version 2 and later run checkpoints. check-domain.sh enforces it at write time and check-state.sh sweeps it at rest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version"],
+  "properties": {
+    "schema_version": {"type": "integer", "description": "Read by check-domain.sh and check-state.sh to select closed-schema enforcement; version 2 is the first enforced version."},
+    "run_id": {"type": "string", "description": "Read by check-domain.sh to bind an update to the run directory it replaces."},
+    "run_uid": {"type": "string", "description": "Minted and read by the Harness write path to preserve one run identity across updates."},
+    "feature": {"type": "string", "description": "Read by team leads and state checks as the owning feature identifier."},
+    "squad": {"type": "string", "description": "Read by the orchestrator and feature.json run roll-up as the executing squad."},
+    "host": {"type": "string", "description": "Read by the Harness team loop as the lead persona that owns the run."},
+    "status": {"type": "string", "description": "Read by the Harness team loop to resume or terminate the run."},
+    "steps": {
+      "type": "array",
+      "description": "Read by the Harness team loop as the durable execution DAG.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": {"type": "string", "description": "Read by the lead and orchestrator as the stable step identifier."},
+          "persona": {"type": "string", "description": "Read by the lead to select the member persona for dispatch."},
+          "task": {"type": "string", "description": "Read by the lead to bind the dispatch to a plan task identifier."},
+          "seq": {"type": ["integer", "string"], "description": "Read by the lead as the step sequence marker."},
+          "depends_on": {"type": "array", "items": {"type": "string"}, "description": "Read by the lead to compute the ready set."},
+          "outputs": {"type": "array", "items": {"type": "string"}, "description": "Read by the lead to declare paths the step is expected to produce."},
+          "mutates_repo": {"type": "boolean", "description": "Read by the lead to determine whether concurrent dispatch is safe."},
+          "on_fail": {"type": "string", "description": "Read by the lead to choose the configured failure route."},
+          "status": {"type": "string", "description": "Read by the lead to determine whether the step is pending, active, or terminal."},
+          "verdict": {"type": "string", "description": "Read by the lead to reconcile the member result."},
+          "lead_verdict": {"type": "string", "description": "Read by the orchestrator as the lead's assessed step verdict."},
+          "cycles": {"type": "integer", "minimum": 0, "description": "Read by the lead as the number of rework cycles consumed."},
+          "max_cycles": {"type": "integer", "minimum": 0, "description": "Read by the lead as the step's rework ceiling."},
+          "redispatches": {"type": "integer", "minimum": 0, "description": "Read by the lead as the total redispatch count."},
+          "dispatched_at": {"type": "string", "description": "Read by the lead as the first dispatch sequence marker."},
+          "completed_at": {"type": "string", "description": "Read by the lead as the first completion sequence marker."},
+          "redispatched_at": {"type": "string", "description": "Read by the lead as the latest redispatch sequence marker."},
+          "recompleted_at": {"type": "string", "description": "Read by the lead as the latest recompletion sequence marker."},
+          "routed_by": {"type": "string", "description": "Read by the orchestrator to identify the routing authority."},
+          "note": {"type": "string", "description": "Read by a fresh lead as the one-line checkpoint summary ceiling."},
+          "artifact": {"type": "string", "description": "Read by the lead and successor as the member artifact pointer."},
+          "evidence": {
+            "type": "object",
+            "description": "Read by a fresh lead as matchable, per-dispatch facts that do not belong in the closed step vocabulary.",
+            "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+            "additionalProperties": {
+              "oneOf": [
+                {"type": ["string", "number", "boolean", "null"]},
+                {"type": "array", "items": {"type": ["string", "number", "boolean", "null"]}}
+              ]
+            }
+          }
+        }
+      }
+    },
+    "cycles_used": {"type": "integer", "minimum": 0, "description": "Read by the orchestrator as the run-level rework count."},
+    "cost": {"description": "Historical-only checkpoint key retained because check-state.sh still recognizes pre-FEAT-08 runs."},
+    "flow": {"type": "string", "description": "Read by the resuming lead as a matchable flow identifier."},
+    "task": {"type": "string", "description": "Read by the resuming lead as a run-level plan task identifier."},
+    "team": {"type": "string", "description": "Read by the resuming lead as a matchable team identifier."},
+    "branch": {"type": "string", "description": "Read by review and build flows as the feature branch marker."},
+    "worktree": {"type": "string", "description": "Read by review and build flows as the feature checkout path."},
+    "review_sha": {"type": "string", "description": "Read by validation flows as the pinned review commit."},
+    "pinned_sha": {"type": "string", "description": "Read by validation flows as an immutable target commit."},
+    "base_sha": {"type": "string", "description": "Read by diff-based flows as the comparison base commit."},
+    "head_sha": {"type": "string", "description": "Read by diff-based flows as the comparison head commit."},
+    "tip_sha": {"type": "string", "description": "Read by reconciliation flows as the observed branch tip."},
+    "commits": {"type": "array", "items": {"type": "string"}, "description": "Read by reconciliation flows as the ordered commit identifiers."},
+    "verdict": {"type": "string", "description": "Read by the orchestrator as the run roll-up verdict."},
+    "severity_max": {"type": "string", "description": "Read by validation flows as the run's maximum finding severity."},
+    "digest": {"type": "string", "description": "Read by successors as the run digest artifact pointer."}
+  }
+}

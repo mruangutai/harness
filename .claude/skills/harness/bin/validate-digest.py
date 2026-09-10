@@ -56,6 +56,9 @@ NULLABLE = {"branch", "blocked_on", "briefing",
             # did-nothing state: refusing a task, being unable to run, or scoping
             # out of a diff that has nothing for this role to judge.
             "suite", "matrix_ok", "severity_max", "contract", "surface", "risk",
+            # A visual design can truthfully have no prototype when the surface is
+            # not interactive; the documented contract spells that value `none`.
+            "prototype",
             # FEAT-07: a dev that refused or was blocked ran no verify command, and
             # `n/a` is its spelling (REQ-03). `task` is deliberately NOT here — its
             # `none` is a DECLARED answer, not a declined one, and NULLABLE would
@@ -201,12 +204,9 @@ SCHEMAS = {
     "dev-ops": {"change_type": {"config","scaffolding","infra","ci"},
                 "applied": list, "suite": {"pass","fail"},
                 "task": TASK_ID_RE, "task_verify": {"pass","fail"}},
-    # SPEC 10.4 in full. `sc_status` is pm's field (11.6) riding up as a passthrough,
-    # surfaced at team level so the orchestrator can read goal-check status without
-    # opening member entries; `[]` when this team ran no goal-check.
     "lead": {"team": str, "steps_run": int, "cycles_used": int,
              "members": list, "must_fix": list, "branch": str,
-             "escalations": list, "sc_status": list},
+             "escalations": list, "adequacy_notes": list},
     # The main session's schema for harness-orchestrator (reconciled with BUILD task
     # 14, not derived from SPEC — SPEC 10.3 defines a *briefing artifact*, not a
     # digest block, for the orchestrator). These are exactly the fields the main
@@ -226,6 +226,57 @@ SCHEMAS = {
                                  "awaiting_user"},
                       "runs": list, "cycles_used": int,
                       "briefing": str},
+}
+
+# These fields are optional because they are carried by a lead only when the
+# member result being rolled up produced them. Putting them in SCHEMAS would make
+# them required under DEC-121; DEC-216 would then also require every lead output
+# block to claim fields such as matrix_ok even when no QA step ran.
+PASSTHROUGH = {
+    "lead": {
+        "sc_status": list,
+        "needs_approval": bool,
+        "severity_max": set(SEV),
+        "matrix_ok": bool,
+        "coverage_gaps": list,
+    },
+}
+
+# Persona-specific documented fields are keyed by the RAW agent type. Reviewer
+# personas normalize to one canonical schema, but their output modes are not
+# interchangeable (for example, `mode` is legal only on a UI review).
+DOCUMENTED_OPTIONAL = {
+    "harness-code-reviewer": {
+        "spec_violations": list,
+        "human_commits_in_scope": list,
+    },
+    "harness-security-reviewer": {
+        "in_scope": bool,
+        "scope_reason": str,
+        "threat_model": list,
+    },
+    "harness-ui-reviewer": {
+        "mode": {"A", "B"},
+        "in_scope": bool,
+        "states_unspecified": list,
+        "contract_violations": list,
+        "a11y": list,
+    },
+    "harness-qa": {
+        "kinds": list,
+        "sc_evidence": list,
+    },
+    "harness-documentor": {
+        "stale_found": list,
+    },
+    "harness-dev-ops": {
+        "test_kinds_written": list,
+    },
+    "harness-visual-designer": {
+        "needs_prototype": bool,
+        "why": str,
+        "prototype": str,
+    },
 }
 
 
@@ -1187,7 +1238,17 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
     # universal field like `files_touched` drifting to `files-touched` was reported
     # as merely missing rather than as the drift it is; fails closed either way, but
     # the wrong message.
-    all_fields = {**schema, **UNIVERSAL}
+    optional_fields = {
+        **PASSTHROUGH.get(persona, {}),
+        **DOCUMENTED_OPTIONAL.get(raw_persona, {}),
+    }
+    # Archived digest files are checked through the generic `lead` CLI persona,
+    # which cannot identify when they were produced. Keep those historical files
+    # readable without rewriting them; real lead returns arrive under their raw
+    # harness-*-lead type and still require adequacy_notes.
+    if raw_persona == "lead":
+        optional_fields["adequacy_notes"] = list
+    all_fields = {**schema, **UNIVERSAL, **optional_fields}
     for k in list(seen):
         for want in all_fields:
             if k != want and k.replace("-", "_").lower() == want:
@@ -1196,6 +1257,8 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
 
     for field, allowed in all_fields.items():
         if field not in seen:
+            if field in optional_fields:
+                continue
             # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
             # governed field is not required of it at all.
             if _unbound(field, seen):
@@ -1337,6 +1400,27 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
             err.append(f"{field}={val!r} must be a non-empty string"
                        + (" (write the literal `none` if genuinely inapplicable)."
                           if field in NULLABLE else "."))
+
+    # Generic `lead` is the archive-reader persona used by check-state for
+    # historical digest files; it cannot recover the producing raw persona or
+    # contract era. Current returns always carry harness-*-lead and are closed.
+    if raw_persona != "lead":
+        legal_fields = set(all_fields) | {"headline"}
+        if raw_persona == "harness-code-reviewer":
+            legal_fields.add("grade_2_reasons")
+        undeclared = sorted(set(seen) - legal_fields)
+        if undeclared:
+            names = ", ".join(repr(field) for field in undeclared)
+            err.append(
+                f"undeclared digest key(s): {names}. The digest contract is closed. "
+                "Declare the field in .claude/skills/harness/bin/validate-digest.py: "
+                "a lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
+                "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
+                "a new required persona field belongs in SCHEMAS and must also be "
+                "documented under DEC-216. A per-dispatch answer is not a digest key: "
+                "put a PASS qualification in adequacy_notes or a per-step fact in the "
+                "run state steps evidence container."
+            )
 
     if raw_persona == "harness-code-reviewer":
         code_grade = seen.get("code_grade")

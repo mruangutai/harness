@@ -1668,8 +1668,9 @@ DIGEST:
         resolution: "yes, Google only for v1", decided_by: harness-product-lead,
         recorded_as: D-07 }
   expertise_update: [<ops from this lead, §5.3>]
-  sc_status:                          # §11.2 — carried once the goal-check has run
-    - { id: SC-02, verdict: met, method: automated, evidence: "e2e/login.spec.ts:14 pass" }
+  adequacy_notes: [<what this PASS does not cover>]  # `[]` when nothing; never omitted
+  # Optional passthroughs when produced by a member: sc_status, needs_approval,
+  # severity_max, matrix_ok, coverage_gaps.
 artifact: <run_dir>/digest.md         # the collated report, written for a HUMAN — see below
 ```
 
@@ -1703,14 +1704,18 @@ the validator that enforces it. Lists may be written either inline (`must_fix: [
 indented block; both are accepted, and a bare `escalations:` with nothing under it is an empty
 list, not an omission.
 
-**Every field above is required** (DEC-121). A team that escalated nothing writes `escalations: []`;
-one that mutated no repo writes `branch: none`; one that ran no goal-check writes `sc_status: []`.
-Absence is ambiguous and an explicit empty value is not — and the first version of the validator
-skipped absent fields, which let a real lead digest ship missing `members:` while reporting "ok".
+**Every uncommented field above is required** (DEC-121). A team that escalated nothing writes
+`escalations: []`; one that mutated no repo writes `branch: none`; one whose PASS needs no
+qualification writes `adequacy_notes: []`. Absence is ambiguous and an explicit empty value is not
+— and the first version of the validator skipped absent fields, which let a real lead digest ship
+missing `members:` while reporting "ok".
 
-**`sc_status` is a passthrough, not a lead's own field.** It originates in pm's goal-check (§11.6)
-and is surfaced at team level so the orchestrator can read whether the feature is actually done
-without opening member entries.
+`adequacy_notes` qualifies a PASS: it does not gate like `must_fix` or reach the user like
+`open_questions`, but it prevents a green verdict being read as broader than the work performed.
+
+The commented passthroughs are optional, not lead-owned required fields. For example, `sc_status`
+originates in pm's goal-check (§11.6) and is surfaced only when that member result is rolled up, so
+the orchestrator can read whether the feature is actually done without opening member entries.
 
 **Escalations are recorded, not just routed.** An `escalations` entry captures the question, the lead
 that raised it, where it was routed, **and how it was resolved** — so a lateral lead-to-lead decision

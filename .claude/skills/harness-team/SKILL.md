@@ -51,10 +51,19 @@ to `<run_dir>/digest.md` is refused by `check-domain.sh` when it would discard e
 so reusing another cycle's directory fails instead of destroying its record. Do not create
 per-step directories for members — they write into their own domains.
 
-Seed `state.yaml` with `schema_version`, `run_id`, `feature`, `squad`, `host`, `status: running`,
-and one `steps:` entry per team step with `status: pending`.
+Seed `state.yaml` with `schema_version: 2`, `run_id`, `feature`, `squad`, `host`,
+`status: running`, and one `steps:` entry per team step with `status: pending`.
 `state.yaml` also carries `run_uid`, which the harness mints on the first landed write; a lead never
 invents, edits, or drops it, and every later write carries the same value read from the file itself.
+
+Version 2 closes each step to these keys:
+`id`, `persona`, `task`, `seq`, `depends_on`, `outputs`, `mutates_repo`, `on_fail`,
+`status`, `verdict`, `lead_verdict`, `cycles`, `max_cycles`, `redispatches`,
+`dispatched_at`, `completed_at`, `redispatched_at`, `recompleted_at`, `routed_by`,
+`note`, `artifact`, and `evidence`. A per-step fact a dispatch asked for goes under
+`evidence` with a lowercase identifier key; it is never a new step key and never a sentence
+used as a key. Each evidence value is a scalar or an array of scalars. Nested objects are
+refused, and a value that must be read rather than matched still belongs in `digest.md`.
 
 **A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion rule.** With
 `steps_from:`, expand it into concrete steps FIRST, then seed exactly as above: read the source it
@@ -252,10 +261,19 @@ DIGEST:
                                              # MAIN SESSION, the only tier that can ask the user
   escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
   expertise_update: [<ops>]                  # [] except on a distillation dispatch
-  sc_status: [{ id, verdict, method, evidence }]   # passthrough from pm's goal-check; [] if none ran
+  adequacy_notes: [<what this PASS does not cover>]     # [] when nothing; required, NEVER omitted
+  # Optional passthroughs from a member roll-up: sc_status, needs_approval, severity_max, matrix_ok, coverage_gaps. Any other field is rejected; put qualifications in adequacy_notes or run-state evidence.
 artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
 ```
 ````
+
+`adequacy_notes` qualifies a PASS: act on nothing, but do not read the green verdict as broader
+than the list permits. It is not `must_fix`, which gates, and not `open_questions`, which reaches
+the user.
+
+When a dispatch asks a specific question, put the answer in `adequacy_notes` for a qualification
+on PASS, the run-state step's `evidence` container for a per-step fact, or the digest artifact for
+reasoning — never a new digest key.
 
 ## Red flags
 
