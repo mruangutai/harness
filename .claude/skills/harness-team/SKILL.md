@@ -252,10 +252,15 @@ DIGEST:
                                              # MAIN SESSION, the only tier that can ask the user
   escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
   expertise_update: [<ops>]                  # [] except on a distillation dispatch
-  sc_status: [{ id, verdict, method, evidence }]   # passthrough from pm's goal-check; [] if none ran
+  adequacy_notes: [<what this PASS does not cover>]     # [] when nothing; required, NEVER omitted
+  # Optional passthroughs from a member roll-up: sc_status, needs_approval, severity_max, matrix_ok, coverage_gaps. Any other field is rejected; put qualifications in adequacy_notes or run-state evidence.
 artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
 ```
 ````
+
+`adequacy_notes` qualifies a PASS: act on nothing, but do not read the green verdict as broader
+than the list permits. It is not `must_fix`, which gates, and not `open_questions`, which reaches
+the user.
 
 ## Red flags
 

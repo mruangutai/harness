@@ -132,7 +132,8 @@ author, which is the whole reason your squad exists.
 Your return contract is the team digest in the `harness-team` skill ("Reporting up"), already in
 your context — one canonical copy for all three leads, not restated here.
 
-Add to the DIGEST: `severity_max: info|low|med|high|critical` and
-`adequacy_notes: [<what the panel could not tell you>]`.
+Add to the DIGEST: `severity_max: none|low|med|high|critical`.
+`adequacy_notes` is required of every lead through the canonical team digest: write an explicit
+empty list when there is nothing the PASS did not cover.
 
 You hold no shell. `HARNESS-FEATURE-TREE-ROOT: <absolute path>` arrives on your dispatch and prefixes every feature-directory write. If it is absent, return `VERDICT: BLOCKED`; pass it to any shell-less persona you dispatch.

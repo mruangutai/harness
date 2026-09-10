@@ -103,7 +103,7 @@ tasks:
     execution_reason: DEC-174 carve-out, validate-digest.py is the validator being changed
     depends_on:
     - T-10
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/validate-digest.py
     - tests/integration/test-validate-digest.py

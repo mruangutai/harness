@@ -545,10 +545,16 @@ HOOK_CASES = []
 
 
 def case(name, persona, text, ok, mentions=None):
+    if persona in ("harness-product-lead", "harness-eng-lead",
+                   "harness-validator-lead", "lead") and "  adequacy_notes:" not in text:
+        text = text.replace("\nartifact:", "\n  adequacy_notes: []\nartifact:")
     CASES.append((name, persona, text.strip() + "\n", ok, mentions))
 
 
 def hook_case(name, agent_type, text, expect_exit, mentions=None, **overrides):
+    if agent_type in ("harness-product-lead", "harness-eng-lead",
+                      "harness-validator-lead", "lead") and "  adequacy_notes:" not in text:
+        text = text.replace("\nartifact:", "\n  adequacy_notes: []\nartifact:")
     payload = {"agent_type": agent_type, "last_assistant_message": text}
     payload.update(overrides)
     HOOK_CASES.append((name, payload, expect_exit, mentions))
@@ -571,6 +577,7 @@ DIGEST:
   escalations:
   expertise_update: []
   sc_status: []
+  adequacy_notes: []
 artifact: .harness/features/FEAT-01/runs/r1/digest.md
 """
 case("lead, block-style members + bare empty key", "harness-eng-lead", LEAD_BLOCK, True)
@@ -2796,6 +2803,181 @@ def _plan_review_errors(validator, config, feature_dir, digest, branch_override=
     )
 
 
+def _t01_digest(persona, extras):
+    """A minimal valid return for each persona that owns documented optionals."""
+    extra_lines = "\n".join(
+        f"  {key}: {json.dumps(value)}" for key, value in extras.items())
+    bodies = {
+        "harness-security-reviewer": """  severity_max: none
+  findings: 0
+  must_fix: []""",
+        "harness-ui-reviewer": """  severity_max: none
+  findings: 0
+  must_fix: []""",
+        "harness-qa": """  suite: pass
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: true""",
+        "harness-documentor": """  docs_updated: []
+  gaps: []""",
+        "harness-dev-ops": """  change_type: config
+  applied: []
+  suite: pass
+  task: none""",
+        "harness-visual-designer": """  contract: written
+  mockups: []
+  direction_choices: []""",
+    }
+    return f"""VERDICT: PASS
+DIGEST:
+  headline: t01 contract probe
+{bodies[persona]}
+{extra_lines}
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+"""
+
+
+def _t01_code_reviewer_errors(validator, extras):
+    with tempfile.TemporaryDirectory() as td:
+        config = os.path.join(td, "harness.json")
+        write_review_config(config, "advisory_unless_high")
+        feature_dir, plan_path, artifact, _digest = _plan_review_fixture(td)
+        extra_lines = "\n".join(
+            f"  {key}: {json.dumps(value)}" for key, value in extras.items())
+        digest = reviewer_digest(
+            "n_a", reviewed=f"plan:{plan_path}", artifact=artifact).replace(
+                "  reviewed:", extra_lines + "\n  reviewed:")
+        return validator.validate(
+            "harness-code-reviewer", digest, config, feature_dir)
+
+
+def _t01_declared_fields(validator, raw_persona):
+    canonical = validator.norm(raw_persona)
+    declared = (
+        {"headline"}
+        | set(validator.UNIVERSAL)
+        | set(validator.SCHEMAS[canonical])
+        | set(validator.PASSTHROUGH.get(canonical, {}))
+        | set(validator.DOCUMENTED_OPTIONAL.get(raw_persona, {}))
+    )
+    if raw_persona == "harness-code-reviewer":
+        declared.update(("code_grade", "reviewed", "grade_2_reasons"))
+    return declared
+
+
+def _t01_reverse_contract_gaps(validator, raw_persona):
+    gaps = []
+    for source_path in CONTRACT_SOURCES[raw_persona]:
+        block = documented_block(_contract_source(source_path), source_path) or ""
+        documented = set(re.findall(
+            r"^  ([a-z][a-z0-9_]*):", block, re.MULTILINE))
+        for key in sorted(documented - _t01_declared_fields(validator, raw_persona)):
+            gaps.append(f"{raw_persona}: {key}: {source_path}")
+    return gaps
+
+
+def run_t01_schema_cases():
+    """T-01: optional typed fields and documentation agree in both directions."""
+    spec = importlib.util.spec_from_file_location("_validator_t01", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    missing_tables = [
+        name for name in ("PASSTHROUGH", "DOCUMENTED_OPTIONAL")
+        if not hasattr(validator, name)
+    ]
+    if missing_tables:
+        print("FAIL  [T-01] missing declarations: " + ", ".join(missing_tables))
+        return 1
+
+    failures = []
+    lead_values = {
+        "sc_status": [],
+        "needs_approval": False,
+        "severity_max": "none",
+        "matrix_ok": True,
+        "coverage_gaps": [],
+    }
+    for field, value in lead_values.items():
+        present = LEAD_BLOCK.replace(
+            "\nartifact:", f"\n  {field}: {json.dumps(value)}\nartifact:")
+        errors = validator.validate("harness-eng-lead", present)
+        if errors:
+            failures.append(f"lead correct {field}: {errors}")
+        wrong = "sever" if field == "severity_max" else (
+            "wrong" if isinstance(value, (bool, list)) else [])
+        bad = LEAD_BLOCK.replace(
+            "\nartifact:", f"\n  {field}: {json.dumps(wrong)}\nartifact:")
+        if not any(field in error for error in validator.validate("harness-eng-lead", bad)):
+            failures.append(f"lead wrong {field} accepted")
+        if validator.validate("harness-eng-lead", LEAD_BLOCK):
+            failures.append(f"lead omitted optional {field} rejected")
+
+    missing_adequacy = LEAD_BLOCK.replace("  adequacy_notes: []\n", "")
+    if not any("adequacy_notes" in error for error in
+               validator.validate("harness-eng-lead", missing_adequacy)):
+        failures.append("lead omission of adequacy_notes accepted")
+    if validator.validate("harness-eng-lead", LEAD_BLOCK):
+        failures.append("lead adequacy_notes empty list rejected")
+    if validator.validate("lead", missing_adequacy):
+        failures.append("archived generic lead digest lost historical readability")
+
+    documented = {
+        "harness-code-reviewer": {
+            "spec_violations": [], "human_commits_in_scope": []},
+        "harness-security-reviewer": {
+            "in_scope": True, "scope_reason": "security relevant", "threat_model": []},
+        "harness-ui-reviewer": {
+            "mode": "A", "in_scope": True, "states_unspecified": [],
+            "contract_violations": [], "a11y": []},
+        "harness-qa": {"kinds": [], "sc_evidence": []},
+        "harness-documentor": {"stale_found": []},
+        "harness-dev-ops": {"test_kinds_written": []},
+        "harness-visual-designer": {
+            "needs_prototype": False, "why": "not interactive", "prototype": "none"},
+    }
+    for persona, fields in documented.items():
+        for field, value in fields.items():
+            run_errors = (_t01_code_reviewer_errors(validator, {field: value})
+                          if persona == "harness-code-reviewer"
+                          else validator.validate(persona, _t01_digest(persona, {field: value})))
+            if run_errors:
+                failures.append(f"{persona} correct {field}: {run_errors}")
+            wrong = ("wrong" if isinstance(value, (bool, list)) else
+                     ([] if isinstance(value, str) else "wrong"))
+            bad_errors = (_t01_code_reviewer_errors(validator, {field: wrong})
+                          if persona == "harness-code-reviewer"
+                          else validator.validate(persona, _t01_digest(persona, {field: wrong})))
+            if not any(field in error for error in bad_errors):
+                failures.append(f"{persona} wrong {field} accepted")
+
+    reverse_gaps = []
+    for persona in CONTRACT_SOURCES:
+        reverse_gaps.extend(_t01_reverse_contract_gaps(validator, persona))
+    if reverse_gaps:
+        failures.extend("reverse contract " + gap for gap in reverse_gaps)
+    else:
+        print("ok    [T-01] every documented key is declared")
+
+    removed = validator.DOCUMENTED_OPTIONAL["harness-documentor"].pop("stale_found")
+    try:
+        discriminated = _t01_reverse_contract_gaps(
+            validator, "harness-documentor")
+    finally:
+        validator.DOCUMENTED_OPTIONAL["harness-documentor"]["stale_found"] = removed
+    if not any("stale_found" in gap for gap in discriminated):
+        failures.append("reverse contract discrimination did not name stale_found")
+
+    for failure in failures:
+        print("FAIL  [T-01] " + failure)
+    total = 1 + len(lead_values) * 3 + 3 + sum(
+        len(fields) * 2 for fields in documented.values()) + 2
+    print(f"\n{total - len(failures)}/{total} T-01 schema cases passed.")
+    return len(failures)
+
+
 def _check_plan_approval_states(
         validator, config, feature_dir, plan_path, artifact, digest, failures):
     errors = _plan_review_errors(validator, config, feature_dir, digest)
@@ -4290,6 +4472,7 @@ def main():
     fails += run_template_cases()
     fails += run_reviewer_severity_enum_cases()
     fails += run_documented_contract_cases()
+    fails += run_t01_schema_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
