@@ -2952,21 +2952,15 @@ def _t01_reverse_failures(validator):
     return failures
 
 
-def run_t01_schema_cases():
-    """T-01: optional typed fields and documentation agree in both directions."""
-    validator = _load_validator("_validator_t01")
-    missing_tables = [
-        name for name in ("PASSTHROUGH", "DOCUMENTED_OPTIONAL")
-        if not hasattr(validator, name)
-    ]
-    if missing_tables:
-        print("FAIL  [T-01] missing declarations: " + ", ".join(missing_tables))
-        return 1
-    lead_values = {
+def _t01_lead_values():
+    return {
         "sc_status": [], "needs_approval": False, "severity_max": "none",
         "matrix_ok": True, "coverage_gaps": [],
     }
-    documented = {
+
+
+def _t01_documented_values():
+    return {
         "harness-code-reviewer": {
             "spec_violations": [], "human_commits_in_scope": []},
         "harness-security-reviewer": {
@@ -2980,6 +2974,9 @@ def run_t01_schema_cases():
         "harness-visual-designer": {
             "needs_prototype": False, "why": "not interactive", "prototype": "none"},
     }
+
+
+def _t01_all_failures(validator, lead_values, documented):
     failures = [
         failure
         for field, value in lead_values.items()
@@ -2994,12 +2991,32 @@ def run_t01_schema_cases():
             validator, persona, field, value)
     )
     failures.extend(_t01_reverse_failures(validator))
+    return failures
+
+
+def _t01_report(failures, lead_values, documented):
     for failure in failures:
         print("FAIL  [T-01] " + failure)
     total = 1 + len(lead_values) * 3 + 3 + sum(
         len(fields) * 2 for fields in documented.values()) + 2
     print(f"\n{total - len(failures)}/{total} T-01 schema cases passed.")
     return len(failures)
+
+
+def run_t01_schema_cases():
+    """T-01: optional typed fields and documentation agree in both directions."""
+    validator = _load_validator("_validator_t01")
+    missing_tables = [
+        name for name in ("PASSTHROUGH", "DOCUMENTED_OPTIONAL")
+        if not hasattr(validator, name)
+    ]
+    if missing_tables:
+        print("FAIL  [T-01] missing declarations: " + ", ".join(missing_tables))
+        return 1
+    lead_values = _t01_lead_values()
+    documented = _t01_documented_values()
+    failures = _t01_all_failures(validator, lead_values, documented)
+    return _t01_report(failures, lead_values, documented)
 
 
 def _t04_base_digest(persona):
