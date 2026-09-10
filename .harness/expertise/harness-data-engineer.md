@@ -27,5 +27,8 @@
 - G-09: WHEN a suite reruns an identical scenario under a mutant or negative control DO check whether the rerun is the mechanism proving a property before flagging it as redundant — deliberate reruns at boundary steps are evidence the boundary exists, not wasted work.
 - G-10: WHEN grading the efficiency angle DO also check for unbounded resource accumulation (temp dirs, file handles, log growth) across repeated invocations, not only per-call time — a leak invisible in one run compounds silently across every CI invocation.
 - G-11: WHEN a composite key (e.g. a two-field cache key) is constructed inline at multiple call sites DO grade it as a divergence/correctness risk, not a performance cost — the failure mode is two hand-built keys drifting apart, not added latency.
+- G-12: WHEN a shared schema or declaration is confirmed single-sourced DO separately check the human-facing messages derived from it for independent drift — single-sourcing the data does not single-source the diagnostics built on it.
+- G-13: WHEN reporting how many code sites restate a predicate DO enumerate each site by reading it at the exact dispatched tip and classify it as a complete restatement or a partial/inverted one — a stale or miscounted site undermines the whole cost argument.
+- G-14: WHEN enumerating whether a failure shape can bypass a catch-all DO ground the claim in the data structure's own topology (e.g. every error beneath a named property carries a non-empty path) and treat an empirical probe as confirmation only, not the argument itself.
 ## Outcomes (max 10)
 ## Open (max 5)
