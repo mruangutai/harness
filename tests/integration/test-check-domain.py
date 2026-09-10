@@ -96,6 +96,20 @@ def _undeclared_cases():
     ]
 
 
+def _declared_type_cases():
+    invalid = _fire_new(
+        _state("2", ["    cycles: three"]), "declared-type")
+    return [
+        ("a declared step field with the wrong type is distinguished from an undeclared key",
+         invalid.returncode == 2
+         and "declared step field has invalid value" in invalid.stderr
+         and "cycles" in invalid.stderr
+         and "run-state-schema.json" in invalid.stderr
+         and "under `evidence`" not in invalid.stderr,
+         invalid),
+    ]
+
+
 def _evidence_cases():
     evidence = _fire_new(_state("2", [
         "    evidence:", "      test_exit: 0", "      matrix_ok: true",
@@ -186,6 +200,7 @@ def _report(cases):
 def run_t06_cases():
     cases = _undeclared_cases()
     cases.extend(_evidence_cases())
+    cases.extend(_declared_type_cases())
     cases.append(_declared_shape_case())
     cases.extend(_floor_creation_cases())
     cases.extend(_floor_update_cases())

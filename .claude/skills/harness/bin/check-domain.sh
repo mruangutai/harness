@@ -1629,6 +1629,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                     _evidence_schema["propertyNames"]["pattern"])
                 _offending = set()
                 _schema_errors = []
+                _declared_invalid = set()
                 for _step in doc.get("steps", []):
                     _schema_errors.extend(_validator.iter_errors(_step))
                     if not isinstance(_step, dict):
@@ -1656,7 +1657,11 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                             continue
                         _path = list(_error.path)
                         if _path:
-                            _offending.add(str(_path[0]))
+                            _field = str(_path[0])
+                            if _field in _declared and _field != "evidence":
+                                _declared_invalid.add(_field)
+                            else:
+                                _offending.add(_field)
                     if _missing_required:
                         _missing_names = ", ".join(
                             repr(key) for key in sorted(_missing_required))
@@ -1665,6 +1670,15 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                             f"  missing key(s): {_missing_names}. Required step fields "
                             "are declared in .claude/skills/harness/bin/"
                             "run-state-schema.json; supply each required field."
+                        )
+                    if _declared_invalid:
+                        _invalid_names = ", ".join(
+                            repr(key) for key in sorted(_declared_invalid))
+                        out.append(_head("declared step field has invalid value."))
+                        out.append(
+                            f"  invalid field(s): {_invalid_names}. Match each field's "
+                            "type and value constraints in .claude/skills/harness/bin/"
+                            "run-state-schema.json; correct the declared field in place."
                         )
                     if _offending:
                         _names = ", ".join(repr(key) for key in sorted(_offending))
