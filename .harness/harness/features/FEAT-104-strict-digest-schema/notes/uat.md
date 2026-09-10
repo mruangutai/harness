@@ -1,5 +1,5 @@
 # UAT — FEAT-104 strict digest schema
-status: ready
+status: passed
 branch: feat/FEAT-104-strict-digest-schema
 review_sha: 984bd26b
 
@@ -20,4 +20,4 @@ git diff origin/main...984bd26b -- \
 ## Steps
 - U-01 (SC-13): Read the complete diff produced by the setup command.
   expect: Every change is limited to the declared contract: typed/closed digest keys, closed version-2 run-step fields and `evidence`, schema-version monotonicity, accurate refusal messages, and behavioral tests for those rules. No enforcement bypass, unrelated behavior, or historical run-artifact rewrite is present.
-  result:
+  result: passed
