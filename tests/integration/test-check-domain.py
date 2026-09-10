@@ -82,9 +82,11 @@ def _undeclared_cases():
     return [
         ("schema_version 1 preserves undeclared step key compatibility",
          old.returncode == 0, old),
-        ("schema_version 2 refuses an undeclared step key and names it",
+        ("schema_version 2 refuses an undeclared step key, names it and gives its route",
          strict.returncode == 2 and "undeclared step key" in strict.stderr
-         and "rogue_step_key" in strict.stderr, strict),
+         and "rogue_step_key" in strict.stderr
+         and "run-state-schema.json" in strict.stderr
+         and "`evidence`" in strict.stderr, strict),
     ]
 
 
