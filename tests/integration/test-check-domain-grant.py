@@ -212,8 +212,8 @@ def run_t12():
     root = fixture(FIXTURE_MANIFEST)
     sp = ".harness/harness/features/FEAT-01/runs/r1/state.yaml"
 
-    r = fire(root, sp, "run_id: r1\nstatus: complete\n")
-    t12("a well-formed state.yaml with checkpoint keys passes",
+    r = fire(root, sp, "schema_version: 2\nrun_id: r1\nstatus: complete\n")
+    t12("a newly created, well-formed version-2 state.yaml with checkpoint keys passes",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
     r = fire(root, sp, "run_id: r1\ncost: 1\ncost: 2\n")

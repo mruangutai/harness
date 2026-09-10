@@ -1583,6 +1583,89 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                        "consumes it later; the write is refused while you can still fix it.")
             return out
 
+        # FEAT-104 D-11: schema_version floor applies at CREATION only. Existing
+        # version-1 checkpoints remain writable so an in-flight pre-deploy run can
+        # finish unchanged. `_post` sees an already-landed file and is never creation.
+        _creating = (
+            not _post and absolute_path is not None
+            and not os.path.lexists(absolute_path)
+        )
+        _version = doc.get("schema_version") if isinstance(doc, dict) else None
+        _valid_version = (
+            isinstance(_version, int) and not isinstance(_version, bool)
+            and _version >= 2
+        )
+        if _creating and not _valid_version:
+            if _version is None:
+                _version_problem = "is absent"
+            elif not isinstance(_version, int) or isinstance(_version, bool):
+                _type_name = {
+                    str: "string", bool: "boolean", list: "array", dict: "mapping",
+                }.get(type(_version), type(_version).__name__)
+                _version_problem = f"has type {_type_name}, not integer"
+            else:
+                _version_problem = f"is {_version}, below 2"
+            out.append(_head("schema_version floor for a new run checkpoint."))
+            out.append(
+                "  schema_version %s. Seed new runs from "
+                ".claude/skills/harness-team/SKILL.md, section 2, with "
+                "`schema_version: 2`; only updates to an already-existing version-1 "
+                "state.yaml retain compatibility." % _version_problem
+            )
+
+        # FEAT-104: version 2 closes each step through the one declared JSON
+        # schema. Version 1 deliberately keeps its historical open shape.
+        if _valid_version and isinstance(doc, dict):
+            try:
+                import jsonschema
+                _schema_path = os.path.join(sys.argv[3], "run-state-schema.json")
+                with open(_schema_path, encoding="utf-8") as _schema_file:
+                    _run_schema = json.load(_schema_file)
+                _step_schema = _run_schema["properties"]["steps"]["items"]
+                _validator = jsonschema.Draft202012Validator(_step_schema)
+                _declared = set(_step_schema["properties"])
+                _evidence_schema = _step_schema["properties"]["evidence"]
+                _name_pattern = re.compile(
+                    _evidence_schema["propertyNames"]["pattern"])
+                _offending = set()
+                _schema_errors = []
+                for _step in doc.get("steps", []):
+                    if not isinstance(_step, dict):
+                        _schema_errors.extend(_validator.iter_errors(_step))
+                        _offending.add("<step>")
+                        continue
+                    _schema_errors.extend(_validator.iter_errors(_step))
+                    _offending.update(set(_step) - _declared)
+                    _evidence = _step.get("evidence")
+                    if isinstance(_evidence, dict):
+                        for _key, _value in _evidence.items():
+                            if not isinstance(_key, str) or not _name_pattern.fullmatch(_key):
+                                _offending.add(str(_key))
+                            if isinstance(_value, dict):
+                                _offending.add(str(_key))
+                if _schema_errors:
+                    # Type/value failures on declared fields may not be captured by
+                    # the vocabulary comparisons above; name their nearest field.
+                    for _error in _schema_errors:
+                        _path = list(_error.path)
+                        if _path:
+                            _offending.add(str(_path[0]))
+                    _names = ", ".join(repr(key) for key in sorted(_offending))
+                    out.append(_head("undeclared step key or evidence shape."))
+                    out.append(
+                        f"  offending key(s): {_names}. A recovery field is declared "
+                        "in .claude/skills/harness/bin/run-state-schema.json; a "
+                        "per-dispatch fact goes under `evidence` with a lowercase "
+                        "identifier key and a scalar or scalar-array value."
+                    )
+            except Exception as _schema_exc:
+                out.append(_head(
+                    "run-state schema CANNOT be checked; the write is denied."))
+                out.append(
+                    "  .claude/skills/harness/bin/run-state-schema.json or its "
+                    "jsonschema validator failed: %s: %s"
+                    % (type(_schema_exc).__name__, _schema_exc)
+                )
         if _post and absolute_path is not None and isinstance(doc, dict):
             # D-12/D-13: mint only after a governed landing. Until the first POST
             # completes, a fresh same-slug collision remains the modal residual:
