@@ -91,6 +91,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-09-04-panel-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-validator-lead"
     }
   ],
   "github": {
