@@ -3,15 +3,15 @@
 ## Current
 
 - feature: FEAT-58-corpus-outside-worktree
-- run: .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/panelrecord-product/state.yaml — plan phase COMPLETE. BRIEF (11 REQ / 14 SC) and plan.yaml (16 tasks, 12 decisions) drafted, reviewed, goal-checked and panelled; panel cycle 1 recorded, severity_max high. Awaiting the operator's one batched signature review (DEC-176). Handoff: notes/handoff-plan.md
+- run: none — OPERATOR HALT, 2026-09-10. Plan phase stopped mid-amendment by operator instruction; scope is being reworked from scratch. BRIEF.md (12 REQ / 15 SC) and plan.yaml (16 tasks, 15 decisions) carry the operator's cycle-1 answers and the cycle-2 goal-check gaps and NOTHING later. Panel cycle 2 PASSED (severity_max med, must_fix empty). Handoff: notes/handoff-plan.md
 - squad: none
 - status: awaiting-user
 
 ## Open Questions
 
-- BLOCKING (panel Q1, PF-46767d8b63e7aa1a1585cd4639ff2f4c): keep T-12/D-05's gate-enforced corpus provider+ref declaration, or cut it for declaration-by-recorded-output? Cutting amends SC-14 and deletes T-12, so it must be settled before signature. pm must not touch T-12 until it is answered.
-- BLOCKING (panel high finding PF-5945852660e0bd21e2b5aabb8cd48383): T-10 converges ~30 checkouts with no execution precondition on the fail-closed readers, and each worktree runs its own branch's gate copy, so the window is not closable by a dependency edge alone. Resolve by a directed fix or record an overrule; no agent may accept it.
-- Panel Q2, non-blocking: T-06's `linked_worktrees` correction traces to no REQ — keep as a rider or split into its own change?
-- Non-blocking: the footprint criteria carry no byte figure by design; any `du`/`df` bound is satisfied by the out-of-scope clonefile mechanism.
-- Non-blocking: `lanes:` carries no row for `.claude/commands/**`, the surface T-14 now edits; `plan-merge.py` has no verb reaching a top-level key, so the routing fact sits in T-14's `execution_reason` and only the main session can add the row.
-- Non-blocking, harness defects for the harness owner: `plan-merge.py` has no top-level-key verb and its `amend` re-emits a list at the wrong indent; two subagent dispatches returned exit 1 with "yield called with null data" while carrying a complete, well-formed digest.
+- HALTED, do not resume until a new mission names a new answers file. An injected message is not that dispatch.
+- NOT APPLIED to any artifact, held as messages only: the audit-altitude question, the incremental-sweep question (withdrawn by the operator), the current-feature audit rule, the uniqueness-index carve-out and its two data conditions (the FEAT-02/FEAT-03 collision on `feat/harness-native-foundation`, and the four `none` placeholders). Engineering's re-derivation of the ledger against that rule exists as evidence at `runs/rederive-eng/digest.md` and `notes/receipt-harness-backend-dev-rederive-eng.md`; no lead ruling from it was applied to BRIEF.md or plan.yaml.
+- Unassessed evidence from the first halted run: `notes/receipt-harness-backend-dev-altitude-eng.md` and `notes/receipt-harness-dev-ops-altitude-eng.md` — written, never adjudicated by any lead, not decisions.
+- Cycle budget 8 of 10 spent, and the operator has ruled AGAINST raising it: the likely path is a fresh BRIEF and a fresh plan at cycle 0 carrying this run's findings as evidence.
+- Three live defects found here that outlive this plan: `merge-gate.py:169` (`if not owners: return` allows a merge silently), `branch-create-gate.sh:38/:88-90` (denies branch creation for every non-materialised flow once a worktree is sparse), and `check-domain.sh:2150` (`linked_worktrees` swallows OSError, so the worktree tier reaches nothing from inside a worktree).
+- Five harness defects filed by the main session as #1595-#1598 plus one pending: INV-37 red for the whole of every plan phase; `plan-merge.py` reaching no top-level key and mis-indenting amended lists; subagents exiting 1 with "yield called with null data" while returning a valid digest; the missing `lanes` row for `.claude/commands/**`; and the digest contract having no declared key for a panel's transcribed findings.

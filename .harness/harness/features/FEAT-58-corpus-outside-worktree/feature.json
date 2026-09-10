@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-58-corpus-outside-worktree",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 5,
+  "cycles_used": 8,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -80,6 +80,49 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "amend-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheck2-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "denialtier-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "amend2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "planpanel2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "altitude-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "rederive-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ]
 }

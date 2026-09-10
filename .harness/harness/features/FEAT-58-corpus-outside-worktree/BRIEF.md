@@ -25,7 +25,12 @@ measured count. The cost is O(features × worktrees) and both terms only grow.
 
 None of it is needed there. Every `team-config.yaml` domain glob is `features/*/…` — a wildcard over
 one feature — and DEC-208/DEC-218 bind feature writes to the registered worktree, so the corpus is
-read-only in a worktree by construction. A worktree cut from `main` never carried a live sibling's
+read-only in a worktree by construction — except that the guard tiers enforcing that binding reach
+nothing when the hook fires from inside a worktree (`harness_boundary.py:171-175` returns `[]` on
+`OSError` because `.git` is a file there), at all three of the call sites that pass the wrong root:
+the two that DENY a write (`check-domain.sh:752`, `:780`) and the one that REPORTS (`:2150`). So the
+guarantee is asserted and not enforced until REQ-12 closes it. A worktree cut from `main` never
+carried a live sibling's
 in-flight state (`FEAT-57-review-latency`, live in a sibling worktree, has no directory at `main`'s
 HEAD). It is a read-only reference copy of history, replicated N times.
 
@@ -74,17 +79,26 @@ gate can report clean on a partial view.
 - REQ-09: The single-feature readers keep behaving exactly as they do today, and the corpus readers
   are accounted for by working instrument rather than by a remembered count. Every reader named in
   the reader ledger (`notes/receipt-harness-backend-dev-arch-eng.md`) is individually accounted for,
-  by parity or by refusal; the ledger is carried as named evidence and is recorded OPEN, because
-  three further hook-registered gate scripts — `bash-write-guard.sh`, `gh-close-gate.sh`,
-  `plan-sign-gate.sh` — were never classified by it. No count is asserted: a count is satisfied by
-  N-1 conforming readers and is blind to the Nth, and this effort has already moved eleven → twelve
-  → fourteen → OPEN. What is owed instead is two instruments that fire — a discovery scan asserting
-  every file calling the corpus API is a named, accounted-for reader, and a lint asserting no file
-  outside the API enumerates the corpus at all.
+  by parity or by refusal, and so is every script `.claude/settings.json` registers as a hook —
+  including the six the ledger never reached: `bash-write-guard.sh`, `validate-digest.py` and
+  `dispatch-guard.sh`, each of which resolves at most one feature from a path or a text field and
+  enumerates nothing, and `gh-close-gate.sh`, `plan-sign-gate.sh` and `inject-expertise.sh`, which
+  carry no feature-record path at all and are therefore outside the reader set, with that reason
+  stated in the record itself rather than left silent. The ledger is carried as named evidence and
+  stays OPEN as an artifact, because no instrument proves completeness over readers cleared by
+  inspection. No count is asserted: a count is satisfied by N-1 conforming readers and is blind to
+  the Nth, and this effort has already moved eleven → twelve → fourteen → OPEN. What is owed
+  instead is two instruments that fire — a discovery scan asserting every file calling the corpus
+  API is a named, accounted-for reader, and a lint asserting no file outside the API enumerates the
+  corpus at all.
 - REQ-10: A checkout that is not a linked worktree — a fresh clone, a CI runner — behaves exactly as
   before this feature: identity behaviour, full tree, no refusals.
 - REQ-11: An agent reading the agent-facing prose can tell where the corpus lives and how to read
   it, and is never instructed to enumerate the record relative to its own checkout.
+- REQ-12: The corpus root is read-only from inside a feature worktree, and that read-only property
+  is ENFORCED rather than asserted by construction: every guard tier that binds writes to the
+  registered worktree reaches the checkouts it claims to cover, and refuses a write whose owning
+  checkout it cannot resolve rather than allowing it.
 
 ## Success Criteria
 
@@ -108,8 +122,14 @@ implementation cannot pass.
   verify: automated      evidence: integration
 - SC-03: From inside that worktree, the corpus is complete: the feature-directory count resolved
   through the corpus path equals the count at the owner root's default branch, and a content search
-  over the corpus returns a path set equal to the one the owner root returns for the same query.
-  Equality of sets and counts, not of bytes.
+  over the corpus returns a path set equal to the one the owner root returns for the same query. The
+  search is NAMED, not implied — it is
+  `git -C <corpus_root> grep -l <needle> <ref> -- .harness/harness/features/`, with the leading
+  `<ref>:` stripped from each returned path, where `<ref>` is the owner root's default branch
+  resolved once as `git -C <owner_root> rev-parse <default-branch>` and `<needle>` is a fixed
+  literal string committed into more than one feature directory, so a single hit cannot pass by
+  accident. The same command run at the owner root supplies the comparison set. Equality of sets
+  and counts, not of bytes, and never a substring check over concatenated output.
   verify: automated      evidence: integration
 - SC-04: Every corpus-sweeping reader the reader ledger classifies as a sweep — each named
   individually — refuses when the CORPUS ROOT it resolved is short of the set resolved from that
@@ -198,13 +218,35 @@ implementation cannot pass.
   change `find <worktree> -type f | wc -l` for an existing converged worktree. Counted as files, not
   bytes.
   verify: automated      evidence: integration
-- SC-14: A plan task that declares `corpus: {provider, ref}` cannot be dispatched without the
-  matching frame in the dispatch text: `dispatch-guard.sh` exits 2 naming the missing
-  `HARNESS-CORPUS-PROVIDER`/`HARNESS-CORPUS-REF` line, and exits 0 when both are present. The
-  refusal is demonstrated red first against the pre-change guard, which exits 0 on the same input.
-  Presence is what is enforced; correspondence between the declared frame and the read the
-  dispatched agent actually performs is NOT, and is carried as a stated residual in the plan's
-  decisions.
+- SC-14: A recorded corpus sweep states the frame it read. For `check-state.sh` and for each of the
+  four validator sweeps, the run's output carries TWO distinct frame lines — the ENUMERATION frame
+  naming `provider=history` and the resolved ref, and the CONTENT frame naming `provider=path` and
+  the base — and where the in-flight feature entered the scope through the caller-side union, the
+  content frame names that feature and its own base. Each line is asserted individually, per reader;
+  one aggregate substring search over a run's output is satisfied by either line alone. The failing
+  state is demonstrated first: the pre-change readers print no frame line at all. Presence and
+  content of the recorded frames is what is graded; there is no dispatch-time declaration to grade,
+  and no byte-for-byte parity with pre-change output is claimed — added output cannot be
+  byte-identical to output without it.
+  verify: automated      evidence: integration
+- SC-15: Fired from inside a linked worktree, `check-domain.sh`'s two DENIAL tiers REFUSE a write they
+  must refuse. Graded by OUTCOME, each clause individually, never by a reached-path set — a tier can
+  enumerate correctly and still not deny:
+  (a) `feature_checkout_guard`: a write to a feature artifact belonging to a SIBLING linked worktree,
+  attempted from inside a different linked worktree, exits 2 and the message names the expected worktree.
+  (b) `claim_checkout_guard`: a governed `harness-` agent whose live claim is registered in a SIBLING
+  worktree's registry, writing to a harness-base path outside that claimed worktree, exits 2 and the
+  message names the held claim set. The claim must live in a sibling registry, so a tier enumerating
+  only its own checkout cannot see it.
+  (c) the owner root unresolvable (`corpus_root` returns None): BOTH tiers exit 2. An enumeration that
+  cannot be resolved is a refusal, never a pass-through.
+  (d) the REPORT tier at the sweep reaches a matching file in a SIBLING linked worktree, asserted as a
+  path SET by name and never as a count — a count is satisfied by the root tier alone and is blind to an
+  empty worktree tier. This clause alone does not satisfy the criterion; it is the third call site of the
+  same defect, not the denial behaviour.
+  The failing state is demonstrated first and separately for (a), (b) and (c): against the pre-change
+  spelling — `linked_worktrees(root)` where `.git` is a file — each of those three writes is ALLOWED,
+  exit 0. That allow is the defect.
   verify: automated      evidence: integration
 
 ## Verification gaps
@@ -243,18 +285,28 @@ Each of these is closed, with the reason attached so a later reader cannot re-op
 - **Reducing the number of standing worktrees.** Every standing worktree — at the count Problem
   measures — stays. The DoD is about what a worktree costs, not how many exist; migration is in
   place and removes nothing. Removing a worktree is additionally not an agent's act at all.
-- **Changing the write path.** Feature writes already bind to the registered worktree
-  (DEC-208/DEC-218), so the corpus is read-only in a worktree by construction. The write side needs
-  a test, not a change.
+- **Changing the write path.** Feature writes bind to the registered worktree (DEC-208/DEC-218), and
+  no write path, write rule or claim-set moves here. What is NOT excluded, and is REQ-12, is the
+  correction that makes that binding actually reach sibling checkouts — one wrong owner root passed at
+  three call sites (`check-domain.sh:752` and `:780`, which deny a write, and `:2150`, which reports),
+  plus a refusal when that root cannot be resolved at all. Measured, the domain guard's worktree tiers
+  reach nothing when the hook fires from inside a worktree, so the read-only guarantee this feature
+  leans on is asserted rather than enforced today. Correcting the tiers and testing them is in scope;
+  changing what the write rule says is not.
 
 ## Constraints
 
 - **The bedrock rule** (operator ruling 2026-09-09, issue #1559 comment 5612425746) BLOCKS: both
   halves bind, and a solution satisfying only one is not a solution.
-- **DEC-174** BLOCKS execution: `feature-worktree.py`, `check-state.sh`, `harness_boundary.py`,
-  `branch-create-gate.sh` and the validators ARE the enforcement path being changed, so the harness
-  plans this and does not execute it. Its first row keeps grilling, BRIEF, PLAN and goal-check
-  self-hosted — planning is permitted and is what this document is.
+- **DEC-174** BLOCKS DISPATCH — not planning, and not execution: `feature-worktree.py`,
+  `check-state.sh`, `harness_boundary.py`, `check-domain.sh`, `merge-gate.py`,
+  `branch-create-gate.sh` and the validators ARE the enforcement path being changed, so every change
+  to them is made **directly by the main session** and is never dispatched through a team run whose
+  gates are the artifact being changed. Corrected at source on 2026-09-10
+  (`.harness/notes/grilling-worktree-corpus-2026-09-09.md:89-92`): the earlier gloss "may plan but
+  must not execute" had it backwards. A majority of this plan's tasks sitting in the
+  `main-session-direct` lane is intended, and `check-plan-routes.py` exiting 0 with informational
+  DEVIATION lines is the carve-out working as designed.
 - **DEC-133** BLOCKS renaming: the feature id is immutable once created.
 - **DEC-95** SUPPLIES: `.harness/` is per-worktree state, which justifies **the live feature's**
   directory in the worktree and says nothing about the other 87. It is not an obstacle to removing
