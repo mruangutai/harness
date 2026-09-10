@@ -16,5 +16,6 @@
 - G-12: WHEN reviewing the six code-grade refusal conditions duplicated in harness-code-review/SKILL.md, validate-digest.py, and DECISIONS.md DO treat it as an accepted residual, not a fresh finding — test-validate-digest.py's N_A_REFUSAL_SUBSTRINGS table already ties refusal wording to code.
 - G-13: WHEN documenting why a path is exempted from suite_layout's tests/ enforcement DO quote suite_layout.DOCUMENTED_EXCEPTIONS' stored reason string verbatim rather than paraphrasing — independent paraphrases in decisions, plans, and audit notes drift from the code's own stored justification and from each other.
 - G-14: WHEN a probe or mutation test imports production code via `.claude/skills/harness/bin` DO `cmp` it against the `.agents/skills/harness/bin` equivalent (or confirm a symlink) before trusting the result — this repo carries both trees, and they only sometimes point to the same file.
+- G-15: WHEN a lead's digest correction is refused by check-domain.sh's append-only guard DO append the corrected block rather than rewrite in place — validate-digest.py parses only from the LAST line-start `VERDICT:` anchor, so the appended block, not the original, is the one that gets validated and is authoritative.
 ## Outcomes (max 10)
 ## Open (max 5)
