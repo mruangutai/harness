@@ -1645,18 +1645,36 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                 if _schema_errors:
                     # Type/value failures on declared fields may not be captured by
                     # the vocabulary comparisons above; name their nearest field.
+                    _missing_required = set()
                     for _error in _schema_errors:
+                        if (_error.validator == "required"
+                                and isinstance(_error.instance, dict)):
+                            _missing_required.update(
+                                str(_key) for _key in _error.validator_value
+                                if _key not in _error.instance
+                            )
+                            continue
                         _path = list(_error.path)
                         if _path:
                             _offending.add(str(_path[0]))
-                    _names = ", ".join(repr(key) for key in sorted(_offending))
-                    out.append(_head("undeclared step key or evidence shape."))
-                    out.append(
-                        f"  offending key(s): {_names}. A recovery field is declared "
-                        "in .claude/skills/harness/bin/run-state-schema.json; a "
-                        "per-dispatch fact goes under `evidence` with a lowercase "
-                        "identifier key and a scalar or scalar-array value."
-                    )
+                    if _missing_required:
+                        _missing_names = ", ".join(
+                            repr(key) for key in sorted(_missing_required))
+                        out.append(_head("missing required step key."))
+                        out.append(
+                            f"  missing key(s): {_missing_names}. Required step fields "
+                            "are declared in .claude/skills/harness/bin/"
+                            "run-state-schema.json; supply each required field."
+                        )
+                    if _offending:
+                        _names = ", ".join(repr(key) for key in sorted(_offending))
+                        out.append(_head("undeclared step key or evidence shape."))
+                        out.append(
+                            f"  offending key(s): {_names}. A recovery field is declared "
+                            "in .claude/skills/harness/bin/run-state-schema.json; a "
+                            "per-dispatch fact goes under `evidence` with a lowercase "
+                            "identifier key and a scalar or scalar-array value."
+                        )
             except Exception as _schema_exc:
                 out.append(_head(
                     "run-state schema CANNOT be checked; the write is denied."))

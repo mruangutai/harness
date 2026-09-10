@@ -79,6 +79,8 @@ def _undeclared_cases():
         _state("1", ["    rogue_step_key: allowed"]))
     strict = _fire_new(
         _state("2", ["    rogue_step_key: denied"]), "strict-unknown")
+    missing = _fire_new(
+        _state("2").replace("    status: pending\n", ""), "strict-missing")
     return [
         ("schema_version 1 preserves undeclared step key compatibility",
          old.returncode == 0, old),
@@ -87,6 +89,10 @@ def _undeclared_cases():
          and "rogue_step_key" in strict.stderr
          and "run-state-schema.json" in strict.stderr
          and "`evidence`" in strict.stderr, strict),
+        ("schema_version 2 names a missing required step key",
+         missing.returncode == 2
+         and "missing required step key" in missing.stderr
+         and "status" in missing.stderr, missing),
     ]
 
 
