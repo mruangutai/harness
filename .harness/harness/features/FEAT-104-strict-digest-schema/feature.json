@@ -121,6 +121,12 @@
       "squad": "eng",
       "verdict": "ESCALATE",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-09-08-simplify-eng",
+      "squad": "eng",
+      "verdict": "FAIL",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {
