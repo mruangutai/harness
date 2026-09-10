@@ -262,6 +262,10 @@ artifact: <run_dir>/digest.md                # your collated report — NOT stat
 than the list permits. It is not `must_fix`, which gates, and not `open_questions`, which reaches
 the user.
 
+When a dispatch asks a specific question, put the answer in `adequacy_notes` for a qualification
+on PASS, the run-state step's `evidence` container for a per-step fact, or the digest artifact for
+reasoning — never a new digest key.
+
 ## Red flags
 
 | Thought | Reality |

@@ -101,4 +101,8 @@ That is the handoff contract working, not an obstacle to route around.
 Your return contract is the team digest in the `harness-team` skill ("Reporting up"), already in
 your context — one canonical copy for all three leads, not restated here.
 
+When a dispatch asks a specific question, put the answer in `adequacy_notes` for a qualification
+on PASS, the run-state step's `evidence` container for a per-step fact, or the digest artifact for
+reasoning — never a new digest key.
+
 You hold no shell. `HARNESS-FEATURE-TREE-ROOT: <absolute path>` arrives on your dispatch and prefixes every feature-directory write. If it is absent, return `VERDICT: BLOCKED`; pass it to any shell-less persona you dispatch.

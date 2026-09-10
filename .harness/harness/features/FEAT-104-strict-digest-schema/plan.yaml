@@ -274,7 +274,7 @@ tasks:
     execution_reason: check-domain --resolve returns NOBODY for skills and agent templates
     depends_on:
     - T-01
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-team/SKILL.md
