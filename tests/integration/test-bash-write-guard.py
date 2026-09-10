@@ -151,6 +151,24 @@ case("an unbalanced quote does not crash the hook",
      "echo it's fine <<EOF\nx\nEOF", 0, agent="harness-documentor")
 
 # ---------------- MUST BLOCK: the DEC-151 bypass shapes ----------------
+# Issue #1544: Python is a common write carrier, not an unparseable shell escape.
+# Pin both policy branches: reviewers are read-only everywhere, while a writing agent's
+# literal target still goes through the ordinary domain check. Read-mode `open` is the
+# negative control; recognizing the function name alone would block legitimate probes.
+case("reviewer cannot write through python open",
+     "python3 -c \"open('src/main.py', 'w').write('x')\"", 2,
+     agent="harness-code-reviewer")
+case("python open write to an out-of-domain path",
+     "python3 -c \"open('src/main.py', 'w').write('x')\"", 2)
+case("python open keyword target and mode still block",
+     "python3 -c \"open(file='src/main.py', mode='w').write('x')\"", 2)
+case("python open write to an in-domain path",
+     "python3 -c \"open('.harness/harness/features/F/runs/r-eng/a.md', 'w').write('x')\"",
+     0)
+case("python open without a write mode remains a read",
+     "python3 -c \"open('src/main.py').read()\"", 0)
+case("python heredoc open write cannot bypass extraction",
+     "python3 - <<'PY'\nopen('src/main.py', 'w').write('x')\nPY", 2)
 case("output redirect to an out-of-domain path", 'echo x > src/main.py', 2)
 case("append redirect to an out-of-domain path", 'echo x >> src/main.py', 2)
 case("QUOTED redirect target still blocks", 'echo x > "src/main.py"', 2)

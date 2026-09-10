@@ -4,8 +4,8 @@
 # Field incident: qa, denied a source edit by check-domain, made the same edit
 # via `perl -pi` from Bash — the domain hook only sees Write/Edit. This guard
 # does not make Bash-write extraction "winnable" in general (DEC-85 stands);
-# it parses the COMMON in-place editors and redirections, which is what an
-# agent under pressure actually reaches for. Unparseable commands pass — the
+# it parses COMMON in-place editors, redirections, and literal Python `open`
+# writes, which is what an agent under pressure reaches for. Unparseable commands pass — the
 # guard converts casual bypass into deliberate obfuscation, which the post-run
 # tree audit then catches.
 #
@@ -40,7 +40,7 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # test-no-distribution.py case 7 is the invariant.
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
   python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$_derived" "$_selfdir" <<'PY'
-import sys, os, re, json, shlex
+import sys, os, re, json, shlex, ast
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
 # behaviour: the two-launch version reached the absent-manifest fail-open in BASH,
@@ -480,12 +480,111 @@ def trailing_files(args, drop_first_script=False, script_flags=False):
         out = out[1:]                      # bare `sed -i 's/a/b/' file`: first arg is the script
     return out
 
+PYTHON_EXECUTABLE = re.compile(r"^python(?:3(?:\.\d+)*)?$")
+PYTHON_WRITE_MODE = frozenset("wax+")
+
+
+def _is_python_executable(token):
+    return PYTHON_EXECUTABLE.fullmatch(os.path.basename(token)) is not None
+
+
+def _python_command_sources(tokenized_segments):
+    """Yield source passed through Python's common `-c` command form."""
+    for segment_tokens in tokenized_segments:
+        for i, token in enumerate(segment_tokens):
+            if not _is_python_executable(token):
+                continue
+            args = segment_tokens[i + 1:]
+            for j, arg in enumerate(args):
+                if arg == "-c" and j + 1 < len(args):
+                    yield args[j + 1]
+                    break
+
+
+def _python_heredoc_sources(text):
+    """Yield bodies from heredocs whose command line invokes Python."""
+    lines, i = text.splitlines(), 0
+    while i < len(lines):
+        line = lines[i]
+        masked_match = re.search(r"<<-?\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\1",
+                                 mask_quoted(line))
+        i += 1
+        if not masked_match:
+            continue
+        delimiter = re.match(r"<<-?\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\1",
+                             line[masked_match.start():])
+        if not delimiter:
+            continue
+        tag, dash = delimiter.group(2), delimiter.group(0).startswith("<<-")
+        try:
+            words = shlex.split(line)
+        except ValueError:
+            words = []
+        body_lines = []
+        while i < len(lines):
+            body = lines[i]
+            i += 1
+            if (body.strip() if dash else body) == tag:
+                break
+            body_lines.append(body)
+        if any(_is_python_executable(word) for word in words):
+            yield "\n".join(body_lines)
+
+
+def _call_argument(call, position, keyword_name):
+    for keyword in call.keywords:
+        if keyword.arg == keyword_name:
+            return keyword.value
+    return call.args[position] if len(call.args) > position else None
+
+
+def _is_builtin_open(call):
+    direct = isinstance(call.func, ast.Name) and call.func.id == "open"
+    qualified = (isinstance(call.func, ast.Attribute)
+                 and call.func.attr == "open"
+                 and isinstance(call.func.value, ast.Name)
+                 and call.func.value.id in ("builtins", "io"))
+    return direct or qualified
+
+
+def _constant_string(node):
+    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+
+def _python_open_finding(node):
+    if not isinstance(node, ast.Call) or not _is_builtin_open(node):
+        return None
+    mode = _constant_string(_call_argument(node, 1, "mode"))
+    if mode is None or not PYTHON_WRITE_MODE.intersection(mode):
+        return None
+    path = _constant_string(_call_argument(node, 0, "file"))
+    return "python open", [path] if path is not None else []
+
+
+def _python_open_findings(source):
+    """Return literal targets for builtin `open` calls using a write-capable mode."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return []
+    writes = []
+    for node in ast.walk(tree):
+        finding = _python_open_finding(node)
+        if finding is not None:
+            writes.append(finding)
+    return writes
+
 tokens = []
 for _seg in SEGMENTS:
     try:
         tokens.append(shlex.split(_seg, posix=True))
     except ValueError:
         tokens.append(_seg.split())
+
+for _source in _python_command_sources(tokens):
+    findings.extend(_python_open_findings(_source))
+for _source in _python_heredoc_sources(cmd):
+    findings.extend(_python_open_findings(_source))
 
 # Each segment is one command, so its operand list ends at the segment boundary — no
 # in-list separator hunting, which is what silently failed before (B-6).
