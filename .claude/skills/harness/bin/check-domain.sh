@@ -1307,10 +1307,12 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         out.extend(f"  {m}" for m in msgs)
         out.append(f"  {ROUTING}")
 
-    # Issue #1058: a lead reused a cycle's run directory and a plain digest.md overwrite
-    # destroyed the cycle-0 record. This guard fires on Write and Edit: Edit content is
-    # reconstructed against the on-disk prior before this branch runs. Bash digest writes
-    # are refused outright by bash-write-guard.sh; POST is too late to refuse.
+    # Issues #1058/#1619: a lead reused a cycle's run directory and a plain digest.md
+    # overwrite destroyed the cycle-0 record. This guard fires on Write and Edit: Edit
+    # content is reconstructed against the on-disk prior before this branch runs. A
+    # correction appends a complete contract block because validate-digest.py reads the
+    # last VERDICT; a trailing field alone sits outside that block and repairs nothing.
+    # Bash digest writes are refused outright by bash-write-guard.sh; POST is too late.
     if RE_RUN_DIGEST.match(rel) and absolute_path is not None:
         prior = None
         try:
@@ -1327,9 +1329,10 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         elif prior.strip() and not content.startswith(prior):
             out.append(_head("run digest already holds a recorded digest; this Write "
                              "would replace rather than extend it. Write this cycle's "
-                             "digest into a run directory of its own. A correction to this "
-                             "run's own digest is allowed when it extends the recorded "
-                             "content: the missing line must be appended at the end."))
+                             "digest into a run directory of its own. To correct this "
+                             "run's own digest without erasing history, append a complete "
+                             "corrected VERDICT / DIGEST / artifact block at the end; "
+                             "do not insert or append only the missing field."))
     if RE_RUN_IDENTITY.match(rel):
         # record_seed writes this file from inside the POST process, outside every
         # governed tool route, and is itself write-once. Every Write/Edit attempt

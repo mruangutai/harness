@@ -162,7 +162,7 @@ def _feat50_digest_post_case(root, path, prior):
 def _feat50_digest_red_case(root, path, clobber):
     iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
-        "    # Issue #1058: a lead reused a cycle's run directory",
+        "    # Issues #1058/#1619: a lead reused a cycle's run directory",
         "    if RE_FEATURE_JSON.match(rel):", iso)
     muted = _feat50_digest_fire(root, path, "wholly different digest\n", hook=mutant)
     ok = clobber.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
@@ -495,9 +495,42 @@ def run_bug1305_digest_repair_cases():
     _feat50_write_text(path, prior)
     response = _fire_digest_edit(
         root, path, "VERDICT: PASS\n", artifact + "VERDICT: PASS\n")
-    results.append(("digest Edit insertion is refused with append-at-end route",
-                    response.returncode == 2 and "appended at the end" in response.stderr,
+    results.append(("digest Edit insertion is refused with complete-block append route",
+                    response.returncode == 2
+                    and "complete corrected VERDICT / DIGEST / artifact block"
+                    in response.stderr,
                     response.stderr))
+
+    invalid = """VERDICT: PASS
+DIGEST:
+  headline: simplify reader found a blocker
+  team: simplify
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: reader, persona: code-reviewer, verdict: FAIL }
+  must_fix: [reader blocker]
+  branch: feat/example
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+  adequacy_notes: []
+artifact: .harness/harness/features/FEAT-D-thing/runs/r1/digest.md
+"""
+    corrected = invalid.replace("VERDICT: PASS", "VERDICT: FAIL", 1)
+    combined = invalid + "\n" + corrected
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, invalid)
+    response = _bug1305_digest_write(root, path, combined)
+    validation = subprocess.run(
+        [os.path.join(_anchor_bin, "validate-digest.py"), "lead"],
+        input=combined, capture_output=True, text=True)
+    results.append(("a complete corrected block repairs an invalid digest append-only",
+                    response.returncode == 0 and validation.returncode == 0,
+                    f"guard={response.returncode}: {response.stderr}; "
+                    f"validator={validation.returncode}: {validation.stdout}"))
 
     root, path = _feat50_digest_fixture()
     _feat50_write_text(path, prior)
