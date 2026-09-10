@@ -2,8 +2,8 @@
   "feature_id": "FEAT-104-strict-digest-schema",
   "branch": "feat/FEAT-104-strict-digest-schema",
   "pr": null,
-  "review_sha": "790023f0",
-  "cycles_used": 9,
+  "review_sha": "984bd26b",
+  "cycles_used": 10,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -157,6 +157,18 @@
       "squad": "validator",
       "verdict": "ESCALATE",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-15-qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-10-16-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {

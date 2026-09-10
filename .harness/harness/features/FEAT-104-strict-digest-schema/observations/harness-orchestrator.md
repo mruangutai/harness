@@ -65,3 +65,27 @@
 - 2026-09-10 (FEAT-104 c10): reproduced a reviewer's finding myself under a read-only carve-out by importing the standing test module's own `_fire_new` helper from /tmp and firing four payloads into disposable fixture roots. No tracked file written, DEC-174 intact, and the relayed claim became a measurement with two controls (type-error and rogue-key) that discriminated the branch.
 - 2026-09-10 (FEAT-104 c10): naming the persona's DECLARED digest field set in the dispatch, and forbidding extras explicitly, stopped the third recurrence of the undeclared-key digest repair (Q4, Q-B3). The lead's return validated at exit 0 first time where the two prior dispatches demanded fields the closed contract has no home for.
 - 2026-09-10 (FEAT-104 c10): STATE.md's 120-line shape gate cost four rejected writes. Budget the Current section BEFORE composing it; the guard counts the proposed content, so the file on disk stays at the old revision through every rejection and `wc -l` reads the OLD file, not the attempt.
+- 2026-09-10: FEAT-104 c10. A fix that splits ONE unconditional denial into TWO conditional messages
+  creates an accept-shape hole by construction: before, any non-empty error list denied; after, an
+  error populating neither bucket emits nothing and the write is ACCEPTED. I made the enumeration of
+  every keyword that can report at the container's own path the GATING question in both dispatches
+  rather than trusting a green suite — no existing test could have caught it, since the shape has no
+  case. Both segments answered it independently and agreed (3 keywords, all still caught upstream).
+- 2026-09-10: FEAT-104 c10. Dispatching qa (validator) and simplify (eng) concurrently over one
+  read-only commit cost nothing and produced independent corroboration of the same enumeration — and
+  each found the SAME residual (a declared-key type error still printing under the "undeclared step
+  key" head) from opposite directions, qa by live probe and eng by reading. Two lenses agreeing on a
+  finding neither was asked for is worth more than either alone.
+- 2026-09-10: FEAT-104 c10. Counting `^FAIL ` lines to grade run-unit-tests.sh is DEFEATED here:
+  tests/unit/test-factory-claim-mutation.py reprints 4 `FAIL BUG-1290 ...` lines as its own success
+  output between `MUTANT ACTIVE` and `MUTATION PROOF`, at exit 0. My own expertise P-01 says to count
+  those lines; the runner's exit status is the only reliable signal, and the FAIL census needs a
+  `^FAIL <script>` shape to mean anything.
+- 2026-09-10: FEAT-104 c10. The "yield called with null data" exit-1 defect hit the ENG LEAD itself
+  plus two dev-ops members this cycle, having previously only been seen on harness-qa. The fenced
+  digest and the on-disk artifact were complete and validated at exit 0 in every case. Verifying the
+  artifact on disk and accepting the return is correct; re-dispatching would have duplicated twenty
+  minutes of work over a transport defect.
+- 2026-09-10: FEAT-104 c10. STATE.md's 120-line shape gate refused twice (141, then 122 lines) before
+  accepting. Budget the OPEN QUESTIONS list first when a feature accumulates seventeen of them: the
+  narrative compresses easily, the question list does not, and each refusal costs a full re-emit.
