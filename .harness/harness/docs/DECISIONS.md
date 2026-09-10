@@ -3415,13 +3415,13 @@ convention, not a boundary. DEC-85 had documented this gap as accepted risk with
 trusted case — qa exploiting it under pressure breaks that rationale.
 
 **Fix: `bin/bash-write-guard.sh`, a PreToolUse:Bash hook** registered alongside the branch gate
-(sixth settings.json prerequisite; snippet template updated). Policy: the three reviewers are
-READ-ONLY — any detected write pattern (redirects, sed/perl/awk in-place, tee, sponge, rm/mv/cp)
-is denied outright, "report the finding; never fix." Every other harness agent except dev-ops
-(exempt per DEC-85 — owns builds) gets extractable target paths checked against its team-config
-domain, shared paths included, worktree-normalized; in-domain and unparseable commands pass. The
-deny message names the rule: a path the domain hook denied does not become writable by switching
-tools — that is guardrail evasion; raise an open_question instead.
+(sixth settings.json prerequisite; snippet template updated). Detected writes include redirects,
+sed/perl/awk in-place, tee, sponge, rm/mv/cp, and literal Python `open` calls in write-capable
+modes supplied through `-c` or heredoc source. The three reviewers are READ-ONLY and denied on
+every detected write. Every other harness agent except dev-ops (exempt per DEC-85 — owns builds)
+gets extractable targets checked against its team-config domain, shared paths included and
+worktree-normalized; in-domain and unparseable commands pass. A path the domain hook denied does
+not become writable by switching tools — that is guardrail evasion; raise an open_question.
 
 **Honest scope:** this narrows DEC-85, it does not void it. Arbitrary shell is still unwinnable —
 the guard converts the CASUAL bypass (what an agent under pressure actually types) into deliberate
