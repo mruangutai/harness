@@ -9,17 +9,15 @@ The blocking gate is green (`qa_gate`, both required kinds, exit 0). The reviewe
 with `must_fix: []`**, `severity_max: med` — advisory, not blocking, under
 `gates.review: advisory_unless_high`. Nothing outstanding blocks the merge.
 
-**Two things need your name on them before the merge, and neither is a defect:**
+**Operator decision: accepted.** The operator selected **Ship all 29** after reviewing this
+briefing: accept CF-3, create every unstruck B-1 through B-29 backlog issue, merge, and finalize
+the Harness mirror.
 
-1. **CF-3** — `abff2a84` ("FEAT-56-central-onboarding-model: station done at ship", a one-line
-   `status: review` → `status: done` flip on *another* feature's `plan.yaml`) is this branch's own
-   root commit, so it merges with this PR. Every mechanical gate is blind to it by construction:
-   `code-grade.py` grades from the merge-base, which excludes it. Recommendation: **accept and
-   record** — it is a benign, arguably correcting flip on an already-merged feature, and excising it
-   means rewriting history beneath a signed, pinned `review_sha`.
-2. **The backlog table below.** Strike any row by its `B-N` id. **Unstruck rows become backlog
-   issues on ship acceptance; anything not on that table dies silently**, which is why it is long
-   rather than curated.
+- **CF-3 accepted** — `abff2a84` ("FEAT-56-central-onboarding-model: station done at ship", a
+  one-line `status: review` → `status: done` flip on another feature's `plan.yaml`) is this
+  branch's own root commit and will merge with this PR. It is a benign correction on an
+  already-merged feature; excising it would rewrite history beneath the signed review pin.
+- **B-1 through B-29 accepted** — every row in the backlog table below becomes a backlog issue.
 
 ## Disclosure — how this briefing was assembled
 
