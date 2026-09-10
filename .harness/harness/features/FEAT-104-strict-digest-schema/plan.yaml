@@ -4,7 +4,7 @@ approval:
   date: '2026-09-09'
   approved_by: operator
   status: approved
-status: ready
+status: building
 source_issues: [104, 37]
 
 lanes:
@@ -643,7 +643,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the manifest is taken at the OWNER ROOT, outside every worktree, because runs/ is gitignored so the worktree carries zero run artifacts and no team member's tools reach outside its tree
     depends_on: []
-    status: ready
+    status: done
     files:
       - .harness/harness/features/FEAT-104-strict-digest-schema/notes/run-artifact-manifest-base.txt
     verify: |
