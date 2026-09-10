@@ -1115,7 +1115,7 @@ _n, _p, _e, _m = HOOK_CASES.pop()
 _p["last_assistant_message"] = (
     "VERDICT: PASS\nDIGEST:\n  headline: built\n  tests_added: 2\n  suite: pass\n"
     "  task: T-01\n  task_verify: pass\n"
-    "  blocked_on: none\n  branch: none\n  files_touched: []\n  open_questions: []\n"
+    "  blocked_on: none\n  files_touched: []\n  open_questions: []\n"
     "  expertise_update: []\nartifact: runs/r1/notes.md\n")
 HOOK_CASES.append((_n, _p, _e, _m))
 
@@ -2978,6 +2978,169 @@ def run_t01_schema_cases():
     return len(failures)
 
 
+def _t04_base_digest(persona):
+    canonical = {
+        "harness-frontend-dev": "harness-backend-dev",
+        "harness-ai-dev": "harness-backend-dev",
+        "harness-data-engineer": "harness-backend-dev",
+        "harness-product-lead": "harness-eng-lead",
+        "harness-validator-lead": "harness-eng-lead",
+    }.get(persona, persona)
+    if canonical == "harness-backend-dev":
+        return _dev()
+    if canonical == "harness-eng-lead":
+        return LEAD_BLOCK
+    if canonical == "harness-dev-ops":
+        return _t01_digest(canonical, {}).replace(
+            "  task: none", "  task: T-01")
+    if canonical in (
+            "harness-security-reviewer", "harness-ui-reviewer", "harness-qa",
+            "harness-documentor", "harness-visual-designer"):
+        return _t01_digest(canonical, {})
+    if canonical == "harness-pm":
+        return PM_OK
+    if canonical == "harness-orchestrator":
+        return """VERDICT: PASS
+DIGEST:
+  headline: build advanced
+  feature: FEAT-X
+  status: in_progress
+  runs: []
+  cycles_used: 0
+  briefing: none
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+"""
+    raise AssertionError(f"no T-04 base digest for {persona}")
+
+
+def _t04_sample(allowed):
+    if isinstance(allowed, set):
+        return "pass" if "pass" in allowed else sorted(allowed)[0]
+    if isinstance(allowed, re.Pattern):
+        return "T-01"
+    if allowed is list:
+        return []
+    if allowed is bool:
+        return True
+    if allowed is int:
+        return 0
+    if allowed is str:
+        return "value"
+    raise AssertionError(f"no sample for {allowed!r}")
+
+
+def _t04_with_fields(text, fields):
+    lines = "\n".join(
+        f"  {field}: {json.dumps(value)}" for field, value in fields.items())
+    return text.replace("\nartifact:", "\n" + lines + "\nartifact:")
+
+
+def run_t04_unknown_key_cases():
+    """T-04: the digest key set is closed and one refusal is sufficient."""
+    spec = importlib.util.spec_from_file_location("_validator_t04", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    failures = []
+
+    canonical_probes = {
+        "pm": "harness-pm",
+        "dev": "harness-backend-dev",
+        "qa": "harness-qa",
+        "reviewer": "harness-security-reviewer",
+        "visual-designer": "harness-visual-designer",
+        "documentor": "harness-documentor",
+        "dev-ops": "harness-dev-ops",
+        "lead": "harness-eng-lead",
+        "orchestrator": "harness-orchestrator",
+    }
+    for canonical, persona in canonical_probes.items():
+        digest = _t04_with_fields(
+            _t04_base_digest(persona), {f"rogue_{canonical.replace('-', '_')}": 1})
+        errors = validator.validate(persona, digest)
+        if not any("undeclared digest key" in error for error in errors):
+            failures.append(f"{canonical}: one undeclared key was accepted")
+
+    for persona in CONTRACT_SOURCES:
+        if persona == "harness-code-reviewer":
+            extras = {
+                field: _t04_sample(allowed)
+                for field, allowed in
+                validator.DOCUMENTED_OPTIONAL.get(persona, {}).items()
+            }
+            errors = _t01_code_reviewer_errors(validator, extras)
+        else:
+            digest = _t04_base_digest(persona)
+            seen = validator.parse_digest(digest)
+            declared = {
+                **validator.SCHEMAS[validator.norm(persona)],
+                **validator.PASSTHROUGH.get(validator.norm(persona), {}),
+                **validator.DOCUMENTED_OPTIONAL.get(persona, {}),
+            }
+            block = documented_block(
+                _contract_source(CONTRACT_SOURCES[persona][0]),
+                CONTRACT_SOURCES[persona][0]) or ""
+            documented = set(re.findall(
+                r"^  ([a-z][a-z0-9_]*):", block, re.MULTILINE))
+            extras = {
+                field: _t04_sample(declared[field])
+                for field in documented - set(seen)
+                if field in declared
+            }
+            errors = validator.validate(
+                persona, _t04_with_fields(digest, extras))
+        if errors:
+            failures.append(f"{persona}: full documented field set rejected: {errors}")
+
+    three = _t04_with_fields(
+        LEAD_BLOCK, {"rogue_alpha": 1, "rogue_beta": 2, "rogue_gamma": 3})
+    three_errors = [
+        error for error in validator.validate("harness-eng-lead", three)
+        if "undeclared digest key" in error
+    ]
+    if len(three_errors) != 1:
+        failures.append(
+            f"three undeclared keys produced {len(three_errors)} messages")
+    else:
+        message = three_errors[0]
+        for token in (
+                "rogue_alpha", "rogue_beta", "rogue_gamma",
+                "digest contract is closed", "PASSTHROUGH",
+                "DOCUMENTED_OPTIONAL", "SCHEMAS"):
+            if token not in message:
+                failures.append(f"three-key message omitted {token}")
+
+    env = dict(os.environ)
+    rejected = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"],
+        input=json.dumps({
+            "agent_type": "harness-eng-lead",
+            "last_assistant_message": three,
+        }),
+        capture_output=True, text=True, env=env)
+    if rejected.returncode != 2:
+        failures.append(f"hook returned {rejected.returncode}, not exit 2")
+    bypassed = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"],
+        input=json.dumps({
+            "agent_type": "harness-eng-lead",
+            "last_assistant_message": three,
+            "stop_hook_active": True,
+        }),
+        capture_output=True, text=True, env=env)
+    if bypassed.returncode != 0:
+        failures.append(
+            f"stop_hook_active passthrough returned {bypassed.returncode}")
+
+    for failure in failures:
+        print("FAIL  [T-04] " + failure)
+    total = len(canonical_probes) + len(CONTRACT_SOURCES) + 9
+    print(f"\n{total - len(failures)}/{total} T-04 undeclared digest key cases passed.")
+    return len(failures)
+
+
 def _check_plan_approval_states(
         validator, config, feature_dir, plan_path, artifact, digest, failures):
     errors = _plan_review_errors(validator, config, feature_dir, digest)
@@ -4473,6 +4636,7 @@ def main():
     fails += run_reviewer_severity_enum_cases()
     fails += run_documented_contract_cases()
     fails += run_t01_schema_cases()
+    fails += run_t04_unknown_key_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

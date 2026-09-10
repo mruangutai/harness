@@ -1401,6 +1401,26 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                        + (" (write the literal `none` if genuinely inapplicable)."
                           if field in NULLABLE else "."))
 
+    # Generic `lead` is the archive-reader persona used by check-state for
+    # historical digest files; it cannot recover the producing raw persona or
+    # contract era. Current returns always carry harness-*-lead and are closed.
+    if raw_persona != "lead":
+        legal_fields = set(all_fields) | {"headline"}
+        if raw_persona == "harness-code-reviewer":
+            legal_fields.add("grade_2_reasons")
+        undeclared = sorted(set(seen) - legal_fields)
+        if undeclared:
+            names = ", ".join(repr(field) for field in undeclared)
+            err.append(
+                f"undeclared digest key(s): {names}. The digest contract is closed. "
+                "A lower-tier field carried by a lead belongs in PASSTHROUGH; a field "
+                "in a persona's documented output block belongs in DOCUMENTED_OPTIONAL; "
+                "a new required persona field belongs in SCHEMAS and must also be "
+                "documented under DEC-216. A per-dispatch answer is not a digest key: "
+                "put a PASS qualification in adequacy_notes or a per-step fact in the "
+                "run state steps evidence container."
+            )
+
     if raw_persona == "harness-code-reviewer":
         code_grade = seen.get("code_grade")
         reviewed = seen.get("reviewed")
