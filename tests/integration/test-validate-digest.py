@@ -3141,6 +3141,99 @@ def run_t04_unknown_key_cases():
     return len(failures)
 
 
+def run_t08_revision_proof():
+    """T-08: the strict rejection is new, while every declared lead field replays."""
+    failures = []
+    fixture_path = os.path.join(
+        FIXTURE_DIR, "pre-t04-validate-digest.py.fixture")
+    with open(fixture_path, encoding="utf-8") as handle:
+        prior_source = handle.read()
+    if "DOCUMENTED_OPTIONAL" not in prior_source:
+        failures.append(
+            "pre-T-04 fixture does not contain T-01's DOCUMENTED_OPTIONAL")
+    if "undeclared digest key" in prior_source:
+        failures.append(
+            "pre-T-04 fixture already contains T-04's rejection")
+
+    payloads = [
+        ("harness-pm", _t04_with_fields(
+            PM_OK, {"rogue_revision_probe": True})),
+        ("harness-backend-dev", _t04_with_fields(
+            _t04_base_digest("harness-backend-dev"),
+            {"rogue_revision_probe": True})),
+        ("harness-documentor", _t04_with_fields(
+            _t04_base_digest("harness-documentor"),
+            {"rogue_revision_probe": True})),
+    ]
+    if not failures:
+        with tempfile.TemporaryDirectory(
+                dir=os.path.dirname(VALIDATE), prefix=".t08-validator-") as td:
+            prior_path = os.path.join(td, "validate-digest.py")
+            with open(prior_path, "w", encoding="utf-8") as handle:
+                handle.write(prior_source)
+            env = dict(os.environ)
+            current_path = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = os.path.dirname(VALIDATE) + (
+                os.pathsep + current_path if current_path else "")
+            for persona, payload in payloads:
+                hook_payload = json.dumps({
+                    "agent_type": persona,
+                    "last_assistant_message": payload,
+                })
+                prior = subprocess.run(
+                    [sys.executable, prior_path, "--hook"], input=hook_payload,
+                    capture_output=True, text=True, env=env)
+                current = subprocess.run(
+                    [sys.executable, VALIDATE, "--hook"], input=hook_payload,
+                    capture_output=True, text=True, env=env)
+                if prior.returncode != 0:
+                    failures.append(
+                        f"pre-change validator rejected {persona}: "
+                        f"{prior.stderr.strip()}")
+                if (current.returncode != 2
+                        or "undeclared digest key" not in current.stderr):
+                    failures.append(
+                        f"current validator did not reject {persona}'s probe")
+
+    spec = importlib.util.spec_from_file_location("_validator_t08", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    replay = {
+        "adequacy_notes": ["qualification recorded"],
+        "sc_status": [],
+        "needs_approval": False,
+        "severity_max": "none",
+        "matrix_ok": True,
+        "coverage_gaps": [],
+    }
+    for field, value in replay.items():
+        digest = _t04_with_fields(LEAD_BLOCK, {field: value})
+        # adequacy_notes is already present in LEAD_BLOCK; replace rather than
+        # create a duplicate key whose second value would test YAML shadowing.
+        if field == "adequacy_notes":
+            digest = LEAD_BLOCK.replace(
+                "  adequacy_notes: []",
+                "  adequacy_notes: [qualification recorded]")
+        errors = validator.validate("harness-eng-lead", digest)
+        if errors:
+            failures.append(f"declared lead field {field} was rejected: {errors}")
+
+    for field in ("failures", "suite", "kinds"):
+        errors = validator.validate(
+            "harness-eng-lead",
+            _t04_with_fields(LEAD_BLOCK, {field: []}))
+        if not any("undeclared digest key" in error for error in errors):
+            failures.append(f"non-passthrough lead field {field} was accepted")
+
+    if failures:
+        for failure in failures:
+            print("FAIL  [T-08] " + failure)
+    else:
+        print("ok    [T-08] pre-change validator accepts unknown keys while current rejects")
+    print(f"{10 - len(failures)}/10 T-08 revision and lead replay cases passed.")
+    return len(failures)
+
+
 def _check_plan_approval_states(
         validator, config, feature_dir, plan_path, artifact, digest, failures):
     errors = _plan_review_errors(validator, config, feature_dir, digest)
@@ -4637,6 +4730,7 @@ def main():
     fails += run_documented_contract_cases()
     fails += run_t01_schema_cases()
     fails += run_t04_unknown_key_cases()
+    fails += run_t08_revision_proof()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

@@ -529,7 +529,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, this is the digest gate's own test file
     depends_on: [T-04, T-06]
-    status: ready
+    status: done
     files:
       - tests/integration/test-validate-digest.py
     verify: |
