@@ -3,23 +3,34 @@
 ## Current
 
 - feature: FEAT-104-strict-digest-schema
-- run: .harness/harness/features/FEAT-104-strict-digest-schema/runs/q2-c4-product/state.yaml
+- run: none — no squad run was dispatched this cycle
 - squad: none
-- status: awaiting-user
+- status: awaiting-main-session
 
-Plan phase complete and READY TO SIGN. All six operator rulings from the signature review are
-executed and verified on disk, and the last stale wording in the plan is closed. The plan carries
-nine tasks, twelve decisions, and a `panel:` whose three readers are recorded `ran` and whose four
-`PF-` findings all read `disposition: resolved` with ids, severities, readers and evidence
-unchanged. Backlog rows B-1..B-6 were all struck by the operator and are recorded nowhere.
+Plan is SIGNED and Build is OPEN. `plan.yaml` `approval.status: approved`, `BRIEF.md ## Approval
+status: approved — 2026-09-09`, and `feature.json` `github.build_entry: opened` with parent 1584
+and nine sub-issues 1585–1593, one per T-NN. Every Build precondition is satisfied.
 
-`check-state.sh` reports one FEAT-104 violation: BRIEF not approved, which is the signature gate
-itself. BRIEF.md and plan.yaml are both `pending`; only the main session signs.
+Build cannot advance through the enforcement path. Read task by task, eight of the nine tasks
+carry `execution_mode: main-session-direct` — T-01, T-03, T-04, T-05, T-06, T-07, T-08 under the
+DEC-174 carve-out (validate-digest.py, check-domain.sh, check-state.sh, run-state-schema.json and
+each gate's own test, plus two ungranted SKILL.md surfaces), and T-10 because its manifest is taken
+at the owner root outside every worktree. The single `team` task, T-09 (`harness-documentor`,
+DECISIONS.md), declares `depends_on: [T-04, T-06, T-07, T-08]` and is therefore blocked behind four
+main-session-direct tasks. **Zero team-owned work is eligible today**, so no lead was dispatched and
+no run was opened.
 
-Final packet: `notes/ship-review-plan-signature-c4.md`. It supersedes c3 and c2, both kept on disk
-because each carries a statement of mine later found wrong, and a correction is only legible beside
-what it corrects. cycles_used 4/10, runs 10/20.
+`notes/handoff-plan.md` `## Next` said to dispatch T-10 to `harness-eng-lead`. That was validated
+against the plan and REJECTED: `plan.yaml:643-644` lanes T-10 `main-session-direct`. The approved
+plan governs. Superseded by `notes/handoff-build.md`.
+
+No station was written: for a `main-session-direct` task the task station, `gh-sync.py start-task`
+and the feature station all belong to the main session. T-10's deliverable
+`notes/run-artifact-manifest-base.txt` is absent, confirming T-10 has not run. cycles_used 4/10
+(unchanged — no rework), runs 10/20 (unchanged — a main-session-direct segment is not a run).
 
 ## Open Questions
 
-- The signature. That is the only thing outstanding.
+- Whether T-10 should stay `main-session-direct`. Its `execution_reason` cites tool reach, not
+  DEC-174, so it is the one lane an operator could have pm re-lane to unblock the orchestrator.
+  Non-blocking: the main session can simply run it.
