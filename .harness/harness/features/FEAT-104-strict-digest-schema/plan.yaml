@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-104-strict-digest-schema
 approval:
-  status: pending
+  date: '2026-09-09'
+  approved_by: operator
+  status: approved
 status: plan
 source_issues: [104, 37]
 

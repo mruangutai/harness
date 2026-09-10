@@ -150,6 +150,25 @@ criterion above rests on `integration`, which runs. The null-`cmd` kinds (`funct
 `ui`, `eval`, `typecheck`) cover surfaces this feature does not touch, so no criterion routes around
 a missing runner.
 
+## Definition of Done — operator view
+
+An operator can treat this feature as done only when all of the following are true:
+
+- A newly returned digest with an undeclared key is refused at the hook with exit 2, every offending
+  key named, and a concrete declaration route; a valid documented return for every persona still
+  passes.
+- New runs can be created only at `schema_version: 2`, whose `steps[]` entries reject undeclared
+  keys. Existing version-1 checkpoints remain readable and writable, so enforcing the new contract
+  does not rewrite or strand historical work.
+- Operators have one sanctioned place, `evidence:`, to retain step-specific recovery evidence without
+  expanding the checkpoint schema; malformed evidence keys are refused.
+- `adequacy_notes` and every other legitimate documented or lead-passthrough field have an explicit
+  contract home, so a return either validates or gives the producing agent an immediate repair.
+- The recorded artifact manifest confirms that this delivery changed no historical run artifact.
+- Because this is enforcement-layer work, the operator has run the declared integration evidence and
+  personally read the diff of the gates and their tests; no harness-run verdict substitutes for that
+  DEC-174 responsibility.
+
 ## Constraints
 
 - **DEC-174 (blocks):** `validate-digest.py`, `check-domain.sh`, `check-state.sh` and each gate's own
@@ -186,4 +205,4 @@ a missing runner.
 
 ## Approval
 
-status: pending
+status: approved — 2026-09-09
