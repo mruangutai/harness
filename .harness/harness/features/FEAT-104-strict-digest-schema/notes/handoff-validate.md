@@ -1,60 +1,60 @@
-# Handoff — FEAT-104, validate → validate (re-panel) — written at 168f875f, seq-6
+# Handoff — FEAT-104, validate → ship — written at 168f875f, seq-7
 
 ## Next
 
-Dispatch `harness-validator-lead` with the `review` team
-(`/Users/molchairuangutai/GitHub/harness/.agents/skills/harness/teams/review.yaml`) at pin
-`168f875f`, `cycle: 9`, run dir `runs/2026-09-09-10-panel-validator/`, handing it
-`runs/2026-09-09-04-panel-validator/digest.md` as the prior set and
-`notes/qa-feat104-tip-168f875f.md` as the QA evidence, so it RE-GRADES F1/F2/F3 rather than
-rediscovering them. F2 is operator-declined under REQ-08/SC-12 with the stranding case reproduced;
-a re-raise must engage that evidence. Increment `cycles_used` to 9 on dispatch — rework, and the
-LAST cycle before the hard bound of 10. Goal-check (SC-01..SC-16, SC-14 struck), the SC-13 UAT and
-the briefing are all still owed and follow only a clean panel.
+Dispatch `harness-product-lead` for pm's GOAL-CHECK of every success criterion in `BRIEF.md`
+(SC-01..SC-16, SC-14 struck) against the pinned tree `168f875f`, each by its own declared `verify:`
+method, writing `notes/research-FEAT-104-goalcheck-ship.md`. Hand it three evidence paths and tell it
+to grade from them rather than re-measure: `runs/2026-09-09-10-panel-validator/digest.md` (panel PASS,
+`code_grade: pass`, `severity_max: med`), `notes/qa-feat104-tip-168f875f.md` (`matrix_ok: true` at this
+exact pin) and `notes/run-artifact-manifest-base.txt` (SC-12's baseline manifest). SC-13 is
+`verify: uat` and NO harness run can close it — carve it out as a named pre-ship operator step, never
+hand it to pm as gradeable. The UAT script and the CEO briefing follow, in that order.
 
 ## Trust
 
-- Tip is `168f875f`; `99035a9c` was amended away and is its SIBLING, both children of `16887ff0` —
-  `git log --oneline`, `git merge-base` — verified-at 168f875f
-- F1 fix present byte-identical to the graded text; F2 hunk absent, `check-state.sh` and
-  `test-check-state.py` byte-identical to old pin `6126ac07`; `validate-digest.py` changes ONE line
-  vs `6126ac07` (the by-file route) — per-file md5 across the three commits — verified-at 168f875f
-- QA PASS, `matrix_ok: true`: unit exit 0/36 files, integration exit 0/70, full suite exit 0/106,
-  all 4 `^FAIL ` lines from `test-factory-claim-mutation.py`'s own proof; F1 CLOSED T-06 12/12,
-  F3 CLOSED T-04 34/34 — `notes/qa-feat104-tip-168f875f.md` — verified-at 168f875f
-- F2's declination is evidenced and corrects round 1: worktree census `discovery 324 /
-  strict_count 4`, and `runs/2026-09-09-02-qa-gate-validator/digest.md` fails under its raw host
-  persona on `failures`/`kinds`/`suite` — same note §7 — verified-at 168f875f
-- SIMPLIFY READY: 0 simplification findings, EMPTY efficiency, altitude `leave`/`leave`, one reuse
-  residual (3 complete + 2 partial predicate spellings) —
-  `runs/2026-09-09-09-simplify-eng/digest.md` — verified-at 168f875f
-- `runs/-06/digest.md` and `runs/-08/digest.md` are contract-invalid and unrepairable through
-  `check-domain.sh:1327`'s prefix-append channel — `validate-digest.py <persona> <path>` exits 1 on
-  both, run here — verified-at 168f875f
+- Panel PASSES at `168f875f`, `must_fix: []`, zero send-backs, all four reviewers PASS; F1 and F3
+  CLOSED, F2's declination upheld with the REQ-08/SC-12 stranding reproduced on the real artifact by
+  two reviewers — `runs/2026-09-09-10-panel-validator/digest.md`, `validate-digest.py
+  harness-validator-lead <path>` exit 0 run here — verified-at 168f875f
+- `review_sha` is `168f875f` and did NOT move; HEAD `71040f1c` is 2 commits ahead, both
+  feature-bookkeeping only — `git diff --name-only 168f875f..HEAD` — verified-at 168f875f
+- `abff2a84` (a FEAT-56 `plan.yaml` station flip) is the CHILD of merge-base `78e34f06`, so it is this
+  branch's root commit and ships with the PR while `code-grade.py`'s merge-base range cannot see it —
+  `git rev-list origin/main..168f875f`, `git show --format=%P abff2a84` — verified-at 168f875f
+- CF-1 is real at source: `check-state.sh:1525-1526` interpolates `run_id` and `_step_id` bare while
+  `_names` beside them is a list repr — read at the pin — verified-at 168f875f
+- `cycles_used` stays 8 of 10; `len(runs)` is 20 of 20, informational and stops nothing —
+  `feature.json`, `validate-feature-json.py` exit 0 — verified-at 168f875f
+- Q1–Q7 in STATE (Q6 blocking) are ALL main-session-only under DEC-174 or above squad authority, so
+  none is routable to a lead — same digest's `escalations` — verified-at 168f875f
 
 ## Dead ends
 
-- Do not route F1, F2, F3 or STATE's Q1/Q2 to any lead: every remedy edits `check-domain.sh`,
-  `check-state.sh`, `validate-digest.py` or their tests — DEC-174 —
-  `runs/2026-09-09-09-simplify-eng/digest.md` — verified-at 168f875f
-- Do not read the absent F2 hunk as a revert: round 1 raised exactly that as `MF-1`, RETRACTED —
-  `runs/2026-09-09-05-qa-gate-validator/digest.md` vs STATE `## Current` — verified-at 168f875f
-- Do not cite round 1's `strict_count: 0` no-op census: falsified, it swept the main checkout where
-  this feature's gitignored `runs/` tree does not exist — `notes/qa-feat104-tip-168f875f.md` §7 —
+- Do not re-run the reviewer panel, qa or simplify at `168f875f`: all three ran at this exact tip —
+  `feature.json` `runs:` — verified-at 168f875f
+- Do not route Q1–Q7 or F2 to any lead: every remedy edits `check-domain.sh`, `check-state.sh`,
+  `validate-digest.py`, their tests, or an approved plan — DEC-174 — same digest — verified-at 168f875f
+- Do not re-raise F2, and do not re-open c7's F4 or F5: F2's declination is upheld on reproduced
+  evidence, F4's premise no longer holds, F5 is what signed T-03 required — same digest — verified-at
+  168f875f
+- Do not attempt to repair `runs/-06/digest.md` or `runs/-08/digest.md`: the append-only correction
+  channel structurally cannot, and it has refused twice — STATE Q6 — verified-at 168f875f
+- Do not increment `cycles_used` for this panel or re-pin `review_sha`: it PASSed with zero
+  send-backs, and re-pinning past `168f875f` invalidates a signed review — `feature.json` —
   verified-at 168f875f
-- Do not re-run QA or simplify at `168f875f`, and do not re-ask the panel's Q2 (retired, STATE Q4):
-  both segments ran at this exact tip — `feature.json` `runs:` — verified-at 168f875f
 
 ## Working set
 
-- `.harness/harness/features/FEAT-104-strict-digest-schema/notes/qa-feat104-tip-168f875f.md`
-- `.harness/harness/features/FEAT-104-strict-digest-schema/runs/2026-09-09-09-simplify-eng/digest.md`
+- `.harness/harness/features/FEAT-104-strict-digest-schema/runs/2026-09-09-10-panel-validator/digest.md`
 - `.harness/harness/features/FEAT-104-strict-digest-schema/BRIEF.md`
+- `.harness/harness/features/FEAT-104-strict-digest-schema/STATE.md`
+- `.harness/harness/features/FEAT-104-strict-digest-schema/notes/qa-feat104-tip-168f875f.md`
 - `.harness/harness/features/FEAT-104-strict-digest-schema/feature.json`
 
 ## Done when
 
-Scope: the reviewer panel has re-run at `168f875f` and re-graded F1, F2 and F3
-Authority: brief-sc:SC-03
-Authority: brief-sc:SC-15
+Scope: pm has graded every BRIEF success criterion against the pinned tree 168f875f
+Authority: brief-sc:SC-12
 Authority: brief-sc:SC-13
+Authority: brief-sc:SC-15

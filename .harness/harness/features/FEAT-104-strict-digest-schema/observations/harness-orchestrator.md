@@ -18,3 +18,25 @@
 - 2026-09-09 (FEAT-104): my own dispatch caused a falsified measurement. I told qa to run the at-rest corpus sweep "from the main checkout" (citing the run-it-where-the-features-are rule) but FEAT-104's runs/ tree is GITIGNORED and exists only in the worktree, so the sweep was structurally blind to every strict record the feature produced: it reported discovery 309 / strict_count 0 and concluded the finding was a no-op. Re-taken from the worktree: 324 / 4, with 1 of the 4 actually failing. The checkout that holds a feature's TRACKED files is not the checkout that holds its gitignored ones.
 - 2026-09-09 (FEAT-104): two lead run digests ended contract-invalid on disk (one missing a required key, one declaring PASS beside a FAIL member step) and NEITHER could be repaired: check-domain.sh:1327 only permits a strict textual prefix-append correction, while validate-digest.py's parser stops at the indent-0 `artifact:` line, so appended text is never parsed. The owning lead was refused twice and had to supersede with a new run dir. Validating a lead's digest with `validate-digest.py <persona> <path>` the moment it returns is worth doing — after the run closes there is no repair route at all.
 - 2026-09-09 (FEAT-104): both lead task results came back marked failed/exit 1 with "Subagent called yield with null data" while their fenced digest and their on-disk artifacts were complete and valid. The transport verdict and the digest verdict are independent; reading only the job status would have discarded two good runs.
+- 2026-09-10: FEAT-104 re-panel. My dispatch REQUIRED a top-level `code_grade` in the validator
+  lead's digest, but `SCHEMAS['lead']` declares no such field, so the demand collided with the very
+  undeclared-key rejection this feature builds; the lead carried it on the `code` member entry and
+  raised the contradiction as Q4. Before demanding a named field from a persona's digest, read that
+  persona's schema entry — a dispatch can ask for something the contract forbids.
+- 2026-09-10: FEAT-104 cycle accounting. The predecessor handoff said increment to 9 for the
+  re-panel; I kept 8. The F1/F3 fix loop was already counted at 7 to 8, and the qa re-run, simplify
+  re-run and panel re-run are all the re-verify LEG of that one loop. DEC-157 counts loops, not runs
+  — its own rationale names counting forward runs as the failure mode. A predecessor's cycle
+  recommendation is a claim, not an instruction.
+- 2026-09-10: FEAT-104. Both budget-gated feature files rejected my FIRST write on length —
+  STATE.md at 143 lines against a 120 cap, handoff-validate.md at 62 against 60. Both caps are
+  enforced at Write time by check-domain, so a full draft then a trim costs two writes every time.
+  Draft to the cap, not to completeness, and move detail into the run digest which has no cap.
+- 2026-09-10: FEAT-104. Telling the panel's qa step to ADOPT same-pin QA evidence and to state the
+  adoption plainly in its note worked: it verified provenance by md5 rather than trusting the path,
+  re-ran only the two applicable kinds, and disclosed that matrix_ok was adopted. An explicit
+  licence to adopt plus a duty to disclose beats both a forced full re-run and a silent adoption.
+- 2026-09-10: FEAT-104. Runs 05 through 10 (six of twenty) all trace to ONE cause: a commit was
+  amended while a validator cycle was live grading it, so the graded base became a SIBLING of the
+  tip rather than its ancestor and everything needed re-grading. That is the expensive shape to
+  watch for, not a high run count on its own.
