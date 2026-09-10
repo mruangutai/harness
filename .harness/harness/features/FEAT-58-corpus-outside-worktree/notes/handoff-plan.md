@@ -1,38 +1,44 @@
-# Handoff — FEAT-58-corpus-outside-worktree, plan → halted — written at 402e23ac, seq-2
+# Handoff — FEAT-58-corpus-outside-worktree, plan → signature gate — written at d6a67f5a, seq-3
 
 ## Next
 
-Do NOTHING until the main session dispatches a new mission naming a new answers file — the operator
-halted this run to rework the definition of done from scratch, and an injected message is explicitly
-not that dispatch. When it comes, step zero is deciding whether BRIEF.md is amended or replaced: the
-operator's direction is a fresh BRIEF and a fresh plan at cycle 0 carrying this run's findings as
-evidence, because 8 of 10 cycles here were spent against a problem statement now believed wrong.
+Present the plan for the operator's signature. It is NOT signable as it stands: the adversarial
+panel returned FAIL at `severity_max: high` with six open high findings (F-01..F-06, recorded in
+`plan.yaml`'s `panel` key with disposition `open`). Under DEC-207 those cannot be fixed by a
+pre-signature dispatch and no agent may risk-accept one — they enter the operator's ONE batched
+review pass, which disposes of each by ordering a fix or by `sign-approval --overrule PF-ID:<reason>`.
+Two of them (F-01, F-02) are genuine scope decisions the operator must make, not defects an agent
+can correct. D-06 also awaits the operator's arm pick, and picking Arm A also signs one named
+pathspec exclusion.
 
 ## Trust
 
-- BRIEF.md and plan.yaml carry the operator's cycle-1 answers and the cycle-2 goal-check gaps and nothing later — `git show 402e23ac` vs working tree, 4 files changed — verified-at 402e23ac
-- Panel cycle 2 PASSED, severity_max med, must_fix empty, both readers ran — runs/planpanel2-validator/digest.md — verified-at 402e23ac
-- 16 tasks, 15 decisions, 12 REQ / 15 SC all traced, depends_on acyclic, check-plan-routes 0 violations — harness_yaml.load_plan + check-plan-routes.py, run by the orchestrator — verified-at 402e23ac
-- Three live defects outliving this plan: merge-gate.py:169, branch-create-gate.sh:38/:88-90, check-domain.sh:2150 — notes/receipt-harness-backend-dev-{arch,denialtier}-eng.md — verified-at 402e23ac
-- 19 of 30 standing checkouts already merged, so most of the footprint is housekeeping — operator, measured at abff2a84 — UNVERIFIED
-- FEAT-02 and FEAT-03-subissue-mirror both claim feat/harness-native-foundation — operator, measured at abff2a84; eng re-derivation concurs from merge commits 37a8a66e / 04a57fcf — UNVERIFIED
+- 9 tasks (N-01..N-09), 12 decisions, BRIEF 10 REQ / SC-01..SC-13, `status: plan`, both approvals `pending` — read from plan.yaml and BRIEF.md by the orchestrator — verified-at d6a67f5a
+- All seven binding items each hold their own REQ and >=1 SC, none merged — BRIEF.md:88-99 coverage table, cross-read against the REQ text at :50-79 — verified-at d6a67f5a
+- Panel recorded: `last_run: planpanel3-validator`, cycle 0, 13 findings, 6 at `severity: high`, every disposition `open` — grepped in plan.yaml — verified-at d6a67f5a
+- Cone mode strips sibling `.harness` subtrees: cone `top` + `.harness/harness/features/FEAT-A` materialises ONLY `top/f`, `.harness/root.md`, `.harness/harness/features/FEAT-A/a.md` — orchestrator's own probe, git 2.50.1 — verified-at d6a67f5a
+- A FILE path in a cone-mode `sparse-checkout set` is a hard fatal at exit 128 without `--skip-checks`; with it, `list` round-trips exactly — orchestrator's own probe, git 2.50.1 — verified-at d6a67f5a
+- 36 of 36 assertion-ledger rows landed after 19->9 consolidation, re-audited by an inverted method — runs/planpanel3-validator/digest.md, corroborating runs/goalcheck3-product — verified-at d6a67f5a
+- The three weight-bearing proofs are each red-capable, and the positive controls now see a NEW nested subtree, not only the one defect that was caught — runs/planpanel3-validator/digest.md — verified-at d6a67f5a
+- The goal-check graded the PRE-amendment plan; no goal-check has read the amended draft. `check-state.sh:551-558` grades that a WARN at signature — runs/panelrecord3-product digest Q1 — UNVERIFIED
 
 ## Dead ends
 
-- The incremental/changed-slice sweep with a version-keyed marker: withdrawn by the operator as solving the wrong problem — Main IRC 2026-09-10 — verified-at 402e23ac
-- Raising max_total_cycles to finish re-shaping this plan: ruled the wrong instrument — Main IRC 2026-09-10 — verified-at 402e23ac
-- Reflink/clonefile as the mechanism, and any du/df byte criterion: both satisfied by the excluded mechanism — .harness/notes/grilling-worktree-corpus-2026-09-09.md "Out of scope" — verified-at 402e23ac
-- Executing any of this through a team run: enforcement-layer changes are made directly — DECISIONS.md DEC-174, corrected in the grilling artifact at :89-92 — verified-at 402e23ac
+- The migration/convergence task, the corpus-root anchor concept, the fifteen-reader ledger, the reflink/clonefile mechanism, every byte-count criterion, the incremental-sweep cache: all six re-derived and confirmed dead, none forced back — runs/arch2-eng/digest.md "Item 7 — the kill list" — verified-at d6a67f5a
+- Adding the branch-uniqueness index to the sparse cone: measured a hard fatal at exit 128; it resolves at the OWNER ROOT — orchestrator probe, git 2.50.1 — verified-at d6a67f5a
+- Repairing `check-domain.sh:2150` as D-2's enforcement: D-2 is already enforced on BOTH write routes through `harness_boundary.classify()`; `:2150` governs a REPORT and folds into the D-3 task — runs/arch2-eng/digest.md Ruling 1 — verified-at d6a67f5a
+- Executing any of this through a team run: DEC-174 puts hooks, validators, gate scripts AND their tests with the main session; all nine tasks are `main-session-direct` — plan.yaml D-07 — verified-at d6a67f5a
+- Editing plan.yaml's top-level `lanes:` block: unwritable by ANY route, and nothing reads it — plan-merge.py:121/:1249 plus a zero-match grep under bin/ and hooks/ — verified-at d6a67f5a
 
 ## Working set
 
 - .harness/harness/features/FEAT-58-corpus-outside-worktree/plan.yaml
 - .harness/harness/features/FEAT-58-corpus-outside-worktree/BRIEF.md
-- .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/answers-operator-c1.md
-- .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/rederive-eng/digest.md
-- .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/planpanel2-validator/digest.md
+- .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/planpanel3-validator/digest.md
+- .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/consolidate-eng/digest.md
+- .harness/notes/dod-worktree-corpus-2026-09-10.md
 
 ## Done when
 
-Scope: a new mission naming a new answers file arrives and the BRIEF is amended or replaced
+Scope: the operator disposes of all six open high panel findings and picks D-06's arm, then signs
 Authority: approval:.harness/harness/features/FEAT-58-corpus-outside-worktree/BRIEF.md#Approval
