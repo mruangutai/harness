@@ -1,0 +1,1360 @@
+schema: plan/1
+feature: FEAT-58-corpus-outside-worktree
+status: plan
+approval:
+  status: pending
+source_issues: [1559]
+
+lanes:
+  resolved_at: abff2a84
+  rows:
+    - surface: .claude/skills/harness/bin/** (non-enforcement scripts)
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: tests/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: harness_boundary.py, check-state.sh, check-domain.sh, feature-worktree.py, merge-gate.py, dispatch-guard.sh, board_lifecycle.py, check-plan-routes.py, validate-feature-json.py, layout_migration.py
+      lane: main-session-direct
+      reason: DEC-174 — these ARE the hooks, validators and gate scripts being changed, so the harness plans this and does not execute it; check-plan-routes prints DEVIATION on the granted bin glob and exits 0, which is the carve-out working
+    - surface: .claude/skills/** outside harness/bin/
+      lane: main-session-direct
+      reason: resolves to NOBODY, no agent domain grants the skill prose surface
+    - surface: .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/migration-record.md
+      lane: main-session-direct
+      reason: a host-state migration record written by the tier that runs the migration; no member domain grants it
+
+decisions:
+  - id: D-01
+    choice: The corpus API lives in .claude/skills/harness/bin/harness_boundary.py beside worktree_owner, as corpus_root, corpus_features and corpus_read.
+    because: A standalone module was rejected — 28 non-test files already import harness_boundary and six of them are the sweeps themselves, so a new module saves no import and would itself import harness_boundary for worktree_owner and resolve_root. materialised_count is cut as unearned.
+    dec: none
+  - id: D-02
+    choice: The incompleteness refusal is INTRINSIC to corpus_features, not a separate refuse_if_incomplete that each sweep opts into.
+    because: The opt-in shape was rejected by proof of construction — the arch-eng run found two corpus sweeps neither the ticket nor the design comment named, so the enumerate-and-edit-each-reader set is demonstrably not closed and a fifteenth reader would silently reopen the fail-open.
+    dec: none
+  - id: D-03
+    choice: The sparse include-list is DERIVED from git ls-tree at worktree creation and immediately positive-controlled by an on-disk required-path existence check.
+    because: A literal source list was rejected — the probe's own list already omits .agents, which holds the skills symlink every dispatch resolves through; and git sparse-checkout set exits 0 both with no arguments and with a pattern matching nothing, so git supplies no error path and only the existence check makes an empty or wrong set loud.
+    dec: none
+  - id: D-04
+    choice: The two providers split by READ KIND — content reads resolve history-first at a named ref, identity and inode reads resolve path-only at the corpus root.
+    because: The design comment's strict ranking of history as authoritative and path as convenience was rejected — check-domain _hardlink_plan matches (st_ino, st_dev), and git history can supply no inode at any ref, so for that caller the path provider is the only correct source.
+    dec: none
+  - id: D-05
+    choice: A task legitimately needing the whole corpus declares corpus with provider and ref on its plan.yaml task, and dispatch-guard.sh refuses the dispatch at exit 2 when the dispatch text carries no matching HARNESS-CORPUS-PROVIDER and HARNESS-CORPUS-REF line.
+    because: |
+      A bare API argument with a default was rejected because it is satisfiable silently. This entry is
+      the SINGLE authority for the corpus declaration mechanism: T-12's implementation, the guard's own
+      comment and T-14's prose all POINT here and none of them restates the rule, so there is exactly
+      one place it can go stale. STATED RESIDUAL, and it is wider than earlier drafts admitted:
+      dispatch-guard.sh checks that the declared provider and ref are PRESENT in the dispatch text and
+      that their values EQUAL the declaration; it cannot check CORRESPONDENCE - that the read the
+      dispatched agent actually performs uses that frame. NOTHING instruments that residual. D-08's lint
+      is NOT a partial instrument against it, and the earlier claim that it was is withdrawn: the lint
+      detects a reader that BYPASSES the API entirely and can see neither which ref a real API call
+      passes nor whether that ref matches any declaration. The residual is accepted and named, not
+      covered.
+    dec: none
+  - id: D-06
+    choice: cmd_remove's dirty check going blind to SKIP_WORKTREE-hidden corpus paths on every later remove is ACCEPTED as a residual, with no second-opinion check added.
+    because: 'A second opinion was rejected as unearned — DEC-208 and DEC-218 bind HARNESS-ROUTED feature writes to the registered worktree, so nothing the harness dispatches writes outside the cone. The justification is deliberately no wider than that: an out-of-band write — a human editing a path directly, or a script run outside the harness — is not bound by those decisions, and after sparsification cmd_remove''s git status --porcelain cannot see it. That is the accepted residual, stated at its true width rather than as "nothing legitimate writes there". T-11 pins what the check must still do — discriminate on a cone-RESIDENT path after sparsification.'
+    dec: DEC-208
+  - id: D-07
+    choice: Every files entry in this plan uses the .claude/ spelling, and no task syncs or maintains a second spelling.
+    because: Measured on the worktree — .agents/skills is a mode-120000 symlink to ../.claude/skills, git tracks exactly one path, and .claude/settings.json invokes every hook through the .claude/ spelling. Maintaining or syncing two spellings was rejected because there is one inode and therefore no divergence to sync.
+    dec: DEC-202
+  - id: D-08
+    choice: The repo lint that forbids corpus enumeration outside harness_boundary.py ships as an integration test under tests/integration, not as a new standalone gate script.
+    because: A new checker was rejected because it would need its own CI wiring, its own guard registration and its own domain grant to gain nothing — the integration kind already runs in CI and in the qa gate, and the directory selects the kind under DEC-213.
+    dec: DEC-213
+  - id: D-09
+    choice: merge-gate keeps ALLOWING a merge whose branch owns no feature when the corpus view is COMPLETE; only an incomplete or unresolvable corpus denies.
+    because: Turning an unattributable branch into a denial was rejected — DEC-138 makes GitHub a mirror and never a gate, and that allow-path is deliberate. What is a defect is allowing it because the reader could not SEE the owning record, which is exactly what an incomplete view produces today.
+    dec: DEC-138
+
+  - id: D-10
+    choice: |
+      T-10 stays main-session-direct, and this entry CORRECTS the lanes row for
+      .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/migration-record.md, whose
+      reason clause "no member domain grants it" is false as measured.
+    because: |
+      check-domain --resolve at abff2a84 grants that path to harness-orchestrator, which dispatches
+      and never executes, so the routing verdict is unchanged while the stated reason was wrong.
+      The correction is recorded here rather than in the row because plan-merge.py has no verb that
+      reaches a top-level key — apply is add-only and exits 7 on a changed value, amend reaches only
+      tasks and decisions. The real reason T-10 is main-session-direct is DEC-174 plus the fact that
+      it changes host disk across every registered worktree.
+    dec: DEC-179
+  - id: D-11
+    choice: |
+      The five non-hook-bound repo-wide sweeps RELOCATE to the corpus root rather than repointing
+      their internal call sites. check-state.sh (T-03) and the four validators (T-04) each resolve
+      root = corpus_root(the root the script already validated) ONCE at the top, call
+      corpus_features(root) ONCE as the completeness gate, and read every corpus-relative path
+      directly against the resolved base thereafter, with no per-site materialised-or-history
+      branch. T-05, T-06 and T-12 are NOT relocated.
+    because: |
+      REJECTED, repoint every reader in place: roughly 25 independently-maintained exists-else
+      branches, 21 of them inside check-state.sh, the tree's highest-traffic gate script. One
+      missed site reads its own sparse tree, the read SUCCEEDS, and nothing reddens - the
+      fail-open this feature exists to close, reopened one site at a time. Relocation deletes the
+      branch instead of centralising it, and the deletion cascades: corpus_open is ruled out at
+      ZERO callers by the deletion test, and the batching finding (13.69 ms per call, about 13 to
+      14 seconds per check-state run) disappears with it, because those reads become plain local
+      open() calls rather than git show subprocesses. Scope is exactly the five because
+      .claude/settings.json registers check-domain.sh, merge-gate.sh and dispatch-guard.sh as hook
+      entry points bound to the caller's cwd, and none of the five appears in that file.
+    dec: none
+
+  - id: D-12
+    choice: |
+      corpus_features stays REF-ONLY, and the ACTIVE in-flight feature enters a sweep's grading
+      scope at the CALLER, as a union over the feature directories materialised under the caller's
+      own checkout. Content reads then resolve through a per-feature bases mapping computed ONCE
+      beside the top-level completeness gate: every ref-resolved name maps to the corpus root, the
+      single in-flight name maps to the caller's own checkout. Completeness is still counted over
+      the ref-resolved set alone.
+    because: |
+      The active feature's record is committed only on its own branch and is absent from the
+      corpus root's default ref, so with no union check-state silently stops grading the very
+      feature being built. REJECTED, union inside corpus_features: a worktree's call would then
+      return one more name than the owner root's own call on the same ref, breaking T-08 case (c)
+      set-equality and inflating M in every count message with an entry the owner root can never
+      satisfy. REJECTED, enumerating linked worktrees from the owner root with git worktree list:
+      it pulls in every other in-flight feature on the machine, while INV-6 and INV-33 grade the
+      ACTIVE feature, singular. REJECTED, falling back to corpus_read at the resolved ref on
+      FileNotFoundError: the only ref that fallback could name is the one which by construction
+      never carries the in-flight feature, so it misses exactly the feature the union exists to
+      grade, and it misses SILENTLY - absent-at-ref is indistinguishable from a genuine invariant
+      absence. Absence under the caller's own base is therefore an ordinary per-invariant absence,
+      never a refusal.
+    dec: none
+
+panel:
+  last_run: planpanel-validator
+  cycle: 1
+  severity_max: high
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+  findings:
+  - id: PF-5945852660e0bd21e2b5aabb8cd48383
+    severity: high
+    reader: should-not-exist
+    summary: 'T-10 (plan.yaml:887) carries depends_on [T-09] only, while T-03, T-04,
+      T-05, T-06 and T-16 all hang off T-01 in parallel, and T-10''s intent (plan.yaml:890-918)
+      carries no execution precondition on the fail-closed readers, so the DAG permits
+      converging every standing worktree while the pre-change gates are still live
+      - reproducing the measured 1-of-88/EXIT=0 fail-open and T-16''s false branch-creation
+      deny host-wide. An edge alone is insufficient: .claude/settings.json:12,23,32,36,40,44,48,57,68
+      registers every hook via ${CLAUDE_PROJECT_DIR}, so a sibling worktree sparsified
+      by T-10 keeps running its OWN branch''s pre-fix check-state.sh over a sparse
+      tree until that branch merges the fixes, an unbounded window the plan nowhere
+      names or accepts. T-10 is the one irreversible task in the plan (~30 checkouts
+      on this host''s disk) and T-08 repeats the shape in miniature for newly created
+      worktrees.'
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  - id: PF-02940a5ba93ee330e767227c76901b86
+    severity: med
+    reader: should-not-exist
+    summary: T-04's intent (plan.yaml:~440-448) mandates two frame lines (ENUMERATION
+      plus CONTENT) in each module's output AND asserts that a whole corpus root entered
+      from a sparse worktree reproduces the pre-change exit status and output byte
+      for byte, which the two added lines make unsatisfiable. The builder resolves
+      the contradiction silently - dropping the frames and weakening REQ-05, or excluding
+      them from the comparison and weakening the parity contract to something never
+      reviewed. T-03 case (b)'s scoping, exit status and the invariant verdict set,
+      is the fix shape.
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  - id: PF-f9bb1e67ce6999bd98169f835f6294ed
+    severity: med
+    reader: scope
+    summary: T-03 (21 sites) and T-04 (check-plan-routes.py:678, :835) pin resolve
+      ONCE per module in prose and test nothing, while T-06 case (g) instruments corpus_features
+      and asserts exactly one call per invocation; multi-site was confirmed independently
+      at no fewer than 17 enumeration sites in check-state.sh (:119,128,130,137,242,272,295,608,1151,1290,1312,1341,1376,1433,1576,1615,1726,2176),
+      the figure 21 neither re-derived nor disputed. A per-site implementation therefore
+      passes every stated T-03/T-04 case silently, multiplying the git ls-tree cost
+      the relocation was justified by cutting and letting two enumerations in one
+      invocation observe a mid-run corpus mutation differently inside what the design
+      treats as one atomic gate.
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  - id: PF-46767d8b63e7aa1a1585cd4639ff2f4c
+    severity: med
+    reader: should-not-exist
+    summary: 'T-12/D-05 buys transcription equality only - D-05 itself concedes the
+      guard cannot check CORRESPONDENCE and that NOTHING instruments that residual
+      - while REQ-05''s frame lines already deliver the auditability the intent asked
+      for, stating provider and ref at the point of read. The price is permanent per-dispatch
+      friction plus a new exit-2 path in a registered gate, in exchange for proving
+      a scribe copied two strings. This is the operator''s call, not pm''s: cutting
+      it needs a BRIEF amendment to SC-14, which is why it must be settled before
+      signature and not at build. Raised as Q1.'
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  - id: PF-fbf676b72589815cd6aba6c677c35370
+    severity: low
+    reader: should-not-exist
+    summary: 'T-05 routes every candidate feature.json through corpus_read, against
+      D-11''s own latency logic: merge-gate.py:132-134 iterates every feature, so
+      one git show each at D-11''s measured 13.69 ms is about 1.2 s per invocation
+      at 88 features and grows linearly, inside a PreToolUse hook - the cost class
+      D-11 deleted corpus_open to avoid. The two-frame shape T-03/T-04 already use
+      supplies the same ref provenance with plain local reads.'
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  - id: PF-5230f48fc9beeeb9461f3120ac174b21
+    severity: low
+    reader: should-not-exist
+    summary: 'T-06 carries a linked_worktrees fix that traces to no REQ: harness_boundary.py:171-175
+      returns [] on OSError, so check-domain.sh:2150-2152''s worktree tier reaches
+      nothing today from inside a worktree. Fixing it inside T-06 makes every governed
+      write start sweeping every sibling worktree for the first time - new reports
+      and new per-write cost, none reviewed against any REQ here. The fix is probably
+      right; it is a rider on a corpus-relocation task. Raised as Q2.'
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  - id: PF-bf86bbbece6a808224e6cdcc21465a15
+    severity: low
+    reader: should-not-exist
+    summary: T-07's sweep rows re-execute all seven refusal cases so they survive
+      deletion of the suites that prove them, deliberately by T-07's own text. CI
+      therefore runs each sweep against partial-corpus fixtures twice, and every legitimate
+      refusal-message change must be edited in two suites or produce a false red.
+      The parity rows plus REQ-09's two discovery instruments already carry the accounting
+      value.
+    disposition: open - awaits the operator's batched signature review under DEC-176;
+      not fixed, not accepted, no risk acceptance recorded
+  assessed_and_dismissed:
+  - item: T-07's subset discovery assertion is vacuous over an empty set
+    reason: 'dismissed by the scope reader and concurred by the lead: T-07 depends_on
+      T-03/T-04/T-05/T-06/T-08/T-13/T-16, so real callers exist by then, and the plan
+      already discloses the soundness-not-completeness limit in its own text'
+  - item: origin/main literal brittleness in T-10's second verify and the five merge-base
+      sites
+    reason: already surfaced in notes/research-FEAT-58-planfix-dispositions.md under
+      Open, for the operator; re-raising is re-finding
+  - item: the three pre-briefed items - refusal predicate fixed at all three sites,
+      the 11 to 12 to 14 to 15 reader ledger now deliberately OPEN, and main-session-direct
+      on enforcement-path tasks
+    reason: withheld from both readers, and neither reader re-raised them
+  open_questions:
+  - id: Q1
+    question: T-12/D-05 enforces the corpus provider+ref declaration at dispatch-guard.sh,
+      but D-05 concedes the guard cannot check CORRESPONDENCE and that NOTHING instruments
+      that residual, so it buys transcription equality while REQ-05's recorded frame
+      lines already state provider and ref at the point of read. Keep the gate-enforced
+      declaration (permanent per-dispatch friction plus a new exit-2 path in a registered
+      gate), or cut it for declaration-by-recorded-output? Cutting needs a BRIEF amendment
+      to SC-14 and may DELETE T-12, so it must be settled before signature, not at
+      build.
+    blocking: true
+  - id: Q2
+    question: T-06 carries a linked_worktrees fix (harness_boundary.py:171-175 returns
+      [] on OSError, so check-domain.sh:2150-2152's worktree tier reaches nothing
+      from inside a worktree) that traces to no REQ in this BRIEF, and fixing it here
+      makes every governed write start sweeping every sibling worktree for the first
+      time. Keep it as a rider on T-06, or split it into its own change where its
+      new reach is what is under review?
+    blocking: false
+tasks:
+  - id: T-01
+    title: Add the corpus API to harness_boundary.py with refusal intrinsic to corpus_features
+    traces: [REQ-02, REQ-03, REQ-04, REQ-05, SC-03, SC-05]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — harness_boundary.py is the resolver every hook, validator and gate script imports
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - tests/unit/test-corpus-boundary.py
+    verify: |
+      python3 tests/unit/test-corpus-boundary.py && python3 tests/unit/test-harness-boundary.py
+    intent: |
+      EXECUTION PRECONDITION, AND IT BINDS THE WHOLE BUILD, NOT ONLY THIS TASK: the operator gated
+      EXECUTION of this effort on FEAT-57's replay manifest and dataset being FROZEN and SPOT-CHECKED -
+      inside FEAT-57's build, not at its terminal state (BRIEF.md ## Constraints, the Sequencing entry).
+      T-01 is the first executed task in this plan (depends_on: []), so the hold lands here: do not open
+      any file for this task until that freeze is in place and has been spot-checked, and if it is not,
+      report the precondition as UNMET and stop rather than proceeding. Planning had no precondition;
+      execution does, and every other task in this plan depends transitively on this one, so a hold here
+      holds the build. T-15's own in-file gate on the same freeze is unchanged and ADDITIONAL - it grades
+      the manifest at assertion time, which is a different moment from this entry hold.
+
+      Add THREE public functions to .claude/skills/harness/bin/harness_boundary.py - corpus_root,
+      corpus_features and corpus_read, and no fourth - placed immediately after worktree_owner so the
+      derivation sits at the seam that already answers "which checkout am I in". Write
+      tests/unit/test-corpus-boundary.py FIRST and record its failing output before any of this exists.
+
+      1. corpus_root(cwd)
+      Returns the absolute path of the ONE materialised copy of the feature corpus, or None.
+      Body: owner_root from worktree_owner(cwd); when that yields no owner root, fall back to
+      resolve_root(<this file's dir>). When BOTH fail, return None. It NEVER falls back to cwd, and it
+      holds no cache and no module state. In a checkout that is not a linked worktree worktree_owner
+      returns (cur, cur, True), so this returns cwd's own root - that identity is the whole of REQ-10
+      and T-02 pins it.
+
+      2. corpus_features(root, *, provider="history", ref=None)
+      Returns the sorted list of feature directory NAMES the corpus holds. The signature is exactly
+      that: provider and ref are keyword-only, and provider is an explicit token, never inferred from
+      whether ref is None. provider="history" enumerates from history - git ls-tree -d --name-only
+      <ref>:.harness/<segment>/features - with ref given or defaulted to the repository's default
+      branch. provider="path" lists the directories under <root>/.harness/*/features and RAISES
+      ValueError if a ref is also passed, because path enumeration is ref-independent and a supplied ref
+      there is a contradiction, not something to ignore silently. Any other provider value raises
+      ValueError. A git invocation that fails (not a repository, ref absent, corrupt object) is a
+      REFUSAL, never an empty set.
+
+      THE PREDICATE, AND IT IS THE CORRECTION THIS TASK EXISTS FOR: the completeness compare counts the
+      feature directories materialised UNDER root ITSELF - the value already passed in - against
+      len(resolved). It NEVER re-derives a second, independent os.getcwd(). Counting the caller's own
+      checkout is 1 vs 88 on every legitimate call inside a converged worktree, which is the end state
+      REQ-01 mandates, so corpus_features would never return and T-08 case (c), SC-03 and REQ-02 would
+      all be unreachable from the very call meant to satisfy them.
+
+      THE REFUSAL IS INSIDE THIS FUNCTION AND THERE IS NO SEPARATE OPT-IN CALL (D-02). provider selects
+      WHICH READ KIND runs, never WHETHER the completeness check runs, so it is not the opt-out D-02
+      forbids. Do NOT add a refuse_if_incomplete() helper, a strict= flag, or any argument that makes
+      the refusal optional. Three refusal states, distinguishable by their messages:
+        (A) root unresolvable (no owner root, and the resolve_root fallback also failed): raise
+            CorpusIncomplete - a new exception class defined in this module - naming that the corpus
+            root could not be resolved and which inputs were tried, carrying NO N of M count.
+        (B) the ref cannot be resolved, or git ls-tree fails while building the resolved set: raise
+            CorpusIncomplete naming the ref that could not be resolved, carrying NO N of M count.
+        (C) root resolves to a real directory whose OWN materialised set is short of the resolved set:
+            raise CorpusIncomplete whose str() names, in one line, the count as "N of M features
+            materialised", the corpus root used, and the provider and ref read. This is the ONLY N of M
+            trigger. In production it fires only when the owner root's own never-sparse invariant is
+            violated - a migration mistargeting the owner root, a manual git sparse-checkout run there,
+            or partial corruption - and it is that invariant's last-line defence, not dead code. A
+            blobless or partial clone of the owner root does NOT trigger it: a blob filter does not
+            affect tree listing, only later content reads. Say that in the docstring so nobody expects
+            (C) to catch it.
+
+      EVERY ONE OF THE THREE MESSAGES STATES A NEXT STEP, not only the fault. A bare "1 of 88 features
+      materialised at <root>" states a fact to a reader who has never heard of this feature, and no gate
+      can redden on a message that is merely present. Each message ends with what to do: for (C), that
+      the corpus root itself is unexpectedly sparse and the operator should check for a sparse-checkout
+      applied to the owner root before re-running; for (A), which resolution inputs were tried and what
+      to set; for (B), the ref that was asked for and where it came from. The next-step clause is part
+      of the contract and is asserted in its own right, not covered by the token assertions.
+
+      3. corpus_read(path, ref)
+      Returns the CONTENT of one corpus-relative path as a str, or None. History-first: git show
+      <ref>:<path> at the corpus root. None means "absent at that ref" and must be distinguishable by
+      the caller from an empty file - return None for absent and "" for an empty blob, and say so in the
+      docstring. Never swallow a git failure into "". Its callers are T-15 (a recorded, possibly stale
+      ref) and T-05 (ref provenance in a deny message); it is deliberately NOT the read path for T-03
+      and T-04, which read locally against a resolved base under D-11.
+
+      Do NOT add a corpus_open. Under D-11's relocation it has zero callers, and a wrapper over a branch
+      whose two arms have collapsed to one is dead code masquerading as an abstraction.
+
+      tests/unit/test-corpus-boundary.py - direct python3, no pytest, following
+      tests/unit/test-harness-boundary.py's conventions exactly: the same sys.path anchor preamble, the
+      same check()/failures accounting, fixtures under tempfile.mkdtemp() so no repo state is touched,
+      and HARNESS_BOUNDARY_BIN honoured so a mutant copy can be pointed at. Required cases, each
+      asserted individually:
+        (a) corpus_root in a fixture linked worktree returns the OWNER root, not the worktree.
+        (b) corpus_root with neither an owner root nor a resolvable root returns None.
+        (c) corpus_features over a fixture git repo standing as its OWN corpus root, with M feature
+            directories committed and only one materialised under that root, raises CorpusIncomplete
+            whose message contains "1 of M", the corpus root, the ref AND a next-step clause.
+        (d) the same fixture fully materialised returns the sorted M names and raises nothing - and this
+            case is executed from a cwd that is a SPARSE fixture worktree of that root, so it proves the
+            predicate reads the root and not the caller's checkout. It reddens under the pre-correction
+            predicate and is the pinned proof of the correction.
+        (e) an unresolvable ref raises CorpusIncomplete naming the ref, with NO "of" count substring -
+            it does NOT return [].
+        (f) an unresolvable root raises CorpusIncomplete naming what could not be resolved, with NO
+            count substring.
+        (g) corpus_read returns committed content at a ref, returns None for a path absent at that ref,
+            and returns "" for a committed empty file - three separate assertions.
+        (h) NO opt-out exists: corpus_features' signature carries no parameter whose name contains
+            "strict", "refuse" or "force"; provider and ref are keyword-only; and the module exposes no
+            refuse_if_incomplete, no corpus_open and no materialised_count attribute.
+        (i) provider="path" with a ref raises ValueError; an unknown provider raises ValueError;
+            provider="path" with no ref returns the on-disk names.
+      RED PROOF, recorded in your receipt: the file's output before the change (ImportError /
+      AttributeError), and after the change, cases (c), (d), (h) and the next-step assertion reddened one
+      at a time in a temp COPY of harness_boundary.py with the corresponding behaviour removed.
+
+  - id: T-02
+    title: Pin corpus_root identity in a plain non-worktree checkout
+    traces: [REQ-10, SC-12]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    files:
+      - tests/unit/test-corpus-root-identity.py
+    verify: |
+      python3 tests/unit/test-corpus-root-identity.py
+    intent: |
+      Write tests/unit/test-corpus-root-identity.py, asserting the composition that makes CI and a
+      fresh clone unaffected by this feature. Today it holds only by code reading — tests.yml:50 is
+      a plain actions/checkout@v4 with no sparse step, and worktree_owner (harness_boundary.py
+      :715-758) returns (cur, cur, True) when it finds a .git DIRECTORY — so nothing reddens if it
+      breaks. That inference is what this file replaces.
+
+      Cases, over a fixture built with tempfile.mkdtemp() and git init (a PLAIN checkout, never a
+      linked worktree — do not call git worktree add anywhere in this file):
+        (a) corpus_root(<fixture root>) == <fixture root>, by os.path.realpath comparison.
+        (b) corpus_root from a nested subdirectory of that fixture still returns the fixture root.
+        (c) corpus_features over the fully materialised fixture returns every feature directory and
+            raises nothing — a plain checkout never refuses, because nothing is unmaterialised.
+        (d) the fixture's .git is a DIRECTORY, asserted explicitly, so a future change that makes
+            the fixture a linked worktree cannot make (a) pass for the wrong reason.
+      Conventions: mirror tests/unit/test-harness-boundary.py's preamble and check() accounting.
+      Runnable directly with python3, no pytest, no network, no subprocess beyond git on the
+      fixture. Record in your receipt that (a) reddens when corpus_root's fallback is changed to
+      return None in a temp copy.
+
+  - id: T-03
+    title: Route every check-state.sh corpus sweep through corpus_features
+    traces: [REQ-03, REQ-04, REQ-05, SC-04, SC-05, SC-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — check-state.sh is the state gate itself, the enforcement path this feature changes
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - tests/integration/test-check-state-corpus.py
+    verify: |
+      python3 tests/integration/test-check-state-corpus.py && python3 tests/integration/test-check-state-records.py && python3 tests/integration/test-check-state-worktrees.py && python3 tests/integration/test-check-state-handoff.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-check-state-plans.py && python3 tests/integration/test-check-state-entry.py
+    intent: |
+      SERIALISATION, READ THIS FIRST: .claude/skills/harness/bin/check-state.sh is also edited by
+      FEAT-57's T-19. Do not open this file until FEAT-57's T-19 has landed on the default branch, and
+      re-read the file at that point rather than working from any line number quoted here. Two authors
+      in this file at once is a merge conflict in the tree's most-run gate.
+
+      RELOCATE this script to the corpus root (D-11). Do not repoint its ~21 internal glob sites one at
+      a time - that is the enumerate-and-edit-each shape D-11 rejects, and one missed site reads the
+      sparse tree successfully and reddens nothing.
+
+      Change shape, and it is three moves at the top of the python body plus a mechanical rewrite below:
+
+        1. Resolve ONCE: root = harness_boundary.corpus_root(<the root this script has already
+           validated>). check-state.sh already resolves and validates a root of its own near the top -
+           pass THAT value in, never a second os.getcwd(). Two independently derived root sources in one
+           script can disagree, and the disagreement is silent.
+        2. Gate ONCE: feats = harness_boundary.corpus_features(root). Let CorpusIncomplete propagate to
+           exactly one catch at the outermost level, which prints its message verbatim to stderr and
+           exits NON-ZERO before any invariant runs. A partial sweep must produce no invariant verdicts
+           at all - a refusal that still prints "all state invariants hold" for the subset it saw is the
+           defect, not a lesser form of it. That single call is what discharges SC-04 for this reader;
+           it tests the corrected predicate itself.
+        3. Union in the ACTIVE feature at the CALLER, per D-12: the grading scope is feats UNION the
+           feature directories physically materialised under this script's own cwd, minus anything
+           already in feats. The active in-flight feature's record is committed only on its own branch
+           and is absent from the corpus root's default ref, so without this union INV-6 and INV-33
+           silently stop grading the feature being built. The union never happens inside
+           corpus_features, and completeness is still counted over the ref-resolved set alone.
+
+      Then build a per-feature bases mapping ONCE, immediately beside that gate: bases[name] = root for
+      every name in the ref-resolved set, and bases[name] = this script's own cwd for the single
+      in-flight name the union added. Every subsequent read is
+      open(os.path.join(bases[feat], relpath)) - a per-FEATURE lookup fixed before any read runs, never
+      a per-PATH existence branch, and never a fallback to corpus_read. This SUPERSEDES the earlier
+      wording "read it through corpus_read at the resolved ref when the path is not materialised": that
+      wording is the per-site branch D-11 deletes. A required file absent under the in-flight feature's
+      base is an ORDINARY per-invariant absence, reported exactly as any other feature's missing
+      required file - never a refusal, and never an uncaught FileNotFoundError.
+
+      Derive every per-feature path from the resolved set instead of from a glob. Enumerate the glob
+      sites yourself at the file's then-current state - there were 21 at abff2a84, hand-counted from
+      grep - rather than trusting that count.
+
+      Record TWO frame lines in the run's output, never one collapsed line: (1) the ENUMERATION frame -
+      provider=history, ref=<resolved ref> - naming what the top-level corpus_features(root) gate used,
+      unchanged by this task; and (2) the CONTENT frame - provider=path, base=<root> - naming that every
+      subsequent read came from the owner root's on-disk working tree. When the D-12 cwd union added the
+      active in-flight feature to this run's scope, the content frame additionally names that feature by
+      id and its distinct base explicitly, e.g. provider=path, base=<root> (default); <feature-id>:
+      base=<cwd> - never a single aggregate base line that would silently attribute that feature's bytes
+      to root. This discharges REQ-05: the completeness gate's history frame and the content read's path
+      frame are never merged into one line.
+
+      tests/integration/test-check-state-corpus.py - direct python3, subprocess against the real script,
+      following tests/integration/test-check-state-records.py's conventions. Cases:
+        (a) a fixture whose CORPUS ROOT resolves to M features with fewer than M materialised under
+            that root: the script exits NON-ZERO, its output contains "N of M", the corpus root, and a
+            next-step clause the operator can act on, and contains NO invariant-pass line. Assert the
+            next-step clause separately from the token presence.
+        (b) a fixture whose corpus root is whole, entered from a SPARSE worktree of it: exit status and
+            the invariant verdict set are byte-identical to the pre-change script's on the fully
+            materialised fixture. This is the case the pre-correction predicate fails, and it is the
+            proof that the sweep works from inside a converged worktree.
+        (c) an unresolvable corpus (corpus root removed, partial view left on disk): exits non-zero
+            naming what could not be resolved, prints NO count, and sweeps nothing.
+        (d) the ACTIVE in-flight feature, materialised under cwd and absent at the ref, is graded: an
+            INV-6/INV-33 violation planted in it is reported, and a required file missing from it is
+            reported as an ordinary invariant failure rather than a refusal.
+        (e) RED FIRST, a required deliverable: run the PRE-change check-state.sh from
+            git show <sha>:<path> against fixture (a), assert it exits 0 having swept a subset, and keep
+            that assertion in the file as the pinned reproduction of the measured 1 of 88 / EXIT=0.
+      <sha> in this file resolves ONCE, at task-execution time, as
+      git merge-base <default-branch> HEAD - this repository's own code-grade.py convention. Do not use
+      "the commit before my own edit": once tasks in this plan land sequentially, that ref silently
+      includes a predecessor task's fix and the red assertion stops proving what its comment claims.
+
+  - id: T-04
+    title: Adopt the fail-closed corpus contract in the four validator sweeps
+    traces:
+    - REQ-03
+    - REQ-04
+    - REQ-05
+    - SC-04
+    - SC-05
+    - SC-09
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — all four are validators in the enforcement path
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/validate-feature-json.py
+      - .claude/skills/harness/bin/layout_migration.py
+      - tests/unit/test-corpus-sweep-validators.py
+      - tests/integration/test-corpus-sweep-validators.py
+    verify: |
+      python3 tests/unit/test-corpus-sweep-validators.py && python3 tests/integration/test-corpus-sweep-validators.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-check-plan-routes.py && python3 tests/integration/test-validate-feature-json.py && python3 tests/integration/test-layout-migration.py
+    intent: |
+      Four corpus sweeps RELOCATE to the corpus root (D-11), exactly as T-03 does. Each keeps its own
+      behaviour; what changes is where it reads from.
+
+        - board_lifecycle.py _feature_dirs (:472-477) - glob of .harness/*/features/*/feature.json.
+          Every downstream check consumes this set, so it is the single substitution point.
+        - check-plan-routes.py - TWO sites: :678 (glob of the features dir plus os.scandir per
+          directory) and :835 (glob of .harness/*/features/*). Both.
+        - validate-feature-json.py :42-44 - its docstring at :11-15 already states it sweeps every
+          execution-state file on disk; update that sentence to say it sweeps the resolved corpus.
+        - layout_migration.py _evidence (:186-192) - glob of .harness/*/features/*/feature.json. It is
+          an executable CLI with a real main() at :367-376, NOT fixture support.
+
+      Re-derive every line number above against the file you actually open; they are recorded at
+      abff2a84 and a predecessor task may have moved them.
+
+      Per module, the same three moves T-03 makes:
+        1. root = harness_boundary.corpus_root(<the root the module already resolved, else its own
+           single cwd derivation>) - resolved ONCE, never twice, and never a second independent
+           os.getcwd() beside a root the module was already given.
+        2. feats = harness_boundary.corpus_features(root) called ONCE as the completeness gate, before
+           any verdict is produced. Do NOT catch CorpusIncomplete locally: let it propagate to the CLI
+           boundary, print its message and exit non-zero having produced no verdicts.
+        3. Union the ACTIVE in-flight feature at the caller (D-12): the module's scope is feats UNION
+           the feature directories materialised under its own cwd, minus anything already in feats.
+
+      Then build the per-feature bases mapping ONCE beside that gate - bases[name] = root for every
+      ref-resolved name, bases[name] = the module's own cwd for the single in-flight name - and read
+      every corpus-relative file as open(os.path.join(bases[feat], relpath)). This SUPERSEDES the
+      earlier wording "read it through corpus_read at the resolved ref when the path is not
+      materialised", which is the per-site branch D-11 deletes. An absent required file under the
+      in-flight base is an ordinary per-invariant absence, never a refusal and never an uncaught
+      FileNotFoundError.
+
+      Each module records TWO frame lines in its output, never one collapsed line: (1) the ENUMERATION
+      frame - provider=history, ref=<resolved ref> - naming what the top-level corpus_features(root)
+      gate used, unchanged by this task; and (2) the CONTENT frame - provider=path, base=<root> - naming
+      that every subsequent read came from the owner root's on-disk working tree. When the D-12 cwd union
+      added the active in-flight feature to that module's scope, the content frame additionally names
+      that feature by id and its distinct base explicitly, e.g. provider=path, base=<root> (default);
+      <feature-id>: base=<cwd> - never a single aggregate base line that would silently attribute that
+      feature's bytes to root. This discharges REQ-05: the completeness gate's history frame and the
+      content read's path frame are never merged into one line.
+
+      tests/unit/test-corpus-sweep-validators.py - import each of the four modules and stub
+      harness_boundary.corpus_features to raise CorpusIncomplete; assert each module's entry point
+      propagates rather than degrading to an empty set. FOUR SEPARATE assertions, one per module, never
+      a loop with one aggregate count.
+
+      tests/integration/test-corpus-sweep-validators.py - subprocess each of the four against a fixture
+      whose CORPUS ROOT is short of its resolved set; assert per module: exit non-zero, "N of M", the
+      corpus root, and a next-step clause present in the output, and no verdict lines. Assert the
+      next-step clause separately from the token presence - substring presence on three tokens is what
+      MF-3 found unenforceable. Then assert per module that a whole corpus root entered from a SPARSE
+      worktree of it reproduces the pre-change exit status and output byte for byte. RED FIRST: run
+      each module's pre-change copy from git show <sha>:<path> against the partial fixture and assert it
+      exits 0 - four assertions, kept in the file. <sha> resolves ONCE, at task-execution time, as
+      git merge-base <default-branch> HEAD, this repository's own code-grade.py convention.
+
+  - id: T-05
+    title: Close merge-gate's corpus fail-open — an unresolvable owner set denies the merge
+    traces: [REQ-03, REQ-04, SC-04, SC-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — merge-gate.py is a registered PreToolUse gate script
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/merge-gate.py
+      - tests/integration/test-merge-gate.py
+    verify: |
+      python3 tests/integration/test-merge-gate.py
+    intent: |
+      merge-gate.py feature_for (:132-142) globs .harness/*/features/*/feature.json to find which
+      feature owns the branch being merged. main() at :167-171 then reads "if not owners: ... return" -
+      it ALLOWS the merge. Under a partial corpus view that branch is reached because the owning
+      feature.json is not on disk, so a merge that owes a build-entry receipt is permitted silently.
+      The defect is latent today and is ARMED by this feature, which is why it is closed here.
+
+      merge-gate.py is NOT relocated (D-11 scopes relocation to the five non-hook-bound scripts; this
+      one is a registered PreToolUse hook and reads at the caller's entry point).
+
+      Change: resolve root through harness_boundary.corpus_root(<the root merge-gate.py already
+      resolves near the top>), never a second independent os.getcwd() beside it - two root sources in
+      one script can disagree silently. Resolve the candidate set through
+      harness_boundary.corpus_features(root) and read each candidate's feature.json through
+      corpus_read at the resolved ref rather than globbing the working tree. corpus_read, not a plain
+      open, is deliberate here: this gate must NAME the ref it read in its deny message, pinned to the
+      same ref its own corpus_features call just used, and that provenance is a distinct concern from
+      whether the path happens to be materialised.
+
+      Keep the deliberate allow-path for a COMPLETE view (D-09): a branch that genuinely owns no
+      feature record still returns and still prints its existing stderr line, because DEC-138 makes
+      GitHub a mirror and never a gate. What changes is that an INCOMPLETE or unresolvable corpus can no
+      longer reach that branch: catch CorpusIncomplete and call deny() with its message - the count line
+      where there is one, the corpus root, the provider and ref - plus one clause saying the merge
+      cannot be attributed because the record could not be read, and one clause saying what to do next
+      (which root to check, or what to re-resolve). A deny reason an operator cannot act on is the
+      failure MF-3 names. The duplicate-owner denial at :172-175 is unchanged.
+
+      Add cases to tests/integration/test-merge-gate.py, following the conventions already in that file:
+        (a) corpus root short of its resolved set, branch owned by a feature whose record is not
+            readable: the hook emits a permissionDecision of deny, and the reason contains the count,
+            the corpus root AND a next-step clause - the last asserted in its own right. RED FIRST:
+            assert the pre-change merge-gate.py from git show <sha>:<path> emits NO deny for the same
+            input; that assertion stays in the file as the pinned reproduction of the confirmed
+            fail-open. <sha> resolves ONCE, at task-execution time, as git merge-base <default-branch>
+            HEAD, this repository's own code-grade.py convention.
+        (b) complete corpus view, branch owns no feature: allowed, exactly as today, and the existing
+            stderr line is unchanged. This case is what stops the fix from being a blanket denial.
+        (c) complete view, branch owned by one feature with a build-entry receipt: unchanged.
+        (d) complete view, two features claiming the branch: the existing duplicate denial fires.
+        (e) run from inside a SPARSE worktree whose corpus root is whole: identical verdicts to (b),
+            (c) and (d) - the sweep must work from the converged end state, not refuse in it.
+
+  - id: T-06
+    title: Repoint both check-domain.sh corpus enumerations at the corpus root
+    traces: [REQ-03, REQ-04, SC-04, SC-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — check-domain.sh is the registered PreToolUse domain guard
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - tests/integration/test-check-domain-corpus-hardlink.py
+    verify: |
+      python3 tests/integration/test-check-domain-corpus-hardlink.py && python3 tests/integration/test-check-domain-worktree.py
+    intent: |
+      _hardlink_plan (check-domain.sh :1898-1923) resolves whether a write target IS a plan.yaml under
+      another name, by matching (st_ino, st_dev) against every .harness/*/features/*/plan.yaml it can
+      glob. Under a sparse worktree that candidate set shrinks to one feature and the identity match
+      silently fails, so a hardlinked write to another feature's plan escapes the plan route.
+
+      This reader takes the PATH provider and only the path provider (D-04): an inode exists on disk and
+      git history can supply none at any ref.
+
+      Change: do NOT retarget the raw glob at a new root. CALL THE API -
+      harness_boundary.corpus_features(harness_boundary.corpus_root(<the root check-domain.sh already
+      resolves>), provider="path") - and build the candidate plan.yaml paths from the names it returns,
+      joined under the resolved corpus root. That is the one materialised copy, and the only place the
+      candidate inodes actually exist. A hardlink forged inside a sparse worktree targets the
+      owner-root file, so scanning at the corpus root is MORE correct than today's local scan, not a
+      workaround. Calling the API rather than keeping a retargeted glob is also what removes this script
+      from T-13's lint at the source - T-06 is deliberately NOT allow-listed there.
+
+      When corpus_root returns None or corpus_features refuses, REFUSE the write with a message naming
+      what could not be resolved and what to do about it; do not fall back to the local glob, and do not
+      allow. The st_nlink < 2 cheap gate at :1913 stays exactly as it is - it keeps this off the common
+      path, and its cost was measured as noise.
+
+      SECOND ENUMERATION IN THE SAME FILE, CONVERTED BY THE SAME MECHANISM - do not leave it. SWEEP_GLOBS
+      (check-domain.sh :1069, aliasing _SWEEP_PATTERNS at :1052-1062) is a second corpus enumeration two
+      hundred lines below _hardlink_plan, consumed at :2147 (root) and :2150-2151 (per linked worktree).
+      Five of its six patterns are literal .harness/*/features/* strings - the identical fail-open one
+      call-site over - and T-13's lint, a wildcard in the FEATURE position, trips on them. CONVERT, do
+      not exempt: T-13's intent already states this file is corrected at the source rather than
+      allow-listed, and adding a T-13 allow-list entry for it is REJECTED.
+
+      The conversion, precisely:
+        - ONE harness_boundary.corpus_features(harness_boundary.corpus_root(root), provider="path") call
+          per invocation - the SAME call this task already introduces for _hardlink_plan. Compute the
+          owner root and the sorted feature-name list ONCE and share them between the two branches. Never
+          twice in one invocation, and never once per checkout.
+        - Build the five feature-relative suffixes - feature.json, runs/*/state.yaml, notes/handoff-*.md,
+          STATE.md, plan.yaml - as constants joined per ENUMERATED feature name, in place of the literal
+          .harness/*/features/* wildcard.
+        - CLAUDE.md stays a literal single-file check: it is the one non-corpus pattern in
+          _SWEEP_PATTERNS and nothing here touches it.
+        - RETAIN the inner runs/* and handoff-* wildcards. They enumerate runs and handoffs WITHIN an
+          already-named feature, never the FEATURE position, so T-13's lint does not trip on them.
+        - The WORKTREE TIER AT :2149-2151 SURVIVES, unsubsumed and unreplaced. It enumerates CHECKOUTS
+          from git's own worktree pointer files, an axis orthogonal to which features exist; the
+          :1044-1051 comment records the measured 38-file regression that losing it would reopen.
+        - A refusal in the sweep path is REPORTED, never absorbed: when corpus_features raises
+          CorpusIncomplete here, print its message to stderr rather than letting the existing
+          except Exception at :2152-2153 swallow it. A PostToolUse sweep cannot deny after the fact, so an
+          absorbed refusal is a clean report over a partial view - this feature's own defect. The
+          deliberate absorb for a genuinely unimportable module (:2141-2143) stays, and is distinguished
+          from a root that resolved and came up short.
+
+      THE COST OBJECTION DOES NOT STAND, and the number is measured, not assumed: the converted shape is
+      FASTER by -0.1751 ms per checkout per invocation (N=100 samples per approach, corpus size 88
+      features, five glob.glob traversals of .harness/*/features/* versus one corpus_features
+      path-provider call plus a per-feature join). Recorded in
+      notes/receipt-harness-backend-dev-framefix-eng.md; the measuring script was a throwaway under /tmp
+      and is deliberately not committed.
+
+      A LIVE LATENT DEFECT IN THE SAME LINES - a FIX, not a refactor. :2150 calls
+      linked_worktrees(root). harness_boundary.linked_worktrees lists <owner_root>/.git/worktrees and
+      returns [] on OSError. In a linked worktree .git is a FILE, not a directory, so that listdir raises,
+      the except swallows it, and the worktree tier reaches NOTHING whenever the hook fires from inside a
+      worktree - the common case, since every harness agent works in one (DEC-143). Correct it to
+      linked_worktrees(harness_boundary.corpus_root(root)), reusing the SAME owner-root value already
+      computed once above. Say in the code comment that this was a live latent defect, so the tier's
+      survival is a claim a test grades rather than a formality.
+
+      tests/integration/test-check-domain-corpus-hardlink.py - follow the conventions in
+      tests/integration/test-check-domain-worktree.py, and import that suite's shared driver rather than
+      rebuilding one: check_domain_support.py's drive() and _env() are the required entry points for
+      invoking the guard with a synthetic tool payload and environment. Cases:
+        (a) a hardlink created inside a sparse fixture worktree, pointing at a plan.yaml that exists
+            only at the corpus root: the write is DENIED and the message names the plan it really
+            reaches. RED FIRST: the pre-change check-domain.sh from git show <sha>:<path> allows the
+            same write - keep that assertion. <sha> resolves ONCE, at task-execution time, as
+            git merge-base <default-branch> HEAD, this repository's own code-grade.py convention.
+        (b) an ordinary single-link write to a non-plan path: allowed, and st_nlink < 2 means the scan
+            never runs (assert by pointing the corpus root at a nonexistent directory and observing the
+            write is still allowed).
+        (c) corpus_root unresolvable with a hardlinked plan target: refused, naming the corpus root it
+            could not resolve and the next step.
+        (d) the module calls corpus_features with provider="path" and no ref - assert it, because
+            passing a ref there is a ValueError under T-01's signature and this is the only caller that
+            exercises the path provider.
+        (e) THE CONVERTED SWEEP TIER: fire the hook from inside a sparse fixture worktree whose corpus
+            root is whole, and assert the post-write sweep reaches the corpus-root files of features NOT
+            materialised in that worktree - assert the reached path SET by name, never a count. RED
+            FIRST: the pre-change check-domain.sh from git show <sha>:<path> reaches none of them for the
+            same input; keep that assertion.
+        (f) THE WORKTREE TIER SURVIVES, and the linked_worktrees correction is what makes it work: fire
+            the hook FROM INSIDE a linked fixture worktree and assert the sweep reaches a matching file
+            in a SIBLING linked worktree of the same owner root. RED FIRST: with linked_worktrees given
+            the worktree's own root - the pre-change spelling - the tier reaches nothing, because .git is
+            a file there. Assert the reached path set, never a count; a count is satisfied by the root
+            tier alone and is blind to an empty worktree tier.
+        (g) ONE enumeration per invocation: with corpus_features instrumented, assert exactly one call
+            per hook invocation on a payload that exercises both the hardlink check and the sweep.
+
+  - id: T-07
+    title: Produce the corpus-reader disposition record with per-reader parity and a discovery-subset assertion
+    traces: [REQ-09, SC-09]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on:
+    - T-03
+    - T-04
+    - T-05
+    - T-06
+    - T-08
+    - T-13
+    - T-16
+    files:
+      - tests/integration/test-corpus-reader-parity.py
+    verify: |
+      python3 tests/integration/test-corpus-reader-parity.py
+    intent: |
+      SC-09 grades INSTRUMENTS, not a count. This task produces the reader record as an executable file
+      and adds the second instrument the ledger's OPEN status requires.
+
+      THE LEDGER IS OPEN AND STAYS OPEN. It is carried as named evidence -
+      .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/receipt-harness-backend-dev-arch-eng.md -
+      and never as a number. Do not write a reader count into this file, into its output, or into a
+      comment. The concrete reason it is open: three further hook-registered gate scripts named in
+      .claude/settings.json - bash-write-guard.sh, gh-close-gate.sh, plan-sign-gate.sh - were never
+      classified by that ledger. Do NOT classify them in this task and do not add work for them; record
+      the reason and let the instruments cover the risk.
+
+      Write tests/integration/test-corpus-reader-parity.py. It holds the named readers as a
+      module-level list of (name, disposition) pairs, asserts that the SET of names equals the set of
+      reader basenames the file actually asserts on - so a reader dropped from the list cannot silently
+      stop being graded - and prints one line per reader naming its disposition. Assert set equality,
+      never a length.
+
+      The readers and their dispositions, as classified by measurement in the arch-eng receipt and
+      extended by this plan:
+        SWEEPS, refusal asserted by SC-04's own suites (7): check-state.sh, board_lifecycle.py,
+          check-plan-routes.py, validate-feature-json.py, layout_migration.py, merge-gate.py,
+          check-domain.sh.
+        API-CALLING GATE, behaviour asserted by its own suite (1): branch-create-gate.sh (T-16) - flow
+          membership through corpus_features with the path provider.
+        SINGLE-FEATURE, parity asserted here (3): quarantine.py (args.feature is required=True at :238,
+          so its one wildcard at :117 varies the repo segment and never the feature),
+          factory_decompose.py (zero walk sites; feat_dir is a CLI positional), feature_schema.py (its
+          two glob.glob occurrences are inside docstrings and never run).
+        PATH-LOGIC, parity asserted here (2): feature_json_write.py (regex shape validation, no
+          directory listing at all), feature-worktree.py - parity asserted over the functions T-08
+          LEAVES ALONE, naming them explicitly, since T-08 edits cmd_create and adds
+          sparse_include_list and verify_required_paths; scope the row the same way the harness_boundary
+          row is scoped.
+        FIXTURE-ONLY, parity asserted here (1): layout_fixtures.py.
+        THE HOST MODULE (1): harness_boundary.py - parity over its PRE-EXISTING functions only
+          (worktree_owner, resolve_root, root_above), since the corpus API is what T-01 adds.
+        NOT A CONTENT READER, listed so nobody hunts for an API call that is not there (1):
+          dispatch-guard.sh (T-12) compares declared provider and ref strings against the dispatch text
+          and performs no corpus read of any kind.
+
+      PARITY ROWS: for each parity reader, assert INDIVIDUALLY that exit status AND stdout are identical
+      when the same input is run (i) inside a fixture worktree whose corpus is sparse and (ii) inside a
+      fully materialised fixture checkout. Never an aggregate count of matches: a count is satisfied by
+      the conformers alone.
+
+      SWEEP ROWS: the row must not be satisfiable by a file merely existing and containing the reader's
+      name in a comment - that is green after the refusal case is deleted. Each sweep row EXECUTES the
+      reader once against the same partial-corpus-root fixture this file already builds and asserts it
+      exits non-zero and prints its refusal message. This intentionally overlaps SC-04's task-owned
+      suites: those prove the behaviour, this row is the accounting instrument that survives one of
+      those files being deleted.
+
+      THE DISCOVERY-SUBSET ASSERTION, the second instrument, run in this same file: a second scan over
+      the same git-index tracked-file set T-13 enumerates - reuse T-13's enumeration, do not duplicate
+      it - matching files that call harness_boundary.corpus_features(, harness_boundary.corpus_read( or
+      harness_boundary.corpus_root(, or the bare names after a from harness_boundary import, excluding
+      harness_boundary.py itself by exact basename. Assert that every file the discovery pattern finds
+      is a MEMBER of this file's named-reader list. This is a SUBSET assertion - soundness, not
+      completeness - and the file must say so in a comment: the named list also carries readers cleared
+      by INSPECTION because they touch no corpus API and no violating glob shape at all
+      (quarantine.py, factory_decompose.py, feature_json_write.py among them), and no regex derives that
+      clearance. Completeness over inspection-cleared readers is NOT mechanisable, and this file states
+      that rather than inventing an instrument that cannot fire. What the pair buys: a new reader that
+      bypasses the API is caught by T-13's violation scan; one that calls the API but was never added to
+      this list is caught here.
+
+      RED PROOF, two of them, recorded in your receipt: point one parity reader at a mutated copy that
+      reads its own working tree and record that its row reddens while the others stay green; and remove
+      one API-calling reader from the named list and record that the discovery-subset assertion reddens.
+
+  - id: T-08
+    title: Derive the sparse include-list at worktree creation and positive-control it on disk
+    traces: [REQ-01, REQ-02, SC-01, SC-02, SC-03, SC-13]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — feature-worktree.py is the worktree lifecycle gate script
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/feature-worktree.py
+      - tests/unit/test-sparse-include-list.py
+      - tests/integration/test-feature-worktree-sparse.py
+    verify: |
+      python3 tests/unit/test-sparse-include-list.py && python3 tests/integration/test-feature-worktree-sparse.py && python3 tests/integration/test-feature-worktree.py
+    intent: |
+      cmd_create (feature-worktree.py :99-135) currently runs git worktree add and stops, so the new
+      worktree materialises the whole corpus. Add two steps after the existing step 5, before the
+      destination is printed.
+
+      STEP A - derive the include-list, never enumerate it in source (D-03). Add a pure function
+      sparse_include_list(owner_root, ref, segment, active_id) that returns the cone patterns, derived
+      in three moves:
+        1. git ls-tree --name-only <ref> for the top level: include every entry WHOLE except .harness.
+        2. git ls-tree --name-only <ref> -- .harness/: include every entry whole except the repo
+           segment(s) that hold features/ (today only .harness/harness).
+        3. for each such segment: include its non-features children whole, plus
+           .harness/<segment>/features/<active_id> alone.
+      This is cone mode's native shape - recurse fully into a listed leaf, list-only at its ancestors,
+      everything unlisted excluded - so NO negation and no non-cone pattern is needed. Never hardcode a
+      path list: the probe's enumerated list already omitted .agents, which holds the skills symlink
+      every dispatch resolves through. Then run git sparse-checkout set with the derived patterns in the
+      new worktree.
+
+      STEP B - the positive control, and it is the only thing that makes a wrong set loud. Measured in a
+      throwaway scratch repo: git sparse-checkout set exits 0 BOTH with no arguments AND with a pattern
+      matching nothing, and git sparse-checkout list echoes the nonexistent pattern back. Git has no
+      error path here.
+
+      EXPORT the control as a public function of this module: verify_required_paths(dest, segment,
+      active_id) checks, on disk under dest, that each of the REQUIRED_WORKTREE_PATHS set exists -
+      .agents/skills, .claude/skills, .harness/<segment>/features/<active_id>,
+      .harness/team-config.yaml, .harness/harness.json, tests - and returns the missing ones. It is
+      public because T-09's migration and T-10's --verify call THIS function rather than restating the
+      set; a second literal would let a later required path leave migration applying a weaker control
+      than creation, which is exactly the state D-03 says only the control can detect.
+
+      cmd_create calls it after set. If anything is missing, print a message that names the cause class
+      and the remedy, not only the path: that the derived sparse cone did not materialise required
+      paths, which usually means the derivation or the ref is wrong, and that the destination is being
+      removed so the command can be re-run once that is fixed. Then remove the half-built worktree with
+      git worktree remove run from the OWNER ROOT (never from inside the destination) and exit non-zero.
+      Mirror tests.yml's repository-state gate (:296-299), which derives its expectation from git
+      ls-files rather than from the checker being gated, for the same reason: a checker cannot be its
+      own positive control.
+
+      tests/unit/test-sparse-include-list.py - import feature-worktree.py by importlib (the module name
+      carries a dash) and test sparse_include_list against a fixture git repo: the derived list contains
+      every top-level entry the fixture's ls-tree reports except .harness; it contains .agents
+      explicitly; it names features/<active_id> and NO other feature; and adding a new top-level
+      directory to the fixture and re-deriving includes it with no source edit. Also assert
+      verify_required_paths is importable as a public name and returns the missing set for a
+      deliberately incomplete destination.
+
+      tests/integration/test-feature-worktree-sparse.py - create a real worktree of a fixture repository
+      through cmd_create. Cases:
+        (a) ls <worktree>/.harness/<segment>/features | wc -l returns 1 and the entry is the active id.
+            RED FIRST: the same command against a worktree created by the pre-change path returns the
+            full fixture corpus count - keep that assertion.
+        (b) find <worktree> -type f | wc -l is at least an order of magnitude below the pre-change
+            count, AND zero of those files lie under .harness/<segment>/features/ outside the active id.
+            Assert the second clause separately; it is the discriminating one.
+        (c) from inside the worktree, corpus_features resolves the SAME set of feature names as the
+            owner root's default branch (set equality, not a count), and a content search over the
+            corpus returns a path set equal to the owner root's for the same query.
+        (d) the positive control fires: stub the derivation to return a pattern matching nothing, assert
+            cmd_create exits non-zero, names the missing required path AND the cause class and remedy,
+            and leaves no worktree behind.
+        (e) SC-13: commit a NEW feature directory on the fixture's default branch, then re-run
+            find <worktree> -type f | wc -l against the already-created worktree and assert the count is
+            unchanged.
+      Never use du anywhere in this file: it reports logical size and would pass a wrong implementation.
+
+  - id: T-09
+    title: Write the in-place worktree migration, cleanliness evaluated before the cone changes
+    traces: [REQ-06, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — it drives feature-worktree.py's cone and the registered worktree set
+    depends_on: [T-08]
+    files:
+      - .claude/skills/harness/bin/migrate-worktree-corpus.py
+      - tests/unit/test-corpus-migration-order.py
+      - tests/integration/test-corpus-migration-refusal.py
+    verify: |
+      python3 tests/unit/test-corpus-migration-order.py && python3 tests/integration/test-corpus-migration-refusal.py
+    intent: |
+      New script .claude/skills/harness/bin/migrate-worktree-corpus.py that converges standing worktrees
+      IN PLACE. It removes nothing, re-clones nothing, and never calls git worktree remove or git
+      worktree add.
+
+      Per linked worktree of the owner root, in this exact order:
+        1. count: ls .harness/<segment>/features | wc -l equivalent, before.
+        2. dirty check: git status --porcelain in that worktree. THIS RUNS BEFORE THE CONE CHANGES, and
+           the order is the whole point. SKIP_WORKTREE makes an already-sparse worktree report clean for
+           excluded paths, so a dirty check performed after sparsification cannot see a modification in
+           a path the new cone excludes. While the worktree is still fully materialised every tracked
+           path is compared normally.
+        3. dirty means REFUSE: leave that worktree completely untouched, record the reason, and continue
+           to the next one. A refusal is per worktree, never a global abort.
+        4. clean means git sparse-checkout set with the patterns from feature-worktree.sparse_include_list
+           for that worktree's own active id, then the SAME required-path control - IMPORT
+           verify_required_paths from feature-worktree.py via importlib, exactly as this script already
+           imports sparse_include_list, and CALL it. Do not restate the required-path list here; a
+           second literal is how migration silently drifts to a weaker control than creation. A failed
+           control is a refusal with the worktree left as found where possible.
+        5. count after, and the per-worktree record row.
+
+      THE OWNER ROOT IS NEVER A MIGRATION TARGET, and this is a GUARD, not a convention. Before step 4
+      for any entry, compare the resolved candidate path against harness_boundary.corpus_root of it (and
+      against the owner root the enumeration started from) and REFUSE that entry - recording the reason
+      as "owner root, never sparsified" - rather than passing it to git sparse-checkout set. Nothing
+      else in this plan forbids handing the owner root to that command, and T-01's refusal state (C) is a
+      post-hoc DETECTOR, not a guard: it fires only after the damage, and the damage is total. The owner
+      root holds the ONE materialised copy of the corpus, so sparsifying it destroys availability
+      (REQ-02) for every reader on the host at once, and every reader then refuses correctly at the very
+      moment the record is unreadable.
+
+      This script enumerates across MULTIPLE linked worktrees rather than through any single resolved
+      root, which is why T-13 allow-lists it by exact basename.
+
+      It writes a markdown record at the path given by --record, one row per linked worktree with: the
+      worktree id, the before count, the after count, its dirty status, and an explicit refusal reason
+      where it was refused. It also writes the enumerated basename set BEFORE and AFTER, so "none
+      removed, none added" is checkable from the record alone.
+
+      Add a --verify mode that takes the same --record path, re-enumerates the linked worktrees live,
+      and exits non-zero unless ALL of: the live basename set equals the record's after-set; every live
+      worktree either shows a materialised feature count of exactly 1 or appears in the record with a
+      refusal reason; and verify_required_paths returns empty for every non-refused live worktree. The
+      last clause is not optional - without it a wrong-but-nonempty cone verifies clean, which is the
+      one failure the control exists to catch. This mode is what T-10's verify runs.
+
+      tests/unit/test-corpus-migration-order.py - assert the ORDER, not the effect: with the git calls
+      stubbed and recorded, status --porcelain is invoked before sparse-checkout set for every worktree,
+      and for a worktree reported dirty, sparse-checkout set is never invoked at all. Assert per
+      worktree, not as a total count of calls. Assert also that verify_required_paths is the imported
+      function object from feature-worktree.py, not a local definition.
+      Assert also, as its OWN case, the OWNER-ROOT EXCLUSION: over a stubbed enumeration that yields the
+      owner root itself alongside two linked worktrees, git sparse-checkout set is NEVER invoked with the
+      owner root as its cwd or its target, and that entry is refused with a reason naming it as the owner
+      root. Assert the owner-root entry individually, never as a total call count - a count is satisfied
+      by the two conforming worktrees. RED PROOF: remove the guard in a temp copy and record that exactly
+      this case reddens while the ordering cases stay green.
+      tests/integration/test-corpus-migration-refusal.py - over fixture worktrees:
+        (a) SC-10 red-first: modify a tracked file that the NEW cone would EXCLUDE, run the migration,
+            assert it refuses that worktree non-zero and leaves the modification in place. Then run a
+            deliberately wrong implementation that checks dirtiness AFTER sparsification and assert it
+            sees an empty git status --porcelain and proceeds - keep that as the pinned demonstration of
+            the failing state.
+        (b) a clean fixture worktree converges: after-count is 1, before-count was greater, the basename
+            set is unchanged, and the required-path control passed.
+        (c) --verify exits non-zero when a record's after-set disagrees with the live set.
+        (d) the required-path control FIRES AT MIGRATION: stub sparse_include_list to return a pattern
+            set that omits a required path, run the migration over a clean fixture worktree, and assert
+            it refuses that worktree non-zero naming the missing path. Without this case nothing proves
+            the control runs on the path that converts the standing worktrees, as opposed to only on the
+            creation path T-08 tests.
+        (e) --verify exits non-zero for a worktree whose cone is nonempty but missing a required path,
+            even though its feature count is 1.
+
+  - id: T-10
+    title: Run the migration over every standing worktree and emit the per-worktree record
+    traces: [REQ-06, REQ-07, SC-06, SC-07]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — it changes this host's disk across every registered worktree and drives the worktree lifecycle gate's cone; check-domain --resolve grants the record path to harness-orchestrator alone, which dispatches rather than executes (D-10)
+    depends_on: [T-09]
+    files:
+      - .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/migration-record.md
+    verify: |
+      python3 .claude/skills/harness/bin/migrate-worktree-corpus.py --verify --record .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/migration-record.md
+      python3 -c 'import subprocess,sys; b=subprocess.run(["git","merge-base","origin/main","HEAD"],capture_output=True,text=True); sys.exit("merge-base failed: "+b.stderr) if b.returncode else None; r=subprocess.run(["git","log","--diff-filter=D","--name-only","--format=",b.stdout.strip()+"..HEAD","--",".harness/harness/features"],capture_output=True,text=True); sys.exit("git log failed: "+r.stderr) if r.returncode else None; sys.exit("record deleted: "+r.stdout) if r.stdout.strip() else None'
+    intent: |
+      Run migrate-worktree-corpus.py once against this host's owner root, over EVERY linked worktree it
+      enumerates, and commit the record it writes to
+      .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/migration-record.md.
+
+      Rules, all binding:
+        - No worktree is removed and none is created. Do not call git worktree remove or git worktree
+          add, and do not remove a worktree you are inside - git worktree remove exits 0 when run from
+          inside the tree it deletes.
+        - A worktree reported dirty is REFUSED and left exactly as found, with the reason in its record
+          row. Do not clean it, do not stash, do not ask it to be re-run.
+        - The record carries, for every linked worktree: its id, the before and after feature counts,
+          its dirty status, and a refusal reason where applicable, plus the enumerated basename set
+          before and after so "none removed, none added" is readable from the record alone. Every
+          non-refused row must read an after-count of 1. The record states the live worktree count it
+          observed; do not copy a count from BRIEF.md, which records a measurement taken at abff2a84
+          before two throwaway probe worktrees were removed.
+        - Counts are ls of the features directory. Never du: it reports logical size and is forbidden as
+          footprint evidence in this feature.
+
+      The second verify command is SC-07's history check. It is BOUNDED and it asserts BOTH conditions:
+      the range is pinned as git merge-base origin/main HEAD .. HEAD, so no historical deletion outside
+      this feature's own range can decide the result, and the check fails when git log's return code is
+      non-zero OR when its stdout is non-empty. git log exits 0 whatever it prints, so a status-only
+      assertion can never go red and an emptiness-only assertion passes when the command errors; both
+      halves are required. Re-derive origin/main against the repository's actual default branch before
+      running.
+
+  - id: T-11
+    title: Pin what cmd_remove's dirty check must still discriminate after sparsification
+    traces: [REQ-06]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-09]
+    files:
+      - tests/integration/test-feature-worktree.py
+    verify: |
+      python3 tests/integration/test-feature-worktree.py
+    intent: |
+      D-06 accepts a residual: cmd_remove's dirty gate (feature-worktree.py :218-229) calls
+      git status --porcelain, and on a permanently-sparse worktree SKIP_WORKTREE makes that command
+      blind to tracked paths outside the cone. The residual is accepted because DEC-208 and DEC-218
+      bind feature writes to the registered worktree, so nothing legitimate writes there. What must
+      NOT silently rot is the part of the gate that still works.
+
+      Add cases to tests/integration/test-feature-worktree.py, in that file's existing style:
+        (a) create a fixture worktree, sparsify it through the migration path, then modify a
+            tracked file INSIDE the cone (the worktree's own feature directory, or a source file
+            the cone includes). Assert cmd_remove still exits 4, still prints WOULD DISCARD naming
+            that path, and removes nothing. This is the discrimination that must survive.
+        (b) the same sparsified worktree with a clean cone: cmd_remove reaches its later gates as
+            before — assert by exit status and message, not by actually removing anything.
+        (c) a comment in the file, one paragraph, recording the KNOWN residual: a modification to a
+            tracked path OUTSIDE the cone is invisible to this gate by design, accepted under D-06.
+            Do not write an assertion that pretends otherwise, and do not add a second-opinion
+            check here — that was considered and rejected.
+      Never call git worktree remove against a directory you are inside.
+
+  - id: T-12
+    title: Enforce the corpus provider and ref declaration at dispatch-guard.sh
+    traces: [REQ-05, SC-14]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — dispatch-guard.sh is a registered dispatch gate script
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/dispatch-guard.sh
+      - tests/integration/test-dispatch-guard.py
+    verify: |
+      python3 tests/integration/test-dispatch-guard.py
+    intent: |
+      A plan task that legitimately reads the whole corpus declares it on the task, as a mapping:
+        corpus:
+          provider: history
+          ref: <sha or branch>
+      provider is exactly one of history or path. Nothing else in plan.yaml changes and no schema key is
+      removed; harness_yaml already tolerates additional task keys.
+
+      Extend dispatch-guard.sh so that when the dispatched task's plan entry carries a corpus mapping,
+      the dispatch text MUST carry both a HARNESS-CORPUS-PROVIDER line and a HARNESS-CORPUS-REF line
+      whose values equal the declared ones. Absent or mismatched, the guard REFUSES at exit 2, naming
+      which line is missing or which value disagrees AND what to add. This is mechanically the same
+      refusal the guard already performs for HARNESS-FEATURE-TREE-ROOT (DEC-214) - reuse that code path
+      and its message shape rather than writing a second one. A task with no corpus mapping is
+      unaffected: the guard must not start demanding the lines from every dispatch.
+
+      This guard reads no corpus content and calls no corpus API - it compares declared strings against
+      the dispatch text. It is listed as such in T-07's reader record so nobody hunts for an API call
+      that is not there.
+
+      D-05 is the SINGLE AUTHORITY for this mechanism. The guard's own comment records, in one sentence,
+      a POINTER to D-05 and the residual D-05 states - presence and value equality are enforced,
+      correspondence between the declared frame and the read the dispatched agent actually performs is
+      not, and nothing instruments that residual. Do not restate the rule itself in the comment; a
+      fourth full statement is a fourth place to go stale.
+
+      Add cases to tests/integration/test-dispatch-guard.py:
+        (a) task declares corpus, dispatch text carries neither line: exit 2, message names the missing
+            line and what to add. RED FIRST: the pre-change guard from git show <sha>:<path> exits 0 on
+            the same input - keep that assertion. <sha> resolves ONCE, at task-execution time, as
+            git merge-base <default-branch> HEAD, this repository's own code-grade.py convention; do not
+            use "the commit before my own edit", which silently absorbs a predecessor task's fix.
+        (b) task declares corpus, dispatch carries both lines with matching values: exit 0.
+        (c) task declares corpus, dispatch carries both lines but a DIFFERENT ref: exit 2 naming the
+            disagreement.
+        (d) task declares no corpus, dispatch carries neither line: exit 0, unchanged.
+      Assert each case's exit status individually.
+
+  - id: T-13
+    title: Lint that no file outside harness_boundary.py enumerates the feature corpus
+    traces: [REQ-03, REQ-04]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on:
+    - T-03
+    - T-04
+    - T-05
+    - T-06
+    - T-08
+    - T-09
+    - T-16
+    files:
+      - tests/integration/test-corpus-reader-lint.py
+    verify: |
+      python3 tests/integration/test-corpus-reader-lint.py
+    intent: |
+      This is the instrument that reddens when a corpus reader is written that BYPASSES the API. D-02
+      puts the refusal inside corpus_features so a new reader that USES the API cannot fail open; this
+      lint is what catches one that never calls it. Its sibling instrument is T-07's discovery-subset
+      assertion, which catches the opposite case - an API caller nobody added to the reader list.
+
+      Write tests/integration/test-corpus-reader-lint.py, which walks every tracked file under
+      .claude/skills/harness/bin/ and asserts that no file outside the allow-list constructs a corpus
+      enumeration. Derive the pattern from the weakest fragment every real site necessarily contains - a
+      features path segment carrying a wildcard in the FEATURE position, in any of the shapes the tree
+      actually uses: os.path.join(..., "features", "*", ...), a literal .harness/*/features/* string,
+      glob.glob over it, os.walk of a features directory, Path.iterdir over one, and the shell shapes
+      this tree also uses (ls -d over a features path, and a shell glob expanded into a features
+      directory) - branch-create-gate.sh carried exactly that last shape. Grep each candidate pattern
+      against the real tree before pinning it; a pattern derived from the commonest site is blind to the
+      variant ones.
+
+      Enumerate the tracked file set from the git index, not from a directory walk, so an untracked
+      scratch file cannot redden the lint and a deleted file cannot be missed. Expose that enumeration
+      as an importable helper: T-07's discovery scan reuses it rather than duplicating it.
+
+      ALLOW-LIST, exactly two basenames beyond harness_boundary.py itself, matched by exact basename,
+      each carrying its stated reason as a comment beside it:
+        - feature-worktree.py - T-08's sparse_include_list builds the cone the corpus API itself depends
+          on, and runs BEFORE any corpus is readable, so it cannot route through the API.
+        - migrate-worktree-corpus.py - T-09 enumerates across multiple linked worktrees during
+          migration, not through any single resolved root.
+      T-06 (check-domain.sh) and T-16 (branch-create-gate.sh) are NOT allow-listed: both are corrected
+      to call corpus_features with the path provider, which removes them from the trip at the source
+      rather than exempting them. Do not allow-list by prefix or directory, and do not add a suppression
+      comment mechanism - a suppression comment recreates D-05's own named residual one layer down,
+      since nothing rechecks that its justification still holds after a later edit.
+
+      REQUIRED SELF-DEFENCE, and without it this file proves nothing: carry a POSITIVE CONTROL - a
+      fixture buffer containing a known-violating line for EACH shape enumerated above, asserted to be
+      FLAGGED, one assertion per shape - and assert the search's exit status rather than only that the
+      violation count is zero. An absence-count check passes when the search errors.
+
+  - id: T-14
+    title: Carry the corpus anchor into the agent-facing prose
+    traces: [REQ-11, SC-11]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for both prose surfaces this task writes, each measured with --resolve this run - .claude/skills/** outside harness/bin/ and .claude/commands/harness.md - so neither is grantable to any member domain; a DEC-174 carve-out. The lanes block's third main-session-direct row names only the skills surface, and the command surface is recorded here rather than there because plan-merge.py has no verb that reaches a top-level key (D-10).
+    depends_on: [T-01, T-08]
+    files:
+    - .claude/skills/harness-handoff/SKILL.md
+    - .claude/skills/harness/SKILL.md
+    - .claude/skills/harness-spec-driven/SKILL.md
+    - .claude/commands/harness.md
+    - tests/integration/test-corpus-prose-anchor.py
+    verify: |
+      python3 tests/integration/test-corpus-prose-anchor.py
+    intent: |
+      Prose has no gate, and an agent that runs ls on its own worktree's features directory and
+      concludes the record is gone is the same fail-open in prose. Three surfaces state the anchor, and
+      one live violating artifact is fixed.
+
+        - .claude/skills/harness-handoff/SKILL.md, in the existing "Harness-owned paths" section: add
+          that a feature worktree materialises ONLY its own feature directory; that every other
+          feature's record is read from the corpus root OUTSIDE the worktree, through
+          harness_boundary.corpus_root / corpus_features / corpus_read; and that enumerating the record
+          relative to your own checkout is never correct and never tells you what exists. Say plainly
+          that an empty listing means "not materialised here", never "not recorded".
+        - .claude/skills/harness/SKILL.md: the same anchor, one short paragraph, plus that a reader
+          which sees fewer features than its corpus root holds REFUSES rather than reporting clean.
+        - .claude/skills/harness-spec-driven/SKILL.md: how a task that legitimately needs the whole
+          corpus declares it - the corpus mapping with provider and ref on the task, enforced by
+          dispatch-guard.sh at exit 2 - written where the task-field rules already live, and written as
+          a POINTER to D-05 rather than a restatement of the rule. D-05 is the single authority for that
+          mechanism; a fourth full statement of it is a fourth place to go stale.
+
+        - .claude/commands/harness.md - THE ONE LIVE VIOLATING ARTIFACT, verified present at :45 this
+          run: "No argument -> list in-flight features from .harness/harness/features/*/feature.json"
+          is exactly the checkout-relative enumeration REQ-11 forbids, and post-convergence it reports
+          one flow - the main session's own feature - as the whole in-flight set. Rewrite that bullet to
+          resolve the in-flight set at the corpus root through harness_boundary.corpus_root /
+          corpus_features, and to say that an in-flight feature's own record may be materialised only in
+          its own worktree. Re-derive the line number against the file you open; it is recorded at this
+          run's tip. This is a fix, not an anchor surface: it is graded by the sweep's absence assertion
+          below, not by a per-file anchor-token assertion.
+
+      Do not add a new skill file, and do not restate the mechanism in a fourth place.
+
+      ALSO WRITE tests/integration/test-corpus-prose-anchor.py, the sweep SC-11 needs, and it is NOT a
+      closed enumeration of the three files this task edits. A closed list reddens for nothing when a
+      27th skill file is added, which is the same closed-set failure that let branch-create-gate.sh go
+      unnoticed - it already recurred inside this feature, which is why the sweep is glob-based and not
+      advisory.
+
+        - SCOPE: glob every .claude/skills/**/SKILL.md, every .claude/agents/*.md AND every
+          .claude/commands/*.md - the command surface is in scope because the plan's own open-set sweep
+          was blind to it while it held the one live violation, which is the closed-set failure this
+          sweep exists to prevent, one directory over. Assert over the whole globbed set that no live
+          agent-facing instruction directs a reader to enumerate the record relative to its own
+          checkout. Assert additionally, per ANCHOR file and individually (three separate assertions,
+          never a file-global search), that the corpus anchor sentence is present via a named token; the
+          command file is not an anchor file and gets no anchor-token assertion. Keep the scope
+          GLOB-BASED: never a closed enumeration of the files this task edits.
+        - REF RESOLUTION, stated because review_sha is legally "none" until the Building to Review seam
+          and a naive git show then either dies or silently reads the working tree: resolve the ref ONCE
+          as review_sha when the feature record carries a pinned one, else HEAD, and PRINT which was
+          used on the first line of output. Read every file through git show <ref>:<path>, never the
+          working tree. A run that fell back to HEAD is still valid evidence, provided it says so.
+        - SELF-DEFENCE: pair the absence search with a POSITIVE CONTROL that must match, and assert the
+          search's own exit status - an absence count alone passes when the search errors. Assert also
+          that the globbed set is non-empty and larger than three, so a glob that matched nothing cannot
+          read as a clean sweep.
+
+      This file is SC-11's evidence, not a competing gate: SC-11 is graded by inspection, by the named
+      reader harness-ui-reviewer, who reads this sweep's output together with the anchor paragraphs.
+      Write that relationship into the file's header comment so the two do not drift into disagreeing
+      about the grading method.
+
+  - id: T-15
+    title: Assert every FEAT-57 replay-manifest note path resolves from a converged worktree
+    traces: [REQ-08, SC-08]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01, T-08]
+    files:
+      - tests/integration/test-corpus-manifest-paths.py
+    verify: |
+      python3 tests/integration/test-corpus-manifest-paths.py
+    intent: |
+      PRECONDITION, AND IT IS A GATE IN THIS FILE, NOT A NOTE TO THE READER: FEAT-57's replay manifest
+      and dataset must be frozen and spot-checked before this task's assertions mean anything. Nothing
+      at plan level sequences one feature against another, so the precondition is enforced where it can
+      be: the test's FIRST action resolves the manifest path, and if the manifest is absent, or if the
+      ref it records does not resolve, or if the manifest declares a path count that disagrees with what
+      it contains, the test exits NON-ZERO with a message saying the precondition is unmet and naming
+      which half failed. It must never skip, never pass vacuously, and never pin a moving target.
+
+      Write tests/integration/test-corpus-manifest-paths.py. It reads FEAT-57's frozen replay manifest,
+      extracts EVERY note path the manifest cites, and asserts for each one INDIVIDUALLY that
+      harness_boundary.corpus_read(path, ref) returns non-empty content at the ref the manifest records,
+      executed from inside a converged (sparse) fixture worktree where the path is NOT materialised.
+
+      Assert per path, never an aggregate resolvable-count: a count is satisfied by the conformers alone
+      and is blind to the one path that resolves to nothing. Assert also that the number of paths
+      extracted is greater than zero and equals the number the manifest declares - a test that extracted
+      nothing must not read as all-resolvable. Print one line per path so the evidence names them.
+      RED PROOF: point one asserted path at a ref where it does not exist and record that exactly that
+      row reddens.
+  - id: T-16
+    title: Resolve branch-create-gate.sh's flow lookup at the corpus root
+    traces: [REQ-03, REQ-09, SC-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 plus .claude/settings.json registering branch-create-gate.sh as a PreToolUse hook command - it is enforcement-path source, so the harness plans it and does not execute it
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/branch-create-gate.sh
+      - tests/integration/test-branch-create-gate-corpus.py
+    verify: |
+      python3 tests/integration/test-branch-create-gate-corpus.py
+    intent: |
+      branch-create-gate.sh resolves its root through harness_boundary.resolve_root at line 38 and
+      then globs $root/.harness/harness/features/${flow}* at line 89 to decide whether a named
+      flow exists. resolve_root is environment-aware and returns THIS CHECKOUT's root, never the
+      owner root - verified at source, and harness_boundary.py's own docstring for resolve_root
+      says so. Post-convergence that directory holds exactly one feature, so creating a branch for
+      any OTHER flow is DENIED at line 90 with a message saying no feature directory for that flow
+      exists and that flows are created by /harness-plan. The plan exists; the message is false
+      and the remedy it gives is wrong. This feature is what arms that defect, so it closes it
+      here rather than shipping a convergence that breaks flow branch creation on this host.
+
+      Re-derive both line numbers against the file you open; they are recorded at abff2a84.
+
+      Change, two edits and nothing else:
+        1. Line 38: replace harness_boundary.resolve_root(sys.argv[1]) with
+           harness_boundary.corpus_root(sys.argv[1]) inside the existing inline python -I -c call,
+           leaving the surrounding shell, the empty-or-not-a-directory guard at 39-42 and its
+           exit 2 exactly as they are. corpus_root returns the owner root from a worktree and the
+           checkout's own root from a plain checkout, so a non-worktree host is unaffected.
+        2. Lines 88-90: replace the ls -d glob with an inline python3 call - the script already
+           shells to python3 twice, so this adds no new dependency - which imports
+           harness_boundary and decides flow-prefix membership through
+           corpus_features(root, provider="path"), printing a token the shell tests. Deny only
+           when no resolved feature name starts with the flow id. Correct the deny message while
+           you are there: it must name the corpus root it searched, and it must NOT tell the
+           operator to re-plan a flow that is already planned. Say that no feature directory whose
+           name starts with the flow id exists at that corpus root, and that the next step is to
+           check the flow id spelling, or run /harness-plan if the flow genuinely has no record.
+      Calling the API rather than keeping a raw glob is also what keeps this script off T-13's
+      lint, which is why T-13 depends on this task instead of allow-listing the file.
+
+      tests/integration/test-branch-create-gate-corpus.py - direct python3, no pytest, subprocess
+      against the real script with the PreToolUse JSON on stdin, following the conventions in
+      tests/integration/test-check-domain-worktree.py. Cases, each asserted individually:
+        (a) RED FIRST, a required deliverable: run the PRE-change script from
+            git show <sha>:<path> inside a sparse fixture worktree materialising one feature only,
+            with a command creating a branch for a DIFFERENT flow whose record exists at the
+            corpus root. Assert it emits permissionDecision deny. Keep that assertion in the file
+            as the pinned reproduction of the false deny. <sha> resolves ONCE, at task-execution
+            time, as git merge-base <default-branch> HEAD - this repository's own code-grade.py
+            convention.
+        (b) the post-change script on the same input ALLOWS the branch and emits the
+            work-tracking systemMessage naming the flow.
+        (c) a flow id with no feature directory at the corpus root is still DENIED, and the deny
+            reason names the corpus root and does not instruct the operator to re-plan an
+            already-planned flow - assert the corrected wording, not merely that a deny happened.
+        (d) in a plain non-worktree checkout the allow and deny verdicts are identical to the
+            pre-change script's for the same two inputs - the REQ-10 identity property.
+        (e) corpus_root unresolvable: the script still exits 2 with its existing refusal line and
+            emits no permissionDecision.
