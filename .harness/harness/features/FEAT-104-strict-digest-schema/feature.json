@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-104-strict-digest-schema",
   "branch": "feat/FEAT-104-strict-digest-schema",
-  "pr": null,
+  "pr": 1628,
   "review_sha": "984bd26b",
   "cycles_used": 10,
   "max_total_cycles": 10,
