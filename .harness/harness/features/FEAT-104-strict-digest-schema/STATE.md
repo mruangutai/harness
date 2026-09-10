@@ -3,117 +3,118 @@
 ## Current
 
 - feature: FEAT-104-strict-digest-schema
-- runs: `2026-09-10-12-qa-gate-validator` (qa gate, `harness-validator-lead`, PASS) and
-  `2026-09-10-13-simplify-eng` (simplify, `harness-eng-lead`, PASS), both at tip `790023f0`
-- squads: validator, eng
-- status: validate — **SC-08's proof gap is CLOSED and both build-side gates are green at the new
-  tip.** `review_sha` re-pinned `168f875f` → `790023f0`. Owed before ship: the SC-13 UAT and the CEO
-  briefing. No panel re-run, no goal-check re-run, no merge.
+- run: `2026-09-10-14-panel-validator` (reviewer panel c10, `harness-validator-lead`, **ESCALATE**)
+  at the pinned `review_sha` `790023f0`, range `origin/main..790023f0`
+- squads: validator
+- status: validate — **the panel's `must_fix` is EMPTY at the pin, but the panel SPLIT on the
+  severity of one new finding, and that split is the ship gate.** `gates.review` is
+  `advisory_unless_high`: `high` blocks, `med` does not. The remedy edits `check-domain.sh`, which
+  DEC-174 makes read-only to every agent, so no squad can close it — it goes UP, not into a fix
+  cycle. Owed before ship: this decision, then the SC-13 UAT and the CEO briefing. No merge.
 
-**The delta re-validated is two lines and nothing else.** `git diff 168f875f 790023f0 -- tests/` is
-`tests/integration/test-check-domain.py` at +4/-2, inside `_undeclared_cases()`: the version-2
-undeclared-step-key case gained `"run-state-schema.json" in strict.stderr` and
-`` "`evidence`" in strict.stderr ``, and its name gained "and gives its route". No source file, gate
-script, config or other test changed. DEC-174 held: every agent was read-only and
-`git status --porcelain` showed zero tracked modifications at both returns.
+**Four reviewers ran; none skipped, and both self-scoping readers scoped IN after measuring.**
+code-reviewer PASS (`severity_max: low`, code grade pass, 42 functions, 0 FAIL); qa PASS GATE-ONLY
+(`matrix_ok: true`; unit 36 files / integration 70 files MEASURED fresh at this pin — exactly the
+`168f875f` baseline, 0 failing files — with the matrix DERIVATION adopted over a byte-identical tree
+and said so); security-reviewer PASS (scoped in after measuring its four surface files
+byte-identical to c9; no new finding; CF-1 carried); ui-reviewer **FAIL** (scoped in on
+denial-text-as-interface after a 75-file census found no rendered surface and no `DESIGN.md`) — it
+raised the only new defect. Notes `notes/review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c10.md`;
+consolidated `runs/2026-09-10-14-panel-validator/digest.md`, which validates at exit 0.
 
-**QA gate PASS, and I re-ran both suites myself rather than adopting the figures** (`runs/-12`).
-`run-unit-tests.sh --kind unit` → exit 0, 36 files, 2.20s; `--kind integration` → exit 0, 70 files,
-71.08s, zero raw `^FAIL ` lines. Both counts are EXACTLY the `168f875f` baseline (36 / 70), so
-nothing was silently dropped from discovery — the failure a green exit code cannot see.
-`test-check-domain.py` reports **12/12** with `ok    schema_version 2 refuses an undeclared step
-key, names it and gives its route`. `matrix_ok: true`, re-derived for this test-only delta; every
-other kind resolved `not_applicable`.
+**PF-C10-01 — I reproduced it MYSELF rather than relaying it.** A `schema_version: 2` step missing a
+REQUIRED field is refused (exit 2, fail-closed) with `offending key(s): .` — empty — under the head
+`undeclared step key or evidence shape.`, which is the wrong reason: nothing is undeclared, a
+required key is absent. Bounded read-only probe importing the standing test module's own `_fire_new`
+into disposable fixture roots (no tracked file written): `missing-status` and `missing-id` → empty
+list; controls `id: 5` (type error on a PRESENT field) → `'id'` and `rogue_step_key` → names the key.
+Mechanism at `check-domain.sh:1645-1659`: offenders are harvested only via `_path =
+list(_error.path); if _path:`, and a jsonschema `required` violation reports at the container's own
+path (`[]`), so the branch never fires and jsonschema's own `e.message` is discarded. `grep -n
+required tests/integration/test-check-domain.py` → no hits; no case builds this shape.
 
-**The 4 raw `FAIL ` tokens on the unit suite are a self-test's own evidence, not a masked red.**
-`tests/unit/test-factory-claim-mutation.py:98` builds the literal `"FAIL  BUG-1290 {case_id}:"` and
-`:199-200` prints it as a PASSING mutation proof. My acceptance wording was unsatisfiable-as-literal
-on a green suite — my defect, raised as Q-B2.
+**The severity split is real and I did not average it away.** ui rates `high`: the message states a
+FALSE reason on the exact seam this cycle exists to harden, and REQ-05 demands a rejection be
+*immediately actionable*. The lead rates `med`, decided not averaged: the write is denied (no
+incorrect-accept, no integrity consequence), the route sentence still emits `run-state-schema.json`
+where `required` is declared, and no signed SC governs this path — SC-03/SC-08 govern the
+undeclared-key case, which works. **My read, for the operator, not a ruling:** `med` is the better
+grade, but the cheap resolution is the one-line fix (`e.validator == "required"` → fall back to
+`e.message`) rather than arguing the grade, since the file is already open for the SC-13 UAT read.
 
-**I verified the emitter at source, at the commit under grade.** `git show
-790023f0:.claude/skills/harness/bin/check-domain.sh` — one unconditional `out.append` pair inside
-`if _schema_errors:` emits all four asserted substrings: the head `undeclared step key or evidence
-shape.`, the offending key name, `.claude/skills/harness/bin/run-state-schema.json`, and backticked
-`` `evidence` ``. The only other `run-state-schema.json` occurrence is the `except Exception` branch,
-which emits a DIFFERENT head and so carries neither `undeclared step key` nor backticked `evidence`
-— it cannot satisfy the assertion SET. The conjunction is pinned uniquely to the intended producer.
-**Red capability stays reasoned, not mutated** (the mutation would edit a carve-out) — unchanged
-from c9, not new debt.
+**SC-08 is MET on BOTH seams, both with EXECUTABLE evidence** — the lead's `sc_status`, and I
+checked both myself. Step seam: `tests/integration/test-check-domain.py:79-89`, a real subprocess
+asserting `returncode 2` + `undeclared step key` + the offending key + `run-state-schema.json` +
+backticked `` `evidence` ``; 12/12 green at this pin. The conjunction cannot be met by the other
+producer naming the schema file — the `except Exception` branch emits a DIFFERENT head (`run-state
+schema CANNOT be checked`) carrying neither `undeclared step key` nor backticked `` `evidence` `` —
+and all four probe payloads routed through the intended branch. Digest seam:
+`tests/integration/test-validate-digest.py:3130-3145`, re-run by me — exit 0, 164 `ok`, `ALL
+PASSED`. Red capability on the step seam stays REASONED, not mutation-executed (DEC-174 forbids
+editing the carve-out); unchanged from c9, not new debt. Q8 is therefore RESOLVED: an approved
+criterion was satisfied, not amended, so no re-signature is owed.
 
-**SIMPLIFY PASS with `applied: none`** (`runs/-13`). Four angles, each with its own verdict — reuse
-(`harness-data-engineer`): no substring-set helper exists to duplicate, the inline and-chain is the
-file's own idiom (`:144-146`); simplification (`harness-backend-dev`): the four-clause conjunction is
-the weakest sufficient form, clauses 3–4 co-emitted with clause 2 is real but backlog-only;
-efficiency (`harness-dev-ops`): zero added work, one subprocess before and after; altitude
-(`harness-ai-dev`): LEAVE, both substrings pin the route SC-08 demands. **No reader would have
-applied anything**, so DEC-174 bound nothing. Findings: high 0, med 0, low 2, neither gating. The eng
-lead REJECTED its own reader's alternative of dropping the backticks from `` `evidence` ``: the head
-line already contains the bare word, so the backticks are what discriminate body from head.
+**Carried dispositions held, each re-verified at this pin rather than assumed.** F1
+(`schema_version` downgrade refusal) CLOSED — its case green in the 12/12. F3 (undeclared-digest-key
+message naming file + `SCHEMAS`/`PASSTHROUGH`/`DOCUMENTED_OPTIONAL`) CLOSED — `validate-digest.py:1411-1423`
+unchanged since c9. F2 (generic-`lead` exemption, `check-state.sh:1590`) **DECLINED, and the decline
+STANDS**: the generic lead is the archive-reader compatibility contract REQ-08/SC-12 requires, and
+every NEW return is validated under its true raw persona at the SubagentStop hook. Residual carried
+as Q9/Q3. CF-4 still present, still `low`.
 
-**`cycles_used` is 9 of 10 — the increment is the SC-08 unmet-SC re-dispatch, one, not two.** Both
-leads reported ZERO send-backs, so neither run adds a cycle (DEC-157). **I did NOT count the
-digest-contract repair below as rework, and that is visible rather than silent:** it was not a gate
-failure and not a lead's error, it was my dispatch demanding a field the closed contract forbids.
-One cycle remains. `len(runs)` is 23 of 20 — informational, PASSED, stops nothing (#79). My read:
-both runs earn their place as the gates the SC-08 fix cannot ship without, each first-pass clean.
+**`cycles_used` stays 9 of 10** — the lead reported ZERO send-backs, and a clean first-pass run adds
+no cycle (DEC-157). `len(runs)` is 24 of 20, informational only (#79); this run earned its place —
+it found a defect four prior gates had not, and re-verified every carried disposition independently.
+**The pin did NOT move and no source or test file was touched**: `git status --porcelain` showed
+only the four new c10 notes before I recorded this, and this run's bookkeeping commit sits ABOVE
+`790023f0` touching only the feature's own directory, as the c9 one does.
 
-**A record repair, disclosed rather than buried.** The QA digest as returned carried an undeclared
-key `suite_results` and failed `validate-digest.py`. **The cause is mine** — my acceptance demanded
-per-kind exits and file counts as DIGEST fields and the contract has no key for them, so the lead
-invented one; SECOND occurrence of this class (Q4 was the first). Nothing measured was lost: every
-fact was already in `state.yaml`'s step `evidence`. A run digest is append-only, so the original
-block is PRESERVED and a contract-valid block appended beneath it, attributed to me with the reason
-and the Q6 measurement in full: `runs/2026-09-10-12-qa-gate-validator/digest.md`. Both digests and
-both `state.yaml` files are `schema_version: 2` and validate at exit 0.
-
-**The pin moved deliberately and only after both gates returned.** Simplify precedes the pin by
-doctrine and applied nothing, so no commit moved the tip between the gates and the pin. The c9 panel
-PASS at `168f875f` is NOT invalidated: the only difference between the commits is a strengthened
-assertion inside a test the panel already read.
+**A dispatch imprecision of mine, disclosed not buried.** I told the panel the only
+non-feature-directory file in `168f875f..790023f0` was `tests/integration/test-check-domain.py`; ui
+corrected me — `.harness/notes/analysis-feat104-run07-review-sha-recordfix.md` (+81/-0, new,
+repo-level) is also in range. No review consequence; the ship note must not repeat the claim.
 
 ## Open Questions
 
-- Q8 (**RESOLVED** — was blocking): SC-08's proof gap is closed by `790023f0`, the main session's own
-  DEC-174 carve-out edit. Re-validated here: 12/12, both suites green, emitter traced. No
-  re-signature needed — an approved criterion was satisfied, not amended.
-- Q6 (**NARROWED**, was blocking, harness defect): the append-only channel CAN repair a digest whose
-  defect is a REMOVABLE key — measured on a scratch copy, then used on `runs/-12`; the validator
-  parses the APPENDED block, so Q6's "parser stops at `artifact:`" premise is false for this shape.
-  It still cannot repair a MISSING required field (`runs/-06`) or a verdict CONTRADICTION
-  (`runs/-08`), because appending cannot delete or reconcile. Those two stay stranded.
-- Q-B3 (not blocking, harness defect — new): the digest contract has no home for per-kind suite exits
-  and file counts, the natural product of a qa-gate run. Either the qa-gate lead schema gains a
-  declared field, or dispatches stop asking. Same class as Q4.
-- Q-B2 (not blocking, harness defect — new): "zero `^FAIL ` lines" is unsatisfiable-as-literal on a
-  green unit suite (`test-factory-claim-mutation.py:98,199-200` prints that token as a passing
-  proof). Say "zero runner-emitted FAIL verdicts", or count failing FILES. Measured: 4 unit, 0
-  integration.
+- Q10 (**BLOCKING**, main session, DEC-174): **PF-C10-01 severity is CONTESTED** — ui `high`, lead
+  `med`. Under `gates.review: advisory_unless_high` this decides whether the ship blocks. The remedy
+  is one line in `check-domain.sh`, a DEC-174 carve-out no squad may edit: apply it (plus a case for
+  the required-absent shape, a new pin, a narrow re-gate), or accept `med` and backlog. Detail:
+  `runs/2026-09-10-14-panel-validator/digest.md`, `notes/review-harness-ui-reviewer-c10.md`.
+- Q11 (not blocking, harness defect — new): panel falsification capability is ASYMMETRIC.
+  `bash-write-guard.sh` refused the code reviewer's disposable /tmp copy while the ui reviewer ran a
+  live repro — and the reviewer that could EXECUTE found the only new defect. Should a read-only
+  review dispatch guarantee a scratch-write route?
+- Q12 (not blocking, harness defect — new): `harness-qa`'s terminal return exited 1 with "yield
+  called with null data" although its fenced block and note were complete on disk. Accepted without
+  a send-back; a defect in the yield path, not a member error.
+- Q13 (not blocking, main session): SC-08's STEP seam closes under `plan.yaml:460-462`'s decided
+  route text (file path + the `evidence` property name), a narrower reading of "symbol" than the
+  digest seam's three Python identifiers. Hold a future feature reusing the pattern to it?
+- Q6 (**NARROWED**, harness defect): the append-only channel CAN repair a digest whose defect is a
+  REMOVABLE key (used on `runs/-12`); it cannot repair a MISSING required field (`runs/-06`) or a
+  verdict CONTRADICTION (`runs/-08`). Those two stay stranded.
+- Q-B3 / Q4 (not blocking, harness defect): the digest contract has no home for per-kind suite exits
+  and file counts, and the `lead` schema declares no `code_grade`. **Avoided this cycle** — the c10
+  dispatch named the declared lead field set and the digest validated at exit 0 first time. Should
+  `PASSTHROUGH['lead']` gain these as unverified roll-ups?
 - Q9 (not blocking, main session): REQ-08's generic-lead archive exemption
-  (`validate-digest.py:1407`) has no test able to redden. Does NOT falsify REQ-08. Backlog chore, or
-  accept as a standing risk?
-- Q1 (not blocking, main session, DEC-174): **CF-1** (security, `med`) — `check-state.sh:1525-1526`'s
-  INV-16 message interpolates `run_id` and the step id as bare strings, so the accepted DEC-85
-  Bash-write route can spoof or erase the audit line reporting it. One-line remedy (`!r`). Detail:
-  `runs/2026-09-09-10-panel-validator/digest.md`.
+  (`validate-digest.py:1407`) has no test able to redden. Does not falsify REQ-08. Backlog or accept.
+- Q1 (not blocking, main session, DEC-174): **CF-1** (security, `med`) — `check-state.sh:1525-1526`
+  interpolates `run_id` and the step id as bare strings, so the DEC-85 Bash-write route can spoof or
+  erase the INV-16 audit line. One-line remedy (`!r`). Carried unchanged by the c10 security reader.
 - Q2 (not blocking, main session): **CF-3** (code, `low`) — `abff2a84`, a FEAT-56 `plan.yaml` station
-  flip, is this branch's root commit and merges with this PR, untracked by any REQ or D. Lead
-  recommends ACCEPT and record in the ship note; excising it rewrites history beneath a signed pin. I
-  concur; the call is the operator's.
+  flip, is this branch's root commit and merges with this PR, untracked by any REQ or D. ACCEPT and
+  record in the ship note; excising it rewrites history beneath a signed pin.
 - Q3 (not blocking, main session): **CF-2** severity CONTESTED — qa `med`, code `info`, lead `low`.
-  `check-state.sh:1590`'s literal-`lead` at-rest exemption has no test able to report RED; the remedy
-  is a test inside the carve-out, so no squad may close it.
-- Q4 (not blocking, main session, harness defect): the `lead` schema declares no `code_grade`, so a
-  lead hosting a code-grading run cannot declare it without tripping this feature's own
-  undeclared-key rejection. My c9 dispatch demanded it — my error, and Q-B3 repeats it. Should
-  `PASSTHROUGH['lead']` gain it as an unverified roll-up?
+  `check-state.sh:1590`'s at-rest exemption has no test able to report RED; the remedy sits inside
+  the carve-out, so no squad may close it.
 - Q5 (not blocking, main session, DEC-174): **CF-4** (ui, `low`) — the `schema_version` downgrade
-  branch renders a raw Python `None` in the omitted-on-update edge case; `T-06` has no such case.
-- Q7 (not blocking, main session): the 3 complete + 2 partial strict-version predicate spellings
-  (`check-domain.sh:1594-1597`, `:1761-1764`, `check-state.sh:1487-1489`) want one
-  `is_strict_schema_version()` home. Carried as already-known, NOT re-raised this cycle.
+  branch renders a raw Python `None` in the omitted-on-update edge; `T-06` has no such case.
+- Q7 (not blocking): the 3 complete + 2 partial strict-version predicate spellings want one home.
 - F-QA-1 (not blocking, main session): `T-05` declares `change_type: logic` while DEC-212's
   `touches_config_shape` arguably covers `run-state-schema.json`, making `integration` a floor line.
-- Residual non-gating risks, detailed in the c9 panel digest: the DEC-85 Bash-write bypass (CF-1's
-  precondition); F2's runtime residual; `check-domain.sh`'s `_no_parser` bootstrap early return.
-  Coverage gap: the `run-state-schema.json` guards are ARGUED fail-closed, not mutation-proven. Also
-  standing: the INV-26 card/plan mismatch and the per-persona worktree-claim guard.
+- Residual non-gating risks, in the c9 and c10 panel digests: the DEC-85 Bash-write bypass; F2's
+  runtime residual; `check-domain.sh`'s `_no_parser` bootstrap early return; the
+  `run-state-schema.json` guards argued fail-closed rather than mutation-proven. Standing: the
+  INV-26 card/plan mismatch and the per-persona worktree-claim guard.
