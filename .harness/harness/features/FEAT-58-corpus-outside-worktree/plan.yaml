@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-58-corpus-outside-worktree
-status: plan
+status: ready
 approval:
   date: '2026-09-10'
   approved_by: mruangutai
@@ -3694,38 +3694,28 @@ tasks:
            NAMES the audit reported, so a reader can tell an audit defect from a feature
            directory that is legitimately uncommitted at the moment of the run. This is the
            same printing clause 1's tolerated path performs, on the failing branch.
-      THE RED PROOF FOR PART 1, AND IT IS A PASSING CONDITION OF THIS TASK (finding PP-04,
-      operator ruling Q4). It is written against the four assertions AS THEY NOW STAND and
-      never against an earlier spelling of them - that ordering is the operator's at Q7.
-      Every other consequential assertion in this plan carries such a proof: N-01's
-      self-check exclusions, N-02 norepair, N-04's pre-change reproduction, N-05's three
-      discrimination proofs, N-07 case (c), N-08 clauses 2-4, N-09's discrimination clauses,
-      N-12 HALF 2, N-06 PART 4's own case 4, and PART 2 of this very task. PART 1 is the
-      panel's named remedy for a control found blind to the thing it existed to catch, so
-      shipping it with no demonstrated red state would be the fourth instance of that
-      pattern.
-      Run PART 1's assertions ONCE against a STAGED copy of check-state.sh carrying the
-      PRE-FIX feature.json-keyed derivation - git ls-files over
-      .harness/*/features/*/feature.json, the spelling N-06 PART 1 rejects by name - and
-      record under the literal heading PART 1 RED PROOF in your receipt: the command, the
-      40-hex sha the copy was taken at, and that clause 1 REDDENED naming the mismatch
-      between the directory count and the record count (89 versus 79 as measured on
-      2026-09-10; RECORD what you observe, pin neither number as an expectation). Then remove
-      the staging. This is a ONE-TIME PROOF AND NOT A COLLECTED TEST (D-13): do not leave it
-      in the file. This task does not pass until that heading exists with a verdict under it.
-      THE STAGING SPELLING IS CONSTRAINED, and both obvious alternatives are excluded for
-      reasons already measured in this plan. Editing the owner root's own check-state.sh in
-      place and reverting it is FORBIDDEN: the read-only boundary above is ABSOLUTE and that
-      mutates the owner root's working tree. A LONE copy in a temp directory audits NOTHING:
-      it re-resolves its OWN root from _selfdir and cannot import harness_boundary - the
-      identical property this plan records about itself at N-06 PART 3(c), where an extracted
-      copy is "wrong-rooted wherever it is staged". THE SURVIVING SPELLING: stage the
-      modified copy ALONGSIDE the bin modules it imports, in a temp directory this task
-      creates and REMOVES, and point it at the owner root with
-      HARNESS_PROJECT_DIR=<owner_root> - the MARKER-carrying override resolve_root honours at
-      harness_boundary.py:66-78, which is a READ of the owner root and mutates nothing in it.
-      The override is used HERE and only here; the authoritative run above strips it and
-      asserts the discard notice is absent.
+      NO RED PROOF LIVES IN THIS TASK, AND ADDING ONE IS PROHIBITED. PART 1 carries no red
+      proof and no staged copy of check-state.sh; that is a decision, not an omission, and no
+      executor is to supply one. The cycle-8 instruction that stood here - stage a copy
+      carrying the PRE-FIX feature.json-keyed derivation, git ls-files over
+      .harness/*/features/*/feature.json, point it at the owner root with
+      HARNESS_PROJECT_DIR=<owner_root>, and record under a PART 1 RED PROOF receipt heading
+      that clause 1 reddened on the 89 versus 79 directory-count-versus-record-count mismatch
+      - was WITHDRAWN BY THE OPERATOR AT SIGNATURE (notes/answers-operator-c9.md Q1). IT
+      CANNOT WORK, and the reason is arithmetic rather than taste: the pre-fix staging yields
+      MISSING empty and UNEXPECTED ten - 89 feature directories, ten of them record-less
+      (issue 1640, out of scope), 79 records bijecting over the rest - which clause 1 as
+      PP-03 loosened it TOLERATES and which N-06 PART 1 rules non-gating. It proves nothing
+      while printing the very "89 versus 79" names the withdrawn instruction predicted as the
+      red, so an executor following it would record a FALSE RED, the one outcome the operator
+      named as worse than no proof at all. THE OPERATOR'S OWN FRAMING IS THE DURABLE PART:
+      PP-03 and PP-04 were each individually correct rulings that turn out to be JOINTLY
+      UNSATISFIABLE - loosening clause 1 to "no refusal" was right, demanding a red proof was
+      right, and together they leave the red proof nothing to redden on; that is why the
+      remedy for a blind control came out blind. THE DISCRIMINATING ASSERTION LIVES IN N-14,
+      not here: name-set equality against os.listdir(<owner_root>/.harness/harness/features),
+      with a MISSING-producing mutation at N-14 RUN B, closing H-01 and M-01 together.
+      Restore nothing from cycle 8 without first meeting the reason in this paragraph.
       THE TEN RECORD-LESS DIRECTORIES ARE NOT SUPPRESSED HERE EITHER. Under the one-source
       derivation of N-06 PART 1 they appear in BOTH sets and produce no mismatch; they
       remain a record defect filed as issue 1640 and out of this feature's scope. Add no
@@ -3813,3 +3803,167 @@ tasks:
       feature directory and assert the announced line names THAT condition; and separately
       drive it with a core.hooksPath value that is not the tracked hooks path and assert the
       announced line names THE HOOKSPATH CONDITION and cites INV-31.
+  - id: N-14
+    title: Assert the feature-directory name set the shipped audit reaches at the owner root equals the corpus on disk, with two collected red proofs
+    traces:
+    - REQ-03
+    - SC-16
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: |
+      DEC-174 - it runs the shipped check-state.sh and reads harness_boundary.py, both DEC-174
+      category, exactly as every other task in this plan
+    depends_on:
+    - N-06
+    - N-10
+    - N-13
+    status: ready
+    files:
+    - tests/integration/test-check-state-audited-root.py
+    verify: |
+      python3 tests/integration/test-check-state-audited-root.py
+    intent: |
+      WHY THIS TASK EXISTS, AND IT IS NOT AN AGENT'S IDEA. The operator CONVERTED panel finding
+      H-01 to build-phase work at signature rather than accepting it - the ruling against
+      PF-71355e9c75df3b571e8e3d0d9de9a153 in this file's approval block, reasoning in
+      notes/answers-operator-c9.md Q1. The SAME assertion closes M-01
+      (PF-b73686f676e78f82fe0ab17cbebabad0), which is why no separate notice task exists and why a
+      later reader must NOT re-add a discard-notice check here.
+      BOTH FINDINGS WERE CLASSIFIED ALWAYS-GREEN: a build-phase test would not have caught either,
+      because each fails by staying green. That is why this assertion carries the weight alone and
+      has to be right the first time, and it is why every clause below is COLLECTED - reachable
+      from this task's verify: - rather than a one-time receipt-graded act.
+      SC-16 IS NOT AMENDED AND NO OTHER TASK CHANGES. The operator ruled the folded assertion needs
+      no SC-16 edit. N-13 keeps all of its clauses; this task ADDS one assertion beside them and
+      removes none.
+
+      THE ASSERTION, AND IT IS A NAME SET, NEVER A COUNT. The feature-directory NAME SET the
+      shipped check-state.sh actually REACHED, when invoked against the real owner root, EQUALS the
+      directory-entry name set of the owner root's .harness/harness/features directory. Compared as
+      a SET of names. NO numeric expectation is a passing condition anywhere in this task: a count
+      re-opens the pinned-literal problem SC-16 rejects and N-13 forbids under RE-DERIVE, NEVER
+      PIN, and a name set stays correct as the tree gains features. The only number this test may
+      compare is the run's OWN printed expected count against the test's OWN re-derivation of the
+      expected set at the same root - both sides re-derived at run time, neither a literal.
+
+      WHY ONE ASSERTION CLOSES BOTH FINDINGS - write nothing else in its place. M-01 is that N-13's
+      discard-notice-absent assertion is ALWAYS-GREEN: resolve_root prints the notice ONLY for an
+      override that does NOT carry MARKER, while the hazardous MARKER-carrying override is honoured
+      SILENTLY. ANCHORS RE-DERIVED AGAINST THE FILE OPENED ON 2026-09-10, and they CORRECT the
+      anchors carried in the finding text: in harness_boundary.py the override read is at :78, the
+      silent honoured return is at :81, and the discard-notice print is at :82-86 - there is no
+      silent return at :78. RE-DERIVE THEM AGAIN against the file you open. Asserting the AUDITED
+      ROOT rather than the notice makes the override hazard observable, because a run that resolved
+      the wrong root REACHES A DIFFERENT NAME SET. The reached side is a disk glob over the
+      resolved root's .harness/*/features/* (check-state.sh:118-120 in the pre-N-06 file; re-derive
+      against the choke point N-06 PART 1 establishes), so name-set equality is exactly and only a
+      claim about WHICH ROOT WAS RESOLVED - which is M-01's named remedy.
+
+      THE CYCLE-8 STAGING IS WITHDRAWN AND MUST NOT BE RESTORED. If you find the cycle-8 note, or
+      N-13 PART 1's RED PROOF paragraph, telling you to stage the PRE-FIX feature.json-keyed
+      derivation - git ls-files over .harness/*/features/*/feature.json - and to record clause 1
+      reddening on the directory-count versus record-count mismatch: that instruction is WITHDRAWN
+      by the operator at signature. It yields MISSING empty and UNEXPECTED ten ARITHMETICALLY - 89
+      feature directories, ten of them record-less (issue 1640, out of scope), 79 records bijecting
+      over the rest - which clause 1 as PP-03 loosened it TOLERATES and which N-06 PART 1 rules
+      NON-GATING outside a linked worktree. It proves nothing while printing the very 89-versus-79
+      names that make a false red look like a real one, and recording that as a red would be a
+      FALSIFIED RECORD. This task's red proofs are RUN B and RUN C below and no other.
+
+      READ-ONLY, AND THE BOUNDARY IS ABSOLUTE, exactly as SC-16 and N-13 require. Nothing here
+      mutates the owner root's working tree, its index or its records, and nothing touches a LIVE
+      worktree. Editing the owner root's own check-state.sh in place is FORBIDDEN. Every mutation
+      is staged in a DISPOSABLE temp tree this test creates and REMOVES in a finally block. The
+      staging spelling is the surviving one N-13 and N-02 already use: copy the owner root's whole
+      bin directory, .claude/skills/harness/bin - REAL file copies, never symlinks, because python
+      resolves a symlinked script to its target for sys.path[0] and the sibling imports
+      harness_boundary, harness_yaml, run_identity and handoff_done_when then vanish into a
+      dependency-missing branch - into a temp tree at .claude/skills/harness/bin beneath it, so the
+      copy's own derived root is the MARKER-less temp root and a failed override is LOUD rather
+      than silent. Point the copy at its subject with HARNESS_PROJECT_DIR, the MARKER-carrying
+      override resolve_root honours, which is a READ of that root and mutates nothing in it. A LONE
+      copy of check-state.sh in a temp directory audits NOTHING - it re-resolves its own root from
+      _selfdir and cannot import its siblings at all.
+      Resolve the owner root the way the shipped code does, through feature_corpus.corpus_root,
+      never by string arithmetic on the test's own path. Set HARNESS_PROJECT_DIR EXPLICITLY in
+      every child environment below, so an ambient value in the developer's shell cannot silently
+      select a different subject.
+
+      SEGMENT PRECONDITION, ASSERTED RATHER THAN ASSUMED. The reached side globs
+      .harness/*/features/* across ALL segments while the criterion names the harness segment.
+      Assert that harness is the ONLY segment under the owner root's .harness directory holding a
+      features directory; if a second one appears, FAIL naming it rather than silently widening the
+      expected set. Assert likewise that the harness segment's entry set is non-empty, and PRINT
+      any entry skipped as a non-directory, so a stray file in that directory is legible rather
+      than invisible.
+
+      HOW THE REACHED SET IS OBSERVED, since it is internal. N-06 PART 1 prints ONE message
+      whenever either side is non-empty, carrying the counts in the form reached N of M expected
+      feature directories plus the SORTED missing and SORTED unexpected names. Reconstruct: reached
+      is expected_at(root) less the printed missing names, united with the printed unexpected
+      names; when no such message printed, reached is expected_at(root). expected_at(root) MIRRORS
+      N-06 PART 1's one-source derivation at the root the run actually resolved - inside a linked
+      worktree the single basename, anywhere else the first path component after features/ from git
+      ls-files over the pathspec .harness/*/features/* with its trailing /*, de-duplicated.
+      Re-derive that rule against the shipped implementation, and when the message printed,
+      CROSS-CHECK the run's own expected count against the size of expected_at(root) and fail on
+      disagreement, so a helper that has drifted from the shipped derivation is loud instead of
+      quietly wrong. That comparison is two re-derived quantities and is NOT a pinned census
+      figure; do not turn it into one.
+
+      RUN A - THE GREEN HALF, AUTHORITATIVE, AT THE REAL OWNER ROOT. Invoke the OWNER ROOT'S OWN
+      copy by absolute path, its .claude/skills/harness/bin/check-state.sh, never by cwd: cwd is
+      inert. Set HARNESS_PROJECT_DIR to a MARKER-LESS temp directory this test creates. That is the
+      ROOT WITNESS and it changes nothing about resolution: a marker-less override is DISCARDED and
+      resolution falls through to the derived root, which is the root a stripped run would use, and
+      the discard notice check-state.sh keeps and replays on stderr NAMES that derived root. Assert
+      the notice is present and that the root it names is path-equal, after realpath, to the owner
+      root - never a substring match. THIS DOES NOT RELAX N-13, whose own authoritative run still
+      strips the variable and still asserts the notice ABSENT; these are different invocations with
+      different jobs, and neither task's clauses move. Then assert: the reconstructed reached name
+      set EQUALS the harness segment's directory-entry name set; the missing side is EMPTY; and the
+      run did not exit at the expected-versus-reached choke point. PRINT the unexpected names seen,
+      so the tolerated non-gating report stays legible to a reader.
+
+      RUN B - THE MISSING-PRODUCING RED PROOF, and this is the condition that matters most. Stage
+      the bin copy as above and edit ONLY the copy's reached side - the disk-glob comprehension at
+      the choke point - adding a predicate that excludes EXACTLY ONE real feature-directory name,
+      so a name present in the expected set is never reached and the expected set less the reached
+      set is non-empty. CHOOSE THE NAME AT RUN TIME, never pinned: the lexicographically first
+      directory entry of the owner root's .harness/harness/features that is not this feature's own
+      id, and PRINT it. Before running, assert the staged copy differs from the shipped one in
+      exactly one hunk and that the chosen name appears in the copy's source, so a mutation that
+      failed to apply cannot read as a red. Point the copy at the owner root with
+      HARNESS_PROJECT_DIR set to the owner root, and run it. Assert THREE things: the run printed a
+      mismatch message whose MISSING set contains the chosen name; the run GATED, exiting non-zero
+      before any downstream site ran; and the name-set assertion RUN A passes, applied to this run,
+      FAILS with a message NAMING the chosen name. Factor that assertion into ONE function used by
+      both runs, so the red half exercises the same code path the green half passes.
+
+      RUN C - THE WRONG-ROOT RED PROOF, which is M-01's hazard made observable. Build a disposable
+      synthetic root: git init a temp directory, write .harness/team-config.yaml into it so it
+      carries MARKER, create two synthetic feature directories under .harness/harness/features and
+      commit them, so its expected derivation is non-empty and the audit does not refuse at N-06
+      PART 1's empty-derivation floor. Run the SHIPPED owner-root script by absolute path with
+      HARNESS_PROJECT_DIR set to that synthetic root. Assert: NO discard notice was printed - this
+      is the silent MARKER-carrying branch, the exact case the discard-notice clause was added to
+      detect and could never reach; and the name-set assertion FAILS, because the reached set is
+      the two synthetic names and not the owner root's corpus. This is what makes the equality
+      root-sensitive rather than a tautology, and being wholly synthetic it survives the deletion
+      of this feature's worktree, so the proof is re-runnable forever.
+
+      WHY COLLECTED RATHER THAN ONE-TIME, AND D-13 DOES NOT FORBID IT. D-13 forbids a COLLECTED
+      test deriving its pre-change side FROM A MOVING GIT REF; no clause here reads any ref at all.
+      RUN B and RUN C are deterministic, read-only and re-runnable, so both reds live inside
+      verify:, which is precisely what removes the ALWAYS-GREEN property H-01 and M-01 were
+      classified under. Do NOT demote any clause here to a receipt heading.
+      COST: RUN A is the same audit the repository's pre-commit gate already runs at the owner
+      root, RUN B is a second pass over it, and RUN C is a pass over a two-directory synthetic
+      tree. RECORD the measured wall time of the whole file in your receipt. Add no cache, no
+      baseline file and no fixture substitute.
+      ANNOUNCED SKIP, on the shape VL-02 required of N-09 and N-13. The test SKIPS - PRINTING its
+      reason, NAMING the condition that fired, and ASSERTING that line was printed - when the owner
+      root cannot be resolved through feature_corpus, or when the owner root's
+      .harness/harness/features holds no directory entry. A skip and a pass are not the same claim,
+      and a check that silently does not run where it is most relied upon is the fail-open this
+      whole feature exists to remove.
