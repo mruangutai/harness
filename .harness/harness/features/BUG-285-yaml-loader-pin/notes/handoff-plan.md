@@ -1,53 +1,56 @@
-# Handoff — BUG-285-yaml-loader-pin, plan → build — written at 7e0c2ec, seq-4
+# Handoff — BUG-285-yaml-loader-pin, plan → build — written at bb48814, seq-11
 
 ## Next
 
-Nothing dispatches until the operator signs. On `approval.status: approved` in plan.yaml, run the
-eng segment for T-01: `plan-merge.py set-feature-station --station building`, then dispatch the
-`build` team to `harness-eng-lead` with T-01's `intent:` carried verbatim from
-`.harness/harness/features/BUG-285-yaml-loader-pin/plan.yaml`. T-01's `execution_agent` is
-`harness-qa`; the lead routes, it does not revisit that. Then the qa segment, then SIMPLIFY, then
-pin `review_sha` — SC-03 and SC-05 are both graded with `git show <review_sha>:<path>`, so the
-builder's probe note must be in the commit the pin names.
+Nothing dispatches. The approval state must be resolved by the operator first: plan.yaml reads
+`approved` (2026-09-09) over a task set amended five times since, BRIEF.md reads `pending`, and no
+verb writes `approved` -> `pending`. On a fresh signature over the AMENDED plan, run the eng
+segment: `plan-merge.py set-feature-station --station building`, then dispatch the `build` team to
+`harness-eng-lead` — T-02 first (`execution_agent: harness-backend-dev`), then T-03 which
+`depends_on: [T-02]`, with T-01 independent. Carry each task's `intent:` verbatim from plan.yaml.
 
 ## Trust
 
-- plan.yaml carries one task, `approval.status: pending`, `panel.cycle: 0` with both readers `ran`
-  and one `info` finding `PF-2242299b369215b13ad577fe4279d52e` open — loaded and read back myself
-  through harness_yaml — verified-at 7e0c2ec
-- baseline `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync.py` = exit 0, 318 `ok`,
-  0 `FAIL`, 36.9s, which is what SC-04 compares against — ran it myself — verified-at 7e0c2ec
-- the mutant is one token: `json.loads(text)` at `gh-sync.py:523` → `harness_yaml.load_str(text,
-  path)`; `import harness_yaml` is already at `gh-sync.py:101` — read both — verified-at 7e0c2ec
-- the chosen fixture `"feature_id: F1\ngithub:\n  parent: 40\n"` is YAML-mapping-valid and
-  JSON-invalid — measured both parsers — verified-at 7e0c2ec
-- `check-plan-routes.py` prints `OK T-01 granted to harness-backend-dev, harness-dev-ops,
-  harness-qa` and exits 0 — ran it myself — verified-at 7e0c2ec
-- T-01's `verify:` survived `set-panel` as a block scalar ending in exactly one newline — read back
-  through the loader — verified-at 7e0c2ec
+- plan.yaml holds T-01/T-02/T-03 and `panel.cycle: 2` with six findings (2 info open, 2 low open,
+  1 high resolved by T-02 under both reporters' ids) — loaded and read back through harness_yaml —
+  verified-at bb48814
+- `UnicodeDecodeError` is a `ValueError` but NOT a `json.JSONDecodeError`, so the cycle-1 catch set
+  genuinely missed it — probed all three `issubclass` relations myself — verified-at bb48814
+- `factory_decompose.py`: comment `:116-119`, `try:` `:120`, `harness_yaml.load_file(path)` `:121`,
+  `except` `:122`, `factory_cli.refuse` `:123` — read with line numbers at source — verified-at
+  bb48814
+- 79 `feature.json` files parse identically under both loaders, so T-02 changes no current
+  behaviour and closes a latent divergence — ran both parsers over all of them — verified-at bb48814
+- `check-plan-routes.py` in THIS worktree: all three tasks OK, exit 1 solely on the DEVIATION line
+  (this worktree's team-config.yaml is behind main's) — ran it myself; the product lead reported
+  "0 violations, exit 0" and that did NOT reproduce here — verified-at bb48814
+- T-01's, T-02's and T-03's `intent:`/`verify:` blocks survived every amend and the panel write —
+  per-field shas recorded in `runs/2026-09-11-03-panelrecordc2-product/digest.md` — UNVERIFIED by
+  me; I confirmed the blocks load and are non-empty, not their shas
 
 ## Dead ends
 
-- Do not re-raise the four items the panel assessed and dismissed (qa authoring-and-grading T-01,
-  T-01 intent over-specification, `lanes.rows[0].surface` breadth, REQ-04 vs the delete-don't-re-pin
-  rule) — `runs/2026-09-09-01-planpanel-validator/digest.md` — verified-at 7e0c2ec
-- Do not edit `gh-sync.py` to make the new assertion pass. The reader already refuses the fixture;
-  a red assertion against the real reader is a finding for the operator, not a licence to edit —
-  `BRIEF.md ## Constraints` — verified-at 7e0c2ec
-- Do not probe by editing the real `gh-sync.py`: `.agents/skills` is a symlink to `.claude/skills`,
-  one inode — measured with `os.lstat` — verified-at 7e0c2ec
+- No verb writes `lanes:` — `apply` exits 7 CONFLICT on the top-level key, `amend --key lanes`
+  exits 2 naming tasks/decisions; I probed both against a copy. D-05 records it; routing authority
+  is each task's own `execution_agent` — verified-at bb48814
+- No verb writes `approval:` downward. Do not send another squad to try — three separate returns
+  already burned effort on it — `runs/2026-09-11-01-amend-product/digest.md` — verified-at bb48814
+- Do not fold in the gh-sync.py:516-524 non-UTF-8 defect the panel found. Out of the operator's
+  scope; it is a backlog candidate — `runs/2026-09-11-02-planpanelc2-validator/digest.md` —
+  verified-at bb48814
 
 ## Working set
 
 - .harness/harness/features/BUG-285-yaml-loader-pin/plan.yaml
 - .harness/harness/features/BUG-285-yaml-loader-pin/BRIEF.md
-- .harness/harness/features/BUG-285-yaml-loader-pin/notes/intake-BUG-285.md
-- .harness/harness/features/BUG-285-yaml-loader-pin/runs/2026-09-09-01-planpanel-validator/digest.md
+- .harness/harness/features/BUG-285-yaml-loader-pin/runs/2026-09-11-02-planpanelc2-validator/digest.md
+- .claude/skills/harness/bin/factory_decompose.py
 - tests/integration/test-gh-sync.py
 
 ## Done when
 
-Scope: T-01 built and its probe transcript landed in the commit review_sha names
+Scope: the amended three-task plan is signed and T-02/T-03 built with their probes landed
 Authority: approval:.harness/harness/features/BUG-285-yaml-loader-pin/BRIEF.md#Approval
-Authority: plan-task:T-01.verify
-Authority: brief-sc:SC-03
+Authority: plan-task:T-02.verify
+Authority: plan-task:T-03.verify
+Authority: brief-sc:SC-11

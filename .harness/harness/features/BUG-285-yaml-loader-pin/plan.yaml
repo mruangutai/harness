@@ -24,17 +24,22 @@ decisions:
     because: All three resolve for tests/**, but only qa's consult-when names writing regression tests and closing coverage gaps, which is the whole of this change; backend-dev's names service logic and dev-ops's names test-runner setup, not fixtures.
     dec: none
   - id: D-03
-    choice: change_type is bugfix, and the only required kind is integration.
-    because: DEC-217 binds a bugfix confined to tests to the integration kind; touches_runtime_code is false here, so unit is not demanded, and integration is active with a real runner.
+    choice: change_type is bugfix on all three tasks, and the required kind is now unit, with integration retained for the two test-side tasks.
+    because: RE-DERIVED, not carried forward, after the scope amendment of 2026-09-11. The amended scope edits .claude/skills/harness/bin/factory_decompose.py, which is outside tests, is not a markdown contract file and is not under .harness, so DEC-217's touches_runtime_code predicate is now TRUE and the unit kind is demanded - harness.json test_matrix.bugfix carries unit when touches_runtime_code, and the unit kind is active with cmd .agents/skills/harness/bin/run-unit-tests.sh --kind unit. The companion predicate fix_confined_to_tests_and_contract_docs is now FALSE, so the matrix no longer demands integration by itself; T-01 and the standing 1c case keep the integration kind anyway because DEC-35 requires the diff to carry the test exercising the change and both of those tests live under tests/integration. DEC-213 selects the kind by directory, so T-03's new pin must live under tests/unit to satisfy the unit demand, under a file name not already used in tests/integration.
     dec: DEC-217
   - id: D-04
     choice: The able-to-fail proof is a throwaway mutation probe against a COPY of gh-sync.py in a tempdir, recorded as a transcript, never committed as a test.
     because: .agents/skills is a symlink to .claude/skills, so the reader is one inode and an in-place probe edit would be a live-tree edit of production code this bug forbids touching.
     dec: none
 
+  - id: D-05
+    choice: The lanes table stays as the cycle-0 single tests row, and the routing authority for the new bin work is each task's execution_agent, resolved by check-domain.sh.
+    because: No plan-merge verb writes lanes. Measured 2026-09-11 in this worktree - apply with an added lanes row exits 7 (CONFLICT on the top-level key lanes), amend --key lanes exits 2 naming tasks and decisions as the only amendable keys, and Edit, Write and a shell redirect are all denied by the shape gate. check-plan-routes.py contains zero occurrences of the string lanes, so what actually binds the build is each task's files list resolved through check-domain.sh plus the execution_mode token, never the lanes table. The stale table is therefore a reporting defect, not a routing one, and it is raised to the harness owner as an open question rather than worked around.
+    dec: none
+
 panel:
-  last_run: 2026-09-09-01-planpanel-validator
-  cycle: 0
+  last_run: 2026-09-11-02-planpanelc2-validator
+  cycle: 2
   readers:
   - reader: should-not-exist
     status: ran
@@ -51,6 +56,51 @@ panel:
       \ chain (note to DIGEST to orchestrator pathspec commit to git-show grading)\
       \ is the likeliest source of a false not_met at build time."
     disposition: open
+  - id: PF-cceab610738069ec6ea1a56ddc058195
+    severity: info
+    reader: should-not-exist
+    summary: Doubled mutation-probe ceremony (SC-03 + SC-09) doubles the note-delivery-chain
+      exposure the cycle-0 finding named without adding evidence; both probes' redness
+      is analytically entailed by the two-directional fixture checks in SC-01/SC-07.
+    disposition: open
+  - id: PF-142f3a51c0d0152899db48cf7cbdfe31
+    severity: low
+    reader: should-not-exist
+    summary: "`notes/research-BUG-285-panelfix-c2.md` claims \"check-plan-routes.py\
+      \ `<plan>` \u2192 exit 0, 0 violation(s)\" but the checker measured in this\
+      \ worktree exits 1 with a DEVIATION line and \"1 violation(s)\" (team-config\
+      \ skew, pre-existing); the fix record's verification claim does not reproduce\
+      \ where it says it was run."
+    disposition: open
+  - id: PF-a5b9a3c81ee99295515d75f5a776ebae
+    severity: low
+    reader: should-not-exist
+    summary: "BRIEF SC-11 specifies the non-UTF-8 refusal \"in one check\" landing\
+      \ as \"a fourth named check\", while T-03's intent check 4 mandates the same\
+      \ assertions split across TWO named checks (positive refusal in one, the no-\"\
+      unexpected failure\"/no-\"UnicodeDecodeError\" negatives in a second) \u2014\
+      \ the builder cannot satisfy both letters at once."
+    disposition: open
+  - id: PF-573413a9f130ec9517e24f31b7a5bf68
+    severity: high
+    reader: scope
+    summary: "T-02's DECIDED except clause `(json.JSONDecodeError, OSError)` in `load_factory`\
+      \ omits `UnicodeDecodeError`, so a non-UTF-8 `feature.json` crashes uncaught\
+      \ into `factory_cli.run`'s generic handler and prints an exception class name\
+      \ \u2014 the exact issue-#208 regression REQ-06 requires to not happen \u2014\
+      \ and no verify or SC in the plan exercises that input."
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-1e2dcbc0764691e922d15d780e6c7e06
+    severity: high
+    reader: should-not-exist
+    summary: "T-02's DECIDED except clause `(json.JSONDecodeError, OSError)` in `load_factory`\
+      \ omits `UnicodeDecodeError`, so a non-UTF-8 `feature.json` crashes uncaught\
+      \ into `factory_cli.run`'s generic handler and prints an exception class name\
+      \ \u2014 the exact issue-#208 regression REQ-06 requires to not happen \u2014\
+      \ and no verify or SC in the plan exercises that input."
+    disposition: resolved
+    resolved_by: T-02
 tasks:
   - id: T-01
     title: Pin feature.json's JSON parser with a YAML-only fixture in the gh-sync integration suite
@@ -150,3 +200,259 @@ tasks:
       "ok" and 0 "FAIL" in 36.9s, so afterwards expect exit 0, more than 318 "ok", and 0 "FAIL". The
       "env -u HARNESS_AGENT_TYPE" prefix is load-bearing: without it the agent tool's environment
       leaks into the test subprocesses.
+  - id: T-02
+    title: Replace load_factory's YAML loader with a JSON read, preserving the issue 208 refusal shape
+    traces: [REQ-05, REQ-06]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/factory_decompose.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-factory-decompose.py
+      env -u HARNESS_AGENT_TYPE python3 -c "
+      import sys, os, tempfile
+      sys.path.insert(0, '.claude/skills/harness/bin')
+      import factory_decompose as fd
+      d = tempfile.mkdtemp()
+      with open(os.path.join(d, 'feature.json'), 'w') as fh:
+          fh.write('factory:\n  repo: owner/name\n')
+      refused = False
+      try:
+          fd.load_factory(d)
+      except SystemExit:
+          refused = True
+      print('refused' if refused else 'ACCEPTED a YAML-only feature.json')
+      sys.exit(0 if refused else 1)
+      "
+    intent: |
+      Change ONE function, load_factory, in .claude/skills/harness/bin/factory_decompose.py. Edit no
+      other function in that module, no test file, and not gh-sync.py.
+
+      WHAT IS WRONG. load_factory begins at line 111. Line 112 computes
+      path = os.path.join(feat_dir, "feature.json"). Line 121, inside a try opened at 120, does
+      doc = harness_yaml.load_file(path) - a YAML loader reading a JSON file. Line 122 catches
+      harness_yaml.YamlParseError, line 123 calls factory_cli.refuse. The two loaders genuinely
+      disagree in BOTH directions, measured 2026-09-11 - a YAML loader accepts a hash comment, a
+      single-quoted string, an unquoted scalar and a block mapping that json.loads rejects, and
+      json.loads accepts a duplicate key (last one wins) that harness_yaml refuses with
+      DuplicateKeyError.
+
+      THE CHANGE, precisely.
+
+      1. load_file did the READ as well as the PARSE. json.loads does not, so you must now open the
+         file with open(path, encoding="utf-8"), read the text, and parse it with json.loads - all
+         three inside the try. json is already imported at line 35 - do not add a second import.
+         Leave the harness_yaml import at line 46 alone, load_plan at line 480 still uses it.
+
+      2. The except clause becomes, exactly,
+
+             except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+
+         This is DECIDED, do not substitute your own judgement, and DO NOT SHORTEN THE TUPLE. The
+         two-name version of this clause was the plan's own defect, found by both plan-panel readers
+         at cycle 1 and by the validator lead at source: it omitted UnicodeDecodeError.
+
+         WHY UnicodeDecodeError MUST BE NAMED. Measured in this worktree 2026-09-11:
+         issubclass(json.JSONDecodeError, ValueError) is True, issubclass(UnicodeDecodeError,
+         ValueError) is True, issubclass(UnicodeDecodeError, json.JSONDecodeError) is FALSE and
+         issubclass(UnicodeDecodeError, OSError) is FALSE. So naming JSONDecodeError and OSError does
+         NOT reach it. A feature.json whose bytes are not valid UTF-8 (b"\xff\xfe..." reproduces it)
+         raises UnicodeDecodeError out of the read, which would escape load_factory entirely and land
+         in factory_cli.run's generic handler at factory_cli.py:88-96, printing
+         "unexpected failure: {type(exc).__name__}: {exc}" - the exact CLASS NAME leak issue 208
+         exists to prevent and REQ-06 requires to survive exactly. The reader you are replacing
+         absorbed it deliberately in a SECOND, SEPARATE arm at harness_yaml.py:259, whose comment
+         says in terms: "NOT an OSError. Named separately so the next reader does not simplify the
+         pair into except OSError and quietly restore the fail-open." Do not simplify it here either.
+
+         FORM CHOSEN, AND WHAT IT GIVES UP. The explicit three-name tuple was chosen over two live
+         alternatives:
+         - A bare except ValueError, the common ancestor of json.JSONDecodeError and
+           UnicodeDecodeError. It would cover both in one name and would absorb any future ValueError
+           this read-and-parse pair grows. REJECTED, and the original reason still holds: a bare
+           ValueError is broader than the failures actually expected here and would report an
+           unrelated ValueError raised deeper in the call to the operator as an invalid feature.json.
+           The try body is two statements, so the breadth buys nothing today while blurring the
+           diagnosis.
+         - A read-then-parse split, two trys each with its own guard. It could distinguish "cannot
+           read" from "does not parse". REJECTED: item 3 fixes refuse()'s message byte for byte, so
+           both arms would emit the identical message - the split adds a branch with no observable
+           difference.
+         What the tuple gives up: it is a HAND-MAINTAINED list, so a failure mode of the read-and-
+         parse pair that is none of the three escapes to the generic handler. That is the defect this
+         amendment fixes once; what stops it recurring is not the tuple but BRIEF SC-06 (which now
+         grades the COVERAGE, not the spelling) and BRIEF SC-11 (which runs a non-UTF-8 feature.json
+         through load_factory and asserts the observable refusal).
+
+      2b. EVERY FAILURE MODE load_file ABSORBED, and where each one now lands. load_file
+         (harness_yaml.py:254-263) plus load_str (:224-242) raised YamlParseError or a subclass for
+         all of the following, and line 122 caught the lot. Confirm each is covered:
+         - Missing feature.json. FileNotFoundError, an OSError. Mostly PRE-EMPTED by the
+           os.path.exists early return at lines 114-115, which returns the empty factory without
+           opening the file - an absent feature.json is a DEFAULT, not a refusal, and that must not
+           change. The OSError arm still covers the race where the file disappears between that check
+           and the open.
+         - feat_dir holds a DIRECTORY named feature.json. os.path.exists returns True, so the early
+           return does not cover it; open raises IsADirectoryError, an OSError. Covered by arm 3.
+         - Unreadable file (permissions). PermissionError, an OSError. Covered by arm 3.
+         - Bytes not decodable as UTF-8. UnicodeDecodeError. Covered by arm 2 - and ONLY because arm
+           2 is there. This is the finding.
+         - Malformed document text. json.JSONDecodeError. Covered by arm 1.
+         - A document that parses to a list, a scalar or null. Never an exception under either reader;
+           handled by the isinstance guard at line 124, which stays - see item 5.
+         - DUPLICATE KEY. Behaviour CHANGES here, deliberately and with no new handling owed.
+           harness_yaml raised DuplicateKeyError, a YamlParseError subclass (verified), so
+           load_factory refuses such a file today; json.loads returns last-one-wins and refuses
+           nothing. This consequence is already recorded for the operator in BRIEF's Constraints
+           ("nothing may emit a duplicate key, which JSON accepts silently") and Risk ("a future
+           feature.json carrying a duplicate key stops being silently refused"), so the enumeration is
+           complete without a new arm. Do not add one.
+         - PyYAML not installed. load_str raised MissingDependency, also a YamlParseError subclass
+           (verified), so today an absent PyYAML turns every feature.json read into a refusal. json is
+           stdlib, so this failure mode DISAPPEARS. Nothing to catch.
+         - Pathological nesting. json.loads raises RecursionError, which is NOT a ValueError.
+           Measured: 2000 and 20000 nesting levels parse fine, 200000 raises. Deliberately NOT in the
+           tuple - a hand-written or tool-written feature.json cannot plausibly reach that depth, and
+           catching it would reintroduce exactly the breadth rejected above. Recorded here so the next
+           reader can see it was considered, not missed.
+
+      WHAT MUST NOT CHANGE. This is the point of the task, not a footnote.
+
+      3. The refusal call stays byte for byte as it is at line 123 -
+         factory_cli.refuse(TOOL, "feature.json invalid", path, f"does not load: {e}"). Same tool,
+         same what, same value, same next-step wording. It NAMES THE FILE through the path argument,
+         and refuse() ends in sys.exit(EXIT_REFUSED), a SystemExit, which factory_cli.run()
+         propagates unwrapped rather than re-wrapping as an unexpected failure. Issue 208 exists
+         exactly because a malformed feature.json once raised past factory_cli.run's expected tuple
+         and printed a CLASS NAME instead of naming the file. That observable behaviour - the file is
+         named, the exit is a SystemExit with EXIT_REFUSED, no class name and no unexpected failure
+         wording reaches the operator - is preserved without change, and it must hold for EVERY input
+         enumerated in 2b, the non-UTF-8 one included.
+
+      4. The history comment at lines 116 to 119 is UPDATED, NEVER DELETED. It is the record of why
+         the refusal is shaped this way. Keep its issue 208 clause and add one clause saying the
+         reader is now a JSON parse because feature.json is JSON, that the except arms are
+         json.JSONDecodeError, UnicodeDecodeError and OSError, and that UnicodeDecodeError is named
+         because it is a ValueError but not a JSONDecodeError and not an OSError - so a later reader
+         cannot shorten the set back without contradicting the comment in front of them.
+
+      5. The guard at line 124, if not isinstance(doc, dict), stays. A document that parses to a list
+         or a scalar is not an error json.loads raises, so the type guard is still load-bearing.
+
+      TEST-FIRST, and why it looks inverted here. The durable tests for this change are T-03's, which
+      depends on you and lands after. Your test-first obligation is discharged by the inline
+      behavioural probe in verify - the python3 -c command that writes a YAML-only feature.json into
+      a fresh tempdir and demands load_factory refuse it. RUN IT BEFORE YOU EDIT and record that it
+      exits 1, then run it after and record that it exits 0. That observed red-then-green is the
+      evidence this task owes. Separately, and by hand in a tempdir (add nothing under tests/), write
+      a feature.json in BINARY mode whose first bytes are b"\xff\xfe", call load_factory on that
+      directory, and record that it exits via SystemExit naming the file rather than printing
+      "unexpected failure: UnicodeDecodeError" - that is the input the old two-name set dropped, and
+      your DIGEST must quote the output. Do not add anything under tests/ yourself, and do not run
+      git commit - the commit pen is the orchestrator's (DEC-153).
+
+  - id: T-03
+    title: Pin load_factory's JSON parser with a YAML-only unit fixture
+    traces: [REQ-07, REQ-08]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-02]
+    status: ready
+    files:
+      - tests/unit/test-factory-decompose-loader.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-decompose-loader.py
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Add ONE new unit test file, tests/unit/test-factory-decompose-loader.py, pinning that
+      load_factory parses feature.json as JSON. Edit no other file. Do not edit
+      .claude/skills/harness/bin/factory_decompose.py - T-02 already changed it and you depend on
+      that change being in the tree.
+
+      WHY A NEW FILE AND WHY THAT NAME. The kind is selected by directory (DEC-213) and the amended
+      D-03 requires the unit kind, so the test must live under tests/unit/. It cannot be called
+      test-factory-decompose.py - suite_layout.py's _unit_integration_findings refuses any test file
+      name that appears in both tests/unit/ and tests/integration/, and the integration suite already
+      owns that name.
+
+      SHAPE. Copy the harness of tests/unit/test-factory-cli.py - its anchor block at lines 11 to 15
+      that inserts .claude/skills/harness/bin on sys.path, its check(name, cond, detail) helper at
+      line 28, its FAILS and RAN counters, and its closing print plus sys.exit(1 if FAILS else 0).
+      Import factory_decompose, factory_cli, json, harness_yaml, os, tempfile and contextlib -
+      factory_cli is needed for EXIT_REFUSED in checks 3 and 4. Add no dependency that is not
+      already used by that file or by the module under test.
+
+      THE FIXTURE TEXT, as a python string literal, exactly:
+        "factory:\n  repo: owner/name\n"
+      A YAML block mapping. Valid YAML, invalid JSON. It is chosen so that under the OLD reader it
+      parses to a WELL-FORMED factory block - so a probe that accepts it also proves it reached the
+      parse branch and passed the isinstance guard at line 124, rather than being turned back by an
+      earlier guard.
+
+      THE FOUR CHECKS, each named, each its own check() call.
+
+      1. harness_yaml.load_str(text, "BUG-285 fixture") returns a dict equal to
+         {"factory": {"repo": "owner/name"}}. A YAML loader accepts it AS A MAPPING.
+      2. json.loads(text) raises ValueError. Call it inside a try and FAIL the check if it returns
+         instead of raising.
+         Checks 1 and 2 are the discriminating property and they are asserted in BOTH DIRECTIONS on
+         purpose. One half alone rots - if only the YAML half is asserted, a later edit can turn the
+         fixture into plain JSON and the case silently degrades into a meaningless malformed input is
+         rejected.
+      3. The refusal. Write the text to os.path.join(tempdir, "feature.json") in a fresh
+         tempfile.TemporaryDirectory, call factory_decompose.load_factory(tempdir) inside a try with
+         stderr captured by contextlib.redirect_stderr, and assert the OBSERVABLE BEHAVIOUR, never a
+         class name - a SystemExit was raised, its code equals factory_cli.EXIT_REFUSED, and the
+         captured stderr CONTAINS the feature.json path. Assert the path and the SystemExit in the
+         same check joined with and. Do not accept a bare it raised, and do not assert on the phrase
+         YamlParseError or JSONDecodeError anywhere. If load_factory RETURNS instead of raising, emit
+         a failing check whose detail is the returned factory dict.
+      4. The non-UTF-8 input (BRIEF SC-11). In a fresh tempfile.TemporaryDirectory, write
+         feature.json in BINARY mode with the bytes b"\xff\xfetrash" - the file must be UNDECODABLE
+         as UTF-8, not merely malformed text - call factory_decompose.load_factory(tempdir) inside a
+         try with stderr captured by contextlib.redirect_stderr, and assert in ONE check joined with
+         and: a SystemExit was raised, its code equals factory_cli.EXIT_REFUSED, and the captured
+         stderr CONTAINS the feature.json path. In a second named check assert the captured stderr
+         contains neither the phrase unexpected failure nor the string UnicodeDecodeError - name no
+         exception class in any assertion. If load_factory RETURNS instead of raising, emit a failing
+         check whose detail is the returned factory dict. This is the input T-02's pre-amendment
+         two-name catch set dropped; note in the check's comment that it is green under the old YAML
+         reader too, so its purpose is to stop the catch set being narrowed again. Because of that it
+         is a standing guard and NOT an able-to-fail proof: do not write a red-then-green probe for
+         it, and do not include it in the D-04 probe below, which covers check 3 only.
+
+      THEN PROVE THE NEW ASSERTION CAN FAIL, following D-04's pattern, as a throwaway probe that
+      leaves no trace in the tree.
+
+      a. Write the probe script in a tempdir, NOT in the repo tree.
+      b. shutil.copy the real .claude/skills/harness/bin/factory_decompose.py into a tempdir. NEVER
+         edit the real file in place - .agents/skills is a symlink to .claude/skills, so that file is
+         one inode reached by both spellings and an in-place probe edit is a live-tree edit of
+         production code.
+      c. In the COPY ONLY, restore the pre-T-02 reader - put the explicit open-and-json.loads back to
+         doc = harness_yaml.load_file(path) and the except arms back to harness_yaml.YamlParseError.
+         That reversion is the whole mutant.
+      d. Insert the real bin directory at sys.path[0], the same insert the unit files do, then load
+         the copy with importlib.util.spec_from_file_location so the copy's sibling imports resolve
+         out of the real bin directory.
+      e. Assert the MUTANT does NOT raise on the fixture and returns repo owner/name. That is the red
+         state of check 3, and the returned repo also proves the probe reached the parse branch
+         rather than an earlier guard. Then load the REAL module the same way and assert it raises
+         SystemExit and names the path. Print both outcomes.
+      f. Record both transcripts verbatim, plus the exact commands, in notes/qa-<runid>.md under this
+         feature's notes directory - the path your domain grants - and LEAVE that file in place.
+         SC-09 is graded with git show <review_sha>:<that path>, so a note absent from the commit
+         grades not_met however good the proof. Report the note's exact path as your DIGEST artifact.
+         Then delete the throwaway script and its tempdir. Nothing under tests/ or .claude/ may be
+         left changed by the probe.
+
+      FINALLY run both verify commands from the worktree root and record, in the same note, the exit
+      code and the count of lines beginning FAIL for each. Assert the FAIL count directly - do not
+      infer it from the exit code, because a runner that counts a failure only when a detail string
+      is non-empty can exit 0 while printing FAIL lines. Do not run git commit - the commit pen is
+      the orchestrator's (DEC-153).
