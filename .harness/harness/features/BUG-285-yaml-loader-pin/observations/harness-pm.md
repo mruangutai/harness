@@ -38,3 +38,38 @@
 - 2026-09-11: BUG-285 goalcheck c3 — proved "T-01 unchanged" by yaml.safe_load of the task at the signature commit (bb488145) vs the working file and comparing per key, not by diffing the file; the amendment commit rewrote unrelated regions so a textual diff would have read as change. Same run: re-measured check-plan-routes.py and got exit 0 / 0 violations where open panel finding PF-142f3a asserts exit 1 with a DEVIATION line — a finding about a tool's output can go stale between cycles, so re-measure before carrying one forward.
 - 2026-09-11: BUG-285 set-panel adding one reader produced a 3-line pure insert — no safe_dump reflow at all, contrary to the G-07 worry, because the existing panel was already in safe_dump's own wrapping. Value-file-from-safe_load is the cheap safe route regardless.
 - 2026-09-11: check-state.sh INV-32 emits NO line naming the goalcheck reader for any feature once recorded; the absence grep across the whole 1354-line output is the cleanest proof the gate closed.
+- 2026-09-11: BUG-285 foldq7 c2 — check-plan-routes.py resolves its MANIFEST from the SCRIPT's own location, not from cwd, so the "run it from the main checkout or it deviates" folklore did not reproduce at 6cb113f4: exit 0 and 0 violations from BOTH the owner root and inside the worktree, control-plane copy and worktree copy alike. A cwd-conditioned verification instruction is a symptom of a transient team-config skew, not a property of the checker.
+- 2026-09-11: BUG-285 foldq7 c2 — plan-merge amend --field <f> --show is the cheap byte-identity check on a protected task: it prints the field body plus a sha256, so re-measuring three intent shas cost one loop and proved T-01..T-03 unchanged without a diff or a git read.
+- 2026-09-11: BUG-285 foldq7 c2 — a decision citing a notes/ file as its able-to-fail evidence can land and be signed while that file does not exist; nothing in check-state.sh or check-plan-routes.py resolves a notes path inside a decision's prose, so the dangling citation is invisible to every gate.
+- 2026-09-11 (goal-check c4, BUG-285): graded a parity criterion by deriving divergence classes from
+  both readers' control flow instead of from the plan's input list, and found a class nobody had
+  named: gh-sync load_recorded refuses a non-mapping `github:` value (:588-594) while
+  factory_decompose load_factory returns its empty factory for a non-mapping `factory:` value
+  (:127-128). D-08 had recorded "One divergence SURVIVES" — there were two of the same shape. The
+  plan asserted coverage; only the control flow could falsify it.
+- 2026-09-11 (BUG-285): to measure a POST-change matrix without touching a live inode, I loaded each
+  reader's source, string-replaced the two guards, and exec'd it in a fresh module whose __file__ was
+  left at the REAL path — sibling imports and each module's own root resolution both keep working,
+  and nothing under .claude/ is written. Cheaper and safer than shutil.copy into a tempdir.
+- 2026-09-11 (BUG-285): three of five tasks carried the "unit runner prints 4 FAIL lines at green,
+  grade on exit status only" warning; T-02 runs the same command first in its verify and carries no
+  such warning. When a measurement trap is inoculated per task, grep every task for the inoculation.
+- 2026-09-11: BUG-285 S-03. plan-merge amend --show hashes the RAW BLOCK LINES (header + indented body), not the parsed value, so a sha computed from yaml.safe_load never matches; take the hash from --show and pass the raw body as --value-file. Extracting the current value with a tiny python script and editing that file is the safe route for an 8k-char intent.
+- 2026-09-11: BUG-285 S-03. A disclosure-only amendment needs an explicit "this remains open to you" sentence where the operator signs; without it a reader takes a recorded divergence as a closed decision.
+- 2026-09-11 (BUG-285): a survey of ONE input class at a time had found 2 members of the present-but-malformed-read-as-empty class over four cycles; ONE 13-class probe run found 6. The sixth was invisible to every type-guard reading because it is reached by COERCION, not by a guard: gh-sync's _opt_int turns "7" into 7 while load_factory's isinstance(parent, int) drops it, so a recorded parent reads as absent from a block that IS a mapping. Enumerate input classes as a matrix before concluding a defect class is closed.
+- 2026-09-11 (BUG-285): classifying reader parity by raw return-value diff overstates divergence. Both readers refuse an unparseable feature.json, differing only in exit code (bare SystemExit code=1 vs factory_cli.refuse EXIT_REFUSED=2), which D-11 keeps deliberately. Grade the MATERIAL answer a caller gets, then note the mechanism.
+- 2026-09-11: BUG-285 bounded amend. Four table rows closed with ONE guard pair because the OTHER
+  reader already carried the shape (gh-sync.py:583-594). Reading the sibling reader before
+  designing the guard turned a four-row closure into a convergence argument, and it is what made
+  "no new task" defensible.
+- 2026-09-11: BUG-285. The dangerous half of a "make malformed refuse" ruling is the ABSENT path,
+  not the refusals. Measuring the live corpus first (all 80 feature.json have the block key ABSENT)
+  is what showed a single refusal would have refused every live feature, and it is what justified
+  splitting the guard rather than replacing it.
+- 2026-09-11: BUG-285. Before writing a mandated code shape into an intent, I ran it against a
+  patched COPY in a tempdir over 12 inputs. It cost one tool call and converted "the builder should
+  be able to satisfy this" into a measured ALL GREEN, including the two absent-path controls.
+- 2026-09-11: BUG-285. check-plan-routes.py exited 0 with 0 violations where a cycle-2 panel
+  finding recorded a MANIFEST team-config-skew deviation for the same plan. Report what the run
+  measured, not what the record predicted, and say which invocation was used.
+- 2026-09-11: BUG-285 final amend — a SUPERSEDED decision's own `WHAT IS LIVE NOW` forward-pointer (D-08) went stale when the entry that superseded it (D-14) was itself superseded (D-16). The chain D-08 -> D-14 -> D-16 read correctly by pointer while D-08's live-now clause asserted a false figure. Sweep lesson: when a supersession chain grows a third link, re-grade EVERY earlier entry's live-now clause, not just the one being amended.
