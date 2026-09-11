@@ -349,3 +349,59 @@ the measurement mode beside every claim: `ls .harness/*/features | wc -l` for ma
 `find -type f | wc -l` for the read surface, `df -k` delta for real blocks, `git status --porcelain
 | wc -l` for cleanliness. No criterion is gated on a byte figure, because a byte bound is
 satisfiable by APFS clonefile — the mechanism the operator's rule excludes.
+
+## RECONCILIATION with the signed plan — 2026-09-11
+
+FEAT-58's BRIEF and plan were signed at cycle 9 (`fd900d0b`). Every item of this note's BINDING ON
+PLANNING table traces to its own REQ and at least one SC, verified in the artifacts rather than from
+the plan's claim about itself:
+
+| Item | REQ | SC | Tasks |
+|---|---|---|---|
+| D-1 | REQ-01 | SC-01 | N-02, N-05 |
+| D-2 | REQ-02 (+REQ-08) | SC-02 (+SC-03) | N-03 |
+| D-3 | REQ-03 | SC-04, SC-05, SC-06 (+SC-14, SC-16) | N-06, N-10, N-13, N-14 |
+| D-4 | REQ-04 (+REQ-09) | SC-07 (+SC-08) | N-07, N-08 |
+| D-5 | REQ-05 | SC-12 | N-09 |
+| M-1 | REQ-06 | SC-09, SC-10 | N-02 |
+| M-2 | REQ-07 | SC-11 | N-04 |
+| nothing lost (strong form) | REQ-10 | SC-13 | N-09 |
+
+**Three amendments to THIS NOTE, so the floor matches what was signed.** In each case the plan is
+right and this note was stale — all three are operator rulings taken after the note was written and
+never folded back.
+
+1. **D-3 is narrowed by SUBJECT, not by LOCATION.** The rule stated above reads "only audit the
+   active worktree". What was signed is narrower in what an audit examines and explicit about where
+   it runs: a feature worktree's audit covers its own feature, and the four repo-level record audits
+   — `board_lifecycle.py`, `check-plan-routes.py`, `validate-feature-json.py`, `check-domain.sh`'s
+   peer sweep — read **the owner root** (N-10, behind one `feature_corpus` seam). That follows this
+   note's own altitude reasoning, that a repo-wide record audit belongs where the record is
+   complete; the original sentence just did not say it. Read D-3 as: no audit sweeps the corpus
+   *from inside a worktree*, and no audit reports clean over a subset.
+
+2. **M-1's gate behaviour: exits 3-7 gate, exit 8 reports.** The mechanism section above says
+   `--verify` "fails loudly" when a gate calls it. Amended at cycle 6 on finding PL-02: gating on
+   the dirty-tree exit would make `check-state.sh` — the canonical pre-commit gate for the whole
+   repository — refuse in every dirty feature worktree, which is the normal mid-task state, and
+   refuse ahead of the very commit that is exit 8's own stated remedy. The structural exits (3-7)
+   gate; the dirty tree is reported and non-gating. SC-09 carries the reason inline.
+
+3. **The fixture rule forbids COST and MUTATION, never READING the real tree.** "A synthetic
+   repository … never a copy of this repository" was written against the #1526 precedent (a fixture
+   copying `.claude/worktrees`, 239 s of a 240 s suite) and against mutating live state. It was read
+   as forbidding any real-repository assertion. Clarified at cycle 6 on finding PL-04 and now
+   binding here: read-only assertions against the real owner root are REQUIRED, because a fixture
+   whose directories and records agree by construction cannot catch a defect that exists only
+   because the real tree disagrees with itself — which is exactly the 89-versus-79 case. They are
+   read-only, they never touch a live worktree, the dirty case uses a disposable tree, and the
+   synthetic fixture keeps every assertion it already had. SC-16, N-13 and N-14 carry this.
+
+**One item struck and not replaced.** SC-15 and the hardlink scan are gone (cycle 5), because a
+control whose own failure mode is the harm it was added to prevent is worse than no control. The
+general weakness is #1638. This note never required it.
+
+**Signed with seven findings dispositioned**, in `plan.yaml`'s `approval.rulings`: H-01 converted to
+build-phase work as N-14 with M-01 folded in; L-02 fixed by the operator at signature; M-02, L-01,
+L-03 and NF-01 accepted as known residue. Reasoning:
+`features/FEAT-58-corpus-outside-worktree/notes/answers-operator-c9.md`.
