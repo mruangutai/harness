@@ -2,7 +2,38 @@ schema: plan/1
 feature: FEAT-58-corpus-outside-worktree
 status: plan
 approval:
-  status: pending
+  date: '2026-09-10'
+  approved_by: mruangutai
+  status: approved
+  rulings:
+    - finding: PF-71355e9c75df3b571e8e3d0d9de9a153
+      who: mruangutai
+      date: '2026-09-10'
+      reason: 'H-01 CONVERTED to build-phase work, not accepted as-is. The build task asserts the reached feature-directory NAME SET equals os.listdir(owner_root/.harness/harness/features), which closes M-01 in the same assertion, and it MUST carry a MISSING-producing mutation. My cycle-8 wording is WITHDRAWN: the pre-fix staging yields MISSING empty and UNEXPECTED 10 arithmetically, which PP-03''s loosened clause tolerates, so that wording would invite a FALSE red. PP-03 and PP-04 were each individually correct rulings of mine and are jointly unsatisfiable - my error. Reasoning in notes/answers-operator-c9.md Q1.'
+    - finding: PF-b73686f676e78f82fe0ab17cbebabad0
+      who: mruangutai
+      date: '2026-09-10'
+      reason: M-01 closed by H-01's folded name-set assertion; the unreachable discard-notice print branch needs no separate remedy. Disclosed by the eng lead as its own cycle-8 addition, which is why it was findable.
+    - finding: PF-f1ae29441bee6ef1c64d301c99d5eb23
+      who: mruangutai
+      date: '2026-09-10'
+      reason: M-02 accepted as known residue. Build catches it the moment the test is written - a clause that sets cwd to select a tree fails against a script that resolves its root from _selfdir.
+    - finding: PF-a8ce72db5b5b4054cb480c22676490db
+      who: mruangutai
+      date: '2026-09-10'
+      reason: L-01 accepted as known residue - stale guard anchor with an over-broad --force claim, no runner exposure.
+    - finding: PF-9ffaa03b4f105bc652f81aad20c0469b
+      who: mruangutai
+      date: '2026-09-10'
+      reason: L-02 FIXED BY THE OPERATOR AT SIGNATURE, not accepted. BRIEF.md's constraint now states the real mechanism - the hook scripts are tracked, core.hooksPath is local config and is not cloned, harness-init sets it at onboarding and INV-31 refuses a clone missing it.
+    - finding: PF-454129f3295b6e2a2d9659d10c9c2065
+      who: mruangutai
+      date: '2026-09-10'
+      reason: L-03 accepted as known residue, same mechanism as M-02 - build catches it when the test is written.
+    - finding: PF-99f697b0e82bfd5e9b4e453dbeb8e485
+      who: mruangutai
+      date: '2026-09-10'
+      reason: NF-01 accepted as known residue - INV-31 catches it on the next check-state.sh run.
 source_issues: [1559]
 
 lanes:

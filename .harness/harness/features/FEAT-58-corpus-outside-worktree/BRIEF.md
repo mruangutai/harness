@@ -398,8 +398,14 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   that binding reach a write attempted through the corpus path rather than trusting convention.
 - **DEC-163 BLOCKS** resting an `automated` criterion on a null runner; see Verification gaps.
 - **DEC-213 BLOCKS** test placement: `tests/unit/**` and `tests/integration/**`.
-- **The host already supplies the mechanism:** `core.hooksPath` is `.claude/skills/harness/hooks`,
-  tracked so it travels with a clone; `post-merge` is already a shim delegating to
+- **The host already supplies the mechanism, but NOT by tracking:** `core.hooksPath` is
+  `.claude/skills/harness/hooks`. The hook SCRIPTS are tracked; the config pointing at them is
+  LOCAL git config and is NOT cloned (`git ls-files | grep -c gitconfig` → 0). What makes it travel
+  is `harness-init/SKILL.md:81`, which sets it at onboarding, and **INV-31**
+  (`check-state.sh:2607`), which REFUSES a clone whose `core.hooksPath` is wrong — so a fresh clone
+  missing it is a named, gated state rather than a silent hole. Operator correction, cycle 9, on
+  L-02: this line previously read "tracked so it travels with a clone", which conflated the two.
+  `post-merge` is already a shim delegating to
   `bin/post-merge-sweep.sh` (FEAT-34 T-11, D-08) so a test can reach it. `bash-write-guard.sh:611-741`
   already refuses `git worktree add` outside the sanctioned location.
 - **Shared file:** `.claude/skills/harness/bin/check-state.sh` is also touched by FEAT-57's T-19.
@@ -409,4 +415,11 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: mruangutai
+date: 2026-09-10
+
+Signed at cycle 9. Seven panel findings stood open at signature and each carries a disposition in
+`plan.yaml`'s `approval.rulings`: H-01 CONVERTED to build-phase work with M-01 folded into it,
+L-02 FIXED by the operator at signature, and M-02, L-01, L-03 and NF-01 accepted as known residue.
+Reasoning and the terms signed under: `notes/answers-operator-c9.md`.
