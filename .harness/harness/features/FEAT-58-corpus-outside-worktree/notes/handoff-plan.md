@@ -1,44 +1,39 @@
-# Handoff — FEAT-58-corpus-outside-worktree, plan → fourth signature gate — written at 55d46767, seq-6
+# Handoff — FEAT-58-corpus-outside-worktree, plan → signature — written at 04765199, seq-7
 
 ## Next
 
-Present for the operator's fourth batched review. Not signable: the panel `planpanelc6-validator`
-returned FAIL at `severity_max: high` with six new findings — PP-01..PP-04 high, PP-05 and PP-06
-med — ALL on N-13, recorded unresolved in `plan.yaml`'s `panel` key. DEC-207 forbids a
-pre-signature fix dispatch and no agent may risk-accept a high. PP-05's honest remedy edits SC-16,
-approval-gated, so it is the operator's edit. **The budget is the live constraint: 8 of 10 cycles.
-One fix-and-re-panel round fits; a second exhausts a HARD bound and the correct outcome then is
-BLOCKED, not a quiet continuation.**
+The plan is presented for signature and the plan phase is DONE. The operator signs with
+`plan-merge.py sign-approval`, recording the open findings in `approval.rulings` and ruling on
+H-01 — accept it, or convert it to a build-phase task on N-13 carrying a MISSING-producing
+mutation. On signature the next phase is build, whose entry step is `gh-sync.py open <feature-dir>`
+before any task is dispatched. No further planning work is owed and no fix round remains: the
+operator ruled cycle 8 the last one and the panel returned NOT STRUCTURAL with no new high.
 
 ## Trust
 
-- 12 tasks (N-01..N-10, N-12, N-13; N-11 retired, id a deliberate gap), 17 decisions, BRIEF 10 REQ / 15 criteria (SC-15 a deliberate gap), both approvals `pending` — orchestrator's own read of plan.yaml and BRIEF.md — verified-at 55d46767
-- PL-01..PL-04 all verifiably RESOLVED at source by the panel, and the rest of the plan graded clean — runs/planpanelc6-validator/digest.md disposition table — verified-at 55d46767
-- The post-fix goal-check PASSED all ten axes; its two med and two low findings were fixed BEFORE the panel read the draft — runs/goalcheckc6-product/digest.md, runs/fixgc6-product/digest.md — verified-at 55d46767
-- `check-state.sh:22-49` resolves root from `_selfdir`, "never from the environment and never from the caller's cwd", so PP-01 is real — orchestrator's own read — verified-at 55d46767
-- `grep -c HARNESS_REVIEW_SHA check-state.sh` = 0, so PP-05 is real — orchestrator's own measurement — verified-at 55d46767
-- `core.hooksPath` is `--local` config and no tracked gitconfig exists, so it does NOT travel with a clone and PP-02 is real — orchestrator's own measurement — verified-at 55d46767
-- `git ls-files -- '.harness/*/features'` returns 0 and `'.harness/*/features/*'` returns 3383, which is why GC6-02 was a real defect — orchestrator's own measurement — verified-at 55d46767
-- Ledger 45 rows, nothing removed since the single named Q6 strike — panel cross-validated by chaining the three apply notes, a different method than the goal-check's — UNVERIFIED at this tier
+- 12 tasks (N-01..N-10, N-12, N-13; N-11 retired, id a deliberate gap), 17 decisions, BRIEF 10 REQ / 15 live criteria (SC-15 a deliberate gap), both approvals `pending` — orchestrator's own read — verified-at 04765199
+- The panel's structural answer is NOT STRUCTURAL, with a producing mechanism enumerated for all ten REQs — runs/planpanellast-validator/digest.md, recorded at plan.yaml:676-696 — verified-at 04765199
+- No new high or critical from the final panel; `scope`'s FAIL is on the standing H-01 alone under a severity_max rule — runs/planpanellast-validator/digest.md — verified-at 04765199
+- The goal-check returned PASS with nothing structural, and the panel confirmed all six of its findings correctly graded — notes/research-FEAT-58-goalcheck-plan-c8.md — verified-at 04765199
+- `check-state.sh:22-49` resolves root from `_selfdir`, never from cwd; `grep -c HARNESS_REVIEW_SHA` = 0; `core.hooksPath` is local config and not cloned; 89 dirs against 79 records — orchestrator's own measurements — verified-at 04765199
+- Always-green set is H-01 and M-01; build catches M-02 and L-03 — panel, tested hardest on M-01's claim by two independent routes — UNVERIFIED at this tier
+- Ledger 45 rows, no row lost, both evidence-form demotions still visible — goal-check and panel, by different methods — UNVERIFIED at this tier
 
 ## Dead ends
 
-- The hardlink half — SC-15 and N-11's parts: struck by operator ruling, general weakness filed as #1638, re-proposing it is out of bounds — notes/answers-operator-c5.md Q6 — verified-at 55d46767
-- A persisted uniqueness index: computed on demand at 0.0023 s median over 79 records — notes/answers-operator-c3.md Q2 — verified-at 55d46767
-- Remedy (b) for the audit sets — restricting both to `feature.json`-carrying dirs: rejected, it buys a green audit by ignoring ten tracked directories, which is the defect this feature removes — notes/answers-operator-c6.md Q1 — verified-at 55d46767
-- Correcting the FEAT-02 / FEAT-03 records: Arm B, era-exempt, both terminal — notes/answers-operator-c3.md Q3 — verified-at 55d46767
-- Setting `fetch-depth: 0` on the CI `integration` job: rejected, it bends the runner to suit the measurement — notes/answers-operator-c5.md Q2 — verified-at 55d46767
-- Asserting any gate's decision by exit code: both `merge-gate.py` and `branch-create-gate.sh` refuse by PAYLOAD at exit 0, recorded as the convention in D-17 — orchestrator's own source read — verified-at 55d46767
+- Another fix round: the operator ruled cycle 8 the last, on the measured ground that each amendment hands the panel new text to falsify, so every round manufactures the next — notes/answers-operator-c8.md Q8 — verified-at 04765199
+- The hardlink half, a persisted uniqueness index, remedy (b) for the audit sets, correcting the FEAT-02/FEAT-03 records, `fetch-depth: 0` on CI, and asserting any gate's decision by exit code: each rejected on the record with its reason — answers-operator-c3/c5/c6, D-14, D-17 — verified-at 04765199
+- Migration/convergence, the corpus-root anchor, the fifteen-reader ledger, reflink, byte-count criteria, the incremental-sweep cache: all six killed by the DoD and confirmed not to have crept back across three rounds of growth — goalcheck axis 10 — verified-at 04765199
 
 ## Working set
 
 - .harness/harness/features/FEAT-58-corpus-outside-worktree/plan.yaml
 - .harness/harness/features/FEAT-58-corpus-outside-worktree/BRIEF.md
-- .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/planpanelc6-validator/digest.md
-- .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/answers-operator-c6.md
+- .harness/harness/features/FEAT-58-corpus-outside-worktree/runs/planpanellast-validator/digest.md
+- .harness/harness/features/FEAT-58-corpus-outside-worktree/notes/research-FEAT-58-goalcheck-plan-c8.md
 - .harness/notes/dod-worktree-corpus-2026-09-10.md
 
 ## Done when
 
-Scope: the operator disposes of PP-01..PP-06, edits SC-16 or rules otherwise on PP-05, then signs
+Scope: the operator signs the BRIEF and the plan, recording the open findings and ruling on H-01
 Authority: approval:.harness/harness/features/FEAT-58-corpus-outside-worktree/BRIEF.md#Approval

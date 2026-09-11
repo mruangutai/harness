@@ -298,7 +298,10 @@ edge. Read a `traces:` list as REQ ids plus the criteria the task grades.
   verify: automated      evidence: integration
 - SC-16: The shipped audit and its preflight hold over the REAL repository and not only over the
   synthetic fixture. Two observations, both required, and both READ-ONLY with respect to the owner
-  root and to every live worktree. **At the real owner root**, read at the reviewed commit, the
+  root and to every live worktree. **At the real owner root**, read AS IT STANDS ON DISK — never at
+  a pinned ref, because `check-state.sh` has no such notion (`grep -c HARNESS_REVIEW_SHA` over it
+  returns 0) and honouring one would mean checking the owner root out to that ref, which this
+  criterion's own read-only rule forbids (operator amendment, cycle 8, on PP-05) — the
   shipped `check-state.sh` produces NO expected-versus-reached mismatch refusal and proceeds past
   the choke point — at least one invariant line printed, and the number of feature directories it
   reached greater than `70` so a read of nothing cannot pass. **No census figure is an

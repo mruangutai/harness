@@ -97,7 +97,16 @@ the default branch. The repair is one command:
     git sparse-checkout reapply  →  dirty 0, 3337 skip-bits restored
 
 **The host already exists and is tested.** `core.hooksPath` is `.claude/skills/harness/hooks`,
-tracked in the repository so it travels with a clone. `post-merge` there is a deliberate shim whose
+and the hook SCRIPTS are tracked in the repository.
+
+**CORRECTED 2026-09-10, operator error.** This sentence originally read "tracked in the repository
+so it travels with a clone". That conflated the tracked hook scripts with the `core.hooksPath`
+config pointing at them, which is LOCAL git config and is NOT cloned — measured:
+`git ls-files | grep -c gitconfig` returns 0. The mechanism does travel, but by two other means, and
+they should be cited rather than assumed: `harness-init/SKILL.md:81` sets `core.hooksPath` as an
+onboarding step, and `check-state.sh:2607` is INV-31, which REFUSES a clone whose `core.hooksPath`
+is wrong ("no harness hook runs on this clone"). A fresh clone missing the config is therefore a
+named and gated state, not a silent hole. `post-merge` there is a deliberate shim whose
 body lives in `bin/post-merge-sweep.sh` so a test can reach it (FEAT-34 T-11, D-08), and that sweep
 already walks every linked worktree — its `SKIP … not under WORKTREES_SEGMENT` lines appeared in
 the probe above.
