@@ -1,51 +1,58 @@
-# Handoff — BUG-285-yaml-loader-pin, plan → build — written at bb48814, seq-11
+# Handoff — BUG-285-yaml-loader-pin, plan → build — written at 66be772, seq-13
 
 ## Next
 
-Nothing dispatches. The approval state must be resolved by the operator first: plan.yaml reads
-`approved` (2026-09-09) over a task set amended five times since, BRIEF.md reads `pending`, and no
-verb writes `approved` -> `pending`. On a fresh signature over the AMENDED plan, run the eng
-segment: `plan-merge.py set-feature-station --station building`, then dispatch the `build` team to
+Nothing dispatches. The operator must resolve the approval state first: plan.yaml reads `approved`
+(2026-09-09) over a task set amended since, BRIEF.md reads `pending`, and no verb writes
+`approved` -> `pending`. On a fresh signature over the AMENDED plan, run the eng segment:
+`plan-merge.py set-feature-station --station building`, then dispatch the `build` team to
 `harness-eng-lead` — T-02 first (`execution_agent: harness-backend-dev`), then T-03 which
-`depends_on: [T-02]`, with T-01 independent. Carry each task's `intent:` verbatim from plan.yaml.
+`depends_on: [T-02]`; T-01 is independent. Carry each `intent:` verbatim from plan.yaml.
 
 ## Trust
 
-- plan.yaml holds T-01/T-02/T-03 and `panel.cycle: 2` with six findings (2 info open, 2 low open,
-  1 high resolved by T-02 under both reporters' ids) — loaded and read back through harness_yaml —
-  verified-at bb48814
-- `UnicodeDecodeError` is a `ValueError` but NOT a `json.JSONDecodeError`, so the cycle-1 catch set
-  genuinely missed it — probed all three `issubclass` relations myself — verified-at bb48814
+- plan.yaml holds T-01/T-02/T-03 and `panel.cycle: 2` with three readers (should-not-exist, scope,
+  goalcheck) and six findings, 4 open and 2 resolved by T-02 — loaded and read back through
+  harness_yaml — verified-at 66be772
+- `UnicodeDecodeError` is a `ValueError` but NOT a `json.JSONDecodeError`, which is why cycle 1's
+  catch set was gating — probed all three `issubclass` relations myself — verified-at 66be772
 - `factory_decompose.py`: comment `:116-119`, `try:` `:120`, `harness_yaml.load_file(path)` `:121`,
-  `except` `:122`, `factory_cli.refuse` `:123` — read with line numbers at source — verified-at
-  bb48814
+  `except` `:122`, `factory_cli.refuse` `:123`; early `os.path.exists` return `:114-115` — read at
+  source with line numbers — verified-at 66be772
 - 79 `feature.json` files parse identically under both loaders, so T-02 changes no current
-  behaviour and closes a latent divergence — ran both parsers over all of them — verified-at bb48814
-- `check-plan-routes.py` in THIS worktree: all three tasks OK, exit 1 solely on the DEVIATION line
-  (this worktree's team-config.yaml is behind main's) — ran it myself; the product lead reported
-  "0 violations, exit 0" and that did NOT reproduce here — verified-at bb48814
-- T-01's, T-02's and T-03's `intent:`/`verify:` blocks survived every amend and the panel write —
-  per-field shas recorded in `runs/2026-09-11-03-panelrecordc2-product/digest.md` — UNVERIFIED by
-  me; I confirmed the blocks load and are non-empty, not their shas
+  behaviour and closes a latent divergence — ran both parsers over all of them — verified-at 66be772
+- check-plan-routes.py is cwd-dependent: exit 1 with a DEVIATION line from inside the worktree,
+  exit 0 with 0 violations from the main checkout, same plan and same checker. All three tasks
+  route OK either way — ran both invocations back to back — verified-at 66be772
+- the six 2026-09-11 lead digests are contract-clean under MAIN's validate-digest.py and fail only
+  under this branch's older copy (which requires `sc_status`); the cycle-0 panel digest is the
+  mirror case, clean here and failing under main's enum for `severity_max: info` — ran main's
+  validator over every digest in the runs tree — verified-at 66be772
+- T-01/T-02/T-03 `intent:`/`verify:` per-field shas as recorded in
+  `runs/2026-09-11-03-panelrecordc2-product/digest.md` — UNVERIFIED by me; I confirmed the blocks
+  load and are non-empty, not their shas
 
 ## Dead ends
 
-- No verb writes `lanes:` — `apply` exits 7 CONFLICT on the top-level key, `amend --key lanes`
-  exits 2 naming tasks/decisions; I probed both against a copy. D-05 records it; routing authority
-  is each task's own `execution_agent` — verified-at bb48814
-- No verb writes `approval:` downward. Do not send another squad to try — three separate returns
-  already burned effort on it — `runs/2026-09-11-01-amend-product/digest.md` — verified-at bb48814
+- No verb writes `lanes:` — `apply` exits 7 CONFLICT, `amend --key lanes` exits 2; I probed both
+  against a copy. D-05 records it; routing authority is each task's `execution_agent` —
+  verified-at 66be772
+- No verb writes `approval:` downward. Do not send another squad at it — four returns already
+  burned effort there — `runs/2026-09-11-01-amend-product/digest.md` — verified-at 66be772
+- Do not "fix" the digest-contract violations by adding `sc_status` — it satisfies this branch's
+  copy and no single value satisfies both contracts; the merge resolves it —
+  `runs/2026-09-11-02-planpanelc2-validator/digest.md` — verified-at 66be772
 - Do not fold in the gh-sync.py:516-524 non-UTF-8 defect the panel found. Out of the operator's
-  scope; it is a backlog candidate — `runs/2026-09-11-02-planpanelc2-validator/digest.md` —
-  verified-at bb48814
+  scope; backlog candidate — `runs/2026-09-11-02-planpanelc2-validator/digest.md` —
+  verified-at 66be772
 
 ## Working set
 
 - .harness/harness/features/BUG-285-yaml-loader-pin/plan.yaml
 - .harness/harness/features/BUG-285-yaml-loader-pin/BRIEF.md
+- .harness/harness/features/BUG-285-yaml-loader-pin/notes/research-BUG-285-goalcheck-plan-c3.md
 - .harness/harness/features/BUG-285-yaml-loader-pin/runs/2026-09-11-02-planpanelc2-validator/digest.md
 - .claude/skills/harness/bin/factory_decompose.py
-- tests/integration/test-gh-sync.py
 
 ## Done when
 
