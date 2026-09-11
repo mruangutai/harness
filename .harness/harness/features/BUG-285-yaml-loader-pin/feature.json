@@ -3,7 +3,7 @@
   "branch": "feat/BUG-285-yaml-loader-pin",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
