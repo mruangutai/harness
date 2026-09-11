@@ -437,6 +437,69 @@ with tempfile.TemporaryDirectory() as td:
           rec.mutating_calls() == [], rec.mutating_calls())
 
 # ============================================================================
+# 1d. BUG-285 nested factory records: absence remains empty, but a recorded
+# non-mapping refuses and legacy numeric values retain their issue numbers.
+# These call load_factory directly: coverage through publish would miss the reader contract.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(td, feature_json_extra=json.dumps({"factory": "x"}))
+    factory_path = os.path.join(feat_dir, "feature.json")
+    refusal_err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(refusal_err):
+            fd.load_factory(feat_dir)
+        check("(1d) non-mapping factory value refuses", False,
+              "load_factory returned instead of raising")
+    except SystemExit:
+        check("(1d) non-mapping factory value refuses and names the file",
+              factory_path in refusal_err.getvalue(), refusal_err.getvalue())
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(
+        td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": "7"}})
+    )
+    check("(1d) quoted parent is coerced through load_factory",
+          fd.load_factory(feat_dir)["parent"] == 7, fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(
+        td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": True}})
+    )
+    check("(1d) bool parent remains no value through load_factory",
+          fd.load_factory(feat_dir)["parent"] is None, fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(
+        td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": 7}})
+    )
+    check("(1d) integer parent remains an integer through load_factory",
+          fd.load_factory(feat_dir)["parent"] == 7, fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(td, feature_json_extra=json.dumps({"feature_id": "F-absent"}))
+    check("(1d) absent factory key remains the empty record",
+          fd.load_factory(feat_dir) == fd._empty_factory(), fd.load_factory(feat_dir))
+
+with tempfile.TemporaryDirectory() as td:
+    check("(1d) absent feature.json remains the empty record",
+          fd.load_factory(td) == fd._empty_factory(), fd.load_factory(td))
+
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, _ = make_feature(td)
+    factory_path = os.path.join(feat_dir, "feature.json")
+    with open(factory_path, "wb") as f:
+        f.write(b"\xff\xfe")
+    refusal_err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(refusal_err):
+            fd.load_factory(feat_dir)
+        check("(1d) non-UTF-8 feature.json refuses through load_factory", False,
+              "load_factory returned instead of raising")
+    except SystemExit:
+        check("(1d) non-UTF-8 feature.json refuses and names the file through load_factory",
+              factory_path in refusal_err.getvalue(), refusal_err.getvalue())
+
+# ============================================================================
 # 2. a signed two-task plan creates two issues, adds two board items, sets both stations
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:

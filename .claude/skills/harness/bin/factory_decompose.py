@@ -122,23 +122,27 @@ def load_factory(feat_dir):
         doc = feature_json_write.load_feature_json(path)
     except feature_json_write.FeatureJsonError as e:
         factory_cli.refuse(TOOL, "feature.json invalid", path, e.next_step)
-    if doc is None:
+    if doc is None or "factory" not in doc:
         return factory
-    f = doc.get("factory")
+    f = doc["factory"]
     if not isinstance(f, dict):
-        return factory
+        factory_cli.refuse(
+            TOOL, "feature.json invalid", path,
+            "has a factory key that is not a JSON object, so what is already mirrored cannot be known",
+        )
     repo = f.get("repo")
     factory["repo"] = repo if isinstance(repo, str) and repo else None
 
-    parent = f.get("parent")
-    if isinstance(parent, int) and not isinstance(parent, bool):
+    parent = feature_json_write.opt_int(f.get("parent"))
+    if parent is not None:
         factory["parent"] = parent
 
     issues = f.get("issues")
     if isinstance(issues, dict):
         for k, v in issues.items():
-            if isinstance(v, int) and not isinstance(v, bool):
-                factory["issues"][str(k)] = v
+            issue = feature_json_write.opt_int(v)
+            if issue is not None:
+                factory["issues"][str(k)] = issue
 
     items = f.get("items")
     if isinstance(items, dict):
