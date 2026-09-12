@@ -82,10 +82,15 @@ kind), `inspection`, or `uat`.
   `plan`, with a one-line reason, written to the grilling artifact; the operator confirms or
   overrides in the same dialog. `/harness-plan` refuses to start without a recorded mission.
   verify: automated  evidence: python
-- SC-02 (operator): a `patch` mission produces an intake note (Problem, Done-when by perspective,
-  SCs, ≤ 120 lines) and no `plan.yaml`; after signature it runs exactly build → qa → review → ship,
-  with no pre-build panel. Demonstrated on one real bug flow end-to-end.
+- SC-02 (operator): a `patch` mission produces, in ONE product run, a short BRIEF (Problem,
+  Done-when by perspective, SCs, ≤ 120 lines) and a `plan.yaml` holding exactly one task; after
+  signature it runs exactly build → validate → ship, with no pre-build panel and no goal-check
+  run. Demonstrated on one real bug flow end-to-end.
   verify: automated  evidence: integration
+  <!-- Amended at build, 2026-09-11, main session: the signed text said "no plan.yaml". Stations,
+       gh-sync, review_sha pinning and the build team all key on plan tasks; a second task-less
+       lane would re-implement all four. One generated task costs nothing and keeps one lane. -->
+
 - SC-03 (orchestrator): a plan-panel finding of kind `proportionality` that no reader opposes
   causes the orchestrator to downgrade the mission to `patch` itself, record the reason, and
   return the intake note `pending`; the operator sees the downgrade at signature, not as a
