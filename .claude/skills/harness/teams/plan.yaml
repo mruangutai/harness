@@ -1,0 +1,190 @@
+# plan — a `plan` mission from grilling artifact to a signable plan, in ONE product-lead run.
+#
+# FEAT-59 SC-04. Before this file the plan phase was three cold dispatches per cycle —
+# product segment, validator segment, a pm run whose only work was to transcribe the
+# validator lead's digest into `panel:` — and every document edit voided every proof
+# recorded about it (BUG-285: 19 runs before a line of code). Here the draft, the
+# readers, the apply and the goal-check are steps of one run hosted by one lead.
+#
+# THE LEAD HOSTS PERSONAS FROM TWO SQUADS. code-reviewer and ui-reviewer are validator-
+# squad; fable-advisor is outside the roster. DEC-118 as amended by FEAT-59 permits this
+# for the plan and validate/fix runs: independence is persona-level — the reader is never
+# the author — and that is preserved here because pm drafts, three other personas read,
+# and pm applies. The lead never spawns another lead.
+#
+# A `patch` MISSION DOES NOT RUN THIS TEAM. Its one product run is pm's draft alone (a
+# ≤120-line BRIEF and a one-task plan.yaml), sequenced by the orchestrator per the
+# playbook; no panel and no goal-check read a patch intake (DEC-139 as amended).
+#
+# THE FAN-IN IS THE LEAD'S, TWICE. (1) After the reader wave the lead writes its reader
+# fan-in to `<run_dir>/panel-c{{cycle}}.md` — one fenced yaml block whose `DIGEST:`
+# carries `readers:` (every reader, `ran` or `skipped` with persona and reason) and
+# `findings:` (reader, summary, severity, kind) — BEFORE dispatching `apply`, because
+# `apply` runs `plan-merge.py record-panel --digest` on that path and the run dir is the
+# lead's domain. (2) At close-out the team digest at `<run_dir>/digest.md` carries the
+# same `readers:` and `findings:` (validate-digest.py passthrough), now with `goalcheck`
+# in the roster, so the orchestrator can re-record the panel from it after the return
+# (D-03 as amended: the orchestrator may run `record-panel`). check-state.sh INV-32
+# expects `goalcheck` among the recorded readers.
+
+name: plan
+purpose: >
+  Draft the BRIEF and plan.yaml from the grilling artifact, read the draft with three
+  independent readers in one turn, apply their findings in place, record the panel, and
+  grade the plan once per perspective — one run, returning `pending` for signature.
+lead: product-lead
+inputs: [feat, intent_path]
+
+steps:
+  # pm reads the grilling artifact (which carries `## Mission`) and writes the BRIEF in the
+  # by-perspective shape and the plan through plan-merge.py. mutates_repo because the
+  # plan writes go through Bash, which the domain hook cannot see (DEC-85).
+  - id: draft
+    persona: pm
+    depends_on: []
+    inputs: [intent_path]
+    outputs:
+      - ".harness/harness/features/{{feat}}/BRIEF.md"
+      - ".harness/harness/features/{{feat}}/plan.yaml"
+    mutates_repo: true
+    prompt: >
+      Draft {{feat}} from the grilling artifact at {{intent_path}}: the BRIEF in the
+      `harness-brief` shape (Problem, Done when — by perspective, SCs each tagged with the
+      perspective it discharges and its `verify:`), then `plan.yaml` through `plan-merge.py`
+      only — every task with `files:` anchored to `file:symbol` or `file` plus quoted content
+      (a line number is refused at write), `traces:` citing SC ids, `execution_agent` routed
+      by consult-when, and `depends_on` in a topological order. Run `plan-merge.py check
+      --file <plan.yaml> --root <checkout root>` before you return; a plan that does not pass
+      it is not drafted. Do not write `panel:` or `approval:`.
+
+  # THE READER WAVE — three independent readers, one turn. Each writes only its own note
+  # (fable-advisor has no write grant and reaches disk only through the lead's fan-in).
+  #
+  # scope subsumes the eng-lead's architecture review at plan time: there is no separate
+  # eng segment before signature. The reader carries `harness-codebase-design` and grades
+  # depth, seams and locality alongside orphan SCs.
+  - id: scope
+    persona: code-reviewer
+    depends_on: [draft]
+    inputs: [intent_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-code-reviewer-plan-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Read the drafted plan.yaml and BRIEF for {{feat}} against the operator's stated intent
+      at {{intent_path}}. Ask: which tasks serve no live requirement, and what does the
+      feature actually need to ship? Hunt orphan SC ids with no task tracing to them, tasks
+      whose traces cite an SC that does not exist, a dependency shape that is not a
+      topological order, and a verify block asserting something a predecessor task deletes.
+      Then grade the architecture per `harness-codebase-design`: deep modules, seams, adapters,
+      locality — this is the plan's only architecture review. Write findings to your output
+      path. Every finding carries `kind`: `substance` (would change shipped code), `form`
+      (document shape only — fixed in this run, never re-read), or `proportionality` (the
+      plan exceeds what the change needs — routes to a mission downgrade, never to another
+      cycle). Preserve your own severity (info, low, med, high, critical, or unrated); unrated
+      is gating-equivalent to high and must not be reassigned. A finding you cannot classify
+      is one question with your recommendation, not the heavier kind by default.
+    on_fail:
+      loop_back:
+        max_cycles: 1
+        feed: [self]
+        then: escalate
+
+  # This non-harness reader has no write grant, so findings reach disk only through the
+  # lead's fan-in. It is independent of both the dispatch chain and the authoring model:
+  # its external definition carries its own model pin, which the dispatch guard does not
+  # strip. If it does not resolve, the lead SKIPS it and RECORDS the skip (see the tail).
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: [draft]
+    inputs: [intent_path]
+    outputs: []
+    mutates_repo: false
+    prompt: >
+      Read the drafted plan.yaml and BRIEF for {{feat}} against the operator's stated intent
+      at {{intent_path}}. Ask: what here should not be built at all? Return ONE fenced yaml
+      block whose top-level mapping has EXACTLY ONE key, findings, whose value is the list.
+      Each finding carries reader (should-not-exist), summary (one line), severity (one of
+      info, low, med, high, critical, unrated), kind (one of substance, form, proportionality
+      — proportionality when the plan exceeds what the change needs), and why (a concrete
+      consequence of building the thing). Severity is the READER'S to state; unrated is
+      correct when the reader will not commit to one and is gating-equivalent to high. A
+      claim with no concrete consequence is not a finding. Padding to justify the spawn is
+      worse than returning an empty findings list; an empty findings list is valid.
+    on_fail:
+      loop_back:
+        max_cycles: 1
+        feed: [self]
+        then: escalate
+
+  - id: design
+    persona: ui-reviewer
+    depends_on: [draft]
+    inputs: []
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-ui-reviewer-plan-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Mode A — judge whether DESIGN.md for {{feat}} is a sound contract for the tasks the
+      drafted plan.yaml names: complete enough to build against, consistent with the
+      design system, accessibility and dark/light stated. **Self-scope out if the plan
+      touches no user-facing surface**: write a one-line note saying so and return PASS. Do
+      not manufacture findings to justify the spawn. Every finding carries `kind`
+      (substance | form | proportionality) and your own severity.
+    on_fail:
+      loop_back:
+        max_cycles: 1
+        feed: [self]
+        then: escalate
+
+  # pm applies the readers in the same run — a `form` finding is fixed here and never
+  # re-read; a `substance` finding changes the tasks it names. The panel is recorded from
+  # the lead's fan-in file, not transcribed by hand (SC-05).
+  - id: apply
+    persona: pm
+    depends_on: [scope, should-not-exist, design]
+    inputs: [intent_path]
+    outputs:
+      - ".harness/harness/features/{{feat}}/BRIEF.md"
+      - ".harness/harness/features/{{feat}}/plan.yaml"
+    mutates_repo: true
+    prompt: >
+      Apply the reader wave to {{feat}}. The lead's fan-in is at
+      `<run_dir>/panel-c{{cycle}}.md`; the readers' own notes are at the paths it cites. Fix
+      every `form` finding in place now — none of them re-gates or re-reads. Apply every
+      `substance` finding through `plan-merge.py` (`apply` accepts a changed field on an
+      existing task id; `add-tasks`; `set-lanes`), touching only the tasks it names. A
+      `proportionality` finding is NOT yours to act on: leave it open for the lead. Then run
+      `plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c{{cycle}}.md
+      --cycle {{cycle}}` and `plan-merge.py check --file <plan.yaml> --root <checkout root>`;
+      both must exit 0 before you return. Do not write `approval:`.
+
+  # ONE goal-check at plan exit, graded per perspective (SC-09); it does not re-run per
+  # cycle, so the note carries no cycle suffix.
+  - id: goalcheck
+    persona: pm
+    depends_on: [apply]
+    inputs: [intent_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/research-{{feat}}-goalcheck-plan.md"]
+    mutates_repo: false
+    prompt: >
+      Goal-check the applied plan for {{feat}} against the operator's STATED INTENT at
+      {{intent_path}} — the grilling artifact, not the BRIEF derived from it. Ask verbatim:
+      does this plan deliver the operator's stated intent? Grade ONE line per perspective
+      declared under `## Done when — by perspective` — pass, partial, or fail, with the SC
+      ids and tasks that carry it — and write the note to your output path. A perspective no
+      task serves is a fail, not an omission.
+
+# The lead's fan-in file and its team digest both transcribe every finding at the reader's
+# own severity and kind, never assign severity to unrated, de-duplicate on normalized summary
+# plus reader id, carry severity_max, and record assessed-and-dismissed findings with reasons.
+# The lead does not assign PF- ids: record-panel computes identity once from reader and summary.
+# If fable-advisor cannot resolve or preflight refuses it, the lead skips the step and records
+# a reader entry containing "status skipped", the persona, and the host reason. It never
+# reports that reader as having run and returned an empty findings list, and never omits it.
+# A skip is not on_fail; that loop applies only to an invalid reader return.
+#
+# A `proportionality` finding no reader opposes is the lead's to surface, not to resolve:
+# the team digest says `recommend: downgrade patch` in its headline and the orchestrator
+# downgrades the mission itself (SC-03). A re-cycle on a proportionality finding is a defect.
+# High, critical, or unrated `substance` findings that survive apply return to the operator's
+# one batched signature review (DEC-176); the team returns `pending`, never `awaiting_user`,
+# for a finding the operator can rule on at signature.

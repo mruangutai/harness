@@ -856,14 +856,14 @@ DIGEST:
 artifact: r/digest.md
 """, False, "no verdict")
 
-# A team step that never ran has no verdict to roll up. The plan-panel contract
+# A team step that never ran has no verdict to roll up. The plan team's contract
 # records the absence explicitly instead of manufacturing ESCALATE (which would
 # contaminate worst-wins) or PASS (which would claim work happened).
-case("a skipped member is explicit and excluded from worst-wins", "harness-validator-lead", """
+case("a skipped member is explicit and excluded from worst-wins", "harness-product-lead", """
 VERDICT: PASS
 DIGEST:
   headline: scope review passed; optional advisor was unavailable
-  team: plan-panel
+  team: plan
   steps_run: 1
   cycles_used: 0
   members:
@@ -879,11 +879,11 @@ DIGEST:
 artifact: r/digest.md
 """, True)
 
-case("all skipped members cannot support a lead verdict", "harness-validator-lead", """
+case("all skipped members cannot support a lead verdict", "harness-product-lead", """
 VERDICT: PASS
 DIGEST:
   headline: nobody ran
-  team: plan-panel
+  team: plan
   steps_run: 2
   cycles_used: 0
   members:
@@ -902,7 +902,7 @@ case("mandatory member cannot be laundered as skipped", "harness-validator-lead"
 VERDICT: PASS
 DIGEST:
   headline: qa was omitted
-  team: review
+  team: validate
   steps_run: 2
   cycles_used: 0
   members:

@@ -8,7 +8,20 @@ description: Run a harness team — a small DAG of agents hosted by a domain lea
 A team is a **DAG of steps, each dispatched to one agent**, hosted by a domain lead. This skill is
 the algorithm; the teams are data at `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/*.yaml`.
 
-**You are the host, and you are a lead.** You are running your own squad's DAG.
+**The shipped teams are four.** `build` (eng-lead: one step per plan task, expanded at dispatch),
+`plan` (product-lead: pm drafts, three readers read in one turn, pm applies and goal-checks),
+`validate` (validator-lead: qa, code, security, ui and pm's goal-check over one pinned SHA in one
+turn), and `fix` (validator-lead: the owning dev fixes, the same readers re-verify the new tip in
+the same run). There is no `review` and no `plan-panel`; `validate` and `plan` subsume them
+(FEAT-59 SC-04, SC-13, SC-14).
+
+**You are the host, and you are a lead.** You are running your squad's DAG — and, for `plan`,
+`validate` and `fix`, a DAG whose read-only or fix members come from another squad. DEC-118 as
+amended by FEAT-59 permits that for exactly those runs; `build` stays single-squad. The
+independence that matters is **persona-level**: the reviewer is never the author. pm drafts and
+three other personas read; the dev fixes and four other personas verify; you write only your run
+dir. A lead never spawns a lead, and `check-domain.sh` keys every write on the persona, not on
+the host — a borrowed member's grant is exactly what it is under its own lead.
 
 **The orchestrator does not host teams and no longer preloads this skill** (issue #83). It was
 carried for flat mode — the orchestrator hosting a DAG itself — and flat mode is dead: `SPEC.md`
@@ -262,7 +275,7 @@ DIGEST:
   escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
   expertise_update: [<ops>]                  # [] except on a distillation dispatch
   adequacy_notes: [<what this PASS does not cover>]     # [] when nothing; required, NEVER omitted
-  # Optional passthroughs from a member roll-up: sc_status, needs_approval, severity_max, matrix_ok, coverage_gaps. Any other field is rejected; put qualifications in adequacy_notes or run-state evidence.
+  # Optional passthroughs from a member roll-up: sc_status, needs_approval, severity_max, matrix_ok, coverage_gaps, findings (each with kind), readers (plan: ran | skipped). Any other field is rejected; put qualifications in adequacy_notes or run-state evidence.
 artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
 ```
 ````

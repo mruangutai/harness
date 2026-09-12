@@ -1,0 +1,123 @@
+# validate — every reader over ONE pinned SHA in ONE turn, synthesized by the lead.
+#
+# THE FAN-IN IS NOT A STEP. validator-lead hosts this DAG and does the assessment
+# itself in its consolidated DIGEST (SPEC §10.4): it is the independence layer over
+# qa, and adding a separate dispatched step to "synthesize" would just be the lead
+# paying a spawn to do its own job.
+#
+# Five independent readers dispatch in ONE turn — serial dispatch looks correct while
+# running 5× slower, and FEAT-43 paid ~4 runs plus a human wait per defect because
+# readers ran as sequential squad segments (FEAT-59 SC-13). review_sha IS PINNED BY THE
+# CALLER, never read from HEAD (DEC-50; INV-6 fails an unpinned validator run).
+#
+# THE LEAD HOSTS pm, a product-squad persona, for the goal-check. DEC-118 as amended by
+# FEAT-59 permits a read-only member from another squad in the validate run; pm authored
+# nothing in the diff, so author and reviewer stay distinct personas.
+
+name: validate
+purpose: >
+  Run qa (gate-only, fail-first evidence), code, security, ui and pm's goal-check in
+  parallel against a pinned SHA; the lead fans in to ONE consolidated must-fix list with
+  `kind` on every finding and `severity_max`.
+lead: validator-lead
+inputs: [feat, review_sha]
+
+steps:
+  # All five have depends_on: [] and do not depend on each other, so the runner
+  # dispatches them in a single turn. Each writes to its own namespaced note path,
+  # which is what makes parallel writes safe here (SPEC §2.3).
+  #
+  # qa in GATE-ONLY mode (D-08). This step re-runs the existing test_matrix over the
+  # pinned SHA and authors NOTHING — hence mutates_repo: false. Test AUTHORING belongs
+  # to the orchestrator-sequenced qa SEGMENT that runs before this team, which is the
+  # same persona doing the other of D-08's two jobs.
+  #
+  # THE TWO JOBS MUST NOT COLLIDE ON DISK. The segment keeps the historical name
+  # `notes/qa-c{{cycle}}.md`; this step takes the reviewer-style
+  # `notes/review-harness-qa-c{{cycle}}.md`, matching the other reader steps and the
+  # grant team-config.yaml already carries for exactly that spelling.
+  - id: qa
+    persona: qa
+    depends_on: []
+    inputs: []
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-qa-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      GATE-ONLY. Re-run the `test_matrix` gate over the diff at {{review_sha}} for
+      {{feat}} and write the result to your output path: `matrix_ok`, the per-kind results,
+      which kinds the change type required, and `fail_first` — for EVERY `verify: automated`
+      SC, the test that covers it and the evidence it FAILED before the fix (a receipt line
+      or a path). A green suite with no fail-first evidence is `FAIL`, not `PASS` (SC-17).
+      You are auditing a pinned SHA, not building on it — **author nothing**: no tests, no
+      fixtures, no source. If a required kind has no test, that is a finding, not a gap for
+      you to fill; the fix belongs to the dev that owns the task. If the matrix cannot be
+      run at all, say so and return the honest state — a gate that did not run has not passed.
+
+  - id: code
+    persona: code-reviewer
+    depends_on: []
+    inputs: []
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-code-reviewer-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Review the diff at {{review_sha}} for {{feat}}. Two stages, in order: spec
+      compliance against the BRIEF and plan first, then code quality — and do not
+      start the second until the first passes. Hunt fail-open branches and silent
+      failure paths specifically. Write findings to your output path with a concrete
+      failure scenario for each; findings without one are not actionable. Every finding
+      carries `kind`: `substance` (changes shipped code — re-gates only the tasks it
+      names) or `form` (document, digest or record shape — fixed in this cycle, never
+      re-read). Do not fix anything: you have no Edit tool and source is not your domain.
+
+  - id: security
+    persona: security-reviewer
+    depends_on: []
+    inputs: []
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-security-reviewer-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Self-scoping OWASP Top 10 and STRIDE audit of the diff at {{review_sha}} for
+      {{feat}}: auth, secrets, input validation, injection, and data exposure in logs
+      or exports. Write findings to your output path, each with `kind` (substance | form).
+      If the diff has no security surface, say so plainly and return PASS — a scoped-out
+      review is a valid result, and padding it with speculative findings is worse than
+      silence.
+
+  - id: ui
+    persona: ui-reviewer
+    depends_on: []
+    inputs: []
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-ui-reviewer-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Mode B — audit the built UI in the diff at {{review_sha}} against DESIGN.md,
+      including accessibility and dark/light parity. Every finding carries `kind`
+      (substance | form). **Self-scope out if the diff touches no user-facing surface**:
+      write a one-line note saying so and return PASS. Do not manufacture findings to
+      justify the spawn.
+
+  # ONE goal-check at validate exit, per perspective (SC-09). It reads the diff, not a
+  # document, and it is not re-run by the fix team — the readers re-verify, the grade stands
+  # until the next validate run.
+  - id: goalcheck
+    persona: pm
+    depends_on: []
+    inputs: []
+    outputs: [".harness/harness/features/{{feat}}/notes/research-{{feat}}-goalcheck-validate-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Goal-check the diff at {{review_sha}} for {{feat}} against the BRIEF's
+      `## Done when — by perspective`: ONE line per declared perspective — pass, partial,
+      or fail — each citing the SCs that carry it and the evidence in the diff or its tests.
+      A perspective the diff does not discharge is a fail, not an omission. Write the note to
+      your output path. You grade; you do not fix, and you do not re-plan.
+
+# The lead's consolidated DIGEST is the deliverable. It must:
+#   - merge the five panels into ONE actionable must-fix set, de-duplicated
+#   - carry `kind` on every surviving finding and `severity_max` across the panel, since
+#     the orchestrator routes on both: `substance` re-gates the tasks it names, `form` is
+#     fixed in the fix run and never re-reads
+#   - name which reader raised each surviving finding, so it can be traced back
+#   - drop nothing silently: a finding the lead judges not worth acting on is
+#     recorded as assessed-and-dismissed with a reason, not omitted
+#   - report the SHA it reviewed; a fix cycle is `fix.yaml`, hosted by the same lead
