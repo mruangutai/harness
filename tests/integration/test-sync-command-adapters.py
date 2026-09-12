@@ -17,15 +17,17 @@ SCRIPT = Path(_anchor_bin) / "sync-command-adapters.py"
 
 CANONICAL_HARNESS = "# /harness — run a feature flow\n\nDoor body one.\n"
 CANONICAL_PLAN = "# /harness-plan — plan a feature\n\nDoor body three.\n"
+CANONICAL_PATCH = "# /harness-patch — patch a feature\n\nDoor body five.\n"
 CANONICAL_GRILLING = "# /harness-grilling — grill the operator\n\nDoor body four.\n"
 CANONICAL_SHIP = "# /harness-ship — ship a feature\n\nDoor body two.\n"
 
-# seed() lays down all four of sync-command-adapters.py's REQUIRED_DOORS, plus their adapters —
+# seed() lays down all five of sync-command-adapters.py's REQUIRED_DOORS, plus their adapters —
 # once --check enforces the full required set (F3), a fixture missing any one of them fails every
 # other case for a reason unrelated to what that case actually tests.
 REQUIRED_DOORS = {
     "harness.md": CANONICAL_HARNESS,
     "harness-plan.md": CANONICAL_PLAN,
+    "harness-patch.md": CANONICAL_PATCH,
     "harness-ship.md": CANONICAL_SHIP,
     "harness-grilling.md": CANONICAL_GRILLING,
 }
