@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""plan-merge.py — the second plan writer: it adds tasks, and deletes one only when it is
-named and a reason is given (FEAT-32 T-03, D-01..D-04, DEC-182, DEC-120).
+"""plan-merge.py — the second plan writer: it adds tasks, replaces the fields a proposal names
+on a task that already exists, and deletes one only when it is named and a reason is given
+(FEAT-32 T-03, D-01..D-04, DEC-182, DEC-120; FEAT-59 SC-05/SC-07/SC-08).
 
 Reproduces and fixes #628: two whole-file writes to the same plan.yaml, one after another,
 silently lose whatever the first one added. This CLI never does a whole-file rewrite of an
@@ -13,22 +14,38 @@ lock stays the one shared with every other write route in this feature.
     plan-merge.py set-task-station  --file <plan.yaml> --task T-NN --station <name>
     plan-merge.py set-feature-station --file <plan.yaml> --station <name>
     plan-merge.py set-panel         --file <plan.yaml> --value-file <panel.yaml>
-    plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]...
+    plan-merge.py record-panel      --file <plan.yaml> --digest <lead digest.md> --cycle N [--last-run <run-dir>]
+    plan-merge.py set-lanes         --file <plan.yaml> --value-file <lanes.yaml>
+    plan-merge.py check             --file <plan.yaml> --root <checkout root>
+    plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]... [--rework rounds=N,minutes=M --decision <path>]
     plan-merge.py delete-items      --file <plan.yaml> --task T-NN [--task T-NN]... [--decision D-NN]... --reason "<text>"
+
+FEAT-59 (measured on FEAT-54's 23 pre-build runs, BRIEF ## Problem) retired four write
+mechanics of this tool's own: `apply` refused any changed field on an existing id (exit 7), so
+every plan revision cost one `amend --show`/`--expect-sha256` round trip per field — now the
+proposal's fields REPLACE the base's, field by field, logged per field; `lanes:` had no write
+route — `set-lanes`; `set-panel` re-rendered every finding through the dumper so a diff could
+not tell a carried finding from a changed one — both panel verbs now keep the bytes of any
+finding whose id and content are unchanged; and pm spent whole runs transcribing a lead digest
+into `panel:` — `record-panel` reads the digest itself. `check` resolves every `files:` anchor,
+every `execution_agent` route and every `traces:` id before a plan is signed (SC-07), and a
+line-number anchor `path:NN` is refused at write (plan_anchors.py). Any verb that changes the
+task set or a task field on an APPROVED plan resets approval to `pending` with `reset_at` and
+`reset_reason: <verb> <ids>` — `sign-approval` stays the only writer of `approved`.
 
 CONTROLLED VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every mutating verb goes through
 harness_merge.locked_update and a text splice, and require_destination (exit 9) guards every
-path. ADD-ONLY IS A PROPERTY OF `apply` AND ITS ALIAS, NOT OF THE TOOL: the lock and the splice
-are what fix #628 and they hold for every mutating verb, while never deleting a task is a promise
-those two verbs alone make — and `delete-items` is the verb that promise left missing. With
-`apply` add-only, `amend` able to replace ONE field of ONE existing item, and FEAT-41 T-09's
-shape gate (#1045) denying every editor and shell write of a plan.yaml to every author, an
-operator-ruled scope REMOVAL had no route at all: that is a missing verb, not a missing
-permission. So `delete-items` removes WHOLE items from `tasks:` and `decisions:`, by id, with a
-reason — never by predicate, never one field, never `approval:`, and never silently. An id that
-is not in the plan, an id given twice, a SURVIVING task's `depends_on` still naming a task that
-would go (issue #201's own defect), a result that fails the plan schema or does not reload as
-the deletion that was computed: each is a loud non-zero refusal naming the concrete value, and
+path. NEVER-DELETE IS A PROPERTY OF `apply` AND ITS ALIAS, NOT OF THE TOOL: the lock and the
+splice are what fix #628 and they hold for every mutating verb, while never deleting a task is a
+promise those two verbs alone make — and `delete-items` is the verb that promise left missing.
+With `apply` unable to remove, `amend` able to replace ONE field of ONE existing item, and
+FEAT-41 T-09's shape gate (#1045) denying every editor and shell write of a plan.yaml to every
+author, an operator-ruled scope REMOVAL had no route at all: that is a missing verb, not a
+missing permission. So `delete-items` removes WHOLE items from `tasks:` and `decisions:`, by id,
+with a reason — never by predicate, never one field, never `approval:`, and never silently. An id
+that is not in the plan, an id given twice, a SURVIVING task's `depends_on` still naming a task
+that would go (issue #201's own defect), a result that fails the plan schema or does not reload
+as the deletion that was computed: each is a loud non-zero refusal naming the concrete value, and
 each leaves the file byte-identical. The reason is NEVER written into the plan — it exists so
 the refusals can name why one was asked for, and so a caller cannot delete by reflex.
 
@@ -37,14 +54,16 @@ factory_config declares — MANDATED_STATIONS plus TERMINAL_MARKER, imported, ne
 resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
 BEFORE the lock is taken, so a refused value never opens the file.
 
-`approval:` has two controlled write paths: `apply` seeds a brand-new plan with the
-unsigned `status: pending` mapping, and `sign-approval` is the only path that can transition it
-to approved or append an attributed risk acceptance to `approval.rulings`. Every other verb
-operating on an existing plan leaves its approval bytes byte for byte. The main session — nobody
-else — signs approval through this tool rather than by hand. A proposal
-that carries an approval mapping which PARSES differently from the base's is a REFUSAL (exit 8),
-not a silent drop: `apply` must be INCAPABLE of writing a signature (step 7) and must also NOTICE
-a caller that tried to sneak one past it (step 7b) — two different jobs, so two different guards.
+`approval:` has three controlled write paths: `apply` seeds a brand-new plan with the
+unsigned `status: pending` mapping, `sign-approval` is the only path that can transition it
+to approved or append an attributed risk acceptance to `approval.rulings`, and the task-changing
+verbs (`apply`, `add-tasks`, `amend --key tasks`, `delete-items --task`) RESET an approved plan
+to pending — never the other way. Every other verb operating on an existing plan leaves its
+approval bytes byte for byte. The main session — nobody else — signs approval through this tool
+rather than by hand. A proposal that carries an approval mapping which PARSES differently from
+the base's is a REFUSAL (exit 8), not a silent drop: `apply` must be INCAPABLE of writing a
+signature (step 7) and must also NOTICE a caller that tried to sneak one past it (step 7b) —
+two different jobs, so two different guards.
 
 The creation exception is deliberately narrower than signing: a proposal cannot choose the pending
 mapping's contents, and the tool emits only its fixed status. Without this bootstrap, a newly
@@ -52,19 +71,26 @@ created plan cannot later be signed because `sign-approval` correctly refuses to
 mapping.
 
 Exit codes are the interface:
-    0  applied — stdout lists ADDED/PRESERVED ids, an IGNORED-APPROVAL line if the proposal
-       carried an approval block, and a final APPLIED line
-    2  `delete-items`'s own command line is unusable: no --task and no --decision, the same id
-       twice, or an empty --reason (argparse's code, and `amend`'s missing-hash precedent)
+    0  applied — stdout lists ADDED/PRESERVED ids and REPLACED fields, an APPROVAL-RESET line
+       when a signed plan was voided, an IGNORED-APPROVAL line if the proposal carried an
+       approval block, and a final APPLIED line. For `check`: every anchor, route and trace
+       resolved
+    1  `check` only: at least one anchor, route or trace did not resolve — one FAIL line each
+    2  a command line is unusable: `delete-items` with no --task and no --decision, the same id
+       twice, or an empty --reason; `sign-approval --rework` without --decision, malformed, or
+       with no sibling feature.json; `check --root` without a manifest; or a `files:` entry in
+       the line-number form `path:NN`, named (argparse's code, and `amend`'s missing-hash precedent)
     3  an id named by --task or --decision is absent from the plan, or the plan file itself is
        (the message names the ids present, scoped to the list the id was asked for)
     4  the value given to --station is not a legal station (the message lists the legal ones),
        or a requested deletion is not legal: a SURVIVING task's `depends_on` names a task being
        deleted, named pair by pair
-    5  a side (base or proposal) failed to parse as YAML, or a splice does not reload as the
-       edit that was computed — for a deletion, that includes a survivor whose own fields moved
+    5  a side (base, proposal, panel value, lanes value, lead digest) failed to parse or failed
+       its shape check, or a splice does not reload as the edit that was computed — for a
+       deletion, that includes a survivor whose own fields moved
     6  the lock could not be acquired within the retry budget (harness_merge)
-    7  the same id, or the same top-level key, carries two different loaded values
+    7  the same top-level key carries two different loaded values (items no longer conflict:
+       a proposal's fields replace the base's)
     8  the proposal's approval mapping parses differently from the base's
     9  --file does not resolve to a plan.yaml this tool owns
 
@@ -77,18 +103,24 @@ splice as a self-check.
 """
 import argparse
 import hashlib
+import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 
 import yaml
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BIN_DIR)
 import factory_config  # noqa: E402  (local import, after sys.path fix-up)
+import feature_json_write  # noqa: E402
 import gh_board  # noqa: E402
 import harness_boundary  # noqa: E402
 import harness_yaml  # noqa: E402
 import harness_merge  # noqa: E402
+import panel_findings  # noqa: E402
+import plan_anchors  # noqa: E402
 
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proofs.
 # Nothing outside this file's source text ever flips one — no environment variable, no flag.
@@ -491,8 +523,13 @@ def _schema_error(doc):
 
 
 
-def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
-    """Refuse rather than return a splice that does not reload as the merge it reported."""
+def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids, replaced=()):
+    """Refuse rather than return a splice that does not reload as the merge it reported.
+
+    `replaced` is [(key, iid, base_item, prop_item)] for every existing item the proposal
+    changed. Each must reload as the BASE item with the PROPOSAL's fields laid over it — the
+    fields the proposal omitted intact, the fields it named at their new values — because a
+    field splice one line long or one line short still parses (the `_verify_amend` lesson)."""
     try:
         reloaded = harness_yaml.load_str(spliced_bytes.decode("utf-8"), "<merged plan>")
     except harness_yaml.YamlParseError as exc:
@@ -548,6 +585,24 @@ def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
                     f"  expected ids: {want!r}",
                     f"  reloaded ids: {got!r}",
                 ],
+            )
+    _verify_replaced(reloaded, replaced)
+    return reloaded
+
+
+def _verify_replaced(reloaded, replaced):
+    """Each replaced item must reload as the BASE item with the PROPOSAL's fields laid over it."""
+    for key, iid, base_item, prop_item in replaced:
+        want_item = dict(base_item)
+        want_item.update(prop_item)
+        got_item = _sole_item(reloaded, key, iid)
+        if got_item != want_item:
+            raise harness_merge.MergeRefusal(
+                5,
+                [f"UNPARSEABLE: id={iid!r} in '{key}' does not reload as the base item with the "
+                 "proposal's fields replaced — REFUSING to write it.",
+                 f"  expected: {want_item!r}",
+                 f"  reloaded: {got_item!r}"],
             )
 
 
@@ -612,10 +667,157 @@ def _key_head(lines, key_range, item_ranges):
     return "".join(lines[start:first_item_start])
 
 
-def apply_merge(base_bytes, proposal_text):
-    """The whole algorithm. Returns (output_bytes, added_ids, preserved_ids, ignored_approval).
-    Raises harness_merge.MergeRefusal(5|7|8) with nothing to write, per plan-merge.py's contract
-    with harness_merge.locked_update: a raised MergeRefusal leaves the file untouched."""
+def _anchor_faults(doc):
+    """`  <task id> files: <message>` for every `files:` entry plan_anchors refuses, in order."""
+    tasks = (doc.get("tasks") or []) if isinstance(doc, dict) else []
+    return [f"  {task.get('id') or '<no id>'} files: {message}"
+            for task in tasks if isinstance(task, dict)
+            for message in plan_anchors.refusals(task.get("files"))]
+
+
+def _refuse_illegal_anchors(doc, where):
+    """MergeRefusal(2) naming every `files:` entry in `doc`'s tasks that plan_anchors refuses.
+
+    C4: a line-number anchor `path:NN` is refused at WRITE, so it cannot enter a signed plan;
+    `check` then only has to resolve the forms that can survive `main` moving. Every offending
+    entry is named, with its task, in one refusal — a caller fixing them one at a time is the
+    round trip this feature exists to remove."""
+    faults = _anchor_faults(doc)
+    if faults:
+        raise harness_merge.MergeRefusal(
+            2, [f"REFUSED: {where} carries a files: entry this tool will not write."] + faults
+               + ["  legal forms: path, path#symbol, {path: <p>, quote: <q>} (plan_anchors.py)."])
+
+
+def _field_indent(lines, dash_indent):
+    """The indent an item's own fields sit at: the first sibling key after the dash line, or
+    the dash indent plus two when the item carries nothing beyond its dash line."""
+    for line in lines[1:]:
+        m = SIBLING_KEY_RE.match(line)
+        if m and len(m.group(1)) > len(dash_indent):
+            return m.group(1)
+    return dash_indent + "  "
+
+
+def _proposal_field_lines(prop_lines, ps, pe, prop_dash, field, value, indent, iid, key):
+    """The proposal's OWN lines for `field`, re-indented to the base item — or, when the field
+    sits on the proposal's dash line and cannot be located as a block, the value rendered.
+
+    Copying the author's bytes keeps a `verify: |` block a block and a hand-written list a
+    list; rendering is the fallback, never the default, for the reason `_render_field` gives."""
+    located = _field_block(prop_lines, ps, pe, prop_dash, field)
+    if located is not None:
+        first, last, prop_indent = located
+        return _reindent(prop_lines[first:last], len(indent) - len(prop_indent), iid, key)
+    if isinstance(value, (list, dict)):
+        return _structured_field_lines(indent, field, value)
+    return [_field_lines(indent, field, value)]
+
+
+def _splice_field(lines, dash_indent, field, rendered):
+    """`lines` (one item) with `field` replaced by `rendered`, or `rendered` added after the
+    item's last own line — before any trailing blank or comment — when the item lacks it."""
+    located = _field_block(lines, 0, len(lines), dash_indent, field)
+    if located is None:
+        own_end = _item_delete_end(lines, 0, len(lines), dash_indent)
+        at = _last_nonblank(lines, 0, own_end)
+        return lines[:at] + rendered + lines[at:]
+    first, last, _indent = located
+    return lines[:first] + rendered + lines[last:]
+
+
+def _replace_fields(base_lines, s, e, item, prop_lines, ps, pe, pitem, iid, key):
+    """The base item's lines with every field the proposal names replaced or added, plus
+    [(iid, field, old, new)] per change. Fields the proposal omits are untouched bytes.
+
+    THIS IS WHAT RETIRES apply's EXIT 7 (FEAT-59 SC-08). A changed value is a splice of that
+    field's lines only — the same one-block replace `amend` does, without the hash handshake,
+    because `apply` is the plan author's own verb and the lock already serialises writers."""
+    lines = list(base_lines[s:e])
+    dash_indent = DASH_RE.match(lines[0]).group(1)
+    prop_dash = DASH_RE.match(prop_lines[ps]).group(1)
+    indent = _field_indent(lines, dash_indent)
+    changed = [(field, value) for field, value in pitem.items()
+               if field != "id" and (field not in item or item[field] != value)]
+    for field, value in changed:
+        rendered = _proposal_field_lines(prop_lines, ps, pe, prop_dash, field, value, indent,
+                                         iid, key)
+        lines = _splice_field(lines, dash_indent, field, rendered)
+    return lines, [(iid, field, item.get(field, _ABSENT), value) for field, value in changed]
+
+
+# A field the base item does not carry, for the REPLACED receipt. Distinct from None, which is
+# a legal YAML value a field can hold.
+_ABSENT = object()
+
+
+def _now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _approval_status(doc):
+    approval = doc.get("approval") if isinstance(doc, dict) else None
+    return approval.get("status") if isinstance(approval, dict) else None
+
+
+RESET_FIELDS = ("reset_at", "reset_reason")
+_RESET_LINE_RE = re.compile(r"^  (reset_at|reset_reason):")
+
+
+def _reset_approval_lines(lines, verb, ids):
+    """`lines` with approval.status rewritten to pending and reset_at/reset_reason recorded.
+
+    C4 / SC-08: a signature is a statement about ONE task set. Any verb that changes that set
+    or a task's field on an approved plan voids it — downward only; `sign-approval` is the only
+    writer of `approved`. The signer and date are kept so the operator can see what was voided
+    and by which verb; a prior reset record is replaced, not stacked. The caller has already
+    established that the parsed approval.status is `approved`."""
+    start, end = _approval_span(lines)
+    if start is None:
+        return lines
+    body = [ln for ln in lines[start + 1:end] if not _RESET_LINE_RE.match(ln)]
+    status_at = next((i for i, ln in enumerate(body)
+                      if re.match(r"^  status:\s*approved\b", ln)), None)
+    if status_at is None:
+        return lines
+    reason = f"{verb} {', '.join(str(i) for i in ids)}"
+    body[status_at:status_at + 1] = [
+        _field_lines("  ", "status", "pending"),
+        _field_lines("  ", "reset_at", _now_iso()),
+        _field_lines("  ", "reset_reason", reason),
+    ]
+    return lines[:start + 1] + body + lines[end:]
+
+
+def _maybe_reset_approval(text, base_doc, verb, task_ids):
+    """(text, reset) — the text with approval reset when the base was approved and `task_ids`
+    names at least one changed task; `reset` says whether it happened, for the receipt."""
+    if not task_ids or _approval_status(base_doc) != "approved":
+        return text, False
+    lines = text.splitlines(keepends=True)
+    return "".join(_reset_approval_lines(lines, verb, task_ids)), True
+
+
+class MergeResult:
+    """What `apply_merge` computed, for the receipt `cmd_apply` prints.
+
+    added / preserved: item ids. replaced: (iid, field, old, new) per replaced field, `old`
+    being _ABSENT for a field the base item did not carry. reset: approval was voided."""
+
+    def __init__(self, out_bytes, added, preserved, ignored_approval, replaced=(), reset=False):
+        self.out_bytes = out_bytes
+        self.added = added
+        self.preserved = preserved
+        self.ignored_approval = ignored_approval
+        self.replaced = list(replaced)
+        self.reset = reset
+
+
+def apply_merge(base_bytes, proposal_text, verb="apply"):
+    """The whole algorithm. Returns a MergeResult. Raises harness_merge.MergeRefusal(2|5|7|8)
+    with nothing to write, per plan-merge.py's contract with harness_merge.locked_update: a
+    raised MergeRefusal leaves the file untouched. `verb` is the command-line name, recorded
+    in approval.reset_reason when this merge voids a signature."""
     if base_bytes is None:
         # A new plan needs an unsigned approval mapping before the main session can later sign it.
         # The proposal may not supply that mapping: accepting any caller-owned value would let
@@ -627,6 +829,7 @@ def apply_merge(base_bytes, proposal_text):
                 5, [f"UNPARSEABLE: proposal failed to parse: {exc}"]
             )
         prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
+        _refuse_illegal_anchors(prop_doc, "the proposal")
         if APPROVAL_REFUSAL and "approval" in prop_doc:
             raise harness_merge.MergeRefusal(
                 8,
@@ -641,7 +844,7 @@ def apply_merge(base_bytes, proposal_text):
         for index, line in enumerate(lines):
             if FEATURE_LINE_RE.match(line):
                 lines[index + 1:index + 1] = ["approval:\n", "  status: pending\n"]
-                return "".join(lines).encode("utf-8"), [], [], False
+                return MergeResult("".join(lines).encode("utf-8"), [], [], False)
         raise harness_merge.MergeRefusal(
             5, ["UNPARSEABLE: proposal carries no top-level feature: key to anchor approval."]
         )
@@ -657,10 +860,11 @@ def apply_merge(base_bytes, proposal_text):
         raise harness_merge.MergeRefusal(5, [f"UNPARSEABLE: proposal failed to parse: {exc}"])
     base_doc = base_doc if isinstance(base_doc, dict) else {}
     prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
+    _refuse_illegal_anchors(prop_doc, "the proposal")
 
     if not UNION_MERGE:
         # Step 5, off: today's last-writer-wins, verbatim.
-        return proposal_text.encode("utf-8"), [], [], False
+        return MergeResult(proposal_text.encode("utf-8"), [], [], False)
 
     base_lines, base_order, base_ranges, base_preamble = _index_top_keys(base_text)
     prop_lines, prop_order, prop_ranges, _prop_preamble = _index_top_keys(proposal_text)
@@ -694,7 +898,7 @@ def apply_merge(base_bytes, proposal_text):
             out_order.append(key)
 
     out_chunks = ["".join(base_preamble)]
-    added_ids, preserved_ids = [], []
+    added_ids, preserved_ids, replaced, changed_tasks = [], [], [], []
 
     for key in out_order:
         if key == "approval":
@@ -744,20 +948,22 @@ def apply_merge(base_bytes, proposal_text):
                 prop_id_order.append(iid)
 
             for iid, (s, e, item) in base_by_id.items():
-                out_chunks.append("".join(base_lines[s:e]))
-                if iid in prop_by_id:
-                    _, _, pitem = prop_by_id[iid]
-                    if pitem == item:
-                        preserved_ids.append(iid)
-                    else:
-                        raise harness_merge.MergeRefusal(
-                            7,
-                            [
-                                f"CONFLICT: id={iid!r} in '{key}' carries two different values.",
-                                f"  base: {item!r}",
-                                f"  proposal: {pitem!r}",
-                            ],
-                        )
+                if iid not in prop_by_id:
+                    out_chunks.append("".join(base_lines[s:e]))
+                    continue
+                ps, pe, pitem = prop_by_id[iid]
+                if pitem == item:
+                    out_chunks.append("".join(base_lines[s:e]))
+                    preserved_ids.append(iid)
+                    continue
+                # THE PROPOSAL'S FIELDS REPLACE THE BASE'S, FIELD BY FIELD (FEAT-59 SC-08).
+                # This was exit 7 CONFLICT, and it cost FEAT-54 an amend round trip per field.
+                item_lines, changes = _replace_fields(
+                    base_lines, s, e, item, prop_lines, ps, pe, pitem, iid, key)
+                out_chunks.append("".join(item_lines))
+                replaced.append((key, iid, item, pitem, changes))
+                if key == "tasks":
+                    changed_tasks.append(iid)
             # THE ADDITION IS RE-INDENTED TO THE BASE'S LIST, never appended verbatim. When
             # the base has no items of its own there is nothing to match, and the key head came
             # from the proposal too, so its own indentation is already consistent.
@@ -773,6 +979,8 @@ def apply_merge(base_bytes, proposal_text):
                         )
                     out_chunks.append("".join(item_lines))
                     added_ids.append(iid)
+                    if key == "tasks":
+                        changed_tasks.append(iid)
             continue
 
         # Step 8: every other top-level key.
@@ -798,7 +1006,10 @@ def apply_merge(base_bytes, proposal_text):
             s, e = prop_ranges[key]
             out_chunks.append("".join(prop_lines[s:e]))
 
-    spliced_bytes = "".join(out_chunks).encode("utf-8")
+    spliced_text, reset = _maybe_reset_approval("".join(out_chunks), base_doc, verb, changed_tasks)
+    spliced_bytes = spliced_text.encode("utf-8")
+    changes = [change for _key, _iid, _item, _pitem, item_changes in replaced
+               for change in item_changes]
 
     if PRESERVE_BASE_BYTES:
         # STEP 9: THE RESULT IS PARSED BEFORE IT IS WRITTEN, and this guard is general.
@@ -808,10 +1019,13 @@ def apply_merge(base_bytes, proposal_text):
         # survive" must not be able to hand back bytes that are not a plan.
         #
         # It also checks the MERGE, not merely the syntax: every id the caller is about to be
-        # told was added or preserved must actually be present in the reloaded document. A
-        # splice that lands text in the wrong block can still parse.
-        _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids)
-        return spliced_bytes, added_ids, preserved_ids, ignored_approval
+        # told was added or preserved must actually be present in the reloaded document, and
+        # every replaced item must reload as base-with-proposal-fields. A splice that lands
+        # text in the wrong block can still parse.
+        _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids,
+                        [(key, iid, item, pitem) for key, iid, item, pitem, _c in replaced])
+        return MergeResult(spliced_bytes, added_ids, preserved_ids, ignored_approval,
+                           changes, reset)
 
     # PRESERVE_BASE_BYTES off: what a naive implementation does — render the whole merged
     # document through yaml.safe_dump instead of splicing. Comments and quoting do not survive
@@ -838,7 +1052,7 @@ def apply_merge(base_bytes, proposal_text):
     if base_has_approval:
         merged_doc["approval"] = base_approval
     dumped = yaml.safe_dump(merged_doc, sort_keys=False, allow_unicode=True).encode("utf-8")
-    return dumped, added_ids, preserved_ids, ignored_approval
+    return MergeResult(dumped, added_ids, preserved_ids, ignored_approval, changes, reset)
 
 
 def cmd_apply(args):
@@ -853,11 +1067,9 @@ def cmd_apply(args):
     result = {}
 
     def transform(base_bytes):
-        out_bytes, added, preserved, ignored_approval = apply_merge(base_bytes, proposal_text)
-        result["added"] = added
-        result["preserved"] = preserved
-        result["ignored_approval"] = ignored_approval
-        return out_bytes
+        merged = apply_merge(base_bytes, proposal_text, args.cmd)
+        result["merged"] = merged
+        return merged.out_bytes
 
     try:
         harness_merge.locked_update(resolved, transform)
@@ -866,14 +1078,27 @@ def cmd_apply(args):
             print(line, file=sys.stderr)
         sys.exit(refusal.code)
 
-    for eid in result.get("added", []):
-        print(f"ADDED {eid}")
-    for eid in result.get("preserved", []):
-        print(f"PRESERVED {eid}")
-    if result.get("ignored_approval"):
-        print("IGNORED-APPROVAL: proposal's approval block was not written; base's kept")
+    _print_apply_receipt(result["merged"])
     print(f"APPLIED {resolved}")
     sys.exit(0)
+
+
+APPROVAL_RESET_LINE = ("APPROVAL-RESET: the plan was approved and its task set or a task field "
+                       "changed; approval.status is pending until the main session signs again")
+
+
+def _print_apply_receipt(merged):
+    for eid in merged.added:
+        print(f"ADDED {eid}")
+    for eid in merged.preserved:
+        print(f"PRESERVED {eid}")
+    for iid, field, old, new in merged.replaced:
+        was = "<absent>" if old is _ABSENT else repr(old)
+        print(f"REPLACED {iid}.{field}: {was} -> {new!r}")
+    if merged.reset:
+        print(APPROVAL_RESET_LINE)
+    if merged.ignored_approval:
+        print("IGNORED-APPROVAL: proposal's approval block was not written; base's kept")
 
 
 TASK_ID_RE = re.compile(r"^(\s*)-\s+id:\s*(\S+)\s*$")
@@ -1025,61 +1250,254 @@ def cmd_set_feature_station(args):
     print(f"STATION {resolved} -> {args.station}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
-def _load_panel_value(path):
+
+
+# ---------------------------------------------------------------------------
+# `panel:` and `lanes:` — the top-level mappings pm and the orchestrator write (FEAT-59 SC-05,
+# SC-08).
+#
+# TWO PANEL VERBS, ONE SPLICE. `set-panel` takes a whole mapping from a value file; `record-panel`
+# derives one from the validator lead's digest. Both land through `_panel_spliced`, which keeps
+# the bytes of every finding whose id AND parsed content are unchanged and renders only what
+# changed — the property set-task-station has for a status line, applied to a list item.
+# Measured on FEAT-54: `set-panel` re-rendered all nine findings on every call, so a review
+# diff of a one-finding change touched forty lines and could not show which finding was new.
+#
+# FINDING IDENTITY IS panel_findings.finding_id, imported. The validator lead never assigns a
+# PF- id (it holds no Bash); pm used to run the helper by hand and transcribe. record-panel
+# computes it from the digest's reader and summary, once, in the one place check-state.sh's
+# INV-32 and approval.rulings agree on.
+FINDING_KINDS = ("substance", "form", "proportionality")
+READER_STATUSES = ("ran", "skipped")
+DISPOSITIONS = ("open", "resolved")
+LANES = ("team", "main-session-direct")
+
+
+def _load_mapping_value(path, what):
     try:
-        panel = harness_yaml.load_file(path)
+        value = harness_yaml.load_file(path)
     except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: cannot load panel value from {path}: {exc}"])
-    required = {
-        "last_run": str,
-        "cycle": int,
-        "readers": list,
-        "findings": list,
-    }
-    if not isinstance(panel, dict):
-        raise harness_merge.MergeRefusal(
-            5, ["plan-merge: panel value must be a mapping"])
-    missing = [key for key in required if key not in panel]
+            5, [f"plan-merge: cannot load {what} value from {path}: {exc}"])
+    if not isinstance(value, dict):
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {what} value must be a mapping"])
+    return value
+
+
+def _require_shape(value, required, what):
+    """Refuse a mapping missing a required key or carrying the wrong type for one.
+
+    `required` is {key: type}; `cycle` is additionally refused as a bool, which isinstance
+    would otherwise accept as an int."""
+    missing = [key for key in required if key not in value]
     if missing:
         raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: panel value is missing required key(s): {', '.join(missing)}"])
-    wrong = [
-        key for key, expected in required.items()
-        if not isinstance(panel[key], expected) or (key == "cycle" and isinstance(panel[key], bool))
-    ]
+            5, [f"plan-merge: {what} value is missing required key(s): {', '.join(missing)}"])
+    wrong = [key for key, expected in required.items() if not _is_typed(value[key], expected)]
     if wrong:
         raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: panel value has invalid type for: {', '.join(wrong)}"])
+            5, [f"plan-merge: {what} value has invalid type for: {', '.join(wrong)}"])
+
+
+def _is_typed(value, expected):
+    if expected is int and isinstance(value, bool):
+        return False
+    return isinstance(value, expected)
+
+
+def _named_mapping(entry, key, where):
+    """Refuse unless `entry` is a mapping whose `key` is a non-empty string."""
+    if not isinstance(entry, dict) or not str(entry.get(key, "")).strip():
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} must be a mapping carrying {key}:"])
+
+
+def _validate_reader(reader, where):
+    _named_mapping(reader, "reader", where)
+    status = reader.get("status")
+    if status not in READER_STATUSES:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} status {status!r} is not one of "
+                f"{', '.join(READER_STATUSES)}"])
+    absent = [k for k in ("persona", "reason") if not str(reader.get(k) or "").strip()]
+    if status == "skipped" and absent:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} is skipped without {' and '.join(absent)} — an unrunnable "
+                "reader and a clean reader are opposite facts, and the record must say which."])
+
+
+def _validate_readers(readers, what):
+    for index, reader in enumerate(readers):
+        _validate_reader(reader, f"{what} readers[{index}]")
+
+
+def _validate_finding_kind(finding, where):
+    kind = finding.get("kind")
+    if kind not in FINDING_KINDS:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} kind {kind!r} is not one of {', '.join(FINDING_KINDS)} — "
+                "a finding without a kind cannot say whether it re-gates (FEAT-59 SC-06, C2)."])
+
+
+def _validate_panel(panel, what):
+    """The shape both panel verbs hold a mapping to before the lock is taken."""
+    _require_shape(panel, {"last_run": str, "cycle": int, "readers": list, "findings": list},
+                   what)
+    _validate_readers(panel["readers"], what)
+    for index, finding in enumerate(panel["findings"]):
+        where = f"{what} findings[{index}]"
+        _named_mapping(finding, "id", where)
+        _validate_finding_kind(finding, where)
     return panel
 
 
-def cmd_set_panel(args):
-    resolved = _resolve_plan(args.file)
-    try:
-        panel = _load_panel_value(args.value_file)
-    except harness_merge.MergeRefusal as refusal:
-        for line in refusal.lines:
-            print(line, file=sys.stderr)
-        sys.exit(refusal.code)
-    replacement = yaml.safe_dump({"panel": panel}, sort_keys=False).splitlines(keepends=True)
-
-    def transform(base_bytes):
-        text = base_bytes.decode("utf-8")
-        lines, _order, ranges, _preamble = _index_top_keys(text)
-        if "panel" in ranges:
-            start, end = ranges["panel"]
-            lines[start:end] = replacement
-        elif "tasks" in ranges:
-            start, _end = ranges["tasks"]
-            lines[start:start] = replacement
-        else:
-            lines.extend(replacement)
-        spliced = "".join(lines).encode("utf-8")
-        reloaded = _reload_or_refuse(spliced)
-        if reloaded.get("panel") != panel:
+def _validate_lanes(lanes, what):
+    _require_shape(lanes, {"resolved_at": str, "rows": list}, what)
+    for index, row in enumerate(lanes["rows"]):
+        where = f"{what} rows[{index}]"
+        _named_mapping(row, "surface", where)
+        if row.get("lane") not in LANES:
             raise harness_merge.MergeRefusal(
-                5, ["plan-merge: panel does not reload as the value supplied"])
+                5, [f"plan-merge: {where} lane {row.get('lane')!r} is not one of {', '.join(LANES)}"])
+    return lanes
+
+
+def _sub_key_lines(lines, lo, hi):
+    """[(key, line index)] for every key line at the first indented key indent in lines[lo:hi],
+    plus that indent (or None when there is no indented key)."""
+    matches = [(i, SIBLING_KEY_RE.match(lines[i])) for i in range(lo, hi)]
+    keyed = [(i, m) for i, m in matches if m and m.group(1)]
+    if not keyed:
+        return [], None
+    indent = keyed[0][1].group(1)
+    return [(m.group(2), i) for i, m in keyed if m.group(1) == indent], indent
+
+
+def _index_sub_keys(lines, lo, hi):
+    """[(key, start, end, indent)] for the direct sub-keys of a mapping whose body is
+    lines[lo:hi]: every key line at the FIRST indent found, each running to the next."""
+    found, indent = _sub_key_lines(lines, lo, hi)
+    ends = [start for _key, start in found[1:]] + [hi]
+    return [(key, start, end, indent) for (key, start), end in zip(found, ends)]
+
+
+def _render_items(items, dash_indent):
+    dumped = yaml.safe_dump(items, sort_keys=False, allow_unicode=True, width=10 ** 9)
+    return [dash_indent + ln if ln.strip() else ln for ln in dumped.splitlines(keepends=True)]
+
+
+def _findings_by_id(lines, item_ranges, base_findings, dash_indent):
+    """{id: (start, own_end, parsed)} for the base's findings, or a refusal on a duplicate id."""
+    by_id = {}
+    for (s, e), item in zip(item_ranges, base_findings):
+        fid = str(_item_id(item))
+        if fid in by_id:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: panel.findings carries {fid} twice; a duplicate id cannot be "
+                    "carried unambiguously."])
+        by_id[fid] = (s, _item_delete_end(lines, s, e, dash_indent), item)
+    return by_id
+
+
+def _finding_lines(finding, base_by_id, lines, dash_indent):
+    """One finding's lines: its own base bytes when id and parsed value are unchanged."""
+    carried = base_by_id.get(str(_item_id(finding)))
+    if carried is not None and carried[2] == finding:
+        return lines[carried[0]:carried[1]]
+    return _render_items([finding], dash_indent)
+
+
+def _findings_lines(lines, start, end, indent, base_findings, findings):
+    """The `findings:` sub-block with every unchanged finding's bytes kept.
+
+    A finding is carried byte for byte when its id is in the base and its parsed value equals
+    the base's; anything else is rendered. Falls back to rendering the whole sub-block when the
+    base's items cannot be aligned one dash per item, or when either side is the empty list —
+    `findings: []` has no dash to splice under."""
+    item_ranges = _index_list_items(lines, (start + 1, end))
+    if not findings or not base_findings or len(item_ranges) != len(base_findings):
+        return _structured_field_lines(indent, "findings", findings)
+    dash_indent = DASH_RE.match(lines[item_ranges[0][0]]).group(1)
+    base_by_id = _findings_by_id(lines, item_ranges, base_findings, dash_indent)
+    out = [lines[start]]
+    for finding in findings:
+        out.extend(_finding_lines(finding, base_by_id, lines, dash_indent))
+    return out
+
+
+def _panel_sub_block(lines, key, located, indent, base_panel, panel):
+    """One sub-key of the rebuilt panel: base bytes when unchanged, an item-wise splice for
+    `findings`, a render otherwise. `located` is (start, end, indent) or None when absent."""
+    if located is not None and base_panel.get(key) == panel[key]:
+        return lines[located[0]:located[1]]
+    if key == "findings" and located is not None:
+        return _findings_lines(lines, located[0], located[1], indent,
+                               base_panel.get(key) or [], panel[key])
+    return _structured_field_lines(indent, key, panel[key])
+
+
+def _panel_block(lines, start, own_end, base_panel, panel):
+    """The rebuilt `panel:` block — its own head line, then each sub-key in base order with
+    the new keys after, each carried or rendered by `_panel_sub_block`."""
+    sub = _index_sub_keys(lines, start + 1, own_end)
+    by_key = {key: (s, e, indent) for key, s, e, indent in sub}
+    indent = sub[0][3] if sub else "  "
+    order = [key for key, _s, _e, _i in sub if key in panel]
+    order += [key for key in panel if key not in by_key]
+    out = [lines[start]]
+    for key in order:
+        out.extend(_panel_sub_block(lines, key, by_key.get(key), indent, base_panel, panel))
+    return out
+
+
+def _panel_spliced(base_text, panel):
+    """The plan's text with `panel:` replaced by `panel`, byte-preserving where nothing changed.
+
+    Sub-keys whose parsed value is unchanged keep their bytes; `findings` is spliced item by
+    item; everything else is rendered at the block's own indent. An absent `panel:` is inserted
+    before `tasks:`, where the template has it."""
+    lines, _order, ranges, _preamble = _index_top_keys(base_text)
+    if "panel" not in ranges:
+        replacement = yaml.safe_dump({"panel": panel}, sort_keys=False).splitlines(keepends=True)
+        return _insert_top_mapping(lines, ranges, replacement, ("lanes", "decisions", "tasks"))
+    base_panel = _load_base_doc(base_text).get("panel")
+    start, end = ranges["panel"]
+    own_end = _before_trailing_comments(lines[:end], start + 1)
+    block = _panel_block(lines, start, own_end,
+                         base_panel if isinstance(base_panel, dict) else {}, panel)
+    return "".join(lines[:start] + block + lines[own_end:])
+
+
+def _load_base_doc(text):
+    """The plan on disk as a mapping, or a refusal that names the plan as the side at fault."""
+    try:
+        doc = harness_yaml.load_str(text, "<base plan>")
+    except harness_yaml.YamlParseError as exc:
+        raise harness_merge.MergeRefusal(
+            5, ["UNPARSEABLE: the plan on disk does not parse, so nothing can be spliced into "
+                f"it — {exc}"])
+    return doc if isinstance(doc, dict) else {}
+
+
+def _insert_top_mapping(lines, ranges, replacement, before):
+    """Insert a rendered top-level block before the EARLIEST key of `before` that exists, or at
+    the end of the document, so key order follows the template rather than the verb order."""
+    starts = [ranges[key][0] for key in before if key in ranges]
+    if not starts:
+        return "".join(lines + replacement)
+    at = min(starts)
+    return "".join(lines[:at] + replacement + lines[at:])
+
+
+def _write_top_mapping(resolved, key, value, splice):
+    """Run `splice(base_text) -> new_text` under the lock and refuse unless `key` reloads as
+    `value`. The shared tail of set-panel, record-panel and set-lanes."""
+    def transform(base_bytes):
+        spliced = splice(base_bytes.decode("utf-8")).encode("utf-8")
+        reloaded = _reload_or_refuse(spliced)
+        if reloaded.get(key) != value:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {key} does not reload as the value supplied"])
         return spliced
 
     try:
@@ -1088,11 +1506,197 @@ def cmd_set_panel(args):
         for line in refusal.lines:
             print(line, file=sys.stderr)
         sys.exit(refusal.code)
+
+
+def cmd_set_panel(args):
+    resolved = _resolve_plan(args.file)
+    try:
+        panel = _validate_panel(_load_mapping_value(args.value_file, "panel"), "panel")
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+    _write_top_mapping(resolved, "panel", panel, lambda text: _panel_spliced(text, panel))
     print(f"PANEL cycle {panel['cycle']} -> {resolved}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
 
 
+def cmd_set_lanes(args):
+    """`lanes:` gets the write route it never had (FEAT-59 SC-08). Same shape as set-panel:
+    validate before the lock, replace the whole top-level mapping, refuse unless it reloads."""
+    resolved = _resolve_plan(args.file)
+    try:
+        lanes = _validate_lanes(_load_mapping_value(args.value_file, "lanes"), "lanes")
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+    replacement = yaml.safe_dump({"lanes": lanes}, sort_keys=False).splitlines(keepends=True)
+
+    def splice(text):
+        lines, _order, ranges, _preamble = _index_top_keys(text)
+        if "lanes" in ranges:
+            start, end = ranges["lanes"]
+            return "".join(lines[:start] + replacement + lines[end:])
+        return _insert_top_mapping(lines, ranges, replacement, ("decisions", "tasks"))
+
+    _write_top_mapping(resolved, "lanes", lanes, splice)
+    print(f"LANES {len(lanes['rows'])} row(s) resolved at {lanes['resolved_at']} -> {resolved}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+FENCED_BLOCK_RE = re.compile(r"^[ \t]*```[^\n]*\n(.*?)^[ \t]*```", re.M | re.S)
+
+
+def _fenced_blocks(text):
+    """The bodies of every ``` fenced block in `text`, in order; an unclosed fence is dropped."""
+    return [m.group(1) for m in FENCED_BLOCK_RE.finditer(text)]
+
+
+def _digest_mapping(block, path):
+    """The DIGEST mapping in one candidate block, or None when it is not a lead return."""
+    try:
+        doc = harness_yaml.load_str(block, path)
+    except harness_yaml.YamlParseError:
+        return None
+    digest = doc.get("DIGEST") if isinstance(doc, dict) else None
+    return digest if isinstance(digest, dict) else None
+
+
+def _lead_digest(path):
+    """The DIGEST mapping of a validator-lead return on disk, or a refusal.
+
+    The return contract (harness-handoff, DEC-172) is one fenced yaml block — VERDICT, DIGEST,
+    artifact — with prose allowed around it. The LAST fenced block carrying a DIGEST mapping
+    wins, the rule validate-digest.py applies to echoed templates; a file with no fence is read
+    whole as a last resort so a bare return still records."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError as exc:
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: cannot read digest {path}: {exc}"])
+    for block in reversed(_fenced_blocks(text) or [text]):
+        digest = _digest_mapping(block, path)
+        if digest is not None:
+            return digest
+    raise harness_merge.MergeRefusal(
+        5, [f"plan-merge: {path} carries no fenced yaml block with a DIGEST: mapping — the "
+            "validator lead's return is what record-panel transcribes, and nothing else."])
+
+
+def _digest_finding(finding, where):
+    """One panel finding from one digest entry: content-hash id, closed key set, default open.
+
+    Every entry needs kind (C2), severity, reader and summary: identity is reader + summary,
+    and a finding without a severity or a kind cannot gate. `why` and any other free key the
+    lead wrote are NOT carried — panel.findings is the closed shape the template declares."""
+    if not isinstance(finding, dict):
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {where} is not a mapping"])
+    absent = [k for k in ("severity", "reader", "summary") if not str(finding.get(k) or "").strip()]
+    if absent:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} is missing {', '.join(absent)} — reader and summary are "
+                "the finding's identity, severity is what gates."])
+    _validate_finding_kind(finding, where)
+    disposition = finding.get("disposition", "open")
+    if disposition not in DISPOSITIONS:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} disposition {disposition!r} is not one of "
+                f"{', '.join(DISPOSITIONS)}"])
+    reader, summary = str(finding["reader"]), str(finding["summary"])
+    return {"id": panel_findings.finding_id(reader, summary), "severity": str(finding["severity"]),
+            "reader": reader, "kind": finding["kind"], "summary": summary,
+            "disposition": disposition}
+
+
+def _digest_findings(digest, what):
+    return [_digest_finding(finding, f"{what} findings[{index}]")
+            for index, finding in enumerate(digest.get("findings") or [])]
+
+
+def _digest_readers(digest, what):
+    readers = digest.get("readers")
+    if not isinstance(readers, list):
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {what} carries no readers: list — every reader must appear, ran "
+                "or skipped, or a reader that never ran looks clean."])
+    _validate_readers(readers, what)
+    return readers
+
+
+def _base_findings(base_text):
+    """The base plan's parsed panel.findings mappings, [] when there is no panel yet."""
+    base_panel = _load_base_doc(base_text).get("panel") if base_text else None
+    findings = base_panel.get("findings") if isinstance(base_panel, dict) else None
+    return [f for f in (findings or []) if isinstance(f, dict)]
+
+
+def _recorded_panel(base_text, digest, cycle, last_run):
+    """The panel mapping record-panel writes: the digest's readers, its findings UNIONED with
+    the base's — a finding already present keeps its own parsed value (and so, through
+    `_panel_spliced`, its own bytes and disposition); a new one is appended open.
+    Returns (panel, carried ids, added ids)."""
+    what = "lead digest"
+    readers = _digest_readers(digest, what)
+    findings = _base_findings(base_text)
+    present = {str(_item_id(f)) for f in findings}
+    incoming = _digest_findings(digest, what)
+    carried = [f["id"] for f in incoming if f["id"] in present]
+    added = _first_by_id([f for f in incoming if f["id"] not in present])
+    findings.extend(added)
+    panel = {"last_run": last_run, "cycle": cycle, "readers": readers, "findings": findings}
+    return _validate_panel(panel, what), carried, [f["id"] for f in added]
+
+
+def _first_by_id(findings):
+    """`findings` with every repeat of an id dropped — the lead de-duplicates on normalized
+    summary plus reader, which is exactly this id, so a repeat is the same finding twice."""
+    seen, out = set(), []
+    for finding in findings:
+        if finding["id"] not in seen:
+            seen.add(finding["id"])
+            out.append(finding)
+    return out
+
+
+def cmd_record_panel(args):
+    """Write `panel:` FROM the validator lead's digest (FEAT-59 SC-05).
+
+    Before this verb, pm read the lead digest, ran panel_findings.py once per finding, built a
+    value file in /tmp and called set-panel — a whole run whose only work was to copy one file
+    into another (FEAT-54 c0 and c3, BUG-285 three of nineteen runs). The digest is parsed
+    BEFORE the lock, so a malformed one refuses without opening the plan; the base's own
+    findings are carried under the lock, so a concurrent set-panel cannot be lost."""
+    resolved = _resolve_plan(args.file)
+    last_run = args.last_run or os.path.basename(os.path.dirname(os.path.abspath(args.digest)))
+    try:
+        digest = _lead_digest(args.digest)
+        # Shape faults in the digest refuse here, on an empty base, before any lock is taken.
+        _recorded_panel("", digest, args.cycle, last_run)
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+    result = {}
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        panel, carried, added = _recorded_panel(text, digest, args.cycle, last_run)
+        spliced = _panel_spliced(text, panel).encode("utf-8")
+        reloaded = _reload_or_refuse(spliced)
+        if reloaded.get("panel") != panel:
+            raise harness_merge.MergeRefusal(
+                5, ["plan-merge: panel does not reload as the value recorded"])
+        result.update(carried=carried, added=added)
+        return spliced
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
+    for fid in result["carried"]:
+        print(f"CARRIED {fid}")
+    for fid in result["added"]:
+        print(f"ADDED {fid}")
+    print(f"PANEL cycle {args.cycle} from {args.digest} -> {resolved}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
 
 
 def _approval_fields(base_bytes, args):
@@ -1131,9 +1735,14 @@ def _new_approval_block(fields):
 
 
 def _replace_signature_fields(body, fields):
+    """The approval body with status/approved_by/date rewritten and any auto-reset record
+    dropped: a fresh signature supersedes `reset_at`/`reset_reason` (C4), and leaving them
+    would make a signed plan read as voided."""
     written = set()
     output = []
     for line in body:
+        if _RESET_LINE_RE.match(line):
+            continue
         match = re.match(r"^(  )(status|approved_by|date):\s*(.*)$", line)
         if not match or match.group(2) in written:
             output.append(line)
@@ -1213,6 +1822,7 @@ def cmd_sign_approval(args):
             print(line, file=sys.stderr)
         sys.exit(10)
     resolved = _resolve_plan(args.file)
+    ruling, feature_json = _rework_ruling(args, resolved)
 
     def transform(base_bytes):
         return _signed_approval_bytes(base_bytes, resolved, args)
@@ -1224,15 +1834,73 @@ def cmd_sign_approval(args):
             print(line, file=sys.stderr)
         sys.exit(refusal.code)
     print(f"SIGNED {resolved} by {args.by} on {args.date}")
+    if ruling is not None:
+        _record_rework(feature_json, ruling)
+        print(f"REWORK rounds={ruling['rounds']} minutes={ruling['wall_clock_minutes']} "
+              f"decision={ruling['decision']} -> {feature_json}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
+
+
+REWORK_RE = re.compile(r"^rounds=(\d+),minutes=(\d+)$")
+
+
+def _parse_rework(rework, decision):
+    """{rounds, wall_clock_minutes, decision} from the two flags, or an exit-2 refusal."""
+    if rework is None or decision is None:
+        _die(2, "plan-merge: --rework and --decision go together — the ruling is the bounds AND "
+                "the record of who set them (SC-15).")
+    m = REWORK_RE.match(rework.strip())
+    if not m:
+        _die(2, f"plan-merge: --rework {rework!r} is not rounds=N,minutes=M with non-negative "
+                "integers.")
+    if not decision.strip():
+        _die(2, "plan-merge: --decision must name the ruling's record, not be empty.")
+    return {"rounds": int(m.group(1)), "wall_clock_minutes": int(m.group(2)),
+            "decision": decision.strip()}
+
+
+def _rework_ruling(args, resolved):
+    """(ruling, feature_json_path) from --rework/--decision, or (None, None) when neither was
+    given. Both or neither; `rounds=N,minutes=M` with non-negative integers; and the sibling
+    feature.json must EXIST — refused here, before the signature is written, because a
+    signature with no recorded ruling is exactly the half-state SC-15 exists to prevent."""
+    rework, decision = getattr(args, "rework", None), getattr(args, "decision", None)
+    if rework is None and decision is None:
+        return None, None
+    ruling = _parse_rework(rework, decision)
+    feature_json = os.path.join(os.path.dirname(resolved), "feature.json")
+    if not os.path.isfile(feature_json):
+        _die(2, f"plan-merge: {feature_json} does not exist, so the rework ruling has nowhere "
+                "to go — REFUSING to sign. Create the feature's feature.json first.")
+    return ruling, feature_json
+
+
+def _record_rework(feature_json, ruling):
+    """Set `rework` on the sibling feature.json through the one locked, schema-checked writer
+    (feature_json_write, C1). A refusal there propagates its own code."""
+    def transform(base):
+        doc = feature_json_write.parse_doc(base, feature_json)
+        if doc is None:
+            raise harness_merge.MergeRefusal(
+                feature_json_write.SCHEMA_REFUSAL_CODE,
+                [f"REFUSED: {feature_json} vanished between the existence check and the write."])
+        doc["rework"] = ruling
+        return json.dumps(doc, indent=2) + "\n"
+
+    try:
+        feature_json_write.write_feature_json(feature_json, transform)
+    except harness_merge.MergeRefusal as refusal:
+        _die(refusal.code, *refusal.lines)
 
 
 # ---------------------------------------------------------------------------
 # BUG-1128 — `amend`, the route that did not exist.
 #
 # FEAT-41 T-09 denies every Edit/Write to a plan.yaml for every author, and `apply`
-# is ADD-ONLY (exit 7 on a changed value). Correct separately; together they left a
+# was ADD-ONLY (exit 7 on a changed value — FEAT-59 SC-08 has since made a proposal's
+# fields replace the base's; `amend` remains the hash-checked route for a single field
+# on a plan another writer may be touching). Correct separately; together they left a
 # signed plan uncorrectable by anyone, and FEAT-46 accumulated eight staged-but-
 # unappliable amendment blocks. This is the same shape BUG-1080 fixed one layer up:
 # a rule shipped without reconciling what it makes impossible.
@@ -1581,6 +2249,22 @@ def _amend_preconditions(args, actual):
                 f"{actual}. Re-run --show and re-derive your replacement.")
 
 
+def _amended_text(cur, first, last, rendered, want, args, base_doc, result):
+    """The plan text with the field spliced in, the C4 guards applied.
+
+    A `files:` replacement is held to plan_anchors' grammar — a line-number anchor is refused
+    here as it is in `apply`. A TASK field is part of the signed contract, so amending one on
+    an approved plan voids the signature; a decision's field is not the task set and leaves it
+    standing. `result` learns whether that happened, for the receipt."""
+    if args.field == "files":
+        _refuse_illegal_anchors({"tasks": [{"id": args.id, "files": want}]},
+                                f"the replacement for {args.id}.files")
+    spliced = "".join(cur[:first] + rendered + cur[last:])
+    task_ids = [args.id] if args.key == "tasks" else []
+    spliced, result["reset"] = _maybe_reset_approval(spliced, base_doc, "amend", task_ids)
+    return spliced
+
+
 def cmd_amend(args):
     import hashlib
 
@@ -1608,6 +2292,7 @@ def cmd_amend(args):
         with open(args.value_file, encoding="utf-8") as fh:
             value_text = fh.read()
         want_value = None
+    result = {}
 
     def transform(base_bytes):
         # THE BASE IS PARSED FIRST (panel V4, and its own de-vacuumed test). It used to be
@@ -1644,7 +2329,7 @@ def cmd_amend(args):
         else:
             rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
             want = _expected_value(rendered, ind2, args.field)
-        spliced = "".join(cur[:f2] + rendered + cur[l2:])
+        spliced = _amended_text(cur, f2, l2, rendered, want, args, base_doc, result)
         reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
         # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan
         # mid-authoring legitimately does not, and refusing to amend it would make this verb
@@ -1663,6 +2348,8 @@ def cmd_amend(args):
             print(line, file=sys.stderr)
         sys.exit(refusal.code)
     print(f"AMENDED {args.key}:{args.id}.{args.field}")
+    if result.get("reset"):
+        print(APPROVAL_RESET_LINE)
     print(f"APPLIED {resolved}")
     sys.exit(0)
 
@@ -1955,12 +2642,13 @@ def _verify_deletion(spliced_bytes, base_doc, requested):
     return reloaded
 
 
-def _deleted_bytes(base_bytes, requested):
+def _deleted_bytes(base_bytes, requested, receipt=None):
     """The plan's bytes with every requested item's lines removed, or a refusal.
 
     THE WHOLE EDIT AS A FUNCTION OF BYTES, `_signed_approval_bytes`'s shape: the verb's lock
     plumbing stays three lines and this stays reachable from a unit test, which is the remedy
-    `_require_locked_hash` and `_verify_amend` both got for the same reason.
+    `_require_locked_hash` and `_verify_amend` both got for the same reason. `receipt`, when
+    given, is a dict that learns whether the approval was reset (C4).
     """
     raw = base_bytes.decode("utf-8")
     try:
@@ -1974,7 +2662,7 @@ def _deleted_bytes(base_bytes, requested):
     lines = raw.splitlines(keepends=True)
     ranges = _deletion_ranges(lines, base_doc, requested)
     _refuse_dangling_depends_on(base_doc, requested)
-    spliced = _splice_out(lines, ranges)
+    spliced = _reset_after_deletion(_splice_out(lines, ranges), base_doc, requested, receipt)
     reloaded = _verify_deletion(spliced, base_doc, requested)
     # DO NO HARM, the rule `apply` and `amend` both hold to: the result is held to the plan
     # schema only when the BASE satisfied it. A plan mid-authoring legitimately does not, and
@@ -1991,6 +2679,17 @@ def _deleted_bytes(base_bytes, requested):
     return spliced
 
 
+def _reset_after_deletion(spliced, base_doc, requested, receipt):
+    """DELETING A TASK CHANGES THE TASK SET (C4): an approved plan is reset to pending. A
+    decision's removal is not the task set and leaves the signature standing."""
+    doomed_tasks = [iid for key, iid in requested if key == "tasks"]
+    text, reset = _maybe_reset_approval(spliced.decode("utf-8"), base_doc, "delete-items",
+                                        doomed_tasks)
+    if receipt is not None:
+        receipt["reset"] = reset
+    return text.encode("utf-8")
+
+
 def cmd_delete_items(args):
     """Delete whole tasks and decisions by id, under the same lock every other verb takes."""
     resolved = _resolve_plan(args.file)
@@ -1999,11 +2698,13 @@ def cmd_delete_items(args):
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
 
+    receipt = {}
+
     def transform(base_bytes):
         if base_bytes is None:
             raise harness_merge.MergeRefusal(
                 3, [f"plan-merge: {resolved} does not exist, so there is nothing to delete."])
-        return _deleted_bytes(base_bytes, requested)
+        return _deleted_bytes(base_bytes, requested, receipt)
 
     try:
         harness_merge.locked_update(resolved, transform)
@@ -2017,8 +2718,160 @@ def cmd_delete_items(args):
     # operator's ruling lives in the feature's own notes — so the receipt is where it has to
     # appear for a run log to say why ten items went.
     print(f"DELETED-ITEMS {len(requested)} from {resolved} — reason: {args.reason}")
+    if receipt.get("reset"):
+        print(APPROVAL_RESET_LINE)
     print(f"APPLIED {resolved}")
     sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# `check` — resolve every anchor, route and trace before a plan is signed (FEAT-59 SC-07).
+#
+# FEAT-54's first build dispatch BLOCKED on five plan paths that four goal-check cycles and
+# three panel cycles had read and none had resolved: "the first build dispatch found it in one
+# member spawn". Readers were asked to find by reading what a script can find by running. This
+# verb is that script. It WRITES NOTHING; exit 0 means every `files:` anchor resolves under
+# --root, every team task's `execution_agent` is granted its files by the SAME resolver the
+# build hook consults (check-plan-routes.resolve_agents -> check-domain.sh --resolve), and
+# every `traces:` id is present in the sibling BRIEF.md. Exit 1 lists each failure on its own
+# FAIL line; exit 2 means the check could not run at all (no manifest under --root).
+
+
+def _check_plan_routes_module():
+    """check-plan-routes.py as a module: the hyphen keeps it out of `import`, and its resolver
+    is the ONE route resolver (DEC-179) — re-implementing it here would be a second copy of the
+    rule check-domain.sh applies at build time, which is the drift SC-07 exists to close."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "check_plan_routes", os.path.join(BIN_DIR, "check-plan-routes.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _trace_in_brief(trace, brief_text):
+    return re.search(rf"(?<![\w-]){re.escape(str(trace))}(?![\w-])", brief_text) is not None
+
+
+class _Routes:
+    """The route resolver bound to one --root, answering once per path.
+
+    check-domain.sh is a subprocess per question, so the answer for a path is cached across
+    the tasks that name it. The resolver reads its root from HARNESS_PROJECT_DIR
+    (harness_boundary.resolve_root); setting it here is what makes the spawned check-domain
+    answer about --root and not about this checkout."""
+
+    def __init__(self, root):
+        os.environ["HARNESS_PROJECT_DIR"] = root
+        self.root = root
+        self.cpr = _check_plan_routes_module()
+        try:
+            self.manifest_root, self.deviation = self.cpr.resolution_manifest(root)
+        except ValueError as exc:
+            _die(2, f"plan-merge: {exc}")
+        self._granted = {}
+
+    def granted(self, path):
+        if path not in self._granted:
+            self._granted[path] = self.cpr.resolve_agents(path, self.root, self.manifest_root)
+        return self._granted[path]
+
+
+def _literal_paths(task):
+    """The bare, non-glob path of every files: entry — what the route question is about."""
+    paths = (plan_anchors.path_of(entry) for entry in task.get("files") or [])
+    return [p for p in paths if isinstance(p, str) and not plan_anchors.is_glob(p)]
+
+
+def _route_faults(task, tid, routes):
+    """FAIL lines for a team task whose execution_agent is not granted every literal path."""
+    if task.get("execution_mode") != "team":
+        return []
+    agent = task.get("execution_agent")
+    if not isinstance(agent, str) or not agent.strip():
+        return [f"FAIL {tid} execution_agent: missing, and execution_mode is team — the lane "
+                "row is the authority, so name the agent it grants"]
+    return [f"FAIL {tid} execution_agent: {agent} is not granted {path} "
+            f"(granted: {', '.join(routes.granted(path)) or 'NOBODY'})"
+            for path in _literal_paths(task) if agent not in routes.granted(path)]
+
+
+def _trace_faults(task, tid, brief_text):
+    if brief_text is None:
+        return []
+    return [f"FAIL {tid} traces: {trace} is not in the sibling BRIEF.md"
+            for trace in task.get("traces") or [] if not _trace_in_brief(trace, brief_text)]
+
+
+def _check_task(task, root, brief_text, routes):
+    """(failures, anchors_resolved) for one task."""
+    tid = str(task.get("id") or "<no id>")
+    faults = [plan_anchors.resolve(entry, root) for entry in task.get("files") or []]
+    failures = [f"FAIL {tid} files: {fault}" for fault in faults if fault is not None]
+    failures += _route_faults(task, tid, routes)
+    failures += _trace_faults(task, tid, brief_text)
+    return failures, faults.count(None)
+
+
+def _check_tasks(doc, resolved_plan):
+    tasks = doc.get("tasks") if isinstance(doc, dict) else None
+    if not isinstance(tasks, list):
+        _die(5, f"plan-merge: {resolved_plan} carries no tasks: list to check")
+    return tasks
+
+
+def _check_inputs(args):
+    """(resolved plan path, root, tasks) — or the exit-2/exit-5 refusal that says why not."""
+    resolved_plan = _resolve_plan(args.file)
+    root = os.path.abspath(args.root)
+    if not os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
+        _die(2, f"plan-merge: {root} carries no {harness_boundary.MARKER}, so no route can be "
+                "resolved against it — --root must be a harness checkout.")
+    try:
+        doc = harness_yaml.load_file(resolved_plan)
+    except harness_yaml.YamlParseError as exc:
+        _die(5, f"plan-merge: {resolved_plan} does not load: {exc}")
+    return resolved_plan, root, _check_tasks(doc, resolved_plan)
+
+
+def _brief_text(resolved_plan):
+    """(text or None, failure line or None) for the sibling BRIEF.md. Absent is a failure: the
+    traces cannot be checked, and an uncheckable trace must not read as a resolved one."""
+    brief = os.path.join(os.path.dirname(resolved_plan), "BRIEF.md")
+    if not os.path.isfile(brief):
+        return None, f"FAIL BRIEF.md: {brief} is absent, so no traces: id can be checked"
+    with open(brief, encoding="utf-8") as fh:
+        return fh.read(), None
+
+
+def _check_all(tasks, root, brief_text, routes):
+    """(failures, anchors resolved) across every task, printing an OK line per clean task."""
+    failures, total = [], 0
+    for task in tasks:
+        if not isinstance(task, dict):
+            failures.append(f"FAIL tasks: {task!r} is not a mapping")
+            continue
+        task_failures, count = _check_task(task, root, brief_text, routes)
+        total += count
+        failures += task_failures
+        if not task_failures:
+            print(f"OK {task.get('id')} {count} anchor(s) resolved")
+    return failures, total
+
+
+def cmd_check(args):
+    resolved_plan, root, tasks = _check_inputs(args)
+    routes = _Routes(root)
+    brief_text, brief_fault = _brief_text(resolved_plan)
+    preface = [f"FAIL {routes.deviation}"] if routes.deviation else []
+    preface += [brief_fault] if brief_fault else []
+    task_failures, total = _check_all(tasks, root, brief_text, routes)
+    failures = preface + task_failures
+    for line in failures:
+        print(line)
+    print(f"CHECK {resolved_plan} against {root}: {len(tasks)} task(s), {total} anchor(s) "
+          f"resolved, {len(failures)} failure(s)")
+    sys.exit(1 if failures else 0)
 
 
 # EVERY VERB IS A ROW, NOT A PARAGRAPH (FEAT-41 F-05). `main` regressed from grade 4 to 3 on ABC
@@ -2034,14 +2887,15 @@ _FILE = ("--file", "path to the plan.yaml")
 _STATION = ("--station", "one of the six stations, or abandoned")
 _PROPOSAL = ("--proposal", "path to the proposed plan.yaml, or - for stdin")
 
-# ADD-ONLY IS A PROPERTY OF THE FIRST TWO VERBS, NOT OF THE TOOL (FEAT-41 T-03). The lock and
-# the splice are what fix #628 and they apply to every verb; never deleting a task is a separate
-# promise that `apply` and its alias alone make, which is why they share `cmd_apply` verbatim.
-# `delete-items` is what that distinction was always for: it deletes, by id and with a reason,
-# through the same lock and the same splice, and it registers itself below rather than here
-# because its id flags repeat.
+# NEVER-DELETE IS A PROPERTY OF THE FIRST TWO VERBS, NOT OF THE TOOL (FEAT-41 T-03). The lock
+# and the splice are what fix #628 and they apply to every verb; never deleting a task is a
+# separate promise that `apply` and its alias alone make, which is why they share `cmd_apply`
+# verbatim. `delete-items` is what that distinction was always for: it deletes, by id and with
+# a reason, through the same lock and the same splice, and it registers itself below rather
+# than here because its id flags repeat.
 VERBS = (
-    ("apply", "merge a proposal into a plan.yaml — adds, never deletes",
+    ("apply", "merge a proposal into a plan.yaml — adds items, replaces the fields a proposal "
+              "names on an existing id, never deletes",
      (_FILE, _PROPOSAL), cmd_apply),
     ("add-tasks", "alias of apply, for callers that only add tasks — identical code path",
      (_FILE, _PROPOSAL), cmd_apply),
@@ -2049,9 +2903,29 @@ VERBS = (
      (_FILE, ("--task", "the task id, T-NN"), _STATION), cmd_set_task_station),
     ("set-feature-station", "set or insert the top-level status key",
      (_FILE, _STATION), cmd_set_feature_station),
-    ("set-panel", "replace the top-level panel mapping with a validated value",
+    ("set-panel", "replace the top-level panel mapping with a validated value, keeping the "
+                  "bytes of every unchanged finding",
      (_FILE, ("--value-file", "YAML file holding the replacement panel mapping")), cmd_set_panel),
+    ("set-lanes", "replace the top-level lanes mapping with a validated value",
+     (_FILE, ("--value-file", "YAML file holding the replacement lanes mapping")), cmd_set_lanes),
+    ("check", "resolve every files: anchor, execution_agent route and traces: id; writes nothing",
+     (_FILE, ("--root", "the checkout root anchors and routes resolve against")), cmd_check),
 )
+
+
+def _register_record_panel(sub):
+    """ITS OWN REGISTRATION: `--last-run` is optional (it defaults to the digest's run
+    directory) and `--cycle` is typed, neither of which the uniform table can express."""
+    p = sub.add_parser("record-panel",
+                       help="write the panel mapping FROM the validator lead's digest, carrying "
+                            "every finding already present byte for byte")
+    p.add_argument("--file", required=True, help="path to the plan.yaml")
+    p.add_argument("--digest", required=True,
+                   help="the validator lead's digest.md — its fenced DIGEST block is parsed")
+    p.add_argument("--cycle", required=True, type=int, help="the panel cycle being recorded")
+    p.add_argument("--last-run", default=None,
+                   help="the run directory name to record; defaults to the digest's parent dir")
+    p.set_defaults(func=cmd_record_panel)
 
 
 def _register_sign_approval(sub):
@@ -2063,6 +2937,11 @@ def _register_sign_approval(sub):
         "--overrule", action="append", default=[], metavar="FINDING-ID:REASON",
         help="accept a current panel finding's risk; repeat for multiple findings",
     )
+    p.add_argument("--rework", default=None, metavar="rounds=N,minutes=M",
+                   help="the operator's ONE rework ruling (SC-15), recorded on the sibling "
+                        "feature.json as `rework`; needs --decision")
+    p.add_argument("--decision", default=None, metavar="PATH",
+                   help="where the rework ruling is recorded (feature.json rework.decision)")
     p.set_defaults(func=cmd_sign_approval)
 
 
@@ -2123,6 +3002,7 @@ def main():
         for flag, arghelp in arguments:
             p.add_argument(flag, required=True, help=arghelp)
         p.set_defaults(func=func)
+    _register_record_panel(sub)
     _register_sign_approval(sub)
     _register_amend(sub)
     _register_delete_items(sub)
