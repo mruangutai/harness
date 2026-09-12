@@ -2620,6 +2620,298 @@ if _hp_ok:
                        "resolves but the merge sweep cannot run. Fix: chmod +x it"
                        % (_HOOKS_REL, os.stat(_pm).st_mode & 0o777))
 
+# --- INV-38..41 (FEAT-59 proportional flow; SC-10, SC-15, SC-16, SC-21; DEC-174 direct work).
+# Four invariants over the FEAT-59 record shapes, sharing ONE era predicate defined once here.
+#
+# THE ERA PREDICATE. A record is graded under the FEAT-59 contract when its feature.json
+# carries any key that contract introduced -- `mission`, `judgements`, `budget_decisions`,
+# `rework` -- or its BRIEF is the by-perspective shape (heading `## Done when — by
+# perspective`, C5). A record carrying none of those predates the contract and CANNOT pass a
+# ledger check, because nothing that wrote it knew a ledger existed. INV-32's lesson
+# (BUG-1071) applies verbatim: measured at this commit, 16 features carry `max_total_cycles`
+# above the harness.json default with no `budget_decisions` (the key did not exist) and
+# BUG-1309 records cycles_used 18 against max 17. An invariant that fires on all of them and
+# admits nothing enforces no rule; it trains its reader to ignore the gate. So a pre-era
+# record is NOTED where a check WOULD have fired, and only there: a legacy feature with
+# nothing to say gets no line, and a wrongly granted exemption stays visible.
+#
+# THE PREDICATE ONLY WIDENS GRADING. Any one FEAT-59 key is enough, and so is the BRIEF shape
+# on its own; `judgements: []` is an in-era record with an empty ledger, not a legacy one.
+# Retroactive grading of existing BRIEFs, plans and notes is out of scope by the brief.
+_BY_PERSPECTIVE_HEADING = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.M | re.I)
+_FEAT59_KEYS = ("mission", "judgements", "budget_decisions", "rework")
+
+
+def _brief_is_by_perspective(txt):
+    return bool(txt) and _BY_PERSPECTIVE_HEADING.search(txt) is not None
+
+
+def _perspective_key(name):
+    """`**reader (reviewer / qa / panel)**` declares `reader`: a trailing parenthetical is a
+    gloss on the name, and the SC tag carries the bare name. Case and inner whitespace are
+    normalised so `(Code Maintainer)` discharges `**code maintainer**`."""
+    return re.sub(r"\s+", " ", re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()).lower()
+
+
+def _brief_perspectives(txt):
+    """The `**name**` lines under the by-perspective heading, up to the next `## `, in order."""
+    m = _BY_PERSPECTIVE_HEADING.search(txt)
+    body = txt[m.end():]
+    nxt = re.search(r"^##\s", body, re.M)
+    if nxt:
+        body = body[:nxt.start()]
+    return [pm.group(1).strip() for pm in re.finditer(r"^\*\*([^*\n]+?)\*\*", body, re.M)]
+
+
+def _brief_scs(txt):
+    """(id, tag or None, text) for every `- SC-NN (<name>): ...` line anywhere in the BRIEF,
+    the text carrying the indented continuation lines that follow the bullet."""
+    out, lines, i = [], txt.splitlines(), 0
+    while i < len(lines):
+        m = re.match(r"^\s*-\s*(SC-\d+)\s*(?:\(([^)]*)\))?\s*:(.*)$", lines[i])
+        i += 1
+        if not m:
+            continue
+        body = [m.group(3)]
+        while (i < len(lines) and lines[i].strip() and lines[i][:1].isspace()
+               and not re.match(r"^\s*-\s*SC-\d+", lines[i])):
+            body.append(lines[i])
+            i += 1
+        out.append((m.group(1), m.group(2), " ".join(s.strip() for s in body)))
+    return out
+
+
+# INV-41's notion of INVOKING a gate script, as distinct from naming one. A code span that
+# is a command line -- the script with a path or interpreter before it, or arguments after
+# it -- is an invocation. A bare `check-state.sh` span is a mention (FEAT-59's own SC-10
+# reads "`check-state.sh` refuses a new BRIEF") UNLESS the sentence runs it ("the reviewer
+# runs `check-state.sh`") or grades its result ("`check-state.sh` exits 0"), which is the
+# FEAT-54 SC-04 shape this invariant exists to refuse. A `check-state.sh:1868` citation is
+# neither: the name is followed by `:`, not by an argument boundary.
+_INV41_SCRIPTS = ("check-state.sh", "check-domain.sh")
+_INV41_RUNS_BEFORE = re.compile(r"\b(?:run|runs|running|ran|execute|executes|invoke|invokes|call|calls)\s*$")
+_INV41_GRADES_AFTER = re.compile(r"(?:exits?\b|exit\s+code|passes|is\s+green|reports|prints|returns)")
+
+
+def _inv41_invocation(text):
+    """The gate script `text` invokes, or None."""
+    for m in re.finditer(r"`([^`\n]*)`", text):
+        span = m.group(1).strip()
+        for s in _INV41_SCRIPTS:
+            if s not in span:
+                continue
+            if span != s:
+                if re.search(r"(?:^|[\s/(=])%s(?:\s|$|[);|])" % re.escape(s), span):
+                    return s
+                continue
+            before = text[:m.start()].rstrip().lower()
+            after = text[m.end():].lstrip().lower()
+            if _INV41_RUNS_BEFORE.search(before) or _INV41_GRADES_AFTER.match(after):
+                return s
+    return None
+
+
+def _inv41_scoped(text, feat):
+    """A `--feature` flag, the feature's own directory, or its id anywhere in the SC text
+    scopes the invocation to this feature (SC-16)."""
+    if "--feature" in text or f"features/{feat}" in text:
+        return True
+    if re.search(r"\b%s\b" % re.escape(feat), text):
+        return True
+    fid = re.match(r"^[A-Za-z]+-\d+", feat)
+    return fid is not None and re.search(r"\b%s\b" % re.escape(fid.group(0)), text) is not None
+
+
+# INV-38 (SC-10): in a by-perspective BRIEF, every declared perspective is discharged by at
+# least one SC tagged with it, and every SC is tagged with a declared perspective. The old
+# shape is untouched; an abandoned feature's BRIEF is skipped for INV-1/2's reason.
+#
+# NO `## Requirements`/REQ-NN GRADING EXISTS IN THIS SCRIPT TO SCOPE. The brief asked that a
+# by-perspective BRIEF not be graded for a missing Requirements section; the only BRIEF
+# checks here are INV-1/2 (the `## Approval` block), which apply to both shapes unchanged.
+# Said here so nobody goes looking for a REQ check that was never written.
+# INV-41 (SC-16) runs in the same loop because it reads the same SC list: an SC whose text
+# invokes check-state.sh or check-domain.sh with no feature-scoped argument grades the whole
+# repository -- other features' debris reddens it (FEAT-54 SC-04, three of six review cycles).
+for feat, brief in sorted(briefs.items()):
+    if feat in _abandoned or not _brief_is_by_perspective(brief):
+        continue
+    _persp = _brief_perspectives(brief)
+    _pkeys = {_perspective_key(p): p for p in _persp}
+    _scs = _brief_scs(brief)
+    if not _persp:
+        bad.append(f"INV-38 {feat}: BRIEF.md carries '## Done when — by perspective' but declares "
+                   f"no perspective under it (a line beginning **name**) — an empty block states "
+                   f"no done (SC-10).")
+    _discharged = set()
+    for _sid, _tag, _text in _scs:
+        if _tag is None or not _tag.strip():
+            bad.append(f"INV-38 {feat}: BRIEF.md {_sid} carries no perspective tag — write it "
+                       f"`- {_sid} (<perspective>): ...` so a declared perspective discharges it "
+                       f"(SC-10).")
+        elif _perspective_key(_tag) not in _pkeys:
+            bad.append(f"INV-38 {feat}: BRIEF.md {_sid} is tagged ({_tag.strip()}), which names no "
+                       f"declared perspective ({', '.join(_persp) or 'none declared'}) — every SC "
+                       f"discharges a perspective the block declares (SC-10).")
+        else:
+            _discharged.add(_perspective_key(_tag))
+        _script = _inv41_invocation(_text)
+        if _script and not _inv41_scoped(_text, feat):
+            bad.append(f"INV-41 {feat}: BRIEF.md {_sid} invokes {_script} with no feature-scoped "
+                       f"argument (--feature, the feature directory, or {feat}) — repository-wide "
+                       f"state is a merge-time check, not a feature criterion (SC-16).")
+    for _k, _p in _pkeys.items():
+        if _k not in _discharged:
+            bad.append(f"INV-38 {feat}: BRIEF.md declares perspective '{_p}' and no SC is tagged "
+                       f"({_k}) — a perspective no criterion discharges is a promise nothing "
+                       f"grades (SC-10).")
+
+
+def _int_field(v):
+    """int, or None. bool is rejected BEFORE the int check (INV-22's lesson: bool subclasses
+    int, so `true` read as a budget of 1)."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, str) and v.strip().isdigit():
+        return int(v.strip())
+    return None
+
+
+# INV-39 (SC-15, DEC-157): the cycle budget is a bound, and a raise is a recorded decision.
+#
+# TODAY NOTHING ENFORCES `cycles_used <= max_total_cycles`. INV-7 bounds cycles_used from
+# BELOW (it must count the FAIL runs) and INV-22 counts runs against a budget that is
+# informational by design; no invariant reads max_total_cycles at all. FEAT-43 raised it
+# seven times and "it always followed cycles_used, never led" (the FEAT-59 brief) -- a
+# ceiling that moves whenever it is reached is not a ceiling. DEC-157 made a raise a recorded
+# user decision in prose; `budget_decisions[]` (C1) is where the record now lives, written by
+# feature-record.py raise-cycles, and a raise with no entry recording the CURRENT value is
+# the unrecorded decision this refuses. An entry recording an earlier value covers only that
+# raise; the current one is still undecided.
+#
+# INV-40 (SC-21, SC-20): every autonomous judgement leaves a judgements[] entry. Three
+# INDEPENDENT checks, each on its own trigger, so one record can fail all three and each line
+# names its own remedy: (a) a `mission` with no entry of kind mission; (b) a run with verdict
+# FAIL that a later run follows -- a re-gate happened -- with no entry of kind regate; (c) a
+# handoff note with at least one run recorded after its `seq-N` -- a successor woke -- with no
+# entry of kind succession. Entries are appended in order and the ledger is one flat list, so
+# (b) and (c) match by COUNT: k re-gates need k regate entries and the first uncovered run or
+# note is the one named. `seq-N` is the note's own first-line marker (templates/HANDOFF.md),
+# read as the ordinal of the run that wrote it; run N+1 onward is the successor's. An in-era
+# note with no marker is refused rather than skipped, because a note that cannot be placed
+# cannot be matched -- the same posture INV-32 takes on an undated approval.
+_default_cycles = (_int_field((cj.get("budgets") or {}).get("max_total_cycles"))
+                   if isinstance(cj, dict) else None)
+
+for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
+    _feat59 = os.path.basename(os.path.dirname(_fy59))
+    try:
+        _doc59 = harness_yaml.load_file(_fy59) or {}
+    except Exception:
+        # INV-6..8 already reports an unparseable feature.json; restating it is noise.
+        continue
+    if not isinstance(_doc59, dict):
+        continue
+    _era59 = (any(k in _doc59 for k in _FEAT59_KEYS)
+              or _brief_is_by_perspective(briefs.get(_feat59)))
+    _hits59 = []
+
+    _cu59 = _int_field(_doc59.get("cycles_used"))
+    _mtc59 = _int_field(_doc59.get("max_total_cycles"))
+    # Each hit is (invariant, short form, full form): the full form is the violation an in-era
+    # record gets, the short form is what a pre-era record's single note lists. Measured at
+    # this commit, all 69 legacy feature.json files trip (b) or (c) below -- one line each
+    # with the full text would be the wall INV-32 taught this file not to build.
+    if _cu59 is not None and _mtc59 is not None and _cu59 > _mtc59:
+        _hits59.append(("INV-39", f"cycles_used {_cu59} > max_total_cycles {_mtc59}",
+                        f"cycles_used={_cu59} exceeds max_total_cycles={_mtc59} — the rework "
+                        f"budget is spent; raise it through feature-record.py raise-cycles, which "
+                        f"records the decision (DEC-157), or stop (SC-15)"))
+    if _mtc59 is not None:
+        if _default_cycles is None:
+            if _era59:
+                warn.append(f"INV-39 {_feat59}: the raise check is INACTIVE — harness.json "
+                            f"budgets.max_total_cycles is absent or not a whole number, so "
+                            f"max_total_cycles={_mtc59} cannot be compared with the default.")
+        elif _mtc59 > _default_cycles:
+            _decs59 = _doc59.get("budget_decisions")
+            _recorded59 = ({_int_field(d.get("max_total_cycles")) for d in _decs59 if isinstance(d, dict)}
+                           if isinstance(_decs59, list) else set())
+            if _mtc59 not in _recorded59:
+                _hits59.append(("INV-39",
+                                f"max_total_cycles {_mtc59} raised above the default "
+                                f"{_default_cycles} with no budget_decisions entry",
+                                f"max_total_cycles={_mtc59} is above the harness.json default "
+                                f"{_default_cycles} and no budget_decisions entry records "
+                                f"max_total_cycles: {_mtc59} — a raise is a recorded user decision "
+                                f"(DEC-157); write it with feature-record.py raise-cycles --to "
+                                f"{_mtc59} --decision <path> (SC-15)"))
+
+    _j59 = _doc59.get("judgements")
+    if _j59 is None:
+        _j59 = []
+    if not isinstance(_j59, list):
+        if _era59:
+            bad.append(f"INV-40 {_feat59}: judgements is {type(_j59).__name__}, not a list — the "
+                       f"ledger cannot be read, so no judgement can be matched.")
+        _j59 = []
+    _kinds59 = [str(e.get("kind", "")).strip() for e in _j59 if isinstance(e, dict)]
+    if "mission" in _doc59 and "mission" not in _kinds59:
+        _hits59.append(("INV-40", f"no mission judgement for mission '{_doc59.get('mission')}'",
+                        f"mission '{_doc59.get('mission')}' is recorded but judgements[] carries "
+                        f"no entry of kind mission — the mission choice is an unrecorded "
+                        f"judgement (SC-21)"))
+    _runs59 = [e for e in (_doc59.get("runs") or []) if isinstance(e, dict)]
+    _regates59 = _kinds59.count("regate")
+    _need_regate = [str(e.get("id", "")).strip() for e in _runs59[:-1]
+                    if str(e.get("verdict", "")).strip().upper() == "FAIL"]
+    if len(_need_regate) > _regates59:
+        _hits59.append(("INV-40", f"no regate judgement for FAIL run {_need_regate[_regates59]}",
+                        f"run {_need_regate[_regates59]} has verdict FAIL and a later run follows "
+                        f"it, but judgements[] carries no matching entry of kind regate "
+                        f"({_regates59} recorded for {len(_need_regate)} re-gate(s)) — the "
+                        f"re-gate decision is unrecorded (SC-21)"))
+    _succ59 = _kinds59.count("succession")
+    _need_succ = []
+    for _hp59 in glob.glob(os.path.join(os.path.dirname(_fy59), "notes", "handoff-*.md")):
+        _first59 = ((read(_hp59) or "").splitlines() or [""])[0]
+        _sm59 = re.search(r"\bseq-(\d+)\b", _first59)
+        if _sm59 is None:
+            if _era59:
+                bad.append(f"INV-40 {_feat59}: notes/{os.path.basename(_hp59)} carries no `seq-N` "
+                           f"on its first line, so the runs after it cannot be counted and no "
+                           f"succession can be matched to it — add it (templates/HANDOFF.md).")
+            continue
+        _after59 = len(_runs59) - int(_sm59.group(1))
+        if _after59 > 0:
+            _need_succ.append((int(_sm59.group(1)), os.path.basename(_hp59), _after59))
+    _need_succ.sort()
+    if len(_need_succ) > _succ59:
+        _seq, _note, _after = _need_succ[_succ59]
+        _hits59.append(("INV-40",
+                        f"no succession judgement for notes/{_note} (seq-{_seq}, {_after} "
+                        f"run(s) after it)",
+                        f"notes/{_note} was written at seq-{_seq} and {_after} run(s) are recorded "
+                        f"after it, but judgements[] carries no matching entry of kind succession "
+                        f"({_succ59} recorded for {len(_need_succ)} handoff(s) with a successor "
+                        f"run) — the successor's continue/downgrade/stop decision is unrecorded "
+                        f"(SC-20/SC-21)"))
+
+    if not _hits59:
+        continue
+    if _era59:
+        bad.extend(f"{_inv} {_feat59}: {_full}." for _inv, _, _full in _hits59)
+    else:
+        # ONE note per legacy feature, both invariants together, short forms only. It says
+        # what was not graded so a wrongly granted exemption is visible (INV-17's rule), and
+        # no more, so sixty of them do not bury the violations above them.
+        _invs = "/".join(sorted({_inv for _inv, _, _ in _hits59}))
+        warn.append(f"{_invs} {_feat59}: predates the FEAT-59 ledger (no mission, judgements, "
+                    f"budget_decisions or rework key; no by-perspective BRIEF); not graded — "
+                    f"would fail: " + "; ".join(_s for _, _s, _ in _hits59) + ".")
+
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole
 # stale-marker mechanism and replaced detection with deletion — a decision the tree
