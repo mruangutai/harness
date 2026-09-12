@@ -78,9 +78,10 @@ is namespaced under `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT
    the lead's reported SEND-BACKS, since a clean first-pass run adds ZERO cycles and only rework
    counts (DEC-157). Values, never narrative: the shape gate denies a feature.json over 200 lines
    or 20 comment lines (DEC-150). **The `plan` run graded a document and no code**: close it with
-   `run-end --code-grade n_a`. Omitting the flag declares the run reviewed code, and INV-6 then
-   demands a `review_sha` that cannot exist before the Building → Review seam, which is exactly
-   the deadlock BUG-1080 closed. Every other run omits it. Then route (below).
+   `run-end --code-grade n_a`, which writes `code_grade: n_a` on the run entry. Omitting the flag
+   declares the run reviewed code, and INV-6 then demands a `review_sha` that cannot exist before
+   the Building → Review seam, which is exactly the deadlock BUG-1080 closed. Every other run
+   omits it. Then route (below).
 7. **Advance until DONE — and done means the success criteria are met, not the tasks exhausted.**
    Each wake advances the plan by exactly one step. **There is no waiting anywhere in this loop.**
    PLAN tasks completing is the builder's claim; BRIEF's `SC-NN` are the goal's. The goal-check
