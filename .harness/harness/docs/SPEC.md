@@ -1209,9 +1209,15 @@ and enums may not drift per persona.
   `fail` and `n/a` are REJECTED alongside `VERDICT: PASS` — every PLAN task carries a `verify:`,
   so "not applicable" is never the honest answer. The one exception is `task: none`, a dispatch
   carrying no PLAN task, which may omit `task_verify` or report it `n/a` and still return PASS)
-- **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`
-- **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`, `findings: <n>`,
-  `must_fix: [<item>]`
+- **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`,
+  `fail_first: [{ sc: SC-NN, evidence: <path or receipt line> }]` (one per `verify: automated` SC —
+  the evidence its test FAILED before the fix; `PASS` with `matrix_ok: true` and `fail_first: []` is
+  REJECTED, a green suite with no fail-first evidence is not a pass; `matrix_ok: n/a` may carry `[]`)
+- **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`,
+  `findings: [{ kind: substance|form|proportionality, severity, reader, summary, why? }]` (a LIST,
+  never a count; `kind` is REQUIRED on every entry — substance would change shipped code, form is
+  document/digest/record shape only and never re-gates, proportionality says the plan exceeds what
+  the change needs and routes to a mission downgrade), `must_fix: [<item>]`
 - **visual-designer:** `contract: written|updated`, `mockups: [<paths>]`,
   `direction_choices: [<…>]`
 - **documentor:** `docs_updated: [<paths>]`, `gaps: [<…>]`
