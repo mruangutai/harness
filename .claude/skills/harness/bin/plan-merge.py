@@ -2757,12 +2757,12 @@ class _Routes:
     """The route resolver bound to one --root, answering once per path.
 
     check-domain.sh is a subprocess per question, so the answer for a path is cached across
-    the tasks that name it. The resolver reads its root from HARNESS_PROJECT_DIR
-    (harness_boundary.resolve_root); setting it here is what makes the spawned check-domain
-    answer about --root and not about this checkout."""
+    the tasks that name it. Which checkout answers is check-plan-routes' choice, not ours: it
+    runs the check-domain that lives under the resolution manifest's own root, so a worktree
+    is answered by its owner (the DEVIATION rule), and no environment is set here — the
+    retired env chain is refused by test-no-distribution case 6."""
 
     def __init__(self, root):
-        os.environ["HARNESS_PROJECT_DIR"] = root
         self.root = root
         self.cpr = _check_plan_routes_module()
         try:

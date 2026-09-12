@@ -298,26 +298,30 @@ def _finding_kind_errors(findings):
     return err
 
 
-def _fail_first_errors(fail_first):
-    """One error per `fail_first` entry that is not `{ sc: SC-NN, evidence: <text> }`.
+def _fail_first_entry_error(i, item):
+    """The error for ONE `fail_first` entry, or None when it is `{ sc: SC-NN, evidence: <text> }`.
 
     `sc` binds the evidence to the criterion it discharges; `evidence` is the path of
     the captured failing output or the receipt line that names it. A bare string is
     neither — it names no SC — and an empty `evidence` is a claim, not a receipt.
     """
-    err = []
-    for i, item in enumerate(fail_first):
-        fields = parse_member_entry(str(item))
-        sc = fields.get("sc")
-        if not (isinstance(sc, str) and SC_ID_RE.fullmatch(sc)):
-            err.append(f"fail_first[{i}] sc={sc!r} is not an SC-NN id — {str(item)[:60]!r}. "
-                       f"Each entry is {{ sc: SC-NN, evidence: <path or receipt line> }}.")
-        evidence = fields.get("evidence")
-        if not (isinstance(evidence, str) and evidence.strip()):
-            err.append(f"fail_first[{i}] has no evidence: — {str(item)[:60]!r}. Name the "
-                       f"captured failing output (a path) or the receipt line that shows "
-                       f"the test FAILED before the fix.")
-    return err
+    fields = parse_member_entry(str(item))
+    sc = fields.get("sc")
+    if not isinstance(sc, str) or not SC_ID_RE.fullmatch(sc):
+        return (f"fail_first[{i}] sc={sc!r} is not an SC-NN id — {str(item)[:60]!r}. "
+                f"Each entry is {{ sc: SC-NN, evidence: <path or receipt line> }}.")
+    evidence = fields.get("evidence")
+    if not isinstance(evidence, str) or not evidence.strip():
+        return (f"fail_first[{i}] has no evidence: — {str(item)[:60]!r}. Name the "
+                f"captured failing output (a path) or the receipt line that shows "
+                f"the test FAILED before the fix.")
+    return None
+
+
+def _fail_first_errors(fail_first):
+    """One error per malformed `fail_first` entry, by index."""
+    errors = (_fail_first_entry_error(i, item) for i, item in enumerate(fail_first))
+    return [e for e in errors if e]
 
 # Persona-specific documented fields are keyed by the RAW agent type. Reviewer
 # personas normalize to one canonical schema, but their output modes are not
