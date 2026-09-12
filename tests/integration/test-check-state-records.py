@@ -471,6 +471,42 @@ def case_inv32_era_boundary_is_exact():
     return ok
 
 
+def _inv32_run_with_mission(doc, mission):
+    """Like _inv32_run, with a sibling feature.json carrying `mission` (None = no key)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = os.path.join(tmp, ".harness", "harness", "features", "FEAT-INV32")
+        os.makedirs(root, exist_ok=True)
+        with open(os.path.join(root, "plan.yaml"), "w") as f:
+            json.dump(doc, f)
+        record = {"feature_id": "FEAT-INV32", "branch": "none", "pr": None,
+                  "review_sha": "none", "cycles_used": 0, "max_total_cycles": 10, "runs": []}
+        if mission is not None:
+            record["mission"] = mission
+        with open(os.path.join(root, "feature.json"), "w") as f:
+            json.dump(record, f)
+        proc = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True,
+                              env=_root_env(tmp))
+        return proc.returncode, proc.stdout, proc.stderr
+
+
+def case_inv32_patch_mission_has_no_panel():
+    """FEAT-59 SC-02: a `patch` mission runs no pre-build panel, so its signed one-task plan
+    carries no panel record and INV-32 must not demand one. A `plan` mission, and a record
+    with no mission at all, are graded exactly as before."""
+    _rc, patch_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), "patch")
+    _rc, plan_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), "plan")
+    _rc, none_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), None)
+    ok = (not _inv32_violations(patch_out) and bool(_inv32_notes(patch_out))
+          and bool(_inv32_violations(plan_out)) and bool(_inv32_violations(none_out)))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 patch mission is exempt with a note; "
+          f"plan and no-mission are graded"
+          + ("" if ok else f"\n      patch: {_inv32_violations(patch_out)} "
+                           f"notes={_inv32_notes(patch_out)}"
+                           f"\n      plan:  {_inv32_violations(plan_out)}"
+                           f"\n      none:  {_inv32_violations(none_out)}"))
+    return ok
+
+
 def case_inv32_undated_approval_fails():
     """An approved plan with NO approval.date cannot be placed in an era, and that is a
     VIOLATION, not a note (panel finding F1). Warning here was a fail-open on a
@@ -910,6 +946,7 @@ def main():
     results.append(case_inv32_unrated_severity_fails_closed())
     results.append(case_inv32_pre_era_is_exempt())
     results.append(case_inv32_era_boundary_is_exact())
+    results.append(case_inv32_patch_mission_has_no_panel())
     results.append(case_inv32_undated_approval_fails())
     results.append(case_inv32_era_guard_is_load_bearing())
     results.append(case_inv32_era_comes_from_project_config())

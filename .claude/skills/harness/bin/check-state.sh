@@ -429,6 +429,21 @@ for feat, doc in plan_docs.items():
     approval = doc.get("approval")
     if not isinstance(approval, dict) or str(approval.get("status", "")).strip().lower() != "approved":
         continue
+    # FEAT-59 SC-02: a `patch` mission runs no pre-build panel by design — its diff is
+    # reviewed by the validate run instead (DEC-139 as amended). The mission is read from
+    # the sibling feature.json's own key, never inferred from the plan's shape: a one-task
+    # plan under `mission: plan` is still graded. Absent or unreadable feature.json, or any
+    # mission other than `patch`, exempts nothing.
+    try:
+        with open(os.path.join(os.path.dirname(fpath(feat, "plan.yaml")), "feature.json"),
+                  encoding="utf-8") as _mf:
+            _mission = str((json.load(_mf) or {}).get("mission", "")).strip()
+    except Exception:
+        _mission = ""
+    if _mission == "patch":
+        warn.append(f"INV-32: {feat} is a patch mission, which runs no pre-build panel; "
+                    f"its diff is graded by the validate run instead. Not graded.")
+        continue
 # INV-32 ERA BEGIN (BUG-1071)
     # The boundary itself is resolved ONCE from `panel_era_start`, above this loop; see
     # the ERA RESOLUTION block for why it is config rather than a literal. `_era_start` is
