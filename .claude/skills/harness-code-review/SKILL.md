@@ -20,16 +20,16 @@ Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` and
 or `PLAN.md ## Decisions` for a feature still on the pre-DEC-182 format — then the diff. Ask four
 questions:
 
-1. Does every change serve a documented `REQ-NN` or `D-NN`?
-2. Is anything here that **no** requirement asked for? *(scope creep — a finding even when it is an
+1. Does every change serve a documented `SC-NN` or `D-NN`?
+2. Is anything here that **no** criterion asked for? *(scope creep — a finding even when it is an
    improvement)*
-3. Is any requirement or decision **missing** a corresponding change? *(omission)*
+3. Is any criterion or decision **missing** a corresponding change? *(omission)*
 4. Do the details match the specific values and constraints that were decided — not just the intent?
 
 Also verify any `SC-NN` marked `verify: inspection`. **This is where those are checked**, and each needs
 a `file:line` citation.
 
-Report per violation: the path, the `REQ`/`D` it relates to, and which of the three kinds it is.
+Report per violation: the path, the `SC`/`D` it relates to, and which of the three kinds it is.
 
 ## Stage 2 — code quality
 
@@ -152,7 +152,7 @@ The digest's `findings:` is a list of these entries, not a count:
 ```yaml
 findings:
   - { kind: substance, severity: high, reader: code-reviewer, summary: "filter.ts:31 swallows the rejected fetch", why: "<optional>" }
-  - { kind: form, severity: low, reader: code-reviewer, summary: "BRIEF SC-04 cites REQ-09, which does not exist" }
+  - { kind: form, severity: low, reader: code-reviewer, summary: "plan T-04 traces SC-09, which the BRIEF does not declare" }
 ```
 
 When you genuinely cannot classify a finding, return one `open_questions` entry with your
