@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Feature execution state (feature.json)",
-  "description": "FEAT-14 D-01: ten top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10. There is no `status` property either, as of FEAT-41 T-07: the feature's station is recorded in plan.yaml's own top-level `status`, and ONE file records it. Because additionalProperties is false, a feature.json that still carries `status` is now a schema error rather than a tolerated duplicate — which is what makes the single record enforceable instead of merely documented.",
+  "description": "FEAT-14 D-01: ten top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10. There is no `status` property either, as of FEAT-41 T-07: the feature's station is recorded in plan.yaml's own top-level `status`, and ONE file records it. Because additionalProperties is false, a feature.json that still carries `status` is now a schema error rather than a tolerated duplicate — which is what makes the single record enforceable instead of merely documented. FEAT-59 adds four OPTIONAL top-level keys (`mission`, `judgements`, `rework`, `budget_decisions`) and three optional runs-entry keys (`started_at`, `ended_at`, `tokens`): the judgement and spend ledger the operator audits after the fact (SC-15, SC-18, SC-21). Every one is optional because every feature.json on disk predates them; each is written only by feature-record.py.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -52,7 +52,10 @@
           "squad": { "type": "string", "description": "The squad that executed the run." },
           "verdict": { "type": "string", "description": "The run's verdict." },
           "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.sh's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." },
-          "code_grade": { "type": "string", "enum": ["n_a"], "description": "BUG-1080. Present ONLY as `n_a`, declaring that this validator run graded a specification and no code, which is the plan-phase panel DEC-207 legalises. INV-6 then requires no pinned review_sha for it, because there is no commit to pin. ABSENCE MEANS THE RUN REVIEWED CODE and a pin IS required — the opposite default from `agent` above, and deliberately so: every entry already on disk predates this key and did review code, so a benign absence would retire INV-6 across the whole corpus. The enum is closed for the same reason; an unrecognised value must fail rather than exempt." }
+          "code_grade": { "type": "string", "enum": ["n_a"], "description": "BUG-1080. Present ONLY as `n_a`, declaring that this validator run graded a specification and no code, which is the plan-phase panel DEC-207 legalises. INV-6 then requires no pinned review_sha for it, because there is no commit to pin. ABSENCE MEANS THE RUN REVIEWED CODE and a pin IS required — the opposite default from `agent` above, and deliberately so: every entry already on disk predates this key and did review code, so a benign absence would retire INV-6 across the whole corpus. The enum is closed for the same reason; an unrecognised value must fail rather than exempt." },
+          "started_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant at which feature-record.py run-start appended this entry; read by feature-record.py spend, which sums ended_at minus started_at into the feature's wall-clock minutes (SC-18). ABSENCE MEANS THE ENTRY PREDATES FEAT-59 and is not an error; such an entry contributes zero minutes." },
+          "ended_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant at which feature-record.py run-end closed this entry; read by feature-record.py spend. ABSENCE MEANS THE RUN IS STILL OPEN, or predates FEAT-59 — both contribute zero minutes, never an estimate." },
+          "tokens": { "type": ["integer", "null"], "minimum": 0, "description": "Tokens this run consumed, MEASURED by the caller from the OMP transcript on disk and passed to feature-record.py run-end, or null when no measurement was taken. Read by feature-record.py spend, which sums the integers and prints null when no run carries one (SC-18). Null is never 0 and is never estimated: a reader must be able to tell an unmeasured run from a free one. ABSENCE MEANS THE ENTRY PREDATES FEAT-59." }
         }
       }
     },
@@ -60,6 +63,52 @@
       "type": "integer",
       "minimum": 1,
       "description": "Read by check-state.sh's _as_budget(val(\"max_total_runs\")). Optional: SPEC 11.3 says it may be omitted to inherit harness.json's default."
+    },
+    "mission": {
+      "type": "string",
+      "enum": ["patch", "plan"],
+      "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.sh, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21). `patch` runs build → qa → review → ship with no plan.yaml and no panel; `plan` runs the collapsed plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan refuses to start on it."
+    },
+    "judgements": {
+      "type": "array",
+      "description": "The append-only ledger of every autonomous judgement the harness made on this feature, written by feature-record.py judgement and read by check-state.sh (which refuses a mission change, re-gate or succession with no matching entry) and by the operator, who audits it after the fact instead of ruling in-flight (SC-21). ABSENCE MEANS NO JUDGEMENT HAS BEEN RECORDED, which for a feature run under FEAT-59 is itself what check-state.sh flags.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "by", "kind", "decision", "reason"],
+        "properties": {
+          "at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant the judgement was recorded." },
+          "by": { "type": "string", "description": "The persona that judged, e.g. harness-orchestrator or harness-validator-lead." },
+          "kind": { "type": "string", "enum": ["mission", "finding_kind", "regate", "continue", "succession"], "description": "Which class of judgement this is: the five SC-21 names, closed so an unrecognised class fails rather than slips past the operator's audit." },
+          "decision": { "type": "string", "description": "What was decided, in the vocabulary of its kind: patch|plan, substance|form|proportionality, the task ids re-gated, continue|downgrade|stop." },
+          "reason": { "type": "string", "maxLength": 240, "description": "The one-line reason; capped so the ledger stays a ledger (DEC-150) and a reason that needs a paragraph goes in the run's digest instead." }
+        }
+      }
+    },
+    "rework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rounds", "wall_clock_minutes", "decision"],
+      "description": "The operator's one rework ruling, recorded at signature by feature-record.py set-rework (SC-15): the orchestrator loops inside these bounds without asking. `wall_clock_minutes` is read by the OMP hook's SPEND advisory after build entry (SC-19). ABSENCE MEANS NO RULING WAS RECORDED — a feature signed before FEAT-59, or a patch mission that never reached one.",
+      "properties": {
+        "rounds": { "type": "integer", "minimum": 0, "description": "Rework rounds the orchestrator may run before returning awaiting_user." },
+        "wall_clock_minutes": { "type": "integer", "minimum": 0, "description": "Wall-clock budget for the validate/fix loop; exceeding it ADVISES and never refuses (DEC-198)." },
+        "decision": { "type": "string", "description": "Where the ruling is recorded, e.g. a plan.yaml approval.rulings reference or a DEC id." }
+      }
+    },
+    "budget_decisions": {
+      "type": "array",
+      "description": "One entry per raise of `max_total_cycles`, appended by feature-record.py raise-cycles alongside the raise itself, and read by check-state.sh, which refuses a `max_total_cycles` above the template default with no matching entry (SC-15, DEC-157). ABSENCE MEANS THE BUDGET WAS NEVER RAISED, or was raised before FEAT-59.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "max_total_cycles", "decision"],
+        "properties": {
+          "at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant of the raise." },
+          "max_total_cycles": { "type": "integer", "minimum": 1, "description": "The value `max_total_cycles` was raised TO." },
+          "decision": { "type": "string", "description": "The recorded user decision the raise rests on, e.g. a DEC id or plan.yaml ruling reference." }
+        }
+      }
     },
     "github": {
       "type": "object",
