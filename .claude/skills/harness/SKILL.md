@@ -213,9 +213,14 @@ and `fix` each host every reader in one run. In this order.
    sha (SC-13).
 6. **The fix loop.** On `must_fix`, pin nothing: dispatch `fix` to `harness-validator-lead`
    (`<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/fix.yaml`, then the skills copy; slug `fix-c<N>-validator`) with
-   inputs `feat`, `review_sha` and the must-fix path, **naming the owning dev** — the member whose
-   `files_touched` produced the finding, hosted in the validator lead's run (DEC-118 as amended;
-   author and reviewer stay distinct personas). The dev fixes test-first and commits; the lead's
+   inputs `feat`, `review_sha` and the must-fix path, **naming the owning dev** — the
+   `execution_agent` of the task each must-fix finding cites, read from `plan.yaml`; that is the
+   one derivation, and `files_touched` in a build digest is only its echo. Two devs in one list is
+   two `fix` runs in dependency order. **A finding that cites no task, or a file no task's `files:`
+   owns, has no owning dev and is not fixed here:** it is a new finding class — a scope change —
+   and goes to the operator in `open_questions`, never silently to the nearest dev. The dev is
+   hosted in the validator lead's run (DEC-118 as amended; author and reviewer stay distinct
+   personas). The dev fixes test-first and commits; the lead's
    readers — `qa`, `code`, `security`, `ui` — re-verify over the tip that commit produced, in the
    same run, and the digest names that tip. **The pin is yours, never the lead's:** on return,
    record it as the new `review_sha`. Each round is one `cycles_used` and one `regate` judgement.
@@ -268,7 +273,7 @@ If no line arrives there is nothing to weigh.
 | It returned | You do |
 |---|---|
 | `PASS` | record, next step in PLAN |
-| `FAIL` with `must_fix` | one `fix` run to `harness-validator-lead` naming the dev whose member's `files_touched` produced it; increment `cycles_used`; a `regate` judgement |
+| `FAIL` with `must_fix` | one `fix` run to `harness-validator-lead` naming the `execution_agent` of the task each finding cites; a finding citing no owned task is a new class → `awaiting_user`; increment `cycles_used`; a `regate` judgement |
 | `BLOCKED` | stop — a blocked member cannot be fixed by retrying. Return `BLOCKED` up |
 | `ESCALATE`, domain belongs to a peer squad | route it laterally to the owning lead — rung 2 of the question ladder below. If it changes the plan, send pm |
 | `ESCALATE`, and no squad can answer it | return `awaiting_user` with it in `open_questions` |

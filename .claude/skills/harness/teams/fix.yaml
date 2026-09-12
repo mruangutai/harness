@@ -20,10 +20,16 @@
 # feature's bookkeeper (DEC-119).
 #
 # `{{persona}}` IS RESOLVED AT DISPATCH: the orchestrator names the owning dev — the
-# `execution_agent` of the task each must-fix finding names — and the lead substitutes it
-# into the `fix` step's persona and receipt path, the mixed short/full convention
-# build.yaml uses. A must-fix list spanning two devs is two fix runs, one per dev, in
+# `execution_agent` of the task each must-fix finding cites, read from plan.yaml — and the
+# lead substitutes it into the `fix` step's persona and receipt path, the mixed short/full
+# convention build.yaml uses. That is the ONE derivation; a build digest's `files_touched`
+# is only its echo. A must-fix list spanning two devs is two fix runs, one per dev, in
 # dependency order; one run never hosts two authors of the same tree.
+#
+# A FINDING WITH NO OWNING DEV IS NOT FIXED HERE. One that cites no task, or a file no
+# task's `files:` owns, has no `execution_agent` to read: it is a new finding CLASS — a
+# scope change — and the orchestrator returns it in `open_questions` rather than routing
+# it to the nearest dev. The reader that raises it says so (the `code` step below).
 #
 # `{{cycle}}` IS THE FEATURE'S REWORK ROUND, named in the dispatch, so a fix run's notes
 # never overwrite the validate run's (DEC-117).
@@ -85,10 +91,11 @@ steps:
       Re-verify the tip the fix receipt names for {{feat}} against the must-fix list at
       {{must_fix_path}}. Per finding: resolved, open, or regressed, with the evidence line.
       Then review the fix diff itself — spec compliance first, then quality, fail-open
-      branches and silent failure paths. A NEW finding carries `kind` (substance | form)
-      and a concrete failure scenario, and says whether it is a new class of finding: a
-      scope change or an emergent SC is the one thing that ends the rework loop and reaches
-      the operator. Do not fix anything.
+      branches and silent failure paths. A NEW finding carries `kind` (substance | form),
+      a concrete failure scenario, and the plan task it is against — the one whose `files:`
+      owns the file. A finding you cannot bind to any task is by definition a scope change:
+      say so. A scope change or an emergent SC is the one thing that ends the rework loop
+      and reaches the operator. Do not fix anything.
 
   - id: security
     persona: security-reviewer
