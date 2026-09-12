@@ -67,7 +67,7 @@
     "mission": {
       "type": "string",
       "enum": ["patch", "plan"],
-      "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.sh, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21). `patch` runs build → qa → review → ship with no plan.yaml and no panel; `plan` runs the collapsed plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan refuses to start on it."
+      "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.sh, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21) and exempts a `patch` plan from INV-32's panel demand. `patch` writes a one-task plan.yaml in the intake run and then runs build → validate → ship with no pre-build panel; `plan` runs the one-run plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan and /harness-patch refuse to start on it."
     },
     "judgements": {
       "type": "array",
