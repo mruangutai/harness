@@ -1115,9 +1115,11 @@ describe("spend advisory injection", () => {
     }));
     await asOrchestratorOn(quiet.handlers, quiet.ctx);
     expect(await quiet.handlers.get("tool_result")?.(wake(), quiet.ctx)).toBeUndefined();
-    // The same 135 minutes inside a validate-* run IS rework, and the ruling is exceeded.
+    // The same 135 minutes inside a validate run IS rework, and the ruling is exceeded. The id
+    // is the corpus's date-prefixed run-dir shape: a bare `validate-validator` would pass
+    // against the `startswith` window that never opened on any real ledger.
     const { handlers, ctx } = wakeFixture(checkout({
-      runs: runsSpanning(135, "validate-validator"),
+      runs: runsSpanning(135, "2026-09-11-05-validate-validator"),
       github: { build_entry: "opened" },
       rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
     }));

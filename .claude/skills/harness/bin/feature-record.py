@@ -12,16 +12,26 @@ VERBS
   run-end       stamp ended_at, verdict and optionally tokens / code_grade on the entry with
                 that id; refuses (exit 2) when there is none.
   judgement     append one {at, by, kind, decision, reason} to judgements[] (SC-21).
-  set-rework    write the operator's one rework ruling (SC-15).
+  set-rework    write the operator's one rework ruling (SC-15); --decision must be a file
+                under the feature's own directory (refuses exit 2 otherwise).
   raise-cycles  write max_total_cycles AND append the budget_decisions[] record the raise rests
-                on (DEC-157); refuses (exit 2) a value that does not raise it.
-  set-mission   write mission: patch | plan (SC-01).
+                on (DEC-157); refuses (exit 2) a value that does not raise it, or a --decision
+                that is not a file under the feature's own directory.
+  set-mission   write mission: patch | plan (SC-01) AND append the `kind: mission` judgement
+                deciding it, from --by / --reason, in the same locked write — so a mission
+                never exists without the entry check-state.sh INV-40 demands (SC-21).
   propose-rework read-only: print {rounds, minutes, basis} — the baseline ruling the main
                 session shows the operator at signature (patch: 1 round; plan: tasks/3,
                 floor 2, cap max_total_cycles; minutes = rounds x budgets.rework_round_minutes).
   spend         read-only: print one JSON object {runs, wall_clock_minutes, tokens, phase,
                 rework_minutes, rework_rounds} — the last two are the rework window, from
-                the first validate-* run; the ruling is compared to those, never the whole.
+                the first validate run; the ruling is compared to those, never the whole.
+
+THE OPERATOR'S RULINGS ARE MAIN-SESSION-ONLY. set-rework and raise-cycles are gated by
+plan-sign-gate.py the way plan-merge.py sign-approval is: an agent's call is refused before it
+runs. This CLI adds the second half — `--decision` must resolve to an existing file under the
+feature directory — so the record a ruling rests on is a document, not a string INV-39 would
+accept on the strength of its own syntax.
 
 TOKENS ARE MEASURED BY THE CALLER, OR NULL — THIS TOOL NEVER ESTIMATES (SC-18). `run-end
 --tokens N` records a figure the caller read off the OMP transcript on disk; a run-end that
@@ -37,6 +47,7 @@ file, 9 destination, 6 lock). python3 stdlib only.
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 
@@ -137,21 +148,42 @@ def cmd_run_end(args):
     sys.exit(0)
 
 
+def _judgement(by, kind, decision, reason):
+    return {"at": now_iso(), "by": by, "kind": kind, "decision": decision, "reason": reason}
+
+
+def _append_judgement(doc, record):
+    ledger = doc.get("judgements")
+    ledger = list(ledger) if isinstance(ledger, list) else []
+    ledger.append(record)
+    doc["judgements"] = ledger
+    return doc
+
+
 def cmd_judgement(args):
-    record = {"at": now_iso(), "by": args.by, "kind": args.kind,
-              "decision": args.decision, "reason": args.reason}
-
-    def mutate(doc):
-        ledger = doc.get("judgements")
-        ledger = list(ledger) if isinstance(ledger, list) else []
-        ledger.append(record)
-        doc["judgements"] = ledger
-        return doc
-
-    _apply(args.file, mutate)
+    record = _judgement(args.by, args.kind, args.decision, args.reason)
+    _apply(args.file, lambda doc: _append_judgement(doc, record))
     print(f"RECORDED judgement {args.kind}: {args.decision}")
     print(f"APPLIED {args.file}")
     sys.exit(0)
+
+
+def _require_decision_file(feature_json, decision, verb):
+    """Refuse (exit 2) unless `decision`, less any `#fragment`, is an existing FILE under the
+    feature directory. Resolved as given (absolute or cwd-relative) first, then relative to
+    the feature directory — so the main session can pass either the path it copy-pastes from
+    the repo root or the short form the ledger prints. Realpath on both sides, so a symlink
+    that escapes the directory is refused as the outside path it is."""
+    feature_dir = os.path.realpath(os.path.dirname(os.path.abspath(feature_json)))
+    target = decision.split("#", 1)[0]
+    candidates = [target] if os.path.isabs(target) else [target, os.path.join(feature_dir, target)]
+    for candidate in candidates:
+        resolved = os.path.realpath(candidate)
+        if os.path.isfile(resolved) and os.path.commonpath([feature_dir, resolved]) == feature_dir:
+            return
+    _refuse([f"REFUSED: --decision {decision!r} is not a file under {feature_dir}.",
+             f"  {verb} records the OPERATOR'S ruling (SC-15, DEC-157); its record must be a "
+             "document in the feature's own directory, not a bare id or a path elsewhere."])
 
 
 def cmd_set_rework(args):
@@ -159,6 +191,7 @@ def cmd_set_rework(args):
               "decision": args.decision}
 
     def mutate(doc):
+        _require_decision_file(args.file, args.decision, "set-rework")
         doc["rework"] = ruling
         return doc
 
@@ -170,6 +203,7 @@ def cmd_set_rework(args):
 
 def cmd_raise_cycles(args):
     def mutate(doc):
+        _require_decision_file(args.file, args.decision, "raise-cycles")
         current = doc.get("max_total_cycles")
         if isinstance(current, int) and args.to <= current:
             _refuse([f"REFUSED: max_total_cycles is {current} and --to {args.to} does not "
@@ -191,12 +225,18 @@ def cmd_raise_cycles(args):
 
 
 def cmd_set_mission(args):
+    # THE MISSION AND ITS JUDGEMENT ARE ONE WRITE. check-state.sh INV-40 refuses a `mission`
+    # whose last `kind: mission` entry decides something else; writing the two separately
+    # would let this CLI produce exactly that state between its own two calls.
+    record = _judgement(args.by, "mission", args.mission, args.reason)
+
     def mutate(doc):
         doc["mission"] = args.mission
-        return doc
+        return _append_judgement(doc, record)
 
     _apply(args.file, mutate)
     print(f"SET mission = {args.mission}")
+    print(f"RECORDED judgement mission: {args.mission}")
     print(f"APPLIED {args.file}")
     sys.exit(0)
 
@@ -219,12 +259,22 @@ def _run_seconds(entry):
     return int((ended - started).total_seconds())
 
 
+# A run is a validate run when its id carries the `validate-` token at the start or after a
+# `-`, and a fix run likewise for `fix-`. Real ids are date-prefixed run-dir slugs
+# (`2026-09-11-05-validate-validator`; the corpus holds 181 of that shape against 1 bare
+# `validate-validator`), and the first draft's `startswith("validate-")` never opened the
+# window on any of them — so the build-phase SPEND advisory (SC-19) never fired and the
+# rework-ratio KPI read 0, silently. Token-bounded, not substring: `postfix-eng` is no fix.
+VALIDATE_RUN = re.compile(r"(?:^|-)validate-")
+FIX_RUN = re.compile(r"(?:^|-)fix-")
+
+
 def spend_for(doc):
     """The spend summary for a parsed feature.json (pure; used by `spend`).
 
     `wall_clock_minutes` is the whole feature — the lagging figure the briefing reports.
     `rework_minutes` and `rework_rounds` are the REWORK WINDOW: every run from the first
-    `validate-*` id onward, and the count of `fix-*` runs in it. The operator's
+    validate run onward, and the count of fix runs in it. The operator's
     `rework.wall_clock_minutes` ruling is a budget for rework, so the hook compares it to
     the window, never to the whole — before this split a 60-minute plan run and a 40-minute
     build ate 100 of a 120-minute ruling before the first fix round existed.
@@ -235,7 +285,7 @@ def spend_for(doc):
                 if isinstance(entry.get("tokens"), int) and not isinstance(entry.get("tokens"), bool)]
     tokens = sum(measured) if measured else None
     first_validate = next((i for i, entry in enumerate(runs)
-                           if str(entry.get("id", "")).startswith("validate-")), None)
+                           if VALIDATE_RUN.search(str(entry.get("id", "")))), None)
     window = runs[first_validate:] if first_validate is not None else []
     github = doc.get("github")
     has_build_entry = isinstance(github, dict) and "build_entry" in github
@@ -243,7 +293,7 @@ def spend_for(doc):
             "phase": "build" if has_build_entry else "plan",
             "rework_minutes": sum(_run_seconds(entry) for entry in window) // 60,
             "rework_rounds": sum(1 for entry in window
-                                 if str(entry.get("id", "")).startswith("fix-"))}
+                                 if FIX_RUN.search(str(entry.get("id", ""))))}
 
 
 def cmd_spend(args):
@@ -299,7 +349,8 @@ def propose_rework(doc, task_count, budgets):
     mission = doc.get("mission")
     if mission not in ("patch", "plan"):
         _refuse(["REFUSED: no mission recorded; propose-rework reads `mission` (patch | plan).",
-                 "  Write it first: feature-record.py set-mission --mission <patch|plan>."])
+                 "  Write it first: feature-record.py set-mission --mission <patch|plan> "
+                 "--by <persona> --reason <one line>."])
     per_round = budgets.get("rework_round_minutes", DEFAULT_REWORK_ROUND_MINUTES)
     caps = [c for c in (doc.get("max_total_cycles"), budgets.get("max_total_cycles"))
             if isinstance(c, int) and not isinstance(c, bool)]
@@ -374,16 +425,23 @@ def main():
     p = with_file(sub.add_parser("set-rework", help="write the operator's rework ruling"))
     p.add_argument("--rounds", required=True, type=_int_at_least(0))
     p.add_argument("--minutes", required=True, type=_int_at_least(0))
-    p.add_argument("--decision", required=True, help="where the ruling is recorded")
+    p.add_argument("--decision", required=True,
+                   help="where the ruling is recorded: a file under the feature directory, "
+                        "optionally with a #fragment")
     p.set_defaults(func=cmd_set_rework)
 
     p = with_file(sub.add_parser("raise-cycles", help="raise max_total_cycles with its record"))
     p.add_argument("--to", required=True, type=_int_at_least(1))
-    p.add_argument("--decision", required=True, help="the recorded user decision")
+    p.add_argument("--decision", required=True,
+                   help="the recorded user decision: a file under the feature directory, "
+                        "optionally with a #fragment")
     p.set_defaults(func=cmd_raise_cycles)
 
-    p = with_file(sub.add_parser("set-mission", help="write the mission judgement"))
+    p = with_file(sub.add_parser("set-mission",
+                                 help="write the mission and the judgement deciding it"))
     p.add_argument("--mission", required=True, choices=MISSIONS)
+    p.add_argument("--by", required=True, help="the persona that judged the mission")
+    p.add_argument("--reason", required=True, help="one line, at most 240 characters")
     p.set_defaults(func=cmd_set_mission)
 
     p = with_file(sub.add_parser("spend", help="print the feature's measured spend as JSON"))

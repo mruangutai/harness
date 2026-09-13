@@ -174,6 +174,18 @@ class JudgementTest(FeatureRecordCase):
 
 
 class RulingsTest(FeatureRecordCase):
+    """set-rework and raise-cycles are the OPERATOR'S rulings (SC-15, DEC-157). `--decision`
+    names where the ruling is recorded, and this CLI refuses a record that is not a file
+    under the feature's own directory — a bare `DEC-300` or a path elsewhere in the tree is
+    a claim INV-39 would then accept on the strength of its own syntax."""
+
+    def setUp(self):
+        super().setUp()
+        (self.path.parent / "plan.yaml").write_text("approval:\n  status: approved\n",
+                                                    encoding="utf-8")
+        (self.path.parent / "notes").mkdir()
+        (self.path.parent / "notes" / "raise.md").write_text("raise to 8\n", encoding="utf-8")
+
     def test_set_rework_writes_the_ruling(self):
         self.write(base_doc())
         self.assert_ok(self.run_cli("set-rework", "--file", str(self.path), "--rounds", "3",
@@ -187,37 +199,108 @@ class RulingsTest(FeatureRecordCase):
     def test_raise_cycles_moves_the_budget_and_appends_the_decision(self):
         self.write(base_doc(max_total_cycles=5))
         self.assert_ok(self.run_cli("raise-cycles", "--file", str(self.path), "--to", "8",
-                                    "--decision", "DEC-300"))
+                                    "--decision", "notes/raise.md"))
         doc = self.load()
         self.assertEqual(8, doc["max_total_cycles"])
         self.assertEqual(1, len(doc["budget_decisions"]))
         record = doc["budget_decisions"][0]
         self.assertEqual({"at", "max_total_cycles", "decision"}, set(record))
         self.assertEqual(8, record["max_total_cycles"])
-        self.assertEqual("DEC-300", record["decision"])
+        self.assertEqual("notes/raise.md", record["decision"])
         self.assertRegex(record["at"], ISO_UTC)
         self.assert_clean()
+
+    def test_raise_cycles_accepts_an_absolute_decision_path_inside_the_feature_dir(self):
+        """The main session runs from the repo root, so a path it can copy-paste is absolute
+        or cwd-relative; either resolves, as long as the file is the feature's own."""
+        self.write(base_doc(max_total_cycles=5))
+        self.assert_ok(self.run_cli("raise-cycles", "--file", str(self.path), "--to", "8",
+                                    "--decision", str(self.path.parent / "notes" / "raise.md")))
+        self.assertEqual(8, self.load()["max_total_cycles"])
 
     def test_raise_cycles_refuses_a_value_that_does_not_raise(self):
         before = self.write(base_doc(max_total_cycles=5))
         for to in ("5", "4"):
             result = self.run_cli("raise-cycles", "--file", str(self.path), "--to", to,
-                                  "--decision", "DEC-300")
+                                  "--decision", "notes/raise.md")
             self.assertEqual(2, result.returncode, result.stderr)
             self.assertIn("max_total_cycles", result.stderr)
             self.assertIn("5", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
+    def test_rulings_refuse_a_decision_that_is_not_a_file_under_the_feature_dir(self):
+        """Refused at exit 2, file untouched: a record that does not exist (`DEC-300`,
+        `notes/none.md`), one outside the feature directory (the checkout's own
+        harness.json, an absolute path elsewhere), and a directory rather than a file."""
+        outside = self.tmp / "elsewhere.md"
+        outside.write_text("not this feature's\n", encoding="utf-8")
+        (self.tmp / ".harness" / "harness.json").write_text("{}\n", encoding="utf-8")
+        before = self.write(base_doc(max_total_cycles=5))
+        for decision in ("DEC-300", "notes/none.md", "../../harness.json",
+                         str(outside), "notes"):
+            for verb, extra in (("raise-cycles", ["--to", "8"]),
+                                ("set-rework", ["--rounds", "2", "--minutes", "60"])):
+                result = self.run_cli(verb, "--file", str(self.path), *extra,
+                                      "--decision", decision)
+                self.assertEqual(2, result.returncode, (verb, decision, result.stderr))
+                self.assertIn("--decision", result.stderr, (verb, decision))
+                self.assertIn(str(self.path.parent), result.stderr, (verb, decision))
+        self.assertEqual(before, self.path.read_bytes())
+
+
+class SetMissionTest(FeatureRecordCase):
+    """set-mission writes `mission` AND its `kind: mission` judgement in one locked write
+    (SC-01, SC-21), so the ledger can never show a mission with no entry deciding it —
+    which is the state check-state.sh INV-40 refuses."""
+
+    MISSION = ["--by", "harness-orchestrator", "--reason", "known-cause bug, ~130 lines"]
+
     def test_set_mission_accepts_each_lane_and_refuses_others(self):
         self.write(base_doc())
         for mission in ("patch", "plan"):
             self.assert_ok(self.run_cli("set-mission", "--file", str(self.path),
-                                        "--mission", mission))
+                                        "--mission", mission, *self.MISSION))
             self.assertEqual(mission, self.load()["mission"])
             self.assert_clean()
         before = self.path.read_bytes()
-        result = self.run_cli("set-mission", "--file", str(self.path), "--mission", "epic")
+        result = self.run_cli("set-mission", "--file", str(self.path), "--mission", "epic",
+                              *self.MISSION)
         self.assertEqual(2, result.returncode, result.stderr)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_set_mission_appends_the_mission_judgement_deciding_the_new_mission(self):
+        self.write(base_doc(judgements=[
+            {"at": "2026-09-11T10:00:00+00:00", "by": "harness-pm", "kind": "mission",
+             "decision": "plan", "reason": "intake"}]))
+        self.assert_ok(self.run_cli("set-mission", "--file", str(self.path),
+                                    "--mission", "patch", *self.MISSION))
+        doc = self.load()
+        self.assertEqual("patch", doc["mission"])
+        self.assertEqual(2, len(doc["judgements"]))
+        last = doc["judgements"][-1]
+        self.assertEqual({"at", "by", "kind", "decision", "reason"}, set(last))
+        self.assertEqual(("mission", "patch", "harness-orchestrator",
+                          "known-cause bug, ~130 lines"),
+                         (last["kind"], last["decision"], last["by"], last["reason"]))
+        self.assertRegex(last["at"], ISO_UTC)
+        self.assert_clean()
+
+    def test_set_mission_refuses_without_by_or_reason(self):
+        before = self.write(base_doc())
+        for argv in (["--mission", "patch"],
+                     ["--mission", "patch", "--by", "harness-orchestrator"],
+                     ["--mission", "patch", "--reason", "r"]):
+            result = self.run_cli("set-mission", "--file", str(self.path), *argv)
+            self.assertEqual(2, result.returncode, (argv, result.stderr))
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_set_mission_refuses_a_reason_over_240_characters_unchanged(self):
+        """The judgement is written under the same schema as `judgement`, so its cap
+        holds here too and the mission is not written without its entry."""
+        before = self.write(base_doc())
+        result = self.run_cli("set-mission", "--file", str(self.path), "--mission", "patch",
+                              "--by", "harness-orchestrator", "--reason", "r" * 241)
+        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
 
@@ -269,29 +352,50 @@ class SpendTest(FeatureRecordCase):
     # `validate-*` run — and never carry the plan and build phases in. Before this window
     # existed, `wall_clock_minutes` (whole feature) stood in for it, and a 60-minute plan
     # plus a 40-minute build ate 100 of a 120-minute ruling before the first fix round.
+    #
+    # THE IDS ARE THE CORPUS'S SHAPE, DATE-PREFIXED (`2026-09-11-05-validate-validator`: 181
+    # such against 1 bare `validate-validator` on disk). The first draft keyed the window on
+    # `startswith("validate-")`, so on every real ledger the window stayed shut and the
+    # build-phase SPEND advisory (SC-19) never fired. The `validate-` / `fix-` token is
+    # matched at the start or after a `-`, never inside a word: `postfix-eng` is not a fix.
     REWORK_RUNS = [
-        {"id": "plan-product", "squad": "product", "verdict": "PASS",
+        {"id": "2026-09-11-01-plan-product", "squad": "product", "verdict": "PASS",
          "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
          "ended_at": "2026-09-11T11:00:00+00:00", "tokens": 1000},
-        {"id": "t01-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead",
-         "started_at": "2026-09-11T11:00:00+00:00", "ended_at": "2026-09-11T11:40:00+00:00"},
-        {"id": "validate-validator", "squad": "validator", "verdict": "FAIL",
+        {"id": "2026-09-11-02-t01-eng", "squad": "eng", "verdict": "PASS",
+         "agent": "harness-eng-lead", "started_at": "2026-09-11T11:00:00+00:00",
+         "ended_at": "2026-09-11T11:40:00+00:00"},
+        {"id": "2026-09-11-05-validate-validator", "squad": "validator", "verdict": "FAIL",
          "agent": "harness-validator-lead", "started_at": "2026-09-11T12:00:00+00:00",
          "ended_at": "2026-09-11T12:30:00+00:00", "tokens": 4000},
-        {"id": "fix-c1-validator", "squad": "validator", "verdict": "FAIL",
+        {"id": "2026-09-11-06-fix-c1-validator", "squad": "validator", "verdict": "FAIL",
          "agent": "harness-validator-lead", "started_at": "2026-09-11T12:30:00+00:00",
          "ended_at": "2026-09-11T13:15:00+00:00"},
-        {"id": "fix-c2-validator", "squad": "validator", "verdict": "PASS",
-         "agent": "harness-validator-lead", "started_at": "2026-09-11T13:15:00+00:00",
-         "ended_at": "2026-09-11T13:35:00+00:00"},
+        {"id": "2026-09-11-07-postfix-eng", "squad": "eng", "verdict": "PASS",
+         "agent": "harness-eng-lead", "started_at": "2026-09-11T13:15:00+00:00",
+         "ended_at": "2026-09-11T13:25:00+00:00"},
+        {"id": "2026-09-11-08-fix-c2-validator", "squad": "validator", "verdict": "PASS",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T13:25:00+00:00",
+         "ended_at": "2026-09-11T13:45:00+00:00"},
     ]
 
     def test_rework_minutes_start_at_the_first_validate_run_and_count_fix_rounds(self):
         self.write(base_doc(runs=self.REWORK_RUNS, github={"build_entry": "opened"}))
         spend = self.spend()
-        self.assertEqual(195, spend["wall_clock_minutes"])   # 60+40+30+45+20, for the briefing
-        self.assertEqual(95, spend["rework_minutes"])        # validate 30 + fix 45 + fix 20
-        self.assertEqual(2, spend["rework_rounds"])          # the two fix-* runs
+        self.assertEqual(205, spend["wall_clock_minutes"])   # 60+40+30+45+10+20, for the briefing
+        self.assertEqual(105, spend["rework_minutes"])       # validate 30 + fix 45 + 10 + fix 20
+        self.assertEqual(2, spend["rework_rounds"])          # the two fix-* runs, not postfix
+
+    def test_rework_window_opens_on_a_bare_validate_id_too(self):
+        """The one pre-date-prefix ledger shape on disk still counts: the token is matched
+        at the start of the id as well as after a `-`."""
+        runs = [dict(entry) for entry in self.REWORK_RUNS]
+        runs[2]["id"] = "validate-validator"
+        runs[3]["id"] = "fix-c1-validator"
+        self.write(base_doc(runs=runs, github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(105, spend["rework_minutes"])
+        self.assertEqual(2, spend["rework_rounds"])
 
     def test_rework_window_is_zero_before_any_validate_run(self):
         self.write(base_doc(runs=self.REWORK_RUNS[:2], github={"build_entry": "opened"}))
