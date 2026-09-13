@@ -46,6 +46,9 @@ REPO = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_
 TEAMS = os.path.join(REPO, ".claude", "skills", "harness", "teams")
 BIN = os.path.join(REPO, ".claude", "skills", "harness", "bin")
 SKILL_MD = os.path.join(REPO, ".claude", "skills", "harness", "SKILL.md")
+# The plan-phase procedure moved out of the playbook into a reference read at that seam
+# (FEAT-59 playbook split, DEC-158); the verbatim goal-check question lives there now.
+PLAN_PHASE_MD = os.path.join(REPO, ".claude", "skills", "harness", "references", "plan-phase.md")
 PLAN_MD = os.path.join(REPO, ".claude", "commands", "harness-plan.md")
 TEAM_CONFIG = os.path.join(REPO, ".harness", "team-config.yaml")
 AGENTS_OMP = os.path.join(REPO, ".omp", "agents")
@@ -170,15 +173,15 @@ except Exception as e:
     check("(1b) scope step's prompt asks which tasks serve no live requirement", False, e)
 
 try:
-    skill_text = read(SKILL_MD)
-    check("(1c) SKILL.md asks does this plan deliver the operator's stated intent",
-          "does this plan deliver the operator's stated intent" in _normalize_prose(skill_text))
+    plan_phase_text = read(PLAN_PHASE_MD)
+    check("(1c) references/plan-phase.md asks does this plan deliver the operator's stated intent",
+          "does this plan deliver the operator's stated intent" in _normalize_prose(plan_phase_text))
     check("(1d) the goalcheck step asks the same question, verbatim",
           "does this plan deliver the operator's stated intent"
           in steps_by_id["goalcheck"].get("prompt", ""),
           steps_by_id["goalcheck"].get("prompt"))
 except Exception as e:
-    check("(1c) SKILL.md asks does this plan deliver the operator's stated intent", False, e)
+    check("(1c) references/plan-phase.md asks does this plan deliver the operator's stated intent", False, e)
 
 # --- 1e. SC-06 / SC-17: every reader prompt carries the kind obligation; qa carries
 #         fail_first. A reader that is never told returns unkinded findings that
