@@ -67,7 +67,12 @@ steps:
       failure scenario for each; findings without one are not actionable. Every finding
       carries `kind`: `substance` (changes shipped code — re-gates only the tasks it
       names) or `form` (document, digest or record shape — fixed in this cycle, never
-      re-read). Do not fix anything: you have no Edit tool and source is not your domain.
+      re-read), and names the plan task it is against — the one whose `files:` owns the
+      file. A finding you cannot bind to any task is a SCOPE CHANGE: say so, it is the
+      one class that ends the rework loop and reaches the operator. On a `patch` mission
+      a scope change is also an upgrade candidate — the diff grew past what the intake
+      named — so say `recommend: upgrade plan`; the operator decides, never the
+      orchestrator. Do not fix anything: you have no Edit tool and source is not your domain.
 
   - id: security
     persona: security-reviewer

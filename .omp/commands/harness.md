@@ -86,6 +86,14 @@ round → 3; 45 min per round). Sign with this, or change it."* The proposal is 
 the mission, the task count and `budgets.rework_round_minutes`, so the operator confirms or
 corrects a baseline rather than inventing one (SC-22); what they sign is the ruling.
 
+**The sign-off opens with the definition of done, verbatim.** The message that carries the
+`AskUserQuestion` leads with the BRIEF's `## Done when — by perspective` block exactly as pm wrote
+it, then every SC grouped under the perspective it discharges — one line each, with its `verify:`
+— then the proposed rework ruling, then the question. That is the reading order the shape was
+designed for (DEC-231): the operator signs the seats first and the criteria second, and nothing
+downstream re-derives "done" from anything else. Do not paste the whole BRIEF above it; link the
+path for the rest.
+
 **Let the user read to exhaustion FIRST, then dispatch exactly one consolidated fix.** Collect every
 change request they raise in that **one review pass** — into one answers file — and send it down as a
 single revision. Do not send a fix out while the user is still reading. The cost, and it is real: the

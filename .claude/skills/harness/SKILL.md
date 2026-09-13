@@ -175,7 +175,10 @@ finding is a new class, return `awaiting_user` with **exactly one question and y
 recommendation** (SC-22). Never resolve the doubt by choosing the heavier route by default — not a
 re-panel, not a re-cycle, not `plan` over `patch` (DEC-230). **Severity no longer asks:** a
 `substance` finding is fixed inside the rework ruling, a `form` finding in the same run. Only a
-NEW CLASS — a scope change, an emergent SC — asks, once.
+NEW CLASS — a scope change, an emergent SC — asks, once. A scope change on a `patch` mission is
+also the one upgrade route: return `awaiting_user` with `recommend: upgrade plan` and the reader's
+finding; the operator re-grills as `plan` or accepts the scope. You never upgrade a mission
+yourself — only the downgrade (SC-03) is yours.
 
 ## Shell-less dispatches
 
