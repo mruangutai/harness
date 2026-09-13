@@ -20,16 +20,16 @@ Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` and
 or `PLAN.md ## Decisions` for a feature still on the pre-DEC-182 format — then the diff. Ask four
 questions:
 
-1. Does every change serve a documented `REQ-NN` or `D-NN`?
-2. Is anything here that **no** requirement asked for? *(scope creep — a finding even when it is an
+1. Does every change serve a documented `SC-NN` or `D-NN`?
+2. Is anything here that **no** criterion asked for? *(scope creep — a finding even when it is an
    improvement)*
-3. Is any requirement or decision **missing** a corresponding change? *(omission)*
+3. Is any criterion or decision **missing** a corresponding change? *(omission)*
 4. Do the details match the specific values and constraints that were decided — not just the intent?
 
 Also verify any `SC-NN` marked `verify: inspection`. **This is where those are checked**, and each needs
 a `file:line` citation.
 
-Report per violation: the path, the `REQ`/`D` it relates to, and which of the three kinds it is.
+Report per violation: the path, the `SC`/`D` it relates to, and which of the three kinds it is.
 
 ## Stage 2 — code quality
 
@@ -128,7 +128,7 @@ tool informs judgement; it is never the last word. Raise a `must_fix` when revie
 broken behaviour even if every grade improved, and never treat a clean grade report as a passing
 review by itself.
 
-## Findings need failure scenarios
+## Findings need failure scenarios — and a kind
 
 Every finding states **specific inputs or state → specific wrong outcome.**
 
@@ -136,6 +136,27 @@ Every finding states **specific inputs or state → specific wrong outcome.**
 > control, so a network blip is indistinguishable from "this document has no authors."
 
 "This could be fragile" is not a finding. If you cannot say how it breaks, drop it.
+
+**Every finding also carries `kind` (FEAT-59 SC-06).** The kind is what the orchestrator routes on;
+a finding without one is rejected by `validate-digest.py` at source, and a near-miss (`substantive`)
+is a violation, not a synonym.
+
+| `kind` | Meaning | Route |
+|---|---|---|
+| `substance` | would change shipped code | re-gates only the tasks it names |
+| `form` | document, digest or record shape only — a heading, a field spelling, a stale line | fixed in the same run; never triggers a re-read |
+| `proportionality` | the plan exceeds what the change needs | routes to a mission downgrade (`plan` → `patch`), never to another panel cycle |
+
+The digest's `findings:` is a list of these entries, not a count:
+
+```yaml
+findings:
+  - { kind: substance, severity: high, reader: code-reviewer, summary: "filter.ts:31 swallows the rejected fetch", why: "<optional>" }
+  - { kind: form, severity: low, reader: code-reviewer, summary: "plan T-04 traces SC-09, which the BRIEF does not declare" }
+```
+
+When you genuinely cannot classify a finding, return one `open_questions` entry with your
+recommendation rather than defaulting to `substance` — the heavier route is not the safe one (SC-22).
 
 ## What gates, and what does not
 
@@ -150,7 +171,9 @@ Every finding states **specific inputs or state → specific wrong outcome.**
 - otherwise → **`PASS` with notes** — logged and surfaced, does not block
 
 **Style and opinion never gate.** This exists to prevent the trap where one permanent nit loops to
-`max_cycles` and nothing ever ships.
+`max_cycles` and nothing ever ships. **Neither does a `form` finding**: it is fixed in the run that
+finds it and never enters `must_fix`. Only `substance` earns `must_fix` or a severity at or above
+`high`; a `proportionality` finding is a route, not a gate.
 
 ## Review a pinned SHA
 

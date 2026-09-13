@@ -44,6 +44,24 @@ The overlays map `deep`, `strong`, `standard`, and `review` to concrete models. 
 Use the same Harness instruction under either overlay. Only the concrete models selected by the
 overlay change.
 
+A feature runs one proportional flow (DEC-225, DEC-226, DEC-228):
+
+```text
+grilling  → mission judgement (patch | plan, one-line reason, operator confirms or overrides)
+          → patch: one product run writes a ≤120-line BRIEF and a one-task plan.yaml
+            plan:  one product-lead run — draft → {scope ∥ should-not-exist ∥ design} → apply → goalcheck
+          → ONE signature: plan (+ prototype) + the rework ruling  rework: {rounds, wall_clock_minutes}
+          → build (eng-lead)
+          → validate (validator-lead: qa ∥ code ∥ security ∥ ui ∥ goalcheck over one review_sha)
+          → fix rounds inside the ruling, without asking
+          → ship
+```
+
+Every autonomous judgement on the way — mission, finding kind, re-gate, continue, succession — is a
+`judgements[]` entry in `feature.json` with a one-line reason; the operator audits it after the fact
+(DEC-230). Spend is measured per run and advisory (DEC-227). `feature-record.py` writes the ledger;
+`plan-merge.py` writes the plan.
+
 ```text
 main session
   → one phase-scoped harness-orchestrator

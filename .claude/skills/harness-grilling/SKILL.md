@@ -12,14 +12,15 @@ discipline entirely. Adapted from Matt Pocock's `grilling`, `batch-grill-me` (th
 and `wayfinder` (MIT), re-homed onto harness machinery (DEC-164/167).
 
 Why it is blocking: pm plans from what it is told. Every unstated assumption at this moment
-becomes a REQ nobody meant, an SC that cannot be verified, or a build cycle spent discovering the
-question. **Five kaya premises briefed as fact were FALSE at HEAD** on one feature — the cheapest
-possible moment to find that is here, in conversation, before a spawn.
+becomes a perspective nobody meant, an SC that cannot be verified, or a build cycle spent
+discovering the question. **Five kaya premises briefed as fact were FALSE at HEAD** on one
+feature — the cheapest possible moment to find that is here, in conversation, before a spawn.
 
 Three ways in, and they differ only in what follows:
 
-- **A loose idea or a feature request** — grill it to clarity, write the artifact, then offer
-  `/harness-plan` with the artifact path as pm's input. Do not start planning unasked.
+- **A loose idea or a feature request** — grill it to clarity, write the artifact with its
+  `## Mission`, then offer `/harness-plan` or `/harness-patch` (whichever the mission names) with
+  the artifact path as pm's input. Do not start planning unasked.
 - **Inside repository registration** — `harness-add-repo` runs the technical interview.
 - **Standalone** ("stress-test this", "grill me on X") — write the artifact and stop. Nothing
   downstream is implied.
@@ -43,7 +44,7 @@ Skipping this step is the user's call to make explicitly, never yours to assume.
 - **Walk the decision tree, dependencies first.** A question whose answer depends on an open
   question belongs later. Settle the parent, then ask what it unblocks.
 - **Challenge the language as you go** — a term that conflicts with `.harness/glossary.md`
-  gets called out here, not after it lands in a REQ (`harness-spec-driven`'s glossary rules).
+  gets called out here, not after it lands in a perspective (`harness-spec-driven`'s glossary rules).
 - **Never act on it until the user confirms** you have reached shared understanding.
 
 **One sitting is the scope of this skill.** If the destination itself needs deciding, or a question
@@ -67,7 +68,26 @@ question past the destination is out of scope, not fog.
 
 The fog test is about the *question's* sharpness, never whether you can answer it — a sharp
 question you cannot yet answer is settled work for pm, not fog. **Do not pre-slice fog** into
-tidy pieces; one patch may graduate into several REQs or none.
+tidy pieces; one patch may graduate into several SCs or none.
+
+## Judge the mission — patch or plan
+
+The last act before writing is **your own judgement** of how much process the change deserves
+(SC-01). It is `patch` when all three hold, and `plan` otherwise:
+
+1. **The cause is known** — not suspected, not "probably in the parser"; the grilling can say why
+   it happens.
+2. **The diff is bounded** — the grilling can name the files. If you cannot list them, you do not
+   know the diff.
+3. **No new public interface, schema, or enforcement surface** — nothing another feature, a hook,
+   or a gate script will read that did not exist before.
+
+Write the verdict with a one-line reason and put it to the user as one question with your
+recommendation attached, like any other frontier question. They confirm or override in the same
+dialog; either way the artifact records what you judged and what they ruled, so the ledger can
+show later whether the harness's judgement was right (SC-21). **Do not default to `plan` because
+you are unsure** — an unsure judgement is a question with a recommendation, never the heavier
+lane (SC-22). `/harness-plan` and `/harness-patch` refuse to start without this block.
 
 ## The artifact
 
@@ -78,6 +98,11 @@ Write `.harness/notes/grilling-<slug>-<date>.md`, and hand pm its **path** — n
 
 ## Destination
 <what reaching the end looks like; one or two lines>
+
+## Mission
+mission: patch | plan
+reason: <one line — the harness's own judgement, from the three-part rule above>
+confirmed-by: operator | overridden-by: operator (<one line>)
 
 ## Settled
 - <question> → <the user's answer, verbatim in substance>
@@ -92,8 +117,9 @@ Write `.harness/notes/grilling-<slug>-<date>.md`, and hand pm its **path** — n
 - <claim — how I checked it — at <sha>>
 ```
 
-Bounded, one screen or so. `## Settled` is what BRIEF's REQs are authored from; `## Facts` is what
-saves pm a research pass; the other two are what stop scope creep mid-build.
+Bounded, one screen or so. `## Destination` and `## Settled` are what BRIEF's perspectives are
+authored from; `## Mission` is the lane pm writes for; `## Facts` is what saves pm a research
+pass; the other two are what stop scope creep mid-build.
 
 ## Done, and what follows
 
@@ -102,8 +128,9 @@ confirms. Then:
 
 - **Onboarding:** the answers seed `harness.json`, the domain description, and the first glossary
   terms.
-- **A feature:** hand the artifact path to pm as a BRIEF input. pm still owns REQs and SCs; you have
-  removed the guesswork, not done its job.
+- **A feature or a bug:** hand pm the artifact **path**, with the mission recorded and confirmed —
+  `patch` goes to `/harness-patch`, `plan` to `/harness-plan`. pm still owns the perspectives and
+  the SCs; you have removed the guesswork and judged the lane, not done its job.
 
 ## Red flags
 
@@ -112,7 +139,9 @@ confirms. Then:
 | "I'll ask these four together to save time" | Only if they are genuinely independent — a numbered frontier round. Dependent questions still go one at a time |
 | "They're all on the frontier, so I'll dump every open question" | A question on the frontier only because you never traced its dependency is not independent |
 | "I'll ask the user which file holds X" | A fact. Go look. Only decisions are theirs |
-| "The user is busy; pm can figure the rest out" | pm plans from what it is told, and guesses become REQs nobody meant |
+| "The user is busy; pm can figure the rest out" | pm plans from what it is told, and guesses become perspectives nobody meant |
 | "This is obviously in scope" | If it is past the destination it is out of scope. Say so and record it |
 | "I'll write down the fog as tickets so it's actionable" | Fog is coarser than a task. Pre-slicing it invents structure the answer may delete |
+| "I'm not sure it's a patch, so `plan` is the safe call" | Uncertainty asks one question with your recommendation. `plan` is not safe, it is expensive; defaulting to it is the process tax SC-22 exists to stop |
+| "I'll skip the mission line; pm can decide the lane" | pm cannot start without it, and the judgement is yours to make in dialog. Record it, with the user's confirmation or override |
 | "We're aligned, I'll start" | Only the user declares shared understanding reached |

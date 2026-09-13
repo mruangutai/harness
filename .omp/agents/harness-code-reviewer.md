@@ -85,7 +85,11 @@ DIGEST:
   severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: <n>
+  findings: [{ kind: substance|form|proportionality, severity: <sev>, reader: code-reviewer, summary: "<one line>", why: "<optional>" }]
+                              # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
+                              # code; form = document/digest/record shape only, fixed in-run and
+                              # never re-gates; proportionality = the plan exceeds what the change
+                              # needs, routes to a mission downgrade. [] if none
   must_fix: [<item>]
   spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
   code_grade: pass|fail|grade_2|n_a  # REQUIRED audit claim; validate-digest.py independently recomputes merge-base(default branch, review_sha)..review_sha and refuses disagreement (DEC-209)

@@ -95,6 +95,8 @@ unsafe_pointers = [
     "approval:/tmp/review.md#Approval",
     "approval:../review.md#Approval",
     "approval:.harness/harness/features/FEAT-90-fixture/notes/\x01review.md#Approval",
+    "brief-perspective:/tmp/BRIEF.md#operator",
+    "brief-perspective:../BRIEF.md#operator",
 ]
 for pointer in unsafe_pointers:
     for resolve in (True, False):
@@ -117,12 +119,12 @@ for name, good, bad in pointers:
     check(f"{name} unresolved ignored without resolution",
           problems(f"Scope: done\nAuthority: {bad}", False) == [])
 
-for value in ("docs:whatever", "check-domain.sh:1523"):
+for value in ("docs:whatever", "check-domain.sh:1523", "brief-perspective:SC-04"):
     for resolve in (True, False):
         got = problems(f"Scope: done\nAuthority: {value}", resolve)
         check(f"unknown authority {value} resolve={resolve}",
               len(got) == 1 and all(prefix in got[0] for prefix in
-                  ("plan-task:", "brief-sc:", "finding:", "approval:")), repr(got))
+                  ("plan-task:", "brief-sc:", "finding:", "approval:", "brief-perspective:")), repr(got))
 
 all_good = "Scope: done\n" + "\n".join(f"Authority: {good}" for _, good, _ in pointers)
 check("four authorities accepted", problems(all_good) == [], repr(problems(all_good)))
@@ -288,6 +290,123 @@ try:
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-99.verify"), _root, True)
     check("satisfaction: unresolved wins over vacuity",
           len(_got) == 1 and "unresolved" in _got[0] and "binds nothing" not in _got[0],
+          repr(_got))
+finally:
+    _td.cleanup()
+
+# ---------------------------------------------------------------------------
+# FEAT-59 SC-11: `brief-perspective:PATH#<name>` — the handoff's done is a pointer to the
+# BRIEF's perspective block, not a re-derived scope statement. A perspective is judged,
+# like a criterion, so it is never "already satisfied"; and under a by-perspective BRIEF a
+# note that cites no perspective has re-derived its own done, which is the defect.
+
+BY_PERSPECTIVE_BRIEF = """# BRIEF — FEAT-92 Perspective fixture
+
+## Problem
+
+It hurts.
+
+## Done when — by perspective
+
+**operator** — I trust the record.
+
+**reader (reviewer / qa / panel)** — I see the whole tree once.
+
+## Success criteria
+
+- SC-04 (operator): the ledger reads back.
+  verify: inspection
+
+## Approval
+
+status: {approval}
+"""
+
+
+def perspective_fixture(task_status="building", approval_status="pending", brief=None):
+    """A FEAT-59-era feature: by-perspective BRIEF, one task, one approval."""
+    td = tempfile.TemporaryDirectory()
+    root = Path(td.name)
+    feat = root / ".harness/harness/features/FEAT-92-perspective"
+    (feat / "notes").mkdir(parents=True)
+    (feat / "plan.yaml").write_text(
+        f"tasks:\n  - id: T-03\n    verify: python3 test.py\n    status: {task_status}\n")
+    (feat / "BRIEF.md").write_text(
+        BY_PERSPECTIVE_BRIEF.format(approval=approval_status) if brief is None else brief)
+    rel = ".harness/harness/features/FEAT-92-perspective/notes/handoff-build.md"
+    return td, root, rel
+
+
+BRIEF_PATH = ".harness/harness/features/FEAT-92-perspective/BRIEF.md"
+PERSPECTIVE = f"brief-perspective:{BRIEF_PATH}#operator"
+
+# Each row: name, pointers, resolve, the substring the single problem must carry, or None
+# when the note must be accepted.
+for _name, _pointers, _resolve, _needle in [
+    ("perspective resolves", [PERSPECTIVE], True, None),
+    ("perspective with gloss resolves by bare name",
+     [f"brief-perspective:{BRIEF_PATH}#reader"], True, None),
+    ("perspective name is case-insensitive",
+     [f"brief-perspective:{BRIEF_PATH}#Operator"], True, None),
+    ("undeclared perspective is unresolved",
+     [f"brief-perspective:{BRIEF_PATH}#end user"], True, "unresolved"),
+    ("perspective must sit under the by-perspective heading",
+     [f"brief-perspective:{BRIEF_PATH}#success criteria"], True, "unresolved"),
+    ("no perspective under a by-perspective BRIEF is refused",
+     ["plan-task:T-03.verify"], True, "brief-perspective:"),
+    ("perspective beside other authorities is accepted",
+     ["plan-task:T-03.verify", PERSPECTIVE], True, None),
+    ("perspective requirement is write-time only",
+     ["plan-task:T-03.verify"], False, None),
+    ("perspective grammar is checked without resolution",
+     ["brief-perspective:nothing"], False, "legal prefixes"),
+]:
+    _td, _root, _rel = perspective_fixture()
+    try:
+        _body = "Scope: do the thing\n" + "\n".join(f"Authority: {p}" for p in _pointers)
+        _got = handoff_done_when.problems(_rel, note(_body), _root, _resolve)
+        if _needle is None:
+            check(f"perspective: {_name}", _got == [], repr(_got))
+        else:
+            check(f"perspective: {_name}", len(_got) == 1 and _needle in _got[0]
+                  and "templates/HANDOFF.md" in _got[0], repr(_got))
+    finally:
+        _td.cleanup()
+
+# The cited BRIEF exists but is the old shape: the pointer is unresolved, with the reason.
+_td, _root, _rel = perspective_fixture(
+    brief="# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: pending\n")
+try:
+    _got = handoff_done_when.problems(
+        _rel, note(f"Scope: do the thing\nAuthority: {PERSPECTIVE}"), _root, True)
+    check("perspective: old-shape BRIEF has no perspective block",
+          len(_got) == 1 and "unresolved" in _got[0] and "by perspective" in _got[0], repr(_got))
+    # ...and an old-shape BRIEF imposes no perspective requirement on its notes.
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
+    check("perspective: old-shape BRIEF is unaffected", _got == [], repr(_got))
+finally:
+    _td.cleanup()
+
+# A perspective is judged, so a done task plus a perspective still binds — the perspective
+# is never counted as satisfied.
+_td, _root, _rel = perspective_fixture(task_status="done", approval_status="approved")
+try:
+    _got = handoff_done_when.problems(
+        _rel, note(f"Scope: do the thing\nAuthority: plan-task:T-03.verify\nAuthority: {PERSPECTIVE}"),
+        _root, True)
+    check("perspective: never already satisfied", _got == [], repr(_got))
+finally:
+    _td.cleanup()
+
+# Unresolved wins: a note with a missing task AND no perspective reports the missing task
+# only, so the author fixes one line at a time.
+_td, _root, _rel = perspective_fixture()
+try:
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-99.verify"), _root, True)
+    check("perspective: unresolved wins over missing perspective",
+          len(_got) == 1 and "unresolved" in _got[0] and "brief-perspective" not in _got[0],
           repr(_got))
 finally:
     _td.cleanup()

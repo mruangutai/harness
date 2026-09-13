@@ -70,6 +70,14 @@ Beyond presence: for each behavioural change in the diff, confirm a test covers 
 shows the order, confirm the test came **first**. Report violations as findings — they do not by
 themselves fail the gate.
 
+**Fail-first evidence is a gate, not an audit note (FEAT-59 SC-17).** For every SC marked
+`verify: automated`, your digest names the test and the evidence that it **failed before the fix** —
+the path of the captured failing run, or the receipt line that records it (`1 failed before 3f2a9c1`).
+Where the fix and its test landed together, reproduce the failing state in a worktree (revert the
+production change, run the test, capture the output, restore) and cite that capture. A green suite
+with no fail-first evidence is `FAIL`, not `PASS`: passing proves the tests pass today, and a test that
+never failed constrains nothing.
+
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
 discriminates (mutate, watch it fail, restore) is sanctioned — but the bash-write-guard denies your
 in-place source edits in the main checkout by design. Run the proof in a disposable worktree
@@ -127,6 +135,12 @@ matrix_ok: <bool>|n/a          # a BOOL. "mostly" is a contract violation.
                                # `matrix_ok: false` with VERDICT: PASS is rejected too, and
                                # the BOOLEAN spelling is the reason it needed its own gate:
                                # one keyed on the string "fail" never fires here (DEC-175)
+fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]
+                               # one entry per `verify: automated` SC: the evidence that its
+                               # test FAILED before the fix. PASS + matrix_ok: true + [] is
+                               # rejected — a green suite with no fail-first evidence is not
+                               # a pass (FEAT-59 SC-17). [] only with matrix_ok: n/a or a
+                               # non-PASS verdict
 ```
 
 **You gain neither `task` nor `task_verify`.** Those bind the five dev specialists only. Adding
@@ -144,3 +158,4 @@ either to a qa return is the schema leak SC-05 exists to catch.
 | "Small change, the matrix is overkill" | The matrix is a floor. Size is not a change type |
 | "There's a test in that file already" | Does it exercise *this* behaviour? If not, missing |
 | "The test passes, so the criterion is proven" | Passing is not exclusion. Name the mutant, flip it, confirm it reddens |
+| "The tests were written first, I'll just say so" | Saying so is a claim. `fail_first` wants the receipt: the path or line that shows the red run |

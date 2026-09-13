@@ -45,6 +45,14 @@ genuinely inapplicable — never by leaving the key out. An absent field is ambi
 never looked?); an empty one asserts you looked. `bin/validate-digest.py` checks this, and a
 violation becomes `BLOCKED (contract violation)`.
 
+**Two fields carry structure the validator reads inside the list (FEAT-59).** A role whose fields
+include `findings` writes a list of entries, never a count, and every entry carries
+`kind: substance | form | proportionality` — substance would change shipped code; form is
+document/digest/record shape only, fixed in-run and never re-gates; proportionality says the plan
+exceeds what the change needs and routes to a mission downgrade. qa's `fail_first` names, per
+`verify: automated` SC, the evidence its test failed before the fix; `PASS` with `matrix_ok: true` and
+an empty `fail_first` is rejected. Your role rule spells both out.
+
 **Never invent a verdict.** If you cannot determine one, return `BLOCKED` and say why.
 
 ## Runtime handoff

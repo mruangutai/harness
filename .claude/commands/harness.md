@@ -15,7 +15,7 @@ anything spawns — except when this clone has no `.harness/` at all; that condi
 readable at its default branch, or with no central tree `<control-plane>/.harness/<segment>/` routes
 to the `harness-add-repo` skill. A registered fleet member with an empty
 `<control-plane>/.harness/<segment>/features/` has no feature yet, a normal state that routes to
-`/harness-plan`, not onboarding; an unapproved BRIEF/PLAN routes to step 1.
+step 1's grilling, not onboarding; an unapproved BRIEF/PLAN routes to step 2.
 
 ## 0b. Cut the worktree, before any orchestrator is spawned
 
@@ -46,34 +46,65 @@ skill; it is not restated here.
   cycles used, last run) and ask which — or whether to start a new one.
 - **New feature** → clarity before planning, always (DEC-164/165). Fits one conversation →
   `/harness-grilling`; the destination itself is fuzzy or decisions wait on facts/prototypes →
-  `/harness-wayfinding` (a persistent map under `.harness/efforts/`). Then `pm` plans it:
-  `/harness-plan`.
+  `/harness-wayfinding` (a persistent map under `.harness/efforts/`). Grilling ends with the
+  harness's own **mission judgement**, written to the artifact's `## Mission` block —
+  `mission: patch` when the cause is known, the diff is bounded (the grilling can name the files)
+  and no new public interface, schema or enforcement surface is created; else `mission: plan` —
+  with a one-line reason, and the user confirms or overrides it in the same dialog (SC-01). The
+  block routes the door: `patch` → `/harness-patch`; `plan` → `/harness-plan`. Neither door starts
+  without it.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
-- **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug** (the
-  orchestrator reads `.claude/skills/harness/references/debug-mission.md`): cause
-  unknown → an investigation segment runs FIRST and its root-cause report seeds the plan; cause
-  already known → straight to `/harness-plan` (the FEAT-02 pattern). Either way the fix ships
-  through the normal gates under a `BUG-NN-<slug>` id — there is no ungated bug lane (DEC-139).
+- **A bug report** ("X is broken", a stack trace, a failing repro) → cause unknown → mission
+  **debug** (the orchestrator reads `.claude/skills/harness/references/debug-mission.md`): an
+  investigation segment runs FIRST and its root-cause report seeds the grilling; cause already
+  known → the grilling's mission judgement, like any change — a known cause with a bounded diff is
+  the `patch` case. Either way the fix ships through qa and review on the diff under a
+  `BUG-NN-<slug>` id — a patch is gated on the diff, not at plan on a document (DEC-139 as
+  amended by FEAT-59).
 - **"what should we do next?"** → mission **triage**: the one sanctioned direct dispatch to
   `harness-product-lead` (no feature exists for an orchestrator to own; triage writes no state).
   pm reads the backlog (GitHub Issues if `github.sync`) and shipped history,
-  and returns ranked candidates with rationale. You pick; the pick seeds `/harness-plan` (DEC-138).
+  and returns ranked candidates with rationale. You pick; the pick seeds the grilling (DEC-138).
 
 ## 2. Approvals are yours
 
 If the brief's `## Approval` or the plan's approval is pending — `approval.status` in `plan.yaml`,
 `## Approval` in a pre-DEC-182 `PLAN.md`; never a task's own `status:`, which is a different key —
-present it, `AskUserQuestion` for the sign-off, and
-write the signature yourself — `approval.status: approved` in `plan.yaml`, the `## Approval` block in
-`BRIEF.md` and in a pre-DEC-182 `PLAN.md`. pm never self-approves; the orchestrator cannot ask
-(DEC-120). No spawn until what the mission needs is approved.
+present it, `AskUserQuestion` for the sign-off, and write the signature yourself: the `## Approval`
+block in `BRIEF.md` (and in a pre-DEC-182 `PLAN.md`), and for `plan.yaml`
+`python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file <plan.yaml> --by <you> --date <YYYY-MM-DD> --rework rounds=N,minutes=M --decision <path>`
+— the only route that writes `approval.status: approved`, and the same act records the operator's
+**one rework ruling** as `feature.json` `rework` (SC-15). A `pending` intake that carries a
+`mission: patch` downgrade in the orchestrator's return is signed the same way; the downgrade is
+something you see at signature, never a question you were asked (SC-03). pm never self-approves;
+the orchestrator cannot ask (DEC-120). No spawn until what the mission needs is approved.
+
+**Propose the rework ruling; never ask for it cold.** Before the sign-off question, run
+`python3 .claude/skills/harness/bin/feature-record.py propose-rework --file <feature.json>` and put
+its `rounds`, `minutes` and `basis` in the same `AskUserQuestion` as the signature, as the
+recommended default — e.g. *"Proposed rework: 3 rounds / 135 min (plan mission: 7 tasks / 3 per
+round → 3; 45 min per round). Sign with this, or change it."* The proposal is deterministic from
+the mission, the task count and `budgets.rework_round_minutes`, so the operator confirms or
+corrects a baseline rather than inventing one (SC-22); what they sign is the ruling.
+
+**The sign-off opens with the definition of done, verbatim.** The message that carries the
+`AskUserQuestion` leads with the BRIEF's `## Done when — by perspective` block exactly as pm wrote
+it, then every SC grouped under the perspective it discharges — one line each, with its `verify:`
+— then the proposed rework ruling, then the question. That is the reading order the shape was
+designed for (DEC-231): the operator signs the seats first and the criteria second, and nothing
+downstream re-derives "done" from anything else. Do not paste the whole BRIEF above it; link the
+path for the rest.
 
 **Let the user read to exhaustion FIRST, then dispatch exactly one consolidated fix.** Collect every
 change request they raise in that **one review pass** — into one answers file — and send it down as a
 single revision. Do not send a fix out while the user is still reading. The cost, and it is real: the
 first fix goes out later than it otherwise would. What it buys: FEAT-03's plan phase spent seven
 serialized runs and ~$95 on a product-fix → re-verify ping-pong in which **no reviewer found
-anything** — every cycle was a new ruling arriving separately.
+anything** — every cycle was a new ruling arriving separately. **The batch IS the one rework
+ruling** (DEC-176 as amended by FEAT-59): the `--rework rounds=N,minutes=M` you sign is the
+operator's whole answer to "how much rework", and the orchestrator loops inside it without asking.
+It comes back with `awaiting_user` only on a new finding class — a scope change, an emergent SC —
+or when the ruling is spent.
 
 ## 3. Spawn the orchestrator
 
@@ -81,7 +112,8 @@ anything** — every cycle was a new ruling arriving separately.
 
 One `Agent` call, `subagent_type: harness-orchestrator`, **in the background** — that is what lets
 N flows run at once while you stay free. The prompt carries only: the feature id, the mission
-(plan / ship / resume / brief), and file paths — never file contents.
+(plan / patch / ship / resume / brief), and file paths — the grilling artifact's among them, never
+file contents.
 
 **Do not author success criteria in the spawn prompt.** pm owns SC-NN and their `verify:` methods —
 that derivation is the product work the role exists for, and the user's signature is the check on it

@@ -7,12 +7,19 @@ import stat
 import yaml
 
 SECTION = "## Done when"
-LEGAL_PREFIXES = ("plan-task:", "brief-sc:", "finding:", "approval:")
+LEGAL_PREFIXES = ("plan-task:", "brief-sc:", "finding:", "approval:", "brief-perspective:")
 FEATURE_RE = re.compile(r"^(?P<prefix>\.harness/[^/]+/features/[^/]+)/")
 TASK_RE = re.compile(r"^plan-task:(T-\d+)\.verify$")
 SC_RE = re.compile(r"^brief-sc:(SC-\d+)$")
 FINDING_RE = re.compile(r"^finding:(.+)#(F-\d+|PF-\d+)$")
 APPROVAL_RE = re.compile(r"^approval:(.+)#([^#\n]+)$")
+PERSPECTIVE_RE = re.compile(r"^brief-perspective:(.+)#([^#\n]+)$")
+# The BRIEF shape FEAT-59 introduced (SC-10): `## Done when — by perspective` followed by
+# `**<name>**` lines. The same heading regex check-state.sh INV-38 uses, so the two agree
+# on which BRIEFs are by-perspective.
+BY_PERSPECTIVE_HEADING = "Done when — by perspective"
+BY_PERSPECTIVE_RE = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.I)
+PERSPECTIVE_LINE_RE = re.compile(r"^\*\*([^*\n]+?)\*\*")
 
 MAX_TARGET_BYTES = 1024 * 1024
 
@@ -36,7 +43,7 @@ def _body(lines, start):
 
 
 def _grammar(pointer):
-    for pattern in (TASK_RE, SC_RE, FINDING_RE, APPROVAL_RE):
+    for pattern in (TASK_RE, SC_RE, FINDING_RE, APPROVAL_RE, PERSPECTIVE_RE):
         match = pattern.fullmatch(pointer)
         if match:
             return match
@@ -55,7 +62,7 @@ def _feature_dir(rel_path, root):
 
 
 def _pointer_path(pointer, match):
-    if pointer.startswith(("finding:", "approval:")):
+    if pointer.startswith(("finding:", "approval:", "brief-perspective:")):
         return match.group(1)
     return None
 
@@ -171,11 +178,58 @@ def _resolve_approval(pointer, match, _feature_dir, root):
         pointer, target, f"heading {heading!r} was not found")
 
 
+def _perspective_key(name):
+    """`**reader (reviewer / qa / panel)**` declares `reader`: the trailing parenthetical
+    is a gloss, the pointer carries the bare name. Same normalisation as INV-38."""
+    return re.sub(r"\s+", " ", re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()).lower()
+
+
+def _perspective_block(lines):
+    """The lines under the by-perspective heading up to the next `## `, or None when the
+    BRIEF is not that shape."""
+    for index, line in enumerate(lines):
+        if BY_PERSPECTIVE_RE.fullmatch(line.strip()) is None:
+            continue
+        body = []
+        for following in lines[index + 1:]:
+            if re.match(r"^##(?!#)(?:[ \t]|$)", following.strip()):
+                break
+            body.append(following)
+        return body
+    return None
+
+
+def _declared_perspectives(lines):
+    block = _perspective_block(lines)
+    if block is None:
+        return None
+    return {_perspective_key(m.group(1)) for line in block
+            for m in [PERSPECTIVE_LINE_RE.match(line.strip())] if m}
+
+
+def _resolve_perspective(pointer, match, _feature_dir, root):
+    target = root / match.group(1)
+    name = match.group(2)
+    try:
+        lines = _read_target(target, root).splitlines()
+    except ValueError as exc:
+        return _message(f"Authority pointer {pointer!r} has unsafe target {target}: {exc}")
+    declared = _declared_perspectives(lines)
+    if declared is None:
+        return _unresolved(
+            pointer, target, f"no '## {BY_PERSPECTIVE_HEADING}' block; the BRIEF is not that shape")
+    if _perspective_key(name) in declared:
+        return None
+    return _unresolved(pointer, target, f"perspective {name!r} is not declared under "
+                                        f"'## {BY_PERSPECTIVE_HEADING}'")
+
+
 RESOLVERS = {
     "plan-task:": _resolve_plan,
     "brief-sc:": _resolve_brief,
     "finding:": _resolve_finding,
     "approval:": _resolve_approval,
+    "brief-perspective:": _resolve_perspective,
 }
 
 # ---------------------------------------------------------------------------
@@ -192,11 +246,11 @@ RESOLVERS = {
 # rest binding and the section still means something. Only when EVERY pointer is already
 # satisfied does the block bind nothing at all — which is the defect, stated exactly.
 #
-# INDETERMINATE IS NOT SATISFIED. `brief-sc:` and `finding:` have no machine-readable
-# satisfaction state — a criterion is met by a goal-check's judgment, not by a field — so
-# they return None and a note citing one is never refused here. That is deliberate
-# under-reach: this check must produce no false refusals, because a gate that blocks
-# honest notes gets disabled and then protects nothing.
+# INDETERMINATE IS NOT SATISFIED. `brief-sc:`, `finding:` and `brief-perspective:` have no
+# machine-readable satisfaction state — a criterion and a perspective are met by a
+# goal-check's judgment, not by a field — so they return None and a note citing one is
+# never refused here. That is deliberate under-reach: this check must produce no false
+# refusals, because a gate that blocks honest notes gets disabled and then protects nothing.
 
 
 def _plan_task(match, feature_dir, root):
@@ -356,6 +410,26 @@ def _classified_lines(body):
     authorities = [line for line in nonblank if line.startswith("Authority:")]
     return nonblank, scopes, authorities
 
+def _perspective_problems(parsed, feature_dir, root):
+    """Under a by-perspective BRIEF the note's done is a pointer to a perspective, never a
+    re-derived scope statement (FEAT-59 SC-11): at least one `brief-perspective:` authority
+    is required. An old-shape BRIEF, or none, imposes nothing."""
+    if any(pointer.startswith("brief-perspective:") for pointer, _match in parsed):
+        return []
+    target = feature_dir / "BRIEF.md"
+    try:
+        declared = _declared_perspectives(_read_target(target, root).splitlines())
+    except ValueError:
+        return []
+    if declared is None:
+        return []
+    rel_brief = target.relative_to(root).as_posix()
+    return [_message(
+        f"{SECTION} cites no brief-perspective: authority but {rel_brief} is a by-perspective "
+        f"BRIEF — done is judged against a declared perspective, not re-derived here; cite "
+        f"brief-perspective:{rel_brief}#<name>")]
+
+
 def _resolve_all(rel_path, parsed, root):
     root = Path(root)
     feature_dir = _feature_dir(rel_path, root)
@@ -368,7 +442,8 @@ def _resolve_all(rel_path, parsed, root):
         # whose target is missing would report a vacuous section on top of the real
         # error and bury the line the author has to fix.
         return unresolved
-    return _satisfaction_problems(parsed, feature_dir, root)
+    return (_perspective_problems(parsed, feature_dir, root)
+            + _satisfaction_problems(parsed, feature_dir, root))
 
 
 

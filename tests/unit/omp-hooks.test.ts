@@ -1,11 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DEFAULT_CONTEXT_WARN_TOKENS,
+  DEFAULT_PLAN_PHASE_WARN_MINUTES,
   contextAdvisoryText,
   detectHarnessAgent,
+  featureJsonPath,
   gatePath,
   extractEditPaths,
   normalizeYieldInput,
@@ -13,7 +16,10 @@ import {
   readContextAnchor,
   registerHarnessHooks,
   resolveContextWarnTokens,
+  resolvePlanPhaseWarnMinutes,
   resolveSessionFile,
+  spendAdvisoryFor,
+  spendAdvisoryText,
   yieldContractText,
 } from "../../.omp/extensions/harness-hooks.ts";
 
@@ -914,5 +920,236 @@ describe("context advisory injection", () => {
     const result = await handlers.get("tool_result")?.(taskResult(content), ctx);
     expect(result).toBeUndefined();
     expect(content).toEqual([{ type: "text", text: "lead digest" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FEAT-59 SC-19 — the SPEND advisory on the orchestrator's wake.
+//
+// The same wake path as the context advisory, the same voice, the same promise:
+// it ADVISES and never refuses. The figure is what `feature-record.py spend`
+// measures from feature.json — these cases spawn the REAL script through the
+// fake runner, so the JSON contract between the two halves is what is tested,
+// not a stub of it. Only `inflight_registry.py feature-root` is faked, to point
+// the hook at a temp checkout.
+// ---------------------------------------------------------------------------
+
+describe("spendAdvisoryFor", () => {
+  const spend = (minutes: number, phase: "plan" | "build", rework = 0) =>
+    ({ runs: 3, wall_clock_minutes: minutes, tokens: null, phase, rework_minutes: rework, rework_rounds: 0 });
+
+  test("plan phase compares against plan_phase_warn_minutes, strictly greater", () => {
+    expect(spendAdvisoryFor(spend(91, "plan"), undefined, 90)).toContain("budgets.plan_phase_warn_minutes = 90");
+    expect(spendAdvisoryFor(spend(90, "plan"), undefined, 90)).toBeUndefined();
+    expect(spendAdvisoryFor(spend(91, "plan"), 10, 90)).toContain("plan phase");
+  });
+
+  test("build phase compares the REWORK WINDOW against the ruling, never the whole feature", () => {
+    // 100 whole-feature minutes (plan + build) with 0 rework: under a 60-minute ruling,
+    // silent — the ruling is a budget for rework, and none has happened.
+    expect(spendAdvisoryFor(spend(100, "build", 0), 60, 90)).toBeUndefined();
+    // 61 rework minutes: the line names the window's figure, not the whole.
+    const line = spendAdvisoryFor(spend(161, "build", 61), 60, 90);
+    expect(line).toContain("rework.wall_clock_minutes = 60");
+    expect(line).toContain("build phase");
+    expect(line).toContain("61 wall-clock minutes");
+    expect(line).toContain("1.02x");
+    expect(spendAdvisoryFor(spend(160, "build", 60), 60, 90)).toBeUndefined();
+    // No ruling recorded: nothing to measure against, so nothing is said.
+    expect(spendAdvisoryFor(spend(500, "build", 400), undefined, 90)).toBeUndefined();
+  });
+
+  test("names the measured tokens when a run carried one", () => {
+    expect(spendAdvisoryText(135, 48213, "plan", "budgets.plan_phase_warn_minutes", 90))
+      .toContain("48213 tokens");
+    expect(spendAdvisoryText(135, null, "plan", "budgets.plan_phase_warn_minutes", 90))
+      .not.toContain("tokens");
+    expect(spendAdvisoryText(135, null, "plan", "budgets.plan_phase_warn_minutes", 90))
+      .toContain("ADVISES and never refuses (DEC-198)");
+  });
+});
+
+describe("resolvePlanPhaseWarnMinutes", () => {
+  function rootWith(budgets: Record<string, unknown> | undefined) {
+    const root = mkdtempSync(join(tmpdir(), "feat59-cfg-"));
+    mkdirSync(join(root, ".harness"));
+    writeFileSync(join(root, ".harness", "harness.json"),
+      JSON.stringify(budgets === undefined ? {} : { budgets }));
+    return root;
+  }
+
+  test("reads the configured value", () => {
+    expect(resolvePlanPhaseWarnMinutes(rootWith({ plan_phase_warn_minutes: 30 }))).toBe(30);
+  });
+
+  test("falls back to the declared default when the key is absent", () => {
+    expect(resolvePlanPhaseWarnMinutes(rootWith({}))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+    expect(resolvePlanPhaseWarnMinutes(rootWith(undefined))).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+    expect(resolvePlanPhaseWarnMinutes("/nonexistent")).toBe(DEFAULT_PLAN_PHASE_WARN_MINUTES);
+  });
+
+  test("the shipped configuration carries the default", () => {
+    // 90 in both harness.json files; the hook resolves from gateRoot(), so the
+    // wake tests below rely on this figure being the one on disk.
+    expect(resolvePlanPhaseWarnMinutes(join(import.meta.dir, "..", ".."))).toBe(90);
+  });
+});
+
+describe("featureJsonPath", () => {
+  test("finds the repo-tier layout and the flat layout, and nothing when absent", () => {
+    const root = mkdtempSync(join(tmpdir(), "feat59-layout-"));
+    expect(featureJsonPath(root, "FEAT-99-x")).toBeUndefined();
+    mkdirSync(join(root, ".harness", "harness", "features", "FEAT-99-x"), { recursive: true });
+    expect(featureJsonPath(root, "FEAT-99-x")).toBeUndefined();
+    writeFileSync(join(root, ".harness", "harness", "features", "FEAT-99-x", "feature.json"), "{}");
+    expect(featureJsonPath(root, "FEAT-99-x"))
+      .toBe(join(root, ".harness", "harness", "features", "FEAT-99-x", "feature.json"));
+    const flat = mkdtempSync(join(tmpdir(), "feat59-flat-"));
+    mkdirSync(join(flat, ".harness", "features", "FEAT-99-x"), { recursive: true });
+    writeFileSync(join(flat, ".harness", "features", "FEAT-99-x", "feature.json"), "{}");
+    expect(featureJsonPath(flat, "FEAT-99-x"))
+      .toBe(join(flat, ".harness", "features", "FEAT-99-x", "feature.json"));
+  });
+});
+
+describe("spend advisory injection", () => {
+  const FEATURE = "FEAT-99-spend";
+
+  function runsSpanning(minutes: number, id = "r1") {
+    const start = new Date("2026-09-11T10:00:00Z");
+    const end = new Date(start.getTime() + minutes * 60_000);
+    const iso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "+00:00");
+    return [{ id, squad: "product", verdict: "PASS", agent: "harness-product-lead",
+      started_at: iso(start), ended_at: iso(end), tokens: 48213 }];
+  }
+
+  function checkout(doc: Record<string, unknown> | undefined) {
+    const root = mkdtempSync(join(tmpdir(), "feat59-wake-"));
+    const dir = join(root, ".harness", "harness", "features", FEATURE);
+    mkdirSync(dir, { recursive: true });
+    if (doc) {
+      writeFileSync(join(dir, "feature.json"), JSON.stringify({
+        feature_id: FEATURE, branch: "none", pr: null, review_sha: "none",
+        cycles_used: 0, max_total_cycles: 10, ...doc,
+      }, null, 2) + "\n");
+    }
+    return root;
+  }
+
+  function wakeFixture(root: string) {
+    const handlers = new Map<string, Function>();
+    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const calls: Array<{ script: string; args: string[] }> = [];
+    const runner = (_cwd: string, script: string, args: string[]) => {
+      calls.push({ script, args });
+      if (script === "inflight_registry.py" && args[0] === "feature-root") {
+        return { blocked: false, stdout: `${root}\n` };
+      }
+      if (script === "feature-record.py") {
+        // THE REAL SCRIPT, through the real gate path: the parse of its stdout
+        // is the contract under test.
+        const proc = spawnSync("python3", [gatePath(script), ...args], { encoding: "utf8" });
+        return { blocked: false, stdout: proc.stdout || "", reason: proc.stderr || undefined };
+      }
+      return { blocked: false, stdout: "" };
+    };
+    registerHarnessHooks(pi, runner);
+    const ctx = {
+      cwd: root,
+      sessionManager: { getSessionId: () => "own-session", getSessionFile: () => ANCHORED_FIXTURE },
+    };
+    return { handlers, ctx, calls };
+  }
+
+  async function asOrchestratorOn(handlers: Map<string, Function>, ctx: unknown) {
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-orchestrator", `HARNESS-FEATURE: ${FEATURE}`],
+    }, ctx);
+  }
+
+  const wake = () => ({ toolName: "task", toolCallId: "call-1", input: {},
+    content: [{ type: "text", text: "lead digest" }] });
+
+  // Narrows the handler's return at the boundary once; every read below is checked.
+  function patched(result: unknown): { texts: string[]; hasIsError: boolean } {
+    if (!result || typeof result !== "object" || !("content" in result) || !Array.isArray(result.content)) {
+      throw new Error(`expected a patched tool result, got ${JSON.stringify(result)}`);
+    }
+    const texts = result.content.map((part: unknown) =>
+      part && typeof part === "object" && "text" in part && typeof part.text === "string" ? part.text : "");
+    return { texts, hasIsError: "isError" in result };
+  }
+
+  test("over the plan budget: one SPEND line naming spend, budget and phase; isError absent", async () => {
+    const { handlers, ctx } = wakeFixture(checkout({ runs: runsSpanning(135) }));
+    await asOrchestratorOn(handlers, ctx);
+    const result = await handlers.get("tool_result")?.(wake(), ctx);
+    const line = patched(result).texts.at(-1) ?? "";
+    expect(line.startsWith("SPEND: ")).toBe(true);
+    expect(line).toContain("135 wall-clock minutes");
+    expect(line).toContain("48213 tokens");
+    expect(line).toContain("plan phase");
+    expect(line).toContain("budgets.plan_phase_warn_minutes = 90");
+    expect(line).toContain("1.50x");
+    expect(line).toContain("ADVISES and never refuses (DEC-198)");
+    expect(patched(result).hasIsError).toBe(false);
+    // Exactly ONE advisory line was appended to the one content part.
+    expect(patched(result).texts.length).toBe(2);
+  });
+
+  test("under the plan budget: nothing is appended", async () => {
+    const { handlers, ctx, calls } = wakeFixture(checkout({ runs: runsSpanning(30) }));
+    await asOrchestratorOn(handlers, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+    // The measurement WAS taken — silence is a judgement on the figure, not a skipped read.
+    expect(calls.some((call) => call.script === "feature-record.py" && call.args[0] === "spend")).toBe(true);
+  });
+
+  test("after build entry: the rework ruling is the budget, measured over the rework window", async () => {
+    // 135 minutes of runs, all of them plan/build — no validate-* run yet, so the
+    // rework window is empty and a 60-minute ruling is not exceeded. Silence.
+    const quiet = wakeFixture(checkout({
+      runs: runsSpanning(135),
+      github: { build_entry: "opened" },
+      rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
+    }));
+    await asOrchestratorOn(quiet.handlers, quiet.ctx);
+    expect(await quiet.handlers.get("tool_result")?.(wake(), quiet.ctx)).toBeUndefined();
+    // The same 135 minutes inside a validate run IS rework, and the ruling is exceeded. The id
+    // is the corpus's date-prefixed run-dir shape: a bare `validate-validator` would pass
+    // against the `startswith` window that never opened on any real ledger.
+    const { handlers, ctx } = wakeFixture(checkout({
+      runs: runsSpanning(135, "2026-09-11-05-validate-validator"),
+      github: { build_entry: "opened" },
+      rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
+    }));
+    await asOrchestratorOn(handlers, ctx);
+    const line = patched(await handlers.get("tool_result")?.(wake(), ctx)).texts.at(-1) ?? "";
+    expect(line).toContain("build phase");
+    expect(line).toContain("rework.wall_clock_minutes = 60");
+    expect(line).toContain("135 wall-clock minutes");
+  });
+  test("after build entry with no rework ruling: nothing, even far past the plan budget", async () => {
+    const { handlers, ctx } = wakeFixture(checkout({
+      runs: runsSpanning(500), github: { build_entry: "opened" },
+    }));
+    await asOrchestratorOn(handlers, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+  });
+
+  test("missing feature.json: nothing is appended and spend is never asked", async () => {
+    const { handlers, ctx, calls } = wakeFixture(checkout(undefined));
+    await asOrchestratorOn(handlers, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+    expect(calls.some((call) => call.script === "feature-record.py")).toBe(false);
+  });
+
+  test("a lead on the same feature is not advised", async () => {
+    const { handlers, ctx, calls } = wakeFixture(checkout({ runs: runsSpanning(135) }));
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead", `HARNESS-FEATURE: ${FEATURE}`],
+    }, ctx);
+    expect(await handlers.get("tool_result")?.(wake(), ctx)).toBeUndefined();
+    expect(calls.some((call) => call.script === "feature-record.py")).toBe(false);
   });
 });

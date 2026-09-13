@@ -362,6 +362,7 @@ def process_plan_yaml(path, findings, root, manifest_root):
     tokens because load_plan says so.
     """
     import harness_yaml
+    import plan_anchors
     try:
         doc = harness_yaml.load_plan(path)
     except harness_yaml.YamlParseError as e:
@@ -422,8 +423,13 @@ def process_plan_yaml(path, findings, root, manifest_root):
                 f"(case sensitive)")
             violations += 1
 
-        globs = [f for f in t["files"] if "*" in f or "?" in f]
-        literals = [f for f in t["files"] if f not in globs]
+        # AN ANCHOR IS RESOLVED BY ITS PATH (FEAT-59 C4). `a.py#foo` and `{path: a.py, quote:
+        # ...}` name a place INSIDE a.py; the grant question is about a.py. plan_anchors.py owns
+        # the grammar; asking check-domain about `a.py#foo` would answer NOBODY for a granted
+        # file, which is the false violation issue #134 already taught this file to fear.
+        paths = [plan_anchors.path_of(f) for f in t["files"]]
+        globs = [f for f in paths if "*" in f or "?" in f]
+        literals = [f for f in paths if f not in globs]
         for g in globs:
             findings.append(f"UNRESOLVED-GLOB {tid} {g}")
 

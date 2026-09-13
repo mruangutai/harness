@@ -166,7 +166,7 @@ def check(root: Path) -> list[str]:
         errors.append("sync-agent-adapters.py is missing")
 
     command_dir = root / ".omp" / "commands"
-    for door in ("harness", "harness-plan", "harness-ship", "harness-grilling"):
+    for door in ("harness", "harness-plan", "harness-patch", "harness-ship", "harness-grilling"):
         if not (command_dir / f"{door}.md").is_file():
             errors.append(f".omp/commands/{door}.md is missing; {door} has no provider-neutral door")
     command_sync = root / ".agents" / "skills" / "harness" / "bin" / "sync-command-adapters.py"

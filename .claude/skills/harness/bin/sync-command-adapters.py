@@ -17,11 +17,11 @@ BANNER = (
     "Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->\n"
 )
 
-# The four canonical doors every checkout must carry. Absence of one of these is an operator
+# The five canonical doors every checkout must carry. Absence of one of these is an operator
 # error (a door deleted from .omp/commands/ without deleting its adapter), not adapter drift —
 # canonical_paths() below only ever describes what currently EXISTS, so it cannot see an absence
 # on its own; this list is what makes that absence detectable.
-REQUIRED_DOORS = ("harness.md", "harness-plan.md", "harness-ship.md", "harness-grilling.md")
+REQUIRED_DOORS = ("harness.md", "harness-plan.md", "harness-patch.md", "harness-ship.md", "harness-grilling.md")
 
 
 def canonical_paths(canonical_dir: Path) -> list[Path]:

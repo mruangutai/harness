@@ -1,12 +1,13 @@
 # build — the eng-squad build team. One step per PLAN task, expanded at dispatch.
 #
-# (a) ENG-SQUAD ONLY, by DEC-118. This team cannot reach documentor, pm, a reviewer
-#     or qa. That is a correct bound, not a gap: a team is hosted by ONE lead and a
-#     lead cannot dispatch outside its own squad. Work for another squad is not
-#     dropped — it stays for the ORCHESTRATOR to sequence as that squad's own segment.
+# (a) ENG-SQUAD ONLY, by DEC-118 — retained for the build segment by FEAT-59, which
+#     amended it only for the plan and validate/fix runs. This team cannot reach
+#     documentor, pm, a reviewer or qa. That is a correct bound, not a gap: a build is
+#     hosted by ONE lead inside its own squad. Work for another squad is not dropped —
+#     it stays for the ORCHESTRATOR to sequence as that squad's own team.
 #
-# (b) THIS IS AN EXPANSION RULE, NOT A DAG. `review.yaml` can list its steps because
-#     the panel is the same every time. A build's step count belongs to the PLAN, not
+# (b) THIS IS AN EXPANSION RULE, NOT A DAG. `validate.yaml` can list its steps because
+#     the reader set is the same every time. A build's step count belongs to the PLAN, not
 #     to this file — four tasks on one feature, twelve on the next — so what is
 #     written here is how to DERIVE the steps, and the host expands it at dispatch.
 #     `harness-team/SKILL.md` learns this form in T-09; without that it is prose only.
@@ -66,7 +67,7 @@ steps_from:
   #     All five grants in team-config.yaml (:144, :158, :171, :184, :199) require
   #     `receipt-harness-`, and check-domain.sh:242-248 BLOCKS an unmatched path at
   #     exit 2 rather than warning. So `personas:` stays SHORT (`dev-ops`) while
-  #     `outputs:` renders FULL — the same mixed convention review.yaml already uses
+  #     `outputs:` renders FULL — the same mixed convention validate.yaml already uses
   #     (`persona: code-reviewer`, `outputs: review-harness-code-reviewer-c{{cycle}}.md`).
   # (ii) `c{{cycle}}` preserves the loop-back record. This step carries
   #     `on_fail: loop_back`, and harness-team/SKILL.md step 3.5 (DEC-117) requires
@@ -84,6 +85,6 @@ steps_from:
   depends_on: from_task_depends_on
 
   # Restates eng-lead's existing build fix-loop rule; it does not invent a new one.
-  # review.yaml's steps carry no `on_fail:` and are legal — but build is where it
+  # validate.yaml's steps carry no `on_fail:` and are legal — but build is where it
   # matters, and a future runner will look here.
   on_fail: loop_back

@@ -30,7 +30,8 @@ Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differ
 
   **What it does NOT catch:** a build that starts current and drifts behind while it runs. This fires
   at the door, once, not mid-flight.
-- The orchestrator sequences the squads (build → qa gate → review panel → goal-check → docs) and
-  owns the fix cycles and both budgets.
+- The orchestrator sequences the phases (build → SIMPLIFY → one pinned `review_sha` → one `validate`
+  run holding qa, code, security, ui and pm's goal-check → `fix` rounds inside the signed rework
+  ruling → docs) and owns the cycle budget and the ledger.
 - **Terminus:** the CEO briefing, presented by you verbatim. The user decides ship / fix first /
   re-scope / stop. PR and merge follow their call — never automatically.

@@ -91,6 +91,11 @@ DIGEST:
   kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test
   sc_evidence: [{ id: SC-01, test: "<path:line>" }]
+  fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]
+                              # per `verify: automated` SC: the evidence the test FAILED before
+                              # the fix. PASS + matrix_ok: true + [] is rejected — a green suite
+                              # with no fail-first evidence is not a pass (FEAT-59 SC-17).
+                              # [] only with matrix_ok: n/a or a non-PASS verdict
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none

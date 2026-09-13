@@ -121,6 +121,19 @@ Beyond presence: for each behavioral change, check that a test covers it. Where 
 visible, check the test was written **before** the implementation. Report violations as findings — they
 do not by themselves FAIL the gate.
 
+### 7. Collect fail-first evidence — this one gates
+
+For every SC marked `verify: automated`, name the test that discharges it **and the evidence that it
+failed before the fix**: the path of the captured failing run, or the receipt line that records it
+(`tests/unit/test-foo.py: 1 failed at 3f2a9c1~1`). Where the fix and its test landed in one commit,
+reproduce the red state in a worktree — revert the production change, run the test, capture the
+output, restore — and cite that capture.
+
+**A green suite with no fail-first evidence is `FAIL`, not `PASS` (FEAT-59 SC-17).** Passing proves
+the tests pass today; only a recorded red run proves they constrain anything. The digest carries this
+as `fail_first`, and `validate-digest.py` rejects `VERDICT: PASS` with `matrix_ok: true` and an empty
+`fail_first`. Only `matrix_ok: n/a` — no gate ran — may carry `[]` truthfully.
+
 ## Output
 
 ```
@@ -143,6 +156,13 @@ What's needed
 On success, `VERDICT: PASS`, and say which kinds ran and which were legitimately skipped — a PASS that
 hides three skips is misleading.
 
+The DIGEST block that travels with the verdict is specified in `harness-verification-rules`; the field
+this gate adds is:
+
+```yaml
+fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]   # one per `verify: automated` SC
+```
+
 ## Red flags
 
 | Thought | Reality |
@@ -157,3 +177,4 @@ hides three skips is misleading.
 | "This is a small change, the matrix is overkill" | The matrix is a floor. Size is not an exemption; `change_type` is |
 | "I'll infer change type from what they asked for" | Infer it from the diff. The diff is the ground truth |
 | "I can't run it in CI, so I'll skip that kind" | Check `test_kinds.<kind>.status` first. `locally_run` is not `not applicable` — it needs a recorded run, not silence |
+| "The suite is green and the tests exist, so PASS" | Green with no recorded red run is `FAIL`. `fail_first` names, per automated SC, the evidence the test failed before the fix |

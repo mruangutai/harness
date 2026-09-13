@@ -162,12 +162,12 @@ def scan(root):
 TEAMS_ROOT = os.path.join(".claude", "skills", "harness", "teams")
 ROOTS = [".harness", TEAMS_ROOT]
 
-# The team-definitions tree is expected to hold exactly three files: build.yaml,
-# plan-panel.yaml, review.yaml. plan-panel.yaml was legitimately added by FEAT-45's
-# T-02 under the operator's signature of 2026-08-30 (covering REQ-01..REQ-14); it is
-# not drift. The ruling that a third team belongs here is D-15 in
-# .harness/harness/features/FEAT-45-adversarial-plan-panel/plan.yaml — read it before
-# touching this number.
+# The team-definitions tree is expected to hold exactly four files: build.yaml,
+# plan.yaml, validate.yaml, fix.yaml. FEAT-59 (signed 2026-09-11; SC-04, SC-13, SC-14)
+# replaced plan-panel.yaml and review.yaml with plan.yaml and validate.yaml and added
+# fix.yaml; it is not drift. The ruling is G5 of that feature's build contract, recorded in
+# .harness/harness/features/FEAT-59-proportional-flow/ — read it before touching this
+# number.
 #
 # FEAT-06's SC-05 ("the directory's contents at completion are exactly two files") is
 # a completion snapshot, already met and permanently met; it was never changed or
@@ -176,7 +176,7 @@ ROOTS = [".harness", TEAMS_ROOT]
 # merely reported in a label: widening this number SILENTLY, without a recorded ruling
 # naming the requirement that forces the new file, is still forbidden. A further team
 # is again a prompt to think, not to silently widen.
-TEAMS_EXPECTED = 3
+TEAMS_EXPECTED = 4
 
 
 def scan_roots(roots):
