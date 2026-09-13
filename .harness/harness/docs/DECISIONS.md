@@ -3714,7 +3714,7 @@ entry for something that is not a new decision:
   orchestrator hosting a team DAG itself — is dead per DEC-100, so anything describing the
   orchestrator as a team host, or offering flat as a live hosting mode, is stale.
 
-**Measured again under FEAT-60 (preload weight).** The write-rules `harness-distill` took with it governed roughly 33 spawns per feature that never write the file. The same pass found the universal trio at 2,982 words, pm at 8,246 and the 16-agent sum at 86,680 (whitespace count, `check-skill-weight.py`), ~35% of it gate restatement, decision evidence, or seam procedure; the cuts landed it at 1,885 / 4,922 / 57,974 and `budgets.preload_warn_words` now keeps it there. Move 3 applied to `runtime-handoff.md`, `artifact-paths.md`, `team-run-state.md`, `code-risk-examples.md`, `patch-lane.md`, `backlog-intake.md`, `panel-recording.md`; the three-part rule a distillation must obey when it touches a SKILL.md — *if a gate refuses on it, name the gate; if a decision holds it, point; if one seam needs it, reference it* — lives in `harness-distill` and `harness-curate`.
+**Measured again under FEAT-60 (preload weight).** The write-rules `harness-distill` took with it governed roughly 33 spawns per feature that never write the file. The same pass found the universal trio at 2,982 words, pm at 8,246 and the 16-agent sum at 86,680 (whitespace count, `check-skill-weight.py`), ~35% of it gate restatement, decision evidence, or seam procedure; the cuts landed it at 1,885 / 4,922 / 56,953 and `budgets.preload_warn_words` now keeps it there. Two more red-flag tables went the playbook's way under the same test — `harness-handoff`'s and `harness-code-review`'s each had one row the body did not state, and that row moved inline; the remaining tables still stand. Move 3 applied to `runtime-handoff.md`, `artifact-paths.md`, `team-run-state.md`, `code-risk-examples.md`, `patch-lane.md`, `backlog-intake.md`, `panel-recording.md`; the three-part rule a distillation must obey when it touches a SKILL.md — *if a gate refuses on it, name the gate; if a decision holds it, point; if one seam needs it, reference it* — lives in `harness-distill` and `harness-curate`.
 
 
 
@@ -4110,6 +4110,24 @@ Third instance in one feature, which is why it is written down rather than re-de
 Applies forward to `harness-verification-rules` and `harness-code-review` as a review question:
 *for every absence assertion, what presence assertion sits beside it?* An SC with only the first
 half is not verifiable, however green it runs.
+
+**The assertion's subject — the wider class (issue #979; moved here from `harness-code-review`
+under FEAT-60).** Nine real instances shipped past review because each looked like verification and
+verified nothing: an assertion whose subject was not the thing it claimed to bind — prose about a
+mechanism, not the mechanism; a design document, not the API; a stub, not the collaborator; a
+substring, not the count; a comparison that is false either way, not the operator under test. None
+failed loudly; all went green. The review question is therefore two questions: *what subject does
+this actually bind* (a test named `test_omits_deleted_tool` that greps a sentence binds the sentence),
+and *what would have to break for this to fail* — if no concrete change to the subject reddens the
+assertion, it is decoration. Naming a mutant and confirming it reddens is the strongest answer; a
+plausible English sentence is the weakest and is not sufficient for a criterion that claims to
+exclude a specific wrong implementation. Measured live: an under-threshold fixture whose value made
+both `28614 > 200000` and `28614 >= 200000` false, so the operator could be swapped and nothing
+reddened. Two adjacent shapes from the same instances: a fixture standing in for a nested or
+externally produced artifact must say what it was captured *from* — "a main-session capture" tested
+green while never exercising the nested-subagent case the feature existed for; and a claim about
+host behaviour is only as good as the mode it was measured under — `bun run` and `bun test`
+resolved three different copies of the same package in this project's own history.
 
 ## DEC-170 — The advisor is the org's only turn-level independent reviewer; its influence gets disclosed
 
