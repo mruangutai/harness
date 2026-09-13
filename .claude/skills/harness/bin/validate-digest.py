@@ -260,13 +260,20 @@ PASSTHROUGH = {
 #   substance        would change shipped code. Re-gates only the tasks it names.
 #   form             document, digest or record shape only. Fixed in the same run;
 #                    NEVER triggers a re-read — BUG-285 spent 5 of 8 re-cycles here.
-#   proportionality  the plan exceeds what the change needs. Routes to a mission
-#                    downgrade (SC-03), never to another panel cycle.
+#   proportionality  more is planned than the change needs. Carries `scope:`:
+#                      task     one task over-builds — pm trims it at apply, like a
+#                               substance finding against the plan text; never a downgrade
+#                      mission  the plan lane itself exceeds the work — routes to a
+#                               mission downgrade (SC-03) when no reader opposes
+#                    Without scope the route is undecidable: BUG-285-canonical-reader's
+#                    first FEAT-59 run summed four task-scope findings into a `patch`
+#                    downgrade of an eight-task enforcement-layer plan (DEC-228).
 #
 # EXACT, like every enum in this file: `substantive` is not `substance`. A finding
 # without a kind is undecidable — the orchestrator would have to read the artifact
 # to route it, which is the cold dispatch the kind exists to avoid.
 FINDING_KINDS = {"substance", "form", "proportionality"}
+PROPORTIONALITY_SCOPES = {"task", "mission"}
 
 # FEAT-59 SC-17: a `fail_first` entry binds evidence to ONE success criterion by id.
 # `fullmatch`, for the same reason as TASK_ID_RE. The placeholder `SC-NN` is rejected.
@@ -293,8 +300,15 @@ def _finding_kind_errors(findings):
         elif kind not in FINDING_KINDS:
             err.append(f"findings[{i}] kind={kind!r} is not in {kinds}. substance = would "
                        f"change shipped code; form = document/digest/record shape only, "
-                       f"fixed in-run and never re-gates; proportionality = the plan "
-                       f"exceeds what the change needs, routes to a mission downgrade.")
+                       f"fixed in-run and never re-gates; proportionality = more is planned "
+                       f"than the change needs, and says scope: task | mission.")
+        elif kind == "proportionality":
+            scope = parse_member_entry(str(item)).get("scope")
+            if scope not in PROPORTIONALITY_SCOPES:
+                err.append(f"findings[{i}] is proportionality with scope={scope!r}; it must say "
+                           f"scope: task (one task over-builds — pm trims it at apply, never "
+                           f"a downgrade) or scope: mission (the plan lane exceeds the work — "
+                           f"the only finding that can downgrade the mission, DEC-228).")
     return err
 
 

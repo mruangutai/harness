@@ -103,11 +103,13 @@ DIGEST:
   severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
-  findings: [{ kind: substance|form|proportionality, severity: <sev>, reader: ui-reviewer, summary: "<one line>", why: "<optional>" }]
+  findings: [{ kind: substance|form|proportionality, scope: task|mission, severity: <sev>, reader: ui-reviewer, summary: "<one line>", why: "<optional>" }]
                               # kind is REQUIRED (FEAT-59 SC-06): substance = would change shipped
                               # code; form = document/digest/record shape only, fixed in-run and
-                              # never re-gates; proportionality = the plan exceeds what the change
-                              # needs, routes to a mission downgrade. [] if none
+                              # never re-gates; proportionality = more is planned than the change
+                              # needs, and REQUIRES scope: task (one task over-builds — trimmed at
+                              # apply, never a downgrade) or mission (the plan lane exceeds the
+                              # work — the only finding that downgrades, DEC-228). [] if none
   must_fix: [<item>]
   states_unspecified: [<state>]      # mode A
   contract_violations: [{ path: ..., actual: ..., specified: ... }]   # mode B

@@ -76,6 +76,8 @@ panel:
     - id: PF-0123abcd
       severity: unrated              # info | low | med | high | critical | unrated
       reader: should-not-exist        # should-not-exist | scope | goalcheck
+      kind: substance                # substance | form | proportionality
+      # scope: task|mission          # proportionality findings only (DEC-228)
       summary: <one line>
       disposition: open              # open | resolved; risk acceptance requires approval.rulings
       # resolved_by: T-NN            # present only when resolved

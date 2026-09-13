@@ -31,7 +31,7 @@ Read `.omp/commands/harness.md` and follow it with **mission: plan**. The differ
   record-panel`) and resolves every anchor and route (`plan-merge.py check`); then pm grades the
   plan once, per perspective, against the operator's stated intent. No separate eng-lead review,
   no second squad segment, no per-cycle goal-check (SC-04, SC-09). Every finding carries `kind`;
-  a `proportionality` finding no reader opposes downgrades the mission to `patch` inside the
+  a `scope: mission` proportionality finding no reader opposes downgrades the mission to `patch` inside the
   orchestrator, and you see it at signature, not as a question (SC-03).
 - **Terminus:** ONE approval, taken by you — the user signs PLAN **and** the prototype (if the
   feature needs one) together, and **the same signature carries the rework ruling**:

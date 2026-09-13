@@ -78,9 +78,10 @@ steps:
       Then grade the architecture per `harness-codebase-design`: deep modules, seams, adapters,
       locality — this is the plan's only architecture review. Write findings to your output
       path. Every finding carries `kind`: `substance` (would change shipped code), `form`
-      (document shape only — fixed in this run, never re-read), or `proportionality` (the
-      plan exceeds what the change needs — routes to a mission downgrade, never to another
-      cycle). Preserve your own severity (info, low, med, high, critical, or unrated); unrated
+      (document shape only — fixed in this run, never re-read), or `proportionality` (more is
+      planned than the change needs) with `scope: task` (one task over-builds; pm trims it at
+      apply) or `scope: mission` (the plan lane exceeds the work; the only finding that can
+      downgrade the mission — never another cycle). Preserve your own severity (info, low, med, high, critical, or unrated); unrated
       is gating-equivalent to high and must not be reassigned. A finding you cannot classify
       is one question with your recommendation, not the heavier kind by default.
     on_fail:
@@ -104,8 +105,10 @@ steps:
       at {{intent_path}}. Ask: what here should not be built at all? Return ONE fenced yaml
       block whose top-level mapping has EXACTLY ONE key, findings, whose value is the list.
       Each finding carries reader (should-not-exist), summary (one line), severity (one of
-      info, low, med, high, critical, unrated), kind (one of substance, form, proportionality
-      — proportionality when the plan exceeds what the change needs), and why (a concrete
+      info, low, med, high, critical, unrated), kind (one of substance, form, proportionality)
+      — a proportionality finding also carries scope: task (one task over-builds) or mission
+      (the plan lane itself exceeds the work; say this only when you mean the whole mission
+      should be a patch) — and why (a concrete
       consequence of building the thing). Severity is the READER'S to state; unrated is
       correct when the reader will not commit to one and is gating-equivalent to high. A
       claim with no concrete consequence is not a finding. Padding to justify the spawn is
@@ -128,7 +131,8 @@ steps:
       design system, accessibility and dark/light stated. **Self-scope out if the plan
       touches no user-facing surface**: write a one-line note saying so and return PASS. Do
       not manufacture findings to justify the spawn. Every finding carries `kind`
-      (substance | form | proportionality) and your own severity.
+      (substance | form | proportionality; proportionality adds scope: task | mission) and your
+      own severity.
     on_fail:
       loop_back:
         max_cycles: 1
@@ -152,7 +156,9 @@ steps:
       every `form` finding in place now — none of them re-gates or re-reads. Apply every
       `substance` finding through `plan-merge.py` (`apply` accepts a changed field on an
       existing task id; `add-tasks`; `set-lanes`), touching only the tasks it names. A
-      `proportionality` finding is NOT yours to act on: leave it open for the lead. Then run
+      `scope: task` proportionality finding is yours: trim the task it names as you would a
+      substance finding against the plan text. A `scope: mission` finding is NOT yours to act
+      on: leave it open for the lead. Then run
       `plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c{{cycle}}.md
       --cycle {{cycle}}` and `plan-merge.py check --file <plan.yaml> --root <checkout root>`;
       both must exit 0 before you return. Do not write `approval:`.
@@ -182,9 +188,11 @@ steps:
 # reports that reader as having run and returned an empty findings list, and never omits it.
 # A skip is not on_fail; that loop applies only to an invalid reader return.
 #
-# A `proportionality` finding no reader opposes is the lead's to surface, not to resolve:
-# the team digest says `recommend: downgrade patch` in its headline and the orchestrator
-# downgrades the mission itself (SC-03). A re-cycle on a proportionality finding is a defect.
+# A `scope: mission` proportionality finding no reader opposes is the lead's to surface, not
+# to resolve: the team digest says `recommend: downgrade patch` in its headline and the
+# orchestrator downgrades the mission itself (SC-03). `scope: task` findings are pm's at
+# apply and never add up to a downgrade; a reader who found the mission proportionate is
+# dissent for the operator (DEC-228). A re-cycle on a proportionality finding is a defect.
 # High, critical, or unrated `substance` findings that survive apply return to the operator's
 # one batched signature review (DEC-176); the team returns `pending`, never `awaiting_user`,
 # for a finding the operator can rule on at signature.

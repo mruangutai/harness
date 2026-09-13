@@ -2733,11 +2733,28 @@ case("FEAT-59 kind: form is accepted (block-mapping entry)",
          '      reader: ui-reviewer\n'
          '      summary: "DESIGN.md table header drifted"'),
      True)
-case("FEAT-59 kind: proportionality is accepted",
+case("FEAT-59 kind: proportionality with scope: mission is accepted",
      "harness-ui-reviewer", _ui_review(
-         '    - { kind: proportionality, severity: high, reader: ui-reviewer, '
+         '    - { kind: proportionality, scope: mission, severity: high, reader: ui-reviewer, '
          'summary: "a plan for a five-line fix", why: "no design surface changes" }'),
      True)
+case("DEC-228 kind: proportionality with scope: task is accepted",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, scope: task, severity: med, reader: ui-reviewer, '
+         'summary: "T-03 ships one-shot scaffolding as a durable flag" }'),
+     True)
+# The BUG-285-canonical-reader defect: four task-scope findings summed into a mission downgrade.
+# Without scope the route is undecidable, so a scope-less proportionality finding is refused.
+case("DEC-228 kind: proportionality without scope is rejected, naming both scopes",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, severity: high, reader: ui-reviewer, '
+         'summary: "a plan for a five-line fix" }'),
+     False, ["findings[0]", "scope", "task", "mission"])
+case("DEC-228 kind: proportionality with a scope outside task|mission is rejected",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, scope: whole, severity: high, reader: ui-reviewer, '
+         'summary: "a plan for a five-line fix" }'),
+     False, ["findings[0]", "whole"])
 # `findings: []` is the positive assertion "looked, found nothing" and stays legal.
 case("FEAT-59 findings: [] is accepted — an explicit empty list asserts you looked",
      "harness-security-reviewer", """
