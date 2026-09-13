@@ -68,6 +68,11 @@ Look for: correctness bugs, unhandled errors, silent failure paths, missing inpu
 async rejections, off-by-one and boundary conditions, resource leaks, dead code left behind,
 copy-paste divergence, and comments that no longer match the code.
 
+For every absence assertion, name the presence assertion beside it; for every criterion that
+claims to exclude a wrong implementation, name the mutant and flip it. The canonical rule and its
+evidence: `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness-code-review/SKILL.md § Absence, subject and mutant (DEC-169,
+issue #979)` — read it before judging any added or changed assertion.
+
 **Do not** report formatting a linter would catch, or restyle to personal preference.
 
 ### 5. Classify findings, and gate honestly

@@ -88,6 +88,13 @@ pointer to a living in-repo exemplar, never as inlined values recalled from an o
 An entry citing more than one incident is a distillation smell: keep the rule, drop the cases.
 A `merge` result is **no longer than the longer input**; instance lists are banned.
 
+**When a distillation touches a SKILL.md — an Expertise entry promoted into a rule skill, or a
+skill edited to carry what a run learned — the three-part rule for skill text applies (DEC-158,
+FEAT-60):** *if a gate refuses on it, name the gate; if a decision holds it, point; if one seam
+needs it, reference it.* A skill carries the rule, one clause of why, and a pointer — never the
+gate's field list, the decision's evidence, or a procedure preloaded on every wake.
+`check-skill-weight.py` measures the preload and `check-state.sh` notes an excess.
+
 ```markdown
 # Expertise — <your-agent-name>
 

@@ -661,7 +661,7 @@ class Beta:
 
 def check_worked_examples():
     repo_root = Path(__file__).resolve().parents[2]
-    skill_path = repo_root / ".claude/skills/harness-code-risk-grading/SKILL.md"
+    skill_path = repo_root / ".claude/skills/harness/references/code-risk-examples.md"
     worked_examples = skill_path.read_text().split("## Worked examples\n", 1)[1]
     examples = re.findall(
         r"```python\n(.*?)```\nEXPECTED GRADE: ([1-5])",

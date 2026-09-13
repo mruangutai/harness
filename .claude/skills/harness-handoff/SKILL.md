@@ -1,13 +1,13 @@
 ---
 name: harness-handoff
-description: The universal return contract and output discipline for every harness agent — the three-part VERDICT/DIGEST/artifact return, BLUF writing, pointers not payloads, and when to decide versus ask. Loaded by all 16 agents at every spawn.
+description: The universal return contract and output discipline for every harness agent — the VERDICT/DIGEST/artifact return, BLUF, pointers not payloads, decide versus ask. Loaded by all 16 agents at every spawn.
 user-invocable: false
 ---
 
 # Handoff
 
-**Handoff is by file path, never by conversation.** You have a fresh context; the agent after you will
-too. Write a durable artifact, return a compact signal.
+**Handoff is by file path, never by conversation.** Your successor's context is as fresh as yours:
+durable artifact, compact signal.
 
 ## Your return — three parts, always
 
@@ -25,11 +25,8 @@ artifact: <path to what you wrote>
 ```
 ````
 
-**The ```` ```yaml ```` fence is part of the return, not documentation formatting.** Emit it, and emit
-the closing fence. Your return is a YAML document — `VERDICT:` a scalar, `DIGEST:` a mapping,
-`artifact:` a scalar — and the fence is what tells the validator where it starts and stops instead of
-making it guess from indentation in your prose. You may write prose before or after the fence; the
-fenced block is what gets parsed (DEC-172).
+**The ```` ```yaml ```` fence is part of the return** — emit both fences; only the fenced block is
+parsed (DEC-172).
 
 | VERDICT | Means |
 |---|---|
@@ -38,102 +35,53 @@ fenced block is what gets parsed (DEC-172).
 | `BLOCKED` | cannot proceed. Looping back is futile — escalate |
 | `ESCALATE` | needs the tier above (lead → orchestrator → user) |
 
-**These tokens and field names are a contract, not a style.** The runner routes on exact values.
-`PASSED`, `severity: medium` instead of `med`, `matrix_ok: "mostly"` — each silently misroutes.
-**Every field is required.** Say "nothing" with an explicit `[]` — or `none` for a scalar that is
-genuinely inapplicable — never by leaving the key out. An absent field is ambiguous (none found, or
-never looked?); an empty one asserts you looked. `bin/validate-digest.py` checks this, and a
-violation becomes `BLOCKED (contract violation)`.
+**`bin/validate-digest.py` is the contract** — exact tokens and field names, since the runner routes
+on them; every field present, "nothing" as an explicit `[]` or `none`, never an omitted key;
+`findings` and `fail_first` checked inside the list. Violation → `BLOCKED (contract violation)`.
 
-**Two fields carry structure the validator reads inside the list (FEAT-59).** A role whose fields
-include `findings` writes a list of entries, never a count, and every entry carries
-`kind: substance | form | proportionality` — substance would change shipped code; form is
-document/digest/record shape only, fixed in-run and never re-gates; proportionality says the plan
-exceeds what the change needs and routes to a mission downgrade. qa's `fail_first` names, per
-`verify: automated` SC, the evidence its test failed before the fix; `PASS` with `matrix_ok: true` and
-an empty `fail_first` is rejected. Your role rule spells both out.
+**Never invent a verdict** — undeterminable is `BLOCKED`, with why.
 
-**Never invent a verdict.** If you cannot determine one, return `BLOCKED` and say why.
-
-## Runtime handoff
-
-The host supervises every dispatch. Under OMP, the outer orchestrator is background-dispatched and
-wakes the main session through a terminal async result; nested leads and members are
-`blocking: true`, so their parent model is inactive inside the task tool until the child is
-terminal. Neither route permits shell supervision, sleeps, `hub wait`, or repeated status calls.
-After the tool result or wake, re-read the durable checkpoint and verify the cited artifact before
-accepting a verdict. `yield` is the terminal Harness handoff; `agent_end` is notification-only.
-Claude Code keeps its measured end-turn/wake compatibility rule (DEC-201/204).
+**Dispatchers** (orchestrator, lead) read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/runtime-handoff.md` before the run's
+first dispatch — wakes, verification before accepting a verdict, never waiting.
 
 ## Harness-owned paths — anchored, never relative
 
-- Your starting context carries `HARNESS_CONTROL_PLANE_ROOT: <absolute path>`. It is the Harness control plane, not your working directory. If it says `UNRESOLVED`, return `VERDICT: BLOCKED`; do not guess.
-- `<HARNESS_CONTROL_PLANE_ROOT>` prefixes every read of a Harness-owned skill, rule, reference, decision, or config. `<HARNESS_FEATURE_TREE_ROOT>` prefixes every feature-directory write: receipts, observations, and notes. The anchors are not interchangeable.
-- You may read the control-plane root read-only; your write grants are unchanged and remain resolved by check-domain.sh.
-- Before your first feature-directory write, resolve its root with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`.
-- If your persona holds no shell, do not run that command. Your dispatcher supplies `HARNESS-FEATURE-TREE-ROOT: <absolute path>`; dispatch-guard.sh refuses its absence at exit 2. If it is absent anyway, return `VERDICT: BLOCKED`.
-- Never write a bare relative Harness-owned path into an instruction.
+- `HARNESS_CONTROL_PLANE_ROOT: <absolute path>` in your starting context is the Harness control plane, not your working directory. `UNRESOLVED` → `VERDICT: BLOCKED`; never guess.
+- `<HARNESS_CONTROL_PLANE_ROOT>` prefixes every Harness-owned read; `<HARNESS_FEATURE_TREE_ROOT>` prefixes every feature-directory write. Never interchangeable; never a bare relative Harness-owned path in an instruction.
+- The control-plane root is read-only to you; write grants are unchanged (check-domain.sh).
 
 ## Writing the artifact
 
-- **BLUF.** Lead with the conclusion or recommendation. Not "I explored X, then Y."
-- **Claims plus pointers, never payloads.** "Auth is JWT (`auth/mw.ts:42`)" — never pasted code. The
-  reader can open the file; they cannot un-read a wall of it.
-- **Call out open questions explicitly.** They are the next agent's to-do list.
-- **Bounded — about one screen.** The cap forces you to prioritise. Length is the enemy of signal.
+- **BLUF.** The conclusion first, never "I explored X, then Y."
+- **Claims plus pointers, never payloads.** "Auth is JWT (`auth/mw.ts:42`)" — they have the path.
+- **Open questions, explicitly** — the next agent's to-do list.
+- **Bounded — one screen.** Length is the enemy of signal.
 
-Your artifact is read by the *consumer* of your work. The orchestrator reads only your VERDICT and
-DIGEST, so anything the routing decision depends on must be in the DIGEST, not buried in the artifact.
+Routing reads only VERDICT and DIGEST; put what it depends on there.
 
-**Where your artifact goes — check your own domain FIRST, and use what you already own.** Most
-personas hold a per-feature `notes/` path named for their role: pm writes `notes/research-*.md` or
-`notes/uat-*.md`, qa writes `notes/qa-*.md`, each reviewer writes `notes/review-<self>-*.md`, the
-visual designer writes under `notes/mockups/` or `notes/prototypes/`. **If you own such a path, your
-artifact goes there and you write no receipt.** A dispatch that names a receipt path for you does not
-override this — the guard will deny it, correctly (#216).
-
-The receipt is the fallback for the personas that own no other per-feature path — the five engineers
-and the documentor. Only those six write
-`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
-That log is the Expertise hot layer — it is never injected into any spawn, so anything a successor
-must read is lost there. Use it only for lessons about *how you work*.
+**Where it goes — the per-feature path your persona owns, never one a dispatch invents.** Read
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/artifact-paths.md` before your first
+feature-directory write: your path, the root-resolve command, the no-shell rule. The five engineers
+and the documentor own no path and write the receipt
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`
+— **not your observations log**, which no spawn ever injects.
 
 ## Decide or ask — scoped by reversibility
 
-| The decision is | Do this |
-|---|---|
-| cheap and reversible — naming, local structure, test shape | **decide.** Record it in the DIGEST |
-| expensive or hard to reverse — schema, API contract, new dependency | **ask** via `open_questions` |
-| changes scope, the goal, or an approved decision | **always ask.** It is not yours |
+**Cheap and reversible** (naming, local structure, test shape): decide; record it in the DIGEST.
+**Expensive or hard to reverse** (schema, API contract, new dependency): ask via `open_questions`.
+**Changes scope, the goal, or an approved decision**: always ask — it is not yours.
 
-**One act is never yours, whatever the table says: removing a worktree.** It belongs to the main session or the `post-merge` hook, from OUTSIDE the tree — because `git worktree remove` exits 0 when run from INSIDE the tree it deletes, so an agent following an instruction to remove its own worktree destroys its working directory mid-run.
-
-You are not blocked while a question is outstanding: raise it, do what you can, and return. A member
-never waits on a human — questions travel up and answers come back down.
+**Never yours: removing a worktree** — `git worktree remove` exits 0 from inside the tree it deletes;
+the main session or `post-merge` hook does it from outside. **Out of scope is out of scope**: note
+it in the DIGEST, never fix it while you are there. **An open question does not block you**: raise
+it, do what you can, return; a member never waits on a human.
 
 ## Consulting decisions — cited is a floor, never a ceiling
 
-Decisions named in your dispatch are the **minimum**, not the set. The same framing the qa gate uses
-for the test matrix: you may add what the work clearly warrants, never drop below.
-
-**Never read an authority file whole.** Read its index, then open only the entries that bear on your
-task — a row is an open-or-skip filter, so open the entry before acting on it.
-
-**Go broader when any of these fires:** (1) a cited decision references an uncited one — the
-reference graph is dense, so following it is a lookup, not a judgement call; (2) you are about to
-judge something the citations do not cover; (3) your own Expertise implies a rule they omit;
-(4) "surely this was decided already" fires.
-
-Nobody who dispatched you can be sure they named every decision that bears on your work — their
-framing is a hypothesis, and it is the input most likely to be wrong.
-
-## Red flags
-
-| Thought | Reality |
-|---|---|
-| "I'll paste the file so they have context" | They have the path. Payloads crowd out signal |
-| "I'll describe my process so they can follow it" | They need your conclusion, not your journey |
-| "The verdict is unclear, I'll say PASS with caveats" | An unclear verdict is `BLOCKED`. Never guess |
-| "I'll use a clearer field name" | Field names are a contract. Clarity is not yours to improve |
-| "I should ask about this to be safe" | Reversible? Decide, and record it. Asking has a real cost |
-| "I'll just fix this other thing while I'm here" | Out of scope is out of scope. Note it instead |
+Cited decisions are the **minimum**, not the set: the dispatcher's framing is a hypothesis.
+**Never read an authority file whole**: index first, then only the entries that bear on your task.
+**Go broader** when a citation references an uncited decision, when the citations do not cover what
+you judge, when your Expertise implies an omitted rule, or when "surely this was decided already"
+fires.

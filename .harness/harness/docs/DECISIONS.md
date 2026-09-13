@@ -2362,6 +2362,8 @@ the correct expression of it is now `expertise_update: []` rather than an omitte
 **Still prose, not enforcement.** A validator nothing runs is a validator that does not exist — the
 same trap DEC-119 recorded. The `SubagentStop` hook that makes it mandatory is the next step.
 
+**Absent versus empty, stated once (moved from `harness-handoff` under FEAT-60).** An absent field is ambiguous — none found, or never looked? — and an empty one asserts you looked. The three silent misroutes the validator's docstring names (`PASSED`, `severity: medium` for `med`, `matrix_ok: "mostly"`) are why the spelling is a contract and not a style.
+
 ---
 
 ## DEC-122 — The digest contract is enforced by a `SubagentStop` hook, mandatory from day one
@@ -2456,6 +2458,8 @@ example that happened to pass — the same reason DEC-112's false pass went unno
 Both templates are now verified rather than read: extracted from the source files, placeholders
 filled, run through the validator. Flipping SPEC's own example to `PASS` gets it blocked.
 
+**Why the roll-up is the lead's one irreplaceable act (moved from `harness-team` under FEAT-60).** A stapled digest means the orchestrator paid the lead's spawn for nothing; a merge that leaves three copies of one root cause spends three fix cycles on one problem; and reporting weak work up with a note is zero-micro-management's failure from the other side. The digest-file hook is the backstop, not the rule.
+
 ---
 
 ## DEC-124 — Lead collation is proven; the run disproved three things we believed
@@ -2514,6 +2518,8 @@ The reviewer asked whether to take a real YAML dependency rather than keep harde
 subset, flagging it as a constraint question. **`python3 -c "import yaml"` fails on this machine.** A
 YAML dependency would break the harness on its own development host, so the files-only constraint is
 load-bearing rather than stylistic. Harden the parser.
+
+**Two clauses the lead skill now states in one line each (FEAT-60).** Re-rank `low`/`info` against what the project does next: an inert `info` intersecting the next task outranks a `med` that does not, and the lead is the only tier that sees priority — the instance above (the low re-read as the common cause) is the general rule. And do not serialize dispatch out of caution: serial dispatch returns the same verdicts at several times the wall-clock and nothing surfaces it; §2 above shows Claude Code backgrounds subagents anyway, so single-message dispatch is preferred because it does not depend on that.
 
 
 ---
@@ -3210,6 +3216,8 @@ DEC-85 pressure handled exactly right, and the opposite of the bin/-ownership in
 - **Worktrees branch from the LOCAL branch, not origin** — with unpushed commits, origin is behind
   the pinned SHA. Added to the runner's worktree guidance.
 
+**Consequences stated once (moved from `harness-team` and `harness-handoff` under FEAT-60).** Branching from origin when origin is behind the pinned SHA means the worktree silently builds against the wrong base. And `git worktree remove` exits 0 when run from inside the tree it deletes, so an agent following an instruction to remove its own worktree destroys its working directory mid-run — worktree removal is the orchestrator's, never a member's.
+
 ---
 
 ## DEC-144 — The branch-creation gate joins the harness: fifth prerequisite, self-gating on the mirror
@@ -3409,6 +3417,8 @@ feature.yaml; the DEC-148 relay text names the three correct homes instead of "S
 gate is physics; the context watchdog names whoever ignores the advisory part. Kaya's existing
 141KB feature.yaml is cleaned up separately — the gate only prevents new accretion.
 
+**The reading rule's why (moved from `harness-handoff` under FEAT-60).** Nobody who dispatched an agent can be sure they named every decision that bears on the work — the dispatcher's framing is a hypothesis and the input most likely to be wrong — so cited entries are a floor. The index is an open-or-skip filter: open the entry before acting on a row, and follow its references; the graph is dense, so that is a lookup, not a judgement call. Same framing the qa gate uses for the test matrix.
+
 ---
 
 ## DEC-151 — The Bash write bypass, exploited and then narrowed: bash-write-guard.sh
@@ -3584,6 +3594,8 @@ a lead that fails the file check once and returns unchanged is caught by INV-15,
 INV-16's whitelist will need a new key added when the checkpoint legitimately grows a field —
 that cost is the point: growing the checkpoint becomes a decision, not an accretion.
 
+**One clause the lead skill no longer carries (FEAT-60).** `members:` in the lead digest is not optional: without it the orchestrator cannot log who did what, which is the per-member roll-up INV-15 validates.
+
 ## DEC-157 — A cycle is a rework loop, not a run; the default budget moves into harness.json
 
 `max_total_cycles` kept exhausting on healthy features and the escalations read as "budget too
@@ -3701,6 +3713,8 @@ entry for something that is not a new decision:
 - **`harness-team` dropped from the orchestrator's preload** (issue #83). Flat mode — the
   orchestrator hosting a team DAG itself — is dead per DEC-100, so anything describing the
   orchestrator as a team host, or offering flat as a live hosting mode, is stale.
+
+**Measured again under FEAT-60 (preload weight).** The write-rules `harness-distill` took with it governed roughly 33 spawns per feature that never write the file. The same pass found the universal trio at 2,982 words, pm at 8,246 and the 16-agent sum at 86,680 (whitespace count, `check-skill-weight.py`), ~35% of it gate restatement, decision evidence, or seam procedure; the cuts landed it at 1,885 / 4,922 / 56,953 and `budgets.preload_warn_words` now keeps it there. Two more red-flag tables went the playbook's way under the same test — `harness-handoff`'s and `harness-code-review`'s each had one row the body did not state, and that row moved inline; the remaining tables still stand. Move 3 applied to `runtime-handoff.md`, `artifact-paths.md`, `team-run-state.md`, `code-risk-examples.md`, `patch-lane.md`, `backlog-intake.md`, `panel-recording.md`; the three-part rule a distillation must obey when it touches a SKILL.md — *if a gate refuses on it, name the gate; if a decision holds it, point; if one seam needs it, reference it* — lives in `harness-distill` and `harness-curate`.
 
 
 
@@ -4096,6 +4110,24 @@ Third instance in one feature, which is why it is written down rather than re-de
 Applies forward to `harness-verification-rules` and `harness-code-review` as a review question:
 *for every absence assertion, what presence assertion sits beside it?* An SC with only the first
 half is not verifiable, however green it runs.
+
+**The assertion's subject — the wider class (issue #979; moved here from `harness-code-review`
+under FEAT-60).** Nine real instances shipped past review because each looked like verification and
+verified nothing: an assertion whose subject was not the thing it claimed to bind — prose about a
+mechanism, not the mechanism; a design document, not the API; a stub, not the collaborator; a
+substring, not the count; a comparison that is false either way, not the operator under test. None
+failed loudly; all went green. The review question is therefore two questions: *what subject does
+this actually bind* (a test named `test_omits_deleted_tool` that greps a sentence binds the sentence),
+and *what would have to break for this to fail* — if no concrete change to the subject reddens the
+assertion, it is decoration. Naming a mutant and confirming it reddens is the strongest answer; a
+plausible English sentence is the weakest and is not sufficient for a criterion that claims to
+exclude a specific wrong implementation. Measured live: an under-threshold fixture whose value made
+both `28614 > 200000` and `28614 >= 200000` false, so the operator could be swapped and nothing
+reddened. Two adjacent shapes from the same instances: a fixture standing in for a nested or
+externally produced artifact must say what it was captured *from* — "a main-session capture" tested
+green while never exercising the nested-subagent case the feature existed for; and a claim about
+host behaviour is only as good as the mode it was measured under — `bun run` and `bun test`
+resolved three different copies of the same package in this project's own history.
 
 ## DEC-170 — The advisor is the org's only turn-level independent reviewer; its influence gets disclosed
 
@@ -4673,6 +4705,8 @@ violation, and nothing executes it automatically. Only *literal* `files:` entrie
 entry containing `*` or `?` prints `UNRESOLVED-GLOB` and contributes nothing to the violation count, so
 a task whose paths are all globs is reported and passed over rather than guessed at.
 
+**The cost of the discovered case, stated (moved from `harness-spec-driven` under FEAT-60).** Discovered at dispatch, an ungranted route lands with the build spine already open — measured with three features running.
+
 ---
 
 ## DEC-180 — The state-file SHAPE gate is independent of the DOMAIN gate: it binds every write route and every author, and reports post-hoc where it cannot block
@@ -4952,6 +4986,8 @@ task carries the task's `intent:` as its body, where a `PLAN.md` task passed its
 Existing issues are not rewritten, so the corpus is mixed.
 
 **Amended by FEAT-41-one-station-vocabulary — the shape-gate clause, which was silent rather than wrong.** This entry says "`plan.yaml` is deliberately absent from `check-domain.sh`'s shape gate". It is present now, under REQ-05. The argument here is not reversed, because it never addressed this case: it weighed a BUDGET and a PARSE check, and ruled both out — correctly, and those rulings stand. A WRITE DENIAL is a third thing it did not consider. `plan.yaml` now has exactly one writer, `plan-merge.py`, whose verbs validate a station before opening the file, so an editor write is not a shape violation to be measured but a route that no longer exists. Nothing here duplicates `check-plan-routes.py`: that tool judges a document, the gate refuses an author.
+
+**Two field rules the skill now states in one line each (FEAT-60).** `traces:` carries `SC-NN` only; `D-NN` goes in the `decisions:` block — carrying both made the field mean two things and nothing ever read the second. And `pending` is not a station and never was one: the six stations are the ones `harness.json` declares, plus `abandoned`, and `plan-merge.py` refuses any other value with exit 4.
 
 ---
 
@@ -5435,6 +5471,8 @@ rather than through a run whose gates were the thing changing; and DEC-189, the 
 resolution this rule sits on top of, whose filed Bash-route asymmetry this closes for the boundary
 case alone. DEC-150 for the shape caps, and DEC-180 for why a rooted session is already governed.
 
+**Why the vocabulary rule is in the brief skill (moved from `harness-brief` under FEAT-60).** Reusing existing names is the highest-yield rule in a brief and the cheapest to skip: a brief is read by agents that then write code, and a name invented beside an existing one is drift discovered at ship time, in a diff nobody can attribute. Naming one segment two ways in two documents is how this entry and the layout migration drifted apart.
+
 
 ## DEC-194 — A partial layout migration is judged per coupled surface, and a reader matching neither form is cannot-verify
 
@@ -5800,6 +5838,8 @@ authority on the count, the brief the signed one, and neither is edited to match
 **The bound on the whole ruling is identity.** A Bash-invoked CLI has no identity source — no `agent_type` reaches it
 and no environment variable carries one — so it checks WHERE it writes, never WHO called it. That route is reachable
 from a read-only persona because `bash-write-guard.sh` is allow-by-omission (#627), not fixed here.
+
+**The observations log's own instance (moved from `harness-expertise` under FEAT-60).** Issue #606 was the earlier `harness-expertise` instruction to Read-then-Write the observations log: two contexts of one agent each read, each wrote the whole file, and the second erased the first. `observations-merge.py` holds the mechanism; this is the attribution.
 
 ## DEC-200 — The pull request number is derived at ship time from the recorded branch, and write-only survives on the destination AND on the absence of a competing local receipt
 
@@ -7171,6 +7211,8 @@ validate still crosses one boundary to reach its fix — accepted, because `buil
 **Record:** amends DEC-118, which now states the build-only bound. Refs: DEC-116, DEC-118, DEC-176,
 DEC-226, DEC-228.
 
+**One mechanism clause the lead skill now cites (FEAT-60).** `check-domain.sh` keys every write on the persona, not on the host — a borrowed member's grant is exactly what it is under its own lead.
+
 ## DEC-225 — The `patch` mission: a known-cause bug is gated at validate on its diff, not at plan on a document
 
 **Chose:** two missions, judged by the harness at the end of grilling and written to the grilling
@@ -7209,6 +7251,8 @@ procedure.
 
 **Record:** amends DEC-139, which keeps the investigation segment and the `BUG-NN` flow. Refs:
 DEC-120, DEC-139, DEC-228, DEC-230.
+
+**The qa pairing rule in prose (FEAT-60; previously only in `validate-digest.py` and `harness-handoff`).** qa's `fail_first` names, per `verify: automated` SC, the evidence its test failed before the fix; `PASS` with `matrix_ok: true` and an empty `fail_first` is rejected (FEAT-59 SC-17).
 
 ## DEC-226 — The batched signature review is also the one rework ruling; the orchestrator loops inside it without asking
 
@@ -7318,6 +7362,8 @@ signed without that reading, and the digest says so.
 digest validator, the state check and their tests cite that number for the plan-target binding this
 entry now holds. Refs: DEC-176, DEC-188, DEC-207, DEC-209, DEC-216, DEC-225, DEC-229, DEC-230.
 
+**One reader rule stated here (moved from `harness-brief` under FEAT-60).** An orphan SC — a criterion no task traces to — is a `substance` finding, because a criterion nothing builds toward is a promise nothing will keep.
+
 ## DEC-229 — `record-panel` is an orchestrator-runnable verb; pm still authors the plan
 
 **Chose:** `plan-merge.py record-panel --digest <path>` writes the top-level `panel:` mapping from a
@@ -7413,6 +7459,8 @@ perspective block with the SCs.
 
 **Record:** refs DEC-132, DEC-133, DEC-215, DEC-228, DEC-230.
 
+**Why an empty perspective is omitted (moved from `harness-brief` under FEAT-60).** A perspective with nothing to say is omitted rather than written as `none`, because an empty promise is still a promise the goal-check has to grade.
+
 ## DEC-232 — Plan anchors are symbols — `path`, `path#symbol`, `{path, quote}` — a line number is refused at write, and a stale anchor at build is the builder's
 
 **Chose:** a plan task's `files:` entry takes one of three forms — `path`, `path#symbol`, or
@@ -7440,3 +7488,5 @@ Accepted because a broken quote is a builder's re-resolution, never a gate. `che
 symbol renamed after plan exit; the builder's re-resolution is the second and last line.
 
 **Record:** refs DEC-177, DEC-179, DEC-205, DEC-228, DEC-229.
+
+**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on kaya FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.sh exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
