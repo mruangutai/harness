@@ -39,20 +39,27 @@ Look for: correctness bugs · unhandled errors · **silent failure paths** · mi
 dropped async rejections · boundary and off-by-one conditions · resource leaks · dead code left behind ·
 copy-paste divergence · comments that no longer match the code.
 
-**For every absence assertion, ask what presence assertion sits beside it (DEC-169).** A verify
-step that only proves the wrong words are gone passes when the right words are deleted too —
-demonstrated live: SC-13's grep passed on a variant that removed two load-bearing rows.
-
 **Fail-open is the highest-value pattern to hunt.** Measured in this project's history: a dangling
 reference that resolved to "valid" instead of blocking, a filter that returned a fabricated result on a
 partial match. Both passed their test suites. Ask of every branch: *when this lookup misses, does it
 block or does it sail through?*
 
+Do **not** report what a linter catches, and do not restyle to personal preference.
+
+### Absence, subject and mutant (DEC-169, issue #979)
+
+The one canonical copy; `harness-verification-rules` and `harness-review` point here.
+
+**For every absence assertion, ask what presence assertion sits beside it (DEC-169).** A check
+that only proves the wrong words are gone passes when the right words are deleted too — `sed -d`
+satisfies an absence-grep completely; the measured variant is DEC-169's table.
+
 **The assertion's subject (issue #979).** Nine real instances shipped past review because each
 one looked like verification and verified nothing — an assertion whose subject was not the thing
 it claimed to bind: prose about a mechanism, not the mechanism; a design document, not the API; a
-stub, not the collaborator; a substring, not the count. None failed loudly. All went green. For
-every new or changed assertion, ask two questions and report a finding if either has no answer:
+stub, not the collaborator; a substring, not the count; a comparison that is false either way, not
+the operator under test. None failed loudly. All went green. For every new or changed assertion,
+ask two questions and report a finding if either has no answer:
 
 1. **What subject does this actually bind?** Not what it is near, not what it is named after —
    the literal thing the assertion reads or executes. A test named `test_omits_deleted_tool` that
@@ -63,18 +70,27 @@ every new or changed assertion, ask two questions and report a finding if either
    plausible English sentence, which is not sufficient on its own for a criterion that claims to
    exclude a specific wrong implementation.
 
+**Any criterion claiming to exclude a specific wrong implementation must name the mutant and be
+provable by flipping it.** A criterion asserting `>=` where the code only ever exercised `>` with a
+value the comparison is true either way for excludes nothing — measured live: an under-threshold
+fixture whose value made both `28614 > 200000` and `28614 >= 200000` false, so the operator could
+be swapped and nothing reddened. Before signing off a criterion that names an operator, a
+threshold, or an exclusion, mutate the code to the wrong alternative and confirm the named test
+reddens. This is the single question in this defect class with the most teeth — ask it of every
+new assertion, not only the ones that feel risky.
+
 **Fixture provenance.** A fixture standing in for a nested or externally-produced artifact (a
 captured subagent transcript, a host response, a database snapshot) must say what it was captured
 *from* — depth, shape, or mode — not just that it was captured. "A main-session capture" tested
 green while never exercising the nested-subagent case the feature existed for; a provenance line
-would have said so before the gap shipped.
+would have said so before the gap shipped. If the plan or the code needs the nested case, demand a
+fixture that says so, not one that is merely present.
 
 **Measurement mode.** A claim about host or environment behaviour (a resolved package version, a
 binary's location, a runtime flag) is only as good as the mode it was measured under. `bun run`
 and `bun test` resolved three different copies of the same package in this project's own history.
-State the mode next to the claim.
-
-Do **not** report what a linter catches, and do not restyle to personal preference.
+State the mode next to the claim; never accept a claim measured under one execution mode as
+covering another.
 
 ### Grade changed Python
 

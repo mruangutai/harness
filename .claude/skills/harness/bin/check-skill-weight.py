@@ -26,7 +26,7 @@ import yaml
 
 AGENTS_REL = Path(".omp") / "agents"
 SKILLS_REL = Path(".claude") / "skills"
-CONFIG_REL = Path(".harness") / "harness.json"
+CONFIG_REL = ".harness/harness.json"   # config path, not a root probe (test-check-plan-routes case_20)
 BUDGET_KEY = "preload_warn_words"
 BUDGET_FIELDS = ("universal", "agent")
 

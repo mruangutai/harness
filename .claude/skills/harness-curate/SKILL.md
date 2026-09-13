@@ -29,6 +29,9 @@ asks for a cleanup.
    - Every entry becomes **WHEN <situation> DO <action>**, ≤50 words, or a durable repo fact.
    - Strip feature/task/issue IDs (`FEAT-NN`, `T-NN`, `#NN`) and per-incident case histories —
      an entry citing multiple incidents keeps the rule and drops the cases.
+   - A file that is itself a SKILL.md, or a cut that would land in one, obeys the three-part
+     rule for skill text (DEC-158, FEAT-60): *if a gate refuses on it, name the gate; if a
+     decision holds it, point; if one seam needs it, reference it.* Never put the weight back.
    - Re-home entries into the four canonical sections (Patterns/Gotchas/Outcomes/Open); entries
      under invented section names are still real lessons — reclassify, don't discard.
    - Respect caps (15/15/10/5, 150 lines). When a section overflows, keep the entries that pass

@@ -49,11 +49,6 @@ Read **two** signals, never just the exit code: what kind of failure, not merely
 | **locally-run** | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials) | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
 | **misconfigured** | `cmd` is null/absent · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
 
-**An absence assertion is never a check on its own (DEC-169).** For every "X is gone" assertion,
-name the presence assertion beside it — `sed -d` satisfies an absence-grep completely and can delete
-the thing that had to stay. Demonstrated live: SC-13's grep passed on a variant that removed two
-load-bearing rows.
-
 ⚠️ **Do not use "zero tests collected" to detect misconfiguration.** `node --test src/` reports
 `tests 1 / fail 1` for a module-load error. **The failure kind is the signal.**
 
@@ -84,32 +79,22 @@ in-place source edits in the main checkout by design. Run the proof in a disposa
 (`isolation: worktree`, or `git worktree add`); verify the restore with
 `git status --porcelain <path>`, never a read-back.
 
-## Every criterion names its mutant, and its subject (issue #979)
+## Absence, subject and mutant (DEC-169, issue #979)
 
-Nine real instances shipped past review because an assertion's subject was not the thing it
-claimed to bind: prose about a mechanism, not the mechanism; a stub, not the collaborator; a
-substring, not the count; a comparison that is false either way, not the operator under test. None
-failed loudly — all read as passing verification while verifying nothing.
+**An absence assertion is never a check on its own (DEC-169).** For every "X is gone" assertion,
+name the presence assertion beside it — `sed -d` satisfies an absence-grep completely and can delete
+the thing that had to stay.
 
-**Any criterion claiming to exclude a specific wrong implementation must name the mutant and be
-provable by flipping it.** A signed criterion asserting `>=` where the code only ever exercised
-`>` with a value the comparison is true either way for excludes nothing — measured live: an
-under-threshold test fixture whose value made both `28614 > 200000` and `28614 >= 200000` false,
-so the operator could be swapped and nothing reddened. Before signing off a criterion that names an
-operator, a threshold, or an exclusion, mutate the code to the wrong alternative and confirm the
-named test reddens. This is the single question in this defect class with the most teeth — ask it
-of every new assertion, not only the ones that feel risky.
+**Every criterion claiming to exclude a specific wrong implementation names its mutant (issue
+#979).** Before signing off a criterion that names an operator, a threshold, or an exclusion,
+mutate the code to the wrong alternative and confirm the named test reddens — of every new
+assertion, not only the ones that feel risky. A fixture names what it was captured *from*; a claim
+about host behaviour names the mode it was measured under.
 
-**Fixture provenance.** A fixture standing in for a nested or externally-produced artifact must
-name what it was captured *from* — depth, shape, or mode. A fixture captured from a main-session
-run is not proof of a nested-subagent path; if the plan or the code needs the nested case, demand a
-fixture that says so, not one that is merely present.
-
-**Measurement mode.** A claim about host or environment behaviour (a resolved package version, a
-binary's location) is only as good as the mode it was measured under — `bun run` and `bun test`
-resolved three different copies of the same package in this project's own history. If a coverage
-gap or an added test depends on measuring the real host, state the mode next to the claim; do not
-accept a claim measured under one execution mode as covering another.
+The canonical block — the two subject-binding questions, fixture provenance, measurement mode and
+the measured instances behind each rule — is
+`<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness-code-review/SKILL.md § Absence, subject and mutant (DEC-169, issue #979)`.
+Read it in Phase 2 before you sign off any criterion or added test.
 
 ## You supply the evidence, not the verdict on the goal
 
@@ -122,29 +107,12 @@ to the user.
 
 ## Your DIGEST
 
-```yaml
-suite: pass|fail|n/a           # n/a ONLY if the suite could not be run at all.
-                               # `suite: fail` with VERDICT: PASS is rejected — a gate that
-                               # FAILED cannot have passed, and saying so honestly while
-                               # claiming PASS is the same fail-open as declining to say
-failures: <n>
-coverage_gaps: [<area>]        # incl. any Phase 1 expectation with no test
-matrix_ok: <bool>|n/a          # a BOOL. "mostly" is a contract violation.
-                               # n/a ONLY if the matrix could not be evaluated;
-                               # n/a with VERDICT: PASS is rejected — DEC-173.
-                               # `matrix_ok: false` with VERDICT: PASS is rejected too, and
-                               # the BOOLEAN spelling is the reason it needed its own gate:
-                               # one keyed on the string "fail" never fires here (DEC-175)
-fail_first: [{ sc: SC-01, evidence: "<path or receipt line>" }]
-                               # one entry per `verify: automated` SC: the evidence that its
-                               # test FAILED before the fix. PASS + matrix_ok: true + [] is
-                               # rejected — a green suite with no fail-first evidence is not
-                               # a pass (FEAT-59 SC-17). [] only with matrix_ok: n/a or a
-                               # non-PASS verdict
-```
-
-**You gain neither `task` nor `task_verify`.** Those bind the five dev specialists only. Adding
-either to a qa return is the schema leak SC-05 exists to catch.
+The documented contract is `<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md § Output`; `validate-digest.py` refuses a
+digest that breaks it and names the field, the rejected pairing and the repair — read its message,
+never guess a value. Your fields: `suite`, `failures`, `coverage_gaps` (every Phase 1 expectation
+with no test is one), `matrix_ok` (a bool), `fail_first` (one `{ sc, evidence }` per
+`verify: automated` SC), plus `kinds` and `sc_evidence`. `task` and `task_verify` bind the five dev
+specialists only; the validator refuses them on a qa return (SC-05).
 
 ## Red flags
 
