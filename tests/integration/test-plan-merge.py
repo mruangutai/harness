@@ -3178,9 +3178,11 @@ def case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone():
 
 def case_f59_sign_approval_rework_writes_feature_json():
     """SC-15 / C1: at signature the operator records ONE rework ruling. `sign-approval
-    --rework rounds=N,minutes=M --decision PATH` writes approval, then sets `rework` on the
-    sibling feature.json through feature_json_write. An absent feature.json is refused (exit 2,
-    naming the path) BEFORE the approval is written; --rework without --decision is exit 2."""
+    --rework rounds=N,minutes=M --decision PATH` sets `rework` on the sibling feature.json
+    through feature_json_write, THEN writes approval (review F4: a ruling without a signature
+    is harmless; a signature without its ruling is the half-state SC-15 exists to prevent). An
+    absent feature.json is refused (exit 2, naming the path) BEFORE anything is written;
+    --rework without --decision is exit 2."""
     import json
     root, plan = fixture_root()
     try:
@@ -3217,6 +3219,249 @@ def case_f59_sign_approval_rework_writes_feature_json():
         check("the other feature.json keys are untouched",
               doc.get("feature_id") == "FEAT-99-fixture" and doc.get("runs") == [], repr(doc))
         check("the receipt records the ruling", "REWORK" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# FEAT-59 independent review (PR #1678) — the findings, each with the scenario it named.
+# ---------------------------------------------------------------------------
+
+
+def _approved_with(approval_text):
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n" + approval_text
+            + "tasks:\n" + task_block("T-01"))
+
+
+def case_f59_review_f3_approval_reset_is_verified_not_reported():
+    """REVIEW F3. `_reset_approval_lines` matched `^  status:\\s*approved\\b` — a fixed indent
+    and an unquoted value — and `_maybe_reset_approval` reported `reset=True` whether or not
+    that line was found. Proven: a base with `status: "approved"` or a four-space approval
+    body printed APPROVAL-RESET, exited 0, and reloaded as approved — SC-08's negative half.
+    Now the key is found by name at the mapping's own indent, and the splice is VERIFIED: the
+    result must reload as pending or the whole change is refused with the signature verifier's
+    exit 5 and nothing written."""
+    root, plan = fixture_root()
+    try:
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-02"))
+
+        write(plan, _approved_with('approval:\n  status: "approved"\n  approved_by: X\n'
+                                   '  date: 2026-01-01\n'))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        a = _approval_of(plan)
+        check("f3/quoted: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f3/quoted: a quoted \"approved\" reloads as pending with the reset record",
+              a.get("status") == "pending" and a.get("reset_reason") == "apply T-02", repr(a))
+        check("f3/quoted: the receipt says APPROVAL-RESET only because it landed",
+              "APPROVAL-RESET" in r.stdout, r.stdout)
+
+        write(plan, _approved_with("approval:\n    status: approved\n    approved_by: X\n"
+                                   "    date: 2026-01-01\n"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        a, after = _approval_of(plan), read(plan)
+        check("f3/indent4: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f3/indent4: a four-space approval body reloads as pending with the reset record",
+              a.get("status") == "pending" and a.get("reset_reason") == "apply T-02", repr(a))
+        check("f3/indent4: the reset lines are written at the body's own indent",
+              "    status: pending\n" in after and "    reset_reason: apply T-02\n" in after
+              and "\n  status:" not in after, after)
+
+        before = write(plan, _approved_with(
+            "approval: {status: approved, approved_by: X, date: 2026-01-01}\n"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("f3/flow: a shape the splice cannot reset is REFUSED with the signature "
+              "verifier's exit 5", r.returncode == 5 and "pending" in r.stderr,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("f3/flow: nothing is written — the plan is byte-identical", read(plan) == before,
+              read(plan))
+        check("f3/flow: no APPROVAL-RESET receipt over a standing signature",
+              "APPROVAL-RESET" not in r.stdout and "ADDED" not in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_review_f4_rework_is_recorded_before_the_signature():
+    """REVIEW F4. `cmd_sign_approval` signed the plan and THEN called `_record_rework`, so a
+    feature.json refusal past the existence check — invalid JSON, a schema regression, a lock
+    timeout — left the plan approved with no ruling recorded and a non-zero exit: the half-state
+    SC-15 exists to prevent. The ruling is recorded first; a ruling without a signature is
+    harmless and the plan is simply re-signed, which the refusal now says."""
+    import json
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))                       # pending
+        fj = os.path.join(os.path.dirname(plan), "feature.json")
+        write(fj, "{not json\n")
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        check("f4: a feature.json refusal propagates feature_json_write's exit 11",
+              r.returncode == 11, f"rc={r.returncode} {r.stderr!r}")
+        check("f4: and leaves approval pending — the plan is byte-identical",
+              read(plan) == before and _approval_of(plan).get("status") == "pending", read(plan))
+        check("f4: no SIGNED receipt for a signature that was not written",
+              "SIGNED" not in r.stdout, r.stdout)
+
+        write(fj, json.dumps({"feature_id": "FEAT-99-fixture", "branch": "feat/x",
+                              "max_total_cycles": 10, "cycles_used": 0, "runs": []}, indent=2) + "\n")
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks: [\n")      # will not parse
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        doc = json.loads(read(fj))
+        check("f4: a plan refusal after the ruling was recorded still refuses (exit 5)",
+              r.returncode == 5, f"rc={r.returncode} {r.stderr!r}")
+        check("f4: the ruling stands in feature.json",
+              doc.get("rework") == {"rounds": 2, "wall_clock_minutes": 90,
+                                    "decision": "notes/ruling.md"}, repr(doc))
+        check("f4: the refusal says the ruling was recorded and the plan is re-signed",
+              fj in r.stderr and "re-run" in r.stderr.lower(), r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_review_f7_apply_never_writes_a_task_status():
+    """REVIEW F7. `_replace_fields` excluded only `id`, so a pm proposal re-applied after build
+    entry — still carrying the `status: pending` it was drafted with — rolled T-01 back from
+    `building` and, because that counted as a changed task, voided the signature mid-build.
+    A task's station is set-task-station's (and gh-sync's) alone: a proposal's `status` on an
+    EXISTING task is ignored with a printed IGNORED line, never replaced, and a status-only
+    difference is not a task change."""
+    root, plan = fixture_root()
+    try:
+        building = ("schema: plan/1\nfeature: FEAT-99-fixture\n"
+                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+                    "tasks:\n  - id: T-01\n    title: Task T-01\n    status: building\n")
+        write(plan, building)
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-01"))
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        doc = yaml.safe_load(read(plan))
+        check("f7/status-only: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f7/status-only: T-01 keeps its station", doc["tasks"][0]["status"] == "building",
+              repr(doc["tasks"]))
+        check("f7/status-only: the signature stands — a status-only difference is not a "
+              "task change", doc["approval"].get("status") == "approved"
+              and "reset_at" not in doc["approval"], repr(doc["approval"]))
+        check("f7/status-only: the receipt prints IGNORED, not REPLACED or APPROVAL-RESET",
+              "IGNORED T-01.status" in r.stdout and "REPLACED" not in r.stdout
+              and "APPROVAL-RESET" not in r.stdout, r.stdout)
+        check("f7/status-only: every other byte is identical", read(plan) == building, read(plan))
+
+        write(plan, building)
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-01\n    title: renamed\n    status: pending\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        doc = yaml.safe_load(read(plan))
+        check("f7/mixed: apply exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f7/mixed: the title is replaced and the station is kept",
+              doc["tasks"][0]["title"] == "renamed" and doc["tasks"][0]["status"] == "building",
+              repr(doc["tasks"]))
+        check("f7/mixed: a real task change still voids the signature",
+              doc["approval"].get("status") == "pending", repr(doc["approval"]))
+        check("f7/mixed: REPLACED names the title and IGNORED names the status",
+              "REPLACED T-01.title" in r.stdout and "IGNORED T-01.status" in r.stdout
+              and "REPLACED T-01.status" not in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f59_review_f8_record_panel_opens_every_new_finding():
+    """REVIEW F8 (security SEC-04). `_digest_finding` took `disposition` from the digest, so a
+    lead could land a new high substance finding pre-resolved and INV-32 would only warn. A
+    NEW finding is appended open regardless of what the digest says — resolution is set-panel
+    and ruling territory; a carried finding keeps its base disposition, whatever the digest
+    says about it."""
+    root, plan = fixture_root()
+    try:
+        fid = _pf("scope", "T-01 has no verify")
+        write(plan, _panel_base(fid))                                     # carried: resolved
+        digest = os.path.join(root, "digest.md")
+        findings = [
+            {"kind": "substance", "severity": "high", "reader": "scope",
+             "summary": "T-01 has no verify", "disposition": "open"},     # carried, base wins
+            {"kind": "substance", "severity": "high", "reader": "scope",
+             "summary": "T-02 ships without a test", "disposition": "resolved"},
+            {"kind": "form", "severity": "low", "reader": "scope",
+             "summary": "D-01 restates DEC-100", "disposition": "not-a-disposition"},
+        ]
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}], findings))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "2026-09-11-c1-validator")
+        got = (yaml.safe_load(read(plan)).get("panel") or {}).get("findings") or []
+        by_id = {f.get("id"): f for f in got}
+        check("f8: record-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f8: a new finding the digest calls resolved is written open",
+              by_id.get(_pf("scope", "T-02 ships without a test"), {}).get("disposition") == "open",
+              repr(got))
+        check("f8: a new finding with a nonsense disposition is written open, not refused",
+              by_id.get(_pf("scope", "D-01 restates DEC-100"), {}).get("disposition") == "open",
+              repr(got))
+        check("f8: the carried finding keeps its base disposition against the digest's open",
+              by_id.get(fid, {}).get("disposition") == "resolved"
+              and by_id.get(fid, {}).get("resolved_by") == "T-02", repr(got))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _finding_text(fid, summary, tail=""):
+    return (f"    - id: {fid}\n      severity: med\n      reader: scope\n      kind: substance\n"
+            f"      summary: {summary}\n      disposition: open\n" + tail)
+
+
+def _comment_panel_base(findings_text):
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n\n" + DEFAULT_APPROVAL + "\n"
+            "panel:\n  last_run: 2026-09-10-c0-validator\n  cycle: 0\n"
+            "  readers:\n    - reader: scope\n      status: ran\n"
+            "  findings:\n" + findings_text
+            + "  # unrated is gating-equivalent to high, so omitted judgment fails closed.\n\n"
+            "tasks:\n" + task_block("T-01"))
+
+
+def case_f59_review_f10_panel_splice_keeps_a_comment_with_the_finding_it_followed():
+    """REVIEW F10. `_findings_by_id` bounded each carried finding at `_item_delete_end`, before
+    its trailing comment, and `_findings_lines` emitted only those ranges — so the template's
+    own `# resolved_by: T-NN` note under the last finding was re-emitted AFTER the appended one,
+    and a comment BETWEEN two findings was dropped altogether. A finding is carried through its
+    full dash-to-dash range: the comment stays with the finding it followed, and the block-level
+    comment at the sub-key indent stays after the whole list."""
+    root, plan = fixture_root()
+    try:
+        note = "      # resolved_by: T-NN            # present only when resolved\n"
+        fid1, fid2 = _pf("scope", "T-01 has no verify"), _pf("scope", "T-02 has no verify")
+        new_id = _pf("scope", "new one")
+        digest = os.path.join(root, "digest.md")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "form", "severity": "low", "reader": "scope",
+                                   "summary": "new one"}]))
+
+        one = _finding_text(fid1, "T-01 has no verify", note)
+        write(plan, _comment_panel_base(one))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "r1")
+        after = read(plan)
+        check("f10/last: record-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f10/last: the carried finding and its trailing note are one contiguous run of "
+              "bytes, and the new finding follows the note",
+              one in after and after.index(one) + len(one) == after.index(f"    - id: {new_id}\n"),
+              after)
+        check("f10/last: the block-level comment stays after the whole list, before tasks:",
+              after.index(f"    - id: {new_id}\n") < after.index("  # unrated is gating")
+              < after.index("\ntasks:\n"), after)
+        check("f10/last: the panel reloads with both findings",
+              [f["id"] for f in yaml.safe_load(after)["panel"]["findings"]] == [fid1, new_id], after)
+
+        two = (_finding_text(fid1, "T-01 has no verify", "      # a note about the first\n")
+               + _finding_text(fid2, "T-02 has no verify"))
+        write(plan, _comment_panel_base(two))
+        r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
+                     "--last-run", "r1")
+        after = read(plan)
+        check("f10/between: record-panel exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("f10/between: a comment between two carried findings is kept, in place",
+              two in after, after)
+        check("f10/between: the panel reloads with all three findings",
+              [f["id"] for f in yaml.safe_load(after)["panel"]["findings"]]
+              == [fid1, fid2, new_id], after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -3306,6 +3551,11 @@ CASES = (
     case_f59_approval_auto_reset_on_every_task_changing_verb,
     case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone,
     case_f59_sign_approval_rework_writes_feature_json,
+    case_f59_review_f3_approval_reset_is_verified_not_reported,
+    case_f59_review_f4_rework_is_recorded_before_the_signature,
+    case_f59_review_f7_apply_never_writes_a_task_status,
+    case_f59_review_f8_record_panel_opens_every_new_finding,
+    case_f59_review_f10_panel_splice_keeps_a_comment_with_the_finding_it_followed,
 )
 
 
