@@ -50,7 +50,7 @@ recorded in the wrong checkout is why the previous planning run could not spawn 
 |---|---|
 | **Two or more members match** | Delegate to each in turn, then consolidate. Do not pick one arbitrarily |
 | **No member matches** | **Do not guess and do not do it yourself.** Return `open_questions`: "no specialist owns X." A silently mis-routed task is worse than a halt |
-| **The match is outside your squad** | Outside a `plan`/`validate`/`fix` team you cannot reach past your own team — escalate, and the orchestrator routes laterally to the right lead. Inside one, the team file already names the cross-squad member; spawn it |
+| **The match is outside your squad** | Two cases. A **task** you are placing: route it by `consult-when` within your own squad; outside it, escalate, and the orchestrator carries the question to the right lead — you cannot reach another lead. A **team step**: the team file already names the persona, whatever squad it belongs to; spawn it. The file did the routing (DEC-224) |
 | **The work needs splitting into separate tasks** | That is a plan change. Escalate to `pm` |
 
 ## What assessing actually means

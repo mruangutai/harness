@@ -47,10 +47,11 @@ never at startup (DEC-150, DEC-158):
    on it — then the title `FEAT-NN · <step or task id> · <what, 3–6 words>` (DEC-142). Every
    dispatch is a plain subagent: **never pass a `name:` parameter** (DEC-147). A whole team goes to
    its named lead, which hosts the DAG via `harness-team`; a single task goes to the lead that owns
-   the persona. In the `build` segment cross-squad work is one run per squad, sequenced by you — a
-   lead cannot dispatch another squad (DEC-118); the `plan`, `validate` and `fix` teams are the
-   amended exception (DEC-224): one lead hosts read-only or fix members from other squads, and
-   independence holds at the persona level, reviewer distinct from author. Pass paths, never
+   the persona. A lead spawns only the personas its own `spawns:` list names, and no lead is ever
+   in that list — so cross-squad *leads* are always two dispatches sequenced by you (DEC-118). The
+   `build` team's lead spawns one squad; the `plan`, `validate` and `fix` teams' leads also spawn
+   readers and devs from other squads (DEC-224). Independence holds between personas — the
+   reviewer is never the author — not between squads. Pass paths, never
    content; pin `review_sha` before any validator run over code (INV-6). A dispatch asking a
    question names where the answer belongs: `adequacy_notes`, a step's `evidence`, or the digest —
    never a new digest key.
@@ -155,9 +156,10 @@ Members raise `open_questions`; their lead unions them upward; **you** are the r
 **`awaiting_user` is the LAST rung, not the first**:
 
 1. **Answer it yourself** from BRIEF, PLAN, or a digest already on disk.
-2. **Route it to the squad that owns the domain**, through its lead; the lateral hop is yours
-   (DEC-118). Record the resolution in the `escalations` trace; one that changes scope becomes a
-   `D-NN` under the user's approval.
+2. **Route it to the squad that owns the domain.** A lead cannot reach another lead, so when a
+   question belongs to a different squad you carry it there yourself: dispatch that squad's lead
+   with the question, then re-dispatch the asker with the answer (DEC-118). Record the resolution
+   in the `escalations` trace; one that changes scope becomes a `D-NN` under the user's approval.
 3. **Only when no squad can answer it** does it return `awaiting_user`, named in `open_questions`.
 
 Re-delegated with an answers file, pass its **path** — `resume_from` semantics. **Trust ONLY the
