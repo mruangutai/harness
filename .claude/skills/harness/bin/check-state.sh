@@ -2586,6 +2586,38 @@ if _lmod is not None:
                 bad.append(f"INV-27 CANNOT VERIFY {_sname}: "
                            f"{_lmod.cause_text(_srep, root)}{_suffix}. {_lrem}")
 
+# --- INV-42 (FEAT-60 SC-08, DEC-174 direct work): preload weight. Every autoloadSkills
+# entry is text paid on every spawn; check_skill_weight measures it per agent and for the
+# universal set and compares against budgets.preload_warn_words. An excess is a NOTE and
+# never a violation — weight is a cost the operator trades off, not a defect. What IS a
+# violation is the module's own error list: a preload that resolves to nothing (the agent
+# spawns without a rule it was declared to carry) or a references/ file named as a preload
+# (SC-11). The import posture is INV-27's: the module ships with the tree.
+try:
+    import importlib.util as _ilu42
+    _spec42 = _ilu42.spec_from_file_location(
+        "check_skill_weight", os.path.join(sys.argv[2], "check-skill-weight.py"))
+    _csw = _ilu42.module_from_spec(_spec42)
+    sys.modules["check_skill_weight"] = _csw    # dataclasses resolve the module by name
+    _spec42.loader.exec_module(_csw)
+except Exception as _cswe:
+    _csw = None
+    bad.append("INV-42 CANNOT RUN: check-skill-weight.py did not import (%s: %s), so an "
+               "agent preloading a missing skill would go unreported. The module ships with "
+               "this repository — restore .claude/skills/harness/bin/check-skill-weight.py."
+               % (type(_cswe).__name__, _cswe))
+if _csw is not None:
+    try:
+        _wres = _csw.scan(root)
+    except Exception as _wse:
+        _wres = None
+        bad.append("INV-42 CANNOT RUN: the preload scan raised (%s: %s)."
+                   % (type(_wse).__name__, _wse))
+    if _wres is not None:
+        bad.extend(f"INV-42 {_e}." for _e in _wres.errors)
+        warn.extend(f"INV-42 {_n}. Cut per DEC-158 (rule, one clause, pointer) or raise "
+                    f"budgets.preload_warn_words in .harness/harness.json." for _n in _wres.notes())
+
 # --- INV-31 (FEAT-40 T-08, REQ-02/REQ-09): this clone's merge hook is not installed.
 #
 # WHY IT EXISTS AT ALL. The setup step lives in `.claude/skills/harness-init/SKILL.md`, whose
