@@ -16,7 +16,9 @@ VERBS
   raise-cycles  write max_total_cycles AND append the budget_decisions[] record the raise rests
                 on (DEC-157); refuses (exit 2) a value that does not raise it.
   set-mission   write mission: patch | plan (SC-01).
-  spend         read-only: print one JSON object {runs, wall_clock_minutes, tokens, phase}.
+  spend         read-only: print one JSON object {runs, wall_clock_minutes, tokens, phase,
+                rework_minutes, rework_rounds} — the last two are the rework window, from
+                the first validate-* run; the ruling is compared to those, never the whole.
 
 TOKENS ARE MEASURED BY THE CALLER, OR NULL — THIS TOOL NEVER ESTIMATES (SC-18). `run-end
 --tokens N` records a figure the caller read off the OMP transcript on disk; a run-end that
@@ -205,25 +207,40 @@ def _parse_iso(value):
         return None
 
 
+def _run_seconds(entry):
+    """Whole seconds a closed run took, or 0 for one still open or unstamped."""
+    started = _parse_iso(entry.get("started_at"))
+    ended = _parse_iso(entry.get("ended_at"))
+    if started is None or ended is None or ended <= started:
+        return 0
+    return int((ended - started).total_seconds())
+
+
 def spend_for(doc):
-    """The four-key spend summary for a parsed feature.json (pure; used by `spend`)."""
-    runs = _runs(doc)
-    seconds = 0
-    tokens = None
-    for entry in runs:
-        if not isinstance(entry, dict):
-            continue
-        started = _parse_iso(entry.get("started_at"))
-        ended = _parse_iso(entry.get("ended_at"))
-        if started is not None and ended is not None and ended > started:
-            seconds += int((ended - started).total_seconds())
-        measured = entry.get("tokens")
-        if isinstance(measured, int) and not isinstance(measured, bool):
-            tokens = (tokens or 0) + measured
+    """The spend summary for a parsed feature.json (pure; used by `spend`).
+
+    `wall_clock_minutes` is the whole feature — the lagging figure the briefing reports.
+    `rework_minutes` and `rework_rounds` are the REWORK WINDOW: every run from the first
+    `validate-*` id onward, and the count of `fix-*` runs in it. The operator's
+    `rework.wall_clock_minutes` ruling is a budget for rework, so the hook compares it to
+    the window, never to the whole — before this split a 60-minute plan run and a 40-minute
+    build ate 100 of a 120-minute ruling before the first fix round existed.
+    """
+    runs = [entry for entry in _runs(doc) if isinstance(entry, dict)]
+    seconds = sum(_run_seconds(entry) for entry in runs)
+    measured = [entry["tokens"] for entry in runs
+                if isinstance(entry.get("tokens"), int) and not isinstance(entry.get("tokens"), bool)]
+    tokens = sum(measured) if measured else None
+    first_validate = next((i for i, entry in enumerate(runs)
+                           if str(entry.get("id", "")).startswith("validate-")), None)
+    window = runs[first_validate:] if first_validate is not None else []
     github = doc.get("github")
     has_build_entry = isinstance(github, dict) and "build_entry" in github
     return {"runs": len(runs), "wall_clock_minutes": seconds // 60, "tokens": tokens,
-            "phase": "build" if has_build_entry else "plan"}
+            "phase": "build" if has_build_entry else "plan",
+            "rework_minutes": sum(_run_seconds(entry) for entry in window) // 60,
+            "rework_rounds": sum(1 for entry in window
+                                 if str(entry.get("id", "")).startswith("fix-"))}
 
 
 def cmd_spend(args):

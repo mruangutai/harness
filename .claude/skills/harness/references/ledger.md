@@ -42,8 +42,10 @@ they verify after the fact, from the reason line, never by ruling in-flight (SC-
 
 On your wake the harness hook runs `feature-record.py spend` and appends one `SPEND:` advisory
 line when the plan phase has run past `budgets.plan_phase_warn_minutes` in
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`, or the build phase past the ruling's
-`rework.wall_clock_minutes`. The line names the measured minutes and tokens, the key and the ratio;
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`, or the **rework window** — every run from
+the first `validate-*` onward, `spend`'s `rework_minutes` — past the ruling's
+`rework.wall_clock_minutes`. The ruling is a budget for rework, so plan and build minutes never
+count against it. The line names the measured minutes and tokens, the key and the ratio;
 the key is named here and the numeral never is. It ADVISES and never refuses (DEC-198): whether you
 continue, downgrade or stop is a `continue` judgement, and a handoff belongs at a seam (DEC-201).
 If no line arrives there is nothing to weigh.

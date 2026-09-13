@@ -66,6 +66,7 @@ Headline, trust, and guardrail; the rest are diagnostics. All measured from `fea
 | Zero-value runs (transcription-only, form-only re-gate) | 3/19 (BUG-285), ~8/51 (FEAT-54) | 0 |
 | Plan-phase wall-clock, grilling end → signature | BUG-285 6h20m | patch ≤ 30 min; plan ≤ 90 min |
 | Tokens per feature | none — SC-18 creates it | first 5 features set the baseline |
+| **Rework ratio** — `rework.rounds` used ÷ rounds ruled at signature, per feature — the leading signal | none — no ruling exists yet | read at 5 features: near 1.0 means the default ruling is tight or plans arrive defective; near 0.3 means slack. Runs-to-ship and wall-clock are lagging outcomes of this |
 
 The guardrail is asymmetric on purpose: the headline can halve and the feature still fails if
 defects start escaping, because that would mean judgement was removed rather than procedure. The

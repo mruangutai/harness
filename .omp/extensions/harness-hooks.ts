@@ -587,10 +587,13 @@ export function contextAccessorFailureText(accessor: string): string {
 //
 // The figure is what `feature-record.py spend` MEASURES from feature.json's
 // runs[].started_at/ended_at and tokens — never an estimate (SC-18). Before build
-// entry the budget is budgets.plan_phase_warn_minutes; after it, the operator's
-// own rework.wall_clock_minutes ruling, and with no ruling recorded nothing is
-// said, because there is nothing to measure against. Strictly greater, like the
-// context advisory: at or under the budget the wake costs zero extra tokens.
+// entry the budget is budgets.plan_phase_warn_minutes against the whole feature so
+// far; after it, the operator's own rework.wall_clock_minutes ruling against the
+// REWORK WINDOW — `rework_minutes`, every run from the first validate-* onward —
+// never against the whole, because the ruling is a budget for rework and the plan
+// and build phases are not rework. With no ruling recorded nothing is said, because
+// there is nothing to measure against. Strictly greater, like the context advisory:
+// at or under the budget the wake costs zero extra tokens.
 
 export const DEFAULT_PLAN_PHASE_WARN_MINUTES = 90;
 
@@ -603,6 +606,8 @@ export type SpendSummary = {
   wall_clock_minutes: number;
   tokens: number | null;
   phase: "plan" | "build";
+  rework_minutes: number;
+  rework_rounds: number;
 };
 
 // The JSON `feature-record.py spend` prints, validated field by field: a stdout
@@ -616,14 +621,15 @@ export function parseSpend(stdout: string): SpendSummary | undefined {
   }
   if (!parsed || typeof parsed !== "object") return undefined;
   const record = parsed as Record<string, unknown>;
-  const runs = record.runs;
-  const minutes = record.wall_clock_minutes;
-  const tokens = record.tokens;
-  const phase = record.phase;
+  const { runs, wall_clock_minutes: minutes, tokens, phase } = record;
+  const rework = record.rework_minutes;
+  const rounds = record.rework_rounds;
   if (typeof runs !== "number" || typeof minutes !== "number" || !Number.isFinite(minutes)) return undefined;
+  if (typeof rework !== "number" || !Number.isFinite(rework)) return undefined;
+  if (typeof rounds !== "number" || !Number.isFinite(rounds)) return undefined;
   if (tokens !== null && typeof tokens !== "number") return undefined;
   if (phase !== "plan" && phase !== "build") return undefined;
-  return { runs, wall_clock_minutes: minutes, tokens, phase };
+  return { runs, wall_clock_minutes: minutes, tokens, phase, rework_minutes: rework, rework_rounds: rounds };
 }
 
 // feature.json under either layout the checkout may use: `.harness/<repo>/features/`
@@ -684,8 +690,8 @@ export function spendAdvisoryFor(
       : undefined;
   }
   if (reworkMinutes === undefined) return undefined;
-  return spend.wall_clock_minutes > reworkMinutes
-    ? spendAdvisoryText(spend.wall_clock_minutes, spend.tokens, "build",
+  return spend.rework_minutes > reworkMinutes
+    ? spendAdvisoryText(spend.rework_minutes, spend.tokens, "build",
       "rework.wall_clock_minutes", reworkMinutes)
     : undefined;
 }

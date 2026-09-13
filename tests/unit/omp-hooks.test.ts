@@ -935,8 +935,8 @@ describe("context advisory injection", () => {
 // ---------------------------------------------------------------------------
 
 describe("spendAdvisoryFor", () => {
-  const spend = (minutes: number, phase: "plan" | "build") =>
-    ({ runs: 3, wall_clock_minutes: minutes, tokens: null, phase });
+  const spend = (minutes: number, phase: "plan" | "build", rework = 0) =>
+    ({ runs: 3, wall_clock_minutes: minutes, tokens: null, phase, rework_minutes: rework, rework_rounds: 0 });
 
   test("plan phase compares against plan_phase_warn_minutes, strictly greater", () => {
     expect(spendAdvisoryFor(spend(91, "plan"), undefined, 90)).toContain("budgets.plan_phase_warn_minutes = 90");
@@ -944,15 +944,19 @@ describe("spendAdvisoryFor", () => {
     expect(spendAdvisoryFor(spend(91, "plan"), 10, 90)).toContain("plan phase");
   });
 
-  test("build phase compares against the rework ruling and is silent without one", () => {
-    const line = spendAdvisoryFor(spend(61, "build"), 60, 90);
+  test("build phase compares the REWORK WINDOW against the ruling, never the whole feature", () => {
+    // 100 whole-feature minutes (plan + build) with 0 rework: under a 60-minute ruling,
+    // silent — the ruling is a budget for rework, and none has happened.
+    expect(spendAdvisoryFor(spend(100, "build", 0), 60, 90)).toBeUndefined();
+    // 61 rework minutes: the line names the window's figure, not the whole.
+    const line = spendAdvisoryFor(spend(161, "build", 61), 60, 90);
     expect(line).toContain("rework.wall_clock_minutes = 60");
     expect(line).toContain("build phase");
+    expect(line).toContain("61 wall-clock minutes");
     expect(line).toContain("1.02x");
-    expect(spendAdvisoryFor(spend(60, "build"), 60, 90)).toBeUndefined();
-    // No ruling recorded: the plan budget does not carry over, and there is
-    // nothing to measure against, so nothing is said.
-    expect(spendAdvisoryFor(spend(500, "build"), undefined, 90)).toBeUndefined();
+    expect(spendAdvisoryFor(spend(160, "build", 60), 60, 90)).toBeUndefined();
+    // No ruling recorded: nothing to measure against, so nothing is said.
+    expect(spendAdvisoryFor(spend(500, "build", 400), undefined, 90)).toBeUndefined();
   });
 
   test("names the measured tokens when a run carried one", () => {
@@ -1011,11 +1015,11 @@ describe("featureJsonPath", () => {
 describe("spend advisory injection", () => {
   const FEATURE = "FEAT-99-spend";
 
-  function runsSpanning(minutes: number) {
+  function runsSpanning(minutes: number, id = "r1") {
     const start = new Date("2026-09-11T10:00:00Z");
     const end = new Date(start.getTime() + minutes * 60_000);
     const iso = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "+00:00");
-    return [{ id: "r1", squad: "product", verdict: "PASS", agent: "harness-product-lead",
+    return [{ id, squad: "product", verdict: "PASS", agent: "harness-product-lead",
       started_at: iso(start), ended_at: iso(end), tokens: 48213 }];
   }
 
@@ -1101,9 +1105,19 @@ describe("spend advisory injection", () => {
     expect(calls.some((call) => call.script === "feature-record.py" && call.args[0] === "spend")).toBe(true);
   });
 
-  test("after build entry: the rework ruling is the budget", async () => {
-    const { handlers, ctx } = wakeFixture(checkout({
+  test("after build entry: the rework ruling is the budget, measured over the rework window", async () => {
+    // 135 minutes of runs, all of them plan/build — no validate-* run yet, so the
+    // rework window is empty and a 60-minute ruling is not exceeded. Silence.
+    const quiet = wakeFixture(checkout({
       runs: runsSpanning(135),
+      github: { build_entry: "opened" },
+      rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
+    }));
+    await asOrchestratorOn(quiet.handlers, quiet.ctx);
+    expect(await quiet.handlers.get("tool_result")?.(wake(), quiet.ctx)).toBeUndefined();
+    // The same 135 minutes inside a validate-* run IS rework, and the ruling is exceeded.
+    const { handlers, ctx } = wakeFixture(checkout({
+      runs: runsSpanning(135, "validate-validator"),
       github: { build_entry: "opened" },
       rework: { rounds: 2, wall_clock_minutes: 60, decision: "ruling-1" },
     }));
@@ -1111,8 +1125,8 @@ describe("spend advisory injection", () => {
     const line = patched(await handlers.get("tool_result")?.(wake(), ctx)).texts.at(-1) ?? "";
     expect(line).toContain("build phase");
     expect(line).toContain("rework.wall_clock_minutes = 60");
+    expect(line).toContain("135 wall-clock minutes");
   });
-
   test("after build entry with no rework ruling: nothing, even far past the plan budget", async () => {
     const { handlers, ctx } = wakeFixture(checkout({
       runs: runsSpanning(500), github: { build_entry: "opened" },

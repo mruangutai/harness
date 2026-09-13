@@ -241,7 +241,8 @@ class SpendTest(FeatureRecordCase):
 
     def test_spend_sums_whole_minutes_and_measured_tokens(self):
         self.write(base_doc(runs=self.RUNS))
-        self.assertEqual({"runs": 3, "wall_clock_minutes": 135, "tokens": 3500, "phase": "plan"},
+        self.assertEqual({"runs": 3, "wall_clock_minutes": 135, "tokens": 3500, "phase": "plan",
+                          "rework_minutes": 0, "rework_rounds": 0},
                          self.spend())
 
     def test_spend_reports_build_once_build_entry_is_recorded(self):
@@ -253,13 +254,51 @@ class SpendTest(FeatureRecordCase):
         the estimate SC-18 forbids."""
         self.write(base_doc(runs=[{"id": "r1", "squad": "eng", "verdict": "PASS",
                                    "agent": "harness-eng-lead"}]))
-        self.assertEqual({"runs": 1, "wall_clock_minutes": 0, "tokens": None, "phase": "plan"},
+        self.assertEqual({"runs": 1, "wall_clock_minutes": 0, "tokens": None, "phase": "plan",
+                          "rework_minutes": 0, "rework_rounds": 0},
                          self.spend())
 
     def test_spend_on_a_pre_feat59_ledger_is_all_zero_and_null(self):
         self.write(base_doc())
-        self.assertEqual({"runs": 0, "wall_clock_minutes": 0, "tokens": None, "phase": "plan"},
+        self.assertEqual({"runs": 0, "wall_clock_minutes": 0, "tokens": None, "phase": "plan",
+                          "rework_minutes": 0, "rework_rounds": 0},
                          self.spend())
+
+    # The rework window: the operator's `rework.wall_clock_minutes` is a budget for REWORK,
+    # so what is measured against it must start where rework can start — the first
+    # `validate-*` run — and never carry the plan and build phases in. Before this window
+    # existed, `wall_clock_minutes` (whole feature) stood in for it, and a 60-minute plan
+    # plus a 40-minute build ate 100 of a 120-minute ruling before the first fix round.
+    REWORK_RUNS = [
+        {"id": "plan-product", "squad": "product", "verdict": "PASS",
+         "agent": "harness-product-lead", "started_at": "2026-09-11T10:00:00+00:00",
+         "ended_at": "2026-09-11T11:00:00+00:00", "tokens": 1000},
+        {"id": "t01-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead",
+         "started_at": "2026-09-11T11:00:00+00:00", "ended_at": "2026-09-11T11:40:00+00:00"},
+        {"id": "validate-validator", "squad": "validator", "verdict": "FAIL",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T12:00:00+00:00",
+         "ended_at": "2026-09-11T12:30:00+00:00", "tokens": 4000},
+        {"id": "fix-c1-validator", "squad": "validator", "verdict": "FAIL",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T12:30:00+00:00",
+         "ended_at": "2026-09-11T13:15:00+00:00"},
+        {"id": "fix-c2-validator", "squad": "validator", "verdict": "PASS",
+         "agent": "harness-validator-lead", "started_at": "2026-09-11T13:15:00+00:00",
+         "ended_at": "2026-09-11T13:35:00+00:00"},
+    ]
+
+    def test_rework_minutes_start_at_the_first_validate_run_and_count_fix_rounds(self):
+        self.write(base_doc(runs=self.REWORK_RUNS, github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(195, spend["wall_clock_minutes"])   # 60+40+30+45+20, for the briefing
+        self.assertEqual(95, spend["rework_minutes"])        # validate 30 + fix 45 + fix 20
+        self.assertEqual(2, spend["rework_rounds"])          # the two fix-* runs
+
+    def test_rework_window_is_zero_before_any_validate_run(self):
+        self.write(base_doc(runs=self.REWORK_RUNS[:2], github={"build_entry": "opened"}))
+        spend = self.spend()
+        self.assertEqual(100, spend["wall_clock_minutes"])
+        self.assertEqual(0, spend["rework_minutes"])
+        self.assertEqual(0, spend["rework_rounds"])
 
 
 class SchemaTest(unittest.TestCase):
