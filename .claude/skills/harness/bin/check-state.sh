@@ -433,7 +433,10 @@ for feat, doc in plan_docs.items():
     # reviewed by the validate run instead (DEC-139 as amended). The mission is read from
     # the sibling feature.json's own key, never inferred from the plan's shape: a one-task
     # plan under `mission: plan` is still graded. Absent or unreadable feature.json, or any
-    # mission other than `patch`, exempts nothing.
+    # mission other than `patch`, exempts nothing. And the exemption rests on the plan
+    # BEING one task — that is what makes one validate-run review a sufficient substitute
+    # for the panel — so a patch record over a larger plan is graded as the mismatch it is
+    # rather than exempted on the strength of a key.
     try:
         with open(os.path.join(os.path.dirname(fpath(feat, "plan.yaml")), "feature.json"),
                   encoding="utf-8") as _mf:
@@ -441,8 +444,17 @@ for feat, doc in plan_docs.items():
     except Exception:
         _mission = ""
     if _mission == "patch":
-        warn.append(f"INV-32: {feat} is a patch mission, which runs no pre-build panel; "
-                    f"its diff is graded by the validate run instead. Not graded.")
+        _tasks = doc.get("tasks")
+        _ntasks = len(_tasks) if isinstance(_tasks, list) else 0
+        if _ntasks == 1:
+            warn.append(f"INV-32: {feat} is a patch mission, which runs no pre-build panel; "
+                        f"its diff is graded by the validate run instead. Not graded.")
+            continue
+        bad.append(f"INV-32: {feat} feature.json says mission: patch but its approved plan "
+                   f"carries {_ntasks} tasks, not one — a patch is a one-task plan (SC-02), "
+                   f"so the panel exemption does not apply. Set the mission to plan "
+                   f"(feature-record.py set-mission) and run the panel, or cut the plan to "
+                   f"one task.")
         continue
 # INV-32 ERA BEGIN (BUG-1071)
     # The boundary itself is resolved ONCE from `panel_era_start`, above this loop; see
@@ -2808,7 +2820,8 @@ def _int_field(v):
 #
 # INV-40 (SC-21, SC-20): every autonomous judgement leaves a judgements[] entry. Three
 # INDEPENDENT checks, each on its own trigger, so one record can fail all three and each line
-# names its own remedy: (a) a `mission` with no entry of kind mission; (b) a run with verdict
+# names its own remedy: (a) a `mission` whose LAST entry of kind mission is absent or decided
+# a different value -- set-mission ran without the ledger hearing of it; (b) a run with verdict
 # FAIL that a later run follows -- a re-gate happened -- with no entry of kind regate; (c) a
 # handoff note with at least one run recorded after its `seq-N` -- a successor woke -- with no
 # entry of kind succession. Entries are appended in order and the ledger is one flat list, so
@@ -2835,13 +2848,21 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
 
     _cu59 = _int_field(_doc59.get("cycles_used"))
     _mtc59 = _int_field(_doc59.get("max_total_cycles"))
+    # The schema lets a record OMIT max_total_cycles to inherit harness.json's default, so
+    # the BOUND is the explicit key when present and the default otherwise; a feature that
+    # inherits its ceiling still has one. The raise check below stays on the explicit key —
+    # an inherited value cannot have been raised.
+    if "max_total_cycles" in _doc59:
+        _bound59, _bound_src = _mtc59, "max_total_cycles"
+    else:
+        _bound59, _bound_src = _default_cycles, "the inherited harness.json default max_total_cycles"
     # Each hit is (invariant, short form, full form): the full form is the violation an in-era
     # record gets, the short form is what a pre-era record's single note lists. Measured at
     # this commit, all 69 legacy feature.json files trip (b) or (c) below -- one line each
     # with the full text would be the wall INV-32 taught this file not to build.
-    if _cu59 is not None and _mtc59 is not None and _cu59 > _mtc59:
-        _hits59.append(("INV-39", f"cycles_used {_cu59} > max_total_cycles {_mtc59}",
-                        f"cycles_used={_cu59} exceeds max_total_cycles={_mtc59} — the rework "
+    if _cu59 is not None and _bound59 is not None and _cu59 > _bound59:
+        _hits59.append(("INV-39", f"cycles_used {_cu59} > {_bound_src} {_bound59}",
+                        f"cycles_used={_cu59} exceeds {_bound_src}={_bound59} — the rework "
                         f"budget is spent; raise it through feature-record.py raise-cycles, which "
                         f"records the decision (DEC-157), or stop (SC-15)"))
     if _mtc59 is not None:
@@ -2873,11 +2894,28 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                        f"ledger cannot be read, so no judgement can be matched.")
         _j59 = []
     _kinds59 = [str(e.get("kind", "")).strip() for e in _j59 if isinstance(e, dict)]
-    if "mission" in _doc59 and "mission" not in _kinds59:
-        _hits59.append(("INV-40", f"no mission judgement for mission '{_doc59.get('mission')}'",
-                        f"mission '{_doc59.get('mission')}' is recorded but judgements[] carries "
-                        f"no entry of kind mission — the mission choice is an unrecorded "
-                        f"judgement (SC-21)"))
+    if "mission" in _doc59:
+        # (a) is a MATCH, not a presence check: set-mission may run twice (the SC-03 downgrade
+        # is exactly that), and a second write with no new judgement leaves the ledger's last
+        # word on the mission disagreeing with the key. The last entry of kind mission is the
+        # ledger's current ruling; anything else is an unrecorded change.
+        _mission59 = str(_doc59.get("mission")).strip()
+        _mj59 = [e for e in _j59 if isinstance(e, dict) and str(e.get("kind", "")).strip() == "mission"]
+        if not _mj59:
+            _hits59.append(("INV-40", f"no mission judgement for mission '{_mission59}'",
+                            f"mission '{_mission59}' is recorded but judgements[] carries "
+                            f"no entry of kind mission — the mission choice is an unrecorded "
+                            f"judgement (SC-21)"))
+        else:
+            _last59 = str(_mj59[-1].get("decision", "")).strip()
+            if _last59 != _mission59:
+                _hits59.append(("INV-40",
+                                f"mission '{_mission59}' but the last mission judgement decided "
+                                f"'{_last59}'",
+                                f"mission is '{_mission59}' but the last judgements[] entry of kind "
+                                f"mission decided '{_last59}' — the mission was changed with no "
+                                f"judgement recording the change (SC-21); record it with "
+                                f"feature-record.py set-mission --by <persona> --reason <why>"))
     _runs59 = [e for e in (_doc59.get("runs") or []) if isinstance(e, dict)]
     _regates59 = _kinds59.count("regate")
     _need_regate = [str(e.get("id", "")).strip() for e in _runs59[:-1]

@@ -127,9 +127,9 @@ def _run(rid, verdict="PASS", squad="eng"):
     return {"id": rid, "squad": squad, "verdict": verdict}
 
 
-def _j(kind):
+def _j(kind, decision=None):
     return {"at": "2026-09-11T10:00:00Z", "by": "harness-orchestrator", "kind": kind,
-            "decision": kind, "reason": "fixture"}
+            "decision": kind if decision is None else decision, "reason": "fixture"}
 
 
 # THE MINIMAL IN-ERA RECORD: `judgements: []` marks the feature as written under the FEAT-59
@@ -251,6 +251,21 @@ def case_inv39():
     _, out = _check(_legacy(cycles_used=18, max_total_cycles=17), BRIEF_NEW)
     results.append(("(39.h) a by-perspective BRIEF puts a key-less record in era — graded",
                     len(_violations(out, "INV-39")) >= 1, out[:400]))
+
+    # The schema lets a feature OMIT max_total_cycles to inherit the harness.json default;
+    # the bound must then be the default, not nothing (review F9).
+    inherited = _in_era(cycles_used=12)
+    del inherited["max_total_cycles"]
+    _, out = _check(inherited)
+    v = _violations(out, "INV-39")
+    results.append(("(39.i) cycles_used 12 with max_total_cycles inherited from the default 10 is a VIOLATION",
+                    len(v) == 1 and "cycles_used=12" in v[0] and "10" in v[0], out[:400]))
+
+    inherited = _in_era(cycles_used=10)
+    del inherited["max_total_cycles"]
+    _, out = _check(inherited)
+    results.append(("(39.j) cycles_used at the inherited default is silent",
+                    not _lines(out, "INV-39"), out[:400]))
     return results
 
 
@@ -266,8 +281,20 @@ def case_inv40():
     results.append(("(40.a) mission with no judgement of kind mission is a VIOLATION",
                     len(v) == 1 and "mission" in v[0] and FEAT in v[0], out[:400]))
 
-    _, out = _check(_in_era(mission="patch", judgements=[_j("mission")]))
-    results.append(("(40.b) mission with its judgement is silent",
+    _, out = _check(_in_era(mission="patch", judgements=[_j("mission", "patch")]))
+    results.append(("(40.b) mission with its matching judgement is silent",
+                    not _lines(out, "INV-40"), out[:400]))
+
+    # SC-21 is about a mission CHANGE: a second set-mission with no new judgement leaves the
+    # last mission entry disagreeing with the top-level key (review F2).
+    _, out = _check(_in_era(mission="plan", judgements=[_j("mission", "patch")]))
+    v = _violations(out, "INV-40")
+    results.append(("(40.b2) mission plan whose LAST mission judgement decided patch is a VIOLATION naming both",
+                    len(v) == 1 and "'plan'" in v[0] and "'patch'" in v[0], out[:400]))
+
+    _, out = _check(_in_era(mission="patch", judgements=[_j("mission", "plan"),
+                                                          _j("regate"), _j("mission", "patch")]))
+    results.append(("(40.b3) two mission judgements, the last matching the current mission, is silent",
                     not _lines(out, "INV-40"), out[:400]))
 
     _, out = _check(_in_era(runs=[_run("r1", "FAIL"), _run("r2")]))

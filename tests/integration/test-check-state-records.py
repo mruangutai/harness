@@ -507,6 +507,24 @@ def case_inv32_patch_mission_has_no_panel():
     return ok
 
 
+def case_inv32_patch_mission_exempts_only_one_task():
+    """FEAT-59 SC-02: the patch exemption rests on the plan being ONE task — that is what
+    makes a validate-run review a sufficient substitute for the panel. A `mission: patch`
+    record over a three-task plan is a VIOLATION naming the count and SC-02; the one-task
+    plan stays exempt."""
+    three = _inv32_plan(panel_marker=False)
+    three["tasks"] = [dict(three["tasks"][0], id=f"T-0{i}") for i in (1, 2, 3)]
+    _rc, three_out, _ = _inv32_run_with_mission(three, "patch")
+    _rc, one_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), "patch")
+    v = _inv32_violations(three_out)
+    ok = (len(v) == 1 and "3 tasks" in v[0] and "SC-02" in v[0]
+          and not _inv32_violations(one_out))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 patch exemption holds for exactly one task; "
+          f"three tasks is a VIOLATION naming the count and SC-02"
+          + ("" if ok else f"\n      three: {v}\n      one:   {_inv32_violations(one_out)}"))
+    return ok
+
+
 def case_inv32_undated_approval_fails():
     """An approved plan with NO approval.date cannot be placed in an era, and that is a
     VIOLATION, not a note (panel finding F1). Warning here was a fail-open on a
@@ -947,6 +965,7 @@ def main():
     results.append(case_inv32_pre_era_is_exempt())
     results.append(case_inv32_era_boundary_is_exact())
     results.append(case_inv32_patch_mission_has_no_panel())
+    results.append(case_inv32_patch_mission_exempts_only_one_task())
     results.append(case_inv32_undated_approval_fails())
     results.append(case_inv32_era_guard_is_load_bearing())
     results.append(case_inv32_era_comes_from_project_config())
