@@ -45,8 +45,9 @@ a new run directory; a `form` finding never buys a re-read.
 
 **A `proportionality` finding no reader opposes** is the panel telling you the mission is too heavy
 (SC-03). The lead's digest says `recommend: downgrade patch`, and you act on it yourself:
-`feature-record.py set-mission --file <feature.json> --mission patch`, a `mission` judgement with
-the reason, and the intake returned `pending` with the downgrade stated in your return — the
+`feature-record.py set-mission --file <feature.json> --mission patch --by harness-orchestrator
+--reason "<reader> <PF-id>: <summary>; unopposed"` — the verb writes the `mission` judgement with
+it — and the intake returned `pending` with the downgrade stated in your return — the
 operator sees it at signature, not as a question. A re-cycle on a proportionality finding is a
 defect.
 

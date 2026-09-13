@@ -265,8 +265,9 @@ you write both artifacts in it:
   than trim.
 - **`plan.yaml` with exactly one task**, `T-01`: `execution_mode: team`, `execution_agent` the
   owning dev, `files:` the ones the grilling named, `traces:` every SC, `change_type: bugfix`
-  unless the grilling says otherwise. Then record the lane:
-  `feature-record.py set-mission --file <feature.json> --mission patch`.
+  unless the grilling says otherwise. The lane itself is not yours to record: `feature.json` is
+  the orchestrator's domain, and it wrote `mission: patch` from the grilling's `## Mission` block
+  before it dispatched you (playbook step 1).
 
 No panel and no goal-check run read the patch intake; it is gated at qa and review on the diff,
 not at plan on a document (DEC-139 as amended by FEAT-59). After signature the orchestrator runs

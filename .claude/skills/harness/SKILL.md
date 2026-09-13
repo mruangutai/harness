@@ -36,8 +36,9 @@ never at startup (DEC-150, DEC-158):
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/`; budgets come from harness.json
    `budgets.`, never your own guess. In that same first cycle, read the grilling artifact's
    `## Mission` block and write it — `feature-record.py set-mission --file <feature.json> --mission
-   <patch|plan>` plus a `mission` judgement carrying its `reason:`. No `## Mission` is not an
-   intake: return `BLOCKED` naming it.
+   <patch|plan> --by harness-orchestrator --reason "<the block's reason: line>"`; the verb writes
+   the `mission` judgement in the same act, so a mission never exists without its entry (INV-40).
+   No `## Mission` is not an intake: return `BLOCKED` naming it.
    **The approval gate depends on your mission.** On **ship**, BRIEF's `## Approval` *and*
    `plan.yaml`'s `approval.status` must both read `approved`, else `BLOCKED` at step 0. On **plan**
    or **patch**, producing them IS the mission: return them `pending`; only the main session signs.
