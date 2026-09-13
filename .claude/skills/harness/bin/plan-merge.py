@@ -1953,9 +1953,11 @@ def _parse_rework(rework, decision):
 
 def _rework_ruling(args, resolved):
     """(ruling, feature_json_path) from --rework/--decision, or (None, None) when neither was
-    given. Both or neither; `rounds=N,minutes=M` with non-negative integers; and the sibling
-    feature.json must EXIST — refused here, before the signature is written, because a
-    signature with no recorded ruling is exactly the half-state SC-15 exists to prevent."""
+    given. Both or neither; `rounds=N,minutes=M` with non-negative integers; the sibling
+    feature.json must EXIST; and --decision must be an existing FILE under the feature
+    directory (review F6 parity — the one rule feature-record.py's raise-cycles/set-rework
+    apply, reused rather than restated). All refused here, before anything is written, because
+    a signature with no auditable ruling is exactly the half-state SC-15 exists to prevent."""
     rework, decision = getattr(args, "rework", None), getattr(args, "decision", None)
     if rework is None and decision is None:
         return None, None
@@ -1964,7 +1966,22 @@ def _rework_ruling(args, resolved):
     if not os.path.isfile(feature_json):
         _die(2, f"plan-merge: {feature_json} does not exist, so the rework ruling has nowhere "
                 "to go — REFUSING to sign. Create the feature's feature.json first.")
+    try:
+        _feature_record_module()._require_decision_file(feature_json, ruling["decision"],
+                                                       "sign-approval --rework")
+    except harness_merge.MergeRefusal as refusal:
+        _die(2, *refusal.lines)
     return ruling, feature_json
+
+
+def _feature_record_module():
+    """feature-record.py as a module: the hyphen keeps it out of `import`, like check-plan-routes."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "feature_record", os.path.join(BIN_DIR, "feature-record.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _record_rework(feature_json, ruling):

@@ -3207,6 +3207,17 @@ def case_f59_sign_approval_rework_writes_feature_json():
               f"rc={r.returncode} {r.stderr!r}")
         check("no signature was written by the refused calls", read(plan) == before)
 
+        # Review F6 parity: --decision must be an existing FILE under the feature dir, the same
+        # rule feature-record.py's raise-cycles/set-rework enforce — a ruling that names no
+        # record is a number nobody can audit.
+        r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
+                     "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
+        check("sign-approval --rework refuses a --decision that is not a file under the feature dir",
+              r.returncode == 2 and "notes/ruling.md" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("and writes neither signature nor ruling", read(plan) == before
+              and "rework" not in json.loads(read(fj)), read(fj))
+        os.makedirs(os.path.join(os.path.dirname(plan), "notes"), exist_ok=True)
+        write(os.path.join(os.path.dirname(plan), "notes", "ruling.md"), "# ruling\n")
         r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
                      "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
         doc = json.loads(read(fj))
@@ -3292,6 +3303,8 @@ def case_f59_review_f4_rework_is_recorded_before_the_signature():
     try:
         before = write(plan, render_plan(ids(1, 2)))                       # pending
         fj = os.path.join(os.path.dirname(plan), "feature.json")
+        os.makedirs(os.path.join(os.path.dirname(plan), "notes"), exist_ok=True)
+        write(os.path.join(os.path.dirname(plan), "notes", "ruling.md"), "# ruling\n")
         write(fj, "{not json\n")
         r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
                      "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")

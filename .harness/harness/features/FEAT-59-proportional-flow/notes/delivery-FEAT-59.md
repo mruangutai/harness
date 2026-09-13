@@ -62,7 +62,25 @@ This feature has no `feature.json`: a main-session-direct segment is not a run, 
   reason: a synthetic ledger for a direct build would be a record of runs that never happened
 ```
 
+## Independent review, and what it changed
+
+Two read-only reviewers (generic `reviewer` and `security-reviewer`, outside the harness path per
+DEC-174) read the enforcement-layer diff at `312cad9e`. Eleven findings; ten fixed test-first in
+the commits that follow it: the rework window keyed on `startswith("validate-")` and never opened
+on the corpus's date-prefixed run ids (SC-19 would never have fired); INV-40 was presence-only, so
+a second `set-mission` passed unrecorded (`set-mission` now writes the judgement atomically and
+INV-40 matches the last one); the approval reset was reported without being verified; the
+signature was written before the ruling; a `patch` exemption keyed on the string alone; the two
+budget verbs had no principal gate and a free-text `--decision`; `apply` could roll a station
+back; `record-panel` accepted a pre-resolved finding; INV-39 skipped an inherited bound; a panel
+comment migrated. The eleventh is below.
+
 ## Known limits, stated
+
+- **The overrule KPI has no ledger shape yet.** `judgements[]` has no `overrule` kind and `by` is
+  free text, so the rate is countable only from `approval.rulings` and the operator's returns, not
+  mechanically from `feature.json`. Deliberately left until the first two real ledgers exist
+  (SC-23/24) so the shape follows observed overrules rather than a guess; it is FEAT-60-adjacent.
 
 - SC-23 and SC-24 are the acceptance and are open by design; the brief says it is not done until
   both ship. Everything above is the mechanism; those two are the proof.

@@ -65,7 +65,8 @@ instead is how a healthy feature goes BLOCKED with nothing wrong. The defaults a
 A main-session-direct segment is not a run and never appears in `runs:`.
 
 **A raise is a recorded decision** —
-`feature-record.py raise-cycles --file <feature.json> --to N --decision <path>` writes the bound
+`feature-record.py raise-cycles --file <feature.json> --to N --decision <path>` — the path an
+existing file under the feature directory, or the verb refuses — writes the bound
 and the `budget_decisions[]` record together, and INV-39 refuses a bound above the default with no
 record of the current value. A ceiling that moves when reached is not one.
 
