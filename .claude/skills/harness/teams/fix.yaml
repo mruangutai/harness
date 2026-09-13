@@ -1,0 +1,130 @@
+# fix — one rework cycle: the owning dev fixes, the readers re-verify, in ONE run.
+#
+# FEAT-59 SC-14. Before this file a fix cycle was an eng segment, a human ruling, and a
+# fresh validator segment — ~4 runs per defect (FEAT-43: 29 cycles, 49 runs). Here the
+# dev is a MEMBER of the validator lead's run, and the readers re-verify the fixed tip
+# in the same run. The orchestrator loops this team inside the `rework` ruling in
+# feature.json (rounds, wall_clock_minutes) without asking; `awaiting_user` is only for
+# a new finding class, an emergent SC, or budget exhaustion (SC-15).
+#
+# THE LEAD HOSTS A DEV FROM THE ENG SQUAD. DEC-118 as amended by FEAT-59 permits a fix
+# member from another squad in this run. Author and reviewer stay distinct PERSONAS:
+# the dev writes source and its receipt; the readers write only their notes; the lead
+# writes only its run dir. check-domain.sh keys on the persona, not on the host, so the
+# dev's grant is exactly what it is under an eng-lead run.
+#
+# THE PIN IS THE ORCHESTRATOR'S, NOT A STEP. The dev commits; the readers verify the tip
+# the receipt names; the lead records that tip as `head_sha` in state.yaml and names it
+# in the digest headline; the orchestrator, on return, records it as the new `review_sha`
+# in feature.json (INV-6). A lead never pins — it holds no shell and it is not the
+# feature's bookkeeper (DEC-119).
+#
+# `{{persona}}` IS RESOLVED AT DISPATCH: the orchestrator names the owning dev — the
+# `execution_agent` of the task each must-fix finding cites, read from plan.yaml — and the
+# lead substitutes it into the `fix` step's persona and receipt path, the mixed short/full
+# convention build.yaml uses. That is the ONE derivation; a build digest's `files_touched`
+# is only its echo. A must-fix list spanning two devs is two fix runs, one per dev, in
+# dependency order; one run never hosts two authors of the same tree.
+#
+# A FINDING WITH NO OWNING DEV IS NOT FIXED HERE. One that cites no task, or a file no
+# task's `files:` owns, has no `execution_agent` to read: it is a new finding CLASS — a
+# scope change — and the orchestrator returns it in `open_questions` rather than routing
+# it to the nearest dev. The reader that raises it says so (the `code` step below).
+#
+# `{{cycle}}` IS THE FEATURE'S REWORK ROUND, named in the dispatch, so a fix run's notes
+# never overwrite the validate run's (DEC-117).
+
+name: fix
+purpose: >
+  Host the owning dev to fix ONE consolidated must-fix list test-first and commit, then
+  re-run qa, code, security and ui over the fixed tip in the same run; the lead fans in
+  to one verdict per finding and reports the tip for the orchestrator to pin.
+lead: validator-lead
+inputs: [feat, review_sha, must_fix_path]
+
+steps:
+  - id: fix
+    persona: "{{persona}}"
+    depends_on: []
+    inputs: [must_fix_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/receipt-harness-{{persona}}-fix-c{{cycle}}.md"]
+    mutates_repo: true
+    prompt: >
+      Fix the must-fix list at {{must_fix_path}} for {{feat}}, raised against
+      {{review_sha}}. Test-first (`harness-tdd-enforcement`): for every `substance` finding,
+      a failing test that reproduces it before the production change, and the receipt
+      names the test and the failing run. A `form` finding is fixed in place with no test.
+      Touch only what a finding names — nothing "while you're here". Commit on the feature
+      branch by explicit pathspec, never `git add -A`, and write the receipt to your output
+      path naming the commit SHA and, per finding, what changed. Do not pin `review_sha`;
+      do not write feature.json.
+    on_fail:
+      loop_back:
+        max_cycles: 1
+        feed: [self]
+        then: escalate
+
+  # THE RE-VERIFY WAVE — four readers, one turn, over the tip the receipt names. Each
+  # depends on `fix` and on nothing else, so they dispatch together after it lands.
+  # No goal-check here: it runs once at validate exit (SC-09), not per cycle.
+  - id: qa
+    persona: qa
+    depends_on: [fix]
+    inputs: [must_fix_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-qa-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      GATE-ONLY. Re-run the `test_matrix` gate over the tip the fix receipt names for
+      {{feat}} — not {{review_sha}}, which is what the must-fix list at {{must_fix_path}}
+      was raised against. Write `matrix_ok`, the per-kind results, and `fail_first`: for
+      every `verify: automated` SC the fix touches, the test and the evidence it FAILED
+      before the fix — the receipt's failing run is that evidence. A green suite with no
+      fail-first evidence is `FAIL` (SC-17). Author nothing.
+
+  - id: code
+    persona: code-reviewer
+    depends_on: [fix]
+    inputs: [must_fix_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-code-reviewer-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Re-verify the tip the fix receipt names for {{feat}} against the must-fix list at
+      {{must_fix_path}}. Per finding: resolved, open, or regressed, with the evidence line.
+      Then review the fix diff itself — spec compliance first, then quality, fail-open
+      branches and silent failure paths. A NEW finding carries `kind` (substance | form),
+      a concrete failure scenario, and the plan task it is against — the one whose `files:`
+      owns the file. A finding you cannot bind to any task is by definition a scope change:
+      say so. A scope change or an emergent SC is the one thing that ends the rework loop
+      and reaches the operator. Do not fix anything.
+
+  - id: security
+    persona: security-reviewer
+    depends_on: [fix]
+    inputs: [must_fix_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-security-reviewer-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Re-verify the security findings in {{must_fix_path}} against the tip the fix
+      receipt names for {{feat}}: resolved, open, or regressed. Audit the fix diff for a
+      new surface; a new finding carries `kind`. No security surface in the fix — say so
+      and return PASS.
+
+  - id: ui
+    persona: ui-reviewer
+    depends_on: [fix]
+    inputs: [must_fix_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-ui-reviewer-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Re-verify the UI findings in {{must_fix_path}} against the tip the fix receipt
+      names for {{feat}}: resolved, open, or regressed, including accessibility and
+      dark/light parity. A new finding carries `kind`. **Self-scope out if the fix touches
+      no user-facing surface**: one line, PASS.
+
+# The lead's consolidated DIGEST: one verdict per must-fix finding (resolved | open |
+# regressed), every NEW finding with `kind` and its reader, `severity_max`, and the tip
+# the readers verified in the headline. A `form` finding still open is a FAIL of this
+# run, not a new cycle: the lead sends the dev back (loop_back) before closing. A
+# `substance` finding still open, or a regression, is `must_fix` for the next round —
+# the orchestrator decides inside the rework ruling. A new finding CLASS is
+# `open_questions`, the only thing here that reaches the operator.

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { closeSync, openSync, readFileSync, readSync, statSync } from "node:fs";
+import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -516,16 +516,20 @@ export function readContextAnchor(sessionFile: string | undefined): ContextAncho
 // Mirrors the miss-path set DEC-198 records: file missing, unreadable, not JSON,
 // no budgets object, key absent, or value not a number (bools excluded, since
 // typeof true is "boolean").
-export function resolveContextWarnTokens(root: string): number {
+function resolveBudgetNumber(root: string, key: string, fallback: number): number {
   try {
     const raw = readFileSync(join(root, ".harness", "harness.json"), "utf8");
     const budgets = (JSON.parse(raw) as Record<string, unknown>).budgets;
     if (budgets && typeof budgets === "object") {
-      const value = (budgets as Record<string, unknown>).orchestrator_context_warn_tokens;
+      const value = (budgets as Record<string, unknown>)[key];
       if (typeof value === "number" && Number.isFinite(value)) return value;
     }
   } catch { /* every miss path falls through to the declared default */ }
-  return DEFAULT_CONTEXT_WARN_TOKENS;
+  return fallback;
+}
+
+export function resolveContextWarnTokens(root: string): number {
+  return resolveBudgetNumber(root, "orchestrator_context_warn_tokens", DEFAULT_CONTEXT_WARN_TOKENS);
 }
 
 export function contextAdvisoryText(tokens: number, threshold: number): string {
@@ -579,6 +583,119 @@ export function contextAccessorFailureText(accessor: string): string {
     + `ADVISES and never refuses.`;
 }
 
+// --- FEAT-59 SC-19: the SPEND advisory, on the same wake and in the same voice -----
+//
+// The figure is what `feature-record.py spend` MEASURES from feature.json's
+// runs[].started_at/ended_at and tokens — never an estimate (SC-18). Before build
+// entry the budget is budgets.plan_phase_warn_minutes against the whole feature so
+// far; after it, the operator's own rework.wall_clock_minutes ruling against the
+// REWORK WINDOW — `rework_minutes`, every run from the first validate-* onward —
+// never against the whole, because the ruling is a budget for rework and the plan
+// and build phases are not rework. With no ruling recorded nothing is said, because
+// there is nothing to measure against. Strictly greater, like the context advisory:
+// at or under the budget the wake costs zero extra tokens.
+
+export const DEFAULT_PLAN_PHASE_WARN_MINUTES = 90;
+
+export function resolvePlanPhaseWarnMinutes(root: string): number {
+  return resolveBudgetNumber(root, "plan_phase_warn_minutes", DEFAULT_PLAN_PHASE_WARN_MINUTES);
+}
+
+export type SpendSummary = {
+  runs: number;
+  wall_clock_minutes: number;
+  tokens: number | null;
+  phase: "plan" | "build";
+  rework_minutes: number;
+  rework_rounds: number;
+};
+
+// The JSON `feature-record.py spend` prints, validated field by field: a stdout
+// that does not carry exactly this shape yields no figure rather than a wrong one.
+export function parseSpend(stdout: string): SpendSummary | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== "object") return undefined;
+  const record = parsed as Record<string, unknown>;
+  const { runs, wall_clock_minutes: minutes, tokens, phase } = record;
+  const rework = record.rework_minutes;
+  const rounds = record.rework_rounds;
+  if (typeof runs !== "number" || typeof minutes !== "number" || !Number.isFinite(minutes)) return undefined;
+  if (typeof rework !== "number" || !Number.isFinite(rework)) return undefined;
+  if (typeof rounds !== "number" || !Number.isFinite(rounds)) return undefined;
+  if (tokens !== null && typeof tokens !== "number") return undefined;
+  if (phase !== "plan" && phase !== "build") return undefined;
+  return { runs, wall_clock_minutes: minutes, tokens, phase, rework_minutes: rework, rework_rounds: rounds };
+}
+
+// feature.json under either layout the checkout may use: `.harness/<repo>/features/`
+// (repo-tier) or `.harness/features/` (flat). Undefined when neither holds one, which
+// the caller reads as "nothing to measure yet" — the orchestrator instantiates the
+// file on its first cycle.
+export function featureJsonPath(root: string, feature: string): string | undefined {
+  const harnessDir = join(root, ".harness");
+  const candidates = [join(harnessDir, "features", feature, "feature.json")];
+  try {
+    for (const entry of readdirSync(harnessDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) candidates.push(join(harnessDir, entry.name, "features", feature, "feature.json"));
+    }
+  } catch {
+    return undefined;
+  }
+  return candidates.find((candidate) => existsSync(candidate));
+}
+
+// The operator's rework ruling, or undefined when none is recorded (or the file is
+// unreadable — both mean there is no build-phase budget to compare against).
+export function readReworkMinutes(featureJson: string): number | undefined {
+  try {
+    const doc = JSON.parse(readFileSync(featureJson, "utf8")) as Record<string, unknown>;
+    const rework = doc.rework;
+    if (!rework || typeof rework !== "object") return undefined;
+    const minutes = (rework as Record<string, unknown>).wall_clock_minutes;
+    return typeof minutes === "number" && Number.isFinite(minutes) ? minutes : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function spendAdvisoryText(
+  minutes: number,
+  tokens: number | null,
+  phase: "plan" | "build",
+  budgetKey: string,
+  threshold: number,
+): string {
+  const ratio = (minutes / threshold).toFixed(2);
+  const measured = tokens === null ? "" : ` and ${tokens} tokens`;
+  return `SPEND: this feature measures ${minutes} wall-clock minutes${measured} in its ${phase} `
+    + `phase against ${budgetKey} = ${threshold} (${ratio}x). This ADVISES and never refuses `
+    + `(DEC-198). Weigh it yourself; whether you continue, downgrade or stop is a judgement to `
+    + `record (SC-21), and a handoff belongs at a seam rather than mid-phase (DEC-201).`;
+}
+
+export function spendAdvisoryFor(
+  spend: SpendSummary,
+  reworkMinutes: number | undefined,
+  planWarnMinutes: number,
+): string | undefined {
+  if (spend.phase === "plan") {
+    return spend.wall_clock_minutes > planWarnMinutes
+      ? spendAdvisoryText(spend.wall_clock_minutes, spend.tokens, "plan",
+        "budgets.plan_phase_warn_minutes", planWarnMinutes)
+      : undefined;
+  }
+  if (reworkMinutes === undefined) return undefined;
+  return spend.rework_minutes > reworkMinutes
+    ? spendAdvisoryText(spend.rework_minutes, spend.tokens, "build",
+      "rework.wall_clock_minutes", reworkMinutes)
+    : undefined;
+}
+
 export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPolicy): void {
   let currentAgent: string | undefined;
   let currentFeature: string | undefined;
@@ -593,6 +710,10 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // cost, disclosed in BRIEF.md: if the host recovers mid-session the advisory
   // does not return until the next session.
   let contextNoticeEmitted = false;
+  // FEAT-59: the feature.json this session's spend is measured from, resolved once it
+  // is found. Not cached while ABSENT — the orchestrator instantiates the file on its
+  // first cycle, so an early miss must be retried on the next wake.
+  let spendFeatureJson: string | undefined;
   const pendingTaskCalls = new Map<string, ClaimReceipt[]>();
   const runtimeClaims = new Map<string, ClaimReceipt>();
   const setFeature = (feature: string | undefined, ctx: any): void => {
@@ -814,7 +935,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // FEAT-44: computed BEFORE the early return below. That return fires whenever
     // there is no block reason, which is the common case for a task result, so an
     // advisory computed after it would never be emitted at all.
-    let advisory: string | undefined;
+    const advisories: string[] = [];
     if (currentAgent === "harness-orchestrator" && toolName === "task" && !contextNoticeEmitted) {
       // THE ADVISORY MUST NEVER COST A GATE. This whole block sits above the postDomain
       // call, so anything escaping it would skip `check-domain.sh --post` — an advisory
@@ -829,27 +950,61 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         // helper above is deliberately NOT the model here.
         const resolved = resolveSessionFile(ctx);
         if (resolved.kind === "failed") {
-          advisory = contextAccessorFailureText(resolved.accessor);
+          advisories.push(contextAccessorFailureText(resolved.accessor));
           contextNoticeEmitted = true;
         } else if (resolved.kind === "path") {
           const anchor = readContextAnchor(resolved.path);
           if (anchor.kind === "inert") {
             // Both arguments come out of the result; no field name is written here,
             // so the notice can never name a field the parse did not look for.
-            advisory = contextInertText(anchor.scannedBytes, anchor.field);
+            advisories.push(contextInertText(anchor.scannedBytes, anchor.field));
             contextNoticeEmitted = true;
           } else if (anchor.kind === "tokens") {
             const threshold = resolveContextWarnTokens(gateRoot());
             // Strictly greater: at or under the threshold nothing is added, which is
             // REQ-01's zero-extra-token promise on the healthy path.
             if (anchor.tokens > threshold) {
-              advisory = contextAdvisoryText(anchor.tokens, threshold);
+              advisories.push(contextAdvisoryText(anchor.tokens, threshold));
             }
           }
         }
         // kind "absent" is the legitimate no-session-yet case: no advisory, no notice.
       } catch {
-        advisory = undefined;   // no figure, and the gate below still runs
+        // no figure, and the gate below still runs
+      }
+    }
+    // FEAT-59 SC-19: the SPEND advisory, on the same wake. Independent of the context
+    // notice cap above — that cap is about a host record shape this path never reads.
+    // The same non-blocking structure: one try around the whole measurement, so a
+    // missing script, an unreadable file or a malformed stdout yields no line and the
+    // gate below still runs. The figure comes from `feature-record.py spend`, which is
+    // the ONE reader of runs[].started_at/ended_at/tokens; this hook parses its output
+    // and never re-derives the sum.
+    if (currentAgent === "harness-orchestrator" && toolName === "task" && currentFeature) {
+      try {
+        if (!spendFeatureJson) {
+          // The same resolution the reconcile call makes: the checkout assigned to this
+          // feature, which may be a worktree rather than ctx.cwd.
+          const rooted = policyRunner(ctx.cwd, "inflight_registry.py", [
+            "feature-root", "--feature", currentFeature, "--root", ctx.cwd,
+          ], {});
+          const featureRoot = rooted.stdout.trim().split("\n").pop() || "";
+          if (featureRoot) spendFeatureJson = featureJsonPath(featureRoot, currentFeature);
+        }
+        if (spendFeatureJson) {
+          const measured = policyRunner(ctx.cwd, "feature-record.py", [
+            "spend", "--file", spendFeatureJson,
+          ], {});
+          const spend = parseSpend(measured.stdout);
+          if (spend) {
+            const line = spendAdvisoryFor(
+              spend, readReworkMinutes(spendFeatureJson), resolvePlanPhaseWarnMinutes(gateRoot()),
+            );
+            if (line) advisories.push(line);
+          }
+        }
+      } catch {
+        // no figure, and the gate below still runs
       }
     }
     // S2 (stale-anchor hazard, 2026-08-30) — MAKE THE ZERO-PATH CASE OBSERVABLE.
@@ -860,10 +1015,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // silent. This does not restore the check — the path is unknown, so there is
     // nothing to check — it states the absence instead of hiding it.
     //
-    // NON-BLOCKING BY CONSTRUCTION, not by care: it only ever assigns `advisory`,
-    // and the composition below appends that with NO isError key. It cannot cost a
-    // gate. Safe to share the variable because the context advisory above is
-    // task-only and this is edit-only, so the two are mutually exclusive.
+    // NON-BLOCKING BY CONSTRUCTION, not by care: it only ever appends to `advisories`,
+    // and the composition below appends those with NO isError key. It cannot cost a
+    // gate.
     if (toolName === "edit" && extractEditPaths(input.input).length === 0) {
       // NAMES BOTH GATES. preDomain's edit branch has the identical `.map()`, so a
       // zero extraction skips the PRE (blocking) check too — and that one is worse,
@@ -871,20 +1025,22 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // unreported. Measured 2026-08-30: preDomain returns no block and spawns no
       // check-domain.sh at all. An earlier wording said only "post-write", which
       // understated the skip by exactly the gate that matters more.
-      advisory = "Harness: no target path could be extracted from this edit, so "
+      advisories.push("Harness: no target path could be extracted from this edit, so "
         + "neither the pre-write nor the post-write shape check ran on any file. "
-        + "This is a notice, not a refusal.";
+        + "This is a notice, not a refusal.");
     }
     const reason = firstBlock(postDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
     const content = Array.isArray(event.content) ? event.content : [];
+    const appended = advisories.map((advisoryText) => ({ type: "text", text: advisoryText }));
     if (!reason) {
-      if (!advisory) return;
+      if (appended.length === 0) return;
       // No isError key AT ALL: a normal tool result must not become an error.
-      return { content: [...content, { type: "text", text: advisory }] };
+      return { content: [...content, ...appended] };
     }
-    const appended = [...content, { type: "text", text: `Harness post-write check: ${reason}` }];
-    if (advisory) appended.push({ type: "text", text: advisory });
-    return { content: appended, isError: true };
+    return {
+      content: [...content, { type: "text", text: `Harness post-write check: ${reason}` }, ...appended],
+      isError: true,
+    };
   });
 
   pi.on("task:subagent:lifecycle", async (event: Dict, ctx: any) => {

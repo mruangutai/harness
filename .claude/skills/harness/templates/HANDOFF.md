@@ -9,16 +9,22 @@
      Done when describes the ONE immediate action in Next, not the phase or feature.
      Its shape is exactly one Scope: line and one to four Authority: lines, with no
      other prose. Authorities combine as logical AND: every pointer must resolve when
-     the note is written or edited. The only legal types are plan-task:T-NN.verify,
-     brief-sc:SC-NN, finding:PATH#F-NN and approval:PATH#HEADING; a source-code
-     location alone is not authority. RESOLVING IS NOT ENOUGH: an authority already
-     satisfied when you write binds nothing, so a successor could check it, see it
-     green, and skip the action entirely — at least one cited pointer must be one
-     the action in Next actually discharges. A task at station done or abandoned,
-     and an approval already reading approved, are satisfied; a criterion and a
-     finding are judged, so neither counts either way. Both obligations are
-     write-time only: the persisted-corpus state check validates shape and grammar
-     but never reopens targets, so a note valid when written stays valid. -->
+     the note is written or edited. The legal types are plan-task:T-NN.verify,
+     brief-sc:SC-NN, brief-perspective:PATH#<name>, finding:PATH#F-NN and
+     approval:PATH#HEADING; a source-code location alone is not authority.
+     brief-perspective resolves to a **<name>** line under `## Done when — by
+     perspective` in that BRIEF: done is judged against the perspective the BRIEF
+     declares, never re-derived here as a scope statement. Under a by-perspective
+     BRIEF at least one Authority: MUST be a brief-perspective: pointer (FEAT-59
+     SC-11); the other types stay legal beside it. RESOLVING IS NOT ENOUGH: an
+     authority already satisfied when you write binds nothing, so a successor could
+     check it, see it green, and skip the action entirely — at least one cited
+     pointer must be one the action in Next actually discharges. A task at station
+     done or abandoned, and an approval already reading approved, are satisfied; a
+     criterion, a perspective and a finding are judged, so none counts either way.
+     Both obligations are write-time only: the persisted-corpus state check
+     validates shape and grammar but never reopens targets, so a note valid when
+     written stays valid. -->
 
 ## Next
 
@@ -42,4 +48,5 @@ PLAN task/SC id. The successor validates this against PLAN/STATE before acting.>
 ## Done when
 
 Scope: <concise label for the ONE action in Next>
+Authority: brief-perspective:<BRIEF path>#<perspective name>
 Authority: <plan-task:T-NN.verify | brief-sc:SC-NN | finding:PATH#F-NN | approval:PATH#HEADING>

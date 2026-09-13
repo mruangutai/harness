@@ -193,8 +193,15 @@ SCHEMAS = {
     # happen". There is no fourth member — D-07 rejected the `no-task` spelling.
     "dev": {"tests_added": int, "suite": {"pass","fail"}, "blocked_on": str,
             "task": TASK_ID_RE, "task_verify": {"pass","fail"}},
-    "qa": {"suite": {"pass","fail"}, "failures": int, "coverage_gaps": list, "matrix_ok": bool},
-    "reviewer": {"severity_max": set(SEV), "findings": int, "must_fix": list},
+    # FEAT-59 SC-17: `fail_first` is the per-SC evidence that each test FAILED before
+    # the fix. Entry shape and the PASS pairing rule are `_fail_first_errors` and the
+    # qa block in `validate`; the field is a plain required list here.
+    "qa": {"suite": {"pass","fail"}, "failures": int, "coverage_gaps": list, "matrix_ok": bool,
+           "fail_first": list},
+    # FEAT-59 SC-06: `findings` was an INT count. A count routes nothing — the
+    # orchestrator needs to know whether a finding changes shipped code or only a
+    # document, so each entry is a mapping carrying `kind` (FINDING_KINDS below).
+    "reviewer": {"severity_max": set(SEV), "findings": list, "must_fix": list},
     "visual-designer": {"contract": {"written","updated"}, "mockups": list, "direction_choices": list},
     "documentor": {"docs_updated": list, "gaps": list},
     # `suite` was {"pass","fail","n/a"} here and {"pass","fail"} everywhere else —
@@ -239,8 +246,82 @@ PASSTHROUGH = {
         "severity_max": set(SEV),
         "matrix_ok": bool,
         "coverage_gaps": list,
+        # FEAT-59 SC-05/SC-06: a validator-lead hosting the plan panel carries the
+        # consolidated `findings` (kinded, see FINDING_KINDS) and the `readers` roster
+        # that `plan-merge.py record-panel --digest` reads — a run whose only work is
+        # to transcribe one into the other is exactly the zero-value run SC-05 removes.
+        "findings": list,
+        "readers": list,
     },
 }
+
+# FEAT-59 SC-06: what a finding IS decides where it routes, so every entry says.
+#
+#   substance        would change shipped code. Re-gates only the tasks it names.
+#   form             document, digest or record shape only. Fixed in the same run;
+#                    NEVER triggers a re-read — BUG-285 spent 5 of 8 re-cycles here.
+#   proportionality  the plan exceeds what the change needs. Routes to a mission
+#                    downgrade (SC-03), never to another panel cycle.
+#
+# EXACT, like every enum in this file: `substantive` is not `substance`. A finding
+# without a kind is undecidable — the orchestrator would have to read the artifact
+# to route it, which is the cold dispatch the kind exists to avoid.
+FINDING_KINDS = {"substance", "form", "proportionality"}
+
+# FEAT-59 SC-17: a `fail_first` entry binds evidence to ONE success criterion by id.
+# `fullmatch`, for the same reason as TASK_ID_RE. The placeholder `SC-NN` is rejected.
+SC_ID_RE = re.compile(r"SC-\d+")
+
+
+def _finding_kind_errors(findings):
+    """One error per `findings` entry that carries no legal `kind`, naming the entry
+    by index so a reviewer with twelve findings can find the one it forgot.
+
+    Entries are parsed with `parse_member_entry` — by KEY, never by matching `kind:`
+    as text anywhere in the entry (the F1 discipline the members roll-up learned): a
+    `summary: "the kind: substance label is missing"` must not satisfy this. A bare
+    string entry parses to `{}` and is reported as having no kind, which it hasn't.
+    """
+    err = []
+    kinds = sorted(FINDING_KINDS)
+    for i, item in enumerate(findings):
+        kind = parse_member_entry(str(item)).get("kind")
+        if kind is None:
+            err.append(f"findings[{i}] has no kind: — {str(item)[:60]!r}. Every finding "
+                       f"carries kind: one of {kinds}; without it the orchestrator "
+                       f"cannot tell a code defect from a document nit and cannot route.")
+        elif kind not in FINDING_KINDS:
+            err.append(f"findings[{i}] kind={kind!r} is not in {kinds}. substance = would "
+                       f"change shipped code; form = document/digest/record shape only, "
+                       f"fixed in-run and never re-gates; proportionality = the plan "
+                       f"exceeds what the change needs, routes to a mission downgrade.")
+    return err
+
+
+def _fail_first_entry_error(i, item):
+    """The error for ONE `fail_first` entry, or None when it is `{ sc: SC-NN, evidence: <text> }`.
+
+    `sc` binds the evidence to the criterion it discharges; `evidence` is the path of
+    the captured failing output or the receipt line that names it. A bare string is
+    neither — it names no SC — and an empty `evidence` is a claim, not a receipt.
+    """
+    fields = parse_member_entry(str(item))
+    sc = fields.get("sc")
+    if not isinstance(sc, str) or not SC_ID_RE.fullmatch(sc):
+        return (f"fail_first[{i}] sc={sc!r} is not an SC-NN id — {str(item)[:60]!r}. "
+                f"Each entry is {{ sc: SC-NN, evidence: <path or receipt line> }}.")
+    evidence = fields.get("evidence")
+    if not isinstance(evidence, str) or not evidence.strip():
+        return (f"fail_first[{i}] has no evidence: — {str(item)[:60]!r}. Name the "
+                f"captured failing output (a path) or the receipt line that shows "
+                f"the test FAILED before the fix.")
+    return None
+
+
+def _fail_first_errors(fail_first):
+    """One error per malformed `fail_first` entry, by index."""
+    errors = (_fail_first_entry_error(i, item) for i, item in enumerate(fail_first))
+    return [e for e in errors if e]
 
 # Persona-specific documented fields are keyed by the RAW agent type. Reviewer
 # personas normalize to one canonical schema, but their output modes are not
@@ -1178,6 +1259,12 @@ def _missing_field_default_hint(field, allowed):
     if field == "code_grade":
         vals = sorted(a for a in allowed if isinstance(a, str))
         return f"one of {vals} — a single enum value, never a list"
+    if field == "fail_first":
+        # FEAT-59 SC-17. `[]` is REJECTED alongside PASS + matrix_ok: true, so the
+        # generic hint would route a qa agent into a second guaranteed rejection.
+        return ("one `{ sc: SC-NN, evidence: <path or receipt line> }` per `verify: "
+                "automated` SC showing the test FAILED before the fix; `[]` only when "
+                "matrix_ok is n/a or the verdict is not PASS")
     return "`[]` if there are none"
 
 
@@ -1400,6 +1487,36 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
             err.append(f"{field}={val!r} must be a non-empty string"
                        + (" (write the literal `none` if genuinely inapplicable)."
                           if field in NULLABLE else "."))
+
+    # --- FEAT-59 SC-06: every finding carries a KIND (FINDING_KINDS). Generic over
+    # personas on purpose — `findings` is required of a reviewer and optional on a
+    # lead, and the closed key set below keeps it off everyone else — so one rule
+    # binds every digest that carries findings rather than one per persona that can
+    # drift. Guarded on `list`: a non-list already reported "must be a list" above.
+    findings = seen.get("findings")
+    if isinstance(findings, list):
+        err.extend(_finding_kind_errors(findings))
+
+    # --- FEAT-59 SC-17: a green suite with no fail-first evidence is not a pass.
+    # `matrix_ok: true` says the tests PASS; `fail_first` is what says they ever
+    # FAILED, and a test that never failed constrains nothing (the Iron Law,
+    # harness-tdd-enforcement). Bound to the same triple #919 re-verifies —
+    # VERDICT PASS + matrix_ok true — so `matrix_ok: n/a` (no gate ran) and every
+    # non-PASS verdict may truthfully carry `[]`. TYPE-STRICT on `True` for the
+    # reason GATE_FAIL_VALUES is: `1 == True` in Python and `matrix_ok: 1` is not a
+    # bool (already rejected above; not doubled here).
+    if persona == "qa":
+        fail_first = seen.get("fail_first")
+        if isinstance(fail_first, list):
+            err.extend(_fail_first_errors(fail_first))
+            matrix_ok = seen.get("matrix_ok")
+            if not fail_first and m and m.group(1) == "PASS" \
+                    and matrix_ok is True and isinstance(matrix_ok, bool):
+                err.append("fail_first: [] alongside matrix_ok: true and VERDICT: PASS — a "
+                           "green suite with no fail-first evidence is not a pass. For each "
+                           "`verify: automated` SC name the test and the evidence it FAILED "
+                           "before the fix ({ sc: SC-NN, evidence: <path or receipt line> }), "
+                           "or return FAIL.")
 
     # Generic `lead` is the archive-reader persona used by check-state for
     # historical digest files; it cannot recover the producing raw persona or

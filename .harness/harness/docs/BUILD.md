@@ -599,6 +599,9 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
    stale rate table is detected rather than silent. **DEC-178 has since removed the meter**, its
    budgets and the briefing cost line: the per-agent attribution it produced was an estimate that
    never changed a decision, and the machinery to keep it honest cost more than the number was worth.
+   **DEC-227 records the measurement that replaced it**: per-run `started_at`/`ended_at`/`tokens` in
+   `feature.json`, summed into every orchestrator return and one advisory line — a signal, never a
+   gate.
 2. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE).
@@ -699,9 +702,12 @@ outright, so doing them now risks polishing text that will not survive:
    triggers nothing, forever, while being injected into every spawn; and the **global tier gets a
    human-gated writer or is deleted** (§5.6 names the risk and assigns no mechanism, and it is
    uncommitted, so it has no PR-review audit channel either).
-4. **Cost accounting as a first-class axis:** tokens and spawns logged per run in `state.yaml`,
-   per-team budgets beside `max_cycles`, a cost line in the CEO briefing, cheaper model tiers as the
-   doer/reviewer default.
+4. ~~**Cost accounting as a first-class axis**~~ **DONE, narrower than asked (DEC-227).** Wall-clock
+   and tokens are recorded per run in `feature.json` `runs[]` (`started_at`, `ended_at`, `tokens` —
+   measured or `null`, never estimated), summed by `feature-record.py spend` into every orchestrator
+   return, with one `SPEND:` advisory at `budgets.plan_phase_warn_minutes` and the signed
+   `rework.wall_clock_minutes`. No dollar figure, no per-team budget, no gate. Cheaper model tiers as
+   the doer/reviewer default remain a provider-overlay question.
 5. **Re-examine DEC-68 and DEC-71 against the numbers.** Single-purpose curation spawns and mandatory
    lead intermediation (minimum 3 spawns for a one-line tweak) are the two things every review expects
    the measurements to kill.

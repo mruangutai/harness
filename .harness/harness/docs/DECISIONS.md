@@ -2129,7 +2129,7 @@ all present in a repeatedly-reviewed SPEC. The probe crews ship for that reason.
 
 ---
 
-## DEC-118 — A crew is single-squad by construction; multi-squad lifecycles are orchestrator playbooks
+## DEC-118 — A build team is single-squad by construction, a lead never spawns a lead, and multi-squad lifecycles are orchestrator playbooks
 
 Raised by a challenge to MVP step 3's `pm → backend-dev` crew under `lead: eng-lead`: the objection
 was that cross-squad work should route lead-to-lead — `pm → product-lead → eng-lead → backend-dev`
@@ -2140,31 +2140,35 @@ impossible, for the same reason.
 A lead spawned by a lead lands at layer 2, where `Agent` is stripped, and its members would be at
 layer 3 — unreachable. Confirmed
 across every crew run so far: leads only ever at depth 1, members only ever at depth 2. So a lead
-cannot reach another squad directly *or* through a peer lead.
+cannot reach another squad's lead, directly *or* through a peer lead.
 
-The correct route is through the orchestrator, the only tier that can dispatch a second lead:
+The route from one lead to another squad's *lead* is through the orchestrator, the only tier that
+can dispatch a second lead — the `build` run and the `validate` run are two dispatches, never one:
 
 ```
 orchestrator
-  ├─ product-lead → pm            [run 1]  ─ consolidated DIGEST up
-  └─ eng-lead     → backend-dev   [run 2]  ─ dispatched with run 1's artifact path
+  ├─ eng-lead       → build members      [run 1]  ─ consolidated DIGEST up
+  └─ validator-lead → readers + pm       [run 2]  ─ dispatched with run 1's review_sha
 ```
 
-**The model was already correct in SPEC — in one place.** `ship-feature`'s catalog row states it
-plainly: "Multi-squad, so the orchestrator sequences the squad segments and each lead runs its own.
-No lead ever spawns outside its squad," each segment with its own lead-owned run dir. §14's hard
-limit agrees. This decision does not invent the rule; it **propagates it to the two places that
-contradicted it**, and states it in §12 where the runner will actually be read.
+The catalog row for `ship-feature` states this shape — the orchestrator sequences lead-owned runs,
+each with its own run dir — and §10.2 states it where the runner is read. This decision did not
+invent the lead-never-spawns-a-lead rule; it propagated it to the two places that contradicted it.
+The phrase it once carried, "no lead ever spawns outside its squad", was wider than the platform
+fact and is retired below.
 
 | Contradicted it | Fix |
 |---|---|
 | **MVP step 3** — `pm → backend-dev` under `lead: eng-lead` | Corrected in place. `pm` is Product; `eng-lead` leads Engineering. The step predates the three-squad org that **step 2 of the same list** creates |
-| **`plan-feature`** — `product-lead` dispatching `eng-lead` and `ui-reviewer(A)` | Re-specified as three orchestrator-sequenced segments. `ui-reviewer` is validator-squad and `eng-lead` is a lead; neither is dispatchable by `product-lead` |
+| **`plan-feature`** — `product-lead` dispatching `eng-lead` and `ui-reviewer(A)` | `eng-lead` stays out: a lead never spawns a lead, and architecture at plan time is the `scope` reader's. `ui-reviewer` is legal as a hosted reader (below) |
 
-So of the four v1 "crews", **two are not crews**: `plan-feature` and `ship-feature` are orchestrator
-playbooks composed of per-squad runs. `debug` and `review-team` are genuine single-squad crews. This
-was worth settling before building the remaining three, which would otherwise have been built on a
-shape the platform cannot execute.
+**The bound as it stands.** A lead never spawns a lead — the platform fact above — which is why a
+multi-squad lifecycle is an orchestrator playbook of lead-owned runs, each with its own run dir.
+Squad membership binds a team's *mutating* members: `build` is eng-only. A lead may host personas of
+another squad as read-only readers or as a fix member — the `plan`, `validate` and `fix` teams do
+(DEC-224) — because the independence that matters is persona-level, author distinct from reviewer,
+not squad-level. `ship-feature` was never one team: it is the orchestrator sequencing `build`,
+`validate` and `fix` runs. `debug` is an investigation segment (DEC-139).
 
 **`smoke` is deleted.** It was defended as a "permanent shippable health-check crew" — a framing
 that conflated a real need (BUILD's Step 0 asks for a re-runnable `harness-selftest`, because the
@@ -3095,11 +3099,13 @@ skip the segment entirely. Three failed hypothesis cycles is `BLOCKED`, per syst
 **Bugs are full flows, named `BUG-NN-<kebab-slug>`** (user's call): independent number sequence,
 same rules as FEAT ids, and deliberately the same folder root (`.harness/features/` — the flows
 root; zero scripts hardcode the FEAT prefix and all 18 domain globs are `features/*`, verified, so
-a parallel `bugs/` root would re-carve everything for nothing). A lightweight ungated bug lane was
-rejected: "small" is a judgment that drifts, and a second path around the signature is an
-unenforced write path around a guarded surface. The standalone all-in-one debug team was rejected
-with it — a fix that ships without
-qa, review, or a signature between diagnosis and change.
+a parallel `bugs/` root would re-carve everything for nothing). A known-cause bug runs the `patch`
+mission (DEC-225): the harness judges the mission at grilling and records it in the ledger, the
+operator signs a one-task plan, and the gates are qa and review on the diff. What stays rejected is
+an *ungated* lane — a path around the signature is an unenforced write path around a guarded
+surface, and "small" as an unrecorded judgement drifts; a recorded one with an overrule rate does
+not. The standalone all-in-one debug team was rejected with it — a fix that ships without qa,
+review, or a signature between diagnosis and change.
 
 ---
 
@@ -4538,6 +4544,10 @@ revision. No fix goes out while the user is still reading. The rule is in
 `.claude/commands/harness.md:45-50` (section 2, where the signature is taken) and in the Red flags
 row below it (`:90`); commit `7da58c6`.
 
+**The one pass is also where rework is ruled on.** The signature carries the operator's one rework
+ruling — `rework: {rounds, wall_clock_minutes}` — and the orchestrator loops inside it without asking;
+there is no per-cycle ruling after signature (DEC-226).
+
 **The evidence, and it is the reason this is a rule rather than a preference.** FEAT-03's plan phase
 spent **seven serialized runs and roughly $95** on a product-fix → re-verify ping-pong in which **no
 reviewer found anything**. Every cycle existed because a new ruling arrived separately. The cost is
@@ -4606,10 +4616,11 @@ in this repo carry the block, and the checker flags any top-level key not in tha
 entry would convert 67 historical runs into 67 violations in a single edit. The entry looks dead after
 this feature and is not; a comment beside it says so.
 
-**Nothing replaces the ship-review briefing's cost line.** Every candidate — a run count, a wall-clock
-duration — is a NEW measurement this feature has not built, and inventing one inside a removal is how
-removals grow. The 2026-08-04 agent-workflow performance review's row 10 (count and budget RUNS) is the
-remaining lever on that ground, and it is filed to the backlog rather than built here.
+**What replaced the briefing's cost line is a measurement, not a meter (DEC-227).** Per-run
+`started_at`, `ended_at` and `tokens` in `feature.json`, summed in every orchestrator return and
+surfaced by one advisory line at a threshold, never a gate. It was not built inside this removal —
+inventing a measurement inside a removal is how removals grow — and it carries no rate table to
+re-verify.
 
 **`cost_usd` came OUT of the orchestrator digest schema rather than being kept as a declared literal.**
 Probed first: a payload omitting the key while the schema still required it is rejected
@@ -6407,29 +6418,23 @@ which is the one failure an unvalidated return makes easy and invisible.
 that declines to rate, or a normalization that loses a rating, therefore withholds rather than
 passes, and the cheapest way out of a withhold is to rate the finding honestly.
 
-## DEC-207 — A gate may grade a specification before any code exists, and its findings enter the one batched review pass
+## DEC-207 — STRUCK 2026-09-11
 
-**Chose:** A gate MAY fire in the plan phase, before any code exists. Origin:
-`FEAT-45-adversarial-plan-panel`, whose adversarial panel reads a DRAFTED plan before the operator
-signs it.
+Held that a gate MAY fire in the plan phase on every plan, before any code exists and with no
+threshold; that its findings enter the one batched signature pass (DEC-176) and never open a
+pre-signature fix dispatch; and that a finding at high or worse withholds the presentation until
+resolved or overruled. Origin `FEAT-45-adversarial-plan-panel`.
 
-**What is different about a plan-phase gate.** It grades a specification rather than a diff. It has
-no `review_sha` to pin, because there is no commit its findings are about, and no test suite to run,
-because nothing has been built to run one against. A code-reviewer digest binds this case as
-`reviewed: plan:<path-to-plan.yaml>` with `code_grade: n_a`; the validator accepts that form only
-while the named feature's plan is pending, has no pinned `review_sha`, and belongs to the checkout
-branch actually under review. This is a distinct target, not a missing-SHA fallback. Its evidence
-is a reader's judgement recorded in a lead digest — which
-is why the digest, not a green suite, is the artifact the ship decision reads.
+Struck under DEC-188 on the operator's word — the signed FEAT-59 brief, `## Constraints`. Measured
+against it: BUG-285, a ~130-line fix, ran five plan-panel cycles and five goal-checks on a document
+its fix never followed. A `patch` mission has no pre-build panel; a `plan` mission's panel runs inside
+the one plan run and its findings are applied there, not routed to the signature pass; a
+`proportionality` finding downgrades the mission. DEC-228 is the successor and holds the one clause
+that survives — the code-reviewer's plan-target binding, `reviewed: plan:<path>` with
+`code_grade: n_a`, accepted only while the plan is pending with no pinned `review_sha`.
 
-**The bound that keeps it from becoming a second approval loop.** Findings enter the ONE batched
-review pass at the signature gate per DEC-176 and never open a separate pre-signature fix dispatch.
-A panel that could open its own fix cycle would be a second approval loop wearing a gate's name, and
-DEC-176's single consolidated pass exists precisely to deny that.
-
-**Withholding, and who ends it.** A finding at high or worse withholds the presentation until it is
-resolved or the operator records an overrule. The operator, not the panel, is the terminus: the panel
-can delay a signature and can never refuse one.
+**DEC-207's number is retired, not reused.** `validate-digest.py`, `check-state.sh` INV-6,
+`feature-schema.json` and their tests cite it for that binding, and DEC-209 and DEC-216 cite it here.
 
 ## DEC-208 — A run's own record is enforced, not expected: an empty return is refused, a feature artifact is bound to its worktree on both governed write routes, a recorded digest cannot be replaced, and a lead's digest is resolved in the checkout the lead runs in
 
@@ -7130,3 +7135,308 @@ gate behind it.
 
 **Record:** refs DEC-121, DEC-122, DEC-126, DEC-154, DEC-160, DEC-173, DEC-174, DEC-191, DEC-208,
 DEC-216.
+
+## DEC-224 — Squad isolation binds the build team; the plan, validate and fix teams host personas from other squads, and independence is persona-level
+
+**Chose:** DEC-118's bound — a lead never dispatches outside its squad — holds for `build.yaml` and
+nowhere else. The `plan` team (lead `product-lead`) hosts `harness-code-reviewer`,
+`harness-ui-reviewer` and `fable-advisor` as read-only readers beside pm. The `validate` team (lead
+`validator-lead`) hosts `harness-pm` for the goal-check beside its four readers. The `fix` team (lead
+`validator-lead`) hosts the owning dev as a fix member and re-runs the readers over the new
+`review_sha` in the same run. The `spawns:` lists in `.omp/agents/harness-*.md` widen exactly that
+far, and a lead never spawns a lead. The independence that matters is between author and reviewer,
+and it is held at the persona level: the dev that fixes and the reader that grades are distinct
+personas whatever lead hosts them. Origin: `FEAT-59-proportional-flow`.
+
+**Over:** every cross-squad step as an orchestrator-sequenced segment — three segments for the plan
+phase, one squad at a time for review — which was DEC-118's shape for both.
+
+**Because:** the segment boundary was the cost. FEAT-43 ran 49 runs and 29 cycles; 12 of its 18
+rework triggers were genuine defects, found one per cycle across six separate "final" reviews because
+the readers ran as sequential squad segments, and each defect cost about four runs plus a human
+authorization. BUG-285, a ~130-line fix, ran 19 runs and about 6h20m of dispatch before a line of
+code, five of them plan-panel segments. Median runs per feature moved from 10–16 (FEAT-01..50) to 40
+(FEAT-51..56) while shipped diffs did not grow. What DEC-118 protected was never squad membership; it
+was that an author does not grade its own work — and hosting a reader under a different lead never
+made it more independent, it made its finding arrive one cycle later. The platform fact DEC-118
+recorded — a lead cannot spawn a lead — is untouched and is still why a multi-squad lifecycle is an
+orchestrator playbook of lead-owned runs.
+
+**Tradeoff accepted:** a lead's spawn list now names personas whose Expertise it does not own; the
+host lead owns the run dir and the consolidated digest, and the hosted persona's own output block is
+what `validate-digest.py` grades, unchanged. A `build` run stays eng-only, so a defect found at
+validate still crosses one boundary to reach its fix — accepted, because `build`'s serialization is
+`mutates_repo`, not independence, and the `fix` team closes that boundary in one run.
+
+**Record:** amends DEC-118, which now states the build-only bound. Refs: DEC-116, DEC-118, DEC-176,
+DEC-226, DEC-228.
+
+## DEC-225 — The `patch` mission: a known-cause bug is gated at validate on its diff, not at plan on a document
+
+**Chose:** two missions, judged by the harness at the end of grilling and written to the grilling
+artifact's `## Mission` block — `mission: patch | plan`, a one-line `reason`, and `confirmed-by:
+operator` or `overridden-by: operator (<why>)` — then to `feature.json` `mission` by
+`feature-record.py set-mission`. `patch` when the cause is known, the grilling can name the files,
+and no new public interface, schema or enforcement surface is created; otherwise `plan`. A `patch`
+mission's one product run writes a BRIEF of at most 120 lines and a `plan.yaml` holding exactly one
+task (`T-01`, `execution_mode: team`, the owning dev, `traces:` every SC, `change_type: bugfix`
+unless the grilling says otherwise), with no panel and no goal-check run; after signature it runs
+build → validate → ship. Its gates are the ones that read a diff: qa's `fail_first` evidence and the
+batched readers over one `review_sha`. `/harness-plan` and `/harness-patch` refuse to start without
+the block. Origin: FEAT-59 SC-01 and SC-02 — SC-02 as amended at build: the signed text said "no
+plan.yaml"; stations, `gh-sync`, `review_sha` pinning and the build team all key on plan tasks, so
+one generated task keeps one lane.
+
+**Over:** DEC-139's rejection of a lighter bug lane, on the grounds that "small" is a judgement that
+drifts and a second path around the signature is an unenforced write path around a guarded surface.
+
+**Because:** both grounds are answered by mechanism rather than trust. The judgement no longer drifts
+silently: it is written down with its reason, INV-40 refuses a `mission` with no ledger entry, and
+its overrule rate is the trust KPI (DEC-230). The lane is not around the signature: the operator
+signs the one-task plan (DEC-120 untouched), and the gates it keeps — qa and review on the diff — are
+the ones that find defects, while the gates it drops — a panel and a goal-check on a document — are
+the ones BUG-285 spent 19 runs, ~57,000 words of planning artifacts and 9 of 10 cycles on before the
+operator stopped it and the fix shipped by direct dispatch with the plan "left untouched and NOT
+followed". Five of its eight re-cycle triggers were about document form. A gate that grades a
+document a ~130-line fix will not follow is process, not verification.
+
+**Tradeoff accepted:** the mission judgement can be wrong in both directions. Upward error — `plan`
+where `patch` would do — is caught by the `proportionality` finding kind inside the plan run
+(DEC-228). Downward error — `patch` on a change that needed design — is the residual risk; it is
+bounded by the validate gates every mission passes and by the escaped-defect KPI, which fails the
+feature if defects start escaping, because that would mean judgement was removed rather than
+procedure.
+
+**Record:** amends DEC-139, which keeps the investigation segment and the `BUG-NN` flow. Refs:
+DEC-120, DEC-139, DEC-228, DEC-230.
+
+## DEC-226 — The batched signature review is also the one rework ruling; the orchestrator loops inside it without asking
+
+**Chose:** at signature the main session records the operator's rework ruling in the same act as the
+approval: `plan-merge.py sign-approval --rework rounds=N,minutes=M --decision <path>` writes
+`feature.json` `rework: {rounds, wall_clock_minutes, decision}`. Inside that ruling the orchestrator
+runs fix cycles without returning `awaiting_user`; it returns `awaiting_user` only on a new finding
+class (a scope change, an emergent SC) or on budget exhaustion, recorded as a `continue` judgement
+with decision `stop`. INV-39 enforces `cycles_used <= max_total_cycles` and refuses a
+`max_total_cycles` above the harness.json default with no `budget_decisions` entry;
+`feature-record.py raise-cycles` is the one route that writes both. Origin: FEAT-59 SC-15.
+
+**Over:** a human ruling per fix cycle — which DEC-176 left standing, because it batched the
+*signature* pass and said nothing about what follows it.
+
+**Because:** DEC-176's evidence was arrival order — FEAT-03's seven serialized runs in which no
+reviewer found anything, each existing because a new ruling arrived separately. The same shape
+recurred after signature. FEAT-43 took 13 operator rulings, one per cycle, and `max_total_cycles`
+was raised seven times, each raise following `cycles_used` and never leading it, with nothing
+mechanical enforcing the bound DEC-157 declared. A ruling given once per cycle is not oversight; it
+is the operator re-authorizing a loop they already authorized. The ruling worth the operator's
+attention is the bound — how many rounds, how many minutes — and that is one question, answerable
+at the moment the plan is already in their hands.
+
+**Tradeoff accepted:** the operator does not see each cycle's must-fix list before the next fix goes
+out; they see the ledger after. A round that should have stopped earlier costs its remaining rounds.
+The per-cycle sight was bought at ~4 runs per defect and did not catch FEAT-54's five forbidden plan
+paths, which four goal-check cycles and three panel cycles read; the record — `judgements[]`, per-run
+spend, the `SPEND:` advisory — is what the operator audits instead.
+
+**Record:** amends DEC-176, which keeps the one-pass signature rule and its no-escape-hatch clause.
+Refs: DEC-157, DEC-176, DEC-227, DEC-230.
+
+## DEC-227 — Spend is measured per run and never gates: `started_at`, `ended_at`, `tokens`, and one `SPEND:` advisory
+
+**Chose:** every `runs[]` entry carries `started_at` and `ended_at`, written by `feature-record.py
+run-start` and `run-end`, and `tokens` — an integer when the dispatch result carried one
+(`details.results[i].tokens`, which a blocking dispatch does), `null` otherwise, never estimated.
+`feature-record.py spend` sums them; the orchestrator reports the sum in every return; and the OMP
+hook appends one `SPEND:` line on the orchestrator's wake when plan-phase minutes exceed
+`budgets.plan_phase_warn_minutes` (90 in the template) or build-phase minutes exceed the recorded
+`rework.wall_clock_minutes`. The line names spend, budget and phase. It advises; nothing reads it as a
+gate. Origin: FEAT-59 SC-18, SC-19, SC-20.
+
+**Over:** DEC-178's position that nothing replaces the removed cost line until a new measurement is
+built — recorded there so the removal did not grow one.
+
+**Because:** the measurement now exists and it is the one DEC-178 asked for. It is not a dollar
+figure from a rate table; it is two timestamps the writer already has and a token count the platform
+returns with the result. DEC-178 removed the meter because it saw a shrinking minority of the work
+and fed a budget forbidden to stop anything; this signal sees every run the ledger records and is
+not asked to stop anything either — DEC-134's shape, informational and flagged in the headline, is
+the model on purpose. What was missing was not a stop but a sight: FEAT-54's 23 pre-code runs and
+BUG-285's 6h20m of plan-phase dispatch were invisible to the successor orchestrator that inherited
+them, so a successor could decide continue / downgrade / stop from nothing but the handoff's prose.
+
+**Tradeoff accepted:** `tokens` is `null` for every non-blocking dispatch and for every
+main-session-direct segment, so the feature sum is a floor and is labelled one. Per-run wall-clock
+includes queue and wake time, not model time. An honest floor a successor can read beats a precise
+figure nobody trusted. Historical `runs[]` entries are not backfilled; every new key is optional, so
+no `feature.json` on disk changes validity.
+
+**Record:** amends DEC-178, which keeps the removal of the money meter, the `cost_model` block,
+INV-11 and the historical-figures rule. Refs: DEC-134, DEC-159, DEC-178, DEC-226, DEC-230.
+
+## DEC-228 — The pre-build panel is not universal: `patch` has none, `plan` runs it inside the one plan run, and a `proportionality` finding downgrades the mission
+
+**Chose:** DEC-207's rule — a plan-phase gate on every plan, with no threshold, its findings routed
+into the batched signature pass — is struck under DEC-188 on the operator's word (the signed FEAT-59
+brief, 2026-09-11). What stands: a `patch` mission has no pre-build panel. A `plan` mission's panel
+is three readers dispatched in one turn inside the `plan` team, after pm's `draft` and before pm's
+`apply`: `scope` (`harness-code-reviewer` — orphan SCs, traces to nonexistent SCs, non-topological
+deps, verify-versus-delete, and architecture per `harness-codebase-design`; there is no separate
+eng-lead review at plan time), `should-not-exist` (`fable-advisor`, skipped and recorded when it does
+not resolve) and `design` (`harness-ui-reviewer`, self-scoping out on non-UI). `apply` fixes every
+`form` finding in place, applies `substance` findings, records the panel with `plan-merge.py
+record-panel` and runs `plan-merge.py check`; then pm's `goalcheck` grades one result per
+perspective. Every finding carries `kind: substance | form | proportionality`; `form` never re-gates.
+A `proportionality` finding no reader opposes makes the lead's digest say `recommend: downgrade
+patch`; the orchestrator downgrades the mission itself, records a `mission` judgement and returns
+the intake `pending`, so the operator sees the downgrade at signature and not as a question. A
+re-cycle on a proportionality finding is a defect. The code-reviewer's plan-target binding —
+`reviewed: plan:<path>` with `code_grade: n_a`, accepted only while the plan is pending with no
+pinned `review_sha` and belongs to the checkout branch under review — survives unchanged as the
+`scope` reader's digest form.
+
+**Over:** the panel as two orchestrator-sequenced segments (FEAT-45 D-01) whose findings entered the
+signature pass and reached `plan.yaml` through a separate pm transcription run.
+
+**Because:** the universal panel cost more than the defects it found. BUG-285 ran five plan-panel
+cycles and five goal-checks on a ~130-line fix, three runs that only transcribed findings, and five
+of its eight re-cycles were about document form. FEAT-54 ran 23 runs before production code, and
+its first build dispatch BLOCKED on five plan paths the layout gate forbids — "four goal-check cycles
+and three panel cycles read it and none noticed; the first build dispatch found it in one member
+spawn." A reader is never asked to find by reading what a script finds by running
+(`plan-merge.py check`), and a panel that grades a document the fix will not follow grades nothing.
+DEC-207's bound — the panel must never become a second approval loop — is kept by a stronger
+mechanism than routing findings to the signature pass: they are applied in the same run, so there
+is no second pass for them to open.
+
+**Tradeoff accepted:** a `patch` mission's plan is read by nobody but the operator at signature. That
+is the point, and the escaped-defect KPI is what says whether it was safe. A `should-not-exist`
+reader that does not resolve is recorded as skipped rather than blocking the run, so a plan can be
+signed without that reading, and the digest says so.
+
+**Record:** strikes the universal rule of DEC-207, whose heading and strike record stay because the
+digest validator, the state check and their tests cite that number for the plan-target binding this
+entry now holds. Refs: DEC-176, DEC-188, DEC-207, DEC-209, DEC-216, DEC-225, DEC-229, DEC-230.
+
+## DEC-229 — `record-panel` is an orchestrator-runnable verb; pm still authors the plan
+
+**Chose:** `plan-merge.py record-panel --digest <path>` writes the top-level `panel:` mapping from a
+lead digest's `findings` and `readers` lists, carrying every finding already present byte for byte,
+and the orchestrator may run it — as it already runs `set-task-station`. FEAT-45 plan D-03 (a
+reader's findings reach disk only by the lead transcribing them, and pm alone writes `plan.yaml`) is
+amended by that one key. Alongside it: `apply` replaces a changed field on an existing id, `set-lanes`
+gives `lanes:` a write route, `set-panel` keeps the bytes of every unchanged finding, and any verb
+that changes the task set or a task field on an approved plan resets `approval.status` to `pending`
+with `reset_at` and `reset_reason`; `sign-approval` stays the only writer of `approved`. Origin:
+FEAT-59 SC-05, SC-08.
+
+**Over:** a pm run whose only work is to copy the lead's findings into `plan.yaml`.
+
+**Because:** that run existed three times in BUG-285 and about eight times in FEAT-54, each a cold
+three-layer dispatch of about 21 minutes that produced no judgement. FEAT-54's 23 pre-code runs were
+driven by the write mechanics themselves — `apply` refusing any changed field, `lanes:` with no write
+route, `set-panel` re-wrapping findings — so pm needed a `/tmp` driver to use its own tools.
+Authorship is a judgement; transcription is not. The signature (DEC-120) and the approval reset are
+what protect the plan, not the identity of the hand that copies a finding into it.
+
+**Tradeoff accepted:** two writers of `plan.yaml`'s non-task keys. The task set stays pm's, every
+write goes through `plan-merge.py`, and the approval reset makes a changed task set unsignable by
+accident.
+
+**Record:** amends FEAT-45 plan D-03. Refs: DEC-120, DEC-182, DEC-228.
+
+## DEC-230 — The judgement ledger: every autonomous judgement is a `judgements[]` entry, and uncertainty asks once with a recommendation
+
+**Chose:** every autonomous judgement the harness makes on a feature — the mission choice, a
+finding's `kind`, re-gate or not, continue or stop, succession — is appended to `feature.json`
+`judgements[]` as `{at, by, kind, decision, reason}` by `feature-record.py judgement`, with a
+one-line reason of at most 240 characters. The five kinds are exhaustive. INV-40 refuses a `mission`
+with no `mission` entry, a FAIL run followed by another run with no `regate` entry, and a handoff
+with runs after it and no `succession` entry. A successor's first act after reading the handoff is
+a `succession` judgement — continue, downgrade or stop, from the feature's cumulative spend and the
+handoff's `## Next` — reported in its first return; it does not ask. When a reader or the
+orchestrator cannot classify — a finding's kind, a mission's proportionality, whether a finding is a
+new class — it returns `awaiting_user` with exactly one question and its own recommendation, and it
+never resolves the doubt by choosing the heavier route (re-panel, re-cycle, `plan` over `patch`) by
+default. The overrule rate over `judgements[]` is the trust KPI, read at five features. Origin:
+FEAT-59 SC-03, SC-20, SC-21, SC-22.
+
+**Over:** in-flight rulings — the operator authorizing each cycle, each mission, each successor —
+which is how FEAT-43 accumulated 13 operator contacts on one feature.
+
+**Because:** a judgement the operator cannot audit is indistinguishable from an accident, and a
+judgement the operator must ratify in flight was never delegated. The ledger makes delegation
+verifiable after the fact: the operator reads each judgement and its reason in one line, overrules
+from the return, and the overrule rate says whether the delegation was earned. The asking rule exists
+because the alternative default is how the loop grew — every gate added under uncertainty was a
+heavier route chosen so nobody had to decide — and the brief's measurement is what that cost: median
+runs per feature from 10–16 to 40 with shipped diffs unchanged.
+
+**Tradeoff accepted:** a judgement is recorded after it is made, so the ledger catches a wrong one
+only after its cost is spent, and the KPI needs five features of volume before it says anything.
+INV-40's three triggers are the ones that leave a trace in `feature.json`; a `finding_kind` or
+`continue` judgement that was never recorded is caught by no invariant, only by the operator's
+reading. Stated so nobody claims the ledger is complete by construction.
+
+**Record:** refs DEC-134, DEC-157, DEC-225, DEC-226, DEC-227, DEC-228.
+
+## DEC-231 — One statement of done: `## Done when — by perspective` replaces Goal and REQ, and every SC discharges a perspective
+
+**Chose:** a BRIEF states done once, as `## Done when — by perspective`: one `**<name>** —` line of
+one to three sentences per perspective that has something to say — `operator`, `code maintainer`,
+`end user`, `reader`, `orchestrator`; a perspective with nothing to say is omitted, never written as
+"none". Every SC is tagged `- SC-NN (<perspective>):` and carries `verify: automated  evidence:
+<kind>`, `verify: inspection` or `verify: uat`. There is no `## Goal` and no `## Requirements` or
+`REQ-NN`; plan task `traces:` cite SC ids; the goal-check grades one result per perspective, once at
+plan exit and once at validate exit, never per cycle. A handoff's `## Done when` cites at least one
+`brief-perspective:PATH#<name>` authority, which resolves to that perspective's line. INV-38 refuses
+a new by-perspective BRIEF with a perspective no SC discharges or an SC with no perspective; INV-41
+refuses an SC whose text invokes `check-state.sh` or `check-domain.sh` with no feature-scoped
+argument. Pre-existing BRIEFs are not graded. Origin: FEAT-59 SC-09, SC-10, SC-11, SC-12, SC-16.
+
+**Over:** three statements — `## Goal` prose, `REQ-NN`, and SCs — with REQ coverage computed through
+`traces:` and a goal-check run every cycle.
+
+**Because:** three statements of done disagree, and each disagreement was a cycle. Five of BUG-285's
+eight re-cycles were about document form, and its goal-check ran five times against a plan the fix
+never followed. Three of FEAT-54's six review cycles FAILed on SC-04, a repository-wide
+`check-state.sh` assertion red on other features' debris — a criterion no feature can discharge. A
+perspective is what a REQ was reaching for: the reader for whom the feature is done, in that reader's
+voice, which a goal-check can grade and a handoff can point at. A REQ was an implementation-neutral
+restatement of the SCs, and its coverage was computed from the same `traces:` the SCs now carry.
+
+**Tradeoff accepted:** the perspective vocabulary is five names and a feature may need a sixth;
+INV-38 grades declared against discharged, not the name, so a feature may declare one. The old shape
+stays on disk ungraded, so two BRIEF shapes coexist in the record until the pre-FEAT-59 features
+close. DEC-132 and DEC-133 are unchanged: pm still authors, from the grilling artifact, and signs the
+perspective block with the SCs.
+
+**Record:** refs DEC-132, DEC-133, DEC-215, DEC-228, DEC-230.
+
+## DEC-232 — Plan anchors are symbols — `path`, `path#symbol`, `{path, quote}` — a line number is refused at write, and a stale anchor at build is the builder's
+
+**Chose:** a plan task's `files:` entry takes one of three forms — `path`, `path#symbol`, or
+`{path: <p>, quote: <q>}` — and `plan_anchors.py` refuses the line-number form `path:NN` on every
+write route (`apply`, `amend`), naming every offending entry with its task in one refusal.
+`plan-merge.py check --file <plan> --root <checkout>` resolves every anchor, every `files:` path
+against the layout gate, every `execution_agent` route and every `traces:` id; it writes nothing, and
+it runs at plan exit before the panel is recorded. A stale anchor at build entry is re-resolved by
+the builder and is not a FAIL. Origin: FEAT-59 SC-07.
+
+**Over:** line-number anchors — the form `check-decision-anchors.py` already grades for rot in this
+file — and a build-entry gate that fails a plan because `main` moved under it.
+
+**Because:** a line number is true for exactly one commit, and a plan is signed on one commit and
+built on another. FEAT-54's first build dispatch BLOCKED on five plan paths the layout gate forbids;
+four goal-check cycles and three panel cycles read them and none noticed, and the first build spawn
+found them. That is a resolution question, and DEC-177's rule applies: measure before relaying.
+`check` measures it once at plan exit, so no reader is asked to find by reading what the script finds
+by running. A stale anchor at build is not the plan's defect — `main` moved — and the builder is the
+one persona positioned to see it and the one whose re-resolution costs nothing.
+
+**Tradeoff accepted:** a symbol anchor is looser than a line: `path#symbol` names a definition, not a
+statement inside it, and a `quote` breaks on a rewording as a line number did on an insertion.
+Accepted because a broken quote is a builder's re-resolution, never a gate. `check` cannot see a
+symbol renamed after plan exit; the builder's re-resolution is the second and last line.
+
+**Record:** refs DEC-177, DEC-179, DEC-205, DEC-228, DEC-229.

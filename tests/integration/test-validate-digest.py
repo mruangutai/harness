@@ -666,7 +666,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two blocking findings
   severity_max: high
-  findings: 2
+  findings: [{ kind: substance, severity: high, reader: code-reviewer, summary: "fail-open branch in auth" }, { kind: substance, severity: high, reader: code-reviewer, summary: "unhandled rejection" }]
   must-fix: ["fail-open branch in auth"]
   files_touched: []
   open_questions: []
@@ -679,7 +679,7 @@ VERDICT: FAIL
 DIGEST:
   headline: one finding
   severity_max: medium
-  findings: 1
+  findings: [{ kind: substance, severity: med, reader: code-reviewer, summary: "off-by-one" }]
   must_fix: []
   files_touched: []
   open_questions: []
@@ -856,14 +856,14 @@ DIGEST:
 artifact: r/digest.md
 """, False, "no verdict")
 
-# A team step that never ran has no verdict to roll up. The plan-panel contract
+# A team step that never ran has no verdict to roll up. The plan team's contract
 # records the absence explicitly instead of manufacturing ESCALATE (which would
 # contaminate worst-wins) or PASS (which would claim work happened).
-case("a skipped member is explicit and excluded from worst-wins", "harness-validator-lead", """
+case("a skipped member is explicit and excluded from worst-wins", "harness-product-lead", """
 VERDICT: PASS
 DIGEST:
   headline: scope review passed; optional advisor was unavailable
-  team: plan-panel
+  team: plan
   steps_run: 1
   cycles_used: 0
   members:
@@ -879,11 +879,11 @@ DIGEST:
 artifact: r/digest.md
 """, True)
 
-case("all skipped members cannot support a lead verdict", "harness-validator-lead", """
+case("all skipped members cannot support a lead verdict", "harness-product-lead", """
 VERDICT: PASS
 DIGEST:
   headline: nobody ran
-  team: plan-panel
+  team: plan
   steps_run: 2
   cycles_used: 0
   members:
@@ -902,7 +902,7 @@ case("mandatory member cannot be laundered as skipped", "harness-validator-lead"
 VERDICT: PASS
 DIGEST:
   headline: qa was omitted
-  team: review
+  team: validate
   steps_run: 2
   cycles_used: 0
   members:
@@ -1034,7 +1034,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two findings
   severity_max: [low, med]
-  findings: 2
+  findings: [{ kind: form, severity: low, reader: code-reviewer, summary: "a" }, { kind: substance, severity: med, reader: code-reviewer, summary: "b" }]
   must_fix: []
   files_touched: []
   open_questions: []
@@ -1400,6 +1400,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   files_touched: []
   open_questions: []
   expertise_update: []
@@ -1450,6 +1451,7 @@ DIGEST:
   failures: 2
   coverage_gaps: ["refresh path"]
   matrix_ok: true
+  fail_first: []
   files_touched: []
   open_questions: []
   expertise_update: []
@@ -2034,6 +2036,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2292,6 +2295,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: n/a
+  fail_first: []
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2311,7 +2315,7 @@ VERDICT: PASS
 DIGEST:
   headline: diff touches no user-facing surface; nothing to review
   severity_max: n/a
-  findings: 0
+  findings: []
   must_fix: []
   open_questions: []
   files_touched: []
@@ -2362,7 +2366,7 @@ VERDICT: PASS
 DIGEST:
   headline: reviewed
   severity_max: medium
-  findings: 1
+  findings: [{ kind: substance, severity: med, reader: ui-reviewer, summary: "focus ring lost" }]
   must_fix: []
   open_questions: []
   files_touched: []
@@ -2506,6 +2510,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2563,6 +2568,7 @@ DIGEST:
   failures: 1
   coverage_gaps: []
   matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2577,6 +2583,7 @@ DIGEST:
   failures: 0
   coverage_gaps: []
   matrix_ok: false
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -2623,7 +2630,7 @@ VERDICT: PASS
 DIGEST:
   headline: x
   severity_max: low
-  findings: 0
+  findings: []
   must_fix: []
   open_questions: []
   files_touched: []
@@ -2640,7 +2647,7 @@ VERDICT: PASS
 DIGEST:
   headline: x
   severity_max: low
-  findings: 0
+  findings: []
   must_fix: []
   reviewed: "HEAD..HEAD"
   open_questions: []
@@ -2665,6 +2672,181 @@ case("task_verify's missing-field hint names its real values, not the none wordi
 case("task's missing-field hint names a task id, not the list wording",
      "harness-backend-dev", _dev(task=None), False,
      ["task", "T-NN", "none", "!if there are none"])
+
+# =====================================================================
+# FEAT-59 SC-06 / C2 — every finding carries a KIND. `findings` was an INT count
+# (`findings: 2`), which told the routing layer how many and nothing about what
+# they were; BUG-285 measured 5 of 8 re-cycle triggers were about DOCUMENT FORM,
+# not code, and each one cost a cold three-layer dispatch. The kind is what lets
+# a `form` finding be fixed in-run without a re-read and a `substance` finding
+# re-gate only the tasks it names. A finding without one is undecidable and is
+# rejected at source.
+# =====================================================================
+
+def _ui_review(findings):
+    return f"""
+VERDICT: FAIL
+DIGEST:
+  headline: one blocking finding
+  severity_max: high
+  findings:
+{findings}
+  must_fix: ["fail-open branch in auth"]
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/ui-review.md
+"""
+
+
+case("FEAT-59 finding without kind is rejected, naming the entry and the enum",
+     "harness-ui-reviewer", _ui_review(
+         '    - { severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+     False, ["findings[0]", "kind", "substance", "form", "proportionality"])
+case("FEAT-59 finding with a kind outside the enum is rejected, naming the value",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: style, severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+     False, ["findings[0]", "style", "substance", "form", "proportionality"])
+# A near-miss must not be charitably normalised — the whole point of this validator.
+case("FEAT-59 kind: substantive (near-miss) is rejected, not normalised",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: substantive, severity: high, reader: ui-reviewer, summary: "x" }'),
+     False, ["findings[0]", "substantive"])
+case("FEAT-59 a bare-string finding has no kind and is rejected",
+     "harness-ui-reviewer", _ui_review('    - "fail-open branch in auth"'),
+     False, ["findings[0]", "kind"])
+# The index in the message is the SECOND entry when the first is fine.
+case("FEAT-59 the error names the offending entry's index, not the first",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: substance, severity: high, reader: ui-reviewer, summary: "a" }\n'
+         '    - { severity: low, reader: ui-reviewer, summary: "b" }'),
+     False, ["findings[1]", "!findings[0]"])
+# Each member of the enum is ACCEPTED — inline and block-mapping styles both.
+case("FEAT-59 kind: substance is accepted (inline entry)",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: substance, severity: high, reader: ui-reviewer, summary: "fail-open branch" }'),
+     True)
+case("FEAT-59 kind: form is accepted (block-mapping entry)",
+     "harness-ui-reviewer", _ui_review(
+         '    - kind: form\n'
+         '      severity: high\n'
+         '      reader: ui-reviewer\n'
+         '      summary: "DESIGN.md table header drifted"'),
+     True)
+case("FEAT-59 kind: proportionality is accepted",
+     "harness-ui-reviewer", _ui_review(
+         '    - { kind: proportionality, severity: high, reader: ui-reviewer, '
+         'summary: "a plan for a five-line fix", why: "no design surface changes" }'),
+     True)
+# `findings: []` is the positive assertion "looked, found nothing" and stays legal.
+case("FEAT-59 findings: [] is accepted — an explicit empty list asserts you looked",
+     "harness-security-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: nothing security-relevant in the diff
+  severity_max: none
+  findings: []
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/sec.md
+""", True)
+# The pre-FEAT-59 spelling is a CONTRACT VIOLATION now, not a count.
+case("FEAT-59 findings as an INT count is rejected — it is a list of kinded entries",
+     "harness-security-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: nothing security-relevant in the diff
+  severity_max: none
+  findings: 0
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/sec.md
+""", False, ["findings", "list"])
+# A validator-lead digest may carry the consolidated panel findings and the readers
+# roster (PlanMerge's `record-panel --digest` reads both); the same kind rule binds.
+case("FEAT-59 lead findings passthrough: kinded entries are accepted alongside readers:",
+     "harness-validator-lead", LEAD_BLOCK.replace(
+         "\n  sc_status: []",
+         "\n  sc_status: []\n"
+         "  readers: [{ reader: scope, status: ran }, { reader: should-not-exist, status: skipped, persona: fable-advisor, reason: host refusal }]\n"
+         "  findings: [{ kind: substance, severity: high, reader: scope, summary: \"SC-03 has no task\" }]"),
+     True)
+case("FEAT-59 lead findings passthrough: an entry without kind is rejected",
+     "harness-validator-lead", LEAD_BLOCK.replace(
+         "\n  sc_status: []",
+         "\n  sc_status: []\n"
+         "  findings: [{ severity: high, reader: scope, summary: \"SC-03 has no task\" }]"),
+     False, ["findings[0]", "kind"])
+
+# =====================================================================
+# FEAT-59 SC-17 / C3 — qa PASS needs FAIL-FIRST evidence. A green suite proves the
+# tests pass; it does not prove they ever failed, and a test that never failed
+# constrains nothing (harness-tdd-enforcement's Iron Law, now enforced at the
+# digest). Per `verify: automated` SC the qa digest names the evidence that the
+# test FAILED before the fix. `matrix_ok: n/a` ran no gate and may carry `[]`.
+# =====================================================================
+
+def _qa(verdict="PASS", matrix_ok="true", fail_first="[]", suite="pass"):
+    return f"""
+VERDICT: {verdict}
+DIGEST:
+  headline: suite green
+  suite: {suite}
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: {matrix_ok}
+  fail_first: {fail_first}
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/qa.md
+"""
+
+
+FAIL_FIRST_ONE = ('[{ sc: SC-01, evidence: '
+                  '"notes/qa-r1/fail-first-SC-01.txt: 1 failed before 3f2a9c1" }]')
+
+case("FEAT-59 qa PASS + matrix_ok: true + fail_first: [] is REJECTED — a green suite "
+     "with no fail-first evidence is not a pass",
+     "harness-qa", _qa(), False, ["fail_first", "fail-first"])
+case("FEAT-59 qa PASS with populated fail_first is accepted",
+     "harness-qa", _qa(fail_first=FAIL_FIRST_ONE), True)
+case("FEAT-59 qa matrix_ok: n/a with fail_first: [] is accepted — no gate ran",
+     "harness-qa", _qa(verdict="BLOCKED", matrix_ok="n/a", suite="n/a"), True)
+case("FEAT-59 qa FAIL with fail_first: [] is accepted — the gate is on PASS",
+     "harness-qa", _qa(verdict="FAIL", matrix_ok="false", fail_first="[]"), True)
+case("FEAT-59 qa omitting fail_first is rejected — every field is required",
+     "harness-qa", _qa().replace("  fail_first: []\n", ""), False, "fail_first")
+# The missing-field hint must not route the agent into the empty-list rejection.
+case("FEAT-59 fail_first's missing-field hint names the entry shape, not `[]`",
+     "harness-qa", _qa().replace("  fail_first: []\n", ""), False,
+     ["fail_first", "SC-NN", "evidence", "!if there are none"])
+# Entry shape: `{sc: SC-NN, evidence: <non-empty>}`. A bare string is not evidence
+# for any named SC; an SC without evidence is a claim, not a receipt.
+case("FEAT-59 fail_first entry without sc is rejected, naming the index",
+     "harness-qa", _qa(fail_first='[{ evidence: "x.txt" }]'), False,
+     ["fail_first[0]", "sc"])
+case("FEAT-59 fail_first entry with empty evidence is rejected, naming the index",
+     "harness-qa", _qa(fail_first='[{ sc: SC-01, evidence: "" }]'), False,
+     ["fail_first[0]", "evidence"])
+case("FEAT-59 fail_first bare-string entry is rejected",
+     "harness-qa", _qa(fail_first='["SC-01 failed first"]'), False, ["fail_first[0]"])
+case("FEAT-59 fail_first sc must be an SC-NN id",
+     "harness-qa", _qa(fail_first='[{ sc: T-01, evidence: "x.txt" }]'), False,
+     ["fail_first[0]", "SC-NN"])
+case("FEAT-59 fail_first block-mapping entries are accepted",
+     "harness-qa", _qa().replace(
+         "  fail_first: []",
+         "  fail_first:\n"
+         "    - sc: SC-01\n"
+         "      evidence: notes/qa-r1/fail-first-SC-01.txt\n"
+         "    - sc: SC-02\n"
+         "      evidence: \"receipt: 2 failed, 0 passed at 3f2a9c1~1\""),
+     True)
 
 
 # (11)(j2-ii) JOINT HINT FOLLOWABILITY. Not expressible as independent cases: the
@@ -2768,7 +2950,7 @@ def reviewer_digest(code_grade="pass", files="[]", must_fix="[]", severity_max="
 DIGEST:
   headline: reviewer result
   severity_max: {severity_max}
-  findings: 0
+  findings: []
   must_fix: {must_fix}
   code_grade: {code_grade}
   reviewed: "{reviewed}"
@@ -2809,15 +2991,16 @@ def _t01_digest(persona, extras):
         f"  {key}: {json.dumps(value)}" for key, value in extras.items())
     bodies = {
         "harness-security-reviewer": """  severity_max: none
-  findings: 0
+  findings: []
   must_fix: []""",
         "harness-ui-reviewer": """  severity_max: none
-  findings: 0
+  findings: []
   must_fix: []""",
         "harness-qa": """  suite: pass
   failures: 0
   coverage_gaps: []
-  matrix_ok: true""",
+  matrix_ok: true
+  fail_first: [{ sc: SC-01, evidence: "notes/qa-r1/fail-first-SC-01.txt" }]""",
         "harness-documentor": """  docs_updated: []
   gaps: []""",
         "harness-dev-ops": """  change_type: config
@@ -3381,7 +3564,10 @@ def check_prior_validator(td, guarded, failures):
     prior = subprocess.run(
         [sys.executable, os.path.join(prior_dir, "validate-digest.py"),
          "harness-code-reviewer"],
-        input=guarded, capture_output=True, text=True)
+        # FEAT-59 turned `findings` from an int count into a kinded list; the PRIOR
+        # revision's contract spelled the empty case `findings: 0`, and this control is
+        # about the review-policy rejection being new, not about the findings shape.
+        input=guarded.replace("findings: []", "findings: 0"), capture_output=True, text=True)
     if prior.returncode != 0:
         failures.append("previous validator must accept the gated digest")
 
@@ -4330,7 +4516,7 @@ def check_review_sha_binding_other_personas(validator, config, feature_dir, fail
 DIGEST:
   headline: ui pass
   severity_max: low
-  findings: 0
+  findings: []
   must_fix: []
   files_touched: []
   open_questions: []

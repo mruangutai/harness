@@ -369,12 +369,17 @@ def _validate_plan_tasks(tasks, path):
         seen.add(tid)
 
         files = t["files"]
-        if not isinstance(files, list) or not all(isinstance(f, str) for f in files):
+        if not isinstance(files, list) or not all(_is_files_entry(f) for f in files):
             # ISSUE #147's FIRST QUESTION, answered by the type rather than by a
-            # ruling: `files:` is a sequence of strings. Block and flow style load
+            # ruling: `files:` is a sequence of entries. Block and flow style load
             # identically, so the three shapes the old parser accepted collapse into
-            # one thing nobody has to adjudicate.
-            raise PlanSchemaError(path, f"{where} ({tid}) `files:` must be a list of strings")
+            # one thing nobody has to adjudicate. FEAT-59 C4 widened an entry from a bare
+            # string to plan_anchors.py's grammar: `path`, `path#symbol`, or a
+            # `{path, quote}` mapping — the one non-string shape, accepted here so the
+            # reader and plan-merge.py's writer agree on what a legal plan carries.
+            raise PlanSchemaError(
+                path, f"{where} ({tid}) `files:` must be a list of paths, path#symbol anchors, "
+                      "or {path, quote} mappings")
 
         mode = t["execution_mode"]
         if mode not in LEGAL_EXECUTION_MODES:
@@ -386,6 +391,17 @@ def _validate_plan_tasks(tasks, path):
                 path,
                 f"{where} ({tid}) execution_mode {mode!r} — legal values are "
                 f"{', '.join(LEGAL_EXECUTION_MODES)}")
+
+
+def _is_files_entry(entry):
+    """One `files:` entry in plan_anchors.py's grammar: a string (`path` or `path#symbol`), or
+    a `{path, quote}` mapping of two strings. The line-number form `path:NN` is a string too
+    and is refused by the WRITER (plan-merge.py), not here — a reader that refused it would
+    make every plan carrying one unloadable rather than uncorrectable."""
+    if isinstance(entry, str):
+        return True
+    return (isinstance(entry, dict) and set(entry) == {"path", "quote"}
+            and all(isinstance(v, str) for v in entry.values()))
 
 
 def _depends_on_entries(t, path):

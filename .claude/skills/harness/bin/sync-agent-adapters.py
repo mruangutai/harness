@@ -48,10 +48,21 @@ SPAWNS = {
         "harness-eng-lead",
         "harness-validator-lead",
     ],
+    # Cross-squad hosting (DEC-118 as amended by FEAT-59): a lead spawns the read-only
+    # and fix members its teams name, never another lead. Kept in sync with the shipped
+    # `spawns:` frontmatter on .omp/agents/harness-*-lead.md. SPAWNS is read only by
+    # bootstrap_one(), reachable only via --bootstrap-from-claude, and bootstrap()
+    # refuses to run whenever .omp/agents/harness-*.md already exist -- so these entries
+    # regenerate nothing today. They exist so the constant and the enforced allowlist
+    # cannot silently disagree.
     "harness-product-lead": [
         "harness-pm",
         "harness-visual-designer",
         "harness-documentor",
+        # plan.yaml readers
+        "harness-code-reviewer",
+        "harness-ui-reviewer",
+        "fable-advisor",
     ],
     "harness-eng-lead": [
         "harness-frontend-dev",
@@ -65,13 +76,14 @@ SPAWNS = {
         "harness-code-reviewer",
         "harness-security-reviewer",
         "harness-ui-reviewer",
-        # fable-advisor: kept in sync with the shipped `spawns:` frontmatter on
-        # .omp/agents/harness-validator-lead.md. SPAWNS is read only by
-        # bootstrap_one(), reachable only via --bootstrap-from-claude, and
-        # bootstrap() refuses to run whenever .omp/agents/harness-*.md already
-        # exist -- so this entry regenerates nothing today. It exists so the
-        # constant and the enforced allowlist cannot silently disagree.
-        "fable-advisor",
+        # validate.yaml goal-check
+        "harness-pm",
+        # fix.yaml owning dev
+        "harness-backend-dev",
+        "harness-frontend-dev",
+        "harness-ai-dev",
+        "harness-data-engineer",
+        "harness-dev-ops",
     ],
 }
 

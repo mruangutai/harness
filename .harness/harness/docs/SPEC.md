@@ -34,7 +34,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
 | **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals | **9** | 1.1k |
 | The orchestrator — loop, hierarchy and spawn depth, canonical flow, CEO briefing, consolidated DIGEST, escalation, `max_cycles` exhaustion | **10** | 2.7k |
-| **Execution state** — `feature.json`, `state.yaml`, REQ/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
+| **Execution state** — `feature.json` (mission, judgement ledger, rework ruling, per-run spend), `state.yaml`, perspective/SC/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
 | Team YAML schema and the runner algorithm | **12** | 0.7k |
 | The v1 team catalog and the prototype gate | **13** | 0.8k |
 | Composability — v1 scope and the post-v1 flattening plan | **14** | 0.2k |
@@ -77,8 +77,8 @@ Four files plus `harness.json` and one directory:
 
 | File | Purpose | Read by | Written by |
 |---|---|---|---|
-| `.harness/features/<FEAT>/BRIEF.md` | North star: Goal, Requirements (REQ-NN), Constraints, **Success Criteria (SC-NN)**, `## Approval`. Stable across the project. **The goal of record** — every goal-check anchors here. | all personas | `harness-pm` (drafts) · **user approves** |
-| `.harness/features/<FEAT>/PLAN.md` | Active plan: `## Decisions` (D-NN), `## Approval` (user marker + date), `## Features` (FEAT-NN: name, `traces:` REQs, its tasks — §11), `## Tasks` (T-NN: paths, intent, `verify:`, `traces:`, `feature:`, `change_type:`, `status:`). | all personas | `harness-pm` (except `## Approval` → orchestrator) |
+| `.harness/features/<FEAT>/BRIEF.md` | The one statement of done (DEC-231): `## Problem`, `## Done when — by perspective` (one `**<name>** —` line per perspective with something to say), `## KPIs` (optional), `## Success criteria` (`- SC-NN (<perspective>):` with `verify:`), `## Verification gaps`, `## Constraints`, `## Out of scope`, `## Approval`. No `## Goal`, no `REQ-NN`. **The goal of record** — every goal-check grades it per perspective; INV-38 grades its shape. A `patch` mission's BRIEF is at most 120 lines | all personas | `harness-pm` (drafts) · **user approves** |
+| `.harness/features/<FEAT>/plan.yaml` | The declaration (§11.2): `decisions:` (D-NN), `tasks:` (T-NN: `files:` symbol anchors, `intent:`, `verify:`, `traces:` SC ids, `change_type:`, `execution_agent:`, `status:`), `panel:`, `lanes:`, top-level `status` (the station), `approval:`. Written only through `plan-merge.py`; any task-set change resets approval to `pending` | all personas | `harness-pm` authors; the orchestrator runs `set-task-station` and `record-panel` (DEC-229); `sign-approval` is the main session's |
 | `.harness/features/<FEAT>/STATE.md` | Live handoff digest **per flow** — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. Per-feature since DEC-120: with N concurrent flows a single project-level file would have N writers | that flow's agents at spawn | **that feature's orchestrator only** |
 | `.harness/logs/<YYYY-MM-DD>.md` | Append-only **cross-flow** stream, one file per day: flow started, escalation raised, question answered, briefing held. Per-flow detail lives in that feature's `STATE.md` and run dirs. **Not loaded at spawn.** Pruned on a recurring schedule. | on request only | **main session only** — kept single-writer by being the one thing above the flows (DEC-120) |
 | `.harness/features/<FEAT>/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established by the design pass in `/harness-plan`; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
@@ -146,10 +146,12 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 | Condition | Action |
 |---|---|
 | not registered in `.harness/factory/fleet.yaml`, or its own `harness.json` not readable at its `default_branch`, or no central tree at `<control-plane>/.harness/<segment>/` | the repository is not onboarded — have the user run the `harness-add-repo` skill |
-| BRIEF, no `PLAN.md` | delegate to pm (normal planning) |
+| grilling artifact with no `## Mission` block | `/harness-plan` and `/harness-patch` refuse to start — the harness's own `patch`/`plan` judgement, with its reason and your confirmation or override, is recorded first (DEC-225) |
+| BRIEF, no `plan.yaml` | delegate to product-lead: the `plan` team for a `plan` mission; the one-task intake run for `patch` |
 | **BRIEF with no `## Approval`** | **halt — surface to user. Nothing downstream may run against an unapproved goal** |
-| PLAN re-planned after approval | pm must **reset** `## Approval` to pending; a stale approval must never carry onto a changed task set |
-| PLAN with no `## Approval` | halt — surface to user for approval |
+| plan changed after approval | `plan-merge.py` has already reset `approval.status` to `pending` with `reset_reason`; a stale approval never carries onto a changed task set |
+| plan `approval.status: pending` | halt — surface to user for signature, with the one rework ruling (DEC-226) |
+| `feature.json` `mission`, a re-gate or a succession with no matching `judgements[]` entry | INV-40 refuses it — an unrecorded judgement is indistinguishable from an accident (DEC-230) |
 | STATE points at a task absent from PLAN | halt — report inconsistency, offer repair |
 | PLAN task missing `change_type` | pm must fill it before the qa gate can apply |
 | template `schema_version` gap in the control-plane clone's own manifest | tell the user to run `harness-init` with `--upgrade` |
@@ -244,28 +246,27 @@ DEC-120) — two jobs:
 | Lead | Squad | Owns |
 |---|---|---|
 | **`harness-product-lead`** | pm, visual-designer, documentor | *What* to build, how it looks, how it's explained |
-| **`harness-eng-lead`** | frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops | *How* it's built — plus **architecture review** for its own squad |
-| **`harness-validator-lead`** | qa, code-reviewer, security-reviewer, ui-reviewer | *Is it right* — runs the review panel and **assesses the feedback** |
+| **`harness-eng-lead`** | frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops | *How* it's built — hosts the `build` team |
+| **`harness-validator-lead`** | qa, code-reviewer, security-reviewer, ui-reviewer | *Is it right* — hosts `validate` and `fix`, with pm's goal-check and the owning dev as hosted members (DEC-224), and **assesses the feedback** |
 
 **Goal-checking is distributed, not centralized in one role:**
 
-- **Feature-level goal** → `pm` (owns the "what"; checks delivery against BRIEF: REQ coverage + SC
-  outcomes)
-- **Architecture goals** → `eng-lead` · **Coverage goals** → `qa` · **Security goals** →
+- **Feature-level goal** → `pm` (owns the "what"; grades each perspective of `## Done when — by
+  perspective` from SC outcomes, at plan exit and at validate exit)
+- **Architecture goals** → the `scope` reader (`code-reviewer`, per `harness-codebase-design`) at
+  plan time and `code-reviewer` at validate · **Coverage goals** → `qa` · **Security goals** →
   `security-reviewer`
 - Each domain validates its own goals; the leads assess their squad's output; **you** hold final
   authority via BRIEF/PLAN approval and merge.
 
-**Two properties of the system a builder must know — the author audits its own domain in exactly
-two places:**
-
-1. `pm` authors `PLAN.md` *and* checks the feature goal. This is self-review, unlike the other
-   gates.
-2. `eng-lead` routes the build *and* owns architecture review for its own squad.
-
-Everywhere else authorship is separated from audit: `visual-designer` authors `DESIGN.md` /
-`ui-reviewer` grades it · eng devs build / `code-reviewer` grades · `qa` writes tests /
-`validator-lead` assesses adequacy. (Why the two exceptions are tolerated: DEC-34.)
+**One property of the system a builder must know — the author audits its own domain in exactly
+one place:** `pm` authors `plan.yaml` *and* grades the feature goal. This is self-review, unlike the
+other gates, and it is the weakest form: pm collects evidence qa and the readers produced and cannot
+manufacture it (§11.6). Everywhere else authorship is separated from audit: `visual-designer`
+authors `DESIGN.md` / `ui-reviewer` grades it · eng devs build / `code-reviewer` grades architecture
+and code · `qa` writes tests / `validator-lead` assesses adequacy. `eng-lead` routes the build and
+assesses its squad's output as every lead does; the plan-time architecture reading that used to be
+its second self-review is the `scope` reader's (DEC-224). (Why the pm exception is tolerated: DEC-34.)
 
 ### 3.1 The team manifest — `.harness/team-config.yaml`
 
@@ -500,8 +501,8 @@ below says 15 it means this table; where it says 16 it means the org including t
 | Agent | Squad | Type | Role | Tools |
 |---|---|---|---|---|
 | `harness-product-lead` | — | **lead** | Conducts product teams; routes work across pm / visual-designer / documentor by `consult-when`; assesses and consolidates their DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
-| `harness-eng-lead` | — | **lead** | Conducts build teams; **routes each task to one of five specialists** by `consult-when`; **owns architecture review**; consolidates DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
-| `harness-validator-lead` | — | **lead** | Runs the review panel (the `review` team); **assesses and synthesizes** the feedback into one actionable set; the independence layer over `qa` | Read, Glob, Grep, **Agent** (no Edit/Bash) |
+| `harness-eng-lead` | — | **lead** | Conducts the `build` team; **routes each task to one of five specialists** by `consult-when`; consolidates DIGESTs. Architecture is graded by the `scope` reader at plan time and by `code-reviewer` at validate | Read, Glob, Grep, **Agent** (no Edit/Bash) |
+| `harness-validator-lead` | — | **lead** | Runs the `validate` and `fix` teams — the four readers plus pm's goal-check in one turn over one `review_sha`, and the owning dev as a hosted fix member; **assesses and synthesizes** the feedback into one must-fix list with `kind` on every finding; the independence layer over `qa` | Read, Glob, Grep, **Agent** (no Edit/Bash) |
 | `harness-pm` | product | doer | **Product manager — research + plan in one context.** (1) Research: explore code, resolve unknowns, web-research; (2) Plan: BRIEF + findings → `## Decisions` + specified `## Tasks` (with `change_type`). Greenfield mode drafts BRIEF. Checks the **feature goal**. Raises `open_questions` | Read, Glob, Grep, Edit, Write, Bash, Web |
 | `harness-visual-designer` | product | doer | **Visual identity + design contract:** (1) `DESIGN.md` — palette, type scale, spacing, component direction, light/dark; (2) throwaway mockups for exploration; (3) **decides whether a feature requires end-user interaction, and if so builds the high-fidelity prototype you must approve** (§13.1) | Read, Glob, Grep, Edit, Write, Bash, Skill |
 | `harness-documentor` | product | doer | Docs as user-facing communication — READMEs, guides, reference. Owns `.harness/README.md` | Read, Glob, Grep, Edit, Write, Bash |
@@ -538,7 +539,7 @@ Claude Code parses a fixed set of frontmatter fields in an agent `.md` file. Onl
 ```yaml
 ---
 name: harness-eng-lead
-description: "Engineering lead — routes work to specialists, owns architecture review"
+description: "Engineering lead — routes work to specialists, conducts the build team"
 tools: [Read, Glob, Grep, Agent, Write]   # leads: NO Edit/Bash (§4.1)
 model: opus                          # sonnet|opus|haiku|fable|<full id>|inherit
 effort: medium                       # low|medium|high (per-tier policy: DEC-152)
@@ -1209,9 +1210,15 @@ and enums may not drift per persona.
   `fail` and `n/a` are REJECTED alongside `VERDICT: PASS` — every PLAN task carries a `verify:`,
   so "not applicable" is never the honest answer. The one exception is `task: none`, a dispatch
   carrying no PLAN task, which may omit `task_verify` or report it `n/a` and still return PASS)
-- **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`
-- **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`, `findings: <n>`,
-  `must_fix: [<item>]`
+- **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`,
+  `fail_first: [{ sc: SC-NN, evidence: <path or receipt line> }]` (one per `verify: automated` SC —
+  the evidence its test FAILED before the fix; `PASS` with `matrix_ok: true` and `fail_first: []` is
+  REJECTED, a green suite with no fail-first evidence is not a pass; `matrix_ok: n/a` may carry `[]`)
+- **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`,
+  `findings: [{ kind: substance|form|proportionality, severity, reader, summary, why? }]` (a LIST,
+  never a count; `kind` is REQUIRED on every entry — substance would change shipped code, form is
+  document/digest/record shape only and never re-gates, proportionality says the plan exceeds what
+  the change needs and routes to a mission downgrade), `must_fix: [<item>]`
 - **visual-designer:** `contract: written|updated`, `mockups: [<paths>]`,
   `direction_choices: [<…>]`
 - **documentor:** `docs_updated: [<paths>]`, `gaps: [<…>]`
@@ -1233,7 +1240,13 @@ DEC-121) and `expertise_full` (§5).
 - pm `flags: [security]` → orchestrator inserts `security-reviewer` before build
 - pm `recommend: spike` → halt to user, don't build yet
 - pm `feasibility: blocked` → halt
-- qa `suite: fail` → loop back to the dev
+- qa `suite: fail`, or a `substance` finding in the validate must-fix list → one `fix` run over the
+  named tasks, inside the rework ruling; a `form` finding never re-gates
+- product-lead `recommend: downgrade patch` (an unopposed `proportionality` finding) → the
+  orchestrator sets the mission to `patch`, records the `mission` judgement, returns the intake
+  `pending` — never a question to you (DEC-228)
+- an unclassifiable finding, mission or finding class → `awaiting_user` with ONE question and the
+  harness's recommendation; never the heavier route by default (DEC-230)
 
 ### 8.3 Malformed or missing return
 
@@ -1537,17 +1550,17 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
 
 - **Exactly one host per team.** The `lead:` field names it, and that host solely owns the run dir,
   `state.yaml`, cycle counters and the consolidated DIGEST. A team is never conducted by two leads.
-- **A lead may appear as a DAG step in another lead's team — as a reviewer only.** E.g.
-  `plan-feature` (hosted by `product-lead`) has `eng-lead` as an architecture-review step. **In that
-  role a lead never routes or spawns** — it behaves as an ordinary leaf reviewer. This keeps exactly
-  one spawning tier inside a team run: only the *host* lead spawns.
-- **All three leads exist as spawnable personas, spawned by the orchestrator as squad segments.**
-  Within a team a lead **hosts** — it is never also dispatched as a step of the DAG it runs. That is
-  explicit for the panel: *"THE FAN-IN IS NOT A STEP. `validator-lead` hosts this DAG and does the
-  assessment itself in its consolidated DIGEST"* (`teams/review.yaml:3-6`) — a synthesis step would
-  be the lead paying a spawn to do its own job. `eng-lead`'s architecture review works the same way.
-  The flat variant — the orchestrator hosting a DAG itself — is dead (DEC-100), and since
-  issue #83 the orchestrator does not even preload `harness-team`.
+- **A lead never spawns a lead, and squad isolation binds only `build`** (DEC-118, DEC-224). The
+  `plan`, `validate` and `fix` teams host personas from other squads — read-only readers, pm's
+  goal-check, the owning dev as a fix member — under one host lead; only the *host* lead spawns, so
+  there is exactly one spawning tier inside a team run. A lead is never a step of another lead's DAG:
+  the architecture reading at plan time is the `scope` reader's (code-reviewer), not eng-lead's.
+- **All three leads exist as spawnable personas, spawned by the orchestrator.** Within a team a lead
+  **hosts** — it is never also dispatched as a step of the DAG it runs. That is explicit for the
+  panel: *"THE FAN-IN IS NOT A STEP. `validator-lead` hosts this DAG and does the assessment itself
+  in its consolidated DIGEST"* (`teams/validate.yaml:3-6`) — a synthesis step would be the lead
+  paying a spawn to do its own job. The flat variant — the orchestrator hosting a DAG itself — is
+  dead (DEC-100), and since issue #83 the orchestrator does not even preload `harness-team`.
 - **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
   to the orchestrator, which surfaces them to the **main session** — the only tier that can ask.
@@ -1576,9 +1589,10 @@ Three things trigger it — deliberately *not* every team completion:
 | **A lead returns `BLOCKED`** | work cannot proceed without you |
 | **On demand** — you ask "where are we?" | the main session relays to that flow's orchestrator; you never address a lead directly |
 
-`plan-feature` completing is **not** a briefing — it is the PLAN approval gate. The three
-user-facing moments stay distinct: an **approval** signs an artifact, a **question round-trip**
-answers one thing, a **briefing** is the consolidated cross-team view plus an instruction request.
+The `plan` run completing is **not** a briefing — it is the plan approval gate, where you sign the
+plan, the prototype if any, and the one rework ruling together (DEC-226). The three user-facing
+moments stay distinct: an **approval** signs an artifact, a **question round-trip** answers one thing,
+a **briefing** is the consolidated cross-team view plus an instruction request.
 
 How it runs:
 
@@ -1594,8 +1608,9 @@ How it runs:
    "this orchestrator never saw that phase" stay distinguishable, which is the guarantee the report
    round used to provide. A squad that genuinely did nothing is recorded as such, not omitted.
 3. Orchestrator assembles one briefing: each lead's summary, all open questions across teams,
-   resolved escalations, proposed next steps, the goal-check result (REQ coverage + SC outcomes), the
-   **UAT** if one is required, and the **Expertise curation** block.
+   resolved escalations, proposed next steps, the goal-check result (one grade per perspective, with
+   each SC's outcome under it), the feature's measured spend (§15.5), the judgements made since the
+   last briefing (§11.3), the **UAT** if one is required, and the **Expertise curation** block.
 4. Writes it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md`.
 5. **Returns it to the main session, which presents it to you and requests instructions.** The
    orchestrator writes the briefing but cannot deliver it — it has no user channel (§10). You
@@ -1616,9 +1631,9 @@ Engineering Built across backend and frontend. Two fix cycles — both from
 Validation  Tests pass, coverage complete. Security clean. One advisory
             note on the UI: focus ring is faint in dark mode. Not blocking.
 
-Goal check  REQ-02 covered. SC-02 met (sign-in flow test passes).
-            SC-07 met (no credentials in logs — checked).
+Goal check  end user: partial — SC-02 met (sign-in flow test passes; fail-first shown);
             SC-05 needs you: it's a judgement about how the screen feels.
+            operator: met — SC-07 met (no credentials in logs — checked).
 
 UAT         Ready — 1 step, ~2 minutes.                      << BLOCKING
             Sign in with Google from a signed-out browser and tell me
@@ -1765,8 +1780,10 @@ that. The tier that can see across runs is the tier that bounds them. Exhausting
    **what was tried each cycle** — an exhausted loop is only actionable if you can see why it did not
    converge.
 4. **Trigger the CEO briefing** (§10.3) — `BLOCKED` from a lead is one of its three triggers.
-5. **You decide:** raise `max_total_cycles` and continue, re-scope the feature via `pm`, take the
-   partial work, or abandon it.
+5. **You decide:** raise `max_total_cycles` (through `feature-record.py raise-cycles`, which records
+   the `budget_decisions` entry INV-39 requires — DEC-157) and continue, re-scope the feature via
+   `pm`, take the partial work, or abandon it. Inside the signed rework ruling (§11.3) the
+   orchestrator never asks; exhaustion of that ruling is what brings the question to you.
 
 **A `BLOCKED` feature is reported, not forgotten** — the state-consistency check surfaces it at every
 `/harness` entry until you resolve it.
@@ -1825,7 +1842,7 @@ history of that feature, in order, with the squad visible in each name. This als
 | Nature | **declaration** (intent) | **live state** (reality) |
 | Owner | `pm` | **orchestrator** |
 | Approval-gated | yes — part of what you sign | no — it is tracking |
-| Holds | FEAT-01 is SSO, serves REQ-02, comprises T-04/T-05 | branch, PR, runs so far |
+| Holds | FEAT-01 is SSO, traces to SC-02, comprises T-04/T-05 | branch, PR, runs so far |
 
 `feature.json` never restates the declaration; it references `FEAT-01`.
 
@@ -1846,29 +1863,34 @@ set-feature-station`, the single validated write route to that file.
 
 | Level | Where | Question | Example |
 |---|---|---|---|
-| **REQ-NN** | `BRIEF.md` | what must the product do? | "Users can sign in with their Google account" |
-| **FEAT-NN** | `PLAN.md ## Features` | what unit of work delivers it? | "SSO login with Google" |
-| **D-NN** | `PLAN.md ## Decisions` | how, architecturally? | "Use Supabase social login" |
-| **T-NN** | `PLAN.md ## Tasks` | what concrete steps? | "Configure Supabase Google provider" |
+| **perspective** | `BRIEF.md ## Done when — by perspective` | for whom is it done, and what do they see? | "**end user** — I sign in with my Google account in under three clicks" |
+| **SC-NN** | `BRIEF.md ## Success criteria` | what observable outcome discharges that perspective, and how is it verified? | "SC-02 (end user): a returning user signs in with Google in under 3 clicks — verify: automated" |
+| **FEAT-NN** | `plan.yaml` | what unit of work delivers it? | "SSO login with Google" |
+| **D-NN** | `plan.yaml decisions:` | how, architecturally? | "Use Supabase social login" |
+| **T-NN** | `plan.yaml tasks:` | what concrete steps? | "Configure Supabase Google provider" |
 
-**The test: a REQ survives changing your mind about implementation.** Swap Supabase for Auth0 and
-REQ-02 is unchanged, FEAT-01 is unchanged, but D-03 and several tasks change. A technical dependency
-is therefore a **decision**, never a requirement. This matters because `pm` goal-checks **REQ
-coverage** against the approved BRIEF (§13): if implementation choices were logged as REQs, the
-goal-check would "verify" that you delivered your own technical decisions rather than the outcomes
-you committed to — passing green while missing the point.
+**The test: an SC survives changing your mind about implementation.** Swap Supabase for Auth0 and
+SC-02 is unchanged, FEAT-01 is unchanged, but D-03 and several tasks change. A technical dependency
+is therefore a **decision**, never a criterion. This matters because `pm` goal-checks **SC outcomes
+per perspective** against the approved BRIEF (§13): if implementation choices were logged as
+criteria, the goal-check would "verify" that you delivered your own technical decisions rather than
+the outcomes you committed to — passing green while missing the point.
 
-**FEAT ↔ REQ is many-to-many.** One feature can satisfy several requirements; one requirement may
-need several features. So **REQ coverage is computed, never tracked**: REQ-02 is covered when every
-FEAT tracing to it has shipped and its Success Criteria pass. No status field on a REQ that can
-drift.
+**There is one statement of done** (DEC-231): the perspective block, discharged by SCs, traced by
+tasks. There is no `## Goal` prose and no `REQ-NN` layer between them. **Coverage is computed, never
+tracked**: an SC is covered when at least one task `traces:` to it, and that task's `traces:` is what
+the `scope` reader checks at plan time — an orphan SC, or a trace to an SC that does not exist, is a
+plan finding, not a build discovery. `check-state.sh` INV-38 refuses a BRIEF with a perspective no SC
+discharges, or an SC tagged with no perspective.
 
 ```yaml
-# plan.yaml — pm-owned, approval-gated (the DECLARATION). REAL YAML (DEC-182).
+# plan.yaml — the DECLARATION, written only through plan-merge.py. REAL YAML (DEC-182).
+# pm authors tasks and decisions; the orchestrator may run set-task-station and
+# record-panel (DEC-229); files: anchors are path, path#symbol or {path, quote} (DEC-232).
 schema: plan/1
 feature: FEAT-01
 
-approval:                          # orchestrator-only; reset to pending by any task-set change
+approval:                          # sign-approval only (main session); any task-set change resets it to pending
   status: approved
   approved_by: <name>
   date: 2026-08-06
@@ -1882,7 +1904,7 @@ decisions:                         # pointers; reasoning lives in .harness/harne
 tasks:
   - id: T-04
     title: Configure Supabase Google provider
-    traces: [REQ-02]               # REQ only — D-NN lives in decisions:
+    traces: [SC-02]                # SC only — D-NN lives in decisions:
     change_type: config
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -1926,13 +1948,23 @@ that reader permanent, and that the claim was wrong and untested.
   "feature_id": "FEAT-01",
   "branch": "harness/sso",
   "pr": 214,
-  "status": "Building",
   "review_sha": "def5678",
   "cycles_used": 2,
   "max_total_cycles": 10,
+  "mission": "plan",
+  "rework": { "rounds": 3, "wall_clock_minutes": 240, "decision": "notes/answers-FEAT-01-signature.md" },
+  "judgements": [
+    { "at": "2026-07-27T08:02:11Z", "by": "harness-orchestrator", "kind": "mission",
+      "decision": "plan", "reason": "new public endpoint and a schema change; grilling could not bound the files" },
+    { "at": "2026-07-27T10:41:03Z", "by": "harness-orchestrator", "kind": "regate",
+      "decision": "T-04 only", "reason": "one substance finding names T-04; the form finding was fixed in place" }
+  ],
+  "budget_decisions": [],
   "runs": [
-    { "id": "2026-07-27-01-validator", "squad": "validator", "verdict": "FAIL" },
-    { "id": "2026-07-27-02-eng",       "squad": "eng",       "verdict": "PASS" }
+    { "id": "2026-07-27-01-validator", "squad": "validator", "agent": "harness-validator-lead", "verdict": "FAIL",
+      "started_at": "2026-07-27T09:30:00Z", "ended_at": "2026-07-27T09:52:40Z", "tokens": 184210 },
+    { "id": "2026-07-27-02-eng",       "squad": "eng",       "agent": "harness-eng-lead",       "verdict": "PASS",
+      "started_at": "2026-07-27T10:44:12Z", "ended_at": "2026-07-27T11:20:05Z", "tokens": null }
   ],
   "max_total_runs": 20,
   "github": { "milestone": 7, "parent": 214, "issues": { "T-01": 215 } },
@@ -1940,22 +1972,41 @@ that reader permanent, and that the claim was wrong and untested.
 }
 ```
 
-**Eleven keys, and no twelfth.** `.claude/skills/harness/bin/feature-schema.json` is the authority
-(DEC-191). **Eight are required** — `feature_id`, `branch`, `pr`, `status`, `review_sha`,
-`cycles_used`, `max_total_cycles`, `runs`. **Three are optional**: `max_total_runs` (omit to inherit
-harness.json), and `github` and `factory`, which appear only once a feature has been mirrored to
-GitHub or decomposed by the factory. The key set is **closed** — `additionalProperties: false` at
-the top level and inside `runs` items, `github` and `factory` — and it is enforced **at write time**,
-not by a human noticing a stray key in review.
+**Fourteen keys, and no fifteenth.** `.claude/skills/harness/bin/feature-schema.json` is the authority
+(DEC-191). **Seven are required** — `feature_id`, `branch`, `pr`, `review_sha`, `cycles_used`,
+`max_total_cycles`, `runs`. **Seven are optional**: `max_total_runs` (omit to inherit harness.json);
+`github` and `factory`, which appear only once a feature has been mirrored to GitHub or decomposed by
+the factory; and the four FEAT-59 ledgers — `mission`, `rework`, `judgements`, `budget_decisions` —
+whose absence means the feature predates them or has not reached that point. There is no `status`
+key: the feature's station is `plan.yaml`'s top-level `status`, written by `plan-merge.py
+set-feature-station`, so ONE file records it. The key set is **closed** —
+`additionalProperties: false` at the top level and inside every object — and it is enforced **at
+write time**, not by a human noticing a stray key in review. Every FEAT-59 key is written by
+`feature-record.py` (`set-mission`, `set-rework`, `judgement`, `raise-cycles`, `run-start`,
+`run-end`); `sign-approval --rework` on `plan-merge.py` writes `rework` from the signature.
 
 Field notes that are not obvious from the sample: `feature_id` is a **join key ONLY** — no name, no
 traces, no task list, because those live in the plan, which is what you approve, and duplicating
 them here would let an agent redefine what `FEAT-01` means without your signature. `pr` is `null`
-before a pull request exists. `review_sha` is pinned per review cycle; the branch is feature-level,
-so this is too. `cycles_used` counts a fix-loop budget that **spans runs**. `max_total_runs` is
-INFORMATIONAL (issue #79).
+before a pull request exists. `review_sha` is pinned per validate round; the branch is
+feature-level, so this is too. `cycles_used` counts a fix-loop budget that **spans runs**.
+`max_total_runs` is INFORMATIONAL (issue #79). A run's `tokens` is the count the dispatch result
+carried, or `null` when it carried none — `null` is never `0` and is never estimated, so a reader can
+tell an unmeasured run from a free one (DEC-227).
 
-**One lifecycle field: `status`. Its six values are the GitHub board's column names.**
+**`mission` is the harness's own proportionality judgement**, `patch` or `plan`, made at the end of
+grilling and confirmed or overridden by you in the same dialog (DEC-225). `patch`: one product run
+writes a ≤120-line BRIEF and a one-task `plan.yaml`; after signature, build → validate → ship, with
+no panel and no goal-check run. `plan`: the `plan` team runs first (§13). `/harness-plan` and
+`/harness-patch` refuse to start on a grilling artifact with no `## Mission` block.
+
+**`judgements[]` is the ledger of every autonomous judgement** (DEC-230): `{at, by, kind, decision,
+reason}`, `kind` one of `mission | finding_kind | regate | continue | succession`, `reason` one line.
+`check-state.sh` INV-40 refuses a `mission` with no `mission` entry, a FAIL run followed by another
+run with no `regate` entry, and a handoff with runs after it and no `succession` entry. You audit
+the ledger after the fact and overrule from the return; the overrule rate is the trust KPI.
+
+**One lifecycle field: `status`, recorded in `plan.yaml` and read from there. Its six values are the GitHub board's column names.**
 
 | `status` | What it means |
 |---|---|
@@ -1980,11 +2031,16 @@ not whether anything is executing. `Done` **cannot distinguish** shipped from ab
 accepted costs of having exactly one vocabulary, and both are stated here because this is where a
 future reader will look for them.
 
-**The cycle budget has teeth (DEC-157).** `max_total_cycles` bounds *retries* and is
-**hard**: exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode
-with no natural end. It counts **rework only** — a first-pass run is bounded by the PLAN's task
-list and adds nothing (DEC-157); the default (10) lives in harness.json `budgets.max_total_cycles`
-and per-feature raises are user decisions recorded in feature.json.
+**The cycle budget has teeth (DEC-157), and so does the rework ruling (DEC-226).** `max_total_cycles`
+bounds *retries* and is **hard**: `check-state.sh` INV-39 refuses `cycles_used > max_total_cycles`,
+and exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode with no
+natural end. It counts **rework only** — a first-pass run is bounded by the plan's task list and adds
+nothing (DEC-157); the default (10) lives in harness.json `budgets.max_total_cycles`, and a per-feature
+raise is written only by `feature-record.py raise-cycles`, which appends the `budget_decisions` entry
+INV-39 requires beside it. `rework: {rounds, wall_clock_minutes, decision}` is your one ruling at
+signature: inside it the orchestrator loops without asking; it returns `awaiting_user` only on a new
+finding class or on exhaustion, recorded as a `continue` judgement with decision `stop`.
+`wall_clock_minutes` is also the threshold the `SPEND:` advisory reads after build entry (§15.5).
 
 ### 11.4 `state.yaml` — that squad's lead owns it
 
@@ -2045,28 +2101,39 @@ parameters serve both.
 ### 11.6 Success criteria — the goal of record, and how it is verified
 
 **`goal` resolves to a success-criteria set, not a sentence.** When a host is invoked with
-`(team, goal)`, `goal` is the FEAT plus the `SC-NN` entries its REQs trace to. A team is **not done
-when its steps complete — it is done when its success criteria are met.** A step DAG that ran to
-completion with `SC-05: not_met` is a `FAIL` that loops back, not a pass.
+`(team, goal)`, `goal` is the FEAT plus the `SC-NN` entries its plan's tasks `traces:` to. A team is
+**not done when its steps complete — it is done when its success criteria are met.** A step DAG that
+ran to completion with `SC-05: not_met` is a `FAIL` that loops back, not a pass.
 
 This is what makes "keep working until the goal is met" mechanical rather than aspirational, and it is
-bounded by exactly one thing: `max_total_cycles` (§10.5). Unmet SC + remaining budget → another fix
-cycle. Unmet SC + exhausted budget → `BLOCKED` → your call.
+bounded by two things you set once at signature: `max_total_cycles` (§10.5) and the rework ruling
+`rework: {rounds, wall_clock_minutes}` (§11.3, DEC-226). Unmet SC + remaining budget → another fix
+round, without asking you. Unmet SC + exhausted budget → `BLOCKED` → your call. A new finding class
+— a scope change, an emergent SC — is the one other thing that returns to you mid-loop.
 
-**Every SC declares its verification method when it is authored.** `pm` writes SC into `BRIEF.md`
-with a `verify:` field, the same way tasks already carry `verify:`. An SC with no method is not
-verifiable and blocks the goal-check — the state-consistency check (§2.2) treats it like a task
-missing `change_type`.
+**Every SC names the perspective it discharges and declares its verification method when it is
+authored** (DEC-231). `pm` writes the SC into `BRIEF.md` under `## Success criteria`, tagged with one
+of the perspectives declared in `## Done when — by perspective`, with a `verify:` field the same way
+tasks carry `verify:`. `check-state.sh` INV-38 refuses a BRIEF with a perspective no SC discharges or
+an SC with no perspective; INV-41 refuses an SC whose `verify:` invokes `check-state.sh` or
+`check-domain.sh` with no feature-scoped argument, because repository-wide state is a merge-time
+check, not a feature criterion. An SC with no method is not verifiable and blocks the goal-check.
 
 ```markdown
-  ## Success Criteria
-  - SC-02: A returning user signs in with Google in under 3 clicks.
-    verify: automated        # qa owns the evidence
-    evidence: e2e            # which test kind proves it
-  - SC-05: The sign-in screen feels consistent with the rest of the product.
-    verify: uat              # only you can judge this — goes in the UAT script
-  - SC-07: No credentials are written to logs.
-    verify: inspection       # security-reviewer owns the evidence
+  ## Done when — by perspective
+
+  **end user** — I sign in with my Google account in under three clicks and the screen looks like
+  the rest of the product.
+
+  **operator** — no credential ever reaches a log.
+
+  ## Success criteria
+  - SC-02 (end user): A returning user signs in with Google in under 3 clicks.
+    verify: automated  evidence: e2e     # qa owns the evidence; the test kind proves it
+  - SC-05 (end user): The sign-in screen feels consistent with the rest of the product.
+    verify: uat                          # only you can judge this — goes in the UAT script
+  - SC-07 (operator): No credentials are written to logs.
+    verify: inspection                   # security-reviewer owns the evidence
 ```
 
 | `verify:` | Evidence comes from | Who supplies it |
@@ -2080,16 +2147,19 @@ previously undefined: `pm` does **not** run tests or form its own opinion of qua
 goal-check from what the validators already produced —
 
 1. Read each `SC-NN` and its `verify:` method from the approved `BRIEF.md`.
-2. For `automated`: read qa's DIGEST (`suite`, `matrix_ok`, `coverage_gaps`) and the named test
-   result. **A passing suite is not automatically a met SC** — pm must find the specific test that
-   exercises that criterion. If none exists, the SC is `not_met` and the gap goes back to qa, not to
-   you.
+2. For `automated`: read qa's DIGEST (`suite`, `matrix_ok`, `coverage_gaps`, `fail_first`) and the
+   named test result. **A passing suite is not automatically a met SC** — pm must find the specific
+   test that exercises that criterion, and qa's `fail_first` entry for it, the demonstrated failing
+   state before the fix; a green suite with no fail-first evidence is qa's `FAIL`, not a met SC. If
+   no test exists, the SC is `not_met` and the gap goes back to qa, not to you.
 3. For `inspection`: read the relevant reviewer's report and cite the finding.
 4. For `uat`: write a step into the UAT script (below). It stays `not_met` until you run it.
-5. Emit `sc_status` with `met | not_met | partial` **plus the evidence pointer** for each.
+5. Emit `sc_status` with `met | not_met | partial` **plus the evidence pointer** for each, rolled up
+   to **one grade per perspective** in `## Done when — by perspective`. This runs once at plan exit
+   (against the plan) and once at validate exit (against the diff) — never per cycle.
 
-Because pm authors the plan *and* runs this check, it is one of the two acknowledged self-review
-points (§3) — but note it is the *weakest* form of self-review available here: pm cannot manufacture
+Because pm authors the plan *and* runs this check, it is the one acknowledged self-review point
+(§3) — but note it is the *weakest* form of self-review available here: pm cannot manufacture
 evidence, only report what qa and the reviewers produced.
 
 **The UAT — `.harness/features/<FEAT>/notes/uat.md`, pm-owned.** Any SC marked `verify: uat` produces a step in
@@ -2211,16 +2281,18 @@ team to…", taking team name + goal). No team name → the runner scans `teams/
 
 ## 13. Team catalog
 
-Teams are the lifecycle. **Flat and standalone in v1** — no sub-team composition. Each team names
-the lead that conducts it. Panel membership is team config; reviewers self-scope. ★ = v1 core.
+Teams are the lifecycle. **Flat and standalone** — no sub-team composition. Each team names the lead
+that conducts it. A lead hosts personas of another squad as read-only readers or as a fix member
+(DEC-224); squad membership binds only `build`'s mutating members. ★ = core.
 
 | Team | Conducted by | DAG | Gates / notes |
 |---|---|---|---|
-| ★ **plan-feature** | **orchestrator-sequenced**, 3 segments | `[product-lead: pm → visual-designer(design pass)]` → `[eng-lead: architecture review]` → `[validator-lead: ui-reviewer(A)]` | **Not one team — three squad runs the orchestrator sequences**, for the same reason `ship-feature` is (DEC-118): `ui-reviewer` is validator-squad and `eng-lead` is a lead, so neither can be dispatched by `product-lead`. pm researches *and* plans in one context. eng-lead reviews architecture. **visual-designer runs the design pass and decides whether the feature requires end-user interaction** — if so it builds a **high-fidelity prototype** (§13.1). ui-reviewer(A) checks the contract is sound. Terminates in **one approval: you sign PLAN *and* prototype together** |
-| ★ **ship-feature** | orchestrator monitors; **eng-lead** and **validator-lead** each run their own squad | `{specialist devs, matched by consult-when} → qa → {code ∥ qa ∥ security ∥ ui} → validator-lead assesses → pm(goal-check) → documentor → ⟨CEO briefing⟩` | **Multi-squad, so the orchestrator sequences the squad segments** and each lead runs its own. No lead ever spawns outside its squad; the orchestrator owns the **branch and the feature-level cycle budget** across segments, while **each squad segment gets its own run dir owned by that squad's lead** (§11.4) — there is no shared run dir, which is what keeps every `state.yaml` single-writer. **Precondition: BRIEF *and* PLAN both approved.** eng-lead routes each task to a specialist by `consult-when`, then spawns and delegates. qa gates (writes + runs tests, `test_matrix` hard gate) → `loop_back` → dev. **qa appears twice on purpose — two jobs, one persona:** the segment above **writes and runs tests** and enforces the `test_matrix` hard gate with `loop_back` to the dev, while the same persona in the panel is **gate-only**, re-running the matrix over the pinned `review_sha` and authoring nothing. validator-lead assesses the panel into one actionable set. **pm goal-checks delivery** (REQ coverage + SC outcomes) — kept out of the quality panel so "did we deliver?" is not averaged with code nits. Terminates in the **CEO briefing** (§10.3); PR and merge follow your call, never automatically |
-| ★ **debug** | eng-lead | `pm(research) → specialist(debug mode) → qa → {code}` | pm reproduces and localizes; eng-lead routes the fix to the right specialist under `systematic-debugging`; qa loops back to the dev |
-| ★ **review** | validator-lead | `{code ∥ qa ∥ security ∥ ui} → validator-lead assesses` | Panel from team config; reviewers self-scope; **validator-lead assesses and synthesizes** one feedback set. **Advisory: does NOT fix or merge** — it returns `must_fix`; the caller owns remediation (`ship-feature` loops its dev; standalone, the orchestrator delegates a fix) |
-| **build** | eng-lead | An **expansion over the approved PLAN's eng-squad tasks, not a literal step list** — one step per T-NN, persona routed by `consult-when`, `depends_on` read from each task's own field ⟨`teams/build.yaml` `steps_from:`⟩ | **eng-squad only, by DEC-118 — a correct bound, not a gap:** a team is hosted by one lead, and a lead never dispatches outside its own squad. Documentation, goal-check, review **and the `test_matrix` qa gate** are therefore not steps of this team; each stays an orchestrator-sequenced segment around it. `mutates_repo: true` serializes the steps, so one build task runs at a time even where `depends_on` would allow two |
+| ★ **plan** | **product-lead** | `draft (pm)` → in ONE turn `{scope (code-reviewer) ∥ should-not-exist (fable-advisor) ∥ design (ui-reviewer)}` → `apply (pm)` → `goalcheck (pm)` | **The whole plan phase is one run** for a `plan` mission (DEC-228). `scope` hunts orphan SCs, traces to nonexistent SCs, non-topological deps, verify-versus-delete, **and architecture** — there is no separate eng-lead review at plan time. `should-not-exist` is skipped and recorded when the advisor does not resolve; `design` self-scopes out on non-UI. Every finding carries `kind: substance \| form \| proportionality`. `apply` fixes every `form` finding in place, applies `substance` findings, runs `plan-merge.py record-panel` and `plan-merge.py check`. `goalcheck` grades one result per perspective into `notes/research-<FEAT>-goalcheck-plan.md`. An unopposed `proportionality` finding → the digest says `recommend: downgrade patch` and the orchestrator downgrades the mission. Returns `pending`; **you sign PLAN, prototype and the rework ruling together** (§13.1, DEC-226). A `patch` mission does not run this team: its one product run writes the ≤120-line BRIEF and the one-task `plan.yaml` (DEC-225) |
+| **build** | eng-lead | An **expansion over the approved plan's eng-squad tasks, not a literal step list** — one step per T-NN, persona routed by `consult-when`, `depends_on` read from each task's own field ⟨`teams/build.yaml` `steps_from:`⟩ | **eng-squad only** (DEC-118) — the one team whose members mutate the repo, so the one where squad isolation still binds. `mutates_repo: true` serializes the steps. A stale plan anchor at build entry is re-resolved by the builder and is not a FAIL (DEC-232) |
+| ★ **validate** | validator-lead | in ONE turn over one pinned `review_sha`: `{qa ∥ code ∥ security ∥ ui ∥ goalcheck} → validator-lead assesses` | **The fan-in is not a step** (`teams/validate.yaml:3-6`); the lead writes ONE consolidated must-fix list with `kind` on every finding and `severity_max`. qa is gate-only and writes `fail_first` evidence per `automated` SC — a green suite with none is `FAIL` (§9). `goalcheck` is pm grading each perspective against the diff. **Advisory: does NOT fix or merge** — it returns `must_fix`; the orchestrator owns remediation through `fix` |
+| ★ **fix** | validator-lead | inputs `[feat, review_sha, must_fix_path]`: `fix (the owning dev, test-first, commits)` → ⟨orchestrator pins the new `review_sha`⟩ → the four readers over the new sha, same run | One rework round is one run: the dev the orchestrator names fixes as a hosted member and qa, code, security and ui re-verify in the same run. Author and reviewer stay distinct personas. Rounds are bounded by the signed `rework` ruling (§11.3) and `max_total_cycles` |
+| ★ **ship-feature** | orchestrator playbook | `build` → `{qa ∥ code ∥ security ∥ ui ∥ goalcheck}` (the `validate` run) → `fix` (looped inside the rework ruling) → documentor → ⟨CEO briefing⟩ | **Not a team — the orchestrator sequencing lead-owned runs**, each with its own run dir (§11.4). **Precondition: BRIEF and plan both signed.** The orchestrator owns the branch, the `review_sha` pin, `cycles_used` and the judgement ledger (§11.3) |
+| **debug** | orchestrator-sequenced segment | `specialist (debug mode)` → the plan or patch lane | An investigation in front of the normal flow for an **unknown cause** (DEC-139): reproduce, localize, root-cause with evidence, no fix. Its report seeds grilling's mission judgement. A known-cause bug skips it and runs the `patch` mission |
 | docs-refresh | product-lead | `pm(research) → documentor → code-reviewer` | deferred |
 
 ### 13.1 The high-fidelity prototype gate
@@ -2230,7 +2302,7 @@ before it can be built.** This is a hard precondition on `ship-feature`, not a s
 
 | | |
 |---|---|
-| **Who decides it's needed** | `harness-visual-designer`, during the design pass in `plan-feature`. The design pass sits at the end of the product planning cycle, so the call lands *before* any build and *inside* what you approve |
+| **Who decides it's needed** | `harness-visual-designer`, during the design pass of the `plan` mission. The design pass sits at the end of the product planning cycle, so the call lands *before* any build and *inside* what you approve |
 | **What "high fidelity" means** | Interactive and real enough to judge the experience — built on the team's design-system convention (§3.2), not a static image and not a wireframe. Throwaway mockups remain a separate, ungated exploration tool |
 | **Where it lives** | `.harness/notes/prototypes/<FEAT>/` — committed, so what you approved is on the record |
 | **How you review it** | Published as an Artifact where the project supports a single-file build, otherwise run locally with instructions in the team's report |
@@ -2242,13 +2314,13 @@ and would let a plan lock while its own user experience was still unsettled.
 
 **Consequences to accept:**
 
-- `plan-feature` gets materially longer for user-facing features. Non-interactive features
+- The `plan` run gets materially longer for user-facing features. Non-interactive features
   (`needs_prototype: false`) skip the design pass entirely and are unaffected.
 - **The trigger is a judgment call, made by one agent.** visual-designer decides, which means it can
   be wrong in both directions. Mitigation: the decision and its reason are in the team's DIGEST and
   therefore in front of you at the approval gate, so you can demand a prototype it did not think
   necessary — or waive one it did.
-- A rejected prototype loops back inside `plan-feature` and consumes a cycle; it does not reopen the
+- A rejected prototype loops back inside the `plan` team and consumes a cycle; it does not reopen the
   whole plan unless the rejection is about scope rather than execution.
 
 **`validator-lead` assessment is the synthesis step.** Panels need no `harness-synthesizer` and no
@@ -2266,22 +2338,24 @@ approval, merge) reach you.
 - **You (CEO)** → the goal. Define it, approve BRIEF/PLAN, own the merge.
 - **product squad** → *what* to build (pm), how it looks (visual-designer), how it's explained
   (documentor).
-- **eng squad** → *how* it's built (5 specialists) + architecture review (eng-lead).
+- **eng squad** → *how* it's built (5 specialists), routed by eng-lead.
 - **validator squad** → *is it right* — coverage (qa), spec + quality (code), threats (security),
   visual fidelity (ui).
 
-**Goal-checking uses two units**, because prose "achieves the goal" is unfalsifiable:
+**Goal-checking is graded per perspective, twice**, because prose "achieves the goal" is
+unfalsifiable (DEC-231):
 
-- **REQ coverage** — every `REQ-NN` traceable to shipped code via the PLAN's `traces:` field. Proves
-  nothing was dropped.
-- **SC outcomes** — each `SC-NN` verified `met | not_met | partial` **with evidence**. Proves the
-  outcome landed.
+- **SC outcomes** — each `SC-NN` verified `met | not_met | partial` **with evidence**, rolled up into
+  one grade per perspective in `## Done when — by perspective`. Proves the outcome landed for the
+  reader it was promised to.
+- **Trace coverage** — every SC has at least one task `traces:` to it; an orphan SC is the `scope`
+  reader's finding at plan time, not a build-time discovery.
 
-Feature goal → `pm` · architecture → `eng-lead` · coverage → `qa` · security →
-`security-reviewer`. All anchor to the **user-approved** BRIEF; an unapproved BRIEF blocks the check.
-
-**The review panel is listed in both `ship-feature` and `review`.** That duplication is
-accepted in v1 (see DEC-54).
+The check runs **once at plan exit** (`goalcheck` in the `plan` team, against the plan) and **once at
+validate exit** (`goalcheck` in the `validate` team, against the diff). There is no per-cycle
+goal-check. Feature goal → `pm` · architecture → the `scope` reader at plan time, `code-reviewer` at
+validate · coverage → `qa` · security → `security-reviewer`. All anchor to the **user-approved**
+BRIEF; an unapproved BRIEF blocks the check.
 
 ---
 
@@ -2474,20 +2548,28 @@ the accurate claim is **"without *mid-stage* supervision"** — supervision is b
 boundaries rather than removed. That is a real improvement over continuous oversight, and it is not the
 same as absence of oversight.
 
-### 15.5 Costs that are not yet modelled
+### 15.5 What is measured, and what is still not modelled
+
+**Spend is measured per run and never gates** (DEC-227). Every `runs[]` entry in `feature.json`
+carries `started_at`, `ended_at` and `tokens` — the token count the dispatch result returned, or
+`null` when none was measured; it is never estimated. `feature-record.py spend` sums them; the
+orchestrator reports the sum in every return; and the OMP hook appends one `SPEND:` line on the
+orchestrator's wake when plan-phase minutes exceed `budgets.plan_phase_warn_minutes` (90 by default)
+or build-phase minutes exceed the recorded `rework.wall_clock_minutes` (§11.3). The line names spend,
+budget and phase. Nothing reads it as a gate. The sum is a floor: main-session-direct segments are
+not runs, and a non-blocking dispatch returns no token count.
 
 Recorded as known-absent rather than left to be discovered:
 
-- **No token, dollar or latency budget exists anywhere.** Expertise is bounded by proxies, not
-  tokens: a per-file line budget (150 craft, 40 repository), a per-section entry count, and a
-  50-word cap per entry, all enforced by `bin/check-expertise.sh`. Every other "budget" in this
-  document is a retry counter.
+- **No dollar budget exists anywhere, and no token budget stops anything.** Expertise is bounded by
+  proxies, not tokens: a per-file line budget (150 craft, 40 repository), a per-section entry count,
+  and a 50-word cap per entry, all enforced by `bin/check-expertise.sh`. Every other "budget" in this
+  document is a retry counter or an advisory threshold.
 - Every spawn loads the **full CLAUDE.md hierarchy** (measured: ~19KB ≈ 5k tokens) plus all preloaded
   rule content plus injected Expertise plus `BRIEF`/`PLAN`/`STATE`, before doing any work.
-- **A feature costs 19–45 spawns**, largely serialized. Nothing in the system logs or bounds this, and
-  nothing would tell you it had become uneconomic.
+- **Per-run wall-clock includes queue and wake time**, not model time alone, and historical runs
+  recorded before the keys existed contribute zero minutes and a `null` token count.
 
-**This no longer gates whether the org in §3 should exist** (DEC-99). Cost moved to post-build
-monitoring: `bin/cost-report.py` (removed — DEC-178) computed per-agent spend, `harness.json` carried
-`budgets`, and the CEO briefing carried a cost line. See BUILD.md § "Build the org; monitor cost in
-practice."
+**This no longer gates whether the org in §3 should exist** (DEC-99). The money meter that once
+attributed spend per agent is removed (DEC-178); the measured per-run signal above is what replaced
+the briefing's cost line.
