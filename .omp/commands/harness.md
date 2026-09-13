@@ -78,6 +78,14 @@ block in `BRIEF.md` (and in a pre-DEC-182 `PLAN.md`), and for `plan.yaml`
 something you see at signature, never a question you were asked (SC-03). pm never self-approves;
 the orchestrator cannot ask (DEC-120). No spawn until what the mission needs is approved.
 
+**Propose the rework ruling; never ask for it cold.** Before the sign-off question, run
+`python3 .claude/skills/harness/bin/feature-record.py propose-rework --file <feature.json>` and put
+its `rounds`, `minutes` and `basis` in the same `AskUserQuestion` as the signature, as the
+recommended default — e.g. *"Proposed rework: 3 rounds / 135 min (plan mission: 7 tasks / 3 per
+round → 3; 45 min per round). Sign with this, or change it."* The proposal is deterministic from
+the mission, the task count and `budgets.rework_round_minutes`, so the operator confirms or
+corrects a baseline rather than inventing one (SC-22); what they sign is the ruling.
+
 **Let the user read to exhaustion FIRST, then dispatch exactly one consolidated fix.** Collect every
 change request they raise in that **one review pass** — into one answers file — and send it down as a
 single revision. Do not send a fix out while the user is still reading. The cost, and it is real: the

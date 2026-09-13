@@ -301,6 +301,63 @@ class SpendTest(FeatureRecordCase):
         self.assertEqual(0, spend["rework_rounds"])
 
 
+
+class ProposeReworkTest(FeatureRecordCase):
+    """`propose-rework`: the baseline the main session shows the operator at signature.
+    Deterministic from disk — the mission, the task count, and two harness.json budgets — so
+    the operator confirms or changes a number rather than inventing one (SC-15, SC-22)."""
+
+    def setUp(self):
+        super().setUp()
+        (self.tmp / ".harness").mkdir(exist_ok=True)
+        (self.tmp / ".harness" / "harness.json").write_text(json.dumps(
+            {"budgets": {"max_total_cycles": 4, "rework_round_minutes": 45}}), encoding="utf-8")
+
+    def plan(self, tasks):
+        body = "schema: plan/1\nfeature: FEAT-77-record\napproval:\n  status: pending\ntasks:\n"
+        for i in range(1, tasks + 1):
+            body += (f"  - id: T-{i:02d}\n    title: t{i}\n    traces: [SC-01]\n"
+                     f"    change_type: logic\n    execution_mode: main-session-direct\n"
+                     f"    execution_reason: fixture\n    depends_on: []\n    status: pending\n"
+                     f"    files: [fixture]\n    verify: 'true'\n    intent: fixture\n")
+        (self.path.parent / "plan.yaml").write_text(body, encoding="utf-8")
+
+    def propose(self):
+        result = self.run_cli("propose-rework", "--file", str(self.path))
+        self.assert_ok(result)
+        return json.loads(result.stdout)
+
+    def test_patch_is_one_round(self):
+        self.write(base_doc(mission="patch"))
+        self.plan(1)
+        self.assertEqual({"rounds": 1, "minutes": 45}, {k: self.propose()[k] for k in ("rounds", "minutes")})
+
+    def test_plan_rounds_scale_with_tasks_floor_two(self):
+        self.write(base_doc(mission="plan"))
+        for tasks, rounds in ((1, 2), (3, 2), (4, 2), (7, 3), (9, 3), (10, 4)):
+            self.plan(tasks)
+            self.assertEqual(rounds, self.propose()["rounds"], tasks)
+            self.assertEqual(rounds * 45, self.propose()["minutes"], tasks)
+
+    def test_rounds_never_exceed_max_total_cycles(self):
+        self.write(base_doc(mission="plan"))
+        self.plan(30)   # ceil(30/3) = 10, but harness.json caps cycles at 4
+        self.assertEqual(4, self.propose()["rounds"])
+
+    def test_basis_names_every_input(self):
+        self.write(base_doc(mission="plan"))
+        self.plan(7)
+        basis = self.propose()["basis"]
+        for token in ("7 tasks", "rework_round_minutes", "45", "plan"):
+            self.assertIn(token, basis)
+
+    def test_refuses_without_a_mission(self):
+        self.write(base_doc())
+        self.plan(3)
+        result = self.run_cli("propose-rework", "--file", str(self.path))
+        self.assertEqual(2, result.returncode)
+        self.assertIn("mission", result.stderr)
+
 class SchemaTest(unittest.TestCase):
     """The schema half of the ledger: what feature_json_write refuses at every verb."""
 

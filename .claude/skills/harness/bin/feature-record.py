@@ -16,6 +16,9 @@ VERBS
   raise-cycles  write max_total_cycles AND append the budget_decisions[] record the raise rests
                 on (DEC-157); refuses (exit 2) a value that does not raise it.
   set-mission   write mission: patch | plan (SC-01).
+  propose-rework read-only: print {rounds, minutes, basis} — the baseline ruling the main
+                session shows the operator at signature (patch: 1 round; plan: tasks/3,
+                floor 2, cap max_total_cycles; minutes = rounds x budgets.rework_round_minutes).
   spend         read-only: print one JSON object {runs, wall_clock_minutes, tokens, phase,
                 rework_minutes, rework_rounds} — the last two are the rework window, from
                 the first validate-* run; the ruling is compared to those, never the whole.
@@ -244,17 +247,89 @@ def spend_for(doc):
 
 
 def cmd_spend(args):
+    print(json.dumps(spend_for(_read_doc(args.file))))
+    sys.exit(0)
+
+
+def _read_doc(path):
+    """The parsed feature.json, or a refusal — shared by the read-only verbs."""
     try:
-        with open(args.file, "rb") as handle:
-            doc = feature_json_write.parse_doc(handle.read(), args.file)
+        with open(path, "rb") as handle:
+            return feature_json_write.parse_doc(handle.read(), path)
     except FileNotFoundError:
-        print(f"REFUSED: {args.file} does not exist.", file=sys.stderr)
+        print(f"REFUSED: {path} does not exist.", file=sys.stderr)
         sys.exit(feature_json_write.SCHEMA_REFUSAL_CODE)
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:
             print(line, file=sys.stderr)
         sys.exit(refusal.code)
-    print(json.dumps(spend_for(doc)))
+
+
+def _budgets_for(feature_json):
+    """`budgets` from the nearest `.harness/harness.json` above the feature dir, else {}."""
+    here = os.path.dirname(os.path.abspath(feature_json))
+    while True:
+        candidate = os.path.join(here, ".harness", "harness.json")
+        if os.path.isfile(candidate):
+            try:
+                with open(candidate, encoding="utf-8") as handle:
+                    budgets = (json.load(handle) or {}).get("budgets")
+                return budgets if isinstance(budgets, dict) else {}
+            except (OSError, ValueError):
+                return {}
+        parent = os.path.dirname(here)
+        if parent == here:
+            return {}
+        here = parent
+
+
+DEFAULT_REWORK_ROUND_MINUTES = 45
+TASKS_PER_ROUND = 3
+
+
+def propose_rework(doc, task_count, budgets):
+    """The baseline rework ruling the main session shows the operator at signature (SC-15).
+
+    Deterministic from disk so the operator confirms or changes a number rather than
+    inventing one (SC-22): `patch` is one round; `plan` is one round per TASKS_PER_ROUND
+    tasks, never fewer than two, never more than `max_total_cycles`; minutes are rounds
+    times `budgets.rework_round_minutes`. When five shipped features carry `rework_rounds`,
+    the measured median belongs here instead of the constant — that is the KPI's job.
+    """
+    mission = doc.get("mission")
+    if mission not in ("patch", "plan"):
+        _refuse(["REFUSED: no mission recorded; propose-rework reads `mission` (patch | plan).",
+                 "  Write it first: feature-record.py set-mission --mission <patch|plan>."])
+    per_round = budgets.get("rework_round_minutes", DEFAULT_REWORK_ROUND_MINUTES)
+    caps = [c for c in (doc.get("max_total_cycles"), budgets.get("max_total_cycles"))
+            if isinstance(c, int) and not isinstance(c, bool)]
+    cap = min(caps) if caps else 10
+    if mission == "patch":
+        rounds = 1
+        basis = f"patch mission: 1 round"
+    else:
+        rounds = min(max(2, -(-task_count // TASKS_PER_ROUND)), cap)
+        basis = (f"plan mission: {task_count} tasks / {TASKS_PER_ROUND} per round, floor 2, "
+                 f"cap max_total_cycles {cap} -> {rounds} rounds")
+    return {"rounds": rounds, "minutes": rounds * per_round,
+            "basis": f"{basis}; {per_round} min per round (budgets.rework_round_minutes)"}
+
+
+def cmd_propose_rework(args):
+    doc = _read_doc(args.file)
+    plan_path = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
+    try:
+        import harness_yaml
+        tasks = harness_yaml.load_plan(plan_path).get("tasks") or []
+        proposal = propose_rework(doc, len(tasks), _budgets_for(args.file))
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    except Exception as exc:  # a plan that does not load proposes nothing
+        print(f"REFUSED: {plan_path} does not load: {exc}", file=sys.stderr)
+        sys.exit(REFUSAL_CODE)
+    print(json.dumps(proposal))
     sys.exit(0)
 
 
@@ -313,6 +388,10 @@ def main():
 
     p = with_file(sub.add_parser("spend", help="print the feature's measured spend as JSON"))
     p.set_defaults(func=cmd_spend)
+
+    p = with_file(sub.add_parser("propose-rework",
+                                 help="print the baseline rework ruling for signature as JSON"))
+    p.set_defaults(func=cmd_propose_rework)
 
     args = parser.parse_args()
     args.func(args)

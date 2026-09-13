@@ -370,6 +370,8 @@
     "orchestrator_context_warn_tokens": 200000,
     "_orchestrator_context_warn_tokens_rationale": "INFORMATIONAL, NOT A GATE. This is a CONTEXT TOKEN COUNT, not money \u2014 DEC-178 removed cost tracking entirely and this does not reintroduce it. 200000 is the figure DEC-148's deleted watchdog used, kept rather than re-guessed. Crossing it advises and never refuses. Measured distribution behind it (per the plan's own measurement, not re-derived here): 28 of 76 orchestrator transcripts peaked above it, 10 above twice it, the largest at 750837, corrected method, measured 2026-08-20 within the 30-day retention window.",
     "plan_phase_warn_minutes": 90,
+    "rework_round_minutes": 45,
+    "_rework_round_minutes_rationale": "The per-round allowance `feature-record.py propose-rework` multiplies by the proposed rounds to give the operator a baseline `--rework minutes=M` at signature (FEAT-59 SC-15). A proposal, never a gate: the operator confirms or changes it, and the signed value is what the SPEND advisory measures against. 45 is a starting constant with no measured basis; once five shipped features carry `rework_rounds`, the median measured minutes per round replaces it.",
     "_plan_phase_warn_minutes_rationale": "INFORMATIONAL, NOT A GATE (FEAT-59 SC-19): the wall-clock minutes a feature may spend before build entry, summed from feature.json runs[].started_at/ended_at, past which the OMP hook appends one SPEND advisory line to the orchestrator's wake; 90 is the BRIEF's plan-lane KPI target (patch lane: 30) against a measured BUG-285 plan phase of 6h20m, and after build entry the per-feature rework.wall_clock_minutes ruling takes its place."
   },
   "gates": {
