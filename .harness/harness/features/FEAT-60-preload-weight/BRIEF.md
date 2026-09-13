@@ -118,10 +118,14 @@ moment is named, with its path and its moment, and I read it then.
 
 ## Constraints
 
-- Skill and reference text is normal-path work; `check-skill-weight.py`, the `check-state.sh`
-  NOTE and `harness.json` (SC-08) are DEC-174 main-session-direct.
-- Cuts land against the FEAT-59 text: this branch is stacked on `feat/FEAT-59-proportional-flow`
-  and its PR targets `main` after #1678 merges.
+- Built direct under DEC-174, all eleven SCs, on the operator's call at signature. The
+  deliverable is the text every agent in a normal-path run preloads; spawning leads and devs off a
+  worktree whose `harness-handoff` and `harness-team` are half-cut by the previous task executes
+  the change through the path being changed, and any resulting `BLOCKED` could not be attributed
+  to FEAT-59's lanes versus these cuts. SC-08 would be DEC-174 direct regardless. The first
+  SC-23/SC-24 run of FEAT-59's lanes is the next feature that does not touch agent text.
+- Cuts land against the FEAT-59 text: FEAT-59 merged to `main` at `97599fd8`; this branch is
+  rebased onto it and its PR targets `main`.
 - DEC-158 (rule + one clause + pointer) and DEC-150 (read by pointer, never a sweep) supply the
   rule; DEC-205 (the record states current truth) governs the decision edits in SC-07.
 - The playbook split that already landed in FEAT-59 (`harness/SKILL.md` → `references/`) is the
@@ -132,7 +136,12 @@ moment is named, with its path and its moment, and I read it then.
 - Agent frontmatter bodies (`.omp/agents/*.md`) — measured 343–1,204 words each, not the driver.
 - Expertise files and their injection budget — a separate mechanism (DEC-125).
 - Rewriting a rule's substance; this feature moves and cuts, it does not change what agents must do.
+- The post-merge sweep keys on a landed `feature.json`, which a DEC-174 direct build never
+  produces, so it skipped FEAT-59 and will skip FEAT-60. Backlog: the sweep verb needs a
+  direct-build path; not fixed here.
 
 ## Approval
 
-status: pending
+status: approved
+date: 2026-09-13
+by: operator, main session (direct work under DEC-174, all SCs; see Constraints)
