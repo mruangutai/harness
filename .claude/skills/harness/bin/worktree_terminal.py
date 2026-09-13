@@ -366,6 +366,20 @@ def _is_direct_build_brief(text):
     return signed and direct
 
 
+def _landed_direct_build(owner_root, default_branch, features_rel, resolved_id):
+    """True when the landed feature directory is a DEC-174 direct build: no feature.json (there
+    is no orchestrator to write one) and a signed BRIEF whose approval names DEC-174.
+
+    A direct build's landing IS its terminal state — the brief reaches the default branch only
+    in the merge that ships the work. Three shipped direct builds (FEAT-59, FEAT-60, the
+    DEC-228 fix) were reported "unresolved" before this predicate existed. The caller takes
+    this path only for a MISSING feature.json; an unparseable one stays unresolved.
+    """
+    brief_rel = os.path.join(features_rel, resolved_id, "BRIEF.md")
+    text, err = _landed_blob_text(owner_root, default_branch, brief_rel)
+    return err is None and _is_direct_build_brief(text)
+
+
 def _landed_station_record(path, dirty, resolved):
     """The record for a worktree whose landed directory resolved, or None when it is omitted.
 
@@ -376,21 +390,13 @@ def _landed_station_record(path, dirty, resolved):
 
     feature_json_rel = os.path.join(features_rel, resolved_id, "feature.json")
     _data, err = _read_landed_feature_json(owner_root, default_branch, feature_json_rel)
-    if err == "missing":
-        # A DEC-174 DIRECT BUILD NEVER WRITES feature.json — there is no orchestrator to write
-        # it. Its landed record is the BRIEF whose approval names DEC-174, and its landing IS
-        # its terminal state: the brief reaches the default branch only in the merge that
-        # ships the work. Three shipped direct builds (FEAT-59, FEAT-60, the DEC-228 fix) were
-        # reported "unresolved" by this branch before the predicate existed. Only a MISSING
-        # feature.json takes this path; an unparseable one stays unresolved below.
-        brief_rel = os.path.join(features_rel, resolved_id, "BRIEF.md")
-        brief_text, brief_err = _landed_blob_text(owner_root, default_branch, brief_rel)
-        if brief_err is None and _is_direct_build_brief(brief_text):
-            return {
-                "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-                "reason": f"landed BRIEF is a signed DEC-174 direct build on {default_branch}",
-                "repo": repo_segment,
-            }
+    if err == "missing" and _landed_direct_build(owner_root, default_branch, features_rel,
+                                                 resolved_id):
+        return {
+            "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
+            "reason": f"landed BRIEF is a signed DEC-174 direct build on {default_branch}",
+            "repo": repo_segment,
+        }
     if err is not None:
         return {
             "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
