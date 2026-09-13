@@ -47,13 +47,13 @@ moment is named, with its path and its moment, and I read it then.
 
 ## KPIs
 
-| KPI | Baseline (`487aeeeb`) | Target |
-|---|---|---|
-| Universal trio, words | 2,982 | ≤ 1,900 |
-| Heaviest single agent preload (pm), words | 8,225 | ≤ 5,500 |
-| Sum of preload across all 16 agents, words | 99,672 | ≤ 65,000 |
-| Existing skill-text pins (test cases that read a SKILL.md) | all green | all green — none deleted, none weakened |
-| Seam references under `references/` that are also preloaded | 0 | 0 |
+| KPI | Baseline (`487aeeeb`) | Target | Measured (`check-skill-weight.py`, at `2660e34c` → after cuts) |
+|---|---|---|---|
+| Universal trio, words | 2,982 | ≤ 1,900 | 2,982 → 1,885 |
+| Heaviest single agent preload (pm), words | 8,225 | ≤ 5,500 | pm 8,246 → 4,922; heaviest is now eng-lead, 7,903 → 5,499 |
+| Sum of preload across all 16 agents, words | 99,672 | ≤ 65,000 | 86,680 → 57,890 (the baseline column used a different counter; the tool's whitespace count is the record from here) |
+| Existing skill-text pins (test cases that read a SKILL.md) | all green | all green — none deleted, none weakened | unit 37/37, integration 72/72; `test-code-grade.py` repointed at `references/code-risk-examples.md` with the same assertions |
+| Seam references under `references/` that are also preloaded | 0 | 0 | 0 (INV-42 refuses one) |
 
 ## Success criteria
 
