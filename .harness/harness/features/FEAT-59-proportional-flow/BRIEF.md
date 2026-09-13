@@ -218,6 +218,25 @@ lands. This brief is not done until both have shipped.
 - SC-22 is graded by inspection of the skill and playbook text plus the judgement ledgers of the
   first two features run after ship; a default-to-heavier route found there fails it.
 
+**First live run (BUG-285-canonical-reader, 2026-09-13, plan lane).** One plan run, 2 cycles,
+~$17 against the old flow's 9 cycles / 19 runs / $154 on the same bug; readers in one turn; pm
+applied and recorded the panel in-run; goal-check at exit; no transcription-only run. The
+`mission` judgement was the ledger's first entry. Two defects found and one weakness:
+- **Defect, fixed (DEC-228 amended, PR #1680):** four task-level `proportionality` findings were
+  summed into a `patch` downgrade of an eight-task enforcement-layer plan while the `scope` reader
+  had written "no downgrade is warranted". The kind now carries `scope: task | mission`; only an
+  unopposed `mission` finding downgrades; dissent is the operator's at signature. INV-32 would
+  have refused the signature — the backstop held, one level late. This is the SC-22 failure shape
+  in reverse (defaulting to the lighter route), and it is the finding SC-22's inspection exists for.
+- **Defect, the record's:** the plan was #1594's, not BUG-285's — the orchestrator correctly
+  judged the bug superseded, but the feature kept the bug's id. A re-point is a rename, not a flaw
+  in the lane.
+- **Weakness, wording only:** the lead's headline read "recommend: downgrade patch because four
+  unopposed proportionality findings remain for operator ruling" — a recommendation and a deferral
+  in one sentence. `harness-product-lead.md` now says when the recommendation is made at all.
+SC-24 is not yet discharged: the run is at signature, unbuilt. SC-23 (a real `patch` lane) has not
+run; the bug that reached grilling was judged `plan`.
+
 ## Constraints
 
 Decisions this feature **amends** (each becomes a new entry; the old one is superseded, not

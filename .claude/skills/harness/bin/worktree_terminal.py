@@ -13,6 +13,7 @@ implementation detail that stays private.
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -350,6 +351,21 @@ def _resolve_landed(path, dirty, hb, factory_config, feature_worktree_mod):
     return (owner_root, repo_segment, default_branch, features_rel, resolved_id), None
 
 
+def _is_direct_build_brief(text):
+    """True when a landed BRIEF's approval block is signed AND names DEC-174.
+
+    Read by KEY inside `## Approval`, never by grepping the whole file: a brief whose
+    Constraints mention DEC-174 in passing must not qualify, and neither must a pending one.
+    """
+    block = text.split("## Approval", 1)
+    if len(block) < 2:
+        return False
+    approval = block[1].split("\n## ", 1)[0]
+    signed = re.search(r"^status:\s*approved\s*$", approval, re.M) is not None
+    direct = re.search(r"^by:.*DEC-174", approval, re.M) is not None
+    return signed and direct
+
+
 def _landed_station_record(path, dirty, resolved):
     """The record for a worktree whose landed directory resolved, or None when it is omitted.
 
@@ -360,6 +376,21 @@ def _landed_station_record(path, dirty, resolved):
 
     feature_json_rel = os.path.join(features_rel, resolved_id, "feature.json")
     _data, err = _read_landed_feature_json(owner_root, default_branch, feature_json_rel)
+    if err == "missing":
+        # A DEC-174 DIRECT BUILD NEVER WRITES feature.json — there is no orchestrator to write
+        # it. Its landed record is the BRIEF whose approval names DEC-174, and its landing IS
+        # its terminal state: the brief reaches the default branch only in the merge that
+        # ships the work. Three shipped direct builds (FEAT-59, FEAT-60, the DEC-228 fix) were
+        # reported "unresolved" by this branch before the predicate existed. Only a MISSING
+        # feature.json takes this path; an unparseable one stays unresolved below.
+        brief_rel = os.path.join(features_rel, resolved_id, "BRIEF.md")
+        brief_text, brief_err = _landed_blob_text(owner_root, default_branch, brief_rel)
+        if brief_err is None and _is_direct_build_brief(brief_text):
+            return {
+                "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
+                "reason": f"landed BRIEF is a signed DEC-174 direct build on {default_branch}",
+                "repo": repo_segment,
+            }
     if err is not None:
         return {
             "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,

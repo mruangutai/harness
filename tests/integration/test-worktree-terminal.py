@@ -871,6 +871,63 @@ def case_plan_station_is_the_landed_authority():
     return results
 
 
+def _commit_brief(repo, feature_id, approval_block, repo_segment="harness"):
+    """Commit ONLY a BRIEF.md for `feature_id` — no feature.json, no plan.yaml — which is what
+    a DEC-174 direct build lands. `approval_block` is the text under `## Approval`."""
+    rel = os.path.join(".harness", repo_segment, "features", feature_id, "BRIEF.md")
+    abs_path = os.path.join(repo, rel)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    with open(abs_path, "w") as f:
+        f.write(f"# BRIEF — {feature_id}\n\n## Constraints\n\n- Built direct under DEC-174.\n\n"
+                f"## Approval\n\n{approval_block}\n")
+    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+
+
+def case_direct_build_brief_is_terminal():
+    """A DEC-174 direct build writes no feature.json; its landed, signed BRIEF naming DEC-174 in
+    the approval `by:` line is its terminal record. Three shipped direct builds were reported
+    `unresolved` before this predicate existed. The controls are the two ways a brief must NOT
+    qualify: pending status, and DEC-174 mentioned only outside the approval block."""
+    import worktree_terminal as w
+
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _repo(os.path.join(tmp, "R"))
+
+        _commit_brief(repo, "FEAT-80-direct", "status: approved\ndate: 2026-09-13\n"
+                      "by: operator, main session (direct work under DEC-174)")
+        direct_dest = _add_wt(repo, "FEAT-80-direct")
+
+        _commit_brief(repo, "FEAT-81-pending-direct", "status: pending\n"
+                      "by: operator (direct work under DEC-174)")
+        pending_dest = _add_wt(repo, "FEAT-81-pending-direct")
+
+        # Signed, but DEC-174 appears only in Constraints — a normal-path feature whose
+        # feature.json is genuinely missing stays unresolved.
+        _commit_brief(repo, "FEAT-82-normal", "status: approved\ndate: 2026-09-13\nby: operator")
+        normal_dest = _add_wt(repo, "FEAT-82-normal")
+
+        recs = {r["path"]: r for r in w.classify(repo)}
+
+        def get(dest):
+            return recs.get(os.path.realpath(dest)) or recs.get(dest)
+
+        results.append(("direct build: signed DEC-174 BRIEF with no feature.json -> terminal",
+                        (get(direct_dest) or {}).get("klass") == "terminal",
+                        f"got {get(direct_dest)!r}"))
+        results.append(("direct build: the reason names DEC-174",
+                        "DEC-174" in (get(direct_dest) or {}).get("reason", ""),
+                        f"got {(get(direct_dest) or {}).get('reason')!r}"))
+        results.append(("CONTROL: a pending DEC-174 BRIEF stays unresolved",
+                        (get(pending_dest) or {}).get("klass") == "unresolved",
+                        f"got {get(pending_dest)!r}"))
+        results.append(("CONTROL: DEC-174 outside the approval block does not qualify",
+                        (get(normal_dest) or {}).get("klass") == "unresolved",
+                        f"got {get(normal_dest)!r}"))
+    return results
+
+
 def case_plan_station_scan_without_pyyaml():
     """FEAT-41 T-07: the station is still readable when PyYAML is NOT importable.
 
@@ -937,6 +994,7 @@ def main():
         + case_classify_empty_repo_no_linked_worktrees()
         + case_plan_station_is_the_landed_authority()
         + case_plan_station_scan_without_pyyaml()
+        + case_direct_build_brief_is_terminal()
     )
     all_ok = True
     for name, ok, detail in results:
