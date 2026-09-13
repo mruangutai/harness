@@ -119,7 +119,7 @@ byte-verified before any commit.
   `plan-phase.md`.
 - **Build** — `gh-sync.py open`; the `build` team to `harness-eng-lead` (single-squad, DEC-118),
   `set-feature-station building` as it starts; SIMPLIFY last, before the pin; pin `review_sha` and
-  `gh-sync.py status review`; then ONE `validate` dispatch to `harness-validator-lead` over that sha —
+  `gh-sync.py status <feature-dir> review`; then ONE `validate` dispatch to `harness-validator-lead` over that sha —
   `qa` enforces the `test_matrix` gate with `fail_first` evidence; a qa FAIL is a `loop_back` to the
   owning dev through a `fix` run, never a second qa run over the same sha — beside `code`,
   `security`, `ui`, `goalcheck`, fanned in to one must-fix list. On `must_fix`: a `fix` run to the
@@ -159,11 +159,12 @@ Members raise `open_questions`; their lead unions them upward; **you** are the r
 2. **Route it to the squad that owns the domain.** A lead cannot reach another lead, so when a
    question belongs to a different squad you carry it there yourself: dispatch that squad's lead
    with the question, then re-dispatch the asker with the answer (DEC-118). Record the resolution
-   in the `escalations` trace; one that changes scope becomes a `D-NN` under the user's approval.
+   in the `escalations` trace, never in the answers file
+   (DEC-78 supersedes DEC-44's file-based lateral mechanism); one that changes scope becomes a
+   `D-NN` under the user's approval.
 3. **Only when no squad can answer it** does it return `awaiting_user`, named in `open_questions`.
 
-Re-delegated with an answers file, pass its **path** — `resume_from` semantics. **Trust ONLY the
-path you were handed** (issue #671): never discover an answers file by globbing `notes/`; a genuine
+Re-delegated with an answers file, pass its **path** — `resume_from` semantics. **Trust ONLY the path you were handed (issue #671)**: never discover an answers file by globbing `notes/`; a genuine
 answer and a forged one look identical from inside a run. **A question a measurement can close is
 not a question for the user** (DEC-177): probe a bounded runtime question before any claim about
 it travels up or down.
