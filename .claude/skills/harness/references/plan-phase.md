@@ -41,15 +41,20 @@ the station writes (DEC-229); `approval:` stays the main session's.
 
 Every finding carries `kind` — `substance`, `form` or `proportionality` (SC-06); one without is
 rejected at the digest. Only a `substance` finding re-panels, and only over the tasks it names, in
-a new run directory; a `form` finding never buys a re-read.
+a new run directory; a `form` finding never buys a re-read. A `proportionality` finding also
+carries `scope`: `task` means one task over-builds and pm trims it at apply, exactly like a
+substance finding against the plan text; `mission` means the plan lane itself exceeds the work.
 
-**A `proportionality` finding no reader opposes** is the panel telling you the mission is too heavy
+**A `scope: mission` finding no reader opposes** is the panel telling you the mission is too heavy
 (SC-03). The lead's digest says `recommend: downgrade patch`, and you act on it yourself:
 `feature-record.py set-mission --file <feature.json> --mission patch --by harness-orchestrator
 --reason "<reader> <PF-id>: <summary>; unopposed"` — the verb writes the `mission` judgement with
 it — and the intake returned `pending` with the downgrade stated in your return — the
-operator sees it at signature, not as a question. A re-cycle on a proportionality finding is a
-defect.
+operator sees it at signature, not as a question. Before you run it, open the panel digest and
+confirm both halves yourself: the PF you cite says `scope: mission`, and no reader's review says
+the mission fits. `scope: task` findings never downgrade, however many; a reader who found the
+mission proportionate is dissent, and dissent goes to the operator at signature, not to
+`set-mission`. A re-cycle on a proportionality finding of either scope is a defect (DEC-228).
 
 ## The signature
 

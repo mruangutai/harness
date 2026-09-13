@@ -2773,7 +2773,7 @@ def case_f59_record_panel_carries_existing_findings_byte_for_byte():
         findings = [
             {"kind": "substance", "severity": "high", "reader": "scope",
              "summary": "t-01   HAS no verify"},          # same identity after normalisation
-            {"kind": "proportionality", "severity": "info", "reader": "scope",
+            {"kind": "proportionality", "scope": "mission", "severity": "info", "reader": "scope",
              "summary": "this is a patch, not a plan"},
         ]
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}], findings))
@@ -2791,6 +2791,7 @@ def case_f59_record_panel_carries_existing_findings_byte_for_byte():
               len(panel["findings"]) == 2
               and panel["findings"][1]["id"] == _pf("scope", "this is a patch, not a plan")
               and panel["findings"][1]["kind"] == "proportionality"
+              and panel["findings"][1]["scope"] == "mission"
               and panel["findings"][1]["disposition"] == "open", repr(panel["findings"]))
         check("cycle, last_run and readers are replaced",
               panel.get("cycle") == 1 and panel.get("last_run") == "2026-09-11-c1-validator"
@@ -2824,6 +2825,19 @@ def case_f59_record_panel_refuses_a_finding_without_kind():
         r2 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
         check("record-panel refuses a kind outside the enum", r2.returncode == 5 and "style" in r2.stderr,
               f"rc={r2.returncode} {r2.stderr!r}")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "proportionality", "severity": "med", "reader": "scope",
+                                   "summary": "no scope"}]))
+        r2b = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a proportionality finding without scope (DEC-228)",
+              r2b.returncode == 5 and "scope" in r2b.stderr and "findings[0]" in r2b.stderr,
+              f"rc={r2b.returncode} {r2b.stderr!r}")
+        write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
+                                 [{"kind": "proportionality", "scope": "whole", "severity": "med",
+                                   "reader": "scope", "summary": "bad scope"}]))
+        r2c = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
+        check("record-panel refuses a proportionality scope outside task|mission",
+              r2c.returncode == 5 and "whole" in r2c.stderr, f"rc={r2c.returncode} {r2c.stderr!r}")
         write(digest, _digest_md([{"reader": "should-not-exist", "status": "skipped"}], []))
         r3 = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
         check("record-panel refuses a skipped reader without persona and reason",

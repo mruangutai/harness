@@ -115,8 +115,9 @@ byte-verified before any commit.
 ## The phases, in one breath
 
 - **Plan / patch** — ONE `plan` team dispatch to `harness-product-lead`: draft, readers in one turn,
-  pm applies and records the panel, goal-check at exit; returns `pending`. A `proportionality`
-  finding no reader opposes downgrades the mission to `patch` by your own hand (SC-03). Procedure:
+  pm applies and records the panel, goal-check at exit; returns `pending`. A `scope: mission`
+  proportionality finding no reader opposes downgrades the mission to `patch` by your own hand
+  (SC-03); `scope: task` findings never do, however many (DEC-228). Procedure:
   `plan-phase.md`.
 - **Build** — `gh-sync.py open`; the `build` team to `harness-eng-lead` (single-squad, DEC-118),
   `set-feature-station building` as it starts; SIMPLIFY last, before the pin; pin `review_sha` and

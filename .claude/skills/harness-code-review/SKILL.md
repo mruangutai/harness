@@ -105,8 +105,9 @@ report** — an unread list gates nothing.
 **Every finding carries `kind`** (DEC-228; `validate-digest.py` refuses a finding without one, and
 `substantive` is a violation, not a synonym): `substance` would change shipped code and re-gates
 only the tasks it names; `form` is document, digest or record shape, fixed in the same run and never
-re-gating; `proportionality` says the plan exceeds what the change needs and routes to a mission
-downgrade, never another panel cycle. The `findings:` shape is in your agent file's output block.
+re-gating; `proportionality` says more is planned than the change needs and carries `scope: task` (one
+task over-builds — pm trims it) or `scope: mission` (the plan lane exceeds the work — the only
+finding that downgrades the mission; never another panel cycle). The `findings:` shape is in your agent file's output block.
 When you genuinely cannot classify one, return one `open_questions` entry with your recommendation
 rather than defaulting to `substance` — the heavier route is not the safe one (DEC-230).
 

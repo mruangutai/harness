@@ -1326,6 +1326,7 @@ def cmd_set_feature_station(args):
 # computes it from the digest's reader and summary, once, in the one place check-state.sh's
 # INV-32 and approval.rulings agree on.
 FINDING_KINDS = ("substance", "form", "proportionality")
+PROPORTIONALITY_SCOPES = ("task", "mission")
 READER_STATUSES = ("ran", "skipped")
 LANES = ("team", "main-session-direct")
 
@@ -1394,6 +1395,11 @@ def _validate_finding_kind(finding, where):
         raise harness_merge.MergeRefusal(
             5, [f"plan-merge: {where} kind {kind!r} is not one of {', '.join(FINDING_KINDS)} — "
                 "a finding without a kind cannot say whether it re-gates (FEAT-59 SC-06, C2)."])
+    if kind == "proportionality" and finding.get("scope") not in PROPORTIONALITY_SCOPES:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} is proportionality with scope {finding.get('scope')!r}, not "
+                f"one of {', '.join(PROPORTIONALITY_SCOPES)} — task is trimmed at apply, mission "
+                "is the only finding that can downgrade the mission (DEC-228)."])
 
 
 def _validate_panel(panel, what):
@@ -1687,9 +1693,12 @@ def _digest_finding(finding, where):
                 "the finding's identity, severity is what gates."])
     _validate_finding_kind(finding, where)
     reader, summary = str(finding["reader"]), str(finding["summary"])
-    return {"id": panel_findings.finding_id(reader, summary), "severity": str(finding["severity"]),
-            "reader": reader, "kind": finding["kind"], "summary": summary,
-            "disposition": "open"}
+    entry = {"id": panel_findings.finding_id(reader, summary), "severity": str(finding["severity"]),
+             "reader": reader, "kind": finding["kind"], "summary": summary,
+             "disposition": "open"}
+    if finding["kind"] == "proportionality":
+        entry["scope"] = finding["scope"]
+    return entry
 
 
 def _digest_findings(digest, what):

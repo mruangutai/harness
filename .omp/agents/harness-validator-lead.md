@@ -121,8 +121,9 @@ process, not diligence.
 ## Every finding carries `kind`
 
 `substance` would change shipped code and re-gates only the tasks it names; `form` is document,
-digest or record shape, fixed in the same run and never re-read; `proportionality` says the plan
-exceeds the change and routes to a mission downgrade. `validate-digest.py` refuses a finding without
+digest or record shape, fixed in the same run and never re-read; `proportionality` says more is
+planned than the change needs and carries `scope: task` (trimmed at apply) or `scope: mission`
+(the only finding that downgrades, DEC-228). `validate-digest.py` refuses a finding without
 one. SHAPE is yours; never CONTENT and never IDENTITY: transcribe `unrated` unchanged (gating-
 equivalent to high), never revise a reader's severity or `kind`. A finding a reader could not
 classify is one `open_questions` entry carrying the reader's recommendation — never the heavier

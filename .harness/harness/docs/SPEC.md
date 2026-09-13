@@ -1215,10 +1215,11 @@ and enums may not drift per persona.
   the evidence its test FAILED before the fix; `PASS` with `matrix_ok: true` and `fail_first: []` is
   REJECTED, a green suite with no fail-first evidence is not a pass; `matrix_ok: n/a` may carry `[]`)
 - **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`,
-  `findings: [{ kind: substance|form|proportionality, severity, reader, summary, why? }]` (a LIST,
+  `findings: [{ kind: substance|form|proportionality, scope?: task|mission, severity, reader, summary, why? }]` (a LIST,
   never a count; `kind` is REQUIRED on every entry — substance would change shipped code, form is
-  document/digest/record shape only and never re-gates, proportionality says the plan exceeds what
-  the change needs and routes to a mission downgrade), `must_fix: [<item>]`
+  document/digest/record shape only and never re-gates, proportionality says more is planned than
+  the change needs and carries `scope: task` (pm trims the task) or `scope: mission` (the only
+  finding that downgrades the mission, DEC-228)), `must_fix: [<item>]`
 - **visual-designer:** `contract: written|updated`, `mockups: [<paths>]`,
   `direction_choices: [<…>]`
 - **documentor:** `docs_updated: [<paths>]`, `gaps: [<…>]`
@@ -1242,7 +1243,7 @@ DEC-121) and `expertise_full` (§5).
 - pm `feasibility: blocked` → halt
 - qa `suite: fail`, or a `substance` finding in the validate must-fix list → one `fix` run over the
   named tasks, inside the rework ruling; a `form` finding never re-gates
-- product-lead `recommend: downgrade patch` (an unopposed `proportionality` finding) → the
+- product-lead `recommend: downgrade patch` (an unopposed `scope: mission` proportionality finding) → the
   orchestrator sets the mission to `patch`, records the `mission` judgement, returns the intake
   `pending` — never a question to you (DEC-228)
 - an unclassifiable finding, mission or finding class → `awaiting_user` with ONE question and the

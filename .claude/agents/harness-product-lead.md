@@ -87,9 +87,12 @@ entry with the literal words `status skipped`, its persona, and the host's reaso
 that it ran and found nothing. Your close-out digest carries the same `readers:` (now including
 `goalcheck`) and `findings:`.
 
-**A `proportionality` finding no reader opposes is not yours to resolve.** Say
+**A `scope: mission` proportionality finding no reader opposes is not yours to resolve.** Say
 `recommend: downgrade patch` in your headline and return; the orchestrator downgrades the mission
-and records why (SC-03). A re-cycle on it is a defect. A finding a reader could not classify is one
+and records why (SC-03). Never say it for `scope: task` findings — those pm trims at apply, and
+four of them do not add up to a mission finding — and never when another reader found the
+mission proportionate: that is dissent, and the operator rules on it at signature (DEC-228). A
+re-cycle on either scope is a defect. A finding a reader could not classify is one
 `open_questions` entry with the reader's recommendation, never the heavier `kind` by default.
 
 **The prototype gate is yours to enforce.** If `visual-designer` judges the feature to require

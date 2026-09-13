@@ -7331,10 +7331,17 @@ not resolve) and `design` (`harness-ui-reviewer`, self-scoping out on non-UI). `
 `form` finding in place, applies `substance` findings, records the panel with `plan-merge.py
 record-panel` and runs `plan-merge.py check`; then pm's `goalcheck` grades one result per
 perspective. Every finding carries `kind: substance | form | proportionality`; `form` never re-gates.
-A `proportionality` finding no reader opposes makes the lead's digest say `recommend: downgrade
-patch`; the orchestrator downgrades the mission itself, records a `mission` judgement and returns
-the intake `pending`, so the operator sees the downgrade at signature and not as a question. A
-re-cycle on a proportionality finding is a defect. The code-reviewer's plan-target binding —
+A `proportionality` finding also carries `scope: task | mission`, and the validator and
+`record-panel` refuse one without it. `scope: task` — one task over-builds — is pm's at `apply`,
+trimmed like a substance finding against the plan text, and never moves the mission however many
+there are. `scope: mission` — the plan lane itself exceeds the work — is the only finding that
+downgrades: when no reader opposes it, the lead's digest says `recommend: downgrade patch`; the
+orchestrator confirms both halves in the panel digest (the cited PF says `scope: mission`; no
+reader's review says the mission fits), downgrades the mission itself, records a `mission`
+judgement and returns the intake `pending`, so the operator sees the downgrade at signature and not
+as a question. A reader who found the mission proportionate is dissent, and dissent is the
+operator's to rule on at signature, never `set-mission`'s. A
+re-cycle on a proportionality finding of either scope is a defect. The code-reviewer's plan-target binding —
 `reviewed: plan:<path>` with `code_grade: n_a`, accepted only while the plan is pending with no
 pinned `review_sha` and belongs to the checkout branch under review — survives unchanged as the
 `scope` reader's digest form.
@@ -7357,6 +7364,18 @@ is no second pass for them to open.
 is the point, and the escaped-defect KPI is what says whether it was safe. A `should-not-exist`
 reader that does not resolve is recorded as skipped rather than blocking the run, so a plan can be
 signed without that reading, and the digest says so.
+
+**Measured on the first FEAT-59 run (BUG-285-canonical-reader, 2026-09-13), and why `scope` exists.**
+`should-not-exist` returned four proportionality findings, each about one task — narrative in a DEC
+beyond the ruled update, one-shot scaffolding shipped as a durable CLI flag, a relocation with no
+live caller until #1674, a route table promoted to tested API with no consumer. `scope` (the
+code-reviewer) wrote "no proportionality downgrade is warranted; every element serves a live
+requirement." The lead's headline read "recommend: downgrade patch because four unopposed
+proportionality findings remain for operator ruling", and the orchestrator downgraded an eight-task
+enforcement-layer plan to `patch` citing this entry — the inverse of the failure this entry exists
+to remove: under-processing a large change instead of over-processing a small one. INV-32 would
+have refused the signature (a patch is a one-task plan), so the record stayed safe, but one level
+late. The rule as first written had one word for two findings; it now has two.
 
 **Record:** strikes the universal rule of DEC-207, whose heading and strike record stay because the
 digest validator, the state check and their tests cite that number for the plan-target binding this
