@@ -2,12 +2,12 @@
 
 **Run-state `steps[]` shape question — answered:** SPLIT. The 22 step keys, the `evidence`
 property-name pattern and the `evidence` value-type union are each declared ONCE, in
-`run-state-schema.json:19-58`, and both `check-domain.sh:1618-1629` (write time) and
+`run-state-schema.json:19-58`, and both `check-domain.py:1618-1629` (write time) and
 `check-state.sh:1490-1499` (read time) load that JSON file and derive `_declared`/`_declared_step_keys`
 from `_step_schema["properties"]` at runtime — no parallel key list for the steps sub-schema. Good.
 BUT the **top-level document key set** (`schema_version`…`digest`, 24 keys) is a THIRD case: it lives
 in the schema's own top-level `properties` (`run-state-schema.json:8-74`) *and* is separately
-hand-copied as `ALLOWED` in `check-domain.sh:1537-1540` *and* again as `CHECKPOINT_KEYS` in
+hand-copied as `ALLOWED` in `check-domain.py:1537-1540` *and* again as `CHECKPOINT_KEYS` in
 `check-state.sh:1397-1411` — neither reads the schema for this part. All three agree today (verified
 by diff of the sets). This part of the top-level shape is pre-existing (untouched by this diff), so
 it's reported as background risk, not a T-06/T-07 defect. A genuine, in-diff duplication is finding 1
@@ -15,7 +15,7 @@ below: the two step-key rejection MESSAGES already disagree in wording.
 
 ### Findings
 
-1. **`check-domain.sh:1654-1660` vs `check-state.sh:1524-1530`** — the write-time and at-rest
+1. **`check-domain.py:1654-1660` vs `check-state.sh:1524-1530`** — the write-time and at-rest
    "undeclared step key or evidence shape" rejection messages are two independently hand-written
    strings, both new in this diff (T-06/T-07). **Cost:** they have already drifted — the write-time
    message spells out the `evidence` recovery format ("a per-dispatch fact goes under `evidence` with
@@ -34,7 +34,7 @@ below: the two step-key rejection MESSAGES already disagree in wording.
    drift that has already happened once inside this same feature's own diff.
 
 2. **Top-level run-state key set triplicated** (`run-state-schema.json:8-74` /
-   `check-domain.sh:1537-1540` `ALLOWED` / `check-state.sh:1397-1411` `CHECKPOINT_KEYS`) — three
+   `check-domain.py:1537-1540` `ALLOWED` / `check-state.sh:1397-1411` `CHECKPOINT_KEYS`) — three
    independent spellings of the same 24-key top-level set, none derived from either of the other two.
    They agree today (diffed all three sets: identical). **Cost:** the exact drift class FEAT-41
    already names in `check-state.sh:78-80` as the reason `factory_config` exists — a future top-level

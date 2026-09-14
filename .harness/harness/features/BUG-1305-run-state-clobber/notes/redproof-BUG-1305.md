@@ -54,7 +54,7 @@ FAIL case_run_identity_pattern_did_not_crash raised AttributeError("module '_hb_
 
 ## SC-10
 
-Command with `CHECK_DOMAIN_BIN` pointed at `check-domain.sh` from `c369fb1f` in an isolated bin:
+Command with `CHECK_DOMAIN_BIN` pointed at `check-domain.py` from `c369fb1f` in an isolated bin:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.run_bug1305_marker_cases()'
@@ -103,7 +103,7 @@ The pinned checker reported none of the three witness disagreements; it only rej
 baseline_sha: 592e88dcf0b6dfcd75ca4c1d49451fa9003d2802
 
 Command with `CHECK_DOMAIN_BIN` pointed at the isolated-bin copy of
-`592e88dcf0b6dfcd75ca4c1d49451fa9003d2802:.claude/skills/harness/bin/check-domain.sh`:
+`592e88dcf0b6dfcd75ca4c1d49451fa9003d2802:.claude/skills/harness/bin/check-domain.py`:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_identity_cases())'
@@ -148,7 +148,7 @@ the Edit as a routine checkpoint update.
 ## SC-05
 
 Command with `CHECK_DOMAIN_BIN` pointed at
-`c369fb1f:.claude/skills/harness/bin/check-domain.sh` in an isolated bin:
+`c369fb1f:.claude/skills/harness/bin/check-domain.py` in an isolated bin:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_digest_repair_cases())'

@@ -7,7 +7,7 @@ was added; every remedy is a correction to plan or brief text, so no finding car
 The plan still needs exactly one operator ruling, and the panel widened it from two options to three.
 
 Source of record: `runs/plan-panel-validator/digest.md` (read whole, prose included). `scope`'s own
-note never landed — `check-domain.sh`'s `claim_worktrees()` refused its write over a stale live
+note never landed — `check-domain.py`'s `claim_worktrees()` refused its write over a stale live
 `harness-code-reviewer` claim in FEAT-05's registry. That is a harness defect the lead raised as its
 Q1, **not a skip**: both readers are recorded `status: ran`, and `scope`'s full prose survives at
 `history://Bug440Plan.MilitaryAmphibian.ScopeReview`.

@@ -90,7 +90,7 @@ is a defect. The VERB is the good one: `OVER BUDGET (already written)` is why ev
 - **"187 PASS lines" IS NOT A COVERAGE MEASURE** — one PASS line per script, and the file carrying all
   78 defect proofs prints `ok`/`FAIL`, contributing exactly one.
 - **Q-DEC159CAP** — `DECISIONS.md:3986` denies handoff notes above 40 lines, its own `:3968` says ~60,
-  `check-domain.sh:951` enforces 60. It survived T-19, a cycle about a false clause in that same entry.
+  `check-domain.py:951` enforces 60. It survived T-19, a cycle about a false clause in that same entry.
   No SC covers it, so fixing it is scope expansion; left deliberately (B-2).
 - **Q-HOOKCTX is CLOSED.** #663-#669 are filed.
 - Do NOT trust a `verify:` floor expressed as an absolute case count; verify by case NAME.

@@ -2,9 +2,9 @@
 
 ## Next
 
-**Apply VF-1, then resume.** One line plus one test case on `check-domain.sh`, specified in full at
+**Apply VF-1, then resume.** One line plus one test case on `check-domain.py`, specified in full at
 `notes/vf1-guard-bypass.md`; the panel's record is `runs/panel-validator/digest.md`. It is
-**main-session-direct**: DEC-174 forbids dispatching a change to `check-domain.sh` through a team
+**main-session-direct**: DEC-174 forbids dispatching a change to `check-domain.py` through a team
 run whose gates are the thing being changed, and the domain hook blocks the orchestrator from
 writing it. No agent in this feature may do it.
 
@@ -24,7 +24,7 @@ After the fix lands, in this order:
   probe — verified-at 4918d06
 - SC-04 is FALSE AS WRITTEN, not under-tested. `BRIEF.md:48-49` states it in argv terms and the
   code never branches on argv — verified-at 4918d06
-- The manifest DOES grant `check-domain.sh` to backend-dev and dev-ops; the block is DEC-174
+- The manifest DOES grant `check-domain.py` to backend-dev and dev-ops; the block is DEC-174
   policy plus my own domain, not the manifest — `--resolve` run by me — verified-at 4918d06
 - T-02 is green on its own terms: 17 distinct cases, suite 13/13, FEAT-09's own PLAN at zero
   violations and exactly one DEVIATION naming T-01 — my own re-run — verified-at ae28daf
@@ -35,7 +35,7 @@ After the fix lands, in this order:
 
 ## Dead ends
 
-- Do NOT restructure `--resolve` to branch on argv. `check-domain.sh:105` already consumes
+- Do NOT restructure `--resolve` to branch on argv. `check-domain.py:105` already consumes
   `sys.argv[2]` as `argv_agent`, so it touches the hook path's identity contract on a DEC-174
   file and drifts from the mechanism DEC-179 documents — panel finding — verified-at 4918d06
 - Do NOT re-probe the hook with an inline escaped-quote payload: it yields a false exit 0 that

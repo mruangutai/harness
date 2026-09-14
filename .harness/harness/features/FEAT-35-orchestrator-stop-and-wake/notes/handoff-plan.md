@@ -16,7 +16,7 @@ their lead. T-05 depends_on T-03.
   plan(s)` — re-run by the orchestrator, not relayed — verified-at 569d417
 - FIX 1 is in T-02's `verify:` and not intent-only — all four literals grepped at plan.yaml:141 —
   verified-at 569d417
-- FIX 2 landed: BRIEF.md:67-74 makes `check-domain.sh --resolve` returning NOBODY the operative
+- FIX 2 landed: BRIEF.md:67-74 makes `check-domain.py --resolve` returning NOBODY the operative
   test and cites am.4 for the CATEGORY only — verified-at 569d417
 - T-01's verify greps "The single-flight refusal on your return is EXPECTED" and asserts the
   absence of both stay-alive strings — plan.yaml:80 — verified-at 569d417

@@ -33,7 +33,7 @@
 # makes reaching it from an agent an explicit act of evasion rather than an ordinary call.
 #
 # THE MAIN SESSION IS EXEMPT BY THE MECHANISM. An absent or empty `agent_type` IS the main
-# session, which is how check-domain.sh's approval_guard already reads the same payload; a
+# session, which is how check-domain.py's approval_guard already reads the same payload; a
 # named main-session branch would be a second carve-out to keep in sync, and issue #132
 # records what happened the last time that file grew one.
 #

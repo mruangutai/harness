@@ -87,7 +87,7 @@ untracked) changed by me. `plan.yaml` shows two `status:` field bumps
 that I did not make — out of scope, left untouched.
 
 ## Notes for the next reader
-- `check-domain.sh`'s domain guard denied an Edit whose section header used the bare
+- `check-domain.py`'s domain guard denied an Edit whose section header used the bare
   filename `run-unit-tests.sh`; re-issuing with the full worktree-relative path in the
   section header resolved cleanly against my granted `.claude/skills/harness/bin/**`
   domain — a resolution artifact of the edit tool, not a real domain gap (P-14 pattern).

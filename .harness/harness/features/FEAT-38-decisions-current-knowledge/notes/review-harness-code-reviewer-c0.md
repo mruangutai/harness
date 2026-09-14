@@ -103,7 +103,7 @@ trailing-text       (prose after -->) -> claims found: 0   # silently invisible
 ```
 
 **Concrete failure scenario.** DEC-181's two live markers are hand-authored HTML comments tracking
-`check-domain.sh`'s exact message string. The next time `harness-documentor` (or a human) edits one
+`check-domain.py`'s exact message string. The next time `harness-documentor` (or a human) edits one
 of them — bumping the budget number, or re-wording the anchor around it — a single dropped colon or
 a stray trailing character removes that marker from consideration entirely. `check-decision-claims.py`
 still exits 0, still prints a non-zero `examined` count (because the OTHER marker in the file still

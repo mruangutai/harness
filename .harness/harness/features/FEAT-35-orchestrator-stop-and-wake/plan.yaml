@@ -12,11 +12,11 @@ lanes:
   rows:
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at this sha, so no agent may write it
+      reason: check-domain.py --resolve returns NOBODY at this sha, so no agent may write it
     - surface: .claude/skills/harness/bin/run-unit-tests.sh
       lane: team
       agent: harness-dev-ops
-      reason: check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops at this sha, and D-08 rules that adding a basename to UNIT_SCRIPTS does not change the script's gate status
+      reason: check-domain.py --resolve returns harness-backend-dev and harness-dev-ops at this sha, and D-08 rules that adding a basename to UNIT_SCRIPTS does not change the script's gate status
     - surface: .claude/skills/harness/bin/test-orchestrator-playbook.py
       lane: team
       agent: harness-dev-ops
@@ -60,7 +60,7 @@ decisions:
 
   - id: D-08
     choice: T-05 stays with the eng squad on the team lane (harness-dev-ops) and T-04 writes no DEC-174 amendment 5, because adding a basename to run-unit-tests.sh UNIT_SCRIPTS does not make that script a gate
-    because: am.4's join-the-list rule fires on the DAY a script becomes a gate, and that day is not this one - run-unit-tests.sh was already a step of the required integration CI job before this feature (.github/workflows/tests.yml:81 and :87), T-05's edit to it is one basename added to an array so its gate status is identical before and after, and check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for it at 569d417. The contrary evidence was engaged - that workflow's own comment says the required context is integration and both suites are steps of it, so the script IS reached by a required check - but the category am.4 governs by is hooks, validators and gate scripts, and a runner that executes assertions refuses nothing itself. Reading it the other way makes every bin/test-*.py enforcement layer, which contradicts both the enumeration naming each gate's own test and the squad grant on .claude/skills/harness/bin/**. The circularity am.4 exists to refuse is absent too - this change only adds assertions, and the runner's drift detector exits 2 for the whole suite on any unlisted test-*.py, so a missing or broken registration is loud rather than invisible
+    because: am.4's join-the-list rule fires on the DAY a script becomes a gate, and that day is not this one - run-unit-tests.sh was already a step of the required integration CI job before this feature (.github/workflows/tests.yml:81 and :87), T-05's edit to it is one basename added to an array so its gate status is identical before and after, and check-domain.py --resolve returns harness-backend-dev and harness-dev-ops for it at 569d417. The contrary evidence was engaged - that workflow's own comment says the required context is integration and both suites are steps of it, so the script IS reached by a required check - but the category am.4 governs by is hooks, validators and gate scripts, and a runner that executes assertions refuses nothing itself. Reading it the other way makes every bin/test-*.py enforcement layer, which contradicts both the enumeration naming each gate's own test and the squad grant on .claude/skills/harness/bin/**. The circularity am.4 exists to refuse is absent too - this change only adds assertions, and the runner's drift detector exits 2 for the whole suite on any unlisted test-*.py, so a missing or broken registration is loud rather than invisible
     dec: DEC-174
   - id: D-09
     choice: "The three domain leads keep the same enforced wait and this feature does not touch it - accepted as a known cost of the scope boundary, tracked by #610 and #552"
@@ -72,7 +72,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03]
     change_type: ai_behavior
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 569d417
     depends_on: []
     status: done
     files:
@@ -133,7 +133,7 @@ tasks:
     traces: [REQ-04, REQ-05]
     change_type: ai_behavior
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 569d417
     depends_on: [T-01]
     status: done
     files:
@@ -198,7 +198,7 @@ tasks:
     traces: [REQ-06]
     change_type: ai_behavior
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 569d417
     depends_on: [T-02]
     status: done
     files:

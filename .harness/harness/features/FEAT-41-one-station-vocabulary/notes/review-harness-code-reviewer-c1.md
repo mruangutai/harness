@@ -131,7 +131,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
   `_t09_spelling` (:2638) only exercises case-variant evasion (`Plan.yaml`, `PLAN.YAML`,
   `plan.YAML`) plus two negative controls; no case in `run_t09` drives `./`, `..`, doubled-slash,
   absolute-path, or a symlinked feature directory against `RE_PLAN_YAML` specifically, despite
-  the code comment (`check-domain.sh:1065-1078`) and commit message asserting all five are
+  the code comment (`check-domain.py:1065-1078`) and commit message asserting all five are
   "already denied." I checked the underlying mechanism myself: `_norm` (:984) resolves via
   `os.path.abspath` before the regex ever runs, which lexically collapses `.`/`..`/doubled-slash
   — sound. The symlinked-directory claim is also sound: the regex matches the path's *shape*

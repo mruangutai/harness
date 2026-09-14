@@ -36,7 +36,7 @@ control is the adversarial panel, which is the independent read, plus the operat
 
 T-02 (`plan.yaml:306-308`) places the witness seed-field compare "After the existing prior-file identity
 compare and **inside the same `if absolute_path is not None:` region (:1508-1529 at c369fb1f)**". Those
-are different places: `check-domain.sh:1508` opens the region, the prior read and the
+are different places: `check-domain.py:1508` opens the region, the prior read and the
 `prior_unreadable` refusal occupy `:1509-1529`, and the "existing prior-file identity compare" is the
 `if prior_state:` ladder that starts at `:1530` and ends at `:1574`. **Scenario:** a builder placing it
 before the ladder makes T-09's precedence case (`plan.yaml:881-882` — prior run_id A + U1, incoming
@@ -53,7 +53,7 @@ T-01 specifies `record_seed` to store `str(doc.get(k))` "when the key is present
 not**" (`plan.yaml:158-161`), and `conflict()` to compare `str(marker.get("run_id")) !=
 str(doc.get("run_id"))` **unconditionally** (`plan.yaml:170`) — the recorded-non-None guard exists only
 for `feature, squad, host` (`plan.yaml:171-172`). **Scenario:** a lead's first checkpoint Write omits
-`run_id` (nothing refuses it — the Issue-1106 missing-`run_id` refusal at `check-domain.sh:1553-1565`
+`run_id` (nothing refuses it — the Issue-1106 missing-`run_id` refusal at `check-domain.py:1553-1565`
 fires only when a prior exists, and `run_id` is not required by `ALLOWED` at `:1450`). POST records a
 witness with `run_id: null`. The lead's next write, correct and carrying `run_id: A`, hits
 `str(None) != "A"` and is refused on Write and Edit; `record_seed` is write-once so the witness cannot
@@ -68,7 +68,7 @@ its own owner, by a guard added to stop exactly the opposite thing. T-01's case 
 REQ-01 (`BRIEF.md:73-75`) and T-02 (`plan.yaml:319-321`) both assert that rewriting a **truncated**,
 zeroed or hand-deleted checkpoint passes. Zeroed and absent do pass — the `if prior_state:` ladder is
 not entered. Truncated does not: a non-empty prior that will not parse is refused at
-`check-domain.sh:1539-1546` ("run state already exists but does not parse") today, and no task in this
+`check-domain.py:1539-1546` ("run state already exists but does not parse") today, and no task in this
 plan touches that branch. SC-01(d) grades only the zero-byte and absent forms (`BRIEF.md:242-246`), so
 nothing catches the gap. **Scenario:** a lead whose `state.yaml` was truncated by an interrupted write
 follows REQ-01, attempts the Write, is refused; the Edit route reconstructs against the same
@@ -111,7 +111,7 @@ exhaustive and returns `met`. Two competent readers, opposite verdicts, from the
 Prevention is inert until POST mints, and detection is inert until POST writes a witness. SC-10 says
 "After a checkpoint Write into a fresh run directory has landed and the PostToolUse hook has run"
 (`BRIEF.md:345-346`), but its evidence is an `integration` test over an `isolated_bin` root that invokes
-`check-domain.sh --post` directly. **Scenario:** the hook registration is correct today
+`check-domain.py --post` directly. **Scenario:** the hook registration is correct today
 (`.claude/settings.json` PostToolUse `Write|Edit|Bash`) and INV-9 asserts registration, but a host that
 does not deliver PostToolUse for the Write tool — the same uncertainty T-11 exists to measure for
 NotebookEdit — leaves every directory permanently legacy, refused by nothing and reported by nothing,
@@ -142,7 +142,7 @@ Saying so plainly costs nothing and keeps the record honest.
 
 ## What works, and where the collision stops
 
-The modal collision stops at `check-domain.sh`, PRE, `RE_STATE_YAML`, inside the `if prior_state:`
+The modal collision stops at `check-domain.py`, PRE, `RE_STATE_YAML`, inside the `if prior_state:`
 ladder immediately after the Issue-1124 `run_id` compare (`:1566-1574` at `c369fb1f`), on both the Write
 route and the Edit route — Edit because `:1905-1923` reconstructs `RE_STATE_YAML` content from
 `old_string`/`new_string` before the shape phase. The foreign run carries no `run_uid`,

@@ -48,7 +48,7 @@
 - **Module:** `harness_yaml.py` — the only `try: import yaml` in the tree (D-12).
   `MissingDependency` and `DuplicateKeyError` subclass `YamlParseError`; callers needing
   the specific message catch it FIRST, and that ordering is load-bearing.
-- **Hooks:** `check-domain.sh`, `bash-write-guard.sh` — one shared domain walk (D-03), so
+- **Hooks:** `check-domain.py`, `bash-write-guard.sh` — one shared domain walk (D-03), so
   they cannot drift. Both merged to a single interpreter launch: 80.6→43.5ms and
   64.6→45.0ms, faster than before the feature while doing more.
 - **Readers:** `check-state.sh` (closes #11), `gh-sync.py`, `upgrade-config.py`.

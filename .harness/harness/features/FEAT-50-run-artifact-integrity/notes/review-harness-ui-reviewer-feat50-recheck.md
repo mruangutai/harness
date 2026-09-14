@@ -26,15 +26,15 @@ verbatim stderr:
   `bash-write-guard: BLOCKED — <abs-path> is a feature artifact whose write belongs in worktree
   <abs-worktree-path>. Write it there, not in the main checkout.` — **names the offending path, the
   destination checkout, and the remedy action.** Actionable.
-- `check-domain.sh` checkout refusal (`test-check-domain.py` → `run_feat50_artifact_integrity`,
+- `check-domain.py` checkout refusal (`test-check-domain.py` → `run_feat50_artifact_integrity`,
   10/10 incl. mutation-kill cases):
   `check-domain: BLOCKED — <abs-path> is a feature artifact whose write belongs in worktree
   <abs-worktree-path>.` + `Write this artifact in <abs-worktree-path>, not the main checkout.` —
   same three elements, on two lines. Actionable.
-- `check-domain.sh` digest-clobber refusal (non-empty-prior case): `... run digest already holds a
+- `check-domain.py` digest-clobber refusal (non-empty-prior case): `... run digest already holds a
   recorded digest; this Write would replace rather than extend it. Write this cycle's digest into a
   run directory of its own.` — names the fact and the remedy. Actionable.
-- `check-domain.sh` digest-unreadable refusal (OSError case, live-triggered by making the digest
+- `check-domain.py` digest-unreadable refusal (OSError case, live-triggered by making the digest
   path a directory): `check-domain: BLOCKED — <rel-path>: run digest already exists but cannot be
   read safely; refusing a Write that could destroy its recorded content.` — names the offending path
   and the fact, but **states no remedy action**, unlike its clobber sibling three lines above it in

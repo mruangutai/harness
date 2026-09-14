@@ -39,7 +39,7 @@ pm re-plan under a fresh signature, not a fix cycle.
   run is over** — that omission cost one duplicate T-05 dispatch — verified-at 9885670
 - Do NOT hand-edit `DECISIONS-INDEX.md` — T-04's verify diffs it against a fresh
   `gen-decisions-index.py --stdout`, so any hand-edit reddens — verified-at 9885670
-- Do NOT apply a reviewer's Expertise ops on its behalf — `check-domain.sh --resolve` grants each
+- Do NOT apply a reviewer's Expertise ops on its behalf — `check-domain.py --resolve` grants each
   reviewer its OWN file; the playbook's "write-less reviewers" phrasing is false and is row B-16 —
   verified-at 9885670
 - Do NOT verify prose with a flat `grep -F` — false zero on a wrapped phrase, and case-sensitive;

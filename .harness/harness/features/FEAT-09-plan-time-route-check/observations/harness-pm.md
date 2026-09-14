@@ -1,6 +1,6 @@
 # Observations — harness-pm — FEAT-09-plan-time-route-check
 
-- 2026-08-05: the dispatch predicted ONE hazard in `check-domain.sh:26` (`payload=$(cat)` hangs on
+- 2026-08-05: the dispatch predicted ONE hazard in `check-domain.py:26` (`payload=$(cat)` hangs on
   an argv invocation). Measured at `ae2443d` there are TWO, and the second is worse: with stdin an
   open pipe it hangs past 10s, but with stdin `/dev/null` or closed it exits **0 with empty stdout**
   — a fail-open answer indistinguishable from "clean". A brief that names a hazard names the half

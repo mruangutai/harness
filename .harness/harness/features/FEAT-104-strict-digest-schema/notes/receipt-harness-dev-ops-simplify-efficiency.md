@@ -1,14 +1,14 @@
 # EFFICIENCY angle — FEAT-104-strict-digest-schema
 
-BLUF: no material waste. The three hot-path gates (`check-domain.sh`, `check-state.sh`,
+BLUF: no material waste. The three hot-path gates (`check-domain.py`, `check-state.sh`,
 `validate-digest.py`) are all correctly gated so the new schema-enforcement cost is paid only by
 what it actually validates. One genuine but numerically negligible repeated-I/O pattern found in
 `check-state.sh`; not worth an apply. `findings` below has one low-severity entry.
 
-## 1. `check-domain.sh` hot path — answered
+## 1. `check-domain.py` hot path — answered
 
 The new schema block is gated behind `if RE_STATE_YAML.match(rel):` at
-`.claude/skills/harness/bin/check-domain.sh:1526`. A non-`state.yaml` Write/Edit never reaches it;
+`.claude/skills/harness/bin/check-domain.py:1526`. A non-`state.yaml` Write/Edit never reaches it;
 `shape_problems()` is still called for every target (pre-existing behaviour, unrelated to this
 diff), but the new `import jsonschema` / schema read / step-validation code sits entirely inside
 that `if`, so a non-state file pays exactly 0 extra work for it.
@@ -25,8 +25,8 @@ key or evidence shape" refusal at exit 2, proving the code path is reached only 
 
 ## 2. Repeated I/O — schema file / agents dir / team-config
 
-- `run-state-schema.json` in `check-domain.sh`: opened and parsed exactly once per hook
-  invocation (`check-domain.sh:1621-1622`), inside the single `if RE_STATE_YAML.match(rel):`
+- `run-state-schema.json` in `check-domain.py`: opened and parsed exactly once per hook
+  invocation (`check-domain.py:1621-1622`), inside the single `if RE_STATE_YAML.match(rel):`
   branch — one Write, one open. No repetition to flag (a subprocess can't cache across
   invocations anyway).
 - `run-state-schema.json` in `check-state.sh`: **opened and `json.load`-ed, and the

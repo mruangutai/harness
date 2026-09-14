@@ -10,7 +10,7 @@
   target. There is no in-domain temp path to stage entries in either, so on a first append the only
   route is Write on the log itself.
 - 2026-08-29 (plan draft): `.agents/skills` is a SYMLINK to `.claude/skills` in this repo — one inode,
-  two spellings. A task listing both paths would be doing nothing twice; `check-domain.sh --resolve`
+  two spellings. A task listing both paths would be doing nothing twice; `check-domain.py --resolve`
   answers on the `.claude/...` spelling.
 - 2026-08-29 (plan draft): the ` :: <ruling>` tail of a DECISIONS-INDEX.md row is HAND-written by the
   entry's author; gen-decisions-index.py does not produce it. A verify that greps the index for a

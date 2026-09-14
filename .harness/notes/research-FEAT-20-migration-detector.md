@@ -23,8 +23,8 @@ Coupled readers, and the literal each is written in at `88b1182`:
 | Reader | Legacy form | Where |
 |---|---|---|
 | `team-config.yaml` write grants | `.harness/features/` prefix, 43 lines carry it | grant globs |
-| `check-domain.sh` SWEEP_GLOBS | `.harness/features/*/feature.json` and three siblings | `:597-600` |
-| `check-domain.sh` shape regexes | `^\.harness/features/[^/]+/…` (four) | `:663-666` |
+| `check-domain.py` SWEEP_GLOBS | `.harness/features/*/feature.json` and three siblings | `:597-600` |
+| `check-domain.py` shape regexes | `^\.harness/features/[^/]+/…` (four) | `:663-666` |
 | `check-plan-routes.py` discovery | `os.path.join(root, ".harness", "features")` | `:539` |
 | `check-state.sh` discovery globs | `glob(join(H, "features", "*", …))`, 15 sites at this sha | throughout |
 

@@ -97,7 +97,7 @@ report it if that does not fix it.
 
 ## DEC-174 carve-out
 
-Not touched: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+Not touched: `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`,
 `check-state.sh`. `check-docs.sh` not recreated (absent, correctly).
 
 ## Scope

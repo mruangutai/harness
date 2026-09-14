@@ -127,7 +127,7 @@ what_fix01_closed: 'Three properties asserted in PROSE and enforced ZERO times. 
 worktree_reason: 'THE DISPATCH PREMISE WAS FALSE. It said the branch was created,
   checked out and signed; it exists and is signed, but the main checkout sits on chore/203-end-copy-distribution,
   FEAT-12 mid-build, and checking out would have pulled a live flow''s tree from under
-  it. The worktree path is the DEC-143 shape - check-domain.sh strips a single-segment
+  it. The worktree path is the DEC-143 shape - check-domain.py strips a single-segment
   .claude/worktrees/<name>/ prefix and matches identical globs, so no grant widens.
   A worktree OUTSIDE the project root hits the commonpath escape and the hook RETURNS
   WITHOUT ENFORCING: a silent fail-open, worse than a block. THE TRAP IS LIVE - pm''s

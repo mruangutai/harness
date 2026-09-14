@@ -35,7 +35,7 @@ T-11 appends **ten**: those eight + `test-context-watch-cli.py` (F-1's instance)
 
 **The T-05 interaction is resolved, not invented around.** `test-upgrade-config.py` is one of the
 eight and T-05 edits it, but T-05's agent is `harness-backend-dev` and
-`check-domain.sh --resolve .harness/harness.json` returns **`harness-dev-ops` alone** at 7299669.
+`check-domain.py --resolve .harness/harness.json` returns **`harness-dev-ops` alone** at 7299669.
 So T-05 gets a "DO NOT EDIT harness.json here, T-11 owns it" clause and T-07 gets the same plus
 `depends_on: [T-11]`. **The split is forced by the grant, not chosen** — putting `harness.json` on
 T-07 as F-1 literally instructed would make `check-plan-routes.py` report a DEVIATION.
@@ -104,7 +104,7 @@ rule. Recorded in T-10's intent as a re-assert-at-your-sha instruction, not a re
 
 ## C-6 applied
 
-`RE_HANDOFF` is at **`check-domain.sh:665`** in this worktree (`:706` is the main checkout, a
+`RE_HANDOFF` is at **`check-domain.py:665`** in this worktree (`:706` is the main checkout, a
 different branch). `SEAM_NOTES` at **`check-state.sh:495`**. T-10's stale `6f651f1` line citations
 (509 / 614 / 474) were rewritten symbol-first, with an explicit warning that T-14 moves the code so
 the numbers will not hold when T-10's doer arrives.
@@ -175,4 +175,4 @@ SC-14's `verify: automated      evidence: integration` line, SC-15 and `## Appro
   which D-06 never covered. The `lanes:` row for `run-unit-tests.sh` now records both lanes by edit
   kind.
 - `lanes.resolved_at` moved `6f651f1` → `7299669`: all 14 pre-existing rows were re-resolved with
-  `check-domain.sh --resolve` and every one was unchanged; 2 rows added.
+  `check-domain.py --resolve` and every one was unchanged; 2 rows added.

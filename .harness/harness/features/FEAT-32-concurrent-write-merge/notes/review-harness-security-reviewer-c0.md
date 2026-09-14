@@ -16,9 +16,9 @@ rises to must-fix.
 ## 1. The approval-forgery attack (D-10, the headline)
 
 Built a live fixture harness (`_approval_root`/`_fire_edit`/`_fire_write`, mirroring
-`test-check-domain.py`'s T-14 fixtures) and ran the real `check-domain.sh` as `harness-pm` and
+`test-check-domain.py`'s T-14 fixtures) and ran the real `check-domain.py` as `harness-pm` and
 `harness-orchestrator`. Every payload below was **denied, exit 2**, with stderr naming the
-fragment (`check-domain.sh:508` `approval_guard`, `check-domain.sh:409` `_approval_entries`,
+fragment (`check-domain.py:508` `approval_guard`, `check-domain.py:409` `_approval_entries`,
 `:462` `_yaml_key_range`, `:475` `_heading_range`, `:552` Edit branch Limb A, `:611` Limb B):
 
 - Boundary-spanning `old_string` (starts in the blank line *before* `approval:`, ends inside
@@ -53,10 +53,10 @@ open_questions Q1.
 
 ## 2. Who may edit team-config.yaml (D-10's own residual)
 
-Ran `check-domain.sh --resolve .harness/team-config.yaml` → `NOBODY`. Then fired real Write **and**
+Ran `check-domain.py --resolve .harness/team-config.yaml` → `NOBODY`. Then fired real Write **and**
 Edit payloads at `.harness/team-config.yaml` as all 16 rostered personas
 (`harness-orchestrator` … `harness-validator-lead`) — **every one exits 2** with "may not write
-.harness/team-config.yaml" (`check-domain.sh` domain_check, not the approval_guard). No governed
+.harness/team-config.yaml" (`check-domain.py` domain_check, not the approval_guard). No governed
 agent can disarm the load-bearing record through the guarded Write/Edit path. The only remaining
 route is #627 (bash-write-guard's allow-by-omission for a `python3` CLI invocation), which is
 explicitly out of scope by D-08 and whose own destination refusal is the accepted mitigation — not
@@ -123,7 +123,7 @@ inline comment citing the prior $HOME-resolution defect by name. No regression.
 Every new stderr/stdout line added by this diff was inspected. Refusal messages print loaded
 approval-mapping values (status/approved_by/date), glob strings, and file paths — no credentials,
 tokens, or unrelated file content. Absolute paths do include the local username as an incidental
-path segment; this is a pre-existing pattern in `check-domain.sh` (not introduced by this diff)
+path segment; this is a pre-existing pattern in `check-domain.py` (not introduced by this diff)
 and stays inside the acting agent's own session, never a shared artifact. Not a finding.
 
 ## Findings summary
@@ -153,7 +153,7 @@ None.
 
 ## Files read (no source edits made)
 
-`.claude/skills/harness/bin/check-domain.sh`, `dispatch-guard.sh`, `validate-digest.py`,
+`.claude/skills/harness/bin/check-domain.py`, `dispatch-guard.sh`, `validate-digest.py`,
 `harness_merge.py`, `inflight_registry.py`, `plan-merge.py`, `.harness/team-config.yaml`,
 `.harness/harness.json`, `.gitignore` (no gitignore-relevant surface in this diff),
 `.harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml` (D-04, D-10),

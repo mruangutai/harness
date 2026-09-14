@@ -6,7 +6,7 @@ DIGEST:
   steps_run: 4
   cycles_used: 2
   members:
-    - { step: probe, persona: harness-dev-ops, verdict: PASS, headline: "check-domain.sh's shape gate catches this exact corruption (exit 2, 'not valid JSON'); the hole is a silent zero-path in the OMP bridge's edit routing, untested end-to-end", files_touched: [".harness/harness/features/FEAT-44-omp-context-advisory/notes/receipt-harness-dev-ops-devopsprobe.md"] }
+    - { step: probe, persona: harness-dev-ops, verdict: PASS, headline: "check-domain.py's shape gate catches this exact corruption (exit 2, 'not valid JSON'); the hole is a silent zero-path in the OMP bridge's edit routing, untested end-to-end", files_touched: [".harness/harness/features/FEAT-44-omp-context-advisory/notes/receipt-harness-dev-ops-devopsprobe.md"] }
     - { step: build-c1, persona: harness-backend-dev, verdict: PASS, headline: "locked schema-validated feature.json writer shipped; gh-sync rewiring declined on a blocker that did not exist", files_touched: [".claude/skills/harness/bin/feature_json_write.py", ".claude/skills/harness/bin/feature-json-merge.py", ".claude/skills/harness/bin/test-feature-json-merge.py", ".claude/skills/harness/bin/run-unit-tests.sh"] }
     - { step: build-c2, persona: harness-backend-dev, verdict: PASS, headline: "gh-sync.py's three write sites on the locked writer, _atomic_write deleted, ratchet's dirty-base case now under test", files_touched: [".claude/skills/harness/bin/gh-sync.py", ".claude/skills/harness/bin/test-gh-sync.py", ".claude/skills/harness/bin/test-feature-json-merge.py"] }
     - { step: build-c3, persona: harness-backend-dev, verdict: PASS, headline: "factory_decompose.write_factory rewired; last unlocked Python writer of feature.json closed", files_touched: [".claude/skills/harness/bin/factory_decompose.py", ".claude/skills/harness/bin/test-factory-decompose.py"] }
@@ -38,7 +38,7 @@ artifact: .harness/notes/analysis-stale-anchor-write-hazard.md
 place the dispatch hypothesised — `feature.json` alone among co-owned artifacts had no locked
 merge helper — is real, verified, and now closed for every Python writer. The place that actually
 made the 2026-08-30 incident *silent* is different and sits inside the DEC-174 boundary: the route
-from an OMP `edit` tool result to `check-domain.sh --post` is a single unguarded string parse whose
+from an OMP `edit` tool result to `check-domain.py --post` is a single unguarded string parse whose
 empty return invokes zero gates and logs nothing, and no test in this repository exercises it.
 
 ## 1. Blast radius — every file written by BOTH a harness tool AND an agent editor
@@ -59,7 +59,7 @@ then read at each site. Not inferred.
 | `.harness/*/features/*/STATE.md` | none found | n/a | n/a | agents only — no co-ownership |
 | `.harness/*/features/*/runs/*/state.yaml` | none found | n/a | n/a | leads only — no co-ownership |
 | `.harness/logs/*.jsonl` | `gh_cost_log.py:143` | append-only | no | never |
-| `.harness/.shape-sweep-stamp` | `check-domain.sh:1532` | mtime only | no | never |
+| `.harness/.shape-sweep-stamp` | `check-domain.py:1532` | mtime only | no | never |
 
 **The interesting cell is exactly the one the dispatch predicted**, and it is the only one:
 `feature.json` was the sole file with a tool writer, no merge helper, and routine agent
@@ -156,7 +156,7 @@ make the *correct* path exist so guidance has somewhere to point.
 `.claude/skills/harness/bin/omp-hooks.test.ts`. Add a case firing a `tool_result` event through
 `registerHarnessHooks` with `toolName: "edit"` and
 `input: { input: "*** Begin Patch\n[a.ts#A1B2]\nPUT 1.=1:\n+x\n*** End Patch\n" }` against a fake
-runner; assert exactly one recorded call with script `check-domain.sh`, args containing `--post`,
+runner; assert exactly one recorded call with script `check-domain.py`, args containing `--post`,
 and `payload.tool_input.file_path === "a.ts"`. Mirror the `toolName: "task"` cases at `:265-268`
 and `:299-302`. Proof: `bun test ./.claude/skills/harness/bin/omp-hooks.test.ts` goes 43 → 44.
 
@@ -167,7 +167,7 @@ paths, append a **non-blocking** advisory to the tool result naming the tool and
 target path could be extracted, so the gate's absence is visible in the transcript. It must not set
 `isError` — an advisory must never cost a gate, the property `:797-801` already protects. Proof: a
 `tool_result` with `toolName: "edit"` and `input: { input: "not a patch" }` appends the advisory
-and the fake runner records **zero** `check-domain.sh` calls; the existing well-formed-patch case
+and the fake runner records **zero** `check-domain.py` calls; the existing well-formed-patch case
 appends nothing.
 
 **S3 — the guidance that does not exist.** `.claude/skills/harness/**/SKILL.md` is in no agent's
@@ -218,7 +218,7 @@ DIGEST:
     - .harness/notes/analysis-stale-anchor-write-hazard.md
   branch: fix/stale-anchor-write-hazard
   open_questions:
-    - { id: Q4, question: "check-domain.sh grants harness-backend-dev only .harness/*/features/*/notes/receipt-harness-backend-dev-*.md, so the flat .harness/notes/ path this whole effort uses for its receipts is writable by no member. c4's receipt therefore landed under FEAT-44-omp-context-advisory while c2/c3's sit in .harness/notes/. Either team-config.yaml grants the flat path or the earlier receipts move; a manifest grant is not a lead's call.", blocking: false }
+    - { id: Q4, question: "check-domain.py grants harness-backend-dev only .harness/*/features/*/notes/receipt-harness-backend-dev-*.md, so the flat .harness/notes/ path this whole effort uses for its receipts is writable by no member. c4's receipt therefore landed under FEAT-44-omp-context-advisory while c2/c3's sit in .harness/notes/. Either team-config.yaml grants the flat path or the earlier receipts move; a manifest grant is not a lead's call.", blocking: false }
     - { id: Q5, question: "C3-3 was deliberately retired: 'write_factory refuses a path outside a features directory' is no longer true, by design. The property it pinned (the SHARED core's default is strict and creates nothing) is now pinned in test-feature-json-merge.py case_14. Confirm that relocation is acceptable rather than a coverage loss — same shape as Q3.", blocking: false }
   escalations: []
   expertise_update: []

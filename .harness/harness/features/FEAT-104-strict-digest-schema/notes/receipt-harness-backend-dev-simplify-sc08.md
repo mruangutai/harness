@@ -10,7 +10,7 @@ redundancy, never an apply.
 
 `_report()` (`tests/integration/test-check-domain.py:165-177`) prints, on a failed case, the case
 name plus `exit {returncode}: {stderr.strip()[:500]}` — the full raw emitter text, not a per-clause
-boolean vector. The emitter side (`check-domain.sh:1653-1659`) produces, for this path, exactly two
+boolean vector. The emitter side (`check-domain.py:1653-1659`) produces, for this path, exactly two
 `out.append` calls: `_head("undeclared step key or evidence shape.")` (`_head` = `f"check-domain:
 {VERB} — {display or rel}: {text}"`, ~60-90 chars for this fixture) and the `offending key(s): …`
 body (~230 chars including the `run-state-schema.json` and `` `evidence` `` literal substrings).
@@ -24,7 +24,7 @@ finding, no would-be edit.**
 
 ## Q2 — is `run-state-schema.json` redundant given `undeclared step key`?
 
-`check-domain.sh:1645-1659`: both the head (`"undeclared step key or evidence shape."`, carries
+`check-domain.py:1645-1659`: both the head (`"undeclared step key or evidence shape."`, carries
 "undeclared step key") and the body (`"offending key(s): …run-state-schema.json…`evidence`…"`) are
 appended unconditionally, back-to-back, inside the single `if _schema_errors:` block guarded from
 `:1618`. There is no branch between the two `out.append` calls and no path that emits the head
@@ -37,7 +37,7 @@ dropped or reworded) rather than of any behavior distinguishable today.
 
 **Finding SIMPLIFY-SC08-01** (`tests/integration/test-check-domain.py:88-89`, severity low): the
 two new conjuncts are co-emitted with clause 2 at the single call site
-(`check-domain.sh:1653-1658`) and so add zero discriminating power over today's code — only over a
+(`check-domain.py:1653-1658`) and so add zero discriminating power over today's code — only over a
 hypothetical future edit that splits the message. Concrete edit it *would* make: drop
 `and "run-state-schema.json" in strict.stderr and "`evidence`" in strict.stderr` back to the prior
 two-clause form. **Left unmade** — DEC-174 read-only, and per `harness-simplify`'s apply rule this
@@ -50,7 +50,7 @@ exists to catch. Recommend keeping it as an accepted, named backlog residual rat
 
 ## Standing carry-forward
 Q7 predicate-spelling residual (3 complete + 2 partial spellings of the strict-schema-version check
-across `check-domain.sh`/`check-state.sh`) is already known and accepted — not re-raised here.
+across `check-domain.py`/`check-state.sh`) is already known and accepted — not re-raised here.
 
 ## Verification
 Read-only run of `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py` was not

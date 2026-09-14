@@ -125,7 +125,7 @@ the test case to price it against.
 
 ## Finding 6 — sequencing vs the fail-open approval guard: finish FEAT-38 first, guard next
 
-The measured defect is real and given: check-domain.sh's approval guard is fail-open inside
+The measured defect is real and given: check-domain.py's approval guard is fail-open inside
 every worktree, so "an agent may not write the approval signature" has been convention, not
 enforcement [given by the review contract; not independently re-derived here]. Two reasons
 finishing FEAT-38 first is still right:

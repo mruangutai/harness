@@ -14,7 +14,7 @@ forbidden to execute in. That is the whole of what stands between here and a mer
 
 | # | Item | Why it is yours |
 |---|---|---|
-| **1** | Rule on **F-01** and **F-02**, two fail-open/misfire defects in `merge-gate.py` | The remedy edits a registered PreToolUse gate script. DEC-174 forbids the harness executing changes to its own gate scripts, whatever `check-domain.sh` resolves |
+| **1** | Rule on **F-01** and **F-02**, two fail-open/misfire defects in `merge-gate.py` | The remedy edits a registered PreToolUse gate script. DEC-174 forbids the harness executing changes to its own gate scripts, whatever `check-domain.py` resolves |
 | **2** | Rule on **F-03**, a wrong remedy command in `gh-sync.py` | The code **matches** the approved spec — `plan.yaml:779-791` dictates the string verbatim. Fixing it amends a signed plan, which needs your signature, not a fix cycle |
 | **3** | **Re-sign** `BRIEF.md ## Approval` | SC-03 and SC-07 were amended today on your ruling. The 2026-09-06 signature no longer covers the file on disk |
 | **4** | Run the **SC-10 hand test** — `notes/uat-BUG-1309-mirror-build-entry.md`, 8 steps, ~10 minutes | SC-10 is `verify: uat`. No agent may grade it. The script was verified drift-free against the pinned code today |

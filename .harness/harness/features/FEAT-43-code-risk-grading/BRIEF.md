@@ -249,12 +249,12 @@ answerable to from that point on.
 
 **Blocks or bounds the solution:**
 
-- DEC-174 amendment 4 names `check-plan-routes.py`, `check-domain.sh`, `bash-write-guard.sh`,
+- DEC-174 amendment 4 names `check-plan-routes.py`, `check-domain.py`, `bash-write-guard.sh`,
   `validate-digest.py`, `check-state.sh`, `dispatch-guard.sh` **and the test file of each** as the
   enforcement layer. The squad may not execute changes to any of them. `validate-digest.py` holds
   three of the ten worst functions in the repository and is therefore untouchable here.
 - `.omp/agents/**` and `.claude/agents/**` are owned by nobody, by ruling in the team manifest. So is
-  every `.claude/skills/harness-*/` skill file — measured with `check-domain.sh --resolve`, which
+  every `.claude/skills/harness-*/` skill file — measured with `check-domain.py --resolve`, which
   returns `NOBODY`. Those surfaces are main-session-direct.
 - DEC-182 governs the plan format; DEC-120 reserves the approval signature to the main session.
 - DEC-190's precedent applies to a missing dependency: a loud error, never a quieter mode.

@@ -44,7 +44,7 @@ contract still promises a verb nothing applies (REQ-08).
 
 ## Lane resolution, re-run at c369fb1
 
-`check-domain.sh --resolve` on every surface this plan names:
+`check-domain.py --resolve` on every surface this plan names:
 
 - `.claude/skills/harness/bin/expertise-merge.py` -> backend-dev, dev-ops (team)
 - `tests/unit`, `tests/integration/test-expertise-merge.py` -> backend-dev, dev-ops, qa (team)

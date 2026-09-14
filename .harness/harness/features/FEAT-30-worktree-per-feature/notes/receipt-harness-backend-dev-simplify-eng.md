@@ -6,7 +6,7 @@ BRIEF criteria, the layout_fixtures.py exclusion) was left alone.
 
 ## Finding 1 — the 16-agent roster walk is about to get a second, hand-written copy
 
-- **File/line:** `.claude/skills/harness/bin/check-domain.sh:219-229` defines `_roster(node)`, a
+- **File/line:** `.claude/skills/harness/bin/check-domain.py:219-229` defines `_roster(node)`, a
   closure that walks `team-config.yaml`'s parsed tree for every node carrying both `name` and a
   list-valued `domain`, at every nesting level (members under teams, leads under `leads:`,
   `harness-orchestrator` as a bare top-level key). `plan.yaml` T-03 (line ~474-480) instructs the
@@ -14,12 +14,12 @@ BRIEF criteria, the layout_fixtures.py exclusion) was left alone.
   eeabc59" by re-implementing it from the intent's prose rather than importing it.
 - **Cost:** two independent spellings of the roster-discovery algorithm. If a future team-config
   shape change (a new nesting level, a renamed key) updates the production walk in
-  `check-domain.sh` but not the test's hand-copied walk, the test keeps reporting "16 agents
+  `check-domain.py` but not the test's hand-copied walk, the test keeps reporting "16 agents
   found" against stale logic — silently vacuous rather than red — which is exactly what T-03's own
   16-agent-count assertion exists to catch, and can't, if its own walk has drifted from the one it
   is supposed to be checking.
-- **Alternative:** lift `_roster` out of `check-domain.sh` into `harness_yaml.py` as an importable
-  function (e.g. `roster_with_domains(parsed)`), have `check-domain.sh --resolve` call it, and have
+- **Alternative:** lift `_roster` out of `check-domain.py` into `harness_yaml.py` as an importable
+  function (e.g. `roster_with_domains(parsed)`), have `check-domain.py --resolve` call it, and have
   T-03's new cases import and call the same function instead of re-deriving the walk. This is a
   small, mechanical extraction and does not touch any behavior T-04 depends on.
 - **Judgment:** briefing row. The duplication is real but the walk is short and rarely changes;

@@ -14,8 +14,8 @@ blocking**, because T-08's own `verify:` greps for `^FAIL ` and will not pass wh
 
 Re-derived the set myself rather than trusting the message:
 
-    guarded_hits : check-domain.sh, feature-worktree.py, feature_schema.py, harness_yaml.py
-    allowed      : check-domain.sh, feature_schema.py, harness_yaml.py
+    guarded_hits : check-domain.py, feature-worktree.py, feature_schema.py, harness_yaml.py
+    allowed      : check-domain.py, feature_schema.py, harness_yaml.py
     offending    : feature-worktree.py     <- exactly one, and it is T-01's
 
 ## Neither side is at fault, which is what makes it a ruling and not a fix
@@ -49,10 +49,10 @@ An execution-time adjustment is mine; changing what the plan's diff contains is 
 
 **Widen the `allowed` set.** One line, and it is the better-grounded side:
 
-- **Precedent already covers a first-party guarded import.** `check-domain.sh` sits in `allowed`
+- **Precedent already covers a first-party guarded import.** `check-domain.py` sits in `allowed`
   for guarding `import feature_schema` — first-party, exactly like `harness_boundary`. So
   "`harness_boundary` is not an external dependency" does not distinguish this case from an
-  already-accepted one. I checked: `check-domain.sh` does currently hold the needle, so the test's
+  already-accepted one. I checked: `check-domain.py` does currently hold the needle, so the test's
   own comment claiming it holds zero occurrences is itself stale.
 - **The test was built to grow this way.** Its comment states assertion 2 *"MUST be a subset (`<=`),
   never `==`"* so new legitimate cases can land without the cap being lost.

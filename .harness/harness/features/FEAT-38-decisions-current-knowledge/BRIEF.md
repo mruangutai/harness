@@ -220,7 +220,7 @@ It is closed as superseded once this lands.
 - **`.agents/skills` is a tracked symlink** to `.claude/skills`. Every path is written against
   `.claude/skills/...`; a path spelling `.agents/skills` will not match a `git ls-files` check.
 - **Thirteen surfaces this feature must edit are in NOBODY's domain** — measured with
-  `check-domain.sh --resolve` per path at `7ebfc9e`. They include `.claude/skills/harness/SKILL.md`,
+  `check-domain.py --resolve` per path at `7ebfc9e`. They include `.claude/skills/harness/SKILL.md`,
   `harness-team/SKILL.md`, both orchestrator agent files (`.claude/agents/` and `.omp/agents/`, the
   second a citation surface no intake artifact saw), `.gitignore` and `.harness/factory/fleet.yaml`.
   They cannot be dispatched to a squad — a NOBODY path is a violation in `check-plan-routes.py` under
@@ -436,5 +436,5 @@ author of the audit table it grades.
 the whole of the panel revision. The withdrawal commit `753f4cd` touched `plan.yaml` only, so the two
 artifacts disagreed — the plan said `pending` while this brief still said `approved`. The
 orchestrator caught it and refused to write either fragment, correctly, since both are the main
-session's alone (DEC-120). Nothing mechanical would have caught it: `check-domain.sh`'s
+session's alone (DEC-120). Nothing mechanical would have caught it: `check-domain.py`'s
 `approval_guard` is measured fail-open inside every worktree.

@@ -1,7 +1,7 @@
 # FEAT-15 domain-product-base — mutation and coverage probe
 
 Gate check: `git merge-base HEAD main` = `812294854160002065a92417761509a3c995e732`, matches
-`review_sha` line 2. Proceeded. `check-domain.sh` at e057525 is byte-identical to the current
+`review_sha` line 2. Proceeded. `check-domain.py` at e057525 is byte-identical to the current
 worktree (`diff` exit 0), so all measurements below are against the live tree.
 
 ## (1) Mutants — scratch copy only, never the repo
@@ -69,7 +69,7 @@ grepping the diff for `^-.*case(|t12(|fleet_case(|check(` patterns, which return
 
 ## (4) Attack #5 — `shared:` narrowing cost, measured
 
-Reconstructed both SHAs' `check-domain.sh` via `git show`, alongside unchanged (confirmed
+Reconstructed both SHAs' `check-domain.py` via `git show`, alongside unchanged (confirmed
 byte-identical across the range) `harness_yaml.py`/`factory_config.py`/`factory_cli.py`. Ran
 `--resolve <path>` for every one of the 534 files in `git ls-files` under both versions, with
 `CLAUDE_PROJECT_DIR=<real repo root>` and stdin closed, diffing `(stdout, exit code)` pairs.

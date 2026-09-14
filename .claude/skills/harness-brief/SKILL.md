@@ -142,7 +142,7 @@ symbol), or `uat` (a step the user executes).
   be discharged by a task whose `files:` names one file. Narrow the criterion or widen the work —
   at signature.
 - **An SC asserts repository-wide state.** A `verify:` running `check-state.py` or
-  `check-domain.sh` with no feature-scoped argument grades the whole tree, and other features'
+  `check-domain.py` with no feature-scoped argument grades the whole tree, and other features'
   debris turns it red (DEC-231). Repository hygiene is a merge-time check; INV-41 refuses it.
 - **An SC graded on file CONTENT does not say to read the pinned sha.** A plain read cannot tell
   committed from uncommitted work. Write `git show <review_sha>:<path>` into the criterion.

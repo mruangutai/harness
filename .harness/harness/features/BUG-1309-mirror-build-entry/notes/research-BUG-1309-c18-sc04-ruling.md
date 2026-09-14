@@ -66,7 +66,7 @@ Preserved in sequence, not erased:
 
 ## Filename note (still true, still escalated)
 
-The originating dispatch asked for `notes/rulings-2026-09-08-c18-sc04.md`. `check-domain.sh` denies
+The originating dispatch asked for `notes/rulings-2026-09-08-c18-sc04.md`. `check-domain.py` denies
 that path to `harness-pm`: `notes/rulings-*.md` falls under the orchestrator's
 `.harness/*/features/**` grant (`.harness/team-config.yaml:45`), which is why the c16 ruling note is
 orchestrator-authored. Per #216 the guard is right and is not worked around, so the content lives

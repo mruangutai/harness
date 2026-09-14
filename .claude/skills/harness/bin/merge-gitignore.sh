@@ -20,7 +20,7 @@ fi
 root="$(cd "$root" && pwd)"
 
 # Locate the snippet relative to this script, not to cwd — a caller's working
-# directory is not guaranteed, and resolving from pwd is how check-domain.sh
+# directory is not guaranteed, and resolving from pwd is how check-domain.py
 # previously failed open.
 _selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 snippet="$_selfdir/../templates/gitignore.snippet"

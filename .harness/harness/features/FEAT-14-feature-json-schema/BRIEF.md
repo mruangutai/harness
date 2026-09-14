@@ -122,9 +122,9 @@ reverses ten features of growth in one pass and makes the next ten impossible.
   FEATURE-SPECIFIC, never wildcard: a new unapproved BRIEF appearing during the wait must read as
   NEW. Message text changes at T-06 (`no feature.yaml` becomes `no feature.json`, and INV-18 gains a
   template name), so both sides are keyed on the stem that survives the rename.
-- **DEC-174 carve-out is live.** `check-state.sh`, `check-domain.sh`, `bash-write-guard.sh` and
+- **DEC-174 carve-out is live.** `check-state.sh`, `check-domain.py`, `bash-write-guard.sh` and
   `validate-digest.py` are edited directly by the main session, never dispatched. This feature
-  touches **three** of the four — `check-state.sh`, `check-domain.sh` and `validate-digest.py`, all
+  touches **three** of the four — `check-state.sh`, `check-domain.py` and `validate-digest.py`, all
   in T-06; `bash-write-guard.sh` is untouched. Signing this does not widen the carve-out: DEC-174
   already names all four. What is new is concentration — three enforcement scripts edited in one
   task, in one build.
@@ -298,22 +298,22 @@ Three candidates, and "loud failure" means something different in each:
 |---|---|---|
 | `bash-write-guard.sh` (PreToolUse) | the write is denied before it lands | **rejected** — it guards Bash-route writes, not the Write tool the orchestrator actually uses, and DEC-171 am.1's fail-closed shape would put schema logic behind a bootstrap escape |
 | `check-state.sh` | a pre-commit sweep reddens after the bad write is already on disk | **rejected as the primary point** — detection after the fact, and it is fully inside the DEC-174 carve-out |
-| `check-domain.sh`'s existing write-payload path + a new `bin/validate-feature-json.py` in the required `integration` CI job | the write is denied at the moment it is attempted, and a bypass is caught red on the PR | **recommended** |
+| `check-domain.py`'s existing write-payload path + a new `bin/validate-feature-json.py` in the required `integration` CI job | the write is denied at the moment it is attempted, and a bypass is caught red on the PR | **recommended** |
 
-The recommendation exploits something already built: `check-domain.sh:506` (`SWEEP_GLOBS`) and
+The recommendation exploits something already built: `check-domain.py:506` (`SWEEP_GLOBS`) and
 `:636` already inspect `.harness/features/*/feature.yaml` **write payloads** for the 200-line budget.
 One validator implementation lives in `bin/feature_schema.py`, an importable module in the house's
 existing shape (`harness_yaml.py`, `gh_issues.py`, `factory_*.py` are modules; `gh-sync.py`,
 `check-plan-routes.py` are CLIs), with a thin `bin/validate-feature-json.py` wrapper for the CLI
-callers — CI, the migration tasks and the corpus sweep. `check-domain.sh` already exports
+callers — CI, the migration tasks and the corpus sweep. `check-domain.py` already exports
 `PYTHONPATH` and imports `harness_yaml` in-process, so the carve-out edit is an **import and a
-call**, not a subprocess: no per-write interpreter launch (the 104.7 ms `check-domain.sh:92`
+call**, not a subprocess: no per-write interpreter launch (the 104.7 ms `check-domain.py:92`
 measured and T-13 removed), no temporary file, and the unavailable-checker case is an ordinary
 `except ImportError` branch rather than a subprocess that failed to launch. Three enforcement layers
 is scope creep; the operator signs one boundary.
 
 **Fail-closed here has NO bootstrap escape, and that is deliberate rather than an omission.**
-`check-domain.sh`'s bootstrap grant (`harness_yaml.require_or_bootstrap`) is reached only inside
+`check-domain.py`'s bootstrap grant (`harness_yaml.require_or_bootstrap`) is reached only inside
 `if _run_domain:` — a governed `harness-*` agent, PRE mode. The shape phase, which is where this
 check lives, runs for **every** writer including the main session (the no-`agent_type` carve-out is a
 flag, `_governed`, not an exit — it used to be a bare `sys.exit(0)` and that silently disabled the
@@ -324,7 +324,7 @@ where the escape exists because the gate cannot read its own manifest without it
 depends on **stdlib `json` plus `jsonschema` only, never PyYAML**, so the user-ruled `_no_parser`
 fail-open on the `state.yaml` branch does not apply to it and must not be copied onto it.
 
-**What "at the moment of the write" can actually mean, per route.** `check-domain.sh` already runs
+**What "at the moment of the write" can actually mean, per route.** `check-domain.py` already runs
 in two modes (its own header, measured under issue #132): `PreToolUse` on the **Write** route
 measures the payload and BLOCKS with exit 2 — the only mode that can prevent; `PostToolUse` on
 **Write, Edit and Bash** reads what landed on disk and exits 2, whose stderr reaches the agent —
@@ -397,7 +397,7 @@ call because its citations ARE the evidence, not an illustration of it.
   undeclared key.
   verify: automated        evidence: unit
 - SC-04: On the **Write** route, a payload carrying an invented key on a feature's execution-state
-  path is DENIED before it lands — demonstrated by running `check-domain.sh` in `PreToolUse` mode on
+  path is DENIED before it lands — demonstrated by running `check-domain.py` in `PreToolUse` mode on
   that payload and reading exit 2, not by reading the source.
   verify: automated        evidence: integration
 - SC-05: On the **Edit** and **Bash** routes, where no payload can be inspected, the same invented
@@ -464,7 +464,7 @@ call because its citations ARE the evidence, not an illustration of it.
   verify: uat
 - SC-16: **A checker that cannot run DENIES.** With the schema checker unavailable in the
   environment, an otherwise-VALID execution-state payload on the Write route yields **exit 2** from
-  `check-domain.sh` in `PreToolUse` mode — not exit 1, which is non-blocking and would let the write
+  `check-domain.py` in `PreToolUse` mode — not exit 1, which is non-blocking and would let the write
   land — and the message names the **real target path**, never a temporary file. Demonstrated by
   running the hook with the import forced to fail and reading the exit code, not by reading the
   source. A sweep over many files emits the unavailability message once, not once per file.

@@ -34,7 +34,7 @@ followed by the empty-findings exit near the end of the file) — before the dom
 
 Once that claim is gone, the agent's *own next write* (Write/Edit or Bash, either route) computes
 `harness_boundary.claim_worktrees(root, agent, destination)` over an empty claim set, and both
-routes' `claim_checkout_guard` short-circuit: `if not claim_set: return` (check-domain.sh
+routes' `claim_checkout_guard` short-circuit: `if not claim_set: return` (check-domain.py
 `claim_checkout_guard`) / `if not claim_set: return []` (bash-write-guard.sh `claim_checkout_guard`).
 Empty S = unbound = allowed, by REQ-01's own design — except this S was emptied by the agent
 itself, mid-session, through a channel the guard never inspects. The agent can now write its
@@ -104,7 +104,7 @@ were fixed for, so it is worth the same hardening (catch the narrower set of exc
 actually expects, or treat any exception in this specific guard as fail-closed the way
 `UnreadableRegistry` already is).
 
-**Anchors:** `.claude/skills/harness/bin/harness_boundary.py:claim_worktrees` (`worktree_for_feature(owner_root, claim.get("feature"))`, `worktree_for_feature`'s `feature_id.startswith`), `check-domain.sh:claim_checkout_guard` and `bash-write-guard.sh:claim_checkout_guard` (`except Exception as exc:` blocks).
+**Anchors:** `.claude/skills/harness/bin/harness_boundary.py:claim_worktrees` (`worktree_for_feature(owner_root, claim.get("feature"))`, `worktree_for_feature`'s `feature_id.startswith`), `check-domain.py:claim_checkout_guard` and `bash-write-guard.sh:claim_checkout_guard` (`except Exception as exc:` blocks).
 
 ## Probe 3 (Information disclosure) — assessed, low/advisory only
 

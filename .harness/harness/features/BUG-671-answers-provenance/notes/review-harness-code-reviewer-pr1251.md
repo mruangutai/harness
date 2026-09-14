@@ -8,7 +8,7 @@ VERDICT: **FAIL**
 gap the fix itself introduces:
 
 1. **team-config.yaml grant claim — TRUE, verified against the actual matcher.**
-   `harness_boundary.matches()`/`classify()` (imported directly by `check-domain.sh`, the real
+   `harness_boundary.matches()`/`classify()` (imported directly by `check-domain.py`, the real
    runtime hook) has no exclusion/deny syntax — confirmed by reading `glob_to_re`/`matches`/
    `classify` in full. The orchestrator's `.harness/*/features/**` grant, which ends in `/**`,
    translates to a regex whose `.*` crosses `/`, so it already matches

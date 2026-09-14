@@ -7,7 +7,7 @@ Status: DRAFT (Phase 1 blind derivation, written before opening plan/hand-downs/
 - SC-01: unit — validate all 17 `feature.json` against schema; assert no key outside the 11; no `phase` key anywhere.
 - SC-02: unit — 3 distinct failing fixtures (top-level undeclared key, `runs[]` item undeclared key, `github`/`factory` sub-key undeclared), each asserting rejection AND that the message names the offending key.
 - SC-03: unit — 11 fixtures across 8 required + 3 optional keys, one fixture per key (not a count comparison); plus a `phase`-alongside-all-required-keys fixture rejected as undeclared.
-- SC-04: integration — `check-domain.sh` run in PreToolUse mode on a bad Write payload, exit 2 read directly (not inferred from source).
+- SC-04: integration — `check-domain.py` run in PreToolUse mode on a bad Write payload, exit 2 read directly (not inferred from source).
 - SC-05: integration — bad file written to disk, PostToolUse sweep run, exit 2 asserted (not exit 0), key named.
 - SC-06: unit — per-file (17) migration-table assertion: status enum byte-identical incl. case, `pr` int/null, no old status values / `phase` / string `"none"`; lowercase-value-rejected case.
 - SC-07: unit — import forced to fail, exit exactly 3, message names missing package + install command.
@@ -57,19 +57,19 @@ All five match the lead's table. **git status baseline: empty (quoted above).**
 
 ### DEC-174 carve-out: direct invocation, not reasoning (constraint 1)
 
-**SC-04 — LIVE, MEASURED.** Ran `check-domain.sh` with `hook_event_name: PreToolUse`, `tool_name:
+**SC-04 — LIVE, MEASURED.** Ran `check-domain.py` with `hook_event_name: PreToolUse`, `tool_name:
 Write` against a fixture `.harness/features/FEAT-X/feature.json` carrying `invented_key`. Exit **2**.
 stderr: `undeclared key 'invented_key' at /` plus the redirection sentence. (First attempt exited 0 —
-`CLAUDE_PROJECT_DIR` without a `.harness/team-config.yaml` falls back to `check-domain.sh`'s own repo
+`CLAUDE_PROJECT_DIR` without a `.harness/team-config.yaml` falls back to `check-domain.py`'s own repo
 root, so the target path never matched `RE_FEATURE_JSON` relative to the wrong root. Fixed by writing
 a minimal manifest into the fixture; this is a real trap for anyone probing this hook cold, not a
 defect in the hook itself.)
 
-**SC-05 — LIVE, MEASURED.** Wrote a bad file to disk (`sneaky_key`), fired `check-domain.sh --post`
+**SC-05 — LIVE, MEASURED.** Wrote a bad file to disk (`sneaky_key`), fired `check-domain.py --post`
 with a `Bash` payload (no path in the payload — exercises the sweep). Exit 2, key named. Not exit 0.
 
 **SC-16 — LIVE, MEASURED, both halves.** (a) Otherwise-valid payload, `jsonschema` shadowed with a
-module that raises `ImportError` (placed via `PYTHONPATH`, ahead of site-packages — `check-domain.sh`'s
+module that raises `ImportError` (placed via `PYTHONPATH`, ahead of site-packages — `check-domain.py`'s
 own wrapper always prepends its own bin dir, so shadowing `feature_schema` itself is not reachable
 this way, but shadowing `jsonschema`, which is imported *inside* `feature_schema`, is). Exit 2, never
 0/1, message names the install command and the **real relative target path**
@@ -87,7 +87,7 @@ enforcement (an undeclared key on the Write route → exit 2; the checker-unavai
 today only by the three live probes above, run once, by me, outside any suite that will run again on
 the next PR. This falsifies the dispatch's own premise that these SCs' "assertions live in
 `test-check-domain.py`" — they do not. A future edit that broke or removed the schema-check branch in
-`check-domain.sh` (lines 866-922) would pass `--kind integration` clean. `coverage_gaps`, ranked above
+`check-domain.py` (lines 866-922) would pass `--kind integration` clean. `coverage_gaps`, ranked above
 G1 in `must_fix` below — G1 is two missing fixtures for schema behavior that already has some coverage
 elsewhere; this is the primary write-time enforcement path with none.
 
@@ -115,7 +115,7 @@ checkout — the guard correctly denied a direct `Edit` on `docs/harness/DECISIO
 SC-13-only script) is the actual mechanized sweep: `git grep -c feature\.yaml` over `.claude`,
 `.github`, `.harness/harness.json`, `.harness/team-config.yaml`, `docs/harness`, exempting
 `docs/harness/DECISIONS*` by prefix and five files by **pinned exact count**
-(`test-harness-yaml-corpus.py`:4, `check-domain.sh`:6, `test-check-domain.py`:1,
+(`test-harness-yaml-corpus.py`:4, `check-domain.py`:6, `test-check-domain.py`:1,
 `check-plan-routes.py`:1, `BUILD.md`:3) plus a dated-anchor-string check per pinned file. Replicated
 this logic read-only at HEAD: **OK**. In the same disposable worktree, injected one new
 `feature.yaml` reference into `.claude/skills/harness/SKILL.md` (a non-carve-out instructing file) —
@@ -220,7 +220,7 @@ No task is `ai_behavior`, `frontend`, `api`, `bugfix`, `feature`, or `scaffoldin
 | SC-01 | unit | **proves** | `test-validate-feature-json.py` fixture suite, 36 cases, all green; corpus spot-check (my own script) over all 17 `feature.json` — zero `phase`, zero non-schema keys |
 | SC-02 | unit | **partially proves** | top-level + `runs[]` + `github` sub-key fixtures present and green; `factory`/`factory.edges` sub-key rejection is correct but UNTESTED — G1, `coverage_gaps` |
 | SC-03 | unit | **proves** | 11 fixtures present (`accepted_all_eleven`, `accepted_only_required`, 3×`accepted_omitting_*`, 8× `rejected_omitting_required_*`, `rejected_phase_undeclared`), all green |
-| SC-04 | integration | **proves TODAY, but not as standing coverage** | live `check-domain.sh` invocation above, exit 2, key named. **No test in any suite exercises this** — see the schema-rejection gap above. `sc_evidence` cites my live probe in this artifact, not a test path |
+| SC-04 | integration | **proves TODAY, but not as standing coverage** | live `check-domain.py` invocation above, exit 2, key named. **No test in any suite exercises this** — see the schema-rejection gap above. `sc_evidence` cites my live probe in this artifact, not a test path |
 | SC-05 | integration | **proves TODAY, but not as standing coverage** | live POST-sweep invocation above, exit 2, key named. Same gap as SC-04 — no regression test |
 | SC-06 | unit | **proves** | fixture-level (shipped/lowercase-done/pr-string-none all rejected) + my own per-file corpus sweep, all 17 files clean against the migration table |
 | SC-07 | unit | **proves** | `cli_jsonschema_unavailable_exit_exactly_3`/`_not_0_or_1`/`_stderr_names_required` all green in the unit suite |
@@ -240,7 +240,7 @@ No task is `ai_behavior`, `frontend`, `api`, `bugfix`, `feature`, or `scaffoldin
 
 1. **`test-check-domain.py` has zero schema-rejection assertions for the feature.json write-time gate
    (D-03's core enforcement).** SC-04, SC-05 and SC-16 are true today only by my one-off live probes;
-   nothing mechanical protects them against a future regression in `check-domain.sh`'s schema branch
+   nothing mechanical protects them against a future regression in `check-domain.py`'s schema branch
    (lines 866-922). This is the highest-priority gap because it is the PRIMARY enforcement path this
    whole feature exists to add, not a secondary nesting level or a documentation string. Add fixtures
    analogous to `run_post`'s but WITHOUT the deliberate schema-clean padding: an undeclared-key payload

@@ -60,7 +60,7 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
 - SUPPLIES — DEC-138: GitHub is a mirror and never a gate, and the mirror act belongs at
   `plan approved -> create`. This feature does not make GitHub a gate: every refusal here reads a
   LOCAL receipt, never the remote.
-- SUPPLIES — DEC-179: routing is resolved at plan time by `check-domain.sh --resolve`, which is how
+- SUPPLIES — DEC-179: routing is resolved at plan time by `check-domain.py --resolve`, which is how
   each surface below received its lane.
 - SUPPLIES — DEC-146 / DEC-203: the mirror's failure posture (best-effort per card, `ship` is the
   sole writer of the done station) is unchanged by this feature.

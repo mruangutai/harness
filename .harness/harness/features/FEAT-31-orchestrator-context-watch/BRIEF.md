@@ -131,7 +131,7 @@ loop, growing past every threshold, with the next seam far ahead.
   verify: automated      evidence: integration
 - SC-07: `feature.json`'s `runs` items carry an agent identifier, and **the write path refuses a run
   entry that omits it** — enforced where DEC-191's closed key set is already enforced, on
-  `check-domain.sh`'s `feature.json` write route. This is what makes "from here on out" mean
+  `check-domain.py`'s `feature.json` write route. This is what makes "from here on out" mean
   something: absence can then only mean the entry predates the change, so the read-side check skips
   it safely instead of confusing an old run with a failure to record. No existing `feature.json` is
   migrated (operator ruling, 2026-08-20). Tested both ways: a run entry without the field is refused
@@ -230,7 +230,7 @@ never fails loudly, so the absence of that case is worth stating rather than lea
 
 - **DEC-174** (am.1-am.4) — `check-state.sh` is named enforcement layer, and the list is
   non-exhaustive. The harness plans this feature but does not execute the change. **The relay half
-  widens this reach considerably:** SC-07 changes `check-domain.sh`'s write route, SC-13 needs a hook
+  widens this reach considerably:** SC-07 changes `check-domain.py`'s write route, SC-13 needs a hook
   registration in `settings.json`, and SC-14 changes INV-17's seam table in `check-state.sh`. That is
   three enforcement-layer surfaces, all main-session-direct, all declared as such at plan time under
   DEC-179. A squad may write the modules those gates call; every cutover is the operator's hands. This

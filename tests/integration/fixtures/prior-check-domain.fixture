@@ -4,7 +4,7 @@
 # Registered in .claude/settings.json — NOT in agent frontmatter:
 #   "PreToolUse": [{ "matcher": "Write|Edit",
 #     "hooks": [{ "type": "command",
-#       "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/check-domain.sh" }] }]
+#       "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/check-domain.py" }] }]
 #
 # Agent identity comes from `agent_type` in the hook payload, because one global
 # registration serves all 16 agents. Agent-frontmatter PreToolUse hooks DO NOT FIRE
@@ -54,7 +54,7 @@ set -uo pipefail
 #
 # `--post` selects the PostToolUse mode (issue #132). The mode travels as an ENVIRONMENT
 # VARIABLE and is blanked out of argv, because argv position 2 is the FALLBACK AGENT
-# IDENTITY — the real registration is `check-domain.sh --post`, so without this line every
+# IDENTITY — the real registration is `check-domain.py --post`, so without this line every
 # post invocation of a payload lacking `agent_type` reports its agent as "--post".
 #
 # STATED HONESTLY, because a mutation test proved the stronger claim false: with the
@@ -1650,7 +1650,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # window in the hot path, to rescue a case with a working alternative.
         #
         # THE TICKET RULED THIS GATE OUT AND ISSUE #132 MADE THAT REASON OBSOLETE. #139 says
-        # "check-domain.sh's shape gate is the wrong home: it fires on Write only and the
+        # "check-domain.py's shape gate is the wrong home: it fires on Write only and the
         # main session is ungoverned by it" — both true when written, neither true now. The
         # main session is the thing that actually edits CLAUDE.md, and it is now bound on
         # all four routes. Re-derived at a5edb13 rather than inherited from the ticket.

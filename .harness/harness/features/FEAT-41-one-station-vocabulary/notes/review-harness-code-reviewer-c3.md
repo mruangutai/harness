@@ -17,9 +17,9 @@ block) and none can shrink `tasks:`. `load_plan` also can't be tricked via a dup
 `harness_yaml.py`'s loader raises `DuplicateKeyError` on that. **1(a) answer: no, not via any mediated
 route.**
 
-But Bash is explicitly *not* mediated — `check-domain.sh:926-929`'s own comment says so: "the PostToolUse
+But Bash is explicitly *not* mediated — `check-domain.py:926-929`'s own comment says so: "the PostToolUse
 Bash route is the ONE route this rule cannot deny before the fact... the sweep is where a dead station
-word gets caught after it lands." I read that sweep (`check-domain.sh:1158-1188`, `SC-06`'s mechanism):
+word gets caught after it lands." I read that sweep (`check-domain.py:1158-1188`, `SC-06`'s mechanism):
 it validates `_top`/`_t.get("status")` against `MANDATED_STATIONS` — **it never inspects whether `tasks:`
 shrank or emptied.** A shell write that keeps the approval block, keeps a legal `status:`, and replaces
 `tasks:\n  - id: T-01...` with `tasks: []` produces zero `_bad` entries — the sweep is silent both before
@@ -45,8 +45,8 @@ INV-34 fires correctly when `plan.yaml` is deleted, silent when present — that
 **Failure scenario:** an agent (backend-dev, dev-ops, anyone with Bash) runs a one-line Python/`sed`
 edit against a signed, task-bearing `plan.yaml`, sets `tasks: []`, leaves `approval:` and `status:`
 untouched. `check-state.sh` goes silent on both the approval-signed check and the STATE.md task-id check
-for that feature from then on; `check-domain.sh`'s SC-06 sweep never flags it. `check-state.sh:201`,
-`check-domain.sh:1176-1183`.
+for that feature from then on; `check-domain.py`'s SC-06 sweep never flags it. `check-state.sh:201`,
+`check-domain.py:1176-1183`.
 
 ## HIGH — 2: unquoted command substitution bypasses `plan-sign-gate.py`'s IFS fix (item 4)
 
@@ -85,7 +85,7 @@ substitution itself introduces. No new false positive traced to the C2-03 change
 
 Prediction A confirmed empirically: `os.path.realpath` (Python 3.14, non-strict/default mode) does **not**
 raise `OSError` on a broken symlink or a self-referential loop — it resolves as far as possible and
-returns a path. So `_resolved_rel`'s `except OSError` (`check-domain.sh:1505-1507`) is unreachable in
+returns a path. So `_resolved_rel`'s `except OSError` (`check-domain.py:1505-1507`) is unreachable in
 ordinary operation, and the fail-closed branch at `:1549-1550` (`if os.path.islink(path): return as_typed`)
 is dead code. The docstring's claim "`realpath` follows a chain of ANY length, and raises on a loop"
 (`:1500`) is factually wrong.
@@ -95,7 +95,7 @@ I could not turn this into an actual write bypass: every broken-symlink and self
 the *correct* target — so `RE_PLAN_YAML.match(resolved)` or `_hardlink_plan` still catch it the same way a
 working symlink would be caught. Rating MED, not HIGH: real defect (wrong doc, unreachable "protection"),
 no demonstrated consequence. `Prediction B` (worktree/cwd root confusion) does not apply as framed — `root`
-in `check-domain.sh` is `harness_boundary.root_from_script`, pure arithmetic off the script's own on-disk
+in `check-domain.py` is `harness_boundary.root_from_script`, pure arithmetic off the script's own on-disk
 location, never cwd; verified by reading `harness_boundary.py:41-48`.
 
 ## Verified — no finding (items 1a/1d, 2, 5, 6)
@@ -137,7 +137,7 @@ tolerance, and grade 2 is non-blocking by design.
 
 ## must_fix
 
-1. `check-state.sh:201` / `check-domain.sh:1158-1188` — extend the SC-06 sweep (or a new invariant) to
+1. `check-state.sh:201` / `check-domain.py:1158-1188` — extend the SC-06 sweep (or a new invariant) to
    flag a `plan.yaml` whose `tasks:` list shrank versus its own git history, or gate `tasks:` emptying the
    same way `set-feature-station` gates station values — a shell write must not be able to manufacture a
    station-only-shaped document out of a real, signed plan.

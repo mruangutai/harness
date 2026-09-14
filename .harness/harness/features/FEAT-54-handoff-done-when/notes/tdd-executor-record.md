@@ -10,7 +10,7 @@ This note was transcribed after the fact by the main-session executor from comma
 ## T-03 → T-04
 
 - RED — the literal T-03 capture/exit/grep verify exited 0, proving `python3 tests/integration/test-check-domain.py` itself exited nonzero and its captured output contained `done when`. This followed correction of a test-fixture line-count assertion; no production gate implementation was present at that point.
-- GREEN — after updating `check-domain.sh`, `python3 tests/integration/test-check-domain.py` exited 0. All existing groups and all 22 FEAT-54 Done-when gate cases passed.
+- GREEN — after updating `check-domain.py`, `python3 tests/integration/test-check-domain.py` exited 0. All existing groups and all 22 FEAT-54 Done-when gate cases passed.
 
 ## T-06 → T-07
 

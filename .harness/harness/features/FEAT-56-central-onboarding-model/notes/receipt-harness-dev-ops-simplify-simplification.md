@@ -66,7 +66,7 @@ not filing it as a finding.
 
 ## 4. Comments narrating the change vs. stating a present fact
 
-Checked every `bin/**`/`tests/**` diff hunk (`check-domain.sh`, `check-instruction-paths.py`,
+Checked every `bin/**`/`tests/**` diff hunk (`check-domain.py`, `check-instruction-paths.py`,
 `check-state.sh`, `gh-sync.py`, `layout_migration.py`, `post-merge-sweep.py`,
 `upgrade-config.py`, and the four integration test files, plus the new
 `test-fleet-product-config.py`). Every changed line rephrases a *present* claim about the

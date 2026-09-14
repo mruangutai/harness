@@ -139,7 +139,7 @@ both `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` — is independently confirmed emp
 wall-clock caveat:** 287.16s for `--kind integration` alone is markedly slower than the ~15.6s the
 script's own top-of-file comment documents as the historical full-suite baseline (all 46 scripts,
 unit+integration). Observed via live `ps` sampling: real subprocess forks (`gh api rate_limit`,
-`git merge --squash`, `factory_decompose.py`, several `check-domain.sh --resolve` calls per test)
+`git merge --squash`, `factory_decompose.py`, several `check-domain.py --resolve` calls per test)
 account for genuine work, and two unrelated local `mcp` python processes were running concurrently
 on this machine throughout — the elevated wall-clock is not attributable to this diff or to the
 double-detect-match; it is machine-load variance in this one measurement, not a claim about typical

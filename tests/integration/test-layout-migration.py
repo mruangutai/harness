@@ -207,17 +207,17 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 9
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "neither"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.py": "neither"})
     code, out = run(tmp)
-    line = reader_line(out, "check-domain.sh")
+    line = reader_line(out, "check-domain.py")
     check("case 9: a reader carrying NEITHER form -> exit 2, named, tagged [neither]",
           code == 2 and "[neither]" in line and code != 0 and code != 1, out)
 
 # ------------------------------------------------------------------- case 10
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "unreadable"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.py": "unreadable"})
     code, out = run(tmp)
-    line = reader_line(out, "check-domain.sh")
+    line = reader_line(out, "check-domain.py")
     check("case 10: an unreadable reader -> exit 2, tagged [unreadable], distinct in text",
           code == 2 and "[unreadable]" in line and "[neither]" not in line, out)
 
@@ -314,7 +314,7 @@ with tempfile.TemporaryDirectory() as tmp:
     r_mixed = lm.scan(tmp)
     check("case 18: mixed -> exit_code 1", lm.exit_code(r_mixed) == 1)
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "neither"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.py": "neither"})
     r_cv = lm.scan(tmp)
     check("case 18: cannot-verify -> exit_code 2", lm.exit_code(r_cv) == 2)
 
@@ -391,9 +391,9 @@ def _parity(label, build_kwargs, extra=None):
 _parity("MIXED, one migrated reader on legacy evidence",
         dict(forms={".harness/team-config.yaml": "migrated"}))
 _parity("CANNOT_VERIFY neither",
-        dict(forms={".agents/skills/harness/bin/check-domain.sh": "neither"}))
+        dict(forms={".agents/skills/harness/bin/check-domain.py": "neither"}))
 _parity("CANNOT_VERIFY unreadable",
-        dict(forms={".agents/skills/harness/bin/check-domain.sh": "unreadable"}))
+        dict(forms={".agents/skills/harness/bin/check-domain.py": "unreadable"}))
 _parity("CANNOT_VERIFY no-evidence",
         dict(features_evidence=(), docs_evidence=("legacy",)))
 _parity("CANNOT_VERIFY undeclared-segment (carries detail)",

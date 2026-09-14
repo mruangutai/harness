@@ -95,6 +95,6 @@ docs restatement of the worktree path formula — is sound or negligible. `leave
 
 `harness_boundary.py`'s `checkout_relative`/`linked_worktrees` (flag-only/DEC-174)
 consolidate what were four independent, segment-counting re-derivations of "which
-checkout is this path in" (`classify()`, `check-domain.sh`'s resolver, its sweep globs,
+checkout is this path in" (`classify()`, `check-domain.py`'s resolver, its sweep globs,
 its `_norm()`) into one function each. This is the ALTITUDE question answered correctly
 in the other direction — already reflected in settled F-6 and A-2; not re-scored here.

@@ -81,7 +81,7 @@ This is not a new finding: the plan-phase altitude pass already found it (this d
 recommended trimming `plan-panel.yaml`'s comment to the `review.yaml`-style generic recap,
 dropping the FEAT-45-specific mechanics. That recommendation was correctly returned
 FLAG-ONLY (`plan-panel.yaml` and `harness-validator-lead.md` both resolve to NOBODY per
-`check-domain.sh` — confirmed again for this pass) and was never applied, which is why the
+`check-domain.py` — confirmed again for this pass) and was never applied, which is why the
 duplication is still present in the code I'm reading now. Re-raising it here because it is
 an accepted residual with no compensating control named anywhere in the diff (no test, no
 comment pointing at the authority) — it should be a visible backlog row, not silently

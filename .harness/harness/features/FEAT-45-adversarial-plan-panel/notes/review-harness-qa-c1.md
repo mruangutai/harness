@@ -117,7 +117,7 @@ SC-14→case 4a/4b · SC-15→case 8a/8b · SC-17→reader-missing/reader-skippe
 The suite's green is assurance about **token presence and structural wiring for the large
 majority of `test-plan-panel.py`'s 24 checks** (string/glob/YAML-shape assertions), not about
 runtime behaviour — cycle 0 found only 3 of 24 execute real runtime behaviour (the two
-`check-domain.sh --resolve` subprocess calls, plus the sync-adapters import check). This has
+`check-domain.py --resolve` subprocess calls, plus the sync-adapters import check). This has
 not changed at the new pin (file byte-identical). `test-check-state.py`'s INV-32 cases, by
 contrast, ARE runtime-behavioural: each spins a real subprocess against `check-state.sh` over
 a synthetic fixture tree and asserts on stdout content, which is a materially stronger

@@ -2,7 +2,7 @@
 
 **BLUF.** All four jobs complete. `plan.yaml` is 18 tasks / 26 decisions, `safe_load` clean,
 `approval:` byte-identical (hash matches), `check-plan-routes.py` exit 0 / 0 violations,
-`check-domain.sh --post` exit 0. Every task with a recorded PASS still passes under the
+`check-domain.py --post` exit 0. Every task with a recorded PASS still passes under the
 strengthened assertions. **The operator must re-sign in my view** — the task set grew by four, three
 of them main-session-direct.
 
@@ -19,7 +19,7 @@ red unit suite no longer holds. Every number below was re-measured at `2cf792f`,
 | T-17 SC-13 cutover | main-session-direct | 4859-4862, 4864-4867 |
 | T-18 test_kinds | team, harness-dev-ops | grant-forced, D-18 |
 
-**SC-07 needs no `check-domain.sh` edit, which falsifies BRIEF.md:231-237.** `check-domain.sh:815`
+**SC-07 needs no `check-domain.py` edit, which falsifies BRIEF.md:231-237.** `check-domain.py:815`
 already calls `feature_schema.problems_for_text`, so the gate's rule table is
 `feature-schema.json` + `feature_schema.py`. That makes the module/cutover split **unavailable** here:
 the library write *is* the cutover. Said explicitly in T-15's `execution_reason` (D-23).
@@ -28,7 +28,7 @@ the library write *is* the cutover. Said explicitly in T-15's `execution_reason`
 Measured: 31 `feature.json`, **390 `runs` entries, keys exactly `id`/`squad`/`verdict`**. A schema
 `required` denies all 31 — and the POST sweep reaches untouched files, so every Bash command exits 2.
 Rejected with reasons: an on-disk **diff** (only the PRE `Write` route carries content —
-`check-domain.sh:1027-1034` — green-and-incapable-of-red on the other three); a **date-prefix cutoff**
+`check-domain.py:1027-1034` — green-and-incapable-of-red on the other three); a **date-prefix cutoff**
 (175 of 390 ids are not date-prefixed, and FEAT-31's own six are all non-date, so the rule would
 almost never fire); a **monotone suffix** (holed by exactly the one entry that matters). Chosen: a
 frozen exempt-**count** per feature, default 0, measured at land time.

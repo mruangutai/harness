@@ -124,7 +124,7 @@ rather than ruling on the operator's behalf.
 
 ## 3. Dangling citations to DEC-103/104/181 — CLEAN
 
-- `check-domain.sh:779-780` — `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80
+- `check-domain.py:779-780` — `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80
   (DEC-181)."))`. Verified at the SHA: correctly cites DEC-181's surviving budget half. **Confirmed
   correct, not flagged**, per the dispatch's own instruction.
 - `check-state.sh:523` — `INV-23 CLAUDE.md is {len} lines — budget is 80 (DEC-181)` — a second,

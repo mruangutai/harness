@@ -14,7 +14,7 @@ case and the unrelated `feature_checkout_guard`/domain-mismatch guards), neither
 Ran the real fixtures (not just read source) for all three shapes on both routes and compared the
 actual stderr bytes:
 
-| Shape | check-domain.sh | bash-write-guard.sh |
+| Shape | check-domain.py | bash-write-guard.sh |
 |---|---|---|
 |Normal mismatch (malformed pointer)|`check-domain: BLOCKED — {agent} holds worktree claim(s): {held}. Destination {dest} belongs in its proper checkout at {home}; write it from a bound worktree.`|identical text, `bash-write-guard:` prefix only|
 |Ambiguous claim|`check-domain: BLOCKED — {agent} has an ambiguous worktree claim: feature '{id}' matches N linked worktrees: {names}`|identical text, prefix only|
@@ -52,7 +52,7 @@ should go. **PASS**, both routes.
 
 ## One surprising thing, checked to ground and closed clean, noted as advisory
 
-Firing check-domain.sh's expertise-route branch through `test-check-domain.py`'s own BUG-1304
+Firing check-domain.py's expertise-route branch through `test-check-domain.py`'s own BUG-1304
 fixture manifest (`_bug1304_domain_context`) initially returned a DIFFERENT message — the plain
 manifest-domain denial ("may not write .harness/expertise/…; it belongs in .harness/team-config.yaml
 — do not work around this hook") instead of the claim-set CLI redirect, because that fixture's
@@ -60,7 +60,7 @@ manifest never grants `.harness/expertise/**` (unlike `test-bash-write-guard.py`
 adds that grant explicitly). Checked the REAL `team-config.yaml`: every one of the 16 agents' own
 domains DOES grant `.harness/expertise/<own-agent>.md` upsert — so in production the write reaches
 `claim_checkout_guard`, not the generic domain denial. Rebuilt the fixture with that grant present
-and re-fired: `check-domain.sh` produced the byte-identical CLI-redirect text shown in the table
+and re-fired: `check-domain.py` produced the byte-identical CLI-redirect text shown in the table
 above. **No functional gap** — confirmed by direct execution, not inferred. What IS true:
 `test-check-domain.py`'s BUG-1304 suite never exercises this exact scenario (claimed-elsewhere agent
 hitting their own expertise file via Write) the way `test-bash-write-guard.py` does — a test-coverage

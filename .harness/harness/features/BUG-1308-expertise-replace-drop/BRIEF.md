@@ -49,7 +49,7 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
 - BLOCKS — DEC-145's caps (`Patterns` 15, `Gotchas` 15, `Outcomes` 10, `Open` 5) are spelled once in
   `expertise-merge.py:37` and cross-checked against `check-expertise.sh` as text; no third copy.
 - BLOCKS — DEC-174: `.claude/skills/harness-distill/SKILL.md` resolves to NOBODY under
-  `check-domain.sh --resolve`, so its text change is a main-session-direct step, not a squad task.
+  `check-domain.py --resolve`, so its text change is a main-session-direct step, not a squad task.
 - BLOCKS — DEC-213: harness tests live under `tests/unit/**` and `tests/integration/**`; the directory
   selects the kind.
 - BLOCKS — python3 stdlib only in `.claude/skills/harness/bin/`; no third-party imports.

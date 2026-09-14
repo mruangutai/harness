@@ -3,7 +3,7 @@
 ## Next
 
 **The operator executes T-02, then build resumes.** T-02 is `main-session-direct` (`plan.yaml`
-`- id: T-02`; issue #906) because `check-domain.sh --resolve` returns NOBODY on
+`- id: T-02`; issue #906) because `check-domain.py --resolve` returns NOBODY on
 `.claude/skills/harness-team/SKILL.md`. It is the ONLY runnable task: T-01 unblocks T-02 and T-04,
 and T-02 unblocks T-05 which unblocks T-06, with T-01 and T-04 already done. After T-02 lands,
 dispatch **T-05 to `harness-documentor` via product-lead** (DECISIONS.md and DECISIONS-INDEX.md

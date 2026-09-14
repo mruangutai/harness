@@ -54,7 +54,7 @@ the routing and grants it needs, and a recorded decision for the two structural 
 
 - The `/harness-ship` review panel. That panel grades a diff against a pinned SHA and already exists;
   this feature is about the plan, before any code is written.
-- Fixing `check-domain.sh`'s fail-open approval guard. Same class of problem — convention where
+- Fixing `check-domain.py`'s fail-open approval guard. Same class of problem — convention where
   enforcement was assumed — and it is the next feature after FEAT-38 ships, not this one.
 - Re-litigating FEAT-38's own findings. Those are ruled in that feature's
   `notes/answers-2026-08-29-panel.md` and a revision is in flight.
@@ -85,7 +85,7 @@ the routing and grants it needs, and a recorded decision for the two structural 
 - **`harness-code-reviewer` needs no new grant** — `.harness/team-config.yaml` already gives it
   `.harness/*/features/*/notes/review-harness-code-reviewer-*.md`.
 - **A grant mismatch is a real failure mode, observed in the hand-run.** The goal-check was asked for
-  `notes/goalcheck-plan-*.md`; `check-domain.sh` denied it because pm owns
+  `notes/goalcheck-plan-*.md`; `check-domain.py` denied it because pm owns
   `notes/research-*.md`, and the agent wrote the owned spelling instead and reported the deviation.
   The team file's `outputs:` templates must match existing grants or add them deliberately.
 - **The hand-run's own process deviation, for the record:** the three readers were dispatched

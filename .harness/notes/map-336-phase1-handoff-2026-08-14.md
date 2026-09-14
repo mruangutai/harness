@@ -40,7 +40,7 @@ one sitting. Nothing was dispatched on the revision; nothing was signed.
 | Expertise files holding both layers mixed | 10 |
 
 **Three of the four DEC-174 carve-out scripts are in the docs-migration surface** —
-`check-domain.sh`, `check-state.sh`, plus `harness_boundary.py`, which DEC-193 names as the one
+`check-domain.py`, `check-state.sh`, plus `harness_boundary.py`, which DEC-193 names as the one
 shared rule. Every one of those edits is main-session-direct by rule.
 
 ## Decisions so far
@@ -157,7 +157,7 @@ Carried in from the two stores above. Each is settled; none is a ticket.
     factory run, not signed at approval.** Nobody has run kaya's commands from here, so marking any
     kind `active` would be the unverified claim DEC-187 exists to stop.
   - **D-07 — the config resolver's flag is `--which-config`, never `--resolve`.**
-    `check-domain.sh --resolve` already answers a DIFFERENT question in a DIFFERENT shape — which
+    `check-domain.py --resolve` already answers a DIFFERENT question in a DIFFERENT shape — which
     agent owns a path, as plain text including the literal `NOBODY`. A second `--resolve` returning
     JSON about which config applies is a homonym.
   - Also carried: the engineering-review finding that **`load_fleet()` called with no argument reads
@@ -283,9 +283,9 @@ and shipping one here would be the same defect inside the fix for it.
 
 ### Two constraints that hold whatever order is chosen
 
-**Unit 3 is ONE COMMIT.** The grants in `team-config.yaml`, `check-domain.sh`'s four shape regexes
+**Unit 3 is ONE COMMIT.** The grants in `team-config.yaml`, `check-domain.py`'s four shape regexes
 and its `SWEEP_GLOBS`, `check-plan-routes.py`'s discovery, and the physical move are mechanically
-coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.sh --resolve`, which reads
+coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.py --resolve`, which reads
 `team-config.yaml` and calls `harness_boundary.matches`. Split them and you get either a tree where
 every write is denied, or — worse and undetectable — a tree whose shape gate is silently off.
 `check-state.sh`'s glob block lands with or before it, because it is the only thing that would report

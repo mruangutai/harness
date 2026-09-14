@@ -49,7 +49,7 @@ touches **only** `.harness/features/FEAT-05-pyyaml-file-parsers/feature.yaml`, s
 and `git status --porcelain` is clean. That commit is itself affirmative evidence 9da3986 is the
 intended target, not drift. Proceeded rather than blocking; flagged as `Q1`, non-blocking.
 
-`check-domain.sh` and `bash-write-guard.sh` are **not** in the `340e18a..9da3986` diffstat at all —
+`check-domain.py` and `bash-write-guard.sh` are **not** in the `340e18a..9da3986` diffstat at all —
 both hooks are byte-identical to 340e18a. Only `harness_yaml.py` (the module both call) changed.
 
 ---
@@ -62,7 +62,7 @@ this reviewer role by the very hook under test — confirms that control works).
 `harness-backend-dev`'s `allowed/**` domain in every case; sanity-checked first that a forbidden
 absolute-path write is denied under a *valid* manifest (exit 2, both hooks, both SHAs).
 
-| Manifest defect | `check-domain.sh` @ 340e18a | `bash-write-guard.sh` @ 340e18a |
+| Manifest defect | `check-domain.py` @ 340e18a | `bash-write-guard.sh` @ 340e18a |
 |---|---|---|
 | one `\xff` byte | `EXIT=1`, uncaught `UnicodeDecodeError` at `harness_yaml.py:107` | `EXIT=1`, identical traceback |
 | manifest path is a directory | `EXIT=1`, uncaught `IsADirectoryError` at `harness_yaml.py:106` | `EXIT=1`, identical traceback |
@@ -72,7 +72,7 @@ Matches cycle-0's F-01 exactly.
 
 ## 2. Closed at current tree (9da3986) — CONFIRMED, both hooks, both shapes, with a reason
 
-| Manifest defect | `check-domain.sh` | `bash-write-guard.sh` |
+| Manifest defect | `check-domain.py` | `bash-write-guard.sh` |
 |---|---|---|
 | one `\xff` byte | `EXIT=2` — *"the manifest does not parse, so no domain can be checked… 'utf-8' codec can't decode byte 0xff…"* | `EXIT=2`, same message, `bash-write-guard:` prefix |
 | manifest path is a directory | `EXIT=2` — *"...Is a directory: '.../team-config.yaml'..."* | `EXIT=2`, same message |
@@ -90,14 +90,14 @@ Both block, and both name the actual cause (D-14a satisfied — this is not a si
   `git diff 340e18a..9da3986 -- harness_yaml.py | grep -c manifest_domains` returns `0`, the
   function is byte-identical): `for entry in (parsed.get("shared") or [])` assumes `parsed` is a
   dict unconditionally, outside any try, and neither hook's call site catches anything but
-  `DuplicateKeyError`/`YamlParseError` (`check-domain.sh:134-146`, `bash-write-guard.sh` mirrors it).
+  `DuplicateKeyError`/`YamlParseError` (`check-domain.py:134-146`, `bash-write-guard.sh` mirrors it).
   Verified live, both SHAs, isolated binaries (copied to `/tmp/feat05-c1-old` and `/tmp/feat05-c1-new`
   so the `_derived` manifest-fallback couldn't mask the result — see confound note below):
   ```
-  check-domain.sh @ 340e18a,  empty manifest   -> EXIT 1, AttributeError: 'NoneType' object has no attribute 'get'
-  check-domain.sh @ current,  empty manifest   -> EXIT 1, AttributeError: 'NoneType' object has no attribute 'get'
-  check-domain.sh @ current,  bare-scalar      -> EXIT 1, AttributeError: 'str' object has no attribute 'get'
-  check-domain.sh @ current,  bare-list        -> EXIT 1, AttributeError: 'list' object has no attribute 'get'
+  check-domain.py @ 340e18a,  empty manifest   -> EXIT 1, AttributeError: 'NoneType' object has no attribute 'get'
+  check-domain.py @ current,  empty manifest   -> EXIT 1, AttributeError: 'NoneType' object has no attribute 'get'
+  check-domain.py @ current,  bare-scalar      -> EXIT 1, AttributeError: 'str' object has no attribute 'get'
+  check-domain.py @ current,  bare-list        -> EXIT 1, AttributeError: 'list' object has no attribute 'get'
   bash-write-guard.sh @ current, bare-scalar   -> EXIT 1, identical AttributeError
   ```
   This is **pre-existing** (also crashes at 340e18a, so the fix did not introduce it), and it is
@@ -119,10 +119,10 @@ Both block, and both name the actual cause (D-14a satisfied — this is not a si
 - **Broken symlink / `chmod 000` manifest — NOT A GAP, confound identified and resolved.**
   First pass (testing directly against this checkout's own binaries) showed `EXIT=0` with **no**
   stderr, which looked like a silent bypass. Root cause was a test artifact, not a hook defect:
-  `check-domain.sh`'s root-resolution fallback (`root = _derived` when the `CLAUDE_PROJECT_DIR`
+  `check-domain.py`'s root-resolution fallback (`root = _derived` when the `CLAUDE_PROJECT_DIR`
   manifest fails `os.access(..., R_OK)`) silently switched to *this actual repo's own*
   `.harness/team-config.yaml` (readable), then allowed because the `/tmp` target is outside that
-  root (`check-domain.sh`'s documented "outside the repo is not a domain question" rule — pre-existing,
+  root (`check-domain.py`'s documented "outside the repo is not a domain question" rule — pre-existing,
   untouched by this diff). Re-run against the isolated `/tmp/feat05-c1-new` copy (so `_derived`
   has no manifest of its own) reproduced the **pre-existing, unchanged, already-documented**
   "no manifest → fail OPEN, loudly" branch for both cases: `EXIT 0`, with stderr `"check-domain: no
@@ -148,7 +148,7 @@ parse call, nothing that could raise a harness-logic bug is inside it.
   `SystemExit` are not caught.
 - **Full call-site sweep** (`grep -rn "load_str\|load_file\|load_recorded\|except harness_yaml"
   .claude/skills/harness/bin/`, excluding tests):
-  - `check-domain.sh:135,146` / `bash-write-guard.sh:288,296` — the two write-gating hooks, covered
+  - `check-domain.py:135,146` / `bash-write-guard.sh:288,296` — the two write-gating hooks, covered
     above.
   - `check-state.sh:116,275,340,466` — every call already idioms `harness_yaml.load_file(fy) or {}`
     **and** (at least at `:116-125`) follows with `isinstance(doc, dict)` before use. Correct
@@ -166,7 +166,7 @@ parse call, nothing that could raise a harness-logic bug is inside it.
 
 ## 5. Regression coverage — one real gap (bash-write-guard.sh untested), one weak assertion
 
-- `check-domain.sh` HAS regression tests for the two shapes cycle 0 named (`test-check-domain.py`,
+- `check-domain.py` HAS regression tests for the two shapes cycle 0 named (`test-check-domain.py`,
   +26 lines), registered and run via `run-unit-tests.sh`. But the directory-as-manifest assertion is
   weaker than it reads:
   ```python
@@ -209,16 +209,16 @@ DIGEST:
       -- confirmed unchanged in 340e18a..9da3986. A manifest whose top-level YAML value is None
       (empty file), a str (bare scalar), or a list (bare sequence) parses successfully and then
       crashes with an uncaught AttributeError, propagating past both hooks' `except
-      DuplicateKeyError`/`except YamlParseError` call sites (check-domain.sh:134-146,
+      DuplicateKeyError`/`except YamlParseError` call sites (check-domain.py:134-146,
       bash-write-guard.sh mirrors it), exit 1, non-blocking per DEC-100 -- every agent's every write
       proceeds ungoverned, the identical F-01 blast radius. Verified live at BOTH 340e18a (pre-fix)
       and current tree (post-fix) against isolated binary copies for all three shapes on
-      check-domain.sh and one shape on bash-write-guard.sh -- the fix neither introduced nor closed
+      check-domain.py and one shape on bash-write-guard.sh -- the fix neither introduced nor closed
       this. check-state.sh:115-125 (touched in this same diff) already carries the correct pattern
       (`except Exception` + `isinstance(doc, dict)` before use); mirror it into manifest_domains, or
       have it raise YamlParseError itself when parsed is not a dict, immediately after load_file returns.
   threat_model:
-    - { boundary: "PreToolUse Write/Edit hook (check-domain.sh) manifest walk vs. repo state", stride: T, mitigated: false }
+    - { boundary: "PreToolUse Write/Edit hook (check-domain.py) manifest walk vs. repo state", stride: T, mitigated: false }
     - { boundary: "PreToolUse Bash hook (bash-write-guard.sh) manifest walk vs. repo state", stride: T, mitigated: false }
     - { boundary: "harness_yaml.load_str/load_file read-and-parse surface (the two F-01-named shapes)", stride: T, mitigated: true }
     - { boundary: "harness_yaml.manifest_domains post-parse shape assumption (non-mapping top level)", stride: T, mitigated: false }

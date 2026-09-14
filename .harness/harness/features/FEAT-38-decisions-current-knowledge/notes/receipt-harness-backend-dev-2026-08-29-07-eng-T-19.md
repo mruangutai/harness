@@ -499,7 +499,7 @@ ok - case (m3): a decoy entry does not let a narrowed PostToolUse registration t
 ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
 ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
 ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
-ok - case (o): check-domain.sh, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (o): check-domain.py, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
 ok - INV-28 warns on a Done feature whose pr is null
 ok - INV-28 is silent on a Done feature whose pr is an integer
 ok - INV-28 is silent on an Abandoned feature whose pr is null
@@ -656,7 +656,7 @@ ok - test_malformed_row_is_reported_not_silently_dropped
 ok - test_refs_graph_omits_ids_with_no_live_heading
 ok - test_preserves_hand_written_rulings_by_dec_number
 ok - test_strips_inline_ok_stale_marker_on_a_row
-FAIL - test_committed_index_matches_a_fresh_regeneration: generator exited 1 — the committed index cannot be reproduced: ORPHAN: DEC-19 'One shipped shell script, `check-domain.sh`, enforces per-agent `domain` path globs through a `PreToolUse` hook — the single deliberate exception to files-only delivery. — SUPERSEDED BY DEC-84 — SUPERSEDED BY DEC-85' has a ruling in the index but no live heading in .harness/harness/d
+FAIL - test_committed_index_matches_a_fresh_regeneration: generator exited 1 — the committed index cannot be reproduced: ORPHAN: DEC-19 'One shipped shell script, `check-domain.py`, enforces per-agent `domain` path globs through a `PreToolUse` hook — the single deliberate exception to files-only delivery. — SUPERSEDED BY DEC-84 — SUPERSEDED BY DEC-85' has a ruling in the index but no live heading in .harness/harness/d
 FAIL - test_committed_index_is_complete_and_within_budget: 3 row(s) in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-38-decisions-current-knowledge/.harness/harness/docs/DECISIONS-INDEX.md exceed the 30-word ruling cap — shorten the ruling after ' :: ' on each listed row: DEC-92 (36), DEC-102 (34), DEC-37 (33)
 ok - test_orphaned_ruling_is_reported_not_silently_dropped
 FAIL - test_root_resolves_through_harness_boundary_not_the_retired_variable (a): a markerless HARNESS_PROJECT_DIR override exited 1: harness_boundary: discarding HARNESS_PROJECT_DIR='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpnxg4mhug' — it does not carry .harness/team-config.yaml. Falling back to the derived root '/Users/

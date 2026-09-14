@@ -84,7 +84,7 @@ given.
 
 ## 4. The adequacy question — confirmed, unchanged by 9b929de
 
-**SC-02** (BRIEF.md:115–118): "For each of the sixteen agents individually, `check-domain.sh
+**SC-02** (BRIEF.md:115–118): "For each of the sixteen agents individually, `check-domain.py
 --resolve` on `.harness/harness/expertise/<agent>.md` prints exactly that agent's name." Its only
 automated evidence is T-01's inline `verify:` block (plan.yaml:108–127) — ran it directly against
 `9b929de`:
@@ -103,7 +103,7 @@ product repository" in an unrelated PAIR-B discussion, not a repository-tier tes
 
 **Confirmed at `9b929de`, as stated in the prior gate: the 16 repository-tier grants — the
 feature's core new deliverable — are correct today and pinned against regression by nothing in the
-standing suite.** `9b929de` did not change this: T-01, `check-domain.sh`, and `test-check-domain.py`
+standing suite.** `9b929de` did not change this: T-01, `check-domain.py`, and `test-check-domain.py`
 are all outside the `252fa72..9b929de` diff (confirmed in §1). This is matrix-compliant (T-01 is
 `config`, obligating no kind) but is a real coverage gap on the feature's headline surface — a
 future edit to `team-config.yaml` that silently drops a repository-tier grant would not redden any

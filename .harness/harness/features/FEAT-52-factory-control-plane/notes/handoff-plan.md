@@ -27,8 +27,8 @@ starts at T-01/T-02 (`depends_on: []`), though 12 of 15 tasks are `main-session-
 ## Dead ends
 
 - Writing `panel:` any way but `plan-merge.py set-panel`, or a task field any way but `amend --key tasks --id T-NN --field <f>`: Edit/Write/redirect are denied by the shape gate — both verbs used successfully, this session — verified-at 8ff525e2
-- Giving a member a scratch path inside a lead run dir, or a lead a `notes/review-*` artifact path: check-domain.sh refuses both (#216) — each cost one retry, this session — verified-at 8ff525e2
-- Prepending a contract block to a recorded digest: check-domain.sh:1204 admits only a payload whose opening bytes are the prior file verbatim; validate-digest anchors on the LAST `^VERDICT:`, so the block goes at the foot — refused then applied, this session — verified-at 8ff525e2
+- Giving a member a scratch path inside a lead run dir, or a lead a `notes/review-*` artifact path: check-domain.py refuses both (#216) — each cost one retry, this session — verified-at 8ff525e2
+- Prepending a contract block to a recorded digest: check-domain.py:1204 admits only a payload whose opening bytes are the prior file verbatim; validate-digest anchors on the LAST `^VERDICT:`, so the block goes at the foot — refused then applied, this session — verified-at 8ff525e2
 - Proving BRIEF/plan integrity by `git diff` or `git show HEAD:<path>`: the feature dir is untracked, so diff is empty for changed and unchanged files alike and `show` exits 128 — hit by pm, the panel and me — verified-at 8ff525e2
 - A /tmp fixture probe of INV-32: bash-write-guard blocks an orchestrator `cp` outside its domain. Verify INV-32's clauses against the live document instead (check-state.sh:418-541) — this session — verified-at 8ff525e2
 - Correcting PF-4ea5b566's imprecise summary: it would change the content-hash id and invalidate any ruling on it. Flag it, never edit it — STATE Q8 — verified-at 8ff525e2

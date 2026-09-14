@@ -125,7 +125,7 @@ ground, then kaya-ai board 2.
   verify: automated      evidence: unit
 - SC-10: Nothing already guarded is weakened: the full unit and integration suites pass, and
   `check-state.sh` exits 0 on the harness checkout after the migration — with no edit to
-  `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` or `check-plan-routes.py` in this
+  `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or `check-plan-routes.py` in this
   feature's diff. **The list is FOUR files, not five.** `check-state.sh` left it because ruling 1
   of 2026-08-23 makes INV-26 fire on every done task whose sub-issue is deliberately still open;
   the one bounded widening that fixes it is SC-20's, performed by the operator's own hand under
@@ -606,7 +606,7 @@ board. That is the one thing it copies from the factory lane.
   re-derived at `46ee87c`, where the earlier `:1184-1185` anchor had MOVED), so the sixth *station
   key* is inert there. What is **not** inert is the operator's ruling of 2026-08-23: a `done` task
   with a deliberately open sub-issue fails INV-26's per-task comparison, so INV-26 is widened, once
-  and narrowly, by the operator's own hand (SC-20) — ruled 2026-08-23, ruling 4. Worth recording: `check-domain.sh --resolve`
+  and narrowly, by the operator's own hand (SC-20) — ruled 2026-08-23, ruling 4. Worth recording: `check-domain.py --resolve`
   grants `check-state.sh` to `harness-backend-dev` and `harness-dev-ops` while DEC-174 forbids
   dispatching a change to it. The carve-out wins — no squad executes this edit.
 - **`mruangutai/harness` is deliberately ABSENT from `fleet.yaml`** (DEC-174 am.1) and is not added.
@@ -614,7 +614,7 @@ board. That is the one thing it copies from the factory lane.
   `main-session-direct` in the plan: `.claude/skills/harness-init/SKILL.md`,
   `.claude/skills/harness/SKILL.md`, `.claude/commands/harness-plan.md`,
   `.claude/skills/harness/templates/harness.json` and kaya-ai's own `.harness/harness.json` all
-  resolve to NOBODY — every one re-derived with `check-domain.sh --resolve` at `46ee87c` — and a
+  resolve to NOBODY — every one re-derived with `check-domain.py --resolve` at `46ee87c` — and a
   generic file under this feature's `notes/` resolves to `harness-orchestrator`, which is not a task
   executor. `check-state.sh` is the seventh main-session path and the only one that resolves to a
   real agent; DEC-174 overrides the grant.
@@ -622,7 +622,7 @@ board. That is the one thing it copies from the factory lane.
   enforcement layer, and the only genuinely *caused* write available there — a `PostToolUse`
   `Write|Edit` hook firing a board read — costs a measured 490–506 GraphQL points per fire on board 3
   and would fire on every edit in every session. SC-10's untouched-file list is therefore **four,
-  not five**: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` and
+  not five**: `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` and
   `check-plan-routes.py` are untouched, and `check-state.sh` carries the single bounded INV-26
   widening ruling 1 forces (SC-20), performed by the operator and by nobody else.
 - **A cross-repo ordering cost, stated rather than discovered.** The one board validator in the tree
@@ -645,7 +645,7 @@ board. That is the one thing it copies from the factory lane.
   Nothing about that makes either plan wrong, and the two build in separate worktrees; **whichever
   builds second re-derives its line anchors by symbol** — `T-22`'s intent now says so explicitly.
   Which of the two builds first is a scheduling call, not a change to either plan.
-  `run-unit-tests.sh`, `check-state.sh`, `check-domain.sh`, `harness.json` and `DECISIONS.md` all have
+  `run-unit-tests.sh`, `check-state.sh`, `check-domain.py`, `harness.json` and `DECISIONS.md` all have
   other writers. **Measured at `46ee87c`:** `git diff --name-only origin/main...HEAD` returns only
   files under `features/FEAT-33-board-lifecycle-native/`, and the same command at `57e18ca` returns
   the same set, so none of those merges landed on a surface this plan reads in a way this branch has

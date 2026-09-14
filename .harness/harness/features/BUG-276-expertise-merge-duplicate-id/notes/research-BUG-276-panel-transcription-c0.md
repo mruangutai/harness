@@ -40,7 +40,7 @@ later `approval.rulings` overrule (`sign-approval` refuses an absent id).
 D-09 records that the exit-11 row is **not** added; the **cost** (a distilling agent meeting exit 11
 consults the table it routes on and finds no row, while the only other mention of 11 in that file is
 the *ops* code list at ~135-141 — a different context that invites the wrong response); the
-**reason** (`check-domain.sh --resolve` returns **NOBODY** for that path, and `check-plan-routes.py`
+**reason** (`check-domain.py --resolve` returns **NOBODY** for that path, and `check-plan-routes.py`
 treats a NOBODY path under team execution as a violation, so the remedy would have to be an
 `execution_mode: main-session-direct` task — a widening of a deliberately narrow bug fix); and that
 the **operator settles it at signature**. It cites `PF-8eac…` so ruling and finding stay linked.

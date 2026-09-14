@@ -22,7 +22,7 @@ SCs, then dispatch **ship-refresh and distillation as TWO dispatches in ONE mess
   verified-at bee6234, and no mirror subcommand has run since
 - The cheap read returns 486 items for 5 GraphQL points against 506 for the run containing the old
   path — live call — verified-at bee6234
-- SC-08 and SC-09 are `not-assessed` because both sit on `NOBODY` paths — `check-domain.sh --resolve`
+- SC-08 and SC-09 are `not-assessed` because both sit on `NOBODY` paths — `check-domain.py --resolve`
   — verified-at 3fbfd0a. They are pre-ship steps for the operator, not gaps
 
 ## Dead ends

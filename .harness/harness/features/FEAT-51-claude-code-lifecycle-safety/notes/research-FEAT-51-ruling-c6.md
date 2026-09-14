@@ -13,7 +13,7 @@ SC-13 only. All seven panel findings are byte-identical to the pre-change file a
 - `change_type: cross_module`, `execution_mode: main-session-direct`, `depends_on: [T-03, T-07, T-09]`,
   `status: ready`.
 - **files** (all four already in `lanes.rows`, all `main-session-direct`):
-  `test-check-domain.py`, `test-plan-sign-gate.py`, `check-domain.sh`, `plan-sign-gate.py`.
+  `test-check-domain.py`, `test-plan-sign-gate.py`, `check-domain.py`, `plan-sign-gate.py`.
 - **verify** (literal `|`, 8 lines): six `grep -q` of the new label strings — three per test file,
   including each surface's `NEGATIVE CONTROL:` — then `python3 test-check-domain.py &&
   python3 test-plan-sign-gate.py`.
@@ -28,7 +28,7 @@ A no-op if the landed code already encloses them.
 
 ## The mechanism, and how it was measured (2026-09-01, main checkout `2e2e45d2`)
 
-`git hash-object` over `check-domain.sh`, `test-check-domain.py`, `plan-sign-gate.sh`,
+`git hash-object` over `check-domain.py`, `test-check-domain.py`, `plan-sign-gate.sh`,
 `plan-sign-gate.py`, `test-plan-sign-gate.py`, `inflight_registry.py`, `harness_boundary.py`,
 `harness_merge.py` is **identical at `ad93d43e`, at `2e2e45d2` and in the working tree**. Anchors hold.
 
@@ -43,7 +43,7 @@ A no-op if the landed code already encloses them.
   returns `(None, 0)` — T-02 specified behaviour); `.harness` at `0o500` does **not** raise either.
 - **Case B, module unimportable** — `shutil.copytree(bin_dir, copybin)`, `os.remove` of
   `copybin/inflight_registry.py`, fire the **copied** hook directly. Reaches the import:
-  `check-domain.sh:102` puts its own dir on `PYTHONPATH` and `:125` inserts it at `sys.path[0]`; the
+  `check-domain.py:102` puts its own dir on `PYTHONPATH` and `:125` inserts it at `sys.path[0]`; the
   in-tree idiom at `test-check-domain.py:2370-2377` already proves a module in the copy dir is the one
   the copied hook imports, and `:1676-1703` (#556) proves nothing outside it can. For
   `plan-sign-gate.sh`: `_selfbin` at `:53`, `resolve_root` honours `HARNESS_PROJECT_DIR` when the
@@ -97,7 +97,7 @@ the four stderr assertions red; widen the handler → both negative controls ret
 
 `plan.yaml` was byte-copied with `shutil.copy2` (never a YAML dumper) to `/tmp/plan.pre.c6.yaml` and to
 `notes/plan-proposal-ruling-c6.yaml`; both edits spliced as **text** into the proposal via `python3`
-heredoc through Bash — the known `check-domain.sh` gap that denies Edit/Write of a
+heredoc through Bash — the known `check-domain.py` gap that denies Edit/Write of a
 `notes/plan-proposal-*.yaml` path, same route as cycles 4 and 5; canonical removed with `os.remove`
 (absolute path); recreated with `plan-merge.py apply`. Applied file `diff`s **IDENTICAL** to the
 proposal. `BRIEF.md` was a normal Edit.

@@ -36,7 +36,7 @@
   reads is how a rule quietly stops teaching what it was written to teach.
 
 - 2026-08-12: I could NOT reproduce the channel that wrote that file, and the negative is worth
-  recording. `check-domain.sh --resolve` returns NOBODY for it; feeding the hook a payload for
+  recording. `check-domain.py --resolve` returns NOBODY for it; feeding the hook a payload for
   `harness-documentor`, `harness-product-lead`, `harness-orchestrator` and `harness-backend-dev`
   against `Write`, `Edit`, `MultiEdit` and `NotebookEdit` returns BLOCKED every time; the
   `PreToolUse` matcher is `Write|Edit`, so those are the covered tools; and `bash-write-guard.sh` is

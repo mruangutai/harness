@@ -16,8 +16,8 @@ route to the main session rather than being fixed here. Nothing rises to `must_f
   34/34 passed (I ran it). **Caveat carried to Stage 2 finding F1**: one secondary re-validation path
   (`check-state.sh:1590`) never exercises this check for lead digests, at any date.
 - **REQ-02** (undeclared step key rejected; no new run can opt out) — **MET.** CLAUSE A
-  (`check-domain.sh:1614-1667`, unconditional on `_valid_version`, so it runs on both create and
-  update) + CLAUSE B / D-11 floor (`check-domain.sh:1589-1612`, gated on `_creating`). `SC-15`'s four
+  (`check-domain.py:1614-1667`, unconditional on `_valid_version`, so it runs on both create and
+  update) + CLAUSE B / D-11 floor (`check-domain.py:1589-1612`, gated on `_creating`). `SC-15`'s four
   fixtures (version 2 accept / version 1 refuse / absent refuse / string `"2"` refuse-naming-type) and
   the existing-version-1-update-accept case all pass — I ran `test-check-domain.py`: 11/11.
 - **REQ-03** (declared container for step evidence) — **MET.** `run-state-schema.json`'s
@@ -30,7 +30,7 @@ route to the main session rather than being fixed here. Nothing rises to `must_f
   matching plan.yaml T-01's own arithmetic).
 - **REQ-05** (rejection names every key and its route) — **MET** at the digest tier
   (`validate-digest.py:1415-1424` names `PASSTHROUGH`/`DOCUMENTED_OPTIONAL`/`SCHEMAS` explicitly) and
-  at the step tier (`check-domain.sh:1653-1657`, `check-state.sh:1525-1529`), though the two step-tier
+  at the step tier (`check-domain.py:1653-1657`, `check-state.sh:1525-1529`), though the two step-tier
   messages have already drifted in the detail they carry — see Stage 2 F2.
 - **REQ-06** (re-prompt/one-shot behaviour is a decision, not an accident) — **MET.** D-07/DEC-208 are
   written down (`DECISIONS.md:7124-7127`, new DEC-223 paragraph "The one hole is named
@@ -94,13 +94,13 @@ orchestrator's pre-measured figure exactly — I did not take that figure on fai
    `validate()` and before the T-09/#551 registry logic — not widened to skip anything else. This
    matches D-07/SC-09 precisely.
 3. **Does the step-key refusal fire on CREATE and WRITE?** Yes on both — CLAUSE A
-   (`check-domain.sh:1614-1667`) is gated only on `_valid_version`, independent of `_creating`. One
+   (`check-domain.py:1614-1667`) is gated only on `_valid_version`, independent of `_creating`. One
    coverage gap, not a code defect: `test-check-domain.py` exercises the undeclared-step-key rejection
    only via `_fire_new` (create path); no fixture exercises it against an **existing** `schema_version:
    2` file being updated. The code is structurally indifferent to `_creating`, so this reads as correct
    by construction, but it is untested on that branch. Info-level, not gating.
 4. **Does the floor reject omitted `schema_version` and the string `"2"` distinctly?** Yes —
-   `check-domain.sh:1594-1607` computes a distinguishing `_version_problem` for each: `"is absent"`,
+   `check-domain.py:1594-1607` computes a distinguishing `_version_problem` for each: `"is absent"`,
    `"has type string, not integer"`, `"is N, below 2"`. `test-check-domain.py`'s
    `_floor_creation_cases` (`:127-145`) asserts all four fixtures separately and I reran them: 11/11
    passed, including `"schema_version floor refuses string 2 and names the type"`.
@@ -130,7 +130,7 @@ orchestrator's pre-measured figure exactly — I did not take that figure on fai
 
 ### 4. SIMPLIFY S2 and S4 — independent severity, not inherited
 
-- **S2** (`check-domain.sh:1653-1657` vs `check-state.sh:1525-1529` — one shape, two hand-written
+- **S2** (`check-domain.py:1653-1657` vs `check-state.sh:1525-1529` — one shape, two hand-written
   enforcement layers whose messages have drifted): **independently confirmed real** — I read both
   strings myself. Check-domain's message adds the evidence-value shape rule ("a lowercase identifier
   key and a scalar or scalar-array value"); check-state's does not. **My severity: LOW, does not
@@ -166,7 +166,7 @@ orchestrator's pre-measured figure exactly — I did not take that figure on fai
   actual pass/fail gating uses `return len(failures)`, unaffected — but it is a label asserting a
   coverage count that does not match the code beside it.
 - `run-state-schema.json`'s top-level `additionalProperties: false` is declared but never consulted
-  by either gate (`check-domain.sh`/`check-state.sh` only load `properties.steps.items`) — inert
+  by either gate (`check-domain.py`/`check-state.sh` only load `properties.steps.items`) — inert
   documentation, not a live enforcement surface. This matches the plan's explicit instruction that
   `CHECKPOINT_KEYS` stays the top-level authority, so it is not a defect; flagging only so a future
   reader does not assume the top-level shape is machine-enforced here. Same territory as SIMPLIFY's

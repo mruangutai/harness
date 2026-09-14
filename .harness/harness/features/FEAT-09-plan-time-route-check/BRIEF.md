@@ -34,7 +34,7 @@ build phase never discovers routing again.
 
 ## Success Criteria
 
-- SC-01: `check-domain.sh --resolve <path>` prints the complete, sorted set of agents whose domain
+- SC-01: `check-domain.py --resolve <path>` prints the complete, sorted set of agents whose domain
   grants write on that path — one name for a singly granted path, both names for
   `.claude/skills/harness/bin/**` which `team-config.yaml:155` and `:197` grant twice.
   verify: automated      evidence: unit
@@ -58,12 +58,12 @@ build phase never discovers routing again.
   does not silently pass; the reported plan's exit status is unchanged by the deferral.
   verify: automated      evidence: unit
 - SC-08: Exactly one path matcher exists, and `check-plan-routes.py` implements none of it. Four
-  clauses, each separately fixtured: (1) it invokes `check-domain.sh` for every path decision;
+  clauses, each separately fixtured: (1) it invokes `check-domain.py` for every path decision;
   (2) its source contains no `fnmatch`; (3) its source contains no glob-to-regex translation of its
   own; (4) it does no `startswith`/prefix comparison — proved behaviourally, not by grep: a path
   granted only through a mid-pattern wildcard (`.harness/features/*/runs/*-eng/**`,
   `team-config.yaml:278`) still resolves to its granting agent, where a prefix comparison on the
-  text before `/**` reports it ungranted. That is the exact bug `check-domain.sh:193` records.
+  text before `/**` reports it ungranted. That is the exact bug `check-domain.py:193` records.
   verify: automated      evidence: unit
 - SC-09: `templates/PLAN.md` carries a `## Lanes` section, an `execution_mode:` field on the task
   stanza, and both legal tokens named — so a planner reading only the template writes a routable
@@ -94,12 +94,12 @@ build phase never discovers routing again.
 
 ## Constraints
 
-- **One matcher only.** `check-domain.sh`'s inline `matches()` (`:215`) has deliberately custom
+- **One matcher only.** `check-domain.py`'s inline `matches()` (`:215`) has deliberately custom
   semantics — its `:193` comment records that `fnmatch` is wrong here because `fnmatch`'s `*`
   matches `/`. A second implementation is the DEC-126 drift shape and is out.
 - **No agent's domain grants change.** This feature makes the existing grants legible at plan time;
   re-drawing them is a separate feature (grilling `## Out of scope`).
-- **DEC-174 carve-out applies to `check-domain.sh`.** It is a gate script: direct edit, tests run
+- **DEC-174 carve-out applies to `check-domain.py`.** It is a gate script: direct edit, tests run
   explicitly, a human reading the diff — never dispatched through a team run whose gates are the
   thing being changed.
 - **FEAT-08 (issue #58) is in flight and owns a disjoint file set.** No task here may write

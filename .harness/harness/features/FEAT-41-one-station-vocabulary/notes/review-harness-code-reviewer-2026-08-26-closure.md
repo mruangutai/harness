@@ -16,7 +16,7 @@ route:
 It is explicitly barred from `deny()` because that helper appends the STATE.md-flavored ROUTING
 constant:
 
-> "DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1063-1066 and
+> "DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.py defines deny() at 1063-1066 and
 > its last line appends the module-level ROUTING constant defined at 879, which speaks about
 > STATE.md, digests and notes/ - a different file class entirely." (843-846)
 

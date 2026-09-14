@@ -7,7 +7,7 @@ nothing at dispatch time notices. Every lead's write grant keys on a **trailing*
 only three grants in `.harness/team-config.yaml` containing `/runs/` are
 `.harness/*/features/*/runs/*-product/**` (line 306), `*-eng` (line 315) and `*-validator` (line 324)
 — so an inverted slug resolves to a set that excludes the callee. Measured in this worktree at
-6d969ed3: `check-domain.sh --resolve .../runs/t01-eng/digest.md` answers `harness-eng-lead` and
+6d969ed3: `check-domain.py --resolve .../runs/t01-eng/digest.md` answers `harness-eng-lead` and
 `harness-orchestrator`, while `.../runs/eng-t01/digest.md` answers `harness-orchestrator` alone.
 Both exit 0, because `--resolve` answers on stdout and never through the exit code. The convention is
 stated in prose only (`.claude/skills/harness/SKILL.md:272-274`); no mechanical enforcement exists.

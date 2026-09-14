@@ -20,7 +20,7 @@ the areas the build itself flagged thin (worktree-deletion fallback, plan-write 
 (`bash=0, write=0`, wanted `(2,2)`) but passes 4/4 when run standalone. Neither
 `harness_boundary.py`, `bash-write-guard.sh`, nor `test-bash-write-guard.py` are touched by this
 diff (`git diff --name-only base..review_sha` — confirmed absent); the test file's last edit
-(`66e9a9d`) is an ancestor of `base`, i.e. pre-existing. `check-domain.sh`, which this feature
+(`66e9a9d`) is an ancestor of `base`, i.e. pre-existing. `check-domain.py`, which this feature
 does touch, is one of the two routes this case exercises, but the untouched `bash-write-guard.sh`
 route fails identically, pointing at shared/timing infrastructure (the file's own comment already
 documents a `.pyc`-staleness hazard it tried to work around) rather than at FEAT-41's code. Still:
@@ -63,7 +63,7 @@ required kind carries a null `cmd`.
 
 ## Adequacy judged, not just green
 
-- **check-domain.sh T-09 route denial (`test-check-domain.py:2529-2621`, `run_t09`).** Case 1
+- **check-domain.py T-09 route denial (`test-check-domain.py:2529-2621`, `run_t09`).** Case 1
   (agent_type present) asserts denial + `set-task-station` name + **the reason** (`"one writer"`
   and `"validate"` both in stderr) + correct basename + absence of an unrelated routing sentence.
   Case 2 (agent=None, i.e. the main session) asserts **only the exit code**, not the reason text.

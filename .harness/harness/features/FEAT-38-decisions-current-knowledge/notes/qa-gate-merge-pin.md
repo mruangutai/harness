@@ -8,7 +8,7 @@ not a defect in the shipped diff, and does not change the verdict.
 Shipping diff `24af8d4..eb7e751` is the full FEAT-38 branch content (24af8d4 is `main` post-FEAT-43,
 which never contained FEAT-38). Change types present: `logic`/`cross_module` (new
 `check-decision-anchors.py` + its test `test-check-decision-anchors.py`, both landing together —
-satisfies test-first pairing per P-05; changes to `gen-decisions-index.py`, `check-domain.sh`,
+satisfies test-first pairing per P-05; changes to `gen-decisions-index.py`, `check-domain.py`,
 `check-state.sh`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`, `board_lifecycle.py`,
 `factory_decompose.py`, `check-plan-routes.py`, `upgrade-config.py`, `validate-digest.py`,
 `run-unit-tests.sh`), `config` (`harness.json`, `fleet.yaml`, `.gitignore`, `tests.yml` — matrix

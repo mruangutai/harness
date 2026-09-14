@@ -71,7 +71,7 @@ found — not flagged.
   independently dependent (T-03 and T-04 both depend only on T-02, not on each other), so
   splitting is correct, not "two tasks that are one."
 - **T-07 bundling two files** (template comment + SKILL.md rows) into one task — both resolve
-  to the same `main-session-direct` lane for the same reason (`check-domain.sh --resolve`
+  to the same `main-session-direct` lane for the same reason (`check-domain.py --resolve`
   returns NOBODY), so one task avoids a second no-op dispatch, not complexity.
 
 ## No SIMPLIFICATION findings beyond the one above

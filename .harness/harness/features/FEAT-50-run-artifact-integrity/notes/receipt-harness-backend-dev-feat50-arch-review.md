@@ -20,7 +20,7 @@ worktree convention. Seams (judgement 4) and the settled DEC-174 routing are sou
 |---|---|---|---|
 | ARCH-01 | critical | D-01, T-01 (`validate-digest.py:1580`) | presence discriminator misclassifies a platform-caused present-empty message as a persona violation |
 | ARCH-02 | high | D-03, T-03 (`plan.yaml:87-108,267-327`) | exact basename==feature-id equality fails against the tool's own sanctioned short-id worktree naming |
-| ARCH-03 | critical | D-04, D-06, T-04 (`check-domain.sh:1361-1381`) | digest-clobber rule is reachable only via `Write`; `Edit`/`Bash` writes bypass it at every stage, including the append case D-05 protects |
+| ARCH-03 | critical | D-04, D-06, T-04 (`check-domain.py:1361-1381`) | digest-clobber rule is reachable only via `Write`; `Edit`/`Bash` writes bypass it at every stage, including the append case D-05 protects |
 | ARCH-04 | med | T-03, T-04 `verify:` | verify commands prove only that a string exists in source, not that the logic fires or fires correctly; real proof deferred to T-05 |
 | ARCH-05 | med | T-05 | one task, one atomic verify, proves two independent rules (checkout binding, digest preservation); a failure/abort in one obscures the other |
 
@@ -67,7 +67,7 @@ sufficient — do not commit the exit-2 direction for state 2 without that confi
 
 ## 2 — #1057 crux: is the derivation sound?
 
-Read the `if _run_domain:` placement (`check-domain.sh:366-423`) and D-03/D-04/T-03
+Read the `if _run_domain:` placement (`check-domain.py:366-423`) and D-03/D-04/T-03
 (`plan.yaml:87-108,267-327`). Placement is correctly inside the governed-agent-only branch, after
 the raw-then-stripped match — confirmed reachable and ordered as claimed.
 
@@ -155,8 +155,8 @@ nothing" as the only case that "costs nothing" to skip.
 ## 4 — Seams and depth
 
 One seam or three remedies: **three**, correctly. #1056 lives in a different script and hook
-(`SubagentStop`/`validate-digest.py`) from #1057/#1058 (`PreToolUse`/`check-domain.sh`); #1057 and
-#1058, though co-located in `check-domain.sh`, land in different existing mechanism families
+(`SubagentStop`/`validate-digest.py`) from #1057/#1058 (`PreToolUse`/`check-domain.py`); #1057 and
+#1058, though co-located in `check-domain.py`, land in different existing mechanism families
 (domain verdict vs. shape rule) with no shared state, no shared interface, and independently
 triggerable failure modes. Deletion test: removing any one of the three changes leaves the other
 two fully functional and independently testable. No shallow module is created — both edited files
@@ -164,7 +164,7 @@ are already the deep modules that own this class of decision, and D-07's marker-
 discipline keeps every test crossing the real CLI interface rather than reaching past it into
 internals.
 
-`harness_boundary.py` vs. inline in `check-domain.sh` for D-04's binding: `harness_boundary.py`
+`harness_boundary.py` vs. inline in `check-domain.py` for D-04's binding: `harness_boundary.py`
 already owns "which checkout does this path belong to" (`linked_worktrees`, `worktree_owner`,
 `checkout_relative`), but D-04's specific predicate — derive feature id from path, then match
 against a registered worktree's basename — has exactly one caller today. Extracting it into
@@ -201,7 +201,7 @@ no basis for trusting the binding works.
 *Alternative:* add one inline behavioral assertion to each of T-03's and T-04's own `verify:`
 blocks — a minimal fixture (a temp dir with a `.git/worktrees/<id>/gitdir` pointer for T-03, or a
 `runs/<id>/digest.md` with non-empty content for T-04) invoked directly against
-`check-domain.sh`'s `--resolve`-style CLI, asserting the one exit code each rule is supposed to
+`check-domain.py`'s `--resolve`-style CLI, asserting the one exit code each rule is supposed to
 produce for its own positive case. This does not replace T-05's fuller matrix; it removes the gap
 where a task's own gate proves nothing about its own change.
 
@@ -226,7 +226,7 @@ case 4's helper). T-07's `depends_on` becomes
 ## What I read
 
 `validate-digest.py` (:1374-1643, `hook_mode` in full plus its two neighboring functions),
-`check-domain.sh` (:339-423, :546-712, :903-1090, :1200-1236, :1299-1550 — signature-protection,
+`check-domain.py` (:339-423, :546-712, :903-1090, :1200-1236, :1299-1550 — signature-protection,
 `domain_check`, `has_shape_rules`/`shape_problems`, sweep machinery, PRE/POST target construction),
 `harness_boundary.py` (:102-183 `checkout_relative`/`linked_worktrees`, :384-593
 `classify`/`worktree_owner`), `feature-worktree.py` (full — `dest_for`, `_ID_RE`, create/remove

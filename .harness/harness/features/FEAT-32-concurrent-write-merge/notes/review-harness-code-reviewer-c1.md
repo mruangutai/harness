@@ -22,14 +22,14 @@ carve-out, not evasion: nothing in the repo was touched).
 
 ## PREDICTION 1 — LIMB EVASION BY QUOTED KEY + OFF-INDENT CHILDREN — **HOLDS**
 
-`check-domain.sh`'s `approval_guard()` Edit branch, `check-domain.sh:606` (LIMB A) and `:613-628`
+`check-domain.py`'s `approval_guard()` Edit branch, `check-domain.py:606` (LIMB A) and `:613-628`
 (LIMB B), pinned SHA.
 
 Fixture: `APPROVAL_MANIFEST`/`PLAN_ON_DISK` copied verbatim from `test-check-domain.py:2344-2380`
 (never imported `FIXTURE_MANIFEST` — that grants only `harness-documentor` and would produce an
 ordinary domain denial before the guard is ever reached).
 
-Payload fired as `harness-pm` via `check-domain.sh` directly (`subprocess.run([HOOK], ...,
+Payload fired as `harness-pm` via `check-domain.py` directly (`subprocess.run([HOOK], ...,
 env={"CLAUDE_PROJECT_DIR": root})`):
 
 ```
@@ -76,7 +76,7 @@ Same hook, same fixture shape, two sequential real `Edit` fires against one fixt
 **Edit 1** (delete the approval block): `old_string` = `"feature: FEAT-99-fixture\n\napproval:\n
 status: pending\n  approved_by: <name>\n  date: <YYYY-MM-DD>"`, `new_string` = `"feature:
 FEAT-99-fixture"`.
-Fired at `check-domain.sh`: **exit 0**, empty stdout/stderr. LIMB A misses (spans the block, not a
+Fired at `check-domain.py`: **exit 0**, empty stdout/stderr. LIMB A misses (spans the block, not a
 substring of it); LIMB B(a) misses (no `approval:` at col 0 in `new_string`); LIMB B(b) misses
 (`new_string` has no line at indent 2). Applied for real to the fixture file — confirmed
 `"approval:" not in` the resulting text, and `yaml.safe_load` on it succeeds with keys
@@ -89,7 +89,7 @@ approval block at column zero is DENIED").
 Fired: **exit 0**, empty stdout/stderr. Applied for real: `yaml.safe_load` succeeds,
 `approval == {'status': 'approved', 'approved_by': 'operator', 'date': date(2026, 8, 22)}`.
 
-Root cause, `check-domain.sh:552-554`: `rng = _yaml_key_range(lines, frag); if rng is None: continue`
+Root cause, `check-domain.py:552-554`: `rng = _yaml_key_range(lines, frag); if rng is None: continue`
 — once the key is genuinely absent from disk, the loop over `main_session.writes` entries skips this
 fragment before either limb runs. 5d denies the *introduction* payload only because in that test the
 `approval:` key is *still on disk elsewhere* in the file (5d's `old_string` is `"tasks:"`, and the

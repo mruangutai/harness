@@ -14,7 +14,7 @@ unrelated FEAT-56 status-field commit rides inside this diff range.
   computes `legal_fields` from `all_fields | {"headline"}` (+ `grade_2_reasons` for reviewers) and
   rejects any `seen` key outside it, gated `if raw_persona != "lead"`. Verified live: 34/34 T-04
   cases pass, including one-shot-per-persona probes for all nine `SCHEMAS` keys.
-- **REQ-02** (undeclared step key rejected; no run escapes by not opting in) — MET. `check-domain.sh`
+- **REQ-02** (undeclared step key rejected; no run escapes by not opting in) — MET. `check-domain.py`
   CLAUSE A (`:1615-1656`) validates `steps[]` against `run-state-schema.json` when
   `schema_version >= 2`; CLAUSE B (`:1588-1613`, D-11) refuses CREATION of a state.yaml below
   version 2. 12/12 T-06 cases pass, including the four separate CLAUSE B fixtures (accept-at-2,
@@ -22,7 +22,7 @@ unrelated FEAT-56 status-field commit rides inside this diff range.
 - **REQ-03** (evidence container) — MET. `run-state-schema.json:36-44` declares `evidence` as an
   object with `propertyNames` pattern `^[a-z][a-z0-9_]*$` and values restricted to scalar or
   scalar-array via `oneOf`; enforced by the same `jsonschema.Draft202012Validator` in both
-  `check-domain.sh` and `check-state.sh`, so a nested dict inside an evidence array value is caught
+  `check-domain.py` and `check-state.sh`, so a nested dict inside an evidence array value is caught
   by the JSON-Schema errors even though the file's own ad-hoc `isinstance(_value, dict)` check only
   catches a top-level dict value.
 - **REQ-04** (legitimate-use fixed to documented blocks, not observed traffic) — MET. `PASSTHROUGH`
@@ -53,13 +53,13 @@ Stage 1 passes; proceeding to Stage 2.
 Traced every new branch and every `except` in the three gate files for a miss that sails through
 instead of blocking:
 
-- `check-domain.sh` CLAUSE A's `except Exception as _schema_exc:` (`:1662-1669`) **fails closed** —
+- `check-domain.py` CLAUSE A's `except Exception as _schema_exc:` (`:1662-1669`) **fails closed** —
   it appends to `out`, and `out` non-empty means `sys.exit(2)` at the caller (`:2378-2382`). A
   missing/broken `jsonschema` import or a malformed `run-state-schema.json` denies the write rather
   than silently skipping the check.
 - `check-state.sh`'s equivalent (`:1531-1535`) likewise appends to `bad`, the violation list — a
   broken schema file becomes a reported INV-16 finding, not a silent pass.
-- The schema_version downgrade guard (`check-domain.sh:1755-1774`) sits under the unconditional
+- The schema_version downgrade guard (`check-domain.py:1755-1774`) sits under the unconditional
   `if absolute_path is not None:` block, **not** under `_post` — so it runs on the blocking
   (PreToolUse) payload path for both `Write` and `Edit`, not only as an after-the-fact report. Its
   `_prior_is_strict` gate only fires when the *existing* file already declares an integer
@@ -73,7 +73,7 @@ No must_fix from Stage 2. `code-grade.py` result below is clean, so no code-risk
 
 ## F1 — schema_version downgrade — CONFIRMED FIXED
 
-Read `check-domain.sh:1755-1774` directly. `_prior_is_strict` requires the *existing* checkpoint's
+Read `check-domain.py:1755-1774` directly. `_prior_is_strict` requires the *existing* checkpoint's
 `schema_version` to be a non-bool int `>= 2`; when true, `_version_decreased` is set if the proposed
 write's version is non-int, bool, or numerically less than the prior. On decrease, `out.append(...)`
 and an immediate `return out` — the write is refused before any of the identity/run_id checks further
@@ -82,7 +82,7 @@ down even run. Ran `test-check-domain.py` directly: **12/12 T-06 cases pass**, i
 `_existing_write("downgrade", _state("2"), _state("1"))` and asserts both `returncode == 2` and the
 `"schema_version downgrade"` substring in stderr. This is the write-payload (PreToolUse) path, so it
 binds both `Write` and `Edit` tool calls. Residual, already acknowledged and out of this feature's
-scope: a Bash-authored `state.yaml` bypasses `check-domain.sh` entirely (DEC-85's known sharp edge) —
+scope: a Bash-authored `state.yaml` bypasses `check-domain.py` entirely (DEC-85's known sharp edge) —
 unchanged by this fix, not a new gap.
 
 ## F3 — omitted declaration route — CONFIRMED FIXED

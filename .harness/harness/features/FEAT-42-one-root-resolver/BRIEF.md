@@ -15,7 +15,7 @@ subagent told to work in `FEAT-42`'s worktree stands in the main checkout until 
 So a guard can be green and wrong at the same time, and the operator finds out when two agents overwrite
 each other's `plan.yaml`.
 
-Two sites already solved this privately and shared nothing — `check-domain.sh:885-890` built its own
+Two sites already solved this privately and shared nothing — `check-domain.py:885-890` built its own
 worktree enumeration, `dispatch-guard.sh:75` its own upward walk. That copy/paste is the defect.
 
 The override makes one wrong answer spread. `HARNESS_PROJECT_DIR`, once set by a parent, is inherited
@@ -116,7 +116,7 @@ printed remedy that does not destroy another feature's work.
   `worktree_owner` and `_resolve_main_checkout_root` still exist and answer their own questions.
   verify: automated      evidence: unit
 - SC-05: A governed write still succeeds and a denied write still fails after the `factory_config`
-  cutover: `check-domain.sh --resolve` over a fixed path list produces a byte-identical verdict set
+  cutover: `check-domain.py --resolve` over a fixed path list produces a byte-identical verdict set
   before and after, captured to two files and diffed.
   verify: automated      evidence: integration
 - SC-06: A governed dispatch carrying no `HARNESS-FEATURE:` line is refused at exit 2, and one carrying
@@ -175,12 +175,12 @@ printed remedy that does not destroy another feature's work.
 
 ## Constraints
 
-- **DEC-174 amendment 4 BLOCKS execution** on `check-domain.sh`, `bash-write-guard.sh`,
+- **DEC-174 amendment 4 BLOCKS execution** on `check-domain.py`, `bash-write-guard.sh`,
   `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh` and the test file
   of each. Those are main-session-direct. Its library rule also governs here: a squad may write
   `harness_boundary.py`, and the cutover that makes a gate use it is main-session-direct, proven by an
   identical violation set before and after.
-- **DEC-179 SUPPLIES** the routing check: `check-domain.sh --resolve` answers whether a squad may write
+- **DEC-179 SUPPLIES** the routing check: `check-domain.py --resolve` answers whether a squad may write
   a surface at all. It is blind to DEC-174's lane and is not used to set one.
 - **DEC-182 SUPPLIES** the `plan.yaml` format and its merge tool.
 - **DEC-202 SUPPLIES** the provider-neutral mirror. Measured at this worktree: `.agents/skills` is a

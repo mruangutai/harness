@@ -111,8 +111,8 @@ registration.
 
 ## Lane resolution, run at `b7ae135`
 
-`check-domain.sh --resolve` was run at the working tree. **That resolve is valid at `b7ae135`:**
-`git diff --stat b7ae135 HEAD -- .claude/skills/harness/bin/check-domain.sh .harness/team-config.yaml
+`check-domain.py --resolve` was run at the working tree. **That resolve is valid at `b7ae135`:**
+`git diff --stat b7ae135 HEAD -- .claude/skills/harness/bin/check-domain.py .harness/team-config.yaml
 .harness/factory/fleet.yaml` is **empty** — the resolver and both its inputs are byte-identical
 across the range.
 

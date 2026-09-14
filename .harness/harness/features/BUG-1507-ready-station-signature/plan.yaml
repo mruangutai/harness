@@ -12,13 +12,13 @@ lanes:
   rows:
     - surface: .claude/commands/harness-plan.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
+      reason: check-domain.py --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
     - surface: .claude/skills/harness/references/github-mirror.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
+      reason: check-domain.py --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
+      reason: check-domain.py --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
     - surface: .claude/skills/harness/bin/gh-sync.py
       lane: team
       agent: harness-backend-dev
@@ -102,7 +102,7 @@ tasks:
     traces: [REQ-01]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
     depends_on: []
     status: done
     files:
@@ -150,7 +150,7 @@ tasks:
     traces: [REQ-01, REQ-04]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
     depends_on: []
     status: done
     files:
@@ -218,7 +218,7 @@ tasks:
     traces: [REQ-02]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
     depends_on: []
     status: done
     files:

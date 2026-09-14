@@ -28,7 +28,7 @@ discrepancy.
 
 ## Q1 — Does the F-04 remedy close the Edit-creates bypass on every route?
 
-**Yes, measured directly, both before and after.** `check-domain.sh:2036-2046` (`e77b30ca`):
+**Yes, measured directly, both before and after.** `check-domain.py:2036-2046` (`e77b30ca`):
 
 ```python
 if (_tool == "Edit" and target
@@ -45,9 +45,9 @@ The witness match is now the FIRST branch, checked before `_edit_reconstructed_c
 called for this path — so its `except OSError: return None` → caller `sys.exit(0)` fall-through
 (the old bypass) is structurally unreachable for `.run-identity.json`: the branch that used to
 reach it no longer matches this path at all. `targets` is built with an empty placeholder content
-(`""`) because `shape_problems()`'s `RE_RUN_IDENTITY.match(rel)` branch (`check-domain.sh:1318`)
+(`""`) because `shape_problems()`'s `RE_RUN_IDENTITY.match(rel)` branch (`check-domain.py:1318`)
 denies unconditionally on path match alone, never inspecting `content` — confirmed by reading the
-function body directly (`shape_problems`, `check-domain.sh:1262-1330`).
+function body directly (`shape_problems`, `check-domain.py:1262-1330`).
 
 **Replay, both pins, extracted via `git archive <sha> -- .claude/skills/harness/bin | tar -x` into
 scratch bin roots, invoked through the CURRENT `test-check-domain.py`'s own fixture helpers with
@@ -93,7 +93,7 @@ follows entry into the `not _post` block).
   exit 0 (unaffected). A `digest.md` sibling Write beside a present witness → exit 0 (this is also
   QA-F1's new regression case, see Q4).
 - Alt-case basename (`.RUN-IDENTITY.JSON`) → exit 2, refused. This IS a match, by design: every
-  pattern in this file is deliberately case-insensitive (comment at `check-domain.sh:~1233`,
+  pattern in this file is deliberately case-insensitive (comment at `check-domain.py:~1233`,
   "EVERY PATTERN IS CASE-INSENSITIVE, AND THAT CLOSES F-04" — a DIFFERENT, earlier F-04 about a
   `Plan.yaml` case-bypass on a case-insensitive filesystem). Not a new over-match introduced by
   this delta; it is the codebase's existing, consistent convention applied to a pattern that
@@ -107,12 +107,12 @@ follows entry into the `not _post` block).
 
 **Yes, and more strongly than the sibling `RE_STATE_YAML`/`RE_RUN_DIGEST` patterns do.**
 `bash-write-guard.sh`'s `_run_artifact_guard` reads `harness_boundary.RE_RUN_IDENTITY` directly
-(no independent respelling); `check-domain.sh` imports the SAME object as
-`_shape_boundary.RE_RUN_IDENTITY` (`check-domain.sh:1187`, `try: import harness_boundary as
+(no independent respelling); `check-domain.py` imports the SAME object as
+`_shape_boundary.RE_RUN_IDENTITY` (`check-domain.py:1187`, `try: import harness_boundary as
 _shape_boundary; RE_RUN_IDENTITY = _shape_boundary.RE_RUN_IDENTITY`). One compiled regex, two
 importers — unlike `RE_STATE_YAML`/`RE_RUN_DIGEST`, which ARE independently spelled in
-`check-domain.sh` for the documented reason that the shape-phase import must stay absorbing
-(comment at `check-domain.sh:1169-1174`), with a byte-for-byte string-equality test guarding
+`check-domain.py` for the documented reason that the shape-phase import must stay absorbing
+(comment at `check-domain.py:1169-1174`), with a byte-for-byte string-equality test guarding
 against drift. `RE_RUN_IDENTITY` needs no such test because there is nothing to drift.
 
 `test-check-domain.py`'s new/changed assertions bind the actual mechanism, not a decoration:
@@ -125,7 +125,7 @@ vacuous against the old pin; they are exactly the discriminating cases the fix a
 
 | Item | Status | Anchor |
 |---|---|---|
-| F-04 (Edit-creates bypass) | **CLOSED** | `check-domain.sh:2036-2046` (new branch order) + my own replay above (exit 0→2, both the CREATE and ambiguous-`old_string` cases) |
+| F-04 (Edit-creates bypass) | **CLOSED** | `check-domain.py:2036-2046` (new branch order) + my own replay above (exit 0→2, both the CREATE and ambiguous-`old_string` cases) |
 | QA-F1 (SC-13 missing digest-Write-beside-witness case) | **CLOSED** | `test-check-domain.py` diff, `run_bug1305_digest_repair_cases`: new case `"digest Write append remains allowed beside identity witness"`, `response.returncode == 0` |
 | QA-F2 (redproof missing `## SC-13` section) | **CLOSED** | `notes/redproof-BUG-1305.md` diff: new `## SC-13` section with verbatim command + output for both the Bash-route pinned-vs-live replay and the F-04 Edit replay (`15/17 → 17/17`) |
 | QA-F3 (SC-01(c) Edit half weaker than Write sibling) | **CLOSED** | `test-check-domain.py` diff, `_bug1305_identity_refusal_cases`: `"modal collision Edit removing uid is refused"` now asserts `"run identity" in edit.stderr and "field disagreement" not in edit.stderr`, matching its Write sibling's assertion shape exactly |

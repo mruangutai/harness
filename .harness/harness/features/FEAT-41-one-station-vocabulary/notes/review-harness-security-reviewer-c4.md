@@ -30,14 +30,14 @@ two sibling reviewers' own new note files; `git diff --stat` is empty. No tracke
   **PASS.**
 - **SC-06** (post-Bash sweep names file + offending value) — built a live fixture
   (`.harness/harness/features/FEAT-SC06-TEST/plan.yaml`, `status: not-a-real-station`) and ran
-  `check-domain.sh --post` against it for real: `check-domain: OVER BUDGET (already written) —
+  `check-domain.py --post` against it for real: `check-domain: OVER BUDGET (already written) —
   .harness/harness/features/FEAT-SC06-TEST/plan.yaml: plan.yaml station vocabulary… top-level
   status 'not-a-real-station' is not a station`. **PASS**, names both file and value exactly as
   required.
 - **SC-07** — see REQ-05 above. **PASS.**
 - **PB-07 residual** (SC-05's struck coverage: does the denial STATE THE REASON, not just the
   verb, for a payload with `agent_type` and one without) — re-checked live: the plan.yaml
-  write-denial message (`check-domain.sh`) states the reason ("every station value must be
+  write-denial message (`check-domain.py`) states the reason ("every station value must be
   validated against the vocabulary before it lands on disk… An editor write cannot do that") before
   the route, for every payload regardless of `agent_type`; `plan-sign-gate.py`'s `REASON` states
   the reason ("writes the approval signature, which is the USER'S and is relayed by the main
@@ -58,7 +58,7 @@ Fix: used the **real, full `team-config.yaml`** from each archive extraction as 
 is genuinely reached.
 
 Payload: `agent_type=harness-orchestrator`, `tool_name=Write`,
-`file_path="notes/evil\u0000.md"`. Ran the **real** `check-domain.sh` end to end on both trees:
+`file_path="notes/evil\u0000.md"`. Ran the **real** `check-domain.py` end to end on both trees:
 
 | tree | result |
 |---|---|
@@ -77,12 +77,12 @@ already states this correction; independently re-derived, not merely re-read.
 
 1. `harness_boundary.py real()` reverted to the unguarded form (no try/except) → NUL payload
    crashes again through `classify` (exit 1, fail open) — proves this guard is load-bearing.
-2. `check-domain.sh _resolved_rel` reverted to catch only `OSError` (not `ValueError`) → NUL
+2. `check-domain.py _resolved_rel` reverted to catch only `OSError` (not `ValueError`) → NUL
    payload crashes at `_plan_route → _resolved_rel → realpath` (exit 1, fail open) — proves this
    is an **independent, second** guard, not redundant with (1); it fires even when `real()` itself
-   is fixed, because `_resolved_rel` is check-domain.sh's own separate resolution, not a wrapper
+   is fixed, because `_resolved_rel` is check-domain.py's own separate resolution, not a wrapper
    around `harness_boundary.real`.
-3. `check-domain.sh _plan_route`'s `if resolved is None: return as_typed` reverted to `return
+3. `check-domain.py _plan_route`'s `if resolved is None: return as_typed` reverted to `return
    None` (the old dead `islink`-conditioned shape) → the SAME NUL payload now exits **0**, silent,
    no stderr — proves this line, not merely "not crashing," is what makes the path a **refusal**.
 
@@ -91,7 +91,7 @@ No fourth mutation reached a fail-open return along this path — I looked at `_
 between `_resolved_rel` succeeding and this `os.stat` call), extremely narrow, and the same
 inherent-race shape the glob-scan hardlink detector already has; not a new gap this feature adds. **info, not a finding.**
 
-**Ordinary work, not wrongly denied.** Ran the real, unmutated `check-domain.sh` against 8
+**Ordinary work, not wrongly denied.** Ran the real, unmutated `check-domain.py` against 8
 representative shapes (normal relative, absolute-in-root, spaces, unicode, `.claude/worktrees/…`
 shaped, outside-repo entirely, deleted/nonexistent parent, and a **real symlink** to a legitimate
 granted file) — twice: once ungoverned (no `agent_type`) and once as `harness-backend-dev` writing
@@ -103,10 +103,10 @@ Enumerated every production caller (`grep`, not guessed):
 
 | caller | attacker-reachable input? | effect of the fallback | verdict |
 |---|---|---|---|
-| `select_base()`: `inside(abs_target, abs_root)`, `inside(abs_target, real(workspace_root))` | **YES** — via `classify()` from both `check-domain.sh` (Write/Edit) and `bash-write-guard.sh` (Bash) | `abs_root`/`real(workspace_root)` are freshly, fully resolved; `abs_target`'s fallback is `abspath` only (no symlink hop) — an H-01-class asymmetry, but triggered by an unresolvable input rather than a crafted symlink | **HIGH — live, confirmed below** |
+| `select_base()`: `inside(abs_target, abs_root)`, `inside(abs_target, real(workspace_root))` | **YES** — via `classify()` from both `check-domain.py` (Write/Edit) and `bash-write-guard.sh` (Bash) | `abs_root`/`real(workspace_root)` are freshly, fully resolved; `abs_target`'s fallback is `abspath` only (no symlink hop) — an H-01-class asymmetry, but triggered by an unresolvable input rather than a crafted symlink | **HIGH — live, confirmed below** |
 | `classify()`: `_abs_target = real(abs_target)`, `worktree_owner(real(abs_target))`, `_abs_root = real(root)` | same as above | inherits `select_base`'s weakness for the `select_base` call; `worktree_owner`'s **own final comparison self-heals** — its directory walk strips the NUL-bearing final segment via repeated `os.path.dirname` before its one `real(cur)`-based comparison, so by the time that check runs the string is clean again | classify() as a whole is HIGH via select_base; the worktree_owner sub-path is not independently exploitable |
-| `check-domain.sh:233,251` (`--resolve`, plan-time route resolution) | plan-declared paths (task `files:`, lane surfaces), not live agent input | same weakness structurally reachable, but requires plan-authoring access and only affects an offline `check-plan-routes.py` verdict, not a live write | LOW/INFO — not a live PreToolUse bypass |
-| `check-domain.sh:1015` (shape-phase path relativization for STATE.md/budget checks) | attacker-influenced target | wrapped in a broad `except Exception: pass` that already falls back to a plain relpath on ANY failure (by design, per its own docstring: "must not gain a fail-closed dependency") — `real()` no longer raising changes which branch is taken but not whether the fallback is safe | LOW/INFO — affects which relative path a budget/vocabulary check applies to, not an authorization decision |
+| `check-domain.py:233,251` (`--resolve`, plan-time route resolution) | plan-declared paths (task `files:`, lane surfaces), not live agent input | same weakness structurally reachable, but requires plan-authoring access and only affects an offline `check-plan-routes.py` verdict, not a live write | LOW/INFO — not a live PreToolUse bypass |
+| `check-domain.py:1015` (shape-phase path relativization for STATE.md/budget checks) | attacker-influenced target | wrapped in a broad `except Exception: pass` that already falls back to a plain relpath on ANY failure (by design, per its own docstring: "must not gain a fail-closed dependency") — `real()` no longer raising changes which branch is taken but not whether the fallback is safe | LOW/INFO — affects which relative path a budget/vocabulary check applies to, not an authorization decision |
 | `checkout_relative()`, `linked_worktrees()`, `resolve_fleet()` | no — git-authored `.git/worktrees/*` pointers, operator `fleet.yaml` | inert for this attack class | INFO |
 | `worktree_owner(root)` top-level calls in both hooks (root-side, not target-side) | no — session's own root, not per-write input | inert | INFO |
 
@@ -118,17 +118,17 @@ against (`/var` → `/private/var`), just triggered here by an unresolvable inpu
 crafted symlink.
 
 Agent `harness-frontend-dev` (no domain over `.claude/skills/harness/bin/**`) issues, via Bash:
-`echo x > .claude/skills/harness/bin/check-domain.sh<NUL>` (embeddable as JSON `\u0000` in
+`echo x > .claude/skills/harness/bin/check-domain.py<NUL>` (embeddable as JSON `\u0000` in
 `tool_input.command`, which the hook parses cleanly via `json.load(sys.stdin)`).
 
 | target | via | exit | stderr |
 |---|---|---|---|
-| same command, **no NUL**, same agent | `bash-write-guard.sh` | 2 | `BLOCKED — …redirect targets .claude/skills/harness/bin/check-domain.sh, outside your domain.` (correct) |
+| same command, **no NUL**, same agent | `bash-write-guard.sh` | 2 | `BLOCKED — …redirect targets .claude/skills/harness/bin/check-domain.py, outside your domain.` (correct) |
 | same command, **with NUL** | `bash-write-guard.sh`, `origin/main` | 1 | Traceback, `ValueError: lstat: embedded null character` (pre-existing crash, same as (a)) |
 | same command, **with NUL** | `bash-write-guard.sh`, `64f42ef8` | **0** | **(empty — no denial, no message)** |
 
 Instrumented `select_base` to confirm the mechanism (not just the symptom):
-`abs_target='/tmp/feat41-c4-sec/.claude/skills/harness/bin/check-domain.sh\x00'` (unresolved —
+`abs_target='/tmp/feat41-c4-sec/.claude/skills/harness/bin/check-domain.py\x00'` (unresolved —
 `real()`'s fallback, since `os.path.abspath` never resolves `/tmp`→`/private/tmp`) vs.
 `abs_root='/private/tmp/feat41-c4-sec'` (fully resolved, fresh `real(root)` call inside
 `select_base`). `inside(abs_target, abs_root)` → `os.path.commonpath([...]) == abs_root` → **False**
@@ -138,13 +138,13 @@ outcome as `continue` (pass) **by design**, for the legitimate case of a target 
 both the harness and product bases. Here the target genuinely *is* inside the harness base — the
 classification is simply wrong, purely because of the resolution asymmetry.
 
-**Why `check-domain.sh` (Write/Edit) doesn't show the same symptom**: reproduced the identical
+**Why `check-domain.py` (Write/Edit) doesn't show the same symptom**: reproduced the identical
 mismatch there too (`inside=False`, confirmed by the same instrumentation, using the same
-`/tmp`→`/private/tmp` root), but `check-domain.sh` still denies (exit 2) — **only because its own,
+`/tmp`→`/private/tmp` root), but `check-domain.py` still denies (exit 2) — **only because its own,
 separate `_plan_route`/`_resolved_rel` layer (job (b)'s subject) unconditionally refuses ANY
 unresolvable target for `Write`/`Edit`/`NotebookEdit`, regardless of what the domain layer decided.**
 That layer is scoped to plan.yaml protection and only incidentally covers this case. **Bash has no
-such layer** — `bash-write-guard.sh` never routes through `_plan_route`; it is check-domain.sh's own
+such layer** — `bash-write-guard.sh` never routes through `_plan_route`; it is check-domain.py's own
 matcher-registered `Write|Edit` hook, and Bash is a completely separate hook file.
 
 **Consequence, stated precisely.** The hook-level decision is unambiguously and silently wrong —
@@ -199,7 +199,7 @@ same "invisible to the classifier" class cycle 2 already found for `plan-merge.p
 and for `ln`/`ln -s`) reaches `plan.yaml` with **zero domain check performed at all** — not denied,
 simply never classified as a write. The SC-06 sweep — the *only* post-hoc net for a Bash write —
 checks station **vocabulary** only; it never inspects `station_only`. So this forgery is invisible
-to every layer this feature built: not denied pre-hoc (Bash isn't routed through check-domain.sh's
+to every layer this feature built: not denied pre-hoc (Bash isn't routed through check-domain.py's
 `_plan_route`; the write itself is invisible to bash-write-guard's classifier), not caught post-hoc
 (SC-06 doesn't look at this field), and — this is what makes it worse than the already-disclosed
 "can't attribute a legal write" residual in the BRIEF — it doesn't just forge a value, it **durably
@@ -220,9 +220,9 @@ shape), not a re-discovery of HIGH-1/H-01/H-02.
    unresolvable-input fallback (`os.path.abspath` only) is compared against a fully-resolved
    `abs_root`/`real(workspace_root)`, so an unresolvable target inside the harness base spuriously
    classifies as `not_a_domain_question` on any checkout reached through a symlink.
-   `bash-write-guard.sh` has no independent safety net for this (unlike `check-domain.sh`'s
+   `bash-write-guard.sh` has no independent safety net for this (unlike `check-domain.py`'s
    `_plan_route`, which incidentally covers it) — proven live: an out-of-domain Bash write to
-   `.claude/skills/harness/bin/check-domain.sh` by `harness-frontend-dev` exits 0, silently, on this
+   `.claude/skills/harness/bin/check-domain.py` by `harness-frontend-dev` exits 0, silently, on this
    exact machine's `/tmp`→`/private/tmp` topology (**HIGH**; not currently reproducible on the live
    worktree's own root, which sits behind no symlink today — but the mechanism is proven and the
    precondition is common, not contrived).
@@ -231,29 +231,29 @@ shape), not a re-discovery of HIGH-1/H-01/H-02.
 
 - None blocking. Whether (2) is fixed by making `real()`'s fallback itself resolve as much as it
   safely can (fixing it once, centrally) versus giving `bash-write-guard.sh` its own
-  `_plan_route`-style unconditional-refuse-on-unresolvable layer (duplicating check-domain.sh's
+  `_plan_route`-style unconditional-refuse-on-unresolvable layer (duplicating check-domain.py's
   shape) is a design call for whoever fixes it, not this review's to make.
 
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: "Job (a) settles cycle 3's attribution as wrong (crash is pre-existing, this feature fixed it); jobs (b)/(c) find the fix is sound for check-domain.sh but leaves bash-write-guard.sh silently permitting an out-of-domain Bash write on an unresolvable path; and a live, mutation-proven new HIGH — station_only:true forged onto a task-bearing plan silently disables both INV-34 checks."
+  headline: "Job (a) settles cycle 3's attribution as wrong (crash is pre-existing, this feature fixed it); jobs (b)/(c) find the fix is sound for check-domain.py but leaves bash-write-guard.sh silently permitting an out-of-domain Bash write on an unresolvable path; and a live, mutation-proven new HIGH — station_only:true forged onto a task-bearing plan silently disables both INV-34 checks."
   in_scope: true
   scope_reason: "Dispatch's entire scope is the enforcement boundary (hooks, path resolution, trust decisions) — every finding sits on that boundary."
   severity_max: high
   findings: 3
   must_fix:
     - "check-state.sh:210-212 (harness_yaml.py:326-352) — station_only:true is accepted, and check-state.sh's INV-34 exemption fires, on a plan with real non-empty tasks: the marker is not restricted to the empty-tasks case it was designed for. Live-proven: forged fixture silences both the approval-block check and the STATE.md-dangling-task check; byte-identical negative control (marker removed) fires both correctly. HIGH."
-    - "harness_boundary.py select_base()'s inside() check (:352-374), reached via classify() from bash-write-guard.sh — real()'s unresolvable-input fallback (abspath only, no symlink resolution) is compared against a fully-resolved root/workspace, so an unresolvable Bash-write target inside the harness base spuriously classifies not_a_domain_question and bash-write-guard.sh silently permits it (exit 0, no stderr) on any checkout reached through a symlink. check-domain.sh is saved only by its separate, plan.yaml-scoped _plan_route layer; bash-write-guard.sh has no equivalent. Live-proven on this machine's /tmp topology; not reproducible on the live worktree's own (non-symlinked) root today. HIGH."
+    - "harness_boundary.py select_base()'s inside() check (:352-374), reached via classify() from bash-write-guard.sh — real()'s unresolvable-input fallback (abspath only, no symlink resolution) is compared against a fully-resolved root/workspace, so an unresolvable Bash-write target inside the harness base spuriously classifies not_a_domain_question and bash-write-guard.sh silently permits it (exit 0, no stderr) on any checkout reached through a symlink. check-domain.py is saved only by its separate, plan.yaml-scoped _plan_route layer; bash-write-guard.sh has no equivalent. Live-proven on this machine's /tmp topology; not reproducible on the live worktree's own (non-symlinked) root today. HIGH."
   threat_model:
     - { boundary: "check-state.sh INV-34 approval/STATE.md invariants -> Bash write forging station_only:true", stride: "T", mitigated: false }
     - { boundary: "PreToolUse Bash -> bash-write-guard.sh domain check via harness_boundary.classify/select_base, unresolvable-path case", stride: "E", mitigated: false, precondition: "checkout reached through any symlink component; not present on this repo's live root today" }
-    - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.sh real()/_resolved_rel NUL-byte crash (MF-2/MF-5)", stride: "D", mitigated: true }
+    - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.py real()/_resolved_rel NUL-byte crash (MF-2/MF-5)", stride: "D", mitigated: true }
     - { boundary: "PreToolUse Bash -> plan-sign-gate.py sign-approval refusal (SC-07)", stride: "S", mitigated: true }
-    - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.sh plan.yaml route denial, editor writes incl. main session (REQ-05)", stride: "T", mitigated: true }
+    - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.py plan.yaml route denial, editor writes incl. main session (REQ-05)", stride: "T", mitigated: true }
     - { boundary: "gh-sync.py ship -> worktree-directory refusal and committed terminal station (REQ-07/SC-10)", stride: "T", mitigated: true }
   open_questions:
-    - { id: Q1, question: "Fix (2) by making harness_boundary.real()'s fallback itself resolve as far as safely possible (central fix), or give bash-write-guard.sh its own unconditional-refuse-on-unresolvable layer matching check-domain.sh's _plan_route (duplicated fix)? Design call for whoever fixes it.", blocking: false }
+    - { id: Q1, question: "Fix (2) by making harness_boundary.real()'s fallback itself resolve as far as safely possible (central fix), or give bash-write-guard.sh its own unconditional-refuse-on-unresolvable layer matching check-domain.py's _plan_route (duplicated fix)? Design call for whoever fixes it.", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-41-one-station-vocabulary/notes/review-harness-security-reviewer-c4.md

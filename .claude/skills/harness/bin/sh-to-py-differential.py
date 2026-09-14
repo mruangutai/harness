@@ -35,6 +35,76 @@ BIN = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BIN, "..", "..", "..", ".."))
 
 
+def domain_corpus(scratch):
+    """Representative route, mode, stdin, environment and cwd cases."""
+    root = os.path.join(scratch, "domain-root")
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    manifest = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: allowed/**, upsert: true }
+shared:
+  - { path: package.json }
+"""
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w", encoding="utf-8") as fh:
+        fh.write(manifest)
+
+    allowed = os.path.join(root, "allowed", "note.md")
+    denied = os.path.join(root, "src", "app.py")
+    state = os.path.join(root, ".harness", "harness", "features", "FEAT-X", "STATE.md")
+    os.makedirs(os.path.dirname(state), exist_ok=True)
+    with open(state, "w", encoding="utf-8") as fh:
+        fh.write("## Current\nok\n## Illegal\nno\n")
+
+    project_override = "HARNESS" + "_PROJECT_DIR"
+    root_env = {project_override: root}
+
+    def hook_payload(path, *, agent="harness-documentor", event=None, content="ok\n"):
+        payload = {"tool_name": "Write",
+                   "tool_input": {"file_path": path, "content": content}}
+        if agent is not None:
+            payload["agent_type"] = agent
+        if event is not None:
+            payload["hook_event_name"] = event
+        return json.dumps(payload)
+
+    denied_payload = hook_payload(denied)
+    invalid_state = hook_payload(
+        state, agent=None, content="## Current\nok\n## Illegal\nno\n")
+    post_state = hook_payload(state, event="PostToolUse")
+    return [
+        {"label": "resolve granted path", "argv": ["--resolve", allowed],
+         "env": root_env},
+        {"label": "resolve path outside every base",
+         "argv": ["--resolve", os.path.join(scratch, "outside.txt")],
+         "env": root_env},
+        {"label": "pre-hook allowed write", "stdin": hook_payload(allowed),
+         "env": root_env},
+        {"label": "pre-hook denied write", "stdin": denied_payload,
+         "env": root_env},
+        {"label": "pre-hook clears inherited resolve mode", "stdin": denied_payload,
+         "env": {**root_env, "HARNESS_RESOLVE_PATH": ""}},
+        {"label": "legacy argv agent fallback", "argv": ["harness-documentor"],
+         "stdin": hook_payload(denied, agent=None), "env": root_env},
+        {"label": "main-session shape refusal", "stdin": invalid_state,
+         "env": root_env},
+        {"label": "post mode selected by argv", "argv": ["--post"],
+         "stdin": hook_payload(state), "env": root_env},
+        {"label": "post mode selected by event", "stdin": post_state,
+         "env": root_env},
+        {"label": "malformed hook payload", "stdin": "{not json",
+         "env": root_env},
+        {"label": "cwd-independent denied write", "stdin": denied_payload,
+         "cwd": scratch, "env": root_env},
+        {"label": "unconfigured isolated copy", "stdin": denied_payload,
+         "isolate": True,
+         "env": {project_override: None}},
+    ]
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -106,6 +176,8 @@ def corpus(tool, scratch, impl):
         ]
     if tool == "post-merge-sweep":
         return post_merge_sweep_corpus(scratch)
+    if tool == "check-domain":
+        return domain_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 
@@ -118,7 +190,14 @@ def run(impl, case, scratch):
         if not os.path.exists(iso):
             shutil.copytree(BIN, iso)
         impl, cwd = os.path.join(iso, os.path.basename(impl)), iso
-    p = subprocess.run([impl] + argv, capture_output=True, text=True, cwd=cwd)
+    child_env = dict(os.environ)
+    for key, value in case.get("env", {}).items():
+        if value is None:
+            child_env.pop(key, None)
+        else:
+            child_env[key] = value
+    p = subprocess.run([impl] + argv, input=case.get("stdin"),
+                       capture_output=True, text=True, cwd=cwd, env=child_env)
     # Absolute paths leak roots that differ between capture and verify: the checkout
     # (harmless but noisy) and the scratch dir (a fresh mkdtemp each run). Two source
     # coordinates intentionally move: the executable's suffix, and the first traceback
@@ -174,9 +253,9 @@ def main():
         diffs = [k for k in ("exit", "stdout", "stderr") if b[k] != a[k]]
         if diffs:
             bad += 1
-            desc = ' '.join(b['case']['argv']) or '<no args>'
-            if b['case'].get('isolate'):
-                desc += ' [isolated: no harness root]'
+            desc = b["case"].get("label") or (' '.join(b["case"]["argv"]) or '<no args>')
+            if b["case"].get("isolate"):
+                desc += " [isolated: no harness root]"
             desc += f" (cwd {b['case']['cwd']})"
             print(f"FAIL {desc}: differs in {', '.join(diffs)}")
             for k in diffs:

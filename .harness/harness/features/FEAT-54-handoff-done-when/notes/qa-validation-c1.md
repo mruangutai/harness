@@ -35,7 +35,7 @@ Exit **1**, with **311 passing functions**. Filtering the records to functions a
 
 - `tests/integration/test-check-domain.py:4114` `_handoff_pre_edit_cases`: **FAIL**, grade 2, bar 3; cyclomatic 3, cognitive 2, ABC 28.0.
 
-The unchanged legacy failures printed by whole-file grading are outside the c1 function set and are not charged to this repair. `check-domain.sh` is shell and is not graded under the risk-grading skill. No grade-2 exception was supplied or justified for the changed helper, so mandatory grading does not clear.
+The unchanged legacy failures printed by whole-file grading are outside the c1 function set and are not charged to this repair. `check-domain.py` is shell and is not graded under the risk-grading skill. No grade-2 exception was supplied or justified for the changed helper, so mandatory grading does not clear.
 
 Risk grading left the worktree bytes and index unchanged. Before and after, SHA-256 values were identical: status census `f3d9e47b1044ba2c61bc7ca175b8b58e5ce539687a8db39c634b30e40978c3b5`, unstaged binary diff `2eaf140981a110b32eee8bc56016ef7978c79a2c3cde122a47ef27de6286ed54`, staged binary diff `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (empty index diff).
 

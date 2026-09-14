@@ -60,7 +60,7 @@ panel:
 lanes:
   resolved_at: b7956fc4
   rows:
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: 'DEC-174 — registered PreToolUse write gate, granted by the resolver and still not squad work'
     - surface: .claude/skills/harness/bin/check-state.sh
@@ -106,7 +106,7 @@ decisions:
     because: a frozen path list needs no git history, so the answer cannot change with clone depth the way a git-log discriminator does in a depth-1 CI checkout; failure mode is a dead entry after a note is renamed, which exempts nothing; a historical note someone later edits is refused by the write gate until it gains the section, so it can only leave the historical set by becoming compliant; what each pass checks once the section is present is D-10's ruling, not this one's, and is deferred to it by id.
     dec: none
   - id: D-02
-    choice: 'one implementation of block parsing and pointer resolution, a new module .claude/skills/harness/bin/handoff_done_when.py, imported by check-domain.sh and check-state.sh'
+    choice: 'one implementation of block parsing and pointer resolution, a new module .claude/skills/harness/bin/handoff_done_when.py, imported by check-domain.py and check-state.sh'
     because: 'DEC-179 priced a second matcher that drifts from the first; two gates asking the same question must ask the same code'
     dec: DEC-179
   - id: D-03
@@ -135,7 +135,7 @@ decisions:
     because: 'the operator settled that untouched historical handoffs remain valid AND that every newly written or edited handoff must use the five-section contract (grilling line 16); widening the baseline to cover this build''s own notes would exempt the first notes ever written under the new contract, and leaving them non-compliant would redden the corpus scan T-07 adds, for a planning reason no code fix addresses'
     dec: none
   - id: D-10
-    choice: 'pointer TARGETS are resolved at write time only: check-domain.sh calls handoff_done_when.problems(..., resolve=True) and checks section presence, block shape, pointer grammar AND target resolution; check-state.sh (INV-17) calls the same single implementation with resolve=False and checks section presence against the frozen baseline, block shape and pointer GRAMMAR only — the authority prefix is one of the four legal types and the pointer is well formed for that type — and never opens a target. One module, one parser, one pointer grammar (DEC-179); resolve gates nothing but whether a target file is opened'
+    choice: 'pointer TARGETS are resolved at write time only: check-domain.py calls handoff_done_when.problems(..., resolve=True) and checks section presence, block shape, pointer grammar AND target resolution; check-state.sh (INV-17) calls the same single implementation with resolve=False and checks section presence against the frozen baseline, block shape and pointer GRAMMAR only — the authority prefix is one of the four legal types and the pointer is well formed for that type — and never opens a target. One module, one parser, one pointer grammar (DEC-179); resolve gates nothing but whether a target file is opened'
     because: 'the operator ruled at the batched signature review of 2026-09-02, on finding PF-4205e7e2, that a standing re-resolution over the persisted corpus is a rot vector: a later BRIEF repair that renumbers an SC reddens an untouched, previously valid note and forces the very edit the frozen baseline exists to prevent, while the grilling settled resolution at write time only. Pointer GRAMMAR stays in the persisted pass because a typed prefix consults no target and therefore cannot rot, and a note whose authority is outside the four legal kinds must still be caught there. The operator ruled at the same batched signature review of 2026-09-02, on finding PF-bd92960a, that the typed pointer grammar — the four authority types and the id format of each — is a STABLE CONTRACT: the persisted pass validates grammar only and never target existence, and any future rename or narrowing of an authority type or of an id format is an explicit versioned contract change made by the feature that makes it, not machinery this feature builds. The operator also confirmed (Q3) that grammar validation IS part of the persisted shape validation. This clause is a record of the ruling and adds no mechanism, no task, no criterion and no grammar-versioning machinery, which stays out of scope'
     dec: DEC-179
 
@@ -145,7 +145,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — the test of gate logic imported by check-domain.sh and check-state.sh'
+    execution_reason: 'DEC-174 — the test of gate logic imported by check-domain.py and check-state.sh'
     depends_on: []
     status: done
     files:
@@ -196,7 +196,7 @@ tasks:
       (e) TWO refusals of an authority outside the four types, asserted separately: an Authority:
           line whose prefix is none of the four ("Authority: docs:whatever") returns a message
           saying so and listing the four legal prefixes; and an Authority: line carrying a BARE
-          SOURCE-CODE LOCATION ("Authority: check-domain.sh:1523") returns the same refusal, so
+          SOURCE-CODE LOCATION ("Authority: check-domain.py:1523") returns the same refusal, so
           "a source-code location alone is not an authority" (REQ-04) is observed and not assumed;
       (f) AND semantics, distinguished from ANY observably: four authorities all resolving returns
           [], proving the maximum is accepted, and the SAME block with exactly one of those four
@@ -223,7 +223,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — gate logic imported by both check-domain.sh and check-state.sh'
+    execution_reason: 'DEC-174 — gate logic imported by both check-domain.py and check-state.sh'
     depends_on: [T-01]
     status: done
     files:
@@ -278,7 +278,7 @@ tasks:
       5. No I/O outside the paths named above, and no process spawn: both callers are hooks on a
          latency budget.
 
-      Do not touch check-domain.sh or check-state.sh in this task. The expected state at the end
+      Do not touch check-domain.py or check-state.sh in this task. The expected state at the end
       is GREEN for test-handoff-done-when.py and unchanged behaviour everywhere else.
   - id: T-03
     title: Write the failing write-gate cases in test-check-domain.py
@@ -291,7 +291,7 @@ tasks:
     - REQ-08
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — check-domain.sh''s own test'
+    execution_reason: 'DEC-174 — check-domain.py''s own test'
     depends_on: [T-02]
     status: done
     files:
@@ -303,7 +303,7 @@ tasks:
       Extend tests/integration/test-check-domain.py with the write-gate cases for the
       fifth handoff section. Use the existing handoff fixture helpers in that file (the rows near
       the current handoff cap and missing-section cases) so the new cases go through the real
-      check-domain.sh process and assert on its exit code and stderr, never on its source.
+      check-domain.py process and assert on its exit code and stderr, never on its source.
 
       Cases, each a separate named assertion:
       (a) a handoff note carrying "## Next", "## Trust", "## Dead ends", "## Working set" and no
@@ -323,7 +323,7 @@ tasks:
           the same edit that adds a well formed block is allowed;
       (g) an authority outside the four types is refused through the gate, TWO separate
           assertions: an unknown prefix ("Authority: docs:whatever") and a BARE SOURCE-CODE
-          LOCATION ("Authority: check-domain.sh:1523"). Each is exit 2 and the stderr lists the
+          LOCATION ("Authority: check-domain.py:1523"). Each is exit 2 and the stderr lists the
           four legal prefixes. This is the gate-level proof of REQ-04's second sentence;
       (h) NO PER-SECTION CAP EXISTS, asserted positively: a five-section note whose "## Trust"
           section runs 25 lines and whose whole file is exactly 60 lines is ALLOWED, exit 0, and
@@ -340,7 +340,7 @@ tasks:
       grammar AND target resolution are all in force (REQ-06, D-10), so every pointer case here
       is a resolving-or-refused case rather than a grammar-only one.
 
-      Do not modify check-domain.sh in this task. The expected state at the end is RED: the new
+      Do not modify check-domain.py in this task. The expected state at the end is RED: the new
       cases fail because the gate does not yet demand or parse the section, and the output names
       the section. Case (h) is expected GREEN before and after — it is a regression guard on the
       absence of a per-section cap, and its value is that it reddens if one is ever added.
@@ -349,15 +349,15 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-05, REQ-06, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — check-domain.sh is a registered PreToolUse gate script'
+    execution_reason: 'DEC-174 — check-domain.py is a registered PreToolUse gate script'
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       cd "$CLAUDE_PROJECT_DIR" && python3 tests/integration/test-check-domain.py
     intent: |
-      In .claude/skills/harness/bin/check-domain.sh, extend the RE_HANDOFF branch of
+      In .claude/skills/harness/bin/check-domain.py, extend the RE_HANDOFF branch of
       shape_problems (the block at the "handoff shape (DEC-159)" head) so that every handoff
       write and edit it already sees must also satisfy the Done when contract:
 
@@ -371,7 +371,7 @@ tasks:
         all in force, which is what REQ-06 demands and what D-10 confines to write time;
       - keep the 60-line whole-file cap and its message unchanged, and add no per-section cap;
       - ALSO bring this gate's OWN PROSE into the five-section contract. Two live four-section
-        claims sit inside check-domain.sh today; locate each BY ITS CONTENT, never by line
+        claims sit inside check-domain.py today; locate each BY ITS CONTENT, never by line
         number, which moves:
         (i) the normative "DEC-159:" comment immediately above the RE_HANDOFF branch, which
         today says the handoff note is working memory for a successor with "four fixed

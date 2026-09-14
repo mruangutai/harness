@@ -105,7 +105,7 @@ grammar. T-07's `files:` covers every site that must change.
 
 ### F-07 · info · T-06 and T-09 edit the same two files with no ordering edge
 
-Both touch `check-domain.sh` and `tests/integration/test-check-domain.py` in different regions, and
+Both touch `check-domain.py` and `tests/integration/test-check-domain.py` in different regions, and
 neither depends on the other. Both are `main-session-direct`, which serialises them by construction,
 so this is a note rather than a risk.
 
@@ -114,7 +114,7 @@ so this is a note rather than a risk.
 Both applied under compare-and-swap, exit 0. `T-09.traces` is now `[REQ-01, REQ-07]`; `T-08.depends_on`
 is now `[T-02, T-03, T-05, T-06, T-09]`; order preserved, one element added each.
 
-They close the ordering gap on the merits. T-09 edits `check-domain.sh` and
+They close the ordering gap on the merits. T-09 edits `check-domain.py` and
 `tests/integration/test-check-domain.py`, so its changes fall inside REQ-07's scope and now trace it;
 and T-08 — the sole producer of the `notes/regression-delta-BUG-1305.md` that SC-07 is graded on —
 can no longer be written before T-09's changes exist. The resulting chain

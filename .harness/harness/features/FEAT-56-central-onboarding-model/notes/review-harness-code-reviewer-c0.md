@@ -54,7 +54,7 @@ One citation each, read individually at the pin:
    not an onboarded harness control plane. Run /harness-init in the control-plane clone." The
    other three remedies also correctly name the clone (`:287`, `:407` INV-32 panel_era_start, and
    `:2434-2436` INV-31 rationale) — checked individually, not by a file-global grep.
-3. `.claude/skills/harness/bin/check-domain.sh:384-386` — the fail-open message: "no {manifest} —
+3. `.claude/skills/harness/bin/check-domain.py:384-386` — the fail-open message: "no {manifest} —
    enforcement OFF. That path is the control plane's own manifest; a product repository never
    carries one. Run /harness-init in the control-plane clone." Confirmed unchanged around it:
    `_run_domain = False` (a flag, never an exit — T-02's own constraint held).

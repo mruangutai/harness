@@ -55,7 +55,7 @@ No hand (`[harness:human]`) commits in range: `git log 37a8a66..340e18a --format
 Re-ran `grep -nE 're\.(search|findall|match|finditer|sub|split|compile)'` at `340e18a` over all six
 files and diffed row-by-row against `PLAN.md`'s `## Regex census`.
 
-**check-domain.sh, bash-write-guard.sh, gh-sync.py, cost-report.py, upgrade-config.py — all match
+**check-domain.py, bash-write-guard.sh, gh-sync.py, cost-report.py, upgrade-config.py — all match
 the census exactly** (7, 5, 6, 2, 0 STAY calls respectively; every CONVERT call gone). I mapped each
 found line to its census bucket by content, not just count, for all five.
 
@@ -90,7 +90,7 @@ closes as not-a-defect.
 - **SC-02 MET** — ran `check-state.sh` myself: exit 0, zero violations, only INV-8 pruned-dir notes (plus one new INV-12 note about an unrecorded FEAT-05 run dir, unrelated to this feature's SCs).
 - **SC-05 / SC-06 MET** — ran the suites myself; the paired allow+block assertions exist and pass for both hooks.
 - **SC-07 MET** — `ls requirements.txt pyproject.toml package.json` → 3× "No such file"; `grep -ciw six` → 0; "seven prerequisites" and `import yaml` present in `harness-init/SKILL.md`.
-- **SC-08 MET (unit level)** — `harness_yaml.py:307-319`, `require_or_bootstrap`'s grant path writes a `json.dumps`-built `systemMessage` to stdout, once, only on the "marker absent" branch (verified: the "present, identity matches" branch returns at line 273, before this code). No competing stdout writer anywhere in `check-domain.sh` or `bash-write-guard.sh` (grepped). UAT (hand-run) originally caught D-14b failing, then confirmed fixed; I independently re-derived the fix's shape from source, not from the disposition note's say-so.
+- **SC-08 MET (unit level)** — `harness_yaml.py:307-319`, `require_or_bootstrap`'s grant path writes a `json.dumps`-built `systemMessage` to stdout, once, only on the "marker absent" branch (verified: the "present, identity matches" branch returns at line 273, before this code). No competing stdout writer anywhere in `check-domain.py` or `bash-write-guard.sh` (grepped). UAT (hand-run) originally caught D-14b failing, then confirmed fixed; I independently re-derived the fix's shape from source, not from the disposition note's say-so.
 - **SC-09 MET** — UAT (`uat-bootstrap-escape-expiry.md`) ran U-05 against three genuinely distinct transcript UUIDs; block on session mismatch confirmed.
 - **SC-10 NOT MET** — see finding #4 below.
 - **SC-12 MET, mechanically, but arithmetic exposes the gap** — `run-unit-tests.sh` exits 0, 11 suites, all pass, at-or-above the 9-file baseline. But the plan itself commits to **three** `SCRIPTS` additions across this feature: T-02's `test-harness-yaml.py`, T-04's `test-upgrade-config.py`, and SC-14's `test-harness-yaml-corpus.py` — 9 + 3 = 12 expected, and `run-unit-tests.sh:6`'s `SCRIPTS` array has **11**. The missing entry is `test-upgrade-config.py`, and it names itself: this is the exact test that would have caught finding #1.
@@ -167,7 +167,7 @@ unreachable in production only because finding #1 crashes first.
 
 ### 5. [LOW] D-02's "verbatim" claim is not literally true
 
-Old (`check-domain.sh:296` @ `37a8a66`): `"duplicate top-level key(s) {dups} — ..."` (plural, full
+Old (`check-domain.py:296` @ `37a8a66`): `"duplicate top-level key(s) {dups} — ..."` (plural, full
 list, from a regex scan that also caught **unknown** keys in the same denial when both were
 present). New (`:313` @ `340e18a`): `"duplicate key {e.key!r} — ..."` (singular, only the first
 duplicate the raising loader hits; the loader raises before the unknown-key check ever runs, so a
@@ -200,7 +200,7 @@ mandated, which is worth a durable record.
   `require_or_bootstrap`/manifest parsing is reached, so a malformed `team-config.yaml` is always
   repairable from the main session. No agent's domain grants that path (grepped, zero hits).
   `harness-dev-ops` is exempt only from `bash-write-guard.sh` (`:56-57`), not from
-  `check-domain.sh` — confirmed by reading both files, matches the documented design.
+  `check-domain.py` — confirmed by reading both files, matches the documented design.
 - D-02/D-08 loader semantics: ran `harness_yaml.load_str` directly — duplicate key (top-level and
   nested) raises `DuplicateKeyError`, malformed YAML raises `YamlParseError`, timestamp resolver
   stripped (bare date stays `str`), int/bool resolvers preserved.

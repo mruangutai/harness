@@ -79,7 +79,7 @@ forbids exactly that. The intent stays as the historical record; D-19 names it s
 
 **Lane authority:** `plan.yaml:47-49` (`merge-gate.sh and merge-gate.py` → `main-session-direct`),
 `:73-75` (`tests/integration/test-merge-gate.py` → `main-session-direct`), `T-05
-execution_mode: main-session-direct` (`:1047-1048`), D-11 (`:139-157`). `check-domain.sh --resolve`
+execution_mode: main-session-direct` (`:1047-1048`), D-11 (`:139-157`). `check-domain.py --resolve`
 returns `harness-backend-dev`/`harness-dev-ops`/`harness-qa` for these paths and the signed
 carve-out rows OVERRIDE it. **No agent edits either file.**
 

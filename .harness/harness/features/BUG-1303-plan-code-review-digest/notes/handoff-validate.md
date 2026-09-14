@@ -31,7 +31,7 @@ dispatched at either.
 
 ## Dead ends
 
-- Do not dispatch a squad at F-02's two skill files — `check-domain.sh --resolve` returns `NOBODY`
+- Do not dispatch a squad at F-02's two skill files — `check-domain.py --resolve` returns `NOBODY`
   for both — orchestrator ran the guard per path — verified-at e2c800f1
 - Do not re-run the c4 panel's security or ui lenses — each PASSED on a measured census and the fix
   commit adds no surface for either — `runs/2026-09-05-14-validator/digest.md` `not_rerun` —

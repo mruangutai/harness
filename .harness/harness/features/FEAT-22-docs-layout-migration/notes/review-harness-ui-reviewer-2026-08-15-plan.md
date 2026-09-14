@@ -95,7 +95,7 @@ diagnostic strings, and the same cheap-before-build remedy applies.
   `.harness/harness/docs/DECISIONS-INDEX.md`, and separately greps the committed file's header for
   the new path. SC-06 backs this as automated/integration evidence. No gap.
 - **T-06's six files** (`CLAUDE.md`, `harness-principles/SKILL.md`, `templates/plan.yaml:44`,
-  `check-plan-routes.py:44`, `check-state.sh:676`, `check-domain.sh:953`). Read all six at 0f12f14
+  `check-plan-routes.py:44`, `check-state.sh:676`, `check-domain.py:953`). Read all six at 0f12f14
   directly. None makes a claim about *which glob or rule grants a path* — each is a pure pointer
   ("read the authority here," "rationale belongs at this path," "this path is an example of a
   granted path"). Grepping every T-03/T-06 file for `grant(ed)` confirms the grant-attribution

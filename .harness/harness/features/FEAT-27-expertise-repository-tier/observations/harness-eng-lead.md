@@ -57,7 +57,7 @@
   It also caught that the manifest has 16 repository-tier grants while the fixture pins only 6.
 
 - 2026-08-19: harness_yaml.py:362's docstring carries the SAME stale "equivalent to
-  check-domain.sh's pre-change collect()" claim as the test docstring the dispatch flagged. The
+  check-domain.py's pre-change collect()" claim as the test docstring the dispatch flagged. The
   advisory finding was framed as a test-file issue and is actually a two-site issue. A finding
   scoped to the file where it was noticed under-reports its own blast radius.
 

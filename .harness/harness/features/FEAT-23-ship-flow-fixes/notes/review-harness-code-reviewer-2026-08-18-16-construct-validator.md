@@ -119,5 +119,5 @@ depends on a reader not "fixing" the code to match a plausible-sounding but wron
 ## Already ruled — not re-filed
 
 `ship-review-2026-08-17-13.md` B-1..B-26, `runs/2026-08-17-14-finalpass-validator/digest.md` Q1–Q6,
-`runs/2026-08-17-15-refix-validator/digest.md` Q1–Q6 (including the `check-domain.sh`/`Bash`
+`runs/2026-08-17-15-refix-validator/digest.md` Q1–Q6 (including the `check-domain.py`/`Bash`
 workaround, Q2) — all confirmed present in `notes/`, none re-raised here.

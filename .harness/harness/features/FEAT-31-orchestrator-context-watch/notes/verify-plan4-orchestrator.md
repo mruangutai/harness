@@ -10,7 +10,7 @@ is a check on this one rather than a restatement of it.
 |---|---|---|
 | Eight `INTEGRATION_SCRIPTS` entries absent from `test_kinds.integration.detect` | C-2 / D-4 | **CONFIRMED, exactly 8 of 12** |
 | Four files sit in both `unit.detect` and `integration.detect` | Q-B | **CONFIRMED, exactly 4** |
-| `RE_HANDOFF` at `check-domain.sh:665` in this worktree (not `:706`) | C-6 | **CONFIRMED** |
+| `RE_HANDOFF` at `check-domain.py:665` in this worktree (not `:706`) | C-6 | **CONFIRMED** |
 | `SEAM_NOTES` at `check-state.sh:495` | C-6 | **CONFIRMED** |
 | `tests.yml` runs both kinds as required steps (`:78`, `:84`) | C-1 | **CONFIRMED**, no `continue-on-error` |
 | One loop both builds the required path AND shape-checks it | C-3 | **CONFIRMED structurally** |

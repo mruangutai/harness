@@ -184,7 +184,7 @@ could not pass:
 
 ## Lane resolution, run at b7ae135
 
-Every literal `files:` path was delegated to `check-domain.sh --resolve` (DEC-179). Verbatim results:
+Every literal `files:` path was delegated to `check-domain.py --resolve` (DEC-179). Verbatim results:
 
 | path | `--resolve` said |
 |---|---|
@@ -199,7 +199,7 @@ Every literal `files:` path was delegated to `check-domain.sh --resolve` (DEC-17
 | `.harness/harness/docs/DECISIONS-INDEX.md` | `harness-documentor` |
 
 `NOBODY` becomes a declared `main-session-direct` task, never a mid-run rejected write.
-**`gh-sync.py` is not one of the DEC-174 four** (`check-domain.sh`, `bash-write-guard.sh`,
+**`gh-sync.py` is not one of the DEC-174 four** (`check-domain.py`, `bash-write-guard.sh`,
 `validate-digest.py`, `check-state.sh`), so T-01 is an ordinary team task.
 
 ## The write-path probe that settles D-01 (issue #417's discriminating check 2)

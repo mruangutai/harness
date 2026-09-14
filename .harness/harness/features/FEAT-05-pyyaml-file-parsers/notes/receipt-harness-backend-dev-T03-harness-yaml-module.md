@@ -88,7 +88,7 @@ whole — flagging now so it's not discovered mid-conversion.
 - `require_or_die() -> None`
 - `require_or_bootstrap(root: str, payload: dict | None = None) -> bool` — `payload=None` reads
   `HOOK_PAYLOAD` env var (JSON), never stdin (correction to T-02's receipt, verified at
-  `check-domain.sh:232-234`; see observations log). Identity chain: `payload["session_id"]` →
+  `check-domain.py:232-234`; see observations log). Identity chain: `payload["session_id"]` →
   `payload["transcript_path"]` basename stem → `CLAUDE_CODE_SESSION_ID` →
   `CLAUDE_CODE_BRIDGE_SESSION_ID` → fail closed.
 

@@ -196,7 +196,7 @@ def mut_workspace_root_relative(d):
 
 def mut_workspace_root_is_filesystem_root(d):
     # Review panel, 2026-08-11. "/" passes isabs and inverts the write guard:
-    # check-domain.sh refuses any path under workspace_root belonging to no declared
+    # check-domain.py refuses any path under workspace_root belonging to no declared
     # repo, so with "/" every path on the machine is under it and /tmp/scratch.py
     # flips from no-verdict to BLOCKED — the opposite of REQ-05. Fails closed, so it
     # never wrongly permits; it still teaches an agent the guard is broken.

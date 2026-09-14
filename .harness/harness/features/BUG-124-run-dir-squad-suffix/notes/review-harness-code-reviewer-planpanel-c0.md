@@ -32,9 +32,9 @@ none blocking.
 
 3. **[low] T-02 intent mis-cites its own "house idiom" precedent.** Intent says the new shell
    substitution should use "`sys.path.pop(0)` then `sys.path.insert(0, sys.argv[1])` — the same idiom
-   check-domain.sh line 103 uses." Measured: `check-domain.sh:103` performs only `sys.path.pop(0)`
+   check-domain.py line 103 uses." Measured: `check-domain.py:103` performs only `sys.path.pop(0)`
    (inside a `PYTHONPATH`-fed heredoc, not a `-c` string); the paired insert is at
-   `check-domain.sh:125` — `sys.path.insert(0, _bin_dir)`, where `_bin_dir` is unpacked from
+   `check-domain.py:125` — `sys.path.insert(0, _bin_dir)`, where `_bin_dir` is unpacked from
    `sys.argv[1:4]` at line 124 (i.e. `sys.argv[3]`, not `sys.argv[1]`). The two mechanisms also differ
    structurally (heredoc+env var vs. a `$(python3 -c '...')` substitution). Low consequence — the
    described idiom is sound standalone regardless of the mismatched citation — but an implementer
@@ -59,7 +59,7 @@ none blocking.
 ## Verified anchors (no drift found unless noted above)
 
 `dispatch-guard.sh:25` (`GUARD_BIN_DIR`), `:105-112` (import try/except, confirmed exact),
-`check-domain.sh:103` (confirmed, but see finding 3 for the paired-line drift),
+`check-domain.py:103` (confirmed, but see finding 3 for the paired-line drift),
 `team-config.yaml:45,306,315,324` (confirmed exact), `SKILL.md:272-274` (confirmed exact),
 `harness_boundary.matches`/`resolve_root(bin_dir, strict=...)` (both exist, signatures as claimed),
 `_checkout`/`_read_registry`/`_claims_for`/`case_17_*` in `test-dispatch-guard.py` (all exist;
@@ -89,7 +89,7 @@ DIGEST:
   findings_detail:
     - { severity: med, summary: "T-01 verify + permanent unit test hardcode len(g)==3 against the live, mutable team-config.yaml", consequence: "A REQ-04-sanctioned fourth-squad grant addition turns a checked-in unit test red, forcing exactly the second edit REQ-04 says should never be needed." }
     - { severity: med, summary: "Vocabulary-derivation subprocess (D-03) is stderr-silenced, incapable-of-failing by design, and untested for its own breakage", consequence: "If the hook's actual runtime python3 lacks PyYAML (unlike the interactively-measured shell), the new guard becomes a permanent silent no-op indistinguishable from the benign REQ-05 skip, and issue #124 ships unfixed behind a green suite." }
-    - { severity: low, summary: "T-02 intent mis-cites check-domain.sh:103 as the source of sys.path.insert(0, sys.argv[1])", consequence: "The real insert is at check-domain.sh:125 using sys.argv[3] in a structurally different heredoc+PYTHONPATH pattern; an implementer checking the citation finds a mismatch and may copy the wrong wiring or lose time reconciling it." }
+    - { severity: low, summary: "T-02 intent mis-cites check-domain.py:103 as the source of sys.path.insert(0, sys.argv[1])", consequence: "The real insert is at check-domain.py:125 using sys.argv[3] in a structurally different heredoc+PYTHONPATH pattern; an implementer checking the citation finds a mismatch and may copy the wrong wiring or lose time reconciling it." }
     - { severity: med, summary: "T-03 verify (grep -q \"dispatch-guard.sh refuses\") binds a 4-word phrase, not the sentence's content", consequence: "An edit that keeps the phrase but states the wrong exit code, wrong condition, or drops the compliant-form clause still passes, and no other reviewer covers this main-session-direct docs task." }
   open_questions: []
   files_touched: []

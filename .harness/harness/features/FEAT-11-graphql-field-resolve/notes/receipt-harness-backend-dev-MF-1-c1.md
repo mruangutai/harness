@@ -126,7 +126,7 @@ PASS
 
 ## Constraints honoured
 
-No live `gh` calls (all fixture/fake-driven). `check-domain.sh`, `bash-write-guard.sh`,
+No live `gh` calls (all fixture/fake-driven). `check-domain.py`, `bash-write-guard.sh`,
 `validate-digest.py`, `check-state.sh`, `run-unit-tests.sh` untouched.
 `test-factory-decompose.py` / `test-factory-claim.py` / `test-factory-land.py` untouched — sha256
 pins confirmed matching in the verify block above. No commit made, no push.

@@ -110,7 +110,7 @@ either write hook is touched**.
 
 No PLAN task makes the repo's YAML parseable, and **no decision covers what a converted reader does
 with an unparseable file.** That is now a live question rather than a hypothetical: `check-state.sh` is
-about to become the thing that refuses to open on unparseable state, and `check-domain.sh` is about to
+about to become the thing that refuses to open on unparseable state, and `check-domain.py` is about to
 become the thing that refuses a write.
 
 eng-lead's recommendation — a reported VIOLATION naming the file and the parse error, never a bare

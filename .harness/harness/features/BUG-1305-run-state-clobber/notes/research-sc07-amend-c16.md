@@ -59,7 +59,7 @@ holds:**` opening clauses, `verify: inspection` and SC-08 are unchanged. No hunk
   tree of legacy run directories that carry checkpoints and no witness at all; and the fifth pair,
   T-05's new fail-closed `return 2` in `validate-digest.py`, still exiting 0 over a run directory
   whose `digest.md` exists and is compliant and over the no-root-resolves case that fails open; and
-  the sixth pair, the witness guard's route denials in `bash-write-guard.sh` and `check-domain.sh`,
+  the sixth pair, the witness guard's route denials in `bash-write-guard.sh` and `check-domain.py`,
   still permitting — in the same run directory — a Write of `state.yaml` and a Write of `digest.md`
   at exit 0, and leaving a Bash write to an unrelated ordinary file in that directory unaffected,
   so the denial is scoped to the one filename rather than to the directory.

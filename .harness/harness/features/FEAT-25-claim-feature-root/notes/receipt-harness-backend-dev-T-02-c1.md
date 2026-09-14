@@ -121,7 +121,7 @@ Exit status: 0.
 - `.harness/factory/fleet.yaml` — unedited.
 - `.harness/harness.json` — unedited.
 - `.claude/skills/harness/bin/gh_board.py` — unedited.
-- `.claude/skills/harness/bin/check-domain.sh` — unedited.
+- `.claude/skills/harness/bin/check-domain.py` — unedited.
 - `load_board` appears in no line I added (checked via `git diff | grep '^+' | grep -i load_board`
   → no hits).
 

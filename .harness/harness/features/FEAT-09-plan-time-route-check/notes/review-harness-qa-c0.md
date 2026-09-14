@@ -59,13 +59,13 @@ kinds: [{ kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-uni
 over-permissive matcher class.** Clause 4's literal text — "no `startswith`/prefix comparison... a
 path granted only through a mid-pattern wildcard still resolves to its granting agent" — IS proven:
 case 17 (`test-check-plan-routes.py:139-159`) shells all the way through `check-plan-routes.py` →
-`check-domain.sh --resolve` → the real `matches()`, so a hand-rolled prefix comparison inside
+`check-domain.py --resolve` → the real `matches()`, so a hand-rolled prefix comparison inside
 `check-plan-routes.py` would fail it. What the four SC-08 fixtures together (8, 9, 16 source greps +
 17 positive-behavioural) do NOT catch: `.harness/features/*/runs/*-eng/**` matched against
 `.harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md` never requires the mid-pattern
 `*` to span a `/` — the wildcard consumes only `1` before `-eng`, all within one segment. A
 reimplementation whose `*` incorrectly matches `/` (fnmatch's own defect, which `glob_to_re`'s
-docstring at `check-domain.sh:61-69` explicitly calls out as a **different**, over-permissive failure
+docstring at `check-domain.py:61-69` explicitly calls out as a **different**, over-permissive failure
 mode) would ALSO report this path OK — over-matching produces the same "OK" case 17 checks for, and
 clauses 9/16 only grep for absent strings, which an over-permissive matcher can still satisfy under a
 different name. Confirmed: no fixture anywhere in the diff asserts a path that a `/`-crossing `*`
@@ -74,14 +74,14 @@ one hit only, the positive case. Held at MED rather than higher because `matches
 explicitly *not modified* by this diff (T-01 intent) — nothing regresses today — but a future
 reimplementation of the over-permissive shape ships green against this exact suite.
 
-**F2 — MED — the `SHARED <pattern>` line (D-02, `check-domain.sh:200-201`) is untested end-to-end
+**F2 — MED — the `SHARED <pattern>` line (D-02, `check-domain.py:200-201`) is untested end-to-end
 through `check-plan-routes.py`, and I ran the scenario rather than inferring it.**
 `resolve_agents()` (`check-plan-routes.py:64`) explicitly strips `SHARED ...` lines before deciding
 grant status. No fixture in the 17 cases uses a `files:` entry that is a shared-only surface
 (`package.json`, `pyproject.toml`, etc. — `team-config.yaml:59-64`). Measured directly: a fixture task
 `files: package.json`, `execution_mode: team` → `check-plan-routes.py` prints
 `VIOLATION T-01: package.json ungranted (NOBODY); execution_mode is team — legal tokens: team,
-main-session-direct` and **exits 1**; separately, `check-domain.sh --resolve package.json </dev/null`
+main-session-direct` and **exits 1**; separately, `check-domain.py --resolve package.json </dev/null`
 itself prints `NOBODY` then `SHARED package.json`, exit 0 — the SHARED signal reaches
 `check-plan-routes.py` and is thrown away. So today a planner naming a genuinely shared file (any of
 the 5 in `team-config.yaml:59-64`) as a task's sole `files:` entry with `execution_mode: team` gets a
@@ -93,7 +93,7 @@ authorization boundary the SHARED line exists to communicate.
 **F3 — LOW/MED — four branches in `check-plan-routes.py` have zero test coverage:**
 missing `files:` line → `VIOLATION` (`:79`); an ungranted path with an unrecognized/unknown
 `execution_mode` token, e.g. the retired `squad-dispatched` (D-07 names this as the "safe direction"
-case) → no fixture; a PLAN path argument that does not exist → `exit 2` (`:135-137`); `check-domain.sh`
+case) → no fixture; a PLAN path argument that does not exist → `exit 2` (`:135-137`); `check-domain.py`
 itself exiting 2 (unparseable/duplicate-key manifest) propagating to `check-plan-routes.py`'s own
 `exit 2` (`:58-60`). All four are real code paths I read directly, none is exercised by any of the 17
 named cases or elsewhere in the diff.

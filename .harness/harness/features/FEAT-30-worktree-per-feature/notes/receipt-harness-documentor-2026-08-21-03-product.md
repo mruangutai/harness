@@ -24,7 +24,7 @@ for it and judged there is no row to retire and nothing to add.
 
 ## BUILD.md — resolver output quoted, and the judgement
 
-    $ .claude/skills/harness/bin/check-domain.sh --resolve .harness/harness/docs/BUILD.md
+    $ .claude/skills/harness/bin/check-domain.py --resolve .harness/harness/docs/BUILD.md
     harness-documentor
     exit=0
 
@@ -67,6 +67,6 @@ live outside `.harness/`, and the CLI's audience is the orchestrator, which read
    `feature.json` and `plan.yaml` (checked in FEAT-29 and FEAT-30), and features now live under
    `.harness/harness/features/`. That is the FEAT-21/22 + DEC-182 migration's residue, not this
    feature's.
-2. `BUILD.md:147-148` says "the hook cannot see writes made via `Bash`". True of `check-domain.sh`
+2. `BUILD.md:147-148` says "the hook cannot see writes made via `Bash`". True of `check-domain.py`
    alone; `settings.json:34-37` (the `bash-write-guard.sh` entry) registers `bash-write-guard.sh` as a `PreToolUse` Bash hook, which is
    where FEAT-30's HEAD-move rule lives. The sentence is a Step-0b historical note, so I left it.

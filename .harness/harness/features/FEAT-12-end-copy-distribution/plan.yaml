@@ -29,46 +29,46 @@ lanes:
     - surface: .claude/skills/harness/bin/**
       lane: team
       agent: harness-backend-dev
-      reason: check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops at the resolved sha
+      reason: check-domain.py --resolve returns harness-backend-dev and harness-dev-ops at the resolved sha
     - surface: docs/**
       lane: team
       agent: harness-documentor
-      reason: check-domain.sh --resolve returns harness-documentor for docs/harness/SPEC.md, BUILD.md, DECISIONS.md and DECISIONS-INDEX.md
+      reason: check-domain.py --resolve returns harness-documentor for docs/harness/SPEC.md, BUILD.md, DECISIONS.md and DECISIONS-INDEX.md
     - surface: README.md
       lane: team
       agent: harness-documentor
-      reason: check-domain.sh --resolve returns harness-documentor
+      reason: check-domain.py --resolve returns harness-documentor
     - surface: .harness/README.md
       lane: team
       agent: harness-documentor
-      reason: check-domain.sh --resolve returns harness-documentor
+      reason: check-domain.py --resolve returns harness-documentor
     - surface: .claude/commands/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md, so DEC-179 makes it a declared main-session step
+      reason: check-domain.py --resolve returns NOBODY for .claude/commands/harness-deploy.md, so DEC-179 makes it a declared main-session step
     - surface: .claude/skills/harness-team/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY; rule skills are unowned by any lane
+      reason: check-domain.py --resolve returns NOBODY; rule skills are unowned by any lane
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY; rule skills are unowned by any lane
+      reason: check-domain.py --resolve returns NOBODY; rule skills are unowned by any lane
     - surface: .claude/skills/harness/templates/README.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the templates tree
+      reason: check-domain.py --resolve returns NOBODY for the templates tree
     - surface: .claude/skills/harness/templates/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the templates tree
+      reason: check-domain.py --resolve returns NOBODY for the templates tree
     - surface: .harness/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, measured at 835b297; no lane grants the file that declares the lanes
+      reason: check-domain.py --resolve returns NOBODY, measured at 835b297; no lane grants the file that declares the lanes
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY; precedent is FEAT-10 T-01, written main-session-direct on 2026-08-09
+      reason: check-domain.py --resolve returns NOBODY; precedent is FEAT-10 T-01, written main-session-direct on 2026-08-09
     - surface: /Users/molchairuangutai/GitHub/kaya-ai/**
       lane: main-session-direct
-      reason: outside CLAUDE_PROJECT_DIR, so check-domain.sh passes it through ungoverned and no team-config lane grants it; the work is a cross-repo destructive change gated on Q1, so it stays with the tier that has an operator channel
+      reason: outside CLAUDE_PROJECT_DIR, so check-domain.py passes it through ungoverned and no team-config lane grants it; the work is a cross-repo destructive change gated on Q1, so it stays with the tier that has an operator channel
     - surface: /Users/molchairuangutai/.harness/registry.json
       lane: main-session-direct
-      reason: outside CLAUDE_PROJECT_DIR, ungoverned by check-domain.sh, and no lane in team-config.yaml names a path under the home directory
+      reason: outside CLAUDE_PROJECT_DIR, ungoverned by check-domain.py, and no lane in team-config.yaml names a path under the home directory
 
 decisions:
   - id: D-01
@@ -100,10 +100,10 @@ decisions:
       EIGHT of them across FOUR hook events, not three PreToolUse hooks. Measured with json.load in
       kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.sh; PreToolUse Bash
       branch-create-gate.sh a second, duplicate time under a different variable spelling; PreToolUse
-      Bash bash-write-guard.sh; PreToolUse Write or Edit check-domain.sh; PreToolUse Task or Agent
+      Bash bash-write-guard.sh; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
       dispatch-guard.sh; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
       matcher harness-.* validate-digest.py --hook; PostToolUse Write or Edit or Bash
-      check-domain.sh --post. All eight go, in this feature rather than as a deferral.
+      check-domain.py --post. All eight go, in this feature rather than as a deferral.
     because: >-
       those paths live inside the skill tree D-01 deletes, so leaving them wired makes every Bash,
       Write, Task and subagent call in any kaya session - including the factory checkouts the fleet
@@ -346,11 +346,11 @@ tasks:
                                        duplicate entry, spelled ${CLAUDE_PROJECT_DIR} where the
                                        first uses "$CLAUDE_PROJECT_DIR" - both go)
         PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.sh
-        PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.sh
+        PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.py
         PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.sh
         SubagentStart  harness-.*      .claude/skills/harness/bin/inject-expertise.sh
         SubagentStop   harness-.*      .claude/skills/harness/bin/validate-digest.py --hook
-        PostToolUse  Write or Edit or Bash  .claude/skills/harness/bin/check-domain.sh --post
+        PostToolUse  Write or Edit or Bash  .claude/skills/harness/bin/check-domain.py --post
 
       Do not treat this list as the definition of the set. The DEFINITION is the headline above -
       any hook whose command points inside .claude/skills/harness/ - and the list is what that
@@ -477,7 +477,7 @@ tasks:
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .harness/factory/fleet.yaml; precedent is FEAT-10 T-01
+    execution_reason: check-domain.py --resolve returns NOBODY for .harness/factory/fleet.yaml; precedent is FEAT-10 T-01
     depends_on: []
     status: done
     files:
@@ -538,7 +538,7 @@ tasks:
     traces: [REQ-01, REQ-07]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/commands/harness-deploy.md
     depends_on: []
     status: done
     files:
@@ -637,7 +637,7 @@ tasks:
         copies the skill directory any more, and the probe stays a docs path because the derived
         root must be a full checkout of this repository, which a bare skills tree is not.
 
-      Do not create or delete files in this task. Do not touch check-domain.sh, bash-write-guard.sh,
+      Do not create or delete files in this task. Do not touch check-domain.py, bash-write-guard.sh,
       validate-digest.py or check-state.sh - DEC-174 puts all four outside a team run. There is no
       fifth: check-docs.sh was deleted under issue 202 and DEC-188, it is absent from the tree at
       687fd3e, and it must not be recreated.
@@ -649,7 +649,7 @@ tasks:
     traces: [REQ-07]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY at 835b297 for all five files - .claude/skills/harness-team/SKILL.md, .claude/skills/harness-init/SKILL.md, .claude/skills/harness/templates/README.md, .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, each measured individually
+    execution_reason: check-domain.py --resolve returns NOBODY at 835b297 for all five files - .claude/skills/harness-team/SKILL.md, .claude/skills/harness-init/SKILL.md, .claude/skills/harness/templates/README.md, .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, each measured individually
     depends_on: []
     status: done
     files:

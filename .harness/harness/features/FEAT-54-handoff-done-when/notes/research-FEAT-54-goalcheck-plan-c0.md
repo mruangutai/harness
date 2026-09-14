@@ -71,7 +71,7 @@ T-01/T-02 (module), though T-08 writes its prose into the template.
 - **F-07 (low) T-07's verify requires non-empty output** (`test -n "$out"`, plan.yaml:371): a silent
   check-state run fails a correct implementation.
 - **F-08 (low) T-08's verify greps `! grep -rqi 'four sections'` over all of SKILL.md**; the only live
-  occurrences are `SKILL.md:304`, `templates/HANDOFF.md:4`, `check-domain.sh:1523` (T-04) and
+  occurrences are `SKILL.md:304`, `templates/HANDOFF.md:4`, `check-domain.py:1523` (T-04) and
   `DECISIONS.md:3701` (T-10), so REQ-09's scope does match the task file union — the grep is merely
   broader than the claim.
 

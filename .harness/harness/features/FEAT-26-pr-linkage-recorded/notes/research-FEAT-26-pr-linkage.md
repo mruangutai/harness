@@ -107,7 +107,7 @@ issues. That is the operator's call, raised as an open question rather than plan
 
 ## 5. Surfaces, routes and runners
 
-`check-domain.sh --resolve`, run per path:
+`check-domain.py --resolve`, run per path:
 
 | path | resolves to | plan route |
 |---|---|---|

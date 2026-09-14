@@ -91,7 +91,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   the validator squad. The non-harness reader of SC-14 is the one permitted exception, and it is the
   point of the design rather than a leak in it.
   verify: automated      evidence: unit
-- SC-02: `check-domain.sh --resolve`, run over every rendered **non-empty** `outputs:` path of every
+- SC-02: `check-domain.py --resolve`, run over every rendered **non-empty** `outputs:` path of every
   panel step and over the goal-check note path the playbook names, reports the path granted to that
   step's own persona. Falsified by one step whose output path no grant covers, which is the measured
   hand-run failure (the goal-check was denied `notes/goalcheck-plan-*.md`). A step declaring
@@ -245,8 +245,8 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
 
 - DEC-174 — the harness plans its own work but never EXECUTES changes to its own hooks, validators or
   gate scripts, and the list is non-exhaustive. Any REQ-10 or SC-04 machine check that lands in
-  `check-state.sh`, `validate-digest.py` or `check-domain.sh` is a `main-session-direct` task, decided
-  at plan time via DEC-179's `check-domain.sh --resolve`, never discovered mid-build.
+  `check-state.sh`, `validate-digest.py` or `check-domain.py` is a `main-session-direct` task, decided
+  at plan time via DEC-179's `check-domain.py --resolve`, never discovered mid-build.
 - Measured by the eng squad (`notes/receipt-harness-dev-ops-arch-eng.md`): the only reader channel
   that mechanically exists is a **spawned non-harness subagent**; `Explore`, `fork`, `general-purpose`
   and `Plan` are platform built-ins with no agent-definition file in this repo, so none of them is a
@@ -270,7 +270,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   deliberately in this change (REQ-09).
 - `main_session.writes` in `.harness/team-config.yaml` is three approval paths plus
   `.harness/logs/**`. Whatever REQ-07's overrule record is, the main session must be granted the path
-  it lands on, and `check-domain.sh` reads that list.
+  it lands on, and `check-domain.py` reads that list.
 - Editing `.harness/harness/docs/DECISIONS.md` requires regenerating `DECISIONS-INDEX.md` in the same
   change; the index stores a per-row source line, so lengthening one entry shifts every later anchor.
 - The plan sequence is PROSE today, in `.claude/commands/harness-plan.md`'s `**Target state:**`
@@ -282,7 +282,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
 **Out of scope, settled by the operator in the grilling artifact:**
 
 - The `/harness-ship` review panel. It grades a diff against a pinned sha and already exists.
-- Fixing `check-domain.sh`'s fail-open approval guard. Same class of problem, a later feature.
+- Fixing `check-domain.py`'s fail-open approval guard. Same class of problem, a later feature.
 - Whether the wrapped-reader pattern generalizes to further outside models. Not sharp until there is
   a second candidate.
 - Re-litigating FEAT-38's own panel findings; a revision is in flight elsewhere.

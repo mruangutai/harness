@@ -18,7 +18,7 @@ and the operator's decision was about *how it lands*, not about what it is.
 
 ## The defect, as stated to the factory
 
-> In `check-domain.sh`, the handoff_done_when path takes a checkout-relative path from
+> In `check-domain.py`, the handoff_done_when path takes a checkout-relative path from
 > `harness_boundary.checkout_relative` but discards the returned checkout root and passes the main
 > root to `handoff_done_when.problems`, so worktree-only feature artifacts are unseen. Fix should
 > carry `_ck[0]` into that call. Add a worktree-feature regression in `test-check-domain.py`.

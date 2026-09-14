@@ -10,7 +10,7 @@ approval:
 lanes:
   resolved_at: 0f12f14
   measurement: >-
-    Every row was MEASURED, not inferred. check-domain.sh --resolve was run on one representative
+    Every row was MEASURED, not inferred. check-domain.py --resolve was run on one representative
     path per row with the working tree at 0f12f14 (git rev-parse HEAD confirmed before and
     unchanged), and the verbatim answer is quoted in each resolve field. Leads hold no Bash
     (DEC-116), so pm took these measurements at plan time.
@@ -32,7 +32,7 @@ lanes:
       reason: >-
         DEC-174 carve-out named in CLAUDE.md, the state gate. One diagnostic prose line at :676
         names docs/harness/DECISIONS.md. The carve-out overrides the measured grant.
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: >-
@@ -301,7 +301,7 @@ tasks:
       test "$n" = 0 || { echo "legacy still tracked: $n"; exit 1; }
       test "$m" = 5 || { echo "expected 5 tracked docs at destination, got $m"; exit 1; }
       git ls-files .harness/harness/docs | grep -q 'org\.html$' || { echo "org.html missing"; exit 1; }
-      bash .claude/skills/harness/bin/check-domain.sh --resolve .harness/harness/docs/SPEC.md \
+      bash .claude/skills/harness/bin/check-domain.py --resolve .harness/harness/docs/SPEC.md \
         | grep -qx 'harness-documentor' || { echo "destination still ungranted"; exit 1; }
       echo OK
     intent: |
@@ -309,7 +309,7 @@ tasks:
 
       FIRST, add the docs grant to .harness/team-config.yaml. The harness-documentor role currently
       holds a grant on docs/** and nothing else that reaches the destination; measured at 0f12f14,
-      check-domain.sh --resolve .harness/harness/docs/SPEC.md returns NOBODY. Add, alongside the
+      check-domain.py --resolve .harness/harness/docs/SPEC.md returns NOBODY. Add, alongside the
       documentor's existing docs/** entry, an entry of the same form as the features grants already
       in the file:
         - { path: .harness/*/docs/**, upsert: true }
@@ -322,7 +322,7 @@ tasks:
       docs/** entry: it is what grants a PRODUCT checkout's own docs, and removing it would take
       the documentor's real job away.
 
-      Confirm with check-domain.sh --resolve before proceeding. If it still says NOBODY, stop.
+      Confirm with check-domain.py --resolve before proceeding. If it still says NOBODY, stop.
 
       SECOND, move the five tracked files with git mv, preserving rename detection:
         git mv docs/harness/SPEC.md            .harness/harness/docs/SPEC.md
@@ -812,7 +812,7 @@ tasks:
       command in this plan rather than on a test, which is not automated evidence at goal-check.
 
       1. In test-check-domain.py (integration suite, run-unit-tests.sh:18), pin that
-         check-domain.sh --resolve .harness/harness/docs/SPEC.md names harness-documentor. This
+         check-domain.py --resolve .harness/harness/docs/SPEC.md names harness-documentor. This
          also closes FEAT-21 ship-review row B-10 for the docs surface: it turns a pair someone
          measured once by hand into a case that runs on every push.
          THIS IS THE REPOINTED :789 CASE, NOT A SECOND ONE. :789 already fires --resolve against
@@ -839,7 +839,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      Four surfaces resolve NOBODY, and check-state.sh and check-domain.sh are DEC-174 carve-outs
+      Four surfaces resolve NOBODY, and check-state.sh and check-domain.py are DEC-174 carve-outs
       (D-03).
     depends_on: [T-04]
     status: done
@@ -849,14 +849,14 @@ tasks:
       - .claude/skills/harness/templates/plan.yaml
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/check-state.sh
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .harness/notes/audit-decisions.py
     verify: |
       for f in CLAUDE.md .claude/skills/harness-principles/SKILL.md \
                .claude/skills/harness/templates/plan.yaml \
                .claude/skills/harness/bin/check-plan-routes.py \
                .claude/skills/harness/bin/check-state.sh \
-               .claude/skills/harness/bin/check-domain.sh \
+               .claude/skills/harness/bin/check-domain.py \
                .harness/notes/audit-decisions.py; do
         if grep -qE 'docs/harness|"docs", ?"harness"' "$f"; then
           echo "legacy spelling survives in $f"; grep -nE 'docs/harness' "$f"; exit 1
@@ -888,7 +888,7 @@ tasks:
         no logic changes, and it is folded here rather than deferred to unit 9 because a gate
         message pointing an operator at a directory that no longer exists is user-facing staleness
         that this feature creates.
-      .claude/skills/harness/bin/check-domain.sh:953  the same diagnostic string, same reasoning.
+      .claude/skills/harness/bin/check-domain.py:953  the same diagnostic string, same reasoning.
       .harness/notes/audit-decisions.py:15-16  the ONLY entry here that is not prose. Two
         MODULE-SCOPE reads execute the moment the file is imported or run:
           :15  pathlib.Path("docs/harness/DECISIONS.md").read_text(encoding="utf-8")

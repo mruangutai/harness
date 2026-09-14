@@ -97,7 +97,7 @@
 
 - 2026-08-21: the `phase` contradiction is now settled at the SCHEMA, which is a stronger reading
   than the earlier guard observation. `bin/feature-schema.json` is `additionalProperties: false`
-  with eleven declared properties and NO `phase` among them, so `check-domain.sh` rejecting the key
+  with eleven declared properties and NO `phase` among them, so `check-domain.py` rejecting the key
   is the schema working exactly as designed — the orchestrator playbook's "record your phase in
   feature.json `phase:`" is the side that is wrong, and no amount of retrying will land it. When a
   rule and a gate disagree, read the gate's DATA (the schema) rather than the gate's error text: the

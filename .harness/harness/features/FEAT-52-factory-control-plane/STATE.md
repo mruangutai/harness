@@ -56,7 +56,7 @@
   the main session. Re-measured this run and unchanged. It means the DEC-174 carve-out is
   currently held by instruction alone, with no mechanism behind it.
 - Q5 (harness owner, non-blocking): a member holds no write grant inside a lead run dir (#216);
-  `check-domain.sh:1204` admits only a payload whose opening bytes are the prior file verbatim,
+  `check-domain.py:1204` admits only a payload whose opening bytes are the prior file verbatim,
   so a recorded digest can be appended to, never prepended; `notes/review-*` is a reviewer path
   a lead cannot write.
 - Q6 (harness owner, non-blocking): the feature directory is UNTRACKED — one bare `??` line in

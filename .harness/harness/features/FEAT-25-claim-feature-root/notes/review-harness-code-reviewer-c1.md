@@ -32,7 +32,7 @@ calibration in the dispatch, that is advisory, not gating.
   requires.
 - SC-08 both clauses hold: `git diff --name-only d1ffd7f...8d7b273 -- .` (minus the feature's own
   bookkeeping dir) shows no forbidden file (`factory_config.py`, `fleet.yaml`, `harness.json`,
-  `gh_board.py`, `check-domain.sh`) and no added `load_board` reference — checked individually by
+  `gh_board.py`, `check-domain.py`) and no added `load_board` reference — checked individually by
   grep, all six sub-verdicts negative.
 - Re-ran all three suites myself at `8d7b273` (working tree, byte-identical to the pin for these
   six files): `test-factory-claim.py` exit 0, 120 ok-lines (114 baseline + 2 T-01 + 4 T-02);

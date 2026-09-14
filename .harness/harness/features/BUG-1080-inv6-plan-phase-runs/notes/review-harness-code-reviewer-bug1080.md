@@ -78,7 +78,7 @@ exempted by INV-6 while being rejected by schema validation. Low practical sever
 `feature-json-merge.py append-run` → `feature_json_write.write_feature_json` schema-validates
 **before** the atomic write and refuses invalid documents (confirmed: `_apply` →
 `feature_json_write.write_feature_json`, doc-string: "schema-validates the candidate text... before
-the atomic replace"), and the `check-domain.sh` PreToolUse hook denies a raw `Write`/`Edit` with the
+the atomic replace"), and the `check-domain.py` PreToolUse hook denies a raw `Write`/`Edit` with the
 same violation at `sys.exit(2)` (blocking). Reaching the gap requires bypassing both — a raw
 filesystem write outside every governed writer. Real, but narrow. Not blocking; recorded as a
 should-fix (tighten the comparison to `.strip() != "n_a"`, dropping `.lower()`, or leave the

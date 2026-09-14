@@ -50,9 +50,9 @@ wrong number.
 
 | # | file:line | value | use | handling |
 |---|---|---|---|---|
-| 17 | `check-domain.sh:134` → `:212,:215` | every glob from `manifest_domains` | **regex source** — reaches `re.escape`/`re.compile` | `str()` at the SOURCE, `harness_yaml.py:130,142` |
+| 17 | `check-domain.py:134` → `:212,:215` | every glob from `manifest_domains` | **regex source** — reaches `re.escape`/`re.compile` | `str()` at the SOURCE, `harness_yaml.py:130,142` |
 | 18 | `bash-write-guard.sh:287` → `:318-319` | same | same, via its own `glob_to_re` | same source coercion |
-| 19 | `check-domain.sh:306` → `:315-316` | top-level keys of a parsed `state.yaml` | **dict-key comparison** vs `ALLOWED` | `str(k)` on BOTH sides |
+| 19 | `check-domain.py:306` → `:315-316` | top-level keys of a parsed `state.yaml` | **dict-key comparison** vs `ALLOWED` | `str(k)` on BOTH sides |
 
 **19 consumer sites, all classified.** The count is the complete output of
 `grep -n 'harness_yaml\.\(load_str\|load_file\|manifest_domains\)'` over `bin/`, expanded to
@@ -74,7 +74,7 @@ silently off — a fail-open produced by a crash.
 
 ### Regression 2 — a YAML-truthy top-level key vs `ALLOWED`
 
-`check-domain.sh:315-316`. YAML 1.1 resolves `on`, `off`, `yes`, `no`, `true`, `false` to booleans
+`check-domain.py:315-316`. YAML 1.1 resolves `on`, `off`, `yes`, `no`, `true`, `false` to booleans
 and `01` to an int, so a parsed key is **not necessarily a string**. Verified:
 
 ```

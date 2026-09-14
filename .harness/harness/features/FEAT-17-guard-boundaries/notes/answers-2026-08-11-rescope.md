@@ -95,7 +95,7 @@ Accepted on the argument the orchestrator verified rather than asserted: **the W
 target-side refusal is ALREADY parser-contingent** — it is wired into `classify`, and only
 `domain_check` calls `classify` — so siting the root-side check there is symmetric with what the
 plan had already accepted, not a new weakness singled out. Supporting: the bootstrap grant skips
-`domain_check` in the real checkout too (`check-domain.sh:675`, `if _run_domain and not
+`domain_check` in the real checkout too (`check-domain.py:675`, `if _run_domain and not
 _no_parser:`), so a stray-worktree session under the grant is no worse off than a sanctioned one.
 
 **Reversible at signature and only as a pair.** Restoring the module-level hoist restores SC-03's

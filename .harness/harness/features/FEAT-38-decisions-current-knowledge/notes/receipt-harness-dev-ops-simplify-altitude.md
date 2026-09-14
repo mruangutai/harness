@@ -1,18 +1,18 @@
 # SIMPLIFY — ALTITUDE angle — FEAT-38-decisions-current-knowledge
 
 Diff `7ebfc9eb9c..8a7c75c4e5`, code surface only (`run-unit-tests.sh`, `gen-decisions-index.py`,
-`harness.json`, `tests.yml`, `check-domain.sh`, `board_lifecycle.py`; `check-decision-anchors.py`
+`harness.json`, `tests.yml`, `check-domain.py`, `board_lifecycle.py`; `check-decision-anchors.py`
 frozen and untouched). Read-only. **One finding rises above the leave bar; everything else checked
 is clean or already has a named compensating mechanism.**
 
 ## Q1 — Residue of the deleted claims checker in any caller?
 
 Checked `run-unit-tests.sh` (T-24, `INTEGRATION_SCRIPTS` array), `harness.json` (T-25,
-`test_kinds.integration.detect`), `tests.yml`, `check-domain.sh`, `board_lifecycle.py` for any
+`test_kinds.integration.detect`), `tests.yml`, `check-domain.py`, `board_lifecycle.py` for any
 surviving branch, special case, or literal referencing `check-decision-claims` /
 `check_decision_claims`. **None found anywhere on the code surface** — both registration sites
 were edited as single-line removals with nothing else touched, and the two commits (`8c879f5`,
-`8a7c75c`) land in the order the runner's own KIND-DRIFT check forces. `check-domain.sh` and
+`8a7c75c`) land in the order the runner's own KIND-DRIFT check forces. `check-domain.py` and
 `board_lifecycle.py`'s only edits in this diff are unrelated `DEC-186/DEC-192 → DEC-203` citation
 sweeps (T-12/T-13), not claims residue. **`leave`** — clean removal, nothing to fold in or flag.
 

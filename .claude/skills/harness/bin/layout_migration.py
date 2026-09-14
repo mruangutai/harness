@@ -77,7 +77,7 @@ READER_TABLE = [
     Row("features", ".harness/team-config.yaml",
         r"\.harness/features/",
         r"\.harness/[^/ ]+/features/"),
-    Row("features", ".agents/skills/harness/bin/check-domain.sh",
+    Row("features", ".agents/skills/harness/bin/check-domain.py",
         r"\.harness/features/",
         r"\.harness/(\*|\[\^/\]\+)/features/"),
     # The trailing `# balance:` comments below are LOAD-BEARING for a meta-gate, not

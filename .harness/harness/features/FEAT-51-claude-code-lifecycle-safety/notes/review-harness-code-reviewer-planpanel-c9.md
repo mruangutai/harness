@@ -168,7 +168,7 @@ worth a note so nobody downstream treats "two" as a bound on how many `:NNNN` va
    despite D-15 saying it supersedes exactly those bullets.** `plan.yaml:600-652` (T-06's `intent:`)
    states "it carries exactly these claims" over a closed 8-bullet list. Grepped that intent text in
    isolation (not the surrounding `verify:`/decisions): **zero** occurrences of `plan-sign-gate`,
-   `Bash`, `PreToolUse`, or `D-15`. Bullet 3 still reads "…refused at the check-domain.sh Write gate
+   `Bash`, `PreToolUse`, or `D-15`. Bullet 3 still reads "…refused at the check-domain.py Write gate
    on the canonical artifacts…" and bullet 4 still begins "The four canonical artifacts are
    plan.yaml, BRIEF.md, feature.json and STATE.md" — these are, near-verbatim, the exact two bullets
    D-15 (`plan.yaml:205-208`) names as the ones it "SUPERSEDES," because (D-15's own `because:`

@@ -30,10 +30,10 @@ whole diff below is mine.
 -
 -<!-- claim: grep -F "\"max_total_cycles\": 10" .harness/harness.json :: "max_total_cycles": 10 -->
 -
--<!-- claim: grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.sh :: budget is 80 (DEC-181) -->
+-<!-- claim: grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.py :: budget is 80 (DEC-181) -->
 -<!-- claim: grep -c -m 81 -e "" CLAUDE.md :: 12 -->
 -
--<!-- claim: grep -F "budget is 300" .claude/skills/harness/bin/check-domain.sh :: budget is 300 -->
+-<!-- claim: grep -F "budget is 300" .claude/skills/harness/bin/check-domain.py :: budget is 300 -->
 -
 -<!-- claim: grep -F "name: Plan-route gate" .github/workflows/tests.yml :: name: Plan-route gate -->
 -

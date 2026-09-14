@@ -11,7 +11,7 @@ neither deletion appears in any diff. That is precisely why the removal is writt
 **`runs/2026-09-05-02-validator`** — the T-04 tree-audit run's first lead digest. `validate-digest.py
 lead` returns `BLOCKED (contract violation) — no artifact: path`, which is the violation
 `check-state.sh` reported. The validator lead's own digest for the successor run records what
-happened: the first write omitted `artifact:`, `check-domain.sh` correctly refused to overwrite a
+happened: the first write omitted `artifact:`, `check-domain.py` correctly refused to overwrite a
 recorded digest, and the corrected record took its own directory. The canonical record is
 `runs/2026-09-05-03-validator`, which validates clean and IS recorded in `feature.json`. The run's
 evidence is the committed `notes/qa-tree-audit.md`. Nothing unique was lost.

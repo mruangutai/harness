@@ -3,7 +3,7 @@
 ## BLUF
 
 **PASS.** At pinned `review_sha = dd55b3570c6a20f5ca1da016d6959752bd0ffc74`, the four text surfaces
-in this role's remit — `handoff_done_when.py`'s refusal messages, `check-domain.sh`'s write-gate
+in this role's remit — `handoff_done_when.py`'s refusal messages, `check-domain.py`'s write-gate
 wrapper text, `check-state.sh`'s persisted-report text, and `templates/HANDOFF.md` — are **byte-identical**
 to the bytes c5's ui-reviewer already audited and passed clean (`git diff 4690f724..dd55b357` over
 those four paths returns 0 lines). No new gating UI/message defect exists at this pin. F-04 (literal
@@ -17,7 +17,7 @@ controls) is carried forward unchanged and remains security's advisory, non-gati
 ## Method — what I actually checked at this pin, not what I assumed
 
 1. **Byte-identity census (measured, not predicted).** `git diff 4690f724 dd55b357 -- \
-   .claude/skills/harness/templates/HANDOFF.md .claude/skills/harness/bin/check-domain.sh \
+   .claude/skills/harness/templates/HANDOFF.md .claude/skills/harness/bin/check-domain.py \
    .claude/skills/harness/bin/check-state.sh .claude/skills/harness/bin/handoff_done_when.py`
    returns **0 lines**. c5's pin (`4690f724`) is the SHA c5's ui-reviewer audited exhaustively and
    passed with no gating UI defect (`notes/review-harness-ui-reviewer-c5.md`). Since none of the
@@ -30,7 +30,7 @@ controls) is carried forward unchanged and remains security's advisory, non-gati
    the specific detail (missing task id / SC id / finding token / heading); `_scope_problems` and
    `_authority_count_problems` name the actual count that broke the rule (SC-02); `_message()`
    appends "follow templates/HANDOFF.md" to every message (SC-01's "names ... the template").
-3. **Direct read of `check-domain.sh:1546-1569`** at the pin: identical to the lines c5 cited
+3. **Direct read of `check-domain.py:1546-1569`** at the pin: identical to the lines c5 cited
    (`1547-1569`) — cap message names the actual line count and the 60 cap; missing-section message
    names the missing headings and points to `templates/HANDOFF.md`; both wrap
    `handoff_done_when.problems(..., resolve=True)` and fail closed on import/exec failure with an

@@ -276,7 +276,7 @@ def run_t14():
     #
     # THE PRODUCT-SHAPED PATH IS BACK, AND SO IS THE AGREEMENT (FEAT-17 T-03). On
     # 2026-08-11 the allow half was moved off <root>/src/main.py because the surfaces
-    # genuinely disagreed there: FEAT-15 taught check-domain.sh that a product-shaped
+    # genuinely disagreed there: FEAT-15 taught check-domain.py that a product-shaped
     # target inside the harness root is refused, and bash-write-guard.sh was out of that
     # feature's scope, so Write exited 2 and Bash exited 0. Issue #261. That divergence
     # is closed — this guard now decides from harness_boundary.classify — so the case is
@@ -291,7 +291,7 @@ def run_t14():
         "          - { path: .harness/allowed/**, upsert: true }\n"
         "          - { path: src/**, upsert: true }")
     root = fixture(agree_manifest)
-    cd = os.path.join(HERE, "check-domain.sh")
+    cd = os.path.join(HERE, "check-domain.py")
     for rel, want in ((".harness/allowed/x.txt", 0), ("src/main.py", 2),
                       ("forbidden/x.txt", 2)):
         tgt = os.path.join(root, rel)
@@ -501,10 +501,10 @@ def run_worktree():
     m_tmp = tempfile.mkdtemp()
     m_bin = os.path.join(m_tmp, "bin")
     os.makedirs(m_bin)
-    for fn in ("check-domain.sh", "bash-write-guard.sh", "harness_boundary.py",
+    for fn in ("check-domain.py", "bash-write-guard.sh", "harness_boundary.py",
                "harness_yaml.py", "run_identity.py"):
         shutil.copy(os.path.join(HERE, fn), os.path.join(m_bin, fn))
-    for fn in ("check-domain.sh", "bash-write-guard.sh"):
+    for fn in ("check-domain.py", "bash-write-guard.sh"):
         os.chmod(os.path.join(m_bin, fn), 0o755)
 
     m_root = os.path.join(m_tmp, "root")
@@ -524,7 +524,7 @@ def run_worktree():
                                              "tool_name": "Bash",
                                              "tool_input": {"command": f"echo hi > {m_target}"}}),
                            capture_output=True, text=True, env=env)
-        w = subprocess.run([os.path.join(m_bin, "check-domain.sh")],
+        w = subprocess.run([os.path.join(m_bin, "check-domain.py")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
                                              "tool_name": "Write",
                                              "tool_input": {"file_path": m_target,
@@ -1343,7 +1343,7 @@ def main():
 
 def run_bug895_wrong_checkout():
     """Issue #895 code review (PR #1188): the Bash route must refuse the SAME
-    wrong-checkout write check-domain.sh (Write/Edit route) already refuses — two
+    wrong-checkout write check-domain.py (Write/Edit route) already refuses — two
     surfaces disagreeing is a bypass by construction (DEC-151)."""
     root = os.path.join(tempfile.mkdtemp(), "root")
     os.makedirs(os.path.join(root, ".harness"))
@@ -1407,7 +1407,7 @@ def _run_artifact_fixture():
 def run_bug1106_bash_route():
     """Issue #1106, gap (a) on the Bash route. Bash carries no complete incoming payload
     to compare against prior content, so content-based protection (issue #1058's digest
-    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.sh) is
+    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.py) is
     structurally impossible here — a route-only refusal is the weakest sufficient rule."""
     results = []
     root, digest_rel, state_rel, identity_rel, other_rel = _run_artifact_fixture()

@@ -44,7 +44,7 @@ unless checkpoints grow to thousands of steps, which the domain doesn't produce.
 
 **3. Can the two sets collide within one step?** No, by construction, for the case the dispatch asks
 about. `_offending` gains keys from `_step`'s undeclared attributes via `set(_step) - _declared`
-(check-domain.sh:1637) — since `required = ["id", "status"]` and both are listed in
+(check-domain.py:1637) — since `required = ["id", "status"]` and both are listed in
 `_step_schema["properties"]` (so both are in `_declared`), neither key can survive the set
 difference and land in `_offending` via that route, regardless of whether the step is missing them.
 The `_path[0]` route into `_offending` (line 1659) fires only for **non-`required`** schema errors

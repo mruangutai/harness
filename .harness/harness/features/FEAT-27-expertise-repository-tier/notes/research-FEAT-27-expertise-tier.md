@@ -63,7 +63,7 @@ security-reviewer 1 — sums to 11. Well under the 40-line repository budget per
 - `team-config.yaml` `paths.expertise: .harness/expertise/` has **no code reader** (grep over
   `bin/**` finds none); it is documentation-in-data.
 
-## Route resolution — `check-domain.sh --resolve`, run at `ada8e99`
+## Route resolution — `check-domain.py --resolve`, run at `ada8e99`
 
 | Path | Resolver output |
 |---|---|

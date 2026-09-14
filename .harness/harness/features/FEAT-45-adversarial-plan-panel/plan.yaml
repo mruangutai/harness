@@ -9,7 +9,7 @@ source_issues: []
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it. Note that check-domain.sh's
+  # (DEC-120). Neither pm nor the orchestrator writes it. Note that check-domain.py's
   # approval_guard is MEASURED FAIL-OPEN inside a worktree, so this rule held here by
   # instruction rather than by enforcement.
   # SIGNED 2026-08-30, first signature. Covers 11 tasks, REQ-01..REQ-14, SC-01..SC-17.
@@ -35,7 +35,7 @@ approval:
     - { date: 2026-08-30, covers: '11 tasks, REQ-01..REQ-14, SC-01..SC-17, reader pinned fable-advisor' }
 
 lanes:
-  # Every row below was produced by `check-domain.sh --resolve <path>`, not read off
+  # Every row below was produced by `check-domain.py --resolve <path>`, not read off
   # team-config.yaml. NOBODY means no persona is granted, which is a main-session-direct
   # lane by check-plan-routes.py's own rule, not a carve-out. A main-session-direct lane on
   # a GRANTED path is a DEC-174 carve-out and says so in its reason; check-plan-routes.py
@@ -181,7 +181,7 @@ decisions:
       operator's RULING is approval.rulings, written by the main session. They are never
       the same key.
     because: >-
-      check-domain.sh's approval_guard resolves approval as a whole YAML key range, so pm is
+      check-domain.py's approval_guard resolves approval as a whole YAML key range, so pm is
       locked out of every sub-key while main_session.writes already spans a rulings sibling
       at zero grant cost.
     dec: DEC-120
@@ -387,7 +387,7 @@ tasks:
       python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import harness_yaml as y;d=y.load_file('.claude/skills/harness/teams/plan-panel.yaml');s={x['id']:x for x in d['steps']};assert d['lead']=='validator-lead',d['lead'];assert set(s)=={'should-not-exist','scope'},set(s);assert s['should-not-exist']['outputs']==[];assert s['should-not-exist']['persona'] not in [f[:-3] for f in __import__('os').listdir('.omp/agents')];assert s['scope']['persona']=='code-reviewer';print('OK')" \
         && grep -q 'then: escalate' .claude/skills/harness/teams/plan-panel.yaml \
         && test 0 -eq "$(grep -c 'then: halt' .claude/skills/harness/teams/plan-panel.yaml)" \
-        && bash .claude/skills/harness/bin/check-domain.sh --resolve \
+        && bash .claude/skills/harness/bin/check-domain.py --resolve \
              .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/review-harness-code-reviewer-planpanel-c0.md \
            | grep -q harness-code-reviewer \
         && grep -q 'fable-advisor' .claude/skills/harness/teams/plan-panel.yaml \
@@ -426,7 +426,7 @@ tasks:
       change the persona here without changing both of those.
       inputs [plan_path, intent_path, goalcheck_path]. outputs [] -- an empty list, because a
       non-harness persona holds no write grant and a step told to write anywhere would be
-      denied by check-domain.sh. Its findings reach disk only through the lead's transcription
+      denied by check-domain.py. Its findings reach disk only through the lead's transcription
       into the lead's own run digest. Carry a comment saying exactly that, and saying that this
       reader is independent BOTH of the dispatch chain AND of the authoring model: MEASURED
       2026-08-30, dispatch-guard.sh:41-51 blocks a lead from PASSING a model but does not strip
@@ -504,7 +504,7 @@ tasks:
         && grep -q 'plan-panel' .claude/skills/harness/SKILL.md \
         && grep -q 'research-<FEAT>-goalcheck-plan-c<cycle>.md' .claude/skills/harness/SKILL.md \
         && grep -q 'DEC-176' .claude/skills/harness/SKILL.md \
-        && bash .claude/skills/harness/bin/check-domain.sh --resolve \
+        && bash .claude/skills/harness/bin/check-domain.py --resolve \
              .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/research-FEAT-45-goalcheck-plan-c0.md \
            | grep -q harness-pm \
         && python3 .claude/skills/harness/bin/test-orchestrator-playbook.py \
@@ -546,7 +546,7 @@ tasks:
       one readers entry per panel reader carrying its status (ran, or skipped with the persona
       named and the reason stated), and one findings entry per surviving finding with id,
       severity, reader, summary and disposition. The panel key is OUTSIDE approval, because
-      check-domain.sh's approval_guard spans the whole approval mapping and pm is locked out of
+      check-domain.py's approval_guard spans the whole approval mapping and pm is locked out of
       every sub-key of it. You never write either key yourself.
 
       State the bounds, each in one sentence. Every plan is read by the panel, with no size
@@ -654,7 +654,7 @@ tasks:
       adversarial reader's persona is defined OUTSIDE this repository (D-14) while the team file
       ships as doctrine to every project (D-09), so an unresolvable persona is the normal case
       elsewhere and status skipped is its defined, RECORDED outcome, never a silent omission.
-      Comment WHY panel sits outside approval: check-domain.sh's approval_guard resolves
+      Comment WHY panel sits outside approval: check-domain.py's approval_guard resolves
       approval as a whole YAML key range, so pm is denied every sub-key of it while
       main_session.writes already spans an approval sibling. Comment that unrated is treated
       as gating-equivalent to high, so an omitted severity fails closed.
@@ -1071,7 +1071,7 @@ tasks:
     change_type: config
     execution_mode: team
     execution_agent: harness-dev-ops
-    # Lane measured by check-domain.sh --resolve in the c1 fix cycle: "harness-backend-dev,
+    # Lane measured by check-domain.py --resolve in the c1 fix cycle: "harness-backend-dev,
     # harness-dev-ops". NOT a DEC-174 surface -- sync-agent-adapters.py is a generator, it
     # gates no write and adjudicates nothing, so a main-session-direct declaration here would
     # be an unjustified deviation. Depends on T-06 because its verify asserts that the
@@ -1145,7 +1145,7 @@ tasks:
         && python3 - <<'EOF'
       t = open('.claude/skills/harness/bin/test-plan-panel.py', encoding='utf-8').read()
       for tok in ('should-not-exist', 'scope', 'goalcheck', 'sixteen',
-                  'check-domain.sh', 'then: halt', 'plan-panel', 'spawns',
+                  'check-domain.py', 'then: halt', 'plan-panel', 'spawns',
                   'SPAWNS'):
           assert tok in t, tok
       print('OK')
@@ -1170,7 +1170,7 @@ tasks:
       .claude/skills/harness/SKILL.md. Three readers, three separate checks.
 
       2. For every step, for every entry in its outputs list, render {{feat}} to a real
-      feature id and {{cycle}} to 0, then run check-domain.sh --resolve on the rendered path
+      feature id and {{cycle}} to 0, then run check-domain.py --resolve on the rendered path
       by subprocess and assert the step's own persona appears in the output. Skip a step whose
       outputs list is EMPTY and say so in the check name -- an empty list is the
       should-not-exist step's correct state, and counting it here would grade an empty set as

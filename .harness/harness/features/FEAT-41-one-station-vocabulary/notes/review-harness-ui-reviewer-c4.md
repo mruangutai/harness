@@ -77,7 +77,7 @@ Carries the literal string `sign-approval` (four times) and the sanctioned route
 (`awaiting_user`) — SC-07 satisfied. `test-plan-sign-gate.py:93-98` independently asserts both.
 **Pass.**
 
-**`check-domain.sh`'s `plan.yaml` write denial (T-09).** Fired the real hook subprocess (reusing
+**`check-domain.py`'s `plan.yaml` write denial (T-09).** Fired the real hook subprocess (reusing
 `test-check-domain.py`'s own `_approval_root`/`_fire_write` fixtures, case-3 shape) as an agent
 Write of a legal plan:
 

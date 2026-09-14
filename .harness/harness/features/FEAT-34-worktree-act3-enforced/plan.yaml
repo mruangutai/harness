@@ -4,7 +4,7 @@ status: done
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
   status: approved               # pending | approved
   approved_by: Mike Ruangutai
@@ -34,55 +34,55 @@ lanes:
     - surface: .claude/skills/harness/bin/worktree_terminal.py
       lane: team
       agent: harness-backend-dev
-      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+      reason: check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops
     - surface: .claude/skills/harness/bin/test-worktree-terminal.py
       lane: team
       agent: harness-backend-dev
-      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+      reason: check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops
     - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: team
       agent: harness-backend-dev
-      reason: D-07. DEC-174's stated test at DECISIONS.md:4709 is that the artifact under change is the artifact doing the checking, and a post-merge sweep checks nothing - it fires after the merge and performs two writes, so it cannot refuse anything and falls outside the enforcement category. The grant corroborates the lane rather than setting it - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
+      reason: D-07. DEC-174's stated test at DECISIONS.md:4709 is that the artifact under change is the artifact doing the checking, and a post-merge sweep checks nothing - it fires after the merge and performs two writes, so it cannot refuse anything and falls outside the enforcement category. The grant corroborates the lane rather than setting it - check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
     - surface: .claude/skills/harness/bin/test-post-merge-sweep.py
       lane: team
       agent: harness-backend-dev
-      reason: D-07. Amendment 4 extends the enumeration to the test file of each ENUMERATED gate; the sweep is not one, so its test is not one either. The grant corroborates the lane rather than setting it - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
+      reason: D-07. Amendment 4 extends the enumeration to the test file of each ENUMERATED gate; the sweep is not one, so its test is not one either. The grant corroborates the lane rather than setting it - check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
     - surface: .claude/skills/harness/bin/run-unit-tests.sh
       lane: team
       agent: harness-dev-ops
-      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+      reason: check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops
     - surface: .harness/harness.json
       lane: team
       agent: harness-dev-ops
-      reason: check-domain.sh --resolve at 9165162 prints harness-dev-ops
+      reason: check-domain.py --resolve at 9165162 prints harness-dev-ops
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
-      reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. The tool disagrees and the decision governs - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane
+      reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. The tool disagrees and the decision governs - check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
-      reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+      reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+      reason: check-domain.py --resolve at 9165162 prints NOBODY
     - surface: .claude/skills/harness-handoff/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+      reason: check-domain.py --resolve at 9165162 prints NOBODY
     - surface: .claude/skills/harness-principles/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+      reason: check-domain.py --resolve at 9165162 prints NOBODY
     - surface: .claude/skills/harness-expertise/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+      reason: check-domain.py --resolve at 9165162 prints NOBODY
     - surface: .claude/skills/harness/hooks/post-merge
       lane: main-session-direct
-      reason: check-domain.sh --resolve at 9165162 prints NOBODY. A domain fact under DEC-179, not a DEC-174 fact - per D-07 the hook is outside the enforcement category.
+      reason: check-domain.py --resolve at 9165162 prints NOBODY. A domain fact under DEC-179, not a DEC-174 fact - per D-07 the hook is outside the enforcement category.
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+      reason: check-domain.py --resolve at 9165162 prints NOBODY
     - surface: .claude/skills/harness/bin/test-hooks-install.py
       lane: team
       agent: harness-dev-ops
-      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. harness-dev-ops is the agent because the same task also edits .harness/harness.json, which resolves to harness-dev-ops alone.
+      reason: check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops. harness-dev-ops is the agent because the same task also edits .harness/harness.json, which resolves to harness-dev-ops alone.
 
 decisions:
   - id: D-01
@@ -116,11 +116,11 @@ decisions:
     dec: DEC-174
   - id: D-08
     choice: The tracked hooks directory is .claude/skills/harness/hooks/, holding one file, post-merge, a shim that execs post-merge-sweep.py. This resolves the brief's Q1.
-    because: this is a design choice with nothing to look up - check-domain.sh --resolve at 9165162 prints NOBODY for .githooks/post-merge, .claude/hooks/post-merge and .claude/skills/harness/hooks/post-merge alike, so no existing grant picks a winner. .claude/skills/harness/ is chosen because it is already the tree every harness executable resolves under - settings.snippet.json points all seven hook entries at CLAUDE_PROJECT_DIR/.claude/skills/harness/bin/, so an initialised project provably carries this tree, and a new repository-root .githooks/ would be a second harness-owned location competing with the one that exists. Rejected alternative, recorded so a future scan does not re-suggest it - .claude/hooks/, because Claude Code's own hooks are settings.json entries and not a directory, so the name would assert a relationship that does not exist. The accepted cost is that core.hooksPath takes over hook resolution for the WHOLE clone, not just this one hook, which is exactly why REQ-13 requires the setup step to state what it displaced.
+    because: this is a design choice with nothing to look up - check-domain.py --resolve at 9165162 prints NOBODY for .githooks/post-merge, .claude/hooks/post-merge and .claude/skills/harness/hooks/post-merge alike, so no existing grant picks a winner. .claude/skills/harness/ is chosen because it is already the tree every harness executable resolves under - settings.snippet.json points all seven hook entries at CLAUDE_PROJECT_DIR/.claude/skills/harness/bin/, so an initialised project provably carries this tree, and a new repository-root .githooks/ would be a second harness-owned location competing with the one that exists. Rejected alternative, recorded so a future scan does not re-suggest it - .claude/hooks/, because Claude Code's own hooks are settings.json entries and not a directory, so the name would assert a relationship that does not exist. The accepted cost is that core.hooksPath takes over hook resolution for the WHOLE clone, not just this one hook, which is exactly why REQ-13 requires the setup step to state what it displaced.
     dec: DEC-179
   - id: D-09
     choice: check-plan-routes.py prints DEVIATION on exactly four tasks - T-06, T-07, T-08 and T-09 - and all four deviations are correct and must stay. Nobody resolves them by moving a task to team.
-    because: measured from the worktree root at 9165162, the checker reports 0 violations and those four DEVIATION lines, all on the two files .claude/skills/harness/bin/check-state.sh and .claude/skills/harness/bin/test-check-state.py. DEC-174 amendment 4 names check-state.sh in the enforcement enumeration and extends it to the test file of each enumerated gate, on the ground that a gate's test is the only thing proving the gate discriminates. A domain grant is not a lane - check-domain.sh --resolve prints harness-backend-dev and harness-dev-ops for both files, which is what makes the checker call it a deviation, and the decision overrides the grant. Recorded here because a DEVIATION line reads like an unfinished item and the cheapest way to make it disappear is the wrong one.
+    because: measured from the worktree root at 9165162, the checker reports 0 violations and those four DEVIATION lines, all on the two files .claude/skills/harness/bin/check-state.sh and .claude/skills/harness/bin/test-check-state.py. DEC-174 amendment 4 names check-state.sh in the enforcement enumeration and extends it to the test file of each enumerated gate, on the ground that a gate's test is the only thing proving the gate discriminates. A domain grant is not a lane - check-domain.py --resolve prints harness-backend-dev and harness-dev-ops for both files, which is what makes the checker call it a deviation, and the decision overrides the grant. Recorded here because a DEVIATION line reads like an unfinished item and the cheapest way to make it disappear is the wrong one.
     dec: DEC-174
 
   - id: D-10
@@ -556,7 +556,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration, and its library rule puts the cutover that makes a gate use a module on this lane. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration, and its library rule puts the cutover that makes a gate use a module on this lane. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-01]
     status: done
     files:
@@ -611,7 +611,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-06]
     status: done
     files:
@@ -670,7 +670,7 @@ tasks:
     traces: [REQ-12]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-06]
     status: done
     files:
@@ -709,7 +709,7 @@ tasks:
     traces: [REQ-12]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-08]
     status: done
     files:
@@ -739,7 +739,7 @@ tasks:
     traces: [REQ-10]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve at 9165162 prints NOBODY for all four files; no agent domain grants any of them.
+    execution_reason: check-domain.py --resolve at 9165162 prints NOBODY for all four files; no agent domain grants any of them.
     depends_on: []
     status: done
     files:
@@ -778,7 +778,7 @@ tasks:
     traces: [REQ-09]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve at 9165162 prints NOBODY for .claude/skills/harness/hooks/post-merge - no agent domain grants the path, so DEC-179 makes it a declared main-session-direct step. This is a domain fact and NOT a DEC-174 fact - per D-07 the hook is outside the enforcement category, and if the path is later granted this task becomes team.
+    execution_reason: check-domain.py --resolve at 9165162 prints NOBODY for .claude/skills/harness/hooks/post-merge - no agent domain grants the path, so DEC-179 makes it a declared main-session-direct step. This is a domain fact and NOT a DEC-174 fact - per D-07 the hook is outside the enforcement category, and if the path is later granted this task becomes team.
     depends_on: [T-03]
     status: done
     files:
@@ -813,7 +813,7 @@ tasks:
     traces: [REQ-09, REQ-13]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve at 9165162 prints NOBODY for .claude/skills/harness-init/SKILL.md - no agent domain grants it, so DEC-179 makes it a declared main-session-direct step.
+    execution_reason: check-domain.py --resolve at 9165162 prints NOBODY for .claude/skills/harness-init/SKILL.md - no agent domain grants it, so DEC-179 makes it a declared main-session-direct step.
     depends_on: [T-11]
     status: done
     files:

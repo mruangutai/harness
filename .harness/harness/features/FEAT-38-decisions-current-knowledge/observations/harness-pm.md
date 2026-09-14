@@ -18,7 +18,7 @@
   (backend-dev, dev-ops), so registering a new test script is necessarily two tasks, and the config
   side must land first or the whole suite exits 2. The runner-side task's verify must assert the
   absence of the KIND-DRIFT string separately, because exit 2 is not a test failure.
-- 2026-08-29: `check-domain.sh --resolve` run per path across 26 candidate paths took 2.3s and
+- 2026-08-29: `check-domain.py --resolve` run per path across 26 candidate paths took 2.3s and
   overturned the grilling's "entirely squad work" claim on 13 of them. Resolving every path the plan
   names, not a representative sample, is what produced the task split.
 - 2026-08-29: FEAT-38 cycle 1. Every one of the 23 verify blocks passed the pre-change discrimination test (all exit non-zero), and that green is exactly what hid nine defects: an earlier conjunct exits first, so the generator and suite invocations at the END of nine blocks never ran. Discrimination proves the block reddens; it does NOT prove any conjunct past the first failing one was ever executed. To prove a trailing conjunct, build a tree where every earlier conjunct passes and run only the tail.

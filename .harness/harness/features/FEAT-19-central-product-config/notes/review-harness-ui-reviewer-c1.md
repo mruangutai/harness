@@ -86,7 +86,7 @@ No contract change here quietly moves planned behaviour into pm's territory.
 ## 5. Measured-claim spot-check (Contract 4)
 
 Both citations checked directly against the files at `63b83c7`, not taken on narration:
-- `check-domain.sh:69` — `if [ "${1:-}" = "--resolve" ]; then` — literal match.
+- `check-domain.py:69` — `if [ "${1:-}" = "--resolve" ]; then` — literal match.
 - `test-check-domain.py` case (c) (line ~883) asserts `r_nobody.stdout.split() == ["NOBODY"]`;
   case (d) (line ~890) asserts `r_nobody.returncode == 0 and r_nobody.stdout.strip() != ""` —
   both claims ("literal NOBODY", "non-empty stdout at exit 0") verified accurate.

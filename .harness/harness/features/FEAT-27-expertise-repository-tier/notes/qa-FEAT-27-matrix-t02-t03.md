@@ -150,7 +150,7 @@ diff. Confirmed by `diff` after the fact, not assumed.
 
 ## SCs not assessed, and why
 
-This gate is scoped to T-02 and T-03 only. SC-02 (per-agent `check-domain.sh --resolve`) belongs
+This gate is scoped to T-02 and T-03 only. SC-02 (per-agent `check-domain.py --resolve`) belongs
 to T-01, not built this cycle. SC-03 and SC-08 are `verify: inspection`, not automated — no test to
 cite. SC-07 spans all fifteen craft files plus every repository-tier file created, which depends on
 T-04 (migration), not built this cycle. None of these are gaps in T-02/T-03; they are out of this

@@ -96,7 +96,7 @@ except where the BRIEF asked me to spot-check mechanically (SC-10, SC-11 — see
 
 ## SC-10 / SC-11 spot check (mechanical, inspection-class, done because it's a one-line grep)
 
-- `git diff --name-only a7c429c..ec195ec | grep -E "check-domain.sh|bash-write-guard.sh|validate-digest.py|check-state.sh"` → **empty**. SC-10 holds.
+- `git diff --name-only a7c429c..ec195ec | grep -E "check-domain.py|bash-write-guard.sh|validate-digest.py|check-state.sh"` → **empty**. SC-10 holds.
 - `grep -rnE "fleet[A-Za-z_]*\[['\"]board['\"]\]|fleet[A-Za-z_]*\.get\(['\"]board['\"]\)" .claude/skills/harness/bin/` → **empty**.
 - `grep -n "def station(" .claude/skills/harness/bin/factory_config.py` → **empty**. SC-11 holds.
 

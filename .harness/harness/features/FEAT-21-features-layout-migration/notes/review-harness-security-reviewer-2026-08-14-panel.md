@@ -6,7 +6,7 @@ Range reviewed: `git diff 62fef85..b1d3925` (5 commits: `4b16f47`, `ea937b1`, `5
 
 ## BLUF
 
-The authorization surface (`team-config.yaml` grants, `check-domain.sh` shape regexes/`SWEEP_GLOBS`,
+The authorization surface (`team-config.yaml` grants, `check-domain.py` shape regexes/`SWEEP_GLOBS`,
 `check-state.sh` discovery, `check-plan-routes.py`, `validate-feature-json.py`, `.gitignore`) moved
 coherently to the `.harness/<repo>/features/` layout. The wildcard-matching mechanism
 (`harness_boundary.glob_to_re`: `*` -> `[^/]*`, never crosses `/`) is **unchanged in this range** and
@@ -37,7 +37,7 @@ describes (5 positives naming the intended agent, 4 negatives → `NOBODY`, one 
 correctly grantable and explicitly called D-01's accepted cost) — re-verified by rerunning
 `test-check-domain.py`, still 14/14.
 
-**2. `check-domain.sh` shape regexes / `SWEEP_GLOBS` — fail-open hunt.** Diff is the anchor-preserving
+**2. `check-domain.py` shape regexes / `SWEEP_GLOBS` — fail-open hunt.** Diff is the anchor-preserving
 rewrite `^\.harness/features/[^/]+/...` -> `^\.harness/[^/]+/features/[^/]+/...`; `^`/`$` anchors
 intact, `[^/]+` (never `.*`) throughout, one inserted segment, nothing else touched. No branch found
 where a parse/permission failure now yields allow-not-deny — the DEC-101 fail-open carve-out (absent
@@ -75,7 +75,7 @@ dispatch: `d033b9d` is authored directly by the operator (`git show -s d033b9d` 
 Ruangutai`), not dispatched through the `SubagentStart`-hook-gated, distillation-only route
 `harness-expertise`/DEC-145 describe as the *only* route Expertise files are meant to be written
 through. That route is a documented convention enforced by agent-side skill instructions, not by
-`check-domain.sh` or any technical gate — nothing stops a direct commit, or an in-band agent holding
+`check-domain.py` or any technical gate — nothing stops a direct commit, or an in-band agent holding
 Bash (`harness-dev-ops`, which "bypasses path checks entirely" per `team-config.yaml`'s own comment),
 from writing arbitrary content to any `harness-*`'s injected Expertise or SKILL file. The compensating
 control that caught this one is exactly what is happening now: pre-commit human/panel review of the
@@ -119,7 +119,7 @@ named `TOKEN_RE`. Nothing new.
 | Boundary | STRIDE | Mitigated |
 |---|---|---|
 | Agent write path -> `team-config.yaml` grant resolution (segment wildcard) | Elevation of privilege | Yes — matcher unchanged, segment-bounded, tests green |
-| `check-domain.sh` shape-sweep / `SWEEP_GLOBS` | Tampering (silent budget-enforcement bypass) | Yes — anchor-correct, execution-tested |
+| `check-domain.py` shape-sweep / `SWEEP_GLOBS` | Tampering (silent budget-enforcement bypass) | Yes — anchor-correct, execution-tested |
 | CI backstop (`check-plan-routes.py`, `validate-feature-json.py`) | Tampering (green-over-nothing) | Yes — segment-level walk tested, non-zero `examined` asserted |
 | Branch creation -> work-tracking gate | Denial of service (legitimate work blocked, future multi-repo) | Partially — ADV-2, already ruled, not re-opened |
 | Injected instruction content (Expertise, SKILL.md, agent files) via direct/branch commit | Tampering (unauthorized instruction injection) | No technical control — human diff review only; filtered-diff swept clean this time, open question below |
@@ -129,13 +129,13 @@ VERDICT: PASS
 DIGEST:
   headline: "Authorization surface moved coherently to the new layout with no widened or fail-open grant found across the range; the one hardcoded-segment gap (branch-create-gate.sh) is already ruled (ADV-2); a filtered diff of all 18 injected instruction files touched in this range shows pure path-string substitutions only, but no technical control would have caught a non-path edit riding the same direct-commit route."
   in_scope: true
-  scope_reason: "Range rewrites the entire write-authorization surface — team-config.yaml grants, check-domain.sh shape regexes and SWEEP_GLOBS, check-state.sh discovery/label emission, check-plan-routes.py and validate-feature-json.py discovery, branch-create-gate.sh, .gitignore — plus edits injected-prompt content (11 SKILL.md, 3 agent files, harness.md, missions.md, two teams yaml, harness-pm.md Expertise) reaching every governed spawn. Authorization and prompt-injection integrity are this role's surface even though nothing here is user input in the OWASP sense."
+  scope_reason: "Range rewrites the entire write-authorization surface — team-config.yaml grants, check-domain.py shape regexes and SWEEP_GLOBS, check-state.sh discovery/label emission, check-plan-routes.py and validate-feature-json.py discovery, branch-create-gate.sh, .gitignore — plus edits injected-prompt content (11 SKILL.md, 3 agent files, harness.md, missions.md, two teams yaml, harness-pm.md Expertise) reaching every governed spawn. Authorization and prompt-injection integrity are this role's surface even though nothing here is user input in the OWASP sense."
   severity_max: info
   findings: 0
   must_fix: []
   threat_model:
     - { boundary: "agent write -> team-config.yaml grant resolution (segment wildcard)", stride: "E", mitigated: true }
-    - { boundary: "check-domain.sh shape-sweep / SWEEP_GLOBS", stride: "T", mitigated: true }
+    - { boundary: "check-domain.py shape-sweep / SWEEP_GLOBS", stride: "T", mitigated: true }
     - { boundary: "CI backstop (check-plan-routes.py / validate-feature-json.py)", stride: "T", mitigated: true }
     - { boundary: "branch-create-gate.sh work-tracking gate", stride: "D", mitigated: false }
     - { boundary: "injected instruction content (Expertise/SKILL.md/agents) via direct/branch commit", stride: "T", mitigated: false }

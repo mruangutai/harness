@@ -20,7 +20,7 @@ region it supersedes from T-03, so that specific dispatch concern is clean.
 ### F-01 · high · T-09's acquisition refusal blocks the true owner recreating its own lost checkpoint — REQ-01's "never refused" claim is narrower than stated
 
 T-09 denies whenever `marker is not None AND prior_unreadable is False AND prior_state == ""`
-(plan.yaml T-09 §"THE REFUSAL CONDITION"). Per `check-domain.sh:1508-1518` at `c369fb1f` (read at
+(plan.yaml T-09 §"THE REFUSAL CONDITION"). Per `check-domain.py:1508-1518` at `c369fb1f` (read at
 that sha), `prior_state == ""` is produced by **two** code paths, not one: the `FileNotFoundError`
 branch where `os.path.lexists` is false (genuinely no file), **and** the ordinary `open().read()`
 path when the file exists but is zero bytes. T-09's own text asserts the opposite — "That local is
@@ -61,12 +61,12 @@ control-plane root's tree *plus every nested worktree's own tree* — and the co
 `.harness` tree (356 of the 630) is exactly the tree this repository's own concurrently-running
 harness activity writes into continuously (this session's own hub roster shows half a dozen
 unrelated feature builds live right now, each writing run directories there under the *pre-fix*
-`check-domain.sh`).
+`check-domain.py`).
 
 Failure scenario: between the moment T-10's seeder snapshots the corpus and the moment this feature
 merges and `check-state.sh`'s new invariant is actually exercised against the control-plane root, any
 concurrent feature build writes new, entirely legitimate run directories through the still-unmerged
-`check-domain.sh`, which does not yet call `record_seed`. Those directories carry no marker. Once
+`check-domain.py`, which does not yet call `record_seed`. Those directories carry no marker. Once
 merged, the invariant reports every one of them as "nothing prevents another run from writing into
 it" — a wave of false positives on ship, for directories that are neither clobbered nor malformed,
 undermining REQ-03's own "an operator reading only the checker's output knows what was lost" promise

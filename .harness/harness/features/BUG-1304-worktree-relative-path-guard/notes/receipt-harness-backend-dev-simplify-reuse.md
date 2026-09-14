@@ -1,6 +1,6 @@
 ### REUSE reader — BUG-1304 — verdict: ADEQUATE, nothing to recommend
 
-**BLUF: both routes share the predicate and the message builder.** `check-domain.sh`'s
+**BLUF: both routes share the predicate and the message builder.** `check-domain.py`'s
 `claim_checkout_guard` and `bash-write-guard.sh`'s `claim_checkout_guard` both compute
 containment and the claim set through `harness_boundary.claim_worktrees` (harness_boundary.py:247)
 and `harness_boundary.inside` (harness_boundary.py:244), and both render every refusal string
@@ -17,13 +17,13 @@ one (harness_boundary.py:506, comment "All containment decisions use the module-
 shared with claim_worktrees").
 
 **The only per-file variation is the two hosts' pre-existing error-reporting convention, and it
-is precedented, not new tech debt.** `check-domain.sh:770` and `bash-write-guard.sh:729`'s new
+is precedented, not new tech debt.** `check-domain.py:770` and `bash-write-guard.sh:729`'s new
 `claim_checkout_guard` bodies are structurally identical (import, `real()`, `inside()` early-out,
 `try/except AmbiguousWorktree/UnreadableRegistry/Exception`, containment check, refusal) and differ
 only in `deny(...)` (bash-write-guard.sh, its established host-local reporter) vs
-`print(...); sys.exit(2)` (check-domain.sh). This exact split — same logic, same two reporting
+`print(...); sys.exit(2)` (check-domain.py). This exact split — same logic, same two reporting
 idioms — already exists for the pre-existing sibling `feature_checkout_guard` in both files
-(check-domain.sh:737, bash-write-guard.sh:699), which this new function sits directly beside and
+(check-domain.py:737, bash-write-guard.sh:699), which this new function sits directly beside and
 mirrors. It is the established pattern for this codebase's two guard hosts, not a fresh duplication
 this diff introduced.
 

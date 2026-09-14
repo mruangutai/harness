@@ -436,7 +436,7 @@ lanes:
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: "DEC-174 carve-out: check-domain.sh, bash-write-guard.sh, harness_boundary.py, inflight_registry.py and dispatch-guard.sh are registered gate scripts, so the harness plans them and the main session executes them."
+      reason: "DEC-174 carve-out: check-domain.py, bash-write-guard.sh, harness_boundary.py, inflight_registry.py and dispatch-guard.sh are registered gate scripts, so the harness plans them and the main session executes them."
     - surface: tests/unit/**
       lane: main-session-direct
       reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
@@ -943,14 +943,14 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
+    execution_reason: "DEC-174 carve-out: check-domain.py is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
     depends_on: [T-02]
     status: done
     files:
     - tests/integration/test-check-domain.py
-    - tests/integration/fixtures/prior-check-domain.sh.fixture
+    - tests/integration/fixtures/prior-check-domain.py.fixture
     verify: |
-      test -f tests/integration/fixtures/prior-check-domain.sh.fixture \
+      test -f tests/integration/fixtures/prior-check-domain.py.fixture \
         && grep -q 'def run_bug1304_claim_set' tests/integration/test-check-domain.py \
         && grep -q 'fails += run_bug1304_claim_set()' tests/integration/test-check-domain.py \
         && grep -q 'def bug1304_pre_change_hook' tests/integration/test-check-domain.py \
@@ -960,19 +960,19 @@ tasks:
         && test "$n" -ge 10 \
         && { python3 tests/integration/test-check-domain.py; test $? -eq 1; }
     intent: |
-      Write these tests BEFORE T-04 touches check-domain.sh. The suite must exit 1 when you
-      are done: check-domain.sh does not yet consult the claim set, so every refusal case
+      Write these tests BEFORE T-04 touches check-domain.py. The suite must exit 1 when you
+      are done: check-domain.py does not yet consult the claim set, so every refusal case
       below still exits 0 against the live hook.
 
       DISCRIMINATION IS IN-TEST, NOT TRANSIENT (SC-06). A red suite that goes green when T-04
       lands leaves nothing at review_sha showing these assertions can fail, so each refusal case
-      below must ALSO fire the identical payload at a FROZEN PRE-CHANGE COPY of check-domain.sh
+      below must ALSO fire the identical payload at a FROZEN PRE-CHANGE COPY of check-domain.py
       and assert exit 0 there. Build it once, hermetically, following the vendored-revision
       precedent at tests/integration/test-validate-digest.py:30-33 — CI checks out at depth 1,
       so a `git show` against a historical sha is unreachable there and would make the proof
       unrunnable in CI:
-        - add tests/integration/fixtures/prior-check-domain.sh.fixture as a byte copy of
-          .claude/skills/harness/bin/check-domain.sh taken while you write this task, i.e. before
+        - add tests/integration/fixtures/prior-check-domain.py.fixture as a byte copy of
+          .claude/skills/harness/bin/check-domain.py taken while you write this task, i.e. before
           T-04 edits it. That directory and the prior-<name>.fixture spelling are the existing
           convention (tests/integration/fixtures/prior-validate-digest.py.fixture and its three
           siblings); the .fixture suffix keeps the copy out of every script-discovery and lint
@@ -980,7 +980,7 @@ tasks:
           finding. Record its provenance sha in a comment at the top of run_bug1304_claim_set;
         - add one helper, named exactly bug1304_pre_change_hook, that materialises a runnable
           pre-change guard: call the suite's existing isolated_bin(dest) to copy the live bin
-          tree into a temp root, overwrite the copied check-domain.sh with the fixture's bytes,
+          tree into a temp root, overwrite the copied check-domain.py with the fixture's bytes,
           chmod it 0o755, and return that path. The guard resolves its own libraries from
           BASH_SOURCE, so the copy imports the copied tree, which is exactly the shape the
           DISPATCH_GUARD_BIN override already relies on (tests/integration/test-dispatch-guard.py:32-35);
@@ -1051,7 +1051,7 @@ tasks:
 
       THE PRE-CHANGE CALL MUST PROVE THE FROZEN GUARD RAN (SC-06, panel finding L-04). An exit 0
       out of a fail-open branch is NOT an unrefused write, so an exit-code-only pre-change
-      assertion is satisfiable by a guard that never reached the rule. check-domain.sh prints and
+      assertion is satisfiable by a guard that never reached the rule. check-domain.py prints and
       passes through on its quarantine-boundary exception (:1864-1869, "quarantine boundary was
       not enforced ... passing through") and on a missing manifest (:383-386, "enforcement OFF").
       Add ONE helper, named exactly bug1304_assert_pre_change_allows, and call it from EVERY
@@ -1101,20 +1101,20 @@ tasks:
       and the verify fails.
 
   - id: T-04
-    title: Bind the Write and Edit route to the claim set in check-domain.sh
+    title: Bind the Write and Edit route to the claim set in check-domain.py
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script (DEC-179)."
+    execution_reason: "DEC-174 carve-out: check-domain.py is a registered PreToolUse gate script (DEC-179)."
     depends_on: [T-02, T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       python3 tests/integration/test-check-domain.py
     intent: |
       This route EXTENDS an existing binding; it does not narrow one. Today
-      feature_checkout_guard (check-domain.sh:737-753) derives the feature id from the TARGET
+      feature_checkout_guard (check-domain.py:737-753) derives the feature id from the TARGET
       PATH via RE_FEATURE_ARTIFACT (:734), so any destination carrying no feature id in its
       path is unbound. Keep that guard exactly as it is and add a SECOND, claim-derived check
       beside it that reaches the destinations the path-derived one cannot.
@@ -1368,7 +1368,7 @@ tasks:
       /tmp pass-through that SC-04 case 4 and T-05 case 14 require to keep exiting 0. Gate the
       new claim-set check so it runs ONLY for destinations that resolve inside a checkout the
       harness governs, and never for a not_a_domain_question verdict. The Write route has no
-      such overlap because not_a_domain_question returns earlier, at check-domain.sh:908, so
+      such overlap because not_a_domain_question returns earlier, at check-domain.py:908, so
       this clause is a Bash-route-only difference in placement, not a difference in the rule.
 
       ORDERING IS BEHAVIOUR and must not change. The run-artifact guard stays AHEAD of the
@@ -1666,7 +1666,7 @@ tasks:
       build digest.
 
       WHY IT IS A TASK AND NOT A CLOSEOUT HABIT. This change mutates two registered
-      PreToolUse gates (check-domain.sh, bash-write-guard.sh) and two shared libraries
+      PreToolUse gates (check-domain.py, bash-write-guard.sh) and two shared libraries
       (harness_boundary.py, inflight_registry.py). A gate's blast radius is EVERY governed
       write in the repository, and a shared-library change breaks callers that no guard
       suite imports — the two guard suites T-03 and T-05 build, plus the registry suite T-01

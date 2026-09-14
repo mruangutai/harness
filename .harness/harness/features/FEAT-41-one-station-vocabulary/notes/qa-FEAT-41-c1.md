@@ -58,7 +58,7 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 | 787c7fa (F-01) | test added with fix | **holds** — `git show --stat` shows `gh-sync.py` (+23/-3) and `test-gh-sync.py` (+48) in the same commit; new block reads gate literals out of `post-merge-sweep.py` via regex rather than retyping them |
 | 8c2972e (F-02) | test added with fix | **holds** — `plan-merge.py` and `test-plan-merge.py` both touched in this commit; six hostile-value cases added |
 | dee7225 (F-03) | test added with fix, "mutated the regex back to prove discriminates" | **holds** — `plan-sign-gate.py` and `test-plan-sign-gate.py` both touched; message documents a mutation-back proof for the fallback case (not independently re-run by me, accepted as commit-message evidence per cycle-0's own standard for this class of claim) |
-| 6eda94d (F-04) | test added with fix | **holds** — `check-domain.sh` and `test-check-domain.py` both touched; case 8 added under `run_t09` |
+| 6eda94d (F-04) | test added with fix | **holds** — `check-domain.py` and `test-check-domain.py` both touched; case 8 added under `run_t09` |
 | 9bdbe91 (F-05 pt 3) | pure refactor, "held BYTE-IDENTICALLY" | **holds as a refactor claim** — this is grade repair (extracting `_landed_blob_text`), not new-behavior TDD; no new test-first obligation applies. Not independently diffed byte-for-byte by me; accepted on the commit's own description, consistent with cycle-0's treatment of T-16's fixture-debt repair as a different shape of compliance |
 | 57892bd (D-15 + F-05 pt2) | decision recorded, two grade regressions repaid | **holds** — plan.yaml diff is additive only (checked: D-15 decision block present at plan.yaml:161-187, `dec: DEC-174`); no test-first question applies to a decision record |
 | c248019 (F-05 pt1) | "All 26 T-09 assertions preserved and still running — counted, not assumed" | **holds** — `run_t09` split into `_t09_edit_denial`/`_t09_binds_every_author`/`_t09_post_sweep`/`_t09_spelling`, all four called from `run_t09` (confirmed at test-check-domain.py:2675-2683) |
@@ -111,7 +111,7 @@ four green. **No gap.**
 through the write-denial route (all DENIED) with a negative control (`plan.yaml.bak`,
 `myplan.yaml`, still ALLOWED — the pattern is anchored, not substring). **The source fix widened
 `_I = re.IGNORECASE` onto all six patterns** (`RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`,
-`RE_STATE_MD`, `RE_CLAUDE_MD`, `RE_PLAN_YAML` — confirmed at source, check-domain.sh:1037-1046),
+`RE_STATE_MD`, `RE_CLAUDE_MD`, `RE_PLAN_YAML` — confirmed at source, check-domain.py:1037-1046),
 and the commit message claims "Verified all six fold" — but I grepped `test-check-domain.py` for
 `Feature.json`, `Claude.md`, `State.md`, and `Handoff-` (any case-variant of the other five
 patterns) and got **zero hits**. Only one of six patterns has a standing case-insensitivity test;
@@ -170,7 +170,7 @@ fabricating a planning document for a feature this session did not build — exa
 dispatch and PRINCIPLES rule 15 forbid. `check-state.sh` emits no violation for it (I confirmed:
 the tool has no schema-validation pass over resting `feature.json` files at all — `grep -n
 "feature_schema\|additionalProperties" check-state.sh` is empty; schema enforcement in this
-feature binds only the *write* path via `check-domain.sh`, never a read-time scan of files already
+feature binds only the *write* path via `check-domain.py`, never a read-time scan of files already
 on disk), so nothing is silently gated shut by it. **The one place this bites is SC-08's literal
 wording**, which the criterion's own text does not carve an exception into. I am not softening
 that: SC-08 as written is measurably false today, by exactly one file, for a reason outside this

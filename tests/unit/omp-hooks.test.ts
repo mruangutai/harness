@@ -109,17 +109,17 @@ describe("yieldContractText", () => {
 // cases assert the path is a function of THIS MODULE's location and of nothing else.
 describe("gatePath", () => {
   test("resolves under the repository that ships this extension", () => {
-    const p = gatePath("check-domain.sh");
-    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.sh")).toBe(true);
+    const p = gatePath("check-domain.py");
+    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.py")).toBe(true);
     expect(existsSync(p)).toBe(true);
   });
 
   test("is byte-identical whatever the process working directory is", () => {
     const before = process.cwd();
-    const first = gatePath("check-domain.sh");
+    const first = gatePath("check-domain.py");
     try {
       process.chdir(tmpdir());
-      expect(gatePath("check-domain.sh")).toBe(first);
+      expect(gatePath("check-domain.py")).toBe(first);
     } finally {
       process.chdir(before);
     }
@@ -128,7 +128,7 @@ describe("gatePath", () => {
   // THE PAIRED HALF. Without it the two cases above are satisfied by a gatePath that
   // returns a constant: this one proves the script name still reaches the result.
   test("the script name still selects the file", () => {
-    expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.sh"));
+    expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.py"));
     expect(gatePath("bash-write-guard.sh").endsWith("bash-write-guard.sh")).toBe(true);
   });
 });
@@ -509,7 +509,7 @@ describe("OMP task lifecycle adapter", () => {
   // feature.json that gh-sync.py had rewritten between the read and the write,
   // and nothing refused it.
   //
-  // postDomain hands an `edit` result to check-domain.sh --post via
+  // postDomain hands an `edit` result to check-domain.py --post via
   // extractEditPaths(...).map(...). An empty array yields ZERO runner calls and
   // no diagnostic of any kind, because no process is ever spawned. Until these
   // cases the suite drove `task` eight times and `edit` NOT ONCE: a regression
@@ -530,10 +530,10 @@ describe("OMP task lifecycle adapter", () => {
 
   const postPaths = (calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }>) =>
     calls
-      .filter((call) => call.script === "check-domain.sh" && call.args.includes("--post"))
+      .filter((call) => call.script === "check-domain.py" && call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path);
 
-  test("a hashline edit reaches check-domain.sh --post carrying the edited path", async () => {
+  test("a hashline edit reaches check-domain.py --post carrying the edited path", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     // The exact file and tag shape of the 2026-08-30 corruption.
@@ -543,10 +543,10 @@ describe("OMP task lifecycle adapter", () => {
       editCtx,
     );
     const post = calls.filter((call) =>
-      call.script === "check-domain.sh" && call.args.includes("--post"));
+      call.script === "check-domain.py" && call.args.includes("--post"));
     expect(post.length).toBe(1);
     expect((post[0].payload as any).tool_input).toEqual({ file_path: path });
-    // Named `Edit`, not `edit`: check-domain.sh matches the Claude-shaped name.
+    // Named `Edit`, not `edit`: check-domain.py matches the Claude-shaped name.
     expect((post[0].payload as any).tool_name).toBe("Edit");
   });
 
@@ -607,14 +607,14 @@ describe("OMP task lifecycle adapter", () => {
   // merely going unreported. Every case above filters on `--post`, so by
   // construction none of them touched this route: neutering it changed nothing.
   // -------------------------------------------------------------------------
-  test("a hashline edit is gated BEFORE it lands - check-domain.sh with no --post", async () => {
+  test("a hashline edit is gated BEFORE it lands - check-domain.py with no --post", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
     const blocked = await handlers.get("tool_call")?.(
       editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
     const pre = calls.filter((call) =>
-      call.script === "check-domain.sh" && !call.args.includes("--post"));
+      call.script === "check-domain.py" && !call.args.includes("--post"));
     expect(pre.length).toBe(1);
     expect((pre[0].payload as any).tool_input).toEqual({ file_path: path });
     expect((pre[0].payload as any).tool_name).toBe("Edit");
@@ -629,7 +629,7 @@ describe("OMP task lifecycle adapter", () => {
       editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
       editCtx);
     expect(calls
-      .filter((call) => call.script === "check-domain.sh" && !call.args.includes("--post"))
+      .filter((call) => call.script === "check-domain.py" && !call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path))
       .toEqual(["a/one.json", "b/two.yaml"]);
   });
@@ -644,7 +644,7 @@ describe("OMP task lifecycle adapter", () => {
     // -- it would refuse every edit whose payload shape the extractor cannot read
     // -- so it is recorded as an open decision, not taken silently here. The S2
     // notice on the RESULT is what tells the operator both checks were skipped.
-    expect(calls.filter((call) => call.script === "check-domain.sh")).toEqual([]);
+    expect(calls.filter((call) => call.script === "check-domain.py")).toEqual([]);
     expect(blocked).toBeUndefined();
   });
 });
@@ -773,7 +773,7 @@ describe("context advisory injection", () => {
     const handlers = new Map<string, Function>();
     const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
     const runner = (_cwd: string, script: string) => {
-      if (script === "check-domain.sh" && opts.blockReason) {
+      if (script === "check-domain.py" && opts.blockReason) {
         return { blocked: true, reason: opts.blockReason, stdout: "" };
       }
       return { blocked: false, stdout: "" };

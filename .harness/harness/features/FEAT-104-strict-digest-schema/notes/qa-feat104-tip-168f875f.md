@@ -18,7 +18,7 @@ HEAD is the commit under grade; the tracked tree is clean. Graded in place, no s
 created (none needed this cycle).
 
 Per-file md5 across `6126ac07` (old review pin) / `99035a9c` (amended away) / `168f875f` (tip)
-reproduces the dispatch's contract table exactly: `check-domain.sh`, `test-check-domain.py`,
+reproduces the dispatch's contract table exactly: `check-domain.py`, `test-check-domain.py`,
 `test-validate-digest.py` byte-identical `99035a9c`→`168f875f` (F1/F3 fixes present, unchanged);
 `validate-digest.py` differs by exactly the F3 message-wording line (the `lead`-comment reword from
 `99035a9c` is reverted, restoring the original wording); `check-state.sh` and `test-check-state.py`
@@ -240,7 +240,7 @@ here discriminates the specific regression class it targets.
   T-04's undeclared-key cases (34/34). Satisfied.
 - **SC-02** (per-persona SCHEMAS rejection, one case per persona) — 55/55 T-01 schema cases + 34/34
   T-04 cases pass. Satisfied.
-- **SC-03** (`check-domain.sh` refuses an undeclared `steps[]` key at `schema_version: 2`, names the
+- **SC-03** (`check-domain.py` refuses an undeclared `steps[]` key at `schema_version: 2`, names the
   key) — covered, part of the 12/12 T-06 cases. Satisfied.
 - **SC-07** (three unknown keys → one rejection naming all three) — T-04's three-key case still
   1 message, all three keys named (§9). Satisfied.

@@ -41,7 +41,7 @@ At `0bc57c88`, worktree checkout (`/tmp/feat51-measure-d.py`, re-runnable):
 - `plan-merge.py apply`, proposal carrying `approval:` onto an absent base → **exit 8**
   (control: the same proposal without `approval:` → exit 0, `APPLIED`).
 - `plan-merge.py sign-approval` on a plan carrying no `approval:` mapping → **exit 5**.
-- `check-domain.sh` on a `Write` **and** an `Edit` of `plan.yaml` → **exit 2** for `main`,
+- `check-domain.py` on a `Write` **and** an `Edit` of `plan.yaml` → **exit 2** for `main`,
   `harness-pm` and `harness-product-lead`; the FEAT-41 route-denial text for the first two.
 
 All three match what the dispatch stated. The header comment block now carries these three.
@@ -60,7 +60,7 @@ Discrimination proven (`/tmp/feat51-verify-proof.py`), each conjunct separately:
 |---|---|---|
 | current | red (1) | red (1) |
 | entry naming both halves appended | **green (0)** | **green (0)** |
-| entry naming only `check-domain.sh` (the `PF-e050d4` defect) | red (1) | red (1) |
+| entry naming only `check-domain.py` (the `PF-e050d4` defect) | red (1) | red (1) |
 
 Runs in ~0.1s. The new `T-07` grep is likewise red today (exit 1).
 

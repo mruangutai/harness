@@ -19,7 +19,7 @@ clauses.
 
 | predicate | resolution | reasoning |
 |---|---|---|
-| `touches_runtime_code` → `unit` | **true** | T-02 changes `.claude/skills/harness/bin/check-domain.sh`, a runtime gate script (not test-only, not docs-only) |
+| `touches_runtime_code` → `unit` | **true** | T-02 changes `.claude/skills/harness/bin/check-domain.py`, a runtime gate script (not test-only, not docs-only) |
 | `fix_confined_to_tests_and_contract_docs` → `integration` | **true** | The bug's regression coverage lives entirely in `tests/integration/test-check-domain.py`, and the fix itself is a gate-script change whose only contract is exercised by that same integration suite — no unit-only surface is untouched by integration here |
 | `match_bug_class` → `__bug_class__` | **no bug-class taxonomy entry fires** (per repository-tier Expertise G-08: this clause is currently an unresolvable placeholder in `.harness/harness.json` — no bug-class mapping exists yet for any diff). Bug class if one existed: "checkout-root resolution defect" → would map to `integration` (already required above), so its absence changes nothing here. |
 
@@ -51,7 +51,7 @@ case tally, and misreads a red suite as green if you tail only).
 ### Main-checkout `verify:` clauses (informational only — do NOT grade this feature)
 
 Ran for cross-reference. **Label: main-checkout measurement, non-authoritative** — the main checkout
-at `/Users/molchairuangutai/GitHub/harness` still holds the pre-fix `check-domain.sh` per the
+at `/Users/molchairuangutai/GitHub/harness` still holds the pre-fix `check-domain.py` per the
 dispatch's own note; these clauses are quoted verbatim from `plan.yaml` T-01/T-02 and were not treated
 as grading evidence:
 
@@ -76,14 +76,14 @@ chronologically and in ancestry — confirmed ordering matches REQ-05/SC-06's cl
 
 Confirmed the RED directly, without moving HEAD: copied `.claude/skills/harness/bin/` wholesale to a
 scratch directory (`/tmp/qa_prefix_bin`) so sibling-module imports (`harness_boundary`,
-`handoff_done_when`, `feature_schema`) resolve, overwrote only `check-domain.sh` inside that copy with
-`git show 6b5ae254:.claude/skills/harness/bin/check-domain.sh` (diffed against the current tracked
+`handoff_done_when`, `feature_schema`) resolve, overwrote only `check-domain.py` inside that copy with
+`git show 6b5ae254:.claude/skills/harness/bin/check-domain.py` (diffed against the current tracked
 file to confirm it is exactly pre-`_checkout_root` — the only difference is the added helper and the
 one call-site argument swap, as the BRIEF describes). Ran the CURRENT test suite with
-`CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.sh`:
+`CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.py`:
 
 ```
-env -u HARNESS_AGENT_TYPE CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.sh python3 tests/integration/test-check-domain.py
+env -u HARNESS_AGENT_TYPE CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.py python3 tests/integration/test-check-domain.py
 ```
 rc=1. Total `^FAIL ` count across the ENTIRE suite = **2**, both inside the new group:
 
@@ -135,7 +135,7 @@ cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-t
 cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
   rc=0, ^FAIL count=0, ^ok count=2071
 
-cd <worktree> && env -u HARNESS_AGENT_TYPE CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.sh python3 tests/integration/test-check-domain.py
+cd <worktree> && env -u HARNESS_AGENT_TYPE CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.py python3 tests/integration/test-check-domain.py
   rc=1, ^FAIL count=2 (both in _handoff_worktree_cases, see §3/§4)
 ```
 

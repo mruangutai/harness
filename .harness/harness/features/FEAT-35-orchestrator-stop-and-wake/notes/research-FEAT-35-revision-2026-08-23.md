@@ -20,7 +20,7 @@ legal under DEC-198 while reporting a headroom figure off the wrong transcript i
 
 **FIX 2 — BRIEF `## Constraints`, "What supplies the mechanism".** The false sentence ("am.4's
 enumeration IS the enforcement layer") is gone. The operative test is now
-`check-domain.sh --resolve .claude/skills/harness/SKILL.md` → `NOBODY` at `569d417`, stated as
+`check-domain.py --resolve .claude/skills/harness/SKILL.md` → `NOBODY` at `569d417`, stated as
 independent of am.4. Am.4 is cited for the category only, with its own heading and ruling
 (`DECISIONS.md:4854`, `:4862` — both re-read at this tree).
 
@@ -37,7 +37,7 @@ cost of the boundary.
   and `:87` (`--kind integration`). T-05 neither creates nor promotes it.
 - T-05's edit is one basename into `UNIT_SCRIPTS`, so gate status is identical before and after —
   and am.4's rule fires on **the day** a script becomes a gate (`DECISIONS.md:4877-4880`).
-- `check-domain.sh --resolve` on both T-05 files returns `harness-backend-dev, harness-dev-ops`.
+- `check-domain.py --resolve` on both T-05 files returns `harness-backend-dev, harness-dev-ops`.
 - **Contrary evidence, engaged not ignored:** that workflow's comment says the required context is
   `integration`, and both suites are steps of that job — so the runner IS reached by a required
   check. It still fails am.4's category ("hooks, validators, gate scripts"): a runner that executes

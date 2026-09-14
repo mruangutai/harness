@@ -13,7 +13,7 @@ migration's own stated purpose (multi-repo hosting) the first time a second repo
 the script already holds the data (`$REPO` = `mruangutai/harness`) to derive the segment correctly
 instead of hardcoding it. **Advisory, does not block T-09.**
 
-## A. Positive resolves — measured, `check-domain.sh --resolve`
+## A. Positive resolves — measured, `check-domain.py --resolve`
 
 | Path (new layout) | Verbatim answer | Expected |
 |---|---|---|
@@ -38,7 +38,7 @@ the orchestrator (which holds `.harness/*/features/**` for its own bookkeeping).
 
 ## C. Shape-sweep regexes (`RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD`)
 
-`git diff` for `check-domain.sh` is exactly the mechanical anchor-preserving rewrite:
+`git diff` for `check-domain.py` is exactly the mechanical anchor-preserving rewrite:
 `^\.harness/features/[^/]+/...` → `^\.harness/[^/]+/features/[^/]+/...` — `^`/`$` anchors intact,
 `[^/]+` used (never `.*`), one inserted segment, nothing else touched (34-line diff, verified in
 full). Isolated regex probes (positive/negative/traversal/extra-segment attempts) all matched
@@ -66,7 +66,7 @@ not exist on disk`. Functionally correct **for this repo**.
 **Finding SEC-01 (low, advisory, does not block T-09):** `branch-create-gate.sh:77-78` hardcodes
 the literal segment `harness` (`ls -d "$root/.harness/harness/features/${flow}"*`) rather than the
 wildcard/derived pattern every other touched enforcement path uses
-(`check-domain.sh`'s `[^/]+`, `check-state.sh`/`check-plan-routes.py`/`validate-feature-json.py`'s
+(`check-domain.py`'s `[^/]+`, `check-state.sh`/`check-plan-routes.py`/`validate-feature-json.py`'s
 glob `*`, `.gitignore`'s `*`, every `team-config.yaml` grant's `*`). It happens to be correct today
 only because this repo's own segment name (derived elsewhere in the codebase from
 `harness.json`'s `github.repo`, per `layout_migration.py:144-161 _declared_segments`) is coincidentally
@@ -118,7 +118,7 @@ VERDICT: PASS
 DIGEST:
   headline: "Grants and gates moved coherently to the new layout; one hardcoded (not wildcarded) segment in branch-create-gate.sh is a latent multi-repo gap, fails closed, advisory only."
   in_scope: true
-  scope_reason: "Diff rewrites every write-grant and enforcement-path regex/glob in the authorization surface (team-config.yaml, check-domain.sh, check-state.sh, check-plan-routes.py, validate-feature-json.py, branch-create-gate.sh, .gitignore) — a PreToolUse gate's matching surface is exactly this role's domain."
+  scope_reason: "Diff rewrites every write-grant and enforcement-path regex/glob in the authorization surface (team-config.yaml, check-domain.py, check-state.sh, check-plan-routes.py, validate-feature-json.py, branch-create-gate.sh, .gitignore) — a PreToolUse gate's matching surface is exactly this role's domain."
   severity_max: low
   findings: 1
   must_fix: []

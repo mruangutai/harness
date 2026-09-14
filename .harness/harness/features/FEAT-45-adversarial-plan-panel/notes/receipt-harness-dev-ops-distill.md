@@ -3,7 +3,7 @@
 ## BLUF
 
 Applied one craft Gotcha (G-17, severity-gate fail-open via deny-list normalization) and three
-repository Gotchas (G-08 hardcoded team count, G-09 `check-domain.sh --resolve` in symlink-mirrored
+repository Gotchas (G-08 hardcoded team count, G-09 `check-domain.py --resolve` in symlink-mirrored
 roots, G-10 post-merge KIND-DRIFT). Rejected two of the three relayed candidates (C2 as literally
 stated, C3 for tooling reasons) with reasons below. Ruled on the standing G-03 advisory: **kept
 craft, not moved.** Both files applied via `expertise-merge.py apply`, exit 0, no conflicts, no
@@ -41,8 +41,8 @@ expertise_update:
   - op: add
     section: Gotchas
     file: .harness/harness/expertise/harness-dev-ops.md
-    entry: "G-09: WHEN a RED proof needs a symlink-mirrored `/tmp` root because the domain guard denies an in-place mutation DO expect `check-domain.sh --resolve` to fail resolving paths inside it (its harness/git-worktree detection) — run an unmutated control there first and count only mutant-minus-control as a real, mutation-caused failure."
-    why: "sc03supersession receipt: 4 of 28 checks reddened in the unmutated control inside a symlink-mirrored /tmp root, all `check-domain.sh --resolve` calls returning NOBODY — an artifact of that repo tool's own worktree detection, not the mutation. Only mutant-minus-control isolated the two real reds."
+    entry: "G-09: WHEN a RED proof needs a symlink-mirrored `/tmp` root because the domain guard denies an in-place mutation DO expect `check-domain.py --resolve` to fail resolving paths inside it (its harness/git-worktree detection) — run an unmutated control there first and count only mutant-minus-control as a real, mutation-caused failure."
+    why: "sc03supersession receipt: 4 of 28 checks reddened in the unmutated control inside a symlink-mirrored /tmp root, all `check-domain.py --resolve` calls returning NOBODY — an artifact of that repo tool's own worktree detection, not the mutation. Only mutant-minus-control isolated the two real reds."
   - op: add
     section: Gotchas
     file: .harness/harness/expertise/harness-dev-ops.md

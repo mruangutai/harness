@@ -4,7 +4,7 @@
 
 **The operator runs T-07** (`plan.yaml` T-07, `main-session-direct`): the two-board precondition
 read, `notes/board2-capture.md`, then the `.harness/factory/fleet.yaml` rewrite. It is not routable —
-`check-domain.sh --resolve` returns NOBODY for that path. Then, in this order and no other:
+`check-domain.py --resolve` returns NOBODY for that path. Then, in this order and no other:
 T-09 → T-08 (both eng-lead, `build` team) → T-10 (documentor, so **product-lead**, its own squad
 segment) → qa segment (validator-lead) → panel (validator-lead, `teams/review.yaml`) → goal-check
 (pm via product-lead) against `BRIEF.md`'s thirteen SCs.

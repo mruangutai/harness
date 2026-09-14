@@ -48,7 +48,7 @@ count of 9 for this feature: `runs[0..8]` all lack `agent` (correctly exempt —
 rule), `runs[9..14]` all carry it (correctly required and present). **There is no contradiction
 and the T-15 rule is enforced, not unenforced, for every future entry** — the dispatcher's
 hypothesis that "if optional in practice, the rule is unenforced" does not hold here because
-enforcement lives beside the schema, not in it. `check-domain.sh` itself is untouched in this
+enforcement lives beside the schema, not in it. `check-domain.py` itself is untouched in this
 diff, confirming D-23's claim that no cutover edit was needed there.
 
 **D-11 (`_build_row`'s prior contradiction) — re-derived, now consistent.** `_measured_sizes`
@@ -81,7 +81,7 @@ computes `current` from the transcript's tail via `_last_measured_usage` using t
 measured-set rule as T-01, deliberately never computing `peak` (commented, and justified by the
 2858-Bash-events cost argument in D-24/T-16). `context-watch-hook.py` is genuinely thin (D-24): no
 arithmetic, no threshold comparison, no message text — confirmed by reading the full 91-line file.
-`check-domain.sh` was not touched (confirmed via `git diff --stat`), matching every lane
+`check-domain.py` was not touched (confirmed via `git diff --stat`), matching every lane
 decision that assumed it (D-23, D-24). `.claude/settings.json`'s hook is appended to the existing
 `PostToolUse`/`Write|Edit|Bash` matcher, not a new one (T-17's verify block asserts this and I
 re-read the committed JSON to confirm the same shape).
@@ -103,7 +103,7 @@ from the committed blob at `fcb8984`):
 `notes/settled-Q-HOOKCTX.md` — written by this same feature, before T-17 was built — measured
 directly (not inferred) that Claude Code wraps a `PostToolUse` exit-2 as
 `"PostToolUse:<tool> hook blocking error from command: ..."`, and that an agent receiving exactly
-that framing from `check-domain.sh --post` **reacted by undoing a landed write**, because
+that framing from `check-domain.py --post` **reacted by undoing a landed write**, because
 in-post the write had already succeeded and "blocking error" reads as a refusal. The note states
 in its own words: *"T-17's warning text carries a hard obligation, not a stylistic one: it must
 state in its first line that nothing was blocked, the tool call succeeded, and no retry or revert
@@ -112,7 +112,7 @@ is needed — before it says anything about context size."*
 The shipped text does not do this. It opens with the word "WARNING", never states the write
 succeeded, and never forecloses retry or revert — it only says the tool "advises" and "the
 orchestrator decides", which is a *different* claim from "nothing was blocked; do not retry or
-revert". `check-domain.sh:698-703` already carries the correct pattern for the identical problem
+revert". `check-domain.py:698-703` already carries the correct pattern for the identical problem
 (`VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"`) — this feature had the fix
 in front of it and did not apply it to its own new warning.
 
@@ -121,7 +121,7 @@ crosses the threshold and receives, in its own turn:
 `PostToolUse:Bash hook blocking error from command: "...context-watch-hook.py": context-watch:
 WARNING agent=... current=... at or above threshold=... -- this advises only...`
 An orchestrator that treats "blocking error" as a real failure — exactly the behaviour already
-measured once on the structurally identical `check-domain.sh` wrapper — may retry the write
+measured once on the structurally identical `check-domain.py` wrapper — may retry the write
 (producing a duplicate `runs` entry or duplicate content) or revert it (data loss on the write
 that just landed). The dispatch reports this already fired seven times over `feature.json`
 writes during this feature's own build and happened to land clean every time; "happened to land
@@ -134,7 +134,7 @@ that ever crosses the threshold will see this exact framing, not an edge case.
 **Minimal remedy.** One string edit, in the file the feature already owns (team-dispatchable,
 `harness-backend-dev`, no main-session-direct cutover required): prepend a first clause to
 `warn_for_agent`'s return value stating plainly that nothing was blocked, the write already
-landed, and no retry or revert is needed — mirroring `check-domain.sh`'s `VERB` pattern — before
+landed, and no retry or revert is needed — mirroring `check-domain.py`'s `VERB` pattern — before
 the context-size figures. The same clause should be applied to `format_rows`' table warning
 (`context-watch.py:413`) for consistency, though that one is read directly by an operator and
 carries lower risk since it is never wrapped as a hook error.

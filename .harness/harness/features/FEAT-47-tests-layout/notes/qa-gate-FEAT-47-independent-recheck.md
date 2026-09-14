@@ -26,7 +26,7 @@ now passes.
 | strict verdict-line census | `suite-census.py verdict-lines --baseline notes/research-tests-layout.md --deleted test-run-unit-tests-kinds.py --strict` | **65/65 lines, all `expected==actual` or correctly reported `new` (test-suite-independence.py, test-suite-layout.py), exit 0** |
 | migration conservation law | `suite-census.py migration --floor 58 --base origin/main --deleted test-run-unit-tests-kinds.py` | `base test count: 64`, **exit 0** — the `test-config-shape-matrix.py` gap from the prior recheck's Q2 is closed (file now carries `RM` migration to `tests/unit/`) |
 | residue sweep | `suite-census.py residue` (working tree, no `--ref`; HEAD itself still holds the pre-migration bash arrays since nothing is committed) | **exit 0**, all 3 declared exemptions matched (DECISIONS.md "Eight of twelve", probe's "first registered in", `RESIDUE_TOKENS` line), no other `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`/`check-kinds` mention anywhere live |
-| SC-03 write-ACL route | `check-domain.sh --resolve` × 6 seats over `tests/unit/x.py` and `.claude/skills/harness/bin/zz.sh` | `tests/unit/x.py` → `harness-backend-dev, harness-dev-ops, harness-qa` for all 6 seats queried (frontend-dev/ai-dev/data-engineer correctly excluded from the printed set); `bin/zz.sh` → `harness-backend-dev, harness-dev-ops` only, `harness-qa` absent (DENIED) |
+| SC-03 write-ACL route | `check-domain.py --resolve` × 6 seats over `tests/unit/x.py` and `.claude/skills/harness/bin/zz.sh` | `tests/unit/x.py` → `harness-backend-dev, harness-dev-ops, harness-qa` for all 6 seats queried (frontend-dev/ai-dev/data-engineer correctly excluded from the printed set); `bin/zz.sh` → `harness-backend-dev, harness-dev-ops` only, `harness-qa` absent (DENIED) |
 | SC-04 layout-violation cases | `tests/integration/test-run-unit-tests-layout.py` | 9/9 PASS, exit 0 (clean, both kinds run, bogus/unknown-kind refused, empty-unit, empty-integration, duplicate, planted) |
 | SC-05 sole-implementation sweep | `tests/unit/test-suite-layout.py` | 18/18 PASS, exit 0 — floor, 3-shape red proof, 2 positive controls, `--check-layout` delegation-once assertion all present |
 | SC-06 detect equality | `test_kinds.unit.detect` / `.integration.detect` vs template | byte-equal both; no `.claude/` path in either |
@@ -87,7 +87,7 @@ DIGEST:
   sc_evidence:
     - { id: SC-01, test: "tests/manual/suite-census.py verdict-lines --strict — 65/65 files matched/new, exit 0; run-unit-tests.sh --kind unit exit 0" }
     - { id: SC-02, test: "same verdict-lines run; run-unit-tests.sh --kind integration exit 0" }
-    - { id: SC-03, test: "check-domain.sh --resolve over 6 seats × 2 paths, live route — matches BRIEF's eleven-verdict shape" }
+    - { id: SC-03, test: "check-domain.py --resolve over 6 seats × 2 paths, live route — matches BRIEF's eleven-verdict shape" }
     - { id: SC-04, test: "tests/integration/test-run-unit-tests-layout.py — 9/9 PASS" }
     - { id: SC-05, test: "tests/unit/test-suite-layout.py — 18/18 PASS incl. floor + 3-shape red proof" }
     - { id: SC-06, test: "harness.json test_kinds.{unit,integration}.detect byte-equal to template; no .claude/ path" }

@@ -20,7 +20,7 @@ what the plan already covers.
 `git diff --name-only main...c6a28bd` (18 files, full list, for the "no UI surface" claim):
 ```
 .claude/skills/harness/bin/bash-write-guard.sh
-.claude/skills/harness/bin/check-domain.sh
+.claude/skills/harness/bin/check-domain.py
 .claude/skills/harness/bin/check-state.sh
 .claude/skills/harness/bin/harness_boundary.py
 .claude/skills/harness/bin/test-bash-write-guard.py
@@ -82,7 +82,7 @@ should have surfaced *why* — an out-of-place worktree is present — says noth
 **Confirmed zero test coverage.** `test-check-state.py`'s `case_u` (SC-08's fixture) calls `run()`,
 which invokes the *real* `check-state.sh` against the real `bin/` directory — `harness_boundary.py`
 is always importable in every SC-08 case. SC-10's isolated-copy-missing-the-module fixture (BRIEF:
-"an isolated `bin/` copy carrying `check-domain.sh`, `bash-write-guard.sh` and `harness_yaml.py` but
+"an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.sh` and `harness_yaml.py` but
 NOT `harness_boundary.py`") does not include `check-state.sh` at all. No test in this feature's SC
 list exercises this path.
 
@@ -159,7 +159,7 @@ any individual cell is beneficial. The fail-closed direction is additionally an 
 ### FINDING 3 — MED (structural, not proven live). `domain_check()` is invoked with no wrapping
 try/except; every governed exit path elsewhere in this file is deliberately shaped, this one is not
 
-`check-domain.sh:535`: `domain_check()` is called bare, no `try`/`except` around the call, even though
+`check-domain.py:535`: `domain_check()` is called bare, no `try`/`except` around the call, even though
 the function (`:392-525`) calls `harness_boundary.worktree_owner` (`:420`) and `harness_boundary.classify`
 (`:479`) — both post-import, unguarded call sites, exactly the shape A1's "sharper" question asks
 about ("an exception raised AFTER a successful import").
@@ -192,8 +192,8 @@ its own.
 
 ### D-06 shape-phase exclusion — RE-VERIFIED, HOLDS
 
-Confirmed at `c6a28bd`, not taken on the plan's word: `check-domain.sh:631` (`_norm`'s worktree-strip
-regex, `re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)`) and `check-domain.sh:589` (`SWEEP_GLOBS`,
+Confirmed at `c6a28bd`, not taken on the plan's word: `check-domain.py:631` (`_norm`'s worktree-strip
+regex, `re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)`) and `check-domain.py:589` (`SWEEP_GLOBS`,
 `os.path.join(".claude", "worktrees", "*", _p)`) are both hardcoded literals — neither reads
 `harness_boundary.WORKTREES_SEGMENT` or any other attribute of the module. The shape phase carries
 zero import of `harness_boundary` anywhere in the file (only two lazy imports exist, both fail-closed,
@@ -202,8 +202,8 @@ factually correct at this SHA.
 
 ### D-06 import-site enumeration — RE-VERIFIED, HOLDS (3 sites, all fail-closed)
 
-- `check-domain.sh:167-176`, `--resolve` branch, import at `:168`, `except Exception` → `sys.exit(2)` at `:176`.
-- `check-domain.sh:349-358`, main hook path under `if _run_domain:`, import at `:350`, exit 2 at `:358`.
+- `check-domain.py:167-176`, `--resolve` branch, import at `:168`, `except Exception` → `sys.exit(2)` at `:176`.
+- `check-domain.py:349-358`, main hook path under `if _run_domain:`, import at `:350`, exit 2 at `:358`.
 - `bash-write-guard.sh:82-90`, import at `:83`, exit 2 at `:90`.
 
 All three re-derived directly from the SHA (not the plan's stale `:493`/`:357`/`:73` citations, which
@@ -223,7 +223,7 @@ preserves `52d8334`. All confirmed:
 
 ### A2 cross-check (secondary; security-reviewer leads) — no additional caller-side finding
 
-All three `worktree_owner()` call sites — `check-domain.sh:420` (root-side), the internal call inside
+All three `worktree_owner()` call sites — `check-domain.py:420` (root-side), the internal call inside
 `classify()` at `harness_boundary.py:271` (target-side, `_wt_owner`), and `bash-write-guard.sh:128`
 (root-side) — treat `None` uniformly as not-a-worktree (`if _wt_owner is not None and not _wt_owner[2]:`
 / `if _root_wt is not None and not _root_wt[2]:`). I found no caller-specific None-handling divergence
@@ -240,7 +240,7 @@ for the specific claims the panel dispatch asked about (D-06, D-07, D-09, SC-08/
 not run the full test suite (out of scope for this role — read-only, no Bash execution of the test
 files themselves beyond direct `harness_boundary` import against hand-built fixtures) and defer overall
 green/red status to qa's own run. No scope creep found in `harness_boundary.py`,
-`check-domain.sh`, or `bash-write-guard.sh` beyond what REQ-01..09 and D-01..09 call for.
+`check-domain.py`, or `bash-write-guard.sh` beyond what REQ-01..09 and D-01..09 call for.
 `.harness/notes/grilling-central-product-config-2026-08-12.md` sits outside any per-feature `notes/`
 path and I could not trace it to a REQ/D in this feature's plan — flagged as an open question, not a
 finding, since I did not read it in full and it may legitimately belong to FEAT-16's concurrent edit

@@ -63,7 +63,7 @@ The dispatch specified `receipt-harness-harness-backend-dev-T-01-c1.md` and call
 manifest (`.harness/team-config.yaml:177` permits
 `.harness/*/features/*/notes/receipt-harness-backend-dev-*.md` — my agent name once, not
 duplicated). The write guard refused the dispatch's literal path
-(`check-domain.sh: BLOCKED — harness-backend-dev may not write
+(`check-domain.py: BLOCKED — harness-backend-dev may not write
 .../notes/receipt-harness-harness-backend-dev-T-01-c1.md`). I followed the guard rather than
 working around it and wrote to the manifest-permitted path instead. Flagged in `open_questions`.
 

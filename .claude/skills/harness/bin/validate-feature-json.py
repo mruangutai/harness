@@ -2,7 +2,7 @@
 """validate-feature-json.py — thin CLI over feature_schema.py (FEAT-14 D-03).
 
 Argument parsing, printing and exit codes only — no schema logic lives here;
-that is feature_schema.py's job, so check-domain.sh can import the same
+that is feature_schema.py's job, so check-domain.py can import the same
 logic in process.
 
 Usage:

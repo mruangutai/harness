@@ -923,8 +923,8 @@ def test_dec_210_entry_names_both_enforcement_points():
             print(f"FAIL - {name}: no '## {QUARANTINE_DEC}' heading found in {path}")
             return False
 
-        if "check-domain.sh" not in region:
-            print(f"FAIL - {name}: 'check-domain.sh' not found in the "
+        if "check-domain.py" not in region:
+            print(f"FAIL - {name}: 'check-domain.py' not found in the "
                   f"{QUARANTINE_DEC} region of {path}")
             return False
 

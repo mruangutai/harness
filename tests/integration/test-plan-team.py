@@ -54,7 +54,7 @@ TEAM_CONFIG = os.path.join(REPO, ".harness", "team-config.yaml")
 AGENTS_OMP = os.path.join(REPO, ".omp", "agents")
 AGENTS_CLAUDE = os.path.join(REPO, ".claude", "agents")
 SYNC_ADAPTERS = os.path.join(BIN, "sync-agent-adapters.py")
-CHECK_DOMAIN = os.path.join(BIN, "check-domain.sh")
+CHECK_DOMAIN = os.path.join(BIN, "check-domain.py")
 PLAN_YAML = os.path.join(TEAMS, "plan.yaml")
 VALIDATE_YAML = os.path.join(TEAMS, "validate.yaml")
 FIX_YAML = os.path.join(TEAMS, "fix.yaml")
@@ -92,7 +92,7 @@ def _normalize_prose(text):
 
 
 def _resolve(path):
-    """`check-domain.sh --resolve <path>` — plan-time route resolution, stdin closed."""
+    """`check-domain.py --resolve <path>` — plan-time route resolution, stdin closed."""
     return subprocess.run(
         [CHECK_DOMAIN, "--resolve", path], capture_output=True, text=True,
         stdin=subprocess.DEVNULL, timeout=20, cwd=REPO,

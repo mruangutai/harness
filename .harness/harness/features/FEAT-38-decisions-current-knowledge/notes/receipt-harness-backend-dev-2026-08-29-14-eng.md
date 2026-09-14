@@ -86,7 +86,7 @@ Fixture `/tmp/e2e/decisions.md`, 10 markers, run via
 (no preceding DEC heading): `git status` :: 'nothing': REFUSED: git subcommand 'status' is not in the read-only allowlist (cat-file, diff, grep, log, ls-files, rev-parse, show)
 (no preceding DEC heading): `git -C /tmp grep foo` :: 'nothing': REFUSED: git option '-C' before the subcommand is not allowed...
 (no preceding DEC heading): `grep -f /tmp/nonexistent` :: 'nothing': REFUSED: grep option '-f' reads from an argument file or a device instead of argv/stdin and is never allowed
-(no preceding DEC heading): `git grep -Otouch\ /tmp/p_f4 -e budget .claude/skills/harness/bin/check-domain.sh` :: 'nothing': REFUSED: git option '-Otouch /tmp/p_f4' opens a pager/program directly (-O/--open-files-in-pager) and is never allowed
+(no preceding DEC heading): `git grep -Otouch\ /tmp/p_f4 -e budget .claude/skills/harness/bin/check-domain.py` :: 'nothing': REFUSED: git option '-Otouch /tmp/p_f4' opens a pager/program directly (-O/--open-files-in-pager) and is never allowed
 examined 10 claim(s), 10 failed
 EXIT=1
 ```

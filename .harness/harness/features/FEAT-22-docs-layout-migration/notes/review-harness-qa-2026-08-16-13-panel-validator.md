@@ -86,7 +86,7 @@ Mechanism, established structurally then confirmed live:
    live-tree case at an alternate team-config.yaml without editing the test file itself.
 4. **Live reproduction, no working-tree write:** copied `.harness/team-config.yaml` into a scratch
    root, broadened harness-documentor's grant from `.harness/*/docs/**` to `.harness/**` in the
-   copy only, then ran the real, unmutated `check-domain.sh --resolve` against it:
+   copy only, then ran the real, unmutated `check-domain.py --resolve` against it:
    - `.harness/harness/docs/SPEC.md` → `harness-documentor` (unchanged, sanity check)
    - `.harness/random-unowned-file.txt` → **`harness-documentor`** under the broadened grant
    - same path against the real, unmutated live root → **`NOBODY`** (control)
@@ -98,7 +98,7 @@ Mechanism, established structurally then confirmed live:
 
 **Finding, severity medium:** the accepted residual (missing direct refused-direction assertion)
 is not merely thin — it is **structurally unwitnessable** by the current test architecture for any
-regression confined to `.harness/team-config.yaml`'s live content (as opposed to `check-domain.sh`
+regression confined to `.harness/team-config.yaml`'s live content (as opposed to `check-domain.py`
 itself, which fixture-based tests do cover). A glob broadened by accident on the live manifest —
 exactly the shape of change this feature's own T-02 made — would pass this suite silently. This
 elevates run 12's framing of the residual from "one assertion thin" to "this specific regression
@@ -108,16 +108,16 @@ next plan revision that touches `test-check-domain.py`.
 
 ## DEC-174 — no fix drafted
 
-`check-domain.sh` was read and run (unmutated) against a scratch copy of `team-config.yaml`; never
+`check-domain.py` was read and run (unmutated) against a scratch copy of `team-config.yaml`; never
 edited, not even transiently. No change is proposed to either enforcement-layer file here — the J3
-finding is about test *coverage*, not about `check-domain.sh`'s own logic, so it does not trigger
+finding is about test *coverage*, not about `check-domain.py`'s own logic, so it does not trigger
 the carve-out routing.
 
 ## Probe hygiene
 
 All J1/J3 mutations ran via in-memory `exec` or against scratch-directory copies
 (`/private/tmp/claude-501/.../scratchpad/probe-root/`). `check-expertise.sh` (J2) and
-`check-domain.sh` (J3 control run) were executed, never edited. `git status --porcelain` at the end
+`check-domain.py` (J3 control run) were executed, never edited. `git status --porcelain` at the end
 of this run shows no change to any source, test, or carve-out file — the only new file is this
 note and its paired observations entry, both inside qa's own domain.
 

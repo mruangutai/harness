@@ -4,7 +4,7 @@ Reviewed `1bdfe3f..cf15660` (review_sha pinned `3abaedd`; commits above the pin 
 `8adac30..cf15660` — are qa/state-only, no source touched, confirmed by `git diff --stat`). No
 `[harness:human]` commits in range. `git diff --stat 1bdfe3f..HEAD`: 110 files, +7154/-2545.
 
-**Dispatch path note**: the dispatch named `notes/review-code-panel.md`; `check-domain.sh`
+**Dispatch path note**: the dispatch named `notes/review-code-panel.md`; `check-domain.py`
 denies that filename for `harness-code-reviewer` (permitted pattern is
 `notes/review-harness-code-reviewer-*.md`). Writing here instead — the guard is ground truth,
 not the dispatch text (harness-handoff #216).
@@ -14,12 +14,12 @@ not the dispatch text (harness-handoff #216).
 `severity_max: high`, `must_fix` non-empty. One HIGH, independently re-verified live at HEAD
 (not inherited from a stale note), routes to the main session under DEC-174.
 
-## Headline finding — check-domain.sh:894's `except ImportError:` does not fail closed
+## Headline finding — check-domain.py:894's `except ImportError:` does not fail closed
 
 **[HIGH, hybrid: FALSIFICATION-BACKED for the Python semantics, READ-ONLY for end-to-end hook
 behavior.]**
 
-`check-domain.sh:890-894`:
+`check-domain.py:890-894`:
 ```python
 try:
     import feature_schema
@@ -71,7 +71,7 @@ that probe never exercised. Both are true; they are not in tension.
 
 **Provenance.** First reported in this feature's own `notes/review-harness-code-reviewer-panel2.md`
 at the same pin (`3abaedd`), which this feature never fixed — `git diff 3abaedd..HEAD --
-.claude/skills/harness/bin/check-domain.sh` is **empty**, confirming the file is byte-identical
+.claude/skills/harness/bin/check-domain.py` is **empty**, confirming the file is byte-identical
 to the version panel2 reviewed. I re-verified the core claim myself rather than forwarding it
 unread. It is distinct from `STATE.md`'s open question Q9 ("the guarded-import needle misses
 `except (ImportError, ...)` and `except ModuleNotFoundError`") — I checked Q9's origin
@@ -88,7 +88,7 @@ neither touches this. `STATE.md`'s open questions are the orchestrator's charact
 ("non-blocking" appears elsewhere in that file for other items, not for this one, and in any
 case an open question is not an operator ruling).
 
-**Remedy and routing.** `check-domain.sh` is a DEC-174 carve-out file — **this routes to the
+**Remedy and routing.** `check-domain.py` is a DEC-174 carve-out file — **this routes to the
 main session, not a team fix cycle.** Mechanical fix: widen `:894` to `except Exception:`
 (matching this same file's own convention at `:530-532`, which the surrounding comment there
 narrates fixing the identical bug class once already for the `harness_yaml` import) or
@@ -101,7 +101,7 @@ unconditionally (see Probe hygiene, below). My reproduction is the same standard
 independent confirmation of the Python semantics plus static confirmation of the code shape, not
 a live run of the full hook under fault injection.
 
-## Assignment 2 — the enforcement path (check-domain.sh :866-922), the other two questions
+## Assignment 2 — the enforcement path (check-domain.py :866-922), the other two questions
 
 **Reachable on every route?** READ-ONLY for the non-crash path (Write/PRE, POST-Edit,
 POST-Bash-sweep all funnel through the same single loop and single `if _problems: exit(2)` at
@@ -156,7 +156,7 @@ raises rather than silently writing a partial document; the two "write back into
 tools have diverged on the fail-open/fail-closed axis.
 
 Mitigated, not absent: a governed agent running `factory_decompose.py` via Bash triggers
-`check-domain.sh`'s POST sweep on its next Bash call (fresh mtime), reporting the corruption
+`check-domain.py`'s POST sweep on its next Bash call (fresh mtime), reporting the corruption
 after the fact; CI's `validate-feature-json.py` (no args) is a second backstop. Kept at MED
 rather than HIGH because of these two backstops and because I could not confirm from the diff
 whether factory_decompose ever actually runs before a feature's `feature.json` exists in
@@ -188,7 +188,7 @@ riding inside a `verify: automated` tag.
   INV-18, `harness/SKILL.md:23`) name it by filename.
 - SC-13 repo sweep: every surviving `feature.yaml` string outside `.harness/features/**`
   matches exactly the R-01 carve-out list (BUILD.md:335/353/357, check-plan-routes.py:405,
-  check-domain.sh + test-check-domain.py comments, DECISIONS*.md prose, test-harness-yaml-corpus.py's
+  check-domain.py + test-check-domain.py comments, DECISIONS*.md prose, test-harness-yaml-corpus.py's
   three dated citations). No unsanctioned reference found.
 - DEC-190/191/192 present in `docs/harness/DECISIONS.md` (the three decisions SC-14 requires).
 
@@ -206,7 +206,7 @@ headline finding above, not a restatement of qa's.
 All probes ran in the pre-existing disposable worktree
 (`/private/tmp/claude-501/-Users-molchairuangutai-GitHub-harness/cd83b531-.../scratchpad/feat14-probe`,
 already clean at HEAD, left clean — `git status --porcelain` empty before and after). No edits
-to any DEC-174 carve-out file — `check-domain.sh`, `check-state.sh`, `check-plan-routes.py` and
+to any DEC-174 carve-out file — `check-domain.py`, `check-state.sh`, `check-plan-routes.py` and
 their test files were READ and RUN only.
 
 `bash-write-guard.sh` denies every detected write pattern from `harness-code-reviewer`
@@ -236,4 +236,4 @@ otherwise.
 - { id: Q1, question: "Should reviewer agents get a scoped, disposable write allowance for
   POST-route enforcement fixtures (e.g. a notes/probes/ domain in a worktree only), so the
   headline finding above can be upgraded from static+semantic reproduction to a full live run
-  of check-domain.sh against a broken feature_schema.py?", blocking: false }
+  of check-domain.py against a broken feature_schema.py?", blocking: false }

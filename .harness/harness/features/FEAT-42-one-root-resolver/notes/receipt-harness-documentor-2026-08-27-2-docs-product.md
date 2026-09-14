@@ -43,10 +43,10 @@ base must come from the first porcelain entry, not `<root>/.claude/worktrees/`) 
 its premise is dead. **Owner:** DEC-174 carve-out — main-session-direct.
 
 **F4 · `.claude/skills/harness/bin/check-plan-routes.py:475-478`** — "Root precedence follows
-check-domain.sh (`:178-180` … `:276-281`) … CLAUDE_PROJECT_DIR if it holds a readable manifest, else
+check-domain.py (`:178-180` … `:276-281`) … CLAUDE_PROJECT_DIR if it holds a readable manifest, else
 the root DERIVED from this file's location". **Truth:** both files now call
 `harness_boundary.resolve_root`; the read name is `HARNESS_PROJECT_DIR` and the probe is
-`MARKER` = `.harness/team-config.yaml`. The cited `check-domain.sh` line anchors no longer point at
+`MARKER` = `.harness/team-config.yaml`. The cited `check-domain.py` line anchors no longer point at
 any root-resolution code. **Owner:** DEC-174 carve-out.
 
 **F5 · `.claude/skills/harness/bin/test-check-plan-routes.py:1133-1136`** — "check-state.sh is a NAMED
@@ -114,7 +114,7 @@ nothing checks them. Contrast `dest_for`, `:56-59` in the same paragraph, which 
 - `.claude/settings.json` and `templates/settings.snippet.json` `${CLAUDE_PROJECT_DIR}/...` command
   strings: host-owned shell expansion of the hook *path*, unrelated to the retired resolver chain.
   Still correct. Same for `SPEC.md:657` and `BUILD.md:44/49/54/405/408/411`.
-- `check-domain.sh:1142` and `feature_schema.py:78` — "this module is imported through
+- `check-domain.py:1142` and `feature_schema.py:78` — "this module is imported through
   CLAUDE_PROJECT_DIR — the main checkout". Still **true**: the hook script is still launched by the
   host through that expansion, so `sys.path` still points at the main checkout. Matches the grep,
   is not a finding.
@@ -158,7 +158,7 @@ distillation dispatch.
 ## DEC-174 amendment 4 — reported, not edited
 
 `.harness/harness/docs/DECISIONS.md:5006-5008` (the "So the enforcement layer is:" sentence, in
-amendment 4 which opens at `:4983`) enumerates: `check-domain.sh`, `bash-write-guard.sh`,
+amendment 4 which opens at `:4983`) enumerates: `check-domain.py`, `bash-write-guard.sh`,
 `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
 file of each** — 12 files.
 

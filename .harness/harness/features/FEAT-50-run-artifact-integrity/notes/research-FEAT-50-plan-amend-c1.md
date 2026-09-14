@@ -40,7 +40,7 @@ relative artifact path through `inflight_registry.feature_root`, the file's own 
 `_hook_feature_dir` `:1359-1372`, falling back to `_root_or_none()`), `T-12` (four cases,
 including the note that `_dec156_case` `:750-769` makes root and checkout coincident and therefore
 cannot see this defect), `SC-20`/`SC-21`. **`D-11` heads off the false contradiction in writing:**
-D-03's `harness_feature` ban is route-specific to `check-domain.sh`'s PreToolUse route; this hook
+D-03's `harness_feature` ban is route-specific to `check-domain.py`'s PreToolUse route; this hook
 already consumes the key at `:1514` and `:1598-1599`. Provenance is recorded in a comment beside
 `source_issues:` — the fourth item carries no issue number and entered by the operator's ruling.
 

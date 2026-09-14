@@ -34,7 +34,7 @@ last, which depends on all eleven others.
 - The three DEC-156-failing digests cannot reach the default branch: `.gitignore:7` excludes
   `.harness/*/features/*/runs/**` — `git check-ignore -v` — verified-at 5d12e68
 - **UNVERIFIED**: that INV-32 passes once APPROVED. I read the gate against the actual data
-  and every condition holds, but could not run it approved — `check-domain.sh` denies my
+  and every condition holds, but could not run it approved — `check-domain.py` denies my
   Edit of `approval:`, correctly. Re-check after signature.
 - **UNVERIFIED**: every `verify:` block. A panel grades a specification; they are prose
   until someone runs them.

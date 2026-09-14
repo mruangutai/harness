@@ -103,7 +103,7 @@ not hold for the parser-divergence axis.
 **Scoped, not escalated to blocking**: this is not something the `.strip()`/`.lower()` removal
 introduced — it is a pre-existing property of `check-state.sh` using a YAML-tolerant reader for a
 JSON-named file, present before BUG-1080 and orthogonal to this diff. It is also **largely
-guarded in the normal path**: `check-domain.sh`'s write hook (`check-domain.sh:1133-1150`) calls
+guarded in the normal path**: `check-domain.py`'s write hook (`check-domain.py:1133-1150`) calls
 the *same* `feature_schema.problems_for_text` on every write to `feature.json` and denies a write
 that fails it — so a compliant agent writing through the normal tool path cannot land case-10's
 content on disk in the first place. The gap is real only for content that reaches disk
@@ -180,7 +180,7 @@ DIGEST:
   open_questions:
     - { id: Q1, question: "Anchor case_inv6_producer_is_documented to the step-6 paragraph (or its containing list item) rather than the whole SKILL.md text, so an instruction that moves or is deleted-but-string-survives-elsewhere reddens it.", blocking: false }
     - { id: Q2, question: "Add an 'agent' key to the other_value and case_variant fixtures in test-validate-feature-json.py (or assert on the specific code_grade message) so a broken/removed enum constraint reddens them — currently both stay green under a widened OR fully-removed enum.", blocking: false }
-    - { id: Q3, question: "Backlog: check-state.sh reads feature.json through a YAML-tolerant parser and can therefore silently INV-6-exempt a document that validate-feature-json.py would reject as not-valid-JSON (demonstrated, case 10 in Q-C's matrix). Write-time guarded by check-domain.sh today; not reachable through normal agent writes, only through out-of-band disk changes (merge, manual edit, hook bypass).", blocking: false }
+    - { id: Q3, question: "Backlog: check-state.sh reads feature.json through a YAML-tolerant parser and can therefore silently INV-6-exempt a document that validate-feature-json.py would reject as not-valid-JSON (demonstrated, case 10 in Q-C's matrix). Write-time guarded by check-domain.py today; not reachable through normal agent writes, only through out-of-band disk changes (merge, manual edit, hook bypass).", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: ".harness/harness/features/BUG-1080-inv6-plan-phase-runs/notes/qa-bug1080-c1.md"

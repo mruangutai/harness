@@ -34,7 +34,7 @@ the review panel, then pm's goal-check on all 13 SCs through `harness-product-le
 - Do not trust a green suite as evidence an integration works — it was green through two live
   defects; call the real thing — source: this session, two fix cycles
 - Do not re-run T-01 through T-10; all are committed and independently verified — source: this session
-- Do not edit `check-state.sh`, `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+- Do not edit `check-state.sh`, `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`,
   `test-check-state.py` from a team run — source: DEC-174 carve-out, T-05 main-session-direct
 - Do not stage with `git add -A`, `git add .` or `git add .harness`; explicit pathspecs, and confirm
   `git status --short` before every commit — source: #433, live foreign reconciliation

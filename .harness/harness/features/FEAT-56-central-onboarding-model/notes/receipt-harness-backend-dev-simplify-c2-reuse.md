@@ -7,7 +7,7 @@ Scope: `git diff 4b5dbb23..HEAD`, read-only. No repo file touched other than thi
 **Held for every touched script except one.** `factory_config.py` (35, 58, 437) and
 `check-instruction-paths.py` (10, 143) both resolve root via the canonical
 `harness_boundary.resolve_root(_BIN_DIR)` (`harness_boundary.py`). All other message-only
-diffs (`check-domain.sh`, `check-state.sh`, `gh-sync.py`, `layout_migration.py`,
+diffs (`check-domain.py`, `check-state.sh`, `gh-sync.py`, `layout_migration.py`,
 `post-merge-sweep.py`, `upgrade-config.py`) touch prose only and leave their existing
 `harness_boundary` calls untouched.
 

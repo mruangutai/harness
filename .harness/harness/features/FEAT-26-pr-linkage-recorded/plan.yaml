@@ -35,10 +35,10 @@ lanes:
       reason: the carve-out script's own fixture, kept in the same hand so red-first is provable
     - surface: .claude/skills/harness/templates/plan.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the templates directory
+      reason: check-domain.py --resolve returns NOBODY for the templates directory
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the playbook
+      reason: check-domain.py --resolve returns NOBODY for the playbook
     - surface: .harness/harness/features/*/feature.json
       lane: main-session-direct
       reason: resolves to harness-orchestrator alone, which is not a task-executing lane
@@ -567,7 +567,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both the templates directory
+    execution_reason: check-domain.py --resolve returns NOBODY for both the templates directory
       and the playbook
     depends_on: [T-03, T-04]
     status: done

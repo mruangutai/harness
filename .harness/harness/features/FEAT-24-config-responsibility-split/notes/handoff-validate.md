@@ -36,7 +36,7 @@ session's subcommands, not mine.** No PR is open and nothing is merged.
   source: DEC-157, `harness.json` budgets
 - Do not treat `max_total_runs` as a stop; it is informational and two leads escalated wrongly on it
   — source: `harness.json:167`, "it never stops a branch"
-- Do not try to apply another agent's Expertise ops: `check-domain.sh --resolve` grants each file to
+- Do not try to apply another agent's Expertise ops: `check-domain.py --resolve` grants each file to
   its own agent alone, orchestrator included in the exclusion — verified-at 0c11e23
 - Do not reconstruct the three reviewers' verbatim ops from headlines — the text is gone, and
   inventing it into a per-spawn-injected file is the defect this feature exists to remove — source: this session

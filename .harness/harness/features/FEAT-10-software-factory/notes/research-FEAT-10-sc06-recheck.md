@@ -1,6 +1,6 @@
 # Receipt — SC-06 re-check (FEAT-10) — harness-pm
 
-Path note: the dispatch named `notes/receipt-harness-pm-sc06-product.md`. `check-domain.sh` denies
+Path note: the dispatch named `notes/receipt-harness-pm-sc06-product.md`. `check-domain.py` denies
 that path to harness-pm (permitted set is `notes/research-*.md` and `notes/uat-*.md`), so this
 receipt is filed under the granted research path rather than worked around. Raised as Q2.
 

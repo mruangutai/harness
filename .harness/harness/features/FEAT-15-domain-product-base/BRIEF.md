@@ -7,7 +7,7 @@ put straight through the hook: `harness-documentor` writing a product repo's `sr
 **0**, `harness-code-reviewer` — which owns no source path anywhere and holds no Edit tool — writing
 the same file exits **0**, and `harness-documentor` writing `src/main.py` inside harness exits **2**.
 The same logical path is blocked inside this repo and permitted outside it. The cause is the
-outside-root branch of `check-domain.sh`'s `domain_check()`, whose `commonpath` comparison ends in a
+outside-root branch of `check-domain.py`'s `domain_check()`, whose `commonpath` comparison ends in a
 bare `return` — no verdict, no message, no log line. `root` is always the harness repo, so the twelve
 product-shaped globs in `.harness/team-config.yaml` describe paths under
 `<workspace_root>/<repo>/` that the guard never evaluates. They appear to work only because harness
@@ -49,7 +49,7 @@ none of the guard's business.
 
 ## Constraints
 
-- **The build is main-session-direct and must not be dispatched.** `check-domain.sh` is a DEC-174
+- **The build is main-session-direct and must not be dispatched.** `check-domain.py` is a DEC-174
   carve-out file named in `CLAUDE.md`. Every task touching it or `test-check-domain.py` is executed
   directly by the operator's main session, with tests run explicitly and a human reading the diff.
   No build squad is spawned; there is no qa squad on this feature, so every criterion below is
@@ -86,7 +86,7 @@ none of the guard's business.
 - The path derivation for a checkout is never restated: `factory_config.workspace_path()` is the one
   place it exists and it is called.
 - Planned against the working tree of `chore/203-end-copy-distribution` at `f3452bf`; the original
-  probes were taken at `06ae963` and the routing simulation at `96d5d5c`, and `check-domain.sh` and
+  probes were taken at `06ae963` and the routing simulation at `96d5d5c`, and `check-domain.py` and
   `test-check-domain.py` are unchanged across all three. No branch is created and nothing is
   committed — the operator does that at signature.
 - **Out of scope:** #240, the `factory_workspace` refusal guard; absolute-path hook registration
@@ -137,7 +137,7 @@ none of the guard's business.
   keeps exit 0 on a control-plane path. The disposition of the in-root allow assertions was
   re-derived at `f3452bf` — the count is deliberately unstated, because three readers produced three
   different numbers from it and the phrase never pinned its counting rule; the dispositions below
-  are what binds, and each was independently verified; `check-domain.sh` and `test-check-domain.py` are byte-identical to
+  are what binds, and each was independently verified; `check-domain.py` and `test-check-domain.py` are byte-identical to
   `96d5d5c` and the manifest's only change since is one control-plane glob for documentor. Any
   expectation changed beyond the one named above is a regression — stop and report it.
   verify: automated        evidence: integration
@@ -146,7 +146,7 @@ none of the guard's business.
   look like a workspace path. A reviewer cites the single call site by its surrounding content, not
   by line number.
   verify: inspection
-- SC-09: `check-domain.sh --resolve` and the write path agree on the base for the same product path:
+- SC-09: `check-domain.py --resolve` and the write path agree on the base for the same product path:
   the resolver names the persona the guard permits, and names nobody for a path the guard refuses.
   verify: automated        evidence: integration
 - SC-10: The whole suite is green after the change — `run-unit-tests.sh` exits 0 — so the new base

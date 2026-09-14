@@ -22,8 +22,8 @@ session.
 
 | File | What |
 |---|---|
-| `harness_boundary.py` | **new.** The boundary rule, moved verbatim out of `check-domain.sh`'s embedded Python — which is why `bash-write-guard.sh` could not consult it. A heredoc cannot be imported |
-| `check-domain.sh` | decides from `classify()`; keeps every agent-facing line it printed before |
+| `harness_boundary.py` | **new.** The boundary rule, moved verbatim out of `check-domain.py`'s embedded Python — which is why `bash-write-guard.sh` could not consult it. A heredoc cannot be imported |
+| `check-domain.py` | decides from `classify()`; keeps every agent-facing line it printed before |
 | `bash-write-guard.sh` | its own glob matcher deleted; adds a `git worktree add|move` scan |
 | `check-state.sh` | INV-25 reports a pre-existing out-of-place worktree at session entry |
 | `DECISIONS.md` | DEC-193, plus amendment 1 |

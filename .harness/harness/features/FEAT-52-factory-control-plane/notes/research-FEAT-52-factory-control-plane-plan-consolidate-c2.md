@@ -124,8 +124,8 @@ proposal carries one, and the missing block is the separately routed harness def
 `lanes:` is a non-union key, so the four surfaces added in cycle 1 have no `lanes.rows` entry and no
 `plan-merge.py` verb can add one (Q1). The resolution is recorded here instead, so the operator signs
 with it visible. Each answer below is the verbatim stdout of
-`bash .agents/skills/harness/bin/check-domain.sh --resolve <path>`, exit 0 in all four cases. The
-dispatch spelled the command `python3 …check-domain.sh`; the file is a shell script, so it was run
+`bash .agents/skills/harness/bin/check-domain.py --resolve <path>`, exit 0 in all four cases. The
+dispatch spelled the command `python3 …check-domain.py`; the file is a shell script, so it was run
 with `bash` (lead-corrected).
 
 `.claude/skills/harness/bin/inflight_registry.py`

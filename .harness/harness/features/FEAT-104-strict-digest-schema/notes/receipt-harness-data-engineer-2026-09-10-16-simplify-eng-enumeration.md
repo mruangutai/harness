@@ -85,7 +85,7 @@ a required error into a silent no-op given jsonschema's own error-generation sem
 
 Throwaway `python3 -c`-equivalent heredoc script run under `env -u HARNESS_AGENT_TYPE`, working
 in-process against the worktree's `run-state-schema.json` (read-only), no files written. Second
-run replicated the actual `check-domain.sh` accumulation algorithm (two-step list, same variable
+run replicated the actual `check-domain.py` accumulation algorithm (two-step list, same variable
 names) to observe the cross-step collision directly. No temp directory was needed since the
 probes only read the schema and built strings/instances in memory — nothing was written to disk
 under a temp root, so there was nothing to delete.
@@ -100,5 +100,5 @@ under a temp root, so there was nothing to delete.
 ```
 
 Both entries are sibling agents' own receipts (concurrent runs), not mine. The three DEC-174
-read-only files (`check-domain.sh`, `run-state-schema.json`, `test-check-domain.py`) are absent
+read-only files (`check-domain.py`, `run-state-schema.json`, `test-check-domain.py`) are absent
 from this output — untouched, byte-identical.

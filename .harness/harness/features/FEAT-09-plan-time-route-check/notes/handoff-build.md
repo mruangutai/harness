@@ -28,7 +28,7 @@ from base `47ed11f`.
   re-checked by the successor — verified-at 3c245c3
 - Suite is **13 PASS**, and that is the correct post-FEAT-08 number, not 12 or 14. `PLAN.md:312`
   predicts 14 and is stale prose — no `verify:` asserts a count — verified-at 4918d06
-- `check-domain.sh` — the write-permission guard — sat committed with ZERO independent review
+- `check-domain.py` — the write-permission guard — sat committed with ZERO independent review
   for the whole park. A window that EXISTED; name it as such in the briefing — verified-at 4918d06
 
 ## Dead ends

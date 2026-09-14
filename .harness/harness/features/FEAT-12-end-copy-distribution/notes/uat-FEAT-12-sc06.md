@@ -22,11 +22,11 @@ The eight, from `plan.yaml` T-03 (line 311, `intent:` enumeration at 344-352):
 | PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.sh` |
 | PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.sh` (duplicate, spelled `${CLAUDE_PROJECT_DIR}`) |
 | PreToolUse | Bash | `.claude/skills/harness/bin/bash-write-guard.sh` |
-| PreToolUse | Write \| Edit | `.claude/skills/harness/bin/check-domain.sh` |
+| PreToolUse | Write \| Edit | `.claude/skills/harness/bin/check-domain.py` |
 | PreToolUse | Task \| Agent | `.claude/skills/harness/bin/dispatch-guard.sh` |
 | SubagentStart | `harness-.*` | `.claude/skills/harness/bin/inject-expertise.sh` |
 | SubagentStop | `harness-.*` | `.claude/skills/harness/bin/validate-digest.py --hook` |
-| PostToolUse | Write \| Edit \| Bash | `.claude/skills/harness/bin/check-domain.sh --post` |
+| PostToolUse | Write \| Edit \| Bash | `.claude/skills/harness/bin/check-domain.py --post` |
 
 **Four of those are what a Task spawn fires** — the PreToolUse `Task|Agent` entry, `SubagentStart`,
 `SubagentStop`, and `PostToolUse` on the tools the subagent itself uses. Which is why step 4 exists,
@@ -69,7 +69,7 @@ In the session, ask for something that runs one Bash command, e.g. `git status`.
 - **Expected:** the command runs and returns its output. No hook error before or after it.
 - **Failure looks like:** an error naming `.claude/skills/harness/bin/branch-create-gate.sh` or
   `.claude/skills/harness/bin/bash-write-guard.sh` (PreToolUse), or
-  `.claude/skills/harness/bin/check-domain.sh` with `--post` (PostToolUse, fires after the Bash
+  `.claude/skills/harness/bin/check-domain.py` with `--post` (PostToolUse, fires after the Bash
   call). `branch-create-gate.sh` may appear twice — there were two registrations, spelled
   differently. Any of those paths in an error message = a surviving registration = **SC-06 not met**.
 
@@ -78,7 +78,7 @@ In the session, ask for something that runs one Bash command, e.g. `git status`.
 Ask the session to create a throwaway file in the checkout, e.g. `scratch-uat.txt` with one line.
 
 - **Expected:** the file is written. No hook error.
-- **Failure looks like:** an error naming `.claude/skills/harness/bin/check-domain.sh` (PreToolUse on
+- **Failure looks like:** an error naming `.claude/skills/harness/bin/check-domain.py` (PreToolUse on
   `Write|Edit`), or the same path with `--post` afterwards.
 - Delete the file when you are done; it is not part of the evidence.
 
@@ -87,7 +87,7 @@ Ask the session to create a throwaway file in the checkout, e.g. `scratch-uat.tx
 Ask the session to change one word in a file that already exists (`README.md` is fine; revert after).
 
 - **Expected:** the edit applies, no hook error.
-- **Failure looks like:** the same `check-domain.sh` paths as step 2. This step exists because
+- **Failure looks like:** the same `check-domain.py` paths as step 2. This step exists because
   `Write` and `Edit` share a matcher — if step 2 passed, this should too, and a disagreement between
   them is itself a finding worth reporting.
 

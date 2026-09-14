@@ -66,7 +66,7 @@ Every entry below is now also a briefing backlog row; the `B-N` id is what the o
   `evidence` sub-object) would report as a missing STEP key. Fail-closed but mislabelled;
   unreachable today; distinct from Q15. Gate on `error.path == []` when nested `required` arrives?
 - Q19 (**B-9**, not blocking; pm's R2 restates it): SC-08's step seam is pinned by the INVOCATION
-  path, not string uniqueness — `undeclared step key` has two producers (`check-domain.sh:1671`,
+  path, not string uniqueness — `undeclared step key` has two producers (`check-domain.py:1671`,
   `check-state.sh:1526`). Safe today because the test fires a Write hook. Hold a future test
   asserting that phrase against combined or at-rest output to a producer-unique string?
 - Q11 (**B-25**, RECURRED, persona-level pattern, harness defect): `harness-code-reviewer`'s
@@ -108,5 +108,5 @@ Every entry below is now also a briefing backlog row; the `B-N` id is what the o
   bypass (**B-18**); F2's runtime residual (**B-15**, DECLINED stands); the `_no_parser` bootstrap
   early return (**B-17**); schema guards argued fail-closed rather than mutation-proven (**B-16**);
   T-06's missing omitted-`schema_version` case (**B-20**); the stale comment at
-  `check-domain.sh:1646-1647` (**B-12**); SIMPLIFY-SC08-01 (**B-10**). Standing: the INV-26
+  `check-domain.py:1646-1647` (**B-12**); SIMPLIFY-SC08-01 (**B-10**). Standing: the INV-26
   card/plan mismatch (**B-27**) and the per-persona worktree-claim guard (**B-28**).

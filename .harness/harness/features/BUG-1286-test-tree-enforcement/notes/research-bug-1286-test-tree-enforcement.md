@@ -78,7 +78,7 @@ real root must report the path.
   lengthening the entry shifts later anchors and regeneration is mandatory; the ` :: ` tail is
   hand-written and regeneration alone will not update it.
 
-## Lane resolution (check-domain.sh --resolve, at the pinned SHA)
+## Lane resolution (check-domain.py --resolve, at the pinned SHA)
 
 `suite_layout.py` → backend-dev/dev-ops · `tests/**` → backend-dev/dev-ops/qa ·
 `DECISIONS.md` and `DECISIONS-INDEX.md` → documentor · feature `notes/qa-*.md` → qa/orchestrator.

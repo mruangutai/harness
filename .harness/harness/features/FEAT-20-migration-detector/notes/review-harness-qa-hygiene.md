@@ -76,14 +76,14 @@ reader) — `scan()`'s branch order makes that combination unreachable: any read
 `unreadable` or `neither` forces `CANNOT_VERIFY`, checked *before* the MIXED branch, so a MIXED
 verdict never coexists with such a reader. I built the nearest real-divergence case instead:
 `features` surface, evidence both shapes present, one reader `[both]` (`team-config.yaml`), one
-reader `[unreadable]` (`check-domain.sh` absent), cause `unreadable`.
+reader `[unreadable]` (`check-domain.py` absent), cause `unreadable`.
 - **3c75aa6** (reproduced from source, `old_layout_migration.py` in scratch): `render()` names
-  both readers — `team-config.yaml [both]; check-domain.sh [unreadable]`. Reproducing
+  both readers — `team-config.yaml [both]; check-domain.py [unreadable]`. Reproducing
   `check-state.sh`'s old `_cv_wording`/`_tagged('unreadable')` clause names **only**
-  `check-domain.sh [unreadable]` — the `[both]` reader is silently dropped from the
+  `check-domain.py [unreadable]` — the `[both]` reader is silently dropped from the
   session-entry wording that old code actually rendered. **Diverges**, as issue #379 claimed.
 - **a714bd0**: both call sites (`blame()` directly) return
-  `team-config.yaml [both]; check-domain.sh [unreadable]` — **identical**.
+  `team-config.yaml [both]; check-domain.py [unreadable]` — **identical**.
 Fixture files and reproduction script kept under scratch only (not committed); pointers on
 request.
 

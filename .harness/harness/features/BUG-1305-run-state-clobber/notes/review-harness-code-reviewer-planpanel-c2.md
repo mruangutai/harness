@@ -10,12 +10,12 @@ hypothetical; both are verified at source. `code_grade: n_a` — no code exists 
 
 Traced the modal case (prior run_id A/F/S/H + `run_uid` U1; incoming agrees on all four seed fields,
 carries no `run_uid`) through both routes at `c369fb1f`. Write: `content` parses to `doc`
-(`check-domain.sh:1479`-ish), `absolute_path is not None` block reads `prior_state`, parses to
+(`check-domain.py:1479`-ish), `absolute_path is not None` block reads `prior_state`, parses to
 `prior_doc` (dict, run_id A). Issue-1124 compare at `:1567-1574` is an **inequality** test
 (`if str(prior_run_id) != str(new_run_id): return`); run_ids are EQUAL in the modal case, so it does
 NOT return, and falls through to wherever T-09 places `uid_conflict(prior_doc, doc)` next —
 `prior_doc.run_uid=U1`, `doc.run_uid` absent → the "missing run_uid" branch fires → refused. Edit:
-`check-domain.sh:1905-1923` reconstructs the full post-edit content into the SAME `content` variable
+`check-domain.py:1905-1923` reconstructs the full post-edit content into the SAME `content` variable
 before the RE_STATE_YAML branch runs, so it reaches the identical code path. Confirmed correct as
 specified, on both routes. **Not a finding.**
 
@@ -38,7 +38,7 @@ record per P-15.
 explicitly disclosed before signature)
 
 `bash-write-guard.sh:762-763` — `_run_artifact_guard` — matches only `harness_boundary.RE_RUN_DIGEST`
-and `RE_STATE_YAML`. `check-domain.sh`'s `SHAPE_PATTERNS` (`:1185`) is
+and `RE_STATE_YAML`. `check-domain.py`'s `SHAPE_PATTERNS` (`:1185`) is
 `(RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD, RE_PLAN_YAML)` plus the
 separately-matched `RE_RUN_DIGEST`. **None of these, and no pattern added anywhere in T-01–T-12,
 matches `.run-identity.json`** (`MARKER_NAME`, T-01). Consequence: any writer with ordinary domain
@@ -125,7 +125,7 @@ with the whole suite green, exactly the "nobody notices until a human does" fail
 Problem statement names for the original bug. SC-12's own text is honest about the scope of what it
 measures, so this is disclosed rather than hidden — flagging so the operator is explicit that
 signing accepts a one-time dated measurement, not a standing guarantee. (Independently, peer
-`ShouldNotExist` also found T-12/SC-12 is confounded pre-merge by which checkout's `check-domain.sh`
+`ShouldNotExist` also found T-12/SC-12 is confounded pre-merge by which checkout's `check-domain.py`
 main-session-direct tasks execute from — a different, complementary defect on the same task; see their
 digest.)
 
@@ -135,7 +135,7 @@ digest.)
   correctly `traces: []`; `depends_on` graph (T-01←[]; T-02,T-03←[T-01]; T-09,T-12←[T-02];
   T-06←[T-02,T-09]; T-08←[T-02,T-03,T-05,T-06,T-09]) is a valid DAG, no cycles.
 - Spot-checked `verify:` blocks for T-01/T-02/T-03/T-05/T-06/T-07/T-09 against source anchors
-  (`check-domain.sh:1508,1526,1529,1530,1567-1574,1905-1923,1930`; `check-state.sh:840-941,1390,1426`;
+  (`check-domain.py:1508,1526,1529,1530,1567-1574,1905-1923,1930`; `check-state.sh:840-941,1390,1426`;
   `SKILL.md:272-274` does contain the literal string `task-or-purpose` T-07's negative grep targets)
   — all anchors verified accurate at `c369fb1f`, all commands are syntactically executable as written.
 - Re-derived every arity claim send-back-1 corrected against its own recount; found no further

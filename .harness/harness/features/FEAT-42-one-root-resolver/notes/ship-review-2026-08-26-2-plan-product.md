@@ -59,7 +59,7 @@ site outside the resolver carries its own env fallback chain. The chain occurs *
 files**; D-5's map removes 7 definitions covering 6 of them; **14 occurrences in 9 files survive, and
 SC-01's file list cannot see one of them.** SC-01 would go green with REQ-01 plainly unmet. Seven
 survivors are enforcement layer (`check-plan-routes.py:496` — the model implementation the design was
-copied from — plus `check-domain.sh:152/:296`, `bash-write-guard.sh:194/:232`,
+copied from — plus `check-domain.py:152/:296`, `bash-write-guard.sh:194/:232`,
 `validate-digest.py:821/:913`). Seven are not, and one of those, `inject-expertise.sh:31`, is a
 **SubagentStart hook falling back to `$(pwd)`** — #866's defect verbatim in a file nobody scoped.
 **This needs your call: widen scope, or narrow REQ-01 to the truth and backlog the rest.** What must

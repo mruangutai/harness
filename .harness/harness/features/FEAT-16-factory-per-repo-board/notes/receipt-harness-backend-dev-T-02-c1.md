@@ -107,7 +107,7 @@ to this task, immediately followed by `PASS test-factory-decompose.py`.)
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched (T-07's).
-- `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` not touched
+- `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` not touched
   (DEC-174 carve-out).
 - `factory_config.station(fleet, key)` (two-argument form) untouched — still present, unused by
   this task.

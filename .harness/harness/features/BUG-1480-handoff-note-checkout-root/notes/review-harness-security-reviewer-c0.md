@@ -8,7 +8,7 @@ agent is legitimately bound to. One low-severity residual noted, not gating.
 
 ## Census (both files read in full at 4de92e75)
 
-- `.claude/skills/harness/bin/check-domain.sh` — `_checkout_root` (new, after `_norm`,
+- `.claude/skills/harness/bin/check-domain.py` — `_checkout_root` (new, after `_norm`,
   measured at this sha immediately following `_norm`'s closing `return rel`) and its one
   call site inside `shape_problems`'s `RE_HANDOFF` branch (measured: the
   `handoff_done_when.problems(...)` call, ~30 lines below `_checkout_root`'s definition).
@@ -30,16 +30,16 @@ unused). In isolation that makes `_checkout_root` willing to hand back the check
 
 That isolation doesn't hold at the only call site that matters. `_checkout_root` is invoked
 from inside `shape_problems`, which runs strictly **after** `domain_check()`
-(`check-domain.sh:1002-1003`, `if _run_domain and not _no_parser: domain_check()`, ahead of
-"THE SHAPE PHASE" comment at `check-domain.sh:1005`). For a governed agent
-(`_domain_phase = _governed and not _post`, `check-domain.sh:328`), `domain_check()` calls
+(`check-domain.py:1002-1003`, `if _run_domain and not _no_parser: domain_check()`, ahead of
+"THE SHAPE PHASE" comment at `check-domain.py:1005`). For a governed agent
+(`_domain_phase = _governed and not _post`, `check-domain.py:328`), `domain_check()` calls
 `harness_boundary.classify(...)` and hard-refuses (`sys.exit(2)`) an `out_of_place_worktree`
-(worktree not under `WORKTREES_SEGMENT`, `check-domain.sh:921-937`) or a `wrong_checkout`
-(same repo, different checkout than the session's own, `check-domain.sh:939-949`) verdict
+(worktree not under `WORKTREES_SEGMENT`, `check-domain.py:921-937`) or a `wrong_checkout`
+(same repo, different checkout than the session's own, `check-domain.py:939-949`) verdict
 *before* `shape_problems` ever runs. On the `allow`/`shared` outcomes it additionally calls
-`claim_checkout_guard(_claimed_abs(target))` (`check-domain.sh:966-967, 972-973`), which binds
+`claim_checkout_guard(_claimed_abs(target))` (`check-domain.py:966-967, 972-973`), which binds
 the destination to the agent's own live worktree claims (`claim_checkout_guard` at
-`check-domain.sh:770`, backed by `harness_boundary.claim_worktrees`). So by the time
+`check-domain.py:770`, backed by `harness_boundary.claim_worktrees`). So by the time
 `_checkout_root` runs for a governed write, `absolute_path` has already been proven to sit
 inside either the main checkout or a legitimately-placed worktree the calling agent is bound
 to — the same set `checkout_relative`'s legitimacy check would have produced, just enforced
@@ -59,7 +59,7 @@ itself is authorized. That's REQ-01/REQ-02's stated intent and the whole point o
 
 `_checkout_root(absolute_path)` is computed exactly **once** per `shape_problems` call and
 threaded through as the single `root` argument of the diff's one call site
-(`check-domain.sh`, `handoff_done_when.problems(rel, content, _checkout_root(absolute_path),
+(`check-domain.py`, `handoff_done_when.problems(rel, content, _checkout_root(absolute_path),
 resolve=True)`). Inside `handoff_done_when.py`, that one value flows unchanged through
 `_resolve_all` → `_feature_dir(rel_path, root)` (`handoff_done_when.py:53-55`) and every
 `_resolve_plan`/`_resolve_brief`/`_resolve_finding`/`_resolve_approval`/`_satisfied_plan`/
@@ -71,8 +71,8 @@ call chain — the containment decision and every read it gates use the same res
 No split-root inconsistency.
 
 (`rel_path`/`rel` also derive from the identical `_claimed_abs(target)` input as
-`absolute_path` — `_norm` at `check-domain.sh:1141,1144` and `_checkout_root` at
-`check-domain.sh` both call `_hb.checkout_relative(_claimed_abs(path))` on the same absolute
+`absolute_path` — `_norm` at `check-domain.py:1141,1144` and `_checkout_root` at
+`check-domain.py` both call `_hb.checkout_relative(_claimed_abs(path))` on the same absolute
 path — so `rel` and the chosen `root` can't describe two different files either.)
 
 ## 3. Fail-open direction (REQ-03)
@@ -81,11 +81,11 @@ path — so `rel` and the chosen `root` can't describe two different files eithe
 Grading the direction:
 
 - **The common failure mode is safe.** `_checkout_root`'s try body is structurally identical
-  to `_norm`'s (`check-domain.sh`, both: `_hb.checkout_relative(_claimed_abs(path))`, then
+  to `_norm`'s (`check-domain.py`, both: `_hb.checkout_relative(_claimed_abs(path))`, then
   compare `_hb.real(_ck[0]) != _hb.real(root)`), called on the *same* absolute path, moments
   apart, within one synchronous hook invocation. `_norm(target)` already ran earlier to
   produce `rel` (`targets = [(_norm(target), ...)]`), and `rel` must match `RE_HANDOFF`
-  (`^\.harness/[^/]+/features/[^/]+/notes/handoff-...\.md$`, `check-domain.sh:1189-1190`,
+  (`^\.harness/[^/]+/features/[^/]+/notes/handoff-...\.md$`, `check-domain.py:1189-1190`,
   worktree-prefix already stripped) for this code path to run at all. If `_norm`'s identical
   computation had failed or returned a not-actually-stripped path, `rel` would carry the
   worktree prefix and never match `RE_HANDOFF`, so `_checkout_root` is simply never called.
@@ -108,7 +108,7 @@ Grading the direction:
   checkouts of the same feature — I did not find a way for the write's own author to
   manufacture the favorable half of that (raw `Write`/`Edit` to `plan.yaml` is refused by a
   separate, pre-existing route check, `_plan_route`/`_reached_plan`,
-  `check-domain.sh:1913-1928`). Rating **low**, recorded rather than gating (P-17/O-04:
+  `check-domain.py:1913-1928`). Rating **low**, recorded rather than gating (P-17/O-04:
   irreversibility here is bounded — a false-pass only lets a handoff note *claim* an
   authority pointer resolves; it doesn't itself authorize any write).
 
@@ -136,7 +136,7 @@ No write lands outside the temp directory.
 
 ## Known non-gating residuals (not re-derived, per briefing)
 
-- `RE_FEATURE_JSON` schema lookup (near old check-domain.sh line ~1472) has a pre-existing,
+- `RE_FEATURE_JSON` schema lookup (near old check-domain.py line ~1472) has a pre-existing,
   out-of-diff rel/root mismatch — not this diff's defect.
 - REQ-06's containment narrowing has no executable test row; graded by SC-07 inspection only.
 
@@ -145,7 +145,7 @@ VERDICT: PASS
 DIGEST:
   headline: "_checkout_root only re-scopes handoff-note content validation to an already-authorized checkout; no write-authorization widening, no split-root containment gap, fail-open direction is safe in the reachable case with one low, non-blocking residual."
   in_scope: true
-  scope_reason: "Diff changes the trust root a PreToolUse write-authorization-adjacent gate (check-domain.sh) uses to validate handoff-note Authority: pointers — squarely a boundary-widening question even without network/secret/user-input surface."
+  scope_reason: "Diff changes the trust root a PreToolUse write-authorization-adjacent gate (check-domain.py) uses to validate handoff-note Authority: pointers — squarely a boundary-widening question even without network/secret/user-input surface."
   severity_max: low
   findings: 1
   must_fix: []

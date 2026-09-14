@@ -31,7 +31,7 @@ for what this review does not cover.
   agent-instruction prose — no DESIGN.md content, no markup, no styling, no a11y tree. Mechanical
   reference-path fix, consistent with the feature's stated goal.
 - `BRIEF.md` read directly: FEAT-21's own scope statement is exclusively about path-migration
-  mechanics (`check-state.sh` discovery sites, `check-domain.sh` sweep globs, `check-plan-routes.py`,
+  mechanics (`check-state.sh` discovery sites, `check-domain.py` sweep globs, `check-plan-routes.py`,
   team-config grants, `branch-create-gate.sh`) — no UI/visual/interaction goal anywhere in it.
 
 Conclusion: this diff has no rendered UI surface and no design contract was touched, checked at both

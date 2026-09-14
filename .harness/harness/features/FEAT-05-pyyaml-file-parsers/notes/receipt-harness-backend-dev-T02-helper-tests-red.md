@@ -57,7 +57,7 @@ pre-existing suites report `PASS`. No `MISCONFIGURED` line anywhere in the outpu
 - `harness_yaml.load_str(text: str, where: str) -> dict`
 - `harness_yaml.load_file(path: str) -> dict`
 - `harness_yaml.manifest_domains(manifest_path: str, agent: str) -> (mine: list[str], shared: list[str])`
-  — order-preserving, matching `check-domain.sh`'s pre-change `collect()` exactly, for EVERY agent in
+  — order-preserving, matching `check-domain.py`'s pre-change `collect()` exactly, for EVERY agent in
   the manifest, not just `teams[].members[]` entries. Verified against the real
   `.harness/team-config.yaml` for `harness-backend-dev`, `harness-dev-ops`, `harness-pm`,
   `harness-documentor` (nested under `teams[].members[]`) AND `harness-eng-lead` (`leads:`) and

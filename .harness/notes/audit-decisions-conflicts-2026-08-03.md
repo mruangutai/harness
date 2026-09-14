@@ -74,7 +74,7 @@ Surfaces named by 3+ index rulings:
 | surface | decisions | internal cross-refs |
 |---|---|---|
 | `validate-digest.py` | DEC-122, 123, 127 | **3** — tight |
-| `check-domain.sh` | DEC-19, 84, 143, 150, 160 | 1 |
+| `check-domain.py` | DEC-19, 84, 143, 150, 160 | 1 |
 | `feature.yaml` | DEC-47, 49, 129, 131, 150 | 1 |
 | `harness.json` | DEC-03, 33, 35, 160 | 0 |
 | `state.yaml` | DEC-46, 51, 154, 160 | 1 |
@@ -82,7 +82,7 @@ Surfaces named by 3+ index rulings:
 
 Two different shapes hide in that table, and only one is a problem:
 
-- **Supersession chains are history, not fragmentation.** `check-domain.sh`'s five is really
+- **Supersession chains are history, not fragmentation.** `check-domain.py`'s five is really
   DEC-19 → 84 → 85 plus three live entries. The index marks the dead ones. Leave them.
 - **Parallel LIVE rules on one contract is real fragmentation.** The DIGEST contract is governed
   simultaneously by **DEC-29** (three-part return), **121** (every field required), **122**

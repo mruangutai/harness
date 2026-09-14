@@ -34,7 +34,7 @@
   keys. A mechanical post-write pass over exactly those keys, replacing `: ` with ` - `, fixed all
   nine at once and touched no pre-existing line (originals cannot contain the sequence and still
   parse) — that pass is cheaper than proofreading.
-- 2026-08-21: `check-domain.sh --resolve .harness/harness.json` returns `harness-dev-ops` ALONE at
+- 2026-08-21: `check-domain.py --resolve .harness/harness.json` returns `harness-dev-ops` ALONE at
   7299669, while `.claude/skills/harness/bin/*` returns backend-dev AND dev-ops. So an operator
   instruction of the form "add harness.json to T-NN's `files:`" is unactionable whenever T-NN's
   agent is backend-dev — check-plan-routes.py reports a DEVIATION. Resolve with a separate dev-ops

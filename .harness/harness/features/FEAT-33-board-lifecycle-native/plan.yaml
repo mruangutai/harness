@@ -29,25 +29,25 @@ lanes:
       agent: harness-documentor
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; no agent domain grants it
+      reason: check-domain.py --resolve returns NOBODY at 46ee87c; no agent domain grants it
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; no agent domain grants it
+      reason: check-domain.py --resolve returns NOBODY at 46ee87c; no agent domain grants it
     - surface: .claude/commands/harness-plan.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; no agent domain grants it
+      reason: check-domain.py --resolve returns NOBODY at 46ee87c; no agent domain grants it
     - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; a served repo config on another remote
+      reason: check-domain.py --resolve returns NOBODY at 46ee87c; a served repo config on another remote
     - surface: .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-*.md
       lane: main-session-direct
       reason: resolves to harness-orchestrator, which is not a dispatchable task executor
     - surface: .claude/skills/harness/templates/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; the scaffold template for a repository joining the fleet
+      reason: check-domain.py --resolve returns NOBODY at 46ee87c; the scaffold template for a repository joining the fleet
     - surface: .claude/skills/harness/bin/check-state.sh and its test file test-check-state.py
       lane: main-session-direct
-      reason: check-domain.sh --resolve grants harness-backend-dev and harness-dev-ops at 46ee87c, but DEC-174 names check-state.sh in the enforcement layer, so no squad may execute a change to it and the carve-out wins
+      reason: check-domain.py --resolve grants harness-backend-dev and harness-dev-ops at 46ee87c, but DEC-174 names check-state.sh in the enforcement layer, so no squad may execute a change to it and the carve-out wins
 
 decisions:
   - id: D-01
@@ -170,7 +170,7 @@ tasks:
     traces: [REQ-03]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 46ee87c, and it is a config file on another repository's remote default branch
+    execution_reason: check-domain.py --resolve returns NOBODY for this path at 46ee87c, and it is a config file on another repository's remote default branch
     depends_on: []
     status: done
     files:
@@ -1087,7 +1087,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 46ee87c
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 46ee87c
     depends_on: [T-04, T-05]
     status: done
     files:
@@ -1181,7 +1181,7 @@ tasks:
         && printf '%s\n' "$ARCH" | grep -q 'parent #47 reads None' \
         && printf '%s\n' "$LIVE" | tail -1 | grep -q '0 finding(s)' \
         && test "$(printf '%s\n' "$LIVE" | grep -c '^board_lifecycle: STATUS:')" = 0 \
-        && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" \
+        && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" \
         && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION' | grep FEAT-33)" \
         && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION')" \
         && echo OK
@@ -1211,7 +1211,7 @@ tasks:
          board 2 has it enabled. Name it as an observation for the operator, not as a finding.
 
       7. THIS TASK OWNS SC-10's NEGATIVE CLAUSE, which no other task instruments. SC-10 asserts
-         that nothing already weakened AND that no edit reached check-domain.sh,
+         that nothing already weakened AND that no edit reached check-domain.py,
          bash-write-guard.sh, validate-digest.py or check-plan-routes.py. THE LIST IS FOUR FILES,
          NOT FIVE: check-state.sh left it under D-24, because D-23's ruling makes INV-26 fire on
          every done task with a deliberately-open sub-issue, and T-22 is the operator's own
@@ -1421,7 +1421,7 @@ tasks:
     traces: [REQ-08, REQ-09]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/skills/harness/SKILL.md and .claude/commands/harness-plan.md at 46ee87c
+    execution_reason: check-domain.py --resolve returns NOBODY for both .claude/skills/harness/SKILL.md and .claude/commands/harness-plan.md at 46ee87c
     depends_on: [T-13]
     status: done
     files:
@@ -1834,7 +1834,7 @@ tasks:
     traces: [REQ-10]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for a served repository's own config on another remote at 46ee87c
+    execution_reason: check-domain.py --resolve returns NOBODY for a served repository's own config on another remote at 46ee87c
     depends_on: [T-01, T-19]
     status: done
     files:
@@ -1887,7 +1887,7 @@ tasks:
     traces: [REQ-01, REQ-03]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness/templates/harness.json at 46ee87c
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/skills/harness/templates/harness.json at 46ee87c
     depends_on: [T-02]
     status: done
     files:
@@ -1920,7 +1920,7 @@ tasks:
     traces: [REQ-08]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-state.sh is named in DEC-174's enforcement layer, so no squad may execute a change to it whatever check-domain.sh grants; this is the operator's own hand
+    execution_reason: check-state.sh is named in DEC-174's enforcement layer, so no squad may execute a change to it whatever check-domain.py grants; this is the operator's own hand
     depends_on: [T-13, T-14]
     status: done
     files:
@@ -1982,7 +1982,7 @@ tasks:
       ACCEPTED; the same feature at status Done with the same card is still a VIOLATION; a done task
       whose card reads the backlog station is a VIOLATION at either status.
 
-      DO NOT touch any other invariant, do not touch check-domain.sh, bash-write-guard.sh,
+      DO NOT touch any other invariant, do not touch check-domain.py, bash-write-guard.sh,
       validate-digest.py or check-plan-routes.py - SC-10's four-file list still binds - and do not
       take the cheap route of giving the task a status INV-26 does not map, which would skip the
       comparison silently instead of widening it honestly.

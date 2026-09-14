@@ -22,7 +22,7 @@ The authoritative invocation exited **0**. This closes T-06's signed verifier. N
 
 ## Removed unrelated blocker
 
-The prior unit-gate failure was unrelated to T-06: `test-no-distribution.py` found the retired override spelling in T-09's resolver. Operator-approved correction `answers/Q1-t09-owner-resolver.md` records that T-09 now resolves the owner checkout through `harness_boundary.worktree_owner`, invokes that owner's `check-domain.sh` directly, preserves owner-manifest parity, and does not set `HARNESS_PROJECT_DIR`. The corrected resolver implements that owner resolution at `check-plan-routes.py:91-112` and selects the owner checkout resolver at `:67-88`. `test-no-distribution.py` is unchanged, per the approved correction and operator contract.
+The prior unit-gate failure was unrelated to T-06: `test-no-distribution.py` found the retired override spelling in T-09's resolver. Operator-approved correction `answers/Q1-t09-owner-resolver.md` records that T-09 now resolves the owner checkout through `harness_boundary.worktree_owner`, invokes that owner's `check-domain.py` directly, preserves owner-manifest parity, and does not set `HARNESS_PROJECT_DIR`. The corrected resolver implements that owner resolution at `check-plan-routes.py:91-112` and selects the owner checkout resolver at `:67-88`. `test-no-distribution.py` is unchanged, per the approved correction and operator contract.
 
 ## Scope record
 

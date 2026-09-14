@@ -6,7 +6,7 @@
 
 Diff `37a8a66..340e18a` (`git diff --stat`, 67 files) touches only: `bin/` scripts (`harness_yaml.py`
 and conversions of 9 existing parsers), two `PreToolUse` hooks (`bash-write-guard.sh`,
-`check-domain.sh`), their test files, agent/skill markdown (`.claude/agents/*.md`,
+`check-domain.py`), their test files, agent/skill markdown (`.claude/agents/*.md`,
 `.claude/skills/*/SKILL.md`), `.gitignore` / gitignore-snippet template, and `.harness` feature
 process artifacts (BRIEF/PLAN/STATE/notes/logs/DECISIONS). No HTML, CSS, component, or rendered page
 in the diff. `feature.yaml:63` and `PLAN.md:28` record `prototype_required: false` on the

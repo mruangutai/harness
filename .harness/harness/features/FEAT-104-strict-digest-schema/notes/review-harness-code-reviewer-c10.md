@@ -15,7 +15,7 @@ new test clauses in `tests/integration/test-check-domain.py` are independently e
   `notes/`/`observations/`/`STATE.md`/`feature.json` tree: `tests/integration/test-check-domain.py`.
   `git diff --numstat` on that path alone: **+4/-2**, exactly the claimed delta (case-name string
   plus two new `and` clauses in `_undeclared_cases()`). Confirmed byte-identical (zero diff) for
-  `check-domain.sh`, `check-state.sh`, `validate-digest.py`, `run-state-schema.json`, and
+  `check-domain.py`, `check-state.sh`, `validate-digest.py`, `run-state-schema.json`, and
   `tests/integration/test-validate-digest.py` between the two pins. **Claim CONFIRMED.**
 - `git diff --stat 790023f0..3321bcdd`: **8 files**, all under
   `.harness/harness/features/FEAT-104-strict-digest-schema/` (`STATE.md`, `feature.json`, four
@@ -37,7 +37,7 @@ distinct literal Python identifiers plus the file. **Grade: EXECUTABLE, and stro
 source symbols, not one.
 
 **Step seam** (`tests/integration/test-check-domain.py:79-89`, `_undeclared_cases`, this cycle's
-delta): calls `_fire_new(...)` → `check_domain_support.fire()` → `subprocess.run([check-domain.sh,
+delta): calls `_fire_new(...)` → `check_domain_support.fire()` → `subprocess.run([check-domain.py,
 ...])`, a **real subprocess execution** of the actual hook against a real payload, and asserts
 `strict.stderr` contains `"undeclared step key"`, `"rogue_step_key"`, `"run-state-schema.json"`, and
 backticked `` "`evidence`" ``. **Grade: EXECUTABLE** — genuinely runs the shell script and inspects
@@ -54,7 +54,7 @@ declaration location for a plain undeclared key like `rogue_step_key` used in th
 is a materially weaker "file and symbol" citation than the digest seam's three-identifier version.**
 However: `plan.yaml:454-462` (task T-06 intent) **explicitly decides** this exact route text —
 "a recovery field is declared in run-state-schema.json, a per-dispatch fact goes under evidence" —
-as the intended fulfillment of SC-08 for this seam, and the shipped message (`check-domain.sh:1653-
+as the intended fulfillment of SC-08 for this seam, and the shipped message (`check-domain.py:1653-
 1659`) matches that decided text verbatim in substance. Since Stage 1 asks whether the code matches
 what the plan *decided*, not an idealized re-reading of the BRIEF's abstract phrase, **this closes
 SC-08 for the step seam as the plan defined it** — but the plan's own definition is a narrower
@@ -66,7 +66,7 @@ this cycle).
 
 ## Q2 — Can the new assertion set pass on an unrelated message branch?
 
-Read `check-domain.sh:1615-1667` directly at the pin (`git show 790023f0:...`). Two producers can
+Read `check-domain.py:1615-1667` directly at the pin (`git show 790023f0:...`). Two producers can
 mention `run-state-schema.json` under `_valid_version and isinstance(doc, dict)`:
 
 1. **Intended** (`:1645-1659`, inside `if _schema_errors:`): head `_head("undeclared step key or
@@ -78,7 +78,7 @@ mention `run-state-schema.json` under `_valid_version and isinstance(doc, dict)`
 
 Branch 2 **does** contain the substring `"run-state-schema.json"` (checked: yes, in its own body
 line). It does **not** contain `"undeclared step key"` (grepped the whole file: that exact phrase
-occurs at exactly one site, `check-domain.sh:1653`) or the literal offending key name `rogue_step_key`
+occurs at exactly one site, `check-domain.py:1653`) or the literal offending key name `rogue_step_key`
 (branch 2 never enumerates `_offending`, since `_schema_errors`/`_offending` are never populated on
 that path) or backticked `` `evidence` `` (branch 2's body never mentions evidence at all).
 
@@ -120,7 +120,7 @@ over Bash (a prior attempt to write a disposable `/tmp` copy via shell redirect 
 
 ## F1 / F3 / F2 dispositions
 
-- **F1** (schema_version downgrade refusal, `_version_decreased` at `check-domain.sh:1766-1775`):
+- **F1** (schema_version downgrade refusal, `_version_decreased` at `check-domain.py:1766-1775`):
   byte-identical to c9 (confirmed via the zero-diff check above). **Still CLOSED.**
 - **F3** (undeclared-key rejection naming `validate-digest.py`/`PASSTHROUGH`/`DOCUMENTED_OPTIONAL`/
   `SCHEMAS`, three-rogue-key case at `test-validate-digest.py:3130-3145`): byte-identical to c9.

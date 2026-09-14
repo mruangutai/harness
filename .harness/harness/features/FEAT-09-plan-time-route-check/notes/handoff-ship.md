@@ -44,7 +44,7 @@ become issues.
 - Do NOT use base `ae2443d`. It still RESOLVES and returns the wrong scope silently: 71 files vs a
   true 14 at 3c245c3, 84 vs 30 at HEAD. Base is `47ed11f` — my own re-measurement — verified-at 3a5a245
 - Do NOT write a cost line or invent a figure — the harness no longer meters spend (DEC-178)
-- Do NOT change `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` or
+- Do NOT change `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` or
   `check-docs.sh` through a team run — DEC-174 carve-out, main-session-direct only
 
 ## Working set

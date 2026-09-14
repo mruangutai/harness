@@ -73,7 +73,7 @@ retained composition actually runs.**
 `FEAT-02-t01.md`/`t02.md` are historical implementation notes (RED/GREEN task
 receipts for an unrelated prior fix, `validate-digest.py` echo-shadowing) — no
 credentials, no secrets, confirmed by reading the diff content in full. Grepped
-`.harness/team-config.yaml` and `check-domain.sh` for `members/`: zero references to
+`.harness/team-config.yaml` and `check-domain.py` for `members/`: zero references to
 this path (the `members:` hits in both are unrelated YAML/comment usages — squad
 roster keys, not path grants). One dangling reference found:
 `.harness/features/FEAT-02/runs/2026-07-27-03-eng/state.yaml:19,36` still points at

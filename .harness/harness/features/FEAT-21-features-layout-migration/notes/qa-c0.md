@@ -21,7 +21,7 @@ Change types: T-01/T-03/T-04/T-05/T-06/T-09/T-10 = `logic` (→ requires `unit`)
 | Task | change_type | Changed file(s) | Binding test | Array | Bound by floor (`unit`)? |
 |---|---|---|---|---|---|
 | T-01 | logic | test-layout-migration.py | itself | UNIT | yes |
-| T-03 | logic | check-domain.sh | test-check-domain.py | INTEGRATION | **no** |
+| T-03 | logic | check-domain.py | test-check-domain.py | INTEGRATION | **no** |
 | T-04 | logic | check-plan-routes.py | test-check-plan-routes.py | INTEGRATION | **no** |
 | T-05 | logic | check-state.sh | test-check-state.py | INTEGRATION | **no** |
 | T-06 | logic | 8 test files | 6 of 8 in INTEGRATION (test-check-state/domain/plan-routes/bash-write-guard/harness-yaml/validate-digest), 2 in UNIT (test-no-distribution, test-factory-cli) | mixed | **no, for 6/8** |
@@ -48,7 +48,7 @@ Scratch copy: `/private/tmp/.../scratchpad/bin-probe/` (copied from `.claude/ski
 
 **(b) deferral half — qualified the `plan_docs` dict key with its segment, left the station-mirror lookup (`_feat = os.path.basename(_fp)`) unchanged.** Mutation diff confirmed applied. Ran full suite: **exit 1**, named cases went RED: `case (q/inv5)`, `(v.1)`, `(v.4)`, `(v.5)`, `(v.6)`, `(v.8)`, `(v.12)` — all INV-26 station-mirror cases. This is the correct, reassuring result: **the deferral half IS pinned** — qualifying the key the way D-08 forbids is caught, by name, by the existing suite. No finding here.
 
-Net: one real finding — (a) is unpinned. **The no-authoring constraint, measured, not assumed:** `check-domain.sh --resolve` on `.claude/skills/harness/bin/check-state.sh` returns `harness-backend-dev harness-dev-ops` — not me; on my own artifact path it returns `harness-orchestrator harness-qa`. `tests/` does not exist in this repository (`ls tests` → No such file or directory). `run-unit-tests.sh`'s drift detector (lines 41-55) exits 2 on any `bin/test-*.py` not in its explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays, so a file I could write under `tests/**` would match `unit`'s `detect` glob but run under no `cmd` — a green gate over a test that never executes. All findings below are therefore returned as precise specs, not code. Precise remedy for (a), since I hold no write to `bin/**`: add a case to `test-check-state.py` (joins `INTEGRATION_SCRIPTS`, already there) that stages two features under **different segment names** (e.g. `harness` and `other-repo`), runs `check-state.sh`, and asserts a finding line for each names its own **discovered** path prefix (`.harness/harness/features/FEAT-A/...` vs `.harness/other-repo/features/FEAT-B/...`), not a bare `.harness/features/FEAT-A/...`. Mutation that would prove it non-vacuous: exactly probe (a) above — revert `fpath()` to a bare basename; the new case must go RED where none does today. This subsumes Job 4's live-mechanism point (see below) — one fixture change serves both.
+Net: one real finding — (a) is unpinned. **The no-authoring constraint, measured, not assumed:** `check-domain.py --resolve` on `.claude/skills/harness/bin/check-state.sh` returns `harness-backend-dev harness-dev-ops` — not me; on my own artifact path it returns `harness-orchestrator harness-qa`. `tests/` does not exist in this repository (`ls tests` → No such file or directory). `run-unit-tests.sh`'s drift detector (lines 41-55) exits 2 on any `bin/test-*.py` not in its explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays, so a file I could write under `tests/**` would match `unit`'s `detect` glob but run under no `cmd` — a green gate over a test that never executes. All findings below are therefore returned as precise specs, not code. Precise remedy for (a), since I hold no write to `bin/**`: add a case to `test-check-state.py` (joins `INTEGRATION_SCRIPTS`, already there) that stages two features under **different segment names** (e.g. `harness` and `other-repo`), runs `check-state.sh`, and asserts a finding line for each names its own **discovered** path prefix (`.harness/harness/features/FEAT-A/...` vs `.harness/other-repo/features/FEAT-B/...`), not a bare `.harness/features/FEAT-A/...`. Mutation that would prove it non-vacuous: exactly probe (a) above — revert `fpath()` to a bare basename; the new case must go RED where none does today. This subsumes Job 4's live-mechanism point (see below) — one fixture change serves both.
 
 ## Job 3 — the vacuity regression: does anything catch zero-discovery?
 
@@ -73,7 +73,7 @@ Two classes, per the dispatch's own framing, confirmed against the file evidence
 | SC-03 | `check-state.sh` re-run at pin: exit 0, 0 INV-27 lines |
 | SC-04 | `run-unit-tests.sh --kind unit`/`--kind integration`, all six named suites PASS (shown above) |
 | SC-05 | `test -e .harness/features` → absent (exit 1); `git ls-files .harness/features` → empty |
-| SC-06 | `check-domain.sh --resolve` on post-move receipt path → `harness-backend-dev`/`harness-dev-ops`; pre-move shape → `NOBODY` (both re-run) |
+| SC-06 | `check-domain.py --resolve` on post-move receipt path → `harness-backend-dev`/`harness-dev-ops`; pre-move shape → `NOBODY` (both re-run) |
 | SC-07 | `git grep -l '\.harness/features/' -- .claude/agents .claude/commands .claude/skills` minus sanctioned exceptions → empty (re-run) |
 | SC-08 | `test-branch-create-gate.py` (UNIT_SCRIPTS) — PASS |
 | SC-09 | `.gitignore` grep, form-checked in T-07's own verify |

@@ -81,13 +81,13 @@ The three mutants (M1 `:307-313`, M2 `:315-321`, M3 `:322-324`) insert/remove/re
 fixed string literals, never anything derived from external or manifest-original content
 (other than locating the insertion point). Each is a scratch document, written only to a
 `TemporaryDirectory` and consumed only by a re-exec'd instance of this same test file — never
-by `check-domain.sh` or any production consumer of the real manifest. This is a correctness
+by `check-domain.py` or any production consumer of the real manifest. This is a correctness
 mechanism (proving RED-capability, D-03), not an input-handling boundary; there is no path
 from these mutants to a document any enforcement code will ever read.
 
 ## 6. STRIDE on the guarded control — docs-domain write grant
 The witness (`test_docs_domain_grant_is_exhaustive_over_every_persona`, `:243-259`) is a
-**Tampering** detector for the artifact `check-domain.sh` consults to decide write authority:
+**Tampering** detector for the artifact `check-domain.py` consults to decide write authority:
 it pins the exact set of personas holding a `docs` glob and the exact glob list for each,
 and — per the M1/M2/M3 negative controls — is demonstrated (M1, out-of-process; M2/M3 as
 in-file assertions plus source review, matching the panel's own disposition) to redden on an
@@ -119,7 +119,7 @@ so the witness's narrower lens is not a single point of failure for that scenari
 ## STRIDE table
 | boundary | stride | mitigated |
 |---|---|---|
-| docs-domain write grant (`.harness/team-config.yaml`) vs `check-domain.sh` enforcement | T (Tampering) | true — exhaustive-over-census witness + demonstrated (M1 out-of-process) reddening |
+| docs-domain write grant (`.harness/team-config.yaml`) vs `check-domain.py` enforcement | T (Tampering) | true — exhaustive-over-census witness + demonstrated (M1 out-of-process) reddening |
 | docs grant arriving via `shared:` instead of `mine` | T (Tampering) | true — out of this witness's lens, but covered by the pre-existing `shared:` equivalence fixture; precondition (a docs-segment shared path) does not exist today |
 | child subprocess stdout/stderr embedding secrets from the fully-forwarded env | I (Information disclosure) | true today (no assertion currently formats raw env), latent if that changes — see F1 |
 | CI env vars set to defeat `BUG442_MUTANT_CHILD` guard | S (Spoofing of the recursion signal) | true — requires CI-config-level access, same trust tier as editing the test file |

@@ -76,9 +76,9 @@ def case_d():
                 "hooks": {
                     "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
                     "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.sh --post"}]}],
+                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.py --post"}]}],
                     "PreToolUse": [
-                        {"hooks": [{"command": "x/check-domain.sh"}]},
+                        {"hooks": [{"command": "x/check-domain.py"}]},
                         {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                         {"hooks": [{"command": "x/bash-write-guard.sh"}]},
                         {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}
@@ -234,7 +234,7 @@ def case_m():
                            "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.sh"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
@@ -266,9 +266,9 @@ def case_m2():
                            "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write",
-                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.sh"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
@@ -310,11 +310,11 @@ def case_m3():
                                # decoy: right matcher, and it mentions check-domain only in
                                # a path that does not run it
                                {"matcher": "Write|Edit|Bash",
-                                "hooks": [{"command": "x/check-domain.sh.disabled --post"}]},
+                                "hooks": [{"command": "x/check-domain.py.disabled --post"}]},
                                {"matcher": "Write",
-                                "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.sh"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
@@ -359,9 +359,9 @@ def case_t():
                            "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write|Edit|Bash(",
-                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.sh"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
@@ -579,7 +579,7 @@ def case_s():
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
-    Nothing shares these — deliberately (D-02): check-domain.sh measures a write payload,
+    Nothing shares these — deliberately (D-02): check-domain.py measures a write payload,
     check-state.py measures a file on disk, and merging the mechanisms is what let a
     malformed file pass unread once already. What is NOT deliberate is the two drifting
     apart in silence, where check-domain blocks at 201 lines while check-state warns at
@@ -595,7 +595,7 @@ def case_o():
     # CHECK_DOMAIN_BIN at a mutant saying "budget is 999" and this case printed ok,
     # having opened the real file instead.
     dom = open(os.environ.get("CHECK_DOMAIN_BIN")
-               or os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
+               or os.path.join(here, "check-domain.py"), encoding="utf-8").read()
     # SCRIPT, not a hard-coded "check-state.py". This case reads source rather than running
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
@@ -688,7 +688,7 @@ def case_o():
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
                   f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
-    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.py and "
+    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.py, check-state.py and "
           f"HANDOFF.md agree on every duplicated budget, key and heading")
     if not ok_all:
         for c in checks:

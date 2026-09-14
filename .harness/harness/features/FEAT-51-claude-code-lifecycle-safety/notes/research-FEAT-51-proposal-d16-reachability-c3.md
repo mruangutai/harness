@@ -1,4 +1,4 @@
-# A plan-merge.py proposal, not prose. It carries the .md name because check-domain.sh grants
+# A plan-merge.py proposal, not prose. It carries the .md name because check-domain.py grants
 # harness-pm exactly `.harness/*/features/*/notes/research-*.md` under notes/, and a proposal is
 # YAML that plan-merge.py reads by path regardless of extension. Fix cycle 3, the D-16 defect.
 #
@@ -139,7 +139,7 @@ tasks:
            because a quarantine directory is not a canonical artifact.
         5. Return None unless _reg.orphan_write(ROOT, agent, feature, session) is True. ROOT at
            :35 is the root the wrapper resolved through harness_boundary.resolve_root from this
-           script's own directory, the same root check-domain.sh resolves at its _root() on
+           script's own directory, the same root check-domain.py resolves at its _root() on
            :154. D-04's OMP carve-out holds identically here with no extra code, because
            orphan_write itself returns False when the only live claims for the feature carry
            runtime omp - do NOT add a second runtime test, and do NOT reach into the registry

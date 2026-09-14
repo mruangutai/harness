@@ -108,7 +108,7 @@ Exit status: 0.
 - `.harness/factory/fleet.yaml` — not in `git diff --name-only`. Unedited.
 - `.harness/harness.json` — not in `git diff --name-only`. Unedited.
 - `gh_board.py` — not in `git diff --name-only`. Unedited.
-- `check-domain.sh` — not in `git diff --name-only`. Unedited.
+- `check-domain.py` — not in `git diff --name-only`. Unedited.
 - `load_board` — `git diff -- layout_migration.py layout_fixtures.py test-layout-migration.py |
   grep load_board` → no output. Symbol appears in no line I added.
 

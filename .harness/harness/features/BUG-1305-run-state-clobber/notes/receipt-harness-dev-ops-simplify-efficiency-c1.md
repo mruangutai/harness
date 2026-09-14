@@ -3,7 +3,7 @@
 **BLUF: one real, measured hot-path finding worth applying.** `harness_boundary.py` now imports
 `run_identity` at module load solely to read `MARKER_NAME`, and `run_identity.py` imports
 `tempfile`+`uuid` at module top even though only its POST-only mint functions need them. Since
-`harness_boundary` is imported on essentially every `check-domain.sh` invocation (every governed
+`harness_boundary` is imported on essentially every `check-domain.py` invocation (every governed
 Write/Edit, not just run-directory writes), this adds real per-write latency system-wide. Two other
 candidate costs (the PRE witness read, the `check-state.sh` corpus sweep) are measured and
 negligible — explicitly not worth applying.
@@ -13,7 +13,7 @@ negligible — explicitly not worth applying.
 - `python3 -X importtime` on `run_identity` and on `harness_boundary` alone (isolated copies in
   `/tmp/effbench*`, both pre-change (`git show origin/main:...`) and post-change).
 - End-to-end A/B: two sandboxed `.agents/skills/harness/bin` trees (pre vs post), each with a
-  minimal `.harness/team-config.yaml`, `check-domain.sh` invoked 60x via a synthetic denied-Write
+  minimal `.harness/team-config.yaml`, `check-domain.py` invoked 60x via a synthetic denied-Write
   payload piped on stdin, wall-clock via `time`. Isolates real subprocess/interpreter cost, not a
   microbenchmark artifact.
 - `run_identity.marker_path`/`read_marker` timed directly, 5000 iterations, for the sweep and PRE
@@ -28,14 +28,14 @@ negligible — explicitly not worth applying.
 `run_identity.py`'s full module body, which does `import tempfile as _tempfile` and
 `import uuid as _uuid` at module top (lines 8–9) — needed only by `mint_uid`/`inject_uid`/
 `record_seed`, all POST-only. `harness_boundary` is imported unconditionally at
-`check-domain.sh:406` inside `if _run_domain:`, which is the ordinary path for **every** governed
+`check-domain.py:406` inside `if _run_domain:`, which is the ordinary path for **every** governed
 Write/Edit — not gated on the target path being a run directory at all.
 
 - **Cost, measured:** `-X importtime` on `harness_boundary` alone: 6.47ms pre-change → 12.82ms
   post-change (+6.35ms, dominated by `tempfile`'s `shutil`→`bz2`/`lzma`/`zstd` chain, 5.9ms of the
-  8.8ms `run_identity` subtree). End-to-end A/B, 60 real `check-domain.sh` invocations each: pre
+  8.8ms `run_identity` subtree). End-to-end A/B, 60 real `check-domain.py` invocations each: pre
   4.060s (67.7ms/call) vs post 4.447s (74.1ms/call) — **+6.45ms/call**, matching the importtime
-  delta closely. Against the script's own T-13 comment (`check-domain.sh:~196`, "measured at
+  delta closely. Against the script's own T-13 comment (`check-domain.py:~196`, "measured at
   104.7ms for the full governed path"), this is a ~6% tax added to the dominant hot path in the
   whole write-guard system, paid by every write regardless of target.
 - **Alternative:** move `import tempfile as _tempfile` / `import uuid as _uuid` in
@@ -52,7 +52,7 @@ Write/Edit — not gated on the target path being a run directory at all.
   masking it for every PRE-only call in between. (`tempfile`/`uuid` failing to import is not a
   realistic stdlib failure mode, which is why this is a low-probability risk, not a reason to skip.)
 
-### 2. [Measured, negligible] PRE witness read in `check-domain.sh`'s state.yaml ladder
+### 2. [Measured, negligible] PRE witness read in `check-domain.py`'s state.yaml ladder
 
 `run_identity.read_marker()` (open + `json.load`) fires only when `RE_STATE_YAML.match(rel)` is
 true AND the prior checkpoint has no `run_uid` yet (self-eliminating after the first successful

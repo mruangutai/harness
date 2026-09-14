@@ -36,7 +36,7 @@ Run from inside the worktree; `git rev-parse --show-toplevel` resolved to the wo
 Checker non-vacuity: `python3 .claude/skills/harness/bin/test-check-expertise.py` → 22/22 pass,
 including `case3: token + real violation exits 1` and `case5: 41-line repository-form file over
 budget`. The checker is shown rejecting malformed input, so its `OK` is evidence. (A scratch broken
-copy was not writable — `check-domain.sh` correctly denies the documentor any path outside its
+copy was not writable — `check-domain.py` correctly denies the documentor any path outside its
 domain, so the unit test stands in for the hand-built negative control.)
 
 Diff discipline, from `git diff -U1` on the target:

@@ -63,14 +63,14 @@ git -C /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104
 ```
 
 ```
-git -C /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema status --porcelain -- .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/run-state-schema.json tests/integration/test-check-domain.py
+git -C /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema status --porcelain -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/run-state-schema.json tests/integration/test-check-domain.py
 ```
 ```
 (empty)
 ```
 
 **The carve-out-scoped `status --porcelain` was EMPTY.** All three DEC-174 files
-(`check-domain.sh`, `run-state-schema.json`, `test-check-domain.py`) are byte-identical to HEAD.
+(`check-domain.py`, `run-state-schema.json`, `test-check-domain.py`) are byte-identical to HEAD.
 HEAD SHA `984bd26b4dc339ea984d2532221477d465a2b05c` confirms the expected `984bd26b`.
 
 The untracked notes files listed under the general `status --porcelain` are receipts/notes from

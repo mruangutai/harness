@@ -35,7 +35,7 @@ a post-ship cache-read measure. Recorded as a coverage gap per protocol; not thi
 
 No task demanded a kind never produced. `matrix_ok: true`.
 
-Diff also carries unrelated fixes (`bash-write-guard.sh`, `check-domain.sh`, both with their own
+Diff also carries unrelated fixes (`bash-write-guard.sh`, `check-domain.py`, both with their own
 `test-bash-write-guard.py`/`test-check-domain.py`, both `PASS` in the runner output) — not FEAT-04
 scope per PLAN's task table, already covered, not a gap.
 

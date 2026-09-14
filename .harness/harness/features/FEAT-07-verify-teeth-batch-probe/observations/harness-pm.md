@@ -11,7 +11,7 @@
   SC's own prose and count the `case()` lines, not to read the validator.
 - 2026-08-04: the SC-02/SC-03 sibling asymmetry was the fastest tell of all — when two criteria are
   written as "the same X holds for persona B", diff persona A's fixture set against persona B's.
-- 2026-08-04: `check-domain.sh` blocked the artifact path the dispatch named
+- 2026-08-04: `check-domain.py` blocked the artifact path the dispatch named
   (`notes/goalcheck-harness-pm-c0.md`); `harness-pm`'s grant is `notes/research-FEAT-*.md`. A dispatch
   naming an artifact path is not evidence the path is in my grant.
 - 2026-08-04: `./run-unit-tests.sh 2>&1 | tail -20; echo $?` reports TAIL's exit status and discards

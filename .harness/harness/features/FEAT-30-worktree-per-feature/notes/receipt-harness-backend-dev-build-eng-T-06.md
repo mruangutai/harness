@@ -10,7 +10,7 @@ verify to complete, and still returned PASS with an artifact path it never wrote
 
 ## Diagnosis of the two missing files
 
-- `check-domain.sh --resolve` and a simulated `PreToolUse:Write` payload for both
+- `check-domain.py --resolve` and a simulated `PreToolUse:Write` payload for both
   `notes/receipt-harness-backend-dev-build-eng-T-06.md` and `observations/harness-backend-dev.md`
   both resolve to `harness-backend-dev` and both exit 0 (allow). **No guard denies either path.**
   Both are correctly granted by `.harness/team-config.yaml:169,172`.

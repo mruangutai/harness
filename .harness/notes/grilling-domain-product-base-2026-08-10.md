@@ -9,7 +9,7 @@ does not. No path the factory works on is silently ungoverned.
 ## Settled
 
 - **THE BUILD IS MAIN-SESSION-DIRECT. It may be planned, it may not be dispatched.**
-  `check-domain.sh` is a DEC-174 carve-out file. The harness plans its own enforcement layer and
+  `check-domain.py` is a DEC-174 carve-out file. The harness plans its own enforcement layer and
   never executes changes to it — green gates cannot vouch for the code that produces them. Plan
   normally; the operator's main session makes the edits, runs the tests explicitly, and the operator
   reads the diff.
@@ -40,7 +40,7 @@ does not. No path the factory works on is silently ungoverned.
   exact failure this ticket exists to remove.
 
 - **`/tmp` and anything outside BOTH bases keep today's no-verdict behaviour.** The reasoning at
-  `check-domain.sh:398-404` is sound and `bash-write-guard.sh:211` agrees: blocking a scratch file
+  `check-domain.py:398-404` is sound and `bash-write-guard.sh:211` agrees: blocking a scratch file
   taught an agent to route around a hook whose own message said outside-repo was not its problem.
   A product checkout is not `/tmp`; a scratch file still is.
 
@@ -76,11 +76,11 @@ Measured 2026-08-10 at `3569a20`, plus a direct probe of the hook.
 - **The 12 only appear to work today because harness has its own `src/` and `docs/`.** That accident
   is also the reason prefix inference must not let `src/**` match inside harness when the agent is
   working on a product.
-- **Probe, no `CLAUDE_PROJECT_DIR` set, payloads through `check-domain.sh`:**
+- **Probe, no `CLAUDE_PROJECT_DIR` set, payloads through `check-domain.py`:**
   `harness-documentor` → a product-repo `src/secrets.py` exits **0**; `harness-code-reviewer` →
   the same path exits **0**; `harness-documentor` → `src/main.py` inside harness exits **2**.
   The same logical path is blocked inside the repo and permitted outside it.
-- **The fail-open is `check-domain.sh:406`** — `if commonpath(...) != root: return`, a bare `return`
+- **The fail-open is `check-domain.py:406`** — `if commonpath(...) != root: return`, a bare `return`
   with no verdict.
 - **The `factory_*` modules spawn no Claude session.** No `Task`, no `Agent`, no `claude` invocation
   in any of them; their only `CLAUDE_PROJECT_DIR` use is `factory_config.py:40-45`, which prefers it

@@ -177,7 +177,7 @@ survivors become issues.
 | # | Item | Nature |
 |---|---|---|
 | B-1 | **The deployed global rules are stale** — they still instruct every lead to run the deleted meter and to write a `cost:` key. Four agents hit it this feature; one earlier run complied, so the placeholder is sitting in a run dir on disk right now. `/harness-deploy` must run after merge, and **before** the queued preload-trimming batch | chore, near-term |
-| B-2 | **`check-domain.sh:308` carries `cost` in an allowlist with no explanatory comment**, unlike its sibling which explains the same entry. FEAT-09 is live on that file; the next editor removes it as cleanup and all 67 historical runs become violations | bug, urgent — collides with in-flight work |
+| B-2 | **`check-domain.py:308` carries `cost` in an allowlist with no explanatory comment**, unlike its sibling which explains the same entry. FEAT-09 is live on that file; the next editor removes it as cleanup and all 67 historical runs become violations | bug, urgent — collides with in-flight work |
 | B-3 | **The rule surfaces injected at every spawn are outside the standing removal sweep.** Expertise files were never searched by any criterion here, and the highest-blast-radius finding of the feature was exactly that miss | enhancement |
 | B-4 | **`.claude/commands/**` is in no agent's domain.** Deliberate, like `.claude/agents/**`, or an oversight? Nothing records which | chore |
 | B-5 | **Three comments justify themselves with "this task's `verify:`"** — a justification that stops existing the moment this merges. The code reviewer ruled it low and corrected the site list to three; low is not absent, and it rots on merge | chore |

@@ -35,7 +35,7 @@ tools. The remaining work is `gh-sync.py` asking `factory_config` instead of joi
 ## A-03 — Harness itself keeps reading `harness.json`, and that is not an inconsistency.
 
 `mruangutai/harness` is deliberately absent from `fleet.yaml` under DEC-174 am.1 — the absence is
-what makes `check-domain.sh --resolve` exit 2 instead of returning `NOBODY`. So the resolver serves
+what makes `check-domain.py --resolve` exit 2 instead of returning `NOBODY`. So the resolver serves
 two cases by design: a product resolves through `fleet.yaml`, harness resolves through its own
 file. This agrees with D-01 and does not reopen it.
 
@@ -133,13 +133,13 @@ write. Per-product write isolation is only reachable through the path.
 
 **Measured at `63b83c7`, replacing the FEAT-10 figure the grilling artifact carries:** 1499
 references to `.harness/features` across 284 files; **206 of them in code and config**, which is the
-migration surface. The rest is prose. `check-domain.sh`'s anchored regexes use `[^/]+`, which cannot
+migration surface. The rest is prose. `check-domain.py`'s anchored regexes use `[^/]+`, which cannot
 cross a path segment, so they are REWRITTEN rather than adjusted. No layout-migration machinery
 exists in the tree.
 
 **BLOCKING SUB-QUESTION, answered below in A-08: what is harness's own segment?** Harness is
 deliberately absent from `fleet.yaml` under DEC-174 am.1, and the absence is load-bearing — it makes
-`check-domain.sh --resolve` exit 2 rather than quietly return `NOBODY`. Any segment name for harness
+`check-domain.py --resolve` exit 2 rather than quietly return `NOBODY`. Any segment name for harness
 risks re-creating the entry that absence was protecting; leaving harness flat makes it an exception,
 and an exception in a layout rule is where drift starts.
 
@@ -149,7 +149,7 @@ and an exception in a layout rule is where drift starts.
 and the main session re-took it at `63b83c7` rather than citing it. Probe applied and reverted
 byte-identical, `git diff` empty:
 
-| `fleet.yaml` | `check-domain.sh --resolve` on `<workspace_root>/harness/.claude/skills/harness/bin/check-domain.sh` |
+| `fleet.yaml` | `check-domain.py --resolve` on `<workspace_root>/harness/.claude/skills/harness/bin/check-domain.py` |
 |---|---|
 | harness **absent** | `BLOCKED — under the factory workspace but belongs to no repository declared in <fleet path>. A checkout there for an unlisted repository is stale or a mistake. Add the repository to `repos` in that file, or remove the directory.` |
 | harness **present** | `NOBODY` |

@@ -104,7 +104,7 @@ Overall exit code: 0.
 
 - No live `gh` calls — every fixture used was the offline recorder/fake harness already in the
   test files.
-- No DEC-174 carve-out file (`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+- No DEC-174 carve-out file (`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`,
   `check-state.sh`) touched.
 - No commit, no push.
 - `factory_gh.py` net diff for this cycle: none (mutate-and-restore only, proven byte-identical).

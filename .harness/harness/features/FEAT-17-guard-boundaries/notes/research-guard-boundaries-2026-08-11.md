@@ -13,13 +13,13 @@ Measured at `a29ad06` in `/Users/molchairuangutai/GitHub/harness` unless stated.
 
 **A new sibling module `.claude/skills/harness/bin/harness_boundary.py`, imported lazily by both
 heredocs, exactly as `harness_yaml` already is.** Precedent verified: `bash-write-guard.sh:73` and
-`check-domain.sh:338/502/530` both do `import harness_boundary`-shaped lazy imports of `harness_yaml`
+`check-domain.py:338/502/530` both do `import harness_boundary`-shaped lazy imports of `harness_yaml`
 after their manifest checks, and both files are `python3 - "$_derived" ... <<'PY'` heredocs
-(`check-domain.sh:97`, and the same shape in the guard), so `sys.path` already contains `bin/`.
+(`check-domain.py:97`, and the same shape in the guard), so `sys.path` already contains `bin/`.
 
 **Scope of the refactor, honestly.** It is not five function moves. `select_base` returns
 `(base, filter_globs, target_side_test)` and the decision is finished by its CONSUMER —
-`check-domain.sh domain_check()` at `:536-660`: glob filtering, base-relative `rel`, the DEC-143
+`check-domain.py domain_check()` at `:536-660`: glob filtering, base-relative `rel`, the DEC-143
 worktree-prefix stripping (`_wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)`), the
 `target_side_test(r)` filter over candidates, the shared-path branch, and the `Permitted for you:`
 advertise list. Replicating only the five module-scope functions in the guard would recreate the
@@ -28,7 +28,7 @@ plus `rel` and the advertise list) and leaves the PRINTING to each hook.
 
 Two wrinkles that make it not a free move:
 
-- Both guards import `harness_yaml` LAZILY on purpose (`check-domain.sh:292`,
+- Both guards import `harness_yaml` LAZILY on purpose (`check-domain.py:292`,
   `bash-write-guard.sh:38`): a top-of-file import made a hook whose module is missing crash before
   the DEC-101 fail-open message. `harness_boundary` inherits that constraint, and
   `test-bash-write-guard.py`'s isolated-copy case (an absent manifest still fails OPEN) is what
@@ -99,12 +99,12 @@ the worktree makes it unreachable and gc-eligible. So the task TAGS it before re
 `git worktree list` before and after to files — untracked live state leaves no commit evidence
 (G-15). The FEAT-13 worktree surviving is the paired allow.
 
-## Lanes — every literal `files:` path, resolved with `check-domain.sh --resolve` at `a29ad06`
+## Lanes — every literal `files:` path, resolved with `check-domain.py --resolve` at `a29ad06`
 
 | Path | `--resolve` answer | Lane in this plan |
 |---|---|---|
 | `.claude/skills/harness/bin/harness_boundary.py` (NEW) | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
-| `.claude/skills/harness/bin/check-domain.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
+| `.claude/skills/harness/bin/check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/bash-write-guard.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/check-state.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
@@ -153,8 +153,8 @@ in place; the feature, D-01, `classify()` and the task staging are untouched.
 ## The finding under MF-1, re-derived at source
 
 Inside the harness base a glob match is accepted only when the TARGET passes
-`is_control_plane_target` (`check-domain.sh:277-289`), wired as that base's unconditional target-side
-test at `check-domain.sh:249-253`. The test passes a first path segment of `.harness` or `.claude`
+`is_control_plane_target` (`check-domain.py:277-289`), wired as that base's unconditional target-side
+test at `check-domain.py:249-253`. The test passes a first path segment of `.harness` or `.claude`
 (`is_control_plane_glob`, `:158-165`) and otherwise only the CLOSED four-entry
 `HARNESS_CONTROL_PLANE` at `:149-154`. So `<root>/allowed/x.txt` under an `allowed/**` grant exits
 **2**, and every paired allow in the original draft asserted 0. Fixed by moving the fixture path to
@@ -174,7 +174,7 @@ returns None, and no grant reaches it. Not touched.
 
 ## The inverted premise (MF-3), and where exit 2 is safe
 
-Exit 1 is NON-blocking (`check-domain.sh:14`), so an unimportable `harness_boundary.py` would take
+Exit 1 is NON-blocking (`check-domain.py:14`), so an unimportable `harness_boundary.py` would take
 both routes silently OFF at once. Fail-closed is affordable **only at the governed import site**:
 `_run_domain = _domain_phase = _governed and not _post` (`:432`, `:450`, `:471`, `:493`), so the main
 session never reaches `:493`. The SECOND `import harness_yaml`, at `:529` in the shape phase, is

@@ -64,7 +64,7 @@
   missed; filter to severity first, then grep your feature id.
 - 2026-08-17: a lane row naming an `execution_agent` is doing real work, not restating
   `consult-when`. Every file in T-01 and T-05 sits under `.claude/skills/harness/bin/` and
-  `check-domain.sh --resolve` returns TWO owners for all four — `harness-backend-dev` AND
+  `check-domain.py --resolve` returns TWO owners for all four — `harness-backend-dev` AND
   `harness-dev-ops`. Routing by `consult-when` alone is a coin flip there. Telling the lead that the
   PLAN picked the persona, and to attribute the pick, is cheaper than letting it rediscover the
   ambiguity mid-run.

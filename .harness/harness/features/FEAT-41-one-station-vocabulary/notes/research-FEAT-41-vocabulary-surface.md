@@ -24,12 +24,12 @@ ee66ae2 in this worktree.
 
 ## The design point the grilling left implicit
 
-`check-domain.sh` exits 0 for a payload with no `agent_type` — that is how the MAIN SESSION is
-exempt, by mechanism (`check-domain.sh:508-514`). So a plan.yaml denial written into the DOMAIN
+`check-domain.py` exits 0 for a payload with no `agent_type` — that is how the MAIN SESSION is
+exempt, by mechanism (`check-domain.py:508-514`). So a plan.yaml denial written into the DOMAIN
 region would not bind the main session, and item 5 says every LLM Edit is denied. The denial
 therefore belongs in the SHAPE region, which DEC-180 makes independent of domain and binding on
 every author including the main session. That is also where `plan.yaml` is today explicitly
-EXCLUDED, with a comment (`check-domain.sh:1017-1022`) arguing the exclusion — so DEC-182 takes
+EXCLUDED, with a comment (`check-domain.py:1017-1022`) arguing the exclusion — so DEC-182 takes
 an amendment and that comment is replaced, not merely edited around.
 
 ## Other load-bearing facts

@@ -51,7 +51,7 @@ orchestrator. One rule, one loop, no step left standing that says otherwise.
   test that proves the rewrite cannot silently revert. Nothing else, and no third companion. The
   three domain leads run the same wait-for-a-member pattern through `harness-team` and are
   deliberately untouched; they are ticketed as #610 and #552. Widening to them fails this brief.
-- **DEC-179 BLOCKS a squad route.** `check-domain.sh --resolve .claude/skills/harness/SKILL.md`
+- **DEC-179 BLOCKS a squad route.** `check-domain.py --resolve .claude/skills/harness/SKILL.md`
   returns `NOBODY` at `569d417`, so every task touching the playbook is `main-session-direct`.
 - **DEC-198 SUPPLIES the threshold and bounds its force.** `budgets.orchestrator_context_warn_tokens`
   is `200000`; crossing it ADVISES and never refuses. Turning it into a gate is out of bounds.
@@ -64,9 +64,9 @@ orchestrator. One rule, one loop, no step left standing that says otherwise.
 
 **What supplies the mechanism**
 
-- **`check-domain.sh` SUPPLIES the operative lane test, and DEC-174 am.4 supplies only the
+- **`check-domain.py` SUPPLIES the operative lane test, and DEC-174 am.4 supplies only the
   CATEGORY.** The test that actually forces the lane is
-  `check-domain.sh --resolve .claude/skills/harness/SKILL.md` returning `NOBODY` at `569d417`: no
+  `check-domain.py --resolve .claude/skills/harness/SKILL.md` returning `NOBODY` at `569d417`: no
   agent may write the playbook, so every playbook task is `main-session-direct`. That result is
   independent of am.4. Am.4's own heading is *"the enumeration is a list of examples, not a
   boundary"* and it rules *"The category governs"* (`DECISIONS.md:4854`, `:4862`), so its

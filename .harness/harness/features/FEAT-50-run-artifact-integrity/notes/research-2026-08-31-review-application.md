@@ -35,13 +35,13 @@ expected DEC-174 DEVIATION lines. Max budgeted-field count is **45** (T-03), aga
 | id | disposition |
 |---|---|
 | EFF-01 | applied, **verbatim** figures, into D-03's `because` |
-| EFF-02 | applied, remedy **(a)** in its strongest form: `RE_RUN_DIGEST` is now specified NOT to go into `SHAPE_PATTERNS`. `has_shape_rules` gates only the POST named-target route (`check-domain.sh:1377`); the PRE route builds its target unconditionally (`:1367-1370`). Omitting the pattern therefore costs the PRE route nothing and removes the extra read entirely, rather than documenting it |
+| EFF-02 | applied, remedy **(a)** in its strongest form: `RE_RUN_DIGEST` is now specified NOT to go into `SHAPE_PATTERNS`. `has_shape_rules` gates only the POST named-target route (`check-domain.py:1377`); the PRE route builds its target unconditionally (`:1367-1370`). Omitting the pattern therefore costs the PRE route nothing and removes the extra read entirely, rather than documenting it |
 | SIMP-05 / ENG-F | applied. D-08 no longer pins a number; T-07 resolves it against `DECISIONS.md` at execution and asserts uniqueness; T-07's verify and SC-14 anchor on the heading text |
 | SIMP-06 / ENG-G | applied. SC-11's exact-count leg dropped; the count is now a dated measurement, not graded. A positive control was added so an errored `check-state.sh` cannot pass as clean |
 | SIMP-04 / SIMP-07 | applied as part of ENG-D (both greps dropped) |
 | SIMP-01 / ENG-H | **rejected.** T-01's inline exit-code checks are the only behavioural proof at T-01's landing moment — T-02 does not exist yet. Removing them moves T-01 in exactly the direction ENG-D (gating, higher severity) condemns. Duplication between a one-shot landing gate and the permanent suite that supersedes it one task later is not drift that can hurt |
 | SIMP-02 / ENG-J | **rejected.** `intent:` is the literal dispatch prompt and the doer receives nothing else about the task. Replacing the mutant checklist with "per D-07's idiom" would send the doer a citation it cannot resolve |
-| SIMP-03 / ENG-K | **rejected.** The three intents already state the FACT the comment must carry, not its phrasing; they name measurements, which is this file's own comment convention (`check-domain.sh:952-955`, `:1083-1087`). There is no exact wording to drop |
+| SIMP-03 / ENG-K | **rejected.** The three intents already state the FACT the comment must carry, not its phrasing; they name measurements, which is this file's own comment convention (`check-domain.py:952-955`, `:1083-1087`). There is no exact wording to drop |
 | EFF-03 / EFF-04 / ENG-L | **rejected for this cycle.** Grading-time redundancy in `command:` lines, no correctness consequence, and collapsing five criteria onto one shared evidence note weakens P-04 (each criterion asserting for itself). Noted, not applied |
 | ENG-E | **not mine.** Declined by the lead; L1's re-specification of T-05 cases 5 and 7 is the T-05 change in scope |
 
@@ -82,7 +82,7 @@ Against the **pre-change** tree, so each is proven red for the right reason:
   case-insensitive (T-01's `grep -qi`, T-02 cases 2 and 3), rather than editing the supplied
   wording. If the reviewer intended the lowercase spelling in the message itself, that is a
   one-word change to T-01's intent.
-- **Q3 (non-blocking, new).** `check-domain.sh:1148-1150` passes `for_path=os.path.join(root, rel)`
+- **Q3 (non-blocking, new).** `check-domain.py:1148-1150` passes `for_path=os.path.join(root, rel)`
   to `feature_schema` with the same stripped `rel` — the line L1 says T-04's mechanism was copied
   from. Out of FEAT-50's scope, and I did not establish whether it is a live defect there. It wants
   its own ticket.

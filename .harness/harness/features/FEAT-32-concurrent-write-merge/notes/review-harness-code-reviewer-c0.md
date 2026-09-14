@@ -1,6 +1,6 @@
 # Review — harness-code-reviewer — FEAT-32 — c0
 
-**Verdict: FAIL.** One demonstrated CRITICAL: `check-domain.sh`'s D-10 approval guard (both limbs) is
+**Verdict: FAIL.** One demonstrated CRITICAL: `check-domain.py`'s D-10 approval guard (both limbs) is
 bypassed by a governed agent's `Edit` — proven live against the real repository's own
 `plan.yaml`, exit 0, no stderr, resulting file parses as a forged approval. This is the exact
 class REQ-11/D-10/SC-21 exist to close, and no other layer catches it (D-10 itself says layer 2 is
@@ -12,7 +12,7 @@ every file cited, via `git diff 5107efb -- <path>`, except `feature.json` which 
 
 ## 1. CRITICAL — the approval guard's indent-based limb B is defeated by re-indenting the block
 
-`check-domain.sh:606` (limb A, exact substring) and `:610-629` (limb B). Limb B's second check
+`check-domain.py:606` (limb A, exact substring) and `:610-629` (limb B). Limb B's second check
 (`:617-629`) reads the child indent **once**, from whatever the on-disk children currently use
 (`_child_indent`, `:486`), and only flags a `new_string` line that reproduces a known child key
 **at that same indent**. Limb A only denies when `old_string` is itself a substring of the
@@ -27,7 +27,7 @@ consistently** (2→4 spaces), satisfies neither limb:
 - Limb B sub-2: `new_string`'s reindented lines have indent 4, `ind` read from disk is 2 →
   `(len(nl)-len(nl.lstrip())) != ind` is true for every line → skipped → no denial.
 
-**Demonstrated, not hypothesized.** Ran the real `check-domain.sh` against FEAT-32's own committed
+**Demonstrated, not hypothesized.** Ran the real `check-domain.py` against FEAT-32's own committed
 `plan.yaml` (`.harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml`), as `harness-pm`:
 
 ```
@@ -116,7 +116,7 @@ must_fix given it is unverified.
 ## Checks that came back clean
 
 - **Root probe (#3).** Both `dispatch-guard.sh:89` and `validate-digest.py:877` (and
-  `check-domain.sh`'s pre-existing, unchanged root logic) test `os.path.isfile(.../
+  `check-domain.py`'s pre-existing, unchanged root logic) test `os.path.isfile(.../
   "team-config.yaml")` — the manifest file, never the `.harness` directory. `git diff
   12c66b3..5107efb` shows no new/changed line anywhere touching `isdir` + `.harness`. Registry root
   is taken from payload `cwd` first in both hooks, matching the operator ruling.
@@ -141,7 +141,7 @@ must_fix given it is unverified.
   `claim` in one `except Exception` (`:124-130`) that exits 0 — a malformed-registry
   `AttributeError` (tested directly: a persona value that is a string or a list of non-dicts raises
   `AttributeError` in `_expire`) is caught here and passes the dispatch through, loudly. Both hooks'
-  manifest-read failures (`check-domain.sh`'s `_approval_entries`, `:409-441`) fail open with a
+  manifest-read failures (`check-domain.py`'s `_approval_entries`, `:409-441`) fail open with a
   named stderr line, matched by existing tests (cases 9/10a/10b in `test-check-domain.py`) — not
   re-reported.
 - **Suite.** Re-ran `run-unit-tests.sh --kind integration` at HEAD (== 5107efb for every file this
@@ -165,14 +165,14 @@ re-raised.
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: "check-domain.sh's D-10 approval guard is bypassed live by a governed Edit that spans the block boundary and re-indents its children — a real forged plan.yaml approval, exit 0, no stderr, demonstrated against the repo's own file."
+  headline: "check-domain.py's D-10 approval guard is bypassed live by a governed Edit that spans the block boundary and re-indents its children — a real forged plan.yaml approval, exit 0, no stderr, demonstrated against the repo's own file."
   severity_max: critical
   findings: 4
   must_fix:
-    - "check-domain.sh:606-629 — limb A (substring test) and limb B (fixed-indent key match) both miss an Edit whose old_string spans past the approval block's end and whose new_string re-indents the block's children consistently; demonstrated live against .harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml as harness-pm, exit 0, resulting approval mapping parses as {status: REVOKED, approved_by: attacker}. Violates REQ-11/D-10/SC-21."
+    - "check-domain.py:606-629 — limb A (substring test) and limb B (fixed-indent key match) both miss an Edit whose old_string spans past the approval block's end and whose new_string re-indents the block's children consistently; demonstrated live against .harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml as harness-pm, exit 0, resulting approval mapping parses as {status: REVOKED, approved_by: attacker}. Violates REQ-11/D-10/SC-21."
   spec_violations:
-    - { kind: mismatch, path: .claude/skills/harness/bin/check-domain.sh, ref: D-10 }
-    - { kind: mismatch, path: .claude/skills/harness/bin/check-domain.sh, ref: SC-21 }
+    - { kind: mismatch, path: .claude/skills/harness/bin/check-domain.py, ref: D-10 }
+    - { kind: mismatch, path: .claude/skills/harness/bin/check-domain.py, ref: SC-21 }
   reviewed: "12c66b3..5107efb"
   human_commits_in_scope: []
   open_questions:

@@ -109,7 +109,7 @@ HTML/CSS/component/`DESIGN.md`. **`in_scope: false` still holds.**
 The one candidate operator-facing surface introduced by this range is F-01's fix
 (`harness_yaml.py:92-137`, widening `load_str`/`load_file` to catch `UnicodeDecodeError`/`OSError`
 and route them into `YamlParseError`). Read the two call sites that render it to an operator:
-`check-domain.sh:153-158` (manifest) and `check-domain.sh:320-324` (state.yaml) — both print a
+`check-domain.py:153-158` (manifest) and `check-domain.py:320-324` (state.yaml) — both print a
 named cause (`e.original`, carrying the underlying `OSError`/`UnicodeDecodeError` text), the
 consequence (closed/blocked, not partial), and at least one site names the remedy and owner ("Fix
 the file (the main session owns it), then retry."). Consistent with the clear-messaging standard

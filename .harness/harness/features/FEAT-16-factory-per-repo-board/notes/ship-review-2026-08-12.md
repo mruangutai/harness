@@ -73,7 +73,7 @@ re-signature, not a record correction, so both are left standing for the operato
 onboarding sentence, `SPEC.md:415`'s table row, and — the one that mattered —
 `factory_config.py`'s error message told a blocked operator to add three fields when
 `_validate_board` requires four and checks the missing one first. Following it could not succeed,
-and `check-domain.sh` fails closed meanwhile, so the symptom was every agent write blocked.
+and `check-domain.py` fails closed meanwhile, so the symptom was every agent write blocked.
 
 **Eight backlog items** are recorded in the handoff, including one that closes only with a fixture
 that fails pre-change, and two harness defects: a write that landed on a path resolving to `NOBODY`

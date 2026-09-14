@@ -21,7 +21,7 @@ One commit, `c5e59aa` (#815), caused all of B1, B1b and the emptying of SC-07's 
 | `inflight_registry.py` | `refusal_lines` def `:251`, #551 cite `:258`; `children_refusal_lines` def `:263`, false line `:274`; `SINGLE_FLIGHT_AGENTS` `:32` |
 | `test-inflight-registry.py` `case_6b` | def `:226`, stale assertion `:246` |
 | `harness-team/SKILL.md` | 240 lines; d `:97`, e `:112`, loop preamble `:81`, DEC-124 `:181` — all unmoved |
-| `check-domain.sh --resolve` on both playbooks | `NOBODY` (lane pins hold) |
+| `check-domain.py --resolve` on both playbooks | `NOBODY` (lane pins hold) |
 | `test-orchestrator-playbook.py` / `test-inflight-registry.py` / `test-validate-digest.py` | all exit **0** at HEAD |
 | `check-plan-routes.py` on the re-planned file | **0 violations** |
 

@@ -12,7 +12,7 @@ task's ordering follows `depends_on` in `plan.yaml`.
 
 - Route resolution is verified, not asserted: `check-plan-routes.py` exits 0, 7/7 routed, 0
   violations — I ran it myself, independently of pm — `.harness/features/FEAT-19-central-product-config/plan.yaml` — verified-at 63b83c7
-- No task touches `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` or
+- No task touches `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or
   `check-state.sh`, so DEC-174's carve-out binds nothing here; D-08 keeps `harness_boundary.py`
   out of every task's `files:` deliberately — plan.yaml `tasks[].files` — verified-at 63b83c7
 - T-02, T-03, T-07 are `main-session-direct` because their targets are ungranted, not because of
@@ -30,7 +30,7 @@ task's ordering follows `depends_on` in `plan.yaml`.
 ## Dead ends
 
 - Do not re-run grilling and do not re-derive the anchors again from `#206`'s body: its cited
-  `check-domain.sh:572-575` and `tests.yml:134-141` are both dead, and the four `[^/]+` regexes
+  `check-domain.py:572-575` and `tests.yml:134-141` are both dead, and the four `[^/]+` regexes
   no longer exist anywhere — `.harness/notes/grilling-central-product-config-2026-08-12.md` `## Fact refresh` — verified-at 63b83c7
 - Do not add `mruangutai/harness` to `fleet.yaml` to "finish" the migration — D-01 rules harness
   keeps its own project data local precisely because the entry turns exit 2 into NOBODY — plan.yaml D-01 — verified-at 63b83c7

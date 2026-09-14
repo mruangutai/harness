@@ -20,7 +20,7 @@ Counted by the operator at `3952814`, and **re-verified independently by the orc
 **20 non-test occurrences of the env fallback chain across 16 files.** (The orchestrator's earlier
 "15 files" was an undercount; 16 is correct.)
 
-Per file — 2 each: `bash-write-guard.sh`, `check-domain.sh`, `dispatch-guard.sh`,
+Per file — 2 each: `bash-write-guard.sh`, `check-domain.py`, `dispatch-guard.sh`,
 `validate-digest.py`. 1 each: `branch-create-gate.sh`, `check-plan-routes.py`, `check-state.sh`,
 `factory_config.py`, `gen-decisions-index.py`, `gh-close-gate.sh`, `harness_yaml.py`,
 `inflight_registry.py`, `inject-expertise.sh`, `run-unit-tests.sh`, `validate-feature-json.py`,

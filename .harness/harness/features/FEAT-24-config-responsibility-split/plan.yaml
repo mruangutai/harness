@@ -58,7 +58,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-no-distribution.py
       lane: main-session-direct
       reason: >-
-        check-domain.sh --resolve returned harness-backend-dev at ada8e99, so the path is granted.
+        check-domain.py --resolve returned harness-backend-dev at ada8e99, so the path is granted.
         It is carried in T-07 all the same, because its new case asserts the shape of the same
         fleet.yaml edit and splitting them would leave a red assertion between two tasks.
     - surface: .harness/harness.json
@@ -73,7 +73,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
       reason: >-
-        DEC-174 carve-out. check-domain.sh --resolve returned harness-backend-dev at ada8e99, but
+        DEC-174 carve-out. check-domain.py --resolve returned harness-backend-dev at ada8e99, but
         the script is one of the four registered gate scripts, and green gates cannot vouch for the
         code that produces them.
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -83,14 +83,14 @@ lanes:
         splitting them would put a red gate between two tasks.
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at ada8e99
+      reason: check-domain.py --resolve returned NOBODY at ada8e99
     - surface: .claude/skills/harness/templates/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at ada8e99
+      reason: check-domain.py --resolve returned NOBODY at ada8e99
     - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
       lane: main-session-direct
       reason: >-
-        check-domain.sh --resolve returned NOBODY at ada8e99. Forced by DEC-189, which excludes
+        check-domain.py --resolve returned NOBODY at ada8e99. Forced by DEC-189, which excludes
         every manifest entry whose first segment is .harness or .claude when the target resolves in
         a product checkout, so no seat can ever hold this path. See D-04.
   resolved_but_not_written:
@@ -208,7 +208,7 @@ decisions:
       workspace_root/kaya-ai, a main-session-direct edit there, factory_land to push and open the
       pull request, and the operator merges it. No new grant is added to team-config.yaml.
     because: >-
-      check-domain.sh --resolve returned NOBODY for that path at ada8e99, and that is forced rather
+      check-domain.py --resolve returned NOBODY for that path at ada8e99, and that is forced rather
       than an omission: DEC-189 excludes every manifest entry whose first segment is .harness or
       .claude when the target resolves in a product checkout, so no seat can hold it. DEC-193 names
       workspace_root/<product> as one of exactly two locations code is written under harness
@@ -1088,7 +1088,7 @@ tasks:
     traces: [REQ-01, REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returned NOBODY for .harness/factory/fleet.yaml at ada8e99
+    execution_reason: check-domain.py --resolve returned NOBODY for .harness/factory/fleet.yaml at ada8e99
     depends_on: [T-02, T-09]
     status: done
     files:
@@ -1190,7 +1190,7 @@ tasks:
     traces: [REQ-02, REQ-09]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returned NOBODY for .claude/skills/harness/templates/harness.json at ada8e99
+    execution_reason: check-domain.py --resolve returned NOBODY for .claude/skills/harness/templates/harness.json at ada8e99
     depends_on: []
     status: done
     files:
@@ -1244,7 +1244,7 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for the target path at ada8e99, and DEC-189 makes
+      check-domain.py --resolve returned NOBODY for the target path at ada8e99, and DEC-189 makes
       that permanent - a manifest entry whose first segment is .harness is excluded when the target
       resolves in a product checkout, so no seat can ever hold this path. D-04 records the route.
     depends_on: []
@@ -1313,7 +1313,7 @@ tasks:
 
       THE ROUTE, AND IT IS THE WHOLE POINT OF THIS TASK BEING MAIN-SESSION-DIRECT. No agent seat
       can write a path under a product checkout's .harness/ - DEC-189 excludes it by target, so
-      check-domain.sh --resolve returns NOBODY and always will. The operator, in the main session,
+      check-domain.py --resolve returns NOBODY and always will. The operator, in the main session,
       performs these steps in order:
 
         1. Open an issue on mruangutai/kaya-ai describing this migration.

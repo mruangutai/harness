@@ -13,7 +13,7 @@
 Identical — that one line predates this run (not mine; I made no repo-tree writes). All fixtures were built under `/private/tmp/claude-501/.../scratchpad/wtattack/`, outside the repo.
 
 **Files touched (diff `main...c6a28bd`):**
-`.claude/skills/harness/bin/{bash-write-guard.sh,check-domain.sh,check-state.sh,harness_boundary.py,test-bash-write-guard.py,test-check-domain.py,test-check-state.py}`,
+`.claude/skills/harness/bin/{bash-write-guard.sh,check-domain.py,check-state.sh,harness_boundary.py,test-bash-write-guard.py,test-check-domain.py,test-check-state.py}`,
 `.harness/features/FEAT-17-guard-boundaries/{BRIEF.md,STATE.md,feature.json,notes/*,plan.yaml}`,
 `.harness/notes/grilling-central-product-config-2026-08-12.md`,
 `docs/harness/{DECISIONS-INDEX.md,DECISIONS.md}`.
@@ -35,7 +35,7 @@ except Exception:
     return None
 ```
 `None` means "unknown", and both callers treat unknown as "not a worktree":
-`classify()` at `harness_boundary.py:271-276` (`_wt_owner is not None and not _wt_owner[2]` — `None` short-circuits false, falls through to `not_a_domain_question`, i.e. **allow**), `check-domain.sh:420-421`, `bash-write-guard.sh:128-129` (same pattern, root-side).
+`classify()` at `harness_boundary.py:271-276` (`_wt_owner is not None and not _wt_owner[2]` — `None` short-circuits false, falls through to `not_a_domain_question`, i.e. **allow**), `check-domain.py:420-421`, `bash-write-guard.sh:128-129` (same pattern, root-side).
 
 **Executed, not reasoned — decisive before/after against the real deployment** (`root` = this repo, real `fleet.yaml`, target = `<scratch>/final_demo/src/main.py`, standing in for a plausible sibling worktree e.g. `../harness-wt1`):
 
@@ -64,7 +64,7 @@ Reachability for *this* deployment is low — the harness repo is a plain top-le
 ### F3 [MED, latent/inert today] — `.git` as a symlink to an arbitrary directory is misread as "legitimate main checkout"
 
 `os.path.isdir(dot)` at `harness_boundary.py:375` follows symlinks. Confirmed by execution: a directory whose `.git` entry is a symlink to *any other directory* (not necessarily a real git-dir) returns `(cur, cur, True)` — "legitimate main checkout" — rather than `None` or `False`.
-In `classify()`'s current target-side call site this happens to produce the *same* net outcome as `None` (both fall through to `not_a_domain_question`), so it is not independently exploitable there today. The two ROOT-SIDE call sites (`check-domain.sh:420`, `bash-write-guard.sh:128`) test `worktree_owner(root)` directly and would treat a symlinked `root/.git` as fully legitimate, waving the session through with no refusal. **Open question, not asserted as exploitable**: I did not verify whether `.git` itself is excluded from every governed agent's writable globs in `team-config.yaml` — if it is (as I'd expect, since `.git` is not a source path any agent is normally granted), this is inert; if some domain grants a glob broad enough to reach `root/.git` (e.g. a bare `**` or a misconfigured shared path), this becomes live. Flagged rather than closed.
+In `classify()`'s current target-side call site this happens to produce the *same* net outcome as `None` (both fall through to `not_a_domain_question`), so it is not independently exploitable there today. The two ROOT-SIDE call sites (`check-domain.py:420`, `bash-write-guard.sh:128`) test `worktree_owner(root)` directly and would treat a symlinked `root/.git` as fully legitimate, waving the session through with no refusal. **Open question, not asserted as exploitable**: I did not verify whether `.git` itself is excluded from every governed agent's writable globs in `team-config.yaml` — if it is (as I'd expect, since `.git` is not a source path any agent is normally granted), this is inert; if some domain grants a glob broad enough to reach `root/.git` (e.g. a bare `**` or a misconfigured shared path), this becomes live. Flagged rather than closed.
 
 ---
 
@@ -78,7 +78,7 @@ In `classify()`'s current target-side call site this happens to produce the *sam
 - **Unreadable ancestor directory** (`chmod 000`): does **not** raise inside `worktree_owner`. `os.path.isdir`/`isfile` and `os.path.realpath` swallow `OSError`/`PermissionError` internally (CPython's `genericpath`/`posixpath` implementation) and degrade gracefully — walks past the unreadable node, no crash, no exit 1. This specific dispatch concern is **falsified**, not merely unconfirmed.
 - **Self-referential symlink cycle**: no hang, no exception — `os.path.realpath`'s built-in cycle guard short-circuits. Confirmed via execution.
 - **`os.path.commonpath` `ValueError`**: every call site found (`select_base`'s `inside()`, `worktree_owner`'s legitimacy check, and the new worktree-creation scan at `bash-write-guard.sh:463`) wraps the call in `try/except ValueError`. No uncaught site found.
-- **The fleet-bricking DoS concern (D-06)**: tested, not just accepted. `check-domain.sh:271` (`_governed = bool(agent) and agent.startswith("harness-")`) and `bash-write-guard.sh:50-58` (`sys.exit(0)` for empty/non-`harness-` `agent_type`, and for `harness-dev-ops`) both confirm the **main session bypasses `resolve_fleet`'s `sys.exit(2)` entirely**, on both routes. A malformed `fleet.yaml` blocks every governed subagent's writes (by design — fail-closed) but never locks out the one tier that can repair it. D-06 holds.
+- **The fleet-bricking DoS concern (D-06)**: tested, not just accepted. `check-domain.py:271` (`_governed = bool(agent) and agent.startswith("harness-")`) and `bash-write-guard.sh:50-58` (`sys.exit(0)` for empty/non-`harness-` `agent_type`, and for `harness-dev-ops`) both confirm the **main session bypasses `resolve_fleet`'s `sys.exit(2)` entirely**, on both routes. A malformed `fleet.yaml` blocks every governed subagent's writes (by design — fail-closed) but never locks out the one tier that can repair it. D-06 holds.
 - **Worktree-creation scan** (`bash-write-guard.sh:377-431`, new in this diff): `_worktree_destination` returns `None` (refuse) for any unparsed form — correctly conservative, fails closed on the parser's own uncertainty. I did **not** deep-test the classic scanner-bypass class (`sh -c "git worktree add ..."`, `command git`, aliases, `xargs`) — out of primary scope for "the worktree pointer parser" and not enough budget left to do it justice; flagging as an open question rather than a finding either way.
 
 ---

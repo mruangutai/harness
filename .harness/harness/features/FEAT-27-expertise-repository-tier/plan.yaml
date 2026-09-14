@@ -35,7 +35,7 @@ lanes:
       agent: harness-dev-ops
     - surface: .harness/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY for it, and it is the enforcement data check-domain.sh reads
+      reason: check-domain.py --resolve prints NOBODY for it, and it is the enforcement data check-domain.py reads
     - surface: .harness/expertise/harness-<agent>.md
       lane: main-session-direct
       reason: the guard grants each craft file to its owning agent alone, and three of the six owners are a lead, a reviewer and the orchestrator, none of which is a dispatchable task executor
@@ -44,10 +44,10 @@ lanes:
       reason: resolves to NOBODY before T-01 lands and to the owning agent alone after it, so no single doer is ever granted all six files
     - surface: .claude/skills/harness-distill/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY for everything under .claude/ except skills/harness/bin
+      reason: check-domain.py --resolve prints NOBODY for everything under .claude/ except skills/harness/bin
     - surface: .claude/skills/harness-curate/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY for everything under .claude/ except skills/harness/bin
+      reason: check-domain.py --resolve prints NOBODY for everything under .claude/ except skills/harness/bin
     - surface: .harness/README.md
       lane: team
       agent: harness-documentor
@@ -120,15 +120,15 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for .harness/team-config.yaml at ada8e99, and the
-      file is the enforcement data check-domain.sh itself reads
+      check-domain.py --resolve prints NOBODY for .harness/team-config.yaml at ada8e99, and the
+      file is the enforcement data check-domain.py itself reads
     depends_on: []
     status: done
     files:
       - .harness/team-config.yaml
     verify: |
       set -u
-      R=.claude/skills/harness/bin/check-domain.sh
+      R=.claude/skills/harness/bin/check-domain.py
       fail=0
       for a in harness-orchestrator harness-product-lead harness-eng-lead harness-validator-lead \
                harness-pm harness-visual-designer harness-documentor harness-frontend-dev \
@@ -682,7 +682,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for everything under .claude/ except
+      check-domain.py --resolve prints NOBODY for everything under .claude/ except
       skills/harness/bin, so no agent may write either skill file
     depends_on: [T-03, T-04]
     status: done

@@ -32,7 +32,7 @@ reported violation. `check-plan-routes.py` exits 0; `approval.status` stays `pen
 ## What I checked at source rather than adopted
 
 - `prior_state` is `""` **only** in the `FileNotFoundError` branch where `os.path.lexists` is also
-  false (`check-domain.sh:1514-1516`), and the file's bytes otherwise (`:1513`); `if prior_state:`
+  false (`check-domain.py:1514-1516`), and the file's bytes otherwise (`:1513`); `if prior_state:`
   gates the seed compare at `:1530`. The orchestrator's reading survives — prior-absent is CREATION.
 - **The acquisition refusal is Write-only, by construction.** An Edit reconstructs against the
   on-disk prior, so it cannot occur while `prior_state` is empty. REQ-01, SC-01 and T-09 all say so;

@@ -12,27 +12,27 @@ so the live suite run below reflects `review_sha` exactly.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-01 (worktree note resolves against its own checkout) | delivered | `_checkout_root` wired into the sole `handoff_done_when.problems(...)` call (check-domain.sh:1761-1762); T-01 row "handoff worktree-only feature dir resolves" green |
-| REQ-02 (main-checkout validation unchanged) | delivered | fallback `return root` (check-domain.sh:1162) is taken whenever the resolved checkout equals `root`; full suite green (see Stage-2 run below), pre-existing handoff groups unaffected |
+| REQ-01 (worktree note resolves against its own checkout) | delivered | `_checkout_root` wired into the sole `handoff_done_when.problems(...)` call (check-domain.py:1761-1762); T-01 row "handoff worktree-only feature dir resolves" green |
+| REQ-02 (main-checkout validation unchanged) | delivered | fallback `return root` (check-domain.py:1162) is taken whenever the resolved checkout equals `root`; full suite green (see Stage-2 run below), pre-existing handoff groups unaffected |
 | REQ-03 (shape phase gains no fail-closed dependency) | delivered | see SC-04 below |
 | REQ-04 (unresolvable pointer still refused, named, in both checkouts) | delivered | worktree: T-01 rows 2/3 (traced below); main checkout: unchanged, existing `_handoff_pointer_cases`/`_handoff_unsafe_cases` untouched by diff |
 | REQ-05 (regression test red pre-fix, green post-fix) | delivered, not independently re-executed by me | traced by reading the pre-fix script (`git show 6b5ae254:...`) against the fixture — see Stage-2 Q1. SC-06 (the executed red/green confirmation) is explicitly out of my assignment; I could not construct a scratch pre-fix binary myself because Write/bash-write-guard blocks every filesystem write for this persona (`cp`, `>` redirect both blocked) — flagging as a tooling note, not a finding, since my code-level trace independently corroborates the claim |
 | REQ-06 (containment bound follows resolved checkout) | delivered | see SC-07 below |
 
 **D-03** (sibling helper beside `_norm`, `_norm` untouched, new info consumed only at the
-handoff call site) — **honoured as signed**. `git diff 64fcaa34..4de92e75 -- check-domain.sh`
+handoff call site) — **honoured as signed**. `git diff 64fcaa34..4de92e75 -- check-domain.py`
 is exactly 15 insertions / 1 deletion: `_checkout_root` inserted immediately after `_norm`
-(check-domain.sh:1151, right after `_norm` ends at 1149), and `_checkout_root(` appears
+(check-domain.py:1151, right after `_norm` ends at 1149), and `_checkout_root(` appears
 exactly twice in the whole file — the `def` (1151) and its one call (1762). `_norm`'s own
 lines are absent from the diff entirely (confirmed byte-identical pre/post).
 
 **Scope leakage**: none. The diff is the 13-line helper plus the one-argument swap in
-`check-domain.sh`, and the one new `_handoff_worktree_cases` group plus its one call in
+`check-domain.py`, and the one new `_handoff_worktree_cases` group plus its one call in
 `test-check-domain.py` — nothing else touched in either file.
 
 ### SC-04 — shape-phase `harness_boundary` use stays absorbing
 
-`check-domain.sh:1151-1162`:
+`check-domain.py:1151-1162`:
 ```
 1151 def _checkout_root(path):
 1152     """Which checkout does this path stand in? Absorb failures to keep shape non-gating."""
@@ -52,18 +52,18 @@ Everything that can raise — the import, `_claimed_abs(path)` as an argument ev
 `sys.exit`, no bare `raise`, no narrowed `except`; `except Exception: pass` (1160-1161) falls
 through to the same `return root` (1162) the falsy-path branch (1153-1154) uses. Only
 `if not path:` (1153) sits outside the try, and `path` here is always either `None` or a
-string produced by `_claimed_abs(target)` upstream (check-domain.sh:2269 `for _rel, _text,
+string produced by `_claimed_abs(target)` upstream (check-domain.py:2269 `for _rel, _text,
 _disp, _absolute in targets:` / 2270-2271 `absolute_path=_absolute`) — truthiness on `None`
 or `str` cannot raise.
 
-The call site (check-domain.sh:1759-1765) wraps `_checkout_root(absolute_path)` in a second,
+The call site (check-domain.py:1759-1765) wraps `_checkout_root(absolute_path)` in a second,
 outer `try/except Exception as exc:` (the pre-existing `handoff_done_when` try block) that
 turns any exception into a `problems.append(...)` message rather than a crash or `sys.exit` —
 belt-and-suspenders, not required for SC-04's claim but consistent with it. **SC-04 holds.**
 
 ### SC-05 — `_norm` return contract and call sites unchanged
 
-`_norm`'s two return statements (check-domain.sh, inside 1114-1149, byte-identical pre/post
+`_norm`'s two return statements (check-domain.py, inside 1114-1149, byte-identical pre/post
 per the diff): `return _ck[1]` (inside the try) and `return rel` (fallback) — both strings,
 unchanged.
 
@@ -117,8 +117,8 @@ root)` = `root / <prefix>`) -> `_resolve_plan`/`_resolve_brief`/`_resolve_findin
 the caller supplied. The bound is whatever root it is handed — confirmed by reading, not
 assumed.
 
-(b) `check-domain.sh:1153-1154` (`if not path: return root`) and `:1162` (post-try
-`return root`) inside `_checkout_root` — the checkout-root resolution `check-domain.sh:1762`
+(b) `check-domain.py:1153-1154` (`if not path: return root`) and `:1162` (post-try
+`return root`) inside `_checkout_root` — the checkout-root resolution `check-domain.py:1762`
 feeds directly as the `root` argument of `handoff_done_when.problems(...)`. When the note
 stands in a worktree, `_checkout_root` returns `_ck[0]` (the worktree root) instead, so
 `_read_target`'s bound (a) narrows to that worktree; when it doesn't (main-checkout note,
@@ -151,7 +151,7 @@ brief-sc pointer refused`.
 ### Q1 — can each of the four rows report red? Classification from evidence
 
 I traced each row against the **pre-fix script** (`git show 6b5ae254:.claude/skills/harness
-/bin/check-domain.sh`, which still passes plain `root` at line 1748 —
+/bin/check-domain.py`, which still passes plain `root` at line 1748 —
 `handoff_done_when.problems(rel, content, root, resolve=True)`) rather than trusting the
 plan's prose, and against `handoff_done_when.py`'s actual resolver code
 (`_resolve_plan`/`_resolve_brief`, both `4de92e75`). I could not execute the pre-fix binary
@@ -171,7 +171,7 @@ static trace, not a captured run.
   row above); `_read_target`'s `path.resolve(strict=True)` raises `FileNotFoundError`,
   caught and re-raised as `ValueError("cannot resolve target: ...")`, caught by
   `_resolve_plan`'s `except (ValueError, yaml.YAMLError)`, returning an unresolved-pointer
-  problem — `shape_problems` returns non-empty, `check-domain.sh` exits 2. The test wants 0.
+  problem — `shape_problems` returns non-empty, `check-domain.py` exits 2. The test wants 0.
   **Red pre-fix.** Post-fix: `_checkout_root` returns the worktree root (a real, distinct
   checkout per `make_linked_worktree`), `_feature_dir` finds the real `plan.yaml`
   containing task `T-03` with a non-empty `verify`, `_resolve_plan` resolves the pointer,
@@ -219,7 +219,7 @@ via `{pointer!r}` / `{target}`, not hand-typed English.
 - `_checkout_root` mirrors `_norm`'s absorbing-import pattern exactly (same `try: import
   harness_boundary; ... except Exception: pass` shape); no divergence between the two
   siblings that could let one silently behave differently from the other under failure.
-- The one call site (check-domain.sh:1759-1765) is itself inside a pre-existing
+- The one call site (check-domain.py:1759-1765) is itself inside a pre-existing
   `try/except Exception as exc:` around the whole `handoff_done_when` invocation — no new
   failure surface introduced at the call site either.
 - No dead code: `_checkout_root` has exactly one caller, used at exactly the site the plan

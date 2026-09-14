@@ -45,7 +45,7 @@ MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
 # NOT A SEVENTH STATION. `abandoned` names no board column, never reaches the board, and is
 # absent from MANDATED_STATIONS for that reason — station_column raises on it. It lives in this
-# module because plan-merge.py, check-plan-routes.py and check-domain.sh each need the terminal
+# module because plan-merge.py, check-plan-routes.py and check-domain.py each need the terminal
 # marker and each already imports factory_config; every one of those sites imports THIS NAME
 # rather than respelling the literal.
 TERMINAL_MARKER = "abandoned"
@@ -228,7 +228,7 @@ def load_fleet(path=FLEET_PATH):
             f"set it to an absolute path in {path}",
         )
     # A FILESYSTEM ROOT PASSES `isabs` AND INVERTS THE WRITE GUARD (review panel,
-    # 2026-08-11). `check-domain.sh` refuses any path under `workspace_root` that
+    # 2026-08-11). `check-domain.py` refuses any path under `workspace_root` that
     # belongs to no declared repository. With `workspace_root: "/"` every path on the
     # machine is under it, so that branch becomes a catch-all: `/tmp/scratch.py` flips
     # from no-verdict to BLOCKED, inverting REQ-05 and the scratch-path behaviour

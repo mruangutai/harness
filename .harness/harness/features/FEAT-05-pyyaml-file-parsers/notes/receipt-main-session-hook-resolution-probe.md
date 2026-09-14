@@ -6,7 +6,7 @@ evidence.
 
 ## Method
 
-One additive line inserted in the **worktree's** `check-domain.sh`, immediately after
+One additive line inserted in the **worktree's** `check-domain.py`, immediately after
 `payload=$(cat)` (before every early exit, so any `agent_type` triggers it), appending
 `BASH_SOURCE`, `CLAUDE_PROJECT_DIR` and `pwd` to a scratch file. `bash -n` and
 `test-check-domain.py` (11/11) re-run after insertion and before spawning. Then one
@@ -20,7 +20,7 @@ absence would have been the answer.
 ## Result — 11 fires, all identical
 
 ```
-SOURCE = <worktree>/.claude/skills/harness/bin/check-domain.sh
+SOURCE = <worktree>/.claude/skills/harness/bin/check-domain.py
 CPD    = <worktree>
 PWD    = <worktree>
 ```
@@ -28,7 +28,7 @@ PWD    = <worktree>
 `<worktree>` = `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/fix-harness-tooling-backlog`
 
 **The worktree's copy executes, `CLAUDE_PROJECT_DIR` is the worktree, and therefore
-`root` is the worktree** (`check-domain.sh:64` takes `root` from that variable and the
+`root` is the worktree** (`check-domain.py:64` takes `root` from that variable and the
 manifest is readable there, so the `_derived` fallback is never reached). Consistent
 across all 11 invocations — not intermittent, not racy.
 
@@ -46,7 +46,7 @@ across all 11 invocations — not intermittent, not racy.
   checkout's `validate-digest.py`", so DEC-173's widened schema was "not in force until
   this branch merges." That was wrong. I had verified only that the two copies *differ*
   (main 0 `GATE_FIELDS`, worktree 2) and then asserted which one runs. Hooks resolve
-  through the same `${CLAUDE_PROJECT_DIR}` as `check-domain.sh`, now measured as the
+  through the same `${CLAUDE_PROJECT_DIR}` as `check-domain.py`, now measured as the
   worktree. **DEC-173 IS in force for agents spawned here.** I retracted the claim once
   as unproven; it is now positively disproven.
 
@@ -116,7 +116,7 @@ their environment, which is plausibly what the ui-reviewer noticed and mis-attri
 - `validate-digest.py:597,621` already anticipates it by name — it resolves root through
   `payload.cwd` → env → `os.getcwd()`, with a comment reading "drifts (worktrees, unset
   `CLAUDE_PROJECT_DIR`) must not block a legitimate return".
-- `check-domain.sh`, `bash-write-guard.sh` and `check-state.sh` all self-locate via
+- `check-domain.py`, `bash-write-guard.sh` and `check-state.sh` all self-locate via
   `_derived`/`_selfdir` from `BASH_SOURCE`, so an unset variable falls back to the script's own
   repo.
 

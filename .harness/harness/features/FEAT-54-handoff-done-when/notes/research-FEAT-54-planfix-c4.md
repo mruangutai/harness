@@ -22,7 +22,7 @@ The rule applied: `test-*.py` / `*.test.*` / `probe-*` may not be pinned under
 |2|D-06 `choice`,`because`|test → `tests/unit/test-handoff-done-when.py`; restated against the glob|"spawns no subprocess" IS the unit criterion|
 |3|T-01 `files`,`verify`,`intent`|→ `tests/unit/`; `run-unit-tests.sh` **removed** from `files`|see verdict below|
 |4|T-02 `verify`|path only|`handoff_done_when.py` is a module, stays under `bin/`|
-|5|T-03 `files`,`verify`,`intent`|→ `tests/integration/test-check-domain.py`|drives `check-domain.sh` in a subprocess; file already exists there, so "extend" is true again|
+|5|T-03 `files`,`verify`,`intent`|→ `tests/integration/test-check-domain.py`|drives `check-domain.py` in a subprocess; file already exists there, so "extend" is true again|
 |6|T-04 `verify`|path only|same target|
 |7|T-06 `files`,`verify`,`intent`|→ `tests/integration/test-check-state.py`; intent changed by a single path substitution|case (g) and the tail paragraph (PF-570b9c87 ruling) byte-identical|
 |8|T-07 `verify`|path only (line 2 of the block)|same target|
@@ -65,7 +65,7 @@ Every REQ; every SC but SC-09's mechanism sentence; `## Out of scope`; `## Appro
 `lanes:`, `panel:` (findings and dispositions), `status:`, `source_issues:`; D-01, D-02, D-03,
 D-05, D-07, D-08, D-10; T-05, T-08, T-10, T-11; every `title`, `traces`, `change_type`,
 `execution_mode`, `execution_reason`, `depends_on`; T-02's `files:`. **No `execution_mode` moved** —
-DEC-174 categorises a gate's own test by what it IS, and `check-domain.sh --resolve` on every new
+DEC-174 categorises a gate's own test by what it IS, and `check-domain.py --resolve` on every new
 destination returns `harness-backend-dev harness-dev-ops harness-qa`, i.e. resolvable, so
 `main-session-direct` yields the same advisory DEVIATION it already yielded and no violation.
 

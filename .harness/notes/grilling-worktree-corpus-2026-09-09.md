@@ -89,7 +89,7 @@ All at `abff2a84`, on this host, with two throwaway probe worktrees since remove
 - DEC-174, CORRECTED 2026-09-10 (the original wording here had it backwards, and the design comment
   on issue #1559 repeats the error): a change to hooks, validators and gate scripts is made
   **directly by the main session**, never dispatched through a team run whose gates are the artifact
-  being changed. `feature-worktree.py`, `check-state.sh`, `harness_boundary.py`, `check-domain.sh`,
+  being changed. `feature-worktree.py`, `check-state.sh`, `harness_boundary.py`, `check-domain.py`,
   `merge-gate.py`, `dispatch-guard.sh` and the validators are exactly that surface, so those tasks
   belong in the `main-session-direct` lane and `check-plan-routes.py` printing DEVIATION on them
   while exiting 0 is the carve-out working.

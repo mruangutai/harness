@@ -16,7 +16,7 @@
   `notes/answers-2026-08-10-01-plan-product.md` — the ruling file is the authority for the revision.
 - artifacts: `BRIEF.md`, `plan.yaml`. Five tasks, every one `execution_mode: main-session-direct`
   with an `execution_reason`, under the DEC-174 carve-out. No build squad was spawned and no task
-  dispatches an agent at `check-domain.sh`.
+  dispatches an agent at `check-domain.py`.
 - the ruling folded in: Q1 → option (c). Prefix inference stands; four harness paths
   (`docs/harness/**`, `docs/PRINCIPLES.md`, `README.md`, `.github/**`) are named explicitly and
   resolve against BOTH bases. The accepted cost — one more place to remember, no detection

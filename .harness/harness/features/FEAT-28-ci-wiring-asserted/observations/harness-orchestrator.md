@@ -38,7 +38,7 @@
   there, rather than trusting either digest's account of what it wrote.
 
 - 2026-08-19: The write ban and the domain resolver answer DIFFERENT questions, and I conflated
-  them in a dispatch. `check-domain.sh --resolve .github/workflows/tests.yml` returning
+  them in a dispatch. `check-domain.py --resolve .github/workflows/tests.yml` returning
   `harness-dev-ops` says the file is OWNED and therefore dispatchable in principle; it says
   nothing about whether THIS run may write it. A task-level "write only inside the feature dir"
   constraint still binds. I had told pm to red-prove an assertion by a "restored-and-byte-verified

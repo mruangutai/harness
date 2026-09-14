@@ -79,7 +79,7 @@
 - NON-BLOCKING · `plan.yaml:1435` still records T-08 `status: pending`. Stale; pm's to fix, and it
   is the only plan-level correction this feature still owes.
 - NON-BLOCKING · issue #199, **seventh recurrence**: the receipt path `harness-handoff` prescribes
-  is denied to most personas by `check-domain.sh`. Hit again by this feature's a1fix segment.
+  is denied to most personas by `check-domain.py`. Hit again by this feature's a1fix segment.
 - NON-BLOCKING · all three commits in the OLD review pin were unattributed (`2a3e91c`, `b89c00a`,
   `8bbb246`). `bf8f191` and `b86565b` both carry trailers, so the gap is historical.
 - HARNESS QUESTION, demonstrated twice on this feature: should a review panel — or any segment —

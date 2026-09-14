@@ -24,13 +24,13 @@ DAG's first `main-session-direct` task, and return `notes/layer0-segments-FEAT-3
   reports red as green): unit exit 0/179 PASS/0 FAIL; integration exit 0/90 PASS/0 FAIL — verified-at 49c528a
 - `check-plan-routes.py plan.yaml` exits 0, `0 violation(s)`, expected DEVIATIONs on T-03/T-04/T-05,
   `OK T-10` — verified-at 49c528a
-- All four `NOBODY` resolutions behind the T-07/T-09 lanes still hold — `check-domain.sh --resolve`
+- All four `NOBODY` resolutions behind the T-07/T-09 lanes still hold — `check-domain.py --resolve`
   — verified-at 49c528a
-- T-04's anchors are still valid: `check-domain.sh` and `harness_boundary.py` byte-identical
+- T-04's anchors are still valid: `check-domain.py` and `harness_boundary.py` byte-identical
   `eeabc59`→HEAD, and `:37`, `:602`, `:644`, `test-bash-write-guard.py:491-506` land on the claimed
   content — verified-at 49c528a
 - **Fail-open ordering hazard, measured not inferred:** `harness_boundary.py:37` and
-  `check-domain.sh:644` both hard-code `[^/]+/`, exactly ONE segment below `.claude/worktrees`, while
+  `check-domain.py:644` both hard-code `[^/]+/`, exactly ONE segment below `.claude/worktrees`, while
   T-01's `dest_for` builds `<segment>/<id>`, two. Until T-04 lands, a REAL worktree from the new CLI
   escapes the sweep and the boundary strip — silent fail-open, not a block — verified-at 49c528a
 - Mirror open: milestone #19, parent #572 adopted, sub-issues #616–#625 — `feature.json` — verified-at 49c528a
@@ -47,7 +47,7 @@ DAG's first `main-session-direct` task, and return `notes/layer0-segments-FEAT-3
 - Do NOT round-trip `plan.yaml` through a YAML dumper — it carries the signature comments and
   `approval.rulings`; edit status lines in place and diff-verify — `plan.yaml:6-15` — verified-at 49c528a
 - Do NOT touch `.claude/worktrees/FEAT-31`; it is the operator's — source: dispatch
-- `feature.json` will NOT accept a `phase:` key — `check-domain.sh --post` denies it against the
+- `feature.json` will NOT accept a `phase:` key — `check-domain.py --post` denies it against the
   execution-state schema, contradicting the DEC-148/159 playbook. Phase lives in `STATE.md` — verified-at 49c528a
 
 ## Working set

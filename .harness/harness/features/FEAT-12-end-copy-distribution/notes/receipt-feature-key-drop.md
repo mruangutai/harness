@@ -45,7 +45,7 @@ cycles_note: 'EIGHT. Four from the plan phase; one in t12-product where document
   forward step made necessary by a stale playbook premise. Say so if you read that
   differently. The nine layer-0 tasks never appear as runs at all.'
 dec174_check: CLEAR. DEC-12 has 3 inbound references, all under docs/. No remaining
-  task names check-domain.sh, bash-write-guard.sh, validate-digest.py or check-state.sh.
+  task names check-domain.py, bash-write-guard.sh, validate-digest.py or check-state.sh.
 effort: https://github.com/mruangutai/harness/issues/203
 gate_status:
   github_mirror: gh-sync open ran once; T-07, T-10, T-12 sub-issues closed. Do not
@@ -71,7 +71,7 @@ plan_defects: TWO, recorded against the plan and NOT fixed by me - the plan is a
   the work is correct and the verify is wrong. T-14's depends_on names T-11 and omits
   T-08, which measurably blocked it.
 playbook_defect: MEASURED. The playbook says write-less reviewers return ops and the
-  ORCHESTRATOR applies them. check-domain.sh denies harness-orchestrator every other
+  ORCHESTRATOR applies them. check-domain.py denies harness-orchestrator every other
   agent Expertise file at exit 2, denies a lead its members files too, and grants
   each reviewer its own at exit 0 because all three hold Write. The documented path
   is impossible; the working one is forbidden by that document.

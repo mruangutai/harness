@@ -31,7 +31,7 @@ Privilege. OWASP: Broken Access Control / path handling.
   no stderr). `quarantine.py` printed `ADOPTED <root>/.harness/harness/features/FEAT-99/feature.json
   FROM <staged>` and the real canonical `feature.json` content changed from `LEGIT` to `PWNED`.
 - Actor: any `harness-*` agent with Bash access (every governed member, lead and the
-  orchestrator — `check-domain.sh` only matches `Write|Edit`, `bash-write-guard.sh` only
+  orchestrator — `check-domain.py` only matches `Write|Edit`, `bash-write-guard.sh` only
   recognizes `sed -i`/`tee`/`cp`/`mv`/redirects/`python3 -c`, neither fires on
   `python3 quarantine.py adopt`). Damage: silent, unauthenticated overwrite of `feature.json` /
   `STATE.md` / `BRIEF.md` (raw `harness_merge.locked_update` replace, `quarantine.py:130-132`)
@@ -59,7 +59,7 @@ Tampering + Elevation of Privilege (and Denial of Service against the legitimate
   reads this same claims list to decide whether a *different* agent's write gets redirected to
   quarantine — the registry became an authorization input this feature relies on, without gaining
   any authentication.
-- No hook governs a direct `inflight_registry.py` CLI call: `check-domain.sh` matches
+- No hook governs a direct `inflight_registry.py` CLI call: `check-domain.py` matches
   `Write|Edit` only; `plan-sign-gate.py`'s `TOOL`/`ADOPT_TOOL` are `plan-merge.py` and
   `quarantine.py` only (`plan-sign-gate.py:26-29`) — `inflight_registry.py` is absent from both;
   `bash-write-guard.sh`/`gh-close-gate.sh`/`branch-create-gate.sh` do not mention it (grepped).
@@ -111,7 +111,7 @@ Tampering + Elevation of Privilege (and Denial of Service against the legitimate
   are from `git show fa5ce88e:` and a direct `sed` of the (git-clean, zero-diff-from-pin) working
   file.
 - **Fail-open catch-alls (Lead 3).** Confirmed wide `except Exception` around the orphan check in
-  both `check-domain.sh`'s heredoc and `plan-sign-gate.py:quarantines()` — this is the
+  both `check-domain.py`'s heredoc and `plan-sign-gate.py:quarantines()` — this is the
   SC-13-specified, signed fail-open and is not re-raised. Both paths do emit a stderr line naming
   the exception before falling through; I found no way for that print to itself be swallowed
   without also crashing the hook process (which is louder, not quieter).
@@ -139,7 +139,7 @@ DIGEST:
     - { boundary: "inflight_registry.py release CLI (peer claim removal)", stride: "D", mitigated: false }
     - { boundary: "orphan_write query-scoped expiry (cross-feature sweep)", stride: "T", mitigated: true }
     - { boundary: "SUSPENDED verdict acceptance in hook_mode", stride: "E", mitigated: true }
-    - { boundary: "check-domain.sh / plan-sign-gate.py fail-open except clauses (SC-13, signed)", stride: "T", mitigated: false }
+    - { boundary: "check-domain.py / plan-sign-gate.py fail-open except clauses (SC-13, signed)", stride: "T", mitigated: false }
   open_questions:
     - { id: Q1, question: "F-2's remedy needs a design decision, not a one-line fix: no runtime identity signal currently reaches a bare CLI invocation of inflight_registry.py (agent_type/session_id only arrive via hook payloads). Should release require a hook-supplied identity, a capability token, or is the accepted mitigation something else entirely?", blocking: true }
     - { id: Q2, question: "F-1's fix (realpath containment check in cmd_adopt, matching cmd_discard) is small and directly analogous to existing code — does it need a full plan task, or can it land as a direct patch under this feature's own scope before ship?", blocking: false }

@@ -33,7 +33,7 @@ hand it to pm as gradeable. The UAT script and the CEO briefing follow, in that 
 
 - Do not re-run the reviewer panel, qa or simplify at `168f875f`: all three ran at this exact tip —
   `feature.json` `runs:` — verified-at 168f875f
-- Do not route Q1–Q7 or F2 to any lead: every remedy edits `check-domain.sh`, `check-state.sh`,
+- Do not route Q1–Q7 or F2 to any lead: every remedy edits `check-domain.py`, `check-state.sh`,
   `validate-digest.py`, their tests, or an approved plan — DEC-174 — same digest — verified-at 168f875f
 - Do not re-raise F2, and do not re-open c7's F4 or F5: F2's declination is upheld on reproduced
   evidence, F4's premise no longer holds, F5 is what signed T-03 required — same digest — verified-at

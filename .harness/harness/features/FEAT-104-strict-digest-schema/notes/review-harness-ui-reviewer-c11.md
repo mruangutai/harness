@@ -10,7 +10,7 @@ not-an-int`) still prints under "undeclared step key" with remedy advice ("move 
 `evidence`") that is actively wrong for a key that is already declared; rated **med**, not high,
 because the key is still named correctly and the cited schema file remains a correct escape hatch
 for a diligent reader. Mixed violations compose cleanly (two ordered, non-contradictory messages).
-Stale comment at `check-domain.sh:1646-1647` confirmed still stale, now describing only one of two
+Stale comment at `check-domain.py:1646-1647` confirmed still stale, now describing only one of two
 branches — low, non-gating. No `severity_max >= high`, `must_fix: []` → **PASS**.
 
 ## Scope — measured, not predicted
@@ -19,9 +19,9 @@ branches — low, non-gating. No `severity_max >= high`, `must_fix: []` → **PA
 dispatch exactly. No rendered-UI extension (`html|css|scss|tsx|jsx|vue|svelte|less`) appears outside
 `.harness/` notes (excluded, and c10 already confirmed those are generated ship-review artifacts).
 No `DESIGN.md` for this feature (unchanged from c10). The only user-facing surface in this diff is
-the CLI stderr text emitted by `check-domain.sh`'s step-schema denial — the dispatch's named
+the CLI stderr text emitted by `check-domain.py`'s step-schema denial — the dispatch's named
 diagnostic-surface remit, and the exact surface `790023f0..984bd26b`'s two-file delta
-(`check-domain.sh` +26/-8, `test-check-domain.py` +6/-0) touches.
+(`check-domain.py` +26/-8, `test-check-domain.py` +6/-0) touches.
 
 ## PF-C10-01 closure — MEASURED
 
@@ -39,7 +39,7 @@ Against the three things I graded `high` at c10: **head is truthful** (no longer
 key" for an absent field), **key list is non-empty and correct** (`'status'`, not `.`), **remedy is
 actionable** (names the schema file and states the concrete fix — supply the field). This is a full
 closure of the exact shape I rated, not a partial fix. Root cause read in
-`git show 984bd26b:.claude/skills/harness/bin/check-domain.sh:1648-1668`: a new `_missing_required`
+`git show 984bd26b:.claude/skills/harness/bin/check-domain.py:1648-1668`: a new `_missing_required`
 set, populated only from `_error.validator == "required"` errors against `_error.validator_value`,
 gets its own head/remedy pair ahead of the pre-existing `_offending` branch.
 
@@ -140,12 +140,12 @@ finding.
 ## Disposal of c10 items in this lens
 
 - **PF-C10-01** — **CLOSED**, per the MEASURED repro above. Not carried.
-- **Backticked `` `evidence` `` in stderr** — unchanged at `check-domain.sh:1675` (still present
+- **Backticked `` `evidence` `` in stderr** — unchanged at `check-domain.py:1675` (still present
   verbatim in the offending-key remedy sentence). c10 already confirmed this is a codebase-wide
   convention (matching quote style elsewhere in the same file and in `validate-digest.py`); I did
   not re-derive that grep this cycle since the text itself is byte-identical to what c10 examined.
   Not gating; not re-raised.
-- **Stale comment, `check-domain.sh:1646-1647`** — confirmed still present verbatim: "Type/value
+- **Stale comment, `check-domain.py:1646-1647`** — confirmed still present verbatim: "Type/value
   failures on declared fields may not be captured by the vocabulary comparisons above; name their
   nearest field." That describes only the second (`_offending`, `_path[0]`) branch. The first
   branch the comment now sits above (`_missing_required`, lines 1648–1659) does something the
@@ -170,12 +170,12 @@ DIGEST:
   findings: 2
   must_fix: []
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-domain.sh:1657-1659,1669-1677", actual: "a declared step key with a type/range violation (e.g. `cycles: not-an-int`) prints under 'undeclared step key or evidence shape.' with a remedy telling the author to move the key under `evidence`", specified: "the key IS declared (present in run-state-schema.json's step properties); the correct remedy is to fix the value's type, not relocate the key" }
-    - { path: ".claude/skills/harness/bin/check-domain.sh:1646-1647", actual: "comment 'Type/value failures on declared fields may not be captured by the vocabulary comparisons above; name their nearest field.' sits above a loop with two branches", specified: "comment describes only the second (_offending) branch; the first (_missing_required) branch added in 984bd26b does something the comment doesn't mention" }
+    - { path: ".claude/skills/harness/bin/check-domain.py:1657-1659,1669-1677", actual: "a declared step key with a type/range violation (e.g. `cycles: not-an-int`) prints under 'undeclared step key or evidence shape.' with a remedy telling the author to move the key under `evidence`", specified: "the key IS declared (present in run-state-schema.json's step properties); the correct remedy is to fix the value's type, not relocate the key" }
+    - { path: ".claude/skills/harness/bin/check-domain.py:1646-1647", actual: "comment 'Type/value failures on declared fields may not be captured by the vocabulary comparisons above; name their nearest field.' sits above a loop with two branches", specified: "comment describes only the second (_offending) branch; the first (_missing_required) branch added in 984bd26b does something the comment doesn't mention" }
   a11y: ["not applicable — batch/CLI stderr text only, no colour-only encoding, no rendered surface (repo Expertise G-02)"]
   open_questions:
     - { id: Q1, question: "Q14: should the offending-key branch check `key in DECLARED` and route declared-but-wrong-type keys to a third, distinct head/remedy pair ('declared step key has the wrong shape' + 'fix its value, see run-state-schema.json for the expected type') instead of the undeclared-key remedy? DEC-174 means I cannot apply this myself.", blocking: false }
-    - { id: Q2, question: "Stale comment at check-domain.sh:1646-1647 — should it be split or reworded to describe both branches now that 984bd26b added the _missing_required branch above it?", blocking: false }
+    - { id: Q2, question: "Stale comment at check-domain.py:1646-1647 — should it be split or reworded to describe both branches now that 984bd26b added the _missing_required branch above it?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/notes/review-harness-ui-reviewer-c11.md

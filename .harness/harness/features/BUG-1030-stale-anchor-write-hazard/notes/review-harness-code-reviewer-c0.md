@@ -5,7 +5,7 @@ DIGEST:
   severity_max: high
   findings: 2
   must_fix:
-    - "harness-hooks.ts:219-234/684 (preDomain edit branch) — an edit tool_call whose patch text does not match extractEditPaths' two regexes silently skips check-domain.sh's PRE (blocking) domain check with zero signal anywhere; S2 is POST-only and does not cover this route. Uncovered by any test (grep-confirmed zero tool_call/edit cases). See finding A."
+    - "harness-hooks.ts:219-234/684 (preDomain edit branch) — an edit tool_call whose patch text does not match extractEditPaths' two regexes silently skips check-domain.py's PRE (blocking) domain check with zero signal anywhere; S2 is POST-only and does not cover this route. Uncovered by any test (grep-confirmed zero tool_call/edit cases). See finding A."
   spec_violations:
     - { kind: mismatch, path: ".harness/notes/analysis-stale-anchor-write-hazard.md", ref: "F3 (§4 table)" }
   reviewed: "6d6d1cea..83282dea"
@@ -93,7 +93,7 @@ this review was blocked by exactly this enforcement layer on an unintended hered
 active, not vestigial.
 
 **Alternative**: mirror S1 on the PRE route (assert a `tool_call` with `toolName: "edit"` reaches
-`check-domain.sh` with the extracted path and no `--post`), and give PRE an S2-equivalent signal for
+`check-domain.py` with the extracted path and no `--post`), and give PRE an S2-equivalent signal for
 the zero-extraction case — since `tool_call` can only `block` or `revise` (no free-form advisory
 channel like `tool_result`'s `content` array), the natural shape is a stderr/debug-log line (this file
 already has a `debug()` helper, `:60`+) so the skip is at least visible in the transcript rather than

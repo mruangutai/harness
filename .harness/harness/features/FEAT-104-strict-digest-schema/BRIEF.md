@@ -55,7 +55,7 @@ evidence a dying orchestrator must not lose. Historical run artifacts stay reada
   block rather than hand-written: a minimal valid payload omits the 16 documented fields and is
   precisely what made this defect invisible in cycle 0.
   verify: automated      evidence: integration
-- SC-03: `check-domain.sh` refuses a run `state.yaml` Write whose `steps[]` entry carries an
+- SC-03: `check-domain.py` refuses a run `state.yaml` Write whose `steps[]` entry carries an
   undeclared key at `schema_version: 2`, and the refusal names that key.
   verify: automated      evidence: integration
 - SC-04: A `steps[]` entry carrying `evidence:` with arbitrary identifier keys is accepted; the same
@@ -126,7 +126,7 @@ evidence a dying orchestrator must not lose. Historical run artifacts stay reada
   worktree even though the default does not.
   verify: inspection
 - SC-13: The operator reads the diff of the four carve-out files (`validate-digest.py`,
-  `check-domain.sh`, `check-state.sh` and their tests) and confirms it changes nothing beyond the
+  `check-domain.py`, `check-state.sh` and their tests) and confirms it changes nothing beyond the
   declared contract — DEC-174 requires a human to read this diff, and no automated gate substitutes.
   verify: uat
 - SC-15: Creating a run `state.yaml` that declares `schema_version: 1`, that omits it, or that
@@ -171,18 +171,18 @@ An operator can treat this feature as done only when all of the following are tr
 
 ## Constraints
 
-- **DEC-174 (blocks):** `validate-digest.py`, `check-domain.sh`, `check-state.sh` and each gate's own
+- **DEC-174 (blocks):** `validate-digest.py`, `check-domain.py`, `check-state.sh` and each gate's own
   tests are never executed-against by a harness run. Every task touching them is a declared
   `main-session-direct` step.
 - **DEC-179 (supplies):** routing for every literal `files:` path is resolved at plan time by
-  `check-domain.sh --resolve`; the agent templates and skills resolve to `NOBODY`, which is a
+  `check-domain.py --resolve`; the agent templates and skills resolve to `NOBODY`, which is a
   declared main-session step, not a failure.
 - **DEC-121 (blocks):** a field in `SCHEMAS` is required and must be said with an explicit `[]`.
   That is why the passthrough table is separate and optional.
 - **DEC-216 (blocks):** a field required of a persona must appear in that persona's documented
   output block; for the three leads that block is `.claude/skills/harness-team/SKILL.md`.
 - **DEC-191 (supplies the precedent, and one distinction):** `additionalProperties: false` over a
-  closed key set, enforced on `check-domain.sh`'s write-payload path. Its refusal of a free-form
+  closed key set, enforced on `check-domain.py`'s write-payload path. Its refusal of a free-form
   drawer applies to `feature.json`, a permanent machine-read record; the step `evidence:` container
   is distinguished in `notes/research-FEAT-104-triage-c0.md`.
 - **DEC-154 / DEC-160 (supply):** the checkpoint discipline and the existing top-level whitelist —

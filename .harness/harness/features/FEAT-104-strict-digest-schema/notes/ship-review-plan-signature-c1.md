@@ -28,7 +28,7 @@ All relative to `.harness/harness/features/FEAT-104-strict-digest-schema/`.
 carve-out diff — DEC-174 requires a human there and no automated gate substitutes).
 
 `plan.yaml` — 12 decisions (D-01..D-12), 10 tasks (T-02 is `abandoned`, subsumed into T-01),
-a `lanes:` table resolving every literal path through `check-domain.sh --resolve`, and the
+a `lanes:` table resolving every literal path through `check-domain.py --resolve`, and the
 `panel:` record with all three readers and four findings.
 
 The substance: unknown keys on a new digest return get rejected instead of ignored; the same

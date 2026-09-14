@@ -45,7 +45,7 @@ guarded write proceeds unenforced. Fail-open, exactly the class this codebase is
 
 Fix: moved `import harness_boundary` out of module scope, into a lazy `import harness_boundary`
 inside `require_or_die()` (the only function that uses it) — `.claude/skills/harness/bin/harness_yaml.py`.
-Neither `bash-write-guard.sh` nor `check-domain.sh` calls `require_or_die()`, so their own
+Neither `bash-write-guard.sh` nor `check-domain.py` calls `require_or_die()`, so their own
 try/except around `import harness_boundary` is reached again as designed.
 
 Verified: `python3 test-bash-write-guard.py` and `python3 test-check-domain.py` both fully green
@@ -94,8 +94,8 @@ never reached.)
 the restored copy at a bare `/tmp` path, not inside a bin directory.
 `check-plan-routes.py:300`'s lazy `import harness_yaml` finds nothing on `sys.path[0]` (`/tmp`, the
 child process's script directory per `test-check-plan-routes.py:54-61`'s `subprocess.run`), and
-`check-plan-routes.py:29`'s `CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")` resolves to
-`/tmp/check-domain.sh`, which does not exist. Every other T- in this feature restores via
+`check-plan-routes.py:29`'s `CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.py")` resolves to
+`/tmp/check-domain.py`, which does not exist. Every other T- in this feature restores via
 `cp -R $B $M/.claude/skills/harness/bin` (whole directory); T-05 alone copies one file to a bare
 path. **`task_verify: fail`** — not attributable to T-05's code.
 
@@ -192,7 +192,7 @@ interpretation — recording it here per rule 15 rather than quietly overwriting
 
 Cycle 0's fix moved `import harness_boundary` out of module scope and into `require_or_die()`
 (`.claude/skills/harness/bin/harness_yaml.py`), which restored `bash-write-guard.sh` and
-`check-domain.sh` (neither calls `require_or_die()`). It did **not** cover `check-state.sh`, which
+`check-domain.py` (neither calls `require_or_die()`). It did **not** cover `check-state.sh`, which
 calls `harness_yaml.require_or_die()` near its own top (`check-state.sh:35`) — before its own later,
 properly guarded `import harness_boundary as _hb` at `:1080` (INV-25) ever runs. In the isolated
 fixture both `(u.7)` and `(x.5)` build (a bin/ dir carrying only `harness_yaml.py`, no
@@ -278,7 +278,7 @@ edits — `harness_boundary.py`, `layout_migration.py`, etc. — untouched) and 
 **identical** failure set exists with my two files reverted to cycle 0's already-fixed state. This
 noise is pre-existing in the current worktree's uncommitted, multi-task state and is orthogonal to
 both cycle 0's and my `require_or_die()` change — neither `bash-write-guard.sh` nor
-`check-domain.sh` calls `require_or_die()`, and my change touches no other code path. `git stash
+`check-domain.py` calls `require_or_die()`, and my change touches no other code path. `git stash
 pop` restored both my files correctly (confirmed by re-reading `require_or_die()` and the new test
 name post-pop). Not investigated further — out of scope for T-05, and the dispatch's own instruction
 was "confirm STILL green after your change", which the stash comparison answers: unchanged by my

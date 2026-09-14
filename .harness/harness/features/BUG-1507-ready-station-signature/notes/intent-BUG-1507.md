@@ -66,7 +66,7 @@ not inferred from the issue.
   shared files, and `git ls-files` tracks only the `.claude/...` paths). All four surfaces therefore
   have exactly one canonical path, spelled `.claude/...`.
 
-## Lane resolution, measured with check-domain.sh --resolve
+## Lane resolution, measured with check-domain.py --resolve
 
 - `.claude/commands/harness-plan.md` → **NOBODY**
 - `.claude/skills/harness/references/github-mirror.md` → **NOBODY**

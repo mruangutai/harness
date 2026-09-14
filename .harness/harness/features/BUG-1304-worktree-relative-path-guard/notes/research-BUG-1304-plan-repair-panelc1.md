@@ -71,7 +71,7 @@ the same frozen guard. T-03 and T-05 specify one helper, `bug1304_assert_pre_cha
 every refusal case must call. **The Bash route's fail-opens are silent** (`bash-write-guard.sh:78-80`
 payload, `:267-269` manifest) — a marker check cannot see them, so the positive control is named
 there as the load-bearing half (T-05 reuses the run-artifact refusal). Write route markers measured
-at `check-domain.sh:1864-1869` and `:383-386`.
+at `check-domain.py:1864-1869` and `:383-386`.
 
 ## L-05 — the asymmetric strike
 

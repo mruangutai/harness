@@ -41,7 +41,7 @@ at source** — none changes the conclusion, all three change what a reader shou
 - Case `(1c)` at `tests/integration/test-factory-decompose.py:426-437` uses `{ not: valid json [[[`
   — rejected by **both** loaders, so it stays green across the swap and is the #208 regression anchor
   (SC-08).
-- `check-domain.sh --resolve`: `factory_decompose.py` → `harness-backend-dev`, `harness-dev-ops`
+- `check-domain.py --resolve`: `factory_decompose.py` → `harness-backend-dev`, `harness-dev-ops`
   (no qa); the test path → those two plus `harness-qa`. `execution_agent` set accordingly.
 
 ## Two constraints that shaped the plan
@@ -50,7 +50,7 @@ at source** — none changes the conclusion, all three change what a reader shou
   `test-*.py` name present in both `tests/unit/` and `tests/integration/`, and
   `test-factory-decompose.py` is taken. Hence `tests/unit/test-factory-decompose-loader.py`.
 - **`lanes:` has no write route** (D-05). `check-plan-routes.py` contains zero occurrences of
-  `lanes`; it grades each task's `files` through `check-domain.sh` plus the `execution_mode` token.
+  `lanes`; it grades each task's `files` through `check-domain.py` plus the `execution_mode` token.
   So the stale lanes table misreports, but binds nothing.
 
 ## Verification observed

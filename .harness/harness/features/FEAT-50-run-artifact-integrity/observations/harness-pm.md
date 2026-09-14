@@ -1,13 +1,13 @@
 # Observations - harness-pm
 
 - 2026-08-31: FEAT-50 cycle-1 send-back: I invoked gen-decisions-index.py --check in SC-14 and T-07 verify; parse_argv rejects every flag but --stdout/--help and exits 2, so both were unrunnable. The docstring itself prescribes --stdout piped into diff against the index (exit 0 clean / 1 drift). Lesson: read the target script argv parser before writing any flag into a verify.
-- 2026-08-31: FEAT-50 plan fix. A behavioural `verify:` fixture for check-domain.sh MUST write a
+- 2026-08-31: FEAT-50 plan fix. A behavioural `verify:` fixture for check-domain.py MUST write a
   minimal `.harness/team-config.yaml` into the temp root: harness_boundary DISCARDS a
   HARNESS_PROJECT_DIR carrying no manifest and falls back to the real repo root, so every probe
   exits 0 for the wrong reason and the verify is broken rather than discriminating. Caught only by
   running the block I had just authored against the pre-change tree.
 - 2026-08-31: EFF-02's "extra POST read" turned out to be avoidable entirely rather than
-  documentable: `has_shape_rules` gates ONLY the POST named-target route (check-domain.sh:1377)
+  documentable: `has_shape_rules` gates ONLY the POST named-target route (check-domain.py:1377)
   while the PRE route builds its target unconditionally (:1367-1370), so NOT adding the pattern to
   SHAPE_PATTERNS keeps the PRE rule working and closes the wasteful route. Read the gate's own
   route construction before accepting a plan's claim about which routes a pattern list reaches.

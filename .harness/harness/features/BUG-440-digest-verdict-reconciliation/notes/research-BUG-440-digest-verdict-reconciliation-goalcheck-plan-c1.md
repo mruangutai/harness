@@ -166,7 +166,7 @@ See F-05 for the one reading the operator should confirm.
 
 - `check-plan-routes.py <this plan>` → `0 violation(s)`, exit 0. The one `DEVIATION` line for T-01 is
   the DEC-174 carve-out D-06 predicts and accepts.
-- `check-domain.sh --resolve` on all three lanes paths (G-02, every path, not a sample):
+- `check-domain.py --resolve` on all three lanes paths (G-02, every path, not a sample):
   `check-state.sh` → backend-dev, dev-ops; `test-check-state.py` → backend-dev, dev-ops, qa;
   `notes/redproof-BUG-440.md` → orchestrator. **All three `resolve:` fields verbatim-accurate.**
 - Post-amend reload **as observed by this goal-check on 2026-09-06, before the plan panel was

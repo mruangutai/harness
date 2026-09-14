@@ -22,9 +22,9 @@ with no allowlist... the identity/authorization gap `harness_merge.py`'s own mod
 already discloses and defers (issue #627)."
 
 Traced the write-time guard stack:
-- `check-domain.sh`'s **domain** phase (who may write which path) is registered PreToolUse on
+- `check-domain.py`'s **domain** phase (who may write which path) is registered PreToolUse on
   `Write|Edit` only (`.claude/settings.json:16-22`) and its own source states it explicitly:
-  `_domain_phase = _governed and not _post` (`check-domain.sh:328`) — domain enforcement **never
+  `_domain_phase = _governed and not _post` (`check-domain.py:328`) — domain enforcement **never
   runs for Bash**. Only `harness-orchestrator` holds `.harness/*/features/**` in `team-config.yaml`
   (:36); no other of the 16 personas — including `harness-validator-lead`, whose grant is
   `runs/*-validator/**` only, never `feature.json` itself — has any domain grant on it.
@@ -32,7 +32,7 @@ Traced the write-time guard stack:
   (`sed -i`, `tee`, `>`, `>>`) but does not, and by its own docstring cannot, parse arbitrary
   argv — `python3 .../feature-json-merge.py append-run <path> '<json>'` is an ordinary
   subprocess call with no redirect and passes clean.
-- `check-domain.sh --post` (PostToolUse, `Write|Edit|Bash`) runs only the **shape** phase
+- `check-domain.py --post` (PostToolUse, `Write|Edit|Bash`) runs only the **shape** phase
   (line budget, schema) for Bash, never domain — by the same line (`:328`) and its own comment:
   "Domain asks WHO may write a path. Shape asks WHAT the file may contain... independent
   questions" (`:820-826`).
@@ -84,14 +84,14 @@ Write paths checked for whether a non-conforming value can land at all:
   replace. The module's "monotonic non-regression" policy (`feature_json_write.py:92-116`) only
   forgives problems already present in the baseline document — a brand-new `code_grade: "N_A"`
   entry is a NEW problem against any baseline lacking it, so this path **refuses** it.
-- `Write`/`Edit` tool → PreToolUse `check-domain.sh` SHAPE phase, same `problems_for_text` call,
+- `Write`/`Edit` tool → PreToolUse `check-domain.py` SHAPE phase, same `problems_for_text` call,
   same refusal, before the write lands.
 - A raw Bash write that constructs the JSON itself (e.g. `python3 -c "json.dump(...)"`, which
   bash-write-guard's redirect-only scan does not catch) bypasses schema validation entirely and
-  lands on disk. PostToolUse `check-domain.sh --post` then detects the schema violation and
+  lands on disk. PostToolUse `check-domain.py --post` then detects the schema violation and
   prints it (exit 2) — **detection, not prevention**, by the file's own documented design
   ("Detection, not prevention: an Edit payload carries no whole-file content and arbitrary shell
-  cannot be predicted", `check-domain.sh:900-910`). If `check-state.sh`'s own sweep (a separate,
+  cannot be predicted", `check-domain.py:900-910`). If `check-state.sh`'s own sweep (a separate,
   unrelated invocation) runs before anyone acts on that stderr, the non-conforming value already
   silences INV-6.
 

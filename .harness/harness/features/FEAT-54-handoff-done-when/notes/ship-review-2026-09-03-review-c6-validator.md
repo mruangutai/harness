@@ -38,7 +38,7 @@ key. Source: `notes/handoff-plan.md`, citing `runs/2026-09-02-c4-validator/diges
 **Build** — all twelve tasks T-01 through T-12 recorded `done`. The QA matrix passed at build exit;
 SIMPLIFY ran all four angles and applied one cleanup, deliberately leaving two alternatives
 unapplied as advisory. The deliverable is `handoff_done_when.py` (288 lines) plus its wiring into
-`check-domain.sh` and `check-state.sh`, the `HANDOFF.md` template, and a manual comprehension probe
+`check-domain.py` and `check-state.sh`, the `HANDOFF.md` template, and a manual comprehension probe
 held out of the normal suites. Source: `notes/handoff-build.md`, `runs/2026-09-02-02-eng/digest.md`.
 
 **Validate** — six panel cycles, c0 through c6. The last two are the ones that matter. c5 returned
@@ -114,7 +114,7 @@ complete residual set.
 | ID | Nature | What |
 |---|---|---|
 | B-1 | bug | **The shipped gate cannot detect the F-11 defect class.** The old, defective approval pointer resolved clean too — `problems: []` says nothing about whether an authority becomes satisfied only when the action finishes. The closure rests entirely on a hand-applied semantic test. Nothing mechanically stops the next author citing an already-satisfied approval and passing every gate green. Remedy edits the DEC-174 main-session-direct tree. Source: `runs/2026-09-03-review-c6-validator/digest.md` (VL-F-01) |
-| B-2 | bug | **`check-domain.sh` fails open on a relative claimed path when cwd is outside the project.** I measured this myself, four arms: absolute path from `/tmp` → exit 2 (correct refusal); **relative path from `/tmp` → exit 0 on a note it never inspected**; relative path from the worktree root → exit 2. Setting `CLAUDE_PROJECT_DIR` does *not* fix it. Cause is `os.path.abspath(path)` resolving against cwd rather than the located root. Latent in production, where the hook's cwd is the project root — but it is a gate that returns green without looking |
+| B-2 | bug | **`check-domain.py` fails open on a relative claimed path when cwd is outside the project.** I measured this myself, four arms: absolute path from `/tmp` → exit 2 (correct refusal); **relative path from `/tmp` → exit 0 on a note it never inspected**; relative path from the worktree root → exit 2. Setting `CLAUDE_PROJECT_DIR` does *not* fix it. Cause is `os.path.abspath(path)` resolving against cwd rather than the located root. Latent in production, where the hook's cwd is the project root — but it is a gate that returns green without looking |
 | B-3 | bug | SEC-F-08 (med, advisory across c5 and c6): raw repository, model and provider terminal controls remain printable. Non-gating under `gates.review: advisory_unless_high`. Owner harness-dev-ops |
 | B-4 | chore | `feature.json` is 336 lines against a 300-line shape budget — purely the 48-entry runs array. It will emit an INV-23 note after merge. The record is data worth keeping; the budget is what needs revisiting for long features |
 | B-5 | enhancement | SC-04 is review-time by design: it asserts a repository-state fact at one pin and binds no later commit, and no standing gate replaces it. Consider a permanent detector, or accept as a known residual |

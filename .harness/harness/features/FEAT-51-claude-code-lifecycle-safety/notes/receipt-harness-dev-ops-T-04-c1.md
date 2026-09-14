@@ -169,7 +169,7 @@ of every file this task touched (`run-unit-tests.sh`, `harness.json`, `quarantin
 which itself advanced twice more during this dispatch (`741804ad` → `72ec341d` → `a033793a`)
 from other lanes' concurrent commits (`t-03 quarantine orphan canonical writes`, `t-07 guard
 orphan Bash mutations`, `t-10 test quarantine fail-open paths` — a different "quarantine"
-mechanism than this task's CLI, touching `check-domain.sh`/`team-config.yaml`/
+mechanism than this task's CLI, touching `check-domain.py`/`team-config.yaml`/
 `test-check-domain.py`/`test-plan-sign-gate.py`, none of which this task's diff overlaps).
 
 **Combined verify command exit status: 1** (the `&&` chain stops clean at part 1's exit 0,

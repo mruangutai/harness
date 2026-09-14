@@ -1,7 +1,7 @@
 # Harness team manifest — the org as DATA, not prose.
 #
 # Read by the orchestrator at every /harness entry, by each lead when delegating,
-# and by bin/check-domain.sh on every Write/Edit to decide what an agent may touch.
+# and by bin/check-domain.py on every Write/Edit to decide what an agent may touch.
 #
 # POLICY lives here (membership, consult-when routing, writable domains).
 # CAPABILITY lives in agent frontmatter (tools, model, color, hooks).
@@ -20,7 +20,7 @@ main_session:
     # DEC-182 made plan.yaml the live plan format, so its signature needs a third grant in
     # this grammar. D-10 puts it here: DEC-120 gives the user channel to the main session
     # alone, so it is the only tier that can hold a signature the user actually gave.
-    # check-domain.sh READS this list — delete the line and the denial stops existing.
+    # check-domain.py READS this list — delete the line and the denial stops existing.
     #
     # THE ONLY WRITE ROUTE TO plan.yaml IS plan-merge.py, AND THE SHAPE GATE ENFORCES THAT
     # (FEAT-41 T-09, reversing DEC-182's absence). This grant is NOT that route and does not

@@ -16,11 +16,11 @@ string.returncode == 2 and "schema_version floor" in string.stderr and "string" 
 
 **`DECLARED` (`:14-19`) and the schema read in `_declared_shape_case()` (`:116-126`):** checked; the delta does not touch either — confirmed by `git diff 168f875f..790023f0 -- tests/integration/test-check-domain.py`, which shows only lines 85–89 changed.
 
-**Q7 (standing predicate-spelling residual across check-domain.sh/check-state.sh):** carried forward, not re-raised — out of this file's scope entirely.
+**Q7 (standing predicate-spelling residual across check-domain.py/check-state.sh):** carried forward, not re-raised — out of this file's scope entirely.
 
 ## Emitter cross-check
 
-`check-domain.sh:1653-1658` (`undeclared step key or evidence shape.` head + `offending key(s): …` body naming `run-state-schema.json` and the backtick-quoted `` `evidence` `` guidance) is the single source the assertion targets. The new clauses (`"run-state-schema.json" in strict.stderr`, `` "`evidence`" in strict.stderr ``) each match literal substrings the emitter actually produces — the assertion is not vacuous and does not test for text the emitter can't emit.
+`check-domain.py:1653-1658` (`undeclared step key or evidence shape.` head + `offending key(s): …` body naming `run-state-schema.json` and the backtick-quoted `` `evidence` `` guidance) is the single source the assertion targets. The new clauses (`"run-state-schema.json" in strict.stderr`, `` "`evidence`" in strict.stderr ``) each match literal substrings the emitter actually produces — the assertion is not vacuous and does not test for text the emitter can't emit.
 
 ## Findings
 

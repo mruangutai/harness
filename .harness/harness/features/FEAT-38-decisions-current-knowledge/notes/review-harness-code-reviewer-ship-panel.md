@@ -36,7 +36,7 @@ edits, the frozen anchor file, `shell=True` sites, and the trickiest NO-EXECUTIO
 |---|---|---|---|
 | `run-unit-tests.sh` | FIXED-LITERAL-ARGV | line 149 `python3 "$BIN_DIR/$s"` (loop over the two literal bash arrays), line 101 `python3 -I - <<'KINDCHECK'` heredoc — both exact at the cited lines; `detect` is only set-compared (lines 108-130), never placed in argv | **correct** |
 | `check-decision-anchors.py` | FIXED-LITERAL-ARGV | line 111 `subprocess.run(["git", "ls-files"], ...)` — both elements literal, wrapped in try/except that exits 2 (fail-closed) on failure | **correct** |
-| `check-domain.sh` | FIXED-LITERAL-ARGV | line 1478 `_subprocess.run(["git", "-C", _checkout] + _argv, ...)` — `_argv` is one of two literal lists (1476-1477), `_checkout` from the worktree sweep | **correct** |
+| `check-domain.py` | FIXED-LITERAL-ARGV | line 1478 `_subprocess.run(["git", "-C", _checkout] + _argv, ...)` — `_argv` is one of two literal lists (1476-1477), `_checkout` from the worktree sweep | **correct** |
 | `test-run-unit-tests-kinds.py` | FIXED-LITERAL-ARGV | line 47 `subprocess.run(["bash", RUNNER, "--check-kinds"], ...)` — the mutated `detect` value travels via a fixture `harness.json` path in `HARNESS_JSON`, never into this argv | **correct** |
 | `gh-close-gate.py` | NO-EXECUTION | zero occurrences of `subprocess`/`os.system`/`eval(`/`Popen` in the whole file; the only enumeration-pattern hit is 7 uses of `shlex.shlex(...)` at line 47 to tokenize a *proposed* command string for an allow/deny decision | **correct** |
 | `test-factory-gh.py` | NO-EXECUTION | `subprocess` appears ~100 times as substring but `subprocess.run(` and `subprocess.Popen(` as calls: **zero** hits — all attribute-rebind fakes (`fgh.subprocess.run = fake_run`) | **correct** |
@@ -205,9 +205,9 @@ correction with no plan/scope implication, but I did not verify a search of the 
 exit-4 rule's true home, so I'm not asserting there is no correct id at all, only that `DEC-203` is not
 it.
 
-**`check-domain.sh`** — one comment hunk, `"DEC-171 am.1's logic"` → `"DEC-171's logic"`. Verified: the
+**`check-domain.py`** — one comment hunk, `"DEC-171 am.1's logic"` → `"DEC-171's logic"`. Verified: the
 FAIL-CLOSED-on-missing-PyYAML rule this comment describes is present in `DEC-171`'s live body
-(`DECISIONS.md:4139-4142`, *"`check-domain.sh` and `bash-write-guard.sh` fail CLOSED on a missing
+(`DECISIONS.md:4139-4142`, *"`check-domain.py` and `bash-write-guard.sh` fail CLOSED on a missing
 PyYAML"*) — content-accurate. **Looked, nothing to report.**
 
 **`.github/workflows/tests.yml`** — two comment hunks. `"DEC-171 am.1"` → `"DEC-171"` (same PyYAML rule,
@@ -228,7 +228,7 @@ already, independently, cites. Not a defect. **Looked, nothing to report** beyon
 | `check-decision-anchors.py` + test (frozen) | byte-identical confirmed, not re-reviewed per Contract 2 |
 | `.harness/harness.json` | reviewed, symmetric with runner, clean |
 | `board_lifecycle.py` | reviewed — **2 low findings** (citation accuracy, non-blocking) |
-| `check-domain.sh` | reviewed, clean |
+| `check-domain.py` | reviewed, clean |
 | `.github/workflows/tests.yml` | reviewed, clean |
 | `DECISIONS.md` / `DECISIONS-INDEX.md` | reviewed for SC-01–SC-06, SC-08, SC-12, SC-14, SC-16, clean |
 

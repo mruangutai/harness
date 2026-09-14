@@ -4,7 +4,7 @@
 BRIEF now states the two-artifact split plus OMP reachability; 13 SCs (5 marked already-met, SC-09
 struck, 2 new uat, 1 mechanical door criterion, 1 automated split assertion); 5 new decisions
 (D-07..D-11). `check-plan-routes.py` exits 0, every new task's `verify` was run verbatim and
-observed RED, and every named path was resolved with `check-domain.sh --resolve` one file at a time.
+observed RED, and every named path was resolved with `check-domain.py --resolve` one file at a time.
 Approval stays pending on both fragments; T-01..T-08 stay `done`.
 
 **My measured door-port figure is 12 files, not the advisor's 4-5 and not the earlier pm's 14** —
@@ -74,7 +74,7 @@ OK T-17 granted to harness-backend-dev, harness-dev-ops, harness-qa
 0 violation(s) across 1 plan(s)          EXIT=0
 ```
 
-### 4. `check-domain.sh --resolve`, one call per file
+### 4. `check-domain.py --resolve`, one call per file
 
 ```
 .claude/skills/harness-add-repo/SKILL.md            NOBODY      .claude/skills/harness-init/SKILL.md         NOBODY

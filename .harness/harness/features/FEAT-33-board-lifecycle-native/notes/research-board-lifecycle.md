@@ -88,7 +88,7 @@ Consequences, both measured:
 - `cmd_start_task` guards only `if tid not in rec["issues"]` (`gh-sync.py:621`) — no issue-state and no
   station read. This is #674.
 
-## Lanes, resolved with `check-domain.sh --resolve` at `d065b3b`
+## Lanes, resolved with `check-domain.py --resolve` at `d065b3b`
 
 | path | verdict |
 |---|---|

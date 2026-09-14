@@ -42,7 +42,7 @@ backlog:
     CORRECT. Modes differ on normalisation
   b4_false_positive_rate: MEASURED 2026-08-05, no longer unknown — 2 false positives
     + 35 format artifacts across 5 legacy plans. notes/does-it-pay-back.md
-  b5_stale_anchor: Cites check-domain.sh:190-197; real record :61-69. PLAN.md:210
+  b5_stale_anchor: Cites check-domain.py:190-197; real record :61-69. PLAN.md:210
     is the origin — a PLANNING defect
   b6_team_token_unvalidated: LEGAL_TOKENS is display-only. Within the approved intent
     — a design limit, not a defect
@@ -61,7 +61,7 @@ baseline:
   briefing: notes/ship-review-close.md
   closes_issues: '#20'
   commits:
-  - 6792331 — [harness:t-01] check-domain.sh --resolve + 8 cases
+  - 6792331 — [harness:t-01] check-domain.py --resolve + 8 cases
   - e355401 — [harness:t-03] templates/PLAN.md Lanes + execution_mode
   - 358fd36 — [harness:t-04] harness-spec-driven routing rule
   - ae28daf — [harness:t-02] check-plan-routes.py + 17-case test + runner registration
@@ -141,7 +141,7 @@ receipts:
   t02: 'Re-run by me. 17 distinct cases, 19 PASS lines. On FEAT-09''s own PLAN: 0
     violations, exit 0, exactly ONE DEVIATION naming T-01'
   t02_no_reimplementation: 'Verified STRUCTURALLY, not by grep: every literal entry
-    goes to the check-domain.sh subprocess and :64 parses its OUTPUT'
+    goes to the check-domain.py subprocess and :64 parses its OUTPUT'
   t02_scripts_array: THE SHARED-ARRAY HAZARD DID NOT FIRE. SCRIPTS is 13 elements;
     test-cost-report.py appears NOWHERE. FEAT-08's removal preserved
 review_sha_note: 'THE PIN MOVED THREE TIMES AND THERE IS NOW UNREVIEWED SOURCE PAST
@@ -183,7 +183,7 @@ sc_status:
     surface. The user ruled the change directly, so it is authorised — but it is recorded
     as a deviation, not as a normal edit.
   sc08_residual_weakness: 'SAID PLAINLY RATHER THAN CLOSED OVER. Clauses 8, 9 and
-    16 remain source greps for the literal strings check-domain.sh, fnmatch and glob_to_re;
+    16 remain source greps for the literal strings check-domain.py, fnmatch and glob_to_re;
     a differently-spelled reimplementation passes all three. SC-08''s strength now
     rests on case 17b alone. This is issue #74 mode 3 and stays on the backlog as
     B-2.'

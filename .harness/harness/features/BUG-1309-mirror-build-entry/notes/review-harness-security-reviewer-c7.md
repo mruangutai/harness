@@ -82,10 +82,10 @@ someone else's" — both fail at the same `isinstance(document, dict)` check, be
 read, so there is no narrower fix that closes self-corruption while keeping the cross-feature-poisoning
 fix Contract §1 signs off on; closing one necessarily reopens the other. I looked for a harm specific
 to *self*-corruption beyond that generalization and found none:
-  - Write-time defense is unchanged by this diff. `check-domain.sh`'s PreToolUse/PostToolUse hooks
+  - Write-time defense is unchanged by this diff. `check-domain.py`'s PreToolUse/PostToolUse hooks
     (`.claude/settings.json:23,68`, `.omp/extensions/harness-hooks.ts:227-270`) run
     `feature_schema.problems_for_text` against `.harness/*/features/*/feature.json` on every
-    Write/Edit and, per the tool's own comments (`check-domain.sh:18-21`, `:2102-2106`), on a
+    Write/Edit and, per the tool's own comments (`check-domain.py:18-21`, `:2102-2106`), on a
     **post-hoc sweep** for Bash too — this is a pre-existing, already-documented, already-accepted
     gap ("truly arbitrary shell remains unwinnable... caught post-hoc, not pre", DEC-151), not a new
     exposure this diff created.

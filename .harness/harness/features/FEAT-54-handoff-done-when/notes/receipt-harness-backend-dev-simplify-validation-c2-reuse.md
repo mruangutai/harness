@@ -6,7 +6,7 @@ Verdict: PASS — one advisory reuse candidate; no source edits made.
 
 - id: REUSE-01
   disposition: advisory-only (Main-authored enforcement surface)
-  file: `.claude/skills/harness/bin/check-domain.sh`
+  file: `.claude/skills/harness/bin/check-domain.py`
   line: 1554
   summary: The hook restates `"## Done when"` in its local required-heading list even though the already-imported validator owns that section name and presence check as `handoff_done_when.SECTION` / `handoff_done_when.problems()` (`.claude/skills/harness/bin/handoff_done_when.py:9,253-258`).
   concrete_cost: The section name and missing-section procedure now have two spellings that must change in lockstep; if the authority section is renamed or its recognition changes, the hook can emit a stale duplicate verdict before/alongside the authoritative validator.

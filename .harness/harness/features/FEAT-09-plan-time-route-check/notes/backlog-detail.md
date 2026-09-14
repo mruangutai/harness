@@ -34,7 +34,7 @@ so the false-positive rate against the tree's other live PLANs is **unmeasured**
 
 ## B-5 — a stale source anchor, and it is not the builder's
 
-`check-plan-routes.py:16` and `test-check-plan-routes.py:142` cite `check-domain.sh:190-197` for
+`check-plan-routes.py:16` and `test-check-plan-routes.py:142` cite `check-domain.py:190-197` for
 the prefix-comparison bug; the real record is at `:61-69`. **`PLAN.md:210` carries the same wrong
 anchor** — the approved plan is the origin, so this is a planning defect, not a build defect.
 

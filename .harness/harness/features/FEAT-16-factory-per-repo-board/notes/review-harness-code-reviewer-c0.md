@@ -82,7 +82,7 @@ Read every task's landed diff against its intent text. No divergence found:
 - **T-05/T-06/T-11** (integration, check-domain, workspace fixtures): T-06 migrates exactly the four
   named fixtures (`good_repos`, the `nows_root` inline fixture — repaired to a *complete* per-repo
   board as the intent explicitly calls out — `two_base_fleet`, `two_base_fleet_for`), touches no
-  assertion/exit-code/case-name, never touches `check-domain.sh` — verified by diff read. T-05 adds
+  assertion/exit-code/case-name, never touches `check-domain.py` — verified by diff read. T-05 adds
   exactly the two permitted exceptional sites (`(D-config)` payload assertion, the `ready_option`
   reader) plus the one composed case (H) it's the only file that can carry, with an anti-vacuity check
   proving the discriminator has power (`served_number` must actually appear before asserting
@@ -100,7 +100,7 @@ Read every task's landed diff against its intent text. No divergence found:
   SC-09 still hold.
 - **T-10** (docs, target 4 below).
 - **SC-10** (inspection): the diff's own file list settles it — `git diff --stat a7c429c..ec195ec`
-  (the 38-file stat captured at the top of this review) contains none of `check-domain.sh`,
+  (the 38-file stat captured at the top of this review) contains none of `check-domain.py`,
   `bash-write-guard.sh`, `validate-digest.py` or `check-state.sh`. Holds.
 - **SC-07**: I verified this from `board2-capture.md`'s recorded reading, not by re-running
   `gh project field-list` against the live boards myself — same evidence grade the capture itself

@@ -55,7 +55,7 @@ stated once each" as license to copy identical prose into all three.
   surface as an untagged VIOLATION. The compensating control is present but implicit rather
   than named as such: the suite half ("run-unit-tests.sh --kind unit and --kind integration ...
   zero FAIL/ERROR") is the hard zero that catches code-level regressions in
-  `harness_boundary.py`/`check-domain.sh`, leaving the check-state half to catch only
+  `harness_boundary.py`/`check-domain.py`, leaving the check-state half to catch only
   feature/process-state violations, which are the ones that do carry the feature id in practice.
   The two-half split is a reasoned design, not an oversight. **Leave** — the control exists, it
   is just not cross-referenced by name inside D-08's own text.

@@ -16,7 +16,7 @@ zero enforcing assertion anywhere in the plan — including the detector itself.
 - The dispatch names one adjacent in-remit surface: operator-facing diagnostic text emitted by
   `branch-create-gate.sh` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.sh`
   (T-05). Audited all three against the plan's actual verify blocks and the real files at HEAD, then
-  swept T-02/T-03 (`team-config.yaml`, `check-domain.sh`) for the same gap class since they are the
+  swept T-02/T-03 (`team-config.yaml`, `check-domain.py`) for the same gap class since they are the
   other two reader-migration tasks in the same coupled cluster.
 
 ## Finding 1 — must_fix, severity high
@@ -75,11 +75,11 @@ neither does the detector's own row for this file.**
   search — `'.harness/features/' not in open(...).read()` — which catches both the lookup
   (line 77) and the deny message (line 78) in one assertion. This is the pattern T-04's verify
   should have used and didn't.
-- **T-02 (`team-config.yaml`)** and **T-03 (`check-domain.sh`)**, swept for the same gap class
+- **T-02 (`team-config.yaml`)** and **T-03 (`check-domain.py`)**, swept for the same gap class
   though not named by the dispatch: both use a whole-*line* literal search —
   `re.search(r'\.harness/features/', l)` over every line in the file — not a narrow join-call
   pattern, so they would catch a message literal anywhere in either file. Direct grep of
-  `check-domain.sh` confirms exactly the eight sites T-03's intent names (four `SWEEP_GLOBS`
+  `check-domain.py` confirms exactly the eight sites T-03's intent names (four `SWEEP_GLOBS`
   entries, four anchored regexes) and no additional message string carrying the literal. No gap.
 
 ## Not verifiable from source

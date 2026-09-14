@@ -33,7 +33,7 @@ Method: `git worktree add --detach <abs>/.claude/worktrees/qa-c4-scratch 154ff2a
 after use, see below); functions called directly via
 `importlib.util.spec_from_file_location` against that worktree's own
 `tests/integration/test-check-domain.py`. Pre-fix guard extracted with
-`git show 1b11bc18:.claude/skills/harness/bin/check-domain.sh`, selected via
+`git show 1b11bc18:.claude/skills/harness/bin/check-domain.py`, selected via
 `CHECK_DOMAIN_BIN` (`test-check-domain.py:27` reads it; falls back to the worktree's own
 script when unset/empty).
 
@@ -66,7 +66,7 @@ all six GREEN at the pin. Non-vacuous confirmed for all six.
 
 ## 3. Mutation probe — both halves of the shared `elif`
 
-Target: `.claude/skills/harness/bin/check-domain.sh:2045-2048` at the pin,
+Target: `.claude/skills/harness/bin/check-domain.py:2045-2048` at the pin,
 ```
     elif (_tool == "Edit" and target
             and (RE_RUN_DIGEST.match(_norm(target))
@@ -135,7 +135,7 @@ shapes only.
 None inside `5ed929bd..1155f188`. The message-wording gap flagged as `Q1` in cycle 14's note
 (`review-harness-qa-c3.md`) is outside this delta (it concerns the `RE_STATE_YAML` branch's
 fixed-string diagnostic, unchanged by `314e0227`/`1155f188`) — Advisor-owned, not re-litigated
-here. `check-domain.sh:1240` is explicitly out of scope per dispatch. No pre-existing grade-2
+here. `check-domain.py:1240` is explicitly out of scope per dispatch. No pre-existing grade-2
 record was treated as a gate.
 
 ## Cleanup
@@ -143,7 +143,7 @@ record was treated as a gate.
 - Scratch worktree `.claude/worktrees/qa-c4-scratch` (detached at `154ff2a0`) removed via
   `git worktree remove` (non-force; tree was never dirtied) after use.
 - All `/tmp` fixture files (`qa_c4_test_pin.py`, `mutant_digest_base.sh`, `mutant_nodigest.sh`,
-  `mutant_nohandoff.sh`, `prefix_check-domain.sh`) deleted.
+  `mutant_nohandoff.sh`, `prefix_check-domain.py`) deleted.
 - `git -C <worktree> status --porcelain` → empty (verbatim, no output).
 
 ## Not re-run (per dispatch scope)

@@ -57,7 +57,7 @@ def _root():
     to `_derived`, the other to `""`. The `""` is why an unset environment left every
     subsequent join relative to whatever directory the hook inherited.
 
-    strict=False, and for the same reason as check-domain.sh's twin of this function: a tree
+    strict=False, and for the same reason as check-domain.py's twin of this function: a tree
     with no manifest must fail OPEN at exit 0 (DEC-101), and a strict raise fires on exactly
     that tree. strict=False returns the derived root, which is what the deleted code returned
     there too. What is gone is the `""` and the cwd fall-through, and the override now has to
@@ -287,7 +287,7 @@ except Exception as _be:
           ".agents/skills/harness/bin/harness_boundary.py, then retry.", file=sys.stderr)
     sys.exit(2)
 
-# The RETURN VALUE IS THE DECISION — see check-domain.sh's note. A bare call leaves
+# The RETURN VALUE IS THE DECISION — see check-domain.py's note. A bare call leaves
 # REQ-04's fail-closed and SC-09's expiry inert: the function prints, and the write
 # proceeds anyway because only exit 2 blocks (DEC-100).
 if not harness_yaml.require_or_bootstrap(root):
@@ -304,7 +304,7 @@ if not harness_yaml.require_or_bootstrap(root):
 # introduced by this feature.
 #
 # It is also the exact defect the sibling hook was fixed for one commit earlier
-# ("Skip only what actually needs the parser", check-domain.sh) — fixed there and not
+# ("Skip only what actually needs the parser", check-domain.py) — fixed there and not
 # here, in a pair of files this same feature otherwise went to lengths to keep in step
 # (D-03). Two guards, one rule, and I changed one of them.
 _no_parser = harness_yaml.yaml is None
@@ -770,10 +770,10 @@ if _no_parser:
 
 # --- non-reviewers: check extractable paths against the agent's domain ---
 # T-14, and this is the SECURITY-RELEVANT half of D-03. This file used to carry its
-# own copy of check-domain.sh's manifest skimmer — two hand-maintained walks over the
+# own copy of check-domain.py's manifest skimmer — two hand-maintained walks over the
 # same rulebook, which is one edit away from the two write surfaces disagreeing about
 # what an agent may write. That is not a theoretical risk here: this hook exists
-# BECAUSE an agent routed around check-domain.sh (DEC-151), so a divergence between
+# BECAUSE an agent routed around check-domain.py (DEC-151), so a divergence between
 # them is a bypass by construction. Both now call one function; they cannot drift.
 try:
     mine, shared = harness_yaml.manifest_domains(manifest, agent)
@@ -786,7 +786,7 @@ except harness_yaml.DuplicateKeyError as e:
           file=sys.stderr)
     sys.exit(2)
 except harness_yaml.YamlParseError as e:
-    # FAIL CLOSED, matching check-domain.sh. Distinct from the absent-manifest case
+    # FAIL CLOSED, matching check-domain.py. Distinct from the absent-manifest case
     # at :46, which still exits 0: an unconfigured project has nothing to enforce,
     # whereas here the project IS configured and exactly one action fixes it.
     print("bash-write-guard: BLOCKED — the manifest does not parse, so no domain can "
@@ -868,7 +868,7 @@ def claim_checkout_guard(destination):
 def _worktree_stripped(rel):
     """`rel` with a leading `.claude/worktrees/<name>/` segment removed, so a
     checkout-agnostic rule can match a path regardless of which worktree it lives in.
-    Mirrors check-domain.sh's `_norm` — harness_boundary.py's own docstring keeps that
+    Mirrors check-domain.py's `_norm` — harness_boundary.py's own docstring keeps that
     stripping local to each caller by design, not shared.
     """
     prefix = harness_boundary.WORKTREES_SEGMENT + "/"
@@ -989,7 +989,7 @@ for name, paths in findings:
             feature_checkout_guard(rel, ap)
             claim_checkout_guard(ap)
             # Shared paths are owned by nobody and always serialized (DEC-85). Same
-            # notice check-domain.sh prints on its own route.
+            # notice check-domain.py prints on its own route.
             print(f"bash-write-guard: {agent} is writing SHARED path "
                   f"{verdict['rel']} (owned by nobody, must be serialized).",
                   file=sys.stderr)

@@ -78,7 +78,7 @@ findings:
     disposition: open
   - reader: code-reviewer
     severity: low
-    summary: "T-02's declared files understates its actual touch scope because it will also edit test-bash-write-guard.py; signable, since check-domain.sh authorizes by lane glob and not by files, but a build-cycle reviewer diffing only files could misflag the edit as scope creep"
+    summary: "T-02's declared files understates its actual touch scope because it will also edit test-bash-write-guard.py; signable, since check-domain.py authorizes by lane glob and not by files, but a build-cycle reviewer diffing only files could misflag the edit as scope creep"
     pointer: "plan.yaml:454-456 (T-02 files); :212-232 (D-10 ownership); :526 (T-02 intent)"
     disposition: open
   - reader: code-reviewer

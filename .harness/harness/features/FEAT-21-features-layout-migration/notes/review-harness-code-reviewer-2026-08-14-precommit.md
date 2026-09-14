@@ -113,7 +113,7 @@ directory.
 the D-01 sweep ("Check ... `branch-create-gate.sh` ... against the 19 agent/skill/team/command
 files ... and `test-factory-cli.py`" — i.e., expected to pattern with the glob/regex group, not the
 prose group), and structurally `ls -d "..."*` is a discovery glob, the same shape as
-`check-domain.sh`'s `SWEEP_GLOBS` and `check-plan-routes.py`'s `discover_plans()` glob — both of
+`check-domain.py`'s `SWEEP_GLOBS` and `check-plan-routes.py`'s `discover_plans()` glob — both of
 which correctly took the wildcard form under T-03/T-04. D-01's own text is unqualified on globs:
 "Grants, globs and regexes take a WILDCARD... never a hardcoded harness segment."
 
@@ -127,7 +127,7 @@ segment's flow, not just this repo's own — and DEC-133 coins FEAT ids per-BRIE
 uniqueness rule, so a same-numbered flow in another segment is not exotic.
 
 I am not deciding this — it needs the same explicit D-01 boundary ruling the plan gave
-`team-config.yaml`/`check-domain.sh`/`check-plan-routes.py` (a ROW AUDIT), which
+`team-config.yaml`/`check-domain.py`/`check-plan-routes.py` (a ROW AUDIT), which
 `branch-create-gate.sh` never got. Cannot fire today (one segment); when it does fire it is LOUD
 (deny, naming the searched path) either way, so it is not an urgent block — flagging as an
 `open_question` rather than a must_fix.

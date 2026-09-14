@@ -249,7 +249,7 @@ tasks:
          reason composed WITH the advisory on one result — is UNREACHABLE, which is why it was
          replaced rather than fixed: postDomain returns an empty result set for every toolName
          that is not write, edit or bash (the tail return [] at
-         .omp/extensions/harness-hooks.ts:272), so a task result never reaches check-domain.sh
+         .omp/extensions/harness-hooks.ts:272), so a task result never reaches check-domain.py
          and can carry no block reason, while the advisory's own gate fires only on toolName
          task. The two states are mutually exclusive, so the composition analysis in BRIEF.md's
          "Injection scoping" section described a state the code cannot produce. This substitute
@@ -497,7 +497,7 @@ tasks:
       from line 54 to 68 and holds two hook objects on the Write|Edit|Bash matcher. Remove
       the second object, lines 62 to 65, whose command at line 64 is
       ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/context-watch-hook.py. Keep the
-      check-domain.sh --post entry at 58 to 61 and keep the matcher. Leave valid JSON with no
+      check-domain.py --post entry at 58 to 61 and keep the matcher. Leave valid JSON with no
       trailing comma.
 
       Move the two test registries. The physically tracked file is

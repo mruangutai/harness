@@ -35,7 +35,7 @@
 - 2026-09-06 (BUG-148): this OMP host exposes the orchestrator no `Edit` tool, only `Write`. A plan clause
   reading "use Edit, never Write" (D-04, to dodge the pre-hoc whole-file shape denial) is then satisfiable
   only by a surgical shell splice that carries no whole-file content. The write guard's DEC-153 worktree
-  carve-out permits it and `check-domain.sh` still issued its expected PostToolUse shape report, so the
+  carve-out permits it and `check-domain.py` still issued its expected PostToolUse shape report, so the
   write was governed rather than routed around.
 - 2026-09-06 (BUG-148): `bash-write-guard.sh` string-matches `sign-approval` anywhere in a Bash command,
   including inside a `git commit -m` message body, and refuses the whole call. The `&&` chain before it

@@ -74,7 +74,7 @@ stale.
 | `omp-hooks.test.ts:12` | import block closes, sources `harness-hooks.ts` | VERIFIED |
 | `omp-hooks.test.ts:3` | `tmpdir` import | VERIFIED |
 | `.claude/settings.json:54-68` | `PostToolUse` block, two hook objects | VERIFIED |
-| `.claude/settings.json:58-61` | `check-domain.sh --post` entry (kept) | VERIFIED |
+| `.claude/settings.json:58-61` | `check-domain.py --post` entry (kept) | VERIFIED |
 | `.claude/settings.json:62-65` | `context-watch-hook.py` entry (removed) | VERIFIED |
 | `.claude/settings.json:64` | the command line itself | VERIFIED |
 | `run-unit-tests.sh:30` | `UNIT_SCRIPTS` contains `test-context-watch.py` | VERIFIED |
@@ -180,7 +180,7 @@ silently folding it into `readContextAnchor(undefined)`'s "none," and add one T-
 - **Sweep for other present-tense DECISIONS.md claims about context-watch/PostToolUse/nonce/context-check** —
   full-file grep found only DEC-198 (`:6790`), DEC-201 (`:7043,:7045`), DEC-159 (`:4092`) — the three
   T-06 already amends — plus DEC-158's historical Applied list (`:3972`, past-tense, correctly left
-  alone) and several unrelated `PostToolUse` mentions (`check-domain.sh`'s own hook, `:5288, :5302,
+  alone) and several unrelated `PostToolUse` mentions (`check-domain.py`'s own hook, `:5288, :5302,
   :5307, :5379, :6726`, all describing a *different* registered hook that survives this change). Three
   amendments are sufficient.
 - **Seven-artifact delete list** — repo-wide sweep (basenames + `context-watch`, `context-check`,

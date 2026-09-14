@@ -18,7 +18,7 @@ AFTER:
 ```
 - REQ-04: A live child of an interrupted parent may finish read-only analysis, and its writes to
   canonical feature artifacts are quarantined instead of landing **on the two governed write routes
-  the harness gates** — the `Write`/`Edit` editor route through `check-domain.sh`, and the
+  the harness gates** — the `Write`/`Edit` editor route through `check-domain.py`, and the
   `plan-merge.py` mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.sh`. A generic
   `Bash` write to a canonical artifact that lies inside the writer's own domain is NOT covered
   (D-19).
@@ -43,11 +43,11 @@ no enforcement code designed.
 
 Removed, first eight words each:
 - "Quarantine is a WRITE boundary, not a kill. A" — the bullet whose tail read "…is refused at the
-  check-domain.sh Write gate on the canonical artifacts and told the exact quarantine path…"
+  check-domain.py Write gate on the canonical artifacts and told the exact quarantine path…"
 - "The four canonical artifacts are plan.yaml, BRIEF.md, feature.json" — the bullet asserting the
   Write gate bites on "the last three" and resting `plan.yaml` on FEAT-41's editor denial.
 
-Replaced by: a route-neutral quarantine-boundary bullet; a two-gate bullet naming `check-domain.sh`
+Replaced by: a route-neutral quarantine-boundary bullet; a two-gate bullet naming `check-domain.py`
 (`Write`/`Edit`, on `BRIEF.md`/`feature.json`/`STATE.md`) and `plan-sign-gate.sh` (`PreToolUse`
 `Bash`, on the four mutating `plan-merge.py` verbs and `quarantine.py adopt`); a bullet stating
 `plan.yaml`'s only write route is `plan-merge.py` through `Bash`; and a "what it does NOT cover"

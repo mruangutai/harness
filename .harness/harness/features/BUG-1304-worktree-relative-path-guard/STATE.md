@@ -96,7 +96,7 @@ from which registry FILE a claim sits in; filtering the binding enumerator with 
 - HARNESS DEFECT — `plan-merge.py apply` cannot amend an existing top-level `panel`: it is not in
   `UNION_KEYS` (`:104`), so the step-8 guard (`:764-774`) exits 7 CONFLICT and writes nothing. The
   working verb is `set-panel --value-file` (`:1040`), which the playbook never names. Backlog B-10.
-- HARNESS DEFECT — a handoff note cannot be written from a worktree. `check-domain.sh:1614` passes
+- HARNESS DEFECT — a handoff note cannot be written from a worktree. `check-domain.py:1614` passes
   `rel` worktree-STRIPPED with `root` the MAIN checkout while `FEATURE_RE` is `^`-anchored. Measured
   both ways. This is BUG-1304's own defect class one layer up. Backlog B-11.
 - HARNESS DEFECT — subagents returned complete, well-formed VERDICT/DIGEST blocks while the host

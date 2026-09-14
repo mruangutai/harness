@@ -63,7 +63,7 @@ Read at source: **DEC-205**'s own heading is "**This file** states current truth
 `DECISIONS.md` (`docs/DECISIONS.md:6320`) and says nothing about `STATE.md`. D-01's "because" clause
 correctly attributes the DECISIONS.md prohibition on an appended note to DEC-205, but for STATE.md it
 gives a *different* reason: "barred from a new section by its two-heading vocabulary." Read
-`check-domain.sh:1796-1805` directly: the STATE.md shape gate rejects only `## ` **headings** outside
+`check-domain.py:1796-1805` directly: the STATE.md shape gate rejects only `## ` **headings** outside
 `## Current`/`## Open Questions` (`bad = [h for h in h2 if h not in (...)]`) — it says nothing about
 body content *within* an existing heading. An inline dated sentence appended inside `## Current` (no
 new `## ` line) would not trip this gate at all. So the "two-heading vocabulary" genuinely forecloses
@@ -74,16 +74,16 @@ actual delivered text is, in substance, close to a dated inline note — it name
 correction language in place of the false line — so the practical gap is narrower than D-01's stated
 reasoning suggests, but the reasoning itself overclaims.) The prior goal-check flagged this
 substantively as F-2 and recommended a one-line confirmation at signature; I concur with that
-diagnosis, sharpened by the direct `check-domain.sh` read above, and note the plan as drafted contains
+diagnosis, sharpened by the direct `check-domain.py` read above, and note the plan as drafted contains
 no such confirmation step — SC-06 asks whether the correction "reads as current truth," which is a
 related but not identical question to "do you accept rewrite-in-place over the appended note you
 asked for." **severity: med.**
 
 ## Lane and shape (item 4): confirmed honest, no defect
 
-`bash .agents/skills/harness/bin/check-domain.sh --resolve
+`bash .agents/skills/harness/bin/check-domain.py --resolve
 .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md` → `harness-orchestrator`, exactly
-matching D-02's claim. `check-domain.sh`'s own comment (`:255-257`) confirms `harness-orchestrator` is
+matching D-02's claim. `check-domain.py`'s own comment (`:255-257`) confirms `harness-orchestrator` is
 a bare top-level key carrying its own `domain:` grant, governed like any other agent since DEC-120 —
 this is not a special carve-out, the lane is honest. D-04 (Edit not Write, pre-existing violation left
 as found) is confirmed correct: the shape gate's route-refusal logic denies `Write` pre-hoc (whole-file

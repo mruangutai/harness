@@ -23,7 +23,7 @@ What each `verify:` actually proves:
 - **T-11** — asserts one `PASS BE-NN ` line per id for all 30 ids via `seq -w 1 30`, so the block
   cannot pass while any case is absent or renumbered, and fails on any `^FAIL ` line.
 
-## Lanes, measured with `check-domain.sh --resolve` (exit 0 each)
+## Lanes, measured with `check-domain.py --resolve` (exit 0 each)
 
 - `tests/integration/test-hooks-install.py` → harness-backend-dev, harness-dev-ops, harness-qa
 - `tests/unit/test-feature-schema-build-entry.py` → harness-backend-dev, harness-dev-ops, harness-qa

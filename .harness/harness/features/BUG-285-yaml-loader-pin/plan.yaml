@@ -33,8 +33,8 @@ decisions:
     dec: none
 
   - id: D-05
-    choice: The lanes table stays as the cycle-0 single tests row, and the routing authority for the new bin work is each task's execution_agent, resolved by check-domain.sh.
-    because: No plan-merge verb writes lanes. Measured 2026-09-11 in this worktree - apply with an added lanes row exits 7 (CONFLICT on the top-level key lanes), amend --key lanes exits 2 naming tasks and decisions as the only amendable keys, and Edit, Write and a shell redirect are all denied by the shape gate. check-plan-routes.py contains zero occurrences of the string lanes, so what actually binds the build is each task's files list resolved through check-domain.sh plus the execution_mode token, never the lanes table. The stale table is therefore a reporting defect, not a routing one, and it is raised to the harness owner as an open question rather than worked around.
+    choice: The lanes table stays as the cycle-0 single tests row, and the routing authority for the new bin work is each task's execution_agent, resolved by check-domain.py.
+    because: No plan-merge verb writes lanes. Measured 2026-09-11 in this worktree - apply with an added lanes row exits 7 (CONFLICT on the top-level key lanes), amend --key lanes exits 2 naming tasks and decisions as the only amendable keys, and Edit, Write and a shell redirect are all denied by the shape gate. check-plan-routes.py contains zero occurrences of the string lanes, so what actually binds the build is each task's files list resolved through check-domain.py plus the execution_mode token, never the lanes table. The stale table is therefore a reporting defect, not a routing one, and it is raised to the harness owner as an open question rather than worked around.
     dec: none
 
   - id: D-06

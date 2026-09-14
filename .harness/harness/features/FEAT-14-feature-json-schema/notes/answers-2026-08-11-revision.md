@@ -83,7 +83,7 @@ Measured 2026-08-11.
 
 ## Still binding, unchanged
 
-- **The enforcement point is signed:** an importable `bin/feature_schema.py` that `check-domain.sh`
+- **The enforcement point is signed:** an importable `bin/feature_schema.py` that `check-domain.py`
   imports IN PROCESS and LAZILY, inside the `feature.json` branch only. Measured: a module-level
   import costs +42.6 ms against a 17.3 ms bare interpreter, so it is deferred and other writes pay
   nothing. This does not widen the DEC-174 carve-out, which already names four scripts.
@@ -162,7 +162,7 @@ the board on its first day.
 ## The defect the stale value was hiding
 
 FEAT-15 has **zero handoff notes, and that is CORRECT**. All five of its tasks are
-`execution_mode: main-session-direct` under DEC-174 — `check-domain.sh` is a carve-out file, so no
+`execution_mode: main-session-direct` under DEC-174 — `check-domain.py` is a carve-out file, so no
 squad ran, no seam was ever crossed, and no handoff note was ever owed.
 
 **INV-17 demands the notes of every prior state with no exemption for execution mode.** So placing
@@ -171,7 +171,7 @@ that measured "0 violations at `Plan`" was measuring the stale value being conve
 correctness.
 
 **This generalises and will recur.** Every DEC-174 carve-out feature — anything touching
-`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` or `check-state.sh` — is built
+`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or `check-state.sh` — is built
 main-session-direct and produces no handoff notes. FEAT-15 is the first. **FEAT-17 is already
 planned as main-session-direct and will be the second.**
 

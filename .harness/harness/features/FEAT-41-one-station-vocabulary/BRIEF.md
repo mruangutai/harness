@@ -55,7 +55,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   execute those changes through the enforcement path being changed. Twelve tasks are therefore
   executed by the main session directly. **The thirteenth, T-15, is on the `harness-documentor`
   team lane**: it touches exactly one file, `.harness/harness/docs/DECISIONS.md`, which is not an
-  enforcement surface, and `check-domain.sh --resolve` grants that path to `harness-documentor` —
+  enforcement surface, and `check-domain.py --resolve` grants that path to `harness-documentor` —
   measured, not assumed. `check-plan-routes.py` prints one ordinary team line for the whole plan,
   `OK T-15 granted to harness-documentor`. **An earlier version of this paragraph said all
   thirteen tasks were main-session-direct and that the plan carried no team-lane task at all.**
@@ -75,7 +75,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   the schema; the decision entry **is** corrected alongside it, by T-15 — see the disclosure
   below. The closed key set itself is untouched: it goes from eight required to seven.
 - **DEC-182 SUPPLIES `plan.yaml`** and currently states that `plan.yaml` is deliberately excluded
-  from the shape gate (`check-domain.sh:1040-1046`, re-derived at `0d4845b`; the comment sat at
+  from the shape gate (`check-domain.py:1040-1046`, re-derived at `0d4845b`; the comment sat at
   `:1011-1017` before the rebase). REQ-05 reverses that clause, and the reversal **is** recorded
   in the entry, by T-15 — see the disclosure below. The entry ruled out a budget check and a parse
   check, the two things it considered; a write DENIAL is a third thing it did not, so the
@@ -99,7 +99,7 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   entry alone.
 - **DEC-180 SUPPLIES the mechanism for REQ-05**: the shape gate is independent of domain and binds
   every author including the main session. The domain region cannot be used, because
-  `check-domain.sh` exits 0 for a payload with no `agent_type`.
+  `check-domain.py` exits 0 for a payload with no `agent_type`.
 - **DEC-120 SUPPLIES the signature rule** and this feature makes it mechanical rather than
   documentary.
 - **DEC-179 SUPPLIES route resolution** — every task's lane is resolved at plan time.

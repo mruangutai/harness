@@ -1,6 +1,6 @@
 # Goal-check — FEAT-30-worktree-per-feature — 2026-08-21 (pin a76d69a)
 
-Filed under `research-FEAT-30-*` because `check-domain.sh` denies harness-pm the
+Filed under `research-FEAT-30-*` because `check-domain.py` denies harness-pm the
 `goal-check-*` filename the dispatch named; my grants are `notes/research-*.md` and
 `notes/uat-*.md`. Raised as an open question rather than worked around.
 

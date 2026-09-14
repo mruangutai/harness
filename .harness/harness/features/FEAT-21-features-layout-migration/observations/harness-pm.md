@@ -22,7 +22,7 @@
   past every feature at exit 0. I deferred the keying and fixed only the label. Counting call sites
   was not enough; the shapes had to be compared.
 
-- 2026-08-14 (cycle 1): `check-domain.sh --resolve` on a lane row's representative path is a
+- 2026-08-14 (cycle 1): `check-domain.py --resolve` on a lane row's representative path is a
   10-second measurement and it changed nothing in my rows — but it converted `resolved_at: 62fef85`
   from an inference into a measurement, and it surfaced that a measured grant and the declared lane
   legitimately disagree wherever DEC-174's carve-out overrides. The row now records both, so a later

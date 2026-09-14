@@ -81,7 +81,7 @@ CONSEQUENCE THE TASK DID NOT NAME"), so this is a traceability gap, not a wrong-
 but `harness-spec-driven`'s every-file-to-a-task discipline is the thing that makes a diff this
 size auditable at all, and these 9 paths were not.
 
-**F6 — stage 2, MED, non-blocking.** `check-domain.sh`'s `RE_PLAN_YAML` (`:1044`) and its four
+**F6 — stage 2, MED, non-blocking.** `check-domain.py`'s `RE_PLAN_YAML` (`:1044`) and its four
 pre-existing `SHAPE_PATTERNS` siblings all require exactly one path segment between `.harness/`
 and `features/` (`^\.harness/[^/]+/features/[^/]+/plan\.yaml$`). `plan-merge.py`'s own `PLAN_TAIL`
 (`:90`) documents a SHALLOWER legal destination as equally valid — its `require_destination`

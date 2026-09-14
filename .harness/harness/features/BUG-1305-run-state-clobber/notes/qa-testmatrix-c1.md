@@ -11,7 +11,7 @@ hold at measurement time; `git status --porcelain` is otherwise clean, see below
 Diff: 42 files, +5216/-179 (`git diff --stat origin/main...HEAD`). Live (non-abandoned) tasks
 and their plan-declared `change_type`: T-01 `logic`, T-03 `logic` → `always: [unit]`. T-02,
 T-05, T-06, T-09 `bugfix` → `when: unit if touches_runtime_code` fires (all four rewrite
-`check-domain.sh`/`check-state.sh`/`bash-write-guard.sh`/`harness_boundary.py`/
+`check-domain.py`/`check-state.sh`/`bash-write-guard.sh`/`harness_boundary.py`/
 `validate-digest.py`); `fix_confined_to_tests_and_contract_docs` does NOT fire (production
 shell/py is touched, not tests-only), so `integration` is not matrix-obligated for `bugfix`
 by that clause; `__bug_class__` is a repo-known unresolvable placeholder (no bug-class entry
@@ -82,7 +82,7 @@ test. No criterion whose line reads `automated` was found ungraded.
 **(a) Refusal probe.** Fixture: fresh `$TMPDIR` root, `.harness/harness/features/F/runs/r1/state.yaml`
 carrying `run_id: A, run_uid: U1`, witness carrying `run_uid: U1`; incoming Write payload
 carries `run_id: A` (same seed fields) but `run_uid: U2`.
-`echo <payload> | check-domain.sh` (env `CLAUDE_PROJECT_DIR`/`HARNESS_PROJECT_DIR` = fixture root)
+`echo <payload> | check-domain.py` (env `CLAUDE_PROJECT_DIR`/`HARNESS_PROJECT_DIR` = fixture root)
 → **exit 2**: `state.yaml run identity (Issue 1305). the incoming checkpoint belongs to run_uid
 'U2', a different run than existing run_uid 'U1'. Write this cycle's state into a run directory
 of its own.` Refused as required.

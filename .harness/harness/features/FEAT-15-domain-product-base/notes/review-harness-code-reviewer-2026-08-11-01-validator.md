@@ -39,7 +39,7 @@ T-05's verify (`gen-decisions-index.py --stdout | diff - DECISIONS-INDEX.md`) ex
 under the comment `THE FLEET AND THE BASE (FEAT-15 T-01/T-02, REQ-01 through REQ-06)`, and before the
 `if base is None: return` branch — i.e. before any glob is matched and before the former
 outside-root bare-return. `domain_check()` itself only runs when `_run_domain and not _no_parser`
-(`check-domain.sh:657`), which is two pre-existing gates, not new ones:
+(`check-domain.py:657`), which is two pre-existing gates, not new ones:
 - **missing `team-config.yaml`** → `_run_domain=False` → fleet never checked at all. Pre-existing
   DEC-101 fail-open, orthogonal to REQ-03 (which concerns the *fleet* file, not the manifest).
 - **a live PyYAML bootstrap-grant session** (`_no_parser=True`) → `domain_check()` skipped, so the
@@ -69,7 +69,7 @@ silent, so it says NOBODY rather than nothing. REQ-05 and DEC-179 are each satis
 terms.
 
 **Relative-target asymmetry — checked and dismissed.** Confirmed empirically that IF the hook ever
-received a relative `tool_input.file_path`, `os.path.abspath(target)` (`check-domain.sh:570`) would
+received a relative `tool_input.file_path`, `os.path.abspath(target)` (`check-domain.py:570`) would
 join it against the process cwd while `--resolve` (`:341`) joins against the derived root, producing
 real disagreement — reproduced live: same relative string `src/main.py`, cwd set to a product
 checkout dir, hook exits 0 (permit) while `--resolve` from the same cwd prints `NOBODY`. But no real
@@ -108,7 +108,7 @@ harness-validator-lead: .harness/features/*/runs/*-validator/**, .harness/expert
    for documentor and dev-ops).
 2. **False negative (can grant, omitted)?** The synthetic shape from the dispatch, a mid-path
    wildcard like `docs/*/guide.md`, would indeed be silently dropped by the heuristic overlap test at
-   `check-domain.sh:634-636` (it only compares each glob directly against the four literal entries,
+   `check-domain.py:634-636` (it only compares each glob directly against the four literal entries,
    never re-derives from `is_control_plane_target`). No live glob in `.harness/team-config.yaml` has
    this shape — checked every domain entry by hand. Absence of a pin, not a live break: low.
 3. **`(no writable domain declared)` for a persona that has one?** Never, for any of the 16 —
@@ -159,7 +159,7 @@ silently reversed, only its *rationale* can go undiscovered.
 
 ## Stage 2 — code quality
 
-- `resolve_fleet`'s catch (`check-domain.sh:200`) is a bare `except Exception`, not the three named
+- `resolve_fleet`'s catch (`check-domain.py:200`) is a bare `except Exception`, not the three named
   types in plan.yaml T-01's intent (`factory_config.FleetError`, `harness_yaml.YamlParseError`,
   `ImportError`) — a literal plan-text deviation, flagged per protocol regardless of merit. Verified
   empirically that every realistic failure (missing `workspace_root`, missing `repos`, broken YAML)

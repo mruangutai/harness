@@ -13,7 +13,7 @@ mine).
 ### 1. H-01 PRE — CONFIRMED CLOSED, message quality high
 
 Built a `$TMPDIR` fixture (manifest + `.harness/harness/features/FEAT-99-fixture/plan.yaml` +
-`notes/innocent.md -> ../plan.yaml`) and fired `check-domain.sh` for real:
+`notes/innocent.md -> ../plan.yaml`) and fired `check-domain.py` for real:
 
 ```
 check-domain: DENIED — .harness/harness/features/FEAT-99-fixture/notes/innocent.md — the write
@@ -24,7 +24,7 @@ vocabulary before it lands on disk. ...
 
 Names the path the operator typed **and** what it resolves to **and** why the route is closed,
 plus four copy-pasteable remedy commands. Exactly what the dispatch's Q1 asked for. Direct writes
-to the real path get the same treatment (no `_via` clause when link==target). `check-domain.sh:1524-1528`.
+to the real path get the same treatment (no `_via` clause when link==target). `check-domain.py:1524-1528`.
 
 ### 2. H-01 POST — MED, not caught by cycle 1, not caught by this feature's own new test
 
@@ -43,14 +43,14 @@ plan.yaml station vocabulary (FEAT-41 REQ-01).
 The header names `notes/innocent.md` — the literal, innocent path the write was addressed to —
 **never the plan.yaml it actually landed in.** This is the exact failure mode H-01's PRE fix was
 written to prevent ("Refusing `innocent.md` with no explanation reads as a malfunction" —
-`check-domain.sh:1518-1521`), reintroduced one checkpoint over.
+`check-domain.py:1518-1521`), reintroduced one checkpoint over.
 
-**Root cause, at `check-domain.sh:1561-1575`:** the POST branch resolves `_rel` through
+**Root cause, at `check-domain.py:1561-1575`:** the POST branch resolves `_rel` through
 `_route_candidates(target)` (the H-01 fix) to decide *which shape rules apply* — that part is
 correct, which is why the vocabulary violation fires at all. But line 1575 builds the reported
 tuple as `(_rel, _f.read(), _show(target))` — `_show(target)` is the **unresolved, literal**
-path (`check-domain.sh:974-980`: `_show` is deliberately un-stripped and un-resolved, "the path a
-human can act on"... except here it names the wrong one). `_head()` at `check-domain.sh:1127`
+path (`check-domain.py:974-980`: `_show` is deliberately un-stripped and un-resolved, "the path a
+human can act on"... except here it names the wrong one). `_head()` at `check-domain.py:1127`
 prints `display or rel` — `display` wins, so the operator always sees the symlink's name, never
 the file the vocabulary net actually read.
 
@@ -159,7 +159,7 @@ Worth a one-line style fix, not a gate.
 
 ### 7. BUG-1055 / SC-08 surface — nothing operator-facing says it, confirmed by grep
 
-Grepped `check-state.sh`, `check-plan-routes.py`, `check-domain.sh` for `1079` and `BUG-1071`:
+Grepped `check-state.sh`, `check-plan-routes.py`, `check-domain.py` for `1079` and `BUG-1071`:
 zero hits for `1079` anywhere; `BUG-1071` appears only in code **comments** for the unrelated
 INV-32 era guard, never in a printed string. Separately confirmed `BUG-1071-inv32-era-guard`'s
 `feature.json` really does carry `"status": "Review"` with no `plan.yaml` beside it — exactly the
@@ -200,12 +200,12 @@ DIGEST:
   must_fix: []
   states_unspecified: []
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-domain.sh:1570-1575,1127", actual: "POST-mode vocabulary VIOLATION header names _show(target) — the literal symlink path as typed — even when _rel (used for matching) resolved through the link to plan.yaml; test-check-domain.py:2762-2769's own assertion only checks the violated value, never the reported path, so this exact regression shape is untested", specified: "H-01's own PRE fix (check-domain.sh:1518-1521) states the standard: a denial/violation naming only the innocent path 'reads as a malfunction' and must name where the write actually landed" }
+    - { path: ".claude/skills/harness/bin/check-domain.py:1570-1575,1127", actual: "POST-mode vocabulary VIOLATION header names _show(target) — the literal symlink path as typed — even when _rel (used for matching) resolved through the link to plan.yaml; test-check-domain.py:2762-2769's own assertion only checks the violated value, never the reported path, so this exact regression shape is untested", specified: "H-01's own PRE fix (check-domain.py:1518-1521) states the standard: a denial/violation naming only the innocent path 'reads as a malfunction' and must name where the write actually landed" }
     - { path: ".claude/skills/harness/bin/check-state.sh:556-558", actual: "INV-33's message puts its invariant number in a parenthesized suffix, '...(INV-33).'", specified: "every other numbered invariant in this file (20+ call sites: INV-9,15,24,25,26,27,29,30,31,32) opens the message with 'INV-NN: ' as a prefix" }
     - { path: ".claude/skills/harness/bin/check-plan-routes.py:385-387", actual: "two independently-fixtured failing plans (different features, different tasks) render byte-identical VIOLATION lines with no path or feature id — re-measured live, unchanged since cycle 0", specified: "carried forward as F-13, low/non-blocking, per cycle 0 and cycle 1's own disposition; not touched by this cycle's fix commits" }
   a11y: ["not applicable — every surface reviewed is stderr/stdout CLI text, no colour-only encoding, no rendered theme"]
   open_questions:
-    - { id: Q1, question: "Should check-domain.sh:1575's POST-mode display use the resolved candidate (mirroring H-01's PRE _via clause) instead of _show(target), and should test-check-domain.py:2766-2769 assert on the reported path the way its PRE sibling (case r9) does?", blocking: false }
+    - { id: Q1, question: "Should check-domain.py:1575's POST-mode display use the resolved candidate (mirroring H-01's PRE _via clause) instead of _show(target), and should test-check-domain.py:2766-2769 assert on the reported path the way its PRE sibling (case r9) does?", blocking: false }
     - { id: Q2, question: "check-state.sh's INV-33 line is the only numbered invariant using a suffix '(INV-NN)' marker instead of this file's universal 'INV-NN: ' prefix convention — worth a one-line normalization, or intentional because INV-33's sentence reads better with the number at the end?", blocking: false }
   files_touched: []
   expertise_update: []

@@ -1,6 +1,6 @@
 # Receipt — FEAT-11 plan-fix — three plan-contract must_fix closed
 
-**Path note:** the dispatch asked for `notes/receipt-harness-pm-plan-fix.md`. `check-domain.sh`
+**Path note:** the dispatch asked for `notes/receipt-harness-pm-plan-fix.md`. `check-domain.py`
 BLOCKS that path for `harness-pm` — `receipt-*.md` is granted only to the five dev roles
 (`team-config.yaml:145,159,172,185,200`); pm's notes grant is `notes/research-*.md`. Not worked
 around. This file is the receipt, at the only path the guard permits.

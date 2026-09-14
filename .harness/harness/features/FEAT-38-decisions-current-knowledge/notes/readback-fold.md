@@ -42,7 +42,7 @@ FALSIFICATION — The concrete parser failure remains: “the scanner dropped an
 
 ## DEC-174
 BELIEF — The superseded factory-workspace reading remains explicit: “that route resolves to NOBODY, or that it is merely unsanctioned.”
-FALSIFICATION — The post-removal measurement remains: an undeclared factory-workspace repository makes `check-domain.sh --resolve` exit **2**, not return NOBODY.
+FALSIFICATION — The post-removal measurement remains: an undeclared factory-workspace repository makes `check-domain.py --resolve` exit **2**, not return NOBODY.
 
 ## DEC-183
 BELIEF — The rejected implementation is still characterized: “The harness was too heavy” because it cloned a workspace and executed workflow bodies.

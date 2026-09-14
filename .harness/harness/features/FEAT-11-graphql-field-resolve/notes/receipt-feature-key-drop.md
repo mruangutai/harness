@@ -137,7 +137,7 @@ review_sha_note: The pin the review panel ran against. Every validator run got a
   pin would have returned PASS on a tree with none of T-01 in it. MF-2 landed after
   the panel at 15cabe9 and was verified by me directly rather than by a second panel
   — the change is one guarded assertion in a test file, mutant-proved by name.
-route_resolution: ZERO main-session-direct. Resolved by check-domain.sh --resolve,
+route_resolution: ZERO main-session-direct. Resolved by check-domain.py --resolve,
   not by reading team-config, which is ambiguous for bin/** (granted to both backend-dev
   and dev-ops). None of the DEC-174 carve-out files was in scope at any point.
 runs_note: 16 runs against an informational budget of 20 — INV-22 not crossed, no

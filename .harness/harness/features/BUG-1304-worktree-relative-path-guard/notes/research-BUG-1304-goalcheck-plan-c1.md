@@ -53,7 +53,7 @@ Intent allows "implementation, focused tests, governing decisions/docs, and Harn
 artifacts" (`grilling-...:12`). Every path in the plan:
 
 - implementation — `.claude/skills/harness/bin/harness_boundary.py`, `inflight_registry.py`
-  (`plan.yaml:148-149`), `check-domain.sh` (`:256`), `bash-write-guard.sh` (`:369`),
+  (`plan.yaml:148-149`), `check-domain.py` (`:256`), `bash-write-guard.sh` (`:369`),
   `dispatch-guard.sh` (`:477`);
 - focused tests — `tests/unit/test-harness-boundary.py`, `tests/integration/test-inflight-registry.py`
   (`plan.yaml:84-85`), `tests/integration/test-check-domain.py` (`:193`),
@@ -169,7 +169,7 @@ construction under every task, T-08 included. Strike T-08 and the gap returns to
    `feature_checkout_guard` calls" at `bash-write-guard.sh:841` and `:845` (`plan.yaml:385-390`).
    The `:840` branch fires on `allow` **and** `not_a_domain_question`, which is the `/tmp`
    pass-through SC-04 case 4 and T-05 case 14 require to stay exit 0. The Write route has no such
-   overlap — `not_a_domain_question` returns earlier at `check-domain.sh:908`. One clause ("in-repo
+   overlap — `not_a_domain_question` returns earlier at `check-domain.py:908`. One clause ("in-repo
    destinations only") removes the ambiguity; without it the build discovers it as a red case.
 6. **advisory** — T-03 case 7 / T-05 case 8 instruct asserting that the owner-root registry "WAS
    read" (`plan.yaml:226-230`, `:331-333`) without naming an observable that distinguishes it from

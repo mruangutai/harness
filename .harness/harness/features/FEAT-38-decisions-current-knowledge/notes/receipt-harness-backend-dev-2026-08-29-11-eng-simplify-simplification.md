@@ -86,7 +86,7 @@ Scope: diff `7ebfc9e..384b800`. Read-only. No repository file edited.
 ## Hunt 2 — truth of the swept citation comments
 
 **Checked 27 of the ~42 sites**, selected as: every site in `.claude/skills/harness/bin/*.py`,
-`.claude/skills/harness/bin/check-domain.sh`, `.github/workflows/tests.yml` whose diff line matches
+`.claude/skills/harness/bin/check-domain.py`, `.github/workflows/tests.yml` whose diff line matches
 `^[-+].*DEC-\d+` — **excluding** (a) `gen-decisions-index.py`'s own machinery lines, covered by
 Hunt 1, and (b) synthetic `DEC-01/07/42/99` fixture literals introduced by the new T-17/T-20 test
 files, which cite no real decision. For each, cross-referenced the cited `DEC-NN` against

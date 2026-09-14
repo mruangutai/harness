@@ -39,7 +39,7 @@ Bash  -> exit 0   (bash-write-guard.sh, no output)
 ## The mechanism
 
 `settings.json` registers the hook for `Write|Edit`, so it **does fire** on Edit. But
-`check-domain.sh:376-377`:
+`check-domain.py:376-377`:
 
 ```python
 if (d.get("tool_name") or "") != "Write":
@@ -90,7 +90,7 @@ it. That is a genuine trade rather than a free win: 3 gives up prevention to gai
 whether a state file that is briefly over-budget matters is a judgment about what the budget is
 *for* — a context bound, which a post-check still enforces before the next reader loads it.
 
-`check-domain.sh` is a **DEC-174 carve-out**, so whichever option wins is a declared main-session
+`check-domain.py` is a **DEC-174 carve-out**, so whichever option wins is a declared main-session
 step, applied directly with the tests run explicitly and a human reading the diff.
 
 ## Immediate compliance

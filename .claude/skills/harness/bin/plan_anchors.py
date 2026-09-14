@@ -5,7 +5,7 @@
 THE ONE PLACE THE GRAMMAR LIVES. plan-merge.py refuses an illegal entry at write (`apply`,
 `add-tasks`, `amend`) and resolves every entry in `check`; harness_yaml.py's plan schema
 accepts the same three shapes; check-plan-routes.py strips an anchor to its path before asking
-check-domain.sh who owns it. Three readers, one grammar, so a form one of them accepts cannot be
+check-domain.py who owns it. Three readers, one grammar, so a form one of them accepts cannot be
 a form another refuses.
 
 Three legal forms:
@@ -90,7 +90,7 @@ def path_of(entry):
     """The bare path of a legal entry, or the entry itself when it is not one.
 
     For readers that only need to know WHICH FILE — check-plan-routes.py's resolver asks
-    check-domain.sh about paths, and `a.py#foo` matches no grant while `a.py` does. An
+    check-domain.py about paths, and `a.py#foo` matches no grant while `a.py` does. An
     illegal entry is returned unchanged so the reader's own report names what it was given.
     """
     try:

@@ -154,7 +154,7 @@ agent into thinking it tripped the sign-approval gate when it did not.
 
 **Can `apply` inject the marker into a task-bearing plan? Yes, confirmed live.**
 `plan-merge.py apply` (and its alias `add-tasks`, identical code path) is one of the two verbs
-`check-domain.sh`'s shape gate leaves open to every agent (D-06/T-09); `.claude/settings.json`
+`check-domain.py`'s shape gate leaves open to every agent (D-06/T-09); `.claude/settings.json`
 has no hook naming it. Its splice algorithm (`apply_merge`, plan-merge.py:459-596) treats
 `station_only` — not in `UNION_KEYS = ("tasks", "decisions")`, not `approval` — as "Step 8: every
 other top-level key" (:576-596): if the key is absent from the base and present in the proposal,
@@ -200,7 +200,7 @@ unsigned, task-bearing plan via the ordinary merge verb."
   so this specific vector does not exist.
 - *What do `check-state.sh`/`check-plan-routes.py` do with `station_only: true` AND non-empty
   `tasks:` together?* Nothing — I grepped `station_only` across `check-plan-routes.py`,
-  `check-domain.sh`, `factory_config.py`, `gh_board.py`, `board_lifecycle.py`, `gh-sync.py`: zero
+  `check-domain.py`, `factory_config.py`, `gh_board.py`, `board_lifecycle.py`, `gh-sync.py`: zero
   hits in every one of them. Only `check-state.sh` and `harness_yaml.py` know the field exists at
   all, and neither detects the contradictory combination — `check-state.sh` just trusts the flag,
   unconditionally.

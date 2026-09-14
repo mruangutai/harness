@@ -14,15 +14,15 @@ No new must_fix. `severity_max: low` (carried).
 ## 1. Census (MEASURED)
 
 `git diff --stat origin/main..984bd26b -- . ':!.harness'`: **18 files, +3203/-19**. All 18 examined;
-none skipped. `git diff --numstat 790023f0..984bd26b`: exactly `check-domain.sh` (+26/-8) and
+none skipped. `git diff --numstat 790023f0..984bd26b`: exactly `check-domain.py` (+26/-8) and
 `tests/integration/test-check-domain.py` (+6/-0) outside `.harness/` — confirmed by direct diff
 (the hunk is entirely inside `shape_problems`, `:1645-1680`, plus the one new `_undeclared_cases`
-case). Working tree `check-domain.sh` is byte-identical to `git show 984bd26b:...` (MEASURED, diff
+case). Working tree `check-domain.py` is byte-identical to `git show 984bd26b:...` (MEASURED, diff
 empty).
 
 ## 2. PF-C10-01 closure (REASONED, source read at the pin)
 
-`_missing_required` (`check-domain.sh:~1660-1668`) is `set(_error.validator_value) - set(_error.instance)`
+`_missing_required` (`check-domain.py:~1660-1668`) is `set(_error.validator_value) - set(_error.instance)`
 gated on `_error.validator == "required"`. jsonschema only raises a `required` error when at least
 one declared required key is absent from the instance, so this set can never be empty when the
 branch fires — CONFIRMED, not merely plausible: the subtraction is definitionally the missing set.
@@ -95,9 +95,9 @@ join) would have failed both `in stderr` clauses, as `qa`'s own prior analysis (
 ## 5. SC-08 step seam re-grade (MEASURED — grep)
 
 `grep -rn 'missing required step key\|undeclared step key'` across `.claude/skills/harness/bin/`:
-`"missing required step key"` has **exactly one producer** (`check-domain.sh:1663`).
+`"missing required step key"` has **exactly one producer** (`check-domain.py:1663`).
 `"undeclared step key"` (substring inside `"undeclared step key or evidence shape."`) has **two
-producers**: `check-domain.sh:1671` (write-time) and `check-state.sh:1526` (at-rest sweep) — this is
+producers**: `check-domain.py:1671` (write-time) and `check-state.sh:1526` (at-rest sweep) — this is
 the pre-existing CF drift (§7), unaffected by this delta. For the SC-08 discriminating clause itself
 (the `strict` fixture, `rogue_step_key` only, no missing-required violation), the new head cannot
 fire — that fixture's step has both `id` and `status` present, so `_missing_required` stays empty
@@ -139,7 +139,7 @@ reading) stands — not reopened.
 - **CF-3** (low — `abff2a84` FEAT-56 root-commit status flip, untracked by any REQ/D) — CARRIED,
   unchanged; still present in `origin/main..984bd26b`, still outside SC-13's four-file scope, still
   benign.
-- **Q7** (5 spellings of the strict-schema-version predicate across `check-domain.sh`/
+- **Q7** (5 spellings of the strict-schema-version predicate across `check-domain.py`/
   `check-state.sh`) — CARRIED, unchanged; neither file's `_valid_version`/predicate logic is touched
   by this delta (confirmed by the numstat in §1 — only `shape_problems`'s tail changed).
 - **F1/F2/F3** — F1 and F3 remain CLOSED (unaffected code, per c10). F2's DECLINED disposition
@@ -148,7 +148,7 @@ reading) stands — not reopened.
   source order, unaffected by this delta (the touched lines are inside the already-`_no_parser`-
   gated `state.yaml` branch's tail, not the guard itself). No new information.
 - **DEC-85 Bash-write bypass** — CARRIED. Standing, acknowledged, out of scope; unaffected.
-- **Stale comment at `check-domain.sh:1646-1647`** — CONFIRMED STALE (info, non-gating). Read at the
+- **Stale comment at `check-domain.py:1646-1647`** — CONFIRMED STALE (info, non-gating). Read at the
   pin: `"# Type/value failures on declared fields may not be captured by the vocabulary comparisons
   above; name their nearest field."` sits directly above the new `_missing_required` block it does
   NOT describe (that block names the *exact* absent key, not "the nearest field") — it accurately

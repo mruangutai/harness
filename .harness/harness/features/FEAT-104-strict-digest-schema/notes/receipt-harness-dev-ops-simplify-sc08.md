@@ -32,7 +32,7 @@ already-captured attribute. `applied: none`, `would_have_applied: false`.
 
 None. The two new clauses do zero I/O. They assert that the *emitter's own output* mentions the
 schema file's route (`run-state-schema.json`) and the `` `evidence` `` recovery field, both of
-which `check-domain.sh:1653-1659` prints unconditionally from strings already built during the one
+which `check-domain.py:1653-1659` prints unconditionally from strings already built during the one
 call. No schema file is opened by the test to construct the assertion.
 
 ## 3. Cost verdict
@@ -44,7 +44,7 @@ cost.** Empty findings is the expected and accurate outcome for this angle.
 
 ## Carried forward, not re-raised
 
-Standing Q7 (predicate-spelling residual across `check-domain.sh`/`check-state.sh`) — out of scope
+Standing Q7 (predicate-spelling residual across `check-domain.py`/`check-state.sh`) — out of scope
 for this delta, already open and accepted.
 
 ## Verification

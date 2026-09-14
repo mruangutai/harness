@@ -20,7 +20,7 @@ untracked panel note files (this one included). Both Stage 1
   `BUG-1080-inv6-plan-phase-runs` worktree — the stated environmental exemption, not reported as a
   finding.
 - Every changed production file under `.claude/skills/harness/bin/` (`board-station.py`,
-  `board_lifecycle.py`, `check-domain.sh`, `check-plan-routes.py`, `check-state.sh`,
+  `board_lifecycle.py`, `check-domain.py`, `check-plan-routes.py`, `check-state.sh`,
   `factory_claim.py`, `factory_config.py`, `factory_decompose.py`, `factory_land.py`,
   `feature-schema.json`, `gh-sync.py`, `gh_board.py`, `harness_boundary.py`, `harness_yaml.py`,
   `plan-merge.py`, `plan-sign-gate.py`/`.sh`, `run-unit-tests.sh`, `worktree_terminal.py`) has a
@@ -91,7 +91,7 @@ Reverted `_strip_substitutions` (`plan-sign-gate.py:141-166`) to the naive
 
 ### MF-2 (`harness_boundary.py` NUL fail-closed) — **red on revert, confirmed load-bearing**
 
-Reverted `check-domain.sh:1514-1517`'s `except (OSError, ValueError):` to `except OSError:` only
+Reverted `check-domain.py:1514-1517`'s `except (OSError, ValueError):` to `except OSError:` only
 (the pre-fix bug — `realpath` raises `ValueError`, not `OSError`, on an embedded NUL). Confirmed
 the fixture reaches `classify` for real (its `_approval_root`/`fixture()` writes
 `.harness/team-config.yaml`, satisfying the G-02/P-03 precondition — not the "invalid fixture"

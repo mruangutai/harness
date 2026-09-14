@@ -172,7 +172,7 @@ for the in-flight issue #8**, and evidence that qa alongside the panel was once 
   single-task work" — for routing, assessment, and no unassessed work reaching STATE.md.
 - **Parallelizing dev tasks.** PLAN tasks carry `files:` but no `depends_on`, so nothing declares
   independence; every dev task is `mutates_repo: true` and DEC-85 makes serialization — not the
-  domain hook — the actual write-safety mechanism, because `check-domain.sh` cannot see `Bash`
+  domain hook — the actual write-safety mechanism, because `check-domain.py` cannot see `Bash`
   writes. Real parallelism costs a worktree per agent.
 - **Reversing DEC-159's per-phase orchestrators.** Per-phase relay strictly increases wall-clock
   (a fresh ~10k preload plus a 30–50k working set per successor) but was traded knowingly against

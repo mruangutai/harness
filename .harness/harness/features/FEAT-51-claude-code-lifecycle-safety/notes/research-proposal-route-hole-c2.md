@@ -1,4 +1,4 @@
-# A plan-merge.py proposal, not prose. It carries the .md name because check-domain.sh grants
+# A plan-merge.py proposal, not prose. It carries the .md name because check-domain.py grants
 # harness-pm exactly `.harness/*/features/*/notes/research-*.md` under notes/, and a proposal is
 # YAML that plan-merge.py reads by path regardless of extension. Applied to plan.yaml on
 # 2026-09-01 with `plan-merge.py apply --file <plan.yaml> --proposal <this file>`.
@@ -19,7 +19,7 @@ decisions:
     because: adopt is the only other command that turns a quarantined file canonical, so REQ-05 is unreachable on this route without it, and failing open on an unresolvable value matches orphan_write's own fail-open on a missing registry and preserves the asserted control that an apply written with a shell variable as its --file value stays allowed
     dec: none
   - id: D-14
-    choice: The quarantine rule reads the root plan-sign-gate.sh already resolves from its own directory through harness_boundary.resolve_root, the same root check-domain.sh resolves at its _root, and never a root derived from the command line
+    choice: The quarantine rule reads the root plan-sign-gate.sh already resolves from its own directory through harness_boundary.resolve_root, the same root check-domain.py resolves at its _root, and never a root derived from the command line
     because: the two routes must read ONE claims registry or an orphan quarantined at the Write gate could be allowed at the Bash gate for no reason a reader could see, and a root taken from the caller's own argument is a root the caller can choose
     dec: DEC-204
 
@@ -44,12 +44,12 @@ tasks:
     intent: |
       WHY THIS TASK EXISTS, in one measurement taken at
       ad93d43e1f232ec1ab87e08ccf70a01a08c206b7: .claude/settings.json registers
-      check-domain.sh on PreToolUse for Write and Edit ONLY, at the matcher on :19. The
+      check-domain.py on PreToolUse for Write and Edit ONLY, at the matcher on :19. The
       PreToolUse Bash matcher on :27 runs branch-create-gate.sh, bash-write-guard.sh,
-      gh-close-gate.sh and plan-sign-gate.sh, and check-domain.sh --post on :62 is a POST
+      gh-close-gate.sh and plan-sign-gate.sh, and check-domain.py --post on :62 is a POST
       sweep. Since FEAT-41 reversed DEC-182, plan.yaml has exactly one writer,
       plan-merge.py, and it is invoked through Bash. So T-03's quarantine branch, which
-      lives in check-domain.sh, covers BRIEF.md, feature.json and STATE.md and cannot reach
+      lives in check-domain.py, covers BRIEF.md, feature.json and STATE.md and cannot reach
       plan.yaml at all. Issue 551's first measured occurrence is a fourteen-task plan.yaml
       replaced sixty-three seconds later by a one-task file, which is a plan.yaml write.
       This task puts the boundary on the route that write travels.
@@ -151,13 +151,13 @@ tasks:
           6. Return None unless _reg.orphan_write(ROOT, agent, feature, session) is True.
              ROOT at :35 is the root the wrapper resolved through
              harness_boundary.resolve_root from this script's own directory, which is the
-             same root check-domain.sh resolves at its _root() on :154. That is D-14, and the
+             same root check-domain.py resolves at its _root() on :154. That is D-14, and the
              reason both routes read one registry.
 
         Import inflight_registry INSIDE quarantines() and only AFTER step 2 has matched, in a
         try that on any exception writes one stderr line saying the quarantine boundary was
         not enforced and returns None. Two reasons, both load-bearing: failing OPEN on our
-        own gap is the precedent every branch of check-domain.sh sets, and this hook runs
+        own gap is the precedent every branch of check-domain.py sets, and this hook runs
         ahead of EVERY Bash call in the session, so an unconditional import and registry read
         would be paid by every git status in the harness.
 
@@ -170,7 +170,7 @@ tasks:
         else: exit 0.
 
       agent is the agent_type already read at :73; the quarantine rule applies only when
-      agent.startswith("harness-"), the same _governed test check-domain.sh states at :310,
+      agent.startswith("harness-"), the same _governed test check-domain.py states at :310,
       because registry personas are harness-*. A non-harness agent_type keeps its existing
       sign-approval refusal and is not reached by this rule. session is a NEW payload read,
       payload.get("session_id") on the payload parsed at :65. The order of the two rules is

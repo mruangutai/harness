@@ -41,7 +41,7 @@ All five re-checked by reading the actual code at `review_sha`, not by trusting 
   (`:120-124`), and the regex text-fallback (`RAW_SIGN`, `:72-79`) independently skips the same
   separator, closing both the tokenizing and non-tokenizing paths the finding named.
 - **F-04** (`Plan.yaml` alternate-case spelling walking past the write-denial route) — CLOSED.
-  `check-domain.sh:1038-1043`: every shape pattern (`RE_FEATURE_JSON` … `RE_PLAN_YAML`) now
+  `check-domain.py:1038-1043`: every shape pattern (`RE_FEATURE_JSON` … `RE_PLAN_YAML`) now
   compiles with `re.IGNORECASE`, with the docstring at `:1064-1067` recording the measurement
   (`echo x > Plan.yaml` overwrites the same inode) that justified applying it to all six patterns,
   not just the one found.
@@ -51,7 +51,7 @@ All five re-checked by reading the actual code at `review_sha`, not by trusting 
 ## Stage 2 — operator-facing CLI text pass (the surface this dispatch named in scope)
 
 Read every newly-added `print`/`sys.stderr.write`/`raise SystemExit` line across the six named
-files (`gh-sync.py`, `plan-merge.py`, `plan-sign-gate.py`, `check-domain.sh`, `check-state.sh`,
+files (`gh-sync.py`, `plan-merge.py`, `plan-sign-gate.py`, `check-domain.py`, `check-state.sh`,
 `check-plan-routes.py`) plus a targeted grep for the F-01 pattern class (raw collection
 interpolated into an f-string) across the whole diff. No second instance of the F-01 class exists
 anywhere in the diff — every newly added message that carries a collection formats it through
@@ -60,7 +60,7 @@ anywhere in the diff — every newly added message that carries a collection for
 Message-text quality is high and consistent with this feature's own conventions:
 - `plan-sign-gate.py`'s `REASON` (`:52-66`) names the refused verb, the reason (whose signature it
   is and why), and a copy-pasteable remedy command — satisfies SC-07 as written.
-- `check-domain.sh`'s plan.yaml write-denial (`:1478-1497`) leads with the reason before the
+- `check-domain.py`'s plan.yaml write-denial (`:1478-1497`) leads with the reason before the
   route, by explicit design ("THE REASON COMES FIRST, THEN THE ROUTE" — `:1479`), and lists four
   concrete remedy commands.
 - `gh-sync.py`'s worktree-ship refusal (`:1459-1463`) and `_commit_terminal_station`'s
@@ -73,7 +73,7 @@ Message-text quality is high and consistent with this feature's own conventions:
 plan.yaml station-vocabulary violation lines (`:385-387` for the feature's own station, `:420-422`
 for a task's) state the illegal value and the legal set but name no remedy verb —
 `f"VIOLATION top-level status {feature_station!r} is not one of {_legal} (case sensitive)"`. The
-same defect class, enforced independently in `check-domain.sh` (`:1194-1196`,
+same defect class, enforced independently in `check-domain.py` (`:1194-1196`,
 `"Set one with plan-merge.py set-task-station or set-feature-station, which validate the value
 before it lands."`) and `check-state.sh` (`"Set it with plan-merge.py set-feature-station, which
 validates the station before it writes."`), does name the remedy in both siblings. This is

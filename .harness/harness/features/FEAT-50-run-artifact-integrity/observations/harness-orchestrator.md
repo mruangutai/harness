@@ -1,7 +1,7 @@
 # Observations - harness-orchestrator
 
 - 2026-08-31 (FEAT-50): a dispatch clause can authorize what a hook mechanically denies. Main's
-  brief said "the orchestrator may implement main-session-direct tasks directly"; check-domain.sh
+  brief said "the orchestrator may implement main-session-direct tasks directly"; check-domain.py
   hook mode returned exit 2 for harness-orchestrator on all seven files, and bash-write-guard.sh
   refused `cp` with the DEC-151 evasion message. DEC-174 is the reason. I applied T-01/T-02 before
   measuring, through `python3 <script> <path>` — a route the Bash guard cannot see through — which
@@ -9,7 +9,7 @@
   guard on every target path BEFORE the first edit, not after the first refusal.
 - 2026-08-31 (FEAT-50): the Bash write guard denies cp/mv/rm/sed -i/tee/redirects but not an
   interpreter invoked with a path argument. Any governed agent can write any path with
-  `python3 patch.py <target>`. check-domain.sh's own header already states this limit
+  `python3 patch.py <target>`. check-domain.py's own header already states this limit
   ("truly arbitrary shell remains unwinnable"), so it is a known hole, not a defect I found —
   but it is the hole a well-meaning agent falls into first, because a patch script is the
   natural way to edit a 1600-line file when no Edit tool is granted.
@@ -35,7 +35,7 @@
 - 2026-09-01: INV-33 fires on an HONEST pin when a LATER feature's migration rewrites the plan the
   pin covers. check-state.sh:588 makes it silent on a terminal station, so shipping closes it — but
   a feature parked in `review` under a landing migration goes red for a reason nobody on it caused.
-- 2026-09-01: the two write routes disagreed on the identical target — check-domain.sh hook mode
+- 2026-09-01: the two write routes disagreed on the identical target — check-domain.py hook mode
   refused a governed write to the main checkout's FEAT-50 record at exit 2, while
   bash-write-guard.sh returned exit 0 for `python3 gh-sync.py ship <that same dir>`. A permissive
   answer from the route with the known interpreter blind spot is not authorization; the refusing

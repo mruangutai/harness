@@ -3,13 +3,13 @@
 ## BLUF
 
 **Mode A (clobber), most-probable mechanism, MEDIUM-HIGH confidence:** the #1106/#1124 run-identity
-guard compares `str(prior_run_id) != str(new_run_id)` (`check-domain.sh:1567`) and ALLOWS the write
+guard compares `str(prior_run_id) != str(new_run_id)` (`check-domain.py:1567`) and ALLOWS the write
 whenever the two strings are equal — but the playbook's own naming rule (`SKILL.md:272-274`,
 `<task-or-purpose>-<squad>`) mandates a slug with **no uniqueness enforcement**, and if `run_id` is
 seeded from that same slug (the natural implementation; not directly confirmed since the BUG-1286
 run dirs are gone), two genuinely different runs choosing the same slug produce string-equal
 `run_id`s and the guard treats the second as a legitimate upsert of the first — the exact clobber
-symptom. **Named alternative I cannot rule out:** the `_no_parser` fail-open (`check-domain.sh:1475`)
+symptom. **Named alternative I cannot rule out:** the `_no_parser` fail-open (`check-domain.py:1475`)
 — a bootstrap/no-PyYAML session skips the identity check entirely. Evidence cannot discriminate
 between the two; naming both per dispatch instruction, not resolving in my own favour.
 
@@ -19,7 +19,7 @@ state.yaml's *own* shape (whitelisted keys, digest existence) but asserts nothin
 already happened is invisible to every existing invariant.
 
 **Mode B, HIGH confidence:** the digest content-guard (#1058) *is* enforced on the Edit route too —
-**`check-domain.sh`'s own inline comment at line 1236-1238 ("intentionally Write/PRE-only… Edit and
+**`check-domain.py`'s own inline comment at line 1236-1238 ("intentionally Write/PRE-only… Edit and
 Bash carry no complete incoming payload") is STALE and WRONG**, contradicted by its own runtime at
 lines 1905-1923 (Edit reconstruction for `RE_RUN_DIGEST`/`RE_STATE_YAML`/`RE_HANDOFF`) and confirmed
 by probe below. `bash-write-guard.sh`'s docstring (`:747-748`, "The Write and Edit routes… compare a
@@ -42,21 +42,21 @@ this cannot be confirmed directly.
 
 | # | Route | Verdict | Citation / probe |
 |---|---|---|---|
-| 1 | `Write` | **Refused** on identity mismatch/malformed/missing-run_id prior; allowed as upsert when `run_id`s match | `check-domain.sh:1439-1596` (esp. `:1567` compare) |
-| 2 | `Edit` | **Refused**, same identity/shape checks as Write — content is reconstructed from `old_string`/`new_string` against the on-disk prior *before* the identity compare runs | `check-domain.sh:1905-1923` reconstructs; `:1439` re-checks the reconstructed `content`. No separate probe run for state.yaml (digest.md probed instead, same code path) |
-| 3 | `NotebookEdit`/`MultiEdit` | **Covered**, not a gap. Settings.json's matcher `"Write\|Edit"` is unanchored; the harness's own tooling models the host's matcher as `re.search` (`merge-settings.py:151-176`, esp. `:176 return bool(rx.search(tool))`) — `re.search("Write\|Edit","NotebookEdit")` matches on the `"Edit"` substring. `check-domain.sh` already branches on `notebook_path` (`:357-358`) and treats `NotebookEdit` as a named-target Edit-like route (`:1930-1932`). `MultiEdit` is not a live Claude Code tool in this install (no references found outside `merge-settings.py`'s `_TOOL_NAMES` set) — moot. **I could not independently verify the host's actual matcher algorithm** (it lives in the Claude Code binary, not this repo) — this conclusion rests on the repo's own tested assumption (`test-merge-settings.py`), not a first-party host spec. Flagged as `open_questions` Q1. |
+| 1 | `Write` | **Refused** on identity mismatch/malformed/missing-run_id prior; allowed as upsert when `run_id`s match | `check-domain.py:1439-1596` (esp. `:1567` compare) |
+| 2 | `Edit` | **Refused**, same identity/shape checks as Write — content is reconstructed from `old_string`/`new_string` against the on-disk prior *before* the identity compare runs | `check-domain.py:1905-1923` reconstructs; `:1439` re-checks the reconstructed `content`. No separate probe run for state.yaml (digest.md probed instead, same code path) |
+| 3 | `NotebookEdit`/`MultiEdit` | **Covered**, not a gap. Settings.json's matcher `"Write\|Edit"` is unanchored; the harness's own tooling models the host's matcher as `re.search` (`merge-settings.py:151-176`, esp. `:176 return bool(rx.search(tool))`) — `re.search("Write\|Edit","NotebookEdit")` matches on the `"Edit"` substring. `check-domain.py` already branches on `notebook_path` (`:357-358`) and treats `NotebookEdit` as a named-target Edit-like route (`:1930-1932`). `MultiEdit` is not a live Claude Code tool in this install (no references found outside `merge-settings.py`'s `_TOOL_NAMES` set) — moot. **I could not independently verify the host's actual matcher algorithm** (it lives in the Claude Code binary, not this repo) — this conclusion rests on the repo's own tested assumption (`test-merge-settings.py`), not a first-party host spec. Flagged as `open_questions` Q1. |
 | 4 | `Bash` (redirect, `python3 -c`, `tee`, `mv`, `cp`) | **Refused, unconditionally, any checkout** | `bash-write-guard.sh:744-767` (`_run_artifact_guard`), matched *before* the DEC-153 worktree carve-out (`:781-786`) via `_worktree_stripped` (`:729-741`) |
-| 5 | Write/Edit from **inside a worktree path** | **Not defeated** — `check-domain.sh`'s `_norm` (`:1063-1090`) resolves the path through `harness_boundary.checkout_relative`, stripping the worktree prefix before matching `RE_STATE_YAML`; this is the FEAT-30 T-04 fix, whose own comment (`:1066-1084`) documents the prior bug (a two-level worktree layout matched nothing) as already closed | `check-domain.sh:1063-1090`, `harness_boundary.py:114+` |
-| 6 | Payload with **no `agent_type`** | **Still refused** — the domain (who-may-write) phase is skipped (`_domain_phase = _governed and not _post`, `:328`), but the shape/identity phase is **not** gated on `_governed` by explicit design: `"the shape phase runs for EVERY writer including the main session, because the no-agent_type carve-out is the _governed FLAG and not an exit"` | `check-domain.sh:1360-1364` |
-| 7 | Session with **no PyYAML importable** | **Allowed (fail-open), by deliberate documented tradeoff** — `if _no_parser: return out` (bare early return, no identity check performed) | `check-domain.sh:1454-1476`, esp. the `1471` comment explaining the tradeoff (earlier detection given up, not correctness — `check-state.sh` catches the shape violation at next entry, but **not** a clobber, since no invariant checks clobber post-hoc) |
+| 5 | Write/Edit from **inside a worktree path** | **Not defeated** — `check-domain.py`'s `_norm` (`:1063-1090`) resolves the path through `harness_boundary.checkout_relative`, stripping the worktree prefix before matching `RE_STATE_YAML`; this is the FEAT-30 T-04 fix, whose own comment (`:1066-1084`) documents the prior bug (a two-level worktree layout matched nothing) as already closed | `check-domain.py:1063-1090`, `harness_boundary.py:114+` |
+| 6 | Payload with **no `agent_type`** | **Still refused** — the domain (who-may-write) phase is skipped (`_domain_phase = _governed and not _post`, `:328`), but the shape/identity phase is **not** gated on `_governed` by explicit design: `"the shape phase runs for EVERY writer including the main session, because the no-agent_type carve-out is the _governed FLAG and not an exit"` | `check-domain.py:1360-1364` |
+| 7 | Session with **no PyYAML importable** | **Allowed (fail-open), by deliberate documented tradeoff** — `if _no_parser: return out` (bare early return, no identity check performed) | `check-domain.py:1454-1476`, esp. the `1471` comment explaining the tradeoff (earlier detection given up, not correctness — `check-state.sh` catches the shape violation at next entry, but **not** a clobber, since no invariant checks clobber post-hoc) |
 | 8 | **Slug reuse** with a genuinely different run whose `run_id` string happens to equal the prior's | **Allowed as upsert** — the only identity check is `str(prior_run_id) != str(new_run_id)` (`:1567`); no check binds `run_id` to anything besides itself (not to a timestamp, PID, or session token). The playbook's `<purpose>-<squad>` naming rule (`SKILL.md:272-274`) is explicitly **not** unique per cycle. **This is the leading Mode-A candidate.** |
 
 **Probe corroborating routes 1/2 (digest.md, same code path as state.yaml's Write/PRE and Edit
 reconstruction):** built a synthetic root under `$TMPDIR` (`.agents/skills/harness/bin/` copies of
-`check-domain.sh`+`harness_boundary.py`+`harness_yaml.py`, `.harness/team-config.yaml` copied
+`check-domain.py`+`harness_boundary.py`+`harness_yaml.py`, `.harness/team-config.yaml` copied
 verbatim from the worktree for a parseable manifest — read-only copy, not a repo write) with a
 `.harness/synthproj/features/ZZ-PROBE/runs/probe-run-1-validator/digest.md` prior. Three PreToolUse
-payloads run against `bash check-domain.sh`:
+payloads run against `bash check-domain.py`:
 - `Write` with content not extending the prior → `exit=2`, `"run digest already holds a recorded
   digest; this Write would replace rather than extend it."`
 - `Edit` (`old_string="VERDICT: PASS"`, `new_string="VERDICT: PASS\nartifact: notes/original.md"` —
@@ -78,9 +78,9 @@ directory outside `$TMPDIR` was touched.
    test 2). Allowed when the fix is a pure append (probe test 3) — inserting a missing `artifact:`
    line **at the end** of the file is therefore an open repair route today; fixing a mistyped
    `VERDICT:` mid-file, or re-ordering/replacing existing lines, is not.
-2. **Comment contradiction, resolved by probe:** `check-domain.sh:1236-1238` ("intentionally
+2. **Comment contradiction, resolved by probe:** `check-domain.py:1236-1238` ("intentionally
    Write/PRE-only") is **the wrong one** — `bash-write-guard.sh:747-748` ("The Write and Edit routes
-   in check-domain.sh compare…") is what the runtime does, per probe. Repair routes: **Edit** (open,
+   in check-domain.py compare…") is what the runtime does, per probe. Repair routes: **Edit** (open,
    append-only), **a new run directory** (open, always — `state.yaml`'s message and the digest
    guard's both say "write this cycle's [record] into a run directory of its own"), **Bash** (closed,
    unconditionally, `bash-write-guard.sh:744-767`).
@@ -120,7 +120,7 @@ directory outside `$TMPDIR` was touched.
 
 **Mode A:**
 - *Derive `run_id` from something collision-resistant* (session/PID/monotonic timestamp) instead of
-  trusting the author-chosen slug. Surface: `check-domain.sh`'s seed-time convention + whatever seeds
+  trusting the author-chosen slug. Surface: `check-domain.py`'s seed-time convention + whatever seeds
   `state.yaml` first (harness-team skill). Discriminator: `run_id` uniqueness becomes structural, not
   author-discipline. Could be wrong: existing tooling that reads/reports `run_id` as the human-legible
   slug (digests, `check-state.sh` messages) would need updating everywhere it is treated as
@@ -135,7 +135,7 @@ directory outside `$TMPDIR` was touched.
   test.
 - *Enforce slug uniqueness at the guard*, refusing a **second** `state.yaml` write under a slug this
   feature has already used with a *different* actual identity signal (e.g. session id in the payload,
-  if the host ever supplies one). Surface: `check-domain.sh:1439+`. Discriminator: needs an identity
+  if the host ever supplies one). Surface: `check-domain.py:1439+`. Discriminator: needs an identity
   signal independent of `run_id` — none currently exists in the hook payload. Could be wrong: no such
   signal may be available from the host at all, making this option currently unimplementable.
 
@@ -157,7 +157,7 @@ directory outside `$TMPDIR` was touched.
 - **What identity a `digest.md` write carries that could distinguish same-run correction from
   cross-run clobber:** none today beyond the file's own byte-prefix (`#1058`'s compare) — no run id,
   persona, or header is checked against the *directory's* recorded identity the way `state.yaml`'s
-  `run_id` is (`check-domain.sh:1499-1507`'s own comment explains this asymmetry: digest is
+  `run_id` is (`check-domain.py:1499-1507`'s own comment explains this asymmetry: digest is
   legitimately append-only within a run, so a prefix check was chosen over an identity check).
   `validate-digest.py`'s contract (`:1133+`) requires `VERDICT`/`DIGEST:`/`artifact:` fields but none
   of them names the *run*; `harness-team` skill's return template (§10.4, referenced at
@@ -169,9 +169,9 @@ directory outside `$TMPDIR` was touched.
 
 | Fixture | Invocation | Expected | Suite location |
 |---|---|---|---|
-| Two `state.yaml` writes, same `run_id` string, different `feature`/`squad`/`host` payload data | `check-domain.sh` PreToolUse Write, second write | Currently: **allowed** (the gap) — a fix should **deny** or otherwise flag | `tests/integration/test-check-domain.py` (existing state.yaml identity cases already live there per the file's naming — `test-check-domain.py:3057+` shows sibling plan.yaml route cases in this file) |
-| `state.yaml` Edit reconstructing a mismatched `run_id` (not just Write) | `check-domain.sh` PreToolUse Edit | **Deny**, same message class as Write | `tests/integration/test-check-domain.py` |
-| Digest Edit that is a pure append inserting a missing `artifact:` line at file end | `check-domain.sh` PreToolUse Edit | **Allow** (already true today — a regression guard, not a new behavior) | `tests/integration/test-check-domain.py` |
+| Two `state.yaml` writes, same `run_id` string, different `feature`/`squad`/`host` payload data | `check-domain.py` PreToolUse Write, second write | Currently: **allowed** (the gap) — a fix should **deny** or otherwise flag | `tests/integration/test-check-domain.py` (existing state.yaml identity cases already live there per the file's naming — `test-check-domain.py:3057+` shows sibling plan.yaml route cases in this file) |
+| `state.yaml` Edit reconstructing a mismatched `run_id` (not just Write) | `check-domain.py` PreToolUse Edit | **Deny**, same message class as Write | `tests/integration/test-check-domain.py` |
+| Digest Edit that is a pure append inserting a missing `artifact:` line at file end | `check-domain.py` PreToolUse Edit | **Allow** (already true today — a regression guard, not a new behavior) | `tests/integration/test-check-domain.py` |
 | Lead return whose `artifact:` path cannot be resolved (simulated worktree/cwd drift) reaching `check_artifact_file` | `validate-digest.py --hook`, unresolvable path | **Exit 0, fail-open, with the stderr note naming INV-15 as backstop** (documents existing behavior as a regression guard) | `tests/unit/test-validate-digest.py` (module-level function, no hook end-to-end needed) |
 | `check-state.sh` INV-15 given a run dir whose digest lacks `artifact:` | direct script run against fixture `.harness` tree | **Reports the violation** (already true — proves the backstop itself, independent of wiring) | `tests/integration/test-check-state.py` (per this repo's directory-decides-which-script-executes convention; a fixture `.harness` tree plus a full script invocation is integration-shaped, not unit) |
 

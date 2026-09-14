@@ -64,12 +64,12 @@ the dispatch's citations lands on the right paragraph:
   reboot silently re-grants the escape. A permanent bypass by neglect is precisely the failure mode
   this feature exists to design against.
 
-- **D-02: `check-domain.sh`'s duplicate-key detector SURVIVES the conversion, and the shared loader
+- **D-02: `check-domain.py`'s duplicate-key detector SURVIVES the conversion, and the shared loader
   RAISES on a repeated key. `yaml.safe_load` is never called directly on state.yaml content.**
-  Measured: `check-domain.sh:285` extracts top-level keys by regex and `:287` detects duplicates,
+  Measured: `check-domain.py:285` extracts top-level keys by regex and `:287` detects duplicates,
   rendering a DEC-156 denial. `yaml.safe_load` collapses duplicate keys silently, last wins (dev-ops
   probe 5a, output `{'id': 'second'}`, no raise). A task worded "remove all YAML regex from
-  `check-domain.sh`" makes a builder delete a working fail-closed check and replace it with a
+  `check-domain.py`" makes a builder delete a working fail-closed check and replace it with a
   fail-open — the exact defect class this feature exists to remove. The loader is a `SafeLoader`
   subclass overriding `construct_mapping` to raise `ConstructorError` on a repeat (dev-ops probe 5d:
   raises on `id: first / id: second`, leaves normal mappings unaffected, combines with the
@@ -81,17 +81,17 @@ the dispatch's citations lands on the right paragraph:
   2. a `state.yaml` Write whose content is **not valid YAML** now raises where the regex silently found
      no keys. That must **deny with a parse-error message**. This is a **new blocking outcome, not a
      regression** — recorded here so a reviewer does not read it as one.
-  *Trade-off accepted:* `check-domain.sh:280` says `KEEP IN SYNC with CHECKPOINT_KEYS in
+  *Trade-off accepted:* `check-domain.py:280` says `KEEP IN SYNC with CHECKPOINT_KEYS in
   check-state.sh`. After this decision the two twins diverge by **mechanism** (raising loader vs. regex
   scan) while the key *vocabulary* stays in sync. The comment must be updated to say exactly that, or
   the next reader syncs them back and re-opens the fail-open.
 
 - **D-03: the manifest domain walk moves into the shared module as
   `manifest_domains(manifest_path, agent) -> (mine, shared)`, and BOTH call sites are converted to use
-  it.** Verified duplicated: `check-domain.sh:105-126` (`collect()`) and `bash-write-guard.sh:248-263`
+  it.** Verified duplicated: `check-domain.py:105-126` (`collect()`) and `bash-write-guard.sh:248-263`
   are the same logic, and this conversion would otherwise rewrite that line-scan as a dict walk **by
   hand, in both files**. Divergence here is security-relevant, not cosmetic: `bash-write-guard.sh`
-  exists because an agent already routed around `check-domain.sh` (DEC-151), so the two hooks
+  exists because an agent already routed around `check-domain.py` (DEC-151), so the two hooks
   disagreeing about what a domain *is* re-opens that hole. *Trade-off accepted:* the two hooks gain a
   hard dependency on a third file; if `harness_yaml.py` is deleted or unreadable both hooks fail closed,
   which is the correct direction of failure.
@@ -103,7 +103,7 @@ the dispatch's citations lands on the right paragraph:
   (`save_recorded`) is the same shape — a `re.sub` that excises and re-emits the `github:` block.
   Round-tripping either file through `safe_load`/`safe_dump` **strips every comment and reorders every
   key**, and this repo's `state.yaml` and `feature.yaml` files carry load-bearing inline comments (e.g.
-  `FEAT-05/feature.yaml:6-10`, `FEAT-04/feature.yaml:9`). `check-domain.sh:275-298` also validates
+  `FEAT-05/feature.yaml:6-10`, `FEAT-04/feature.yaml:9`). `check-domain.py:275-298` also validates
   `state.yaml` by top-level key on Write, so a reformatting writer would start tripping the hook it
   shares a repo with. **Rule: a script that only writes a YAML file keeps its line operations; a script
   that reads values out of one converts.** *Trade-off accepted, stated plainly:* REQ-01's literal text
@@ -209,9 +209,9 @@ the dispatch's citations lands on the right paragraph:
   immediately after each conversion.** dev-ops re-measured the **full governed hook path** (synthetic
   payload, `agent_type: harness-backend-dev`, `Write`, in-domain path, all four Python blocks confirmed
   to run) at **80.63ms/iter** over 100 iterations — **not** the 23.7ms the grilling recorded, which was
-  the no-`agent_type` one-launch early exit at `check-domain.sh:48`. Converting the blocks at `:97` and
+  the no-`agent_type` one-launch early exit at `check-domain.py:48`. Converting the blocks at `:97` and
   `:235` each adds an `import yaml` (~12ms apiece), pushing an **every-write** hook to roughly 105ms
-  [estimated]. Merging `check-domain.sh`'s four launches into one measured 17.94ms on a simplified proxy
+  [estimated]. Merging `check-domain.py`'s four launches into one measured 17.94ms on a simplified proxy
   and is estimated at 25-35ms for a real merge [dev-ops: lower bound — the proxy omits glob-regex
   compilation and `safe_load`]. So the merge does not make the hook faster than today by accident; it
   is what keeps this feature from shipping a ~30% latency regression on the hottest path in the tree.
@@ -221,7 +221,7 @@ the dispatch's citations lands on the right paragraph:
   merge at lower priority (~17ms).
 
 - **D-11: `glob_to_re` and `matches` stay duplicated. They do not change in this conversion.** Verified
-  duplicated (`check-domain.sh:160-196` == `bash-write-guard.sh:265-287`, including the `re.compile`
+  duplicated (`check-domain.py:160-196` == `bash-write-guard.sh:265-287`, including the `re.compile`
   at `:182` / `:278`). Sharing them is a separate refactor on the two most safety-critical scripts in
   the tree, it is not required by any REQ here, and widening the diff makes the D-03 change harder to
   review. Stated as scope discipline so a builder does not take the shared module as licence.
@@ -235,13 +235,13 @@ the dispatch's citations lands on the right paragraph:
 
 - **D-13: the `read:` tightening is a fix that will read like a regression, and it ships anyway.** The
   domain walk's read-only filter is today `"read: true" not in s` — a substring test on the raw line
-  (`check-domain.sh:122`, `bash-write-guard.sh:260`). A manifest written `read: yes`, `read: True` or
+  (`check-domain.py:122`, `bash-write-guard.sh:260`). A manifest written `read: yes`, `read: True` or
   `read:true` does not match it, so the path lands in `mine` and the agent may write a read-only path:
   a live fail-open. After `safe_load` all three resolve to `True` and the path is correctly excluded,
   so the conversion **newly blocks** writes that pass today. Measured in this repo: all 16 `read:`
   occurrences in `.harness/team-config.yaml` are the canonical `read: true`, and every one is on
   `{ path: ".", read: true }`, which `matches()` already rejects unconditionally
-  (`check-domain.sh:187`). **Zero entries change classification here.** It is recorded because a
+  (`check-domain.py:187`). **Zero entries change classification here.** It is recorded because a
   downstream project's manifest is not covered by that measurement, and a downstream user who suddenly
   cannot write a path needs to find this paragraph.
 
@@ -255,7 +255,7 @@ and confirms each row at final state.
 | File | CONVERT (YAML reads) | STAY, and why |
 |---|---|---|
 | `check-state.sh` | `98` `108` `109` `237` `293` `297` `316` `394` `398` `399` — **10** | `46 47 50` markdown `## Approval` in PLAN.md · `76 78` markdown `T-NN` in PLAN.md · `89` markdown `T-NN` in STATE.md (BRIEF-exempt) · `302` the `CHECKPOINT_KEYS` scan (BRIEF-exempt; set at `277-288`, dup at `303`, unknown at `308`) — **7** |
-| `check-domain.sh` | `112` `119` → `manifest_domains()` (D-03) · `285` → raising loader, **detector at `287` survives** (D-02) — **3** | `157 248` worktree path rewrite · `182` `glob_to_re` compile (D-11) · `263 275 300 321` rel-path routing — **7** |
+| `check-domain.py` | `112` `119` → `manifest_domains()` (D-03) · `285` → raising loader, **detector at `287` survives** (D-02) — **3** | `157 248` worktree path rewrite · `182` `glob_to_re` compile (D-11) · `263 275 300 321` rel-path routing — **7** |
 | `bash-write-guard.sh` | `252` `257` → `manifest_domains()` (D-03) — **2** | `112` heredoc scan · `185` redirect scan · `278` `glob_to_re` compile (D-11) · `298 306` path routing — **5** |
 | `gh-sync.py` | `181` `184` `186` `188` `190` `193` — `load_recorded()` reads `feature.yaml`'s `github:` block — **6** | `128 135 153 157 159` markdown BRIEF/PLAN parsing · `200` `save_recorded` **writer** (D-04) — **6** |
 | `cost-report.py` | **0** — it reads no YAML (D-04) | `112` path-munge `re.sub` · `189` `^cost:` in-place **writer** (D-04) — **2** |
@@ -472,7 +472,7 @@ a conversion. Instead:
 1. Add a short comment above `patch_state_cost` (`.claude/skills/harness/bin/cost-report.py:170`)
    stating that `:189`'s `^cost:` match is a **line-preserving writer**, that it deliberately does not
    round-trip through a YAML parser because `safe_dump` would strip the file's comments and reorder its
-   keys, and that `check-domain.sh:275-298` validates `state.yaml` by top-level key on Write — citing
+   keys, and that `check-domain.py:275-298` validates `state.yaml` by top-level key on Write — citing
    D-04 by name so a future sweep does not "finish the job".
 2. Add the same one-line note beside `:112`, marking it a path-munge, not YAML.
 3. Do **not** add `import harness_yaml` — the script parses no YAML, so a `require_or_die()` here would
@@ -529,7 +529,7 @@ markdown lines `128 135 153 157 159` and nothing in the `176-196` range (6 hits 
 
 `.claude/skills/harness/bin/check-state.sh` is a bash wrapper around one Python heredoc (`:17`). It is
 the **only** in-scope script lacking a `_selfdir`: it derives everything from `root` (`:14-15`), which
-can be wrong. Give it a `_selfdir` computed from `BASH_SOURCE` exactly as `check-domain.sh:60-61` and
+can be wrong. Give it a `_selfdir` computed from `BASH_SOURCE` exactly as `check-domain.py:60-61` and
 `bash-write-guard.sh:38-39` do, and prepend it to `PYTHONPATH` on the existing `python3` invocation:
 
 ```
@@ -633,7 +633,7 @@ key set was never captured. `require_or_bootstrap`'s whole design rests on one o
 entries resolving.
 
 Add **one temporary guarded block** immediately after
-`.claude/skills/harness/bin/check-domain.sh:242` (the `sys.exit(0)` closing the `HOOK_PAYLOAD`
+`.claude/skills/harness/bin/check-domain.py:242` (the `sys.exit(0)` closing the `HOOK_PAYLOAD`
 try/except, so `d` is parsed and `root` — `sys.argv[2]`, `:238` — is in scope), so there is **no stdin
 plumbing and no `settings.json` edit**. The probe **appends to a file; it does not print to stderr.**
 A PreToolUse hook is a subprocess of Claude Code, not of the writing agent, so the agent cannot put a
@@ -685,7 +685,7 @@ build decision.
 verify: `grep -c 'RESOLVED VIA:'
 .harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-harness-backend-dev-hook-identity-probe.md`
 → 1 (the path is named in full, not via `$_`, which is not reliable in a non-interactive shell); and
-`grep -c 'sorted(d.keys())' .claude/skills/harness/bin/check-domain.sh` → **0** (the probe block is
+`grep -c 'sorted(d.keys())' .claude/skills/harness/bin/check-domain.py` → **0** (the probe block is
 removed). Both must hold: a receipt with the block still in the hook means the probe was not cleaned up.
 The receipt is the capture file, so exactly one probe artifact may exist: `ls
 .harness/features/FEAT-05-pyyaml-file-parsers/notes/ | grep -c 'hook-identity-probe'` → **1**. **Grep
@@ -740,7 +740,7 @@ Edit `.claude/skills/harness-init/SKILL.md`:
    D-07 makes the module the single source of truth, and two hand-maintained copies of an install
    command is the divergence class this feature exists to remove.
 4. Add one sentence recording the division of labour eng-lead named: **the init gate is the loud, early
-   check; `check-domain.sh` is the authoritative one.** The init check runs in the user's interactive
+   check; `check-domain.py` is the authoritative one.** The init check runs in the user's interactive
    shell, and that shell's PATH is not proven identical to the hook subprocess's — so the hook
    self-reports `MISSING` from inside its own environment on first invocation, which is the same code
    path the bootstrap escape already needs. That makes the init gate an early warning rather than a
@@ -759,7 +759,7 @@ with `:3` and `:48` unfixed); and
 `grep -c "import yaml" .claude/skills/harness-init/SKILL.md` → at least 1; and
 `ls requirements.txt pyproject.toml package.json 2>&1 | grep -c 'No such file'` → 3.
 
-### T-12 — convert `check-domain.sh`
+### T-12 — convert `check-domain.py`
 
 - owner: harness-backend-dev
 - change_type: logic
@@ -773,8 +773,8 @@ and DEC-171 am.1 deliberately removed the fail-open that used to absorb exactly 
 edit: (a) confirm `python3 -c 'import yaml'` succeeds — T-01 is a hard prerequisite; (b) note that
 `.claude/settings.json` names this script by path, so **renaming or moving it silently disables
 enforcement**; (c) if you wedge yourself, the recovery is `git checkout --
-.claude/skills/harness/bin/check-domain.sh` run from a **Bash** tool call — `harness-dev-ops` is exempt
-from `bash-write-guard.sh` (`:33`), and `check-domain.sh` is a Write/Edit hook, so a `git checkout`
+.claude/skills/harness/bin/check-domain.py` run from a **Bash** tool call — `harness-dev-ops` is exempt
+from `bash-write-guard.sh` (`:33`), and `check-domain.py` is a Write/Edit hook, so a `git checkout`
 restores the file without passing through the broken gate. Write that command down before you begin.
 
 Prepend `PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}"` to the **existing** heredoc invocations at
@@ -809,10 +809,10 @@ pair); a `state.yaml` Write with a duplicate top-level key is blocked with the D
 verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
 `PASS test-check-domain.py`; and
 `grep -nE 're\.(search|findall|match|finditer|sub|split|compile)'
-.claude/skills/harness/bin/check-domain.sh` → exactly 7 hits at `157 182 248 263 275 300 321` (10 at
+.claude/skills/harness/bin/check-domain.py` → exactly 7 hits at `157 182 248 263 275 300 321` (10 at
 `37a8a66` — discriminating).
 
-### T-13 — merge `check-domain.sh`'s four Python launches into one
+### T-13 — merge `check-domain.py`'s four Python launches into one
 
 - owner: harness-backend-dev
 - change_type: logic
@@ -823,7 +823,7 @@ verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh`
 **Regression mitigation, not polish** (D-10). Measured today at **80.63ms/iter** over the full governed
 path; T-12 pushes it to roughly 105ms [estimated] on an **every-write** hook.
 
-Merge the four launches at `.claude/skills/harness/bin/check-domain.sh:35, 74, 97, 235` into one
+Merge the four launches at `.claude/skills/harness/bin/check-domain.py:35, 74, 97, 235` into one
 `python3` invocation that reads `HOOK_PAYLOAD` once and performs the agent extraction, target
 extraction, domain check and state-shape gate in sequence. **Behaviour must be identical**, including
 every early exit: the `agent`-absent exit at `:41`/`:48`, the non-`Write`/`Edit` exits, the exit-2
@@ -836,7 +836,7 @@ The RECOVERY NOTE in T-12 applies here unchanged.
 
 verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
 `PASS test-check-domain.py` (the same test file, unchanged, is the equivalence proof); and
-``grep -cE "python3 -c '|python3 - .*<<'PY'" .claude/skills/harness/bin/check-domain.sh`` → **1**
+``grep -cE "python3 -c '|python3 - .*<<'PY'" .claude/skills/harness/bin/check-domain.py`` → **1**
 (**4** at `37a8a66` — discriminating; a bare `grep -c python3` returns 5 and is wrong, because `:232`
 is a comment that names the interpreter); and a 100-iteration timing of
 the full governed path recorded in the task's DIGEST beside the 80.63ms baseline. **Cost is reported,
@@ -851,7 +851,7 @@ never gated (DEC-134)** — the timing is evidence, not a pass/fail threshold.
 - absorbs: —
 
 **RECOVERY NOTE — same wedge, different tool surface.** This hook gates `Bash`-issued writes and exists
-because an agent already routed around `check-domain.sh` (DEC-151). If you break it, `harness-dev-ops`
+because an agent already routed around `check-domain.py` (DEC-151). If you break it, `harness-dev-ops`
 is exempt from it entirely (`:33`), so a dev-ops-owned `git checkout --
 .claude/skills/harness/bin/bash-write-guard.sh` recovers the file. Write that command down before you
 begin. Do **not** land this before T-12 and T-13: converting the anti-bypass hook while the primary
@@ -954,12 +954,12 @@ variable rather than relying on `$_`, which is not reliable in a non-interactive
 - absorbs: —
 
 **This task exists because T-08 could not cover the hooks and a parenthetical reminder inside T-08 is
-not a schedule.** T-08 ran before `check-domain.sh` and `bash-write-guard.sh` were converted, so their
+not a schedule.** T-08 ran before `check-domain.py` and `bash-write-guard.sh` were converted, so their
 parsed-value consumers were not walkable then. They are now. Without this task the two hooks' consumers
 are **never** swept — and they are the two scripts where a typed-value surprise blocks or permits a
 write rather than printing a wrong number.
 
-Run **exactly the T-08 walk**, same rule, over the converted `.claude/skills/harness/bin/check-domain.sh`
+Run **exactly the T-08 walk**, same rule, over the converted `.claude/skills/harness/bin/check-domain.py`
 and `.claude/skills/harness/bin/bash-write-guard.sh`: every consumer of a value returned by
 `harness_yaml.load_str` / `load_file` / `manifest_domains`, classified by use, with
 **`str()` at the consumer for any value used as a path component, an identifier, or a dict key**;
@@ -970,7 +970,7 @@ Two hook-specific regressions must each be shown handled, by `file:line`:
   glob raises inside `re.escape`/`re.compile` and, in a fail-closed hook, that is a **block on every
   write**, not a wrong answer;
 - every top-level key of a parsed `state.yaml` compared against the `ALLOWED` set at
-  `check-domain.sh:281-284` — a key that YAML resolves to `True`/`int` (e.g. `on:`, `no:`) is no longer
+  `check-domain.py:281-284` — a key that YAML resolves to `True`/`int` (e.g. `on:`, `no:`) is no longer
   the string the set holds, and would be reported as an unknown key.
 
 **Extend the same receipt** —
@@ -982,7 +982,7 @@ receipt is SC-10's single inspection evidence; two would let a reviewer cite the
 that with a re-run of an already-green assertion.** Add to `.claude/skills/harness/bin/test-check-domain.py`:
 `test_yaml_truthy_top_level_key_is_reported_by_name` — a `state.yaml` Write whose top-level key is
 `on:` (YAML 1.1 resolves it to `True`, not the string `"on"`) is denied as an **unknown key, named in
-the message**, and does not raise inside the `ALLOWED` comparison at `check-domain.sh:281-284`. Only
+the message**, and does not raise inside the `ALLOWED` comparison at `check-domain.py:281-284`. Only
 the hook-side `str()` coercion this task applies makes it pass. No `SCRIPTS` edit is needed — the file
 is already in `run-unit-tests.sh`.
 
@@ -1179,7 +1179,7 @@ widened schema "is NOT in force for agents until this branch merges." A reviewer
 act on any of that.
 
 Measured instead, receipt at `notes/receipt-main-session-hook-resolution-probe.md`: a
-probe line in the **worktree's** `check-domain.sh` fired **11 times, identically**, with
+probe line in the **worktree's** `check-domain.py` fired **11 times, identically**, with
 `BASH_SOURCE`, `CLAUDE_PROJECT_DIR` and `pwd` all resolving to the **worktree**. Hooks
 resolve through the same `${CLAUDE_PROJECT_DIR}` in `settings.json`, so:
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: grant parity between a worktree and its owning checkout.
+"""check-domain.py: grant parity between a worktree and its owning checkout.
 
 Slice of the former test-check-domain.py (issue #1527). Its own file because this
 one block is the family's longest serial run: 49 cases, each a hook subprocess.

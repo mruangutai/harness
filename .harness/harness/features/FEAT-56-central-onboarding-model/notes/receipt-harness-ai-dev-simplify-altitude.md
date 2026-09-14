@@ -36,7 +36,7 @@ two hand-edits, and the two are already out of sync.
 three-condition test (the superset `harness-plan.md` already has), and change
 `harness-plan.md:18-20` to read "...or route to `/harness-init` per the Gate check in step 0
 above" — deleting its own re-derivation of the condition list.
-**applicable: false** — both files are under `.claude/commands/**`, which `check-domain.sh
+**applicable: false** — both files are under `.claude/commands/**`, which `check-domain.py
 --resolve` resolves to NOBODY; this squad may not write either. Remedy given above is precise
 enough to apply without re-deriving this analysis.
 **fold-in**

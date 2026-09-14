@@ -1,6 +1,6 @@
 # Re-scope — FEAT-17 — the rooted case is refused as a MISTAKE, not as a hole — 2026-08-11
 
-**Path note.** The dispatch named `notes/rescope-2026-08-11.md`; `check-domain.sh` denied it at
+**Path note.** The dispatch named `notes/rescope-2026-08-11.md`; `check-domain.py` denied it at
 exit 2 — `harness-pm`'s per-feature grant is `notes/research-*.md`. Guard wins (#216), so this is
 that artifact under the granted name.
 
@@ -27,7 +27,7 @@ collision paragraph is updated to the 17 figure.
 
 ## The call on the hoist — CUT, reversible at signature
 
-T-02's root-side check moves from module level (above `check-domain.sh:675`, independent of
+T-02's root-side check moves from module level (above `check-domain.py:675`, independent of
 `_no_parser`) to the START of `domain_check`. Grounds, from `plan.yaml:296-304`'s own text: the
 module-level placement was justified on TWO separable things, and only the parser-contingent one
 died. A check inside `domain_check` runs normally with the parser present.
@@ -83,7 +83,7 @@ is cited from `notes/answers-2026-08-11-rescope.md` directly.
 - `harness_yaml.load_plan(<plan>)` → real dict, keys `schema feature approval lanes decisions tasks`,
   7 tasks, 9 decisions (`D-01`..`D-09`), `approval {'status': 'pending', 'approved_by': 'none',
   'date': 'none'}`. Ran after the final edit, not asserted.
-- `check-domain.sh --resolve` on all 11 union paths: each resolves, each matches its declared lane.
+- `check-domain.py --resolve` on all 11 union paths: each resolves, each matches its declared lane.
 
 ## AMENDMENT — REQ-02 and the Goal scoped to a parser-present session (same day)
 
@@ -123,7 +123,7 @@ its own wording. REQ-09's fail-closed import sits at `bash-write-guard.sh:73`, a
 and on the Write route is gated on `_run_domain` rather than on the parser, so it is unaffected.
 
 **Flagged, not fixed — needs the operator's call.** `## What the root-side rule deliberately does NOT
-cover` cites `check-domain.sh:676` for `if _run_domain and not _no_parser`; at `a29ad06` that line is
+cover` cites `check-domain.py:676` for `if _run_domain and not _no_parser`; at `a29ad06` that line is
 **675** (`sed -n '673,678p'`). T-02's intent carries the same `676`. The dispatch forbade touching
 that section, and a line-anchor edit is still an edit there. One character, or better a re-anchor on
 the condition text.

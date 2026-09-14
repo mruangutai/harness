@@ -118,7 +118,7 @@ independently caught. Ran it live: 31/31 pass.
 
 ## SC-03 — carried forward, byte-identical, verified (not assumed)
 
-All six cited executables (`check-instruction-paths.py`, `check-state.sh`, `check-domain.sh`,
+All six cited executables (`check-instruction-paths.py`, `check-state.sh`, `check-domain.py`,
 `upgrade-config.py`, `gh-sync.py`, `layout_migration.py`) are **absent from `git diff --name-only
 9768681c 44351432`** (confirmed identical to `git diff --name-only cf8a9e4c 44351432`) and spot-
 verified individually via `sha256sum` on `git show <ref>:<path>` at both pins — all six IDENTICAL.

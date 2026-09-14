@@ -89,7 +89,7 @@ All measured at `513c4a4` unless noted.
 - **The amendment convention is written down NOWHERE** — not in `SPEC.md`, not in
   `harness-documentor`'s agent file or skill. It exists only in the generator's regexes, so the new
   rule needs a home and that home is a new `DEC-NN`.
-- **LANES — this feature is entirely squad work.** `check-domain.sh --resolve`:
+- **LANES — this feature is entirely squad work.** `check-domain.py --resolve`:
   `DECISIONS.md` and `DECISIONS-INDEX.md` → `harness-documentor`;
   `gen-decisions-index.py` and `test-gen-decisions-index.py` → `harness-backend-dev harness-dev-ops`.
   Nothing is `main-session-direct`, and `gen-decisions-index.py` is NOT in DEC-174 amendment 4's

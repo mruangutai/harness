@@ -51,10 +51,10 @@ marker syntax remains in `SPEC.md`, `BUILD.md`, `.claude/skills/harness/SKILL.md
 four.
 
 **5. `CLAUDE.md` within budget — VERIFIED.** `wc -l CLAUDE.md` = 73. Budget enforced independently
-of the deleted `check-docs.sh`, at `check-domain.sh:779-780` (`if len(lines) > 80: ... budget is 80
+of the deleted `check-docs.sh`, at `check-domain.py:779-780` (`if len(lines) > 80: ... budget is 80
 (DEC-181)`), under DEC-181's surviving budget half. Matches the commit's "73 of 80 lines" and
 confirms DEC-181 was correctly struck IN PART (not whole) — its entry at DECISIONS.md:5096
-explicitly records the budget half as standing and cites the same `check-domain.sh:779-780` line.
+explicitly records the budget half as standing and cites the same `check-domain.py:779-780` line.
 
 ## Additional checks run before the verdict (beyond the five claims)
 

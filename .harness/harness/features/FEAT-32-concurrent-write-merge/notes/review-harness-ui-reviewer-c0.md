@@ -24,7 +24,7 @@ audit here.
 
 ## Operator-facing refusal text — audited per explicit dispatch instruction (in-remit, not declined)
 
-Traced the new stderr paths in `check-domain.sh`, `dispatch-guard.sh`, `validate-digest.py`, and the
+Traced the new stderr paths in `check-domain.py`, `dispatch-guard.sh`, `validate-digest.py`, and the
 merge-CLI family (`plan-merge.py`, `observations-merge.py`, `expertise-merge.py`,
 `inflight_registry.py`).
 
@@ -39,9 +39,9 @@ literal opening markers, field order, and byte-identical `release_cmd` string, t
    its last line — no placeholder, no truncation. Confirmed byte-for-byte against the constant.
 
 2. **Exit-2 disambiguation — each refusal names itself in text, even though several share exit code
-   2.** `check-domain.sh` alone has ~10 distinct `sys.exit(2)` sites (manifest-parse failure,
+   2.** `check-domain.py` alone has ~10 distinct `sys.exit(2)` sites (manifest-parse failure,
    boundary-module tamper, SHARED-path denial, worktree-placement checks, and the new T-14 approval
-   guard at `check-domain.sh:562-568`) — every one opens with a distinct, specific sentence
+   guard at `check-domain.py:562-568`) — every one opens with a distinct, specific sentence
    (`"check-domain: BLOCKED — {agent} may not change {frag} in {rel}."` for the new approval guard vs.
    `"check-domain: {agent} is writing SHARED path {rel}..."` for the pre-existing denial). Same
    pattern in `dispatch-guard.sh` (new single-flight message vs. the pre-existing model-pin denial)

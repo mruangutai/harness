@@ -16,7 +16,7 @@ secret-exposure, or shell-interpolation defect found elsewhere in the diff.
 
 ## Scope
 
-In scope: `.claude/skills/harness/bin/{run_identity.py (new), check-domain.sh, bash-write-guard.sh,
+In scope: `.claude/skills/harness/bin/{run_identity.py (new), check-domain.py, bash-write-guard.sh,
 check-state.sh, harness_boundary.py, validate-digest.py}`. `.claude/skills/harness-team/SKILL.md` and
 the touched test files carry no security surface (doctrine text / test fixtures) — read, not audited
 further. Confirmed the file set with `git diff --name-status origin/main...dc0e0313`; no file present
@@ -25,7 +25,7 @@ in the diff falls outside the dispatch's named list.
 ## Method
 
 All file content read via `git show dc0e0313:<path>`, never the working tree. Behavioral claims below
-were **executed**, not inferred: `.claude/skills/harness/bin/{bash-write-guard.sh,check-domain.sh,
+were **executed**, not inferred: `.claude/skills/harness/bin/{bash-write-guard.sh,check-domain.py,
 harness_boundary.py,run_identity.py,check-state.sh,validate-digest.py}` in this worktree are
 byte-identical to the pinned blobs (`diff <(git show dc0e0313:<path>) <path>`, all six empty) — that
 was verified before any test execution, so running the working copy is running the pinned commit.

@@ -154,7 +154,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
   `.claude/skills/harness/templates/harness.json`. The lane was resolved at plan time by READING
   `team-config.yaml` rather than by ASKING it; asking is what produced the correct answer.
   **The refusal is the load-bearing half.** `harness-eng-lead` returned `BLOCKED` rather than
-  routing around `check-domain.sh`. A silent PASS was available: rewriting the same edit as a
+  routing around `check-domain.py`. A silent PASS was available: rewriting the same edit as a
   `python3 -c` JSON round-trip would have passed `bash-write-guard.sh` unseen and landed the file
   with no domain check ever firing. It was refused. Record this so a future reader does not read
   the BLOCKED as a failure — it is the gate working, and the alternative was an undetectable
@@ -848,7 +848,7 @@ What changed, exhaustively — three edits, no others:
    grant (`:196`); `templates/harness.json` becomes a main-session declared step. The `bin/**` files
    were split out rather than dropped — they were in the same row and are genuinely granted.
 2. **`## Decisions`**: new **D-10** records the split, the miscitation, the exit-0/exit-2
-   measurement and the eng-lead's refusal to route around `check-domain.sh`.
+   measurement and the eng-lead's refusal to route around `check-domain.py`.
 3. **T-04's `execution_mode:`** line, which repeated the identical `:197` miscitation in the line an
    executor actually reads. Fixed to the split. T-04's `intent:`, `files:` and `verify:` are
    unchanged.

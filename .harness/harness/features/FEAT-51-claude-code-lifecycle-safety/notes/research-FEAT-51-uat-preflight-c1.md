@@ -10,7 +10,7 @@ it is wrong. SC-10 stays `not_met` — I did not grade it.
 
 The claim registry a dispatch writes is the **feature's worktree** when one exists
 (`dispatch-guard.sh:115-126`, swap to `linked_worktrees` matching the feature id), but the quarantine
-branch reads the **owner** root (`check-domain.sh:150-154, 188, 1685-1708`). Observed here: the
+branch reads the **owner** root (`check-domain.py:150-154, 188, 1685-1708`). Observed here: the
 worktree registry holds three live FEAT-51 claims, the main-checkout registry holds `claims: []`
 (`.harness/.inflight-claims.json` vs `.claude/worktrees/harness/FEAT-51-claude-code-lifecycle-safety/.harness/.inflight-claims.json`).
 So for a worktree-claimed feature the boundary sees no claim and passes the orphan's write through:
@@ -40,7 +40,7 @@ whose artifact is a `notes/research-*.md` — never quarantined.
   defaults to the checkout implied by the **script's own location** (`quarantine.py:70-79`), i.e. the
   main checkout. `--root` exists (`quarantine.py:239`) if the operator must aim it elsewhere.
 - **Step 3** — `shasum -a 256 -c` over the Step 0 file is sound, but non-discriminating whenever the
-  orphan's write was routed to a worktree (`check-domain.sh:727-731`): the main-checkout copies
+  orphan's write was routed to a worktree (`check-domain.py:727-731`): the main-checkout copies
   cannot change, so four `OK` is guaranteed independently of the boundary.
 - **Step 4** — `adopt --file` exists (`quarantine.py:243`); for `plan.yaml` it delegates to
   `plan-merge.py`'s union merge (`quarantine.py:185-195`), which is exactly the "pre-existing tasks

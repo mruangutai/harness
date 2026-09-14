@@ -16,7 +16,7 @@ worktree → **exit 0**, 13 scripts PASS, 0 FAIL (`--resolve` block 10/10, route
 
 | SC | V | Method | Covering case / receipt |
 |---|---|---|---|
-| 01 | met | automated | `test-check-domain.py:418` (a), `:423` (b). Both cited grants confirmed: `team-config.yaml:155` (harness-backend-dev) and `:197` (harness-dev-ops), both `.claude/skills/harness/bin/**`. Live resolve returns both, sorted (`check-domain.sh:215`). |
+| 01 | met | automated | `test-check-domain.py:418` (a), `:423` (b). Both cited grants confirmed: `team-config.yaml:155` (harness-backend-dev) and `:197` (harness-dev-ops), both `.claude/skills/harness/bin/**`. Live resolve returns both, sorted (`check-domain.py:215`). |
 | 02 | met | automated | `:429` (c) literal `NOBODY`; `:436` (d) exit 0 **and** non-empty stdout, split out on purpose. |
 | 03 | met | automated | `:441` (e) open pipe answers inside 10s; `:452` (f) closed stdin byte-identical. |
 | 04 | met | automated | `:491` (i) `HARNESS_RESOLVE_PATH` set explicitly in the subprocess env; `:495` (j) empty string. Both assert exit 2 **and** the `may not write` denial text (`:489`), so the four resolve-branch exit-2 sites cannot fake it. VF-1 fix item 3 satisfied. In-domain still 0 at `:467` (h). Independently re-measured with payload files: clean / set / empty all exit 2, in-domain exits 0. |
@@ -34,7 +34,7 @@ worktree → **exit 0**, 13 scripts PASS, 0 FAIL (`--resolve` block 10/10, route
 Clause 4 demands the no-prefix-comparison property be **proved behaviourally**, on a path *granted
 only* through a mid-pattern wildcard. The delivered fixture does neither:
 
-1. `check-domain.sh --resolve .harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md`
+1. `check-domain.py --resolve .harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md`
    returns **`harness-eng-lead` and `harness-orchestrator`** — I ran it. The path is not singly
    granted, contrary to `test-check-plan-routes.py:142-145`.
 2. The orchestrator grant is `.harness/features/**` (`team-config.yaml:28`). A `startswith` on the
@@ -47,7 +47,7 @@ only* through a mid-pattern wildcard. The delivered fixture does neither:
 
 **Behaviour is correct**, which is why the lane is `UNPROVEN` and not `BEHAVIOUR`:
 `check-plan-routes.py` contains no matcher; `resolve_agents` (`:45-67`) is the sole path-decision
-site and shells out to `check-domain.sh --resolve` with stdin closed, called at `:99`.
+site and shells out to `check-domain.py --resolve` with stdin closed, called at `:99`.
 
 This is a **new finding**, not a relay of B-2 (`notes/backlog-detail.md:17-20`, the fnmatch axis) and
 not the stale-`:193` anchor (B-5, a planning defect).

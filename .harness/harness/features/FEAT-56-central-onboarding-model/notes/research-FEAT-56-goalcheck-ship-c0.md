@@ -51,7 +51,7 @@ Six files, six citations, each read via `git show 62debeaf:<path>`:
 |---|---|---|
 | `bin/check-instruction-paths.py` | 12–15 | `MAIN_SESSION_ONLY` rationale is the anchor rule over a clone-relative `core.hooksPath`, not product ownership |
 | `bin/check-state.sh` | 111 | `this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.` (its other three remedies: `:287`, `:406`, `:2373`, all clone-scoped) |
-| `bin/check-domain.sh` | 384–386 | `a product repository never carries one. Run /harness-init in the control-plane clone.` |
+| `bin/check-domain.py` | 384–386 | `a product repository never carries one. Run /harness-init in the control-plane clone.` |
 | `bin/upgrade-config.py` | 4–6 | docstring: a member's `harness.json` `must then be committed to the repository's default branch to be read at all` (remedies at `:192`, `:236`, both clone-scoped) |
 | `bin/gh-sync.py` | 255–256 | skip message: `for a fleet member, that file lives in the member's own repository on its default branch` |
 | `bin/layout_migration.py` | 123–131 | `MARKER` applicability: `Onboarding installs no bin/ into a product repository at all`; marker is `.harness/factory/fleet.yaml` |

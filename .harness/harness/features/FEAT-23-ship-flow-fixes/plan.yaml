@@ -24,13 +24,13 @@ lanes:
       agent: harness-documentor
     - surface: .claude/skills/harness-simplify/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at b7ae135; no persona is granted any path under .claude/skills
+      reason: check-domain.py --resolve returned NOBODY at b7ae135; no persona is granted any path under .claude/skills
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at b7ae135
+      reason: check-domain.py --resolve returned NOBODY at b7ae135
     - surface: .claude/commands/harness-plan.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at b7ae135
+      reason: check-domain.py --resolve returned NOBODY at b7ae135
     - surface: .claude/skills/harness/bin/board-station.py
       lane: team
       agent: harness-backend-dev
@@ -84,7 +84,7 @@ decisions:
       harness-pm applies them to its own draft before the signature; no eng seat edits plan.yaml or
       BRIEF.md.
     because: >-
-      check-domain.sh --resolve at b7ae135 returns harness-pm alone for plan.yaml and BRIEF.md, so
+      check-domain.py --resolve at b7ae135 returns harness-pm alone for plan.yaml and BRIEF.md, so
       an eng applier would be denied mid-run. This is forced by the domain guard, not chosen.
     dec: DEC-195
   - id: D-04
@@ -227,7 +227,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for .claude/skills/harness-simplify/SKILL.md at
+      check-domain.py --resolve returned NOBODY for .claude/skills/harness-simplify/SKILL.md at
       b7ae135; no persona is granted any path under .claude/skills, so a dispatched write would be
       refused mid-run.
     depends_on: []
@@ -336,7 +336,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for both .claude/skills/harness/SKILL.md and
+      check-domain.py --resolve returned NOBODY for both .claude/skills/harness/SKILL.md and
       .claude/commands/harness-plan.md at b7ae135.
     depends_on: [T-02]
     status: done
@@ -425,7 +425,7 @@ tasks:
 
       State on that bullet that the plan-surface pass is FLAG-ONLY: the findings return to
       harness-pm, which applies them to its own draft before the signature. This is not a style
-      choice — check-domain.sh grants plan.yaml and BRIEF.md to harness-pm alone, so any other seat
+      choice — check-domain.py grants plan.yaml and BRIEF.md to harness-pm alone, so any other seat
       applying them would be refused mid-run (D-03). And it is the entire point of moving the pass
       earlier: on FEAT-22 the pass ran after the signature and not one finding could be applied.
 
@@ -513,7 +513,7 @@ tasks:
           mechanical. Measured at b7ae135: no script in the tree validates the roster, so the cost
           of a seventeenth agent is doctrinal, not CI breakage. Record this so a future scan does
           not re-suggest it.
-        - That the plan-surface pass is flag-only because check-domain.sh grants plan.yaml and
+        - That the plan-surface pass is flag-only because check-domain.py grants plan.yaml and
           BRIEF.md to harness-pm alone. This is forced by the guard, not chosen.
         - References to DEC-107, DEC-86, DEC-118 and DEC-174 in the body, so the generator picks
           them up as refs on the index row.
@@ -754,7 +754,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for .claude/commands/harness-plan.md at b7ae135.
+      check-domain.py --resolve returned NOBODY for .claude/commands/harness-plan.md at b7ae135.
     depends_on: [T-03, T-05]
     status: done
     files:

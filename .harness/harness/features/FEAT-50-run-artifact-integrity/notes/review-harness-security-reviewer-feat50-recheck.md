@@ -23,7 +23,7 @@ real linked worktree (`.git/worktrees/<id>/gitdir` + worktree-side `.git` pointe
 
 ```
 bash-write-guard.sh (Bash route)  exit=2  "...is a feature artifact whose write belongs in worktree .../.claude/worktrees/FEAT-SECCHK-thing..."
-check-domain.sh (Write route)     exit=2  "...is a feature artifact whose write belongs in worktree..."
+check-domain.py (Write route)     exit=2  "...is a feature artifact whose write belongs in worktree..."
 ```
 
 Both routes now agree (2/2), closing the exact divergence in the finding.
@@ -49,7 +49,7 @@ proving the added line, and only that line, is what closes it. Shipped regressio
 
 ## Finding 3 (MED, security) — CLOSED, and confirmed NOT a blanket deny
 
-Fix: `check-domain.sh:1142-1155` — `prior = None` by default; `FileNotFoundError` only sets
+Fix: `check-domain.py:1142-1155` — `prior = None` by default; `FileNotFoundError` only sets
 `prior = ""` when `os.path.lexists` is also false (i.e. genuinely absent, not a broken symlink); any
 other `OSError` (`PermissionError`, `IsADirectoryError`) leaves `prior = None`; `prior is None` denies.
 
@@ -96,14 +96,14 @@ finding, not touched by `dca2d3d..HEAD`) still grades FAIL at cyc 8/ABC 51 — o
 
 **`bash-write-guard.sh`** (`verdict["outcome"]`):
 
-| outcome | reached only when write is allowed to land? | `feature_checkout_guard` runs? | agrees with `check-domain.sh`? |
+| outcome | reached only when write is allowed to land? | `feature_checkout_guard` runs? | agrees with `check-domain.py`? |
 |---|---|---|---|
 | `out_of_place_worktree` (+ unparsed) | no — `deny()` exits 2 unconditionally | n/a (already refused) | yes, same shape refusal |
 | `allow` / `not_a_domain_question` | yes | **yes** (pre-existing, `:781`) | yes |
 | `shared` | yes | **yes** (this fix, `:785`) | yes |
 | final fallthrough (target outside domain) | no — `deny()` exits 2 | n/a (already refused) | yes |
 
-**`check-domain.sh`** (`_verdict["outcome"]`):
+**`check-domain.py`** (`_verdict["outcome"]`):
 
 | outcome | write lands? | `feature_checkout_guard` runs? |
 |---|---|---|
@@ -128,7 +128,7 @@ refactor + already-reviewed doc/plan/BRIEF files unchanged since `dca2d3d`):
 - `bash-write-guard.sh:785` — one added line, no new `except`/fallback/silent return. Calls a
   pre-existing `feature_checkout_guard` whose own `except Exception: return` absorb-on-bug behavior was
   already in scope of the prior review cycle, not new here.
-- `check-domain.sh:1140-1158` — new `except FileNotFoundError` / `except OSError: pass` pair, audited
+- `check-domain.py:1140-1158` — new `except FileNotFoundError` / `except OSError: pass` pair, audited
   above (task 1/finding 3 table): every OSError variant other than a proven-absent path now denies;
   no new silent-allow path introduced.
 

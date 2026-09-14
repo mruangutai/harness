@@ -63,7 +63,7 @@ not a shape stub; `_record_handoff_result(..., 0)` gates on exit 0.
 Integration line (`note:38`) **is** the pin measurement: exit 0, 46 files, 0 `FAIL`, 63.70s,
 explicitly labelled "at the cycle-16 seam" — identical to main's seam figures. The unit line
 (`note:37`, exit 0, 28 files, 3.97s) is **not** a pin measurement: last written at `dee707e9`, and
-`bash-write-guard.sh`, `check-domain.sh` and `run_identity.py` all changed after it. No FAIL line
+`bash-write-guard.sh`, `check-domain.py` and `run_identity.py` all changed after it. No FAIL line
 and no non-zero exit is recorded, so the criterion's FAILS clause does not fire → **F-02, advisory.**
 
 ## Leg 5 — the amended sentences, read in place: **coherent**

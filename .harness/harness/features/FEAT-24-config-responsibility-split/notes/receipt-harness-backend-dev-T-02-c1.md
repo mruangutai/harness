@@ -196,7 +196,7 @@ making that edit; this is a recommendation for spawn 2, per the instruction not 
 - Other suites going red (`test-factory-claim.py`, `test-factory-decompose.py`,
   `test-factory-land.py`, `test-factory-integration.py`, `test-check-domain.py`) is T-03's job,
   not touched here.
-- `factory_config.py`, `fleet.yaml`, `check-state.sh`, `check-domain.sh`,
+- `factory_config.py`, `fleet.yaml`, `check-state.sh`, `check-domain.py`,
   `bash-write-guard.sh`, `validate-digest.py` — not written.
 
 ## Note on this spawn's own verify, and the VERDICT

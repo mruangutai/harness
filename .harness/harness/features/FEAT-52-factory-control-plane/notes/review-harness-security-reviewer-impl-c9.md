@@ -14,7 +14,7 @@ dynamically disproven as currently exploitable).
 | `inject-expertise.sh` (+33/-9) | trust-boundary machinery | audited in depth — clean |
 | `check-instruction-paths.py` (new, 128 ln) | doc linter, CI-gated | audited — read-only, no runtime write-authorization role, clean |
 | `inflight_registry.py` (+8/-1) | adds `feature-root` CLI verb, thin wrapper over unchanged `feature_root()` | audited — clean |
-| `check-domain.sh`, `harness_boundary.py` | **write-authorization boundary named in scope** | confirmed **byte-identical, zero diff** in this range (`git diff --stat` empty for both) |
+| `check-domain.py`, `harness_boundary.py` | **write-authorization boundary named in scope** | confirmed **byte-identical, zero diff** in this range (`git diff --stat` empty for both) |
 | `run-unit-tests.sh` (+2), `.github/workflows/tests.yml` (+18) | CI gating | audited — both correctly read the real exit code, no silent-pass pattern |
 | `test-anchor-directions.py`, `test-check-instruction-paths.py`, `test-inflight-registry.py` (+66, pre-existing file), `test-inject-expertise.py` (+19/-4), `test-check-domain.py` (+42, pre-existing file) | test coverage | ran directly (not just read) — see Evidence |
 | `DECISIONS.md` (+64, DEC-212), `DECISIONS-INDEX.md` (+1) | design record | audited — documents and accepts the exit-0 fail-open contract for `inject-expertise.sh`, cites the two rejected alternatives (granting the shell-less leads `Bash`; a second injected value), matches shipped code |
@@ -81,11 +81,11 @@ future-proofing rather than an active fix.
   the function is always followed by an unconditional final `exit 0`; T-14's `case14` text-scans the
   shipped script for `^[ \t]*exit [1-9]` with a proven positive control. I ran it directly: 18/18
   cases pass, including `case14`.
-- **check-domain.sh / harness_boundary.py — the write-authorization boundary**: confirmed
+- **check-domain.py / harness_boundary.py — the write-authorization boundary**: confirmed
   byte-for-byte unchanged in this diff. SC-15 ("an absolute feature-tree path is allowed from a
   foreign working directory") is **pre-existing behavior**, not new capability — the diff only adds a
   test proving it. I ran that test directly (`_feat52_foreign_cwd_receipt_pair` in
-  `test-check-domain.py`, executed via `importlib`, not just read): it fires `check-domain.sh` with a
+  `test-check-domain.py`, executed via `importlib`, not just read): it fires `check-domain.py` with a
   `Write` to the absolute worktree receipt path from a foreign product-shaped `cwd`, asserts exit 0,
   and fires the SAME payload against the in-product twin path, asserting exit 2. Result: **True** — the
   pair discriminates correctly. No write permission is widened by this feature.
@@ -116,7 +116,7 @@ future-proofing rather than an active fix.
   contract), not independently re-verified further here — flagging for the validator-lead's awareness
   rather than duplicating.
 - `PF-109101235d1aa59cc5da112515d9e256` (open, med, reader `goalcheck`): states no test fires
-  `check-domain.sh` on the anchored absolute receipt path with the agent standing in a product base.
+  `check-domain.py` on the anchored absolute receipt path with the agent standing in a product base.
   **This appears to already be addressed**: `test-check-domain.py`'s `_feat52_foreign_cwd_receipt_pair`
   (added in this diff, see SC-15 above) does exactly that, and I ran it directly and confirmed it
   passes. Recommend the panel/goalcheck disposition be reconciled against this evidence rather than

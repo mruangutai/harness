@@ -32,7 +32,7 @@ count itself grew across the rebase/migration. Both kinds' declared sets were fu
 **Suite-owner note:** I was the sole process executing `run-unit-tests.sh`/`check-state.sh` in this
 worktree for the full ~3.5 minutes; no other job of mine touched the tree during either run.
 
-## 2. Mutation re-run 1 — `_I` case-fold patterns (check-domain.sh)
+## 2. Mutation re-run 1 — `_I` case-fold patterns (check-domain.py)
 
 Baseline `run_t09()` (imported as a module, isolated from the rest of the suite): **0 fails.**
 
@@ -87,7 +87,7 @@ refuse-everything stub, since the loader itself never refuses. It does. **Genuin
 not YAML-loader-only.**
 
 Both files restored via `git checkout --` after each mutation; `git status --porcelain` on
-`check-domain.sh` and `plan-merge.py` confirmed clean after every restore (final check at the end
+`check-domain.py` and `plan-merge.py` confirmed clean after every restore (final check at the end
 of this note, together with `plan-sign-gate.py`).
 
 ## 4. Test-matrix gate
@@ -116,7 +116,7 @@ finding, not asserted satisfied.
 
 ## 5. H-01 / H-02 closures re-verified at source, by mutation
 
-**H-01 (`check-domain.sh` `_route_candidates`/`_plan_route`, lines 1490-1513).** Baseline
+**H-01 (`check-domain.py` `_route_candidates`/`_plan_route`, lines 1490-1513).** Baseline
 `run_t09()`: 0 fails. Mutated `_route_candidates` to `return [_norm(path)]` (no symlink walk):
 **3 fails** — both the symlink-denial case and the refusal-names-the-target case, plus the POST
 reporter case. Restored, `git status --porcelain` clean. Uses `readlink`-walking
@@ -169,7 +169,7 @@ and the unresolved disposition status.
 
 | commit | claim | measured |
 |---|---|---|
-| `42bc5fe` (H-01+H-02, = `707b547` pre-rebase, identical diffstat) | fix + test together | **holds** — `check-domain.sh`+`test-check-domain.py`, `plan-sign-gate.py`+`test-plan-sign-gate.py`, all four in one commit |
+| `42bc5fe` (H-01+H-02, = `707b547` pre-rebase, identical diffstat) | fix + test together | **holds** — `check-domain.py`+`test-check-domain.py`, `plan-sign-gate.py`+`test-plan-sign-gate.py`, all four in one commit |
 | `c4da870` (two coverage gaps, = `5dc5374` pre-rebase, identical diffstat) | test-only, no production change needed | **holds, and correctly test-only** — `test-check-domain.py`+`test-plan-merge.py` only. No source change is required because both guards (`_I` widening, `_verify_signature`'s wiring) already existed; this commit closes coverage debt, not new behavior. No test-first violation: nothing to precede |
 | `542e888` (rebase + BUG-1055 migration) | data migration, not new behavior | **holds as migration, not TDD-applicable** — one file changed, a single `status` key deleted from `BUG-1055-code-grade-absent-path/feature.json`. No dedicated test added, but the change is validated by the standing `check-state.sh`/schema sweep (§1, 0 violations) rather than by a new assertion — consistent with T-07's own prior migration of ten other directories, which also added no per-directory test |
 | `1a155ed` | re-pin `review_sha` | metadata-only, no test-first question applies |

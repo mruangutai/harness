@@ -1,6 +1,6 @@
 # Observations - harness-pm
 
-- 2026-09-06: BUG-201 — `check-domain.sh --resolve` on a feature `notes/<name>.md` path returns
+- 2026-09-06: BUG-201 — `check-domain.py --resolve` on a feature `notes/<name>.md` path returns
   `harness-orchestrator` ONLY, so a task whose deliverable is a note under a feature's `notes/`
   cannot be given to a dev specialist. I had planned a dev-ops task to record the before/after
   corpus verdict as a note and had to fold that proof into a permanent unit assertion (T-04) plus

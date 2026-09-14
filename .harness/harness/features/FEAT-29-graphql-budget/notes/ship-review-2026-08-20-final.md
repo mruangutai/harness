@@ -81,7 +81,7 @@ Unstruck rows become issues on your ship acceptance; anything not listed dies si
 | B-11 | Nothing serialises two leads' members against one checkout; `mutates_repo` is per-lead-DAG | bug |
 | B-12 | `integration.detect` names 4 files while `INTEGRATION_SCRIPTS` runs 12; `unit.detect` matches all 30 | bug |
 | B-13 | `factory_gh.py:359-363` spins forever on `hasNextPage: true` with a null `endCursor` | bug |
-| B-15 | `check-domain.sh` binds Edit/Write but not Bash (DEC-85) | bug |
+| B-15 | `check-domain.py` binds Edit/Write but not Bash (DEC-85) | bug |
 | B-16 | `SubagentStop` forces a digest from a lead with a member in flight — **seven occurrences here**, the largest single source of waste | bug |
 | B-17 | `factory_config.harness_root()` falls back to the real checkout when `CLAUDE_PROJECT_DIR` lacks `SPEC.md` | bug |
 | B-18 | A task `verify:` reading the working tree cannot distinguish committed from uncommitted work | bug |

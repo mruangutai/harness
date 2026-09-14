@@ -182,9 +182,9 @@ what I measured rather than confirming a red I never saw.
 ## Stale found — not fixed, out of scope
 
 `.harness/harness/docs/SPEC.md:448-450` cites `.claude/skills/harness/bin/harness_boundary.py:158`
-as the site where `check-domain.sh` "fails CLOSED" on a bad fleet entry. **That anchor is wrong.**
+as the site where `check-domain.py` "fails CLOSED" on a bad fleet entry. **That anchor is wrong.**
 `harness_boundary.py:151-169` is `linked_worktrees`, and `:158` is its docstring's
-"NO GIT SUBPROCESS: DEC-193 forbids one…" line. Grepping the module and `check-domain.sh` for
+"NO GIT SUBPROCESS: DEC-193 forbids one…" line. Grepping the module and `check-domain.py` for
 `fails closed`/`FleetError` returns nothing; the deny path is `classify`'s
 `{"outcome": "deny", …}` at `harness_boundary.py:711`. The claim is true; only the pointer rotted.
 Not fixed here: the dispatch scoped me to row 145 of §2.2 and told me not to restructure other
@@ -223,7 +223,7 @@ AFTER — `.harness/harness/docs/SPEC.md:450`:
 (`.claude/skills/harness/bin/harness_boundary.py:711`). The first factory run against it
 ```
 
-The prose it supports — "because `check-domain.sh` then fails CLOSED the symptom is not a failed
+The prose it supports — "because `check-domain.py` then fails CLOSED the symptom is not a failed
 onboarding but every agent write in this repository BLOCKED" — is TRUE and is unchanged. This is a
 pointer repair, not a prose edit.
 

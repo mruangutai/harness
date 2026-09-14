@@ -32,7 +32,7 @@ grant map for this run.
   `T-NN added`) — the one repo-adjacent hit (`test-harness-yaml-corpus.py`'s
   `TEAMS_EXPECTED` comment) follows the pre-existing, repo-wide FEAT-NN/T-NN
   provenance-comment convention (seen in dozens of files: `harness_boundary.py`,
-  `check-domain.sh`, `gh-sync.py`, etc.) and states a present rule plus its
+  `check-domain.py`, `gh-sync.py`, etc.) and states a present rule plus its
   decision citation (D-15), not a bare change narration — not new complexity, so not
   flagged.
 - Confirmed the two `harness-validator-lead.md` files (`.claude/agents/`,

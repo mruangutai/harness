@@ -330,7 +330,7 @@ than its own. Strong form: not "the citations resolve", but "nothing was altered
 - Three live defects it surfaced, all independent of this DoD: `merge-gate.py:169`
   (`if not owners: return`) silently ALLOWS a merge it cannot resolve; `branch-create-gate.sh`
   would deny branch creation for every non-materialised flow post-convergence, with a false
-  message; `check-domain.sh:2150`'s worktree tier has been reaching nothing whenever the hook fires
+  message; `check-domain.py:2150`'s worktree tier has been reaching nothing whenever the hook fires
   from inside a worktree, because `.git` is a file there and the `OSError` is swallowed. The third
   matters most: the claim that the corpus is read-only inside a worktree rests on that tier.
 - `settings.json` registers nine hook commands, all through `${CLAUDE_PROJECT_DIR}`, and the five
@@ -374,7 +374,7 @@ never folded back.
 1. **D-3 is narrowed by SUBJECT, not by LOCATION.** The rule stated above reads "only audit the
    active worktree". What was signed is narrower in what an audit examines and explicit about where
    it runs: a feature worktree's audit covers its own feature, and the four repo-level record audits
-   — `board_lifecycle.py`, `check-plan-routes.py`, `validate-feature-json.py`, `check-domain.sh`'s
+   — `board_lifecycle.py`, `check-plan-routes.py`, `validate-feature-json.py`, `check-domain.py`'s
    peer sweep — read **the owner root** (N-10, behind one `feature_corpus` seam). That follows this
    note's own altitude reasoning, that a repo-wide record audit belongs where the record is
    complete; the original sentence just did not say it. Read D-3 as: no audit sweeps the corpus

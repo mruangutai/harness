@@ -2,7 +2,7 @@
 
 **YES — the plan as drafted delivers the operator's stated intent.** The single most important gap is
 on the EVIDENCE side, not the behaviour side: `SC-05`'s line anchors (`BRIEF.md:88`) are pre-fix
-positions that T-02's insertion at `check-domain.sh:1149` shifts by ~14, so the reviewer reads
+positions that T-02's insertion at `check-domain.py:1149` shifts by ~14, so the reviewer reads
 unrelated code at review time. No finding is `high`.
 
 ## Item verdicts

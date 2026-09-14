@@ -10,7 +10,7 @@ enforced by a standing mechanism, not left to drift.
 `git diff 7ebfc9e..8a7c75c -- .claude/skills/harness/bin .harness/harness.json .github/workflows`
 (26 files, 654+/240-). Of those, all but four are pure prose edits inside comments/docstrings
 renumbering `DEC-186`→`DEC-203`, `DEC-171 am.1`→`DEC-171`, `DEC-138 am.N`→`DEC-138` (`board_lifecycle.py`,
-`check-domain.sh`, `check-plan-routes.py`, `check-state.sh`, `factory_decompose.py`, `gh-sync.py`,
+`check-domain.py`, `check-plan-routes.py`, `check-state.sh`, `factory_decompose.py`, `gh-sync.py`,
 `harness_yaml.py`, `plan-merge.py`, `test-board-lifecycle.py`, and `tests.yml`'s two comments) — no
 REUSE surface there.
 

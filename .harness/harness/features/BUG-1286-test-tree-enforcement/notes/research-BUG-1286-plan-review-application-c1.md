@@ -1,6 +1,6 @@
 # Plan-review application — BUG-1286, fix cycle 1
 
-**Path note:** the dispatch named `notes/plan-review-application-c1.md`; `check-domain.sh` denies
+**Path note:** the dispatch named `notes/plan-review-application-c1.md`; `check-domain.py` denies
 that name for harness-pm (grants are `notes/research-*.md` and `notes/uat-*.md`). This file is the
 same artifact under a granted name — per harness-handoff #216, the guard wins over the dispatch.
 

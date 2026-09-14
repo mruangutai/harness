@@ -11,9 +11,9 @@ nothing committed, HEAD still `0a120c6`.
 |---|---|---|---|
 | 145 | `grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh` | `CRAFT_LINE_BUDGET = 150` | entry states a numeric budget enforced by a named script; the constant is the enforcement |
 | 157 | `grep -F "\"max_total_cycles\": 10" .harness/harness.json` | `"max_total_cycles": 10` | entry states the default *lives in harness.json with value 10* — a literal in a config file |
-| 181 | `grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.sh` | `budget is 80 (DEC-181)` | MANDATORY 1. Claims the **enforcement message**, not a line number, so it survives the gate moving inside the file or the file moving |
+| 181 | `grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.py` | `budget is 80 (DEC-181)` | MANDATORY 1. Claims the **enforcement message**, not a line number, so it survives the gate moving inside the file or the file moving |
 | 181 | `grep -c -m 81 -e "" CLAUDE.md` | `12` | MANDATORY 2. `CLAUDE.md` is within budget. See the caveat below |
-| 181 | `grep -F "budget is 300" .claude/skills/harness/bin/check-domain.sh` | `budget is 300` | MANDATORY 3. Claimed against `check-domain.sh`'s own `feature.json` message, never against another decision |
+| 181 | `grep -F "budget is 300" .claude/skills/harness/bin/check-domain.py` | `budget is 300` | MANDATORY 3. Claimed against `check-domain.py`'s own `feature.json` message, never against another decision |
 | 183 | `grep -F "name: Plan-route gate" .github/workflows/tests.yml` | `name: Plan-route gate` | the promotion IS the step existing in the workflow |
 | 183 | `grep -F "violation(s) across" .claude/skills/harness/bin/check-plan-routes.py` | `violation(s) across {processed} plan(s)` | the entry quotes the checker's final line as the thing the step parses for M; the f-string is that line |
 | 183 | `grep -F "run-unit-tests.sh" .github/CODEOWNERS` | `run-unit-tests.sh  @mruangutai` (two spaces) | entry says CODEOWNERS covering `run-unit-tests.sh` is committed; file existence + ownership row |

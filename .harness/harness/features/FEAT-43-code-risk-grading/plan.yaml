@@ -43,10 +43,10 @@ lanes:
       agent: harness-pm
     - surface: .claude/skills/harness-code-risk-grading/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
+      reason: check-domain.py --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
     - surface: .claude/skills/harness-code-review/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, measured at 6e4a273
+      reason: check-domain.py --resolve returns NOBODY, measured at 6e4a273
     - surface: .omp/agents/**
       lane: main-session-direct
       reason: deliberately unowned by team-config.yaml ruling; the org's constitution is not an agent's to change
@@ -310,7 +310,7 @@ tasks:
     traces: [REQ-01, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
+    execution_reason: check-domain.py --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
     depends_on: [T-01]
     status: done
     files:
@@ -554,7 +554,7 @@ tasks:
     intent: |
       The defect, measured 2026-08-27. check-plan-routes.py printed OK for a task route minutes before
       every write on that route was denied. The mechanism: the write hook is registered in
-      settings.json as CLAUDE_PROJECT_DIR joined to .claude/skills/harness/bin/check-domain.sh, so at
+      settings.json as CLAUDE_PROJECT_DIR joined to .claude/skills/harness/bin/check-domain.py, so at
       hook time it resolves the OWNER checkout's .harness/team-config.yaml. check-plan-routes.py run
       from inside a feature worktree with CLAUDE_PROJECT_DIR unset falls back to the root derived from
       its own file location, which is the WORKTREE, and reads the BRANCH's team-config.yaml. The two
@@ -564,7 +564,7 @@ tasks:
       The fix. Before resolving any route, determine the manifest the hook will consult: take the
       resolved root, ask harness_boundary.worktree_owner for its owner checkout, and use the owner's
       .harness/team-config.yaml. When that owner differs from the branch checkout, invoke the
-      check-domain.sh script in the owner checkout — the same resolver script the live hook invokes —
+      check-domain.py script in the owner checkout — the same resolver script the live hook invokes —
       rather than setting the retired HARNESS_PROJECT_DIR override. Print one line naming the absolute
       manifest path actually used, on every run, so the answer is never silently about a different tree.
 

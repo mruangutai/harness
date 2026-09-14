@@ -8,7 +8,7 @@
   in this repo, and (2) the gate has no notion of quoting — it scans the whole command text. Raised as
   a non-blocking open_question in the handoff.
 - 2026-08-20: the dispatch named two consumers of the fixed segment count; there are four. The two it
-  did not name are inside check-domain.sh's shape phase (_norm at :644, SWEEP_GLOBS at :602), spelled
+  did not name are inside check-domain.py's shape phase (_norm at :644, SWEEP_GLOBS at :602), spelled
   locally on purpose because that phase's import of harness_boundary is absorbing rather than
   fail-closed. Pattern worth keeping: when a lead cites "line X and line Y", grep the constant's own
   module comment for a list of deliberate non-consumers before believing the count.

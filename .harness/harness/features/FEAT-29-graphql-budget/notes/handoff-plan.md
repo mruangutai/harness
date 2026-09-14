@@ -16,7 +16,7 @@ via `harness-validator-lead`. Then write `notes/layer0-segments-FEAT-29.md`'s ba
   `.harness/harness/features/FEAT-29-graphql-budget/plan.yaml:5`, `BRIEF.md:148` — verified-at 3920513
 - Q1 (board pruning) is RULED code-fix-only; nine tasks, none added — `BRIEF.md:141` — verified-at 3920513
 - Lanes unchanged at the branch point; `gh_board.py`/`factory_gh.py`/`gh_cost_log.py`/`gh-sync.py` →
-  `harness-backend-dev, harness-dev-ops`, `CLAUDE.md` → `NOBODY` — `check-domain.sh --resolve` output —
+  `harness-backend-dev, harness-dev-ops`, `CLAUDE.md` → `NOBODY` — `check-domain.py --resolve` output —
   verified-at 3920513
 - `check-plan-routes.py` = `0 violation(s)`, exit 0; `DEVIATION` on T-06/T-07/T-09 is correct output —
   run at 3920513 — verified-at 3920513

@@ -23,7 +23,7 @@ build at T-09, the only ready task with no `depends_on`.
 - No prior grade is retained: all five already-met SC markings were dropped, four of them because a
   new task rewrites their subject — `notes/research-FEAT-56-replanfix-c1.md` — verified-at 52f8866a
 - Six of the nine new tasks are main-session-direct and no agent may write their files —
-  `check-plan-routes.py` 0 violations, `check-domain.sh --resolve` per path — verified-at 52f8866a
+  `check-plan-routes.py` 0 violations, `check-domain.py --resolve` per path — verified-at 52f8866a
 - D-12 is pm's decision on the one thing the plan had left undecided and is the operator's to
   overrule at signature — `plan.yaml` `decisions:` — verified-at 52f8866a
 - Budget has headroom: `cycles_used` 13 of `max_total_cycles` 22, the operator's raise for this

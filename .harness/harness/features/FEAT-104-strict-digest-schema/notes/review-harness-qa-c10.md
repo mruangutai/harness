@@ -27,7 +27,7 @@ task exists.
 - `logic.always` = `[unit]` → **unit is the entire template floor** for this feature.
 - `docs.always` = `[]`, `scaffolding.always` = `[]` → contribute nothing.
 - **qa-added, beyond the floor**: `integration`. The diff rewrites `validate-digest.py`,
-  `check-domain.sh`, `check-state.sh` and `run-state-schema.json` — the three gate scripts BRIEF.md's
+  `check-domain.py`, `check-state.sh` and `run-state-schema.json` — the three gate scripts BRIEF.md's
   own "Verification gaps" section names as resting entirely on `integration` (`test_kinds` has runners
   for `unit`/`integration` only; every `verify: automated` SC above cites `evidence: integration`).
   Dropping this below the floor would leave all sixteen SCs unverified. This is the identical addition
@@ -81,7 +81,7 @@ CLOSED** at this pin (case present, ran, passed; not vacuous — see c9's own di
 `review-harness-qa-c9.md:68-73`, unchanged since no source line moved).
 
 ## 4. Adequacy of the c9→c10 delta — does the suite bind the two new clauses, and can it redden?
-Read (not executed against, DEC-174) `.claude/skills/harness/bin/check-domain.sh:1618-1667`:
+Read (not executed against, DEC-174) `.claude/skills/harness/bin/check-domain.py:1618-1667`:
 `_schema_errors`/`_offending` are populated only inside the `if _valid_version and isinstance(doc,
 dict):` block reached on the undeclared-step-key/evidence-shape path; `"run-state-schema.json"` is
 emitted at :1656 and backticked `` `evidence` `` at :1657, **both inside that one block**. The only
@@ -97,7 +97,7 @@ token reddens the case (each substring is independently `and`-ed, not folded int
 repo Expertise G-12 checked and does not apply here).
 
 **Caveat — REASONED, not mutation-executed** (DEC-174 author-nothing forbids editing
-`check-domain.sh` even in a disposable worktree copy under this dispatch's constraints, and this
+`check-domain.py` even in a disposable worktree copy under this dispatch's constraints, and this
 dispatch is explicitly gate-only/author-nothing). This is the same posture the adopted note at
 `notes/qa-feat104-tip-790023f0.md:40-44` and the prior c9 reviewer (`review-harness-qa-c9.md:63-66`)
 took for the parent behavior — read-the-guard-condition, not flip-and-watch. Assurance here is
@@ -114,7 +114,7 @@ took for the parent behavior — read-the-guard-condition, not flip-and-watch. A
   fresh measurement exactly** — independent corroboration, not just repetition of one source (O-09
   checked: both are primitive measurements against the same pin, not one summarizing the other).
 - **Whole-feature `matrix_ok` derivation (§1) and F1/F2/F3 dispositions: largely ADOPTED** from
-  `review-harness-qa-c9.md` (§4-§6 there), since `validate-digest.py`, `check-domain.sh`,
+  `review-harness-qa-c9.md` (§4-§6 there), since `validate-digest.py`, `check-domain.py`,
   `check-state.sh`, `run-state-schema.json` and `test-validate-digest.py` are byte-unchanged between
   `168f875f` and `790023f0` (§0) — re-deriving matrix predicates or re-tracing F2's topology from
   scratch would reproduce c9's own reasoning over an unchanged tree. Spot-checked, not re-derived
@@ -151,7 +151,7 @@ authored, edited, or touched by this dispatch besides this note.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "matrix_ok=true at 790023f0: whole-feature floor is logic.always=[unit], satisfied; integration is qa-added and satisfied. Both suites MEASURED fresh this session (unit 36/36 files exit 0, integration 70/70 files exit 0, matching 168f875f baseline exactly) and cross-checked against the same-pin ADOPTED note notes/qa-feat104-tip-790023f0.md (numbers match exactly). The sole c9->c10 delta, test-check-domain.py's renamed undeclared-step-key case with two new stderr-substring clauses, ran and passed (12/12 T-06); its discrimination is REASONED (DEC-174 forbids mutation) via a single-emitter trace in check-domain.sh:1618-1667, not mutation-proven. F1/F3 CLOSED confirmed still passing; F2 DECLINED disposition stands, not reopened."
+  headline: "matrix_ok=true at 790023f0: whole-feature floor is logic.always=[unit], satisfied; integration is qa-added and satisfied. Both suites MEASURED fresh this session (unit 36/36 files exit 0, integration 70/70 files exit 0, matching 168f875f baseline exactly) and cross-checked against the same-pin ADOPTED note notes/qa-feat104-tip-790023f0.md (numbers match exactly). The sole c9->c10 delta, test-check-domain.py's renamed undeclared-step-key case with two new stderr-substring clauses, ran and passed (12/12 T-06); its discrimination is REASONED (DEC-174 forbids mutation) via a single-emitter trace in check-domain.py:1618-1667, not mutation-proven. F1/F3 CLOSED confirmed still passing; F2 DECLINED disposition stands, not reopened."
   suite: pass
   failures: 0
   matrix_ok: true

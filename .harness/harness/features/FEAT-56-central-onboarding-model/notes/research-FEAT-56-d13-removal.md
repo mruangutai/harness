@@ -6,7 +6,7 @@ T-20 (`team`, `harness-documentor`) for the DEC-83/BUILD.md amendment. D-13 is a
 question into the operator's settled ruling. `approval:` stays `pending`. Every new `verify:` was
 run verbatim out of `plan.yaml` and observed **RED** at `97fe447f`.
 
-## Lane resolution — measured, `check-domain.sh --resolve`, all exit 0
+## Lane resolution — measured, `check-domain.py --resolve`, all exit 0
 
 | path | resolve | task | mode |
 |---|---|---|---|

@@ -25,7 +25,7 @@ not re-measured here.
 **(a) Some other changed unit in `1c5fd67` left unbound by the same gap** — checked
 `git diff 1c5fd67..12e3fa2 --stat` per predecessor's Step 0: pin-only, only `feature.json` changed
 since. The changed units in the reviewed diff are `gh-sync.py`/`test-gh-sync.py` and
-`check-domain.sh`/`test-check-domain.py`. The comment-tolerance/reader-contract gap is specific to
+`check-domain.py`/`test-check-domain.py`. The comment-tolerance/reader-contract gap is specific to
 `load_recorded`'s JSON/YAML boundary — nothing else in the diff shares that specific reader
 contract. HIGH-1's schema-crash fixture (predecessor Step 3) has its own separate, already-noted
 adequacy gaps (route coverage, crash-vs-import attribution) — real, but distinct findings, not this

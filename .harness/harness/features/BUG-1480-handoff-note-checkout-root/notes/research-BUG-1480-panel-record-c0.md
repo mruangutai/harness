@@ -32,7 +32,7 @@ recorded below: the finding ids are the canonical `panel_findings.py` ids, not t
 | `PF-7b29d51a6c8f4b6dbdcba528ca92d5ff` | info | should-not-exist | open — advisory, no resolution invented |
 
 `should-not-exist`'s four KEEP verdicts and the lead's POST-route observation at
-`check-domain.sh:2092-2094` are dismissed in the digest and are deliberately absent from `findings:`.
+`check-domain.py:2092-2094` are dismissed in the digest and are deliberately absent from `findings:`.
 
 ## The id-scheme deviation — read this before comparing against the dispatch
 

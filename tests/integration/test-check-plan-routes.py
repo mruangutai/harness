@@ -30,7 +30,7 @@ SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 FIXTURE_DIR = os.path.join(TESTS_DIR, "fixtures")
 
-GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
+GRANTED_PATH = ".claude/skills/harness/bin/check-domain.py"  # granted to two agents
 
 
 def cpr():
@@ -148,10 +148,10 @@ def case_06_07():
 
 
 def case_08_09_16():
-    """(8) source mentions check-domain.sh. (9) no fnmatch. (16) no glob_to_re — separate case from 9."""
+    """(8) source mentions check-domain.py. (9) no fnmatch. (16) no glob_to_re — separate case from 9."""
     with open(SCRIPT) as f:
         src = f.read()
-    check("case_08_source_mentions_check_domain_sh", "check-domain.sh" in src)
+    check("case_08_source_mentions_check_domain_py", "check-domain.py" in src)
     check("case_09_source_has_no_fnmatch", "fnmatch" not in src)
     check("case_16_source_has_no_glob_to_re", "glob_to_re" not in src)
 
@@ -188,7 +188,7 @@ def case_14_15():
 def case_17():
     """(17): the mid-pattern-wildcard grant path must resolve OK, no VIOLATION naming its task.
 
-    This is the exact bug check-domain.sh:190-197 records: a hand-rolled prefix
+    This is the exact bug check-domain.py:190-197 records: a hand-rolled prefix
     comparison on the text before `/**` answers False for a pattern with an earlier
     wildcard segment. The path string below is granted ONLY through
     `.harness/*/features/*/runs/*-eng/**` (team-config.yaml) and must stay verbatim.
@@ -260,7 +260,7 @@ def case_18():
             "- T-01: block form, every path granted\n"
             "  files:\n"
             "    - .harness/harness/docs/SPEC.md\n"
-            "    - .claude/skills/harness/bin/check-domain.sh\n"
+            "    - .claude/skills/harness/bin/check-domain.py\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
         r4 = run(allg)
@@ -917,7 +917,7 @@ def case_23():
     # T-01 measures exactly AT the cap — the one value where the two operators disagree.
     #
     # Tuned with `traces:`, not `files:`. Both count identically against the budget, but
-    # every files entry costs a check-domain.sh subprocess: a search over `files:` ran 110
+    # every files entry costs a check-domain.py subprocess: a search over `files:` ran 110
     # of them and this case timed out at two minutes. `traces:` is never resolved.
     #
     # THREE RUNS, NO SEARCH. Run 1 goes far over and REPORTS its own total, which gives
@@ -1287,7 +1287,7 @@ def case_20():
     writes." This is that commit for root resolution.
 
     KEYED ON THE PROBE STRING, not on control flow. The two spellings inside
-    check-domain.sh are already textually different (a ternary and an if/else) and both
+    check-domain.py are already textually different (a ternary and an if/else) and both
     are correct, so asserting shared structure would fail on a difference nobody minds.
     What every copy MUST agree on is WHICH FILE proves a directory is a harness root: if
     one probes `.harness/team-config.yaml` and another probes something else, they resolve
@@ -1316,7 +1316,7 @@ def case_20():
     rather than filtered by a hand-written quote scanner (the same class of bug this file
     itself was just found holding). `.sh` sources keep the fifth draft's bracket counter
     UNCHANGED: bin/ holds real POSIX shell alongside files that are bash-shebanged but
-    entirely Python inside a heredoc (check-domain.sh), and Python's tokenizer raises on
+    entirely Python inside a heredoc (check-domain.py), and Python's tokenizer raises on
     ordinary, correct bash it was never built to read (measured: 5 of 11 *.sh files in this
     directory raise `tokenize.TokenError` on legitimate syntax -- heredocs and ANSI-C
     quoting, not defects). Running Python's grammar over shell is a wrong-tool mismatch, not
@@ -1688,8 +1688,8 @@ def write_prior_route_validator(directory):
                   if fixture.endswith(".b64") else stored)
         if name == "check-plan-routes.py":
             source = source.replace(
-                'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
-                f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.sh')!r}",
+                'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.py")',
+                f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.py')!r}",
             )
         with open(os.path.join(directory, name), "w") as stream:
             stream.write(source)
@@ -1734,7 +1734,7 @@ def _case_27_owner_manifest(directory):
         stream.write("agents: {}\n")
     owner_bin = os.path.join(owner, ".claude", "skills", "harness", "bin")
     os.makedirs(owner_bin)
-    owner_resolver = os.path.join(owner_bin, "check-domain.sh")
+    owner_resolver = os.path.join(owner_bin, "check-domain.py")
     with open(owner_resolver, "w") as stream:
         stream.write("#!/bin/sh\nprintf '%s\\n' harness-frontend-dev\n")
     os.chmod(owner_resolver, 0o755)

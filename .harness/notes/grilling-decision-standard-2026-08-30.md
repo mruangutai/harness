@@ -131,7 +131,7 @@ Two things were measured rather than assumed:
   survives that clause's own logic — mechanical, zero judgement, inspects the file's shape rather
   than the world — but the rewrite must be explicit. Amendments are ended, so `DEC-23`, `DEC-158` and
   `DEC-205` are *rewritten*, not annotated.
-- **`harness-documentor` owns `DECISIONS.md`** (`check-domain.sh --resolve` exit 0). The 98 rewrites
+- **`harness-documentor` owns `DECISIONS.md`** (`check-domain.py --resolve` exit 0). The 98 rewrites
   and 30 splits are delegable; only the checker is `main-session-direct` under the `DEC-174` carve-out.
 - **FEAT-38 lands first.** It owns the shipped text of `DEC-205` and `DEC-181`.
 - **The repoint set is an explicit include-list of live surfaces, never a heuristic.** A

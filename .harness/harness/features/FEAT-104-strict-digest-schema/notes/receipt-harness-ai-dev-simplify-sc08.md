@@ -15,14 +15,14 @@ inference from the diff.
 
 ## Evidence
 
-1. **Emitter** (`check-domain.sh:1653-1658`): the message is `"offending key(s): {...}. A recovery field
+1. **Emitter** (`check-domain.py:1653-1658`): the message is `"offending key(s): {...}. A recovery field
    is declared in .claude/skills/harness/bin/run-state-schema.json; a per-dispatch fact goes under
    `evidence` with a lowercase identifier key..."`. The test asserts only the **basename**
    `"run-state-schema.json"`, not the full path — already the weakest sufficient form: a schema
    relocated to a different directory but kept under that filename still passes, and the human-facing
    fact ("look at this file") survives. The `` `evidence` `` substring names the declared container field,
    matching the emitter's own backtick-quoting convention for symbol-like tokens (same style at
-   `check-domain.sh:1843-1845` for `on`/`off`/`yes`/`no`/`true`/`false`/`01`) — this is an established
+   `check-domain.py:1843-1845` for `on`/`off`/`yes`/`no`/`true`/`false`/`01`) — this is an established
    codebase convention for marking a literal identifier in a message, not decorative markdown a reword
    would casually drop.
 2. **File's own precedent**: `_floor_creation_cases()` (`test-check-domain.py:144-146`) already asserts
@@ -44,7 +44,7 @@ inference from the diff.
   strict.stderr` would be: a message rewording that keeps naming the container but drops markdown emphasis
   (e.g. switches to single-quoting) would falsely redden this case, whereas asserting the bare word would
   survive it. Cost is low — the file already relies on this exact backtick convention elsewhere
-  (`check-domain.sh:1843-1845`), so a convention-wide change is the only thing that breaks it, and that
+  (`check-domain.py:1843-1845`), so a convention-wide change is the only thing that breaks it, and that
   change would touch many messages at once, not just this one. Concrete edit it WOULD make (test file is
   read-only under DEC-174, so this is reported, not applied): drop the backticks in the assertion,
   `and "evidence" in strict.stderr`. Recommendation: **leave** — matches file precedent, low probability,
@@ -52,7 +52,7 @@ inference from the diff.
 
 ## Standing residual carried forward, not re-raised
 
-Q7 (`is_strict_schema_version()` predicate spelled 3 complete + 2 partial times across `check-domain.sh`
+Q7 (`is_strict_schema_version()` predicate spelled 3 complete + 2 partial times across `check-domain.py`
 and `check-state.sh`) — open and accepted, out of scope for this delta.
 
 ## Recommendation

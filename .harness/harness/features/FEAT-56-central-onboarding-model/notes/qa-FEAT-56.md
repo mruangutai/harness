@@ -24,7 +24,7 @@ mutation-proof reproduction) is clean.
   (`product_config_report`, `_check_product_configs`, `--check-product-configs`/`--repo` flags),
   plus new `tests/unit/test-fleet-product-config.py`. Agrees.
 - **T-02** `bugfix` (declared) — diff-confirmed message/comment-only: read every hunk across all
-  six files (`check-domain.sh:381-386`, `check-instruction-paths.py:12-16`, `check-state.sh:108,
+  six files (`check-domain.py:381-386`, `check-instruction-paths.py:12-16`, `check-state.sh:108,
   286,404-407,2433-2434`, `upgrade-config.py:1-4,188-189,231-234`, `gh-sync.py:254-256`,
   `layout_migration.py:118-124`) — every changed line is an f-string/print/comment; zero exit
   codes, globs, or control-flow tokens touched. Claim holds.
@@ -33,7 +33,7 @@ mutation-proof reproduction) is clean.
   `post-merge-sweep.py:66-68` — every hunk is a comment. No assertion, fixture, or behavior line
   changed. `test-merge-settings.py` still contains `harness-init` (item 5's unchanged claim,
   verified); `test-merge-gitignore.py`/`test-upgrade-config.py` have zero `git diff --stat`
-  entries (untouched, verified); `prior-check-domain.sh.fixture` untouched. Claim holds.
+  entries (untouched, verified); `prior-check-domain.py.fixture` untouched. Claim holds.
 - **T-01/T-05/T-06/T-07/T-08** `docs` (declared) — diff scope matches (prose/template/doc surface
   only) EXCEPT for the T-01 regression above: a `docs` task tripped a live behavioral gate
   (the unit suite), exactly the class this audit exists to catch, even though the SKILL.md hunk
@@ -320,7 +320,7 @@ checkout's manifest for any worktree, so this DEVIATION is unavoidable and
 expected for ANY task running this checker from ANY worktree of this branch
 until the branch merges — it is not specific to T-17, not caused by any of my
 five files (none of which touch `team-config.yaml`, `check-plan-routes.py`, or
-`check-domain.sh`), and not something this task's file grant can remediate
+`check-domain.py`), and not something this task's file grant can remediate
 (`bin/**` and the main checkout's own tree are both explicitly out of my
 domain and my non-goals).
 

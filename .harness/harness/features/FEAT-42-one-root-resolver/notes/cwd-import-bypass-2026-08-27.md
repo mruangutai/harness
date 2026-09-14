@@ -21,7 +21,7 @@ cwd
 
 Every gate script sets `PYTHONPATH="$_selfdir"` and then imports `harness_boundary`. So a
 `harness_boundary.py` sitting in the governed agent's working directory was the resolver the
-gate consulted. Measured end to end against `check-domain.sh` at `7179095`:
+gate consulted. Measured end to end against `check-domain.py` at `7179095`:
 
 | cwd | verdict |
 | --- | --- |
@@ -70,7 +70,7 @@ turns case 7 red.
 
 ## Still open
 
-`check-domain.sh` resolves a relative `file_path` against the cwd rather than the root
+`check-domain.py` resolves a relative `file_path` against the cwd rather than the root
 (`os.path.abspath` at lines 970 and 1000). Not reachable from Claude Code, which sends
 absolute paths, and not fixed here — there is no decision saying which base a relative target
 should take, and guessing in an enforcement gate is worse than the current state. Raised for

@@ -23,10 +23,10 @@ by the 600s watchdog and no invented holding activity in its transcript.
   fresh orchestrator rather than continue the loop.
 - Execution mode is MAIN-SESSION-DIRECT. **STRUCK AND CORRECTED 2026-08-23: this entry first read
   "a SQUAD RUN" and cited DEC-174 am.4 as an exact enumeration. BOTH HALVES WERE FALSE.**
-  `check-domain.sh --resolve .claude/skills/harness/SKILL.md` returns NOBODY, so no agent may write
+  `check-domain.py --resolve .claude/skills/harness/SKILL.md` returns NOBODY, so no agent may write
   the playbook. And am.4's own heading is "the enumeration is a list of examples, not a boundary"
   and it rules "The category governs" (DECISIONS.md:4854, :4862) — it is not an exact list. The lane
-  conclusion survives on `check-domain.sh` alone, which is independent of am.4.
+  conclusion survives on `check-domain.py` alone, which is independent of am.4.
 
 ## Not yet specified
 - HOW an orchestrator learns its OWN agent id. `context-watch.py` keys every row on an agent id,
@@ -79,7 +79,7 @@ by the 600s watchdog and no invented holding activity in its transcript.
 ### Read from the repository
 - `main`'s `harness/SKILL.md` does NOT contain "NEVER WAIT". The rule exists only on branch
   `chore/744-never-wait-for-a-lead`, one commit `f5194d2`, unmerged, whose diff also removes 142
-  lines across `check-domain.sh`, `feature_schema.py` and `test-validate-feature-json.py`.
+  lines across `check-domain.py`, `feature_schema.py` and `test-validate-feature-json.py`.
 - The rule as written on that branch: "NEVER WAIT FOR A LEAD. RETURN. A dispatch tells you when
   it is done; you do not poll for it. With nothing to do until a lead returns, end your turn and
   say what is in flight." Measured note in it: 354 of 450 Bash calls on `echo hold` and `sleep`,

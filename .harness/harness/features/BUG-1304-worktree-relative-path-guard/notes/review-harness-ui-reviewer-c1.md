@@ -13,7 +13,7 @@ at the moment a write is blocked. Audited below against REQ-06 and DEC-218.
 
 ## What changed, read at af5ddd7a
 
-Both guards gained `claim_checkout_guard()` (check-domain.sh +51/-0, bash-write-guard.sh +43 net),
+Both guards gained `claim_checkout_guard()` (check-domain.py +51/-0, bash-write-guard.sh +43 net),
 consuming shared primitives added to `harness_boundary.py` (`inside`, `claim_worktrees`,
 `claim_set_refusal`, +70/-5). Three refusal shapes, identical logic on both routes:
 
@@ -30,7 +30,7 @@ $S$, and name the destination's proper home."*
 
 ### 1. Normal mismatch — default branch
 `harness_boundary.py:294-297` (`claim_set_refusal`), emitted at
-`check-domain.sh:806` / `bash-write-guard.sh:762`:
+`check-domain.py:806` / `bash-write-guard.sh:762`:
 > `{agent_type} holds worktree claim(s): {held}. Destination {destination} belongs in its proper
 > checkout at {home}; write it from a bound worktree.`
 Names held worktrees (sorted, deduped, absolute — copy-pasteable, not a raw dump), names the attempted
@@ -56,7 +56,7 @@ Test-verified: `test-check-domain.py::run_bug1304_claim_set` ("unreadable regist
 file", asserts `unreadable_registry in text`) and the parallel Bash-route case.
 
 ### 4. Ambiguous claim — genuine gap
-`check-domain.sh:775-779` / `bash-write-guard.sh:733`:
+`check-domain.py:775-779` / `bash-write-guard.sh:733`:
 > `{agent} has an ambiguous worktree claim: feature 'FEAT-X' matches 2 linked worktrees: FEAT, FEAT-X`
 Comprehensible (feature id, count, sorted basenames — not a raw dump). **But `destination` is never
 printed in this branch on either route**, and DEC-218 itself states every refusal should "name the
@@ -74,8 +74,8 @@ pre-existing `deny()` (bash-write-guard.sh:647-653), which unconditionally appen
 > `  File changes go through the Write tool, where your domain is enforced. A path the domain hook
 > denied does not become writable by switching tools — that is guardrail evasion (DEC-151). If the
 > file should be yours, raise it as an open_question.`
-`check-domain.sh`'s three parallel call sites print the bare `claim_set_refusal()` text with no such
-line (check-domain.sh:775-825). Confirmed by direct read at af5ddd7a on both files — not inferred from
+`check-domain.py`'s three parallel call sites print the bare `claim_set_refusal()` text with no such
+line (check-domain.py:775-825). Confirmed by direct read at af5ddd7a on both files — not inferred from
 one side.
 
 **Concrete failure scenario:** `harness-backend-dev` holds a claim on worktree A only, and runs
@@ -88,7 +88,7 @@ python3 expertise-merge.py apply command.
   denied does not become writable by switching tools — that is guardrail evasion (DEC-151)...
 ```
 Line 1 gives the one correct remedy (the CLI route). Line 2 then tells the operator to use "the Write
-tool" instead — but a `Write` attempt at the identical path hits check-domain.sh's identical
+tool" instead — but a `Write` attempt at the identical path hits check-domain.py's identical
 `claim_checkout_guard`/`claim_set_refusal` and is refused with the *same* expertise-route text, not
 allowed. The appended line is not merely redundant, it is actively wrong for this refusal class: it
 implies a working alternative that does not exist, for the exact destination class REQ-06 singles out
@@ -105,7 +105,7 @@ literal phrase, not for the presence of the contradictory boilerplate.
 ## Actionability, in the round
 
 - Next step present and unambiguous: **yes** for the default and expertise branches on
-  check-domain.sh; **degraded** on bash-write-guard.sh by Finding 1's second line; **absent** for the
+  check-domain.py; **degraded** on bash-write-guard.sh by Finding 1's second line; **absent** for the
   ambiguous-claim branch on both routes (Finding, "4" above).
 - Never advises worktree removal: confirmed clean on all six call sites (three shapes × two routes).
 - Theme/contrast/reading-order: not applicable — plain stderr text, no rendered surface.

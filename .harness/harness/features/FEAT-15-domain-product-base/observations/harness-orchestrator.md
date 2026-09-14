@@ -10,7 +10,7 @@
 - 2026-08-10: My dispatch asserted the concurrent flows were disjoint on the basis that they touch
   different FILES. That test is wrong when the feature changes a RESOLVER other plans are checked
   against. `check-plan-routes.py` is run tree-wide by `tests.yml:109` as a required check, so
-  FEAT-15's change to `check-domain.sh --resolve` would have turned two other approved plans
+  FEAT-15's change to `check-domain.py --resolve` would have turned two other approved plans
   (FEAT-12, FEAT-14) red without sharing a single file with them. The lead caught FEAT-12; I found
   FEAT-14 only by running the checker myself. Measured: `0 violation(s) across 10 plan(s)` today.
 

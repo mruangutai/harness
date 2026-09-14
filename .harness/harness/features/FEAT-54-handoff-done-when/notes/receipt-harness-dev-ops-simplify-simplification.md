@@ -2,11 +2,11 @@
 
 ## Scope
 
-Assessed the task-declared source, test, config, and docs changes from `b7956fc4` through current HEAD plus working-tree changes: `.claude/skills/harness/bin/{handoff_done_when.py,check-domain.sh,check-state.sh,run-unit-tests.sh}`, `.claude/skills/harness/{SKILL.md,templates/HANDOFF.md}`, `.harness/harness.json`, `.harness/harness/docs/{DECISIONS.md,DECISIONS-INDEX.md}`, `tests/unit/test-handoff-done-when.py`, `tests/integration/{test-check-domain.py,test-check-state.py,test-run-unit-tests-kinds.py}`, and `tests/manual/probe-handoff-comprehension.py`. Also assessed active FEAT-54 handoff notes `notes/handoff-plan.md` and `notes/handoff-build.md`. Excluded orchestration ledgers, run state, and QA evidence. Settled contract, baseline, resolution split, probe status/routing, and absence of a per-section cap were not reconsidered.
+Assessed the task-declared source, test, config, and docs changes from `b7956fc4` through current HEAD plus working-tree changes: `.claude/skills/harness/bin/{handoff_done_when.py,check-domain.py,check-state.sh,run-unit-tests.sh}`, `.claude/skills/harness/{SKILL.md,templates/HANDOFF.md}`, `.harness/harness.json`, `.harness/harness/docs/{DECISIONS.md,DECISIONS-INDEX.md}`, `tests/unit/test-handoff-done-when.py`, `tests/integration/{test-check-domain.py,test-check-state.py,test-run-unit-tests-kinds.py}`, and `tests/manual/probe-handoff-comprehension.py`. Also assessed active FEAT-54 handoff notes `notes/handoff-plan.md` and `notes/handoff-build.md`. Excluded orchestration ledgers, run state, and QA evidence. Settled contract, baseline, resolution split, probe status/routing, and absence of a per-section cap were not reconsidered.
 
 ## Findings
 
-1. **File/line:** `.claude/skills/harness/bin/check-domain.sh:1554-1567`
+1. **File/line:** `.claude/skills/harness/bin/check-domain.py:1554-1567`
    **Summary:** The write gate independently checks `## Done when` presence and then asks `handoff_done_when.problems()` to check the same presence again.
    **Concrete cost:** A missing section produces two differently worded violations, and the fifth-heading rule now has two enforcement spellings in one call path that must remain synchronized; changing either message or section spelling can make the gate disagree with itself.
    **Alternative:** Keep the existing required-heading check for the four narrative sections and let `handoff_done_when.problems()` exclusively enforce `## Done when`; this preserves the same refusal and all existing behavioral assertions while removing the duplicate diagnostic.

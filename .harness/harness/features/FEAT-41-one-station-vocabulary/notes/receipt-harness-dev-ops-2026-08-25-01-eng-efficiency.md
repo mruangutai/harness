@@ -3,7 +3,7 @@
 BLUF: one finding. `test-gh-sync.py` is a 149 s whole-suite run with no case-selection
 mechanism, and the plan's `verify:` invokes it in full **twice** (T-06, T-10) — T-10 depends
 on T-06, so most of what its run re-proves is already green from T-06's own pass. Everything
-else measured (T-01..T-05, T-07..T-09, T-11..T-13 verify clauses, the check-domain.sh SHAPE
+else measured (T-01..T-05, T-07..T-09, T-11..T-13 verify clauses, the check-domain.py SHAPE
 region and post-Bash sweep additions) is either cheap, already gated by the stamp mechanism, or
 a deliberate boundary run — not flaggable.
 
@@ -46,9 +46,9 @@ a deliberate boundary run — not flaggable.
 
 ## Not flagged, and why
 
-- **check-domain.sh's new checks (T-09) are not a hot-path cost.** The plan.yaml SHAPE-region
+- **check-domain.py's new checks (T-09) are not a hot-path cost.** The plan.yaml SHAPE-region
   denial fires on a regex match only (cheap); the PostToolUse sweep's new VOCABULARY rule rides
-  the existing mtime-stamp mechanism (`SWEEP_WINDOW_S` / `STAMP`, `check-domain.sh:918-926`),
+  the existing mtime-stamp mechanism (`SWEEP_WINDOW_S` / `STAMP`, `check-domain.py:918-926`),
   which already limits the sweep to files that changed since it last ran — confirmed by the
   comment's own measurement (515 ms unbounded vs 0.2 ms stamped, on 120 files). This is reused
   architecture, not new per-call parsing.

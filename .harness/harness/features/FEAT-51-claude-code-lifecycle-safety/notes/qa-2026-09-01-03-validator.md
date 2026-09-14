@@ -89,7 +89,7 @@ fixture, not the predicate in isolation.** `test-check-domain.py:149` `fire()` a
 `test-plan-sign-gate.py:462` `qgate()` both `subprocess.run` the real hook/gate script with a payload
 built against a throwaway root whose `.harness/.inflight-claims.json` is populated via
 `inflight_registry.claim_with_receipt` (real registry writes, not mocked). Confirmed passing:
-`an orphan canonical write is quarantined` (check-domain.sh) and
+`an orphan canonical write is quarantined` (check-domain.py) and
 `an orphan agent plan-merge apply on plan.yaml is quarantined` (plan-sign-gate.py). T-10 additionally
 covers the **union** the two authors could not see individually — both surfaces' fail-open (raising
 call, unimportable module) plus a negative control per surface, all 6 confirmed `ok` in the run

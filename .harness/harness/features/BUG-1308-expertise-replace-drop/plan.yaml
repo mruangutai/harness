@@ -21,7 +21,7 @@ lanes:
       agent: harness-qa
     - surface: .claude/skills/harness-distill/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve reports NOBODY at c369fb1, DEC-174 carve-out
+      reason: check-domain.py --resolve reports NOBODY at c369fb1, DEC-174 carve-out
     - surface: .harness/harness/docs/SPEC.md
       lane: team
       agent: harness-documentor
@@ -714,7 +714,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve reports NOBODY for .claude/skills/harness-distill/SKILL.md at
+      check-domain.py --resolve reports NOBODY for .claude/skills/harness-distill/SKILL.md at
       c369fb1; DEC-174 keeps skill-tree contract text off the squad lane.
     depends_on: [T-01]
     status: done

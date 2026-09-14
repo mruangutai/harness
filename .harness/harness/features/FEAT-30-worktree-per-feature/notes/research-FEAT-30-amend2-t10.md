@@ -32,14 +32,14 @@ taken mid-write of that same run. There was no gap to close.
 - **The failure-cost statement is an evidence-backed OVERTURN, not an adoption.** It lives at
   `approval.rulings` R-02 `fix_surfaces_if_sc01b_fails` and drops two thirds of the operator's read.
   I re-verified each reason at source: `bash-write-guard.sh` is registered PreToolUse **Bash** only
-  and `check-domain.sh` PreToolUse `Write|Edit` + PostToolUse (`.claude/settings.json`), so T-05's
+  and `check-domain.py` PreToolUse `Write|Edit` + PostToolUse (`.claude/settings.json`), so T-05's
   refusal cannot see a `subprocess` fork from inside a python test — T-05 is correctly excluded;
   T-02 owns removal (`traces: [REQ-03]`) and T-10 never calls remove; T-06 owns REQ-06/SC-08.
   Remaining surfaces: T-10's own fixture, then T-01's create and destination derivation.
 - **Lane, hand-checked against DEC-174.** The index reads DEC-174 as hooks, validators and gate
   scripts, am.4 extending it to `check-plan-routes.py` *and its test*. `feature-worktree.py` appears
   in NO hook block of `.claude/settings.json`, so it is not a gate and its test is not enforcement
-  layer. T-10's single file is not `bash-write-guard.sh`, `check-domain.sh`, `harness_boundary.py`,
+  layer. T-10's single file is not `bash-write-guard.sh`, `check-domain.py`, `harness_boundary.py`,
   nor either guard's test. **Legitimately `team` / `harness-dev-ops`.**
 
 Loader check: `harness_yaml.load_plan` parses the file; T-10's `verify` is a literal block (20

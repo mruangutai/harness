@@ -1,7 +1,7 @@
 # Observations — harness-validator-lead — FEAT-20-migration-detector
 
 - 2026-08-14: Review panel run `2026-08-14-1-validator`, four reviewers dispatched in one wave at
-  `ea476fd`. Seeding `state.yaml` was BLOCKED: `check-domain.sh` rejected top-level keys `cycle` and
+  `ea476fd`. Seeding `state.yaml` was BLOCKED: `check-domain.py` rejected top-level keys `cycle` and
   `diff_base` as non-checkpoint (DEC-154), even though both values are a bare integer and a bare
   SHA. The allowlist is closed by NAME, not by value shape — `review_sha` passed, `diff_base` did
   not. Moved both into per-step `note:` strings.

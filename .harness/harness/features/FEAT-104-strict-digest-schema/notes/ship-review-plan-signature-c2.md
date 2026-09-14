@@ -106,7 +106,7 @@ is another flow's worktree, and you have stopped cross-worktree releases. The me
 the decision is not mine. I landed the lead's digest from my own tier instead, carrying its fenced
 contract block, and disclosed both corrections in the file rather than overwriting them.
 
-**Why this bears on your signature rather than on my bookkeeping.** `check-domain.sh` enforces
+**Why this bears on your signature rather than on my bookkeeping.** `check-domain.py` enforces
 single-flight by agent TYPE across every linked worktree, not per feature. So while another flow
 holds `harness-product-lead` or `harness-eng-lead`, this feature's build-phase dispatches will hit
 the same wall — mid-run, after earlier writes to the same path have succeeded, which is what makes

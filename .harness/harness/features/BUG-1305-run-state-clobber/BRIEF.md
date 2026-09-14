@@ -84,7 +84,7 @@ than freezing a defect into it.
     would refuse the only repair that works.
   - **What this feature does NOT repair, said where you sign: a TRUNCATED checkpoint.** A prior that
     is non-empty and will not parse is refused ALREADY, before this feature, by the fail-closed
-    branch added for issue #1106 gap (b) (`check-domain.sh:1539-1545` at `c369fb1f`) — and this
+    branch added for issue #1106 gap (b) (`check-domain.py:1539-1545` at `c369fb1f`) — and this
     feature does not reverse it. Reversing it would weaken exactly the protection this feature
     exists to strengthen: a prior nobody can read is precisely where a silent overwrite hides. So a
     truncated `state.yaml` is repaired by a human outside the guards, and the no-refusal rule above
@@ -116,15 +116,15 @@ than freezing a defect into it.
     (:744-767 at `c369fb1f`) refuses a Bash write to any run's `state.yaml` in any checkout. Nothing
     here changes it and no criterion re-grades it.
   - **NotebookEdit — measured, not assumed.** It is reached by the registered `Write|Edit` matcher
-    only if the host matches tool names by substring, and `check-domain.sh:1931` already asserts in a
+    only if the host matches tool names by substring, and `check-domain.py:1931` already asserts in a
     comment that POST sees it. Nobody has measured either claim. This feature MEASURES it once and
     records the answer; an unguarded route is a reported finding, never a silent acceptance.
   - **End-to-end mint DELIVERY is UNMEASURED, and that is part of what you accept by signing.** The
-    minting CODE is proven by SC-10, which invokes `check-domain.sh --post` directly over an isolated
+    minting CODE is proven by SC-10, which invokes `check-domain.py --post` directly over an isolated
     bin root. Whether the HOST actually delivers PostToolUse for the Write and Edit tools is a
     different question, and this feature does not measure it. **Why measuring it before this merges
     is not available:** `.claude/settings.json` registers POST as
-    `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh --post`, and every task here is
+    `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py --post`, and every task here is
     `main-session-direct` — so the script that fires is the MAIN checkout's, which does not carry
     this feature's change, while the minting lands only in this feature's worktree. A pre-merge probe
     therefore reports which checkout the hook points at, never whether the host delivers. It was
@@ -161,10 +161,10 @@ than freezing a defect into it.
     overwrite or delete would turn an accepted UNDETECTED clobber into an UNDETECTABLE one with the
     forensic trail erased. This feature makes the witness a guarded run artifact on the same three
     surfaces that already protect `state.yaml` and the run digest — the Bash route's run-artifact
-    guard, the boundary module's shared path patterns, and `check-domain.sh`'s Write/Edit route
+    guard, the boundary module's shared path patterns, and `check-domain.py`'s Write/Edit route
     denial — and the rule is WRITE-ONCE: no governed route may rewrite or remove it, and the refusal
     names what the file is and what to do instead. The harness's own POST hook writes it from inside
-    `check-domain.sh` rather than through a governed tool call, so it needs no exemption, and that
+    `check-domain.py` rather than through a governed tool call, so it needs no exemption, and that
     writer is itself write-once. Graded by SC-13.
   - **ACCEPTED RESIDUAL — directory-level removal (issue #1376).** The Bash guard matches
     protected artifact basenames, so a governed `rm` or `mv` aimed at the containing run directory
@@ -189,7 +189,7 @@ than freezing a defect into it.
   *do*; the route is not specified here. This requirement is bounded by the signed rule that a
   recorded digest is extended and never replaced (DEC-208 ruling 3) — a remedy incompatible with that
   rule is an escalation, not a decision the plan may take.
-- **REQ-06 (Mode B — the record about the guard is true):** The description `check-domain.sh` gives
+- **REQ-06 (Mode B — the record about the guard is true):** The description `check-domain.py` gives
   of which tool routes its digest content guard covers matches what that guard actually does.
   **In scope, and deliberately its own requirement so it can be struck independently at signature.**
   The inline comment calling that guard "intentionally Write/PRE-only" is contradicted by the guard's
@@ -213,7 +213,7 @@ than freezing a defect into it.
 **Bounding — things this feature must work within, not remove:**
 
 - **DEC-174 (blocks execution, not planning).** The harness plans changes to its own hooks,
-  validators and gate scripts but never executes them. Every task touching `check-domain.sh`,
+  validators and gate scripts but never executes them. Every task touching `check-domain.py`,
   `bash-write-guard.sh`, `check-state.sh`, `validate-digest.py` or `.claude/settings.json` — and each
   gate's own tests — carries `execution_mode: main-session-direct`.
 - **DEC-179 (supplies the mechanism for the above).** That routing is resolved at plan time by
@@ -221,7 +221,7 @@ than freezing a defect into it.
   a write rejected mid-build. A `DEVIATION` line on a granted path executed by the main session is
   the expected DEC-174 shape, not a failure.
 - **DEC-171 — the PyYAML-absent fail-open is an operator-ruled tradeoff and is NOT this feature's to
-  reverse.** PyYAML is REQUIRED with no fallback; `check-domain.sh` and `bash-write-guard.sh` fail
+  reverse.** PyYAML is REQUIRED with no fallback; `check-domain.py` and `bash-write-guard.sh` fail
   CLOSED without it; the bootstrap grant permits writes for that session only and expires by
   construction. The diagnosis names a bootstrap-grant session as a non-discriminable second candidate
   mechanism for Mode A. That candidate is acknowledged and bounded: narrowing or removing the
@@ -348,11 +348,11 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   asserts both halves — the permitted correction succeeds, the cross-run replacement is refused — so
   the allowance cannot be satisfied by simply removing the guard.
   verify: automated        evidence: integration
-- **SC-06 (Mode B — the guard's own record is true):** No comment or docstring in `check-domain.sh`
+- **SC-06 (Mode B — the guard's own record is true):** No comment or docstring in `check-domain.py`
   asserts that its digest content guard applies only to the Write route or only to the PRE payload,
   and the description it does carry agrees with the routes SC-05's test observes the guard acting on.
   Graded by reading the guard and its surrounding comments at the pinned review sha
-  (`git show REVIEW_SHA:.claude/skills/harness/bin/check-domain.sh`) against that test's observed behaviour.
+  (`git show REVIEW_SHA:.claude/skills/harness/bin/check-domain.py`) against that test's observed behaviour.
   verify: inspection
 - **SC-07 (Modes A and B — no protection traded away, and none newly invented):** Graded in two
   directions against `notes/regression-delta-BUG-1305.md`, the artifact the regression task produces.
@@ -372,7 +372,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   tree of legacy run directories that carry checkpoints and no witness at all; and the fifth pair,
   T-05's new fail-closed `return 2` in `validate-digest.py`, still exiting 0 over a run directory
   whose `digest.md` exists and is compliant and over the no-root-resolves case that fails open; and
-  the sixth pair, the witness guard's route denials in `bash-write-guard.sh` and `check-domain.sh`,
+  the sixth pair, the witness guard's route denials in `bash-write-guard.sh` and `check-domain.py`,
   still permitting — in the same run directory — a Write of `state.yaml` and a Write of `digest.md`
   at exit 0, and leaving a Bash write to an unrelated ordinary file in that directory unaffected,
   so the denial is scoped to the one filename rather than to the directory.
@@ -418,7 +418,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   four tests is absent; if either silence test asserts a report; if either reporting test asserts
   silence; or if the recorded run over the control-plane root shows any finding from this invariant.
   verify: automated        evidence: integration
-- **SC-10 (Mode A — the identity is minted, carried and witnessed):** With `check-domain.sh --post`
+- **SC-10 (Mode A — the identity is minted, carried and witnessed):** With `check-domain.py --post`
   invoked directly over an isolated bin root, a landed `state.yaml` in a fresh run directory carries
   a top-level `run_uid` matching `^[0-9a-f]{32}$` that the write payload did not contain, and
   `.run-identity.json` in the same directory records the same value. A second landed checkpoint in
@@ -447,7 +447,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   This criterion graded `notes/probe-postmint-BUG-1305.md`, the one live-Write probe of PostToolUse
   delivery. It is retired in place rather than deleted, because the record of why it is gone is worth
   more than a clean list. **Why:** the probe it graded is `main-session-direct`, so it executes under
-  the MAIN checkout's registered `check-domain.sh` while this feature's minting lands only in this
+  the MAIN checkout's registered `check-domain.py` while this feature's minting lands only in this
   worktree — `post_mint_observed: no` was guaranteed by construction, and the probe's mandatory
   `## Reported` section would then have published a false claim that this feature's prevention and
   detection are inert in practice. A criterion whose evidence is a guaranteed answer grades nothing.
@@ -458,14 +458,14 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   witness — the sole input REQ-02's detection reads — is refused on EVERY governed write route the
   checkpoint is refused on, and the routes are named rather than assumed: a Bash write to it and a
   Bash removal of it are denied by `bash-write-guard.sh`'s `_run_artifact_guard`, and a Write and an
-  Edit of it are denied by `check-domain.sh` before the write lands. Tests in the harness suite
+  Edit of it are denied by `check-domain.py` before the write lands. Tests in the harness suite
   assert each of those four refusals, assert the path pattern matches the witness and not its
   sibling `state.yaml` or `digest.md`, and assert that a Write of `state.yaml` and a Write of
   `digest.md` in the same run directory are unaffected — so the denial is shown to be scoped to the
   one filename rather than to the directory. Each refusal is demonstrated to land at exit 0 against
   the pinned pre-change copies of the two guard scripts.
   **The POST hook is not an exception and needs no exemption:** it writes the witness from inside
-  `check-domain.sh`'s own process, which is not a governed tool write, and its writer is itself
+  `check-domain.py`'s own process, which is not a governed tool write, and its writer is itself
   write-once — the two halves agree rather than one covering for the other.
   **It FAILS if** any of the four route refusals is absent from the suite at the review sha or is
   asserted to exit 0; if the guard is asserted only on one of the two guard scripts; if the

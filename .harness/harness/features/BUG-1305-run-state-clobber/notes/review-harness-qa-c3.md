@@ -17,7 +17,7 @@ itself flip the verdict — reported as `Q1`.
 All case functions called directly from the review-sha test module (not a scratch reimplementation)
 via `importlib.util.spec_from_file_location` against a disposable worktree at `5ed929bd`
 (`git worktree add --detach <abs>/.claude/worktrees/qa-c3-scratch 5ed929bd`, removed after use).
-Pre-fix guard extracted with `git show 1b11bc18:.claude/skills/harness/bin/check-domain.sh` into a
+Pre-fix guard extracted with `git show 1b11bc18:.claude/skills/harness/bin/check-domain.py` into a
 scratch file, selected via `CHECK_DOMAIN_BIN=<path>` (the module reads this env var at import,
 `test-check-domain.py:27`) — no working-tree file was ever touched.
 
@@ -75,7 +75,7 @@ cycle and it is the one this cycle actually closes.
 ## Findings
 
 - **Q1 — `inside-delta:message-wording`, severity `med`.** The fail-closed branch added at
-  `check-domain.sh:2058-2072` (pin `5ed929bd`) emits one of two *fixed* strings keyed only on
+  `check-domain.py:2058-2072` (pin `5ed929bd`) emits one of two *fixed* strings keyed only on
   `RE_STATE_YAML.match` — never on whether the incoming edit's target content would actually agree
   or disagree with the witness. Confirmed by direct call: cases (i) absent-file, (ii)
   unmatched-old_string, and (iii) omp-shape-only all produce the byte-identical stderr string. BRIEF's
@@ -85,7 +85,7 @@ cycle and it is the one this cycle actually closes.
   witness run_id is 'A', but the incoming ..." from `_bug1305_marker_witness_precedence`). The exit-2
   safety property is real and correctly gates production traffic; only the diagnostic specificity is
   short of the brief's prose. Exact remedy, if taken: have the `RE_STATE_YAML` branch at
-  `check-domain.sh:2059-2065` read the witness's own recorded `run_id`/`run_uid` (already parsed
+  `check-domain.py:2059-2065` read the witness's own recorded `run_id`/`run_uid` (already parsed
   earlier in this same function for the seed-field path) and interpolate it into the message, e.g.
   "...cannot be verified against this run's recorded run_uid '<U>' because the Edit cannot be
   reconstructed..." — this does not change the exit-2 behavior, purely widens the message. Not

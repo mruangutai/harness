@@ -234,7 +234,7 @@ panel:
   - id: PF-1eaa38c5f6a2d3e01711128138170312
     severity: med
     reader: should-not-exist
-    summary: 'T-02''s verify is unsatisfiable: plan.yaml:314 runs check-domain.sh
+    summary: 'T-02''s verify is unsatisfiable: plan.yaml:314 runs check-domain.py
       (a bash script) through python3, which SyntaxErrors on `set -uo pipefail` regardless
       of anything T-02 edits'
     disposition: resolved
@@ -636,7 +636,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-05]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-04]
     status: done
     files:
@@ -732,7 +732,7 @@ tasks:
       config directly to a remote.
 
       Step 5 — Seed the manifest. NARROW. It seeds the control plane's own
-      <control-plane>/.harness/team-config.yaml and nothing else: check-domain.sh reads only that
+      <control-plane>/.harness/team-config.yaml and nothing else: check-domain.py reads only that
       file, the live grants are repo-agnostic globs, and per-repo isolation is unbuilt (issue 495) -
       harness_boundary.glob_to_re supports only **, *, ? and literals, so a per-repo glob is
       inexpressible today. Keep both write-scope rules, the drop-a-SEED-glob rule and the qa
@@ -785,7 +785,7 @@ tasks:
     files:
     - .claude/skills/harness/bin/check-instruction-paths.py
     - .claude/skills/harness/bin/check-state.sh
-    - .claude/skills/harness/bin/check-domain.sh
+    - .claude/skills/harness/bin/check-domain.py
     - .claude/skills/harness/bin/upgrade-config.py
     - .claude/skills/harness/bin/gh-sync.py
     - .claude/skills/harness/bin/layout_migration.py
@@ -795,8 +795,8 @@ tasks:
       ! grep -qF '"harness-init",  # main session only' .claude/skills/harness/bin/check-instruction-paths.py &&
       grep -qF 'control-plane clone' .claude/skills/harness/bin/check-state.sh &&
       ! grep -qF 'project not onboarded. Run /harness-init.' .claude/skills/harness/bin/check-state.sh &&
-      grep -qF 'never carries one' .claude/skills/harness/bin/check-domain.sh &&
-      ! grep -qF 'enforcement OFF (run /harness-init)' .claude/skills/harness/bin/check-domain.sh &&
+      grep -qF 'never carries one' .claude/skills/harness/bin/check-domain.py &&
+      ! grep -qF 'enforcement OFF (run /harness-init)' .claude/skills/harness/bin/check-domain.py &&
       grep -qF 'default branch' .claude/skills/harness/bin/upgrade-config.py &&
       grep -qF 'control-plane clone' .claude/skills/harness/bin/upgrade-config.py &&
       grep -qF 'on its default branch' .claude/skills/harness/bin/gh-sync.py &&
@@ -804,7 +804,7 @@ tasks:
       grep -qF 'only the control plane carries the fleet declaration' .claude/skills/harness/bin/layout_migration.py &&
       ! grep -qF 'installs the whole bin/ into product repos' .claude/skills/harness/bin/layout_migration.py &&
       python3 .claude/skills/harness/bin/check-instruction-paths.py &&
-      bash .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"
+      bash .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"
     intent: |
       Six executable sites still assert that onboarding installs harness artifacts into a product
       repository, or tell a user to run /harness-init to repair a product-side path. Correct each.
@@ -844,7 +844,7 @@ tasks:
          Test asserts: the file contains "control-plane clone" and no longer contains the exact
          string "project not onboarded. Run /harness-init."
 
-      3. check-domain.sh, the fail-open message at lines ~375-376. Today it prints
+      3. check-domain.py, the fail-open message at lines ~375-376. Today it prints
       "check-domain: no {manifest} - enforcement OFF (run /harness-init)." which is false for a
       product path: a product repository never carries a manifest and never will. New message,
       keeping the f-string and the flag-not-exit behaviour untouched:
@@ -949,7 +949,7 @@ tasks:
          reference. If the T-02 remedy strings turn out to be asserted anywhere here, amend the
          assertion to the new string and SAY SO in your digest rather than editing T-02's message
          back.
-      8. tests/fixtures/prior-check-domain.sh.fixture - a frozen prior copy of check-domain.sh.
+      8. tests/fixtures/prior-check-domain.py.fixture - a frozen prior copy of check-domain.py.
          DO NOT TOUCH IT. Editing it defeats the fixture.
 
       If any file above reddens for a reason not listed here, stop and report it: a green suite
@@ -960,7 +960,7 @@ tasks:
     traces: [REQ-04]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness/templates/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness/templates/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
     status: done
     files:
@@ -1025,7 +1025,7 @@ tasks:
          column 1. This is issue 168, and it is live, not hypothetical.
          a. Header line 3. "/harness-init copies this to .harness/team-config.yaml" becomes:
             /harness-init instantiates this ONCE, as the control plane's own
-            .harness/team-config.yaml - check-domain.sh reads only that file and a product
+            .harness/team-config.yaml - check-domain.py reads only that file and a product
             repository never carries one. Keep the SEED rule and the identical-in-every-project
             sentence.
          b. REPAIR the flow sequence on main_session.writes: (line 28). Cause: the sequence holds
@@ -1049,7 +1049,7 @@ tasks:
     traces: [REQ-04]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
     status: done
     files:
@@ -1161,7 +1161,7 @@ tasks:
          the skill is rewritten to the central model and deleted by nothing.
          Because - factory_config.product_config reads a member's config from the remote at
          default_branch with no disk fallback, so a central copy would be read by nothing;
-         check-domain.sh resolves policy only from the control plane's own manifest; features and
+         check-domain.py resolves policy only from the control plane's own manifest; features and
          expertise already resolve centrally through factory_config.features_root; and the operator
          struck the central placement on 2026-08-18. Also record the ordering rule: registration
          comes after the config lands, because the failure of the reverse order has no symptom but
@@ -1215,7 +1215,7 @@ tasks:
     traces: [REQ-04]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness/references/github-mirror.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness/references/github-mirror.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
     status: done
     files:
@@ -1278,7 +1278,7 @@ tasks:
     traces: [REQ-07, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-09]
     status: done
     files:
@@ -1431,7 +1431,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-10]
     status: done
     files:
@@ -1620,7 +1620,7 @@ tasks:
     traces: [REQ-03, REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
+    execution_reason: check-domain.py --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
     depends_on: [T-11]
     status: done
     files:
@@ -1704,7 +1704,7 @@ tasks:
     traces: [REQ-09]
     change_type: scaffolding
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-12]
     status: done
     files:
@@ -1840,7 +1840,7 @@ tasks:
     traces: [REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
+    execution_reason: check-domain.py --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
     depends_on: [T-11]
     status: done
     files:
@@ -2079,7 +2079,7 @@ tasks:
       - REQ-11
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all four paths at 97fe447f, the DEC-174 carve-out covering .harness/team-config.yaml and .claude/skills outside harness/bin
+    execution_reason: check-domain.py --resolve returns NOBODY for all four paths at 97fe447f, the DEC-174 carve-out covering .harness/team-config.yaml and .claude/skills outside harness/bin
     depends_on:
       - T-11
     status: done

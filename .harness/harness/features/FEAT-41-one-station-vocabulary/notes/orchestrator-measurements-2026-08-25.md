@@ -198,7 +198,7 @@ revision lands. The SCs are DRAFT. pm may edit them freely. No ruling required, 
 spend an operator round-trip on it.
 
 ### F-1's mechanism claim is CONFIRMED, and the source documents the hazard itself.
-check-domain.sh at roughly 1161-1167 carries this comment in its own voice:
+check-domain.py at roughly 1161-1167 carries this comment in its own voice:
 "ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny(): deny() appends the
 module-level ROUTING constant, speaking about STATE.md, digests and notes/ ... Two routing
 sentences in one stderr stream contradict each other about the same file class."

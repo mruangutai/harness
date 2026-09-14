@@ -62,7 +62,7 @@ Mutation reverted; scratch confirms 18/18 restored; `/tmp/qa-scratch-1030` delet
 
 Scratch: mirrored relative structure (`.omp/extensions/harness-hooks.ts` +
 `.claude/skills/harness/bin/omp-hooks.test.ts` + its two `.fixture.jsonl` files +
-`.agents/skills/harness/bin/check-domain.sh`, since `gatePath`/`gateRoot` resolve relative to the
+`.agents/skills/harness/bin/check-domain.py`, since `gatePath`/`gateRoot` resolve relative to the
 module's own file location) — bare copies without this mirroring gave a false environmental
 failure (`gatePath` test), caught and corrected before trusting the mutant result.
 

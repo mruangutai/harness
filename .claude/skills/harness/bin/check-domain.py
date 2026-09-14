@@ -1,106 +1,64 @@
-#!/usr/bin/env bash
-# PreToolUse hook — block an agent from writing outside its declared domain.
-#
-# Registered in .claude/settings.json — NOT in agent frontmatter:
-#   "PreToolUse": [{ "matcher": "Write|Edit",
-#     "hooks": [{ "type": "command",
-#       "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/check-domain.sh" }] }]
-#
-# Agent identity comes from `agent_type` in the hook payload, because one global
-# registration serves all 16 agents. Agent-frontmatter PreToolUse hooks DO NOT FIRE
-# for spawned subagents in this environment (DEC-110, verified three times).
-#
-# VERIFIED (DEC-100): exit 2 blocks the tool call and stderr reaches the agent.
-# Only exit 2 blocks — exit 1 is a NON-blocking error and the write proceeds.
-#
-# HONEST SCOPE (DEC-85, narrowed by DEC-151): this is a GUARDRAIL, not the
-# write-safety mechanism.
-#   - It cannot see writes made via Bash. The COMMON bypass shapes (sed -i,
-#     perl -pi, tee, redirects, rm/mv/cp) are now denied by the sibling
-#     bash-write-guard.sh after a live qa bypass (DEC-151); truly arbitrary
-#     shell remains unwinnable and is caught post-hoc, not pre.
-#   - Serialization (SPEC 8.5) plus `isolation: worktree` is what actually makes
-#     fan-out safe. Do not treat a passing hook as proof of parallel safety.
-set -uo pipefail
+#!/usr/bin/env python3
+"""Pre/PostToolUse hook — enforce write domains and state-file shape.
 
-# `--resolve <path>` — plan-time route resolution (DEC-179). It answers "which agent
-# may write this path, or nobody" and is NOT the hook path.
-#
-# THE STDIN RULE IS THE WHOLE POINT OF THIS BRANCH, and both failure modes were
-# measured on the pre-change tree: with stdin an open pipe `payload=$(cat)` blocks
-# forever (a plan-time check that looks slow, not broken); with stdin closed it
-# reaches the Python body with an empty payload, resolves no agent, and exits 0
-# printing NOTHING — a fail-open answer indistinguishable from a clean resolve.
-# So this branch must never read stdin: not with a timeout, not non-blockingly,
-# not at all.
-#
-# THE UNSET IN THE ELSE BRANCH IS LOAD-BEARING (VF-1). Mode is selected further down by
-# `os.environ.get("HARNESS_RESOLVE_PATH") is not None`, so the variable INHERITED FROM THE
-# ENVIRONMENT chose the mode, not argv. Measured before the fix, with payload files:
-# harness-documentor writing bin/ exited 2 on a clean env, and 0 with the variable set —
-# including set to the EMPTY STRING, because `is not None` accepts it. That is the whole
-# guard off: exit 0, no stderr, nothing logged, and an audit afterwards cannot tell
-# "permitted" from "disabled". Unset here so the hook path can never be talked out of
-# enforcing by its own caller's environment.
-#
-# On why this is an unset rather than an argv check: the hook is registered in
-# settings.json with NO arguments, so argv carries nothing to branch on in a real hook
-# invocation. Mode selection is env-driven by design (the bash half exports, the Python
-# half reads), and unsetting at the one place the two halves meet is the whole fix.
-# An earlier draft of this comment claimed argv-branching would collide with `sys.argv[2]`
-# as the agent identity; that is NOT true at the hook path — argv[2] is empty there. The
-# claim was corrected rather than left standing, because a wrong reason in a comment is
-# what the next person edits against.
-#
-# `--post` selects the PostToolUse mode (issue #132). The mode travels as an ENVIRONMENT
-# VARIABLE and is blanked out of argv, because argv position 2 is the FALLBACK AGENT
-# IDENTITY — the real registration is `check-domain.sh --post`, so without this line every
-# post invocation of a payload lacking `agent_type` reports its agent as "--post".
-#
-# STATED HONESTLY, because a mutation test proved the stronger claim false: with the
-# blanking removed, every post-mode case still passes. "--post" is not `harness-`-prefixed,
-# so `_governed` is False and the ungoverned branch runs — which is the branch that payload
-# wanted anyway. The line is therefore DEFENSIVE, not load-bearing: it costs one statement
-# and it stops `agent` from holding a value that is not an agent, which becomes a live bug
-# the first time anything in the post path reads identity. An earlier version of this
-# comment claimed it prevented "a different branch than either real caller"; that was
-# wrong, and it is corrected here rather than left for the next reader to edit against.
-mode="pre"
-if [ "${1:-}" = "--resolve" ]; then
-  payload=""
-  export HARNESS_RESOLVE_PATH="${2:-}"
-else
-  unset HARNESS_RESOLVE_PATH
-  payload=$(cat)
-  if [ "${1:-}" = "--post" ]; then
-    mode="post"
-    set -- ""
-  fi
-fi
-export HARNESS_HOOK_MODE="$mode"
+Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
+compatibility registrations live in `.claude/settings.json`. One global hook serves all
+Harness agents and reads `agent_type` from the payload (DEC-110/202).
 
-# Locate the project root WITHOUT depending on cwd. A hook's working directory is
-# not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
-# ran from anywhere else — silently disabling enforcement rather than reporting it.
-# This script lives at <root>/.agents/skills/harness/bin/, so walk up four levels.
-# BASH_SOURCE is the one thing only bash can answer, which is why any bash remains.
-_self="${BASH_SOURCE[0]:-$0}"
-_selfdir="$(cd "$(dirname "$_self")" && pwd)"
-_derived="$(cd "$_selfdir/../../../.." && pwd)"
+Exit 2 blocks a pre-tool call. Exit 1 does not, so every enforcement failure below must
+be rendered as an explicit exit 2. Serialization and worktree isolation remain the actual
+write-safety mechanism; this hook is the guardrail over common Write/Edit routes, paired
+with bash-write-guard.py for shell mutations (DEC-85/151).
 
-# T-13: ONE interpreter launch, not four. This hook runs on EVERY agent write, and
-# four launches cost four Python start-ups per write — measured at 104.7ms for the
-# full governed path, of which the interpreter is most. Behaviour is unchanged:
-# every early exit, every exit code and every stderr message is identical, and the
-# unchanged test suite is the equivalence proof (D-10, REQ-07).
-# `-I` IS LOAD-BEARING, NOT TIDINESS (#556). Python otherwise puts the invoking directory
-# at sys.path[0] AHEAD of PYTHONPATH, so a harness_boundary.py in the GOVERNED AGENT cwd
-# can replace the policy module. Measured 2026-08-27 at sha 7179095: a stub returning a
-# bogus root turned this hook from exit 2 (refused) into exit 0 ("enforcement OFF").
-# The bootstrap removes only sys.path[0] before the heredoc imports anything, preserving
-# site-packages on Python 3.9. test-no-distribution.py case 7 is the invariant.
-HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$_derived" "${1:-}" "$_selfdir" <<'PY'
+Modes are intentionally asymmetric:
+- `--resolve <path>` is a plan-time route query and MUST NOT read stdin (DEC-179).
+- a bare invocation reads one hook payload from stdin and runs pre-write checks.
+- `--post` reads the payload, skips domain authorization, and checks disk state (DEC-180).
+
+WAS A .sh (issue #1674). The 2,314-line Python body lived in a heredoc behind a shell
+bootstrap. A native script keeps one interpreter launch and makes the body visible to
+Python tooling. The bootstrap below preserves the old argv, environment, stdin and root
+contracts exactly; it does not redesign the enforcement body.
+"""
+import os as _bootstrap_os
+import sys as _bootstrap_sys
+
+_bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+_bootstrap_derived = _bootstrap_os.path.abspath(
+    _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
+_bootstrap_args = _bootstrap_sys.argv[1:]
+_bootstrap_first = _bootstrap_args[0] if _bootstrap_args else ""
+
+if _bootstrap_first == "--resolve":
+    # The resolver never reads stdin: an open pipe must not turn a route query into a hang.
+    _bootstrap_payload = ""
+    _bootstrap_os.environ["HARNESS_RESOLVE_PATH"] = (
+        _bootstrap_args[1] if len(_bootstrap_args) > 1 else "")
+    _bootstrap_agent = _bootstrap_first
+    _bootstrap_mode = "pre"
+else:
+    # A caller-controlled inherited value must never switch off the hook path.
+    _bootstrap_os.environ.pop("HARNESS_RESOLVE_PATH", None)
+    # Bash command substitution stripped every trailing newline from the old payload.
+    _bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
+    if _bootstrap_first == "--post":
+        _bootstrap_agent = ""
+        _bootstrap_mode = "post"
+    else:
+        _bootstrap_agent = _bootstrap_first
+        _bootstrap_mode = "pre"
+
+_bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
+_bootstrap_os.environ["HARNESS_HOOK_MODE"] = _bootstrap_mode
+_bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
+_bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
+    _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
+
+# Preserve the exact synthetic argv shape the former heredoc body consumed. Several
+# validation branches read sys.argv[3] directly for sibling schemas.
+_bootstrap_sys.argv = [
+    _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_agent, _bootstrap_selfdir]
+
 import sys, os, re, json, fnmatch
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
@@ -1936,7 +1894,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # window in the hot path, to rescue a case with a working alternative.
         #
         # THE TICKET RULED THIS GATE OUT AND ISSUE #132 MADE THAT REASON OBSOLETE. #139 says
-        # "check-domain.sh's shape gate is the wrong home: it fires on Write only and the
+        # "check-domain.py's shape gate is the wrong home: it fires on Write only and the
         # main session is ungoverned by it" — both true when written, neither true now. The
         # main session is the thing that actually edits CLAUDE.md, and it is now bound on
         # all four routes. Re-derived at a5edb13 rather than inherited from the ticket.
@@ -2415,4 +2373,3 @@ if _problems:
     sys.exit(2)
 
 sys.exit(0)
-PY

@@ -126,6 +126,6 @@ mine.**
    once. Flagging rather than silently overriding. If the operator wants zero edits to that file,
    the only alternative is to fold every board-lifecycle test into an existing test script, and I
    would recommend against it.
-3. **Non-blocking, not mine.** `check-domain.sh --post` blocks on pre-existing violations in
+3. **Non-blocking, not mine.** `check-domain.py --post` blocks on pre-existing violations in
    `FEAT-31`'s `feature.json` (`undeclared key 'agent'` at `/runs/9`-`/runs/20`). Unrelated to this
    feature; it will obstruct anyone committing in that worktree.

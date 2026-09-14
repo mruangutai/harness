@@ -84,5 +84,5 @@ was extended to catch. Case v.T22c is that sentence as an assertion.
 
 ## Not touched
 
-`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-plan-routes.py` — SC-10's
+`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-plan-routes.py` — SC-10's
 four-file list. No other invariant. FEAT-26's INV-28.

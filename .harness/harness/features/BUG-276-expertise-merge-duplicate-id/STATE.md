@@ -105,7 +105,7 @@ None blocking. The eight standing items are unchanged by this fix cycle; all are
   worktree. `check-domain`'s handoff-shape check resolves every authority pointer against the MAIN
   checkout — `brief-sc:SC-06`/`SC-03` came back ENOENT because the feature dir exists only in the
   worktree, so no pointer set can pass. STATE.md `## Current` carries the handoff (DEC-159).
-- Q5 (harness defect): `check-domain.sh`'s worktree-claim guard matches a live claim by agent-type
+- Q5 (harness defect): `check-domain.py`'s worktree-claim guard matches a live claim by agent-type
   STRING alone, never by session or feature, so a concurrent unrelated harness-qa gate for BUG-240
   became this qa session's entire allowed claim set.
 - Q6: `test_matrix`'s `__bug_class__`/`match_bug_class` predicate is an unresolvable placeholder with

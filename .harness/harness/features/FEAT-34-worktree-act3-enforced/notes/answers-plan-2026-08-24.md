@@ -44,7 +44,7 @@ $ git config --get core.hooksPath
 every clone but this one.
 
 **The fix has two halves and REQ-09/SC-08 get tasks for both:**
-1. A **tracked** hooks directory in the repository. Resolve its path with `check-domain.sh --resolve`
+1. A **tracked** hooks directory in the repository. Resolve its path with `check-domain.py --resolve`
    at HEAD and lane it by the result — do not assume. pm measured `.githooks/`, `.claude/hooks/` and
    `.claude/skills/harness/hooks/` all resolving NOBODY, which means the choice is a design decision
    and its own `D-NN`, not a lookup.

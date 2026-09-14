@@ -18,11 +18,11 @@ line 38 — four statements late. This is not merely a lint miss: `import os` on
 module for that one import, which is the exact vulnerability class #556 exists to close (measured
 precedent in the same file's comment: "a stub returning a bogus root turned this hook from exit 2 to
 exit 0"). The plan's own intent (`plan.yaml` T-02, "HOW THE VOCABULARY CROSSES THE ISOLATION
-BOUNDARY") explicitly directs copying `check-domain.sh`'s exact two-part pattern — `python3 -c
+BOUNDARY") explicitly directs copying `check-domain.py`'s exact two-part pattern — `python3 -c
 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' ... <<'PY'`, pop
 on the *same line*, real program on stdin via heredoc — and the shipped code instead inlined the
 whole program into the `-c` string with `pop(0)` several lines down. **Fix: rewrite the block to
-follow the cited `check-domain.sh` precedent verbatim (single-line `sys.path.pop(0)` before any
+follow the cited `check-domain.py` precedent verbatim (single-line `sys.path.pop(0)` before any
 non-builtin import, real body fed via heredoc/stdin), then re-run
 `tests/unit/test-no-distribution.py` and confirm `case7_every_python_launch_isolates_the_cwd` passes
 before resubmitting.**
@@ -233,11 +233,11 @@ the sweep walks the whole `tests/unit|integration` tree, not the diff). Findings
    discriminate the fix from its absence` inside `test-check-domain.py`, plus a cluster of `no
    harness root could be resolved from <tmp>/.claude/skills/harness/bin — refusing to run` failures
    inside `test-run-unit-tests-kinds.py` / `test-run-unit-tests-layout.py` / `test-check-plan-routes.py`.
-2. **Every failing file is untouched by this diff.** `check-domain.sh` and `test-check-domain.py`
+2. **Every failing file is untouched by this diff.** `check-domain.py` and `test-check-domain.py`
    were last modified by `252a18a9` (BUG-1305) — `git show e7994376 --stat` names none of
    `test-check-domain.py`, `test-check-plan-routes.py`, `test-run-unit-tests-kinds.py`, or
    `test-run-unit-tests-layout.py`; the diff under audit is exactly the four files named in the
-   dispatch. The failing mutation self-test is about `check-domain.sh`'s own clean-tracked sweep
+   dispatch. The failing mutation self-test is about `check-domain.py`'s own clean-tracked sweep
    discrimination, unrelated to run-dir slug logic.
 3. **The failure signature (`no harness root could be resolved from <tmpdir> — refusing to run`)
    is a root-resolution race under concurrent load**, consistent with the dispatch's own warning

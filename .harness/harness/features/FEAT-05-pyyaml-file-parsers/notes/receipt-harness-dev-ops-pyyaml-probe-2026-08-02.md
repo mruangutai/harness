@@ -46,20 +46,20 @@ python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING
 Caveat, unresolved: this must run in the **hook subprocess's** PATH, not necessarily the user's
 interactive shell's. I could not directly capture the hook's own spawn environment (would require
 editing `.claude/settings.json`, out of scope here). Safest form: have the gate literally shell out
-through the same invocation shape `check-domain.sh` already uses, or have `check-domain.sh` itself
+through the same invocation shape `check-domain.py` already uses, or have `check-domain.py` itself
 self-report `MISSING` once at first run rather than trusting a separate init-time check. Flagged as
 `open_question`, non-blocking.
 
 ## Ask 3 — session-identifying material
 
-- `check-domain.sh` reads only `agent_type` (:38), `tool_name`+`tool_input` (:74,:240) from the
+- `check-domain.py` reads only `agent_type` (:38), `tool_name`+`tool_input` (:74,:240) from the
   PreToolUse payload; `bash-write-guard.sh` reads only `agent_type` (:27) and the same via
   `HOOK_PAYLOAD` env (:53). Neither **reads** `session_id`, `transcript_path`, or `cwd` — confirmed
   by grep returning zero payload-key matches for those terms in both files. This says nothing about
   whether the payload *carries* those keys unread — see below.
 - Could **not** empirically confirm the full raw PreToolUse payload shape beyond what these two
   scripts read — that would need editing `settings.json` to snoop stdin, which this dry-run scope
-  disallows. Not settled. Cheapest path to settle it: `check-domain.sh:240` already reads
+  disallows. Not settled. Cheapest path to settle it: `check-domain.py:240` already reads
   `HOOK_PAYLOAD` from the env — a build-phase task can add one line there
   (`print(sorted(d.keys()), file=sys.stderr)`) and read it off a real invocation, no stdin plumbing
   or settings.json edit needed.
@@ -74,7 +74,7 @@ self-report `MISSING` once at first run rather than trusting a separate init-tim
 ## Ask 4 — full governed path, re-measured
 
 - Bare `python3 -c pass`, 100 iters: **17.10ms/iter**.
-- `check-domain.sh` driven by a synthetic payload (`agent_type: harness-backend-dev`, `Write`,
+- `check-domain.py` driven by a synthetic payload (`agent_type: harness-backend-dev`, `Write`,
   in-domain `file_path`) that reaches all four launches (:35, :74, :97 `domain_check`, :235
   state-shape gate) and exits 0 silently (matched a domain glob, no stderr) — confirming all four
   ran, not an early exit: **80.63ms/iter**, 100 iters. The grilling's 23.7ms was indeed the
@@ -88,7 +88,7 @@ self-report `MISSING` once at first run rather than trusting a separate init-tim
 ## Ask 5 — YAML semantics (probe interpreter: `/usr/bin/python3`, PyYAML 6.0.1, nothing installed)
 
 a. Duplicate top-level key: `yaml.safe_load` **silently last-wins**, no raise —
-   `{'id': 'second'}`. Converting `check-domain.sh:285-298`'s dup-detection to bare `safe_load`
+   `{'id': 'second'}`. Converting `check-domain.py:285-298`'s dup-detection to bare `safe_load`
    *would* turn a working check into fail-open; the checker needs the custom loader in (d), not
    plain `safe_load`.
 b. Bare `2026-07-31` scalar: `type() == <class 'datetime.date'>`. Confirms SC-10's date-scalar risk.
@@ -110,9 +110,9 @@ DIGEST:
   suite: n/a
   test_kinds_written: []
   open_questions:
-    - { id: Q1, question: "does the gate's python3 import-check need to run in the hook subprocess's exact PATH context, or is the interactive-shell PATH a safe proxy — settle by instrumenting check-domain.sh once to print its own PATH/python3 resolution", blocking: false }
-    - { id: Q2, question: "is CLAUDE_CODE_SESSION_ID actually present inside the PreToolUse hook's own subprocess (only confirmed in a Bash-tool subprocess here) — settle with a one-time debug print from inside check-domain.sh", blocking: false }
-    - { id: Q3, question: "raw PreToolUse payload shape beyond agent_type/tool_name/tool_input is unconfirmed — settle by adding one debug print of sorted(d.keys()) at check-domain.sh:240 (HOOK_PAYLOAD is already parsed there) on a real invocation", blocking: false }
+    - { id: Q1, question: "does the gate's python3 import-check need to run in the hook subprocess's exact PATH context, or is the interactive-shell PATH a safe proxy — settle by instrumenting check-domain.py once to print its own PATH/python3 resolution", blocking: false }
+    - { id: Q2, question: "is CLAUDE_CODE_SESSION_ID actually present inside the PreToolUse hook's own subprocess (only confirmed in a Bash-tool subprocess here) — settle with a one-time debug print from inside check-domain.py", blocking: false }
+    - { id: Q3, question: "raw PreToolUse payload shape beyond agent_type/tool_name/tool_input is unconfirmed — settle by adding one debug print of sorted(d.keys()) at check-domain.py:240 (HOOK_PAYLOAD is already parsed there) on a real invocation", blocking: false }
   files_touched: [".harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-harness-dev-ops-pyyaml-probe-2026-08-02.md"]
   expertise_update: []
 artifact: .harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-harness-dev-ops-pyyaml-probe-2026-08-02.md

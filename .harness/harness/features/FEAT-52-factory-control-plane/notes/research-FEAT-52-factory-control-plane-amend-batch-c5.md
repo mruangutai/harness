@@ -26,7 +26,7 @@ way** — INV-32 passed before this batch and passes after it. The operator stil
 2. **SC-15 is `evidence: integration`, not `unit`** — `test-check-domain.py` sits in
    `run-unit-tests.sh:31` INTEGRATION_SCRIPTS and in `harness.json:121` integration `detect`. And
    its assertion **pairs** the ALLOW-from-a-product-cwd with the same-fixture same-cwd REFUSE of the
-   in-product twin, because `exit 0` alone is also what `check-domain.sh` returns for "no verdict".
+   in-product twin, because `exit 0` alone is also what `check-domain.py` returns for "no verdict".
 3. **The phrase "no literal exit statement anywhere" appears nowhere in any amend text** —
    asserted programmatically over both new intents. The recorded finding summary carrying it
    (`plan.yaml:1241`) was left byte-untouched; correcting it would change its content-hash id.

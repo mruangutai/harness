@@ -36,7 +36,7 @@ invalidates the panel's verdict, so it is now or as briefing rows.
 - Do not route INV-29's `qa-bug440-c3-probe` worktree either; its path is outside the worktrees
   segment so no removal command can be composed, and it predates this feature — `check-state.sh`
   run in this worktree — verified-at e53f252b
-- Do not let any team agent edit `validate-digest.py`, `check-domain.sh`, `check-state.sh`,
+- Do not let any team agent edit `validate-digest.py`, `check-domain.py`, `check-state.sh`,
   `run-state-schema.json`, their tests, or the lead agent files: the category governs, not the
   enumeration, and a team edit there already failed one QA run this cycle — DEC-174 —
   verified-at e53f252b

@@ -30,14 +30,14 @@ lanes:
     - surface: .claude/skills/harness/bin/gh-sync.py
       lane: team
       agent: harness-backend-dev
-      reason: resolved by check-domain.sh to harness-backend-dev and harness-dev-ops; the recording and recovery behaviour is mirror work, not a refusal
+      reason: resolved by check-domain.py to harness-backend-dev and harness-dev-ops; the recording and recovery behaviour is mirror work, not a refusal
     - surface: .claude/skills/harness/bin/gh-sync.py start-task refusal
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - the branch placed here IS the Build refusal mechanism, so it is a gate whatever file hosts it
     - surface: .claude/skills/harness/bin/feature-schema.json
       lane: team
       agent: harness-backend-dev
-      reason: resolved by check-domain.sh to harness-backend-dev and harness-dev-ops; a data declaration, not an enforcement path
+      reason: resolved by check-domain.py to harness-backend-dev and harness-dev-ops; a data declaration, not an enforcement path
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and its own invariant is the artifact doing the checking
@@ -49,27 +49,27 @@ lanes:
       reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script
     - surface: .claude/settings.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the hook registration surface (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY, and it is the hook registration surface (DEC-179)
     - surface: .claude/skills/harness/templates/settings.snippet.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the installed hook registration template (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY, and it is the installed hook registration template (DEC-179)
     - surface: .omp/extensions/harness-hooks.ts
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the OMP host's bash-gate list - the surface BUG-1132 records as the only enforcement path under OMP
+      reason: check-domain.py --resolve returns NOBODY, and it is the OMP host's bash-gate list - the surface BUG-1132 records as the only enforcement path under OMP
     - surface: .claude/skills/harness/references/github-mirror.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY (DEC-179)
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY (DEC-179)
+      reason: check-domain.py --resolve returns NOBODY (DEC-179)
     - surface: .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md
       lane: team
       agent: harness-documentor
-      reason: resolved by check-domain.sh to harness-documentor
+      reason: resolved by check-domain.py to harness-documentor
     - surface: tests/integration/test-gh-sync.py and tests/integration/test-validate-feature-json.py
       lane: team
       agent: harness-backend-dev
-      reason: resolved by check-domain.sh to harness-backend-dev, harness-dev-ops and harness-qa; these exercise mirror behaviour, not a gate
+      reason: resolved by check-domain.py to harness-backend-dev, harness-dev-ops and harness-qa; these exercise mirror behaviour, not a gate
     - surface: tests/integration/test-check-state.py, tests/integration/test-post-merge-sweep.py, tests/integration/test-merge-gate.py, tests/unit/omp-hooks.test.ts
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - each gate's own test is inside the carve-out with the gate
@@ -139,7 +139,7 @@ decisions:
   - id: D-11
     choice: |
       tests/integration/test-hooks-install.py is inside the DEC-174 enforcement carve-out, so its
-      repair is main-session-direct, even though check-domain.sh --resolve grants it to
+      repair is main-session-direct, even though check-domain.py --resolve grants it to
       harness-backend-dev, harness-dev-ops and harness-qa. A unit test of a helper module a gate
       merely imports - feature_schema's pure functions, gh-sync.py's recorders - is NOT in the
       carve-out and stays team. The line is EXERCISES A GATE, never IMPORTS A MODULE A GATE USES.
@@ -1068,7 +1068,7 @@ tasks:
     traces: [REQ-07]
     change_type: feature
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script and its registration surfaces; check-domain.sh --resolve returns NOBODY for settings.json, settings.snippet.json and harness-hooks.ts
+    execution_reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script and its registration surfaces; check-domain.py --resolve returns NOBODY for settings.json, settings.snippet.json and harness-hooks.ts
     depends_on:
     - T-02
     - T-06
@@ -1441,7 +1441,7 @@ tasks:
         later reshuffle that keeps the constraint stays green and one that breaks it reddens.
 
       tests/integration/test-merge-settings.py exists but exercises hook_present generically against
-      check-domain.sh fixtures and enumerates no individual gate, so it is NOT a bed for this entry and
+      check-domain.py fixtures and enumerates no individual gate, so it is NOT a bed for this entry and
       no case is added there; merge-settings.py --check in this task's verify: is what asserts it.
 
       THE CASE NAMES BELOW ARE A CONTRACT, not labels: this task's verify: greps the runner's
@@ -1820,7 +1820,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out reasoning does not apply, but check-domain.sh --resolve returns NOBODY for both files, so DEC-179 makes this a declared main-session step
+    execution_reason: DEC-174 enforcement carve-out reasoning does not apply, but check-domain.py --resolve returns NOBODY for both files, so DEC-179 makes this a declared main-session step
     depends_on: []
     status: done
     files:
@@ -2180,7 +2180,7 @@ tasks:
     traces: [REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - the edited line sits inside cmd_start_task's Build refusal preflight, the surface the plan's own lanes row "gh-sync.py start-task refusal" already places main-session-direct, and which T-04 carries; check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for the file itself, and the carve-out governs the refusal branch inside it
+    execution_reason: DEC-174 enforcement carve-out - the edited line sits inside cmd_start_task's Build refusal preflight, the surface the plan's own lanes row "gh-sync.py start-task refusal" already places main-session-direct, and which T-04 carries; check-domain.py --resolve returns harness-backend-dev and harness-dev-ops for the file itself, and the carve-out governs the refusal branch inside it
     depends_on: [T-04, T-06]
     status: done
     files:

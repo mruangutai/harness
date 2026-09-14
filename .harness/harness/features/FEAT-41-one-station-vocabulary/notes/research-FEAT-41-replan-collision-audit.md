@@ -63,7 +63,7 @@ clause `DEAD`. Per-task reasons are in the DIGEST, which is what the orchestrato
 
 | Held at HEAD | Moved |
 |---|---|
-| SC-02: 27 lines / 5 files, per-file split identical | Every `check-state.sh` anchor +25; `check-domain.sh` +29 |
+| SC-02: 27 lines / 5 files, per-file split identical | Every `check-state.sh` anchor +25; `check-domain.py` +29 |
 | SC-04: ten `set_station` sites | `factory_claim` +5, `board_lifecycle` +2/+3, `check-plan-routes` +6 |
 | `_EXPECT\|_st26` = six lines; `_renamed`/`_no_finding` = 4/4 | `factory_config._STATION_KEYS` 41 → **39** |
 | feature-schema 11 props / 8 required | plan files 29 → **31**; pending task lines 55 → **56** |

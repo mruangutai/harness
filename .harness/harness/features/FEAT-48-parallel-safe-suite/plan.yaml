@@ -16,7 +16,7 @@ lanes:
       lane: main-session-direct
       reason: >
         DEC-174 policy carve-out, NOT absence of a grant. The glob IS granted, to
-        harness-backend-dev and harness-dev-ops, and check-domain.sh --resolve returns both
+        harness-backend-dev and harness-dev-ops, and check-domain.py --resolve returns both
         seats for every path this plan names. AGENTS.md:8 names hooks, validators, gate
         scripts or their tests; every file here is one of those, and the invariant T-03 adds
         becomes a gate that run-unit-tests.sh enforces. check-plan-routes.py therefore
@@ -38,7 +38,7 @@ decisions:
       The crashing-checker probe gets its broken feature_schema.py from a private COPY of the
       bin directory in a tempdir, not from a tempdir placed first on the child PYTHONPATH.
     because: >
-      check-domain.sh runs sys.path.insert(0, _bin_dir) inside its heredoc — at line 125 as a DATED,
+      check-domain.py runs sys.path.insert(0, _bin_dir) inside its heredoc — at line 125 as a DATED,
       NON-BINDING anchor at 2a5cbada on 2026-09-01, whose durable identifier is that insert call
       itself — so the real bin directory wins over PYTHONPATH and the note's PYTHONPATH direction
       cannot reach this consumer. Measured cost of the copy at ccf674a: 44ms for 117 files.
@@ -303,7 +303,7 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-check-domain.py is the test of check-domain.sh, the PreToolUse
+      DEC-174 carve-out. test-check-domain.py is the test of check-domain.py, the PreToolUse
       hook that decides every agent write, and AGENTS.md:8 names a gate's test verbatim.
     depends_on: []
     status: done
@@ -366,7 +366,7 @@ tasks:
       absent at d5c23a0 and arrived on the rebase with FEAT-50.
 
       WHY PYTHONPATH IS NOT THE ANSWER for either, despite what the research note proposes.
-      check-domain.sh exports PYTHONPATH with its own directory first (line 102) and then its
+      check-domain.py exports PYTHONPATH with its own directory first (line 102) and then its
       heredoc runs sys.path.insert(0, _bin_dir) with _bin_dir taken from argv (line 125). Both
       entries are the real bin directory, so a tempdir on PYTHONPATH loses. The child must therefore
       run a hook whose OWN directory is private.
@@ -377,7 +377,7 @@ tasks:
 
            def isolated_bin(dest_root):
                """Copy the live bin directory to <dest_root>/.claude/skills/harness/bin and
-               return that path. The copy is a real copy, never symlinks: check-domain.sh
+               return that path. The copy is a real copy, never symlinks: check-domain.py
                derives its root with cd/pwd on dirname(BASH_SOURCE), so a symlinked script
                would resolve back into the live tree and defeat the isolation."""
 
@@ -424,9 +424,9 @@ tasks:
 
       3. SITE B, in the same isolated_bin shape. _feat50_mutant_between currently takes (start, end)
          and returns a path in HERE. Give it the destination instead — _feat50_mutant_between(start,
-         end, iso) returning os.path.join(iso, "check-domain.sh") — and have each caller build its
+         end, iso) returning os.path.join(iso, "check-domain.py") — and have each caller build its
          own iso = isolated_bin(tempfile.mkdtemp()) from the fixture root it already has, exactly as
-         step 2a does. Write the mutated source over the COPY's check-domain.sh, keeping
+         step 2a does. Write the mutated source over the COPY's check-domain.py, keeping
          os.chmod(path, os.stat(HOOK).st_mode) so the executable bit is right. HOOK stays the LIVE
          hook for the stat and for the source read: reading is not the hazard.
 
@@ -823,7 +823,7 @@ tasks:
       two tasks land are the eight D-10 records, in four files. Do not treat that as a target; run
       the scan. The two test files FEAT-45 added, test-panel-findings.py and test-plan-panel.py,
       reported ZERO at ccf674a and were audited for the subprocess vector too — their only subprocess
-      calls invoke panel_findings.py id and check-domain.sh --resolve, neither of which writes.
+      calls invoke panel_findings.py id and check-domain.py --resolve, neither of which writes.
 
       Write the file and run it BEFORE T-01 and T-02 are on this branch if you can; if they are
       already landed, the verify block's git show path is the same proof and is the one that ships.
@@ -1502,7 +1502,7 @@ panel:
     reader: code-reviewer
     severity: low
     summary: T-02's declared files understates its actual touch scope because it will
-      also edit test-bash-write-guard.py; signable, since check-domain.sh authorizes
+      also edit test-bash-write-guard.py; signable, since check-domain.py authorizes
       by lane glob and not by files, but a build-cycle reviewer diffing only files
       could misflag the edit as scope creep
     pointer: plan.yaml:461-462; :533 (T-02 intent)

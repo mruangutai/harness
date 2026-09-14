@@ -47,7 +47,7 @@ clause fires for this project's `logic` template); `docs.always = []`; `scaffold
 **The mechanical floor from the matrix is `unit` alone.**
 
 The fix delta `6126ac07..99035a9c` is itself a `bugfix` to runtime gate code
-(`check-domain.sh`, `validate-digest.py`) plus their own tests. `bugfix.when`: `unit` if
+(`check-domain.py`, `validate-digest.py`) plus their own tests. `bugfix.when`: `unit` if
 `touches_runtime_code` (true — fires, still just `unit`); `integration` if
 `fix_confined_to_tests_and_contract_docs` (false — the fix touches runtime code, not only tests/
 docs, so this leg does not fire); `__bug_class__` via `match_bug_class` is an unresolved
@@ -110,7 +110,7 @@ filter), from the worktree root:
 exit 0, `12/12 T-06 check-domain cases passed`, `ALL PASSED`. The specific case
 `schema_version floor refuses a version-2 checkpoint downgrade` is present and passing; the
 sibling `schema_version floor allows an existing version-1 update` also passes (SC-11/SC-15
-compatibility preserved). Read `check-domain.sh:1760-1779`: on an existing checkpoint with
+compatibility preserved). Read `check-domain.py:1760-1779`: on an existing checkpoint with
 `schema_version >= 2` (int, non-bool), a proposed write with a lower/non-int/bool version is
 refused, `exit 2`, message head `"schema_version downgrade for a run checkpoint."`. This closes
 the pre-fix witness from `f08aad49` (11/12, downgrade accepted where refusal was expected).
@@ -163,7 +163,7 @@ No gap found in either T-06's or T-07's or T-04's new/changed cases.
   this fix cycle; still asserted by T-04's undeclared-key cases. Satisfied.
 - **SC-02** (per-persona SCHEMAS rejection, one case per persona) — unaffected; 55/55 T-01 schema
   cases + 34/34 T-04 cases still pass. Satisfied.
-- **SC-03** (`check-domain.sh` refuses an undeclared `steps[]` key at `schema_version: 2`, names
+- **SC-03** (`check-domain.py` refuses an undeclared `steps[]` key at `schema_version: 2`, names
   the key) — unaffected by F1's downgrade addition (different code path); still covered, 12/12.
   Satisfied.
 - **SC-07** (three unknown keys → one rejection naming all three) — unaffected; T-04's three-key

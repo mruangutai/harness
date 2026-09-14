@@ -5,7 +5,7 @@ source_issues: [742, 866]
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
   status: approved
   approved_by: Mike Ruangutai
@@ -17,7 +17,7 @@ lanes:
     - surface: .claude/skills/harness/bin/**
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
     - surface: .claude/skills/harness/bin/bash-write-guard.sh
@@ -55,10 +55,10 @@ lanes:
       reason: the suite runner; a wrong cd on line 3 runs every gate against the wrong checkout and still exits 0, which no gate can see
     - surface: .claude/skills/harness-zero-micro-management/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 3952814
+      reason: check-domain.py --resolve returns NOBODY at 3952814
     - surface: .claude/agents/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 3952814
+      reason: check-domain.py --resolve returns NOBODY at 3952814
 
 decisions:
   - id: D-01
@@ -343,7 +343,7 @@ tasks:
       install now raises instead of returning a confident wrong answer.
 
       The import-time risk is real and has been checked: FLEET_PATH at :59 calls this at MODULE
-      IMPORT for all 23 importers, and check-domain.sh:196 reaches it through resolve_fleet's lazy
+      IMPORT for all 23 importers, and check-domain.py:196 reaches it through resolve_fleet's lazy
       import inside a try whose except is sys.exit(2). A strict raise there would BLOCK a governed
       write. It cannot fire: factory_config resolves from its own _BIN_DIR, which under any test
       fixture root still sits inside the LIVE checkout, and the live checkout always carries
@@ -612,7 +612,7 @@ tasks:
     traces: [REQ-01, REQ-03, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: the mutation proof writes docs/invalid-states-audit.html; check-domain.sh --resolve returns NOBODY for that path at sha 3952814, so no agent domain grants the mutant target
+    execution_reason: the mutation proof writes docs/invalid-states-audit.html; check-domain.py --resolve returns NOBODY for that path at sha 3952814, so no agent domain grants the mutant target
     depends_on: [T-02, T-04, T-05, T-06, T-08, T-09, T-10, T-11, T-12, T-13, T-14, T-15, T-16, T-17, T-18, T-20]
     status: done
     files:
@@ -769,30 +769,30 @@ tasks:
       replaces it; the claim they make about cwd-independence stays true and stays stated.
 
   - id: T-10
-    title: Cut check-domain.sh over to the resolver, with the identical-violation-set proof
+    title: Cut check-domain.py over to the resolver, with the identical-violation-set proof
     traces: [REQ-01, REQ-02, REQ-09]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 names check-domain.sh in the enforcement layer
+    execution_reason: DEC-174 am.4 names check-domain.py in the enforcement layer
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      grep -q "HARNESS_PROJECT_DIR" $B/check-domain.sh && { echo "chain survives"; exit 1; }
+      grep -q "HARNESS_PROJECT_DIR" $B/check-domain.py && { echo "chain survives"; exit 1; }
       for M in /tmp/f42-old /tmp/f42-new; do
         rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
         cp -R $B $M/.claude/skills/harness/bin
         cp .harness/team-config.yaml $M/.harness/
       done
-      git show 3952814:$B/check-domain.sh > /tmp/f42-old/.claude/skills/harness/bin/check-domain.sh
-      chmod +x /tmp/f42-old/.claude/skills/harness/bin/check-domain.sh
-      HARNESS_PROJECT_DIR=/tmp/f42-old CHECK_DOMAIN_BIN=/tmp/f42-old/.claude/skills/harness/bin/check-domain.sh \
+      git show 3952814:$B/check-domain.py > /tmp/f42-old/.claude/skills/harness/bin/check-domain.py
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/check-domain.py
+      HARNESS_PROJECT_DIR=/tmp/f42-old CHECK_DOMAIN_BIN=/tmp/f42-old/.claude/skills/harness/bin/check-domain.py \
         python3 $B/test-check-domain.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t10-before.txt
-      HARNESS_PROJECT_DIR=/tmp/f42-new CHECK_DOMAIN_BIN=/tmp/f42-new/.claude/skills/harness/bin/check-domain.sh \
+      HARNESS_PROJECT_DIR=/tmp/f42-new CHECK_DOMAIN_BIN=/tmp/f42-new/.claude/skills/harness/bin/check-domain.py \
         python3 $B/test-check-domain.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t10-after.txt
       # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
       # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
@@ -804,7 +804,7 @@ tasks:
       python3 $B/test-check-domain.py || exit 1
       echo T-10-OK
     intent: |
-      Two chain sites in .claude/skills/harness/bin/check-domain.sh: :152 and :296, both
+      Two chain sites in .claude/skills/harness/bin/check-domain.py: :152 and :296, both
       root = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or "". Replace both with
       harness_boundary.resolve_root(<the bin dir this script derives from its own location>),
       importing harness_boundary the way the file already imports shared modules.
@@ -1445,7 +1445,7 @@ tasks:
     traces: [REQ-05]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/** and .claude/agents/** at sha 3952814
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/skills/** and .claude/agents/** at sha 3952814
     depends_on: [T-18]
     status: done
     files:
@@ -1503,7 +1503,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: enforcement-adjacent host adapter; check-domain.sh --resolve returns NOBODY for .omp/** at sha 3952814, so no agent domain grants it
+    execution_reason: enforcement-adjacent host adapter; check-domain.py --resolve returns NOBODY for .omp/** at sha 3952814, so no agent domain grants it
     depends_on: [T-10, T-11, T-14, T-16, T-17]
     status: done
     files:
@@ -1516,7 +1516,7 @@ tasks:
       test "$HITS" = "0" || { echo "HARNESS_PROJECT_DIR still set outside bin/ in $HITS place(s)"; git ls-files -z -- '*.ts' '*.js' '*.json' | xargs -0 grep -n 'HARNESS_PROJECT_DIR' 2>/dev/null | grep -v '/bin/'; exit 1; }
       grep -q 'spawnSync(join(cwd, BIN, script)' "$F" || { echo "the policy-script spawn no longer resolves through join(cwd, BIN, script)"; exit 1; }
       grep -q 'process.env' "$F" || { echo "the child no longer inherits the host environment at all - too much was removed"; exit 1; }
-      bash .claude/skills/harness/bin/check-domain.sh --resolve .omp/extensions/harness-hooks.ts > /dev/null 2>&1
+      bash .claude/skills/harness/bin/check-domain.py --resolve .omp/extensions/harness-hooks.ts > /dev/null 2>&1
       bash .claude/skills/harness/bin/check-state.sh; test $? -le 1 || exit 1
       echo T-20-OK
     intent: |
@@ -1536,7 +1536,7 @@ tasks:
       .claude/skills/harness/bin/ that sets the variable - a repo-wide grep over tracked .ts, .js
       and .json files excluding /bin/ returns exactly this one line at sha 3952814; every other
       match in the tree is prose. After T-10, T-11, T-14, T-16 and T-17 each of the five scripts
-      this helper invokes - check-domain.sh, bash-write-guard.sh, branch-create-gate.sh,
+      this helper invokes - check-domain.py, bash-write-guard.sh, branch-create-gate.sh,
       inject-expertise.sh and validate-digest.py - derives its own root from its own file location
       under D-4. Handing it one is therefore redundant. Worse, the value handed over is the host
       process working directory, and under D-2 and D-3 a feature worktree carries

@@ -29,7 +29,7 @@ the standard workflow that walks every agent into it: T-06 built the tool, T-07 
 `harness-distill/SKILL.md` so every agent, reviewers included, is told to reach it via exactly this
 Bash shape at every feature-close distillation (`harness-distill/SKILL.md:29-32`). The
 "reviewer read-only, no path analysis" simplification in the guard's own header comment
-(`bash-write-guard.sh:13-14`) is falsified by the very tool this diff ships. `check-domain.sh` never
+(`bash-write-guard.sh:13-14`) is falsified by the very tool this diff ships. `check-domain.py` never
 sees it either (`Write|Edit` matcher only). `feature-worktree.py` shares the same blind spot but its
 own internal `REFUSE_ON_DIRTY`/`REQUIRE_LANDED` gates bound an unauthorized `remove` call's blast
 radius; `expertise-merge.py` has no analogous self-check on who is calling it or what `--file`
@@ -102,7 +102,7 @@ deliberate; the id regex was not given the same treatment).
 ## Assessed and dismissed (no finding)
 - `harness_boundary.worktree_owner`/`checkout_relative`/`classify`'s malformed-`.git`-pointer path
   is fail-closed: live-tested with a garbage-byte pointer file → `(dir, None, False)`; both
-  `check-domain.sh` and `bash-write-guard.sh` test `owner_root is None` / `unparsed` and exit 2.
+  `check-domain.py` and `bash-write-guard.sh` test `owner_root is None` / `unparsed` and exit 2.
 - Sibling-checkout-prefix confusion (`/workspaces/widget-other` vs. `/workspaces/widget`) and `..`
   traversal are both closed via `commonpath`/`realpath`, verified live against `select_base`'s
   `inside()` helper and `harness_boundary.real()`.

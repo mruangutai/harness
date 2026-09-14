@@ -109,7 +109,7 @@ Read every check in `test-plan-panel.py` (lines 108-292) and classified by what 
 exercises:
 
 - **Genuinely executes runtime behaviour (3 of 24):** the two `(2) ... resolves to persona ...`
-  checks (scope output + goalcheck path) each shell out to the real `check-domain.sh --resolve`
+  checks (scope output + goalcheck path) each shell out to the real `check-domain.py --resolve`
   and assert on its actual stdout/rc; `(8b)` `importlib`-loads the real
   `sync-agent-adapters.py` module and inspects its live `SPAWNS` dict — the structure the sync
   tooling itself consumes at bootstrap time.

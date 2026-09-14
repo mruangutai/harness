@@ -21,7 +21,7 @@ one edit from current.
 | SC-03 | met | inspection | Same case, `:4596-4598`: asserts `runs/X`,`runs/V`,`runs/W`, `'A'`,`'B'`,`'U1'`,`'U2'`, `cannot be read` present **and** `non-checkpoint top-level key` absent — the malformed/clobbered distinction the criterion names. |
 | SC-04 | met | automated / integration | `run_bug1305_artifact_resolution_cases` 6/6 at pin: non-compliant refused naming the run dir, compliant passes in the same tree. Hands-off path = `validate-digest.py --hook` on SubagentStop. |
 | SC-05 | met | automated / integration | 5/5 at pin: `digest Edit append repair remains allowed` exit 0 **and** `cross-run digest replacement remains refused` exit 2. Not "guard removed". |
-| SC-06 | met | inspection | `check-domain.sh:1296-1298` — "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior" — agrees with SC-05's observed routes. Caveat F-03. |
+| SC-06 | met | inspection | `check-domain.py:1296-1298` — "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior" — agrees with SC-05's observed routes. Caveat F-03. |
 | **SC-07** | **not_met** | inspection | Direction one and direction two both fail against `notes/regression-delta-BUG-1305.md`. **F-01.** |
 | SC-09 | met | automated / integration | Four pins in the one case: `Z` (checkpoint, no witness) and `L` (witness uid, checkpoint none) silent in a clean tree that contains only `Y`,`Z`,`L` (exit 0, no INV-36); `W` unreadable and `X` seed-disagreement both reported. Fifth pin: delta note `:38` records control-plane root exit 0 / 0 INV-36. |
 | SC-10 | met | automated / integration | Four assertions present and green: mints 32-hex uid + matching witness, second POST byte-stable, preserves supplied uid, leaves malformed untouched. Minting **red at `c369fb1f`** in my replay. |
@@ -71,7 +71,7 @@ The *note* is stale, two ways, and SC-07 grades the note:
   requires every assertion "changed in its expected exit code" to be enumerated under
   `## Removed or altered assertions`. The note's `:12` covers `test-check-domain.py` but names only
   additions and the concurrent-sweep replacement. Leg 1 of the `FAILS if` fires.
-- **Direction two fails.** The cycle-13 branch (`check-domain.sh:2058-2072`, reconstruction `None` →
+- **Direction two fails.** The cycle-13 branch (`check-domain.py:2058-2072`, reconstruction `None` →
   exit 2 for `RE_STATE_YAML`/`RE_RUN_DIGEST`/`RE_HANDOFF`) is a refusing branch this feature adds and
   is **not paired** under `## Newly refused writes`. That section's BLUF (`:27`) — "the only
   intentional compatibility refusal is a foreign writer…" — is now **false** at the pin.
@@ -102,7 +102,7 @@ remains allowed` exits 0, so the lead's repair route is Write-append, not Edit).
   not name the witness's recorded `run_id`, though the witness is on disk and readable at that point.
   SC-01(a) is met — the message names the identity subject, clearing the "generic shape error" bar,
   and no `FAILS if` leg fires — but naming the recorded value would make it literally conflict-naming.
-- **F-03 — advisory. Outside the delta → Advisor, does not consume cycle 15.** `check-domain.sh:1240`
+- **F-03 — advisory. Outside the delta → Advisor, does not consume cycle 15.** `check-domain.py:1240`
   "RE_RUN_DIGEST stays out because its content comparison is PRE-only." True, and its subject is
   `SHAPE_PATTERNS` membership rather than route coverage, so SC-06 holds on `:1296-1298`. Carried from
   c1/c2 unchanged; the delta does not touch it.

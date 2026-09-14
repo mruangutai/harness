@@ -42,7 +42,7 @@ an open operator escalation and is deliberately NOT graded here.
    `T-01 granted to backend-dev, dev-ops, qa` / `T-02 granted to backend-dev, dev-ops` (qa NOT
    granted) / `T-03 granted to backend-dev, dev-ops, qa`. Plan routes T-02 → `harness-backend-dev`,
    T-01/T-03 → `harness-qa`. Exactly the operator's (b). D-05 correctly records that no verb writes
-   `lanes:` and that `execution_agent` + `check-domain.sh` is what binds.
+   `lanes:` and that `execution_agent` + `check-domain.py` is what binds.
 6. **Consequence (c) — BRIEF states the measured truth — VERIFIED AT SOURCE.** `BRIEF.md:3-36` names
    both readers separately: gh-sync "correct, unpinned" (`:8-16`, work is "a regression pin over
    already-correct code — worth having, but it fixes nothing") and factory_decompose "still

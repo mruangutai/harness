@@ -24,7 +24,7 @@ templates/harness.json      T-04           .harness/harness.json        T-03 T-1
 DECISIONS.md                T-09           DECISIONS-INDEX.md           T-09
 ```
 
-`check-domain.sh` — **absent from every task.** `feature-schema.json` — **absent.** Any hook,
+`check-domain.py` — **absent from every task.** `feature-schema.json` — **absent.** Any hook,
 `settings.json`, or injection surface — **absent.**
 
 Substance probes across all 14 task bodies, case-insensitive: *"agent identifier"*, *"runs entry"*,
@@ -35,8 +35,8 @@ running"* — **no task mentions any of them.**
 
 - **SC-07** (`verify: automated`, `evidence: unit`, REQ-04): *"`feature.json`'s `runs` items carry an
   agent identifier, and the write path refuses a run entry that omits it — enforced where DEC-191's
-  closed key set is already enforced, on `check-domain.sh`'s `feature.json` write route."* That is a
-  change to `check-domain.sh` plus the `runs` item schema in `feature-schema.json`. Both are
+  closed key set is already enforced, on `check-domain.py`'s `feature.json` write route."* That is a
+  change to `check-domain.py` plus the `runs` item schema in `feature-schema.json`. Both are
   **enforcement layer under DEC-174**, so the task would additionally have to be
   `main-session-direct` — it does not exist in either lane.
 - **SC-13** (`verify: automated`, `evidence: integration`, REQ-08): *"An orchestrator whose context
@@ -82,7 +82,7 @@ Three courses, and the cost of each is real:
    how a half-built mechanism becomes permanent.
 2. **Send pm back to append tasks for SC-07 and SC-13** before the ship decision, under a fresh
    signature. Completes the feature as approved. Cost: SC-13 needs a delivery mechanism this
-   repository does not yet have, and SC-07 edits `check-domain.sh`, so both land in the
+   repository does not yet have, and SC-07 edits `check-domain.py`, so both land in the
    `main-session-direct` lane — the operator's own hands, on top of the four such tasks already
    queued.
 3. **Amend the BRIEF** to drop SC-07 and SC-13. Cost: BRIEF is approval-gated and this narrows an

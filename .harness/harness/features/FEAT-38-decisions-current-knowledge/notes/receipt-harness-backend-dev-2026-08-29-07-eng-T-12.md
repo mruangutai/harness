@@ -69,7 +69,7 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
 - **Case 1 — am.N fold into bare DEC-N**: 15 sites (`harness_yaml.py`, `test-harness-yaml-corpus.py`,
   `upgrade-config.py`, `factory_decompose.py`, `test-dispatch-guard.py`, `test-no-distribution.py`,
   `plan-merge.py`, `test-check-state.py`, `test-team-catalog.py`, `check-state.sh`,
-  `check-domain.sh`, `gh-sync.py` x4). Every fold checked against DEC-171/DEC-138/DEC-174's
+  `check-domain.py`, `gh-sync.py` x4). Every fold checked against DEC-171/DEC-138/DEC-174's
   current (post-fold) body for continued truth.
 - **Case 2 — successor swap**: 21 sites. DEC-137→DEC-162 (1), DEC-186→DEC-203 (7, including the
   two INV-24 identifier renames), DEC-192→DEC-203 (13).
@@ -105,17 +105,17 @@ $ python3 .claude/skills/harness/bin/test-check-state.py
 Exit status: **0**. Census: **145 `ok`, 0 `FAIL`** (full suite, all cases including the 14
 `INV-24` cases in `case_s`, all passing).
 
-## check-domain.sh anchor line
+## check-domain.py anchor line
 
 `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))`
 
 - Before edit: line **1335** (grepped)
 - After edit: line **1335** (grepped, unchanged)
 
-My only edit to `check-domain.sh` was at line 775 (`DEC-171 am.1's logic` → `DEC-171's logic`),
+My only edit to `check-domain.py` was at line 775 (`DEC-171 am.1's logic` → `DEC-171's logic`),
 a single-line in-place rewrite with no line added or removed (`git diff --stat`: `1 file
 changed, 1 insertion(+), 1 deletion(-)`), so nothing above line 1335 shifted. The DECISIONS.md
-anchor `check-domain.sh:1335` remains correct.
+anchor `check-domain.py:1335` remains correct.
 
 ## Scope
 

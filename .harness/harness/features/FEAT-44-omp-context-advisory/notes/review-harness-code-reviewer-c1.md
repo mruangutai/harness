@@ -85,7 +85,7 @@ playbook.py`'s deliberate absence-check literal, and (c) FEAT-31's own closed-fe
 archive (a different, already-shipped feature's historical record — correctly untouched). Zero live
 references in `.claude/settings.json`, `.harness/harness.json`, `run-unit-tests.sh`, or `SKILL.md`
 (directly grepped all four, confirmed exit 1/no-match). `.claude/settings.json`'s `PostToolUse` block
-now carries only the `check-domain.sh --post` hook — the second object (the `context-watch-hook.py`
+now carries only the `check-domain.py --post` hook — the second object (the `context-watch-hook.py`
 entry) is gone, valid JSON, no trailing comma.
 
 ### Q5 — DEC amendments: amend-not-strike is right for all three, and the specific SC-09 sub-clauses hold

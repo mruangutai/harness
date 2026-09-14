@@ -30,7 +30,7 @@ This feature was re-founded three times, and each time by measurement rather tha
 Planning killed session identity as a denial input (it refused a resumed owner), then killed
 marker-acquisition (a panel `critical` showed it refused approximately only the legitimate owner and
 approximately no foreign run), leaving the minted `run_uid` the Advisor had recorded as its fallback.
-Build then found the deeper defect: the omp bridge sends `check-domain.sh` only `{ file_path }` for
+Build then found the deeper defect: the omp bridge sends `check-domain.py` only `{ file_path }` for
 an Edit, so **every governed Edit PRE check was dormant on the host the harness itself runs on** —
 not open in corner cases. The suite's exit-2 evidence was real only for payload shapes this host
 never emits. Cycle 13 made reconstruction-`None` fail closed for `state.yaml`, `digest.md` and
@@ -88,7 +88,7 @@ collation across seventeen cycles. Strike rows by ID.
 | B-5 | chore | `check-state.sh` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
 | B-6 | chore | `harness_boundary.py` imports `MARKER_NAME` eagerly: +6.45 ms on every governed write, measured over a 60-invocation A/B. |
 | B-7 | chore | POST effective-uid selection lives in a shell heredoc with no importable function and no unit test. |
-| B-8 | chore | `check-domain.sh:1240` still reads like the false PRE-only comment REQ-06 removed. True as written — its subject is the POST-sweep exclusion — and it will mislead the next reader anyway. |
+| B-8 | chore | `check-domain.py:1240` still reads like the false PRE-only comment REQ-06 removed. True as written — its subject is the POST-sweep exclusion — and it will mislead the next reader anyway. |
 | B-9 | enhancement | Brief review panels to hunt the composite claim: five of this feature's sharpest defects lived where two readers' scopes overlap, each reader correct alone. |
 | B-10 | bug | Harness: worktree claims key on persona and on the shared broker pid, so a lead is refused writes into its own feature's run directory while a sibling flow holds that persona's claim — and a claim whose agent has left the roster still reads live. **Six occurrences this feature**, two of which lost a run digest to an inline-only record. |
 | B-11 | bug | Harness: members emitted complete, well-formed returns that the host recorded as `failed (exit 1) — yield with null data`. |

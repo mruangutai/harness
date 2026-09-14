@@ -7,16 +7,16 @@ mine touches source.
 
 ## BLUF
 
-**FAIL.** One high-severity fail-open in `check-domain.sh`'s write-time schema gate: the `except
+**FAIL.** One high-severity fail-open in `check-domain.py`'s write-time schema gate: the `except
 ImportError:` at the `import feature_schema` call site does not catch `SyntaxError`, even though
 the surrounding comment and the signed plan intent (T-06) both name "a syntax error in the module"
 as a case that same `except` is supposed to deny. A syntax-broken `feature_schema.py` crashes the
 whole hook uncaught → exit 1 → **non-blocking** (the file's own line 14) → the write proceeds
-unchecked. This is check-domain.sh, a DEC-174 carve-out file: **the remedy is main-session's, not a
+unchecked. This is check-domain.py, a DEC-174 carve-out file: **the remedy is main-session's, not a
 team fix cycle.**
 
 Everything else asked for in the dispatch checks out clean: T-01's module-level jsonschema
-requirement is honored in `feature_schema.py`; check-domain.sh's branch-deferral of `import
+requirement is honored in `feature_schema.py`; check-domain.py's branch-deferral of `import
 feature_schema` is a *different* statement than the one T-01 constrains, and is compliant; all
 three routes (PRE Write, POST named-file, POST Bash-sweep) reach the schema check; the reported
 path is always the real target, never a temp file; the "sixth vacuous check" hunt on INV-17/T-12,
@@ -33,8 +33,8 @@ sound, cited below.
 jsonschema at MODULE level inside a try... Do not import it inside a per-file function... Never
 return `[]` on that path").
 
-**check-domain.sh's branch-deferral — compliant, and it is a different claim than T-01's.**
-check-domain.sh (`:892`) does `import feature_schema` **inside** `shape_problems()`, called once per
+**check-domain.py's branch-deferral — compliant, and it is a different claim than T-01's.**
+check-domain.py (`:892`) does `import feature_schema` **inside** `shape_problems()`, called once per
 candidate file. This is a deferred import of the **module `feature_schema`**, not of `jsonschema`
 itself — a different statement than the one T-01 constrains. T-06's own intent text (plan.yaml
 1050-1053) states the property this preserves: "`sys.modules` caches the first import, so a POST
@@ -45,7 +45,7 @@ unchanged." Verified: `feature_schema`'s own `import jsonschema` only runs once 
 this second, lazy import. **Conflating these two imports would be a false finding; they are not the
 same statement and the dispatch is right to flag that trap.**
 
-**Reachable on all three routes.** `check-domain.sh` (`git show 3abaedd:...check-domain.sh:1120-1191`):
+**Reachable on all three routes.** `check-domain.py` (`git show 3abaedd:...check-domain.py:1120-1191`):
 PRE (`Write` only), POST named-file (`Write`/`Edit`/`NotebookEdit`), and POST Bash-sweep all build a
 `targets` list of `(rel, text, display)` tuples through different code paths, then feed a **single
 shared loop** — `for _rel, _text, _disp in targets: _problems.extend(shape_problems(_rel, _text,
@@ -57,7 +57,7 @@ schema-check import. All three routes reach it.
 (display path) and the Bash-sweep's glob results are both drawn from real on-disk paths. No
 unattributable-finding regression (DEC-180) here.
 
-### THE DEFECT — the except at check-domain.sh:894 is narrower than its own stated purpose
+### THE DEFECT — the except at check-domain.py:894 is narrower than its own stated purpose
 
 ```
 :892  import feature_schema
@@ -108,7 +108,7 @@ EXIT CODE: 1
 ```
 
 And confirmed no enclosing `try` exists anywhere between the `import feature_schema` call and the
-script's exit (`awk 'NR>=892' check-domain.sh | grep -n '^try:\|^except'` → no output; the file's
+script's exit (`awk 'NR>=892' check-domain.py | grep -n '^try:\|^except'` → no output; the file's
 only other `try/except` blocks are all earlier, at lines 218, 304, 338-346, 502, 530-532). So a
 `SyntaxError` (or any exception that is not `ImportError`) raised at `:892` propagates uncaught to
 the top of the script → Python's default uncaught-exception behavior → **exit 1** → per the file's
@@ -127,7 +127,7 @@ syntax-error branch, because `SyntaxError` is not an `ImportError` subclass. Thi
 spec clause, not implementer drift (not P-06) — flagging it precisely, per Expertise P-15, so the
 lesson routes correctly rather than becoming a re-litigated nit.
 
-**In-file convention this deviates from.** Precisely, not overstated: `check-domain.sh` has one
+**In-file convention this deviates from.** Precisely, not overstated: `check-domain.py` has one
 other guarded import of exactly this shape — `:528-532`, `try: import harness_yaml; ... except
 Exception: _no_parser = True` — which the surrounding comment (`:498-513`) explicitly narrates
 fixing *the same bug class* once already: "that import raised and the process exited 1 INSTEAD of
@@ -140,7 +140,7 @@ the new feature-schema import added by this feature reverts to the narrower, alr
 `except ImportError:`.
 
 **The consequence is worse than "one write lands unchecked" on the interactive Bash-sweep route.**
-In `check-domain.sh`'s no-named-file (Bash sweep) branch, the mtime high-water-mark stamp is
+In `check-domain.py`'s no-named-file (Bash sweep) branch, the mtime high-water-mark stamp is
 advanced *after* the glob walk that builds `targets` but *before* `shape_problems()` is called on
 each target (`:1153-1163` writes/advances `STAMP`, then the shared `for _rel, _text, _disp in
 targets:` loop at `:1184` calls `shape_problems`). If `shape_problems()` crashes mid-loop on a
@@ -169,7 +169,7 @@ ImportError:` also guards against a non-`ImportError` raised *from inside* `impo
 itself (a half-upgraded or corrupted install raising some other exception at import time) —
 propagates through the identical path, same fail-open, same fix.
 
-**Remedy and routing.** `check-domain.sh` is a DEC-174 carve-out file (T-06 is
+**Remedy and routing.** `check-domain.py` is a DEC-174 carve-out file (T-06 is
 `execution_mode: main-session-direct`) — **this finding routes to the main session, not a team fix
 cycle.** The fix is mechanical: widen `:894`'s `except ImportError:` to `except Exception:` (matching
 `:530-532`'s existing convention in the same file), or explicitly `except (ImportError,
@@ -182,7 +182,7 @@ which is the `except ImportError` **inside** `feature_schema.py` catching jsonsc
 already correct, verified above). Mine is narrower and is a live *correctness bug*, not a coverage
 gap: even a fully-implemented SC-16 fixture (inject a fake `jsonschema.py` that raises `ImportError`)
 would not exercise this path, because that scenario is caught correctly one level down. This defect
-sits specifically at check-domain.sh's own `import feature_schema` statement and needs its own
+sits specifically at check-domain.py's own `import feature_schema` statement and needs its own
 fixture (a syntax-broken `feature_schema.py` on `PYTHONPATH`) to discriminate — `grep -n
 "feature_schema\|SyntaxError" test-check-domain.py` confirms no such fixture exists today.
 
@@ -214,7 +214,7 @@ fixture (a syntax-broken `feature_schema.py` on `PYTHONPATH`) to discriminate �
 ## Sanctioned exclusions honored
 
 Did not flag any `feature.yaml` string at `docs/harness/BUILD.md:335/353/357`,
-`check-plan-routes.py:405`, dated comments in `check-domain.sh`/`test-check-domain.py`, or
+`check-plan-routes.py:405`, dated comments in `check-domain.py`/`test-check-domain.py`, or
 `DECISIONS.md`'s 52 occurrences — all covered by R-01's tense split.
 
 ## Stage 1 — spec compliance
@@ -230,14 +230,14 @@ given the review budget — flagging as a boundary of this review, not a finding
 
 ## Ranked findings
 
-1. **[high]** `check-domain.sh:894` — `except ImportError:` does not catch `SyntaxError` (or any
+1. **[high]** `check-domain.py:894` — `except ImportError:` does not catch `SyntaxError` (or any
    non-`ImportError` exception) from `import feature_schema`, contradicting the same comment's and
    T-06's own stated intent that this exact `except` must deny a syntax-broken module with exit 2.
-   Uncaught → exit 1 → non-blocking (`check-domain.sh:14`) → the write proceeds unchecked. On the
+   Uncaught → exit 1 → non-blocking (`check-domain.py:14`) → the write proceeds unchecked. On the
    Bash-sweep route the mtime stamp has already advanced past the triggering file when the crash
    happens, so that specific occurrence is never re-examined by a future interactive sweep (bounded
    by CI's independent full-corpus sweep at the next push, not permanent system-wide). **Routes to
-   the main session** — `check-domain.sh` is a DEC-174 carve-out file. Remedy: widen the `except` to
+   the main session** — `check-domain.py` is a DEC-174 carve-out file. Remedy: widen the `except` to
    `Exception` (matching this same file's own `:530-532` convention) or `(ImportError, SyntaxError)`.
 2. **[info]** No independent verification of a discriminating test for `check-plan-routes.py`'s
    `_is_shipped`, beyond reading the source (which is unambiguous and fail-checked). Not a finding —

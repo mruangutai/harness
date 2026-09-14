@@ -13,7 +13,7 @@ touched, so T-08's fold is undisturbed.
 
 The new opening states, present tense, no dates, no attribution:
 
-- the 80-line `CLAUDE.md` budget, enforced on **all four write routes** by `check-domain.sh:1335`;
+- the 80-line `CLAUDE.md` budget, enforced on **all four write routes** by `check-domain.py:1335`;
 - that `CLAUDE.md` **is in no propagation checker's scan roots: no propagation checker exists
   (DEC-188)**. Present tense, so it reads as current truth and not as history — that clause is what
   stops the removed half being re-proposed.
@@ -27,19 +27,19 @@ subdirectory-`CLAUDE.md` residual, and the INV-23 backstop paragraph.
 
 | Claim as written | Truth at this tree | Site |
 |---|---|---|
-| enforced at `check-domain.sh:779-780` | **line 1335**: `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))`, guarded by `if len(lines) > 80:` at 1334 | `check-domain.sh:1334-1335` |
-| peers: `` `feature.yaml` 200/20 `` | `feature.json`, budget **300** — `if len(lines) > 300:` / `"feature.json is {…} lines — budget is 300"` | `check-domain.sh:1102-1103` |
+| enforced at `check-domain.py:779-780` | **line 1335**: `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))`, guarded by `if len(lines) > 80:` at 1334 | `check-domain.py:1334-1335` |
+| peers: `` `feature.yaml` 200/20 `` | `feature.json`, budget **300** — `if len(lines) > 300:` / `"feature.json is {…} lines — budget is 300"` | `check-domain.py:1102-1103` |
 
 `779-780` at this tree is a comment block inside the manifest-does-not-parse branch, citing
-`DEC-171 am.1`, with nothing to do with any budget — confirmed by reading `check-domain.sh:775-780`.
+`DEC-171 am.1`, with nothing to do with any budget — confirmed by reading `check-domain.py:775-780`.
 All four peer budgets kept and each confirmed in code: expertise 150 · `feature.json` 300
-(`check-domain.sh:1103`) · handoff notes 60 (`check-domain.sh:1287`, cap 60 per DEC-160) ·
-STATE.md 120 (`check-domain.sh:1343`).
+(`check-domain.py:1103`) · handoff notes 60 (`check-domain.py:1287`, cap 60 per DEC-160) ·
+STATE.md 120 (`check-domain.py:1343`).
 
-The code's own comment at `check-domain.sh:1303` states the same corrected list —
+The code's own comment at `check-domain.py:1303` states the same corrected list —
 "expertise 150, feature.json 300, handoff 60, STATE.md 120" — so the entry and the code now agree
-verbatim. "No propagation checker" confirmed at `check-domain.sh:523`, `check-state.sh:1786`,
-`gen-decisions-index.py:285`. "All four routes" confirmed at `check-domain.sh:1333`.
+verbatim. "No propagation checker" confirmed at `check-domain.py:523`, `check-state.sh:1786`,
+`gen-decisions-index.py:285`. "All four routes" confirmed at `check-domain.py:1333`.
 
 ## Stale prose found and deliberately NOT edited (out of my bounds)
 
@@ -59,7 +59,7 @@ baseline before my edit **exit 1**, after **exit 0**.
 Note on what the block does and does not prove: the `feature.yaml 200/20` negative clause could never
 fire — the file spelled it `` `feature.yaml` 200/20 `` with backticks, so that grep was already green
 at baseline. The clauses that carried real signal are the `^**STRUCK` absence, the
-`check-domain.sh:779` absence within the DEC-181 span, and the `feature.json` 300 presence. Nothing
+`check-domain.py:779` absence within the DEC-181 span, and the `feature.json` 300 presence. Nothing
 in the block tests the no-propagation-checker clause, the present tense, or the retained
 80-derivation; those rest on my reading and on the section quoted above.
 

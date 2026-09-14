@@ -90,8 +90,8 @@ red if any of them regresses to a Claude-only path.
   operator struck that placement on 2026-08-18 (#336 body, on #493).
 - **DEC-182 SUPPLIES** the plan artifact: a new feature gets `plan.yaml`, never `PLAN.md`.
 - **DEC-188 BLOCKS** editing historical `features/**` plans and notes: they are record.
-- **`tests/fixtures/prior-check-domain.sh.fixture` must not be touched** — it is a frozen prior copy
-  of `check-domain.sh` and editing it defeats the fixture.
+- **`tests/fixtures/prior-check-domain.py.fixture` must not be touched** — it is a frozen prior copy
+  of `check-domain.py` and editing it defeats the fixture.
 - `.agents/skills` is a symlink to `.claude/skills`; the pair that genuinely desynchronizes is
   `.omp/agents/**` against `.claude/agents/**`, kept in step by `bin/sync-agent-adapters.py` and
   asserted by `bin/check-omp-port.py`.
@@ -178,7 +178,7 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   owns the job its remedy describes, checked one file at a time, never by one file-global search:
   `bin/check-instruction-paths.py` (`MAIN_SESSION_ONLY`, which must list `harness-add-repo`),
   `bin/check-state.sh` (its four `/harness-init` remedies — each must be a checkout-configuration
-  or `--upgrade` condition, never a registration one), `bin/check-domain.sh` (the fail-open
+  or `--upgrade` condition, never a registration one), `bin/check-domain.py` (the fail-open
   message), `bin/upgrade-config.py` (docstring plus two remedies), `bin/gh-sync.py` (the
   `github.repo` skip message), `bin/layout_migration.py` (the `MARKER` applicability rationale). A
   reviewer cites one `file:line` per file, six citations, read at `<review_sha>`.

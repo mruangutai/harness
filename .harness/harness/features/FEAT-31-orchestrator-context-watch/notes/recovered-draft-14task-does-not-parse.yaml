@@ -40,7 +40,7 @@ lanes:
     - surface: .harness/harness/docs/DECISIONS-INDEX.md
       lane: team
       agent: harness-documentor
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer, a registered PreToolUse gate script
     - surface: .claude/skills/harness/bin/check-state.sh
@@ -78,7 +78,7 @@ decisions:
       that themselves lack agent_id, and requires agent_id on every runs entry whose id is
       not in that set. Prior content unavailable (untracked file, no git) means the set is
       empty and agent_id is required on every entry.
-    because: check-domain.sh validates the whole proposed document, so a blanket required
+    because: check-domain.py validates the whole proposed document, so a blanket required
       breaks the no-migration ruling and a blanket optional lets the first new entry omit it.
       HEAD rather than the on-disk file, because on the PostToolUse route disk already holds
       the NEW content, which would grandfather every entry and make that route toothless.
@@ -126,7 +126,7 @@ decisions:
   - id: D-07
     choice: Registering a new test file in run-unit-tests.sh's UNIT_SCRIPTS or
       INTEGRATION_SCRIPTS array is TEAM lane, not enforcement layer.
-    because: It is absent from DEC-174's enumeration and check-domain.sh --resolve grants it
+    because: It is absent from DEC-174's enumeration and check-domain.py --resolve grants it
       to harness-backend-dev and harness-dev-ops; it selects which tests run and asserts no
       test file is unregistered, but it decides no policy. Overrule this in one read if the
       drift detector counts as a gate.
@@ -140,11 +140,11 @@ decisions:
     because: The criterion as written is already true by silence and cannot go red.
       check-state.sh:593 is the only place a handoff path is constructed and it only builds
       paths for stems in SEAM_NOTES[status], so notes/handoff-anything-else.md is never
-      opened, never demanded and never rejected. Verified separately that check-domain.sh
-      already shape-gates any stem at write, RE_HANDOFF at check-domain.sh:665 matching
+      opened, never demanded and never rejected. Verified separately that check-domain.py
+      already shape-gates any stem at write, RE_HANDOFF at check-domain.py:665 matching
       handoff-[a-z0-9-]+.md with no stem whitelist, so acceptance of a mid-phase stem exists
       at both gates today. The real gap the glob closes is a note that never passed through a
-      Write or Edit route, which check-domain.sh cannot see. Verified safe: all 68 handoff
+      Write or Edit route, which check-domain.py cannot see. Verified safe: all 68 handoff
       notes currently on disk pass the four-heading and 60-line shape, so the widening adds
       zero findings to the current tree.
     dec: DEC-159
@@ -152,7 +152,7 @@ decisions:
   - id: D-09
     choice: A mid-phase handoff is notes/handoff-mid-<phase-stem>.md, for example
       handoff-mid-build.md. Latest supersedes; a second crossing inside one phase overwrites.
-    because: It matches check-domain.sh's RE_HANDOFF character class, can never collide with
+    because: It matches check-domain.py's RE_HANDOFF character class, can never collide with
       the plan, build or validate stems SEAM_NOTES demands, and names the phase it interrupted
       so a successor knows what it inherited.
     dec: DEC-159
@@ -532,29 +532,29 @@ tasks:
       what makes a single non-conforming entry visible among conformers.
 
       WHY HEAD AND NOT THE FILE ON DISK, stated so nobody simplifies it away: on
-      check-domain.sh's PostToolUse route the file on disk already holds the NEW content, so
+      check-domain.py's PostToolUse route the file on disk already holds the NEW content, so
       a disk-prior comparison would grandfather every entry and that route would enforce
       nothing. Keying on the ids that lack the field in HEAD also means stripping agent_id
       from an entry that had it is caught, because that id is not in the legacy set.
 
   - id: T-06
-    title: Pass the absolute target path from check-domain.sh into the schema module
+    title: Pass the absolute target path from check-domain.py into the schema module
     traces: [REQ-04]
     change_type: api
     execution_mode: main-session-direct
-    execution_reason: DEC-174 names check-domain.sh enforcement layer; it is a registered
+    execution_reason: DEC-174 names check-domain.py enforcement layer; it is a registered
       PreToolUse and PostToolUse gate script, so the harness plans this cutover and the
       operator's hands execute it. A DEVIATION line from check-plan-routes.py is expected
       here, because the path is granted to harness-backend-dev and harness-dev-ops.
     depends_on: [T-05]
     status: pending
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-domain.py
-      grep -c 'target_path=' .claude/skills/harness/bin/check-domain.sh
+      grep -c 'target_path=' .claude/skills/harness/bin/check-domain.py
     intent: |
-      In .claude/skills/harness/bin/check-domain.sh, make the absolute path of the file being
+      In .claude/skills/harness/bin/check-domain.py, make the absolute path of the file being
       checked available to the schema module, so T-05's diff-scoped rule can find the prior
       committed content.
 
@@ -689,7 +689,7 @@ tasks:
     traces: [REQ-08]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: .claude/settings.json resolves to NOBODY under check-domain.sh
+    execution_reason: .claude/settings.json resolves to NOBODY under check-domain.py
       --resolve and is the hook registration surface itself, which DEC-174 reserves to the
       operator's hands.
     depends_on: [T-08]
@@ -766,7 +766,7 @@ tasks:
       What this changes and what it deliberately does not. It does NOT make a mid-phase stem
       acceptable -- that was already true and is why the criterion needed changing: line 593
       is the only place a handoff path is constructed, so notes/handoff-mid-build.md was
-      never opened, never demanded and never rejected, and check-domain.sh's RE_HANDOFF at
+      never opened, never demanded and never rejected, and check-domain.py's RE_HANDOFF at
       line 665 already shape-gates any handoff-[a-z0-9-]+.md at write time. What it DOES
       change is that a malformed note the write-time gate never saw -- one arriving through a
       git checkout, a merge, or a route other than Write and Edit -- is now reported by the
@@ -831,7 +831,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness/SKILL.md resolves to NOBODY under
-      check-domain.sh --resolve; it is the orchestrator's preloaded rule text and no team
+      check-domain.py --resolve; it is the orchestrator's preloaded rule text and no team
       lane may write it.
     depends_on: [T-10]
     status: pending
@@ -861,7 +861,7 @@ tasks:
       says to record the phase in feature.json phase:, and that field does not exist --
       DEC-192 collapsed phase and status into one status field. Change it to name status.
 
-      Do not restate INV-17's mechanics and do not describe check-domain.sh's write-time
+      Do not restate INV-17's mechanics and do not describe check-domain.py's write-time
       shape gate: both already have one home. Keep the file's total length change under
       twelve lines.
 

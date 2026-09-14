@@ -36,7 +36,7 @@
 #   edited routinely by agents during normal feature work. Owning it would buy no
 #   guard-chain coverage and would tax ordinary traffic.
 #
-#   The other bin/ scripts named in DEC-174 (check-domain.sh, bash-write-guard.sh,
+#   The other bin/ scripts named in DEC-174 (check-domain.py, bash-write-guard.sh,
 #   validate-digest.py, check-state.py) — these are guarded by DEC-174's
 #   human-reads-the-diff carve-out, which already forbids changing them through an
 #   automated team run. Adding them here would be a second lock on a door that is

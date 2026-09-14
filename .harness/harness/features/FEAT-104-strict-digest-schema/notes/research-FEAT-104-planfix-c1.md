@@ -88,7 +88,7 @@ second commit touching one note file, because a commit cannot contain its own id
 
 ## F3 — high — closed
 
-**Mechanism (D-11), T-06 CLAUSE B.** `check-domain.sh` refuses the **creation** of a run `state.yaml`
+**Mechanism (D-11), T-06 CLAUSE B.** `check-domain.py` refuses the **creation** of a run `state.yaml`
 whose write payload declares `schema_version` absent, non-integer, or below 2 — same write-payload path
 DEC-160 already owns, keyed on the target not existing on disk.
 

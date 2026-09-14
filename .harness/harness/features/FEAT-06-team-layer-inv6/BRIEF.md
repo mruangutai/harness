@@ -90,7 +90,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   Validation squad and the orchestrator owns cross-squad sequencing. **No SC apologises for
   7-of-8, and `build.yaml` is not widened to reach qa.** Both were the wrong repair.
 - **DEC-174 carve-out, extended.** The harness plans its own work but does not *execute* changes to
-  its own enforcement layer. CLAUDE.md names `check-domain.sh`, `bash-write-guard.sh`,
+  its own enforcement layer. CLAUDE.md names `check-domain.py`, `bash-write-guard.sh`,
   `validate-digest.py`, `check-state.sh`, `check-docs.sh`. The mission extends it to
   `bin/test-harness-yaml-corpus.py`; pm extended it further (D-05) to `bin/test-check-state.py`,
   `bin/run-unit-tests.sh` and the new `bin/test-team-catalog.py` — **the user KEPT that extension**

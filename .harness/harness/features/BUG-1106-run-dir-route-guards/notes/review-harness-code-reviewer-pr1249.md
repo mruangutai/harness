@@ -48,7 +48,7 @@ digest.md or state.yaml that is not a proven upsert of the current run is now re
 route**" — it is not, for the Bash route, once the target is inside a worktree.
 
 **Mitigating context, so this is scoped correctly:** the *primary*, content-aware defenses (the
-Write/Edit routes in check-domain.sh, which are the actual fix for gap (b) and the correctly-built
+Write/Edit routes in check-domain.py, which are the actual fix for gap (b) and the correctly-built
 gap (a) Edit interception) have no such carve-out — `_norm()` resolves worktree-nested targets to
 their checkout-relative form regardless of physical location, so those two routes protect run
 artifacts everywhere, worktree or not. Only the Bash route's path-only refusal (already the
@@ -68,7 +68,7 @@ so a future reader can tell "considered and accepted" from "missed."
 
 ### 2. Two "left untouched" assertions in the new Edit-route tests are vacuous
 `run_bug1106_edit_route_cases` (test-check-domain.py:3699, :3720) asserts the on-disk file still
-equals its prior content after a refused Edit. `check-domain.sh` never opens the agent's target
+equals its prior content after a refused Edit. `check-domain.py` never opens the agent's target
 path for writing in any code path (grep-verified: the only `open(..., "w")` in the whole file is
 the sweep's own internal high-water-mark stamp, `:2035`), and `_fire_edit`/`_fire_digest_edit`
 never apply the simulated edit to disk either — so this assertion is true unconditionally,
@@ -76,7 +76,7 @@ independent of the hook's exit code. It adds no coverage beyond the adjacent exi
 Not a bug, just decorative; matches the "assertion's subject" pattern from `harness-code-review`
 (binds "did our own test harness touch the file", not "did the guard prevent the edit").
 
-### 3. check-domain.sh's local RE_RUN_DIGEST/RE_STATE_YAML could have used an absorbing import instead of a hand-kept duplicate
+### 3. check-domain.py's local RE_RUN_DIGEST/RE_STATE_YAML could have used an absorbing import instead of a hand-kept duplicate
 The stated reason for not importing from `harness_boundary` (the shape phase's import must stay
 *absorbing*, never fail-closed, or a broken module blocks the only tier — the main session —
 that can repair it) is correct and well precedented elsewhere in this exact file. But the file
@@ -91,7 +91,7 @@ real but low-priority design nit, not a live risk.
 
 ## Verified sound
 
-- **`_edit_reconstructed_content`** (check-domain.sh:1813-1839): hand-traced both the
+- **`_edit_reconstructed_content`** (check-domain.py:1813-1839): hand-traced both the
   single-match and `replace_all` branches against `str.count`/`str.replace` semantics — they
   agree (both are literal, non-overlapping, left-to-right). The "ambiguous → return None → allow
   through" fallback is not exploitable as a bypass: if `old_string` occurs zero times, or more
@@ -103,7 +103,7 @@ real but low-priority design nit, not a live risk.
   attacker cannot get *both* an ambiguous match at the guard *and* an applied destructive edit —
   those two outcomes are mutually exclusive by the tool's own contract, not by anything this hook
   enforces.
-- **PRE-dispatch control flow** (check-domain.sh:1841-1868): traced the full truth table by hand.
+- **PRE-dispatch control flow** (check-domain.py:1841-1868): traced the full truth table by hand.
   Write to any path (digest/state or not): unchanged, reaches the same `targets` assignment as
   before. Edit to an unrelated path, or with no target: still exits 0 immediately (unchanged from
   pre-PR — Edit was never processed on this route before). NotebookEdit: still exits 0
@@ -111,7 +111,7 @@ real but low-priority design nit, not a live risk.
   the only newly-reachable branch, and it correctly feeds the same `shape_problems()` the Write
   route already used. No other shape rule (feature.json, CLAUDE.md, handoff, plan.yaml) was
   widened to Edit, matching the PR's stated narrow scope.
-- **State.yaml fail-closed change** (check-domain.sh ~:1450-1490): unparseable prior, prior with
+- **State.yaml fail-closed change** (check-domain.py ~:1450-1490): unparseable prior, prior with
   no `run_id`, incoming with no `run_id` against a `run_id`-bearing prior, and the mismatch case
   are all refused; equal-`run_id` upsert and brand-new-file remain allowed. Confirmed against the
   full test run (`state-no-prior-run-id-refused`, `state-no-incoming-run-id-refused`,

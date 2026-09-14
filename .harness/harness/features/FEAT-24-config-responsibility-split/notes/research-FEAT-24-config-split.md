@@ -77,7 +77,7 @@ The remote read works today with no clone and no new dependency — one `gh api 
 
 ## The pen for kaya's file — measured, not argued
 
-`check-domain.sh --resolve` at `ada8e99`:
+`check-domain.py --resolve` at `ada8e99`:
 
 - `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json` → **NOBODY**
 - `.harness/factory/fleet.yaml` → **NOBODY**

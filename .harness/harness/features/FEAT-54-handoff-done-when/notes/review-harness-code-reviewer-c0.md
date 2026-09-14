@@ -12,11 +12,11 @@ The complete 60-file pinned diff and the full required shared implementation/cor
 
 ### F-01 — high — an invalid handoff Edit lands before it is reported
 
-**Failure scenario.** Start with a baselined four-section handoff and use `Edit` without adding `## Done when`. The PreToolUse route exits successfully because it reconstructs Edit content only for run digests and run state; every other Edit exits at `.claude/skills/harness/bin/check-domain.sh:1858-1874`. The edit therefore mutates the note. PostToolUse later reads the already-landed file and exits 2 at `check-domain.sh:1877-1897`, but that report cannot undo the invalid edit. A historical note can consequently be changed while still lacking the fifth section, contrary to the requirement that the edit be refused and that a historical note leave the old shape only by becoming compliant.
+**Failure scenario.** Start with a baselined four-section handoff and use `Edit` without adding `## Done when`. The PreToolUse route exits successfully because it reconstructs Edit content only for run digests and run state; every other Edit exits at `.claude/skills/harness/bin/check-domain.py:1858-1874`. The edit therefore mutates the note. PostToolUse later reads the already-landed file and exits 2 at `check-domain.py:1877-1897`, but that report cannot undo the invalid edit. A historical note can consequently be changed while still lacking the fifth section, contrary to the requirement that the edit be refused and that a historical note leave the old shape only by becoming compliant.
 
 **Evidence.** `BRIEF.md:35-39` requires unresolved pointers to be refused when written **or edited**, and `BRIEF.md:104-107` (SC-06) requires an edit without the section to be refused. The signed T-03 case (f) says the same at `plan.yaml:333-335`. The purported integration proof pre-writes invalid/valid bytes and invokes only `PostToolUse` (`tests/integration/test-check-domain.py:4063-4076`); it proves post-hoc reporting, not refusal or non-mutation.
 
-**Owner lane.** **Main session direct mutation** — `check-domain.sh` and its gate test are DEC-174 enforcement surfaces.
+**Owner lane.** **Main session direct mutation** — `check-domain.py` and its gate test are DEC-174 enforcement surfaces.
 
 **Required remedy.** Make the pre-tool Edit path validate the reconstructed candidate handoff and refuse invalid edits before mutation; replace the current post-write-only fixture with an assertion that exercises the pre route and proves the invalid edit does not land.
 
@@ -74,14 +74,14 @@ Ran `.claude/skills/harness/bin/check-state.sh` from the repository root. Exit s
 
 The two gates use the shared implementation:
 
-- `check-domain.sh:1562,1567` imports and calls `handoff_done_when.problems(..., resolve=True)`;
+- `check-domain.py:1562,1567` imports and calls `handoff_done_when.problems(..., resolve=True)`;
 - `check-state.sh:54-56,1243-1251` imports and calls the same function with `resolve=False`.
 
 Neither gate contains a second Done-when body parser or pointer-target resolver. `check-state.sh:1215-1242` is the existing parser for the four narrative section bodies only and does not parse the Done-when body or open authority targets.
 
 ### SC-08 — met
 
-Current contract surfaces state five sections and name `## Done when`: `.claude/skills/harness/SKILL.md:310-316`, `check-domain.sh:1547-1567`, `check-state.sh:1069-1070,1212-1251`, `templates/HANDOFF.md:4-16,37-40`, and `DECISIONS.md:3698-3727,6696-6724`. The only four-heading claims in the live gate scripts are the two criterion-authorized historical FEAT-31 comments at `check-state.sh:1194-1202` and `:1215-1219`. DEC-160's older four-section wording is historical decision evidence, not a current contract assertion.
+Current contract surfaces state five sections and name `## Done when`: `.claude/skills/harness/SKILL.md:310-316`, `check-domain.py:1547-1567`, `check-state.sh:1069-1070,1212-1251`, `templates/HANDOFF.md:4-16,37-40`, and `DECISIONS.md:3698-3727,6696-6724`. The only four-heading claims in the live gate scripts are the two criterion-authorized historical FEAT-31 comments at `check-state.sh:1194-1202` and `:1215-1219`. DEC-160's older four-section wording is historical decision evidence, not a current contract assertion.
 
 ### SC-11 — met
 
@@ -112,7 +112,7 @@ DIGEST:
     - "F-03: require a non-empty Scope label in Scope-before-Authority order and reconcile T-02 with REQ-02."
     - "F-04: refactor every function reported failing by code-grade.py; no grade-2 exception is justified."
   spec_violations:
-    - {kind: mismatch, path: .claude/skills/harness/bin/check-domain.sh, ref: REQ-06}
+    - {kind: mismatch, path: .claude/skills/harness/bin/check-domain.py, ref: REQ-06}
     - {kind: mismatch, path: .claude/skills/harness/bin/handoff_done_when.py, ref: D-03}
     - {kind: mismatch, path: .claude/skills/harness/bin/handoff_done_when.py, ref: REQ-02}
   reviewed: "0ec44965a961d19177de871c3bb1f02b701e646b..e75767df4b75e71f2c9b12766604cee5008d94e1"

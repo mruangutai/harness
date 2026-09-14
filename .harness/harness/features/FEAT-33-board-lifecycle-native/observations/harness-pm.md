@@ -12,7 +12,7 @@
   `default_branch`, never a checkout. Together those two make a one-key config change a cross-repo
   ordering problem. Neither the dispatch's decision floor nor the grilling artifact named either. I
   found them only because I traced what "declare `plan`" would actually execute against.
-- 2026-08-22: `check-domain.sh --resolve` grants `check-state.sh` to `harness-dev-ops` while DEC-174
+- 2026-08-22: `check-domain.py --resolve` grants `check-state.sh` to `harness-dev-ops` while DEC-174
   forbids dispatching a change to it. The two answers disagree and only prose reconciles them. Raised
   as a non-blocking open_question rather than worked around.
 - 2026-08-22: `--resolve` returned `harness-orchestrator` for a generic `features/<FEAT>/notes/*.md`

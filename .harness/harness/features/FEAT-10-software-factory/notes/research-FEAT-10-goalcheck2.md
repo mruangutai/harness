@@ -1,6 +1,6 @@
 # Goal-check `goalcheck2` — scoped re-grade of SC-13, SC-18, SC-19 (harness-pm)
 
-> Filed here, not at the dispatched path. `check-domain.sh` blocked
+> Filed here, not at the dispatched path. `check-domain.py` blocked
 > `notes/receipt-harness-pm-goalcheck2.md` for harness-pm; my grant covers
 > `.harness/features/*/notes/research-*.md`. Raised as Q1 in the DIGEST.
 

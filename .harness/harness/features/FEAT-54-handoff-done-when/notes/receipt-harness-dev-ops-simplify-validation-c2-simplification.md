@@ -7,7 +7,7 @@ The seven scoped files contain no simplification issue that gates the validation
 ## Findings
 
 - id: S-01
-  file: `.claude/skills/harness/bin/check-domain.sh`
+  file: `.claude/skills/harness/bin/check-domain.py`
   line: 1547
   summary: The changed comment narrates the addition of `## Done when` instead of stating the current five-section contract directly.
   concrete_cost: The phrase “including ## Done when” duplicates the immediately adjacent `required` list and makes future heading changes require another prose edit.
@@ -40,7 +40,7 @@ The seven scoped files contain no simplification issue that gates the validation
 
 ## Scope checked
 
-- `.claude/skills/harness/bin/check-domain.sh`
+- `.claude/skills/harness/bin/check-domain.py`
 - `.claude/skills/harness/bin/handoff_done_when.py`
 - `tests/integration/test-check-domain.py`
 - `tests/integration/test-check-state.py`

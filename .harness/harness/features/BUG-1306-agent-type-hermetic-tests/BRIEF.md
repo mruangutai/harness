@@ -38,7 +38,7 @@ merely quiet.
 ## Constraints
 
 - **Supplies (mechanism this work relies on):** DEC-174 governs the enforcement-layer carve-out;
-  `check-domain.sh --resolve` answers `harness-backend-dev`, `harness-dev-ops`, `harness-qa` for
+  `check-domain.py --resolve` answers `harness-backend-dev`, `harness-dev-ops`, `harness-qa` for
   `tests/integration/test-plan-merge.py`, so the build lane is ordinary squad work rather than
   main-session-direct. DEC-211 supplies the parallel-suite contract, and it is satisfied by
   measurement: `run_pool.py:63` runs each test file as its own `subprocess.run`, so an in-process

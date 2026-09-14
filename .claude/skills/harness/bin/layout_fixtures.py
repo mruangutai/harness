@@ -30,7 +30,7 @@ STUB = {
         "legacy":   "agents:\n  x:\n    write:\n      - { path: .harness/features/*/notes/n.md }\n",
         "migrated": "agents:\n  x:\n    write:\n      - { path: .harness/repoA/features/*/notes/n.md }\n",
     },
-    ".agents/skills/harness/bin/check-domain.sh": {
+    ".agents/skills/harness/bin/check-domain.py": {
         "legacy":   "SWEEP_GLOBS=('.harness/features/*/plan.yaml')\n",
         "migrated": "SWEEP_GLOBS=('.harness/*/features/*/plan.yaml')\n",
     },

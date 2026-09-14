@@ -15,7 +15,7 @@ same act as the signature: 9 of 10 are spent and the budget is per feature, not 
 - The plan is 9 tasks / 17 decisions / 12 SCs, `status: plan`, no `approval:` key — parsed with `yaml.safe_load` myself — verified-at 0bc57c88
 - `check-plan-routes.py` exits 0, zero violations across 4 plans; the four DEVIATION lines on T-01, T-02, T-07 and T-10 are the DEC-174 carve-out — ran it myself in the worktree — verified-at 0bc57c88
 - Every high panel finding is `resolved` and none is critical or unrated — asserted programmatically over the parsed `panel.findings` — verified-at 0bc57c88
-- F-A is real: `agent_type: harness-pm`, no live claim, `cp /tmp/evil.md <feature>/BRIEF.md` exits 0 at `bash-write-guard.sh`, `plan-sign-gate.sh` AND `check-domain.sh` — I fired all three payloads myself — verified-at 0bc57c88
+- F-A is real: `agent_type: harness-pm`, no live claim, `cp /tmp/evil.md <feature>/BRIEF.md` exits 0 at `bash-write-guard.sh`, `plan-sign-gate.sh` AND `check-domain.py` — I fired all three payloads myself — verified-at 0bc57c88
 - `plan.yaml` cannot acquire an `approval:` mapping by any route, and the editor route is denied for the MAIN SESSION too — four probes including a no-`agent_type` `Write` payload I fired myself — verified-at 0bc57c88
 - T-02's amended `verify:` exits 1 against the current tree, so it discriminates — I ran the whole block verbatim — verified-at 0bc57c88
 - 19 of the plan's 21 target files are byte-identical between `ad93d43e` and `0bc57c88`; the two that moved are T-01's — `git diff --numstat` over the file list — verified-at 0bc57c88

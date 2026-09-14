@@ -6,7 +6,7 @@ rule, and DEC-218's placement all check out; no recommendation clears the bar. *
 
 ## Fixture judgement (primary target)
 
-The two large fixtures (`fixtures/prior-check-domain.sh.fixture` ~2115 lines,
+The two large fixtures (`fixtures/prior-check-domain.py.fixture` ~2115 lines,
 `fixtures/prior-bash-write-guard.sh.fixture` ~859 lines) are consumed by simple
 `shutil.copyfile(fixture_path, hook); os.chmod(hook, 0o755)` in
 `test-check-domain.py:4408-4412` and `test-bash-write-guard.py:967-970` — a byte-identical
@@ -39,7 +39,7 @@ hermeticity regression in shallow clones. **This is adequacy, not excess — lea
 
 ## Secondary altitude checks
 
-- **Single authoritative rule statement**: both `check-domain.sh:777-813` and
+- **Single authoritative rule statement**: both `check-domain.py:777-813` and
   `bash-write-guard.sh:736-761` call `harness_boundary.claim_worktrees` /
   `harness_boundary.claim_set_refusal` verbatim — neither guard restates the membership rule or the
   refusal wording locally. One home, no drift surface. **leave.**

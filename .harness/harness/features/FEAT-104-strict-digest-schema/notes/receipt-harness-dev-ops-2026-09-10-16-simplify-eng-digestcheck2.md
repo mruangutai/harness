@@ -26,7 +26,7 @@ Exit status captured immediately after the command (not piped): **EXIT=0**.
 
 Command:
 ```
-git -C /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema status --porcelain -- .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/run-state-schema.json tests/integration/test-check-domain.py
+git -C /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema status --porcelain -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/run-state-schema.json tests/integration/test-check-domain.py
 ```
 
 Verbatim stdout:
@@ -35,7 +35,7 @@ Verbatim stdout:
 ```
 
 The output was **EMPTY** — all three DEC-174 read-only files
-(`check-domain.sh`, `run-state-schema.json`, `test-check-domain.py`) are byte-identical to HEAD.
+(`check-domain.py`, `run-state-schema.json`, `test-check-domain.py`) are byte-identical to HEAD.
 
 Command:
 ```

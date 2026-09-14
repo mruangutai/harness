@@ -124,7 +124,7 @@ operator's restored exit-0 clause is untouched. Nothing was weakened; disclosure
   no longer apply) and its two `high` entries still read `disposition: open` with no `resolved_by`.
   `harness-spec-driven` wants `resolved` + `resolved_by: T-NN`; that is the re-transcription
   dispatch's job, not this one's, and editing `panel:` was forbidden here.
-- File-level ordering is pinned for `check-domain.sh` (T-04 `depends_on: [T-03]`) but not for the
+- File-level ordering is pinned for `check-domain.py` (T-04 `depends_on: [T-03]`) but not for the
   two other shared files: T-01/T-11 both edit `validate-digest.py`, and T-02/T-12 both edit
   `test-validate-digest.py`, with no edge between the pairs. Harmless in a serial main-session
   lane and no verify breaks in either order — recorded so a later reader does not read the

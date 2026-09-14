@@ -67,7 +67,7 @@ platform-built-ins bullet.
   compile: 0 failures.
 - `check-plan-routes.py <this plan>`: **exit 0, 0 violations**. The only two DEVIATION lines are
   T-07/T-08's DEC-174 carve-out, which Q4 confirmed — reported as deviations, not violations.
-- `check-domain.sh --resolve` on all five extended surfaces: `teams/plan-panel.yaml`,
+- `check-domain.py --resolve` on all five extended surfaces: `teams/plan-panel.yaml`,
   `templates/plan.yaml`, `.omp/agents/harness-validator-lead.md` → `NOBODY`;
   `check-state.sh`, `test-check-state.py` → `harness-backend-dev harness-dev-ops`. Every one already
   has a `lanes.rows` entry with a matching reason. **No new surface, no new lane row.**

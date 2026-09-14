@@ -9,7 +9,7 @@ source_issues: [440]
 
 lanes:
   resolved_at: 772790be52774eafe2971f9c44400e18b2d54275
-  measurement: "Every row was MEASURED, not inferred: check-domain.sh --resolve was run on each path with HEAD at 772790be52774eafe2971f9c44400e18b2d54275, and the verbatim answer is quoted in each row's resolve field."
+  measurement: "Every row was MEASURED, not inferred: check-domain.py --resolve was run on each path with HEAD at 772790be52774eafe2971f9c44400e18b2d54275, and the verbatim answer is quoted in each row's resolve field."
   rows:
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
@@ -91,7 +91,7 @@ panel:
     reason: none
     artifact: none
     note: RAN, and was NOT skipped. Its review completed; the write of notes/review-harness-code-reviewer-planpanel-c1.md
-      was refused by check-domain.sh claim_worktrees() unioning a stale live harness-code-reviewer
+      was refused by check-domain.py claim_worktrees() unioning a stale live harness-code-reviewer
       claim from FEAT-05-factory-doc-smoke. Its findings survive verbatim in the panel
       digest and its full prose in history://Bug440Plan.MilitaryAmphibian.ScopeReview.
       Harness defect, carried up as the lead's Q1.

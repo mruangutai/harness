@@ -56,7 +56,7 @@ documenting, not building.** The grounds, each measured:
   delivered: `.omp/providers/anthropic.yml` and `openai.yml` map the four roles, and
   `check-omp-port.py:84` refuses any agent whose `model` is not a provider-neutral alias.
 - **The documenting is not cosmetic.** ~20 documents tell the operator to type `/harness-init`
-  (`check-state.sh:111`, `check-domain.sh:385`, `upgrade-config.py:6`, `README.md`, `SPEC.md`,
+  (`check-state.sh:111`, `check-domain.py:385`, `upgrade-config.py:6`, `README.md`, `SPEC.md`,
   `BUILD.md`, `org.html:286`, templates …). That slash spelling resolves to **no command in either
   surface** — Claude Code has no such file, and OMP would not see it if it did. The revision
   replaces slash spellings with "load the `harness-init` / `harness-add-repo` skill".
@@ -96,7 +96,7 @@ into this configured fleet` (`:239`, steps 2/3/4/6/7/8 at `:245`, `:284`, `:292`
 - **Kind: a SKILL, not a command, and not both.** A command file is Claude-only (§2), so a
   `.claude/commands/harness-add-repo.md` would re-commit the rejected shape; a skill is reachable
   under every provider today. Owner: the main session — no agent domain grants it
-  (`check-domain.sh --resolve .claude/skills/harness-add-repo/SKILL.md` → `NOBODY`, exit 0),
+  (`check-domain.py --resolve .claude/skills/harness-add-repo/SKILL.md` → `NOBODY`, exit 0),
   so it is a declared `main-session-direct` task under DEC-179/DEC-174.
 
 **Referencing sites the new name breaks** (method: `notes/research-FEAT-56-init-audit.md` item 3):
@@ -106,7 +106,7 @@ into this configured fleet` (`:239`, steps 2/3/4/6/7/8 at `:245`, `:284`, `:292`
 | `bin/check-instruction-paths.py:14-18` | `MAIN_SESSION_ONLY` tuple — add `"harness-add-repo"` or the anchor rule scans it (`_skill_docs`, `:28-34`) |
 | `bin/check-omp-port.py:97-103` | validates every agent's `autoloadSkills` against `.agents/skills/<name>/SKILL.md`; any agent that autoloads the new skill must exist before the assertion runs |
 | `bin/check-state.sh:111, 287, 408, 2375, 2436` | four `/harness-init` remedies + the "control-plane clone" wording; the registration-shaped ones re-point |
-| `bin/check-domain.sh:385` | fail-open remedy names the door |
+| `bin/check-domain.py:385` | fail-open remedy names the door |
 | `bin/upgrade-config.py:6, 192, 236` | docstring + two remedies |
 | `bin/gh-sync.py:256` | `github.repo` skip message |
 | `bin/layout_migration.py:123` | `MARKER` applicability rationale |
@@ -193,7 +193,7 @@ choosing the shape that pays the doc sweep once.
 | DEC-220 — onboarding is fleet registration plus one product-resident file | `.harness/harness/docs/DECISIONS.md` DEC-220 heading; index row in `DECISIONS-INDEX.md` |
 | `product_config_report()` and `--check-product-configs` | `.claude/skills/harness/bin/factory_config.py:328` (report), `:449-478` (CLI guard, exit 2) |
 | Its 18-case suite | `tests/unit/test-fleet-product-config.py` — 18/18 at the pin |
-| Six corrected `bin/` sites | `check-instruction-paths.py:12-15`, `check-state.sh:111`, `check-domain.sh:385`, `upgrade-config.py:6`, `gh-sync.py:256`, `layout_migration.py:123` |
+| Six corrected `bin/` sites | `check-instruction-paths.py:12-15`, `check-state.sh:111`, `check-domain.py:385`, `upgrade-config.py:6`, `gh-sync.py:256`, `layout_migration.py:123` |
 | The fifteen-file documentation sweep | enumerated in `BRIEF.md:116-124`, cited one-per-file in `notes/research-FEAT-56-goalcheck-ship-c0.md` §SC-04 |
 | Four retired per-product-install claims | `check-state.sh:373-374`, `templates/harness.json:5`, `.harness/harness.json:4`, `.harness/harness.json:6` (`_handoff_done_when_baseline_note`) |
 | Repaired team-config template (parses as YAML) | `.claude/skills/harness/templates/team-config.yaml` — SC-10 |

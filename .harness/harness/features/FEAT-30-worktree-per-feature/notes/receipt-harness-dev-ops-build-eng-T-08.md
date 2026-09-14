@@ -81,7 +81,7 @@ gap.
 ## Not fixed, and not mine to fix
 
 `test-harness-yaml.py`'s `allowed` set for guarded imports
-(`{harness_yaml.py, feature_schema.py, check-domain.sh}`) does not include `feature-worktree.py`,
+(`{harness_yaml.py, feature_schema.py, check-domain.py}`) does not include `feature-worktree.py`,
 which guards an import at line 50. Fixing this means editing either `feature-worktree.py` (not in
 my file list, and explicitly listed as finished/not-mine in the dispatch) or
 `test-harness-yaml.py` (not in my file list either). Raised as an open question rather than

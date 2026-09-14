@@ -4,13 +4,13 @@
 One real gap, in-scope and code-grounded: the new closed-schema enforcement (T-06/T-07, D-11) binds
 the `schema_version` floor only at **file creation**. An update write to an **already-created**
 `schema_version: 2` run can freely declare `schema_version: 1` in the same payload while smuggling
-undeclared step/evidence keys — `check-domain.sh` accepts the write (no comparison against the
+undeclared step/evidence keys — `check-domain.py` accepts the write (no comparison against the
 on-disk version), and `check-state.sh`'s at-rest sweep only ever reads the *current* value, so the
 downgraded run is invisible to the audit forever after. This defeats REQ-02's own stated promise
 ("binds every run written after the change") for any run, at any time, with an ordinary write the
 writer already had permission to make. No fixture in the 507/181/82 new test lines exercises a
 version-2-then-1 transition — every existing/update fixture keeps the version constant across
-before/after. Remedy lives entirely inside the DEC-174 carve-out (`check-domain.sh` and/or
+before/after. Remedy lives entirely inside the DEC-174 carve-out (`check-domain.py` and/or
 `check-state.sh`), so I report it rather than fix it. **Route: main-session.**
 
 Everything else examined — the shell bootstrap, the new JSON-schema validation logic itself, the
@@ -21,7 +21,7 @@ bypass found in those.
 ## What I examined
 - Full `git diff abff2a84 6126ac07` stat (22 code/test files + docs/plan/notes) and the byte-for-byte
   diff hunks of every file in the enforcement/test census named in the dispatch.
-- `check-domain.sh` +82: confirmed **zero new bash lines** — every added line is inside the existing
+- `check-domain.py` +82: confirmed **zero new bash lines** — every added line is inside the existing
   single Python heredoc (T-13's one-interpreter design), so item 1 (shell quoting/eval/globbing) has
   no new surface to audit; the surrounding bash bootstrap is unchanged by this diff.
 - `check-state.sh` +54: same shape, same conclusion — Python-only addition inside the existing heredoc.
@@ -35,12 +35,12 @@ bypass found in those.
   UI-reviewer-only `mode` field is still flagged as an undeclared key — confirmed by reading the
   keying, not run, since the logic is a straight dict lookup).
 - Traced the untrusted-input path for `validate-digest.py`: `parse_digest()` (regex-based field
-  extraction, not `yaml.load`) is unchanged by this diff. The shared loader used by `check-domain.sh`
+  extraction, not `yaml.load`) is unchanged by this diff. The shared loader used by `check-domain.py`
   /`check-state.sh` for `state.yaml`/`plan.yaml` (`harness_yaml.load_file` → `_StrictSafeLoader`, a
   `SafeLoader`/`CSafeLoader` subclass) is also unchanged by this diff — confirmed pre-existing and
   safe (no `yaml.load` with an unsafe loader anywhere in the changed files).
 - Path arguments to the new schema-loading code (`os.path.join(sys.argv[3], "run-state-schema.json")`
-  in check-domain.sh, `sys.argv[2]` in check-state.sh) resolve to `_selfdir`, derived from
+  in check-domain.py, `sys.argv[2]` in check-state.sh) resolve to `_selfdir`, derived from
   `BASH_SOURCE[0]` — the script's own directory, never attacker/agent-controlled input. No traversal
   introduced (item 2).
 - Every new rejection-message code path: `repr(key)` is used for all attacker-controlled step/evidence
@@ -52,7 +52,7 @@ bypass found in those.
 - Fail-open check (item 4, the "can a crafted return exit 0" question): every new branch that could
   raise (`sorted()` over a set of mixed hashable types if a step used a non-string YAML key,
   `jsonschema.iter_errors` raising) is inside the same `try/except Exception` that already denies the
-  write on any schema-check failure (`check-domain.sh`) or reports a violation (`check-state.sh`).
+  write on any schema-check failure (`check-domain.py`) or reports a violation (`check-state.sh`).
   Confirmed by reading the full try/except block: every exit from it, exceptional or not, adds to the
   denial/violation list. No path found where a crafted payload turns an intended-refusal into a silent
   pass. Resource exhaustion: the new validation loops are linear in the size of the payload the writer
@@ -81,7 +81,7 @@ bypass found in those.
 ## Finding
 
 **MED-HIGH — schema-version downgrade defeats the closed-schema guarantee this feature introduces.**
-`check-domain.sh`'s new `_creating` gate (`not _post and absolute_path is not None and not
+`check-domain.py`'s new `_creating` gate (`not _post and absolute_path is not None and not
 os.path.lexists(absolute_path)`) is the *only* thing that ever forces `schema_version >= 2`, and it
 fires only when the target file does not yet exist. The closed-step-schema validation block that
 follows is gated purely on the **proposed payload's own** `schema_version` (`_valid_version`) — never
@@ -114,14 +114,14 @@ for the rest of its life, indistinguishable from a legitimate historical version
   never-touched version-1 files staying writable — a different case from a version-2 run being
   downgraded mid-life. Not the `stop_hook_active` hole either (that one is documented and accepted;
   this one is not documented anywhere I found).
-- **Remedy** would live in `check-domain.sh` (compare the proposed `schema_version` against the
+- **Remedy** would live in `check-domain.py` (compare the proposed `schema_version` against the
   on-disk value on non-creation writes, or refuse any decrease) and/or `check-state.sh` — both are
   DEC-174 carve-out files. **route: main-session.**
 
 ## Threat model
 | boundary | STRIDE | mitigated |
 |---|---|---|
-| agent-authored `state.yaml` write vs. check-domain.sh closed-schema gate | Tampering | false — schema-version downgrade bypass above |
+| agent-authored `state.yaml` write vs. check-domain.py closed-schema gate | Tampering | false — schema-version downgrade bypass above |
 | agent-authored digest text vs. validate-digest.py closed-key contract | Tampering | true — PASSTHROUGH/DOCUMENTED_OPTIONAL keyed correctly per raw_persona, undeclared-key closure verified |
 | crafted step/evidence key vs. operator's terminal (stderr rendering) | Information disclosure / injection | true — repr() escapes control chars |
 | run-state-schema.json path resolution | Tampering (path traversal) | true — path built from BASH_SOURCE-derived selfdir, not agent input |

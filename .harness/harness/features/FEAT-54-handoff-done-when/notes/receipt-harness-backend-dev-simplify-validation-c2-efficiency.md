@@ -15,14 +15,14 @@ Verdict: PASS — one engineering-owned advisory candidate; no enforcement-surfa
 
 ## Assessed without findings
 
-- `.claude/skills/harness/bin/check-domain.sh`: authority resolution is restricted to handoff writes/edits and bounded to four pointers; its pre-mutation checks and post-write sweep are security/evidence work, not removable hot-path waste in this repair.
+- `.claude/skills/harness/bin/check-domain.py`: authority resolution is restricted to handoff writes/edits and bounded to four pointers; its pre-mutation checks and post-write sweep are security/evidence work, not removable hot-path waste in this repair.
 - `.claude/skills/harness/bin/handoff_done_when.py`: target reads are bounded to four authority lines and 1 MiB each. Re-reading a shared target is possible but too small and uncommon to justify a speculative cache.
 - `tests/integration/test-check-domain.py`, `tests/integration/test-check-state.py`, and `tests/unit/test-handoff-done-when.py`: overlapping cases bind distinct security, ordering, resolution, baseline, and pre-mutation boundaries. The exact duplicate-looking 60-line cases are sub-second process work, not minutes-scale suite duplication, and every individual case is settled.
 - `tests/unit/test-probe-handoff-comprehension.py`: temporary-file setup and two-arm assertion are bounded and directly defend probe input safety and experiment shape.
 
 ## Scope read
 
-- `.claude/skills/harness/bin/check-domain.sh`
+- `.claude/skills/harness/bin/check-domain.py`
 - `.claude/skills/harness/bin/handoff_done_when.py`
 - `tests/integration/test-check-domain.py`
 - `tests/integration/test-check-state.py`

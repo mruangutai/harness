@@ -12,7 +12,7 @@ lanes:
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script, so the harness plans the change and the main session executes it."
+      reason: "DEC-174 carve-out: check-domain.py is a registered PreToolUse gate script, so the harness plans the change and the main session executes it."
     - surface: tests/integration/**
       lane: main-session-direct
       reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
@@ -156,7 +156,7 @@ tasks:
            feature_dir / "BRIEF.md", on ONE line with no wrapping, and _record_handoff_result
            (test-check-domain.py:4132-4137) does a case-insensitive substring test against stderr.
 
-      Touch nothing else in the file. Do not edit check-domain.sh in this task.
+      Touch nothing else in the file. Do not edit check-domain.py in this task.
 
   - id: T-02
     title: Resolve the handoff note's authority pointers against the checkout the note stands in
@@ -168,11 +168,11 @@ tasks:
     - REQ-06
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out: .claude/skills/harness/bin/check-domain.sh is a registered PreToolUse gate script, so it executes main-session-direct."
+    execution_reason: "DEC-174 carve-out: .claude/skills/harness/bin/check-domain.py is a registered PreToolUse gate script, so it executes main-session-direct."
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       cd /Users/molchairuangutai/GitHub/harness && env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py
     intent: |

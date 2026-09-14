@@ -133,6 +133,6 @@ $ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
 Touched only `context-watch.py` and the two `bin/test-context-watch*.py` files, all
 inside the plan's declared T-16 lane and the team-owned `.claude/skills/harness/bin/`
 test directory. Did not touch `context-watch-hook.py`, `.claude/settings.json`,
-`check-domain.sh`, or `check-state.sh`. Did not touch the `main()` no-orchestrators-found
+`check-domain.py`, or `check-state.sh`. Did not touch the `main()` no-orchestrators-found
 exit-0 finding (separate `med`, main session's backlog row). Did not write `STATE.md`,
 `feature.json`, or `plan.yaml`.

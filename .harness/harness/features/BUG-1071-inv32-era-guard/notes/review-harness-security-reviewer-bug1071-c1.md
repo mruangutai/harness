@@ -7,7 +7,7 @@ F1 and F2 close exactly what cycle 0 named — verified, not accepted on faith. 
 unmitigated privilege escalation**: `harness-dev-ops` holds a pre-existing, legitimate
 (`upsert: true`) write grant on `.harness/harness.json` (`team-config.yaml:210`) yet holds **no**
 authority over `plan.yaml`'s `approval:`/`panel:` fragments (those are main-session-exclusive,
-DEC-120, enforced by `approval_guard` — `check-domain.sh:537`). This diff makes
+DEC-120, enforced by `approval_guard` — `check-domain.py:537`). This diff makes
 `panel_era_start` — a field dev-ops can write through the normal, sanctioned `Write` tool path
 with **zero domain violation, zero bypass, exit 0** — the sole gate on whether *every* approved
 plan in the tree needs a panel record at all. One future date (`"2099-12-31"`, or even a
@@ -48,7 +48,7 @@ no plan can silently escape via that path either — both were the same fail-ope
 backdating attack cycle 0 named is **unchanged, not cheaper or more expensive**:
 `approval.date` remains bare operator-typed text (`check-state.sh:267`), cross-checked against
 nothing, reachable only by the main session (still the sole writer of `plan.yaml`'s `approval:`
-fragment, still exempt from `check-domain.sh` entirely). Cycle 0's MED / no-escalation reasoning
+fragment, still exempt from `check-domain.py` entirely). Cycle 0's MED / no-escalation reasoning
 for *that* specific gap holds as-is; I re-derived it against this diff and found no change.
 
 ## F2 remedy — four of five table rows fail-closed as claimed; the fifth is the finding above
@@ -75,9 +75,9 @@ separate line.
 **Actor:** `harness-dev-ops` (governed, Engineering team, no relation to plan approval/panel
 authority; `consult-when`: infra/CI/CD/build tooling). **Channel:** ordinary `Write` tool call to
 `.harness/harness.json`, permitted by its own pre-existing domain grant
-(`team-config.yaml:210`, `upsert: true`) — the `PreToolUse` `check-domain.sh` hook allows it
+(`team-config.yaml:210`, `upsert: true`) — the `PreToolUse` `check-domain.py` hook allows it
 cleanly; no `approval_guard`-equivalent fragment check exists for `harness.json` (grepped: zero
-mentions of `panel_era_start` anywhere in `check-domain.sh`). **Effect:** setting
+mentions of `panel_era_start` anywhere in `check-domain.py`). **Effect:** setting
 `panel_era_start` to any date later than every currently-signed `approval.date` in the tree moves
 every one of those 32 (and every future) approved plans from "must carry a complete `panel:`
 record or hard-fail" to "warn-only, not graded, permanent" — the exact fail-open shape cycle 0
@@ -87,7 +87,7 @@ approval or panel authority by any other route. **Why this differs from cycle 0'
 `panel:` is validator-lead's channel by convention) and cannot legitimately fabricate an
 INV-32-passing record — this grants it a capability (mass, permanent gate exemption) it does not
 otherwise have, which is privilege escalation, not a quieter route to a pre-held authority.
-**Compensating factors, weighed and found insufficient to lower severity:** (1) `check-domain.sh`
+**Compensating factors, weighed and found insufficient to lower severity:** (1) `check-domain.py`
 itself documents that arbitrary Bash from *any* Bash-holding agent is an unwinnable, pre-existing
 gap (not new here) — but that is a *different*, already-known risk; the dev-ops `Write`-tool path
 is sanctioned and needs no bypass at all. (2) "Merge stays user-gated" (`team-config.yaml:217`
@@ -169,7 +169,7 @@ an old one." This is factually false, and the finding does not survive re-deriva
    `test_matrix` (per-change-type required test kinds), and `test_kinds` (`cmd`/`status`
    active-or-excluded per kind) are all present, unchanged, and covered by the same file-level
    grant dev-ops already held before this diff. **CONFIRMED TRUE.** No field-level guard exists
-   inside `check-domain.sh` for any key in `harness.json` (grepped: zero matches for
+   inside `check-domain.py` for any key in `harness.json` (grepped: zero matches for
    `panel_era_start` or field-scoped logic) — the grant has always been all-or-nothing at the file
    level, so dev-ops could already, before this diff, weaken `qa_gate`, flip a `test_kinds` entry to
    `excluded`, or zero a `test_matrix` row's required kinds. That is gate-integrity authority at

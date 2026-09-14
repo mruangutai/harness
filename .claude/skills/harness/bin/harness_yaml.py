@@ -29,7 +29,7 @@ _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # --- Errors -----------------------------------------------------------------
-# Two distinct types on purpose (T-03 goal #5): check-domain.sh's converted
+# Two distinct types on purpose (T-03 goal #5): check-domain.py's converted
 # block must catch a duplicate key and a general parse failure separately —
 # the duplicate case renders the existing DEC-156 denial verbatim, the parse
 # case renders a new parse-error denial. Merging them forces a rework there.
@@ -465,7 +465,7 @@ def _validate_plan_depends_on(tasks, path):
 
 def manifest_domains(manifest_path, agent):
     """Walk the parsed manifest and return (mine, shared) glob lists for
-    `agent`. Equivalent to check-domain.sh's pre-change collect() for every
+    `agent`. Equivalent to check-domain.py's pre-change collect() for every
     agent in this repo's manifest, at EVERY nesting level — not just
     teams[].members[] (T-02 test 5: harness-eng-lead lives under `leads:`,
     harness-orchestrator is a bare top-level key). Every returned glob is
@@ -565,7 +565,7 @@ def require_or_die():
         # ever reached its guarded `import harness_boundary as _hb` at :1080 to
         # report the INV-25 CANNOT RUN violation that fixture exists to prove.
         # Fail-open, the same class T-05 already fixed one caller earlier for
-        # bash-write-guard.sh/check-domain.sh.
+        # bash-write-guard.sh/check-domain.py.
         try:
             import harness_boundary
             root = harness_boundary.resolve_root(_BIN_DIR)
@@ -589,7 +589,7 @@ def _resolve_identity(payload):
     payload=None means: this is a real hook invocation, so read the payload
     from the HOOK_PAYLOAD environment variable (never stdin — `python3 -`
     takes its PROGRAM from stdin, so a payload piped alongside a heredoc is
-    lost; check-domain.sh:232-234 records why). If HOOK_PAYLOAD is unset or
+    lost; check-domain.py:232-234 records why). If HOOK_PAYLOAD is unset or
     empty, fall through to the environment-variable entries below."""
     if payload is None:
         raw = os.environ.get("HOOK_PAYLOAD")

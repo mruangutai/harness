@@ -107,7 +107,7 @@ Log — station transitions:
 - Harness defect, non-blocking, from the panel. `validate-digest.py` REJECTS a member entry carrying
   `status: ran` and reads an all-`status:` member list as a team where nobody ran — while the run
   digest is append-only, so a lead that encodes it wrong cannot correct the recorded block.
-- Harness defect, non-blocking. `check-domain.sh:1312-1318` permits correcting a recorded digest only
+- Harness defect, non-blocking. `check-domain.py:1312-1318` permits correcting a recorded digest only
   by APPENDING, but `validate-digest.py`'s `parse_digest` binds the FIRST `DIGEST:` block and stops at
   the first dedent. The permitted route and the enforced contract do not intersect.
 - Harness defect, non-blocking. This worktree's `.harness/.inflight-claims.json` held no claim for the

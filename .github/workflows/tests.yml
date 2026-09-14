@@ -94,7 +94,7 @@ jobs:
       # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
       # arguments: the CLI sweeps every .harness/*/features/*/feature.{json,yaml,yml} file
       # on disk and exits non-zero if any fails the schema. This is the CI backstop for
-      # a session where check-domain.sh's write-time gate is not registered at all.
+      # a session where check-domain.py's write-time gate is not registered at all.
       - name: Validate feature execution state
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}

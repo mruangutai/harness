@@ -16,8 +16,8 @@ eng-lead (`PLAN.md:168-234`), then T-03/T-04 main-session direct.
   T-01..T-04, `PLAN.md:131, :169, :237, :263` — verified-at ae2443d
 - `run-unit-tests.sh:6` collides with FEAT-08 T-05 — `FEAT-08/PLAN.md:243, :250-252` vs
   `run-unit-tests.sh:6` — verified-at ae2443d by me, not relayed on trust
-- `check-domain.sh --resolve` with stdin closed exits 0 printing nothing today (fail-OPEN); that
-  is why D-02 makes `NOBODY` a literal token — `check-domain.sh:26` `payload=$(cat)` — UNVERIFIED
+- `check-domain.py --resolve` with stdin closed exits 0 printing nothing today (fail-OPEN); that
+  is why D-02 makes `NOBODY` a literal token — `check-domain.py:26` `payload=$(cat)` — UNVERIFIED
   end-to-end by me; pm reports confirming it. Re-run before acting on T-01.
 - Unit suite is 13/13 and `check-docs.sh`/`check-state.sh` are green — grilling artifact
   `## Facts` — verified-at ae2443d

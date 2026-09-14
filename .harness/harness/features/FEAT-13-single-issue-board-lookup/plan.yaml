@@ -27,7 +27,7 @@ lanes:
       lane: team
       agent: harness-backend-dev
       note: >-
-        check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for every
+        check-domain.py --resolve returns harness-backend-dev and harness-dev-ops for every
         factory_*.py and test-factory-*.py path in this plan. The work is application logic in
         the factory tools, not tooling or CI, so harness-backend-dev is named and harness-dev-ops
         is not used. FEAT-11 recorded the same ambiguity on the same surface.

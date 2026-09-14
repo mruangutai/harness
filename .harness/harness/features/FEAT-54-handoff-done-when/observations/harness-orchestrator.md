@@ -12,7 +12,7 @@
   `git clone` of the branch with CI's own conditions (hooksPath unset, gitignored runs tree absent)
   — the local repo passes because the local repo is configured. Two-arm probe: unset -> exit 1 with
   exactly that violation, configured -> exit 0 over 877 rows.
-- 2026-09-04: FEAT-54 ship. Probed `check-domain.sh` in enforcement mode with a hand-built
+- 2026-09-04: FEAT-54 ship. Probed `check-domain.py` in enforcement mode with a hand-built
   PreToolUse payload to ask whether the orchestrator may write `.github/workflows/tests.yml`. All
   four arms exited 0, INCLUDING the control (another agent's Expertise file, which must be denied) —
   the payload shape was wrong and the guard fail-opens on it silently, exactly as its own header

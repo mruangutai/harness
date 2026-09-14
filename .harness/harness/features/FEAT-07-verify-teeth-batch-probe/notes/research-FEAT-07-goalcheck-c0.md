@@ -1,6 +1,6 @@
 # Goal-check — FEAT-07 · review_sha `70b0ed3`
 
-> **Path note.** The dispatch named `notes/goalcheck-harness-pm-c0.md`; `check-domain.sh` BLOCKED it
+> **Path note.** The dispatch named `notes/goalcheck-harness-pm-c0.md`; `check-domain.py` BLOCKED it
 > (`harness-pm` is granted `notes/research-FEAT-*.md`, not `notes/goalcheck-*.md`). Written here
 > instead. Raised as Q1 — the grant, not the hook, is what would have to change.
 

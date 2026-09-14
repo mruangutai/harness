@@ -66,7 +66,7 @@ separate `:7-8` reword.
 ## Open questions
 
 - **Q1 (operator, blocking signature):** D-01's deviation above. Two functions, not one; home pinned.
-- **Q2 (harness defect, non-blocking):** `check-domain.sh` resolves the fleet from the **main
+- **Q2 (harness defect, non-blocking):** `check-domain.py` resolves the fleet from the **main
   checkout's** `.claude/skills/harness/bin/factory_gh.py`, which currently imports a module
   (`gh_issue_types`) that exists nowhere in the tree — an unrelated in-flight edit. Every write by
   every agent, including writes to `/tmp`, was denied with `BLOCKED — the fleet declaration does not

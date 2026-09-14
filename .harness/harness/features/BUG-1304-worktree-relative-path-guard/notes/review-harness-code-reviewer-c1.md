@@ -15,7 +15,7 @@ direct trace, not inference.
 
 | id | verdict | evidence |
 |---|---|---|
-| REQ-01 | met | `claim_checkout_guard` returns immediately when `not agent or not agent.startswith("harness-")` (check-domain.sh:772-773, bash-write-guard.sh:730-731); `claim_worktrees` returns `[]` when no live claim resolves to a worktree |
+| REQ-01 | met | `claim_checkout_guard` returns immediately when `not agent or not agent.startswith("harness-")` (check-domain.py:772-773, bash-write-guard.sh:730-731); `claim_worktrees` returns `[]` when no live claim resolves to a worktree |
 | REQ-02 | met | both guards resolve `destination = harness_boundary.real(destination)` before any comparison; SC-03 asserts relative/absolute parity in both test suites |
 | REQ-03 | met | SC-04 cases pass on both routes; regression floor (T-05 case 14: digest.md/state.yaml/missing-manifest/`/tmp` unchanged) present in `test-bash-write-guard.py:1178-1188` |
 | REQ-04 | met | `claim_checkout_guard` is byte-identical in shape between the two files (diffs only in message prefix and `sys.exit(2)` vs `deny()`, both of which exit 2) — see "Both-route equivalence" below |
@@ -58,7 +58,7 @@ does not meet on its own terms.
 
 **The call-site sets differ by design (D-08); the guard body does not.**
 
-Write/Edit route (`check-domain.sh`) reaches `claim_checkout_guard` at exactly two call sites,
+Write/Edit route (`check-domain.py`) reaches `claim_checkout_guard` at exactly two call sites,
 both inside `domain_check()`: `outcome == "allow"` (:967) and `outcome == "shared"` (:973).
 `out_of_place_worktree` and `wrong_checkout` always `sys.exit(2)` before either call point (:922-949);
 `not_a_domain_question` returns before rel is even computed (:953); `deny` (fallthrough) exits 2.
@@ -68,7 +68,7 @@ Bash route (`bash-write-guard.sh`) reaches `claim_checkout_guard` at **three** c
 pre-classify worktree-shortcut (`rel` matches `^\.claude/worktrees/`, :830, this is the DEC-153
 narrowing) plus the post-classify `allow` (:876) and `shared` (:882) branches. This third site has
 no Write-route counterpart because the Write route never had DEC-153's blanket worktree allow to
-narrow (grepped: no `\.claude/worktrees/` shortcut exists in check-domain.sh) — this asymmetry is
+narrow (grepped: no `\.claude/worktrees/` shortcut exists in check-domain.py) — this asymmetry is
 the intended D-08 shape, not a gap. Both `out_of_place_worktree`/`wrong_checkout` (:834-847) and
 `deny` (fallthrough, :898) exit before either call point.
 
@@ -108,13 +108,13 @@ routes see the write at all.
 **(a) Can the new code be reached only after a branch that already fail-opened?** Yes, in exactly two
 PRE-EXISTING, SYMMETRIC conditions, neither introduced nor worsened by this diff:
 - Missing `team-config.yaml` manifest: `domain_check()` (and thus `claim_checkout_guard`) is called
-  only under `if _run_domain and not _no_parser:` (check-domain.sh:1002-1003); `_run_domain` is set
-  False at the "enforcement OFF" print (check-domain.sh:384-386). On Bash, the same manifest check
+  only under `if _run_domain and not _no_parser:` (check-domain.py:1002-1003); `_run_domain` is set
+  False at the "enforcement OFF" print (check-domain.py:384-386). On Bash, the same manifest check
   (`bash-write-guard.sh:268-269`) exits 0 before any of this code is even imported. REQ-03 explicitly
   accepts this as unchanged, pre-existing behaviour, and T-05 case 14/"missing manifest fail-open
   remains unchanged" tests it directly.
 - PyYAML unavailable (`_no_parser`): both files gate the domain walk behind `_no_parser`
-  (check-domain.sh:1002, bash-write-guard.sh:664-665) — confirmed symmetric: bash-write-guard.sh's
+  (check-domain.py:1002, bash-write-guard.sh:664-665) — confirmed symmetric: bash-write-guard.sh's
   own comment at :322-325 documents this is the SAME reachability tier on both routes for this
   reason (the file's *root-side* worktree check is placed deliberately ABOVE this gate for a
   DIFFERENT, pre-existing rule; `claim_checkout_guard`'s three call sites all sit below it on both
@@ -126,7 +126,7 @@ holes this diff opens.
 **(b) Any input that silently skips the rule while a governed write proceeds?** None found beyond
 (a). Every other exception path — `AmbiguousWorktree`, `UnreadableRegistry`, or any other
 `Exception` — is caught and either exits 2 or explicitly PRINTS "boundary was not enforced; passing
-through because the guard failed internally" before allowing (check-domain.sh:801-805,
+through because the guard failed internally" before allowing (check-domain.py:801-805,
 bash-write-guard.sh:754-758) — loud, not silent, matching the existing quarantine-branch convention
 this file already uses elsewhere.
 
@@ -197,7 +197,7 @@ a value.
   own stated coverage intent isn't fully honored.
 - **Misleading provenance comment.** Both `run_bug1304_claim_set` docstrings say *"frozen guard
   provenance: a4e8ecf7"*. Commit `a4e8ecf7` ("retain claims through binding horizon", T-09) touches
-  only `inflight_registry.py` and its test — it never touches `check-domain.sh` or
+  only `inflight_registry.py` and its test — it never touches `check-domain.py` or
   `bash-write-guard.sh`. I independently verified the actual fixture bytes are correct (byte-diffed
   identical to `c369fb1f`, the plan's own pre-change baseline), so this is a wrong citation in a
   comment, not a functional defect — but a future reader following it to verify provenance will be

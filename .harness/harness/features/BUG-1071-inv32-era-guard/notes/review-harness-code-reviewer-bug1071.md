@@ -56,7 +56,7 @@ enforcement.
 `approval: {status: approved}` with no `date` key at all, and the live run reproduces exactly
 the predicted note — that plan is permanently exempted from INV-32 today, with only a `note`,
 never a `VIOLATION`, and nothing will ever force it closed.
-Severity caps at MED rather than high: independently spot-checked `check-domain.sh:537`
+Severity caps at MED rather than high: independently spot-checked `check-domain.py:537`
 (`approval_guard`, "DENY a governed agent's write that would change a fragment the main
 session owns... exempt BY THE MECHANISM") — the `approval:` fragment is a main-session-only
 write channel. The same actor who could omit `approval.date` to dodge grading is already

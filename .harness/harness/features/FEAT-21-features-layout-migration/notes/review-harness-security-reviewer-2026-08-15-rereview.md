@@ -49,7 +49,7 @@ granted lane, and the range introduces no new exposure.
 
 ## JOB 2 — did the authorization surface move?
 
-`check-domain.sh --resolve`, verbatim, at `4a98cc4`:
+`check-domain.py --resolve`, verbatim, at `4a98cc4`:
 
 **Positive** (under `.harness/harness/features/FEAT-21-features-layout-migration/`):
 - `notes/receipt-harness-backend-dev-x.md` → `harness-backend-dev`, `harness-orchestrator`
@@ -103,7 +103,7 @@ No source file, docs file, `.claude/agents/**` path, or `team-config.yaml` in th
 range but belongs only to `b1d3925`, an engineering/SC-10 commit, not a `#388` close-out
 commit — correctly out of this job's scope.)
 
-Ran `check-domain.sh --resolve` on a representative sample of every path class in the set
+Ran `check-domain.py --resolve` on a representative sample of every path class in the set
 (see JOB 2 above plus `notes/qa-c0.md`, `notes/research-FEAT-21-distill.md`, each
 `review-harness-*-panel.md`, `.harness/expertise/harness-{qa,code-reviewer,
 security-reviewer,orchestrator}.md`). Every file resolves to **at least one legitimate
@@ -143,7 +143,7 @@ the indistinguishability itself is a standing property of D-01's wildcard, not n
 - `4a98cc4` (`gh-sync.py` walk-up refactor): flattened loop is behaviourally identical to
   the prior `while True`/`break` form — same manifest probe (`.harness/team-config.yaml`),
   same fallback arithmetic when no ancestor qualifies. Not a widening.
-- `4a98cc4` (`check-domain.sh` regex anchors, from `d033b9d`): `^\.harness/features/...$` →
+- `4a98cc4` (`check-domain.py` regex anchors, from `d033b9d`): `^\.harness/features/...$` →
   `^\.harness/[^/]+/features/...$` — anchors (`^`/`$`) preserved, new segment matched by
   `[^/]+` (single path component, cannot cross a `/`), so this does not open path
   traversal or admit an unintended prefix/suffix. A tightening-shaped edit, not a loosening.

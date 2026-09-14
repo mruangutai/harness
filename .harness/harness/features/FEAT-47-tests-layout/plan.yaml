@@ -178,7 +178,7 @@ decisions:
       layout_fixtures.py stays in bin
     because: >
       the fixtures directory has two consumers and both are integration tests, while
-      feature-schema.json is read at runtime by feature_schema.py:45 and named in check-domain.sh's
+      feature-schema.json is read at runtime by feature_schema.py:45 and named in check-domain.py's
       write-denial text. layout_fixtures.py is test support that stays under the settled scope, so
       the guard is name-shaped and not purpose-shaped, which is recorded as a residue rather than
       hidden
@@ -284,7 +284,7 @@ decisions:
       not enumerated here (D-19).
     because: >
       every file under the two expertise globs is granted to its own persona alone and to no
-      shared seat — check-domain.sh --resolve over all 28 of them at 1c9c384, not a sample — and
+      shared seat — check-domain.py --resolve over all 28 of them at 1c9c384, not a sample — and
       DEC-145 confines an agent's write to its own Expertise to a distillation dispatch. So the
       only routes are a persona dispatched as an executor, which no plan in this repository has
       ever done and which invites the whole-file rewrite DEC-125 describes for a two-line
@@ -342,7 +342,7 @@ decisions:
       reusing D-16's own record-versus-live-craft distinction rather than inventing a second one,
       because Expertise is injected as current craft at every spawn and is never a record. The
       lane is derived with the scope: all 28 files under the two globs resolve to their own
-      persona alone and to no shared seat (check-domain.sh --resolve, every file, at 1c9c384), so
+      persona alone and to no shared seat (check-domain.py --resolve, every file, at 1c9c384), so
       D-17's argument holds for a sixth file nobody has written yet.
     dec: DEC-213
 
@@ -515,7 +515,7 @@ tasks:
       classified here, at 56a30a0, and by the same criterion as the other ten, not by the array
       FEAT-45 registered them in: test-panel-findings.py runs panel_findings.py as a real CLI
       subprocess and asserts its exit-code contract (its own docstring says so), and
-      test-plan-panel.py drives check-domain.sh --resolve as a subprocess and asserts the
+      test-plan-panel.py drives check-domain.py --resolve as a subprocess and asserts the
       resolver's stdout. Neither child is a fixture builder and neither is a stub standing in for
       a dependency, so neither exemption sub-rule applies. Counted at 56a30a0: the arrays hold 31
       unit and 27 integration over 58 files, and after these twelve are reassigned the
@@ -1266,7 +1266,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: >
       D-17 and D-19. Every path under the two expertise globs is granted to its own persona alone
-      and to no shared seat (check-domain.sh --resolve over all 28 at 1c9c384), and DEC-145
+      and to no shared seat (check-domain.py --resolve over all 28 at 1c9c384), and DEC-145
       confines that write to a distillation dispatch, so the owner of each surface is the one
       party that must not perform this correction — and that holds for a file nobody has written
       yet, which is why this task declares globs rather than paths

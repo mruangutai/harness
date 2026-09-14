@@ -16,7 +16,7 @@ failed. `BRIEF.md` was edited directly; `## Approval` untouched.
 - **Rank 1 (high) — struck.** T-12 retired in place in the shape T-04 and T-10 use: `RETIRED - `
   title, `traces: []`, `depends_on: []`, `status: abandoned`, `verify: test ! -e …/notes/probe-postmint-BUG-1305.md`.
   Its intent opens `DO NOT EXECUTE THIS TASK.` and records the main-checkout hook confound
-  (`.claude/settings.json` registers `${CLAUDE_PROJECT_DIR}/…/check-domain.sh --post`), that
+  (`.claude/settings.json` registers `${CLAUDE_PROJECT_DIR}/…/check-domain.py --post`), that
   `post_mint_observed: no` was guaranteed by construction, and that the mandatory `## Reported`
   section would therefore have published a false claim. SC-12 retired in place in BRIEF; SC-10's
   dangling pointer re-aimed at the new REQ-01 disclosure. T-04's own body said REQ-01 was covered by

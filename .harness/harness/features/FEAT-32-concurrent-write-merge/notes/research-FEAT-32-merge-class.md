@@ -10,7 +10,7 @@ a dependency: nothing may be built until FEAT-30 merges to `main`.
 | Claim | Command / anchor | Result |
 |---|---|---|
 | No lock primitive in `bin/` | `grep -rlE "O_EXCL\|fcntl\.flock" .claude/skills/harness/bin/` | empty |
-| `plan.yaml` has no shape rule | `check-domain.sh:677` | `SHAPE_PATTERNS` = feature.json, state.yaml, handoff, STATE.md, CLAUDE.md — nothing else |
+| `plan.yaml` has no shape rule | `check-domain.py:677` | `SHAPE_PATTERNS` = feature.json, state.yaml, handoff, STATE.md, CLAUDE.md — nothing else |
 | Observation log has no shape rule | same tuple | absent |
 | `validate-digest.py` fail-opens 3 ways | `:828` unreadable, `:838` no `agent_type`, `:845` `stop_hook_active`; `hook_mode` at `:804`, internal-error pass-through printed at `:869` | verified |
 | `dispatch-guard.sh` has **no test** | `ls .claude/skills/harness/bin/test-dispatch-guard.py` | absent — hence T-07 |

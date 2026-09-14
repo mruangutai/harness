@@ -103,15 +103,15 @@ Two remaining items are pm's work at plan time, not user decisions:
   because `ship` was hand-run with the worktree's path.
 - Nothing enforces `plan.yaml`'s approval reset. `check-state.sh:134-139` only reads
   `approval.status` and warns on `pending`; no hash of the signed bytes is recorded.
-- `check-domain.sh` cannot see a script write to `plan.yaml`. Its grant fires on
+- `check-domain.py` cannot see a script write to `plan.yaml`. Its grant fires on
   `PreToolUse Write|Edit`, which `gh-sync.py`'s `open()` never traverses, and `plan.yaml`
-  is excluded from the `PostToolUse Bash` sweep (`check-domain.sh:1011`). This is what
+  is excluded from the `PostToolUse Bash` sweep (`check-domain.py:1011`). This is what
   makes "code writes it, the LLM is denied" mechanically possible.
-- The denial mechanism already exists: `check-domain.sh:508` `approval_guard` denies a
+- The denial mechanism already exists: `check-domain.py:508` `approval_guard` denies a
   governed agent's `Edit` of a fragment the main session owns, firing on the ALLOW path
   because pm is granted `plan.yaml` whole.
 
-- **A hook CAN tell the main session from a subagent.** `check-domain.sh:135` reads
+- **A hook CAN tell the main session from a subagent.** `check-domain.py:135` reads
   `agent = (d.get("agent_type") or "") or argv_agent`, and line 512 records that an absent
   `agent_type` IS the main session. This is what makes an identity-gated `sign-approval`
   possible with no new machinery.
@@ -119,10 +119,10 @@ Two remaining items are pm's work at plan time, not user decisions:
   every non-test module in `bin/` for a write against a `plan.yaml` path. It splices text
   under `harness_merge.locked_update`, never re-renders through a YAML dumper, exits 7 on a
   changed value and 8 on a proposal whose approval mapping differs from the base's.
-- **Denying `Edit` is not sufficient on its own.** `check-domain.sh:18` states it cannot see
+- **Denying `Edit` is not sufficient on its own.** `check-domain.py:18` states it cannot see
   writes made via Bash and names `sed -i` as a common bypass shape. A `PostToolUse` sweep
   reads what landed on disk, but `plan.yaml` is deliberately excluded from it
-  (`check-domain.sh:1011`). `plan.yaml` must join that sweep or the bypass just moves.
+  (`check-domain.py:1011`). `plan.yaml` must join that sweep or the bypass just moves.
 
 ## What the mandate breaks, stated plainly
 - `test-check-state.py:1660-1680` declares a fully renamed board
@@ -136,7 +136,7 @@ Two remaining items are pm's work at plan time, not user decisions:
 ## Migration size, measured
 - **The `plan-merge.py` rename touches 11 live files**, measured by grep excluding worktrees
   and the historical FEAT-32 receipts (which record what was true and are not callers):
-  `test-plan-merge.py` (13 refs), `check-domain.sh` (3), `test-observations-merge.py` (2),
+  `test-plan-merge.py` (13 refs), `check-domain.py` (3), `test-observations-merge.py` (2),
   `harness-orchestrator.md` (2), and one each in `DECISIONS.md`, `harness.json`,
   `test-check-domain.py`, `run-unit-tests.sh`, `harness_yaml.py`, `expertise-merge.py` and
   `harness-spec-driven/SKILL.md`.

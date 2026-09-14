@@ -100,7 +100,7 @@ the file. pm's goal-check caught it at source. This run repeated the shape once 
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-25 | bug | `bash-write-guard.sh` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.sh --resolve` grants that same path. Two enforcement surfaces disagree |
+| B-25 | bug | `bash-write-guard.sh` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.py --resolve` grants that same path. Two enforcement surfaces disagree |
 | B-26 | bug | `/usr/bin/grep` on this machine is `pi-uu-grep 0.2.0`, in which a line-leading `+` matches every line. Four false readings in this feature, including an apparent 83 insertions against a true `--numstat` of zero. Every affected measurement was redone in Python |
 | B-39 | bug | A run-directory slug collision let one lead overwrite another run's `digest.md` and `state.yaml`. `runs/` is gitignored, so the record was unrecoverable. Nothing in the run-directory contract stops a lead choosing a slug that already exists |
 

@@ -8,7 +8,7 @@ approval:
     - finding: PF-334e1b370c596f88c39730bf43579f13
       who: operator
       date: '2026-09-07'
-      reason: escape spelling is write-time-checked by check-domain.sh regardless; accepted mid-run-cost tradeoff, not a bypass
+      reason: escape spelling is write-time-checked by check-domain.py regardless; accepted mid-run-cost tradeoff, not a bypass
     - finding: PF-c996440943e296d047bc8707c587ad89
       who: operator
       date: '2026-09-07'
@@ -173,7 +173,7 @@ panel:
   - id: PF-6e184d4c13c2f8966eb49de0b188d070
     severity: low
     reader: scope
-    summary: T-02's intent mis-cites check-domain.sh:103 as the source of sys.path.insert(0,
+    summary: T-02's intent mis-cites check-domain.py:103 as the source of sys.path.insert(0,
       sys.argv[1]); the real insert is :125 using sys.argv[3] in a heredoc plus PYTHONPATH
       pattern
     disposition: resolved
@@ -189,7 +189,7 @@ panel:
     summary: D-05's escape is a spelling, so it is typable into a DIRECTED path just
       as D-05's own because objects for a NOSCAN token, and the refusal's final line
       teaches it to every refused dispatcher including a true positive; detection
-      then moves from dispatch time to check-domain.sh write time (NOBODY, exit 2,
+      then moves from dispatch time to check-domain.py write time (NOBODY, exit 2,
       so no bypass), reproducing the mid-run cost BUG-124 exists to remove, and BRIEF.md
       discloses the D-01 narrowing but not this residual.
     disposition: open
@@ -360,7 +360,7 @@ tasks:
           resolve_root(bin_dir, strict=False), parses the manifest once through
           harness_yaml.load_str with NO try/except around that call, and then prints
           run_dir_grant_globs(root) one per line. The house precedent for the sys.path handling is
-          check-domain.sh, and it is TWO lines, not one: line 103 runs
+          check-domain.py, and it is TWO lines, not one: line 103 runs
           python3 -c with sys.path.pop(0) and feeds the real program in on stdin, and line 125 then
           does sys.path.insert(0, _bin_dir) where _bin_dir comes from sys.argv[3]. There is no
           sys.path.insert(0, sys.argv[1]) at line 103; copy the pop-then-insert-an-argument pair.

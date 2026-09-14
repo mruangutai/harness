@@ -58,7 +58,7 @@ answers so the record shows what was fog at grilling time and what closed it.
 - ~~Whether `bin/fixtures/` and `feature-schema.json` are production or test support.~~
   **Resolved.** `bin/fixtures/` is test support with two consumers, both integration →
   `tests/integration/fixtures/`. `feature-schema.json` is production —
-  `feature_schema.py:45` reads it at runtime and `check-domain.sh:1170` names it in a
+  `feature_schema.py:45` reads it at runtime and `check-domain.py:1170` names it in a
   write denial. Residue stated at signature: `layout_fixtures.py` is test support that
   stays in `bin/`, so the guard is name-shaped, not purpose-shaped.
 

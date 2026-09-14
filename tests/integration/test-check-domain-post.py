@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: the SHAPE gate on the routes PreToolUse cannot reach.
+"""check-domain.py: the SHAPE gate on the routes PreToolUse cannot reach.
 
 Slice of the former test-check-domain.py (issue #1527) — the --post sweep across all
 four write routes, the runs/<id>/state.yaml write path, and the handoff `Done when`
@@ -145,7 +145,7 @@ def run_post():
              f"exit {r.returncode}: {r.stderr.strip()[:100]}")
 
     # THE COMMENT BUDGET CASE IS DELETED, not rewritten. T-06 removed the check from both
-    # check-domain.sh and check-state.py because JSON has no comments, so it could never
+    # check-domain.py and check-state.py because JSON has no comments, so it could never
     # fire — and a check that cannot fire is a check a reader trusts. A case asserting a
     # budget that no longer exists would pass by never triggering it, which is the
     # vacuous-assertion shape this suite exists to catch.
@@ -445,11 +445,11 @@ def run_post():
 def run_runs_agent_write_path():
     """FEAT-31 T-15 case F — the half that makes "the WRITE PATH refuses" true rather
     than "the module refuses". SC-07's positional rule is enforced through the same
-    import check-domain.sh already has, so this drives the real hook as a subprocess
+    import check-domain.py already has, so this drives the real hook as a subprocess
     on its PRE Write route and asserts on the process, not on a function return.
 
     THE MUTANT RUNS FROM A COPY OF THE WHOLE BIN DIRECTORY, and that is forced rather
-    than chosen. check-domain.sh puts its OWN directory first on PYTHONPATH (`:96`), so
+    than chosen. check-domain.py puts its OWN directory first on PYTHONPATH (`:96`), so
     an external PYTHONPATH cannot shadow feature_schema.py — the trick run_t12 uses for
     a module that is not in bin/ does not work here. Overwriting the real
     bin/feature_schema.py and restoring it in a finally was the alternative, and it
@@ -635,7 +635,7 @@ def _handoff_pointer_cases(results, root, target):
             _invoke_handoff(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {bad}")), 2, bad)
     legal_prefixes = ("plan-task:", "brief-sc:", "finding:", "approval:")
-    for value in ("docs:whatever", "check-domain.sh:1523"):
+    for value in ("docs:whatever", "check-domain.py:1523"):
         _record_handoff_result(
             results, f"handoff unknown authority {value}",
             _invoke_handoff(root, target, _handoff_text(
@@ -759,7 +759,7 @@ def _handoff_validator_exception_case(results, root, valid):
     isolated = os.path.join(root, "isolated")
     isolated_bin = os.path.join(isolated, ".agents", "skills", "harness", "bin")
     os.makedirs(isolated_bin)
-    isolated_hook = os.path.join(isolated_bin, "check-domain.sh")
+    isolated_hook = os.path.join(isolated_bin, "check-domain.py")
     shutil.copy2(HOOK, isolated_hook)
     with open(os.path.join(isolated_bin, "handoff_done_when.py"), "w") as f:
         f.write("def problems(*args, **kwargs):\n    raise RuntimeError('injected failure')\n")

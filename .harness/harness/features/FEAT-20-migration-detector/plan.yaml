@@ -13,7 +13,7 @@ lanes:
     - surface: .claude/skills/harness/bin/layout_migration.py
       lane: main-session-direct
       reason: >-
-        New module. check-domain.sh --resolve at 88b1182 answers harness-backend-dev and
+        New module. check-domain.py --resolve at 88b1182 answers harness-backend-dev and
         harness-dev-ops, the same pair the four carve-out files answer, but check-state.sh
         computes INV-27's verdict from its return value, so it is a DEC-174 carve-out BY
         CONTENT on FEAT-18's gh_board.py precedent, itself on FEAT-17's harness_boundary.py.
@@ -52,7 +52,7 @@ decisions:
       Failure is judged PER COUPLED SURFACE over a closed reader set, never tree-wide. Surface
       FEATURES takes its disk evidence from .harness/features/*/feature.json against
       .harness/*/features/*/feature.json, and its coupled readers are exactly unit 3's atomic
-      cluster - team-config.yaml write grants, check-domain.sh SWEEP_GLOBS, check-domain.sh's four
+      cluster - team-config.yaml write grants, check-domain.py SWEEP_GLOBS, check-domain.py's four
       shape regexes, check-plan-routes.py's discovery join, check-state.sh's discovery globs.
       Surface DOCS takes its evidence from docs/harness/SPEC.md against .harness/*/docs/SPEC.md,
       and its coupled readers are exactly unit 4's atomic trio - factory_config._PROBE,
@@ -191,7 +191,7 @@ tasks:
             migrated = \.harness/[^/ ]+/features/
             audited: every write-grant line and the features: path setting carry the legacy
             fragment; there is no prose-only mention of it in this file.
-          .claude/skills/harness/bin/check-domain.sh
+          .claude/skills/harness/bin/check-domain.py
             legacy   = \.harness/features/
             migrated = \.harness/(\*|\[\^/\]\+)/features/
             audited: the four SWEEP_GLOBS entries spell it as glob text and the four shape
@@ -652,7 +652,7 @@ tasks:
 
         A partial layout migration is detected per coupled surface, never tree-wide. Two surfaces
         exist - features, whose coupled readers are team-config.yaml's write grants,
-        check-domain.sh's SWEEP_GLOBS and shape regexes, check-plan-routes.py's discovery join and
+        check-domain.py's SWEEP_GLOBS and shape regexes, check-plan-routes.py's discovery join and
         check-state.sh's discovery globs; and docs, whose coupled readers are factory_config's
         probe, harness_boundary's control-plane entry and gen-decisions-index's docs directory.
         The two surfaces have no ordering tie, so a tree with one migrated and the other not is a

@@ -88,7 +88,7 @@ everything that survived.
 | B-6 | `bash-write-guard.sh` refuses `sed -i` whose target is a shell variable, even when the expansion is in-domain | bug |
 | B-7 | Eight lines of `DECISIONS.md` anchor rot in plan citations — content correct, pointers 8 lines stale; `lanes.resolved_at` also stale | chore |
 | B-8 | `BRIEF.md:247` cites DEC-90 as a live constraint; DEC-90 is STRUCK | chore |
-| B-9 | `BRIEF.md:231-237` says SC-07 changes `check-domain.sh`'s write route; the tree contradicts it | chore |
+| B-9 | `BRIEF.md:231-237` says SC-07 changes `check-domain.py`'s write route; the tree contradicts it | chore |
 | B-10 | Corpus check for the ` ##`-truncates-a-YAML-scalar shape in other plans — it cost D-21 299 invisible characters | chore |
 | B-11 | DEC-197 has no implementation; its own index row says so, and T-18's correctness partly rests on it | chore |
 | B-12 | Two board cards (T-01 #642, T-02 #643) read Building while the issues are closed and the plan says done; `close-task` re-run twice did not move them | chore |

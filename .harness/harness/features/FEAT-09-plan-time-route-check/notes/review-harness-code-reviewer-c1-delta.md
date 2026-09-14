@@ -12,7 +12,7 @@ sanctioned lane for this file, not an unreviewed bypass.
 ## Stage 1 — spec compliance
 
 Traces cleanly to VF-1 / SC-04 (`BRIEF.md:48-49`). The diff is exactly: one functional line
-(`unset HARNESS_RESOLVE_PATH` in `check-domain.sh`'s `else` branch) + an explanatory comment block,
+(`unset HARNESS_RESOLVE_PATH` in `check-domain.py`'s `else` branch) + an explanatory comment block,
 plus two new test cases. No scope creep: VF-2 (the `Edit`-bypasses-the-shape-gate defect, `:376`) is
 explicitly left untouched — confirmed the diff never touches that region — and `STATE.md:48-56`
 correctly records VF-2 as a separate, still-open design question, not silently folded into this fix.
@@ -20,7 +20,7 @@ correctly records VF-2 as a separate, still-open design question, not silently f
 **Q1 — does the fix make SC-04 true as written?** Yes, and it makes it *stronger* than the literal
 wording requires. SC-04 only constrains the clean-argv case (no `--resolve`, clean stdin payload).
 The bug was that mode selection actually ran on `os.environ.get("HARNESS_RESOLVE_PATH") is not None`
-(`check-domain.sh:146-147`), not on argv, so an inherited environment variable — present or empty —
+(`check-domain.py:146-147`), not on argv, so an inherited environment variable — present or empty —
 silently satisfied SC-04's premise while violating its intent. The `unset` closes that regardless of
 what the calling environment carries, which is a superset of what SC-04 literally asks for, not a
 narrower fit to the letter. Verified empirically, not just by reading: reconstructed the pre-fix
@@ -38,7 +38,7 @@ exactly. Same three probes against the post-fix script (working tree, confirmed 
 fresh process (`.claude/settings.json:23` registers the hook as a `command` type with no arguments) —
 so there is no window for the variable to survive from one invocation into the next, and no shared
 shell state to leak through. This is a structural guarantee from the ordering, not merely an
-empirical absence — my nested-invocation probe (export in one `check-domain.sh` exec, then a second
+empirical absence — my nested-invocation probe (export in one `check-domain.py` exec, then a second
 exec in the same parent shell) corroborates it but the ordering argument is what actually establishes
 it. Also independently confirmed no other file in the repo reads `HARNESS_RESOLVE_PATH`
 (`grep -rn HARNESS_RESOLVE_PATH`) — the sibling `bash-write-guard.sh` does not consume it.

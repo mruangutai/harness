@@ -2,7 +2,7 @@
 
 Produced by the engineering squad (4 member runs, 3 cycles, 41 minutes) at `ee66ae2`.
 **Written to disk by the main session**: `.harness/notes/analysis-*.md` matches no `domain:`
-entry in `team-config.yaml`, so `check-domain.sh:828-834` refused every agent that tried. The
+entry in `team-config.yaml`, so `check-domain.py:828-834` refused every agent that tried. The
 lead's own domain (`:296-299`) is runs/expertise/observations only, and `:101` grants pm
 `.harness/notes/research-*.md` and nothing else under notes.
 
@@ -202,7 +202,7 @@ checkout with only the `scanning` line as a clue.
 ### The import-time risk, checked and cleared
 
 `factory_config.harness_root()` runs at MODULE IMPORT (`FLEET_PATH`, `:59`) for 23 importers,
-and `check-domain.sh:196` reaches it: `resolve_fleet` lazily imports `factory_config` inside a
+and `check-domain.py:196` reaches it: `resolve_fleet` lazily imports `factory_config` inside a
 `try`, whose `except` is `sys.exit(2)`. A strict raise there would BLOCK a governed write.
 
 **It cannot fire in that path.** `factory_config` resolves from its own `_BIN_DIR`, not from the

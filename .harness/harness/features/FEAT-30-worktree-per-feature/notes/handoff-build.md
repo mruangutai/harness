@@ -31,7 +31,7 @@ now.
 - **Q2 settled:** the `cp -R "$T/bin"` denial is PERSONA, not syntax — `bash-write-guard.sh:49-57`
   exits early for no `agent_type` and for `harness-dev-ops`. T-03/T-04/T-05 run literally for the
   operator — verified-at 49c528a
-- Fail-open window until T-04: `harness_boundary.py:37` and `check-domain.sh:644` hard-code ONE
+- Fail-open window until T-04: `harness_boundary.py:37` and `check-domain.py:644` hard-code ONE
   segment, `dest_for` writes two — verified-at 49c528a
 - CLI works against the REAL repo: `list --repo harness` returns the FEAT-31 tree, exit 0, legacy
   one-segment included, main checkout excluded — verified-at 49c528a

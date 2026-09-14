@@ -54,7 +54,7 @@
   approved, with no ADDED-tasks reset. The doctrine ("re-planning resets approval") is not
   mechanized in the tool; only sign-approval writes that mapping, and pm cannot. Raise it as an
   open_question every time, because nothing else surfaces it.
-- 2026-09-06: check-domain.sh --resolve grants harness-backend-dev/dev-ops/qa on
+- 2026-09-06: check-domain.py --resolve grants harness-backend-dev/dev-ops/qa on
   post-merge-sweep.py and check-state.sh themselves, so a team grant never settles DEC-174
   carve-out membership. The usable line is EXERCISES A GATE vs IMPORTS A MODULE A GATE USES.
 - 2026-09-06: BUG-1309 R2 fix — re-aiming a unit case away from an integration guard is only honest if the unit input is one a fixture DIRECTORY cannot be (trailing slash, out-of-enum rec value), not merely one nobody wrote yet; probing _build_entry_preflight in-process found two live reds from one missing rstrip at gh-sync.py:1360, and a red case makes the task's own '^FAIL ' verify unsatisfiable, so the intent must say the task cannot reach VERIFY-PASS and route the fix out.

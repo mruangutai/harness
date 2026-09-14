@@ -37,7 +37,7 @@ or is an accepted one-shot cost. Zero other findings.
      only wants `BUILD_ENTRY_ERA_EXEMPT`/`recovery_command_for` never pays for it; or (b), if
      touching the shared module is judged riskier, give `merge-gate.py` its own tiny
      schema-free import (the era set and `recovery_command_for` do not depend on anything
-     schema-shaped). (a) is smaller and matches existing practice: `check-domain.sh:1398,1445`
+     schema-shaped). (a) is smaller and matches existing practice: `check-domain.py:1398,1445`
      already imports `feature_schema` lazily inside the specific branches that need it rather
      than at module scope, so a lazy `jsonschema` import inside `feature_schema.py` itself is
      the same discipline applied one level deeper, not a new pattern.

@@ -266,7 +266,7 @@ are recorded user decisions — SC-15 finally enforces it), DEC-174, DEC-188, DE
 thresholds, seam-based handoff), DEC-204 (digest is a claim until disk confirms).
 
 **DEC-174 routing.** SC-05, SC-06, SC-07, SC-08, SC-10, SC-11, SC-15, SC-16, SC-17, SC-18, SC-19
-change `plan-merge.py`, `validate-digest.py`, `check-state.sh`, `check-domain.sh`, the qa gate, or
+change `plan-merge.py`, `validate-digest.py`, `check-state.sh`, `check-domain.py`, the qa gate, or
 their tests. Those are main-session-direct work with explicit tests and human diff review; they do
 not go through the enforcement path they change. The remaining SCs (skills, templates, team YAML,
 agent prompts, decision text) go through the normal path. The plan sequences the direct batch

@@ -73,7 +73,7 @@
 
 **Artifact placement:** the dispatch named
 `.harness/features/FEAT-07-verify-teeth-batch-probe/notes/sc07-fix-spec-eng-devs.md`, and
-`check-domain.sh` BLOCKED the write — `notes/**` is not in harness-documentor's grant
+`check-domain.py` BLOCKED the write — `notes/**` is not in harness-documentor's grant
 (`team-config.yaml`; permitted in-feature path is `features/*/observations/harness-documentor.md`).
 Not worked around; the artifact is inlined here and raised as Q1.
 

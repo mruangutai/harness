@@ -51,7 +51,7 @@ These are premises, verified on disk, not conclusions about the remedy.
   `if not text.strip(): ... return 0`. An empty or null return is passed through
   as *our* gap. It is indistinguishable there from a harness persona that
   genuinely produced nothing, which is a contract violation.
-- **#1057.** `.claude/skills/harness/bin/check-domain.sh` matches the raw path
+- **#1057.** `.claude/skills/harness/bin/check-domain.py` matches the raw path
   and then the **worktree-stripped** path against the same globs (DEC-143), by
   design, so an agent inside a worktree writes exactly what its domain grants.
   The consequence is that a write to the **main checkout's** copy of the same
@@ -73,9 +73,9 @@ suite reads green.)
 
 ## Routing, resolved at plan time (DEC-179)
 
-`check-domain.sh --resolve` **grants** the enforcement scripts to
+`check-domain.py --resolve` **grants** the enforcement scripts to
 `harness-backend-dev`/`harness-dev-ops`, so the resolver alone does not route
-them correctly. **DEC-174 governs and overrides the grant**: `check-domain.sh`,
+them correctly. **DEC-174 governs and overrides the grant**: `check-domain.py`,
 `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`,
 `check-plan-routes.py`, `dispatch-guard.sh` **and the test file of each** are
 the enforcement layer, planned through the harness but never executed through
@@ -88,7 +88,7 @@ Measured `--resolve` verdicts:
 | surface | resolve | lane |
 |---|---|---|
 | `bin/validate-digest.py`, `bin/test-validate-digest.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
-| `bin/check-domain.sh`, `bin/test-check-domain.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
+| `bin/check-domain.py`, `bin/test-check-domain.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
 | `bin/check-state.sh`, `bin/test-check-state.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
 | `skills/harness/SKILL.md`, `skills/harness-team/SKILL.md`, `skills/harness-handoff/SKILL.md` | NOBODY | `main-session-direct` |
 | `.harness/harness/docs/DECISIONS.md` | harness-documentor | `team` |
@@ -182,7 +182,7 @@ itself and `panel:` is re-transcribed afterwards from a fresh panel run, because
 reworded finding takes a new content-hash id and the old id stops applying.
 
 - `PF-3d9ac1d054341cec6611f63aa2ce457a` (high, scope reader). The worktree binding
-  reaches `check-domain.sh` only. Re-measured at `5d12e68`:
+  reaches `check-domain.py` only. Re-measured at `5d12e68`:
   `bash-write-guard.sh:747` reads
   `if verdict["outcome"] in ("allow", "not_a_domain_question"): continue`, so a
   governed agent's `cat >` / `perl -pi` at the same main-checkout feature artifact

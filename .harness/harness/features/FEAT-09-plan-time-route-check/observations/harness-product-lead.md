@@ -19,7 +19,7 @@
   matcher and a prefix comparison give different answers — because a source grep for `startswith` is
   defeated by any equivalent idiom.
 
-- 2026-08-05: My own run `state.yaml` was BLOCKED by `check-domain.sh` for DEC-154 — I had added
+- 2026-08-05: My own run `state.yaml` was BLOCKED by `check-domain.py` for DEC-154 — I had added
   top-level `lead_checks:` and `send_backs:` keys holding assessment verdicts. The enforcement layer
   this very feature extends caught the lead extending it. Prose ceiling really is one `note:` per
   step entry; per-check verdicts go in `digest.md`.

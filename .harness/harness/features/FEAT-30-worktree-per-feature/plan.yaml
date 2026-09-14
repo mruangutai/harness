@@ -85,7 +85,7 @@ lanes:
     - surface: .claude/skills/harness/bin/harness_boundary.py
       lane: main-session-direct
       reason: every named enforcement guard imports it, so a change there changes all of them at once - enforcement layer by DEC-174 am.4 category
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: named in DEC-174 am.4 as a registered PreToolUse gate script
     - surface: .claude/skills/harness/bin/bash-write-guard.sh
@@ -99,16 +99,16 @@ lanes:
       reason: DEC-174 am.4 puts the test file of each gate script inside the carve-out
     - surface: .claude/agents/harness-orchestrator.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
     - surface: .claude/commands/harness.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
     - surface: .claude/skills/harness-distill/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+      reason: check-domain.py --resolve prints NOBODY at eeabc59
 
 decisions:
   - id: D-01
@@ -126,8 +126,8 @@ decisions:
     choice: >-
       REQ-08 replaces WORKTREE_REL_RE with one function in harness_boundary.py that relativizes a
       path against the checkout it stands in, and EVERY consumer of the fixed segment count moves to
-      it: harness_boundary.classify, the check-domain.sh resolve path, the check-domain.sh shape
-      phase normaliser, and the check-domain.sh sweep globs.
+      it: harness_boundary.classify, the check-domain.py resolve path, the check-domain.py shape
+      phase normaliser, and the check-domain.py sweep globs.
     because: >-
       the mechanism is one-for-one, and a consumer left on the regex keeps the segment count
       load-bearing. The shape normaliser and the sweep globs were measured this run as the two
@@ -136,7 +136,7 @@ decisions:
       worktree state files. That is a regression no success criterion would catch. The cutover is
       therefore ONE task, T-04, and must not be split per file: WORKTREE_REL_RE has consumers in two
       files, so a partial cutover leaves an intermediate state where harness_boundary.py no longer
-      defines the attribute while check-domain.sh still reaches for it, and that direction fails
+      defines the attribute while check-domain.py still reaches for it, and that direction fails
       OPEN. DEC-193 records the same direction - a handled import failure was deliberately made to
       exit 2 because an unhandled ImportError exits 1, which is non-blocking, and would switch
       enforcement off on both routes at once. A missing attribute is the same fail-open shape, so
@@ -570,7 +570,7 @@ tasks:
       open(p, "w").write(m)
       PY
       rm -rf "$T/bin/__pycache__"
-      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.py" \
         python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the new cases pass with WORKTREES_SEGMENT mutated"; exit 1; }
       exit 0
@@ -579,7 +579,7 @@ tasks:
       that a path written from inside a worktree resolves to the same grant as the same path written
       from the checkout root. Change no other file, and change no existing case.
 
-      SC-05 says check-domain.sh grants the same paths inside a worktree as outside it, for every one
+      SC-05 says check-domain.py grants the same paths inside a worktree as outside it, for every one
       of the 16 agents, and that nothing currently asserts it. This task asserts it against the
       layout that exists TODAY - exactly one segment after WORKTREES_SEGMENT - so that T-04 has a
       baseline it must leave green. Do not anticipate the repo-and-id layout here; T-04 owns it.
@@ -629,12 +629,12 @@ tasks:
     traces: [REQ-08, REQ-01]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 - harness_boundary.py, check-domain.sh and the two guard test files are the enforcement layer, and the cutover that makes a gate use the new mechanism is the main session's
+    execution_reason: DEC-174 am.4 - harness_boundary.py, check-domain.py and the two guard test files are the enforcement layer, and the cutover that makes a gate use the new mechanism is the main session's
     depends_on: [T-03]
     status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
@@ -642,10 +642,10 @@ tasks:
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
       git show eeabc59:.claude/skills/harness/bin/harness_boundary.py > "$T/bin/harness_boundary.py" || exit 1
-      git show eeabc59:.claude/skills/harness/bin/check-domain.sh > "$T/bin/check-domain.sh" || exit 1
-      chmod +x "$T/bin/check-domain.sh"
+      git show eeabc59:.claude/skills/harness/bin/check-domain.py > "$T/bin/check-domain.py" || exit 1
+      chmod +x "$T/bin/check-domain.py"
       rm -rf "$T/bin/__pycache__"
-      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.py" \
         python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the deep-layout cases pass against the eeabc59 guard"; exit 1; }
       python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
@@ -697,13 +697,13 @@ tasks:
       iterations, the regex took 0.3 ms in total against 46.8 ms in total for walk-and-relativize,
       which is 0.023 ms per write against a guard that already reads files.
 
-      PART 2 - check-domain.sh, the resolve path at line 212.
+      PART 2 - check-domain.py, the resolve path at line 212.
 
       Replace the WORKTREE_REL_RE match with harness_boundary.checkout_relative on the absolute
       target, keeping the same candidate ordering: base-relative first, checkout-relative second
       when one is returned and differs. The rest of that branch is unchanged.
 
-      PART 3 - check-domain.sh, the shape phase. This is the part with the largest blast radius and
+      PART 3 - check-domain.py, the shape phase. This is the part with the largest blast radius and
       it is the reason REQ-08 is not one line.
 
       At eeabc59 two literals in this file assume exactly ONE segment after .claude/worktrees:
@@ -1130,7 +1130,7 @@ tasks:
     traces: [REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .claude/skills/harness-distill/SKILL.md at eeabc59
+    execution_reason: check-domain.py --resolve prints NOBODY for .claude/skills/harness-distill/SKILL.md at eeabc59
     depends_on: [T-06]
     status: done
     files:
@@ -1213,7 +1213,7 @@ tasks:
     traces: [REQ-05, REQ-03]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .claude/agents/harness-orchestrator.md, .claude/commands/harness.md and .claude/skills/harness/SKILL.md at eeabc59
+    execution_reason: check-domain.py --resolve prints NOBODY for .claude/agents/harness-orchestrator.md, .claude/commands/harness.md and .claude/skills/harness/SKILL.md at eeabc59
     depends_on: [T-04, T-05, T-07, T-08]
     status: done
     files:
@@ -1266,7 +1266,7 @@ tasks:
          orchestrator from inside it - symmetric with point 1, which attributes creation to the main
          session for the same reason. This sentence discharges must_fix M-1: git worktree remove
          succeeds at exit 0 from inside the tree it removes, so guidance that omits who runs it and
-         from where tells the orchestrator to delete its own cwd, which check-domain.sh:428-431,
+         from where tells the orchestrator to delete its own cwd, which check-domain.py:428-431,
          bash-write-guard.sh:135-137 and check-state.sh:1082-1085 each already refuse to say and
          T-05 refuses on the Bash route. The orchestrator's part of a terminal state is to finish
          landing its artifacts and report; removal is not its act. State that remove refuses on a dirty tree, and refuses until every

@@ -154,7 +154,7 @@ receipt was written to disk (see note above) rather than trusted from the earlie
 ## Scope respected
 
 - No edit to `check-state.sh`, `check-docs.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-  `check-domain.sh`.
+  `check-domain.py`.
 - No edit to any SC-13 / SC-18 / SC-19 assertion in `test-factory-claim.py`,
   `test-factory-config.py`, or `test-factory-integration.py` — only additions.
 - `project_field_set`'s signature is unchanged; grepped all three callers

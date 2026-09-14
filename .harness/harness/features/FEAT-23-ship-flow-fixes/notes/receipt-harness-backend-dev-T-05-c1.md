@@ -120,7 +120,7 @@ fail this second check even if it happened to exit 0.
 
 ## Bounds respected
 
-No commit, no `git add`, no `gh` writes. `check-domain.sh`, `bash-write-guard.sh`,
+No commit, no `git add`, no `gh` writes. `check-domain.py`, `bash-write-guard.sh`,
 `validate-digest.py`, `check-state.sh` untouched. `plan.yaml`, `BRIEF.md`, `feature.json`,
 `STATE.md`, `.harness/harness.json` untouched. `gh-sync.py`, `test-gh-sync.py`, `gh_board.py`
 untouched (called, not edited). Arch finding G's duplication (this file re-derives

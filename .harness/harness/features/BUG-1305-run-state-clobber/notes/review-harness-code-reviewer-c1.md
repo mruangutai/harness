@@ -1,7 +1,7 @@
 # Code review — BUG-1305-run-state-clobber — review-c1 — pinned dc0e0313
 
 **BLUF: one demonstrated HIGH fail-open — an Edit that CREATES `.run-identity.json` where none
-exists is not refused by `check-domain.sh` (exit 0, proven live) — gates this review under
+exists is not refused by `check-domain.py` (exit 0, proven live) — gates this review under
 `advisory_unless_high`. Everything else (all seven REQs, all thirteen SCs, the mechanical grade)
 checks out. Two Stage-1 evidence-quality gaps found and one independently RESOLVED by me in the
 same pass (SC-09/SC-07's "control-plane root" pin ran over the wrong tree, but I re-ran it over the
@@ -20,7 +20,7 @@ all six `research-BUG-1305-plan-fix-c*.md` notes, and every named evidence artif
 `qa-testmatrix-c1.md`, `qa-regate-sc01-c10.md`). Every REQ traces to shipped code; nothing is scope
 creep; the two ANSWERED adversarial questions from the dispatch:
 
-- **Neither compare skipped, no write refused by both.** `check-domain.sh`'s `RE_STATE_YAML` PRE
+- **Neither compare skipped, no write refused by both.** `check-domain.py`'s `RE_STATE_YAML` PRE
   branch (:1603-1707) parses the prior ONCE (`prior_doc`/`prior_exc`), computes `prior_has_uid`, and
   routes exactly one of the two compares: witness `conflict()` when `not prior_has_uid` (absent,
   zero-byte, unparseable, or parses with no/empty `run_uid`), the `uid_conflict()` ladder when it
@@ -35,7 +35,7 @@ creep; the two ANSWERED adversarial questions from the dispatch:
   in each test file (`run_id disagreement keeps Issue 1124 precedence` in T-09's suite, `witness
   outranks legacy run_id ladder` in T-02's).
 - **REQ-06/SC-06.** The false `"intentionally Write/PRE-only"` sentence is gone; the replacement at
-  `check-domain.sh:~1291` states plainly "fires on Write and Edit ... Bash ... refused outright ...
+  `check-domain.py:~1291` states plainly "fires on Write and Edit ... Bash ... refused outright ...
   POST is too late to refuse" — accurate, and matches the four SC-05 cases. One residual echo, see F-03.
 - **REQ-05/T-06.** All four cases present (`digest Edit append repair remains allowed`, `digest Edit
   insertion is refused with append-at-end route`, `cross-run digest replacement remains refused`,
@@ -78,7 +78,7 @@ operator accepts the substance as-is, or someone appends one command+output pair
 host's tool manifest, or an attempted NotebookEdit payload and its rejection) to the same note.
 
 **F-03 (severity: low, advisory only) — a residual echo of the retired "PRE-only" phrasing.**
-`check-domain.sh:1240`: `"RE_RUN_DIGEST stays out because its content comparison is PRE-only."` This
+`check-domain.py:1240`: `"RE_RUN_DIGEST stays out because its content comparison is PRE-only."` This
 is a DIFFERENT, TRUE claim (why `RE_RUN_DIGEST` is excluded from `SHAPE_PATTERNS`/`SWEEP_GLOBS` — the
 POST sweep genuinely never re-checks it, confirmed: `has_shape_rules()` excludes `RE_RUN_DIGEST`, so
 the POST "elif target:" branch exits before ever calling `shape_problems()` for a digest path) — not
@@ -93,7 +93,7 @@ conflate the two. Ship-rulable: yes, pure wording.
 **F-04 (severity: HIGH, must_fix) — an Edit that CREATES `.run-identity.json` is not refused.
 Demonstrated live, not inferred.**
 
-`check-domain.sh`'s PRE Edit-reconstruction path (`_edit_reconstructed_content`, used for
+`check-domain.py`'s PRE Edit-reconstruction path (`_edit_reconstructed_content`, used for
 `RE_RUN_DIGEST`/`RE_STATE_YAML`/`RE_RUN_IDENTITY`/`RE_HANDOFF` at :2036-2058) does
 `open(absolute_path).read()` and, on `except OSError: return None` — which is exactly what
 `FileNotFoundError` is — the caller does `if _content is None: sys.exit(0)`, **skipping
@@ -200,7 +200,7 @@ grading skill's own rule, and each has a reason above naming the function.
 
 ## Fail-open enumeration (as asked)
 
-- `check-domain.sh` `if _no_parser: return out` — DEC-171 bootstrap-grant fail-open. Correct as-is,
+- `check-domain.py` `if _no_parser: return out` — DEC-171 bootstrap-grant fail-open. Correct as-is,
   operator-ruled, out of scope for this feature to reverse.
 - `run_identity.record_seed`/`inject_uid` — best-effort `except Exception/OSError: return
   False`/`pass`. Intentionally fail-open by spec: a witness recording failure must never break a
@@ -208,7 +208,7 @@ grading skill's own rule, and each has a reason above naming the function.
 - `validate-digest.py._missing_durable_artifact` — fails OPEN only when no candidate root resolves at
   all; fails CLOSED once a directory resolves but the file is absent. Correctly asymmetric, matches
   T-05 spec exactly, verified against all six test cases.
-- `check-domain.sh`'s digest-guard `prior is None` branch (unreadable prior) — fails CLOSED
+- `check-domain.py`'s digest-guard `prior is None` branch (unreadable prior) — fails CLOSED
   (refuses). Correct.
 - `_edit_reconstructed_content`'s `except OSError: return None` → caller `sys.exit(0)` — **fails
   OPEN, and for `.run-identity.json` specifically this is wrong; see F-04.** For state.yaml/digest.md

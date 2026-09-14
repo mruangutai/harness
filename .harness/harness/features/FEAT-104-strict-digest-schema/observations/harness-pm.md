@@ -26,7 +26,7 @@
 - 2026-09-09: validate-digest.py takes persona FIRST, path SECOND; the path-only invocation prints an `unknown persona` line that reads exactly like a malformed digest. Confirmed the clean result by re-running with stdout/stderr split to files and byte-counting (stdout 10 bytes `digest ok\n`, stderr 0), not by reading a tail — a single-stream capture cannot distinguish an empty stderr from an interleaved one.
 - 2026-09-10: FEAT-104 goal-check at pin 168f875f. SC-08 named two seams for the "route by file and
   symbol, asserted as a substring" clause; the digest seam was fixed in both emission and assertion
-  (F3), the step seam in emission only (check-domain.sh:1655-1658). Grep of tests/ for
+  (F3), the step seam in emission only (check-domain.py:1655-1658). Grep of tests/ for
   `run-state-schema` returned exactly one hit and it was an open(), not an assertion. Two earlier
   gates called SC-08 satisfied on the digest half alone. Checking each seam of an enumerated
   criterion separately is what found it.
@@ -38,6 +38,6 @@
   both say five, and a later panel disposition inside plan.yaml (:731,:738) had already struck the
   three extras with T-08 pinning failures/suite/kinds as REJECTED. Reading the plan's own later
   disposition before flagging a note-vs-delivery divergence avoided a false finding.
-- 2026-09-10: FEAT-104 final goal-check at 984bd26b. The c9 SC-08 unmet verdict was falsified by the 790023f0 fix, which also SHIFTED every anchor below check-domain.sh:1663 by about ten lines (test-check-domain.py cases 85-87 became 87-91; 148-156 became 156-164). Re-deriving by content string rather than by the prior note's line numbers is what made the re-grade possible; a line-anchored carry-forward would have read the wrong case.
+- 2026-09-10: FEAT-104 final goal-check at 984bd26b. The c9 SC-08 unmet verdict was falsified by the 790023f0 fix, which also SHIFTED every anchor below check-domain.py:1663 by about ten lines (test-check-domain.py cases 85-87 became 87-91; 148-156 became 156-164). Re-deriving by content string rather than by the prior note's line numbers is what made the re-grade possible; a line-anchored carry-forward would have read the wrong case.
 - 2026-09-10: SC-08's at-rest seam question resolved by grading the criterion's SUBJECT: "rejection text" covers a refused return and a refused write, not check-state.sh's INV-16 at-rest REPORT over historical artifacts, which REQ-08 forbids acting on. Emission carries the route (check-state.sh:1526-1528) but assertion is not required. Routed as a recommendation, never as an unmet SC.
 - 2026-09-10: Loading validate-digest.py out of tree to count DOCUMENTED_OPTIONAL died on `import harness_boundary` (repo Expertise O-12/G-14 again). Under DEC-174 read-only I could not drop a copy into bin/, so I counted the literal block at :248-280 instead: 17 rows, 16 distinct. Text-counting is the cheaper route for a declarative block anyway.

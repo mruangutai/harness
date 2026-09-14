@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""check-domain.sh: the in-flight claim set decides who may write a worktree.
+"""check-domain.py: the in-flight claim set decides who may write a worktree.
 
 Slice of the former test-check-domain.py (issue #1527) — issue #1304's claim-set cases,
-including the frozen prior-hook control (fixtures/prior-check-domain.sh.fixture) that
+including the frozen prior-hook control (`fixtures/prior-check-domain.fixture`) that
 proves the pre-change hook allowed what the guard now refuses. Its own file rather than
 a tail on test-check-domain-approval.py: at ~4s it was that file's outlier, and the
 surface is claim ownership, not approval.
@@ -21,9 +21,9 @@ from check_domain_support import (FIXTURE_MANIFEST, HOOK, TESTS_DIR, _env, drive
 
 def bug1304_pre_change_hook(dest):
     copied_bin = isolated_bin(dest)
-    hook = os.path.join(copied_bin, "check-domain.sh")
+    hook = os.path.join(copied_bin, "check-domain.py")
     fixture_path = os.path.join(
-        TESTS_DIR, "fixtures", "prior-check-domain.sh.fixture")
+        TESTS_DIR, "fixtures", "prior-check-domain.fixture")
     shutil.copyfile(fixture_path, hook)
     os.chmod(hook, 0o755)
     return hook

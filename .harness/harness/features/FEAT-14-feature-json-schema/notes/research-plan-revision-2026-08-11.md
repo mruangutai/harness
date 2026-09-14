@@ -31,7 +31,7 @@ OK T-03 granted to harness-dev-ops
 UNRESOLVED-GLOB T-04 .harness/features/*/feature.yaml
 DEVIATION T-04 .harness/features/FEAT-14-feature-json-schema/feature.yaml granted to harness-orchestrator but declared main-session-direct
 OK T-05 granted to harness-backend-dev, harness-dev-ops
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/check-domain.sh, .claude/skills/harness/bin/validate-digest.py, .claude/skills/harness/bin/test-check-state.py, .claude/skills/harness/bin/test-check-domain.py, .claude/skills/harness/bin/test-validate-digest.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/check-domain.py, .claude/skills/harness/bin/validate-digest.py, .claude/skills/harness/bin/test-check-state.py, .claude/skills/harness/bin/test-check-domain.py, .claude/skills/harness/bin/test-validate-digest.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-07: declared main-session-direct (.claude/skills/harness/templates/feature.json, .claude/skills/harness/templates/gitignore.snippet, .claude/skills/harness/templates/harness.json, .claude/skills/harness/templates/team-config.yaml, .claude/skills/harness/SKILL.md, .claude/skills/harness-team/SKILL.md, .claude/skills/harness-spec-driven/SKILL.md, .claude/agents/harness-orchestrator.md, .claude/commands/harness.md, .harness/team-config.yaml ungranted)
 UNRESOLVED-GLOB T-08 .harness/features/*/feature.yaml
 DEVIATION T-08 .harness/features/FEAT-14-feature-json-schema/feature.yaml granted to harness-orchestrator but declared main-session-direct
@@ -86,7 +86,7 @@ which YAML truncates or rejects. Both were in prose I had just written (`D-11`, 
 Expertise G-12's sibling and worth the reminder: a colon-space inside a plain scalar is a parse
 error, not a silent truncation, so it fails loud — but only if you actually reload the file.
 
-## 4. check-domain.sh --resolve, per new or changed literal path
+## 4. check-domain.py --resolve, per new or changed literal path
 
 ```
 .harness/features/FEAT-15-domain-product-base/feature.yaml     => harness-orchestrator
@@ -108,7 +108,7 @@ in `execution_reason` — same lane as T-06.
 
 The dispatch's literal scan — `grep -rn 'phase\|status'` over `bin/`, `.claude/hooks/`,
 `.github/workflows/` — returns **183 lines**, and it is dominated by matches that carry none of this
-vocabulary: `gh auth status`, subprocess *exit status*, HTTP `"status":"422"`, and `check-domain.sh`'s
+vocabulary: `gh auth status`, subprocess *exit status*, HTTP `"status":"422"`, and `check-domain.py`'s
 own `_domain_phase` / *shape phase* flag. Pasted below verbatim is the **narrowed reader scan**, which
 is the one that answers the question — every declaration, read, path-join and fixture of a feature's
 `phase`/`status`, plus every hardcoded `feature.yaml`, with those four noise classes filtered out.
@@ -343,17 +343,17 @@ bin/test-gh-sync.py:769:    open(os.path.join(_d, "feature.yaml"), "w").write(_b
 bin/test-gh-sync.py:771:    _txt = open(os.path.join(_d, "feature.yaml")).read()
 bin/test-gh-sync.py:779:    check(f"finding 2: save_recorded round-trips a feature.yaml with a {_label}", _ok, _why)
 bin/validate-digest.py:173:    # in feature.yaml.
-bin/check-domain.sh:427:# does not name, and the one that explains its own evidence: the 226-line feature.yaml
-bin/check-domain.sh:429:# 400-line feature.yaml payload: exit 2 as `harness-orchestrator`, exit 0 with no
-bin/check-domain.sh:485:    # same 400-line feature.yaml measured exit 0 as `harness-orchestrator` and exit 2 as
-bin/check-domain.sh:684:# with ONE 400-line feature.yaml payload against its 200-line budget:
-bin/check-domain.sh:692:# own evidence: the 226-line feature.yaml it records was the MAIN SESSION's, so the tool
-bin/check-domain.sh:725:    ".harness/features/*/feature.yaml",
-bin/check-domain.sh:736:#   1. NO DEDUP. One over-budget feature.yaml, then five unrelated `ls` calls produced
-bin/check-domain.sh:799:# rule, which is what this gate is for: `feature.yaml` 200/20 and `CLAUDE.md` 80 are
-bin/check-domain.sh:855:            problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
-bin/check-domain.sh:860:                            f"belong in feature.yaml.")
-bin/check-domain.sh:967:        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
+bin/check-domain.py:427:# does not name, and the one that explains its own evidence: the 226-line feature.yaml
+bin/check-domain.py:429:# 400-line feature.yaml payload: exit 2 as `harness-orchestrator`, exit 0 with no
+bin/check-domain.py:485:    # same 400-line feature.yaml measured exit 0 as `harness-orchestrator` and exit 2 as
+bin/check-domain.py:684:# with ONE 400-line feature.yaml payload against its 200-line budget:
+bin/check-domain.py:692:# own evidence: the 226-line feature.yaml it records was the MAIN SESSION's, so the tool
+bin/check-domain.py:725:    ".harness/features/*/feature.yaml",
+bin/check-domain.py:736:#   1. NO DEDUP. One over-budget feature.yaml, then five unrelated `ls` calls produced
+bin/check-domain.py:799:# rule, which is what this gate is for: `feature.yaml` 200/20 and `CLAUDE.md` 80 are
+bin/check-domain.py:855:            problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
+bin/check-domain.py:860:                            f"belong in feature.yaml.")
+bin/check-domain.py:967:        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
 bin/check-plan-routes.py:238:# carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
 bin/check-plan-routes.py:386:SHIPPED_STATUSES = ("shipped", "abandoned")
 bin/check-plan-routes.py:392:    Reads `feature.yaml`'s `status:` with the real loader. An unreadable or absent
@@ -388,7 +388,7 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
 | `test-check-state.py:44,169,192,251,280,310,352,591,704,868` fixture `feature.yaml` writes | **T-06** (filenames) / **T-12** (the two carrying `phase`) |
 | `test-harness-yaml-corpus.py:11-20` four `feature.yaml` citations | **T-05 item 6** — preserved verbatim as historical record, pinned at exactly 4 |
 | `test-validate-digest.py:753,773` `artifact:` fixture paths | **T-06 item 3** (rename; they are test inputs) |
-| `check-domain.sh:725` `_SWEEP_PATTERNS`, `:855-860` budget message | **T-06 item 2** |
+| `check-domain.py:725` `_SWEEP_PATTERNS`, `:855-860` budget message | **T-06 item 2** |
 | `factory_decompose.py:95,189,201`, `factory_claim.py:119` | **T-05 items 3-4** (filename only; neither reads status) |
 | `gh-sync.py:247, :338` hardcoded `feature.yaml` | **T-05** — see below |
 | `harness/SKILL.md:271-272` "Record your phase in `feature.yaml` `phase:`" | **T-07 item 3** (new) |
@@ -409,7 +409,7 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
   field *name*, not a feature's status value. Untouched.
 - **`factory_gh.py` / `test-factory-gh.py` / `test-factory-claim.py`** — every hit is `gh auth
   status`, an HTTP `"status":"422"`, or a subprocess exit status. Not this vocabulary.
-- **`check-domain.sh:450-494`** `_domain_phase`, `_run_domain` — the hook's own PRE/POST phase flag.
+- **`check-domain.py:450-494`** `_domain_phase`, `_run_domain` — the hook's own PRE/POST phase flag.
   Unrelated to a feature's lifecycle. Untouched.
 - **`test-factory-gh.py:173-183`** `"status": "Ready"` — already board-column shaped; these are
   GitHub Projects fixtures, not feature files. Untouched.

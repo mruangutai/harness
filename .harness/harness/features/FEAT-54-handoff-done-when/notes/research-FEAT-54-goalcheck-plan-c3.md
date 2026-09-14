@@ -134,7 +134,7 @@ lines are the expected DEC-174 carve-out output.
 | §5 every cited anchor live | **holds** — no anchor was edited; `omp_session_accessor.exclude` re-verified today at source |
 | F-01 PF-4205e7e2 `disposition: open` | **stale** — now reads `ACCEPTED by the operator … implemented as decision D-10` (`plan.yaml:29-32`). Not `resolved`/`resolved_by` in schema form; the `panel:` key is out of scope this run |
 | F-02 the ruling is nowhere in `approval.rulings` | **still holds** — `approval:` is `status: pending` and nothing else. Main-session write |
-| F-03 REQ-09 uncarried for `check-domain.sh`'s normative comment | **resolved** — T-04 `plan.yaml:408-423` now names both prose sites by content |
+| F-03 REQ-09 uncarried for `check-domain.py`'s normative comment | **resolved** — T-04 `plan.yaml:408-423` now names both prose sites by content |
 | F-04 T-04 double-reports a missing section | **still holds**, advisory (`plan.yaml:399-400` + `:401-404`) |
 | F-05 `research-FEAT-54-planrevision-c2.md:66` stale on `FEAT-52` | **still holds**, advisory, outside my write scope |
 | F-06 three panel findings open | **partly stale** — PF-570b9c87 and PF-918326 are now ruled and implemented, but their `disposition:` still reads `open - no operator ruling exists`, as does PF-d0ea19ff's and PF-bd92960a's. Expected: `panel:` transcription is a later run |

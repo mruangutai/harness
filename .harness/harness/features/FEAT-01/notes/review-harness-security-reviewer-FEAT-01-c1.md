@@ -11,7 +11,7 @@ under measurement rather than assumption.
 harness (`templates/settings.snippet.json`), so it executes on every harness subagent's stop and
 parses **LLM-generated text the agent controls**. That is untrusted input crossing into a gate. The
 hook registration itself predates this range (only the `_comment` line changed), and
-`inject-expertise.sh` / `check-domain.sh` are untouched in range — out of scope.
+`inject-expertise.sh` / `check-domain.py` are untouched in range — out of scope.
 
 ## Finding 1 — `low` — enum fields crash the validator, which then silently passes the return
 
@@ -25,7 +25,7 @@ Reproduced against `9b07cfc` with a digest containing `severity_max: [low, med]`
 
 Exit 1 is a *non-blocking* hook error and execution proceeds — this repo established that
 empirically, not by recall: `DECISIONS.md` DEC-100 ("Only `exit 2` blocks. Any other non-zero exit
-is a non-blocking error and the write proceeds"), and `check-domain.sh:13-14` carries the same
+is a non-blocking error and the write proceeds"), and `check-domain.py:13-14` carries the same
 verified comment. Educated guess on one step: DEC-100 probed `PreToolUse`; the same convention
 applies to `SubagentStop` per the standard hook exit-code contract, and DEC-122 quotes
 `exit 2 … prevents the subagent from stopping`. So the direction is **fail-open, not wedge** — the

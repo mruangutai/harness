@@ -39,7 +39,7 @@ abolishes. Subsume-in-place erases the visible difference between "amended" and 
 That cost is recoverable only from git.
 
 **C-3. DEC-159 contradicts itself on the handoff cap** (#678). `:4061` says ~60 raised from 40;
-`:4079-4080` says denied above 40. Code settles it: `check-domain.sh:1258` caps at 60.
+`:4079-4080` says denied above 40. Code settles it: `check-domain.py:1258` caps at 60.
 Eighteen lines apart, in one entry. `:4079-4080` is false.
 
 **C-4. DEC-159 asserts a `phase:` field DEC-192/DEC-203 deleted.** NEW, unfiled. `:4052-4053`
@@ -50,7 +50,7 @@ vs `:6110` "The `phase` field is deleted", and `SKILL.md:243` says so live.
 `feature.yaml` appears **47 times** across the file. Which are live rules is the real question.
 
 **C-6. DEC-181 states a budget and a code citation that are both false.** `:5409-5410` cites
-`check-domain.sh:779-780`, which is an unrelated comment block. `:5416` says
+`check-domain.py:779-780`, which is an unrelated comment block. `:5416` says
 "feature.yaml 200/20"; code says `feature.json` 300.
 
 **C-7. The worktree layout falsifies DEC-193** (#626) — `:6151-6153` spells one segment; disk

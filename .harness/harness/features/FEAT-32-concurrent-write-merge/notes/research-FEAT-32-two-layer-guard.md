@@ -46,7 +46,7 @@ survives a reformatting.
 
 ## The non-conflict is real, but its reason is not the one in the dispatch
 
-`check-domain.sh:1039`'s refusal to reconstruct `old_string`/`new_string` sits in the **POST** branch,
+`check-domain.py:1039`'s refusal to reconstruct `old_string`/`new_string` sits in the **POST** branch,
 and `old_string`/`new_string` appear **nowhere else in the file** — the PRE path has never inspected an
 Edit payload. DEC-180 (`DECISIONS.md:5105`) explains why: a SHAPE verdict needs the whole *resulting*
 file to count lines, so PRE would have to reconstruct. Neither limb reconstructs anything, so the

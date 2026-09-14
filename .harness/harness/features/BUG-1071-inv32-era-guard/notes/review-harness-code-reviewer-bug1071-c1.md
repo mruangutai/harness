@@ -73,7 +73,7 @@ verifying them. `must_fix` no longer carries F-A.**
 ### F1 — undated approval now `bad`: no new hazard found (carry-forward, re-verified)
 
 Grepped every writer of `approval:` (`gh-sync.py:948-950`, `factory_decompose.py:342-344`
-read `status` only, never write it; `check-domain.sh:537` `approval_guard` only *denies*
+read `status` only, never write it; `check-domain.py:537` `approval_guard` only *denies*
 writes, never authors one). The only writer is the main session by hand, and
 `templates/plan.yaml:38-40` places `date:` directly under `status:` with no path to write one
 without the other via any script. Queried every `approval.status: approved` plan.yaml in the

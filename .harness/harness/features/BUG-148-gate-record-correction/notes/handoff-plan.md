@@ -22,8 +22,8 @@ no member persona holding it.
 
 - `git merge-base origin/main <sha>` is not a usable diff baseline here: it is `8bdc2477` and the range already carries three foreign paths — `git diff --name-only $(git merge-base origin/main HEAD)..HEAD` — verified-at 41c16c7. SC-03/SC-05 use the branch base `41c16c7` instead
 - An appended dated note is settled against for BOTH records: foreclosed in `DECISIONS.md` by DEC-205 plus `tests/integration/test-gen-decisions-index.py:844-870`, and ruled out for FEAT-05's `STATE.md` by the operator — `plan.yaml` D-05 ruling (1) — verified-at 63f7fc97
-- A `Write` of FEAT-05's `STATE.md` is denied pre-hoc (165 lines vs the 120-line budget, 7 headings vs 2) — `check-domain.sh:1796-1824` — verified-at 41c16c7; T-02 uses `Edit`
-- Deleting the untracked source copy of the grilling at `.harness/harness/notes/` is not available to any agent lane — `check-domain.sh --resolve` returns NOBODY — verified-at 63f7fc97; it is the main session's act
+- A `Write` of FEAT-05's `STATE.md` is denied pre-hoc (165 lines vs the 120-line budget, 7 headings vs 2) — `check-domain.py:1796-1824` — verified-at 41c16c7; T-02 uses `Edit`
+- Deleting the untracked source copy of the grilling at `.harness/harness/notes/` is not available to any agent lane — `check-domain.py --resolve` returns NOBODY — verified-at 63f7fc97; it is the main session's act
 
 ## Working set
 

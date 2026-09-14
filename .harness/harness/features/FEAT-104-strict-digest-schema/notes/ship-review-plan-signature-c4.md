@@ -50,7 +50,7 @@ on the `integration` runner, **1 `inspection`** (SC-12's sha256 run-artifact man
 (SC-13 — you read the DEC-174 carve-out diff; no automated gate substitutes).
 
 `plan.yaml` — 12 decisions, **9 tasks** (T-01, T-03..T-10), the `lanes:` routing table resolving
-every literal path through `check-domain.sh --resolve`, and `panel:` with three readers recorded
+every literal path through `check-domain.py --resolve`, and `panel:` with three readers recorded
 `ran` and all four `PF-` findings at `disposition: resolved`, ids, severities, readers and evidence
 unchanged.
 

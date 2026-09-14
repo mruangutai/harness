@@ -46,7 +46,7 @@ what "missing" does depends on the CLI version (below).
     "PreToolUse": [
       { "matcher": "Write|Edit",
         "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] }
     ],
     "SubagentStop": [
       { "matcher": "harness-.*",
@@ -110,7 +110,7 @@ tries to avoid.
 
 ### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
-`check-domain.sh` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
+`check-domain.py` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
 Expertise allowed · shared paths allowed with a warning. Two details the source plan had wrong, and
 getting either wrong makes the hook fail open:
 
@@ -153,7 +153,7 @@ guardrail** (DEC-85).
 
 
 **`delete: false` is deleted from the design.** It never existed as a field and nothing implemented
-it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.sh`, or it
+it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.py`, or it
 does not exist.
 
 ### Resolved without a spike — nested spawning (was the hard prerequisite)
@@ -420,7 +420,7 @@ repository, which is what keeps the first half dumb and safe.
         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] } ],
     "PreToolUse": [ { "matcher": "Write|Edit",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] } ],
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] } ],
     "SubagentStop": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook" }] } ]
@@ -797,7 +797,7 @@ Beyond "build personas + assemble them." Prune freely.
 | 14 | ~~the distribution command~~ | **Struck — done by deletion.** It shipped under DEC-113, scoped to distribution only; the copy mechanism behind it is deleted and the factory checks a repository out instead. See the detail block below. |
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
-| 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
+| 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.py`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
 | 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** Amended by DEC-221: the manifest and the `BRIEF.md` are the control plane's, and the only artifact that lands in a product repository is its own `harness.json`, on that repository's default branch. |
 | 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
@@ -807,7 +807,7 @@ Beyond "build personas + assemble them." Prune freely.
 and the four that do exist must be converted from bare `.md` files into skills. `rules/mental-model.md`
 is **renamed to `expertise`** (DEC-80).
 
-**Net-new scripts** (`bin/`): `check-domain.sh` (domain enforcement, stdin JSON + `exit 2`) and
+**Net-new scripts** (`bin/`): `check-domain.py` (domain enforcement, stdin JSON + `exit 2`) and
 `inject-expertise.sh` (the `SubagentStart` hook).
 
 **Net-new artifacts:** `.harness/expertise/<agent>.md` per agent with stable entry IDs (SPEC §5.2),
@@ -960,7 +960,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/agents/harness-{frontend,backend,ai}-dev.md`, `harness-data-engineer.md`, `harness-dev-ops.md` | **new** — 5 eng specialists |
 | `.claude/agents/harness-{pm,qa,documentor,visual-designer,ui-reviewer}.md` | **new** — product/validator agents |
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
-| `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
+| `.claude/skills/harness/bin/check-domain.py` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
 | `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
 | `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-222). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
 | `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-222): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |

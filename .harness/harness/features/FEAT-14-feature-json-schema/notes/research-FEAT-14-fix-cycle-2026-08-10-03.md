@@ -8,29 +8,29 @@ tight: **T-04 = 50, T-08 = 49** (cap 50, `>50` fails).
 
 ## The two source facts that decided the shape
 
-- `check-domain.sh:256` — the no-`agent_type` carve-out is the `_governed` **FLAG, not an exit**
+- `check-domain.py:256` — the no-`agent_type` carve-out is the `_governed` **FLAG, not an exit**
   (comment block :243-255: "It used to be a bare `sys.exit(0)`, which silently took the DEC-150
   SHAPE gate below with it"). So the shape phase runs for the **main session**, and fail-closed does
   govern T-04/T-07/T-08's own writes. `.harness/team-config.yaml:15-16` ("check-domain exits 0 when
   a payload carries no `agent_type`") is a **false comment** — raised as Q1, not fixed here.
-- `require_or_bootstrap` is reached only under `if _run_domain:` (`check-domain.sh:333`), so the
+- `require_or_bootstrap` is reached only under `if _run_domain:` (`check-domain.py:333`), so the
   shape route has **no bootstrap escape**. None is needed: the remedy is `pip install jsonschema`, a
   Bash command no gate denies — unlike the missing-PARSER case, where the gate cannot read its own
   manifest. Also pinned: this branch needs **stdlib `json` + `jsonschema` only, never PyYAML**, so
-  the user-ruled `_no_parser` fail-open at `check-domain.sh:685` must not be copied onto it.
+  the user-ruled `_no_parser` fail-open at `check-domain.py:685` must not be copied onto it.
 
 ## Eight in, eight out
 
 | # | Disposition |
 |---|---|
-| MF-1 | **Addressed.** Adopted the advisory: `bin/feature_schema.py` imported **in process** by `check-domain.sh` (D-03 rewritten), so a checker that cannot run is an `except ImportError` branch that appends to `problems` → **exit 2**, and messages go through the existing `_head()` naming the real target. New **SC-16** states the acceptance behaviourally (valid payload + unavailable checker → exit 2, not 1; real path, not a tempfile; one message per sweep). Asserted in T-06's `test-check-domain.py` cases. |
+| MF-1 | **Addressed.** Adopted the advisory: `bin/feature_schema.py` imported **in process** by `check-domain.py` (D-03 rewritten), so a checker that cannot run is an `except ImportError` branch that appends to `problems` → **exit 2**, and messages go through the existing `_head()` naming the real target. New **SC-16** states the acceptance behaviourally (valid payload + unavailable checker → exit 2, not 1; real path, not a tempfile; one message per sweep). Asserted in T-06's `test-check-domain.py` cases. |
 | MF-2 | **Addressed.** T-06's false "shares the bootstrap escape" comment replaced with the verified facts above, including the explicit instruction not to extend the `state.yaml` `_no_parser` fail-open. |
 | MF-3 | **Addressed.** Three distinct CLI exit codes in T-01: `0` valid, `1` a file failed validation, `3` the checker could not run. SC-07's test asserts **exactly 3**, and neither 0 nor 1. Distinct codes survive the module adoption because T-03/T-04/T-07/T-08 all read `returncode` from the CLI. |
 | MF-4 | **Addressed.** Prohibition now spans **T-04 → T-08** (the reviewer's window), scoped to invoking `gh-sync.py` / `factory_decompose.py` / `factory_claim.py` **against the live `.harness/features/` corpus** — fixture-based suites stay legal, so T-05's own `run-unit-tests.sh` verify is not contradicted. Cites `gh-sync.py:255-256` and `:236-243`. |
 | MF-5 | **Addressed.** Receipt renamed `notes/receipt-feature-key-drop.md` (no date; same-line change, free). Never overwritten. Resume semantics pinned so "exactly 14" stays runnable: already-reduced file → skip and count; receipt present but file unreduced → recompute and compare, identical means proceed with the rewrite, different means STOP. |
 | MF-6 | **Addressed.** T-03 adds a `--kind unit` step to the **same** `integration` job (the required context is that job's id; no new job, no `name:` key), and amends `tests.yml`'s now-false comment that the unit kind "would have caught none of the defects". Verify asserts `--kind unit` present and `jobs == ['integration']`. |
 | MF-7 | **Addressed in T-01, costing T-08 nothing.** The validator dispatches by extension: `.json` → `json.load`, else `harness_yaml.load_file`. A YAML-but-not-JSON `.json` file is rejected. T-08's existing `validator exit` check therefore proves JSON validity for all fourteen for free. |
-| MF-8 | **Addressed.** `BRIEF.md` prose corrected to **three** (`check-state.sh`, `check-domain.sh`, `validate-digest.py`; `bash-write-guard.sh` untouched) and states the carve-out is not widened — DEC-174 already names four. The disposition table left alone. |
+| MF-8 | **Addressed.** `BRIEF.md` prose corrected to **three** (`check-state.sh`, `check-domain.py`, `validate-digest.py`; `bash-write-guard.sh` untouched) and states the carve-out is not widened — DEC-174 already names four. The disposition table left alone. |
 
 ## Reviewer questions
 
@@ -98,10 +98,10 @@ First (cold, no `.pyc`) import: **395 ms** — `-X importtime` cumulative.
 
 **Material, so it is deferred.** +42.6 ms more than triples a bare interpreter start-up. It is a
 *different measurement* from the file's own `~38 ms of ~42 ms` per post-Bash call
-(`check-domain.sh:534`) and `104.7 ms` governed path (`:92`) — those are whole-hook figures taken on
+(`check-domain.py:534`) and `104.7 ms` governed path (`:92`) — those are whole-hook figures taken on
 another day — so the comparison is order-of-magnitude, not arithmetic. Either way a module-level
 import charges it on **every `Write`, `Edit` and `Bash` in the repo**, not on the rare `feature.json`
-write. In-file precedent: `check-domain.sh:139` already defers `harness_yaml` for exactly this reason.
+write. In-file precedent: `check-domain.py:139` already defers `harness_yaml` for exactly this reason.
 
 **Nothing else moves, and T-06's own verify still passes as written:**
 
@@ -160,4 +160,4 @@ measurement that found FEAT-15 — **not** run 01's Q3, the baseline/HEAD questi
   `BRIEF.md`).
 - Budget unchanged by construction: `BUDGETED_FIELDS` excludes `intent:` by name
   (`check-plan-routes.py:282-287`), and every cycle-2 plan edit is inside T-06's `intent:`.
-- Line anchors re-read at `96d5d5c` before citing: `check-domain.sh` `:14`, `:92`, `:139`, `:534`.
+- Line anchors re-read at `96d5d5c` before citing: `check-domain.py` `:14`, `:92`, `:139`, `:534`.

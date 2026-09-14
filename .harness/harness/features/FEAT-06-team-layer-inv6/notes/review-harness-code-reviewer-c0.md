@@ -26,7 +26,7 @@ myself (issue #19 means nobody else had):
   `receipt-harness-{{persona}}-{{task_id}}-c{{cycle}}.md` against all 5 declared personas —
   `team-config.yaml:144,158,171,184,199` grants `receipt-harness-<persona>-*.md` for all five
   (frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops). No persona's first dispatch would hit
-  `check-domain.sh`'s exit-2 block — this was the one path that could have shipped a definition that
+  `check-domain.py`'s exit-2 block — this was the one path that could have shipped a definition that
   looks complete and fails closed on first real use, and it doesn't.
 - **T-05**: `test-harness-yaml-corpus.py` 12/12 including SC-06's broken-fixture-under-`teams/`
   case; `ls teams/ | wc -l` → 2.

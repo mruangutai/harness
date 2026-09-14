@@ -21,7 +21,7 @@ lanes:
       agent: harness-backend-dev
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for this path, so no agent may write it
+      reason: check-domain.py --resolve returns NOBODY for this path, so no agent may write it
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
       reason: DEC-174 carve-out, check-state.sh is the state gate and cannot vouch for its own change
@@ -106,7 +106,7 @@ tasks:
     traces: [REQ-06]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for .harness/factory/fleet.yaml, so no agent domain grants the write (DEC-179, D-06)
+    execution_reason: check-domain.py --resolve reports NOBODY for .harness/factory/fleet.yaml, so no agent domain grants the write (DEC-179, D-06)
     depends_on: []
     status: done
     files:

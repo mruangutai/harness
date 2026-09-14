@@ -13,7 +13,7 @@ distribution story across README.md, SPEC.md, BUILD.md and `.harness/README.md` 
 unit suite green at each: exit 0, 85 PASS, 0 FAIL, re-run by me rather than relayed.
 
 **The build stops here and goes up, because nine of the fourteen tasks are lane-locked to layer 0
-and I am layer 1.** T-06, T-08 and T-11 return exit 2 from `check-domain.sh` for
+and I am layer 1.** T-06, T-08 and T-11 return exit 2 from `check-domain.py` for
 `harness-orchestrator` — I probed each path. T-01 to T-05 and T-09 sit outside the project
 directory where both guards pass me through, so those are locked by the signed plan under DEC-179,
 not by a hook. The nine work orders, with every `verify:` verbatim, are in

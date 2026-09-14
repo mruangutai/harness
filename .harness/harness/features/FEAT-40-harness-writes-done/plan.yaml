@@ -6,7 +6,7 @@ source_issues: [842]
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
-  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.py denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
   status: approved               # pending | approved
   # BACKFILLED BY BUG-1071, NOT RECONSTRUCTED FROM MEMORY. This signature carried no
@@ -37,19 +37,19 @@ lanes:
       reason: DEC-174 carve-out, a registered PreToolUse Bash gate script
     - surface: .claude/settings.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, and it is the hook registry itself
+      reason: check-domain.py --resolve returns NOBODY, and it is the hook registry itself
     - surface: .harness/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for the gate config surface
+      reason: check-domain.py --resolve returns NOBODY for the gate config surface
     - surface: .claude/skills/harness/references/github-mirror.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY
+      reason: check-domain.py --resolve returns NOBODY
     - surface: .claude/commands/harness.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY
+      reason: check-domain.py --resolve returns NOBODY
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY
+      reason: check-domain.py --resolve returns NOBODY
     - surface: .harness/harness/docs/DECISIONS.md
       lane: main-session-direct
       reason: resolves to harness-documentor, but the entry is the operator's own ruling whose prose register is unsettled (Q1)
@@ -1011,7 +1011,7 @@ tasks:
     traces: [REQ-11, REQ-04, REQ-07, REQ-10]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all three files, so there is no agent granted to write them; this is a declared main-session step, not a dispatchable task
+    execution_reason: check-domain.py --resolve returns NOBODY for all three files, so there is no agent granted to write them; this is a declared main-session step, not a dispatchable task
     depends_on: [T-03, T-06, T-07, T-11]
     status: done
     files:

@@ -35,7 +35,7 @@ Three things it leaves open, all filed or recorded rather than carried:
   `case_749c` probed `source_issues`, the key this feature adds. Green on `main`, red the
   instant the schema change merged. Caught by running the suite **in the worktree**; on
   `main` alone it looked fine. Probe with a key no schema declares.
-- **A feature that adds a schema key could not write data using that key.** `check-domain.sh`
+- **A feature that adds a schema key could not write data using that key.** `check-domain.py`
   resolves through `CLAUDE_PROJECT_DIR`, so a worktree write was graded against `main`'s
   schema. Not a workaround — filed as #749, fixed, merged as `569d417`. FEAT-26 survived only
   because `--post` reports after the write lands; a `--pre` route on the same rule blocks it.

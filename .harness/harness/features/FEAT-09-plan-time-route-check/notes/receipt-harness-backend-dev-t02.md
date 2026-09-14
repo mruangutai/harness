@@ -21,7 +21,7 @@ themselves (not pre-written around them):
 2. `docs/harness/**` is granted to `harness-documentor`, so my first "ungranted path"
    fixture wasn't actually ungranted — replaced with a path outside every domain glob.
 3. `check-plan-routes.py` used `.startswith("SHARED ")` to parse an OUTPUT line from
-   check-domain.sh (not to match a filesystem path) — legitimate use, but the task's
+   check-domain.py (not to match a filesystem path) — legitimate use, but the task's
    receipt (b) demands zero `startswith` hits in this file regardless of purpose, so
    replaced with `re.match(r"^SHARED ", line)`.
 4. Case 17's original assertions (no VIOLATION line naming T-01, exit 0) pass
@@ -102,7 +102,7 @@ $ grep -n "startswith" .claude/skills/harness/bin/check-plan-routes.py
 (no output, exit 1)
 ```
 `startswith` was used once (checking a `SHARED ` output-line prefix from
-check-domain.sh's stdout, not path matching) and was replaced with
+check-domain.py's stdout, not path matching) and was replaced with
 `re.match(r"^SHARED ", line)` to bring this grep to zero as required (see TDD note 3).
 
 ## Receipt (c) — no test-cost-report.py, line 6 verbatim, one-element diff (unabridged)
@@ -170,7 +170,7 @@ unrelated script under test.)
 
 Final plan check, full stdout:
 ```
-DEVIATION T-01 .claude/skills/harness/bin/check-domain.sh, .claude/skills/harness/bin/test-check-domain.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-01 .claude/skills/harness/bin/check-domain.py, .claude/skills/harness/bin/test-check-domain.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-02
 OK T-03: declared main-session-direct (.claude/skills/harness/templates/PLAN.md ungranted)
 OK T-04: declared main-session-direct (.claude/skills/harness-spec-driven/SKILL.md ungranted)

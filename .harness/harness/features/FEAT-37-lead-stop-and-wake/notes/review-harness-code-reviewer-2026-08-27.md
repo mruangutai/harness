@@ -2,7 +2,7 @@
 
 **Note on artifact path:** the dispatch named
 `notes/review-code-reviewer-panel-2026-08-27.md`; my write domain only permits
-`notes/review-harness-code-reviewer-*.md` (`check-domain.sh` denied the named path). Writing here
+`notes/review-harness-code-reviewer-*.md` (`check-domain.py` denied the named path). Writing here
 instead — flagged as an open question below, not worked around.
 
 ## BLUF
@@ -139,7 +139,7 @@ DIGEST:
   reviewed: "8fc87f8..4e652f9"
   human_commits_in_scope: []
   open_questions:
-    - { id: Q1, question: "Dispatch named the artifact path notes/review-code-reviewer-panel-2026-08-27.md; check-domain.sh only permits notes/review-harness-code-reviewer-*.md for this agent. Written to the permitted path instead — should team-config.yaml's routing for this role be updated to match the panel-naming convention, or should dispatches for this role use the agent-name pattern going forward?", blocking: false }
+    - { id: Q1, question: "Dispatch named the artifact path notes/review-code-reviewer-panel-2026-08-27.md; check-domain.py only permits notes/review-harness-code-reviewer-*.md for this agent. Written to the permitted path instead — should team-config.yaml's routing for this role be updated to match the panel-naming convention, or should dispatches for this role use the agent-name pattern going forward?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-37-lead-stop-and-wake/notes/review-harness-code-reviewer-2026-08-27.md

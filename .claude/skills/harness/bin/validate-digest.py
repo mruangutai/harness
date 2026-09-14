@@ -1883,7 +1883,7 @@ def check_qa_matrix_claim(agent, text, payload):
     claimed failure buys nothing this hook is positioned to check for free.
 
     FAIL OPEN, LOUDLY when the suite cannot be located or run at all (missing root,
-    missing script, a spawn OSError, a timeout) — check-domain.sh's precedent: a hook
+    missing script, a spawn OSError, a timeout) — check-domain.py's precedent: a hook
     whose own execution environment is broken must never be the reason a legitimate qa
     return is blocked. FAIL CLOSED when the suite DOES run and disagrees with the
     claim — that disagreement is exactly the gap #919 exists to close.
@@ -1931,7 +1931,7 @@ def hook_mode():
     2. `stop_hook_active`. Set when we are already re-running because a stop hook
        blocked. Blocking again is an infinite loop with no operator escape.
     3. Our own failure — unreadable payload, unknown persona, an exception. We
-       fail OPEN and say so on stderr. check-domain.sh set this precedent for the
+       fail OPEN and say so on stderr. check-domain.py set this precedent for the
        same reason: a hook that blocks on its own bug wedges every agent in every
        project the moment a payload shape changes. Blocking is for THEIR contract
        violation, never ours.
@@ -2112,7 +2112,7 @@ def hook_mode():
               f"blocking on our own gap.", file=sys.stderr)
         return 0
 
-    # Fail OPEN, LOUDLY on our own bug (check-domain.sh's precedent) — never crash
+    # Fail OPEN, LOUDLY on our own bug (check-domain.py's precedent) — never crash
     # to an ambiguous exit. Before this, any exception raised inside `validate()`
     # (e.g. the enum/list TypeError above, pre-fix) propagated uncaught, exited 1,
     # and — because only exit 2 blocks (DEC-100/DEC-122) — the digest shipped

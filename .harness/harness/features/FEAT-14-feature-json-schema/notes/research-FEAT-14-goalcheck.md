@@ -16,7 +16,7 @@ legwork myself and it is recorded below.
 
 SC-04, SC-05 and SC-16 rest entirely on one-off live probes recorded in
 `notes/qa-final-coverage.md` §Phase 2. `test-check-domain.py` carries **zero** schema-rejection
-fixtures. The remedy lands in `check-domain.sh`'s test file, a DEC-174 carve-out surface, so it is
+fixtures. The remedy lands in `check-domain.py`'s test file, a DEC-174 carve-out surface, so it is
 the main session's — **not a fix cycle's**. I confirmed the classification and did not touch it.
 
 The sharpest thing in qa's artifact is not the gap but the reason nobody saw it: BRIEF

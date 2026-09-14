@@ -4,7 +4,7 @@
 repository file created at 18 lines (budget 40). `check-expertise.sh` exits 0 over both, with one
 advisory (see below) I ruled on and kept.
 
-Written here, not at the dispatch-named `notes/distill-harness-pm.md`: `check-domain.sh` denies that
+Written here, not at the dispatch-named `notes/distill-harness-pm.md`: `check-domain.py` denies that
 path for me and grants `notes/research-*.md` (the #216 shape — the guard is right, the dispatch name
 was not).
 

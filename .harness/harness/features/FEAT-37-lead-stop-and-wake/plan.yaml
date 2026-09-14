@@ -52,10 +52,10 @@ lanes:
   rows:
     - surface: .claude/skills/harness-team/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 8fc87f8, so DEC-179 forces a declared main-session step
+      reason: check-domain.py --resolve returns NOBODY at 8fc87f8, so DEC-179 forces a declared main-session step
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at 8fc87f8, so DEC-179 forces a declared main-session step
+      reason: check-domain.py --resolve returns NOBODY at 8fc87f8, so DEC-179 forces a declared main-session step
     - surface: .claude/skills/harness/bin/inflight_registry.py
       lane: team
       agent: harness-backend-dev
@@ -379,7 +379,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03, REQ-04]
     change_type: ai_behavior
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-team/SKILL.md returns NOBODY at 8fc87f8, so DEC-179 makes this a declared main-session step and no squad may write it
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-team/SKILL.md returns NOBODY at 8fc87f8, so DEC-179 makes this a declared main-session step and no squad may write it
     depends_on: [T-01]
     status: done
     files:
@@ -531,7 +531,7 @@ tasks:
       reads in full - a module a gate imports is not itself a gate; a squad may write the library;
       and the CUTOVER that makes a gate use it is main-session-direct, proven by showing the gate's
       violation set is identical before and after. The carve-out itself binds validate-digest.py,
-      check-domain.sh, bash-write-guard.sh, check-state.sh, check-plan-routes.py, dispatch-guard.sh
+      check-domain.py, bash-write-guard.sh, check-state.sh, check-plan-routes.py, dispatch-guard.sh
       and the test file of each.
 
       READ AT THE SENTENCE, THAT GRANT IS UNCONDITIONAL AND THE PREVIOUS DRAFT OF THIS TASK WAS

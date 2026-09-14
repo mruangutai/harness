@@ -5,9 +5,9 @@ data plus microsecond-scale comparisons; measured, not estimated. Prior pass's F
 reopen in `check-state.sh`'s sweep) is untouched by this delta and stands as before — still not
 worth an apply at current or near-term census. `findings` below is empty.
 
-## 1. `check-domain.sh` `_version_decreased` block (:1757+) — reuse, not a new read
+## 1. `check-domain.py` `_version_decreased` block (:1757+) — reuse, not a new read
 
-`prior_doc` is already parsed at `check-domain.sh:1718-1722` (pre-existing identity-check logic,
+`prior_doc` is already parsed at `check-domain.py:1718-1722` (pre-existing identity-check logic,
 unchanged by this diff) before the new block ever runs; the new code only calls
 `prior_doc.get("schema_version")` on that already-in-memory dict. **No additional file read is
 added.** Isolated cost of the new comparison logic itself, 2,000,000 iterations in-process:
@@ -64,7 +64,7 @@ the full suites here would itself be the waste this angle exists to flag. Skippe
 
 ## Findings
 
-None. Both new hot-path branches are either a reuse of already-loaded data (check-domain.sh) or
+None. Both new hot-path branches are either a reuse of already-loaded data (check-domain.py) or
 an O(1) branch with a measured negative-to-zero delta (check-state.sh); neither introduces a new
 read, a new loop layer, or a cost that scales with the run census.
 

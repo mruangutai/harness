@@ -39,7 +39,7 @@ the comparison T-04's verify depends on.
 
 ## Check 2 — T-01 registry self-policing vs existing exact-path-registry validators: **no finding**
 
-Searched `check-domain.sh`, `check-plan-routes.py`, `check-state.sh`, `check-expertise.sh`, and
+Searched `check-domain.py`, `check-plan-routes.py`, `check-state.sh`, `check-expertise.sh`, and
 `tests/unit/test-suite-layout.py`'s own `sole_implementations()` sweep (lines 17-20, 38, 110-134).
 `SOLE_IMPLEMENTATION_EXEMPTIONS` (test-suite-layout.py:17-20) is the closest analog — a literal
 exact-path tuple — but its policing is a single set-difference (`unexpected = sorted(set(

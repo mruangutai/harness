@@ -222,7 +222,7 @@ verified_by_me:
     is how I checked.
   mf1: 'FIXED main-session-direct at :18 and :83. Two cost mentions remain at :47
     and :80 and STAY - plain English about a trade-off, neither instructing anyone
-    to produce a figure. Not an agent write: check-domain.sh BLOCKED documentor, orchestrator,
+    to produce a figure. Not an agent write: check-domain.py BLOCKED documentor, orchestrator,
     dev-ops and pm on that path.'
   numbers: 21 commits and 33 files in ae2443d..942505e — measured, not relayed
   t10: All five verify clauses re-run at 942505e - compound sweep leaves one hit carrying

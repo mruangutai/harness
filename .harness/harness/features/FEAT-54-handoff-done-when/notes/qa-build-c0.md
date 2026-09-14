@@ -37,7 +37,7 @@ Phase 2 delta: unit and integration tests exist and run the changed code. Covera
 - T-10: durable receipt `notes/receipt-harness-documentor-t10.md:10` records the exact plan verify at the landed task and exit 0, including byte-identical decision-index regeneration. It was not rerun because its generator writes the governed documentation and this QA dispatch forbids edits.
 - T-11 literal verify: exit 0, `ok 2 notes compliant`; both notes are non-baselined, within 60 lines, shaped correctly, and their authorities resolve at write-time semantics.
 - T-12 literal verify: exit 0, `ok`; registration-mutant test and planted-layout positive control both passed.
-- SC-07 inspection: `check-domain.sh:1562,1567` and `check-state.sh:54,1251` are the two imports/calls into the single `handoff_done_when` implementation; neither gate contains another `Scope:`/`Authority:` parser.
+- SC-07 inspection: `check-domain.py:1562,1567` and `check-state.sh:54,1251` are the two imports/calls into the single `handoff_done_when` implementation; neither gate contains another `Scope:`/`Authority:` parser.
 - SC-08 inspection: no live `four sections`, `four fixed`, old cap enumeration, or `HANDOFF_HEADINGS` match remains in the specified template, playbook, decision record, or gate scripts.
 - SC-11 inspection: primary historical-note intersection empty; positive control contains exactly `handoff-build.md` and `handoff-plan.md`, equal to the added-note set.
 
@@ -48,7 +48,7 @@ The three RED verify clauses in the dispatch match plan.yaml literally at T-01 l
 | Pair | Repository order | Durable actual RED/GREEN evidence | Disposition |
 |---|---|---|---|
 | T-01 -> T-02 | Test and module both first appear in `157377d9`; the same commit also marks/lands both tasks. | Current GREEN is measured. No earlier commit or durable receipt records the literal T-01 RED execution. | inadequate |
-| T-03 -> T-04 | Test changes and `check-domain.sh` implementation both land in `157377d9`. | Current GREEN is measured. No earlier commit or durable receipt records the literal T-03 RED execution. | inadequate |
+| T-03 -> T-04 | Test changes and `check-domain.py` implementation both land in `157377d9`. | Current GREEN is measured. No earlier commit or durable receipt records the literal T-03 RED execution. | inadequate |
 | T-06 -> T-07 | Test lands first in `9d4d03c4`; production gate lands later in `fd98b163`. | Commit order is test-first and current GREEN is measured, but no durable receipt records the literal T-06 RED output/exit. | inadequate for the requested actual-red audit |
 
 ## Locally-run reporting status

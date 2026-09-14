@@ -66,7 +66,7 @@ capture mechanism differs.
 
 ## Non-finding
 
-The `check-domain.sh --post` OVER BUDGET noise emitted when the worktree was created (about
+The `check-domain.py --post` OVER BUDGET noise emitted when the worktree was created (about
 `FEAT-02` and `FEAT-05-pyyaml-file-parsers` `STATE.md` shape) is pre-existing at `ea476fd`, unrelated
 to this diff and not a finding of this gate — omitted from `coverage_gaps`/`open_questions`.
 

@@ -10,7 +10,7 @@ disposition of the backlog below.
 
 Since 2026-08-14 the harness has told sixteen agents that repository-specific knowledge belongs at
 `.harness/<repo>/expertise/<agent>.md`. Neither half of that was true. The spawn hook had no such
-read path (#484), and `check-domain.sh --resolve` answered **NOBODY** for every agent's
+read path (#484), and `check-domain.py --resolve` answered **NOBODY** for every agent's
 repository-tier path (#372), so no agent could write the file the rule told it to write. During
 FEAT-21 a distillation entry was returned unwritten for exactly that reason.
 

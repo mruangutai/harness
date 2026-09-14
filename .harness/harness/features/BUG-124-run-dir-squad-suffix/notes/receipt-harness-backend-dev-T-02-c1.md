@@ -12,7 +12,7 @@ Not touched: `.claude/skills/harness/bin/harness_boundary.py`, `tests/unit/test-
 
 `dispatch-guard.sh`:
 - After `GUARD_BIN_DIR` is computed, one shell block runs a non-isolated `python3 -c` (house
-  precedent: check-domain.sh's pop-sys.path[0]-then-insert-bin-dir-as-argument pair) that resolves
+  precedent: check-domain.py's pop-sys.path[0]-then-insert-bin-dir-as-argument pair) that resolves
   the root, parses `.harness/team-config.yaml` once through `harness_yaml.load_str` with no
   try/except (the bare parse — F-4), and prints `harness_boundary.run_dir_grant_globs(root)` one
   glob per line. Its exit status is captured via `if _globs=$(...); then _derived=0; else

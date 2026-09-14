@@ -44,7 +44,7 @@ the new path cannot have changed. No `must_fix`.
   the documentor role. Nothing about roles, ownership colours, or the org diagram's structure
   changed — org.html itself is unchanged (see above), so nothing it depicts has drifted from this
   edit. No regression.
-- Read both DEC-174 carve-out files in the diff (`check-domain.sh`, `check-state.sh`, in scope per
+- Read both DEC-174 carve-out files in the diff (`check-domain.py`, `check-state.sh`, in scope per
   the dispatch's routing note): each carries exactly one changed line, a path literal inside a CLI
   warning string (`docs/harness/DECISIONS.md` → `.harness/harness/docs/DECISIONS.md`). Correct,
   consistent with the move, and not a UI surface (batch/CLI text, no colour-only state encoding).

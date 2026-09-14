@@ -37,7 +37,7 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
   time from its preloaded skills; their definitions exist only in `DECISIONS.md`. Raised `high` by the
   code reviewer, reconciled to `med` by the validator lead because the two predicates are exact
   complements so no diff can require zero kinds. Both remedy files resolve to `NOBODY` under
-  `check-domain.sh` — main-session-only, unroutable to any squad. Evidence:
+  `check-domain.py` — main-session-only, unroutable to any squad. Evidence:
   `notes/review-harness-code-reviewer-c4.md`, restated at c5.
 - Non-blocking, operator's to reconcile: applied literally to this feature's own diff,
   `touches_runtime_code` is TRUE — solely via `.claude/skills/harness/templates/harness.json`, which is
@@ -61,7 +61,7 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
   Related: a scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot
   for it — `members[].status: skipped` is reserved for the optional advisor — so the honest record
   lives in an ad-hoc `not_rerun:` key the validator ignores rather than validates.
-- Harness defect, RECURRENCE, two independent leads this run: `check-domain.sh` guards
+- Harness defect, RECURRENCE, two independent leads this run: `check-domain.py` guards
   `<run_dir>/digest.md` against replacement but applies no guard to `<run_dir>/state.yaml`, and
   `runs/` is gitignored so a Glob of it returns nothing. Each lead opened an existing run dir and
   silently replaced an earlier run's checkpoint before the digest write refused. Extend the guard to

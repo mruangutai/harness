@@ -1,7 +1,7 @@
 # Security review — FEAT-104-strict-digest-schema — panel c10 @ 790023f0
 
 **VERDICT: PASS.** `must_fix` is empty at this pin. No new finding. Every security-relevant source
-file (`check-domain.sh`, `check-state.sh`, `validate-digest.py`, `run-state-schema.json`) is
+file (`check-domain.py`, `check-state.sh`, `validate-digest.py`, `run-state-schema.json`) is
 **byte-identical** to the c9 pin (168f875f) — the entire delta between c9 and c10 in non-feature-
 directory files is `tests/integration/test-check-domain.py` at exactly `+4/-2` (verified with
 `git diff --stat 168f875f..790023f0`), matching the dispatch's claim precisely. c9's finding set
@@ -11,7 +11,7 @@ the carry-forward, and confirms it.
 ## Census (measured, not forecast)
 
 `git diff --stat origin/main..790023f0`: 75 files, +10697/-31. Read/diffed directly:
-- **In scope, has security surface** — read every hunk: `check-domain.sh` (+102, write-time gate),
+- **In scope, has security surface** — read every hunk: `check-domain.py` (+102, write-time gate),
   `check-state.sh` (+54, at-rest sweep), `validate-digest.py` (+94/-... , agent-return validator),
   `run-state-schema.json` (new file, +76, declarative JSON Schema consumed by both gates), the 3
   `.claude/agents/harness-*-lead.md` files, `harness-team/SKILL.md`, `harness/SKILL.md`,
@@ -38,7 +38,7 @@ the carry-forward, and confirms it.
 
 ## What the diff actually does (spec compliance)
 
-`check-domain.sh` adds two write-time checks to the `state.yaml` branch: (1) a `schema_version`
+`check-domain.py` adds two write-time checks to the `state.yaml` branch: (1) a `schema_version`
 floor — a **new** checkpoint must declare `schema_version >= 2`, denied otherwise (REQ-02); a
 downgrade from an already-strict prior checkpoint is also denied; (2) for a `schema_version: 2`
 document, the `steps[]` array is validated against `run-state-schema.json`'s closed step shape via
@@ -53,7 +53,7 @@ Executed at this pin: `test-check-domain.py` 12/12, `test-validate-digest.py` 55
 
 **SC-08 STEP-KEY seam, the reason this panel re-ran:** the new assertion clauses
 (`"run-state-schema.json" in strict.stderr` and `` "`evidence`" in strict.stderr ``) exercise a real
-substring in the actual denial message (`check-domain.sh`'s step-schema block: "A recovery field is
+substring in the actual denial message (`check-domain.py`'s step-schema block: "A recovery field is
 declared in .claude/skills/harness/bin/run-state-schema.json; a per-dispatch fact goes under
 `evidence`..."). Confirmed live, not by inspection alone: the case is green in the 12/12 run above.
 **Test-only change — it asserts against existing, unaltered denial text; it does not touch any
@@ -61,9 +61,9 @@ trust boundary.**
 
 ## Message-injection / audit-record spoofing — traced every new interpolation
 
-- `check-domain.sh` step/evidence offending-key names: `", ".join(repr(key) for key in sorted(...))`
+- `check-domain.py` step/evidence offending-key names: `", ".join(repr(key) for key in sorted(...))`
   — `repr()` quote-escapes; safe.
-- `check-domain.sh` downgrade message: `{_version!r}` explicit repr; `_prior_version` is
+- `check-domain.py` downgrade message: `{_version!r}` explicit repr; `_prior_version` is
   type-constrained to a plain positive int by `_prior_is_strict` before interpolation — safe.
 - `check-state.sh` INV-16 offending-key list `_names`: Python list — `str()` of a list already
   `repr()`s each element — safe.
@@ -87,7 +87,7 @@ trust boundary.**
 
 ## Fail-open / fail-closed sweep of the new gate logic
 
-- `check-domain.sh`'s new step-schema block wraps the whole `jsonschema` load-and-validate in
+- `check-domain.py`'s new step-schema block wraps the whole `jsonschema` load-and-validate in
   `except Exception as _schema_exc:` and **denies** ("run-state schema CANNOT be checked; the write
   is denied") — fail-**closed**. Correct: a checker that cannot run must never be why a write
   passes, matching the sibling `feature.json`/`feature_schema` branch's own documented rule earlier
@@ -139,8 +139,8 @@ path in both scripts (pre-existing, BASH_SOURCE-anchored, no traversal). The 3 l
 
 | boundary | STRIDE | mitigated |
 |---|---|---|
-| state.yaml write vs. check-domain.sh schema_version floor/downgrade | Tampering | true |
-| state.yaml write vs. check-domain.sh closed step schema | Tampering | true |
+| state.yaml write vs. check-domain.py schema_version floor/downgrade | Tampering | true |
+| state.yaml write vs. check-domain.py closed step schema | Tampering | true |
 | bootstrap-grant (`_no_parser`) vs. new FEAT-104 write-time checks | Tampering | false, precondition-absent outside first-session bootstrap; compensating control is check-state.sh's at-rest INV-16 sweep, itself part of this diff |
 | Bash-authored state.yaml vs. check-state.sh INV-16 report echo (CF-1) | Spoofing | false, gated behind the pre-existing DEC-85 precondition |
 | at-rest digest sweep vs. raw persona (F2) | Tampering (defence-in-depth) | true — literal-"lead" call site confirmed singular; live returns use their raw persona |

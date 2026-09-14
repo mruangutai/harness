@@ -40,9 +40,9 @@ does not satisfy the digest contract, so it cannot be accepted. Fix these and re
    last_assistant_message (absent or null) — this is our gap, not {agent}'s; the return was NOT
    VALIDATED.`"*
 
-## #1057 — check-domain.sh feature-checkout binding (T-03/D-03/D-04)
+## #1057 — check-domain.py feature-checkout binding (T-03/D-03/D-04)
 
-Calibrated against the file's own documented incident at `check-domain.sh:1083-1087` (PR #152: a
+Calibrated against the file's own documented incident at `check-domain.py:1083-1087` (PR #152: a
 worktree-**stripped** path told an agent about the wrong checkout's file) and against
 `harness_boundary.classify` (`:440-482`), which returns `rel = os.path.relpath(abs_target, base)`
 — the **raw, unstripped** path — as `_verdict["rel"]`, always, regardless of which of the two
@@ -98,7 +98,7 @@ worktree**: DENY at exit 2."* But:
    case exercising a write into a **different registered feature's** worktree. Either closes the
    REQ-03/SC-03 gap; leaving it as-is ships a requirement its own criterion never checks.
 
-## #1058 — check-domain.sh digest-clobber guard (T-04/D-05/D-06, T-06 playbook)
+## #1058 — check-domain.py digest-clobber guard (T-04/D-05/D-06, T-06 playbook)
 
 Calibrated against `shape_problems()`'s established `_head()` convention (`:1083-1087`) and its
 `display` parameter, which — confirmed at both call sites (`:1503-1505` sweep, and the identical
@@ -120,7 +120,7 @@ class DEC-180/PR#152 already fixed generically; T-04 plugging into it inherits t
    "our gap vs. theirs" split exists for this defect.
 
 No finding beyond the two document items below (T-06's playbook edit is adequately scoped: names
-`check-domain.sh`, states the enforcement in one place, matches the actual prefix-preserving
+`check-domain.py`, states the enforcement in one place, matches the actual prefix-preserving
 mechanism rather than overclaiming "run dirs can never be reused").
 
 ## BRIEF.md as a document

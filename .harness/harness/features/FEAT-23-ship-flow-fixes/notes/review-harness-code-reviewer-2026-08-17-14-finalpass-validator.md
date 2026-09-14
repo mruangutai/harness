@@ -53,7 +53,7 @@ substantive file, **`.claude/skills/harness-simplify/SKILL.md` (+18 lines)**, is
 (below): it lands SC-05's fix (ALTITUDE angle gains its plan-surface/code-surface pair, :90-96) plus
 the "ceiling of one fix" apply bound (:100-107), matching `DECISIONS.md`'s DEC-195 update in
 lockstep. Both edits are authored directly by the operator (`2cba9fb`, `bba5551`, both
-`Mike Ruangutai <molchair@gmail.com>`), consistent with `check-domain.sh --resolve` returning NOBODY
+`Mike Ruangutai <molchair@gmail.com>`), consistent with `check-domain.py --resolve` returning NOBODY
 for that path and the goal-check's routed lane (`main-session-direct`) — not autonomous scope creep.
 `git log --oneline 490c37c..afc8cfd` carries no `[harness:human]`-tagged commit; the two operator
 commits are tagged `[harness:sc-05]` and their content is reviewed above and in Probe C, not skipped.

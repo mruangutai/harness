@@ -46,7 +46,7 @@ exactly as stated.
 
 ## 3. Independent mutation — BLOCKED, not performed, and this is itself the finding
 
-I could not execute the dispatched mutation. Two attempts, both refused by `check-domain.sh`
+I could not execute the dispatched mutation. Two attempts, both refused by `check-domain.py`
 (the domain-ownership hook, not `bash-write-guard`):
 
 1. Direct `Edit` on `.claude/skills/harness/bin/factory_gh.py` in the main checkout →
@@ -55,7 +55,7 @@ I could not execute the dispatched mutation. Two attempts, both refused by `chec
    never the main checkout"), I created a sanctioned worktree under
    `.claude/worktrees/qa-mutate-t03` (`git worktree add`, accepted by `bash-write-guard`) and
    retried the identical `Edit` there → **blocked again, identical message**, path unchanged
-   modulo the worktree prefix. `check-domain.sh` normalizes worktree paths back to their
+   modulo the worktree prefix. `check-domain.py` normalizes worktree paths back to their
    repo-relative form (DEC-143's "worktree strip") and re-checks the SAME persona ownership list
    — the worktree isolates the WRITE from the main checkout, it does not grant harness-qa a new
    permission. My own role charter is explicit on this same point: "Not source code — a failing
@@ -77,7 +77,7 @@ the real file. That test artifact was deleted immediately; the worktree was remo
 tier as my prior gate flagged for B-1 — not by a reproduced red/green cycle. This is weaker than
 what was asked, and I am not papering over it: item 3's premise ("this is the reason you are being
 spawned rather than believed") cannot be discharged by harness-qa under this repo's current
-`check-domain.sh` configuration, in a worktree or not. That is a structural gap between DEC-153
+`check-domain.py` configuration, in a worktree or not. That is a structural gap between DEC-153
 (which frames QA as running perturbation proofs in a worktree) and DEC-143's enforcement (which
 denies QA any source write, worktree-stripped or not) — raised below as a blocking open question,
 not resolved by me.
@@ -148,11 +148,11 @@ SC-08, SC-09: `not-assessed` (NOBODY paths for this squad).
 
 ## Open questions
 
-- Q1 (blocking): `check-domain.sh` denies harness-qa any write to source **even inside a DEC-153
+- Q1 (blocking): `check-domain.py` denies harness-qa any write to source **even inside a DEC-153
   worktree** (worktree-stripped path re-checked against the same persona list, DEC-143). This
   means item 3's "independent mutation" instruction cannot be discharged by harness-qa under this
   repo's current config, in any location. Either DEC-153's framing of QA-run perturbation proofs
-  needs a narrower carve-out in `check-domain.sh`, or verification-rules' text should stop
+  needs a narrower carve-out in `check-domain.py`, or verification-rules' text should stop
   describing this as something QA does. Not decidable by me.
 - Q2 (non-blocking): the routing of the integration-kind classification gap in §4 — reclassify
   `test-gh-cost-log.py`'s gh-sync.py checks into an integration-tagged file, or treat a wrap-site

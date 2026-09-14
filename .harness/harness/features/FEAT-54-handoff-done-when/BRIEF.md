@@ -63,7 +63,7 @@ Decisions that bind, by number:
 
 - DEC-159 SUPPLIES the contract being amended (four sections, write-time shape gate, INV-17 corpus
   scan) and DEC-160 SUPPLIES the 60-line cap. This feature extends the first and keeps the second.
-- DEC-174 BLOCKS squad execution on the gate scripts and their tests: `check-domain.sh`,
+- DEC-174 BLOCKS squad execution on the gate scripts and their tests: `check-domain.py`,
   `check-state.sh`, `test-check-domain.py`, `test-check-state.py`, `run-unit-tests.sh` and any module
   those gates import are main-session-direct, whatever the domain resolver grants.
 - DEC-179 BLOCKS a second matcher: pointer resolution has one implementation, reached by both gates.
@@ -107,14 +107,14 @@ Decisions that bind, by number:
   section's shape once it is present.
   verify: automated        evidence: integration
 - SC-07: Block parsing and pointer resolution have ONE implementation. Read at `review_sha`
-  (`git show <review_sha>:<path>`): `check-domain.sh` imports `handoff_done_when` at one cited
+  (`git show <review_sha>:<path>`): `check-domain.py` imports `handoff_done_when` at one cited
   file:line and `check-state.sh` imports it at one cited file:line, and NEITHER gate carries a
   second block parser or a second pointer resolver of its own — no other parsing of the
   `## Done when` body and no other reading of a pointer target appears in either file.
   verify: inspection
 - SC-08: Read at `review_sha` (`git show <review_sha>:<path>`), no assertion about the CURRENT
   contract survives as four sections in `.claude/skills/harness/templates/HANDOFF.md`,
-  `.claude/skills/harness/SKILL.md`, the DEC record, or ANYWHERE in `check-domain.sh` or
+  `.claude/skills/harness/SKILL.md`, the DEC record, or ANYWHERE in `check-domain.py` or
   `check-state.sh` — required-section lists, heading constants, normative comments AND user-facing
   refusal or cap messages alike; each states five and names `## Done when`.
   EXEMPT, and to be left byte-identical: a comment that reports a PAST MEASUREMENT or a past
@@ -169,7 +169,7 @@ Decisions that bind, by number:
   verify: automated        evidence: unit
 - SC-13: An authority outside the four types is refused by the write gate (exit 2) with a message
   listing the four legal prefixes — asserted twice, once for an unknown prefix and once for a bare
-  source-code location such as `check-domain.sh:1523`, so "a code location is not an authority" is
+  source-code location such as `check-domain.py:1523`, so "a code location is not an authority" is
   observed rather than assumed.
   verify: automated        evidence: integration
 - SC-14: No per-section cap is introduced, asserted on BOTH gates with a separately named case in

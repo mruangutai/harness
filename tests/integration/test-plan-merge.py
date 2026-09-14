@@ -1169,7 +1169,7 @@ def case_1103_sign_approval_negative_control_absent_is_main_session():
     """NEGATIVE CONTROL for the case above: an ABSENT HARNESS_AGENT_TYPE is the main session,
     the same exemption plan-sign-gate.py's own hook already uses (`if not (payload.get
     ("agent_type") or ""): sys.exit(0)`), and one this whole codebase applies consistently
-    (dispatch-guard.sh, bash-write-guard.sh, check-domain.sh, validate-digest.py). Refusing on
+    (dispatch-guard.sh, bash-write-guard.sh, check-domain.py, validate-digest.py). Refusing on
     absence here would refuse the main session's own legitimate signature — a stricter check
     that is provably wrong, not merely untested."""
     root, plan = fixture_root()
@@ -3009,7 +3009,7 @@ def case_f59_set_lanes_writes_and_validates():
         value = os.path.join(root, "lanes.yaml")
         lanes = {"resolved_at": "abc123", "rows": [
             {"surface": ".claude/skills/harness/bin/**", "lane": "team", "agent": "harness-backend-dev"},
-            {"surface": ".claude/skills/harness/bin/check-domain.sh", "lane": "main-session-direct",
+            {"surface": ".claude/skills/harness/bin/check-domain.py", "lane": "main-session-direct",
              "reason": "DEC-174 carve-out"}]}
         write(value, yaml.safe_dump(lanes, sort_keys=False))
         r = run_verb("set-lanes", "--file", plan, "--value-file", value)

@@ -23,7 +23,7 @@ survives in either file."* At `63b83c7` that is **false as written and true in s
 
 | File | What the anchor is |
 |---|---|
-| `check-domain.sh` | one worktree-relative match, plus `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD` — feature-path shape regexes |
+| `check-domain.py` | one worktree-relative match, plus `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD` — feature-path shape regexes |
 | `harness_boundary.py` | `WORKTREE_REL_RE`, plus two inside `glob_to_re`'s translator |
 
 None of them is workspace resolution — that moved to `resolve_fleet` and `select_base` as the
@@ -41,7 +41,7 @@ overturned the ruling; these now size the work rather than argue against it.
 |---|---|---|
 | 473 references across 152 files | **3411 occurrences across 462 files** | `git grep -o '\.harness' 63b83c7 -- . \| wc -l`; `git grep -l` for files |
 | 40 live + 22 template domain globs `upgrade-config.py` refuses to rewrite | **77 `.harness/`-prefixed globs in `.harness/team-config.yaml`**; the refusal still stands and is deliberate — `upgrade-config.py`'s docstring: YAML is REPORTED ONLY because `safe_dump` strips the comments that justify every glob | `python3` walk of `safe_load`; `upgrade-config.py` module docstring |
-| four anchored `[^/]+` regexes at `check-domain.sh` | workspace resolution moved to `harness_boundary.resolve_fleet` / `select_base`; four *feature-path* regexes remain (see above) | `grep -n '\[\^/\]'` |
+| four anchored `[^/]+` regexes at `check-domain.py` | workspace resolution moved to `harness_boundary.resolve_fleet` / `select_base`; four *feature-path* regexes remain (see above) | `grep -n '\[\^/\]'` |
 | CI assertions in `tests.yml` | present but **not** at `:134-141`; that range is the `check-plan-routes.py` step. The live assertions are the plan-count guard and the zero-directories guard | `grep -n 'harness' .github/workflows/tests.yml` |
 | no layout-migration machinery | **still true.** `upgrade-config.py` merges `harness.json` key-wise and knows nothing about a second config location | read `upgrade-config.py` |
 
@@ -49,7 +49,7 @@ overturned the ruling; these now size the work rather than argue against it.
 not two features of growth. FEAT-10's figure is not reproducible from its recorded methodology,
 so the row above is the new baseline with its command, not an attempt to reproduce theirs.
 
-## Routing — every candidate path delegated to `check-domain.sh --resolve` at `63b83c7`
+## Routing — every candidate path delegated to `check-domain.py --resolve` at `63b83c7`
 
 | Path | `--resolve` | rc |
 |---|---|---|

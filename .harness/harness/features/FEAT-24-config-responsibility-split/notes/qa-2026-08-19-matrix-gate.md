@@ -13,7 +13,7 @@ Separately: **the dispatch's "Gap 2" is stale — both halves (base64 line-wrapp
 `"-f" not in argv` assertion added alongside it. I mutation-proved the `-f` assertion reddens
 against the real historical defect shape (`-f ref=<branch>`, which forces `gh` to POST). No live
 smoke is warranted for Gap 2. Gap 1 (the `validate=True`/`validate=False` base64 fail-open) is
-real and remains open — I could not close it myself; `check-domain.sh` denies `harness-qa` write
+real and remains open — I could not close it myself; `check-domain.py` denies `harness-qa` write
 access to `test-factory-gh.py`.
 
 ## Branch tip vs pin
@@ -117,7 +117,7 @@ This confirms the dispatch's premise exactly: the existing case cannot discrimin
 **I attempted to add the discriminating case to `test-factory-gh.py`** (after `file_at_ref:
 undecodable content raises rather than returning empty`, ok-line: `file_at_ref: non-alphabet
 base64 raises rather than silently decoding under lax mode`) and **the write was denied by
-`check-domain.sh`**: `harness-qa` is not a granted writer for
+`check-domain.py`**: `harness-qa` is not a granted writer for
 `.claude/skills/harness/bin/test-factory-gh.py` in this repository's own manifest — only
 `.harness/*/features/*/notes/qa-*.md` and Expertise/observations paths are mine. This is the
 project's own DEC-189-style domain guard working as designed; per QA rules I do not work around it.
@@ -217,4 +217,4 @@ un-primed expectation and the actual tree diverge.
 
 ## Open questions
 
-- `{ id: Q1, question: "The dispatch instructed me to close Gap 1 myself ('these are yours to close or to rule out'), but check-domain.sh denies harness-qa write access to .claude/skills/harness/bin/test-factory-gh.py — only notes/observations/expertise paths are granted. The guard is correct per this repo's manifest; the dispatch's premise that I could write test files here was false. Should qa dispatches for this repo stop assuming test-file write access, or should the manifest grant qa a scoped test-file path?", blocking: false }`
+- `{ id: Q1, question: "The dispatch instructed me to close Gap 1 myself ('these are yours to close or to rule out'), but check-domain.py denies harness-qa write access to .claude/skills/harness/bin/test-factory-gh.py — only notes/observations/expertise paths are granted. The guard is correct per this repo's manifest; the dispatch's premise that I could write test files here was false. Should qa dispatches for this repo stop assuming test-file write access, or should the manifest grant qa a scoped test-file path?", blocking: false }`

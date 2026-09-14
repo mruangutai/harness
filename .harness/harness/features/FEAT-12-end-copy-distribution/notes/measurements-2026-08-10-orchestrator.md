@@ -84,14 +84,14 @@ Parsed with `json.load`. Every registration whose command points inside the dele
 | `PreToolUse` | `Bash` | `branch-create-gate.sh` |
 | `PreToolUse` | `Bash` | `branch-create-gate.sh` **(a second, duplicate entry — different `$VAR` spelling)** |
 | `PreToolUse` | `Bash` | `bash-write-guard.sh` |
-| `PreToolUse` | `Write\|Edit` | `check-domain.sh` |
+| `PreToolUse` | `Write\|Edit` | `check-domain.py` |
 | `PreToolUse` | `Task\|Agent` | `dispatch-guard.sh` |
 | `SubagentStart` | `harness-.*` | `inject-expertise.sh` |
 | `SubagentStop` | `harness-.*` | `validate-digest.py --hook` |
-| `PostToolUse` | `Write\|Edit\|Bash` | `check-domain.sh --post` |
+| `PostToolUse` | `Write\|Edit\|Bash` | `check-domain.py --post` |
 
 `D-02` and `T-03` name **three** `PreToolUse` hooks. Four registrations —
-`dispatch-guard.sh`, `inject-expertise.sh`, `validate-digest.py`, `check-domain.sh --post` — plus
+`dispatch-guard.sh`, `inject-expertise.sh`, `validate-digest.py`, `check-domain.py --post` — plus
 the duplicate are outside the enumerated list.
 
 T-03's *headline* instruction ("any hook whose command points inside the skill tree") and its verify

@@ -32,8 +32,8 @@ only as a note that "plus bookkeeping" undersold the set; no action needed on th
   `hook_event_name` key in the payload → PRE. Confirmed distinct from the POST-sweep case
   `handoff edit with Done when` (line 4382), whose payload explicitly sets
   `"hook_event_name": "PostToolUse"` (line 4372) and is a different route through the code
-  (`elif target:` POST branch at check-domain.sh:2080, vs the PRE `RE_HANDOFF` reconstruction arm at
-  check-domain.sh:2045-2048).
+  (`elif target:` POST branch at check-domain.py:2080, vs the PRE `RE_HANDOFF` reconstruction arm at
+  check-domain.py:2045-2048).
 - **Uniqueness/grammar-validity**: the fixture is built by `_handoff_text(valid)` with
   `valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"` (line 4414), giving a body
   where `"Scope: build complete"` occurs exactly once. `old_string="Scope: build complete"`,
@@ -56,15 +56,15 @@ Built in a disposable worktree, never the checkout under review:
 ```
 git -C <WT> worktree add --detach /…/.claude/worktrees/harness/qa-c5-mutant-probe 252a18a9
 ```
-Mutated the COPY at `.claude/worktrees/harness/qa-c5-mutant-probe/.claude/skills/harness/bin/check-domain.sh`,
-moving `RE_HANDOFF` from the reconstruction `elif` (check-domain.sh:2045-2048) into the deny-by-path
-`if` one arm above (check-domain.sh:2042-2044) — the exact future harmonisation the Advisor named —
+Mutated the COPY at `.claude/worktrees/harness/qa-c5-mutant-probe/.claude/skills/harness/bin/check-domain.py`,
+moving `RE_HANDOFF` from the reconstruction `elif` (check-domain.py:2045-2048) into the deny-by-path
+`if` one arm above (check-domain.py:2042-2044) — the exact future harmonisation the Advisor named —
 via a Python in-place string replace (the Edit/Write tools refuse this path outside my domain
 regardless of worktree; a scripted `python3 -c` file rewrite through Bash was permitted).
 
 Ran:
 ```
-CHECK_DOMAIN_BIN=/…/qa-c5-mutant-probe/.claude/skills/harness/bin/check-domain.sh \
+CHECK_DOMAIN_BIN=/…/qa-c5-mutant-probe/.claude/skills/harness/bin/check-domain.py \
   python3 <WT>/tests/integration/test-check-domain.py
 ```
 Literal result (excerpt):
@@ -78,7 +78,7 @@ sibling cases also correctly redden as collateral (`handoff pre-Edit blocks inva
 `handoff pre-Edit unreadable existing file fails closed`) since they share the same fixture/route;
 this is expected, not a separate finding.
 
-Repository check-domain.sh confirmed byte-untouched throughout:
+Repository check-domain.py confirmed byte-untouched throughout:
 `git -C <WT> status --porcelain -- .claude/skills` → empty, both before and after the probe.
 Worktree removed from OUTSIDE it (`git worktree remove --force`) after use;
 `git worktree list` confirms no `qa-c5-mutant-probe*` entries remain.
@@ -96,7 +96,7 @@ FAIL  handoff valid reconstructable PRE-Edit remains allowed exit 2: check-domai
 **Also reddens.** Both halves are exercised by the single case: reconstruction being denied (Q2's
 mutant) and the reconstructed candidate being wrongly rejected by grammar validation (this mutant)
 each independently flip the assertion. Neither half is a free rider. Scratch worktree #2 removed the
-same way; `check-domain.sh` and `handoff_done_when.py` in the reviewed checkout confirmed
+same way; `check-domain.py` and `handoff_done_when.py` in the reviewed checkout confirmed
 byte-untouched.
 
 ## Q4 — the suite total, derived not accepted

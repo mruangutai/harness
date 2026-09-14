@@ -27,7 +27,7 @@ GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # BUG-124 T-02 -- derive the run-dir grant vocabulary in a NON-isolated
 # interpreter: PyYAML lives in the user site-packages that python3 -I
 # excludes (D-03). House precedent for the sys.path handling is
-# check-domain.sh: the LAUNCH LINE itself pops sys.path[0] before the
+# check-domain.py: the LAUNCH LINE itself pops sys.path[0] before the
 # heredoc body below ever runs, so test-no-distribution.py case 7's
 # line-based scan sees the pop on the same line as the python3 call --
 # a pop buried a few lines into the heredoc body is invisible to that

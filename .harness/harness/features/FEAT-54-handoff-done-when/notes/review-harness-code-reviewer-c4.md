@@ -10,7 +10,7 @@ Reviewed immutable range: `0ec44965a961d19177de871c3bb1f02b701e646b..f05e1e6cd74
 2. `tests/unit/test-handoff-done-when.py`
 3. `tests/unit/test-probe-handoff-comprehension.py`
 4. `tests/integration/test-check-domain.py`
-5. `.claude/skills/harness/bin/check-domain.sh`
+5. `.claude/skills/harness/bin/check-domain.py`
 6. `.harness/harness.json`
 7. `tests/integration/test-check-state.py`
 8. `.claude/skills/harness/bin/check-state.sh`
@@ -44,8 +44,8 @@ No other scope creep, omission, or REQ/D mismatch was found in the 16-path set. 
 ### Inspection success criteria
 
 - **SC-04 PASS.** From the repository root, the exact command `bash .claude/skills/harness/bin/check-state.sh` completed with **exit 0**. Its complete 812-line output contains **0 `Done when` findings** and **0 `VIOLATION` lines**. The former c3 FEAT-51 missing-handoff blocker is gone.
-- **SC-07 PASS by inspection.** The write gate imports/calls the shared module with `resolve=True` (`check-domain.sh:1561-1566`); the persisted gate imports/calls the same module with `resolve=False` (`check-state.sh:53-56,1243-1251`). No second Done-when body parser or pointer resolver exists in either gate.
-- **SC-08 PASS by inspection.** The template (`HANDOFF.md:1-17,37-40`), playbook (`SKILL.md:309-316`), write gate (`check-domain.sh:1547-1574`), state gate (`check-state.sh:1069-1070,1211-1259`), DEC-159 (`DECISIONS.md:3701-3729`) and DEC-214 (`:6696-6724`) state the five-section contract. The only `four headings` hits are the criterion-authorized FEAT-31 historical measurements at `check-state.sh:1198-1202,1215-1219`.
+- **SC-07 PASS by inspection.** The write gate imports/calls the shared module with `resolve=True` (`check-domain.py:1561-1566`); the persisted gate imports/calls the same module with `resolve=False` (`check-state.sh:53-56,1243-1251`). No second Done-when body parser or pointer resolver exists in either gate.
+- **SC-08 PASS by inspection.** The template (`HANDOFF.md:1-17,37-40`), playbook (`SKILL.md:309-316`), write gate (`check-domain.py:1547-1574`), state gate (`check-state.sh:1069-1070,1211-1259`), DEC-159 (`DECISIONS.md:3701-3729`) and DEC-214 (`:6696-6724`) state the five-section contract. The only `four headings` hits are the criterion-authorized FEAT-31 historical measurements at `check-state.sh:1198-1202,1215-1219`.
 - **SC-11 PASS by inspection.** The base-to-pin handoff diff contains four `A` rows and no modified/deleted base-existing handoff: FEAT-51 `handoff-validate.md`, and FEAT-54 `handoff-build.md`, `handoff-plan.md`, and `handoff-validate.md`. Thus the historical intersection is empty and the non-empty diff arm equals the added-only arm. Only the two contract-listed FEAT-54 handoffs were content-inspected; the other two paths remained outside the exact 16-path content scope.
 - **SC-01/02/03/05/06/09/12/13/14 otherwise PASS on current-pin focused evidence.** `test-handoff-done-when.py` passed 54 printed checks; `test-probe-handoff-comprehension.py` passed 6 methods; `test-check-domain.py` passed all 41 FEAT-54 handoff cases; `test-run-unit-tests-kinds.py` passed all 5 registration/isolation cases; the real probe `--dry-run` exited 0 and planned two calls without executing them.
 - **SC-15 FAIL as verification.** `test-check-state.py` completed successfully, including its 17 printed FEAT-54 cases, but the no-rot pair is non-discriminating for the production regression above. Current behavior is correct by inspection; the required permanent automated proof is not.
@@ -59,7 +59,7 @@ The configured baseline independently measured **141 entries, 141 unique, sorted
 |---|---|---|
 | F-01 — resolver containment/fail-closed | **closed** | Absolute, traversal, control-bearing, symlink-escape and special-file finding/approval targets are refused by `handoff_done_when.py:63-101,241-252`; unit and real write-gate cases passed for both authority families. |
 | F-02 — probe admission/local-file disclosure | **closed** | `probe-handoff-comprehension.py:54-109` contains path, basename, symlink, regular-file, size and UTF-8 admission before model calls; all six focused methods passed, with rejected inputs making zero calls and the valid control making two. |
-| F-03 — invalid pre-mutation Edit | **closed** | `check-domain.sh:1818-1873` reconstructs protected Edit candidates and refuses non-UTF-8 existing bytes before mutation; integration cases passed and asserted byte identity. |
+| F-03 — invalid pre-mutation Edit | **closed** | `check-domain.py:1818-1873` reconstructs protected Edit candidates and refuses non-UTF-8 existing bytes before mutation; integration cases passed and asserted byte identity. |
 | F-04 — literal SC-04 | **closed** | Exact root command exit 0, zero `Done when` findings, zero violations. |
 | F-05 — blank Scope | **closed** | `handoff_done_when.py:187-193`; unit/write/state blank-Scope cases passed. |
 | F-06 — Scope ordering | **closed** | `handoff_done_when.py:209-215`; unit/write/state Authority-first cases passed. |

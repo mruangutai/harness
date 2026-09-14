@@ -46,7 +46,7 @@ lanes:
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: DEC-174 carve-out - hooks, validators and gate scripts are changed directly, and every module here is imported by check-state.sh or check-domain.sh
+      reason: DEC-174 carve-out - hooks, validators and gate scripts are changed directly, and every module here is imported by check-state.sh or check-domain.py
     - surface: .claude/settings.json
       lane: main-session-direct
       reason: resolves to NOBODY and registers the PreToolUse hooks this feature adds
@@ -73,7 +73,7 @@ lanes:
       reason: the migration rewrites task station values through the tool being built. RE-MEASURED at 0d4845b after the rebase onto the OMP main, not inherited - 31 plan.yaml files exist under .harness/harness/features/, of which 7 carry at least one task status the migration rewrites, 56 task lines in all. The reading before the rebase was 29 files and 55 lines at 8f8a6a3; the two plan files added since are FEAT-37-lead-stop-and-wake and FEAT-42-one-root-resolver, verified by git diff --diff-filter=A, and NEITHER carries a task status the migration rewrites, so the feature count stays 7 while this feature's own T-14 added the 56th task line. The earlier figure 28 was a plan-file count and was wrong on both readings
     - surface: .harness/harness/features/*/feature.json
       lane: main-session-direct
-      reason: the schema key being deleted is enforced on check-domain.sh's own write path
+      reason: the schema key being deleted is enforced on check-domain.py's own write path
     - surface: .harness/harness/docs/**
       lane: team
       agent: harness-documentor
@@ -100,7 +100,7 @@ decisions:
     because: declaring it beside the stations would assert a column the operator must create; it names no column and never reaches the board. It sits in factory_config beside MANDATED_STATIONS because plan-merge, check-plan-routes and check-domain each need it and each already imports factory_config, where a declaration in plan-merge.py - a module nothing imports - would be respelled as a bare literal at every other site and make this decision false the day it landed
     dec: none
   - id: D-06
-    choice: the plan.yaml write denial lives in check-domain.sh's SHAPE region, not its domain region
+    choice: the plan.yaml write denial lives in check-domain.py's SHAPE region, not its domain region
     because: check-domain exits 0 for a payload with no agent_type, so a domain-region denial would exempt the main session, and DEC-180 makes the shape gate bind every author
     dec: DEC-180
   - id: D-07
@@ -317,7 +317,7 @@ tasks:
         against, not a second vocabulary.
       - Add TERMINAL_MARKER = "abandoned" beside it, with a comment that it names no board column,
         never reaches the board, and is therefore not a seventh station. This module is where it
-        lives because plan-merge.py, check-plan-routes.py and check-domain.sh each need it and
+        lives because plan-merge.py, check-plan-routes.py and check-domain.py each need it and
         each already imports or can import factory_config; every one of those sites imports the
         name rather than respelling the literal.
       - validate_board: require board["stations"] to be a list whose value equals
@@ -466,7 +466,7 @@ tasks:
       target plan.yaml belongs to, and accept a value only if it is one of those six or
       factory_config.TERMINAL_MARKER, which T-01 declares. IMPORT IT; do not declare a second copy
       here and do not spell the literal. This module is imported by nothing, so a declaration here
-      would be respelled as a bare literal by check-plan-routes.py and check-domain.sh and D-05's
+      would be respelled as a bare literal by check-plan-routes.py and check-domain.py and D-05's
       own claim that the marker is declared once in code would be false the day it landed.
       Anything else exits 4 with one line naming the offending value and listing the legal ones.
       The check happens BEFORE the lock is taken, so a refused value never opens the file.
@@ -616,7 +616,7 @@ tasks:
       .omp/agents/harness-orchestrator.md:86-103 and PR 922 rewrote it, so it now presents TWO
       ROUTES rather than the three bullets an earlier reading of this task named. Route one is
       plan-merge.py apply for adding; route two, at :92, is "a surgical Edit on that task's own
-      lines" for changing an existing value, and :103 records that check-domain.sh already denies
+      lines" for changing an existing value, and :103 records that check-domain.py already denies
       an Edit of the approval block. NOTHING THIS TASK WRITES IS ALREADY PRESENT: the section at
       HEAD ACTIVELY INSTRUCTS the route this task closes, and neither file names set-task-station.
       Both verify clauses were run against both files at 0d4845b and both are discriminating -
@@ -848,7 +848,7 @@ tasks:
     traces: [REQ-06]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: feature-schema.json is enforced on check-domain.sh's write path and read by check-state.sh
+    execution_reason: feature-schema.json is enforced on check-domain.py's write path and read by check-state.sh
     depends_on: [T-04, T-06]
     status: done
     files:
@@ -1038,7 +1038,7 @@ tasks:
       this shape and whose reasoning DEC-203 section 8 records. It reads the PreToolUse payload on
       stdin and:
       - exits 0 immediately when d.get("agent_type") is empty or absent - an absent agent_type IS
-        the main session, as check-domain.sh:541 records (re-derived at 0d4845b; it was :512 at ee66ae2);
+        the main session, as check-domain.py:541 records (re-derived at 0d4845b; it was :512 at ee66ae2);
       - otherwise tokenizes tool_input.command with shlex (posix=True, punctuation_chars=True),
         comparing os.path.basename of each command word so an absolute path, a leading backslash
         or a quoted form all read the same, and re-scanning the argument of eval and of bash -c
@@ -1086,11 +1086,11 @@ tasks:
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh is the registered PreToolUse and PostToolUse gate script
+    execution_reason: check-domain.py is the registered PreToolUse and PostToolUse gate script
     depends_on: [T-03, T-04, T-05, T-08]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
       - .harness/team-config.yaml
     verify: |
@@ -1099,7 +1099,7 @@ tasks:
       THIS TASK OPENS THE DENIAL. It must not land before T-03 and T-05, or the orchestrator has
       no legal route to record a task status.
 
-      In check-domain.sh, add plan.yaml to the SHAPE region, not the domain region. The domain
+      In check-domain.py, add plan.yaml to the SHAPE region, not the domain region. The domain
       region is the wrong home: check-domain exits 0 for a payload with no agent_type, so a
       denial there would exempt the main session, and item 5 denies every LLM. DEC-180 makes the
       shape gate independent of domain and binding on every author.
@@ -1137,7 +1137,7 @@ tasks:
         prevents is generic: a refusal naming a file that does not exist is unusable, which is
         precisely what the reason clause above exists to prevent. This is the same convention
         T-08 already uses for the same tool.
-      - DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1092-1095 and
+      - DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.py defines deny() at 1092-1095 and
         its last line appends the module-level ROUTING constant defined at 908, which speaks about
         STATE.md, digests and notes/ - a different file class entirely. Emitting ROUTING beside a
         plan.yaml refusal puts two routing sentences in one stderr stream contradicting each other
@@ -1578,7 +1578,7 @@ tasks:
     change_type: docs
     execution_mode: team
     execution_agent: harness-documentor
-    execution_reason: .harness/harness/docs/** is the one team lane this plan's lanes block resolves, and check-domain.sh --resolve grants DECISIONS.md to harness-documentor
+    execution_reason: .harness/harness/docs/** is the one team lane this plan's lanes block resolves, and check-domain.py --resolve grants DECISIONS.md to harness-documentor
     depends_on: [T-02, T-07, T-09]
     status: done
     files:
@@ -1635,7 +1635,7 @@ tasks:
         principle the entry exists for are UNCHANGED, which is exactly why this is an amendment
         and not a strike.
       - DEC-182, circa :5533 - the clause "`plan.yaml` is deliberately absent from
-        `check-domain.sh`'s shape gate". WHAT HOLDS INSTEAD: REQ-05 puts plan.yaml into the shape
+        `check-domain.py`'s shape gate". WHAT HOLDS INSTEAD: REQ-05 puts plan.yaml into the shape
         region, and that entry's reasoning is not wrong so much as silent on this case. It ruled
         out a budget and a parse check, the two things it considered; a WRITE DENIAL is a third
         thing it did not. State it that way rather than as a reversal of its argument.

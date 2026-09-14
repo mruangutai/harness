@@ -50,7 +50,7 @@ Four defects in how the harness records and locates a run's own artifacts, close
    exit 0 with a stated reason for absent/null.
 2. **#1057** — a governed agent could write a feature artifact into the **main checkout** while its
    feature had a registered worktree. Now bound on both write routes: the `PreToolUse` Write route
-   (`check-domain.sh`) and the Bash route (`bash-write-guard.sh`), each naming the target and the
+   (`check-domain.py`) and the Bash route (`bash-write-guard.sh`), each naming the target and the
    checkout the write belonged in.
 3. **#1058** — a `Write` to an existing `runs/<runid>/digest.md` could destroy the recorded digest.
    Now refused unless the payload carries the existing text as a prefix; an unreadable file is
@@ -88,7 +88,7 @@ Three findings gated during the cycle and **all three are closed by fix, not by 
    Re-graded 11/9/59.6 → 1/0/16.1 and 17/14/85.8 → 1/0/20.0, both grade 4, with case-name sets
    confirmed **supersets** (5→6, 9→10) so nothing was dropped to buy the grade.
 3. MED — the digest-clobber guard read `OSError` as "file absent" and allowed the clobber. Closed
-   at `check-domain.sh:1142-1155`.
+   at `check-domain.py:1142-1155`.
 
 ## Goal-check — read this before accepting
 
@@ -166,7 +166,7 @@ rows B-1 and B-2 below. Two are genuinely yours rather than backlog rows:
   silently; you repinned; the panel rebound its verdict to PASS. **This is the feature's own failure
   shape caught by the feature's own review** — a run's record not matching the run.
 - **Every task but T-08 is `main-session-direct`** under the DEC-174 carve-out (the harness does not
-  execute changes to its own hooks, validators or gate scripts). That routing held: `check-domain.sh`
+  execute changes to its own hooks, validators or gate scripts). That routing held: `check-domain.py`
   returned exit 2 for `harness-orchestrator` on all seven files, and you owned the implementation.
 
 ## UAT
@@ -193,11 +193,11 @@ anything not on this table dies silently.**
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-1 | bug | Untested `AmbiguousWorktree` deny sits directly above a blanket `except Exception: return` in both gates (`check-domain.sh:733-736`, `bash-write-guard.sh:713-716`). Correct today, but nothing in the suite fails if a future refactor reorders the two `except` clauses — which silently converts a denial into a main-checkout write, issue #1057's exact shape. **Ranked first of the advisories despite being med: its failure mode is a silent loss nobody discovers.** |
-| B-2 | chore | `feature_checkout_guard` is duplicated near-verbatim across `check-domain.sh` and `bash-write-guard.sh` instead of returning a verdict from `harness_boundary.py` the way `classify()` does — the drift risk that module's own docstring exists to name. The high finding above added a second *call site*, not a second implementation. |
+| B-1 | bug | Untested `AmbiguousWorktree` deny sits directly above a blanket `except Exception: return` in both gates (`check-domain.py:733-736`, `bash-write-guard.sh:713-716`). Correct today, but nothing in the suite fails if a future refactor reorders the two `except` clauses — which silently converts a denial into a main-checkout write, issue #1057's exact shape. **Ranked first of the advisories despite being med: its failure mode is a silent loss nobody discovers.** |
+| B-2 | chore | `feature_checkout_guard` is duplicated near-verbatim across `check-domain.py` and `bash-write-guard.sh` instead of returning a verdict from `harness_boundary.py` the way `classify()` does — the drift risk that module's own docstring exists to name. The high finding above added a second *call site*, not a second implementation. |
 | B-3 | bug | `inflight_registry.feature_root`'s "an ambiguity falls back to the owner root and nothing is raised" contract has **no test anywhere**. `feature_root` is never called by name in `test-inflight-registry.py`, before or after the cutover. A refactor narrowing `except Exception` to `except AmbiguousWorktree` would ship green. |
 | B-4 | chore | Pre-existing `run_t14` in `test-check-domain.py` still grades FAIL (cyc 8 / ABC 51). Outside `dca2d3d..HEAD`, so it neither gated this cycle nor was cleared by it. Recorded so the next cycle does not rediscover it as new. |
-| B-5 | bug | `PF-f52c5043…` (med) — `check-domain.sh`'s binding sits only in `domain_check()`'s allow/shared branches, while `harness_boundary.classify`'s `not_a_domain_question` outcome returns earlier; the Bash route's narrowed continue covers both. The two "route-complete" fixes are asymmetric in verdict-shape coverage. **Measured inert today**: `HARNESS_PROJECT_DIR` is read in exactly one production file and set by no production code, so a governed agent's root is always the main checkout. Latent, not live. |
+| B-5 | bug | `PF-f52c5043…` (med) — `check-domain.py`'s binding sits only in `domain_check()`'s allow/shared branches, while `harness_boundary.classify`'s `not_a_domain_question` outcome returns earlier; the Bash route's narrowed continue covers both. The two "route-complete" fixes are asymmetric in verdict-shape coverage. **Measured inert today**: `HARNESS_PROJECT_DIR` is read in exactly one production file and set by no production code, so a governed agent's root is always the main checkout. Latent, not live. |
 | B-6 | chore | `PF-799e61a6…` (med) — the blocking premise behind the empty-`last_assistant_message` direction ("can the platform legitimately send an empty message on a tool-only final turn?") was raised in two review segments and reached neither BRIEF nor plan. If the answer is yes, the gate re-prompts a persona for a platform artifact. |
 | B-7 | bug | `PF-5a9174d2…` (med) — the digest guard's literal-prefix test is narrower than the "lead revises its own digest within one run" case it is meant to protect: a mid-block correction is not a prefix continuation, so it is refused with a message telling the lead to take a new run directory, which is not the problem. Untested in either direction. |
 | B-8 | bug | `PF-b07503b7…` (low) — the team playbook's digest-refusal sentence carries no Write-only caveat, so leads read the record as gate-protected while a clobber via `Edit` or a shell redirect still recurs #1058. The control converts a known hole into a hidden one. |

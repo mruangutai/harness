@@ -14,7 +14,7 @@ cannot be built at all: per-repository write grants (unit 7), per-repository con
 
 The move itself is not the hard part. The hazard is that the mechanisms which resolve a feature path
 **fail silently when a segment is inserted** (issue #344, measured): `check-state.sh`'s fifteen
-discovery sites return empty and the gate reports a healthy tree; `check-domain.sh`'s four shape
+discovery sites return empty and the gate reports a healthy tree; `check-domain.py`'s four shape
 regexes and its `SWEEP_GLOBS` stop enforcing anything while still advancing the shape-sweep stamp;
 CI's plan-route guard is defeated by exactly the shape a repo segment produces. Split the cluster
 across commits and the tree is either one where every write is denied, or — worse — one whose shape
@@ -32,7 +32,7 @@ detector at a landed commit is a stop rather than a note.
 ## Scope
 
 **In:** the physical move of every directory under `.harness/features/`; `team-config.yaml`'s write
-grants; `check-domain.sh`'s `SWEEP_GLOBS` and its four shape regexes; `check-plan-routes.py`'s
+grants; `check-domain.py`'s `SWEEP_GLOBS` and its four shape regexes; `check-plan-routes.py`'s
 discovery; `check-state.sh`'s fifteen discovery sites; the test suites whose fixtures or literal
 expectations are pinned to the old path; the guard-enforced instruction paths that tell an agent
 where to write its receipt, its observations and its per-feature notes; `branch-create-gate.sh`'s
@@ -107,7 +107,7 @@ own commit.
   git-ignored — and the check that establishes this asserts the search's exit status rather than a
   line count.
   verify: automated      evidence: integration
-- SC-06: `check-domain.sh --resolve` on a post-move feature artifact path
+- SC-06: `check-domain.py --resolve` on a post-move feature artifact path
   (`.harness/harness/features/FEAT-21-features-layout-migration/notes/receipt-harness-backend-dev-x.md`)
   names `harness-backend-dev`, and the same path under the pre-move shape names nobody. The write
   gate moved with the files rather than being widened to accept both.
@@ -165,11 +165,11 @@ on a runner; that is stated here rather than dressed as automation.
 
 ## Constraints
 
-- **One commit for the cluster.** The grants, both `check-domain.sh` sites,
+- **One commit for the cluster.** The grants, both `check-domain.py` sites,
   `check-plan-routes.py`'s discovery, `check-state.sh`'s discovery sites and the physical move are
-  mechanically coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.sh
+  mechanically coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.py
   --resolve`, which reads `team-config.yaml` and calls `harness_boundary.matches`.
-- **DEC-174 applies to most of this feature.** `check-state.sh` and `check-domain.sh` are named
+- **DEC-174 applies to most of this feature.** `check-state.sh` and `check-domain.py` are named
   carve-outs; `layout_migration.py` is one by content on the FEAT-20 precedent;
   `team-config.yaml`, `.gitignore`, the agent files and the skills all resolve to NOBODY. Every
   task here is main-session-direct.

@@ -69,7 +69,7 @@ has no `\b`. Use `-P` (as above) or `git grep -n DEC-103` unanchored. A `-E … 
 clean while five citations stand. Likewise spell every path `.claude/…`, never `.agents/…`.
 
 Per the dispatch, SC-04 is carved out and **not routed** — its owner is the main session under T-14
-(`execution_mode: main-session-direct`, all 13 paths `NOBODY` from `check-domain.sh --resolve`).
+(`execution_mode: main-session-direct`, all 13 paths `NOBODY` from `check-domain.py --resolve`).
 
 ## SC-11 — the five I graded, and the ten I inherited
 

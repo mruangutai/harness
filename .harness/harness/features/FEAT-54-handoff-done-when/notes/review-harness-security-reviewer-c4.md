@@ -30,7 +30,7 @@ Current-pin reproduction called the real output functions with an ESC/OSC-bearin
 |---|---|---|
 | F-01 — authority containment and fail-closed target reads | **Closed.** | `handoff_done_when.py:57-101,143-174,224-253` rejects absolute, traversal and control-bearing finding/approval paths, resolves beneath the project root, requires a regular UTF-8 file and caps the read at 1 MiB. The unit validator passed **54/54** assertions and the actual hook group passed **41/41**, including independent finding/approval symlink-escape and FIFO cases plus a forced resolver exception. |
 | F-02 — probe local-file admission | **Closed for the reported path-bypass defect.** | `validate_note` admits only contained, correctly named, regular, bounded UTF-8 handoff notes and uses no-follow/nonblocking descriptor reads (`probe-handoff-comprehension.py:54-109`). Its focused suite passed **6/6**: rejected outside/traversal/symlink/directory/wrong-name/oversized inputs made zero model calls and the valid control made two. SEC-F-10 is distinct: it concerns malicious content in a legitimately admitted note. |
-| F-03 — invalid or unreadable Edit mutates before refusal | **Closed.** | PreToolUse reconstructs handoff Edit candidates, refuses invalid UTF-8, and runs the same validator before mutation (`check-domain.sh:1819-1882`). The real-hook group proved exit 2 plus byte identity for invalid and invalid-UTF-8 candidates. |
+| F-03 — invalid or unreadable Edit mutates before refusal | **Closed.** | PreToolUse reconstructs handoff Edit candidates, refuses invalid UTF-8, and runs the same validator before mutation (`check-domain.py:1819-1882`). The real-hook group proved exit 2 plus byte identity for invalid and invalid-UTF-8 candidates. |
 | F-04 — literal SC-04 red on FEAT-51 | **Closed by the external repair.** | Exact repository-root command exited **0**, with **0 `VIOLATION` lines and 0 `Done when` findings**. The formerly missing FEAT-51 validate handoff is no longer reported. |
 | F-05 — blank Scope | **Closed.** | Unit, real write hook and fixture state gate all refused blank/whitespace-only Scope in the current-pin focused runs. |
 | F-06 — Scope ordering | **Closed.** | Unit, real write hook and fixture state gate all refused Authority-before-Scope. |
@@ -55,7 +55,7 @@ Current-pin reproduction called the real output functions with an ESC/OSC-bearin
 2. `tests/unit/test-handoff-done-when.py` — 54 direct parser and filesystem-security assertions.
 3. `tests/unit/test-probe-handoff-comprehension.py` — admission-before-model-call evidence; missing tool-disable assertion is part of SEC-F-10's repair.
 4. `tests/integration/test-check-domain.py` — 41 focused real-hook outcomes, including exception and pre-mutation Edit cases.
-5. `.claude/skills/harness/bin/check-domain.sh` — PreToolUse trust boundary, Edit reconstruction, exit-2 behavior.
+5. `.claude/skills/harness/bin/check-domain.py` — PreToolUse trust boundary, Edit reconstruction, exit-2 behavior.
 6. `.harness/harness.json` — frozen baseline, locally-run probe registration, and authoritative `review: advisory_unless_high` policy.
 7. `tests/integration/test-check-state.py` — 17 focused persisted-mode/baseline/grammar outcomes.
 8. `.claude/skills/harness/bin/check-state.sh` — corpus input, baseline use, no target re-resolution, module-failure reporting.

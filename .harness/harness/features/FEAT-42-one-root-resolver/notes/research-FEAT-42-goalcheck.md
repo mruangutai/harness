@@ -18,7 +18,7 @@ All content claims below were read with `git show 9d12e3a:<path>` or `git grep 9
 ## SC-05 — re-derived independently, MET (QA had reported the wrong proof)
 
 QA cited the #556 cwd-parity numbers (203/203 at ONE sha, two working directories). That is a
-different proof. SC-05's declared instrument is `check-domain.sh --resolve` over a fixed path list,
+different proof. SC-05's declared instrument is `check-domain.py --resolve` over a fixed path list,
 BEFORE and AFTER, two shas. I took it.
 
 Method (scripts kept at `scratchpad/sc05/`): two full mirrors of `.claude/skills/harness/bin` — 103

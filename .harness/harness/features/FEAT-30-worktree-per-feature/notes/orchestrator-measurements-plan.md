@@ -97,7 +97,7 @@ BRIEFs in the paused FEAT-26 and FEAT-28 flows, neither belonging to this featur
 the condition when citing this: two violations later is not FEAT-30 regressing, and zero later is not
 an improvement — it means those flows moved.
 
-## Lane facts I resolved (`check-domain.sh --resolve`, this checkout)
+## Lane facts I resolved (`check-domain.py --resolve`, this checkout)
 
     .claude/skills/harness/bin/**            -> harness-backend-dev harness-dev-ops
     .harness/harness.json                    -> harness-dev-ops

@@ -1,17 +1,17 @@
 """The boundary rule — one implementation, read by every guard that needs it.
 
-Extracted from `check-domain.sh`'s embedded Python (FEAT-17 T-01). The rule was
+Extracted from `check-domain.py`'s embedded Python (FEAT-17 T-01). The rule was
 reachable only from inside that heredoc, so `bash-write-guard.sh` could not consult it
 and enforced a second, weaker version of the same question — the split issue #261
 reports. A heredoc cannot be imported, so the rule moves here and both guards import it.
 
-NO BEHAVIOUR CHANGES IN THIS MOVE. Every function below is the `check-domain.sh` text
+NO BEHAVIOUR CHANGES IN THIS MOVE. Every function below is the `check-domain.py` text
 verbatim, with exactly two edits, both stated in T-01's intent: `resolve_fleet` and
 `select_base` take the hook `label` as a parameter and emit it, so a second caller
 cannot print a verdict naming the wrong hook; and the DEC-143 worktree prefix is built
 from `WORKTREES_SEGMENT` rather than spelled again.
 
-`check-domain.sh` keeps printing the agent-facing BLOCKED lines. `classify` RETURNS a
+`check-domain.py` keeps printing the agent-facing BLOCKED lines. `classify` RETURNS a
 verdict and prints nothing: a module shared by two hooks must not decide whose wording
 the agent sees.
 """
@@ -26,14 +26,14 @@ from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 # — which is what T-03 mutates by name to prove there is one implementation and not
 # two agreeing copies.
 #
-# Two literals survive in check-domain.sh and are deliberately NOT rewired: the
+# Two literals survive in check-domain.py and are deliberately NOT rewired: the
 # stripping regex in `_norm` and the prefixes in SWEEP_GLOBS. Both belong to the shape
 # phase, whose import of this module is absorbing rather than fail-closed, so reading
 # this constant from there would hand the shape gate a dependency the fail-closed rule
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
 
-# THE RUN-ARTIFACT PATTERNS, shared between check-domain.sh (content or route
+# THE RUN-ARTIFACT PATTERNS, shared between check-domain.py (content or route
 # guards on Write/Edit) and bash-write-guard.sh (route-only refusal on Bash).
 # One definition keeps both write surfaces from silently disagreeing.
 RE_RUN_DIGEST = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$",
@@ -158,7 +158,7 @@ def linked_worktrees(owner_root):
     NO GIT SUBPROCESS: DEC-193 forbids one on the governed-write path, and a hook that
     shells out is both slow and a new failure surface.
 
-    Used by `check-domain.sh`'s post-write sweep, which at `eeabc59` joined the segment to
+    Used by `check-domain.py`'s post-write sweep, which at `eeabc59` joined the segment to
     a single star and therefore reached no file in any worktree deeper than one level — a
     glob that matches nothing reports nothing, so that was a SILENT regression rather than
     a refusal.
@@ -403,7 +403,7 @@ def real(path):
 
     AN UNRESOLVABLE PATH RETURNS ITS ABSOLUTE FORM RATHER THAN RAISING (FEAT-41 MF-2). realpath
     raises ValueError -- not OSError -- on an embedded NUL, and this function is called from
-    `classify`, which runs inside check-domain.sh's Python body. That ValueError propagated all
+    `classify`, which runs inside check-domain.py's Python body. That ValueError propagated all
     the way out, and by that hook's own header exit 1 is NON-BLOCKING, so a single NUL in
     `tool_input.file_path` disabled EVERY domain grant, budget and route denial at once and the
     write proceeded.
@@ -413,7 +413,7 @@ def real(path):
     it at exit 1, so it is PRE-EXISTING and lives here. The finding was right; its blame was not.
 
     Returning the absolute form keeps this function total. Callers that need to REFUSE an
-    unresolvable path do so on their own terms -- check-domain.sh's route denial treats one as a
+    unresolvable path do so on their own terms -- check-domain.py's route denial treats one as a
     refusal -- rather than depending on an exception from a path-normalising helper.
 
     AND THE FALLBACK RESOLVES AS FAR AS IT SAFELY CAN, rather than returning a bare `abspath`
@@ -564,10 +564,10 @@ def is_control_plane_target(rel):
 def classify(abs_target, root, globs, shared, label):
     """Decide whether `globs`/`shared` reach `abs_target`, and return the verdict.
 
-    Moved verbatim from `check-domain.sh`'s `domain_check` (FEAT-17 T-01) — the block
+    Moved verbatim from `check-domain.py`'s `domain_check` (FEAT-17 T-01) — the block
     that ran from THE FLEET AND THE BASE to the actionable rejection. It RETURNS rather
     than prints or exits, because two hooks now ask this question and the module must
-    not decide whose wording the agent reads. `check-domain.sh` prints exactly what it
+    not decide whose wording the agent reads. `check-domain.py` prints exactly what it
     printed before, from these fields.
 
     The verdict is a dict:

@@ -47,7 +47,7 @@ measurement.
 ## Anchor rot in the signed intent — corrected, not copied forward
 
 The intent anchors the always-exits-0 hook contract at **`DECISIONS.md:1503`**. That line, **in both
-the worktree and `main`**, is `check-domain.sh`'s `/**` `startswith` bug. The contract actually lives
+the worktree and `main`**, is `check-domain.py`'s `/**` `startswith` bug. The contract actually lives
 in a table row at `DECISIONS.md:1388`, owned by **DEC-101**. I cited DEC-101 **by number** and did
 not reproduce the rotten line reference.
 

@@ -65,8 +65,8 @@ unquoted scalars, preserves quoted scalars verbatim). The schema checker
 (`feature_schema.problems_for_text` / `validate-feature-json.py`) uses strict `json.loads`. The
 **sanctioned writer** (`feature-json-merge.py` → `feature_json_write.write_feature_json`) always
 serializes with `json.dumps(doc, indent=2)` and schema-validates before any write lands
-(monotonic non-regression — new violations refused; `check-domain.sh` also runs
-`feature_schema.problems_for_text` at write time per `check-domain.sh:1133-1150`). Live probe
+(monotonic non-regression — new violations refused; `check-domain.py` also runs
+`feature_schema.problems_for_text` at write time per `check-domain.py:1133-1150`). Live probe
 (isolated fixture, `CLAUDE_PROJECT_DIR`/`HARNESS_PROJECT_DIR` + marker, confirmed fast/isolated
 after an initial mistaken run against the live repo):
 

@@ -71,7 +71,7 @@ the walk cost by orders of magnitude.
 - Grepped every other caller of `factory_config` (`plan-merge.py`, `gh_board.py`,
   `worktree_terminal.py`, `harness_boundary.py`, `layout_fixtures.py`, `gh-sync.py`,
   `layout_migration.py`, `factory_workspace.py`, `check-plan-routes.py`,
-  `check-domain.sh`, `post-merge-sweep.py`, `feature-worktree.py`, `board_lifecycle.py`,
+  `check-domain.py`, `post-merge-sweep.py`, `feature-worktree.py`, `board_lifecycle.py`,
   `factory_decompose.py`, `factory_claim.py`, `factory_land.py`, `board-station.py`) — none of
   these reference `check-product-configs`/`check_product_configs`/`product_config_report`
   either. The new flag is reachable only by an operator invoking

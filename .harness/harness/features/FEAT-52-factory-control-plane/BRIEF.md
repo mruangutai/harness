@@ -196,7 +196,7 @@ path in this list is a READ target and anchors to the control plane.
   a count.
   verify: inspection
 - SC-15: The anchored feature-directory WRITE is allowed from where a factory worker actually
-  stands, not only from the harness checkout. `check-domain.sh` is fired with a `Write` whose
+  stands, not only from the harness checkout. `check-domain.py` is fired with a `Write` whose
   `file_path` is the ABSOLUTE receipt path under the feature tree root, with the process working
   directory set to a temporary product-shaped checkout that is NOT that root, and the test asserts
   exit 0. That half alone is not evidence: exit 0 is also what a path outside every base returns,

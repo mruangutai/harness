@@ -108,7 +108,7 @@ task statuses went unrecorded** before anyone noticed. That is why the tool now 
 rather than you: `set-task-station` is the route those five needed and did not have.
 
 **You never write `approval:`** — it records a signature only the main session can have asked
-for (DEC-120), and `check-domain.sh` actively denies your `Edit` of it.
+for (DEC-120), and `check-domain.py` actively denies your `Edit` of it.
 
 ## The cycle budget is yours alone
 

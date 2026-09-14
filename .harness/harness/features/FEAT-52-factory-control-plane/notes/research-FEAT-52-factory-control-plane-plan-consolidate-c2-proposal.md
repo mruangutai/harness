@@ -337,7 +337,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: agent definitions and harness skill files both resolve to NOBODY under check-domain.sh
+    execution_reason: agent definitions and harness skill files both resolve to NOBODY under check-domain.py
     depends_on: [T-02]
     status: ready
     files:
@@ -414,7 +414,7 @@ tasks:
     traces: [REQ-02, REQ-03]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: the five doer agent files, harness-eng-lead and the harness references are all NOBODY under check-domain.sh
+    execution_reason: the five doer agent files, harness-eng-lead and the harness references are all NOBODY under check-domain.py
     depends_on: [T-02, T-04]
     status: ready
     files:
@@ -472,7 +472,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: every harness skill file resolves to NOBODY under check-domain.sh
+    execution_reason: every harness skill file resolves to NOBODY under check-domain.py
     depends_on: [T-02]
     status: ready
     files:
@@ -532,7 +532,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: templates resolve to NOBODY under check-domain.sh
+    execution_reason: templates resolve to NOBODY under check-domain.py
     depends_on: [T-02]
     status: ready
     files:
@@ -586,7 +586,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
+    execution_reason: check-domain.py --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-01, T-02, T-03]
     status: ready
     files:
@@ -613,7 +613,7 @@ tasks:
         prefixes every WRITE into it - your receipt, your observations log, your notes. Substitute
         the value before you read or write.
       - You MAY read anything under the control-plane root - skills, rules, references, decisions -
-        read-only. Your WRITE grants are unchanged and are still resolved by check-domain.sh; the
+        read-only. Your WRITE grants are unchanged and are still resolved by check-domain.py; the
         read permission widens nothing.
       - Resolve the second anchor yourself, once, before your first feature-directory write. Your
         FEAT id is the first line of your own dispatch (DEC-204) and the command is, in one
@@ -724,7 +724,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
+    execution_reason: check-domain.py --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-06, T-08, T-09]
     status: ready
     files:

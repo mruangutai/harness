@@ -35,7 +35,7 @@ ruling — and it does NOT contain any build work. Pinning it is validate's firs
 - Do NOT re-run SIMPLIFY or re-open a build task to satisfy a panel finding about the doctrine files.
   `plan-panel.yaml`, both `harness-validator-lead.md` copies, `SKILL.md`, `harness-plan.md`,
   `templates/plan.yaml` and `harness-spec-driven/SKILL.md` all resolve to NOBODY under
-  `check-domain.sh`; no squad can apply there and a fix cycle would be futile — verified-at 9d26350
+  `check-domain.py`; no squad can apply there and a fix cycle would be futile — verified-at 9d26350
 - Do NOT route a `check-state.sh` or `test-check-state.py` fix to a lead. DEC-174 enumerates both and
   bars EXECUTING enforcement-layer changes through a team run — `DECISIONS.md:4326` — verified-at 9d26350
 - Do NOT read `check-state.sh` green as a precondition for anything. INV-26 is structurally red for

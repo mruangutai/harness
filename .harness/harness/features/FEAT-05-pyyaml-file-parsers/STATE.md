@@ -50,12 +50,12 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
 - **`team-config.yaml:18` APPLIED by the main session**, my candidate verbatim, 1 insertion /
   1 deletion. Candidate and evidence at `notes/receipt-orchestrator-team-config-fix-candidate.md`.
 - **D-03 EQUIVALENCE PROVEN — build the hook conversions on this rather than re-deriving it.** OLD
-  `collect()` (extracted verbatim from `check-domain.sh:107-125`) on the ORIGINAL file vs. NEW
+  `collect()` (extracted verbatim from `check-domain.py:107-125`) on the ORIGINAL file vs. NEW
   `manifest_domains()` on the CANDIDATE file, for **every** `name:` in the manifest: **19 agent names,
   0 mismatches**, `mine` and `shared` matching set-for-set, every glob a `str`.
 - **Interface correction applied mid-run:** `require_or_bootstrap(root, payload=None)` reads the
   `HOOK_PAYLOAD` **env var, never stdin**. T-02's receipt had pinned a stdin fallback;
-  `check-domain.sh:232-235` records the gate's first draft losing the payload exactly that way and
+  `check-domain.py:232-235` records the gate's first draft losing the payload exactly that way and
   passing everything. Read the module against the corrected interface, not the plan's.
 
 ## Open Questions
@@ -70,7 +70,7 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
 - **B3 — the dangerous half is RETIRED. Derived twice independently, by me and by the main session,
   agreeing.** A worktree script running with a main-checkout `root`, writing `.pyyaml-bootstrap` outside
   T-10's `.gitignore` edit, is **impossible by construction**. `.claude/settings.json:23` invokes
-  `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh`, and `check-domain.sh:64` sets
+  `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py`, and `check-domain.py:64` sets
   `root="${CLAUDE_PROJECT_DIR:-}"`. **The same variable selects both the script and the root, so they
   cannot diverge**; the fallback at `:66-70` is `_derived`, computed from `BASH_SOURCE` at `:60-62`, so
   an unset or unreadable value makes the script self-locate to its own repo. **T-10 is not broken and
@@ -149,7 +149,7 @@ parsed.)
 
 ## Backlog nit — not fixed here
 
-`check-domain.sh:59` says "walk up five levels" and `:62` walks up **four** (`../../../..`). Four is
+`check-domain.py:59` says "walk up five levels" and `:62` walks up **four** (`../../../..`). Four is
 correct — `bin` → `harness` → `skills` → `.claude` → root. **The comment is stale, not the code.** It
 matters because a future reader "correcting" the code to match the comment would break the root
 derivation both hooks depend on. The main session is fixing it while in that function.

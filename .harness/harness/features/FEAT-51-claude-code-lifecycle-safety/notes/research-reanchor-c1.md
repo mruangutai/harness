@@ -23,8 +23,8 @@ block on the create path. FEAT-51's user signature currently rests on `BRIEF.md`
 Approval section, which is unsigned.
 
 **Q2 — REQ-04 and REQ-05 are no longer fully reachable for `plan.yaml`.** At the old base
-`plan.yaml` was written with `Write`, so the `check-domain.sh` Write gate covered it. FEAT-41
-made that route non-existent for every author (`check-domain.sh:1529-1678`) and moved the
+`plan.yaml` was written with `Write`, so the `check-domain.py` Write gate covered it. FEAT-41
+made that route non-existent for every author (`check-domain.py:1529-1678`) and moved the
 real write to `plan-merge.py`, a **Bash** route the PreToolUse Write gate never sees. An
 orphaned child can therefore still land canonical `plan.yaml` content via
 `plan-merge.py apply` with no adoption. The union merge means it cannot *delete* tasks
@@ -59,12 +59,12 @@ The premise holds: `validate-digest.py` still calls `live_children` (`:1563`) an
 excluded; 16 `.omp/agents/harness-*.md` files, every non-orchestrator one still
 `blocking: true`; `check-omp-port.py`, `gen-decisions-index.py` and
 `test-gen-decisions-index.py` all present. The four `--resolve` NOBODY answers in the BRIEF
-still hold; `check-domain.sh` itself resolves to **both** `harness-backend-dev` and
+still hold; `check-domain.py` itself resolves to **both** `harness-backend-dev` and
 `harness-dev-ops` (the batch context named only the first), which changes nothing because
 DEC-174 holds it back either way.
 
 ## Lanes
 
-All 17 surfaces re-resolved with the main checkout's `check-domain.sh --resolve` and written
+All 17 surfaces re-resolved with the main checkout's `check-domain.py --resolve` and written
 into `lanes.rows`. `.claude/settings.json` is not a plan surface and has no row (it is still
 NOBODY, and the BRIEF's constraint still cites it correctly).

@@ -29,7 +29,7 @@ at exit 2. If it is absent anyway, return `VERDICT: BLOCKED`.
 | lead | `runs/<run-id>/digest.md` — the durable digest `validate-digest.py` checks (DEC-156) |
 
 **If you own such a path, your artifact goes there and you write no receipt.** A dispatch that names
-a receipt path for you does not override this — check-domain.sh will deny the write, correctly
+a receipt path for you does not override this — check-domain.py will deny the write, correctly
 (#216).
 
 ## The receipt — fallback for the six who own no other path

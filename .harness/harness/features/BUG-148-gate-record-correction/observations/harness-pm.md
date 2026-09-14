@@ -4,8 +4,8 @@
   the amendment convention and tests/integration/test-gen-decisions-index.py:836 rejects any line
   starting with the bold token Amendment. The dispatch's phrase "dated correction note" had to be
   planned as an in-place rewrite that names the dates inside the sentence.
-- 2026-09-06: FEAT-05-pyyaml-file-parsers/STATE.md is 165 lines against check-domain.sh's 120-line
-  budget with 7 headings against 2 (check-domain.sh:1798-1805), so a Write of it is denied pre-hoc
+- 2026-09-06: FEAT-05-pyyaml-file-parsers/STATE.md is 165 lines against check-domain.py's 120-line
+  budget with 7 headings against 2 (check-domain.py:1798-1805), so a Write of it is denied pre-hoc
   and only Edit works. Any task touching an old STATE.md needs that spelled out in its intent.
 - 2026-09-06: proving a multi-conjunct verify ladder needs a mutant: on the pre-change tree the
   first grep exits and the later phrase greps are never reached. Built temp copies of both target

@@ -10,10 +10,10 @@ confirmed unchanged, still non-gating.
 (`bash-write-guard.sh:655-659` new function; three call sites at the ambiguous-claim, unreadable-
 registry, and claim-set-refusal branches of `claim_checkout_guard`, previously `deny(...)`, now
 `deny_bare(...)`). Both functions print to stderr and `sys.exit(2)`; `deny_bare` only omits the
-"File changes go through the Write tool" tail. Cross-read `check-domain.sh:claim_checkout_guard`
+"File changes go through the Write tool" tail. Cross-read `check-domain.py:claim_checkout_guard`
 (`:769-816`, untouched by this diff) — it never had that tail for claim refusals in the first
 place, so this change actually REMOVES a route-local asymmetry (bash-write-guard.sh's old advice to
-"switch to the Write tool" was misleading for a claim refusal, since check-domain.sh's identical
+"switch to the Write tool" was misleading for a claim refusal, since check-domain.py's identical
 predicate would refuse there too). Ran both integration suites live against the pinned code
 (`python3 tests/integration/test-bash-write-guard.py`, `test-check-domain.py`) — 100% PASS, every
 one of the 9 refusal-exit-2 assertions per route still fires at exit 2 including all three

@@ -16,7 +16,7 @@ OK   .harness/expertise/harness-documentor.md
 OK   .harness/expertise/harness-eng-lead.md
 OK   .harness/expertise/harness-orchestrator.md
 ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names '.claude/' — repository-layer candidate; rule on it (issue 340)
-ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names 'check-domain.sh' — repository-layer candidate; rule on it (issue 340)
+ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names 'check-domain.py' — repository-layer candidate; rule on it (issue 340)
 FAIL .harness/expertise/harness-pm.md
   - line 33: P-10 is 57 words — cap is 50; a rule, not a story
 ADVISORY .harness/expertise/harness-pm.md:4: P-01 names '.harness/' — repository-layer candidate; rule on it (issue 340)

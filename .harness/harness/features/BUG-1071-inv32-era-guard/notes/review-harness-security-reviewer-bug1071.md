@@ -48,10 +48,10 @@ it against git history, commit date, or file mtime).
 **Reachability is narrower than "any subsequent agent," though.** `## Approval` blocks —
 `plan.yaml`'s `approval:` fragment, which is where `date` lives — are written by the **main
 session only** (`SPEC.md:152`, "the one carve-out to single-owner"; enforced for every other
-governed agent by `check-domain.sh`'s `approval_guard`, which denies the `approval:` fragment to
-everyone but the main session — `check-domain.sh:429-440`, `team-config.yaml:21-25,98-99`). A
+governed agent by `check-domain.py`'s `approval_guard`, which denies the `approval:` fragment to
+everyone but the main session — `check-domain.py:429-440`, `team-config.yaml:21-25,98-99`). A
 governed build/dev agent **cannot** touch `approval.date`; only the main session (operator
-channel) can, and the main session is exempt from `check-domain.sh` entirely (no `agent_type` →
+channel) can, and the main session is exempt from `check-domain.py` entirely (no `agent_type` →
 ungoverned). So the actor who can exploit this is exactly the actor the dispatch names: a hurried
 operator, not "a subsequent agent."
 
@@ -59,7 +59,7 @@ operator, not "a subsequent agent."
 directly (P-02: an actor who already controls a value already holds the privilege it grants — no
 escalation). The main session is the **only** writer of `approval:` and, per the same manifest
 grant (`team-config.yaml:99`, only `approval:` is carved out of `plan.yaml`'s write grant to
-`harness-pm`), nothing in `check-domain.sh` restricts the main session from *also* writing
+`harness-pm`), nothing in `check-domain.py` restricts the main session from *also* writing
 `panel:` — the main session could fabricate a complete, INV-32-passing panel record directly and
 skip the era guard's exemption paths entirely. **The undated/backdated bypass grants no new
 capability an already-privileged actor did not already have.** It is not privilege escalation.

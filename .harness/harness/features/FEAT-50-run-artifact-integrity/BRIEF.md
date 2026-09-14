@@ -70,17 +70,17 @@ the two fixes FEAT-45 shipped stay in force.
 
 Decisions that SUPPLY the mechanism this feature uses — none of these is an obstruction:
 
-- DEC-143 supplies the raw-then-worktree-stripped glob match in `check-domain.sh`. REQ-03 NARROWS
+- DEC-143 supplies the raw-then-worktree-stripped glob match in `check-domain.py`. REQ-03 NARROWS
   after that match succeeds and never changes it; the stripped match is the design that lets an
   agent in a worktree write what its domain grants, and breaking it breaks every build dispatch.
 - DEC-95 supplies one worktree per feature, which is the registry REQ-03 binds a write to.
-- DEC-180 supplies the write-payload shape route in `check-domain.sh`, which binds every author,
+- DEC-180 supplies the write-payload shape route in `check-domain.py`, which binds every author,
   and is where REQ-04 is enforceable at a moment the author can still fix it.
 - DEC-154 and DEC-156 supply the run `state.yaml` checkpoint and the lead's durable `digest.md`,
   which is the artifact REQ-04 protects.
 - DEC-122 and DEC-127 supply `validate-digest.py`'s `SubagentStop` hook and its fail-open-loudly
   discipline, which is the site of REQ-01 and REQ-02.
-- DEC-179 supplies `check-domain.sh --resolve`, which resolved every lane in `plan.yaml`.
+- DEC-179 supplies `check-domain.py --resolve`, which resolved every lane in `plan.yaml`.
 - DEC-151 supplies `bash-write-guard.sh`, the governed Bash write route. REQ-08 NARROWS its
   allow-continue and never widens it. That hook exists because an agent routed around the tool
   route, so binding one surface and leaving the other silent is a bypass by construction.
@@ -89,7 +89,7 @@ Decisions and rules that BLOCK, bound or forbid:
 
 - DEC-174 governs execution: every hook, validator and gate script, and the test file of each, is
   planned through the harness and never executed through it. `validate-digest.py`,
-  `check-domain.sh`, `check-state.sh` and their tests are therefore main-session-direct, and
+  `check-domain.py`, `check-state.sh` and their tests are therefore main-session-direct, and
   `--resolve` GRANTING them to `harness-backend-dev`/`harness-dev-ops` does not override that.
 - DEC-191 closes `feature.json` with `additionalProperties: false`. Adding a `worktree` key would
   be a schema change; this feature does not add one and derives the checkout from git instead.
@@ -132,7 +132,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   verify: automated        evidence: integration
   command: `python3 .claude/skills/harness/bin/test-check-domain.py`
 - SC-04: SC-03's assertion can report red. The suite's own `feature-checkout-red` case runs a mutant
-  copy of `check-domain.sh` beside the original with the binding removed and asserts the mutant
+  copy of `check-domain.py` beside the original with the binding removed and asserts the mutant
   allows the main-checkout write the real script refuses, its exit code being 0 or 2 with no python
   traceback on stderr.
   verify: automated        evidence: integration
@@ -154,11 +154,11 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   command: `python3 .claude/skills/harness/bin/test-check-domain.py` and
   `git show <review_sha>:.claude/skills/harness/bin/test-check-domain.py | grep -q 'digest-clobber-red'`
 - SC-07: DEC-143's behaviour is intact. Every pre-existing worktree-strip case in
-  `test-check-domain.py` still passes, and `check-domain.sh --resolve` still answers
-  `harness-backend-dev, harness-dev-ops` for `.claude/skills/harness/bin/check-domain.sh`.
+  `test-check-domain.py` still passes, and `check-domain.py --resolve` still answers
+  `harness-backend-dev, harness-dev-ops` for `.claude/skills/harness/bin/check-domain.py`.
   verify: automated        evidence: integration
   command: `python3 .claude/skills/harness/bin/test-check-domain.py` and
-  `bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/check-domain.sh | grep -q 'harness-backend-dev'`
+  `bash .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/check-domain.py | grep -q 'harness-backend-dev'`
 - SC-08: FEAT-45's INV-32 fail-closed fix is untouched. `test-check-state.py` carries ONE INV-32
   case, `case_inv32` (`test-check-state.py:3091`), and it still passes. Its checks cover the
   missing-panel, high-severity-open, stale-override, missing-reader and mutant-red directions
@@ -374,7 +374,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   Five instances of the limit rather than three does not change its shape, but it does widen it:
   every one of the five is trusted on the same unproven premise.
 - REQ-04's guarantee reaches ONE tool route. The gate's pre route is `Write`-only
-  (`check-domain.sh:1367-1368`), and it is the only route that carries a whole-file payload while
+  (`check-domain.py:1367-1368`), and it is the only route that carries a whole-file payload while
   the prior content still exists. A digest destroyed by an `Edit` with an `old_string` spanning the
   whole prior text, by a `NotebookEdit`, or by `cat > digest.md` from Bash is refused NOWHERE and
   no criterion above tests those routes. The bite is real rather than theoretical: D-05's own
@@ -397,7 +397,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   is pre-existing, DEC-127-sanctioned and outside this feature. Nothing above proves an empty
   return is refused twice, and no criterion claims it.
 - T-03's binding does not run at all in a session with no PyYAML. `domain_check()` is called under
-  `if _run_domain and not _no_parser:` (`check-domain.sh:872`), so the documented bootstrap-grant
+  `if _run_domain and not _no_parser:` (`check-domain.py:872`), so the documented bootstrap-grant
   escape hatch disables REQ-03's refusal, while REQ-04's digest rule — which lives in the shape
   phase below that call — still runs. Nothing above claims otherwise. Making the domain route
   parser-free is a mechanism this plan does not contain and would be a scope change; the honest

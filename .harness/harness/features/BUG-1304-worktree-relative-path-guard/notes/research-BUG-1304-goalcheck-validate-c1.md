@@ -12,8 +12,8 @@ Read end to end; the method tally is `11 automated / 1 inspection / 0 uat`, and 
 not occur in the file at all. `gates.uat: blocking_when_uat_criteria_exist` therefore **does not apply**.
 
 **Frozen-guard provenance verified, not assumed:** both fixtures are byte-identical to the pre-change
-guards — `diff <(git show af5ddd7a:tests/integration/fixtures/prior-check-domain.sh.fixture) <(git show
-a4e8ecf7:.claude/skills/harness/bin/check-domain.sh)` = 0 lines; same for `bash-write-guard`.
+guards — `diff <(git show af5ddd7a:tests/integration/fixtures/prior-check-domain.py.fixture) <(git show
+a4e8ecf7:.claude/skills/harness/bin/check-domain.py)` = 0 lines; same for `bash-write-guard`.
 
 | SC | verdict | method | evidence |
 |---|---|---|---|
@@ -31,7 +31,7 @@ a4e8ecf7:.claude/skills/harness/bin/check-domain.sh)` = 0 lines; same for `bash-
 | SC-12 | met | automated/integration | one fixture, both routes, both directions: allow half `test-check-domain.py:4603-4606` / `test-bash-write-guard.py:1216-1219`; refusal half naming the corrupt registry `:4607-4611` / `:1220-1225`; refusal half carries the SC-06 proof `:4612` / `:1228`. Disjoint from SC-10's fixture (`:4592-4602` / `:1209-1215`). Scoping is structural: `harness_boundary.py:273-276` returns before raising when the destination is already inside a proven member |
 
 REQ coverage: REQ-01..REQ-06 trace to shipped code (`harness_boundary.claim_worktrees`/`claim_set_refusal`,
-`check-domain.sh:770-816`, `bash-write-guard.sh:737-761`, `inflight_registry.live_claims`). REQ-07 is the
+`check-domain.py:770-816`, `bash-write-guard.sh:737-761`, `inflight_registry.live_claims`). REQ-07 is the
 one carrying the SC-07 gap — its DECISIONS.md half landed (DEC-218 + index row); its plan `D-NN` half is
 short one clause.
 
@@ -39,13 +39,13 @@ short one clause.
 
 - **SC-05 — unproven, not wrong. Remedy is TEST.** `claim_set_refusal` always emits
   `"<agent> holds worktree claim(s): <held>."` on the non-unreadable branch (`harness_boundary.py:291,
-  302`), and the malformed-pointer destination reaches exactly that branch (`check-domain.sh:807-816`,
+  302`), and the malformed-pointer destination reaches exactly that branch (`check-domain.py:807-816`,
   `bash-write-guard.sh:757-761`), so the message is correct — only the assertion is missing. Fix is one
   argument on each of two existing calls: `contains` on `test-check-domain.py:4525` (T-03's file set) and
   on `test-bash-write-guard.py:1106` (T-05's file set). Both files are `execution_mode:
   main-session-direct` under DEC-174.
 - **SC-07 — unproven and unwritten, not wrong. Remedy is RECORD.** The ambiguous-claim treatment is
-  implemented (`check-domain.sh:779-784`, `bash-write-guard.sh:738-742`), tested (SC-05 ambiguous
+  implemented (`check-domain.py:779-784`, `bash-write-guard.sh:738-742`), tested (SC-05 ambiguous
   assertions) and doctrinally recorded (DEC-218 `:6858-6859`); it is simply not in the plan decision
   SC-07 names. Fix is one clause added to D-02's `choice`. **No task's file set contains `plan.yaml`** —
   it is pm-authored, so this is a main-session/pm record edit, and amending an approved decision's text

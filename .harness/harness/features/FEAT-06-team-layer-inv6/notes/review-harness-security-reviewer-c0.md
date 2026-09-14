@@ -68,7 +68,7 @@ consumed by an LLM orchestrator elsewhere in the harness (not present in this
 diff) — not executed as shell or Python. Templated tokens (`{{feat}}`, `{{task_id}}`,
 `{{cycle}}`, `{{persona}}`) feed into output *paths*, and the diff's own comments
 (`build.yaml` lines documenting the `harness-` prefix requirement) note that
-`check-domain.sh` — unmodified by this diff, out of scope per DEC-174 and per this
+`check-domain.py` — unmodified by this diff, out of scope per DEC-174 and per this
 dispatch's own "settled ground" — already blocks an unmatched write path at exit 2.
 `gate-probe.yaml`'s deletion removes a probe team, not a control; its rulings are
 explicitly preserved in `DECISIONS.md` per this diff.

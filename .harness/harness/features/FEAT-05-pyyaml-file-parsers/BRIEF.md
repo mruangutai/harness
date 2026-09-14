@@ -27,7 +27,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
 ## Requirements
 
 - REQ-01: Every `.yaml` read in `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`,
-  `check-domain.sh` and `bash-write-guard.sh` gets its values from a real YAML parser, and no
+  `check-domain.py` and `bash-write-guard.sh` gets its values from a real YAML parser, and no
   hand-rolled YAML key/value regex is left behind in those scripts.
 - REQ-02: A run entry whose `id:` or `squad:` line carries a trailing `#` comment is read correctly and
   its invariants are evaluated, instead of the run vanishing from `runs`.
@@ -88,7 +88,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   availability. (The absence half of SC-03; both are required, per DEC-169.)
   verify: inspection
 - SC-05: Invoked exactly as the PreToolUse hook is invoked — subprocess, inherited PATH, bare `python3`,
-  no venv activation and no `PYTHONPATH` override — `check-domain.sh` **allows** a manifest-permitted
+  no venv activation and no `PYTHONPATH` override — `check-domain.py` **allows** a manifest-permitted
   write **and blocks** a manifest-forbidden write in that same invocation context. Both outcomes are
   required: either one alone is also produced by a bootstrap-escape allow-all or a fail-closed
   block-all, and only a real parse of the manifest produces the pair.

@@ -36,7 +36,7 @@ decisions:
       test_no_amendment_construct_survives_in_the_authority enforces it mechanically. For FEAT-05's
       STATE.md it is NOT forced by any test: it is the operator's ruling of 2026-09-06, at signature
       review, that the false claim is rewritten in place to match DEC-174's treatment, with no appended
-      dated note. That ruling is SUPPORTED, not compelled, by two things in check-domain.sh:1796-1806 -
+      dated note. That ruling is SUPPORTED, not compelled, by two things in check-domain.py:1796-1806 -
       its own characterisation of STATE.md as a current-truth record, carried as the rationale on the
       120-line-budget denial ("It holds no history: the Current section is replaced, never appended"),
       and its section-vocabulary bar, which denies any heading outside Current and Open Questions, so a
@@ -50,7 +50,7 @@ decisions:
       The FEAT-05 STATE.md task is execution_mode team with execution_agent harness-orchestrator, not
       main-session-direct.
     because: |
-      check-domain.sh --resolve grants .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md
+      check-domain.py --resolve grants .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md
       to harness-orchestrator alone at 41c16c7; no member persona holds it, and the build-phase
       orchestrator writes it directly rather than dispatching a member. It is a feature state record,
       not an enforcement-layer artifact, so DEC-174 supplies no carve-out and declaring a granted path
@@ -71,7 +71,7 @@ decisions:
       as found.
     because: |
       The file is 165 lines against the 120-line budget with 7 headings against the 2 allowed, so
-      check-domain.sh denies a Write pre-hoc while an Edit is permitted and reported after the fact.
+      check-domain.py denies a Write pre-hoc while an Edit is permitted and reported after the fact.
       Shrinking a completed feature's record is out of scope for a correction flow.
     dec: DEC-150
 
@@ -227,7 +227,7 @@ tasks:
       The agreement therefore rests on this instruction and on SC-06, the operator's read of both
       corrected passages.
 
-      USE Edit, NEVER Write. The file is 165 lines against check-domain.sh's 120-line STATE.md budget
+      USE Edit, NEVER Write. The file is 165 lines against check-domain.py's 120-line STATE.md budget
       and carries 7 headings against the 2 the vocabulary allows, so a Write carrying whole-file
       content is DENIED pre-hoc while an Edit is not. The PostToolUse shape report that fires on the
       over-budget file afterwards is EXPECTED and non-blocking: leave the pre-existing violation
@@ -332,7 +332,7 @@ panel:
   - id: PF-6b4a7af5de3e77e59af34e9a00b68548
     reader: scope
     severity: med
-    summary: 'D-01''s because for STATE.md overclaims: check-domain.sh:1796-1805 bars
+    summary: 'D-01''s because for STATE.md overclaims: check-domain.py:1796-1805 bars
       a new ## section,
 
       not an inline dated note in ## Current, so rewrite-vs-append is a preference
@@ -361,7 +361,7 @@ panel:
       test_no_amendment_construct_survives_in_the_authority while the STATE.md half
       is the
 
-      operator''s ruling, supported by check-domain.sh:1796-1806 and compelled by
+      operator''s ruling, supported by check-domain.py:1796-1806 and compelled by
       no test.
 
       '

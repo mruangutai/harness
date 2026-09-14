@@ -7,7 +7,7 @@ predates this feature and its retention is explained by a protected incident com
 No comment-narration or stale-docstring findings; the two docstrings that reference
 FEAT-38/T-06/T-10 by name (test file, lines ~552, ~830) justify present test behavior
 rather than merely narrating history, so they stay. `run-unit-tests.sh`,
-`.harness/harness.json`, `board_lifecycle.py`, `check-domain.sh` diffs are single-line,
+`.harness/harness.json`, `board_lifecycle.py`, `check-domain.py` diffs are single-line,
 mechanical (one array entry removed, DEC-186→DEC-203 renumber) — no dead code found there.
 
 ## Lead's three pre-read candidates — verdicts
@@ -66,7 +66,7 @@ an unrelated local parameter name on `make_authority(tmp, decisions, bodies)`'s 
 
 ## What was checked and cleared
 
-- `run-unit-tests.sh`, `.harness/harness.json`, `board_lifecycle.py`, `check-domain.sh`:
+- `run-unit-tests.sh`, `.harness/harness.json`, `board_lifecycle.py`, `check-domain.py`:
   diffed against `7ebfc9eb..8a7c75c`; every hunk is a single-line mechanical change (one
   `INTEGRATION_SCRIPTS`/`detect` array entry removed for T-24/T-25; three DEC-186→DEC-203
   renumbers in comments/docstrings following the amendment-removal renumbering). No dead

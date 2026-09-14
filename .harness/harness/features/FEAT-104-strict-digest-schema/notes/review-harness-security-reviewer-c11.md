@@ -9,7 +9,7 @@ dispatcher's claim.
 
 `git diff --stat origin/main..984bd26b`: 18 files, +3203/-19. Security surface, checked
 `790023f0..984bd26b` per file:
-- **`check-domain.sh`** — MOVED, `+26/-8` (MEASURED `git diff --stat`). The only code file that
+- **`check-domain.py`** — MOVED, `+26/-8` (MEASURED `git diff --stat`). The only code file that
   changed. Audited in full below.
 - **`check-state.sh`** — byte-identical (`git diff --stat 790023f0..984bd26b -- check-state.sh`
   returns nothing). CF-1's site is unchanged.
@@ -26,7 +26,7 @@ dispatcher's claim.
 
 ## The fail-open question — REFUTED, by trace + schema census (MEASURED)
 
-Traced `shape_problems` (`check-domain.sh` ~1618–1685) against `run-state-schema.json`'s step
+Traced `shape_problems` (`check-domain.py` ~1618–1685) against `run-state-schema.json`'s step
 subschema (`git show 984bd26b:...run-state-schema.json`, parsed): step level declares exactly
 `type: object`, `required: [id, status]`, `additionalProperties: false`, `properties: {...}` — no
 other keyword. Every one of the 21 step properties is a scalar/array leaf; **none** is `type:
@@ -80,7 +80,7 @@ hide itself. Disposition: **carried, non-blocking** (already Q1 in STATE.md unde
 
 `bash-write-guard.sh` is not in this diff's 18-file set; the bypass is unaffected in either
 direction. It remains CF-1's sole precondition and, separately, the reason the new write-time
-`schema_version`/step-schema checks in `check-domain.sh` bind only `Write`/`Edit` — a Bash-authored
+`schema_version`/step-schema checks in `check-domain.py` bind only `Write`/`Edit` — a Bash-authored
 `state.yaml` still reaches disk unchecked at write time, caught only by `check-state.sh`'s at-rest
 INV-16 sweep (same topology as c9/c10; not widened or narrowed by `984bd26b`).
 
@@ -110,7 +110,7 @@ VERDICT: PASS
 DIGEST:
   headline: "Fail-open split REFUTED for the live schema (traced+censused); CF-1 carried unchanged at med; no new exposure."
   in_scope: true
-  scope_reason: "check-domain.sh moved (+26/-8) this cycle and is the write-time schema gate; re-measured, not assumed stale-safe."
+  scope_reason: "check-domain.py moved (+26/-8) this cycle and is the write-time schema gate; re-measured, not assumed stale-safe."
   severity_max: med
   findings: 2
   must_fix: []

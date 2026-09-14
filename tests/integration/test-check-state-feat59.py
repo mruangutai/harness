@@ -7,7 +7,7 @@ INV-39 cycles-budget (SC-15): cycles_used <= max_total_cycles, and a raise above
 harness.json default is a recorded budget_decisions entry (DEC-157).
 INV-40 judgement-ledger (SC-21): mission, re-gate and succession each leave a judgements[]
 entry; a record that predates the ledger is NOTED, never failed.
-INV-41 sc-repo-wide (SC-16): an SC that invokes check-state.py / check-domain.sh with no
+INV-41 sc-repo-wide (SC-16): an SC that invokes check-state.py / check-domain.py with no
 feature-scoped argument is refused.
 
 Every case is a fixture tree under tmp; nothing reads the live corpus. Each rule carries a
@@ -398,10 +398,10 @@ def case_inv41():
                     not _lines(out, "INV-41"), out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`.claude/skills/harness/bin/check-domain.sh --check-plan` exits 0."))
+        "`.claude/skills/harness/bin/check-domain.py --check-plan` exits 0."))
     v = _violations(out, "INV-41")
-    results.append(("(41.f) check-domain.sh is covered too",
-                    len(v) == 1 and "check-domain.sh" in v[0], out[:400]))
+    results.append(("(41.f) check-domain.py is covered too",
+                    len(v) == 1 and "check-domain.py" in v[0], out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
         "the reviewer runs `check-state.py` and it exits 0."))

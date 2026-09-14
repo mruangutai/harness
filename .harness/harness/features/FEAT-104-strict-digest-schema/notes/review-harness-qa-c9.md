@@ -12,7 +12,7 @@ trust that framing; I checked it:
 - `git diff 168f875f 71040f1c --stat` → 11 files, all under the feature's own `notes/`,
   `observations/`, `STATE.md`, `feature.json` — zero enforcement/test/schema files touched.
 - md5 of every file this audit depends on, pin (`git show 168f875f:<path> | md5`) vs. current
-  working tree (`md5 -q <path>`): `check-domain.sh`, `check-state.sh`, `validate-digest.py`,
+  working tree (`md5 -q <path>`): `check-domain.py`, `check-state.sh`, `validate-digest.py`,
   `run-state-schema.json`, `test-validate-digest.py`, `test-check-domain.py`, `test-check-state.py`
   — **all SAME**.
 
@@ -47,7 +47,7 @@ T-03/T-09 = `docs`; T-10 = `scaffolding`.
   (`inflight_registry.py` session resolution, handoff contract, issue-type path).
 
 **Advisory, independently re-derived (not merely carried forward):** T-05 touches
-`run-state-schema.json` — a JSON schema file two gate scripts (`check-domain.sh`,
+`run-state-schema.json` — a JSON schema file two gate scripts (`check-domain.py`,
 `check-state.sh`) read to enforce shape — and is declared `change_type: logic`. DEC-212's
 `touches_config_shape` predicate text ("a key's container type, required-ness, or structural
 nesting in a config a gate script reads") describes this file almost exactly; had T-05 been typed
@@ -65,7 +65,7 @@ even to a disposable-worktree perturbation proof for this dispatch, so I could n
 witness (11/12→12/12) did. Where the prior cycle already executed that kind of proof, I say so
 separately (§5).
 
-- **F1 (`schema_version` downgrade), `check-domain.sh:1760-1779`**: `_version_decreased` is a real
+- **F1 (`schema_version` downgrade), `check-domain.py:1760-1779`**: `_version_decreased` is a real
   conditional — `not int or bool or version < prior_version`, gated on `_prior_is_strict` (prior
   version is an actual int `>= 2`, not a bool). The test (`test-check-domain.py:152-159`) writes a
   genuine existing-checkpoint update from `schema_version: 2` → `schema_version: 1` and asserts
@@ -77,10 +77,10 @@ separately (§5).
   message to name only the symbols and drop the file token — the prior SC-08 gap exactly — reddens
   this specific check. Not vacuous.
 - **`run-state-schema.json` guards, both gates**:
-  - `check-domain.sh:1618-1667` (write-time) and `check-state.sh:1486-1535` (at-rest sweep) both
+  - `check-domain.py:1618-1667` (write-time) and `check-state.sh:1486-1535` (at-rest sweep) both
     load the schema fresh, build a `jsonschema.Draft202012Validator`, and **wrap the whole block in
     `try/except Exception`**. Read both `except` branches directly: both **append a denial/failure
-    message and treat the write as bad** (`out.append(...); return out` in check-domain.sh;
+    message and treat the write as bad** (`out.append(...); return out` in check-domain.py;
     `bad.append(...)` in check-state.sh) — this is **fail-closed**, not fail-open, so a
     schema-file-corruption or `jsonschema`-import failure blocks rather than silently passing.
   - `test-check-domain.py:_declared_shape_case` (`tests/integration/test-check-domain.py:114-124`)
@@ -112,8 +112,8 @@ Ran both test files myself, in the worktree, against the pin-identical tree (§1
 
 Traced the actual enforcement topology myself rather than accepting the evidence note's claim:
 
-- `grep -c '\.validate('` across `check-domain.sh` and `check-state.sh`: **zero** calls in
-  `check-domain.sh` — Write/Edit-tool payloads are never passed through `validate-digest.py`'s
+- `grep -c '\.validate('` across `check-domain.py` and `check-state.sh`: **zero** calls in
+  `check-domain.py` — Write/Edit-tool payloads are never passed through `validate-digest.py`'s
   digest schema at all; that gate governs `state.yaml` shape only, not digest content.
 - `check-state.sh:1590` — the **at-rest sweep** — calls `_vd_mod.validate("lead", _dtext)`
   unconditionally. This is where F2's raw-persona hole lives, and it is a **historical-scan of

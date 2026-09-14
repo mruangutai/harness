@@ -57,7 +57,7 @@ Output (every hit pre-existing, none of the five T-01 files appear):
 .claude/skills/harness-spec-driven/SKILL.md:2
 .claude/skills/harness-team/SKILL.md:1
 .claude/skills/harness/SKILL.md:12
-.claude/skills/harness/bin/check-domain.sh:11
+.claude/skills/harness/bin/check-domain.py:11
 .claude/skills/harness/bin/check-plan-routes.py:6
 .claude/skills/harness/bin/check-state.sh:22
 .claude/skills/harness/bin/factory_claim.py:6

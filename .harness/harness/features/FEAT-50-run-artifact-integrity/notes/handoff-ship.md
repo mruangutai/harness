@@ -33,7 +33,7 @@ from the main checkout.
 - `check-state.sh` exits **1** with two FEAT-50 rows (INV-33 stale pin, INV-26 plan/board
   divergence); both close on the `main` station write — run in the main checkout — verified-at 53022b5b
 - A governed write to the main checkout's FEAT-50 record is REFUSED at exit 2 —
-  `check-domain.sh` hook-mode probe, quoted in STATE.md — verified-at 53022b5b
+  `check-domain.py` hook-mode probe, quoted in STATE.md — verified-at 53022b5b
 - SC-01…SC-21 are graded by the PANEL, not by a pm goal-check —
   `notes/qa-feat50-pinned-review.md`, `notes/review-harness-code-reviewer-feat50-pinned.md` —
   verified-at 53022b5b

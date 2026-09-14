@@ -84,15 +84,15 @@ that is not. The record is accurate and complete.
 
 ## Verify the F-04 fix did not move my surface
 
-Confirmed. The only change relevant to any route I audited in cycle 1 is in `check-domain.sh`'s PRE
-branch (`check-domain.sh:2039-2046` at the pin): an `Edit` whose target matches `RE_RUN_IDENTITY` is
+Confirmed. The only change relevant to any route I audited in cycle 1 is in `check-domain.py`'s PRE
+branch (`check-domain.py:2039-2046` at the pin): an `Edit` whose target matches `RE_RUN_IDENTITY` is
 now denied by path alone, ahead of and independent from `_edit_reconstructed_content` — closing the
 cycle-1 F-04 gap where a nonexistent target caused `_edit_reconstructed_content` to return `None` via
 its `except OSError: return None` branch and fall through to `sys.exit(0)`. This is a strict narrowing
 of what is *permitted* (an Edit that creates the witness now exits 2, where it exited 0 before) and
 touches nothing my SEC-01 finding depends on: `_run_artifact_guard` in `bash-write-guard.sh`, the
-directory-vs-basename matching that produces SEC-01, and `check-domain.sh`'s unconditional
-`if RE_RUN_IDENTITY.match(rel): deny(...)` reporting branch (`check-domain.sh:1318`, unchanged) are
+directory-vs-basename matching that produces SEC-01, and `check-domain.py`'s unconditional
+`if RE_RUN_IDENTITY.match(rel): deny(...)` reporting branch (`check-domain.py:1318`, unchanged) are
 untouched by this diff. Confirmed by test: `tests/integration/test-check-domain.py`'s new
 `create_edit` case in `_bug1305_marker_file_protection` asserts `returncode == 2` for exactly the
 create-via-Edit case that previously exited 0 (diff shown, not re-executed — the dispatch's provenance

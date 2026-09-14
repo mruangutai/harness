@@ -37,7 +37,7 @@ checkout; it refuses at exit 1 when the feature dir resolves inside `.claude/wor
   and qa already produced the evidence out-of-tree — BRIEF.md ## Constraints — verified-at ac8dd671
 - REPLACING a recorded run digest — check-domain refuses it and permits only an EXTEND, so a
   malformed digest is repaired by appending, never by rewriting —
-  check-domain.sh refusal observed this run — verified-at 1361c0a1
+  check-domain.py refusal observed this run — verified-at 1361c0a1
 - `brief-sc:` and `plan-task:` authority pointers from inside a worktree — they resolve against the
   main checkout, where this feature dir does not exist; briefing row B-4 — verified-at 1361c0a1
 - Re-running the plan panel — it ran at cycle 1 and all four PF- findings are recorded `resolved`;

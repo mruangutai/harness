@@ -401,7 +401,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     `mutates_repo is False` conjunct closes MF-1 — the field the cycle-1 send-back corrected was
     previously invisible to its own gate. **The `outputs` conjunct is there for the same reason**
     (AMF-2): the panel/segment filename split is the one fix in this task whose failure is silent —
-    a wrong receipt path in `build.yaml` is BLOCKED by `check-domain.sh` at exit 2, but writing the
+    a wrong receipt path in `build.yaml` is BLOCKED by `check-domain.py` at exit 2, but writing the
     old `qa-c{{cycle}}.md` here would pass every other check in this PLAN and surface only as an
     overwritten qa note at cycle N of a real ship.
   traces: REQ-02, REQ-04, REQ-08, D-08
@@ -445,7 +445,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     — with a comment stating BOTH reasons this exact shape is required, because each is independently
     fatal (AMF-1): (i) the `harness-` prefix is what makes the rendered path match a receipt grant —
     all five grants in `team-config.yaml` (`:144`, `:158`, `:171`, `:184`, `:199`) require
-    `receipt-harness-`, and `check-domain.sh:242-248` **BLOCKS** an unmatched path at exit 2 rather
+    `receipt-harness-`, and `check-domain.py:242-248` **BLOCKS** an unmatched path at exit 2 rather
     than warning. So the `harness-` prefix must be a LITERAL in the template while `{{persona}}`
     substitutes the SHORT resolved name (`dev-ops`) that `persona: by_consult_when` yields — short
     resolution, full rendered path. This is exactly the mixed convention `review.yaml` already uses

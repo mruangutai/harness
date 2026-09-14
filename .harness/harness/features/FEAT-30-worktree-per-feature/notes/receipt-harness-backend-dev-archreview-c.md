@@ -83,7 +83,7 @@ does this, and nothing already treats harness as a non-fleet repo inside a facto
 
 Grepped for the literal `.claude/worktrees` and for `WORKTREES_SEGMENT` across `bin/*.py` and
 `bin/*.sh`. Existing sites that touch `WORKTREES_SEGMENT` (`harness_boundary.py:33,37,424,445-446`;
-`bash-write-guard.sh:432,441,450,465,473,562`; `check-domain.sh:433,499,603,644`) all compute a
+`bash-write-guard.sh:432,441,450,465,473,562`; `check-domain.py:433,499,603,644`) all compute a
 **boundary/membership test** — "is this write inside the worktrees area" — never a create
 **destination** of the form `owner_root/segment/id`. `bash-write-guard.sh:465`'s `_legal` is the
 closest, and it stops at `owner_root/WORKTREES_SEGMENT` (no id component), by design (D-07: this door

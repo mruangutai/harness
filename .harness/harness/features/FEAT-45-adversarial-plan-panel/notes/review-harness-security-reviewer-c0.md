@@ -26,7 +26,7 @@ state it.
   `subprocess.run([script], ...)` is a fixed self-path, list-form, no injection.
 - `bin/test-harness-yaml-corpus.py` — diffed; `TEAMS_EXPECTED` 2→3, a data constant, no logic.
 - `bin/test-plan-panel.py` — read header + all `subprocess.run` call sites
-  (`check-domain.sh --resolve <path>`); list-form argv, fixed binary, paths sourced from the
+  (`check-domain.py --resolve <path>`); list-form argv, fixed binary, paths sourced from the
   team file's own declared outputs, not attacker input.
 - `bin/run-unit-tests.sh` — diffed; exactly two new literal strings appended to
   `UNIT_SCRIPTS`. No new code path.
@@ -49,11 +49,11 @@ state it.
   `skills/harness/templates/plan.yaml` — diffed in full; pure doctrine prose plus the new
   `panel:` template block. Verified `panel:` is declared a sibling of `approval:`, and
   `.harness/team-config.yaml:25` (`".harness/*/features/*/plan.yaml approval:"`) is a
-  pre-existing, unchanged, key-level deny-list entry read by `check-domain.sh`
+  pre-existing, unchanged, key-level deny-list entry read by `check-domain.py`
   (`_yaml_key_range`, unchanged). pm's grant
   (`.harness/*/features/*/plan.yaml, upsert: true # except approval:`) is unchanged by this
   diff — the new `panel:` key rides on infrastructure that already exists and was already
-  built to resist key-boundary bypass (comment at `check-domain.sh:644-648` describes three
+  built to resist key-boundary bypass (comment at `check-domain.py:644-648` describes three
   previously-fixed bypasses). Not a gap opened by this diff.
 - Both `.omp/agents/harness-validator-lead.md` and `.claude/agents/harness-validator-lead.md`
   — diffed; identical new section in both copies (byte-for-byte prose match checked by eye).
@@ -135,7 +135,7 @@ the *innocuous* collision case but is silent on the *adversarial* one.
   (repo content flows to an external LLM whose return is unvalidated by design, DEC-206), but
   architecturally identical to every other harness reader that already reads plan/BRIEF
   content, not something this diff newly introduces. Bounded further by
-  `check-domain.sh`/`team-config.yaml:303-309`: `harness-validator-lead`'s write domain is
+  `check-domain.py`/`team-config.yaml:303-309`: `harness-validator-lead`'s write domain is
   scoped to its own run directory, its own expertise/observations files, and
   `.harness/notes/analysis-*.md` — even a fully manipulated lead cannot write outside that
   domain, so injected content reaching the lead cannot itself reach `plan.yaml`, source, or

@@ -40,14 +40,14 @@ validate-before-construct question the dispatch asked about, and it holds.
 ## 3. Write authorization — the 16 new grants do NOT create a cross-agent escalation
 
 Each new `team-config.yaml` line is `.harness/*/expertise/harness-<own-name>.md` — wildcard on the
-*repository segment*, literal on the agent name. `check-domain.sh` delegates matching to
+*repository segment*, literal on the agent name. `check-domain.py` delegates matching to
 `harness_boundary.py:glob_to_re`, which translates bare `*` to `[^/]*` (does not cross `/`) —
 confirmed by that file's own comment (`:43-46`) explaining why `fnmatch` was rejected for exactly
 this reason. So the wildcard can only ever match **one** path segment (the repo name), never a
 deeper path, and the agent-name field of every grant is a literal string. Result: agent X can write
 `.harness/<any-single-segment>/expertise/harness-X.md` and nothing else — it cannot write another
 agent's file, craft or repository tier. **No grant is wider than intended; this is not an
-authorization defect.** (`dev-ops`'s pre-existing Bash bypass of `check-domain.sh` entirely, DEC-85,
+authorization defect.** (`dev-ops`'s pre-existing Bash bypass of `check-domain.py` entirely, DEC-85,
 is unchanged by this diff — it already had unrestricted write power before repository tier existed,
 so the new file class doesn't meaningfully widen that specific sharp edge.)
 
@@ -114,10 +114,10 @@ the (already green) test suite.
 | boundary | STRIDE | mitigated |
 |---|---|---|
 | `SubagentStart` payload `agent_type` -> path construction / header | T, I | true — regex closes metacharacter classes; validated before any path use |
-| `team-config.yaml` repository-tier grant -> `check-domain.sh` write | E | true — `[^/]*` single-segment match verified in `harness_boundary.py`, agent-name field literal |
+| `team-config.yaml` repository-tier grant -> `check-domain.py` write | E | true — `[^/]*` single-segment match verified in `harness_boundary.py`, agent-name field literal |
 | Repository-tier files -> injected across all segments into every spawn | I | false, precondition-absent — mechanism proven live (case2), signed accepted risk (D-01), only 1 real segment exists today |
 | Expertise file content -> semantic/prompt injection into a future spawn | T, I | false, pre-existing (O-01), blast radius widened by file count, sole control is human PR review |
-| `dev-ops` Bash bypass of `check-domain.sh` | E | false, pre-existing (DEC-85), unchanged by this diff |
+| `dev-ops` Bash bypass of `check-domain.py` | E | false, pre-existing (DEC-85), unchanged by this diff |
 
 ## Not re-derived (already settled per dispatch)
 

@@ -113,7 +113,7 @@ cannot fail.
   set is identical before and after. This feature's design is deliberately shaped to that split —
   one library written by a squad, two hook cutovers by the operator's own hand.
 - **DEC-179.** Routing is resolved at plan time by delegating every literal
-  `files:` path to `check-domain.sh --resolve`. Every path in `plan.yaml` was resolved at HEAD
+  `files:` path to `check-domain.py --resolve`. Every path in `plan.yaml` was resolved at HEAD
   `c32f332` before its lane was assigned.
 - **DEC-90 no longer bounds anything: it is STRUCK, and not by this feature.** It stated the
   single-operator scope boundary and claimed there is no lock anywhere. **FEAT-30 falsified it** —
@@ -121,8 +121,8 @@ cannot fail.
   DEC-188, merged as `16b30c6`. Its index row carries the strike record and `SPEC.md` §15.1 is
   rewritten. Nothing in this feature re-opens it, and no task may re-litigate it. Listed here because
   three planning rounds treated it as a live constraint on this work; it never was.
-- **`plan.yaml` is absent from `check-domain.sh`'s `SHAPE_PATTERNS`** (verified at
-  `check-domain.sh`'s `SHAPE_PATTERNS`, `:727` at `c32f332`: the tuple holds `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`,
+- **`plan.yaml` is absent from `check-domain.py`'s `SHAPE_PATTERNS`** (verified at
+  `check-domain.py`'s `SHAPE_PATTERNS`, `:727` at `c32f332`: the tuple holds `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`,
   `RE_STATE_MD`, `RE_CLAUDE_MD` and nothing else), and so is the observation log. Adding either
   changes nothing — #628's 191-line file parsed cleanly. A shape gate is not the fix and is not
   proposed.
@@ -379,7 +379,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
 - SC-16: **WITHDRAWN, not unmet.** It asked the operator to be shown, at approval, that this plan
   contradicted a live DEC-90. DEC-90 was struck on 2026-08-21 under DEC-188 (`16b30c6`), falsified by
   FEAT-30 rather than by this feature, so the criterion has no subject left. No task depended on it.
-- SC-17: An agent cannot change a plan's approval block and the main session can. `check-domain.sh`
+- SC-17: An agent cannot change a plan's approval block and the main session can. `check-domain.py`
   denies a `harness-pm` and a `harness-orchestrator` Write or Edit that changes `plan.yaml`'s
   `approval:` mapping, allows one that leaves it loaded-equal, and allows the same change from a
   payload carrying no `agent_type` — the main session. It can go red: both directions are asserted
@@ -404,12 +404,12 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   name rather than by count.
   verify: automated      evidence: integration
 - SC-20: The exclusion is enforced **by reading the record**, and it therefore covers all three forms
-  the record names. `check-domain.sh` sources its denial from `team-config.yaml`'s
+  the record names. `check-domain.py` sources its denial from `team-config.yaml`'s
   `main_session.writes`, so a `harness-pm` Write that changes a `BRIEF.md`'s or a `PLAN.md`'s
   `## Approval` section body is DENIED — a case that FAILS at `62f861c`, where `team-config.yaml:89`
   and `:90` grant pm those files whole and the words `except ## Approval` beside them are a comment —
   while a write changing only another section is ALLOWED. A `grep -n main_session
-  .claude/skills/harness/bin/check-domain.sh` returns **zero** at `62f861c`; a non-zero result is part
+  .claude/skills/harness/bin/check-domain.py` returns **zero** at `62f861c`; a non-zero result is part
   of the deliverable, and a hardcoded `plan.yaml`-only pattern is a DEFECT against this criterion. It
   can go red three independent ways, all inside T-14's own suite: the `BRIEF.md` and `PLAN.md` cases
   assert both directions; a fixture whose `main_session.writes` DROPS the `plan.yaml approval:` entry
@@ -419,7 +419,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   the denial, and only that stderr line and T-14's own test notice.
   verify: automated      evidence: integration
 - SC-21: The signature is protected at TWO layers, and the second one survives a reformatting that
-  defeats the first. Layer 1 is the enforcement of who may sign: `check-domain.sh` denies a governed
+  defeats the first. Layer 1 is the enforcement of who may sign: `check-domain.py` denies a governed
   agent's `Edit` of `plan.yaml`'s `approval:` mapping in each of the three payload shapes that reach
   it — a line-aligned edit of the two-space `status:` line, an `old_string` that begins mid-line and
   so contains no two-space line start at all, and a `replace_all` sweep of the bare text
@@ -429,7 +429,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   nothing, when the proposal's `approval:` mapping loads differently from the base's, and ALLOWS a
   proposal whose approval differs only in whitespace or comments. Each payload shape is asserted
   individually, never by a count or a single grep over the set. It can go red two independent ways:
-  with `check-domain.sh`'s named guard literal mutated to `False` in a copy of the tree the three
+  with `check-domain.py`'s named guard literal mutated to `False` in a copy of the tree the three
   deny shapes must FAIL, and with `plan-merge.py`'s `APPROVAL_REFUSAL` mutated to `False` the refusal
   case must FAIL — asserted as the file being byte-identical and the proposal's task being ABSENT,
   because the byte carry-forward of layer 2's sibling property would otherwise make a result-only

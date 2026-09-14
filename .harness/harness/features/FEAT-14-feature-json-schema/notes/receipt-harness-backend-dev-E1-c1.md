@@ -10,7 +10,7 @@
   a yaml import token (`import yaml` / `from yaml`) co-occur in the SAME file — exact set
   `{"harness_yaml.py"}`.
 - **Assertion 2 (general anti-fallback rule, `<=` subset)**: files where the needle occurs at
-  all — subset of `{"harness_yaml.py", "feature_schema.py", "check-domain.sh"}`.
+  all — subset of `{"harness_yaml.py", "feature_schema.py", "check-domain.py"}`.
 
 Docstring rewritten to describe the two-assertion rule instead of the old superseded
 single-assertion contract. No other file touched.
@@ -33,13 +33,13 @@ Observed exit code: **0**
 - Assertion 1 remains exact-set equality (`==`), preserving D-12's original teeth at its correct
   (yaml-scoped) boundary.
 - `feature_schema.py`, `validate-feature-json.py`, `feature-schema.json`,
-  `test-validate-feature-json.py`, `run-unit-tests.sh`, `harness_yaml.py`, `check-domain.sh`,
+  `test-validate-feature-json.py`, `run-unit-tests.sh`, `harness_yaml.py`, `check-domain.py`,
   `check-state.sh`, `bash-write-guard.sh`, `validate-digest.py` were not opened for editing.
 - No commit made (orchestrator holds the pen per DEC-153).
 
 ## Additional checks (P-07/P-09 — a green suite alone does not prove an assertion redden-able)
 
-- **Latent-conflict check on `check-domain.sh`**: `git show HEAD:.claude/skills/harness/bin/check-domain.sh`
+- **Latent-conflict check on `check-domain.py`**: `git show HEAD:.claude/skills/harness/bin/check-domain.py`
   contains only `import harness_yaml` (3 occurrences, lines 338/502/530), never a bare `import yaml`
   or `from yaml`. When T-06 adds its guarded `import feature_schema`, Assertion 1 (yaml-scoped) will
   not be affected — no conflict between the two assertions is latent today.

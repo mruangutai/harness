@@ -56,7 +56,7 @@ it, outside `bin/`.
 | bash-write-guard.sh | FIXED-LITERAL-ARGV | line 42 runs python3 -c with a literal bootstrap plus the PY heredoc from its own source; argv[1:3] are $_derived and $_selfdir, both derived from BASH_SOURCE. The agent JSON it parses arrives via the HOOK_PAYLOAD env var (line 41), and its shlex.split uses (239, 380, 486) only tokenize for inspection, never execute |
 | board_lifecycle.py | TEXT-DERIVED-ARGV | line 1003 _ensure_abandoned_label runs [gh_bin, "label", "create", "abandoned", "--repo", repo_name]; repo_name comes from _resolve_board, which reads harness.json github.repo at lines 289-298 (json.load then github.get("repo")) |
 | check-decision-anchors.py | FIXED-LITERAL-ARGV | line 111 git_tracked_basenames runs ["git", "ls-files"], both elements literal; the DECISIONS.md anchors it parses (line 46 regex, line 172 open) are only compared against that output, never executed |
-| check-domain.sh | FIXED-LITERAL-ARGV | line 1478 _unmodified_since_commit runs ["git", "-C", _checkout] + _argv where _argv is one of two literal lists (1476-1477) and _checkout comes from the _sweep list built at 1417-1421 from the resolved root plus harness_boundary.linked_worktrees, both excluded provenances |
+| check-domain.py | FIXED-LITERAL-ARGV | line 1478 _unmodified_since_commit runs ["git", "-C", _checkout] + _argv where _argv is one of two literal lists (1476-1477) and _checkout comes from the _sweep list built at 1417-1421 from the resolved root plus harness_boundary.linked_worktrees, both excluded provenances |
 | check-omp-port.py | FIXED-LITERAL-ARGV | line 152 runs [sys.executable, str(sync), "--root", str(root), "--check"]; sync is a literal path join off root (line 150) and root is the CLI argument. The many yaml.safe_load reads (43, 60, 116) feed assertions only, never argv |
 | check-plan-routes.py | TEXT-DERIVED-ARGV | line 74 resolve_agents runs [CHECK_DOMAIN, "--resolve", path]; path is a task files: entry, called at line 199 and line 356 over literal_entries and literals, which come from harness_yaml.load_plan(plan.yaml) at line 308 or the PLAN.md regex reader. A plan-authored string is the third argv element |
 | check-state.sh | TEXT-DERIVED-ARGV | line 1633 runs [_gh_bin30, "api", "--paginate", "repos/%s/milestones..." % _repo30]; _repo30 is harness.json github.repo, read at line 1583 from the parsed config. The other sites (470, 1117, 1405, 1749) are literal git and gh argv |
@@ -136,7 +136,7 @@ executable is always a literal or an env var, and the value is a repo slug, a br
 - `board_lifecycle.py:1003` — `harness.json` `github.repo` into `gh label create --repo`
 - `check-state.sh:1633` — `harness.json` `github.repo` into a `gh api` path
 - `wayfind.py:66,83,170` — `harness.json` `github.repo` into `gh ... -R`
-- `check-plan-routes.py:74` — a `plan.yaml` `files:` path into `check-domain.sh --resolve`
+- `check-plan-routes.py:74` — a `plan.yaml` `files:` path into `check-domain.py --resolve`
 - `factory_workspace.py:103,129,130` — `fleet.yaml` `default_branch` into `git checkout`/`reset`
 - `feature-worktree.py:125,289` — `fleet.yaml` `default_branch` into `git worktree add`/`rev-parse`
 - `worktree_terminal.py:150,160` — `fleet.yaml` `default_branch` into `git ls-tree`/`rev-parse`

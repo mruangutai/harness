@@ -40,7 +40,7 @@ lie in the one artifact whose whole job is to be trusted.
 
 ## Working set
 
-- `.claude/skills/harness/bin/check-domain.sh` and `test-check-domain.py` — the schema gate and its
+- `.claude/skills/harness/bin/check-domain.py` and `test-check-domain.py` — the schema gate and its
   four new fixtures. DEC-174 carve-out: main session only.
 - `.claude/skills/harness/bin/gh-sync.py` and `test-gh-sync.py` — atomic write, and the reader
   converged on `json.load`. Its contract is unpinned (#285).

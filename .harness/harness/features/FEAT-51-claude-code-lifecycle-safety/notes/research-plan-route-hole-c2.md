@@ -8,9 +8,9 @@ evasion classes (F-03, H-02, C2-03, MF-1, HIGH-2). Recorded as **D-12**; the new
 
 ## The hole, and what FEAT-41 already buys
 
-Measured at `ad93d43e`: `.claude/settings.json:19` registers `check-domain.sh` on `PreToolUse` for
+Measured at `ad93d43e`: `.claude/settings.json:19` registers `check-domain.py` on `PreToolUse` for
 `Write|Edit` **only**; the `Bash` matcher at `:27` runs `branch-create-gate.sh`,
-`bash-write-guard.sh`, `gh-close-gate.sh`, `plan-sign-gate.sh`; `check-domain.sh --post` at `:62`
+`bash-write-guard.sh`, `gh-close-gate.sh`, `plan-sign-gate.sh`; `check-domain.py --post` at `:62`
 is a POST sweep. `plan.yaml`'s only writer is `plan-merge.py`, invoked through `Bash`. So T-03's
 branch covers `BRIEF.md`, `feature.json`, `STATE.md` and **cannot reach `plan.yaml`**.
 
@@ -42,7 +42,7 @@ command that turns a quarantined file canonical, so REQ-05 is otherwise unreacha
 `discard` and `list` are deliberately uncovered and the rule says so. It reads the `--file` value,
 normalises from its last `.harness/` segment, and reuses **T-02's** `canonical_artifact`,
 `orphan_write` and `quarantine_rel` — no second predicate. The root is the one the wrapper already
-resolves from its own directory, which is the same root `check-domain.sh:154` resolves — **D-14**,
+resolves from its own directory, which is the same root `check-domain.py:154` resolves — **D-14**,
 so both routes read one registry. D-04's OMP carve-out holds because `orphan_write` itself carries
 it. `inflight_registry` is imported only *after* a match, because this hook runs ahead of every
 `Bash` call in the session.
@@ -95,4 +95,4 @@ No REQ added or reworded.
   verb in the same tuple — not a new task.
 
 Proposal applied: `notes/research-proposal-route-hole-c2.md` (a YAML proposal carrying the `.md`
-name because `check-domain.sh` grants `harness-pm` only `notes/research-*.md`).
+name because `check-domain.py` grants `harness-pm` only `notes/research-*.md`).

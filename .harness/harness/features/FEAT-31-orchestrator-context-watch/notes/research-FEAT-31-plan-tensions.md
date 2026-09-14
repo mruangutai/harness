@@ -11,17 +11,17 @@ surface, DEC-187 over DEC-163). What follows is only what their notes do **not**
 
 ## T-A — SC-07's self-contradiction: diff-scope against **git HEAD**, not against disk
 
-Disk-prior scoping (the candidate as phrased) fails. `check-domain.sh` has two routes and they see
+Disk-prior scoping (the candidate as phrased) fails. `check-domain.py` has two routes and they see
 different content:
 
-- PRE blocks `Write` only (`check-domain.sh:981`), and there the file on disk is the prior version.
-- POST reads what landed (`check-domain.sh:993`), so disk holds the **new** content. Disk-prior there
+- PRE blocks `Write` only (`check-domain.py:981`), and there the file on disk is the prior version.
+- POST reads what landed (`check-domain.py:993`), so disk holds the **new** content. Disk-prior there
   grandfathers every entry and the POST route enforces nothing — and POST is the only route an
   `Edit`-append reaches.
 
 So: `legacy_ids` = the ids of `runs` entries in `git show HEAD:<path>` that **themselves lack the
 field**; require the field on every entry whose id is not in that set; empty set on any git failure
-(fails closed). `problems_for_text(text, display)` gains an optional third parameter; `check-domain.sh`
+(fails closed). `problems_for_text(text, display)` gains an optional third parameter; `check-domain.py`
 must thread the absolute path through, and its `targets` list is a 3-tuple built at three sites
 (`:983`, `:995`, the sweep) and consumed at `:1075` — widen all three, uniformly, because that file's
 own comment records mixed arity as a measured defect.
@@ -38,7 +38,7 @@ breaks the no-migration ruling; the diff rule is the single enforcement point.
 
 - `check-state.sh:593` is the only place a handoff path is constructed, from `SEAM_NOTES[_status]`, so
   `notes/handoff-<anything-else>.md` is never opened, demanded or rejected.
-- **Not previously named:** `check-domain.sh:665` `RE_HANDOFF` is
+- **Not previously named:** `check-domain.py:665` `RE_HANDOFF` is
   `^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$` — the write-time shape gate already
   accepts **any** lowercase stem with no whitelist. So a mid-phase stem is accepted at both gates today
   and no test can redden on acceptance.
@@ -50,7 +50,7 @@ check out of the `SEAM_NOTES` loop so a required note is reported once. Fixture:
 
 **Verified safe:** all 68 `handoff-*.md` currently on disk pass both rules, so the widening adds zero
 findings to the current tree. The real gap it closes is a note that never passed a `Write`/`Edit` route
-(git checkout, merge) — which `check-domain.sh` structurally cannot see.
+(git checkout, merge) — which `check-domain.py` structurally cannot see.
 
 **The mutation seam exists already:** `test-check-state.py:16` reads `CHECK_STATE_BIN`, and `:1815`
 already copies the script plus `harness_yaml.py` into a temp bin dir and runs the copy. So "delete the

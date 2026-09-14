@@ -36,7 +36,7 @@ forced constraint; everything else here was a choice.
   `RE_CLAUDE_MD` (`^CLAUDE\.md$`) and the four state regexes match nothing. The conversion set is
   unchanged — both fixtures were already named — so the operator's cost is not larger.
 - **T-03's own sixteen in-worktree cases were also at risk, and no angle saw it.** The resolve path
-  at `check-domain.sh:212` matches `harness_boundary.WORKTREE_REL_RE`, which T-04 PART 2 replaces;
+  at `check-domain.py:212` matches `harness_boundary.WORKTREE_REL_RE`, which T-04 PART 2 replaces;
   T-03 builds its in-worktree half bare. This is why the fix touches T-03 as well as T-04, and it
   is the extra cost of shape 2 over shape 1: every worktree fixture now needs a pointer pair.
 - **The pointer PAIR, not a pointer.** `checkout_relative` reads the worktree-side `.git` file;

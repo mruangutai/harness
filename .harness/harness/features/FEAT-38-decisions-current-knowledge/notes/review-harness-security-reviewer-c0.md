@@ -57,7 +57,7 @@ CI-registered test with no additional preconditions, and it defeats a control th
 (D-10) explicitly claims closes this exact exposure. This gates per contract (`gates.review: advisory_unless_high`).
 
 Note for context: `DECISIONS.md` being treated as "byte-frozen" is an editorial/review-scope convention for
-this panel, not a technical control in the repository — nothing in `check-domain.sh`'s write-guard or GitHub
+this panel, not a technical control in the repository — nothing in `check-domain.py`'s write-guard or GitHub
 branch protection stops a PR (including from an external contributor, or a same-repo branch by mistake) from
 adding content to this file. The vulnerability does not depend on that convention holding.
 
@@ -76,7 +76,7 @@ adding content to this file. The vulnerability does not depend on that conventio
   `permissions:` block narrows the default token, which is a hardening gap but not itself exploitable by this
   diff's content — noted, not rated as its own finding since it's pre-existing workflow shape, not new in this
   diff.
-- **Swept scripts** (`check-domain.sh`, `check-state.sh`, `run-unit-tests.sh`, `board_lifecycle.py`,
+- **Swept scripts** (`check-domain.py`, `check-state.sh`, `run-unit-tests.sh`, `board_lifecycle.py`,
   `check-plan-routes.py`, `factory_decompose.py`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`,
   `upgrade-config.py`, `validate-digest.py`, and the touched `test-*.py`): diffed every changed line across the
   full sweep for `curl|wget|eval|os.system|shell=True|` command substitution `` `...` ``/`$(...)`, and

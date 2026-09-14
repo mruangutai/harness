@@ -7,7 +7,7 @@ rule 1 that makes `functional` a soft skip, never selected. `unit` and `integrat
 required (unchanged from the first run) and both genuinely green.
 
 **Note on artifact path:** the dispatch specified
-`notes/receipt-harness-qa-qa2-validator.md`, but `check-domain.sh` blocked that write — my
+`notes/receipt-harness-qa-qa2-validator.md`, but `check-domain.py` blocked that write — my
 manifest permits only `notes/qa-*.md` and `notes/review-harness-qa-*.md` for this agent. Writing
 here instead, a distinct filename from the first run's `review-harness-qa-qa-validator.md` (not
 overwritten, not touched).

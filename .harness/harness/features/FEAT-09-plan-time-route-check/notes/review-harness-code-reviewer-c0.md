@@ -80,7 +80,7 @@ against an `fnmatch`-style reimplementation whose `*` matches `/` — confirmed 
 matcher. Cases 8/9/16 are source greps for the literal strings `fnmatch`/`glob_to_re`, respellable by
 any reimplementation using different names. This does not affect the delivered code — I read
 `resolve_agents()`/`process_task()` end to end and confirmed structurally, not by grep, that there is
-no local matching of any kind: every literal path goes to `check-domain.sh --resolve` via subprocess
+no local matching of any kind: every literal path goes to `check-domain.py --resolve` via subprocess
 (`check-plan-routes.py:52-57`) and the caller only parses that subprocess's stdout lines
 (`:61-67`). It is a regression-proofing gap in the test suite, not a live bug.
 
@@ -94,16 +94,16 @@ path (e.g. `package.json`, granted to nobody's `domain:` but listed under `team-
 execution_mode is team — legal tokens: team, main-session-direct`, exit 1. This is **not** a fail-open
 (it correctly flags rather than silently passing) but the message is wrong — it tells the planner to
 pick `team` or `main-session-direct`, and neither is true; the file is co-owned by convention. Also
-checked at the `--resolve` level directly: `check-domain.sh --resolve package.json </dev/null` →
+checked at the `--resolve` level directly: `check-domain.py --resolve package.json </dev/null` →
 `NOBODY` then `SHARED package.json`, exit 0 — the signal reaches the caller and is thrown away there,
 not lost upstream.
 
 ## F3 (LOW) — stale line-anchor, inherited from the PLAN, not introduced by the build
 
-`check-plan-routes.py:16` and `test-check-plan-routes.py:142` cite `check-domain.sh:190-197` for the
+`check-plan-routes.py:16` and `test-check-plan-routes.py:142` cite `check-domain.py:190-197` for the
 prefix-comparison bug. At the review SHA, lines 190-197 are the `_shared_hits`/`NOBODY`-emission code
 inside the `--resolve` branch — not the bug record. The actual bug documentation lives in
-`glob_to_re()`'s docstring at `check-domain.sh:61-69` (confirmed by reading both ranges, and by diffing
+`glob_to_re()`'s docstring at `check-domain.py:61-69` (confirmed by reading both ranges, and by diffing
 against base `47ed11f` where `glob_to_re`/`matches` sat nested inside `domain_check()` at that same
 190-197 range before T-01 moved them to module scope in this same diff). `DEC-179`'s own
 `DECISIONS.md` entry correctly cites `:61-69` — the right anchor was known, just not propagated back
@@ -129,20 +129,20 @@ only if a future feature promotes this to an argv-less `check-state.sh` invarian
 call; not raising as a new finding, only confirming the measurement independently since it was asked
 for by name.
 
-## SC-08 clause 1 (invokes check-domain.sh for every path decision) — structural confirmation
+## SC-08 clause 1 (invokes check-domain.py for every path decision) — structural confirmation
 
 Read control flow, not grep, per the dispatch's ask. Every literal `files:` entry passes through
 `resolve_agents()` → `subprocess.run([CHECK_DOMAIN, "--resolve", path], stdin=subprocess.DEVNULL, ...)`
 (`:52-57`). There is no entry-versus-grant comparison anywhere else in the file — `process_task` only
 branches on whether `resolve_agents()` returned a non-empty list and on the `execution_mode:` token
 string. Confirmed exactly one matcher (`matches()`/`glob_to_re()`) exists in the diff, at
-`check-domain.sh:61-97`, and diffed the post-agent-identity section of `check-domain.sh` against base:
+`check-domain.py:61-97`, and diffed the post-agent-identity section of `check-domain.py` against base:
 identical except `glob_to_re`/`matches` moved from nested-in-`domain_check` to module scope (comment at
 `:325-326` says so; confirmed byte-for-byte via `diff`).
 
 ## Hook-path regression check (SC-04) — confirmed unchanged, tested via pipes not inline strings
 
-Piped real JSON payloads into `check-domain.sh` (no `--resolve` in argv): an out-of-domain write
+Piped real JSON payloads into `check-domain.py` (no `--resolve` in argv): an out-of-domain write
 (`harness-backend-dev` → `docs/harness/DECISIONS.md`) → exit 2 with the expected `BLOCKED` message and
 permitted-domain listing; an in-domain write (`harness-backend-dev` → `.claude/skills/harness/bin/x.py`)
 → exit 0, no stderr. Matches `test-check-domain.py` cases (g)/(h) (`:459-469`), which use the same
@@ -150,13 +150,13 @@ subprocess-with-real-JSON shape rather than an inline escaped-quote string.
 
 ## `--resolve` structural stdin-safety (SC-03) — confirmed by reading control flow
 
-`payload=$(cat)` (`check-domain.sh:40`) sits in the `else` branch of `if [ "${1:-}" = "--resolve" ];
+`payload=$(cat)` (`check-domain.py:40`) sits in the `else` branch of `if [ "${1:-}" = "--resolve" ];
 then ... else payload=$(cat); fi` (`:36-41`) — provably unreachable when `--resolve` is in argv, not
 just empirically fast. `HARNESS_RESOLVE_PATH` is the only channel used on that branch.
 
 ## Divergence check (hazard 4) — hook fails open, `--resolve` fails closed on missing manifest
 
-Read and agree with the design: `check-domain.sh:128-132`'s comment states the reasoning directly — the
+Read and agree with the design: `check-domain.py:128-132`'s comment states the reasoning directly — the
 hook's open-fail exists because blocking every write in an un-onboarded project is worse than not
 enforcing (DEC-101), and that logic does not transfer to a plan-time query, where reporting `NOBODY`
 on the strength of a broken/absent config would put a task in the main-session lane incorrectly. This
@@ -170,7 +170,7 @@ first per `git log`), and the diff here is a clean one-element append (12→13 e
 --numstat` = one line changed). `run-unit-tests.sh`, `test-check-domain.py`, `test-check-plan-routes.py`
 all pass locally (32 named checks total across the two new/changed test files, plus 12 unrelated
 scripts), and `check-docs.sh` exits 0. DECISIONS.md's new DEC-179 entry and the DECISIONS-INDEX.md row
-are accurate against the diff (cites `check-plan-routes.py:52-57` and `check-domain.sh:61-69`
+are accurate against the diff (cites `check-plan-routes.py:52-57` and `check-domain.py:61-69`
 correctly — the fresher, correct anchor, unlike the two stale in-source citations in F3).
 
 ## Findings ranked
@@ -182,7 +182,7 @@ correctly — the fresher, correct anchor, unlike the two stale in-source citati
    bug); already disclosed by harness-qa, independently reproduced.
 3. F2 — MED — `SHARED`-only paths produce a misleading VIOLATION message (not a fail-open); already
    disclosed by harness-qa, independently reproduced.
-4. F3 — LOW — stale `check-domain.sh:190-197` anchor in two source comments, inherited from
+4. F3 — LOW — stale `check-domain.py:190-197` anchor in two source comments, inherited from
    `PLAN.md:210`; already disclosed, cosmetic.
 5. F4 — checked, cleared as a *new* finding — the argv-less glob is real but out of REQ-05's
    SC-scoped coverage and already disclosed/accepted as non-blocking; independent measurement matches.

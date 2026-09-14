@@ -59,7 +59,7 @@ outside `tests/`, rendered on stderr as `MISCONFIGURED: tracked test-shaped file
 case 2 and via `run-unit-tests.sh:33-40`). It states the fact and the path but not the remedy —
 contrast with sibling refusal messages in the SAME `.claude/skills/harness/bin/` directory
 (`bash-write-guard.sh:233-234` "Work in the worktree cut for this feature and address it with
-git's -C option rather than moving to it.", `check-domain.sh:207-209` "Restore
+git's -C option rather than moving to it.", `check-domain.py:207-209` "Restore
 .agents/skills/harness/bin/harness_boundary.py, then retry.", `check-plan-routes.py:639-644`
 "Point the override at a harness checkout, or pass PLAN.md paths explicitly."), which pair the
 fact with an explicit next action. This message does not.

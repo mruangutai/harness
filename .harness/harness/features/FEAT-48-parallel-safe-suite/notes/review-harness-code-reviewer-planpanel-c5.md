@@ -174,7 +174,7 @@ edit via the absorbed-run-set mechanism. This is deliberate and extensively docu
 
 **Ruling: SIGNABLE.** Two independent reasons:
 
-1. **Write authorization does not come from `files:` at all.** Read `check-domain.sh` directly:
+1. **Write authorization does not come from `files:` at all.** Read `check-domain.py` directly:
    its `--resolve` / hook-time authorization is computed from the manifest domain grant
    (`main-session-direct` under the DEC-174 carve-out, covering the whole
    `.claude/skills/harness/bin/**` glob) — it never consults a task's per-file `files:` list. D-10's

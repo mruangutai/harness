@@ -4,7 +4,7 @@ BLUF: D-09's blast-radius count (5) is exact, empirically confirmed by mutation.
 worktree_owner/linked_worktrees split is real and asymmetric (worktree-side vs owner-side),
 which creates one accepted-cost state D-09 doesn't separately name (deleted `.git` file,
 owner-side intact → swept but silently mis-normalised). T-05 in bash-write-guard.sh is the
-only place a git-subcommand parser exists; check-domain.sh has none despite DEC-84 naming it
+only place a git-subcommand parser exists; check-domain.py has none despite DEC-84 naming it
 as that rule's intended home. The dev-ops early-return is confirmed by both code and
 measurement. D-02's "fails OPEN" is measured TRUE for `harness_boundary.classify` (exit 1,
 uncaught `NameError`) and PARTIALLY true overall — the shape-phase's *planned* absorbing
@@ -31,7 +31,7 @@ Listed by line in `test-check-domain.py`'s `run_post`, all depending on `_norm`'
 - L1189 `"pre Write on a worktree file names the WORKTREE..."` (`_wcm`)
 - L1198 `"the sweep still names the worktree it came from"` (`_wcm`, via sweep)
 Each depends on the strip because `RE_CLAUDE_MD`/`RE_FEATURE_JSON` are anchored
-(`check-domain.sh:663,669`) and only match the STRIPPED relative path.
+(`check-domain.py:663,669`) and only match the STRIPPED relative path.
 
 **(b) Measured.** Copied `bin/`, neutered `_norm`'s regex (never matches) and dropped the
 worktree arm of `SWEEP_GLOBS`, ran the suite with `CHECK_DOMAIN_BIN` pointed at the copy:
@@ -40,7 +40,7 @@ exactly those 5 named cases went red (`the sweep reaches a file inside .claude/w
 worktree...`). One unrelated case (`schema/a CRASHING schema module DENIES...`) also reddened
 under **any** `CHECK_DOMAIN_BIN` override, including an unmutated copy — confirmed as a
 harness of the test (it mutates the real checkout's `feature_schema.py` by `__file__`, which
-the copy's `check-domain.sh` never imports) — not part of D-09's blast radius.
+the copy's `check-domain.py` never imports) — not part of D-09's blast radius.
 
 **(c) Pointer sides, measured/read.** `worktree_owner` (`harness_boundary.py:355`) reads only
 the **worktree-side** `.git` file — it walks up from the target path and parses that file's own
@@ -83,28 +83,28 @@ consistent with D-09's own "cannot all hold at once" trilemma, not a refutation 
 
 ## Q2 — which guard hosts the HEAD-move refusal
 
-`.claude/settings.json`: `check-domain.sh` is registered for `PreToolUse` matcher `Write|Edit`
+`.claude/settings.json`: `check-domain.py` is registered for `PreToolUse` matcher `Write|Edit`
 (never `Bash` pre-write) and `PostToolUse` matcher `Write|Edit|Bash` (via `--post`).
 `bash-write-guard.sh` is registered for `PreToolUse` matcher `Bash` only. So **only
-`bash-write-guard.sh` sees a Bash command before it runs**; `check-domain.sh` only sees Bash
-post-hoc, and its post-Bash branch (`check-domain.sh:1003-1042`) reads no command text at all —
+`bash-write-guard.sh` sees a Bash command before it runs**; `check-domain.py` only sees Bash
+post-hoc, and its post-Bash branch (`check-domain.py:1003-1042`) reads no command text at all —
 it globs the filesystem, deliberately ("classifying arbitrary shell... is the prediction
 problem this mode exists to avoid").
 
-`check-domain.sh` parses **no** git-subcommand or command text anywhere — grepped for
+`check-domain.py` parses **no** git-subcommand or command text anywhere — grepped for
 `destructive`/`rm -rf`/`--force`/`git push`/`git reset`: zero hits. DEC-84's own text
 (`DECISIONS.md:1075-1076`) says the destructive-operation matcher is "a `Bash` matcher in
-`check-domain.sh`... or it does not exist" — and empirically it does not exist there. The one
+`check-domain.py`... or it does not exist" — and empirically it does not exist there. The one
 and only git-subcommand parser in either script is `bash-write-guard.sh`'s worktree
 `add`/`move` walk (lines ~405-427, confirmed by reading), which T-05 plans to extend in place
 (admitting `remove`/`prune`, and separately adding the HEAD-move vocabulary).
 
 Given the routing (only `bash-write-guard.sh` receives Bash pre-write) and the parser's actual
-location (only in `bash-write-guard.sh`), `check-domain.sh` could not host a git-subcommand
+location (only in `bash-write-guard.sh`), `check-domain.py` could not host a git-subcommand
 rule on the Bash pre-write route without **either** growing a second parser inside itself
 **or** being newly registered on `PreToolUse: Bash` (a settings change T-05 as scoped does not
 make and does not need). The two scripts do not see the same payload for a Bash call: only
-`bash-write-guard.sh` sees it pre-write; `check-domain.sh` sees Bash only post-write, with no
+`bash-write-guard.sh` sees it pre-write; `check-domain.py` sees Bash only post-write, with no
 command text exposed to it by design.
 
 ## Q3 — the dev-ops exemption
@@ -137,7 +137,7 @@ code confirms no such exemption exists).
 
 Only two classes share an early-return before any rule: no `agent_type` at all (main
 session/ungoverned tools), and `agent_type` not prefixed `harness-`. `harness-dev-ops` is the
-only **named** persona exemption. `check-domain.sh` has no persona-specific early return at
+only **named** persona exemption. `check-domain.py` has no persona-specific early return at
 all — grepped for `dev-ops`, zero hits — so no equivalent exemption exists there.
 
 ## Q4 — T-04 atomicity / fail-open
@@ -149,7 +149,7 @@ fixture (`.git` file worktree-side, matching pointer owner-side) with a governed
 NOT-granted write (`harness-documentor` write to `notallowed/x.md`, granted only
 `allowed/**`). Result: **exit 1**, an uncaught `NameError: name 'WORKTREE_REL_RE' is not
 defined` at `harness_boundary.py:309` inside `classify`. Exit 1 is the guard's own documented
-non-blocking code (`check-domain.sh:14` "exit 1 is a NON-blocking error and the write
+non-blocking code (`check-domain.py:14` "exit 1 is a NON-blocking error and the write
 proceeds") — the write is not refused. **D-02's claim is measured TRUE for this consumer.**
 
 **(b) Shape-phase absorbing import, simulated.** T-04 hasn't landed, so there is no shipped
@@ -167,7 +167,7 @@ base-relative path — it does not propagate to an uncaught exception the way th
 `harness_boundary.classify` (used by every governed Write/Edit through `domain_check()`) — an
 uncaught exception there is a **total** fail-open (no write refused for any reason, not only
 worktree ones), which alone justifies T-04's atomicity. By identical unguarded-reference code
-shape, the same applies to the `check-domain.sh` resolve-path access at line 212 (not
+shape, the same applies to the `check-domain.py` resolve-path access at line 212 (not
 independently driven end-to-end here — same code pattern, not separately measured). It is
 NOT correct as a blanket description of the shape-phase normaliser or the sweep-glob site:
 those are specified with (and, simulated here, correctly implement) an ABSORBING import whose

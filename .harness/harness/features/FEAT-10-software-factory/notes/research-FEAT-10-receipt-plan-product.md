@@ -8,7 +8,7 @@ clear. Cycle-1 observations were taken at `914b6fd`; cycle-2 re-verification is 
 was run after every edit.
 
 Filename note: the dispatch asked for `notes/receipt-harness-pm-plan-product.md`.
-`check-domain.sh` BLOCKED that write — harness-pm's grants under `notes/` are
+`check-domain.py` BLOCKED that write — harness-pm's grants under `notes/` are
 `research-*.md` and `uat-*.md` only. Written here instead rather than worked around.
 
 ## 1. check-state.sh
@@ -118,7 +118,7 @@ nothing in the plan depends on the answer.
 ## 7. Routing resolved by running the guard, not by reading the config
 
 ```
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve <path>
+$ bash .claude/skills/harness/bin/check-domain.py --resolve <path>
 .claude/skills/harness/bin/factory_gh.py      -> harness-backend-dev, harness-dev-ops
 .claude/skills/harness/bin/run-unit-tests.sh  -> harness-backend-dev, harness-dev-ops
 .claude/skills/harness/bin/check-state.sh     -> harness-backend-dev, harness-dev-ops

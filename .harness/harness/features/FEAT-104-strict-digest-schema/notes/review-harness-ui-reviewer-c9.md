@@ -62,14 +62,14 @@ on its own (G-13: names the concrete remedy, not just the fact). **F1 confirmed 
 ## Cross-emitter message-consistency assessment
 
 Three emitters carry the enforcement text an operator reads: `validate-digest.py` (digest-key
-rejection), `check-domain.sh` (step-key rejection, schema_version floor, schema_version downgrade —
+rejection), `check-domain.py` (step-key rejection, schema_version floor, schema_version downgrade —
 all via the file's existing `_head()` convention, confirmed against a dozen pre-existing call sites
 in the same file, P-14), and `check-state.sh` (the at-rest `INV-16` sweep, same house style
 `INV-16: {rel}: run {run_id} step {step_id}: undeclared step key or evidence shape {names} —
 declare recovery fields in .claude/skills/harness/bin/run-state-schema.json; put per-dispatch facts
 under evidence.`).
 
-- **Route symbol for step keys is consistent across all three**: `check-domain.sh`'s write-time
+- **Route symbol for step keys is consistent across all three**: `check-domain.py`'s write-time
   message and `check-state.sh`'s at-rest message both name the same file
   (`.claude/skills/harness/bin/run-state-schema.json`) and the same symbol (`evidence`), with
   near-identical remedy wording (only cosmetic phrasing differs — "A recovery field is declared in…"

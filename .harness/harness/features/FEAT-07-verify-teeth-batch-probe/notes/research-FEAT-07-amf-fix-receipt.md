@@ -1,7 +1,7 @@
 # Verification receipt — harness-pm — FEAT-07 amf-fix (arch-review resolution)
 
 > **PATH NOTE, raised as an open question, not worked around.** This dispatch asked for
-> `notes/receipt-harness-pm-amf-fix.md`. `check-domain.sh` BLOCKED that write: `harness-pm`'s grant
+> `notes/receipt-harness-pm-amf-fix.md`. `check-domain.py` BLOCKED that write: `harness-pm`'s grant
 > list has no `receipt-*` entry (permitted: `BRIEF.md`, `PLAN.md`, `notes/research-*.md`,
 > `notes/uat-*.md`, `observations/harness-pm.md`, and two codebase lenses). The hook's own message
 > says "if this path should be yours, it belongs in `.harness/team-config.yaml` — do not work around
@@ -300,7 +300,7 @@ every base claim in the table holds — and the paragraph now names all four pat
 
 Nothing outside the three items changed. The LEAVE list, D-07's shape, the seven collation criteria
 and both `## Approval` blocks are untouched. No gate script was run — `check-docs.sh`,
-`check-state.sh`, `check-domain.sh` and `run-unit-tests.sh` are all withheld by dispatch; every
+`check-state.sh`, `check-domain.py` and `run-unit-tests.sh` are all withheld by dispatch; every
 command above is `grep`, `awk` or `git status`. Nothing was written under `runs/`.
 
 **My own return block was piped through the validator, as the dispatch mandates** — the one piece of

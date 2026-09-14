@@ -49,17 +49,17 @@ I reproduced all of it against the real hook:
 | `harness-code-reviewer` (read-only) → `src/main.py` | **allowed, rc=0** | blocked, rc=2 |
 | read-only reviewer → `.claude/settings.json` | **allowed, rc=0** | — |
 | reviewer → a path outside the repository | **allowed, rc=0** | — |
-| `harness-documentor` → `check-domain.sh` | **allowed, rc=0** | — |
+| `harness-documentor` → `check-domain.py` | **allowed, rc=0** | — |
 
 The same write is denied through the shell and permitted through the tool. To size the damage I ran
-it against a **copy** of `check-domain.sh`: exit 0, output `ADDED P-99` / `APPLIED …`, and the file
+it against a **copy** of `check-domain.py`: exit 0, output `ADDED P-99` / `APPLIED …`, and the file
 went from **67,976 bytes to 71** — the domain hook replaced by three lines of markdown. The real
 files are untouched and verified intact.
 
 Two honest bounds. The written content is constrained to the Expertise markdown shape, so this is a
 clean tampering primitive for Expertise files — which are injected into every agent spawn, making
 doctrine injection the sharpest risk — and a blunt truncation primitive for everything else. Blunt is
-still enough: emptying `check-domain.sh` or `settings.json` disables enforcement.
+still enough: emptying `check-domain.py` or `settings.json` disables enforcement.
 
 **Your decision, and it is the panel's blocking question.** The guard is **allow-by-omission**:
 anything its write-pattern vocabulary does not textually recognise skips both checks. This diff added
@@ -112,7 +112,7 @@ T-04's whole mechanism exists to serve has **zero live instances**. The feature 
 isolation it delivers.
 
 Two things soften it, both measured by me. Governance on the live tree is unregressed: inside
-FEAT-31, `check-domain.sh --resolve` returns the same personas as at the repository root for both a
+FEAT-31, `check-domain.py --resolve` returns the same personas as at the repository root for both a
 granted and a differently-granted path. And a path under a *non-existent* worktree resolves to
 `NOBODY` — fail-closed, not fail-open — because the new resolution reads the git pointer rather than
 counting segments.
@@ -137,7 +137,7 @@ cheap to check and would have travelled as fact.
    coverage is behavioural, not by-name.
 2. **The docs pass's headline finding is overstated.** It held that "the hook cannot see writes made
    via Bash" is falsified and restated in two *preloaded* skills, so every lead reasons from a false
-   premise at spawn. `harness-team/SKILL.md:94` names **`check-domain.sh`** specifically and is
+   premise at spawn. `harness-team/SKILL.md:94` names **`check-domain.py`** specifically and is
    correct — the Bash route is a different hook — and `harness-zero-micro-management` contains no such
    claim at all. What remains is `BUILD.md:147`'s unqualified "the hook", a low docs-precision item.
 3. **T-03's recorded red proof is inert at HEAD** — this one is mine, against the operator's own

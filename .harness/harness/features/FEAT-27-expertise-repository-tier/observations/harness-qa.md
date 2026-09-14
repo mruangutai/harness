@@ -1,7 +1,7 @@
 # Observations — harness-qa — FEAT-27
 
 - 2026-08-19: `bash-write-guard.sh` denies `cp`/`sed -i` on ANY path under the scratchpad
-  (`check-domain.sh --resolve` answers `NOBODY` there) — not just repo paths. Mutation-probe
+  (`check-domain.py --resolve` answers `NOBODY` there) — not just repo paths. Mutation-probe
   copies must go through the `Write` tool, never `Bash cp`, even in scratchpad. Cost me one
   self-inflicted bug: I wrote a mutated `check-expertise.sh` copy under the baseline's filename
   by re-using a mutation draft as the "baseline" — caught only because the T-03 abspath probe

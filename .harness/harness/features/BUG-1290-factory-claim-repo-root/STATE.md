@@ -66,7 +66,7 @@ task or approval was changed.
   dispatch runs no suite and grades no matrix. Both members' ops are applied and verified on disk
   regardless. A distillation/post-merge path is missing. (qa also spelled `matrix_ok: none` rather
   than `n/a` — a real member slip, independent of the defect above.)
-- Q2 (**new, non-blocking, harness defect**): `check-domain.sh` resolved the fleet declaration from
+- Q2 (**new, non-blocking, harness defect**): `check-domain.py` resolved the fleet declaration from
   the main checkout's `factory_gh.py`, which imported a module existing only in an unrelated
   in-flight edit, and denied every write factory-wide — including `/tmp` — until that tree settled.
   A guard whose availability depends on another feature's uncommitted tree fails closed globally.

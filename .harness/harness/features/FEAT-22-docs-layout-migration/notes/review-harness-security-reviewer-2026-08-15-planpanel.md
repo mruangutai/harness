@@ -35,11 +35,11 @@ gates, expertise, feature state) is measured clear.
 FEAT-21's plan.yaml (`:115-123`) documents it as an intentional multi-repository-segment mechanism
 ("Grants, globs and regexes take a WILDCARD repository segment… never a hardcoded harness segment…
 team-config.yaml is one global file (issue 346), so a hardcoded segment grows a line per repository").
-`check-domain.sh`/`check-plan-routes.py`/`check-state.sh` all anchor that segment with `[^/]+`
+`check-domain.py`/`check-plan-routes.py`/`check-state.sh` all anchor that segment with `[^/]+`
 (single-segment, matching `matches()`'s behavior) — so the docs grant inherits an *already-signed*
 risk shape rather than introducing a new one. The precedent carries no narrowing D-01 omits.
 
-1(d) — measured directly: `check-domain.sh --resolve docs/harness/SPEC.md` (pre-move, live tree)
+1(d) — measured directly: `check-domain.py --resolve docs/harness/SPEC.md` (pre-move, live tree)
 returns exactly `harness-documentor`, and the destination pre-move returns `NOBODY` — confirming no
 other role currently resolves for the docs surface, so nothing is orphaned by the move, and T-02's
 intent explicitly retains the existing `docs/**` entry.
@@ -105,7 +105,7 @@ reading the fixture, not assumed. The escape still functions post-move for the r
 **before** `select_base` and before any glob match. Resolution happens once, up front, against the
 fully-resolved real target — this is depth-independent and link-style-independent (relative or
 absolute). The move from a 2-segment to a 3-segment base changes nothing about *when* or *how*
-symlinks are resolved; realpath handles either uniformly. `check-domain.sh`/`bash-write-guard.sh` both
+symlinks are resolved; realpath handles either uniformly. `check-domain.py`/`bash-write-guard.sh` both
 call the same shared `classify()` (grepped: both import `harness_boundary` and call `.classify(`), so
 this holds for both PreToolUse routes, not just one.
 

@@ -78,12 +78,12 @@ T-03/T-05, since T-02's additions are purely additive to the library surface.
 
 ## Route asymmetry, doctrine anchors — confirmed accurate, no finding
 
-`check-domain.sh:917,922` are exactly the two `feature_checkout_guard(...)` calls (allow/shared
+`check-domain.py:917,922` are exactly the two `feature_checkout_guard(...)` calls (allow/shared
 verdict branches); `bash-write-guard.sh:794` is exactly the DEC-153 `continue`, `:841,:845` are
 exactly the two `feature_checkout_guard(...)` calls sitting under the `:840`
 `verdict["outcome"] in ("allow", "not_a_domain_question")` branch — confirming T-06's "IN-REPO
 DESTINATIONS ONLY" clause is load-bearing exactly where the plan says (Write route returns early on
-`not_a_domain_question` at check-domain.sh:902-908, before 917/922; Bash route's :840 catches both
+`not_a_domain_question` at check-domain.py:902-908, before 917/922; Bash route's :840 catches both
 outcomes at the same call site), and T-05 case 14 / SC-04 case 4 test it. DEC-193's first
 divergence bullet is at DECISIONS.md:5338-5339 verbatim as the plan cites (the Advisor's own
 5334-5335 citation was the stale one — the plan's cycle-2 repair already re-verified and corrected

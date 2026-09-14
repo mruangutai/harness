@@ -3,7 +3,7 @@
 Source: `runs/2026-09-04-20-validator/digest.md` (gitignored). Copied here unchanged so the record
 survives. This file is the transcription source for plan.yaml's cycle-6 `panel:` mapping.
 
-Path note: the dispatch named `notes/review-plan-panel-c6.md`; `check-domain.sh` denies `review-*`
+Path note: the dispatch named `notes/review-plan-panel-c6.md`; `check-domain.py` denies `review-*`
 to harness-pm (it is the validator lead's path), so this copy lives under pm's own
 `notes/research-<FEAT>-*.md` grant, as the cycle-4 transcription note did.
 

@@ -23,7 +23,7 @@ readers:
   reason: none
   artifact: none
   note: RAN, and was NOT skipped. Its review completed; the write of notes/review-harness-code-reviewer-planpanel-c1.md
-    was refused by check-domain.sh claim_worktrees() unioning a stale live harness-code-reviewer claim
+    was refused by check-domain.py claim_worktrees() unioning a stale live harness-code-reviewer claim
     from FEAT-05-factory-doc-smoke. Its findings survive verbatim in the panel digest and its full prose
     in history://Bug440Plan.MilitaryAmphibian.ScopeReview. Harness defect, carried up as the lead's Q1.
 - reader: goalcheck

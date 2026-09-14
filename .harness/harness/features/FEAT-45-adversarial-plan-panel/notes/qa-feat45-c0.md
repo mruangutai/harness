@@ -77,9 +77,9 @@ of the worktree with **only the file under mutation materialized as an independe
 then reset. Real worktree confirmed clean throughout and after (`git status --porcelain`
 empty).
 
-One environmental artifact surfaced and was isolated: routing `check-domain.sh` through the
+One environmental artifact surfaced and was isolated: routing `check-domain.py` through the
 fixture's `.git` (a symlink to the real repo) makes its own root resolution disagree with
-`CLAUDE_PROJECT_DIR`, so **case (2)'s two `check-domain.sh` sub-checks fail on the
+`CLAUDE_PROJECT_DIR`, so **case (2)'s two `check-domain.py` sub-checks fail on the
 UNMUTATED baseline too** — confirmed by a baseline (no-mutation) run before trusting any
 result. This is noise from the harness, not a defect in the assertion; case (2) was instead
 proven directly (§ below) by reproducing its exact subprocess call against the real repo root
@@ -89,7 +89,7 @@ with no relocation.
 |---|---|---|---|
 | (1a) should-not-exist prompt asks "what here should not be built at all" | reworded the question | RED (`FAIL (1a)...`), no other assertion affected beyond baseline noise | binding |
 | (1b) scope prompt asks "which tasks serve no live requirement" | reworded the question | RED (`FAIL (1b)...`) | binding |
-| (2) `check-domain.sh --resolve` grant, scope step's output path | direct probe (real repo root, unmutated env): real granted path resolves `code-reviewer` (PASS); a wrong-prefix path resolves only `harness-orchestrator`, no `code-reviewer` (FAIL) | RED on the mutant path, GREEN on the real one | binding, not vacuous |
+| (2) `check-domain.py --resolve` grant, scope step's output path | direct probe (real repo root, unmutated env): real granted path resolves `code-reviewer` (PASS); a wrong-prefix path resolves only `harness-orchestrator`, no `code-reviewer` (FAIL) | RED on the mutant path, GREEN on the real one | binding, not vacuous |
 | (3) scope's `on_fail.loop_back` output carries `{{cycle}}` | replaced `c{{cycle}}` with `c0` | RED (`FAIL (3) scope's loop_back outputs...`) | binding |
 | (4a) should-not-exist persona is not a canonical `.omp/agents/` role | changed persona to `harness-code-reviewer` | RED (`FAIL (4a)...`) | binding |
 | (8a) panel persona ∈ `harness-validator-lead.md`'s `spawns:` | removed `fable-advisor` from frontmatter list only | RED (`FAIL (8a)...`), (8b) unaffected | binding, independently proven |

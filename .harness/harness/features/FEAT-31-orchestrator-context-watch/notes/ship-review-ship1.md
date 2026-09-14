@@ -66,7 +66,7 @@ substring check would have passed on a text that buried the reassurance at the e
 
 **I can corroborate that finding from my own behaviour.** Eight of my `feature.json` writes drew a
 `PostToolUse` exit 2 wrapped as a "blocking error". Every one had landed. The only reason I kept them
-is that `check-domain.sh` says `OVER BUDGET (already written)` rather than `BLOCKED`.
+is that `check-domain.py` says `OVER BUDGET (already written)` rather than `BLOCKED`.
 
 ## What I got wrong
 
@@ -114,17 +114,17 @@ everything that survived.** None of these duplicate #663–#669.
 | ID | Finding | Nature |
 |---|---|---|
 | B-1 | **No gate ever walks the real projects root.** `verify-context-watch-live.py` is in neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS`, so even its own `--self-test` never gates — the discovery-depth mechanism this feature exists to fix stays undetectable by CI. The panel's deepest residual | bug |
-| B-2 | **DEC-159 contradicts itself and the code**: `:3986` denies handoff notes above **40** lines, its own `:3968` says **~60 (raised at DEC-160)**, and `check-domain.sh:951` enforces **60**. It survived T-19 — a cycle whose whole subject was a false clause in this same entry | bug |
+| B-2 | **DEC-159 contradicts itself and the code**: `:3986` denies handoff notes above **40** lines, its own `:3968` says **~60 (raised at DEC-160)**, and `check-domain.py:951` enforces **60**. It survived T-19 — a cycle whose whole subject was a false clause in this same entry | bug |
 | B-3 | **The tool cannot say "I could not scan."** `main()`'s catch sets `rows = []` and prints "no orchestrators found" at **exit 0** — a clean sentence meaning the opposite of the truth. Three separately-filed reviewer items are this one absent capability | bug |
 | B-4 | **Two hosts can run the same task concurrently.** `mutates_repo` serializes only inside one host's DAG; two hosts are invisible to each other. It happened here and only a task's own defensive intent prevented a double edit | bug |
 | B-5 | **`plan.yaml` resolves to both `harness-orchestrator` and `harness-pm`**, so nothing structurally prevents the concurrent-writer plan overwrite that actually occurred in the plan phase | bug |
-| B-6 | Hook tax: the `PostToolUse` matcher fires for **every** agent type while the script gates on `agent_type` internally — ~19ms per early-exit call from ~15 non-subject personas, atop `check-domain.sh --post`'s ~70ms. The matcher keys on tool name only, so the filter cannot move into `settings.json`. **Not** a re-litigation of D-25, which never costed the non-orchestrator population | enhancement |
+| B-6 | Hook tax: the `PostToolUse` matcher fires for **every** agent type while the script gates on `agent_type` internally — ~19ms per early-exit call from ~15 non-subject personas, atop `check-domain.py --post`'s ~70ms. The matcher keys on tool name only, so the filter cannot move into `settings.json`. **Not** a re-litigation of D-25, which never costed the non-orchestrator population | enhancement |
 | B-7 | `_orchestrator_jsonl_paths`'s docstring at `:570-576` claims parity with `discover_orchestrator_rows` that the code does not deliver — one feeds `unmeasured_count`, the other silently `continue`s | chore |
 | B-8 | `warn_for_agent`'s docstring documents the forbidden-word contract but not the reassurance-first ordering, now the text's most consequential property | chore |
 | B-9 | `context-watch-hook.py:19-20` quotes a **moving** corpus as a fixed figure (3359 / 94.8%) against D-25's 3280 / 93.9%. Neither is false; neither says the corpus moves | chore |
 | B-10 | The `DECISIONS-INDEX` generation contract has **no decision behind it** — grepping the index for `generat` matches only its own header, and the rule is enforced solely by a test, unreachable by the index-first reading path CLAUDE.md mandates | chore |
 | B-11 | `DEC-159:3959-3960` says `feature.yaml` twice where the tree carries `feature.json` | chore |
-| B-12 | Unknown whether Claude Code runs **every** command in one `PostToolUse` array entry after an earlier exit 2. `check-domain.sh --post` and `context-watch-hook.py` share that entry; if it short-circuits, SC-13 silently fails in the compound case. Asserted nowhere, first testable after merge | chore |
+| B-12 | Unknown whether Claude Code runs **every** command in one `PostToolUse` array entry after an earlier exit 2. `check-domain.py --post` and `context-watch-hook.py` share that entry; if it short-circuits, SC-13 silently fails in the compound case. Asserted nowhere, first testable after merge | chore |
 | B-13 | A run digest can stay a **pre-dispatch stub with no verdict** (`runs/plan3-product/`) while `feature.json` records a verdict for it, and nothing cross-checks the two | chore |
 | B-14 | `validate-digest.py` passed a digest that omitted `must_fix` entirely and put `sc_status` outside `DIGEST` | chore |
 | B-15 | `harness-pm` holds no `goalcheck-*` artifact grant, so the goal-check writes under `research-*` by necessity rather than intent | chore |

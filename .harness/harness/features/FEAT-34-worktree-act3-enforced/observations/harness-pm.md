@@ -11,7 +11,7 @@
   zero occurrences of either INV-28 or INV-29") was FALSIFIED at HEAD - FEAT-26's T-05 landed and
   INV-28 is now at check-state.sh:1044/:1068/:1080. A brief's own reasoning rots as fast as its
   line numbers.
-- 2026-08-24: check-domain.sh --resolve is a DOMAIN GRANT, not a LANE. It printed
+- 2026-08-24: check-domain.py --resolve is a DOMAIN GRANT, not a LANE. It printed
   "harness-backend-dev harness-dev-ops" for check-state.sh and test-check-state.py, both of which
   DEC-174 amendment 4 puts on main-session-direct. check-plan-routes.py agrees and prints these as
   DEVIATION rather than VIOLATION - so the tool records the disagreement instead of resolving it,

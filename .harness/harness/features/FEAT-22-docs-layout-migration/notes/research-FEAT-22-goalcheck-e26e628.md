@@ -1,6 +1,6 @@
 # Goal-check — FEAT-22 · pinned e26e628 · 10 met, 2 unmet
 
-> Path note: the dispatch named `notes/goalcheck-FEAT-22-e26e628.md`; `check-domain.sh` denies that
+> Path note: the dispatch named `notes/goalcheck-FEAT-22-e26e628.md`; `check-domain.py` denies that
 > path to harness-pm. Written to an owned `notes/research-FEAT-22-*.md` path instead, per the rule
 > that a dispatch does not override the guard. Grant gap raised as an open question.
 

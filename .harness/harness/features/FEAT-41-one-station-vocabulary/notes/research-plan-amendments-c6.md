@@ -35,7 +35,7 @@ D-09's `because:` broke `safe_load` at line 83 col 411; all four became `" - "`.
 
 The message now states the reason first (one writer, `plan-write.py`, because every station value is
 validated before it lands) and then the four verbs and tool path. A new bullet forbids `deny()`,
-citing `check-domain.sh:1063-1066` (its last line appends the ROUTING constant at `:879`, which
+citing `check-domain.py:1063-1066` (its last line appends the ROUTING constant at `:879`, which
 speaks about STATE.md/digests/notes) and the existing comment at `:1161-1167`, and names
 `out.append(...)` as the route to use. Two test assertions added: the denial contains the reason
 clause, and does NOT contain ROUTING text. SC-05 amended to require both clauses; method and

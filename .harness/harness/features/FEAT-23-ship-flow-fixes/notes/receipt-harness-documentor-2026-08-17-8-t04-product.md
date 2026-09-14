@@ -67,7 +67,7 @@ lines 63-66). DEC-195 states the condition in **both** places the apply is state
 1. **Intent and verify match the dispatch's carry copy verbatim** — pulled fresh from `plan.yaml`,
    no textual difference.
 2. **The dispatch named D-02 and D-05 as the signed substance; the plan also maps D-03 to DEC-195**
-   (plan-flow pass is flag-only, forced by `check-domain.sh`'s grant of `plan.yaml`/`BRIEF.md` to
+   (plan-flow pass is flag-only, forced by `check-domain.py`'s grant of `plan.yaml`/`BRIEF.md` to
    `harness-pm`). The intent already carries that substance, and DEC-195 records it. Recorded here
    as a mapping the dispatch did not name.
 3. **D-05's `because:` says `gh-sync.py`'s `main` "requires an existing feature directory as
@@ -77,7 +77,7 @@ lines 63-66). DEC-195 states the condition in **both** places the apply is state
    argument and exits when it is not a directory, before any subcommand dispatch" and does not
    repeat "argv1" (P-07: approval covers the choice, not the truth).
 4. **DEC-107's index row says the roster is "validated by script".** Grepped before transcribing
-   D-02's "no script validates the roster": `check-domain.sh:220`'s `_roster` only harvests names
+   D-02's "no script validates the roster": `check-domain.py:220`'s `_roster` only harvests names
    from `team-config.yaml` to resolve domains, and no script asserts roster composition or count.
    DEC-195 therefore says "no script in the tree validates roster **composition**", which does not
    contradict DEC-107's per-agent-file validation.
@@ -97,7 +97,7 @@ lines 63-66). DEC-195 states the condition in **both** places the apply is state
 - `6296149` and `b7ae135` both resolve; `notes/simplify-pass-2026-08-16.md`,
   `research-FEAT-23-simplify-angles-source.md` and `harness-simplify/SKILL.md` all exist.
 - **The NOBODY region spec in DEC-195 was measured, not transcribed.**
-  `check-domain.sh --resolve` returns `NOBODY` for `.claude/skills/harness-simplify/SKILL.md`,
+  `check-domain.py --resolve` returns `NOBODY` for `.claude/skills/harness-simplify/SKILL.md`,
   `.claude/agents/harness-documentor.md` and `.claude/commands/harness-plan.md`, and returns
   `harness-backend-dev` / `harness-dev-ops` for `.claude/skills/harness/bin/gh-sync.py`. The
   entry's "everything under `.claude/` except `skills/harness/bin/**`" is therefore observed.

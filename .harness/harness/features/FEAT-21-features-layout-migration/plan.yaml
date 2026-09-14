@@ -10,7 +10,7 @@ approval:
 lanes:
   resolved_at: 62fef85
   measurement: >-
-    Every row below was MEASURED, not inferred: check-domain.sh --resolve was run on one
+    Every row below was MEASURED, not inferred: check-domain.py --resolve was run on one
     representative path per row with the working tree at 62fef85 (git rev-parse HEAD confirmed
     before and unchanged), and the verbatim answer is quoted in each row's resolve field. The eng
     review could not take these measurements because leads hold no Bash (Read, Glob, Grep, Agent
@@ -20,7 +20,7 @@ lanes:
       lane: main-session-direct
       resolve: NOBODY
       reason: "measured NOBODY: no agent may write the file that declares the grants."
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script. The measured grant is overridden by the carve-out, which is why the measurement does not settle the lane on its own."
@@ -31,7 +31,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-plan-routes.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "Carve-out by content on the FEAT-20 precedent: it shells out to check-domain.sh --resolve and is the CI plan-route gate, so its own green cannot vouch for it. Carve-out overrides the measured grant."
+      reason: "Carve-out by content on the FEAT-20 precedent: it shells out to check-domain.py --resolve and is the CI plan-route gate, so its own green cannot vouch for it. Carve-out overrides the measured grant."
     - surface: .claude/skills/harness/bin/layout_migration.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -47,7 +47,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "co-changes with check-domain.sh, in the same diff a human reads"
+      reason: "co-changes with check-domain.py, in the same diff a human reads"
     - surface: .claude/skills/harness/bin/test-check-plan-routes.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -210,7 +210,7 @@ decisions:
       module scope and is in UNIT_SCRIPTS, so post-move the whole unit suite dies on import and
       T-09's own suite check fails. The cost is diff size, not correctness - measured at 62fef85,
       none of the three is a row in layout_migration.READER_TABLE (lines 74-101, whose four features
-      rows are team-config.yaml, check-domain.sh, check-plan-routes.py and check-state.sh), so the
+      rows are team-config.yaml, check-domain.py, check-plan-routes.py and check-state.sh), so the
       detector reads none of them either way and none reddens it at any commit. Two of the three,
       gh-sync.py and validate-feature-json.py, are ADDITIONALLY on the module's explicit
       DO-NOT-READ list at lines 42-44; test-factory-cli.py is NOT on that list and does not need to
@@ -289,7 +289,7 @@ tasks:
     traces: [REQ-02, REQ-04]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: "check-domain.sh --resolve answers NOBODY at 62fef85"
+    execution_reason: "check-domain.py --resolve answers NOBODY at 62fef85"
     depends_on: [T-01]
     status: done
     files:
@@ -336,7 +336,7 @@ tasks:
       Leave .claude/skills/harness/templates/team-config.yaml alone (D-05).
 
   - id: T-03
-    title: Move check-domain.sh's sweep globs and its four shape regexes onto a repository segment
+    title: Move check-domain.py's sweep globs and its four shape regexes onto a repository segment
     traces: [REQ-02]
     change_type: logic
     execution_mode: main-session-direct
@@ -344,12 +344,12 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       set -e
       python3 - <<'PY'
       import re, sys
-      p = '.claude/skills/harness/bin/check-domain.sh'
+      p = '.claude/skills/harness/bin/check-domain.py'
       t = open(p, encoding='utf-8').read()
       bad = [l for l in t.splitlines() if re.search(r'\.harness/features/', l)]
       if bad:
@@ -360,15 +360,15 @@ tasks:
           print('expected 4 migrated shape regexes'); sys.exit(1)
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/check-domain.sh
+      bash -n .claude/skills/harness/bin/check-domain.py
     intent: |
-      Rewrite the eight stale sites in check-domain.sh onto a wildcard repository segment (D-01).
+      Rewrite the eight stale sites in check-domain.py onto a wildcard repository segment (D-01).
 
       THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file has legacy pattern
       \.harness/features/ and migrated pattern \.harness/(\*|\[\^/\]\+)/features/ - it accepts
       either the glob spelling or the regex spelling, because this file carries both. At 62fef85:
-        git grep -c '\.harness/features/' 62fef85 -- .../check-domain.sh  ->  8
-        git grep -c 'features'           62fef85 -- .../check-domain.sh  ->  8
+        git grep -c '\.harness/features/' 62fef85 -- .../check-domain.py  ->  8
+        git grep -c 'features'           62fef85 -- .../check-domain.py  ->  8
       The broader pattern adds nothing: there is no prose occurrence in this file, and all eight
       sites are code. They are, by content rather than by line number:
 
@@ -398,7 +398,7 @@ tasks:
     traces: [REQ-02]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "carve-out by content - it is the CI plan-route gate and shells out to check-domain.sh --resolve"
+    execution_reason: "carve-out by content - it is the CI plan-route gate and shells out to check-domain.py --resolve"
     depends_on: [T-01]
     status: done
     files:
@@ -956,7 +956,7 @@ tasks:
       beneath it, KEEPS EXIT 0 on zero matches - deliberately, so a legitimate zero-feature checkout
       is not a failure. After the move that glob matches nothing here, and the CI step "Validate every
       feature's execution state" - which the workflow's own comment names as the backstop for a
-      session where check-domain.sh's write-time gate is not registered at all - becomes a green tick
+      session where check-domain.py's write-time gate is not registered at all - becomes a green tick
       over zero files. Give the glob a wildcard repository segment: .harness/*/features/*/feature.* .
 
       Three further sites in the same file must move with it, or the fix repeats the defect T-04

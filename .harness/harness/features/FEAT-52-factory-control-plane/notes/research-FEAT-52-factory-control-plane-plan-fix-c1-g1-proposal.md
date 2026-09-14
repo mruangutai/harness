@@ -144,7 +144,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
+    execution_reason: check-domain.py --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-12, T-13, T-14, T-18]
     status: ready
     files:

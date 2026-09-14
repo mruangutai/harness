@@ -8,11 +8,11 @@ set or is defended load-bearing repetition. No dead references found.
 
 **Acts on:** D-10 (decisions count), REQ-09.
 
-D-10's body is "measured with check-domain.sh --resolve at 7ebfc9e", listing four already-true
+D-10's body is "measured with check-domain.py --resolve at 7ebfc9e", listing four already-true
 resolutions. Nothing was chosen among alternatives — it's an audit record that REQ-09 is
 already satisfied, which is exactly what `dec: none` on it already concedes. The `lanes:` block
 directly above already carries the identical methodology statement ("Every row below was
-produced by `check-domain.sh --resolve <path>` at this sha, not read off team-config.yaml"),
+produced by `check-domain.py --resolve <path>` at this sha, not read off team-config.yaml"),
 so D-10 duplicates that block's authority for a set of paths (`lanes:` covers only repo-source
 surfaces, D-10 covers per-feature `notes/` paths) that could just as easily be a second `lanes:`-
 style comment block rather than a numbered decision.

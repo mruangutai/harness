@@ -45,7 +45,7 @@ tracked per-event by the host, not a single session-start constant the way
 `${CLAUDE_PROJECT_DIR}` is for the Claude Code integration. If an agent under this host can
 influence its own tracked cwd between tool calls (plausible — that is why the field is threaded
 per-event rather than captured once), and can write a file anywhere permitted to it (the same
-precondition the original bug required), it can place its own `check-domain.sh` /
+precondition the original bug required), it can place its own `check-domain.py` /
 `bash-write-guard.sh` / `validate-digest.py` at `<its-cwd>/.agents/skills/harness/bin/<name>` and
 `runPolicy` will execute THAT file wholesale as the gate — not shadow one imported module, as the
 Python bug did, but substitute the entire enforcement script. DEC-202 makes `.agents/skills` a
@@ -71,13 +71,13 @@ own on-disk location (e.g. `import.meta.dirname`-relative arithmetic, the TS ana
 already-located script, exactly as `resolve_root` treats `HARNESS_PROJECT_DIR` as data, not as
 the module's own address.
 
-## Finding 2 (residual, med, not blocking) — `check-domain.sh`'s relative-path assumption is a
+## Finding 2 (residual, med, not blocking) — `check-domain.py`'s relative-path assumption is a
 convention, not an enforced boundary, and now spans two hosts
 
-`_show`/`_norm` (`check-domain.sh:970,1000`) resolve `file_path` with `os.path.abspath`, i.e.
+`_show`/`_norm` (`check-domain.py:970,1000`) resolve `file_path` with `os.path.abspath`, i.e.
 against the hook subprocess's OS cwd, deliberately left unfixed per the note ("not reachable
 from Claude Code, which sends absolute paths"). Re-derived rather than accepted: nothing in
-`check-domain.sh` asserts or rejects a relative `file_path` — the code silently accepts one and
+`check-domain.py` asserts or rejects a relative `file_path` — the code silently accepts one and
 resolves it against whatever cwd the hook process happens to have. That is an unenforced
 precondition on a module now consulted by (at least) two different host integrations
 (`.claude/settings.json` and `.omp/extensions/harness-hooks.ts`, DEC-202 explicitly making OMP
@@ -105,7 +105,7 @@ schema (issue #749's fix for legitimate per-worktree schema keys). Unlike `harne
 `resolve_root`, this walk has no MARKER-style single-file gate and does not stop at the resolved
 root — it is bounded only by the filesystem root. A schema-weakening file planted at any ancestor
 between the checkout and `/` that the agent can write to (paths outside the declared workspace
-are explicitly waved through by `check-domain.sh`'s own "not_a_domain_question" branch) would be
+are explicitly waved through by `check-domain.py`'s own "not_a_domain_question" branch) would be
 preferred over the real schema for every later `feature.json` write. This shares the exact shape
 of the marker-planting attack the dispatch asked about, on a different file, pre-dating and
 untouched by this feature. Flagging for the backlog, not this verdict.
@@ -156,7 +156,7 @@ since it has no automated coverage today.
 |---|---|---|
 | Agent-writable cwd -> Python `sys.path[0]` (the measured #556 bug) | Elevation of privilege | Yes — 19/19 launches, verified empirically |
 | Agent-writable cwd -> OMP `runPolicy` script path | Elevation of privilege | **No** — Finding 1 |
-| Relative `file_path` -> `check-domain.sh` cwd-relative `abspath` | Tampering / Information disclosure (misrouted domain verdict) | Partial — convention only, not enforced (Finding 2) |
+| Relative `file_path` -> `check-domain.py` cwd-relative `abspath` | Tampering / Information disclosure (misrouted domain verdict) | Partial — convention only, not enforced (Finding 2) |
 | `HARNESS_PROJECT_DIR` env override in `resolve_root` | Spoofing (root confusion) | Yes — never set in production, reachability-closed |
 | `root_above` marker walk (`wayfind.py`) | Spoofing | Yes — informational CLI, not an enforcement decision |
 | `feature_schema.schema_path_for` unbounded ancestor walk | Tampering | No — pre-existing, out of this diff's scope (Finding 3) |

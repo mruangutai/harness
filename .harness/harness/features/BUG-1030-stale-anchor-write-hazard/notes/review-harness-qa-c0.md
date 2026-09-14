@@ -38,7 +38,7 @@ sibling reviewers' untracked artifact files, none touched.
 No `BRIEF.md`, no `plan.yaml` — `handoff-plan.md` states this plainly: "There was no plan seam...
 Do not grade this against success criteria. There are none." From issue #1030 and the analysis
 note's own S1/S2/S3 remedy list (the only spec surrogate available) I expected: (a) test coverage
-proving the OMP edit route reaches `check-domain.sh` for both hook phases (pre AND post), (b) a
+proving the OMP edit route reaches `check-domain.py` for both hook phases (pre AND post), (b) a
 non-blocking notice when the edit-route extraction yields nothing, (c) every Python `feature.json`
 writer routed through one locked core with its never-create/path-shape/schema policies pinned
 per-caller. Phase 2 below is scored against this list.

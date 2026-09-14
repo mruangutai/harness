@@ -21,7 +21,7 @@ W5: T-08, T-10
 
 - **T-02 `[T-01]` — FALSE.** T-01 appends two DEC entries to `DECISIONS.md`/`-INDEX.md`. T-02's
   intent (author `plan-panel.yaml`, matching `review.yaml`'s vocabulary) and verify (structural
-  YAML assertions + a `check-domain.sh --resolve` probe) never cite a DEC number or read either
+  YAML assertions + a `check-domain.py --resolve` probe) never cite a DEC number or read either
   file T-01 touches. **Saves 1 step**: T-01 and T-02 can share wave 1.
 
 - **T-03 `[T-02]` — FALSE.** T-03 edits `SKILL.md` to *describe* the plan-panel team (filename,

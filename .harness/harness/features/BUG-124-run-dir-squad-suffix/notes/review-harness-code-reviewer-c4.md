@@ -44,7 +44,7 @@ against REQ-01..06 or D-01..D-05.
 ### Q6 — `run_dir_grant_globs` fail-open on a future read-only `/runs/` grant — **ruling: real defect, MED, should_fix, not gating**
 
 Confirmed by comparison: `harness_yaml.manifest_domains` (the sibling walker used by
-`check-domain.sh`, `harness_yaml.py:392-420`) filters `not entry.get("read")` before treating an
+`check-domain.py`, `harness_yaml.py:392-420`) filters `not entry.get("read")` before treating an
 entry as a write grant. `run_dir_grant_globs` (`harness_boundary.py:816-848`) walks the identical
 shape — "any list whose members are all mappings carrying a `path` key" — and collects every entry
 whose pattern contains `/runs/` **with no `read` filter at all**. The function's own docstring

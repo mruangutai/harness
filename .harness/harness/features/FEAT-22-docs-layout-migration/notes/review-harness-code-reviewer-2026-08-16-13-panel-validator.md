@@ -51,8 +51,8 @@ Range measured, not quoted: `git rev-list --count 0f12f14..e26e628` = **5**,
   em-dash summary line) — verified at `check-state.sh:1282-1322`. No retyped-hyphen exposure in this
   diff.
 - **Probe 4** (`test-check-domain.py:789`'s failure mode): the assertion is
-  `"harness-documentor" in r_live.stdout.split()`. Traced `check-domain.sh --resolve`'s emission
-  (`check-domain.sh:250-256`): a regression to under-granting prints the literal token `NOBODY` and
+  `"harness-documentor" in r_live.stdout.split()`. Traced `check-domain.py --resolve`'s emission
+  (`check-domain.py:250-256`): a regression to under-granting prints the literal token `NOBODY` and
   the assertion **fails loudly**. A regression to *over*-granting (an extra agent matching alongside
   the correct one) would **not** be caught — membership, not equality — consistent with, and
   confirming, the already-accepted "missing direct assertion" residual. Not new.

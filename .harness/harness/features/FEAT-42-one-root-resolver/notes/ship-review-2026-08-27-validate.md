@@ -49,7 +49,7 @@ const proc = spawnSync(join(cwd, BIN, script), args, { cwd, ... });
 `BIN` is the **relative** string `".agents/skills/harness/bin"` (`:5`). So the gate script's own
 executable is selected by joining it onto a caller-supplied path. I verified this myself rather than
 relaying it: eleven call sites (`:179`, `:186`, `:198`, `:205`, `:212`, `:263`, `:317`, `:318`,
-`:325`, `:357`) covering six distinct gates — `check-domain.sh`, `inject-expertise.sh`,
+`:325`, `:357`) covering six distinct gates — `check-domain.py`, `inject-expertise.sh`,
 `branch-create-gate.sh`, `bash-write-guard.sh` and `validate-digest.py`. All of them trace back to
 `ctx.cwd`.
 
@@ -160,7 +160,7 @@ silently.**
 | B-19 | DEC-174 am.4 enumerates the enforcement layer by filename and nothing checks the list | chore |
 | B-20 | SC-04's standing invariant covers six of seven deleted definitions; `wayfind.root` is caught by nothing | enhancement |
 | B-21 | SC-01 greps the surviving name, so it is blind to the retired one; 8 of 12 docs findings are invisible to it | enhancement |
-| B-22 | `check-domain.sh` resolves a relative `file_path` against the cwd; needs a decision, not a guess | enhancement |
+| B-22 | `check-domain.py` resolves a relative `file_path` against the cwd; needs a decision, not a guess | enhancement |
 | B-23 | Ten further stale-narration doc sites from the sweep | enhancement |
 | B-24 | `.harness/expertise/harness-dev-ops.md:30` teaches the retired chain as craft, injected every spawn | enhancement |
 
@@ -174,7 +174,7 @@ silently.**
    amendment; the rule may.
 3. **Who lands `harness-brief/SKILL.md`?** It carries the docs sweep's highest-harm defect and
    resolves to `NOBODY` under the domain gate.
-4. **Should `check-domain.sh` refuse a relative `file_path` rather than pick a base?** The panel and
+4. **Should `check-domain.py` refuse a relative `file_path` rather than pick a base?** The panel and
    the security reviewer reached this independently: refusing is not the guess the note declined to
    make. Leaving it as-is is defensible; refusing is better.
 

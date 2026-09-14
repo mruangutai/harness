@@ -33,7 +33,7 @@ start-of-task move) is derivable and is recorded as D-04, not raised as a questi
 7. **`check-state.sh` shells out to `git` (INV-25) but never to `gh`.** INV-26 is the first `gh` call
    at session entry. INV-25's two precedents transfer: tool-absent records nothing (`:966-970`),
    module-unimportable is a VIOLATION naming the file to restore (`:981`).
-8. **`check-domain.sh --resolve` at `2ccd7f0`** — full results are in `plan.yaml`'s `lanes:`.
+8. **`check-domain.py --resolve` at `2ccd7f0`** — full results are in `plan.yaml`'s `lanes:`.
    `.claude/skills/harness/SKILL.md` and `.claude/skills/harness/templates/harness.json` both
    resolve to **NOBODY**, so both edits are declared main-session-direct steps (DEC-179), not
    mid-run rejected writes.

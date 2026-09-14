@@ -117,7 +117,7 @@ Re-measured at `6cb113f4`, all at source, none trusted from `research-BUG-285-re
 2. **`lanes.resolved_at: 7e0c2ec`**, pre-merge, with a single `tests/**` row while the plan now edits
    two files under `.claude/skills/harness/bin/`. I diffed `team-config.yaml` across
    `7e0c2ec..HEAD`: two lines, neither touching the `tests/**` row or any lane this plan uses.
-   Effect: **none on routing** (D-05 is right that `execution_agent` + `check-domain.sh` binds, and
+   Effect: **none on routing** (D-05 is right that `execution_agent` + `check-domain.py` binds, and
    the checker exits 0); the table is a stale report, not a hazard.
 3. The four open panel findings (2 info, 2 low) are unchanged; PF-142f3a still does not reproduce
    (`check-plan-routes.py` exit 0 today), so its disposition needs a re-measure, not a fix.

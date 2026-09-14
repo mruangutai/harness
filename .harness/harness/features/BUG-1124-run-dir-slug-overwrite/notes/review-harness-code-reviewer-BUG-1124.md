@@ -9,7 +9,7 @@ The fix is scoped to exactly the two named files, entirely inside the `RE_STATE_
 of `shape_problems` plus its tests. Every requirement in the PR description is met:
 
 - Identity check (`run_id`), not a content/prefix compare — correctly avoids re-denying the
-  DEC-154 checkpoint upsert. ✓ (`check-domain.sh:1437-1462`)
+  DEC-154 checkpoint upsert. ✓ (`check-domain.py:1437-1462`)
 - Same `run_id` rewritten any number of times → allowed. ✓ tested `state-run-id-upsert-allowed`.
 - Prior file with no `run_id` → allowed (nothing to compare). ✓ tested `state-no-prior-run-id-allowed`.
 - First write to an empty run dir → allowed. ✓ tested `state-new-file-allowed`.
@@ -27,10 +27,10 @@ Stage 1: no violations.
 
 ## Stage 2 — code quality
 
-### must_fix — fail-open on an unreadable prior `state.yaml` (`check-domain.sh:1437-1451`)
+### must_fix — fail-open on an unreadable prior `state.yaml` (`check-domain.py:1437-1451`)
 
 The new guard's own comment frames it as mirroring the `RE_RUN_DIGEST` guard (#1058) one
-block above it (`check-domain.sh:1191-1207`). The digest guard explicitly denies when the
+block above it (`check-domain.py:1191-1207`). The digest guard explicitly denies when the
 prior file exists but cannot be read:
 
 ```

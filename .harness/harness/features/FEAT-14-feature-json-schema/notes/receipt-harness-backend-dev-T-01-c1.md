@@ -99,7 +99,7 @@ demonstrated reader — carry a description saying so, rather than inventing a r
 **My call, as invited by the intent:** both live inside `feature_schema.py`, not the CLI.
 
 - `problems_for_text(text, display)` is JSON-only — it always parses `text` with `json.loads`.
-  This is the function `check-domain.sh` imports at T-06 (per the intent, its entry point), and
+  This is the function `check-domain.py` imports at T-06 (per the intent, its entry point), and
   its `display` argument is a label for the message only, never a hint for how to parse.
 - `problems_for_file(path)` does the extension dispatch: `path.endswith(".json")` reads the file
   as text and calls `problems_for_text` (stdlib `json` + `jsonschema` only); any other extension

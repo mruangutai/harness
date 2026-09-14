@@ -67,7 +67,7 @@ There is no CEO agent.
 
 The system has no dependency on GSD (Get Shit Done): no `.planning/` root, no `agent_skills`
 injection, no `gsd-*` agents, no `gsd-tools.cjs`. It is files-only with one deliberate exception —
-`bin/check-domain.sh` (§4).
+`bin/check-domain.py` (§4).
 
 ---
 
@@ -186,7 +186,7 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 - **Destructive operations are blocked by a real mechanism, not a flag.** An earlier draft claimed
   `delete: false` "everywhere" as a blanket safety rail; **no such field exists and nothing implemented
   it** — it was a sentence, not a guard. Deletion is restrained the same way out-of-domain writes are:
-  `check-domain.sh` matches `Bash` as well as `Write|Edit` and rejects destructive patterns (`rm -rf`,
+  `check-domain.py` matches `Bash` as well as `Write|Edit` and rejects destructive patterns (`rm -rf`,
   `git clean`, `> ` onto a tracked path outside domain) with `exit 2`. See §4.2 — this is the same
   script and the same limitation.
 - **`HEAD` is shared mutable state and no governed agent may move it** during a run — one checkout
@@ -449,7 +449,7 @@ block — `owner`, `number`, `station_field` and `stations`, all four required**
 central per-segment tree at `<control-plane>/.harness/<segment>/`. The config lands *before* the
 fleet entry, because the failure of the reverse order has no symptom but an unattributed
 `FleetError` — `factory_config.py --check-product-configs` is what names it. An entry missing any
-of the four `board:` keys makes `load_fleet` raise, and because `check-domain.sh` then fails CLOSED
+of the four `board:` keys makes `load_fleet` raise, and because `check-domain.py` then fails CLOSED
 the symptom is not a failed onboarding but every agent write in this repository BLOCKED
 (`.claude/skills/harness/bin/harness_boundary.py:711`). The first factory run against it
 clones it under `workspace_root`; that `harness.json` on its default branch is the only file the
@@ -665,7 +665,7 @@ settled after three attempts including an absolute-path, dependency-free probe t
     "hooks": [
       {
         "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh"
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py"
       }
     ]
   }
@@ -684,7 +684,7 @@ Three details are non-negotiable, and getting any of them wrong makes the hook f
    must be parsed from it. Only `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_PLUGIN_ROOT}` and
    `${CLAUDE_PLUGIN_DATA}` are interpolated into the `command` string.
 
-`check-domain.sh` is therefore **generic and stateless**: read the JSON from stdin, extract
+`check-domain.py` is therefore **generic and stateless**: read the JSON from stdin, extract
 `agent_type` and the target path, look that agent up in `.harness/team-config.yaml`, test the path
 against its globs, and on violation write the reason to stderr and `exit 2`. Otherwise `exit 0`. It
 contains no project-specific globs and is identical in every project; the *manifest* is what varies.
@@ -730,7 +730,7 @@ arbitrary shell command. So the honest position is:
 
 This inverts an earlier framing that treated the hook as load-bearing and serialization as a fallback.
 
-> **Verified (DEC-101):** `exit 2` blocks; `exit 1` does not. `check-domain.sh` is built and tested —
+> **Verified (DEC-101):** `exit 2` blocks; `exit 1` does not. `check-domain.py` is built and tested —
 > in-domain allowed, out-of-domain blocked, own Expertise allowed, shared paths allowed with a warning.
 > It also prints the agent's **permitted globs** on rejection, because a probe confirmed that naming only
 > the rejected path leaves an agent no basis for choosing a valid alternative (DEC-100b).
@@ -2087,7 +2087,7 @@ open_questions:
   `base…review_sha`, never `…HEAD`, so a later commit cannot shift what they are reviewing.
 - **Parallel mutators are forcibly serialized.** `mutates_repo` is read during ready-set computation
   — mechanical, not aspirational.
-- **Leads write their own run file and nothing else.** `check-domain.sh` grants each lead exactly
+- **Leads write their own run file and nothing else.** `check-domain.py` grants each lead exactly
   `features/*/runs/*-<its-squad>/**`.
 
 **Retention:** `features/*/runs/**` is git-ignored scratch and prunes on the same schedule as
@@ -2117,7 +2117,7 @@ authored** (DEC-231). `pm` writes the SC into `BRIEF.md` under `## Success crite
 of the perspectives declared in `## Done when — by perspective`, with a `verify:` field the same way
 tasks carry `verify:`. `check-state.sh` INV-38 refuses a BRIEF with a perspective no SC discharges or
 an SC with no perspective; INV-41 refuses an SC whose `verify:` invokes `check-state.sh` or
-`check-domain.sh` with no feature-scoped argument, because repository-wide state is a merge-time
+`check-domain.py` with no feature-scoped argument, because repository-wide state is a merge-time
 check, not a feature criterion. An SC with no method is not verifiable and blocks the goal-check.
 
 ```markdown

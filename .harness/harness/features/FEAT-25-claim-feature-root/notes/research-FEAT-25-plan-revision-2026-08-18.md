@@ -56,7 +56,7 @@ Dispatch and digest agree on the destination; they disagreed only on the label.
 - **R-6** landed. SC-08 rescoped to the **implementation diff** (the tasks' `files:` lists), naming
   the bookkeeping that lands outside `bin/` by construction, and keeping the untouched-set clause.
 - **R-7** landed. Canonical forbidden set now stated **once**, in `## Constraints`: five files
-  (`factory_config.py`, `fleet.yaml`, `harness.json`, `gh_board.py`, `check-domain.sh`) plus the
+  (`factory_config.py`, `fleet.yaml`, `harness.json`, `gh_board.py`, `check-domain.py`) plus the
   `load_board` symbol. SC-08 references it. Grepped both artifacts — one spelling survives.
 
 ## The T-02 verify red observation

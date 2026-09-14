@@ -91,7 +91,7 @@ part of this diff and was touched by the landed repair commits. **Anchors resolv
 ## 7. Coverage gaps
 
 - `unit` binds **zero new assertions** for this diff — every new automated criterion (T-01/T-04/T-05/T-06/T-07/T-08) rests on `tests/integration/`. **Advisory, not a gate failure** — `unit` ran clean as a regression floor per the repository's standing convention that hook/CLI subprocess behavior lives in `integration`, and the matrix does not require `unit` to carry new coverage, only to pass.
-- T-07's evidence container has accept/refuse cases but **no pre-change comparison** (unlike T-08's vendored fixture) — nothing demonstrates the container's assertions could have been red before the change. **Advisory gap**, not a gate failure: T-07 is exercised functionally (accept+refuse both present, per-key granular per §6) and check-domain.sh's step-schema refusal did not exist pre-diff at all (no "revert to" state to fixture against), same reasoning the prior cycle applied to T-06/T-07 generally.
+- T-07's evidence container has accept/refuse cases but **no pre-change comparison** (unlike T-08's vendored fixture) — nothing demonstrates the container's assertions could have been red before the change. **Advisory gap**, not a gate failure: T-07 is exercised functionally (accept+refuse both present, per-key granular per §6) and check-domain.py's step-schema refusal did not exist pre-diff at all (no "revert to" state to fixture against), same reasoning the prior cycle applied to T-06/T-07 generally.
 
 ## 8. `check-state.sh`
 

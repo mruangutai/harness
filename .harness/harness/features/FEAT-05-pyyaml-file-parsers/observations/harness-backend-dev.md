@@ -1,6 +1,6 @@
 # Observations — harness-backend-dev — FEAT-05-pyyaml-file-parsers
 
-- 2026-08-03: computed the D-03 `collect()` fixture by extracting check-domain.sh's exact regex
+- 2026-08-03: computed the D-03 `collect()` fixture by extracting check-domain.py's exact regex
   walk into a standalone script and running it against the real `.harness/team-config.yaml`, rather
   than hand-tracing the regex — a hand trace matched on this pass but is the wrong default; the
   extracted-and-run approach is worth reusing for any future "prove old and new logic agree" test.
@@ -11,14 +11,14 @@
 - 2026-08-03: the D-03 fixture's first draft only covered `teams[].members[]` agents (backend-dev,
   dev-ops, pm, documentor) and would have let a `manifest_domains` that walks only that path pass
   while silently returning empty `mine` for `leads:` entries and the bare top-level `orchestrator:`
-  block — both nest differently and both are real callers via `check-domain.sh`/`bash-write-guard.sh`.
+  block — both nest differently and both are real callers via `check-domain.py`/`bash-write-guard.sh`.
   Added `harness-eng-lead` and `harness-orchestrator` rows. When proving old/new logic equivalent,
   the fixture set must span every distinct nesting shape the walked structure contains, not just the
   shapes the brief happened to name.
 - 2026-08-03: T-03 corrected T-02's receipt on `require_or_bootstrap`'s stdin plan (dispatch verified
-  at `check-domain.sh:232-234` — a payload piped alongside `python3 - <<'PY'` is lost because `python3
+  at `check-domain.py:232-234` — a payload piped alongside `python3 - <<'PY'` is lost because `python3
   -` takes its *program* from stdin). Built `payload=None` to mean "parse `HOOK_PAYLOAD` env var",
-  never stdin. `check-domain.sh:97`'s call site (T-12 converts) passes no `HOOK_PAYLOAD` at all, so
+  never stdin. `check-domain.py:97`'s call site (T-12 converts) passes no `HOOK_PAYLOAD` at all, so
   identity there resolves only through the env-var chain tail — worth re-checking at T-12 time.
 - 2026-08-03: `.harness/team-config.yaml:18`'s `main_session.writes` flow sequence contains
   ` ## Approval` twice — stock PyYAML treats a whitespace-preceded `#` as a comment start even inside
@@ -36,7 +36,7 @@
 - 2026-08-03: T-09 pitfall, caught by an advisor review, not by my own first pass: running a hook
   script's own test harness with `CLAUDE_PROJECT_DIR=$(pwd)` forced manually is a SYNTHETIC
   subprocess invocation, not evidence about what Claude Code's real `PreToolUse` dispatch does.
-  I initially read 6 probe appends from that forced run as proof the worktree's `check-domain.sh`
+  I initially read 6 probe appends from that forced run as proof the worktree's `check-domain.py`
   executes for real Writes — wrong. Two subsequent genuine `Write`/`Edit` tool calls (no env
   override) produced zero appends anywhere. Net finding: the real hook likely resolves to the
   MAIN CHECKOUT's copy here too (consistent with PLAN Q6's digest-validator finding), reversing

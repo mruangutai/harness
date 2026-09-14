@@ -66,8 +66,8 @@ including FEAT-14's own.
 ## Line budgets after conversion
 
 Reduced to the twelve keys and dumped as `json.dumps(indent=2)`: worst case is FEAT-10 at
-**173 lines** (32 runs), against check-domain.sh's 200-line budget for this path
-(`check-domain.sh:506` SWEEP_GLOBS, message at `:636`). Roughly 5 JSON lines per run entry, so
+**173 lines** (32 runs), against check-domain.py's 200-line budget for this path
+(`check-domain.py:506` SWEEP_GLOBS, message at `:636`). Roughly 5 JSON lines per run entry, so
 FEAT-10 breaches at ~38 runs. The 20-comment-line half of that budget becomes unreachable — JSON
 has no comments.
 

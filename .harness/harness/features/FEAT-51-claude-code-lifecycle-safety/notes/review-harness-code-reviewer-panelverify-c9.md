@@ -39,9 +39,9 @@ before trusting an absence:
 
 Every hit falls into one of three buckets:
 1. **Qualified in place** — REQ-04, the Goal, the gaps bullet, D-19, T-06's list, SC-04/SC-05/SC-11
-   (each names `Write`, `check-domain.sh`, or `plan-sign-gate.sh` specifically), and every T-03/T-07
+   (each names `Write`, `check-domain.py`, or `plan-sign-gate.sh` specifically), and every T-03/T-07
    test-label string (`an orphan canonical write is quarantined` etc.) — qualified by the task's own
-   title/gate context (T-03's title is literally "…at the check-domain.sh Write gate"; T-07's is
+   title/gate context (T-03's title is literally "…at the check-domain.py Write gate"; T-07's is
    "Close the Bash route…").
 2. **Not a coverage claim at all** — adoption/sandbox mechanics ("adoption of a quarantined
    `plan.yaml` goes through…", "a quarantined write reaches disk without twelve new grants",
@@ -49,7 +49,7 @@ Every hit falls into one of three buckets:
    quarantined; they assert nothing about which routes get quarantined.
 3. **The one legitimate historical quote** — D-15's own `choice:` field (`plan.yaml:240`) names the
    two superseded bullets by their opening words *in order to describe the supersession*; this is
-   the single occurrence of "refused at the check-domain.sh Write gate on the canonical artifacts"
+   the single occurrence of "refused at the check-domain.py Write gate on the canonical artifacts"
    in the whole file, and it is inside D-15's description, never inside T-06's actual mandated list
    (confirmed by a targeted grep restricted to `plan.yaml:653-733`, T-06's `intent:` block: zero
    hits for that phrase or for "bites on the last three").
@@ -70,12 +70,12 @@ doesn't have to re-derive this judgment call.
 
 READING `plan.yaml:653-733` (T-06's full `intent:` block).
 
-T-06's mandated claim list now contains, verified bullet by bullet: the `check-domain.sh`
+T-06's mandated claim list now contains, verified bullet by bullet: the `check-domain.py`
 `Write`/`Edit` half (`:694-696`); the `plan-sign-gate.sh` `PreToolUse` `Bash` half naming all four
 mutating verbs and `quarantine.py adopt` (`:696-698`); the `plan.yaml`-only-write-route-is-`plan-merge.py`-through-`Bash`
 sentence (`:699-703`); the D-18 discard-uncovered clause (`:705-708`); and the D-19
 generic-Bash-uncovered clause (`:708-713`). The two bullets D-15 supersedes are confirmed **absent**:
-I grepped the exact phrases `bites on the last three` and `refused at the check-domain.sh Write gate
+I grepped the exact phrases `bites on the last three` and `refused at the check-domain.py Write gate
 on the canonical artifacts` against the whole file — the first has zero occurrences anywhere; the
 second has exactly one, inside D-15's own `choice:` at `plan.yaml:240` (a legitimate description of
 what was superseded), and zero occurrences inside T-06's `intent:` block itself.

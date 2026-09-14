@@ -54,7 +54,7 @@ unbroken on single physical lines.
 ## Facts verified at source, not assumed
 
 - `.claude/settings.json` PostToolUse carries matcher `Write|Edit|Bash` with
-  `context-watch-hook.py` as the second hook, alongside `check-domain.sh --post`.
+  `context-watch-hook.py` as the second hook, alongside `check-domain.py --post`.
 - `orchestrator_context_warn_tokens` is at `.harness/harness.json:169` (200000), rationale marked
   INFORMATIONAL, NOT A GATE.
 - The advisory wording quoted in the entry is verbatim from `context-watch.py:411,536`
@@ -120,7 +120,7 @@ anchor is unchanged. Rows DEC-160 onward shifted by +18 lines. No row's hand-wri
 ` :: ` changed, and none needed to — DEC-159's ruling text stays true after this edit.
 
 **Out of scope, flagged not fixed — DEC-159 contradicts the enforced cap.** The Enforcement
-paragraph still says a handoff note is denied at more than 40 lines, but `check-domain.sh:949-952`
+paragraph still says a handoff note is denied at more than 40 lines, but `check-domain.py:949-952`
 denies at **60**, and DEC-159's own handoff paragraph already says "~60-line cap (raised from 40 at
 DEC-160)". The entry contradicts itself and the code. Pre-existing at HEAD, unrelated to SC-09, and
 correcting a second clause is not T-19's grant — routing it is the orchestrator's call.

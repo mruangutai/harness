@@ -5,13 +5,13 @@
 `.harness/features/FEAT-14-feature-json-schema/feature.json`'s `review_sha` field, 1 file / 1 line.
 
 **Human commit in scope: `0b33188`** — made directly by the main session under the DEC-174
-carve-out (`check-domain.sh` + `test-check-domain.py` are enforcement-layer files). This is its
+carve-out (`check-domain.py` + `test-check-domain.py` are enforcement-layer files). This is its
 first review of any kind; treated as fully in scope, not inherited from an earlier pass.
 
 ## Verdicts
 
 **HIGH-1 (schema gate fail-open) — CLOSED.** `except Exception` now sits after `except ImportError`
-in `check-domain.sh:894-916`, and the aggregation that decides `sys.exit(2)` is a single
+in `check-domain.py:894-916`, and the aggregation that decides `sys.exit(2)` is a single
 accumulate-then-decide pass over every target (`:1195-1210`), so the fix holds even under the
 per-invocation message dedup. See Q3.
 
@@ -24,11 +24,11 @@ real code but not a reachable path given call-site ordering. See Q7/Q8.
 
 ## HIGH-1 — detail
 
-**Q1.** `git show --stat 0b33188` → only `.claude/skills/harness/bin/check-domain.sh` (+19) and
+**Q1.** `git show --stat 0b33188` → only `.claude/skills/harness/bin/check-domain.py` (+19) and
 `.claude/skills/harness/bin/test-check-domain.py` (+75). No other files. Clean.
 
 **Q2 — route coverage.** All three routes converge on one `targets` list and one loop
-(`check-domain.sh:1099-1210`), which is the reason this is safe rather than three parallel
+(`check-domain.py:1099-1210`), which is the reason this is safe rather than three parallel
 implementations to keep in sync:
 - **Write, PRE** (`:1104-1113`): `content = (tool_input).content` — the whole file *about to be
   written*, never touches disk. This is genuine prevention.
@@ -52,7 +52,7 @@ if _problems:
     ...; sys.exit(2)
 sys.exit(0)
 ```
-(`check-domain.sh:1195-1210`). `_SCHEMA_UNAVAILABLE_SAID` is a module-level global that starts
+(`check-domain.py:1195-1210`). `_SCHEMA_UNAVAILABLE_SAID` is a module-level global that starts
 `False` at the top of **every fresh process** (each hook firing is its own `python3` subprocess —
 there is no daemon). Within one multi-target sweep, the dedup (`:919-924`) suppresses the message
 text for the 2nd..Nth occurrence, but the **first** occurrence is never suppressed and is always
@@ -79,7 +79,7 @@ write has already landed; `sys.exit(2)` is a loud report to the agent's stderr, 
 
 **Q5 — the `SystemExit` residual.** `grep -n "sys.exit\|raise SystemExit\|argparse\|__main__" feature_schema.py`
 → only `import sys` used for `sys.path.insert` (lines 41-43). No `sys.exit`, no argparse, no CLI
-guard — the module cannot raise `SystemExit` on the call path check-domain.sh takes
+guard — the module cannot raise `SystemExit` on the call path check-domain.py takes
 (`import feature_schema` → `feature_schema.problems_for_text`). Its one lazy dependency,
 `harness_yaml.load_file`/`load_str`, does not call `harness_yaml.require_or_die` (the only
 `sys.exit` in that file, at `:455`) — confirmed by grep, that function is unreferenced from
@@ -162,7 +162,7 @@ way, in either direction.**
 
 ## Findings (ranked, none gate)
 
-1. **low** — `check-domain.sh`'s new crash-branch is code-verified reachable and safe on all
+1. **low** — `check-domain.py`'s new crash-branch is code-verified reachable and safe on all
    three routes (Write-pre, Edit/Write-post, Bash-sweep) and under the per-invocation message dedup,
    but the regression test added at `0b33188` (`run_schema` Case 3) only drives the PRE-Write route.
    Discrimination exists for that one route; reachability for the other two and for the

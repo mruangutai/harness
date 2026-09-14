@@ -112,7 +112,7 @@ test failure here).
   so this is not a live risk, just an unexercised edge (a `notes/subdir/handoff-x.md` would never be
   reached). Not raising as a finding — purely hypothetical given the convention.
 - **Hook execution order is a platform assumption, not this diff's code**: `context-watch-hook.py`
-  is registered in the SAME `PostToolUse` `Write|Edit|Bash` array as `check-domain.sh --post`
+  is registered in the SAME `PostToolUse` `Write|Edit|Bash` array as `check-domain.py --post`
   (`.claude/settings.json`, both present at review_sha). Whether Claude Code runs every hook in an
   array regardless of an earlier one's exit code (so the context warning still fires on a Write that
   also trips a domain violation) is asserted nowhere in this diff — it is a property of the hook

@@ -139,7 +139,7 @@
 - 2026-08-19: **a conflict between two agents' reports about an enforcement hook was settled by
   running the hook.** qa reported one member denied an Edit on `factory_gh.py` and another completing
   the same mutation, and concluded all mutation evidence on the feature was of uncertain
-  admissibility. `check-domain.sh --resolve` on that path returns `harness-backend-dev,
+  admissibility. `check-domain.py --resolve` on that path returns `harness-backend-dev,
   harness-dev-ops` and not `harness-qa` — so the denial was correct and the other member reached the
   file through Bash, which the hook cannot see (DEC-85). Both were honest; neither was wrong. The
   evidence in question was authored by an agent that IS granted, so it stood. **When two agents

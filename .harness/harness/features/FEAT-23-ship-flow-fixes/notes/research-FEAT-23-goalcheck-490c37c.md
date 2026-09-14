@@ -50,7 +50,7 @@ which three angles satisfy on their own. That method cannot detect a fourth angl
 is not corroboration of the verdict.
 
 **Route:** task **T-02**, file `.claude/skills/harness-simplify/SKILL.md`, lane
-**main-session-direct** (`plan.yaml` `lanes:` — `check-domain.sh --resolve` returns NOBODY). The
+**main-session-direct** (`plan.yaml` `lanes:` — `check-domain.py --resolve` returns NOBODY). The
 defect is in the skill, not the sentence: two labelled sentences under ALTITUDE make SC-05 true.
 
 ## The emergent criterion — **NEW**, not covered

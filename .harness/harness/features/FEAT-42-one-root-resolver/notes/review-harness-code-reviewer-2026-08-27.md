@@ -2,7 +2,7 @@
 
 Scope per dispatch: resolver contract + call-site fail-open/closed audit + three named stale
 comments + the case_20 exemption + SC-10 TDD evidence quality + the e51b814 lane question +
-the check-domain.sh relative-path judgment. Read-only; DEC-174 barred me from editing ~30 of
+the check-domain.py relative-path judgment. Read-only; DEC-174 barred me from editing ~30 of
 the 80 files (all confirmed untouched here — `files_touched` below is this note only).
 
 ## Verdict: PASS, no must_fix. Findings below are backlog, ranked.
@@ -23,8 +23,8 @@ against what each one actually needs:
   `branch-create-gate.sh`, `gh-close-gate.sh` (per T-14/T-15 intent, not independently
   re-run but consistent with the QA gate's parity re-runs).
 - Fail-OPEN by design, all pre-existing and cited (DEC-101 or the hook's own contract), none
-  newly introduced: `check-domain.sh`/`bash-write-guard.sh`'s `_root()` uses `strict=False`
-  deliberately to preserve DEC-101's "no manifest → enforcement OFF" carve-out (`check-domain.sh
+  newly introduced: `check-domain.py`/`bash-write-guard.sh`'s `_root()` uses `strict=False`
+  deliberately to preserve DEC-101's "no manifest → enforcement OFF" carve-out (`check-domain.py
   :127-154`); `dispatch-guard.sh` fails open on every branch **except** the missing
   `HARNESS-FEATURE` line, which is the one exit-2 branch — confirmed by direct read
   (`dispatch-guard.sh:100-165`), so the dispatch's framing of that one branch is accurate
@@ -95,7 +95,7 @@ signed off identically on a red produced by a body-less stub. **Finding (low-med
 worth a decision on whether SC-10-style receipts should require a discriminating red (e.g. a
 deliberately-wrong-but-present stub) for functions being extended in place, not just added.
 
-**check-domain.sh's relative-path base (item 7) — judged correct to leave unfixed.** Read
+**check-domain.py's relative-path base (item 7) — judged correct to leave unfixed.** Read
 `_show`/`_norm` at `:970-1010` (script line numbers shift ±1 from the note's citation but the
 `os.path.abspath(path)`-against-cwd calls are exactly where the note says). Confirmed via
 `notes/cwd-import-bypass-2026-08-27.md`'s "Still open" section and cross-checked the claim

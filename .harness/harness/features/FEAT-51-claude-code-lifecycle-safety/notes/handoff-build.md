@@ -4,11 +4,11 @@
 
 **One main-session-direct fix, then pin and panel.** The build phase is closed: nine of nine tasks
 `done`, qa worked to its residual, SIMPLIFY run and applied. The next act is a one-line guard in
-`check-domain.sh:1686` — it imports `inflight_registry` **before** the canonical-basename check, so
+`check-domain.py:1686` — it imports `inflight_registry` **before** the canonical-basename check, so
 every governed `Write`/`Edit`/`NotebookEdit` in every session pays it. Measured by the efficiency
 reader over 80 runs: **66.6ms at HEAD against 43.0ms at base**, on a hook whose own comment records
 ~104.7ms. `plan-sign-gate.py:337` defers the identical import correctly *in the same diff*, so the
-pattern exists and was simply not applied here. DEC-174 holds `check-domain.sh` main-session-direct,
+pattern exists and was simply not applied here. DEC-174 holds `check-domain.py` main-session-direct,
 so no squad can apply it.
 
 Then, in order: `review_sha` pin at the tip **after** that fix commits (INV-6),
@@ -32,7 +32,7 @@ against BRIEF's twelve SCs, and the CEO briefing. Merge, PR and ship acceptance 
 
 - Do not try to make the integration kind green in this worktree. The seven DEVIATION failures are true, intended, and unsatisfiable until merge; the manifest diff and the function's own docstring both say so — verified-at the pre-SIMPLIFY tip
 - Do not route the seven to a fix cycle or to pm. There is no in-worktree remedy and no plan change closes them; they are gate-placement debt for the operator's ruling — the validator lead reached the same conclusion independently — verified-at 2026-09-01-03-validator
-- Do not dispatch a squad for `check-domain.sh`, `validate-digest.py`, `inflight_registry.py`, `plan-sign-gate.py`/`.sh`, their test files, or the two playbooks. DEC-174 holds them main-session-direct and `check-plan-routes.py` records four of them as declared deviations — verified-at 0bc57c88
+- Do not dispatch a squad for `check-domain.py`, `validate-digest.py`, `inflight_registry.py`, `plan-sign-gate.py`/`.sh`, their test files, or the two playbooks. DEC-174 holds them main-session-direct and `check-plan-routes.py` records four of them as declared deviations — verified-at 0bc57c88
 - Do not commit before re-running both kinds yourself. The SIMPLIFY apply touched a test file and its baseline claim has not been independently confirmed — this note's own Trust section — verified-at now
 - Do not treat a green `run-unit-tests.sh` tail as a green suite. Its last line is the last script's own `N/N checks passed`; count `^FAIL ` lines and capture the runner's exit status in a variable — cost this feature one false report already — verified-at 2026-09-01-01-eng
 - Do not assume an editor write landed in this worktree. A repo-relative write resolved against the **main checkout** twice in this feature, silently, because both copies were byte-identical; use absolute paths and check `git -C /Users/molchairuangutai/GitHub/harness status --porcelain` after — measured twice, both instances cleaned — verified-at now
@@ -43,4 +43,4 @@ against BRIEF's twelve SCs, and the CEO briefing. Merge, PR and ship acceptance 
 - `.harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/qa-2026-09-01-03-validator.md`
 - `.harness/harness/features/FEAT-51-claude-code-lifecycle-safety/runs/2026-09-01-2-simplify-eng/digest.md`
 - `.harness/harness/features/FEAT-51-claude-code-lifecycle-safety/BRIEF.md`
-- `.claude/skills/harness/bin/check-domain.sh`
+- `.claude/skills/harness/bin/check-domain.py`

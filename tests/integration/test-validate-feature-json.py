@@ -711,7 +711,7 @@ def _tree_with_schema(root, extra_github_key=None):
 def case_749_schema_comes_from_the_written_tree():
     """(#749) THE SCHEMA MUST COME FROM THE TREE THE FILE LIVES IN, NOT FROM THIS MODULE.
 
-    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.sh --post` refused a
+    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.py --post` refused a
     legitimate write -- `undeclared key 'source_issues' at /github' -- because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's, and the hook
     imports this module from CLAUDE_PROJECT_DIR, the main checkout.

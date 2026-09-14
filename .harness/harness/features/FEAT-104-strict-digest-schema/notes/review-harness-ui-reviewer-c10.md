@@ -13,7 +13,7 @@ FEAT-19/FEAT-40/FEAT-11/FEAT-10 and the template; FEAT-104 has none.
 
 **No rendered UI surface changed in this diff.** By the letter of Mode B's remit this scopes OUT.
 Per the dispatch's explicit override, I scope **IN** on the adjacent non-rendered surface it names:
-the denial/rejection text emitted by `check-domain.sh`, `check-state.sh`, `validate-digest.py` —
+the denial/rejection text emitted by `check-domain.py`, `check-state.sh`, `validate-digest.py` —
 judged as an interface (what was refused / why / where the fix route is).
 
 **Bookkeeping-commit claim, verified**: `git diff --stat 790023f0..3321bcdd` touches only 8 files,
@@ -33,7 +33,7 @@ Read the diff directly: `_undeclared_cases()`'s version-2 case gained
 `"run-state-schema.json" in strict.stderr` and `` "`evidence`" in strict.stderr ``, and its label
 gained "and gives its route". Ran the suite live (`env -u HARNESS_AGENT_TYPE python3
 tests/integration/test-check-domain.py`): **12/12 T-06 cases pass**, including this one. Read the
-actual denial text the case is pinning (`check-domain.sh:1653-1659`):
+actual denial text the case is pinning (`check-domain.py:1653-1659`):
 
 > `check-domain: <VERB> — <path>: undeclared step key or evidence shape.`
 > `  offending key(s): 'rogue_step_key'. A recovery field is declared in`
@@ -66,7 +66,7 @@ check-domain: BLOCKED — <path>: undeclared step key or evidence shape.
 
 `offending key(s): .` — **empty**. Worse: the header text is **wrong** for this case — nothing is
 undeclared; a *required* key (`id`/`status`) is *absent*. Root cause, read directly in
-`check-domain.sh:1645-1659`: the code only harvests `_offending` from a schema error's `_path[0]`,
+`check-domain.py:1645-1659`: the code only harvests `_offending` from a schema error's `_path[0]`,
 but a jsonschema `required` violation reports its error at the *container's own* path (`[]`), so
 `if _path:` never fires for it and nothing is added. Verified precisely with the schema loaded
 standalone: `jsonschema.Draft202012Validator(step_schema).iter_errors({'status': 'pending'})` yields
@@ -89,7 +89,7 @@ DEC-174: no fix applied; reasoned from code plus a live, disposable repro — no
 
 ## Carried items, confirmed unchanged
 
-- **F1** (schema_version downgrade refusal) — still CLOSED. Code present (`check-domain.sh:1766-
+- **F1** (schema_version downgrade refusal) — still CLOSED. Code present (`check-domain.py:1766-
   1779`), test still green (`"schema_version floor refuses a version-2 checkpoint downgrade"` in the
   12/12 run above).
 - **F3** (undeclared-digest-key message names file+symbols, three-key aggregation) — still CLOSED.
@@ -105,7 +105,7 @@ DEC-174: no fix applied; reasoned from code plus a live, disposable repro — no
 - **CF-4** (raw Python `None` in the schema_version-downgrade omitted-on-update edge) — **still
   present, unchanged**. Reproduced directly at this pin: an existing v2 checkpoint updated with
   `schema_version` omitted entirely still renders `"the proposed write declares None."` at
-  `check-domain.sh:1775` (`f"...declares {_version!r}."` with `_version = None`).
+  `check-domain.py:1775` (`f"...declares {_version!r}."` with `_version = None`).
   `grep -n required tests/integration/test-check-domain.py` confirms T-06's downgrade case only
   covers declared `2→1`, no omitted-on-update case. **Carried, unchanged** — not re-raised as new.
 - **Q7** (duplicate strict-version predicate spellings) — not independently re-derived this cycle;
@@ -130,17 +130,17 @@ the message genuinely gives the route it now asserts having, for the case it act
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: New HIGH finding — check-domain.sh's step-schema denial goes empty and mislabels itself ("undeclared step key") when the real cause is a missing required field (id/status), discarding jsonschema's own informative message; all c9 carried items (F1/F3 closed, F2 decline stands, CF-4 low unchanged) reverified directly at this pin.
+  headline: New HIGH finding — check-domain.py's step-schema denial goes empty and mislabels itself ("undeclared step key") when the real cause is a missing required field (id/status), discarding jsonschema's own informative message; all c9 carried items (F1/F3 closed, F2 decline stands, CF-4 low unchanged) reverified directly at this pin.
   mode: B
   in_scope: true
   severity_max: high
   findings: 2
-  must_fix: ["check-domain.sh's step-schema denial ('undeclared step key or evidence shape.') renders 'offending key(s): .' (empty) and states the wrong reason when a step is missing a required field (id/status) instead of carrying an undeclared one — jsonschema's own error already names the missing field ('id' is a required property) but only e.path (empty for `required` violations) is consulted, not e.message; reproduced directly, untested by T-06."]
+  must_fix: ["check-domain.py's step-schema denial ('undeclared step key or evidence shape.') renders 'offending key(s): .' (empty) and states the wrong reason when a step is missing a required field (id/status) instead of carrying an undeclared one — jsonschema's own error already names the missing field ('id' is a required property) but only e.path (empty for `required` violations) is consulted, not e.message; reproduced directly, untested by T-06."]
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-domain.sh:1645-1659", actual: "offending key(s): . [empty] with header 'undeclared step key or evidence shape.'", specified: "reader test in dispatch: a rejection must tell the reader what was refused, why, and where the route is — even when the offending value is empty" }
+    - { path: ".claude/skills/harness/bin/check-domain.py:1645-1659", actual: "offending key(s): . [empty] with header 'undeclared step key or evidence shape.'", specified: "reader test in dispatch: a rejection must tell the reader what was refused, why, and where the route is — even when the offending value is empty" }
   a11y: ["not applicable — batch/CLI stderr text only, no colour-only encoding, no rendered surface (repo Expertise G-02)"]
   open_questions:
-    - { id: Q1, question: "Should check-domain.sh's required-field branch fall back to jsonschema's e.message (or e.validator=='required' plus e.validator_value) when e.path is empty, so a missing id/status names itself the way a type error on a present field already does? DEC-174 means I cannot apply this myself.", blocking: false }
+    - { id: Q1, question: "Should check-domain.py's required-field branch fall back to jsonschema's e.message (or e.validator=='required' plus e.validator_value) when e.path is empty, so a missing id/status names itself the way a type error on a present field already does? DEC-174 means I cannot apply this myself.", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/notes/review-harness-ui-reviewer-c10.md

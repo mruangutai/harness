@@ -16,7 +16,7 @@ the index's completeness and ruling budgets — is 14/14 ok.
   modes); `PASSTHROUGH` for lead roll-up fields and its reason; bidirectional mechanical agreement
   with `.omp/agents` as source of record because `.claude/agents` is generated; `adequacy_notes`
   required of every lead, closing issue 37; the closed 22-key `steps[]` shape with the governed
-  free-form `evidence` container, enforced on `check-domain.sh`'s write payload path and reported at
+  free-form `evidence` container, enforced on `check-domain.py`'s write payload path and reported at
   rest by `check-state.sh`, gated on `schema_version` 2 with creation below 2 refused and the 356
   version-1 runs left legal and unrewritten; and the open `stop_hook_active` passthrough as the
   reason the message must be one-shot sufficient. Refs line names the ten required decisions, and
@@ -36,7 +36,7 @@ the index's completeness and ruling budgets — is 14/14 ok.
 in `SCHEMAS["lead"]` at `:209`; the `stop_hook_active` short-circuit at `:1827`; the 22 step keys
 (`id` … `evidence`) and the `schema_version` 2 description in
 `.claude/skills/harness/bin/run-state-schema.json:23-56`; the creation-only version floor at
-`check-domain.sh:1586-1612` and the at-rest sweep gate at `check-state.sh:1484-1492`; both
+`check-domain.py:1586-1612` and the at-rest sweep gate at `check-state.sh:1484-1492`; both
 directions of the documented-block check in `tests/integration/test-validate-digest.py` (`:289`
 forward, `:2871`/`:2936` reverse) with `.omp/agents` as the roster source at `:298-306`.
 

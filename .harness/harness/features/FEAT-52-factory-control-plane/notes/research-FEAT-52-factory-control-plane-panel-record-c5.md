@@ -172,7 +172,7 @@ findings:
   severity: med
   reader: goalcheck
   summary: 'R1: issue 356''s headline symptom is never re-measured - no task and no SC fires harness_boundary.classify
-    or check-domain.sh on the anchored absolute receipt path with the agent standing in a product base.
+    or check-domain.py on the anchored absolute receipt path with the agent standing in a product base.
     One test-check-domain.py case asserting allow would carry it.'
   disposition: open
 - id: PF-900f8e07139778d6f6fd67a50ca2e2b9

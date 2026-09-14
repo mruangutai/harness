@@ -31,7 +31,7 @@
   The vacuum only appears via the two workarounds the same ruling forbids. Conclusion unchanged,
   premise wrong — re-derive even the measurement a ruling hands you as settled.
 - 2026-08-21: THREE line anchors cited through several planning rounds by three tiers had all drifted
-  by c32f332: `bash-write-guard.sh` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.sh`'s
+  by c32f332: `bash-write-guard.sh` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.py`'s
   `SHAPE_PATTERNS` is `:727` not `:677`. Converted every one to a symbol reference. The pattern: the
   claim stays true while the pointer dies, so nothing ever fails.
 - 2026-08-21: "record the impossibility" was the wrong frame. The right move was to ask WHICH HARM
@@ -52,9 +52,9 @@
   use is a verify that fails on correct code. Scope the assertion to the lines carrying the defect
   (here: lines containing `except` and an approval fragment), and assert the REPLACEMENT is present
   per line, not just the old token absent file-wide.
-- 2026-08-21: A dispatch cited DEC-119 as check-domain.sh's fail-open-loudly precedent. `awk` over
+- 2026-08-21: A dispatch cited DEC-119 as check-domain.py's fail-open-loudly precedent. `awk` over
   `DECISIONS.md:2356-2408` for `fail.open|loud` returned zero lines; the real precedent is DEC-127
-  `@2805`, body `:2839`, plus the code's own comments at `check-domain.sh:798` and `:811`. A cited
+  `@2805`, body `:2839`, plus the code's own comments at `check-domain.py:798` and `:811`. A cited
   decision NUMBER is as rottable as a line anchor — grep the entry's body for the claim, not just the
   index row for the surface.
 

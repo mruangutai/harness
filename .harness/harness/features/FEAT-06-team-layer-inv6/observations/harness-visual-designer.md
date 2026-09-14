@@ -2,7 +2,7 @@
 
 > **Path note.** The dispatch named
 > `.harness/features/FEAT-06-team-layer-inv6/notes/design-pass-visual-designer.md` as my artifact.
-> `check-domain.sh` BLOCKED it: `team-config.yaml:104-110` grants me `DESIGN.md`,
+> `check-domain.py` BLOCKED it: `team-config.yaml:104-110` grants me `DESIGN.md`,
 > `notes/mockups/**`, `notes/prototypes/**`, my Expertise and this observations log — and nothing
 > else under `notes/`. `DESIGN.md` is explicitly forbidden by the dispatch and would assert a
 > contract that does not exist. So the ruling lives here, the only durable path that is mine.

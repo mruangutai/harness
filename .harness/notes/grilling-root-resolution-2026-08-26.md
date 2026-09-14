@@ -104,7 +104,7 @@ worktree copy: /Users/.../worktrees/harness/FEAT-37-lead-stop-and-wake
 ### The sixteen sites split 7 hooks / 9 scripts
 
 Hooks (always run MAIN's copy): `bash-write-guard.sh`, `branch-create-gate.sh`,
-`check-domain.sh`, `context-watch-hook.py`, `dispatch-guard.sh`, `gh-close-gate.sh`,
+`check-domain.py`, `context-watch-hook.py`, `dispatch-guard.sh`, `gh-close-gate.sh`,
 `inject-expertise.sh`, `validate-digest.py`.
 
 Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`,
@@ -114,12 +114,12 @@ Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`
 ### One function is deliverable — none of these is really bash
 
 Every `.sh` site already runs `python3`, and **four already import a shared harness module**:
-`bash-write-guard.sh`, `check-domain.sh`, `check-state.sh`, `post-merge-sweep.py`. The precedent
+`bash-write-guard.sh`, `check-domain.py`, `check-state.sh`, `post-merge-sweep.py`. The precedent
 for a shared import exists; it was simply not used for this.
 
 ### The problem has already been hit and patched privately
 
-`check-domain.sh:885-890`, verbatim: *"a live agent worktree held 38 files matching these globs
+`check-domain.py:885-890`, verbatim: *"a live agent worktree held 38 files matching these globs
 and the sweep reached NONE of them, because the globs are joined to `root` and a worktree is a
 separate checkout underneath it."* It fixed this for itself with its own
 `harness_boundary.linked_worktrees` enumeration. **One site solved the shared problem privately;
@@ -163,12 +163,12 @@ the calling agent stands, even though the hook process itself runs the main chec
 | `context-watch-hook.py` | reads `cwd` at `:58`, but passes it to `warn_for_agent` — not root resolution |
 | `bash-write-guard.sh` | no — env chain only |
 | `branch-create-gate.sh` | no |
-| `check-domain.sh` | no |
+| `check-domain.py` | no |
 | `gh-close-gate.sh` | no |
 | `inject-expertise.sh` | no |
 
 **Two sites solved the shared problem privately and rolled their own walk.** That is the same
-shape as `check-domain.sh`'s `linked_worktrees` patch: a real answer, unshared.
+shape as `check-domain.py`'s `linked_worktrees` patch: a real answer, unshared.
 
 ### But payload `cwd` is the wrong input, and #742 already ruled the right one
 
@@ -333,17 +333,17 @@ one file, `test-gh-close-gate.py:41`.
 The earlier retraction left them with no decided input. They have one: **the target of the
 operation**, passed to the same function.
 
-- `check-domain.sh` (Write/Edit) — `tool_input.file_path`. Its own header already says the named
+- `check-domain.py` (Write/Edit) — `tool_input.file_path`. Its own header already says the named
   route works: *"The named-target route already handled this via `_norm`; the sweep did not."*
 - `bash-write-guard.sh` — the paths it already parses out of the command.
 - `validate-digest.py` — the digest path.
-- The four with NO target — `check-domain.sh --post` (a blind sweep), `inject-expertise.sh`,
+- The four with NO target — `check-domain.py --post` (a blind sweep), `inject-expertise.sh`,
   `branch-create-gate.sh`, `gh-close-gate.sh` — pass `__file__` and take `owner_root`.
 
 **Measured that this is safe for the target-less four:** expertise files are byte-identical across
 all seven worktrees (`diff -rq` returns nothing), and `harness.json`'s `github` block reads
 `sync=True repo=mruangutai/harness` in all eight checkouts. The sweep additionally needs
-`linked_worktrees(owner_root)`, which `check-domain.sh` already has and no other site can reach.
+`linked_worktrees(owner_root)`, which `check-domain.py` already has and no other site can reach.
 
 ## What this grilling hands over
 

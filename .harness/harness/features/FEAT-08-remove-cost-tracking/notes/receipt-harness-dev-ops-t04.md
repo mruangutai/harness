@@ -1,14 +1,14 @@
 # T-04 receipt — harness-dev-ops
 
 **Verdict: BLOCKED.** Phase 1 (`.harness/harness.json`) landed clean. Phase 2
-(`.claude/skills/harness/templates/harness.json`) is blocked by `check-domain.sh` — the path is
+(`.claude/skills/harness/templates/harness.json`) is blocked by `check-domain.py` — the path is
 not in this agent's domain and not in `shared:`. No workaround was attempted (Bash rewrite would
-be guardrail evasion per the dispatch and `check-domain.sh:246-247`).
+be guardrail evasion per the dispatch and `check-domain.py:246-247`).
 
 ## Blocking hook stderr (verbatim)
 
 ```
-PreToolUse:Edit hook error: [${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh]: check-domain: BLOCKED — harness-dev-ops may not write .claude/skills/harness/templates/harness.json
+PreToolUse:Edit hook error: [${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py]: check-domain: BLOCKED — harness-dev-ops may not write .claude/skills/harness/templates/harness.json
   Permitted for you: .github/**, Dockerfile, .harness/harness.json, .claude/skills/harness/bin/**, .harness/codebase/stack.md, .harness/features/*/notes/receipt-harness-dev-ops-*.md, .harness/expertise/harness-dev-ops.md, .harness/features/*/observations/harness-dev-ops.md
   Shared (allowed, serialized): package.json, package-lock.json, pnpm-lock.yaml, yarn.lock, pyproject.toml, uv.lock, requirements.txt, tsconfig.json
   If this path should be yours, it belongs in .harness/team-config.yaml — do not work around this hook.

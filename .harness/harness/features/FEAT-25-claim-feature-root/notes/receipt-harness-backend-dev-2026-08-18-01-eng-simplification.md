@@ -7,12 +7,12 @@
 - **Summary**: BRIEF Constraints says "Do not touch `.harness/factory/fleet.yaml`,
   `.harness/harness.json`, `gh_board.py` or `load_board`." SC-08 says "No file outside
   `.claude/skills/harness/bin/` is modified, and `factory_config.py`, `fleet.yaml`,
-  `harness.json`, `gh_board.py` and `check-domain.sh` are untouched." These are the same fact
+  `harness.json`, `gh_board.py` and `check-domain.py` are untouched." These are the same fact
   (the forbidden-touch set) spelled with two different memberships: SC-08 adds
-  `factory_config.py` and `check-domain.sh`, which Constraints never names as off-limits;
+  `factory_config.py` and `check-domain.py`, which Constraints never names as off-limits;
   Constraints names `load_board`, which SC-08 (a file-only list) cannot express.
 - **Concrete cost**: SC-08's verify is `inspection`, not automated — nothing greps for this.
-  A reader who checks only Constraints before touching `check-domain.sh` or adding a
+  A reader who checks only Constraints before touching `check-domain.py` or adding a
   `factory_config.py` API sees no prohibition there; only SC-08, read separately at review
   time, would catch it. The two lists can drift further apart on a future edit to either one
   and nothing would notice.

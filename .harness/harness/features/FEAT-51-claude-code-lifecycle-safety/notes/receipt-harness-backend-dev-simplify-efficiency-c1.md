@@ -1,7 +1,7 @@
 # SIMPLIFY — EFFICIENCY angle — FEAT-51 — c1
 
 **BLUF:** `plan-sign-gate.py`'s T-07 deferral held — measured, the import cost is paid only on
-a verb match, ~0 ms marginal for the common case. `check-domain.sh`'s own new quarantine block
+a verb match, ~0 ms marginal for the common case. `check-domain.py`'s own new quarantine block
 did **not** copy that pattern: it imports `inflight_registry` (which drags in `harness_merge` →
 `tempfile`/`shutil`/`zlib`/`bz2`/`lzma`) unconditionally for every `Write`/`Edit`/`NotebookEdit`
 by a governed agent, not only when the target is actually a canonical artifact. Measured
@@ -48,9 +48,9 @@ cost — confirming the deferred import pays **nothing** for the overwhelming ma
 calls in a session, which never touch `plan-merge.py`/`quarantine.py` at all. T-07's intent is
 met in the shipped code.
 
-## Finding 1 — `check-domain.sh` imports unconditionally on every governed write, not only canonical ones
+## Finding 1 — `check-domain.py` imports unconditionally on every governed write, not only canonical ones
 
-- **file/line:** `.claude/skills/harness/bin/check-domain.sh:1680-1710` (the `# FEAT-51:` block);
+- **file/line:** `.claude/skills/harness/bin/check-domain.py:1680-1710` (the `# FEAT-51:` block);
   specifically the `import inflight_registry as _reg` at line 1686, which sits *before* the
   `canonical_artifact()` match check at line 1687.
 - **summary:** unlike `plan-sign-gate.py`'s deferred-import pattern in the same diff, this
@@ -58,7 +58,7 @@ met in the shipped code.
   (`harness-*`) agent as soon as a `target` exists — before checking whether that target is
   even one of the four canonical basenames (`plan.yaml`, `BRIEF.md`, `feature.json`,
   `STATE.md`). Most governed writes are source/test/notes files, not those four.
-- **concrete cost, measured:** end-to-end `check-domain.sh` pre-mode timing (subprocess,
+- **concrete cost, measured:** end-to-end `check-domain.py` pre-mode timing (subprocess,
   80 runs, governed agent, non-canonical Write target) —
 
   | tree | avg per-call |
@@ -81,7 +81,7 @@ met in the shipped code.
   before the `try: import inflight_registry as _reg` line, so the import (and the transitive
   `harness_merge`/`tempfile`/`shutil`/`zlib`/`bz2`/`lzma` load) only fires for the rare write
   that could plausibly be a canonical artifact.
-- **applicable:** report-only (`check-domain.sh` is DEC-174 report-only; no squad may edit it).
+- **applicable:** report-only (`check-domain.py` is DEC-174 report-only; no squad may edit it).
 
 ## Other surfaces checked — no findings
 

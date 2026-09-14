@@ -53,7 +53,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered gate script
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered PreToolUse gate script
     - surface: .claude/skills/harness/bin/validate-digest.py
@@ -75,22 +75,22 @@ lanes:
       agent: harness-documentor
     - surface: .claude/skills/harness/templates/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+      reason: check-domain.py --resolve returns NOBODY, an ungranted surface under DEC-179
     - surface: .claude/skills/**/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+      reason: check-domain.py --resolve returns NOBODY, an ungranted surface under DEC-179
     - surface: .claude/agents/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+      reason: check-domain.py --resolve returns NOBODY, an ungranted surface under DEC-179
     - surface: .claude/commands/**
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+      reason: check-domain.py --resolve returns NOBODY, an ungranted surface under DEC-179
     - surface: .harness/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+      reason: check-domain.py --resolve returns NOBODY, an ungranted surface under DEC-179
     - surface: CLAUDE.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+      reason: check-domain.py --resolve returns NOBODY, an ungranted surface under DEC-179
     - surface: .harness/features/*/feature.yaml
       lane: main-session-direct
       reason: resolves to harness-orchestrator, which owns only its own feature dir; a
@@ -128,16 +128,16 @@ decisions:
   - id: D-03
     choice: Enforcement is one implementation in two shapes - an importable module
       bin/feature_schema.py holding the schema load and the validation, plus a thin CLI wrapper
-      bin/validate-feature-json.py for CI, the migration tasks and the corpus sweep. check-domain.sh
+      bin/validate-feature-json.py for CI, the migration tasks and the corpus sweep. check-domain.py
       IMPORTS the module in process on its existing write-payload path; it does not spawn the CLI.
       The PreToolUse bash-write-guard and a check-state.sh sweep are rejected as the primary point.
-    because: check-domain.sh already inspects write payloads on this exact path for the line
+    because: check-domain.py already inspects write payloads on this exact path for the line
       budget, so write-time denial costs an import and a call rather than schema logic inside a
       carve-out gate; bash-write-guard guards the Bash route, not the Write tool the orchestrator
       uses, and a check-state sweep only reddens after the bad write is on disk. IN PROCESS RATHER
-      THAN SUBPROCESS, and this is the load-bearing half - check-domain.sh already exports PYTHONPATH
+      THAN SUBPROCESS, and this is the load-bearing half - check-domain.py already exports PYTHONPATH
       and imports harness_yaml, so an import costs nothing, while a subprocess re-adds the 104.7 ms
-      interpreter launch measured at check-domain.sh line 92 and removed by T-13, once per file in a
+      interpreter launch measured at check-domain.py line 92 and removed by T-13, once per file in a
       post-Bash sweep that a bulk mtime refresh can drag the whole corpus into. A subprocess also
       fails OPEN when it cannot launch (the exception escapes to exit 1, and line 14 says exit 1 is
       NON-blocking) and can only be handed a temporary file, so its message names a path nobody
@@ -333,12 +333,12 @@ tasks:
         - problems_for_text(text, display) -> list of stderr LINES, [] when clean,
           taking the document TEXT and the path to NAME IN THE MESSAGE. It never
           exits and never writes a temporary file. This is the entry point
-          check-domain.sh imports at T-06, and it is why the module exists: a
+          check-domain.py imports at T-06, and it is why the module exists: a
           subprocess cannot be handed the real path, and its launch failure escapes
           as a non-blocking exit 1;
         - problems_for_file(path) -> the same, reading from disk.
       Import jsonschema at MODULE level inside a try, setting a module-level flag on
-      ImportError. Do not import it inside a per-file function: check-domain.sh's
+      ImportError. Do not import it inside a per-file function: check-domain.py's
       post sweep calls the entry point once per candidate file, and a per-call import
       pays the cost, and emits the message, once per file.
       When jsonschema is unavailable, problems_for_* returns a ONE-line problem, and
@@ -351,7 +351,7 @@ tasks:
       that passed. This mirrors harness_yaml.MissingDependency's shape under
       DEC-171 am.1.
       THE FEATURE.JSON PATH DEPENDS ON STDLIB json AND jsonschema ONLY, NEVER PyYAML.
-      Say so in a comment. The state.yaml branch in check-domain.sh returns [] when
+      Say so in a comment. The state.yaml branch in check-domain.py returns [] when
       PyYAML is absent - a fail-open the user ruled on - and the next editor will try
       to make this branch match it. It must not: this branch has no PyYAML dependency
       to be absent, so the two are not the same case.
@@ -440,7 +440,7 @@ tasks:
       - one case calling feature_schema.problems_for_text DIRECTLY with a display path
         of .harness/features/FEAT-99-x/feature.json, asserting that path appears in
         every returned line - the in-process entry point must name the real file,
-        because check-domain.sh has no other way to attribute a finding;
+        because check-domain.py has no other way to attribute a finding;
       - one case calling feature_schema.problems_for_text with jsonschema forced
         unavailable, asserting it returns a non-empty list (never []) whose single
         line carries REQUIRED and the install command.
@@ -457,7 +457,7 @@ tasks:
     traces: [REQ-06]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both paths, an ungranted
+    execution_reason: check-domain.py --resolve returns NOBODY for both paths, an ungranted
       surface under DEC-179
     depends_on: [T-01]
     status: done
@@ -496,7 +496,7 @@ tasks:
       jsonschema is required too, for the feature execution-state schema, with the same
       loud-failure rule - a missing import is an error, never a quieter mode. Keep the
       bullet's existing wording about PyYAML intact; add, do not rewrite. CLAUDE.md has
-      an 80-line budget enforced at check-domain.sh, so keep the addition to one or two
+      an 80-line budget enforced at check-domain.py, so keep the addition to one or two
       lines and check the file's line count afterwards.
 
   - id: T-03
@@ -951,13 +951,13 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-06, REQ-07, REQ-08]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh, check-domain.sh and validate-digest.py are
+    execution_reason: DEC-174 carve-out - check-state.sh, check-domain.py and validate-digest.py are
       three of the four named enforcement scripts, edited directly and never dispatched
     depends_on: [T-04]
     status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-check-state.py
       - .claude/skills/harness/bin/test-check-domain.py
@@ -1016,7 +1016,7 @@ tasks:
           the 300 came from FEAT-10 at 173 lines with 32 runs and roughly 5 lines per
           run.
 
-      2. check-domain.sh. In _SWEEP_PATTERNS (around line 506) the entry
+      2. check-domain.py. In _SWEEP_PATTERNS (around line 506) the entry
       .harness/features/*/feature.yaml becomes .harness/features/*/feature.json, and the
       RE_FEATURE_YAML constant (line 572, used at line 586's SHAPE_PATTERNS and at line
       633) is renamed RE_FEATURE_JSON with its pattern ending feature\.json. Rename every
@@ -1076,7 +1076,7 @@ tasks:
 
       FAIL CLOSED, WITH NO BOOTSTRAP ESCAPE, AND SAY WHY IN THE COMMENT. When jsonschema
       is unavailable the module returns its one REQUIRED line; append it to the problems
-      list, so the payload is DENIED with exit 2. Do NOT claim it shares check-domain.sh's
+      list, so the payload is DENIED with exit 2. Do NOT claim it shares check-domain.py's
       existing bootstrap escape - it does not, and a false explanatory comment is what the
       next editor edits against. require_or_bootstrap is reached only inside `if
       _run_domain:` (line 333), which needs a governed harness-* agent in PRE mode with a
@@ -1174,7 +1174,7 @@ tasks:
     traces: [REQ-07, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: every path resolves to NOBODY under check-domain.sh --resolve, an ungranted
+    execution_reason: every path resolves to NOBODY under check-domain.py --resolve, an ungranted
       surface under DEC-179
     depends_on: [T-04]
     status: done
@@ -1311,7 +1311,7 @@ tasks:
       python3 - <<'PY'
       import glob, subprocess, sys, yaml
       B = [l.split('\u2014')[0].strip().replace('feature.yaml', 'feature.json') for l in open('.harness/features/FEAT-14-feature-json-schema/notes/baseline-check-state.txt') if l.strip()]
-      _B='.claude/skills/harness/bin/'; P={_B+'test-harness-yaml-corpus.py':[4,[]], _B+'check-domain.sh':[6,['Measured on the pre-change tree, one','400-line feature.yaml measured exit 0','One over-budget feature.yaml, then five unrelated']], _B+'test-check-domain.py':[1,['Measured before the fix, ONE 400-line']], _B+'check-plan-routes.py':[1,['reached `doc.get` on a list and raised']], 'docs/harness/BUILD.md':[3,['acb8db4','2026-07-28 fixture','PLAN.md` and a sec']]}
+      _B='.claude/skills/harness/bin/'; P={_B+'test-harness-yaml-corpus.py':[4,[]], _B+'check-domain.py':[6,['Measured on the pre-change tree, one','400-line feature.yaml measured exit 0','One over-budget feature.yaml, then five unrelated']], _B+'test-check-domain.py':[1,['Measured before the fix, ONE 400-line']], _B+'check-plan-routes.py':[1,['reached `doc.get` on a list and raised']], 'docs/harness/BUILD.md':[3,['acb8db4','2026-07-28 fixture','PLAN.md` and a sec']]}
       bad = []; y = sorted(glob.glob('.harness/features/*/feature.yaml'))
       if y: bad.append('feature.yaml still on disk: %s' % y)
       if len(glob.glob('.harness/features/*/feature.json')) < len(glob.glob('.harness/features/*/notes/receipt-feature-key-drop.md')): bad.append('fewer feature.json files than T-04 drop receipts - a feature was lost in conversion')
@@ -1509,7 +1509,7 @@ tasks:
       distinct top-level keys across fourteen features at 2026-08-10, 41 of them
       appearing nowhere outside a feature directory, cost_usd surviving on 75 run
       entries with zero readers, and run entries carrying prose as mapping keys. Record
-      the enforcement point and why (check-domain.sh's existing write-payload path plus
+      the enforcement point and why (check-domain.py's existing write-payload path plus
       the required integration CI job, with bash-write-guard and a check-state sweep
       rejected, one clause each). Record the rejected alternative a future scan will
       re-suggest: a typed notes array, declined because it becomes the drawer everything
@@ -1819,7 +1819,7 @@ tasks:
       execution modes, which is a set that grows.
       WHY IT IS NEEDED. A feature built entirely main-session-direct under DEC-174 runs no
       squad, crosses no seam and is owed NO handoff note. FEAT-15 is the first: all five of
-      its tasks are execution_mode main-session-direct because check-domain.sh is a DEC-174
+      its tasks are execution_mode main-session-direct because check-domain.py is a DEC-174
       carve-out file, it holds zero handoff notes, and T-04 places it at Done. Without this
       exemption INV-17 raises THREE violations on it - handoff-plan, handoff-build and
       handoff-validate - for notes that should never have existed. This generalises to

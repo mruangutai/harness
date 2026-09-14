@@ -60,7 +60,7 @@ observed `ok` in the live runs above.
   reverts the presence-vs-truthiness branch to `text = d.get(...) or ""`, fires both real and mutant
   over a whitespace-only `last_assistant_message`, asserts `real==2, mutant==0`. Genuine.
 - **`feature-checkout-red`** (`test-check-domain.py:2758-2771`) — deletes the
-  `feature_checkout_guard(_verdict["rel"], target)` call from a copied `check-domain.sh`, asserts
+  `feature_checkout_guard(_verdict["rel"], target)` call from a copied `check-domain.py`, asserts
   `refused==2` (real) vs `muted==0` (mutant), no traceback. Genuine.
 - **`digest-clobber-red`** (`test-check-domain.py:2832-2842`) — deletes the whole issue-#1058 guard
   block between its comment anchor and the next `RE_FEATURE_JSON` check, asserts `clobber==2` (real)
@@ -107,7 +107,7 @@ case-name set from each run:
    PASS** (cyc 1, ABC 20.0, was grade 1: cyc 17 / cog 14 / ABC 85.8). Both fixed by extracting the
    FEAT-50 blocks into named helper functions (`_feat50_*`), confirmed in the diff.
 3. **[MED, security] digest-clobber OSError-as-absent** — CLOSED.
-   `check-domain.sh:1140-1158` (`git diff dca2d3d..HEAD`): `prior` now starts `None`; a bare
+   `check-domain.py:1140-1158` (`git diff dca2d3d..HEAD`): `prior` now starts `None`; a bare
    `FileNotFoundError` still sets `prior = ""` (creating a file is still allowed) but any other
    `OSError` leaves `prior is None`, which now emits an explicit `_head(...)` denial ("run digest
    already exists but cannot be read safely; refusing a Write...") instead of silently permitting

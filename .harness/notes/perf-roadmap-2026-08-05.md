@@ -86,7 +86,7 @@ additive-line, byte-identical-revert technique both existing measurements used, 
 FEAT-07's probe-don't-infer rule now mandates. **Until that lands, any plan is a guess about a
 mechanism nobody has observed.** Only after the probe does D become plannable.
 
-`check-domain.sh` is DEC-174 carve-out.
+`check-domain.py` is DEC-174 carve-out.
 
 ## Sequencing summary
 

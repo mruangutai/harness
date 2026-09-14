@@ -63,7 +63,7 @@ mismatch — noting the mismatch as a minor finding, not a defect.
 ## Task C — mutation proof, `revert only done`
 
 Ran in a disposable worktree (`git worktree add /Users/molchairuangutai/GitHub/harness/.claude/worktrees/qa-feat24-recheck 0fa6315`,
-removed after) per DEC-153 — `check-domain.sh` denies `harness-qa` writes to `check-state.sh` even
+removed after) per DEC-153 — `check-domain.py` denies `harness-qa` writes to `check-state.sh` even
 inside a worktree unless the path is given as an absolute path under `.claude/worktrees/`; a
 worktree-relative argv string resolves against `CLAUDE_PROJECT_DIR` and gets treated as a main-
 checkout write (learned live, not previously documented).

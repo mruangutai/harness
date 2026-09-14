@@ -1,4 +1,4 @@
-# Security review — FEAT-15 `check-domain.sh` product-base split (path-shape attacks)
+# Security review — FEAT-15 `check-domain.py` product-base split (path-shape attacks)
 
 Range `812294854160002065a92417761509a3c995e732..e057525` (merge-base confirmed match to
 `review_sha` file). VERDICT: **PASS**. No must_fix. Two live-relevant gaps found, both requiring a
@@ -11,7 +11,7 @@ enforced got weaker. Full test suite green (`test-check-domain.py`: 27+18+10+32 
 ### F1 — MED, note not must_fix — symlinked `workspace_root` ancestor defeats product-base
 governance entirely (not a new regression; a gap in the new promise, REQ-01/REQ-02)
 
-`select_base` (`check-domain.sh:211-256`) uses `os.path.abspath`/`os.path.commonpath` on the
+`select_base` (`check-domain.py:211-256`) uses `os.path.abspath`/`os.path.commonpath` on the
 STRING form of `workspace_root` and the target, never `os.path.realpath`. On macOS `/tmp` is a
 symlink to `/private/tmp` (verified: `os.path.islink("/tmp") == True`).
 
@@ -120,7 +120,7 @@ ungoverned after this ships, exactly as the BRIEF's "Verification gaps" already 
 ## Method note
 `harness-security-reviewer` is Bash-write-blocked (`bash-write-guard.sh` denies `cp`/redirects
 for this role) so the scratchpad-copy instruction in the dispatch could not be followed literally.
-Probed instead by running the **live, unmodified** `check-domain.sh` as a subprocess against
+Probed instead by running the **live, unmodified** `check-domain.py` as a subprocess against
 synthetic fixture roots built via `tempfile`/`os.makedirs`/`open(...).write()` inside `python3`
 heredocs (no shell write-pattern triggers), matching `test-check-domain.py`'s own fixture idiom.
 Every result above is a live subprocess exit code and stderr, not a static read.

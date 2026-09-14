@@ -55,7 +55,7 @@ second place. The file should also stop asserting a safeguard it does not have.
   `run_*`; private helpers are `_*`. Two non-underscore helpers exist
   (`bug1304_pre_change_hook`, `bug1304_assert_pre_change_allows`) and neither starts with `run_`.
 - **DEC-179 SUPPLIES the routing:** the lane for this path is resolved at plan time.
-  `check-domain.sh --resolve tests/integration/test-check-domain.py` returns harness-backend-dev,
+  `check-domain.py --resolve tests/integration/test-check-domain.py` returns harness-backend-dev,
   harness-dev-ops, harness-qa (exit 0), so the work is a `team` lane, not a main-session carve-out.
 - **DEC-182 SUPPLIES the plan format:** `plan.yaml`, written only through `plan-merge.py`.
 - **The suite costs ~38s wall.** A 60s verify budget affords exactly one full run and nothing more.

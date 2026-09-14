@@ -47,7 +47,7 @@ entry this feature invalidated.
 
 ## The routing answer, since it is not obvious
 
-`check-domain.sh --resolve` puts all three docs on **`harness-documentor`** — a granted agent. So
+`check-domain.py --resolve` puts all three docs on **`harness-documentor`** — a granted agent. So
 this is a **team-lane** surface reachable through `harness-product-lead`, **not** a
 `main-session-direct` task and **not** something the operator must type by hand. That matters: the
 cheapest correct disposal is one documentor spawn, not an operator segment.

@@ -22,8 +22,8 @@ the guard exits 0. `cmd_apply` validates neither caller nor `--file`. T-06 built
 this same diff, rewired `harness-distill/SKILL.md:28-34` to instruct every agent — reviewers included
 — to use exactly that shape.** Reproduced live: `harness-documentor` → another agent's Expertise file,
 → `src/main.py`, `harness-code-reviewer` (read-only) → `src/main.py`, reviewer → `.claude/settings.json`,
-reviewer → outside the repo, documentor → `check-domain.sh`: **all rc=0**, while the same targets via
-`echo >` are rc=2. Against a COPY of `check-domain.sh`: exit 0, **67,976 → 71 bytes**. Real files
+reviewer → outside the repo, documentor → `check-domain.py`: **all rc=0**, while the same targets via
+`echo >` are rc=2. Against a COPY of `check-domain.py`: exit 0, **67,976 → 71 bytes**. Real files
 verified intact. Content is constrained to the Expertise markdown shape, so it is a clean tampering
 primitive for Expertise (injected into every spawn — doctrine injection) and a blunt truncation
 primitive elsewhere; blunt still disables enforcement.
@@ -58,7 +58,7 @@ each time, `IsolationViolation` raised all 5, so the `committer_failed` short-ci
 
 **Four relayed claims failed my re-measurement** (detail in the briefing): the simplify pass's only
 HIGH (F-ALT-1) is refuted — flipping the three switches reddens their suites 4/13/12; the docs pass's
-headline is overstated — `harness-team/SKILL.md:94` correctly names `check-domain.sh` and
+headline is overstated — `harness-team/SKILL.md:94` correctly names `check-domain.py` and
 `harness-zero-micro-management` makes no such claim; **T-03's recorded red proof is inert at HEAD** —
 its mutation leaves 38/38 parity cases green, and the panel showed `WORKTREES_SEGMENT` has no use at
 all in the grant re-basing path, so it *cannot* redden one; and my own inference about

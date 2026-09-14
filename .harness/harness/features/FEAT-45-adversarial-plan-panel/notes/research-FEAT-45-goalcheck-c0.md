@@ -20,8 +20,8 @@ after the pin. Working tree clean; nothing written outside this note.
 | SC-01c goal-check (REQ-03) | met | `test-plan-panel.py` case 1c | `.claude/skills/harness/SKILL.md:93-94` "does this plan deliver the operator's stated intent?" |
 | SC-01 falsifier: no reader's question missing | met | three separate per-reader assertions above, never a file-global match | 24/24 in `test-plan-panel.py` |
 | SC-01 falsifier: no out-of-squad harness persona | met | cases 4c/4d against `.harness/team-config.yaml` Validation members | `code-reviewer` is a Validation member; `fable-advisor` is SC-14's permitted non-harness exception |
-| SC-02a `scope` output | met | `check-domain.sh --resolve .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/review-harness-code-reviewer-planpanel-c0.md` | rc=0, prints `harness-code-reviewer` |
-| SC-02b playbook goal-check note | met | `check-domain.sh --resolve .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/research-FEAT-45-goalcheck-plan-c0.md` | rc=0, prints `harness-pm` |
+| SC-02a `scope` output | met | `check-domain.py --resolve .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/review-harness-code-reviewer-planpanel-c0.md` | rc=0, prints `harness-code-reviewer` |
+| SC-02b playbook goal-check note | met | `check-domain.py --resolve .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/research-FEAT-45-goalcheck-plan-c0.md` | rc=0, prints `harness-pm` |
 | SC-02 `should-not-exist` | n/a — `outputs: []`, SC-14's scope, correctly excluded | enumerated then skipped | `plan-panel.yaml:18` |
 | SC-03a `scope` writer carries `{{cycle}}` | met | `test-plan-panel.py` case 3 | `plan-panel.yaml:39` `...planpanel-c{{cycle}}.md` |
 | SC-03b goal-check note carries `c<cycle>` | met | `test-plan-panel.py` case 3 | `SKILL.md:95-96` |

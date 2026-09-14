@@ -9,7 +9,7 @@ sweep, not as its point.
 **The user split this into TWO features.** This artifact seeds both; pm coins the ids (DEC-133).
 
 - **Feature 1 — the `.yaml` file parsers.** PyYAML as an init prerequisite, plus conversion of
-  `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`, `check-domain.sh`,
+  `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`, `check-domain.py`,
   `bash-write-guard.sh`.
 - **Feature 2 — the DIGEST parser.** Fence the three-part return, convert `validate-digest.py`.
 
@@ -31,7 +31,7 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
   `requirements.txt` — nothing in the harness would read it, and it would be the first dependency
   manifest in a files-only repo.
 - **Hook behaviour when PyYAML is absent** → **fail CLOSED, block the write.** This reverses
-  DEC-101's fail-open reasoning for `check-domain.sh`. **Also needs recording as a decision.**
+  DEC-101's fail-open reasoning for `check-domain.py`. **Also needs recording as a decision.**
 - **Bootstrap escape** → one exception to fail-closed: if PyYAML is missing, the hook prints the
   install command and permits writes **for that session only**, blocking from the next session on.
   Without this, an existing project that pulls the update without re-running init has every agent
@@ -59,13 +59,13 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
 - Whether the six converted scripts share one YAML helper module or each import `yaml` directly.
   Recommended a shared `bin/harness_yaml.py` during grilling, but this is architecture — eng-lead
   reviews it, and pm should not have it pre-decided.
-- How `bash-write-guard.sh` and `check-domain.sh` detect "same session" for the one-time bypass.
+- How `bash-write-guard.sh` and `check-domain.py` detect "same session" for the one-time bypass.
   Sharp enough to state, not yet answered; a marker file under `.harness/` is the obvious shape but
   its lifecycle is unexamined.
 - **Who edits the 13 return templates in Feature 2.** RESOLVED 2026-08-02 — the user assigned it to
   the main session, which did it. Retained here because the underlying question is unresolved: `team-config.yaml:35` states
   `.claude/agents/** IS DELIBERATELY UNOWNED — no agent may write it, and that is the point.` So
-  `check-domain.sh` blocks every template edit, and DEC-172's "templates and parser ship together"
+  `check-domain.py` blocks every template edit, and DEC-172's "templates and parser ship together"
   is unsatisfiable by any agent as the org stands. This is the FEAT-03 Q13 shape recurring
   (`FEAT-03-subissue-mirror/feature.yaml:96` — "no agent domain covers it"). Either the main session
   makes those edits pre-ship, or the ownership rule needs revisiting. **Feature 2 cannot be planned
@@ -87,17 +87,17 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
 All at `37a8a66`.
 
 - **Six production scripts hand-parse YAML.** `check-state.sh` (17 regex calls), `gh-sync.py` (11),
-  `validate-digest.py` (11), `check-domain.sh` (9), `bash-write-guard.sh` (6), `upgrade-config.py`
+  `validate-digest.py` (11), `check-domain.py` (9), `bash-write-guard.sh` (6), `upgrade-config.py`
   (2), `cost-report.py` (1). Counted with `grep -cE 're\.(search|findall|match|finditer)'`.
   **Caveat found in FEAT-05 planning:** `cost-report.py` does not PARSE YAML into values — it does a
   targeted line-scan replacement of the `cost:` block (`:189`). Whether it belongs in the sweep is a
   scope judgment, not a given; the BRIEF's REQ-01 named it without that distinction.
 - **The three "shell" scripts are bash wrappers around embedded Python heredocs** —
-  `check-domain.sh:35,74,97,235`, `bash-write-guard.sh:24,48`, `check-state.sh:17`. There is no
-  Python-startup cost to *add*; `check-domain.sh` already launches the interpreter three times per
+  `check-domain.py:35,74,97,235`, `bash-write-guard.sh:24,48`, `check-state.sh:17`. There is no
+  Python-startup cost to *add*; `check-domain.py` already launches the interpreter three times per
   hook call. Consolidating would likely make it faster.
 - **Measured latency, 100 iterations each:** bare `python3 -c pass` 16.7ms · `python3 -c 'import
-  yaml'` 29ms · `check-domain.sh` on a `{}` payload 23.7ms. **The 23.7ms figure is WRONG for the
+  yaml'` 29ms · `check-domain.py` on a `{}` payload 23.7ms. **The 23.7ms figure is WRONG for the
   governed path** — a `{}` payload has no `agent_type` and returns early, so it never exercised the
   hook. dev-ops measured the real governed path at **80.63ms** during FEAT-05 planning. Use that.
 - **PyYAML is NOT importable from `/opt/homebrew/bin/python3`**, and PEP 668 rejects a plain

@@ -35,7 +35,7 @@ operator settled on the *content* of a note ("`--check` did not exist; its appar
 not verify index drift") and both tasks carry that content verbatim as grep-enforced phrases. For
 DECISIONS.md the appended form is foreclosed by DEC-205:6322-6323 — the plan is right to refuse it.
 For STATE.md D-01's stated reason ("barred from a new section by its two-heading vocabulary",
-`plan.yaml:34-36`) is true of a **new `## ` section** only: `check-domain.sh:1801-1805` bars
+`plan.yaml:34-36`) is true of a **new `## ` section** only: `check-domain.py:1801-1805` bars
 headings outside `## Current`/`## Open Questions`; nothing bars an inline dated sentence *inside*
 `## Current`. That option was available, was not recorded as considered — and T-02 in fact lands
 close to it: it writes the correction inline, dated 2026-09-06, in place of the false line
@@ -53,7 +53,7 @@ instruction ("keep the bold lead-in naming the date", `plan.yaml:101-102`) with 
 That is F-3.
 
 (c) **Does DEC-205 govern FEAT-05's STATE.md?** No — see the heading scope and the test's single
-path above. What actually constrains STATE.md is `check-domain.sh:1796-1807` (heading vocabulary +
+path above. What actually constrains STATE.md is `check-domain.py:1796-1807` (heading vocabulary +
 120-line budget; the file is 165 lines / 7 headings, measured), which forbids a new **section** and
 nothing more. D-04 (`plan.yaml:58-66`) is correct about Edit-vs-Write; its heading claim does not
 reach an inline note.

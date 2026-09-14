@@ -16,7 +16,7 @@ ordered batch afterwards (`notes/layer0-segments-FEAT-27.md`); T-05 waits on T-0
 ## Trust
 
 - BRIEF and plan are both `approval.status: approved`, signed operator via main session — `plan.yaml:4-6`, `BRIEF.md ## Approval` — verified-at 253287f
-- `lanes.resolved_at` is `b4659cd` and all six `execution_mode` values reproduce from `check-domain.sh --resolve` today — I re-ran the resolver on all ten literal paths — verified-at 253287f
+- `lanes.resolved_at` is `b4659cd` and all six `execution_mode` values reproduce from `check-domain.py --resolve` today — I re-ran the resolver on all ten literal paths — verified-at 253287f
 - All sixteen T-04 anchors resolve to exactly one line each in their owning craft file — `plan.yaml` T-04 `verify:` ROWS — verified-at 253287f, re-run by me
 - `harness-frontend-dev` holds a craft grant and has NO craft file; 16 grants, 15 files — confirmed by running `inject-expertise.sh`, which returns 0 bytes for it — verified-at 253287f
 - T-06's `374`-entry figure is correct AT `ada8e99` and the live tree now holds 413 across the same 15 files — I recounted at both shas — verified-at 253287f

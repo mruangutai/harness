@@ -9,7 +9,7 @@ HEAD resolved exactly to `f05e1e6cd74c7d91580dd6ef565a00432faac1ad`; a path-rest
 **Direct author/operator surfaces (8, in scope):**
 
 1. `.claude/skills/harness/bin/handoff_done_when.py`
-2. `.claude/skills/harness/bin/check-domain.sh`
+2. `.claude/skills/harness/bin/check-domain.py`
 3. `.claude/skills/harness/bin/check-state.sh`
 4. `.claude/skills/harness/templates/HANDOFF.md`
 5. `.claude/skills/harness/SKILL.md`
@@ -34,7 +34,7 @@ HEAD resolved exactly to `f05e1e6cd74c7d91580dd6ef565a00432faac1ad`; a path-rest
 ## Surface audit
 
 - **Contract clarity and consistency:** `templates/HANDOFF.md:1-39`, `SKILL.md:310-316`, DEC-159, DEC-214, and both real handoffs consistently define five sections; `Done when` is last, describes the one immediate action in `Next`, has exactly one non-empty `Scope:` followed by one-to-four `Authority:` lines, uses AND semantics, and resolves targets only at write time. The two real scopes are concise immediate actions and the notes are 55 and 37 lines, below the unchanged 60-line cap.
-- **Refusal quality:** `check-domain.sh:1546-1569` produces uncoloured, linear text under `check-domain: BLOCKED`, names the broken rule, and points to `templates/HANDOFF.md`. A direct malformed-write probe exited 2 with `## Done when Scope: value must be non-empty; follow templates/HANDOFF.md`; no file was created. The duplicate missing-section explanation is redundant but gives the same remedy and violates no approved contract.
+- **Refusal quality:** `check-domain.py:1546-1569` produces uncoloured, linear text under `check-domain: BLOCKED`, names the broken rule, and points to `templates/HANDOFF.md`. A direct malformed-write probe exited 2 with `## Done when Scope: value must be non-empty; follow templates/HANDOFF.md`; no file was created. The duplicate missing-section explanation is redundant but gives the same remedy and violates no approved contract.
 - **State findings:** `check-state.sh:1069-1070,1188-1264` distinguishes missing narrative headings, the baseline-conditioned fifth heading, block-shape/grammar failures, and the whole-file cap without re-resolving targets. Messages identify the feature/note and remedy. No ANSI or colour-only encoding appears in the reviewed terminal paths.
 - **Parser safety and states:** `handoff_done_when.py:24-35,57-101,154-174,187-216,272-288` rejects duplicate H2 sections, nested prose, blank/reordered Scope, unsafe authority paths, and non-ATX approval lookalikes; echoed pointers and unexpected lines use escaped representations. The inspected unit and both gate test surfaces independently cover missing, valid, malformed, unresolved, unsafe, duplicate/nested, 60/61-line, edit-refusal, and persisted-target-rot states.
 - **Probe clarity:** the actual dry-run against `handoff-build.md` exited 0, clearly labeled `DRY RUN`, model, both arms, four questions, the note, and `planned model calls: 2 (not executed)`. The locally-run registration and normal-suite exclusion agree across `.harness/harness.json` and `test-run-unit-tests-kinds.py`.

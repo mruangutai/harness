@@ -118,7 +118,7 @@ produce its passing test. This is FEAT-21 ship-review drift B-12 #2, avoided by 
   header rewrites, the grant, and the regenerated index — lands in exactly one commit, and that
   commit's tree contains no tracked file under `docs/harness/`.
   verify: inspection
-- SC-05: `check-domain.sh --resolve` names `harness-documentor` for a file under
+- SC-05: `check-domain.py --resolve` names `harness-documentor` for a file under
   `.harness/harness/docs/`, and a standing test case pins it.
   verify: automated      evidence: integration
 - SC-06: The committed decisions index is byte-identical to what its generator produces, and its
@@ -189,7 +189,7 @@ produce its passing test. This is FEAT-21 ship-review drift B-12 #2, avoided by 
   gitignore snippet and prose are unit 9**, not this feature.
 - **The detector's own legacy patterns and fixtures are not touched.** They are how it recognises
   the pre-state; removing them would blind it.
-- **The destination is currently ungranted** — `check-domain.sh --resolve .harness/harness/docs/SPEC.md`
+- **The destination is currently ungranted** — `check-domain.py --resolve .harness/harness/docs/SPEC.md`
   returns `NOBODY`. The grant lands in the same commit, or the documentor loses the ability to write
   the docs it owns.
 

@@ -12,7 +12,7 @@ const BIN = ".agents/skills/harness/bin";
 // What stood here was `join(cwd, BIN, script)` against a caller-supplied ctx.cwd: the
 // executable that enforces a policy was CHOSEN by the party the policy governs. Issue #556,
 // which this feature closes, was the same defect one level down — a harness_boundary.py in
-// an agent's working directory became the module a gate imported, taking check-domain.sh
+// an agent's working directory became the module a gate imported, taking check-domain.py
 // from `exit 2 BLOCKED` to `exit 0 enforcement OFF`. That substituted an imported module.
 // This substituted the whole gate, across six gates and eleven call sites.
 //
@@ -225,14 +225,14 @@ function preDomain(
 ): PolicyResult[] {
   const base = basePayload(agent, "PreToolUse", cwd);
   if (toolName === "write") {
-    return [runner(cwd, "check-domain.sh", [], {
+    return [runner(cwd, "check-domain.py", [], {
       ...base,
       tool_name: "Write",
       tool_input: { file_path: input.path, content: input.content },
     })];
   }
   if (toolName === "edit") {
-    return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.sh", [], {
+    return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.py", [], {
       ...base,
       tool_name: "Edit",
       tool_input: { file_path: filePath },
@@ -250,21 +250,21 @@ function postDomain(
 ): PolicyResult[] {
   const base = basePayload(agent, "PostToolUse", cwd);
   if (toolName === "write") {
-    return [runner(cwd, "check-domain.sh", ["--post"], {
+    return [runner(cwd, "check-domain.py", ["--post"], {
       ...base,
       tool_name: "Write",
       tool_input: { file_path: input.path, content: input.content },
     })];
   }
   if (toolName === "edit") {
-    return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.sh", ["--post"], {
+    return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.py", ["--post"], {
       ...base,
       tool_name: "Edit",
       tool_input: { file_path: filePath },
     }));
   }
   if (toolName === "bash") {
-    return [runner(cwd, "check-domain.sh", ["--post"], {
+    return [runner(cwd, "check-domain.py", ["--post"], {
       ...base,
       tool_name: "Bash",
       tool_input: { command: input.command },
@@ -938,7 +938,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const advisories: string[] = [];
     if (currentAgent === "harness-orchestrator" && toolName === "task" && !contextNoticeEmitted) {
       // THE ADVISORY MUST NEVER COST A GATE. This whole block sits above the postDomain
-      // call, so anything escaping it would skip `check-domain.sh --post` — an advisory
+      // call, so anything escaping it would skip `check-domain.py --post` — an advisory
       // failure silently disabling an enforcement check. Every branch inside already
       // returns rather than throws, and readTailBytes now guards its allocation too, but
       // this catch is what makes "the advisory cannot break the gate" a property of the
@@ -1023,7 +1023,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // zero extraction skips the PRE (blocking) check too — and that one is worse,
       // because it is preventive: the edit lands unchecked rather than merely
       // unreported. Measured 2026-08-30: preDomain returns no block and spawns no
-      // check-domain.sh at all. An earlier wording said only "post-write", which
+      // check-domain.py at all. An earlier wording said only "post-write", which
       // understated the skip by exactly the gate that matters more.
       advisories.push("Harness: no target path could be extracted from this edit, so "
         + "neither the pre-write nor the post-write shape check ran on any file. "

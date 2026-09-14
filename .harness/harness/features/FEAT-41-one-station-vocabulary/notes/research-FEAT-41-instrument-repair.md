@@ -31,7 +31,7 @@ It lands in **T-06**, which gains `check-state.sh` and `test-check-state.py` in 
 
 ## Findings I re-derived rather than inherited
 
-- **F-09a** `check-domain.sh`: the "deliberately absent" comment is **1011-1017**; **1018 IS the
+- **F-09a** `check-domain.py`: the "deliberately absent" comment is **1011-1017**; **1018 IS the
   `SHAPE_PATTERNS` tuple**; the `RE_` block is 1004-1010. T-09's `1017-1022` would have deleted the
   tuple and `has_shape_rules`.
 - **F-09b** `gh-sync.py:998` is inside `_to_backlog` (def 987). `cmd_backlog` is at **1166** and
@@ -102,6 +102,6 @@ Every task's line references were extracted and cross-checked against the fileâ†
 - **Checked and clean:** T-02 (`check-state.sh circa 1403`) and T-04 (`circa 1403-1405`) have no
   ordering between them but touch **disjoint identifiers** (`_st26` vs `_EXPECT` keys, defaults,
   the `not any(...)` guard), and both use `circa` plus the identifier. Either order works; no edge
-  added. T-09's `check-domain.sh:1004-1022` has **no predecessor** touching that file and already
+  added. T-09's `check-domain.py:1004-1022` has **no predecessor** touching that file and already
   says "open the file and confirm the span". T-01, T-03, T-05, T-08, T-10, T-12, T-13 address no
   line in a file a sibling mutates.

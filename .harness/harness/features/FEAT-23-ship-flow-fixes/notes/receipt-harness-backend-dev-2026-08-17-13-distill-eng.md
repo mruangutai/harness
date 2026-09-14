@@ -43,7 +43,7 @@ the edits themselves, only that nothing else broke).
 
    **Relocation attempted and blocked, not completed — flagged below.** I tried to preserve the
    displaced P-14 content at the repository tier (`.harness/harness/expertise/harness-backend-dev.md`,
-   per `harness-distill`'s three-tier description) so it wasn't simply lost. `check-domain.sh`
+   per `harness-distill`'s three-tier description) so it wasn't simply lost. `check-domain.py`
    denied the write: that path is not in my permitted set (`.harness/expertise/harness-backend-dev.md`
    is; `.harness/harness/expertise/**` is not). Per `harness-digest-dev`, I did not work around the
    guard. Net effect: the argv[1:3]-vs-[0:2] gh-fake convention is no longer recorded anywhere in
@@ -124,7 +124,7 @@ nothing more.)
 
 - **Q1 (non-blocking):** the repository-tier Expertise path (`.harness/harness/expertise/
   harness-backend-dev.md`) described in `harness-distill` is not in my `team-config.yaml` write
-  domain — `check-domain.sh` denies it. Two separate issues bundled here: (a) the manifest may need
+  domain — `check-domain.py` denies it. Two separate issues bundled here: (a) the manifest may need
   a per-agent repository-tier entry if that tier is meant to be used, and (b) even if writable,
   `inject-expertise.sh` only reads `$root/.harness/expertise/$agent.md` (project) and
   `$HOME/.harness/expertise/$agent.md` (global) — it has no third read path for
@@ -140,4 +140,4 @@ nothing more.)
 
 No `plan.yaml`, `BRIEF.md`, `feature.json`, `STATE.md`, or DEC-174 enforcement file touched. No
 `git add`, no commit, no `gh` call. Attempted write to `.harness/harness/expertise/
-harness-backend-dev.md` was denied by `check-domain.sh` and not retried or worked around.
+harness-backend-dev.md` was denied by `check-domain.py` and not retried or worked around.

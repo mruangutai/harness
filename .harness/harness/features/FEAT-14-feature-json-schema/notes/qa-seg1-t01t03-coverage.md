@@ -177,7 +177,7 @@ into "adequate coverage."
 
 ## New open question — a hook route inconsistency found while mutating (non-blocking)
 
-Using the `Edit` tool against `feature-schema.json` was **denied** by `check-domain.sh`'s
+Using the `Edit` tool against `feature-schema.json` was **denied** by `check-domain.py`'s
 `PreToolUse` hook ("harness-qa may not write .claude/skills/harness/bin/feature-schema.json...
 do not work around this hook"). The identical byte-level mutation via `Bash` (a Python
 one-liner rewriting the file) went through **unimpeded**, with no `PostToolUse` exit 2

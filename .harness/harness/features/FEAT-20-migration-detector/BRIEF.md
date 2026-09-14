@@ -9,7 +9,7 @@ Nothing in the tree can tell a half-migrated layout from a healthy one, and the 
 look like they would are the two that go quiet. `check-state.sh` discovers features with fixed-depth
 globs — `glob(join(H, "features", "*", …))`, 15 sites at `88b1182` — so inserting a repository
 segment makes every one match nothing, every invariant evaluate over an empty set, and the gate that
-`/harness` entry runs report a healthy tree. `check-domain.sh`'s four shape regexes and its
+`/harness` entry runs report a healthy tree. `check-domain.py`'s four shape regexes and its
 `SWEEP_GLOBS` fail the same way, silently, while still advancing the shape-sweep stamp. CI's
 plan-route gate is defeated by exactly the shape a repo segment produces — `examined > 0, plans == 0`,
 a case its own comment names as uncaught (issue #344). Units 3 through 7 each move roughly 800 code
@@ -57,7 +57,7 @@ Two surfaces, judged independently:
 
 **FEATURES** — disk evidence is `.harness/features/*/feature.json` (legacy) against
 `.harness/*/features/*/feature.json` (migrated). Coupled readers are exactly unit 3's atomic
-cluster: `team-config.yaml`'s write grants, `check-domain.sh`'s `SWEEP_GLOBS` and its four shape
+cluster: `team-config.yaml`'s write grants, `check-domain.py`'s `SWEEP_GLOBS` and its four shape
 regexes, `check-plan-routes.py`'s discovery join, and `check-state.sh`'s discovery globs.
 
 **DOCS** — disk evidence is `docs/harness/SPEC.md` against `.harness/*/docs/SPEC.md`. Coupled
@@ -221,7 +221,7 @@ its detect list. No SC rests on `component`, `ui`, `eval` or `typecheck`, all of
 ## Constraints
 
 - Detector only. No file moves, no layout change, no config split (units 3–7, later features).
-- Every step touching `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py` or
+- Every step touching `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or
   `check-state.sh` is declared `main-session-direct` and never dispatched (DEC-174).
 - Fixtures are sandboxed temporary trees, built and torn down by the test. Fixture creation is not
   a layout change and must not be read as one.

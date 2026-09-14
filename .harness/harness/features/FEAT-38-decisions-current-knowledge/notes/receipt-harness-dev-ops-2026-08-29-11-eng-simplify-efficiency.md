@@ -9,7 +9,7 @@ estimated, below.
 
 Neither `check-decision-anchors.py` nor `check-decision-claims.py` is wired into
 any `.claude/settings.json` hook (`SubagentStart`, `PreToolUse`, `PostToolUse` —
-read whole; only `check-domain.sh`, `branch-create-gate.sh`, `dispatch-guard.sh`,
+read whole; only `check-domain.py`, `branch-create-gate.sh`, `dispatch-guard.sh`,
 `validate-digest.py` are registered). Grep of the whole tree for the two names
 outside `bin/` turns up exactly:
 

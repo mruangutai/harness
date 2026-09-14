@@ -170,7 +170,7 @@ out a SHA. Treat them as working-tree anchors; qa's git-pinned measurement (it r
 - 2026-08-19 (run 5): CHECK THE GRANT BEFORE NAMING AN OWNER IN must_fix (my own G-12). Last run
   I corrected qa for routing a `check-state.sh` fix to a dev who may not touch it; this run I
   nearly shipped the mirror-image error by naming `harness-backend-dev` without looking. The
-  manifest is `.harness/team-config.yaml`, NOT `check-domain.sh` — I grepped check-domain.sh
+  manifest is `.harness/team-config.yaml`, NOT `check-domain.py` — I grepped check-domain.py
   first and got zero matches, which proves nothing about the grant. `:161` gives
   harness-backend-dev `{ path: .claude/skills/harness/bin/**, upsert: true }`, so
   test-factory-decompose.py IS writable by it and is not one of DEC-174's four carve-out files.

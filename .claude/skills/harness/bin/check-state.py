@@ -955,12 +955,12 @@ else:
     # hook_present uses, because a project may legitimately split one requirement in two.
     post = hooks.get("PostToolUse") or []
     def _runs_cd(entry):
-        # TOKEN, not substring — `check-domain.sh.disabled` contains the name and runs
+        # TOKEN, not substring — `check-domain.py.disabled` contains the name and runs
         # nothing. A decoy entry naming a disabled copy widened this check's coverage set
         # and let the real registration be narrowed to `Write` with all four gates green.
         for _h in (entry.get("hooks") or []):
             for _tok in str(_h.get("command", "")).split():
-                if os.path.basename(_tok) == "check-domain.sh":
+                if os.path.basename(_tok) == "check-domain.py":
                     return True
         return False
 
@@ -1246,7 +1246,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # question. Because the glob finds every note including the seam stems, no file can be
     # reported twice — there is no second place that could report it.
     #
-    # WHY A GLOB. check-domain.sh's RE_HANDOFF already accepts handoff-[a-z0-9-]+.md, so a
+    # WHY A GLOB. check-domain.py's RE_HANDOFF already accepts handoff-[a-z0-9-]+.md, so a
     # mid-phase note is already legal to write and was, until now, never opened. Measured at
     # cf51dce in the FEAT-31 worktree: 74 notes match, 71 on seam stems and THREE on
     # non-seam stems newly in reach — FEAT-09/handoff-ship.md (56 lines),
@@ -1362,7 +1362,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
                    f"record the station and silently discard the task history.")
 
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
-# swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is
+# swept from DISK. check-domain.py enforces the same numbers on a WRITE payload, which is
 # where they can still be prevented; this reads the file as it actually is, so no tool and
 # no author identity can route around it — including a session where the PostToolUse half
 # of that hook was never registered, which is the case INV-9 above reports.
@@ -1374,7 +1374,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
 # that has to land first. The write-time gate is the one with teeth; this one's job is
 # that the drift reaches a human.
 #
-# VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
+# VOCABULARY stays in sync with check-domain.py; the MECHANISM deliberately does not
 # (D-02) — that one measures a payload, this one measures a file.
 for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
     _ftext = read(fy) or ""
@@ -1402,7 +1402,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
     # fire, and a check that cannot fire is a check a reader trusts.
 
 # CLAUDE.md (issue #139), swept from disk like its peers. The write-time gate in
-# check-domain.sh is the one with teeth; this is the backstop for a session where the
+# check-domain.py is the one with teeth; this is the backstop for a session where the
 # PostToolUse half was never registered, exactly as for the four state files below.
 _cm = os.path.join(root, "CLAUDE.md")
 _cml = (read(_cm) or "").splitlines()
@@ -1510,7 +1510,7 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
     # or not it has a dedicated handler.
     # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
     # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
-    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.sh.
+    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.py.
     unknown = sorted({str(k) for k in sdoc if str(k) not in CHECKPOINT_KEYS})
     if unknown:
         bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
@@ -2758,7 +2758,7 @@ def _brief_scs(txt):
 # runs `check-state.py`") or grades its result ("`check-state.py` exits 0"), which is the
 # FEAT-54 SC-04 shape this invariant exists to refuse. A `check-state.py:1868` citation is
 # neither: the name is followed by `:`, not by an argument boundary.
-_INV41_SCRIPTS = ("check-state.py", "check-domain.sh")
+_INV41_SCRIPTS = ("check-state.py", "check-domain.py")
 _INV41_RUNS_BEFORE = re.compile(r"\b(?:run|runs|running|ran|execute|executes|invoke|invokes|call|calls)\s*$")
 _INV41_GRADES_AFTER = re.compile(r"(?:exits?\b|exit\s+code|passes|is\s+green|reports|prints|returns)")
 
@@ -2801,7 +2801,7 @@ def _inv41_scoped(text, feat):
 # checks here are INV-1/2 (the `## Approval` block), which apply to both shapes unchanged.
 # Said here so nobody goes looking for a REQ check that was never written.
 # INV-41 (SC-16) runs in the same loop because it reads the same SC list: an SC whose text
-# invokes check-state.py or check-domain.sh with no feature-scoped argument grades the whole
+# invokes check-state.py or check-domain.py with no feature-scoped argument grades the whole
 # repository -- other features' debris reddens it (FEAT-54 SC-04, three of six review cycles).
 for feat, brief in sorted(briefs.items()):
     if feat in _abandoned or not _brief_is_by_perspective(brief):

@@ -6,7 +6,7 @@
 `inflight_registry.py`. The two real altitude costs are (a) the DEC-210 guard tests pin the
 DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, not news — and
 (b) the human-readable refusal *message* (not the predicate) is hand-duplicated across
-`check-domain.sh` and `plan-sign-gate.py`. Both touch DEC-174-frozen files, so both are
+`check-domain.py` and `plan-sign-gate.py`. Both touch DEC-174-frozen files, so both are
 `applicable: report-only`; no apply is possible or attempted this run.
 
 ## F1 — DEC-210's guard tests pin WORDS, not BEHAVIOUR (the assigned question)
@@ -15,26 +15,26 @@ DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, n
   `test_dec_210_*` functions + `_dec_region` helper), asserting against
   `.harness/harness/docs/DECISIONS.md:6495` and `DECISIONS-INDEX.md:210`.
 - **Summary:** all three tests do literal substring/whole-word matching on DECISIONS.md/
-  DECISIONS-INDEX.md prose (`"check-domain.sh"`, `"plan-sign-gate.sh"`, `"quarantine.py adopt"`,
+  DECISIONS-INDEX.md prose (`"check-domain.py"`, `"plan-sign-gate.sh"`, `"quarantine.py adopt"`,
   `\bBash\b`, a `". "`-split "same sentence" heuristic for `plan.yaml`+`plan-merge.py`, and
   `"Claude Code"` in the index ruling half). None of the three ever imports or executes
-  `check-domain.sh`, `plan-sign-gate.py`/`.sh`, or `quarantine.py`.
+  `check-domain.py`, `plan-sign-gate.py`/`.sh`, or `quarantine.py`.
 - **Concrete cost — what reddens on a pure reword:** an author who legitimately rephrases the
   entry without changing the enforcement it describes reddens a test for no behavioural reason —
-  e.g. writing "the domain guard" instead of naming `check-domain.sh` fails F1's clause 1;
+  e.g. writing "the domain guard" instead of naming `check-domain.py` fails F1's clause 1;
   restructuring the plan.yaml/plan-merge.py sentence across a colon or semicolon instead of
   `". "` fails clause 2's brittle sentence-split heuristic; saying "Anthropic's CLI" instead of
   "Claude Code" fails the index-row test. None of these reword scenarios touch behaviour.
-- **What stays green on a real regression:** if `check-domain.sh` or `plan-sign-gate.sh` actually
+- **What stays green on a real regression:** if `check-domain.py` or `plan-sign-gate.sh` actually
   stopped enforcing the boundary (e.g. the PreToolUse registration in `.claude/settings.json` were
   dropped, or `orphan_write` were made to always return `False`), all three DEC-210 tests would
   stay fully green — they never run those scripts, only read prose about them.
 - **Alternative:** none needed — see verdict below. If ever hardened, the direction would be a
-  behavioural harness (spawn a fake orphan claim, invoke `check-domain.sh`/`plan-sign-gate.py`
+  behavioural harness (spawn a fake orphan claim, invoke `check-domain.py`/`plan-sign-gate.py`
   against it, assert exit 2) rather than tighter prose regexes, which only relocates the same
   word-coupling problem.
 - **Why this is correct as-is, not a defect:** DEC-210's own entry states plainly that
-  `check-domain.sh`, `plan-sign-gate.sh` and `quarantine.py` are "each... verified by its own
+  `check-domain.py`, `plan-sign-gate.sh` and `quarantine.py` are "each... verified by its own
   explicit test script rather than by the gates under change" (`test-check-domain.py`,
   `test-plan-sign-gate.py`, `test-quarantine.py` — all pre-existing/updated elsewhere in this
   diff, not touched by T-08). Those tests exercise the real predicate
@@ -55,7 +55,7 @@ DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, n
 
 ## F2 — Orphan-refusal *message text* is hand-duplicated across the two gates; the *predicate* is not
 
-- **Files/lines:** `.claude/skills/harness/bin/check-domain.sh:1695-1701` (quarantine refusal
+- **Files/lines:** `.claude/skills/harness/bin/check-domain.py:1695-1701` (quarantine refusal
   block under the Write/Edit hook) vs. `.claude/skills/harness/bin/plan-sign-gate.py:400-414`
   (quarantine refusal block under the Bash hook).
 - **Summary:** both gates correctly call the *same* authoritative predicate
@@ -70,15 +70,15 @@ DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, n
   the operator a stale or inconsistent explanation for the identical refusal — exactly the "several
   statements that can drift" case altitude review exists to catch. It has already drifted once in
   form even though not yet in substance: `plan-sign-gate.py`'s message branches on `tool ==
-  ADOPT_TOOL` to substitute a different remedy line, a case `check-domain.sh`'s copy has no
+  ADOPT_TOOL` to substitute a different remedy line, a case `check-domain.py`'s copy has no
   equivalent for (it only ever refuses Write/Edit, never a Bash `quarantine.py adopt` call), so the
   two are not simply copy-paste twins but a real behavioural fork of the *same* explanatory text.
 - **Alternative:** a single `inflight_registry.refusal_message(rel, agent, feature,
   quarantine_rel, tool)` (or two small functions, one per gate's needed shape) added to
-  `inflight_registry.py`, called from both `check-domain.sh`'s embedded Python and
+  `inflight_registry.py`, called from both `check-domain.py`'s embedded Python and
   `plan-sign-gate.py` (both already `import inflight_registry`), so the prose lives in the one
   module that also owns the predicate it describes.
-- **applicable:** report-only — `check-domain.sh`, `plan-sign-gate.py`/`.sh`, and
+- **applicable:** report-only — `check-domain.py`, `plan-sign-gate.py`/`.sh`, and
   `inflight_registry.py` are all in the DEC-174-frozen, non-writable set for this feature.
 - **Verdict: briefing-row** (worth a backlog row for whichever squad next touches the enforcement
   layer; not appliable now, and not large enough to justify reopening DEC-174's freeze for this

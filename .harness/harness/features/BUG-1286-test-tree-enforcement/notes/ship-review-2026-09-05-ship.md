@@ -117,7 +117,7 @@ Anything not listed here dies silently, so this is everything that survived coll
 | B-8 | chore | Integration case 2 asserts only one sentinel absent where case 4 asserts both. |
 | B-9 | bug | `validate-digest.py` demands `code_grade` on a code-reviewer digest and rejects every value while `review_sha` is unpinned, so a plan-phase panel reader that did its job settles as `failed`. |
 | B-10 | bug | Agents assigned to a worktree edited the **main checkout** by passing bare relative paths to file tools — twice this session, both caught and reverted. A guard refusing a relative path under a worktree dispatch would close it. |
-| B-11 | bug | `check-domain.sh` refused a first digest write with "run digest already holds a recorded digest" when none existed; two runs also had their `state.yaml` clobbered by a later run and needed repair. |
+| B-11 | bug | `check-domain.py` refused a first digest write with "run digest already holds a recorded digest" when none existed; two runs also had their `state.yaml` clobbered by a later run and needed repair. |
 | B-12 | enhancement | Define "exhausts" for `max_total_cycles` as reached-versus-crossed, and decide whether it deserves a mechanical check at all. |
 
 ## What I did not do

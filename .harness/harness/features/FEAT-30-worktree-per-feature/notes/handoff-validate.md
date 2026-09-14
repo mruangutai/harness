@@ -19,7 +19,7 @@ the other fifteen files. Six cycles remain of thirteen. Briefing:
   — verified-at cafa28a
 - **F-1 reproduced by me, not relayed:** `harness-documentor`, `harness-code-reviewer` and
   `harness-orchestrator` each get rc=0 writing arbitrary paths via `expertise-merge.py` while `echo >`
-  to the same targets is rc=2; against a COPY of `check-domain.sh`, 67,976 → 71 bytes at exit 0 —
+  to the same targets is rc=2; against a COPY of `check-domain.py`, 67,976 → 71 bytes at exit 0 —
   verified-at cafa28a
 - `review_sha` = **`a76d69a`**, committed; tip `cafa28a` is past it and the intervening commits change
   only state, notes and `SPEC.md` — `feature.json` — verified-at cafa28a

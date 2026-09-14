@@ -9,7 +9,7 @@ The two-layer Expertise model is written down and half-built. `harness-distill/S
 every agent that repository-specific knowledge lives at `.harness/<repo>/expertise/<agent>.md` with a
 40-line budget, and that both layers ride every spawn. Neither half is true.
 `inject-expertise.sh:27-29` has exactly two read paths and neither is that one (#484), and
-`check-domain.sh --resolve` answers **NOBODY** for every agent's repository-tier path, so no agent can
+`check-domain.py --resolve` answers **NOBODY** for every agent's repository-tier path, so no agent can
 write the file the skill tells it to write (#372). During FEAT-21 one distillation entry was returned
 unwritten for exactly this reason. The result is a rule that sixteen agents are taught, obey, and
 cannot execute — and the effort's destination criterion **DC-3**, "agents carry kaya's expertise", has
@@ -68,7 +68,7 @@ The tier has three moving parts — the **grant** (T-01, `team-config.yaml`), th
 together, the answer is no: one strict order and one genuine independence, and neither leaves a
 user-visible dead end at any point in between.
 
-**The grant must precede the move, strictly.** `check-domain.sh --resolve` answers `NOBODY` for
+**The grant must precede the move, strictly.** `check-domain.py --resolve` answers `NOBODY` for
 `.harness/harness/expertise/<agent>.md` at `ada8e99` — that is #372 — and the write guard refuses a
 write to a path resolving to nobody. So T-04 cannot create a single repository-tier file until T-01
 has landed. This is forced by the enforcement layer, not chosen: it is why `T-04` carries
@@ -112,7 +112,7 @@ merged with another, and no atomic landing is required.
   a repository-tier header naming the segment, and the repository file's body — and the same test fails
   against the pre-change hook, which emits no such header.
   verify: automated      evidence: unit
-- SC-02: For each of the sixteen agents individually, `check-domain.sh --resolve` on
+- SC-02: For each of the sixteen agents individually, `check-domain.py --resolve` on
   `.harness/harness/expertise/<agent>.md` prints exactly that agent's name and nothing else. Baseline:
   it printed `NOBODY` for every one of them at `ada8e99`.
   verify: automated      evidence: integration
@@ -185,7 +185,7 @@ merged with another, and no atomic landing is required.
   dependency — an unquoted `#` in `team-config.yaml` has already taken a resolver down once.
 - **The craft tier's location and semantics are out of scope.** `.harness/expertise/` stays where it
   is, with its 150-line budget, its per-agent grants and its global sibling.
-- **`check-state.sh`, `check-domain.sh`, `bash-write-guard.sh` and `validate-digest.py` are not
+- **`check-state.sh`, `check-domain.py`, `bash-write-guard.sh` and `validate-digest.py` are not
   edited.** No task touches them, and `check-state.sh` has no expertise invariant to update. The
   measurement, stated so it is true as written: `grep -i expertise` over
   `.claude/skills/harness/bin/check-state.sh` at `ada8e99` returns **exactly two lines**, `:343` and

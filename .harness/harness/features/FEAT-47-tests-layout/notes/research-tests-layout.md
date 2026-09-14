@@ -65,7 +65,7 @@ same criterion, not by the `UNIT_SCRIPTS` entry FEAT-45 gave them:
 | test-sync-agent-adapters.py | `python3 sync-agent-adapters.py` x4 |
 | test-validate-feature-json.py | `validate-feature-json.py` x6 |
 | test-panel-findings.py | `python3 panel_findings.py id --reader … --summary …` — the real CLI, asserting its exit-code contract (2 on an empty reader, 2 on a whitespace-only summary). The pure-function half is loaded in-process via `importlib`, but the CLI cases are not, so the file is integration on the whole |
-| test-plan-panel.py | `check-domain.sh --resolve <path>` x3 call sites, asserting the resolver's `stdout` and returncode. Not a stub and not a fixture builder: the gate script IS the thing whose answer the assertion depends on |
+| test-plan-panel.py | `check-domain.py --resolve <path>` x3 call sites, asserting the resolver's `stdout` and returncode. Not a stub and not a fixture builder: the gate script IS the thing whose answer the assertion depends on |
 
 No file moves integration → unit. Final classification of the 58 at `56a30a0`: **19 unit, 39
 integration**, against today's arrays' 31/27. One of the 39, `test-run-unit-tests-kinds.py`, is
@@ -85,7 +85,7 @@ hook**, which is the artifact.
   consumers land in the same kind.
 - **`feature-schema.json` is production. It stays in `bin/`.** `feature_schema.py:45` reads it at
   runtime as `BIN_DIR/feature-schema.json`, `feature_schema.py:68` names the same path as
-  `SCHEMA_REL`, and `check-domain.sh:1170` names it in the text of a **write denial**. Tests read it
+  `SCHEMA_REL`, and `check-domain.py:1170` names it in the text of a **write denial**. Tests read it
   too, but a production loader owns it.
 - **Residue, stated rather than discovered later.** `layout_fixtures.py` is test support (imported
   only by `test-check-state.py` and `test-layout-migration.py`) and stays in `bin/` under the

@@ -14,8 +14,8 @@ unedited except for its station fields.
 |---|---|
 | `plan.yaml` tasks T-01..T-07, key `execution_mode` | all seven are `main-session-direct`, each with its own `execution_reason` citing DEC-174 |
 | live `PreToolUse` probe: `Write` to `.claude/skills/harness/bin/.orch-probe.tmp` | `check-domain: BLOCKED — harness-orchestrator may not write …`; permitted globs are feature-directory paths only. The file was never created |
-| `check-domain.sh --resolve tests/unit/x.py` | `NOBODY` |
-| `check-domain.sh --resolve .harness/team-config.yaml` | `NOBODY` |
+| `check-domain.py --resolve tests/unit/x.py` | `NOBODY` |
+| `check-domain.py --resolve .harness/team-config.yaml` | `NOBODY` |
 | `check-state.sh` INV-17, unprompted | *"FEAT-47-tests-layout: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed"* |
 
 The harness's own state checker classifies this feature as one no squad runs. That is mechanical
@@ -80,7 +80,7 @@ What follows is only what the plan cannot tell you, because it was true after th
 
 | Task | `plan.yaml` | Derive at build time, before editing |
 |---|---|---|
-| T-01 | line 350 | Re-locate every cited anchor **by content, not by line number** (`harness_boundary.py` 234-242, 370-381; `team-config.yaml` 170/211/231; `test-check-domain.py` 1749-1757). Bracket the premise: `check-domain.sh --resolve tests/unit/x.py` returns `NOBODY` before and exactly `harness-qa`, `harness-backend-dev`, `harness-dev-ops` after. Tests first — write the `is_control_plane_target` / `is_control_plane_glob` cases, watch them fail, then edit |
+| T-01 | line 350 | Re-locate every cited anchor **by content, not by line number** (`harness_boundary.py` 234-242, 370-381; `team-config.yaml` 170/211/231; `test-check-domain.py` 1749-1757). Bracket the premise: `check-domain.py --resolve tests/unit/x.py` returns `NOBODY` before and exactly `harness-qa`, `harness-backend-dev`, `harness-dev-ops` after. Tests first — write the `is_control_plane_target` / `is_control_plane_glob` cases, watch them fail, then edit |
 | T-02 | line 431 | Derive the integration set from `git ls-files -- '.claude/skills/harness/bin/test-*.py'` at current HEAD and run the plan's own `comm -23` reconciliation before moving anything. Assert the floor **and** the per-file rename record; never a count |
 | T-03 | line 578 | Derive the unit set as the tracked remainder after T-02's moves, plus the bun suite and its two `.jsonl` fixtures. Anchor recipe is T-02's, verbatim |
 | T-04 | line 684 | None. One `git mv` plus header repair |
@@ -99,7 +99,7 @@ normative, not a NOBODY. Leave the wording as signed.
 | B-1 | `PF-264325dc9f79813daf80d9eecb567380` (`med`, open): `suite-census.py`, the sole instrument for SC-01/02/07/09/10, has no test of its own subcommands | enhancement |
 | B-2 | `PF-0ee4b2ee83a7a0ddb1818deb201d6bcf` (`med`, open): T-07's verify passes on a content-gutted stub entry | bug |
 | B-3 | `PF-d9cfc106d7adaf9e9ad1824b39c39a1b` (`low`, open): `suite-census.py residue`'s claimed standing life has no standing invoker post-merge | chore |
-| B-4 | `check-domain.sh:1216` refuses any Write to an existing run digest that is not a prefix-extension, and a lead holds no `Edit` — so a lead physically cannot *prepend* a contract block to its own digest. Repaired by appending here; `validate-digest.py` tail-anchors on the last `VERDICT:`, so it reads correctly. Should the guard admit a prepend that preserves prior bytes? | bug |
+| B-4 | `check-domain.py:1216` refuses any Write to an existing run digest that is not a prefix-extension, and a lead holds no `Edit` — so a lead physically cannot *prepend* a contract block to its own digest. Repaired by appending here; `validate-digest.py` tail-anchors on the last `VERDICT:`, so it reads correctly. Should the guard admit a prepend that preserves prior bytes? | bug |
 
 ## Bookkeeping reconciled this run
 

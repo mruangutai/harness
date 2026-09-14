@@ -50,7 +50,7 @@ verbatim match, no mismatch.
 
 ## Item 8
 
-`tests/integration/fixtures/prior-check-domain.sh.fixture` (note: actual path is
+`tests/integration/fixtures/prior-check-domain.py.fixture` (note: actual path is
 `tests/integration/fixtures/`, not `tests/fixtures/` as paraphrased in the dispatch — same file,
 confirmed via glob) — untouched. `git status --porcelain` on that exact path is empty.
 

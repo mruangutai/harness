@@ -77,7 +77,7 @@ SIGN = "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.
 
 # ---------------------------------------------------------------------------------------
 # THE MAIN SESSION IS EXEMPT BY THE MECHANISM, NOT BY A NAMED CARVE-OUT.
-# An absent `agent_type` IS the main session — check-domain.sh's approval_guard records the
+# An absent `agent_type` IS the main session — check-domain.py's approval_guard records the
 # same reasoning for the same reason, and a named branch would be a second carve-out to keep
 # in sync. This case is what makes the gate usable at all: the main session is the ONE
 # author that must be able to sign.

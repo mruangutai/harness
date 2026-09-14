@@ -34,7 +34,7 @@ anything. Recording the rejection here per instruction; not entered anywhere.
 
 ## Deliberately not distilled
 
-Per the dispatch: the `check-domain.sh` disagreement (run 07) and the `test_kinds.integration`
+Per the dispatch: the `check-domain.py` disagreement (run 07) and the `test_kinds.integration`
 glob naming 4/12 `INTEGRATION_SCRIPTS` are harness defects, not craft. Both already live in
 `open_questions` across the cited gate notes (Q1 in `qa-matrix-gate-regate-3fbfd0a.md`, B-6/§4 in
 the same file and in `qa-matrix-gate.md`) and are being carried up by the lead — not touched here.

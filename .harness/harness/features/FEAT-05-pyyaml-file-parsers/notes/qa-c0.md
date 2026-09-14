@@ -5,7 +5,7 @@ Reviewer: harness-qa · review_sha pinned `340e18a` · diffed `37a8a66..340e18a`
 **PATH NOTE, read first:** the dispatch named
 `.harness/features/FEAT-05-pyyaml-file-parsers/notes/review-harness-qa-c0.md`. My write
 grant (`team-config.yaml`) permits `.harness/features/*/notes/qa-*.md`, not
-`review-harness-qa-*.md`; `check-domain.sh` denied the named path. Written instead to
+`review-harness-qa-*.md`; `check-domain.py` denied the named path. Written instead to
 `notes/qa-c0.md` per the hook's own instruction ("do not work around this hook"). Same
 routing-wall class PLAN.md already logs three recurrences of (FEAT-03 Q13, FEAT-04
 T-09, this feature's own T-10/T-11) — now a fourth, on the dispatch side rather than
@@ -77,7 +77,7 @@ Two further gaps, both matching the requested defect class:
   has zero test coverage.** `test-bash-write-guard.py` never hides PyYAML for this hook —
   every case fires with the real interpreter. The exact regression this feature already
   shipped once (both hooks discarding `require_or_bootstrap`'s return value, commit
-  `0775862`) is now regression-tested for `check-domain.sh` only.
+  `0775862`) is now regression-tested for `check-domain.py` only.
 - **T-07's SC-13 verify demands two durable listing artifacts ("both listings are then
   real artifacts the reviewer cites"); only the baseline (`receipt-baseline-run-inventory.md`)
   exists.** I regenerated the post-change listing myself via `harness_yaml.load_file` — it
@@ -98,7 +98,7 @@ concrete and consistent across three independent log entries), but it is not
 reviewable.
 
 **2. T-02 test 5 fixture provenance.** **Refuted — the fixture is accurate.** I
-extracted the pre-change `collect()` regex verbatim from `37a8a66`'s `check-domain.sh`
+extracted the pre-change `collect()` regex verbatim from `37a8a66`'s `check-domain.py`
 and ran it directly against the current `.harness/team-config.yaml` for
 `harness-backend-dev`, `harness-dev-ops`, `harness-pm`; all three matched
 `COLLECT_FIXTURE` in `test-harness-yaml.py:31-` exactly. Not a hand-transcription risk.
@@ -120,7 +120,7 @@ this gap is **closed at the integration level**: `test-check-domain.py:204-266` 
 the real hook binary as a subprocess with `CLAUDE_CODE_SESSION_ID` set (and
 `CLAUDE_CODE_BRIDGE_SESSION_ID` explicitly popped), with an explanatory comment naming
 exactly why the module-level test doesn't suffice. This is disclosed self-correction,
-not a live gap, **for `check-domain.sh`**. It is *not* closed for `bash-write-guard.sh`
+not a live gap, **for `check-domain.py`**. It is *not* closed for `bash-write-guard.sh`
 (see BLUF, third bullet) — same mechanism, same production-dead entry risk, no
 subprocess-level test at all.
 
@@ -234,7 +234,7 @@ Neither is discharged in two separate setups. Adequate.
    created. `upgrade-config.py`'s conversion ships with zero regression tests.
 3. **[med]** `bash-write-guard.sh`'s bootstrap-escape path (`require_or_bootstrap`) has
    no test coverage — the exact class of bug (`0775862`) that already shipped once for
-   both hooks is now caught only for `check-domain.sh`.
+   both hooks is now caught only for `check-domain.py`.
 4. **[med]** T-13/T-15's byte-level equivalence proof is not a durable, reviewable
    artifact — narrative-log-only.
 5. **[low]** SC-13's "both listings" requirement is unmet as a paperwork matter; the

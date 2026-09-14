@@ -29,14 +29,14 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
-HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.sh")
+HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.py")
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
 
 def _env(root, **kw):
     """The hook's environment for a fixture rooted at `root` — BOTH names, one value.
 
-    FEAT-42 T-10. check-domain.sh resolves its root through harness_boundary.resolve_root,
+    FEAT-42 T-10. check-domain.py resolves its root through harness_boundary.resolve_root,
     which reads HARNESS_PROJECT_DIR and no other name. The reverted sha-3952814 copy this
     suite is diffed against reads HARNESS_PROJECT_DIR first and CLAUDE_PROJECT_DIR second.
     Setting both to the same value is therefore the ONE spelling under which the two copies

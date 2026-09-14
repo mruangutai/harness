@@ -58,13 +58,13 @@ decisions:
       set over the live corpus is identical before and after.
       DEC-174's own list settles the rest, and it is cited by its anchor text rather than
       paraphrased: the paragraph in .harness/harness/docs/DECISIONS.md whose first words are "The
-      enforcement layer, enumerated:" names check-domain.sh, bash-write-guard.sh, validate-digest.py,
+      enforcement layer, enumerated:" names check-domain.py, bash-write-guard.sh, validate-digest.py,
       check-state.sh, check-plan-routes.py, dispatch-guard.sh, and the test file of each. NONE of the
       five surfaces this plan now touches appears in it - harness_yaml.py (T-03), factory_claim.py
       and gh-sync.py (T-06), and the two test trees, neither of which holds the test file of a gate
       in that enumeration.
       The two consumer surfaces T-06 adds sit in the SAME lane as the surfaces already here, measured
-      rather than assumed: check-domain.sh --resolve, run once per path from the main checkout on
+      rather than assumed: check-domain.py --resolve, run once per path from the main checkout on
       2026-09-07, returns harness-backend-dev and harness-dev-ops for harness_yaml.py,
       factory_claim.py and gh-sync.py alike. The widened scope therefore needs no second lane and no
       second agent, and this stays one recorded reading carried by the one signature. Recorded here

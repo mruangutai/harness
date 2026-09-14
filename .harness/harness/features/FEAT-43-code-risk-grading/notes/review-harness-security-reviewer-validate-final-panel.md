@@ -22,7 +22,7 @@ dispatch's own reproduction: 21/98 below bar).
   --name-only` between whatever two revisions that string names (line 566).
 - `validate-digest.py:541-546` `resolve_reviewed_commit` and the `reviewed_python_change`
   call at `:764-771` are the *entire* mechanism gating `n_a`. Nowhere in this file, in
-  `check-state.sh` (verified: `grep reviewed\b` → no matches), or in `check-domain.sh`
+  `check-state.sh` (verified: `grep reviewed\b` → no matches), or in `check-domain.py`
   (same, no matches) is `reviewed:` ever compared to `feature.json`'s `review_sha`. They are
   two disconnected fields; `review_sha`'s own INV-6 (`check-state.sh:245-252`) only asserts
   it is *non-placeholder*, never that it equals what a reviewer actually diffed.

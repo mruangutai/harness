@@ -194,7 +194,7 @@ Settled by the operator 2026-08-20 and stated as three facts so nobody re-derive
 - SC-04: A feature's artifacts are on `main` before its worktree is removed. The check names the
   paths it verified rather than reporting a count.
   verify: automated      evidence: integration
-- SC-05: `check-domain.sh` grants the same paths inside a worktree as outside it, for every one of
+- SC-05: `check-domain.py` grants the same paths inside a worktree as outside it, for every one of
   the 16 agents. DEC-143 already strips the worktree prefix before matching; this asserts it,
   because nothing currently does.
   verify: automated      evidence: integration

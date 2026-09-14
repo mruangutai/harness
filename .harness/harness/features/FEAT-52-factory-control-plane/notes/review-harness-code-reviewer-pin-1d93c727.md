@@ -34,7 +34,7 @@ Independently re-ran every SC that has an automated carrier, rather than trustin
 - `DEC-214` is present in `DECISIONS.md` with a `DECISIONS-INDEX.md` row (SC-09).
 - `git diff <base>..1d93c727 -- .harness/team-config.yaml` is 0 lines; `grep` for changed `- bash`
   `- write` `- edit` tool lines across `.omp/agents` and `.claude/agents` is 0 (SC-07).
-- `check-domain.sh` itself is untouched (0 lines in the diff); SC-15 is proved by a new paired
+- `check-domain.py` itself is untouched (0 lines in the diff); SC-15 is proved by a new paired
   fixture (`test-check-domain.py::_feat52_foreign_cwd_receipt_pair`) run from a foreign product cwd,
   asserting the feature-worktree receipt path allows (exit 0) and its product-tree twin refuses
   (exit 2) — read and confirmed inline, matches the SC-15 text exactly.

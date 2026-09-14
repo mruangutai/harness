@@ -17,7 +17,7 @@ to change to remedy it. Every verdict below was re-derived from the assertion or
 | SC-03 | met | `verify: inspection` | `check-state.sh:1495-1514` — the INV-36 text carries `{_run_rel}` (the run directory) and, via `run_identity.conflict` / `uid_conflict`, both disagreeing values (`'A'`/`'B'`, `'U1'`/`'U2'`; asserted by the test's `joined` membership check). It does **not** reuse `non-checkpoint top-level key`; the test explicitly asserts that wording is absent from the INV-36 lines. |
 | SC-04 | met | `verify: automated  evidence: integration` | `test-validate-digest.py::_bug1305_relative_artifact_cases` — `existing run directory without digest is refused` asserts exit 2 mentioning the run dir and `missing`; `located compliant digest passes` exit 0 in the same tree. Red-before: `redproof ## SC-04` (old hook exit 0). |
 | SC-05 | met | `verify: automated  evidence: integration` | `test-check-domain.py::run_bug1305_digest_repair_cases` — `digest Edit append repair remains allowed` exit 0 **and** `cross-run digest replacement remains refused` exit 2. Both halves; the allowance is not "guard removed". Red-before: `redproof ## SC-05`. |
-| SC-06 | met | `verify: inspection` | `check-domain.sh:1295-1298` now reads "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior before this branch runs." The false `intentionally Write/PRE-only` comment present at `c369fb1f:1237` is gone. Agrees with SC-05's test, which observes the guard acting on both routes. Caveat below. |
+| SC-06 | met | `verify: inspection` | `check-domain.py:1295-1298` now reads "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior before this branch runs." The false `intentionally Write/PRE-only` comment present at `c369fb1f:1237` is gone. Agrees with SC-05's test, which observes the guard acting on both routes. Caveat below. |
 | SC-07 | met | `verify: inspection` | `notes/regression-delta-BUG-1305.md`. Both directions re-derived below. |
 | SC-09 | met | `verify: automated  evidence: integration` | `case_bug1305_run_identity_invariant` fixtures `Z` (checkpoint, no witness → silent, tree exit 0), `L` (witness uid, checkpoint none → silent), `W` (unreadable witness → reported), `X` (seed-field disagreement → reported); fifth pin recorded in `regression-delta` `## Suite results` (`check-state.sh` exit 0, no INV-36/run-identity finding). |
 | SC-10 | met | `verify: automated  evidence: integration` | `_bug1305_marker_post_mint_cases` / `_bug1305_marker_post_preservation_cases` — (1)+(2) `POST mints uid and matching witness` asserts `re.fullmatch(r"[0-9a-f]{32}", uid)` **and** `marker_doc["run_uid"] == uid` over a payload with no `run_uid`; (3) `second POST is byte stable`; (4) `POST preserves supplied uid bytes`. Red-before: `redproof ## SC-10` (both minting cases FAIL on `c369fb1f`). |
@@ -112,7 +112,7 @@ declarable done with Mode A short of one criterion.
   INV-36 compares witness against checkpoint — a forger that copies the field agrees with both. Bound
   unchanged: undetectable by construction, deliberate forgery, not the accidental slug reuse #1305
   records. Nothing at the pin widens it.
-- **End-to-end PostToolUse delivery.** SC-10's evidence is `fire_post` invoking `check-domain.sh --post`
+- **End-to-end PostToolUse delivery.** SC-10's evidence is `fire_post` invoking `check-domain.py --post`
   directly over an isolated bin root; nothing at the pin observes host delivery. Bound unchanged and
   disclosed in REQ-01.
 - **The newly-refused `run_uid`-dropping rewrite.** All three signed bounds hold: the message names the
@@ -122,12 +122,12 @@ declarable done with Mode A short of one criterion.
 
 **One new refusal beyond the disclosed set — advisory, covered by no criterion.** A write into a run
 directory whose witness JSON is corrupt is refused (`unreadable witness fails closed`,
-`check-domain.sh:1636-1641`) where `c369fb1f` permitted it. It is narrow — it fires only when the prior
+`check-domain.py:1636-1641`) where `c369fb1f` permitted it. It is narrow — it fires only when the prior
 checkpoint has no readable `run_uid` **and** the witness will not parse — and it follows the same
 fail-closed doctrine the BRIEF endorses for an unreadable prior. It is not a criterion failure; it is
 raised so the operator sees it rather than discovers it.
 
-**SC-06 caveat, recorded not graded.** `check-domain.sh:1240` still reads "RE_RUN_DIGEST stays out
+**SC-06 caveat, recorded not graded.** `check-domain.py:1240` still reads "RE_RUN_DIGEST stays out
 because its content comparison is PRE-only." Its subject is the pattern's exclusion from
 `SHAPE_PATTERNS`/the POST sweep, and the statement is TRUE (a post-write comparison of the file with
 itself cannot fire). It asserts nothing about tool routes, so SC-06's operative clause — the carried

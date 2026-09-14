@@ -6,7 +6,7 @@ review_sha: dca2d3dabc5c1a3c3d7dab19f6d674b5d94ede78 · base: 9f2a0702bda6de929d
 
 ## Phase 1 (pre-code) expected coverage, derived from BRIEF REQ/SC alone
 - validate-digest.py: empty/whitespace refused+named; absent/null passed-through with stderr note; red-provable.
-- check-domain.sh: main-checkout write refused naming checkout, worktree write allowed, no-worktree-registered allowed, short-flow-id prefix refused; digest-clobber prevented pre-Write only; red-provable for both.
+- check-domain.py: main-checkout write refused naming checkout, worktree write allowed, no-worktree-registered allowed, short-flow-id prefix refused; digest-clobber prevented pre-Write only; red-provable for both.
 - bash-write-guard.sh: same checkout binding on the Bash route, short-flow-id clause, red-provable.
 - harness_boundary.worktree_for_feature: exact/prefix/no-match/hyphen-boundary/ambiguous, pre-change-red.
 - inflight_registry.feature_root: cutover to worktree_for_feature, contract-preserving + short-form widening.
@@ -33,7 +33,7 @@ entry), so the floor is `unit` only. `docs.always: []`. `component/ui/eval/typec
 and `functional: excluded` (DEC-187) are correctly out of scope, per the brief's own disclosure.
 
 Every changed production file has a corresponding test change in the pinned diff:
-- `check-domain.sh` ↔ `test-check-domain.py` (+149)
+- `check-domain.py` ↔ `test-check-domain.py` (+149)
 - `bash-write-guard.sh` ↔ `test-bash-write-guard.py` (+94/-Δ)
 - `validate-digest.py` ↔ `test-validate-digest.py` (+229)
 - `harness_boundary.py` (new) ↔ `test-harness-boundary.py` (new)
@@ -55,7 +55,7 @@ Every changed production file has a corresponding test change in the pinned diff
 | SC-01/02 | `test-validate-digest.py` green; `empty-red` present (`:2957`), registered (`:3038`), byte-identical guard present (`:2967`) |
 | SC-03/04 | `test-check-domain.py` green; case `"feature-checkout-main short prefix"` (`:2727`) is the fourth (short-flow-id) clause; `feature-checkout-red` present (`:2775`), registered, byte-identical guard shared via `mutant_between` (`:2759-2760`) |
 | SC-05/06 | `digest-clobber`/`digest-append`/"PRE-Write-only" cases (`:2797-2817`) all green in fixture inside registered worktree (confirmed `_linked_worktree`-style root); `digest-clobber-red` (`:2825`) registered, shares the same byte-identical `mutant_between` guard |
-| SC-07 | `test-check-domain.py` green (worktree-strip cases intact); `check-domain.sh --resolve` not independently rerun here — covered by SC-13's own DEVIATION-line output which lists the same script/agent pairing, consistent |
+| SC-07 | `test-check-domain.py` green (worktree-strip cases intact); `check-domain.py --resolve` not independently rerun here — covered by SC-13's own DEVIATION-line output which lists the same script/agent pairing, consistent |
 | SC-08/09 | out of my 5 assigned suites; reported ground truth (canonical suites exited 0) covers `test-check-state.py`/`test-run-unit-tests-kinds.py` — not independently rerun per task constraints |
 | SC-10 | reported ground truth, not rerun (constraint) |
 | SC-11 | reported ground truth (`check-state.sh` exit 0) per dispatch; brief's own text (Verification gaps) discloses this was previously an external blocker, now reported met |

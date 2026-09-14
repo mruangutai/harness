@@ -44,7 +44,7 @@ lanes:
     - surface: .claude/skills/harness/bin/gh_board.py
       lane: main-session-direct
       reason: >-
-        New module. check-domain.sh --resolve at 2ccd7f0 answers harness-backend-dev and
+        New module. check-domain.py --resolve at 2ccd7f0 answers harness-backend-dev and
         harness-dev-ops, the same pair the four carve-out files answer, but check-state.sh
         imports it and INV-26 computes its verdict from its return value, so it is a
         DEC-174 carve-out BY CONTENT on FEAT-17's harness_boundary.py precedent.
@@ -172,7 +172,7 @@ decisions:
       status to building in plan.yaml. gh-sync.py open writes no station at all.
     because: >-
       The orchestrator already runs open and close-task, already holds the commit pen (DEC-153),
-      already records a task's status into plan.yaml, and check-domain.sh --resolve grants it
+      already records a task's status into plan.yaml, and check-domain.py --resolve grants it
       plan.yaml - so it is the only tier that knows a task moved from pending to in flight at the
       moment it happens. open writes no station because at open time no task has a status, so the
       derivation returns no verdict, and inventing a fourth station source there would reintroduce
@@ -658,7 +658,7 @@ tasks:
       # `logic` is not an exempt change type, but no test file was named — and
       # branch-create-gate.sh is a live PreToolUse hook that had never had a test in its life
       # while this task deletes a substantial block from it. The member returned BLOCKED rather
-      # than inventing a PASS. check-domain.sh --resolve already grants this path to
+      # than inventing a PASS. check-domain.py --resolve already grants this path to
       # harness-backend-dev, so no domain boundary was crossed; check-plan-routes.py validates
       # the declared files: list and never the diff, so nothing gated on the omission and the
       # divergence would have gone unrecorded. Added so the signed artifact matches the tree.
@@ -697,7 +697,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve answers NOBODY for .claude/skills/harness/SKILL.md at 2ccd7f0, so
+      check-domain.py --resolve answers NOBODY for .claude/skills/harness/SKILL.md at 2ccd7f0, so
       it is a declared main-session step rather than a mid-run rejected write (DEC-179).
     depends_on: [T-03]
     status: done

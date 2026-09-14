@@ -21,7 +21,7 @@ else this reader checked, including six file:line anchors, matches the tree.**
   (mutates/restores the shared module) depends on T-07, so it lands after both gates already
   import it.
 - **No verify asserts something a predecessor deletes/rewrites.** Nothing later touches
-  check-domain.sh, check-state.sh, or handoff_done_when.py after T-04/T-07/T-13 land respectively.
+  check-domain.py, check-state.sh, or handoff_done_when.py after T-04/T-07/T-13 land respectively.
   T-13's mutate-then-restore window is the only place a shared file is deliberately broken
   mid-build; it can't race a concurrent handoff-note write or a corpus-wide check-state.sh pass —
   check-state.sh runs "at every /harness entry" (its own header, check-state.sh:1-11), not per
@@ -36,8 +36,8 @@ else this reader checked, including six file:line anchors, matches the tree.**
   produces (T-13's mutation note; T-04/07/08/10's edits) rather than to nothing — consistent with
   how inspection criteria are graded here, not a gap.
 - **Anchors re-verified live, not trusted from prior notes:** check-state.sh:1059
-  (`HANDOFF_HEADINGS`), :1199 (`miss = …`), :1219 (heading-body loop) all correct; check-domain.sh's
-  `"handoff shape (DEC-159)."` head at :1512-1527 correct; `_root()` (check-domain.sh:128) and the
+  (`HANDOFF_HEADINGS`), :1199 (`miss = …`), :1219 (heading-body loop) all correct; check-domain.py's
+  `"handoff shape (DEC-159)."` head at :1512-1527 correct; `_root()` (check-domain.py:128) and the
   `sys.path.insert` / `import harness_yaml` sibling pattern (check-state.sh:38,51-52) both exist as
   T-04/T-07 assume; `cj` (check-state.sh:980) exists; the `KINDCHECK` heredoc (run-unit-tests.sh
   :111-163) matches T-12's post-c2 anchor exactly; `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`

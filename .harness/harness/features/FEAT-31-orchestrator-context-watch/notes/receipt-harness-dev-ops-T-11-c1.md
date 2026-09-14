@@ -132,7 +132,7 @@ Exit code: **0**.
   `test_kinds.unit.detect`'s catch-all `.claude/skills/harness/bin/test-*.py` — DEC-197
   is the rule that resolves the collision, not code, so this data change is what makes it
   operative for these ten files. Closes plan Q-B.
-- **DEC-160** (@3996): `check-domain.sh` denies a run-state write carrying non-whitelisted
+- **DEC-160** (@3996): `check-domain.py` denies a run-state write carrying non-whitelisted
   keys, and any decision adding a `harness.json` key must say so. Not directly triggered —
   I added no new key, only extended an existing string value — but confirms this file's
   key set is a controlled surface and I stayed inside it.

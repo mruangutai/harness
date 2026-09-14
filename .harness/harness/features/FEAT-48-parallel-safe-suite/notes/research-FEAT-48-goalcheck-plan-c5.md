@@ -154,7 +154,7 @@ plus a non-zero control are both obtainable without reopening the hazard on the 
 
 ## 6. Residual staleness — VERDICT: 30 anchors/numerals checked, 1 finding
 
-Re-derived at the tip and **true**: `AGENTS.md:8` (exact phrase), `check-domain.sh:102` (PYTHONPATH
+Re-derived at the tip and **true**: `AGENTS.md:8` (exact phrase), `check-domain.py:102` (PYTHONPATH
 export) and `:125` (`sys.path.insert`), `run-unit-tests.sh:147-157` (serial loop) and `:60`
 ("Drift detector:"), `harness_boundary.py:44`/`:53`/`:84` (the three resolvers, all three ranges),
 `test-check-domain.py` SITE A 1470-1492 and SITE B 3275-3289 with callers `:3293`/`:3367`,

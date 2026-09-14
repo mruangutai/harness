@@ -13,7 +13,7 @@ carries all four pre-FEAT-18 pinned ids, so its pull request has not merged.
 
 ## Why — the chain, each link read at `ada8e99`
 
-1. `check-domain.sh:485` calls `harness_boundary.classify()` for every governed write.
+1. `check-domain.py:485` calls `harness_boundary.classify()` for every governed write.
 2. `harness_boundary.py:263` — `resolve_fleet(...)` is the **first statement** of `classify()`,
    ahead of anything that asks where the target lives. Its own comment says so: *"Resolution runs
    for EVERY governed write, whatever the target looks like."*
@@ -31,7 +31,7 @@ That is true of the keys the guard **consumes** and false of what `load_fleet` *
 way to handing them back. T-07's own intent states the consequence but scopes it to writes *outside*
 the harness root; `harness_boundary.py:263` contradicts that scoping.
 
-Confirmed separately: the main session is **not** governed — `check-domain.sh:271`,
+Confirmed separately: the main session is **not** governed — `check-domain.py:271`,
 `_governed = bool(agent) and agent.startswith("harness-")`, and the whole domain phase is gated on
 it. Your hands still work while every agent's are tied. That is what makes every option possible.
 

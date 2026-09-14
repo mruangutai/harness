@@ -41,7 +41,7 @@ finding.
 **4. Data exposure in detector output.** `render()` (`layout_migration.py:216-243`)
 prints only fixed repo-relative paths from `READER_TABLE` plus counts — no file
 contents, no environment values, no credentials. These paths (e.g.
-`.claude/skills/harness/bin/check-domain.sh`) are already public in the repository the
+`.claude/skills/harness/bin/check-domain.py`) are already public in the repository the
 detector runs against. Not a finding.
 
 **5. In-process import in `check-state.sh`'s heredoc — real finding, but pre-existing,

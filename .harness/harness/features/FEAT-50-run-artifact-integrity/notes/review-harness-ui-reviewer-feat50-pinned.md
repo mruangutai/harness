@@ -18,7 +18,7 @@ audited each against REQ-01/REQ-02/REQ-08/SC-18.
 ## Findings
 
 **REQ-08 / SC-18 (checkout-binding message names both target and worktree) — SATISFIED, both routes.**
-- `check-domain.sh:733-735` (`feature_checkout_guard`, Write route): `"{target_path} is a feature
+- `check-domain.py:733-735` (`feature_checkout_guard`, Write route): `"{target_path} is a feature
   artifact whose write belongs in worktree {expected}."` + `"Write this artifact in {expected}, not
   the main checkout."` — names both.
 - `bash-write-guard.sh:718-720` (`feature_checkout_guard`, Bash route, via `deny()`): `"{absolute_path}
@@ -53,7 +53,7 @@ unmodified by this diff). The new `feature_checkout_guard` call site (`bash-writ
 extends an existing convention to a new call, and the required content (target + worktree, SC-18) is
 present and correct regardless of the coda. Per P-11/G-11 (extending remedy scope into an established,
 untouched convention is not this review's call), I record this as a low/advisory note rather than a
-`must_fix`. Contrast: `check-domain.sh`'s sibling `feature_checkout_guard` (Write route) does **not**
+`must_fix`. Contrast: `check-domain.py`'s sibling `feature_checkout_guard` (Write route) does **not**
 carry this coda — its message is purpose-built and reads cleanly on its own.
 
 ## Not in scope / not found

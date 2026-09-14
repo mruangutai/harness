@@ -16,7 +16,7 @@ Every substantive task (T-01, T-02, T-03, T-04, T-05, T-06, T-09) carries `chang
 `plan.yaml`. The matrix's `logic` entry is `always: [unit]`, no `when` clause — **the floor is `unit`
 only.** T-07 is `docs` (`always: []`), T-10 is `scaffolding` (`always: []`), T-08 is `abandoned`.
 
-The floor understates what the change needs: two gate scripts (`check-domain.sh`,
+The floor understates what the change needs: two gate scripts (`check-domain.py`,
 `bash-write-guard.sh`) and two shared libraries (`harness_boundary.py`, `inflight_registry.py`) all
 move together, and REQ-04 explicitly requires both write routes to refuse identically — textbook
 `cross_module` shape (`always: [unit, integration]`), not `logic`. This was reviewed and signed

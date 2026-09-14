@@ -38,7 +38,7 @@ exactly one entry, `.agents/skills`, mode **120000** — a tracked **symlink** t
 **Every path in the plan is written against `.claude/skills/…`.** A task whose `verify:` or file
 list names `.agents/skills/…` addresses a symlink and will not match a `git ls-files` check.
 
-## 3. Lanes — re-resolved with `check-domain.sh --resolve` at HEAD
+## 3. Lanes — re-resolved with `check-domain.py --resolve` at HEAD
 
 | Path | Owner |
 |---|---|

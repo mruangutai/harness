@@ -110,7 +110,7 @@ FEAT-31 T-15 hit this exact trap with this exact fixture." I read every one of t
 (2429-2603): all fire against `_approval_root()` (built from `APPROVAL_MANIFEST`), none against the
 bare `FIXTURE_MANIFEST` while claiming a pm/orchestrator identity. No repeat of the trap here.
 
-`test-dispatch-guard.py`'s new cases (6-8) don't use `check-domain.sh`'s grant system at all —
+`test-dispatch-guard.py`'s new cases (6-8) don't use `check-domain.py`'s grant system at all —
 `dispatch-guard.sh` is a different hook with no domain-manifest dependency — so the fixture-trap
 shape doesn't apply to it. No finding.
 
@@ -152,7 +152,7 @@ gap.
 `harness_merge.py`/test-harness-merge.py (T-02), `plan-merge.py`/test-plan-merge.py (T-03),
 `observations-merge.py`/test-observations-merge.py (T-04), `expertise-merge.py`/test-expertise-merge.py
 (T-05), `inflight_registry.py`/test-inflight-registry.py (T-06), `dispatch-guard.sh`/test-dispatch-guard.py
-(T-07/T-08), `check-domain.sh`/test-check-domain.py (T-14), `validate-digest.py`/test-validate-digest.py
+(T-07/T-08), `check-domain.py`/test-check-domain.py (T-14), `validate-digest.py`/test-validate-digest.py
 (T-09, my own probe — the demonstration above).
 
 **Read only, not independently mutated beyond what's above:** the full body of `test-check-domain.py`'s

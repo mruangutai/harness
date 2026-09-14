@@ -27,7 +27,7 @@ exactly the condition the guard exists to stop, so I stopped rather than merging
 ## Independent corroboration, which is the only new signal I add
 
 I reached the same design answer from source before I saw the file, and one part of it independently:
-**L-1's blast radius is larger than the eng digest's two sweep assertions.** `check-domain.sh:212`
+**L-1's blast radius is larger than the eng digest's two sweep assertions.** `check-domain.py:212`
 (the resolve branch's `WORKTREE_REL_RE` match) and `harness_boundary.classify`'s `rel_candidates`
 are both `.git`-independent today, so T-03's sixteen in-worktree cases and T-04's own per-agent
 SC-02c cases go red under PART 1/PART 2 unless their fixtures are real linked worktrees. `fixture()`

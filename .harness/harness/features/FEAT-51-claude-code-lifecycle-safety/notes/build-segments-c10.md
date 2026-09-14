@@ -124,7 +124,7 @@ running in parallel sooner.
 ## SEGMENT 2 — after T-02 (Main)
 
 - **T-03** (#1138, `cross_module` → unit **and integration**): the quarantine branch in
-  `check-domain.sh`'s Python heredoc, placed **after** the FEAT-41 plan.yaml route denial and
+  `check-domain.py`'s Python heredoc, placed **after** the FEAT-41 plan.yaml route denial and
   **before** the `if not _post:` mode split — that position is load-bearing three ways. Fails
   **open** on any import failure. Grade the canonical case on **`BRIEF.md`, not `plan.yaml`** (a
   `plan.yaml` editor write is already refused for every author, so it cannot discriminate), plus one

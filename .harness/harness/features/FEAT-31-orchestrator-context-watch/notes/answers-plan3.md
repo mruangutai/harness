@@ -37,7 +37,7 @@ about, so a skip must be a named, printed outcome, not an early return.
 
 The criterion as written cannot go red, and this was verified at HEAD, not inferred:
 `check-state.sh:592-593` builds handoff paths ONLY by looping `SEAM_NOTES[status]`, so a note with
-any other stem is never opened; and `check-domain.sh:706`'s `RE_HANDOFF` already accepts
+any other stem is never opened; and `check-domain.py:706`'s `RE_HANDOFF` already accepts
 `handoff-[a-z0-9-]+\.md`, so writing a mid-phase note is already legal. Nothing to teach a seam
 table, nothing that could fail.
 
@@ -161,7 +161,7 @@ notes fails T-10's not-yet-existing empty-body rule: their `## Next` bodies hold
 non-blank lines. Nothing to migrate, nothing to raise.
 
 **C-6 — TWO CITATIONS IN THE RULINGS ABOVE ARE CHECKOUT-DEPENDENT, and one is wrong for your
-checkout.** `RE_HANDOFF` is at `check-domain.sh:665` in this worktree, not `:706`; `:706` is its
+checkout.** `RE_HANDOFF` is at `check-domain.py:665` in this worktree, not `:706`; `:706` is its
 line in the main checkout, which sits on a different branch. `SEAM_NOTES` is at
 `check-state.sh:495`. Prefer the symbol name over the line number where you can.
 
@@ -177,7 +177,7 @@ Carry them forward in your return; do not resolve them yourself.
 
 - **Q-A: is `harness.json`'s `test_kinds` enforcement layer under DEC-174?** It is config CONSUMED
   BY gates rather than a hook or gate script, and DEC-174 am.4's list is non-exhaustive. This
-  decides D-4's `execution_mode`. `check-domain.sh --resolve` grants `.harness/harness.json` to
+  decides D-4's `execution_mode`. `check-domain.py --resolve` grants `.harness/harness.json` to
   `harness-dev-ops` and T-03 already edits it as `team`. The sibling question was raised for
   `run-unit-tests.sh` in an earlier round and never answered.
 - **Q-B: is "explicit list beats catch-all glob" written down anywhere?** Four files already sit in

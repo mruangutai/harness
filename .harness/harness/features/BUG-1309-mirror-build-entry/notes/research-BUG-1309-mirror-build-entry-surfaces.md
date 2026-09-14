@@ -1,6 +1,6 @@
 # Research — BUG-1309 surfaces, measured at 4e8f5ea1
 
-**BLUF.** Every surface the plan names was resolved with `check-domain.sh --resolve` at
+**BLUF.** Every surface the plan names was resolved with `check-domain.py --resolve` at
 `4e8f5ea115d84899abafb301ea390c6a333e4514`, and the four anchors a builder is most likely to get
 wrong are recorded below as CONTENT, never line numbers.
 

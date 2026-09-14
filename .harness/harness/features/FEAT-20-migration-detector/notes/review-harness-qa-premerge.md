@@ -96,7 +96,7 @@ here since it recurred verbatim on this pass, not because it is new.
 
 ## Non-findings
 
-- `check-domain.sh --post` OVER BUDGET noise on worktree creation, about `FEAT-02` and
+- `check-domain.py --post` OVER BUDGET noise on worktree creation, about `FEAT-02` and
   `FEAT-05-pyyaml-file-parsers` STATE.md shape — pre-existing, unrelated to this diff, already ruled
   a non-finding in `review-harness-qa-c0.md`. Not re-filed.
 - A second, unrelated worktree (`.../scratchpad/pr376`, detached at `045dcd9`) was present before and

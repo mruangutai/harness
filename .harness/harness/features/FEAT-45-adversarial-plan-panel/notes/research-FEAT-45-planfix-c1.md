@@ -42,7 +42,7 @@ enumerated. So the load-bearing edit went into **T-06** (which already owns that
 
 ## Evidence
 
-- `check-domain.sh --resolve .claude/skills/harness/bin/sync-agent-adapters.py` → `harness-backend-dev
+- `check-domain.py --resolve .claude/skills/harness/bin/sync-agent-adapters.py` → `harness-backend-dev
   harness-dev-ops` (exit 0). `.omp/agents/**` and `.claude/agents/**` → `NOBODY`.
 - Nothing on disk validates a `spawns:` **entry**: `check-omp-port.py:95` requires only a list;
   `bootstrap_one():166-169` requires only that a non-empty list comes with the `task` tool. A

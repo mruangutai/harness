@@ -28,7 +28,7 @@ merged, shipped or PR'd.
   FAIL name that misdescribes the cause. Recorded in BRIEF.md; the ui reviewer re-raised it as two
   low advisories and it is a briefing row, not a gate.
 - `runs/2026-09-05-1-eng/digest.md` was repaired: the eng lead had written no contract block,
-  believing the structured DIGEST lived only in its return. `check-domain.sh` refuses a Write that
+  believing the structured DIGEST lived only in its return. `check-domain.py` refuses a Write that
   REPLACES a recorded run digest but permits one that EXTENDS it, so the block was appended with the
   original 6339 bytes preserved byte-identically (md5 fb265e2b3feb6eb2e5bb9267aaee279f). The doctrine
   gap that produced the malformed digest is carried to the operator as a briefing row.

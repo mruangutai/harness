@@ -52,7 +52,7 @@ goal-check Q1** as a real but non-novel, non-blocking ambiguity — info, not a 
 - **SC-04 vs REQ-07/REQ-10**: REQ-07's new-note carve-out is satisfied because T-11 lands before
   `review_sha` is pinned, so this feature's own notes already carry the section by the time SC-04's
   reviewer runs the check. REQ-10 ("deterministic checks... run in the permanent gates") is
-  satisfied by `check-domain.sh`/`check-state.sh` themselves being the permanent gates (T-04, T-07);
+  satisfied by `check-domain.py`/`check-state.sh` themselves being the permanent gates (T-04, T-07);
   SC-04 is a one-time confirmatory run at review, not a substitute for that. No conflict.
 - **T-09's verify vs the real `test_kinds` shape** — read directly at
   `.harness/harness.json:105-159` (not trusted from the plan): 8 existing kinds, every one carrying

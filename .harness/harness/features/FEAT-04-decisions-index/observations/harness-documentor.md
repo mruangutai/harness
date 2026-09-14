@@ -19,7 +19,7 @@
   line-count assertions inside the script, not N `Edit` calls — the sentinel is identical on 169 rows
   so `Edit` needs the whole row prefix each time, and the assertions produce the DIGEST's measured
   numbers as a side effect.
-- 2026-08-02 (T-04): `check-domain.sh` blocks `Write` to `/tmp` for this agent (domain is `docs/**`
+- 2026-08-02 (T-04): `check-domain.py` blocks `Write` to `/tmp` for this agent (domain is `docs/**`
   plus the observations log), so a throwaway helper script has no legal home — pipe the program to
   `python3 - <<'EOF'` on stdin instead, which creates no file.
 - 2026-08-02 (T-04): `bash-write-guard.sh` reads a Python comparison as a shell redirect —

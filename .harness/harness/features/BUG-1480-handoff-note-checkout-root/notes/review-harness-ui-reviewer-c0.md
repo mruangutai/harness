@@ -9,7 +9,7 @@ finding graded and rated non-gating (LOW).
 `html|css|scss|tsx|jsx|vue|svelte|less` (measured with `git diff --name-only | grep -Ei`,
 count = 0). Breakdown:
 
-- **2 code files** — the entire behavioral change: `.claude/skills/harness/bin/check-domain.sh`
+- **2 code files** — the entire behavioral change: `.claude/skills/harness/bin/check-domain.py`
   (+15/-1, the `_checkout_root` helper + one call-site argument swap) and
   `tests/integration/test-check-domain.py` (+42, the `_handoff_worktree_cases` test rows).
 - **16 harness bookkeeping files** — `BRIEF.md`, `STATE.md`, `feature.json`, `plan.yaml`,
@@ -33,7 +33,7 @@ Mode A finding: n/a — no contract to grade, correctly so.
 
 ## 3. The one arguably-user-facing surface: the refusal-message text
 
-Ruling: **in my lens** — `check-domain.sh` emits operator-read text on a blocked write, which
+Ruling: **in my lens** — `check-domain.py` emits operator-read text on a blocked write, which
 this role's repo-tier Expertise (P-01/P-03) already treats as an adjacent CLI/hook-emitted text
 surface when a diff has no rendered UI. Graded below rather than declined.
 
@@ -45,7 +45,7 @@ inside `handoff_done_when.py` (`_resolve_plan`, `_resolve_brief`, `_resolve_find
 `_resolve_approval`, all read at `handoff_done_when.py:116-183`) then built its `target` Path by
 joining onto the WRONG root — the note's own feature directory doesn't exist under the main
 checkout, so every pointer spuriously failed to resolve. Post-fix, the call site
-(`check-domain.sh`, `shape_problems`, `RE_HANDOFF` branch) passes
+(`check-domain.py`, `shape_problems`, `RE_HANDOFF` branch) passes
 `_checkout_root(absolute_path)` instead, which correctly returns the worktree's own checkout
 root when the note stands there.
 

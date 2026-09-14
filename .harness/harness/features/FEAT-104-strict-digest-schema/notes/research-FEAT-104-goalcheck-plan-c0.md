@@ -171,10 +171,10 @@ context, a real trade-off). Two narrow the intake's promise and the operator sho
 | Surface | Covered |
 |---|---|
 | `run-state-schema.json` (new, the key set) | T-05 ✓ |
-| `check-domain.sh` write-payload path | T-06 ✓ |
+| `check-domain.py` write-payload path | T-06 ✓ |
 | `check-state.sh` sweep (`CHECKPOINT_KEYS` :1394, report :1473) | T-07 ✓ |
 | `harness-team/SKILL.md:54` — the only seed instruction | T-05 ✓ |
-| Top-level whitelists already carrying `schema_version` (`check-domain.sh:1535`, `check-state.sh:1396`) | no change needed ✓ |
+| Top-level whitelists already carrying `schema_version` (`check-domain.py:1535`, `check-state.sh:1396`) | no change needed ✓ |
 | Anything that *enforces* the seeded value | **nothing** — F3 |
 | Other `schema_version` readers checked and unaffected: `inflight_registry.py` (own file), `upgrade-config.py` / `check-plan-routes.py:728` (harness.json, feature dirs) | n/a ✓ |
 
@@ -187,7 +187,7 @@ context, a real trade-off). Two narrow the intake's promise and the operator sho
 2. **D-02's 3+ bar over `coverage_gaps`.** *Recommend:* add it to `PASSTHROUGH["lead"]` as
    `list`. It is qa's own required field (`validate-digest.py:193`), not invented vocabulary; the
    bar was written against one-off inventions.
-3. **F3 — whether a floor is in scope.** *Recommend:* yes, one clause in T-06 — `check-domain.sh`
+3. **F3 — whether a floor is in scope.** *Recommend:* yes, one clause in T-06 — `check-domain.py`
    refuses the **creation** of a run `state.yaml` declaring `schema_version` below 2 — plus an SC.
    Without it REQ-02 is satisfied by prose.
 4. **D-03's requiredness (lead-only, required list).** *Recommend:* proceed as drafted; it is the

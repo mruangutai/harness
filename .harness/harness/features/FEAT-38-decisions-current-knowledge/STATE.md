@@ -48,7 +48,7 @@ so it is not silent. The `test-validate-feature-json.py` substring fix (`79e2639
 **FIVE handed-down premises proved FALSE this run, every one caught by a receiver re-measuring.**
 (1) "`test_kinds` 28 → 27" — the truth was 29 → 27; the numeral reached no durable record.
 (2) "`.claude/settings.json` is absent" — it is present and still registers a PostToolUse hook on
-`Write|Edit|Bash`, `check-domain.sh --post`, not the retired watchdog; DEC-159's clause is scoped
+`Write|Edit|Bash`, `check-domain.py --post`, not the retired watchdog; DEC-159's clause is scoped
 "for this" and is true as written. (3) "DEC-159's amendment ends with a stray `---`" — it was
 DEC-201's. (4) The goal-check digest's headline says "sixteen live criteria" while its own table
 carries 17 rows; the table is right. (5) **This orchestrator's own "61 scripts reporting PASS" was
@@ -75,7 +75,7 @@ None blocking. Seven residual findings are carried to the operator as proposed b
 
 - **B-25** — `bash-write-guard.sh` cannot expand shell variables and does not track `cd`; it resolves
   targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` was denied while the same
-  command with a literal absolute path was allowed, and `check-domain.sh --resolve` grants that path.
+  command with a literal absolute path was allowed, and `check-domain.py --resolve` grants that path.
 - **B-26** — `/usr/bin/grep` is `pi-uu-grep 0.2.0`, in which `^+` matches EVERY line. Four false
   readings across this feature; every affected measurement was redone in Python.
 - **B-39** — a run-directory slug collision destroyed a record. `runs/` is gitignored, so it was

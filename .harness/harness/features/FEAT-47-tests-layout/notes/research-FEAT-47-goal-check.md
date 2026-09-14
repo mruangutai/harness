@@ -47,7 +47,7 @@ false about this tree, but it is advice against exactly what DEC-213 chose. Not 
 |---|---|---|---|
 | SC-01 | met | automated | `suite-census.py verdict-lines --strict` exit 0; all 23 `tests/unit` rows `expected==actual`, per-file `exit=0`. Set equality is structural: `run-unit-tests.sh:25` builds `SCRIPTS` from the `tests/unit/test-*.py` glob itself |
 | SC-02 | met | automated | same run, all 43 `tests/integration` rows matched, per-file `exit=0`; `run-unit-tests.sh:26` |
-| SC-03 | met | automated | `test-check-domain.py:1861-1874` asserts each verdict individually (3 seats × 2 dirs granted, 3 seats denied `tests/unit`, qa denied `bin/*.sh`); replicated live via `check-domain.sh --resolve` over 6 seats × 3 paths |
+| SC-03 | met | automated | `test-check-domain.py:1861-1874` asserts each verdict individually (3 seats × 2 dirs granted, 3 seats denied `tests/unit`, qa denied `bin/*.sh`); replicated live via `check-domain.py --resolve` over 6 seats × 3 paths |
 | SC-04 | met | automated | `tests/integration/test-run-unit-tests-layout.py` 9/9 PASS, exit 0 — empty-unit, empty-integration, duplicate, planted, plus clean-tree and argv refusals |
 | SC-05 | met | automated | `tests/unit/test-suite-layout.py` 21/21 PASS, exit 0 — discovery floor, sweep, both positive controls, 3-shape red proof, `runner delegates layout once` |
 | SC-06 | met | automated | `.harness/harness.json` `unit`/`integration` `detect` byte-equal to `templates/harness.json`; `unit detect excludes .claude` and its integration twin assert the appendix cannot return |

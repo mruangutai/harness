@@ -12,7 +12,7 @@ Every path in the shared scope was inspected in the pinned diff and at the pinne
 2. `tests/unit/test-handoff-done-when.py`
 3. `tests/unit/test-probe-handoff-comprehension.py`
 4. `tests/integration/test-check-domain.py`
-5. `.claude/skills/harness/bin/check-domain.sh`
+5. `.claude/skills/harness/bin/check-domain.py`
 6. `.harness/harness.json`
 7. `tests/integration/test-check-state.py`
 8. `.claude/skills/harness/bin/check-state.sh`
@@ -51,7 +51,7 @@ This is high because the only two in-scope real handoffs demonstrate the exact e
 
 - **REQ-01 / REQ-03: FAIL** on F-11. Mechanical presence and AND evaluation exist, but the two real notes' only authority is already satisfied and does not delimit their immediate actions.
 - **REQ-02, REQ-04, REQ-05: PASS.** The shared parser enforces one non-empty `Scope:`, one-to-four `Authority:` lines, no other prose, four exact typed grammars, ordering, and source-location refusal. The 54 direct checks and 41 real write-gate cases passed.
-- **REQ-06: PASS.** `check-domain.sh:1561-1566` calls the shared implementation with `resolve=True` and fails closed; `check-state.sh:1243-1251` calls it with `resolve=False`. The repaired persisted fixtures reject every output line naming their handoff, and the caller-mode mutant discriminates exactly `real=0, mutant=1`.
+- **REQ-06: PASS.** `check-domain.py:1561-1566` calls the shared implementation with `resolve=True` and fails closed; `check-state.sh:1243-1251` calls it with `resolve=False`. The repaired persisted fixtures reject every output line naming their handoff, and the caller-mode mutant discriminates exactly `real=0, mutant=1`.
 - **REQ-07: PASS.** The frozen baseline is 141 entries, 141 unique, sorted, and set-equal to the `b7956fc4` handoff enumeration. It contains no FEAT-54 note.
 - **REQ-08: PASS.** Whole-file 60/61 boundaries and long-Trust-at-60 cases passed through both gates; no per-section cap exists.
 - **REQ-09: PASS.** Template, playbook, both gates, DEC-159, and DEC-214 state five sections. The only gate-script `four headings` occurrences are the two SC-08-authorized FEAT-31 historical observations at `check-state.sh:1198-1202,1215-1219`.

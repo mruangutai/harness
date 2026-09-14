@@ -42,7 +42,7 @@ mechanism.
 Independently grepped `T-13\|D-09` across plan.yaml and BRIEF.md: zero hits (confirms the goal-check
 note's grep). No REQ or SC rests on the deleted mutation note. SC-07 (`verify: inspection`, "two
 import sites plus the absence of a second parser") is falsifiable as written: the codebase already
-has an established sibling-module import convention (`check-domain.sh:104-125`, the
+has an established sibling-module import convention (`check-domain.py:104-125`, the
 `harness_boundary.py` pattern T-02/T-04 are told to follow), so "one cited file:line" per gate is a
 concrete, greppable presence check, paired with a concrete absence check (no second `Scope:`/
 `Authority:` parse, no second target-open) per DEC-169's presence-beside-absence rule. Judgment is
@@ -84,10 +84,10 @@ this gate's OWN PROSE into the five-section contract," with (i) explicitly targe
 set" enumeration — the exact two sites F-03 says are uninstructed. This matches the shared-context
 note that "T-04 and SC-08 now also cover the gates' OWN four-section prose" as a stated change of
 this revision. F-03 appears to have been read against a truncated slice of T-04's intent. Do not
-treat it as blocking; REQ-09's `check-domain.sh` clause is carried.
+treat it as blocking; REQ-09's `check-domain.py` clause is carried.
 
 I agree with F-01 (PF-4205e7e2 still `disposition: open` despite D-10 implementing it — pm's write,
-one-line repair) and, weakly, with F-04 (T-04 both adds `"## Done when"` to `check-domain.sh`'s own
+one-line repair) and, weakly, with F-04 (T-04 both adds `"## Done when"` to `check-domain.py`'s own
 `required` heading list and appends the module's own absent-section message, so an author omitting
 the section sees the problem twice; not SC-blocking, advisory only — note T-07 explicitly avoids the
 identical overlap via `HANDOFF_NARRATIVE_HEADINGS`, which is the asymmetry worth naming).

@@ -52,17 +52,17 @@ lanes:
       reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
     - surface: .claude/skills/harness-spec-driven/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .claude/skills/harness-expertise/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .claude/agents/harness-orchestrator.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .gitignore
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
-    - surface: .claude/skills/harness/bin/check-domain.sh
+      reason: check-domain.py --resolve prints NOBODY at c32f332
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: >-
         named in DEC-174 amendment 4 as one of the five enforcement-layer scripts; --resolve grants it
@@ -73,13 +73,13 @@ lanes:
       reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
     - surface: .claude/skills/harness/templates/plan.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .claude/agents/harness-pm.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .harness/team-config.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at c32f332
+      reason: check-domain.py --resolve prints NOBODY at c32f332
     - surface: .harness/harness/features/FEAT-32-concurrent-write-merge/notes/**
       lane: main-session-direct
       reason: >-
@@ -218,7 +218,7 @@ decisions:
       the defect. 3600 is above the longest observed pm spawn and below any plausible session, and
       it is a named literal so a measurement can move it. Failing OPEN on a leaked claim is the
       house precedent for a guard's own bug, printed by validate-digest.py's internal-error
-      pass-through - the stderr line ending "this is our bug, not theirs" - and set by check-domain.sh.
+      pass-through - the stderr line ending "this is our bug, not theirs" - and set by check-domain.py.
     dec: none
   - id: D-08
     choice: >-
@@ -286,7 +286,7 @@ decisions:
   - id: D-10
     choice: >-
       THE SIGNER IS THE MAIN SESSION, AND THE EXCLUSION BECOMES ENFORCED BY A CHECK THAT READS THE
-      RECORD. check-domain.sh gains a domain-path denial sourced from team-config.yaml's
+      RECORD. check-domain.py gains a domain-path denial sourced from team-config.yaml's
       main_session.writes list. Each entry in that list is a glob plus an OPTIONAL trailing FRAGMENT,
       space-separated, and the fragment decides the comparison. A fragment ending in a colon is a YAML
       mapping key: load both sides and compare that key's value. A fragment beginning with two hashes
@@ -302,7 +302,7 @@ decisions:
       independent property — a tool must not corrupt the mapping even when its caller is entitled to
       write the file — but it is NOT the enforcement point. TWO LAYERS SHIP, AND THEY ARE NOT
       REDUNDANCY: each exists for a different reason and neither substitutes for the other. LAYER 1,
-      in check-domain.sh, IS THE ENFORCEMENT OF WHO MAY SIGN. It is the gate: it holds the agent's
+      in check-domain.py, IS THE ENFORCEMENT OF WHO MAY SIGN. It is the gate: it holds the agent's
       identity, it is a PreToolUse hook so it runs on every governed Write and Edit whether or not the
       writer chooses to invoke any tool, and it is the only layer that can REFUSE. LAYER 2, in
       plan-merge.py, IS NOT THAT ENFORCEMENT. It is the structural backstop against a reformatting
@@ -318,7 +318,7 @@ decisions:
       A BOUNDARY OF DEC-180 IS EXTENDED HERE DELIBERATELY, and it is recorded so it is not mistaken
       for an oversight. DEC-180 at DECISIONS.md:5105 routes Edit to PostToolUse because a SHAPE
       verdict needs the whole resulting file to count its lines, so it would have to reconstruct
-      replacement semantics before the fact; check-domain.sh:1039 records that refusal in the POST
+      replacement semantics before the fact; check-domain.py:1039 records that refusal in the POST
       branch's own words. Layer 1 reconstructs nothing — it asks whether the replaced text is a
       substring of the approval block already on disk, and what the replacement text contains — so the
       refusal stands untouched. The same decision also forces layer 1 to be PRE: it fixes
@@ -332,8 +332,8 @@ decisions:
       at all and carries the wrong decision number on three separate comment lines.
     because: >-
       four artifacts disagreed and the tree enforced none of them. Measured at 62f861c: grep -n
-      main_session in check-domain.sh returns ZERO lines, so main_session.writes is a record no code
-      reads, which is the defect class this repository files most often; check-domain.sh --resolve on a
+      main_session in check-domain.py returns ZERO lines, so main_session.writes is a record no code
+      reads, which is the defect class this repository files most often; check-domain.py --resolve on a
       plan.yaml prints harness-orchestrator and harness-pm, so both may write the whole file including
       the mapping and nothing refuses them; and THE SAME HOLE IS THREE FILES WIDE, because
       team-config.yaml grants pm BRIEF.md and PLAN.md whole at :89 and :90 and the words except ##
@@ -352,8 +352,8 @@ decisions:
       glossed: sourcing the denial from the list makes the list load-bearing, and that cuts both ways —
       delete the entry and the gate silently stops denying. Fail-open is the correct direction, because
       a gate that blocks when it cannot read its own record breaks every write, but it MUST BE LOUD,
-      which is the precedent check-domain.sh sets in its own words at :798 and :811 and DEC-127 at
-      DECISIONS.md:2839 sets for validate-digest.py in matching check-domain.sh's precedent by name.
+      which is the precedent check-domain.py sets in its own words at :798 and :811 and DEC-127 at
+      DECISIONS.md:2839 sets for validate-digest.py in matching check-domain.py's precedent by name.
       So a missing key or an empty list ALLOWS and says on stderr that the exclusion list was
       unreadable, and T-14 asserts that stderr LINE and not only the exit code. The residual is exact
       and is not closed: someone who deletes the entry disarms the gate, and the only two things that
@@ -1469,7 +1469,7 @@ tasks:
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .gitignore at c32f332
+    execution_reason: check-domain.py --resolve prints NOBODY for .gitignore at c32f332
     depends_on: [T-06]
     status: done
     files:
@@ -1505,7 +1505,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for all three files at c32f332, and two of them are
+      check-domain.py --resolve prints NOBODY for all three files at c32f332, and two of them are
       preloaded rule skills that reach every spawn
     depends_on: [T-03, T-04]
     status: done
@@ -1686,36 +1686,36 @@ tasks:
       claim, then Chose, Over and Because paragraphs. Do not exceed 60 lines. Change no other entry.
 
   - id: T-14
-    title: Make the approval exclusions real by having check-domain.sh READ main_session.writes
+    title: Make the approval exclusions real by having check-domain.py READ main_session.writes
     traces: [REQ-11]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh is named in DEC-174 amendment 4 as one of the five enforcement-layer scripts and
+      check-domain.py is named in DEC-174 amendment 4 as one of the five enforcement-layer scripts and
       amendment 4 puts the test file of each inside the carve-out with it; --resolve grants both files
       to harness-backend-dev and harness-dev-ops at c32f332, so the CATEGORY and not the grant is what
       routes this
     depends_on: [T-03, T-15]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       set -u
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
-      grep -q 'APPROVAL_GUARD = True' .claude/skills/harness/bin/check-domain.sh \
+      grep -q 'APPROVAL_GUARD = True' .claude/skills/harness/bin/check-domain.py \
         || { echo "the named literal the red proof mutates does not exist"; exit 1; }
-      grep -q 'main_session' .claude/skills/harness/bin/check-domain.sh \
+      grep -q 'main_session' .claude/skills/harness/bin/check-domain.py \
         || { echo "the denial does not READ main_session.writes; a hardcoded pattern is a defect"; exit 1; }
-      grep -q 'CONVENTION, NOT A YAML GUARANTEE' .claude/skills/harness/bin/check-domain.sh \
+      grep -q 'CONVENTION, NOT A YAML GUARANTEE' .claude/skills/harness/bin/check-domain.py \
         || { echo "the indent-convention comment is missing from the rule; it is a deliverable"; exit 1; }
       out=$(python3 .claude/skills/harness/bin/test-check-domain.py) || { echo "$out"; exit 1; }
       n=$(printf '%s\n' "$out" | grep -c '^ok')
       [ "$n" -ge 167 ] || { echo "prior cases lost: $n ok lines, baseline was 167 at 6bb7d82"; exit 1; }
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
-      python3 - "$T/bin/check-domain.sh" <<'PY' || exit 1
+      python3 - "$T/bin/check-domain.py" <<'PY' || exit 1
       import sys
       p = sys.argv[1]
       s = open(p).read()
@@ -1723,7 +1723,7 @@ tasks:
       assert m != s, "APPROVAL_GUARD assignment not found BY NAME"
       open(p, "w").write(m)
       PY
-      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.py" \
         python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the suite passes with the approval guard switched off"; exit 1; }
       exit 0
@@ -1739,7 +1739,7 @@ tasks:
       while leaving the record it is supposed to enforce still unread. That grep returned ZERO at
       62f861c; its PRESENCE is the deliverable.
 
-      IN check-domain.sh, inside the existing embedded python3 block, inside the `if _domain_phase:`
+      IN check-domain.py, inside the existing embedded python3 block, inside the `if _domain_phase:`
       region and AFTER the existing domain verdict for the path, add the exclusion denial:
 
         - A module-level literal, spelled exactly
@@ -1864,7 +1864,7 @@ tasks:
           block, so the interleaving that would matter is one no legitimate writer performs, and
           plan-merge.py holds a lock over every other route into the file.
         - A COMMENT AT THE RULE IS A DELIVERABLE OF THIS TASK, not a nicety, and the verify greps
-          for it. Immediately above limb B, in check-domain.sh itself, state that the indentation it
+          for it. Immediately above limb B, in check-domain.py itself, state that the indentation it
           reads is a CONVENTION AND NOT A YAML GUARANTEE: the format permits an approval block at any
           indent, and limb B can discriminate an approval child key from a task's own key only because
           every plan.yaml in the tree is emitted by harness-pm and, after this feature, by
@@ -1994,14 +1994,14 @@ tasks:
            once at build.
 
       THE EDIT ROUTE REACHES THE DOMAIN PHASE ALREADY - do not touch the PRE short-circuit. Measured
-      in this worktree at 6bb7d82: the domain phase is entered at check-domain.sh:316 under
+      in this worktree at 6bb7d82: the domain phase is entered at check-domain.py:316 under
       _domain_phase, set at :294 to _governed and not _post, and nothing between :276 and :316 exits on
       the tool name. The tool-name short-circuit at :1032, if _tool != "Write" or not target, sits far
       BELOW that and gates only the SHAPE targets list. So an Edit already arrives at the region this
       task adds to, and :1032 must be left exactly as it is: moving or widening it would put Edit
       payloads into the shape gate, which is the thing DEC-180 deliberately routed to POST.
 
-      WHY THIS DOES NOT CONTRADICT DEC-180 OR check-domain.sh:1039, and read both before starting
+      WHY THIS DOES NOT CONTRADICT DEC-180 OR check-domain.py:1039, and read both before starting
       rather than trusting this paragraph. DEC-180 at DECISIONS.md:5105 routes Edit and Bash to POST
       because a SHAPE verdict needs the whole resulting file to count its lines, so it would have to
       reconstruct replacement semantics and replace_all before the fact; :1039 records the same refusal
@@ -2032,7 +2032,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for all three files at c32f332, so DEC-179 makes this a
+      check-domain.py --resolve prints NOBODY for all three files at c32f332, so DEC-179 makes this a
       declared main-session step rather than a dispatch that would be rejected mid-run
     depends_on: []
     status: done
@@ -2072,7 +2072,7 @@ tasks:
       DEC-120 at DECISIONS.md:2431 puts the user channel at the main session alone, so it is the only
       tier that can hold a signature the user actually gave.
 
-      THIS TASK IS NO LONGER COSMETIC. T-14 makes check-domain.sh READ main_session.writes, so the
+      THIS TASK IS NO LONGER COSMETIC. T-14 makes check-domain.py READ main_session.writes, so the
       entry item 3a adds is the gate's INPUT and not a record beside it. T-14 depends_on this task and
       its own suite asserts the entry's presence in the REAL file. The verify's assertion on that list
       is therefore load-bearing: if it fails, the plan.yaml approval denial does not exist.
@@ -2082,7 +2082,7 @@ tasks:
          orchestrator cannot ask the user (DEC-120)", which contradicts itself in one sentence: an
          agent that cannot ask the user cannot be the only writer of the user's answer. REPLACE it
          with: written by the MAIN SESSION only, because it is the only tier with a user channel;
-         neither pm nor the orchestrator writes it, and check-domain.sh denies an agent's write of this
+         neither pm nor the orchestrator writes it, and check-domain.py denies an agent's write of this
          mapping. Keep the existing sentence that any change to the task set resets this to pending.
 
       2. .claude/agents/harness-pm.md, the Writable paragraph. It currently says the approval block
@@ -2092,7 +2092,7 @@ tasks:
          agent definition and every added line taxes every pm spawn.
 
       3. .harness/team-config.yaml, TWO changes, and read D-10 before making either. This file stops
-         being a record and becomes THE GATE'S INPUT: after T-14, check-domain.sh READS
+         being a record and becomes THE GATE'S INPUT: after T-14, check-domain.py READS
          main_session.writes and denies a governed agent's write that changes an excluded fragment.
          The entry you add here is the datum that makes the plan.yaml denial exist. Deleting it later
          disarms that denial, which is the residual D-10 records.
@@ -2211,7 +2211,7 @@ tasks:
       j = src.index("\n## DEC-175", i)
       body = src[i:j]
       assert "dispatch-guard.sh" in body, "amendment 4 still omits dispatch-guard.sh"
-      for f in ("check-domain.sh", "bash-write-guard.sh", "validate-digest.py",
+      for f in ("check-domain.py", "bash-write-guard.sh", "validate-digest.py",
                 "check-state.sh", "check-plan-routes.py"):
           assert f in body, "amendment 4 lost %s from its enumeration" % f
       flat = " ".join(body.split())
@@ -2227,7 +2227,7 @@ tasks:
       finding rather than writing your own.
 
       WHY, measured at 62f861c. DEC-174 amendment 4's heading is at DECISIONS.md:4836 and its
-      enumeration sentence is at :4859-4860: "So the enforcement layer is: check-domain.sh,
+      enumeration sentence is at :4859-4860: "So the enforcement layer is: check-domain.py,
       bash-write-guard.sh, validate-digest.py, check-state.sh, check-plan-routes.py, and the test file
       of each." dispatch-guard.sh is demonstrably a gate - it refused this feature's own orchestrator
       dispatch over a model: parameter during run 2026-08-21-1-product - and the enumeration omits it.

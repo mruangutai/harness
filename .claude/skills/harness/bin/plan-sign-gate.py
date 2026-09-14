@@ -117,7 +117,7 @@ except Exception:
     sys.exit(0)
 
 # AN ABSENT OR EMPTY agent_type IS THE MAIN SESSION, and that exemption is the mechanism
-# rather than a named branch — check-domain.sh's approval_guard records the same reasoning
+# rather than a named branch — check-domain.py's approval_guard records the same reasoning
 # for the same reason, and issue #132 records what happened the last time that file grew a
 # second carve-out to keep in sync.
 if not (payload.get("agent_type") or ""):
@@ -262,7 +262,7 @@ def _invokes_tool_indirectly(toks):
     `xargs plan-merge.py < verb.txt` -- so the verb's text never appears in the command line and
     no text scanner can ever see it. Closing "the xargs form" would have been a fifth patch
     leaving the class open. A gate that cannot determine the verb must refuse rather than guess,
-    exactly as an unresolvable path refuses in check-domain.sh.
+    exactly as an unresolvable path refuses in check-domain.py.
 
     THE COMMAND WORD IS RESOLVED, NOT MERELY SEARCHED FOR, and that is what keeps this narrow:
     `xargs -I{} grep plan-merge.py dir` mentions the tool as grep's PATTERN and must stay allowed.

@@ -49,7 +49,7 @@ the main session does T-01 (harness-documentor, `depends_on: []`) become dispatc
 - Do NOT use `plan-merge.py` to CHANGE a value — exit 8 on an `approval:` key, exit 7 on any
   differing task; it is ADD-ONLY — pm measured across all three cycles
 - Do NOT site the panel RESULT under `approval:` — `approval_guard` spans the whole YAML key range
-  and locks pm out of every sub-key — `check-domain.sh:571-575` — eng-squad measured
+  and locks pm out of every sub-key — `check-domain.py:571-575` — eng-squad measured
 
 ## Working set
 

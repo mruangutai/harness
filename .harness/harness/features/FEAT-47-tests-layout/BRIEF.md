@@ -4,8 +4,8 @@
 
 In this repository every test lives in `.claude/skills/harness/bin/`, beside the hooks, validators
 and gate scripts it tests. The only way to grant a seat permission to write a test here is to grant
-it `.claude/skills/harness/bin/**` — the same grant that lets it rewrite `check-domain.sh`. Measured
-at `56a30a0` on the live PreToolUse route (`check-domain.sh --resolve tests/unit/test-x.py` prints
+it `.claude/skills/harness/bin/**` — the same grant that lets it rewrite `check-domain.py`. Measured
+at `56a30a0` on the live PreToolUse route (`check-domain.py --resolve tests/unit/test-x.py` prints
 `NOBODY`, and `--resolve .claude/skills/harness/bin/zz.sh` prints `harness-backend-dev
 harness-dev-ops`): `harness-qa` carries `tests/**` and is BLOCKED writing
 anywhere it could put a test, while `harness-backend-dev` and `harness-dev-ops` write tests only

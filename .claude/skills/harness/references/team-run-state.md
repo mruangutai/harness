@@ -10,7 +10,7 @@ DEC-157, DEC-182, DEC-223.
 ## Seed keys
 
 Top level: `schema_version: 2`, `run_id`, `feature`, `squad`, `host`, `status: running`, and one
-`steps:` entry per team step with `status: pending`. `check-domain.sh` refuses a **new** run
+`steps:` entry per team step with `status: pending`. `check-domain.py` refuses a **new** run
 checkpoint at any `schema_version` below 2; only updates to an already-existing version-1
 `state.yaml` retain compatibility.
 
@@ -25,7 +25,7 @@ it, and every later write carries the same value read from the file itself.
 `note`, `artifact`, and `evidence`.
 
 The declared set is `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/run-state-schema.json`,
-and `check-domain.sh` refuses a write carrying any other step key. A per-step fact a dispatch asked
+and `check-domain.py` refuses a write carrying any other step key. A per-step fact a dispatch asked
 for goes under `evidence` with a lowercase identifier key (`^[a-z][a-z0-9_]*$`); it is never a new
 step key and never a sentence used as a key. Each evidence value is a scalar or an array of scalars.
 Nested objects are refused, and a value that must be read rather than matched still belongs in

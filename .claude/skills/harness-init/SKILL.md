@@ -128,7 +128,7 @@ That is the content of `harness_yaml.INSTALL_COMMAND`. **Quote it from there rat
 re-typing it** — D-07 makes the module the single source of truth, and two hand-maintained copies of
 an install command is exactly the divergence class this prerequisite exists to prevent.
 
-**This check is the LOUD EARLY warning; `check-domain.sh` is the AUTHORITATIVE one.** It runs in the
+**This check is the LOUD EARLY warning; `check-domain.py` is the AUTHORITATIVE one.** It runs in the
 user's interactive shell, whose `PATH` is not proven identical to a hook subprocess's — so the write
 hooks additionally self-report `MISSING` from inside their own environment on first invocation, which
 is the same code path the one-session bootstrap escape already needs. Treat a green check here as
@@ -193,7 +193,7 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
 Replace every glob marked `# SEED` in this control plane's `.harness/team-config.yaml` with the real
 path from dev-ops's report. **You** write this file — it is not in any agent's domain.
 
-`check-domain.sh` reads only the control plane's manifest. The live grants are repo-agnostic globs,
+`check-domain.py` reads only the control plane's manifest. The live grants are repo-agnostic globs,
 and per-repository isolation is unbuilt (issue 495): `harness_boundary.glob_to_re` supports only
 `**`, `*`, `?`, and literals, so a per-repository glob is inexpressible today.
 

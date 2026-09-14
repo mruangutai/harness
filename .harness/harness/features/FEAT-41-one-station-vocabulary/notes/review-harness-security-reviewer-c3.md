@@ -34,18 +34,18 @@ Payload: `python3 plan-merge.py$(printf " ")sign-approval --file plan.yaml`.
   invariant was "an expansion could be whitespace, so adjacency must assume it is" — that rule was
   applied to one syntax (`${...}`) and not the mechanism it names.
 
-**H-2. A NUL byte in `tool_input.file_path` crashes check-domain.sh's entire PreToolUse body —
+**H-2. A NUL byte in `tool_input.file_path` crashes check-domain.py's entire PreToolUse body —
 exit 1, which the script's own header states is non-blocking (DEC-100) — disabling every
 invariant it enforces for that call, not only the plan-route denial.**
-Reproduced with the real script (`bash .claude/skills/harness/bin/check-domain.sh` fed the payload
+Reproduced with the real script (`bash .claude/skills/harness/bin/check-domain.py` fed the payload
 on stdin, `agent_type: backend-dev`, `tool_name: Write`):
 ```
 file_path = "bin/foo\u0000bar"                    -> exit 1, ValueError: lstat: embedded null character in path
 file_path = "CLAUDE\u0000.md"                      -> exit 1, same
 file_path = ".../plan\u0000...plan.yaml", Edit tool -> exit 1, same
 ```
-Traceback: `_plan_route` (`check-domain.sh:1539`) → `_resolved_rel` (`:1490`) →
-`os.path.realpath` → `ValueError`, uncaught anywhere in the 1791-line body. `check-domain.sh:12-13`
+Traceback: `_plan_route` (`check-domain.py:1539`) → `_resolved_rel` (`:1490`) →
+`os.path.realpath` → `ValueError`, uncaught anywhere in the 1791-line body. `check-domain.py:12-13`
 states outright: "VERIFIED (DEC-100): exit 2 blocks the tool call... Only exit 2 blocks — exit 1 is
 a NON-blocking error and the write proceeds." By the file's own documented contract this is a
 fail-open crash reachable by **any** NUL byte anywhere in a Write/Edit `file_path`, not merely one
@@ -65,7 +65,7 @@ approval trail, invisible to every check-state.sh invariant.**
 proposal, refusing only if the proposal itself carries an `approval:` key — it never calls
 `_legal_stations`/`_refuse_illegal_station`, so the station value it writes is not validated
 against the vocabulary at all (only `set-task-station`/`set-feature-station` validate). `apply` is
-not gated by `plan-sign-gate.py` (which refuses `sign-approval` alone) or by `check-domain.sh`
+not gated by `plan-sign-gate.py` (which refuses `sign-approval` alone) or by `check-domain.py`
 (scoped to the `Write|Edit` tool matcher only — Bash-invoked `plan-merge.py` never reaches it).
 Reproduced end to end against a scratch checkout:
 ```
@@ -92,7 +92,7 @@ agent with Bash, with no station validation and no cross-check for a missing goa
 
 ## Med (written reason for not-high)
 
-**M-1. `check-domain.sh:1549`'s `_tool in ("Write", "Edit", "NotebookEdit")` is an allow-list of
+**M-1. `check-domain.py:1549`'s `_tool in ("Write", "Edit", "NotebookEdit")` is an allow-list of
 known write-capable tool names, not a deny-list of anything writable — a tool this harness later
 grants (or a platform-added tool name) that reaches the filesystem and is omitted from the tuple
 silently reopens the plan-route denial for it.** Checked every agent definition under
@@ -104,7 +104,7 @@ one line away from converting this into a real gap the day an agent config adds 
 
 ## Low / info (measured, not exploitable — negative results are the finding)
 
-**L-1. `_plan_route`'s "fails closed" claim (`check-domain.sh:1543-1548`, and the C2-02 commit
+**L-1. `_plan_route`'s "fails closed" claim (`check-domain.py:1543-1548`, and the C2-02 commit
 message) is empirically dead code, but the hole it describes is closed by a different mechanism it
 does not name.** `os.path.realpath` (non-strict, what `_resolved_rel` calls) never raises `OSError`
 for a symlink loop, a self-referential symlink, or a broken symlink on this platform — confirmed
@@ -157,7 +157,7 @@ a flow-mapping, and a value literally spelling another key. Every one round-trip
 by `_verify_signature`'s identity comparison (`:271`, `got.get(key) != want`) — none altered
 `plan.yaml`'s structure. F-02's fix generalizes correctly beyond `--date`.
 
-**Case-insensitivity (dispatch item 2) — already closed.** `RE_PLAN_YAML` (`check-domain.sh:1046`)
+**Case-insensitivity (dispatch item 2) — already closed.** `RE_PLAN_YAML` (`check-domain.py:1046`)
 is compiled with `_I = re.IGNORECASE`; `PLAN.YAML` matches the same as `plan.yaml`. Not a gap.
 
 ## Stage 1 — REQ-05/SC-06/SC-07, literal compliance at `5dc77108`
@@ -180,7 +180,7 @@ is compiled with `_I = re.IGNORECASE`; `PLAN.YAML` matches the same as `plan.yam
 | boundary | STRIDE | mitigated |
 |---|---|---|
 | `plan.yaml` `approval:` block, written only by `sign-approval` | Spoofing (forged signature) | false — H-1 |
-| `check-domain.sh` PreToolUse enforcement of all budget/domain/route rules | Tampering (crash to fail-open) | false — H-2 |
+| `check-domain.py` PreToolUse enforcement of all budget/domain/route rules | Tampering (crash to fail-open) | false — H-2 |
 | feature station / board visibility requiring a signed BRIEF | Elevation (agent-authored, unsigned "approved" work) | false — H-3 |
 | `plan.yaml` write route restricted to `plan-merge.py`'s five verbs | Tampering (off-route write via link/hardlink/case) | true — C2-02 hardlink+dir-chain fix holds; case-insensitivity already covered |
 | YAML structure of the signed block, via `--by`/`--date` | Tampering (structural injection) | true — F-02 generalizes correctly |

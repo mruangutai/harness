@@ -7,11 +7,11 @@ Resolved against `.harness/team-config.yaml` at `ae2443d`, by reading the lines,
 | Surface | Lane | Grant |
 |---|---|---|
 | `.claude/skills/harness/bin/**` — the new checker, its test, `run-unit-tests.sh` | `harness-backend-dev` / `harness-dev-ops` | `team-config.yaml:155`, `:197` |
-| `.claude/skills/harness/bin/check-domain.sh` | **main session, DEC-174 carve-out** | deviation from the row above — D-03 |
+| `.claude/skills/harness/bin/check-domain.py` | **main session, DEC-174 carve-out** | deviation from the row above — D-03 |
 | `.claude/skills/harness/templates/PLAN.md` | **main session** (declared step) | ungranted — nothing in `team-config.yaml` names `templates/**` |
 | `.claude/skills/harness-spec-driven/SKILL.md` | **main session** (declared step) | ungranted — nothing names `.claude/skills/harness-*/SKILL.md` |
 
-`check-domain.sh` sits under `bin/**`, which IS granted, so T-01 is the one deviation from this
+`check-domain.py` sits under `bin/**`, which IS granted, so T-01 is the one deviation from this
 table and D-03 records why. Ordering constraint for the two ungranted rows: T-03 must land before
 T-02, because T-02's test asserts the template's shape; T-04 lands last, because its rule names the
 script T-02 creates.
@@ -42,11 +42,11 @@ No FEAT-08 path appears in any `files:` here.
 ## Decisions
 
 - D-01: **The plan-time checker is a NEW script, `.claude/skills/harness/bin/check-plan-routes.py`,
-  invoked by pm at PLAN write — not a mode of `check-domain.sh` and not an invariant inside
+  invoked by pm at PLAN write — not a mode of `check-domain.py` and not an invariant inside
   `check-state.sh`.** — rationale: fog patch 1 was "new script, mode, or invariant", and the answer
   follows from when it must fire. It must fire while the plan is still being written, when the
   author can still move a task's lane; an entry-time sweep reports it after the plan is finished.
-  `check-domain.sh` is a `PreToolUse` hook whose contract is a JSON payload on stdin and `exit 2`;
+  `check-domain.py` is a `PreToolUse` hook whose contract is a JSON payload on stdin and `exit 2`;
   making it also a plan-phase CLI multiplies its invocation contracts on the one file DEC-174
   carves out. `--resolve` is the *matcher access point*, not the checker. tradeoffs: a fourteenth
   script in `bin/`, and a check that runs when pm remembers rather than at every `/harness` entry —
@@ -62,11 +62,11 @@ No FEAT-08 path appears in any `files:` here.
   agent" from "did not run" if both are empty. tradeoffs: the caller must parse multiple lines, and
   answer-versus-health is split across stdout and the exit code rather than encoded in the exit code
   alone.
-- D-03: **T-01 edits `check-domain.sh` and `test-check-domain.py` as one main-session-direct task,
+- D-03: **T-01 edits `check-domain.py` and `test-check-domain.py` as one main-session-direct task,
   deviating from this plan's own lanes table, which grants `bin/**` to `harness-backend-dev` (`:155`)
   and `harness-dev-ops` (`:197`).** — rationale: DEC-174 — the harness plans its own work but does
   not dispatch changes to its own enforcement layer through a team run whose gates are the thing
-  being changed; `check-domain.sh` is a registered `PreToolUse` hook and is named in DEC-174
+  being changed; `check-domain.py` is a registered `PreToolUse` hook and is named in DEC-174
   explicitly. Guard and test ship together for FEAT-07 D-02's reason: the diff only vouches for
   itself if it contains the test that proves it. tradeoffs: the main session does work a member is
   granted, and the deviation is recorded here because `templates/PLAN.md:9-11` requires a
@@ -126,9 +126,9 @@ date: 2026-08-05
 
 ## Tasks
 
-- T-01: Add a `--resolve <path>` mode to `check-domain.sh` that short-circuits before stdin is read
-  files: `.claude/skills/harness/bin/check-domain.sh`, `.claude/skills/harness/bin/test-check-domain.py`
-  intent: In `check-domain.sh`, BEFORE line 26's `payload=$(cat)`, add a branch that fires when
+- T-01: Add a `--resolve <path>` mode to `check-domain.py` that short-circuits before stdin is read
+  files: `.claude/skills/harness/bin/check-domain.py`, `.claude/skills/harness/bin/test-check-domain.py`
+  intent: In `check-domain.py`, BEFORE line 26's `payload=$(cat)`, add a branch that fires when
     `$1` is exactly `--resolve`. On that branch the script must never read stdin — not with a
     timeout, not non-blockingly, not at all — because two failure modes were measured on the current
     tree: with stdin an open pipe the script blocks indefinitely (a plan-time check that looks slow,
@@ -155,10 +155,10 @@ date: 2026-08-05
     stdin still exits 2; (h) with no `--resolve` in argv, an in-domain Write payload on stdin still
     exits 0.
   change_type: logic
-  verify: `python3 -c "import subprocess,os;B='.claude/skills/harness/bin/check-domain.sh';q=lambda p:sorted(subprocess.run([B,'--resolve',p],stdin=os.pipe()[0],capture_output=True,text=True,timeout=10).stdout.split());assert q('.harness/harness.json')==['harness-dev-ops'];assert q('.claude/skills/harness/bin/run-unit-tests.sh')==['harness-backend-dev','harness-dev-ops'];assert q('.claude/skills/harness-spec-driven/SKILL.md')==['NOBODY'];print('OK')" && python3 .claude/skills/harness/bin/test-check-domain.py && .claude/skills/harness/bin/run-unit-tests.sh`
+  verify: `python3 -c "import subprocess,os;B='.claude/skills/harness/bin/check-domain.py';q=lambda p:sorted(subprocess.run([B,'--resolve',p],stdin=os.pipe()[0],capture_output=True,text=True,timeout=10).stdout.split());assert q('.harness/harness.json')==['harness-dev-ops'];assert q('.claude/skills/harness/bin/run-unit-tests.sh')==['harness-backend-dev','harness-dev-ops'];assert q('.claude/skills/harness-spec-driven/SKILL.md')==['NOBODY'];print('OK')" && python3 .claude/skills/harness/bin/test-check-domain.py && .claude/skills/harness/bin/run-unit-tests.sh`
     — expected: `OK`, then every `PASS`, exit 0.
   traces: REQ-04, REQ-05, D-02, D-03
-  execution_mode: main-session-direct — reason: DEC-174 carve-out. `check-domain.sh` is a registered
+  execution_mode: main-session-direct — reason: DEC-174 carve-out. `check-domain.py` is a registered
     `PreToolUse` gate script named in DEC-174; it is never dispatched through a team run whose gates
     are the thing being changed. This deviates from the lanes table's `bin/**` row — D-03.
   feature: FEAT-09
@@ -172,7 +172,7 @@ date: 2026-08-05
     from `check-state.sh:93-94` per D-08. From each block it reads the `files:` line, splitting on
     commas and stripping backticks and whitespace, and the `execution_mode:` line, taking the first
     whitespace-delimited token after the colon. For each literal path it shells out to
-    `.claude/skills/harness/bin/check-domain.sh --resolve <path>` with `stdin=DEVNULL` and reads the
+    `.claude/skills/harness/bin/check-domain.py --resolve <path>` with `stdin=DEVNULL` and reads the
     lines; it MUST NOT implement any path matching itself — no `fnmatch`, no glob-to-regex, no
     `startswith` prefix comparison (D-02, SC-08). Verdicts per task: at least one granting agent →
     OK; `NOBODY` for any path AND `execution_mode:` token is `main-session-direct` → OK, printed as
@@ -185,7 +185,7 @@ date: 2026-08-05
     surfaced rather than silently read as a normal team task. A path entry containing `*` or `?` is printed
     as `UNRESOLVED-GLOB <T-NN> <entry>` and does not affect the exit status (D-04). A missing
     `files:` line is a VIOLATION naming the task. Exit 0 when there are no violations, 1 when there
-    are, 2 when a PLAN path does not exist or `check-domain.sh` itself exits 2. Output is one line
+    are, 2 when a PLAN path does not exist or `check-domain.py` itself exits 2. Output is one line
     per finding plus a final summary count; no finding may be reported by silence.
     `test-check-plan-routes.py` writes temporary PLAN fixtures under `tempfile.mkdtemp()` and
     asserts, as separate named cases: (1) an ungranted-and-undeclared task exits non-zero;
@@ -193,7 +193,7 @@ date: 2026-08-05
     whose every task resolves to a granting agent exits 0; (5) a plan whose every ungranted task
     declares `main-session-direct` exits 0; (6) a wildcard entry produces an `UNRESOLVED-GLOB` line;
     (7) that same wildcard plan's exit status matches the same plan with the wildcard task removed;
-    (8) `check-plan-routes.py`'s own source contains the string `check-domain.sh`; (9) that source
+    (8) `check-plan-routes.py`'s own source contains the string `check-domain.py`; (9) that source
     contains no `fnmatch`; (10) `templates/PLAN.md` contains `## Lanes`;
     (11) it contains `execution_mode: team`; (12) it contains `execution_mode: main-session-direct`;
     (13) `run-unit-tests.sh`'s `SCRIPTS` array lists `test-check-plan-routes.py`; (14) a task with
@@ -207,7 +207,7 @@ date: 2026-08-05
     (`team-config.yaml:278`) — must be reported OK, with no VIOLATION line naming it. A hand-rolled
     prefix comparison on the text before `/**` answers False for that path and would report it
     ungranted, so this case fails on any reimplementation regardless of what its variables are
-    named. It is the exact bug `check-domain.sh:190-197` records.
+    named. It is the exact bug `check-domain.py:190-197` records.
     Add `"test-check-plan-routes.py"` to the `SCRIPTS` array in `run-unit-tests.sh` in the same
     task — the runner's drift detector (`run-unit-tests.sh:9-21`) exits 2 on any `test-*.py` under
     `bin/` that is not listed, so omitting it fails the whole suite rather than skipping one file.
@@ -305,7 +305,7 @@ date: 2026-08-05
 | Task | Command run | Result today | Result once the task lands |
 |---|---|---|---|
 | T-01 | the `--resolve` probe, verbatim | `HANG on .harness/harness.json`, exit 1 — the open-pipe branch blocks past 10s | `OK`, exit 0 |
-| T-01 | `check-domain.sh --resolve <path> </dev/null` | exit 0, **stdout empty** — the fail-open half of the hazard | one or more agent names, or `NOBODY` |
+| T-01 | `check-domain.py --resolve <path> </dev/null` | exit 0, **stdout empty** — the fail-open half of the hazard | one or more agent names, or `NOBODY` |
 | T-02 | `python3 .claude/skills/harness/bin/check-plan-routes.py` | `can't open file … No such file or directory` | zero-violation summary, exit 0 |
 | T-03 | the four greps | exit 1 at `grep -q '^## Lanes'` | exit 0 |
 | T-04 | `grep -q 'check-plan-routes.py' …SKILL.md` | exit 1 | exit 0 |
