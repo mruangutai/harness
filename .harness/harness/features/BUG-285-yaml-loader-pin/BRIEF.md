@@ -462,6 +462,7 @@ differently either. Three consequences to weigh at signature:
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-09-14
+by: operator, main session — signed at close: the code merged to main (cd1522a8, a41f530b) with the validate panel PASS recorded at 05a3840b; the FEAT-59 replan of this bug was re-pointed at #1594

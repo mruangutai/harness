@@ -30,6 +30,7 @@ dispatched. They stand open and unaddressed:
 **The plan as it stands:** five tasks (T-01..T-05), sixteen decisions (D-01..D-16), REQ-01..REQ-12,
 SC-01..SC-16. Panel record in plan.yaml is CYCLE 2 — cycles 3 and 4 ran but were never transcribed,
 so `panel:` understates what was read. Nine rework cycles of ten used.
+- record that stands: notes/research-BUG-285-parity-survey.md (13 input classes, 4 SAME / 9 DIFFERENT / 6 malformed-read-as-empty), named by the operator
 
 ## Open Questions
 
@@ -52,9 +53,3 @@ so `panel:` understates what was read. Nine rework cycles of ten used.
   that resolves; this plan carries the stale `approved` and `review_sha` is the literal `none`, so no
   `(code_grade, reviewed)` pair is satisfiable and the reviewer's job exits 1 with its artifact
   complete on disk.
-
-## The record that stands
-
-`notes/research-BUG-285-parity-survey.md` — thirteen input classes measured live against both
-readers, 4 SAME, 9 DIFFERENT, 6 carrying the malformed-read-as-empty incident class. The operator
-named this as the artifact that stands as the record.

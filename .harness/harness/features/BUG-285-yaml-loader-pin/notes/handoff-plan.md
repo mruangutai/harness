@@ -16,18 +16,15 @@ Nothing dispatches. The operator must resolve the approval state first: plan.yam
   harness_yaml — verified-at 66be772
 - `UnicodeDecodeError` is a `ValueError` but NOT a `json.JSONDecodeError`, which is why cycle 1's
   catch set was gating — probed all three `issubclass` relations myself — verified-at 66be772
-- `factory_decompose.py`: comment `:116-119`, `try:` `:120`, `harness_yaml.load_file(path)` `:121`,
-  `except` `:122`, `factory_cli.refuse` `:123`; early `os.path.exists` return `:114-115` — read at
-  source with line numbers — verified-at 66be772
+- `factory_decompose.py`: comment `:116-119`, `try:` `:120`, `load_file` `:121`, `except` `:122`,
+  `refuse` `:123`; early `os.path.exists` return `:114-115` — read at source — verified-at 66be772
 - 79 `feature.json` files parse identically under both loaders, so T-02 changes no current
   behaviour and closes a latent divergence — ran both parsers over all of them — verified-at 66be772
-- check-plan-routes.py is cwd-dependent: exit 1 with a DEVIATION line from inside the worktree,
-  exit 0 with 0 violations from the main checkout, same plan and same checker. All three tasks
-  route OK either way — ran both invocations back to back — verified-at 66be772
-- the six 2026-09-11 lead digests are contract-clean under MAIN's validate-digest.py and fail only
-  under this branch's older copy (which requires `sc_status`); the cycle-0 panel digest is the
-  mirror case, clean here and failing under main's enum for `severity_max: info` — ran main's
-  validator over every digest in the runs tree — verified-at 66be772
+- check-plan-routes.py is cwd-dependent: exit 1 (DEVIATION) inside the worktree, exit 0 from the
+  main checkout, same plan; all three tasks route OK either way — ran both — verified-at 66be772
+- the six 2026-09-11 lead digests are clean under MAIN's validate-digest.py and fail only under
+  this branch's older copy (requires `sc_status`); the cycle-0 panel digest is the mirror case,
+  failing main's enum for `severity_max: info` — ran main's validator over the runs tree — verified-at 66be772
 - T-01/T-02/T-03 `intent:`/`verify:` per-field shas as recorded in
   `runs/2026-09-11-03-panelrecordc2-product/digest.md` — UNVERIFIED by me; I confirmed the blocks
   load and are non-empty, not their shas

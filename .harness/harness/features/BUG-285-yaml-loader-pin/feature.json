@@ -2,7 +2,7 @@
   "feature_id": "BUG-285-yaml-loader-pin",
   "branch": "feat/BUG-285-yaml-loader-pin",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "a41f530b",
   "cycles_used": 9,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -120,5 +120,15 @@
       "agent": "harness-validator-lead",
       "code_grade": "n_a"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 68,
+    "parent": 1685,
+    "attached": [],
+    "issues": {},
+    "source_issues": [
+      285
+    ],
+    "build_entry": "recovered-terminal"
+  }
 }
