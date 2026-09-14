@@ -1,6 +1,6 @@
 # FEAT-51 · plan fix cycle 2 — the plan.yaml quarantine route hole is closed
 
-**Home chosen: candidate 3 — a second rule inside the already-registered `plan-sign-gate.sh` /
+**Home chosen: candidate 3 — a second rule inside the already-registered `plan-sign-gate.py` /
 `plan-sign-gate.py`.** It is the only candidate that needs no `.claude/settings.json` entry and no
 new test-file registration, and it inherits a tokenizer already hardened through five measured
 evasion classes (F-03, H-02, C2-03, MF-1, HIGH-2). Recorded as **D-12**; the new work is **T-07**;
@@ -10,7 +10,7 @@ evasion classes (F-03, H-02, C2-03, MF-1, HIGH-2). Recorded as **D-12**; the new
 
 Measured at `ad93d43e`: `.claude/settings.json:19` registers `check-domain.py` on `PreToolUse` for
 `Write|Edit` **only**; the `Bash` matcher at `:27` runs `branch-create-gate.py`,
-`bash-write-guard.py`, `gh-close-gate.sh`, `plan-sign-gate.sh`; `check-domain.py --post` at `:62`
+`bash-write-guard.py`, `gh-close-gate.sh`, `plan-sign-gate.py`; `check-domain.py --post` at `:62`
 is a POST sweep. `plan.yaml`'s only writer is `plan-merge.py`, invoked through `Bash`. So T-03's
 branch covers `BRIEF.md`, `feature.json`, `STATE.md` and **cannot reach `plan.yaml`**.
 
@@ -33,7 +33,7 @@ content with no parent, no wake and no adoption, and `apply` prints `APPLIED` at
   check, becomes the hole. (It does close the shell-expansion blind spot candidate 3 keeps; that is
   the trade-off, and it is recorded in D-12 rather than hidden.)
 
-## What T-07 does (`plan-sign-gate.py`, `plan-sign-gate.sh`, `test-plan-sign-gate.py`)
+## What T-07 does (`plan-sign-gate.py`, `plan-sign-gate.py`, `test-plan-sign-gate.py`)
 
 A sibling `quarantines(line, agent, session)` beside the untouched `denies()` at `:256`. It matches
 `plan-merge.py` + one of `apply | add-tasks | set-task-station | set-feature-station`
@@ -75,7 +75,7 @@ parent's `adopt` (it holds its own live claim, so `orphan_write` is False) and r
 
 ## BRIEF.md — SC-11 added, SC-04 kept coherent
 
-**SC-11** grades `plan-sign-gate.sh` **by name** as the `PreToolUse` `Bash` hook, not a fact both
+**SC-11** grades `plan-sign-gate.py` **by name** as the `PreToolUse` `Bash` hook, not a fact both
 routes happen to satisfy. **The mutation that turns it red:** delete the `quarantines()` call from
 the two-rule decision at the foot of `plan-sign-gate.py` (or point the suite at a pre-change copy
 via `PLAN_SIGN_GATE_BIN`, which `test-plan-sign-gate.py:22` already reads) — the orphan `apply`,

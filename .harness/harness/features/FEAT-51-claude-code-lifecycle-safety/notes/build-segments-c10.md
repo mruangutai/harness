@@ -133,7 +133,7 @@ running in parallel sooner.
   Six labels, `an orphan canonical write is quarantined` and
   `an omp-runtime writer is never quarantined` are the two the verify greps.
 - **T-07** (#1142, `cross_module` → unit **and integration**): `MUTATING_VERBS`, `ADOPT_TOOL` and
-  `quarantines()` in `plan-sign-gate.py`, a rewritten header in `plan-sign-gate.sh`, nine labelled
+  `quarantines()` in `plan-sign-gate.py`, a rewritten header in `plan-sign-gate.py`, nine labelled
   cases including the `--file`-is-a-shell-variable **negative control that must run under the live
   orphan fixture** or it proves nothing. `sign-approval` stays out of `MUTATING_VERBS`; `discard`
   is deliberately uncovered and the comment must say why, citing D-18.

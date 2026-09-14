@@ -157,7 +157,7 @@ def case_missing_lifecycle_wiring_fails():
 
 
 def case_missing_sign_gate_wiring_fails():
-    """BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120) is wired into `.claude/settings.json` for
+    """BUG-1132: plan-sign-gate.py (REQ-05/DEC-120) is wired into `.claude/settings.json` for
     native Claude Code, and was silently absent from harness-hooks.ts's own bash gate list
     until this fix — invisible to this checker because the script was never in
     `required_wiring`. This proves the checker would now catch that class of gap recurring
@@ -165,11 +165,11 @@ def case_missing_sign_gate_wiring_fails():
     td, root = fixture()
     try:
         extension = root / ".omp" / "extensions" / "harness-hooks.ts"
-        extension.write_text(extension.read_text().replace("plan-sign-gate.sh", "plan-sign-gate-REMOVED.sh"))
+        extension.write_text(extension.read_text().replace("plan-sign-gate.py", "plan-sign-gate-REMOVED.sh"))
         result = run(root)
         return [
-            ("missing plan-sign-gate.sh wiring fails", result.returncode == 1, ""),
-            ("sign-gate wiring gap is named", "plan-sign-gate.sh" in result.stderr, ""),
+            ("missing plan-sign-gate.py wiring fails", result.returncode == 1, ""),
+            ("sign-gate wiring gap is named", "plan-sign-gate.py" in result.stderr, ""),
         ]
     finally:
         td.cleanup()

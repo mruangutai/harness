@@ -15,7 +15,7 @@ DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, n
   `test_dec_210_*` functions + `_dec_region` helper), asserting against
   `.harness/harness/docs/DECISIONS.md:6495` and `DECISIONS-INDEX.md:210`.
 - **Summary:** all three tests do literal substring/whole-word matching on DECISIONS.md/
-  DECISIONS-INDEX.md prose (`"check-domain.py"`, `"plan-sign-gate.sh"`, `"quarantine.py adopt"`,
+  DECISIONS-INDEX.md prose (`"check-domain.py"`, `"plan-sign-gate.py"`, `"quarantine.py adopt"`,
   `\bBash\b`, a `". "`-split "same sentence" heuristic for `plan.yaml`+`plan-merge.py`, and
   `"Claude Code"` in the index ruling half). None of the three ever imports or executes
   `check-domain.py`, `plan-sign-gate.py`/`.sh`, or `quarantine.py`.
@@ -25,7 +25,7 @@ DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, n
   restructuring the plan.yaml/plan-merge.py sentence across a colon or semicolon instead of
   `". "` fails clause 2's brittle sentence-split heuristic; saying "Anthropic's CLI" instead of
   "Claude Code" fails the index-row test. None of these reword scenarios touch behaviour.
-- **What stays green on a real regression:** if `check-domain.py` or `plan-sign-gate.sh` actually
+- **What stays green on a real regression:** if `check-domain.py` or `plan-sign-gate.py` actually
   stopped enforcing the boundary (e.g. the PreToolUse registration in `.claude/settings.json` were
   dropped, or `orphan_write` were made to always return `False`), all three DEC-210 tests would
   stay fully green — they never run those scripts, only read prose about them.
@@ -34,7 +34,7 @@ DECISIONS.md *prose*, not the enforcement *behaviour* — confirmed, as asked, n
   against it, assert exit 2) rather than tighter prose regexes, which only relocates the same
   word-coupling problem.
 - **Why this is correct as-is, not a defect:** DEC-210's own entry states plainly that
-  `check-domain.py`, `plan-sign-gate.sh` and `quarantine.py` are "each... verified by its own
+  `check-domain.py`, `plan-sign-gate.py` and `quarantine.py` are "each... verified by its own
   explicit test script rather than by the gates under change" (`test-check-domain.py`,
   `test-plan-sign-gate.py`, `test-quarantine.py` — all pre-existing/updated elsewhere in this
   diff, not touched by T-08). Those tests exercise the real predicate

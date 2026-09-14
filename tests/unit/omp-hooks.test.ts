@@ -186,7 +186,7 @@ describe("OMP task lifecycle adapter", () => {
           ? { blocked: true, reason: "children live", stdout: "" }
           : { blocked: false, stdout: "" };
       }
-      if (script === "plan-sign-gate.sh") {
+      if (script === "plan-sign-gate.py") {
         const command = ((payload.tool_input as Record<string, unknown> | undefined)?.command as string) || "";
         if (command.includes("sign-approval")) {
           return { blocked: true, reason: "plan-sign-gate: refused", stdout: "" };
@@ -285,30 +285,30 @@ describe("OMP task lifecycle adapter", () => {
     expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.py"));
     expect(scripts.indexOf("branch-create-gate.py")).toBeLessThan(scripts.indexOf("bash-write-guard.py"));
     expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("bash-write-guard.py"));
-    expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.sh"));
+    expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.py"));
 
   });
 
-  // BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120 — only the main session signs an approval) is
+  // BUG-1132: plan-sign-gate.py (REQ-05/DEC-120 — only the main session signs an approval) is
   // wired into `.claude/settings.json` for native Claude Code but was never added to this bash
   // gate list, so a `plan-merge.py sign-approval` Bash call under OMP reached NEITHER a deny
   // NOR even an invocation of the script. This asserts both: the gate runs on every bash call,
   // and its `blocked` decision is honoured rather than swallowed.
-  test("BUG-1132: plan-sign-gate.sh runs on a Bash call and its refusal blocks the tool call", async () => {
+  test("BUG-1132: plan-sign-gate.py runs on a Bash call and its refusal blocks the tool call", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by x --date 2026-09-01" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
-    expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
+    expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     expect(result).toEqual({ block: true, reason: "plan-sign-gate: refused" });
   });
 
   // NEGATIVE CONTROL: an ordinary Bash call with no `sign-approval` in it must still run the
   // gate (proving the wiring is unconditional, not scoped by a prior positive result) and must
   // NOT be blocked by it.
-  test("BUG-1132 negative control: plan-sign-gate.sh runs but does not block an ordinary Bash call",
+  test("BUG-1132 negative control: plan-sign-gate.py runs but does not block an ordinary Bash call",
        async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
@@ -316,7 +316,7 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "bash",
       input: { command: "git status --porcelain" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
-    expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
+    expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     // Not blocked. #1103 also merges HARNESS_AGENT_TYPE into every allowed bash call's env
     // (asserted on its own below), so this no longer stays `undefined` — it now carries a
     // revised input, and the thing this negative control must still prove is `block` absent.
@@ -324,7 +324,7 @@ describe("OMP task lifecycle adapter", () => {
   });
 
   // #1103: cmd_sign_approval now checks its own caller's identity rather than relying solely
-  // on plan-sign-gate.sh's text-parsing denylist (BUG-1132's own commit). That check reads
+  // on plan-sign-gate.py's text-parsing denylist (BUG-1132's own commit). That check reads
   // HARNESS_AGENT_TYPE from its own process environment — this proves the OMP host is the one
   // actually setting it, from the SAME `currentAgent` the hook payload already carries, and
   // that it MERGES into any env the caller's own command already specified rather than

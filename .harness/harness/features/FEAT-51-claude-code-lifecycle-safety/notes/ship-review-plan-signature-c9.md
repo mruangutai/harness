@@ -41,7 +41,7 @@ explicit CLI act. OMP behaviour is untouched.
 qualification, that an orphan's writes to canonical feature artifacts are quarantined instead of
 landing. It now reads that they are quarantined **on the two governed write routes the harness
 gates** — the `Write`/`Edit` editor route through `check-domain.py`, and the `plan-merge.py`
-mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.sh` — and that a generic `Bash`
+mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.py` — and that a generic `Bash`
 write to a canonical artifact inside the writer's own domain is **not** covered.
 
 That is not housekeeping. It is a smaller promise than the one you were going to sign, and the
@@ -77,7 +77,7 @@ this plan: it must land **before** the signature, and a plan task can only run a
 ## §3 — One word, and my recommendation is to leave it
 
 The independent verification pass returned FAIL on a single residue: `T-07`'s `title:` at
-`plan.yaml:738` reads *"Close the Bash route by adding the quarantine rule to plan-sign-gate.sh and
+`plan.yaml:738` reads *"Close the Bash route by adding the quarantine rule to plan-sign-gate.py and
 plan-sign-gate.py"*. After D-19, no artifact of this feature may assert the boundary unqualified,
 and "close the Bash route" does exactly that.
 
@@ -110,13 +110,13 @@ checkout at `0bc57c88`:
 
 ```
 bash-write-guard.py   exit 0
-plan-sign-gate.sh     exit 0
+plan-sign-gate.py     exit 0
 check-domain.py       exit 0
 ```
 
 `bash-write-guard.py` passes any in-domain write, and `harness-pm`'s own `team-config.yaml` domain
 grants both `BRIEF.md` and `plan.yaml`. `check-domain.py` is registered for `Write|Edit` only.
-`plan-sign-gate.sh`'s new rule matches only `plan-merge.py` and `quarantine.py` basenames.
+`plan-sign-gate.py`'s new rule matches only `plan-merge.py` and `quarantine.py` basenames.
 
 **This is issue #551's flagship occurrence.** A fourteen-task `plan.yaml` replaced by a one-task file
 63 seconds later. If the orphan used `plan-merge.py`, this feature stops it. If it used `cp`, this

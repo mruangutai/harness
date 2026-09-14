@@ -6618,14 +6618,14 @@ canonical artifact paths alone.
 
 **The four canonical artifacts are `plan.yaml`, `BRIEF.md`, `feature.json` and `STATE.md`, and the
 boundary is enforced at TWO registered gates.** `check-domain.py`, on PreToolUse for Write and Edit,
-bites on `BRIEF.md`, `feature.json` and `STATE.md`. `plan-sign-gate.sh`, on PreToolUse for Bash,
+bites on `BRIEF.md`, `feature.json` and `STATE.md`. `plan-sign-gate.py`, on PreToolUse for Bash,
 bites on the four mutating `plan-merge.py` verbs — `apply`, `add-tasks`, `set-task-station` and
 `set-feature-station` — and on `quarantine.py adopt`. Two gates because the two write routes are
 disjoint and neither can see the other's traffic. All three scripts sit in the enforcement layer
 DEC-174 keeps out of self-hosted execution, so each is verified by its own explicit test script
 rather than by the gates under change.
 
-**`plan.yaml` is covered by the `plan-sign-gate.sh` half, and NOT by FEAT-41's editor-route
+**`plan.yaml` is covered by the `plan-sign-gate.py` half, and NOT by FEAT-41's editor-route
 denial.** Its only write route is `plan-merge.py` invoked through Bash. That denial — exit 2 on an
 editor write of any `plan.yaml`, for every author, under DEC-182's reversal — is a second and
 independent refusal on a route nobody may use; the `check-domain.py` quarantine branch sits AFTER it

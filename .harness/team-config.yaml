@@ -28,7 +28,7 @@ main_session:
     # for every author, main session included, so what survives here is the approval_guard's
     # separate denial. The grant is kept because that guard reads this list — it is the reason
     # a governed agent's approval change is refused BY NAME rather than merely by the route.
-    # Signing itself is a verb now: plan-merge.py sign-approval, which plan-sign-gate.sh (T-08)
+    # Signing itself is a verb now: plan-merge.py sign-approval, which plan-sign-gate.py (T-08)
     # permits only when the payload carries no agent_type — the main session.
     - ".harness/*/features/*/plan.yaml approval:"
     - ".harness/logs/**"

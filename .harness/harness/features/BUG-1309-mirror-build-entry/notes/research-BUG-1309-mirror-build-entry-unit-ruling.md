@@ -67,7 +67,7 @@ section claimed four bin scripts host their entire Python body in a shell heredo
   shape reached with the payload moved to the `HOOK_PAYLOAD` env var so the heredoc can own stdin.
 
 The other two named here are **counter-examples, and they are the repo's own documented rejection
-of the shape**: `gh-close-gate.sh:59` and `plan-sign-gate.sh:43` both carry the comment *"THE
+of the shape**: `gh-close-gate.sh:59` and `plan-sign-gate.py:43` both carry the comment *"THE
 DECISION LIVES IN A FILE, NOT A HEREDOC"*, and both `exec python3 "$(dirname "$0")/<name>.py"` at
 `:79` and `:62`. Their stated reason is mechanical, not stylistic: a `python3 - <<'PY'` consumes the
 very stdin the hook's JSON arrives on.
@@ -90,7 +90,7 @@ level; they earn a chore.
    own `D-NN` on the same two feet, which is cheap and is bounded by the surface it names.
 2. The generalisable fix is **not an exemption but the conversion**: extract the two surviving
    heredoc bodies into `.py` files beside their shells, exactly as `gh-close-gate.sh` and
-   `plan-sign-gate.sh` already do, which removes the unreachable-`unit` shape instead of blessing
+   `plan-sign-gate.py` already do, which removes the unreachable-`unit` shape instead of blessing
    it. That is **backlog, not this feature** — it is a runtime change to two DEC-174 enforcement
    surfaces, priced by DEC-174's *"library a gate calls"* clause (`DECISIONS.md:4377-4380`) as a
    main-session-direct cutover proven by an identical violation set before and after. Recorded here

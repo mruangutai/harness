@@ -353,6 +353,70 @@ def branch_create_gate_corpus(scratch):
     ]
 
 
+def plan_sign_gate_corpus(scratch):
+    """Representative identity, gated verb, parser, root and isolation cases."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+    root = os.path.join(scratch, "plan-sign-root")
+    os.makedirs(os.path.join(root, ".harness"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w",
+              encoding="utf-8") as fh:
+        fh.write("agents: {}\n")
+    with open(os.path.join(root, ".harness", "harness.json"), "w",
+              encoding="utf-8") as fh:
+        json.dump({"schema_version": 1}, fh)
+    shadow = os.path.join(scratch, "shadow")
+    os.makedirs(shadow)
+    with open(os.path.join(shadow, "harness_boundary.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write("raise RuntimeError('PYTHONPATH shadow imported')\n")
+    root_env = {project_override: root}
+
+    def payload(command, agent=None):
+        data = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if agent is not None:
+            data["agent_type"] = agent
+        return json.dumps(data)
+
+    sign = (
+        "python3 .claude/skills/harness/bin/plan-merge.py "
+        "sign-approval --file p.yaml")
+    return [
+        {"label": "malformed hook payload", "stdin": "{not json",
+         "env": root_env},
+        {"label": "main session may sign", "stdin": payload(sign),
+         "env": root_env},
+        {"label": "agent sign approval denies",
+         "stdin": payload(sign, "harness-orchestrator"), "env": root_env},
+        {"label": "operator cycle raise denies",
+         "stdin": payload(
+             "python3 feature-record.py raise-cycles --file feature.json",
+             "harness-orchestrator"), "env": root_env},
+        {"label": "ordinary command allows",
+         "stdin": payload("git status --short", "harness-orchestrator"),
+         "env": root_env},
+        {"label": "open plan mutation allows",
+         "stdin": payload(
+             "python3 plan-merge.py set-task-station --file p.yaml",
+             "harness-orchestrator"), "env": root_env},
+        {"label": "nested sign command denies",
+         "stdin": payload(
+             f"bash -c '{sign}'", "harness-orchestrator"),
+         "env": root_env},
+        {"label": "unlexable sign fallback denies",
+         "stdin": payload(
+             f"echo it's fine; {sign}", "harness-orchestrator"),
+         "env": root_env},
+        {"label": "stray argv remains ignored", "argv": ["unexpected"],
+         "stdin": payload(sign, "harness-orchestrator"), "env": root_env},
+        {"label": "cwd-independent denial ignores module shadow",
+         "stdin": payload(sign, "harness-orchestrator"), "cwd": scratch,
+         "env": {**root_env, "PYTHONPATH": shadow}},
+        {"label": "unconfigured isolated copy refuses",
+         "stdin": payload(sign, "harness-orchestrator"), "isolate": True,
+         "env": {project_override: None, "PYTHONPATH": shadow}},
+    ]
+
+
 def merge_gate_corpus(scratch):
     """Representative merge parsing, receipt, root and isolation cases."""
     project_override = "HARNESS" + "_PROJECT_DIR"
@@ -515,6 +579,8 @@ def corpus(tool, scratch, impl):
         return dispatch_guard_corpus(scratch)
     if tool == "branch-create-gate":
         return branch_create_gate_corpus(scratch)
+    if tool == "plan-sign-gate":
+        return plan_sign_gate_corpus(scratch)
     if tool == "merge-gate":
         return merge_gate_corpus(scratch)
     if tool == "post-merge-sweep":

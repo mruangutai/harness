@@ -181,10 +181,10 @@ worth a note so nobody downstream treats "two" as a bound on how many `:NNNN` va
    never names) ships a DEC-210 entry that fails T-06's own `verify:` (the `plan-sign-gate\.sh` grep,
    confirmed absent today), fails SC-09, and fails all three of T-08's new guard tests — forcing at
    least one redo cycle, and risking a documentor "gaming" the grep by inserting the bare string
-   `plan-sign-gate.sh` without the semantic content D-15/T-08 actually require (T-08's sentence-
+   `plan-sign-gate.py` without the semantic content D-15/T-08 actually require (T-08's sentence-
    adjacency check on `plan.yaml`+`plan-merge.py` mitigates this specific risk, but the general
    confusion of a self-contradicting task spec remains). **This is adjacent to but distinct from the
-   dispatch's already-ruled item 3** ("T-06's `verify:` greps… BOTH `plan-sign-gate.sh` and
+   dispatch's already-ruled item 3** ("T-06's `verify:` greps… BOTH `plan-sign-gate.py` and
    `plan-merge.py`") — that item closed the *gate*; it did not touch the *intent text* the gate is
    meant to validate against, so the underlying inconsistency D-15 names is still live in the
    artifact. Not `must_fix` on its own (the gate genuinely blocks a bad ship), but worth a line-edit

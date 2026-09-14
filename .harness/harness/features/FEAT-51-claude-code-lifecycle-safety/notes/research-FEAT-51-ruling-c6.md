@@ -28,7 +28,7 @@ A no-op if the landed code already encloses them.
 
 ## The mechanism, and how it was measured (2026-09-01, main checkout `2e2e45d2`)
 
-`git hash-object` over `check-domain.py`, `test-check-domain.py`, `plan-sign-gate.sh`,
+`git hash-object` over `check-domain.py`, `test-check-domain.py`, `plan-sign-gate.py`,
 `plan-sign-gate.py`, `test-plan-sign-gate.py`, `inflight_registry.py`, `harness_boundary.py`,
 `harness_merge.py` is **identical at `ad93d43e`, at `2e2e45d2` and in the working tree**. Anchors hold.
 
@@ -46,7 +46,7 @@ A no-op if the landed code already encloses them.
   `check-domain.py:102` puts its own dir on `PYTHONPATH` and `:125` inserts it at `sys.path[0]`; the
   in-tree idiom at `test-check-domain.py:2370-2377` already proves a module in the copy dir is the one
   the copied hook imports, and `:1676-1703` (#556) proves nothing outside it can. For
-  `plan-sign-gate.sh`: `_selfbin` at `:53`, `resolve_root` honours `HARNESS_PROJECT_DIR` when the
+  `plan-sign-gate.py`: `_selfbin` at `:53`, `resolve_root` honours `HARNESS_PROJECT_DIR` when the
   override carries `MARKER` = `.harness/team-config.yaml` (`harness_boundary.py:41,64-68`), which both
   `test-plan-sign-gate.py:36 _root()` and T-07's `_qroot` write; `:60` execs the `.py` from the copy dir.
   **Ran it:** copy + no `inflight_registry.py`, and copy + raising stub, both returned the **same**

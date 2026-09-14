@@ -10,7 +10,7 @@ including the `78a79,90` hunk header), additions only, zero removals, zero modif
     - surface: .claude/skills/harness/bin/plan-sign-gate.py
       lane: main-session-direct
       reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
-    - surface: .claude/skills/harness/bin/plan-sign-gate.sh
+    - surface: .claude/skills/harness/bin/plan-sign-gate.py
       lane: main-session-direct
       reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
     - surface: .claude/skills/harness/bin/test-plan-sign-gate.py

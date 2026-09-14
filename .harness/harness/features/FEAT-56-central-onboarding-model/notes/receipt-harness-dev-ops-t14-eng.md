@@ -92,7 +92,7 @@ ok    task wall clock limit fails
 ok    wall-clock contract is named
 ok    missing OMP child lifecycle wiring fails
 ok    lifecycle wiring gap is named
-ok    missing plan-sign-gate.sh wiring fails
+ok    missing plan-sign-gate.py wiring fails
 ok    sign-gate wiring gap is named
 ok    nonblocking nested Harness agent fails
 ok    nested supervision contract is named

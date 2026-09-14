@@ -9,7 +9,7 @@ Read-only. Scope: `git diff 4b5dbb23..HEAD`, the three new integration suites, t
   1 baseline structural pair + 1 live-tree-pass + 10 mutate/assert pairs, each pair mutating a
   **different file/field** to trip a **different validation branch** in `check-omp-port.py`
   (AGENTS.md presence, model provider-neutrality, Claude adapter staleness, `async.enabled`,
-  `task.maxRuntimeMs`, OMP lifecycle wiring, `plan-sign-gate.sh` wiring, `blocking: true`, one
+  `task.maxRuntimeMs`, OMP lifecycle wiring, `plan-sign-gate.py` wiring, `blocking: true`, one
   missing command door, the whole canonical command root missing). All 23 accounted for; **zero
   collapse**.
   2. `test-sync-command-adapters.py`: read the full `main()` body (12 `check()` calls). One pair

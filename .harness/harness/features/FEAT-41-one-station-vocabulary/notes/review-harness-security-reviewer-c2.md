@@ -102,7 +102,7 @@ naive-separator filters). This is squarely the adjacency-testing gap the gate ex
 (the same class as bare `--` and the backslash-newline it already fixed), not the
 tool-name-obscured-by-a-variable class the docstring disclaims.
 
-Every gate row below fired the real `plan-sign-gate.sh` (decision-only, `agent_type` set) via
+Every gate row below fired the real `plan-sign-gate.py` (decision-only, `agent_type` set) via
 subprocess. Every row marked "actually-signed" additionally ran the exact command through **real
 bash** against a disposable, correctly-shaped `plan.yaml` fixture (`.harness/<repo>/features/
 <slug>/plan.yaml`, carrying a pre-existing `approval:` scaffold so `cmd_sign_approval`'s own

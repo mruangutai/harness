@@ -19,7 +19,7 @@ AFTER:
 - REQ-04: A live child of an interrupted parent may finish read-only analysis, and its writes to
   canonical feature artifacts are quarantined instead of landing **on the two governed write routes
   the harness gates** — the `Write`/`Edit` editor route through `check-domain.py`, and the
-  `plan-merge.py` mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.sh`. A generic
+  `plan-merge.py` mutating verbs plus `quarantine.py adopt` through `plan-sign-gate.py`. A generic
   `Bash` write to a canonical artifact that lies inside the writer's own domain is NOT covered
   (D-19).
 ```
@@ -48,14 +48,14 @@ Removed, first eight words each:
   Write gate bites on "the last three" and resting `plan.yaml` on FEAT-41's editor denial.
 
 Replaced by: a route-neutral quarantine-boundary bullet; a two-gate bullet naming `check-domain.py`
-(`Write`/`Edit`, on `BRIEF.md`/`feature.json`/`STATE.md`) and `plan-sign-gate.sh` (`PreToolUse`
+(`Write`/`Edit`, on `BRIEF.md`/`feature.json`/`STATE.md`) and `plan-sign-gate.py` (`PreToolUse`
 `Bash`, on the four mutating `plan-merge.py` verbs and `quarantine.py adopt`); a bullet stating
 `plan.yaml`'s only write route is `plan-merge.py` through `Bash`; and a "what it does NOT cover"
 bullet carrying both the D-18 `discard` clause and the D-19 generic-`Bash` clause.
 
 **T-06's `verify:` is unchanged and remains satisfiable from the bullet list alone**: the awk region
 is the LAST `## DEC-` entry, which is DEC-210 by construction, and the bullets require the literals
-`plan-sign-gate.sh` and `plan-merge.py` inside it; the index grep and the regeneration diff are the
+`plan-sign-gate.py` and `plan-merge.py` inside it; the index grep and the regeneration diff are the
 task's own remaining steps. T-08's three guards are also reachable — `Bash` occurs as a whole word,
 and one sentence carries BOTH `plan.yaml` and `plan-merge.py`.
 

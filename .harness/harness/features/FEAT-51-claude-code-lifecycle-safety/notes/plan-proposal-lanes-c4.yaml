@@ -79,7 +79,7 @@ lanes:
     - surface: .claude/skills/harness/bin/plan-sign-gate.py
       lane: main-session-direct
       reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
-    - surface: .claude/skills/harness/bin/plan-sign-gate.sh
+    - surface: .claude/skills/harness/bin/plan-sign-gate.py
       lane: main-session-direct
       reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
     - surface: .claude/skills/harness/bin/test-plan-sign-gate.py
@@ -136,7 +136,7 @@ decisions:
     dec: DEC-209
 
   - id: D-12
-    choice: The Bash half of the quarantine boundary is a SECOND RULE inside the already registered plan-sign-gate.sh and plan-sign-gate.py, not a new PreToolUse Bash hook and not a check inside plan-merge.py itself
+    choice: The Bash half of the quarantine boundary is a SECOND RULE inside the already registered plan-sign-gate.py and plan-sign-gate.py, not a new PreToolUse Bash hook and not a check inside plan-merge.py itself
     because: it is the only candidate needing no .claude/settings.json entry and no new test-file registration, it inherits a tokenizer already hardened through five measured evasion classes, and a check inside plan-merge.py would sit inside the very tool that quarantine.py adopt delegates to under D-07, so adoption would have to be exempted from its own gate and the exemption would be the hole
     dec: DEC-174
   - id: D-13
@@ -144,12 +144,12 @@ decisions:
     because: adopt is the only other command that turns a quarantined file canonical, so REQ-05 is unreachable on this route without it, and failing open on an unresolvable value matches orphan_write's own fail-open on a missing registry and preserves the asserted control that an apply written with a shell variable as its --file value stays allowed
     dec: none
   - id: D-14
-    choice: The quarantine rule reads the root plan-sign-gate.sh already resolves from its own directory through harness_boundary.resolve_root, the same root check-domain.py resolves at its _root, and never a root derived from the command line
+    choice: The quarantine rule reads the root plan-sign-gate.py already resolves from its own directory through harness_boundary.resolve_root, the same root check-domain.py resolves at its _root, and never a root derived from the command line
     because: the two routes must read ONE claims registry or an orphan quarantined at the Write gate could be allowed at the Bash gate for no reason a reader could see, and a root taken from the caller's own argument is a root the caller can choose
     dec: DEC-204
 
   - id: D-15
-    choice: The DEC-209 entry T-06 writes carries BOTH halves of the quarantine boundary, and this decision SUPERSEDES two bullets of T-06's immutable intent, the bullet saying the boundary is refused at the check-domain.py Write gate on the canonical artifacts and the bullet beginning The four canonical artifacts are plan.yaml BRIEF.md feature.json and STATE.md; the entry must instead state (a) the check-domain.py Write and Edit half, which bites on BRIEF.md, feature.json and STATE.md, (b) the plan-sign-gate.sh PreToolUse Bash half, which bites on the four mutating plan-merge.py verbs apply, add-tasks, set-task-station and set-feature-station and on quarantine.py adopt and discard per D-16, and (c) explicitly that plan.yaml's only write route is plan-merge.py invoked through Bash, so plan.yaml is covered by the plan-sign-gate.sh half and NOT by FEAT-41's editor route denial, which is a second and independent refusal on a route nobody may use
+    choice: The DEC-209 entry T-06 writes carries BOTH halves of the quarantine boundary, and this decision SUPERSEDES two bullets of T-06's immutable intent, the bullet saying the boundary is refused at the check-domain.py Write gate on the canonical artifacts and the bullet beginning The four canonical artifacts are plan.yaml BRIEF.md feature.json and STATE.md; the entry must instead state (a) the check-domain.py Write and Edit half, which bites on BRIEF.md, feature.json and STATE.md, (b) the plan-sign-gate.py PreToolUse Bash half, which bites on the four mutating plan-merge.py verbs apply, add-tasks, set-task-station and set-feature-station and on quarantine.py adopt and discard per D-16, and (c) explicitly that plan.yaml's only write route is plan-merge.py invoked through Bash, so plan.yaml is covered by the plan-sign-gate.py half and NOT by FEAT-41's editor route denial, which is a second and independent refusal on a route nobody may use
     because: a documentor following T-06's bullet list verbatim writes an entry that omits the Bash half entirely and leaves a reader believing plan.yaml is covered because the FEAT-41 denial handles it, which is the exact false belief T-07 exists to overturn, and DEC-209 is the entry future readers rely on to know what the boundary covers, so an incomplete entry understates the contract that shipped
     dec: DEC-209
   - id: D-16
@@ -598,16 +598,16 @@ tasks:
       boundary and the OMP-unchanged claim. Every later row anchor shifts when this entry
       lands, which is why the regeneration is part of this task and not a follow-up.
   - id: T-07
-    title: Close the Bash route by adding the quarantine rule to plan-sign-gate.sh and plan-sign-gate.py
+    title: Close the Bash route by adding the quarantine rule to plan-sign-gate.py and plan-sign-gate.py
     traces: [REQ-04, REQ-05]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: plan-sign-gate.sh is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
+    execution_reason: plan-sign-gate.py is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
     depends_on: [T-02]
     status: ready
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
-      - .claude/skills/harness/bin/plan-sign-gate.sh
+      - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/test-plan-sign-gate.py
     verify: |
       grep -q 'an orphan agent plan-merge apply on plan.yaml is quarantined' .agents/skills/harness/bin/test-plan-sign-gate.py &&
@@ -619,7 +619,7 @@ tasks:
       ad93d43e1f232ec1ab87e08ccf70a01a08c206b7: .claude/settings.json registers
       check-domain.py on PreToolUse for Write and Edit ONLY, at the matcher on :19. The
       PreToolUse Bash matcher on :27 runs branch-create-gate.py, bash-write-guard.py,
-      gh-close-gate.sh and plan-sign-gate.sh, and check-domain.py --post on :62 is a POST
+      gh-close-gate.sh and plan-sign-gate.py, and check-domain.py --post on :62 is a POST
       sweep. Since FEAT-41 reversed DEC-182, plan.yaml has exactly one writer,
       plan-merge.py, and it is invoked through Bash. So T-03's quarantine branch, which
       lives in check-domain.py, covers BRIEF.md, feature.json and STATE.md and cannot reach
@@ -669,7 +669,7 @@ tasks:
       not-orphan fixture is the writer's own live claim in its own session.
 
       PROVE THE GROUP DISCRIMINATES, and record the failing output in your receipt. GATE at
-      :22 reads PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.sh and
+      :22 reads PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.py and
       plan-sign-gate.py to plan-sign-gate.pre.sh and plan-sign-gate.pre.py INSIDE
       .claude/skills/harness/bin - not a temp directory, because the wrapper resolves its
       root from its own location and the python file imports its siblings - and change the
@@ -759,7 +759,7 @@ tasks:
       quarantine.py adopt. Do not touch the registry, do not kill anything, and refuse
       nothing else.
 
-      STEP THREE, plan-sign-gate.sh. Its header comment at :2 says this hook refuses one
+      STEP THREE, plan-sign-gate.py. Its header comment at :2 says this hook refuses one
       verb, and :16 says IT REFUSES ONE VERB, NOT THE TOOL. Both stop being true. Rewrite the
       header to state that this is the PreToolUse Bash gate for plan-merge.py and
       quarantine.py, carrying TWO rules - the unconditional sign-approval refusal under
@@ -787,7 +787,7 @@ tasks:
     intent: |
       SC-09 grades the DEC-209 entry's CONTENT and declares verify automated with evidence
       integration. Nothing in the plan asserts that content today, so an entry that omits
-      the plan-sign-gate.sh half would ship graded met. This task is the assertion. It adds
+      the plan-sign-gate.py half would ship graded met. This task is the assertion. It adds
       NO new test file, so neither run-unit-tests.sh INTEGRATION_SCRIPTS nor
       harness.json test_kinds.integration.detect changes, and it does not touch
       DECISIONS.md or DECISIONS-INDEX.md, so no index regeneration is owed here.
@@ -834,7 +834,7 @@ tasks:
       that does not:
 
         1. the literal check-domain.py occurs in the region;
-        2. the literal plan-sign-gate.sh occurs in the region;
+        2. the literal plan-sign-gate.py occurs in the region;
         3. the literal quarantine.py adopt occurs in the region.
 
       test_dec_209_entry_states_the_bash_write_route_for_plan_yaml asserts, on that same
@@ -865,12 +865,12 @@ tasks:
     traces: [REQ-04, REQ-05]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: plan-sign-gate.sh is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
+    execution_reason: plan-sign-gate.py is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
     depends_on: [T-07]
     status: ready
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
-      - .claude/skills/harness/bin/plan-sign-gate.sh
+      - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/test-plan-sign-gate.py
     verify: |
       grep -q 'an orphan quarantine.py discard of a quarantine directory is refused' .agents/skills/harness/bin/test-plan-sign-gate.py &&
@@ -881,7 +881,7 @@ tasks:
       THE ANCHORS AND THE SHA. Every line number and quoted literal below was measured from the
       MAIN checkout at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7, the sha this plan's lanes block
       resolves at. The main checkout's HEAD has since moved to a7569463, the FEAT-41 ship merge,
-      and git diff --stat ad93d43e a7569463 over plan-sign-gate.py, plan-sign-gate.sh,
+      and git diff --stat ad93d43e a7569463 over plan-sign-gate.py, plan-sign-gate.py,
       test-plan-sign-gate.py and inflight_registry.py is EMPTY, so every anchor below holds at
       both shas. Re-read each anchor before editing and treat the quoted literals as the
       anchors, never the numbers.
@@ -945,7 +945,7 @@ tasks:
       text and read as covered.
 
       PROVE THE GROUP DISCRIMINATES and record the failing output. GATE at :22 reads
-      PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.sh and plan-sign-gate.py to
+      PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.py and plan-sign-gate.py to
       plan-sign-gate.pre.sh and plan-sign-gate.pre.py INSIDE .claude/skills/harness/bin - not a
       temp directory, because the wrapper resolves its root from its own location and the
       python file imports its siblings - and change the single exec line of the .pre.sh to name
@@ -1003,7 +1003,7 @@ tasks:
       quarantine.py list stays outside every match, and a non-harness agent_type is still not
       reached by the quarantine rule.
 
-      STEP THREE, plan-sign-gate.sh, header comment only, no code. T-07 rewrites the header to
+      STEP THREE, plan-sign-gate.py, header comment only, no code. T-07 rewrites the header to
       say this is the PreToolUse Bash gate for plan-merge.py and quarantine.py carrying TWO
       rules. Extend the quarantine rule's sentence there to name quarantine.py adopt AND
       discard, and say in one clause that list is read-only and uncovered. Keep every other

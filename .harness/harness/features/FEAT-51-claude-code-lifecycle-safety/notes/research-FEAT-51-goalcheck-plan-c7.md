@@ -22,7 +22,7 @@ Twelve criteria are `not_met` because nothing is built yet — the expected plan
 | SC-08 | not_met | Unbuilt, and `inspection` by a reviewer at `review_sha`. `T-05` writes the four clauses into both playbooks with `test-orchestrator-playbook.py` / `test-lead-stop-and-wake.py` cases. |
 | SC-09 | not_met | Unbuilt. `T-06` writes the entry and the hand-written index ruling half; `T-08` is the assertion that makes an omitted Bash half red. See the `DEC-209` section below — the plan self-heals and the guard fails safe. |
 | SC-10 | not_met | `uat` — only the operator can move this, from the main checkout after merge (BRIEF `## Verification gaps`). The conduct it grades is `T-05`'s. |
-| SC-11 | not_met | Unbuilt. `T-07` adds the second rule to `plan-sign-gate.sh` / `.py`; its intent carries the three refusals, the own-claim-live and `runtime: omp` exit-0 controls, and the `PLAN_SIGN_GATE_BIN` red proof. |
+| SC-11 | not_met | Unbuilt. `T-07` adds the second rule to `plan-sign-gate.py` / `.py`; its intent carries the three refusals, the own-claim-live and `runtime: omp` exit-0 controls, and the `PLAN_SIGN_GATE_BIN` red proof. |
 | SC-13 | not_met | Unbuilt. `T-10` adds two fail-open cases plus a negative control to **each** of `test-check-domain.py` and `test-plan-sign-gate.py`; graded at the reviewed sha per G-15. |
 
 No criterion is `cannot_verify`: each names the task that will grade it.
@@ -81,7 +81,7 @@ contain — framing, not requirement.
   SC-09 names no number and is unaffected. `T-06`'s intent carries the next-free-number fallback and
   `T-08`'s `QUARANTINE_DEC` comment mandates that the constant moves with it. **The guard fails
   safe, verified at source:** the shipped DEC-209 region contains none of `check-domain.py`,
-  `plan-sign-gate.sh`, `quarantine.py adopt`, `plan-merge.py` (all `grep -c` = 0 over
+  `plan-sign-gate.py`, `quarantine.py adopt`, `plan-merge.py` (all `grep -c` = 0 over
   `git show 0bc57c88:…DECISIONS.md`), so a stale constant makes T-08 red, never falsely green.
   SC-09 is therefore graded `not_met` for being unbuilt only. The 21 `DEC-209` tokens in
   `plan.yaml`'s decisions block read stale and affect **no** SC — see Q1.

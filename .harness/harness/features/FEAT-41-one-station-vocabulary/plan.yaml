@@ -1019,7 +1019,7 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
-      - .claude/skills/harness/bin/plan-sign-gate.sh
+      - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/test-plan-sign-gate.py
       - .claude/settings.json
       - .agents/skills/harness/templates/settings.snippet.json
@@ -1056,7 +1056,7 @@ tasks:
       Record in the module docstring the one class that survives: a binary produced only by shell
       expansion, which a PreToolUse hook cannot see.
 
-      plan-sign-gate.sh is the registration wrapper: it passes the repo root as argv[1] and pipes
+      plan-sign-gate.py is the registration wrapper: it passes the repo root as argv[1] and pipes
       stdin through, matching gh-close-gate.sh line for line.
 
       Register it in .claude/settings.json as a PreToolUse Bash hook alongside the existing ones,

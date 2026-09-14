@@ -36,7 +36,7 @@ the only legal turn-end shape, clause 4 gates all further action on `quarantine.
 (`test_dec_210_entry_names_both_enforcement_points`,
 `test_dec_210_entry_states_the_bash_write_route_for_plan_yaml`,
 `test_dec_210_index_row_names_the_compatibility_host_in_the_ruling`). DECISIONS.md's DEC-210 entry
-names both `check-domain.py` and `plan-sign-gate.sh` and states the `plan-merge.py` Bash route
+names both `check-domain.py` and `plan-sign-gate.py` and states the `plan-merge.py` Bash route
 sentence (`docs/DECISIONS.md:6497-6504`). **met.**
 
 ## SC-07 (OMP closure) — independently reproduced, met

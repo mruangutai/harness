@@ -138,7 +138,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
   (final component literally `plan.yaml`), so where an intermediate segment resolves is
   irrelevant to the match. The argument holds; it is simply untested for this specific pattern.
   Recommend a follow-up case in `_t09_spelling`, not a re-open of F-04.
-- `plan-sign-gate.sh`/`.py` wiring: confirmed registered under `PreToolUse` → `Bash` matcher in
+- `plan-sign-gate.py`/`.py` wiring: confirmed registered under `PreToolUse` → `Bash` matcher in
   `.claude/settings.json:31-46`, alongside `bash-write-guard.py`/`gh-close-gate.sh` — not a
   guard that exists but never fires.
 - No new bare `except:`, unchecked `subprocess` returncode, or "absence of a word means

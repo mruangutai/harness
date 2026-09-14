@@ -17,7 +17,7 @@ and it excludes `#628` at `BRIEF.md:83`).
 resumed parent explicitly adopts — `complete`.** Predicate `orphan_write` (T-02, self-referential per
 D-03); `Write`/`Edit` route (T-03) and `Bash` route (T-07, the route `plan.yaml` actually travels —
 verified: `.claude/settings.json:19` registers `check-domain.py` on `Write|Edit` only, `:28`/`:44`
-register `plan-sign-gate.sh` on `Bash`, at `ad93d43e`); artifact set fixed by D-05; sandbox by one
+register `plan-sign-gate.py` on `Bash`, at `ad93d43e`); artifact set fixed by D-05; sandbox by one
 shared glob (D-06); adoption CLI by T-04 delegating to `plan-merge.py` (D-07). "Read-only analysis
 survives" is explicit: T-03 refuses no `Read`, `Grep` or `Bash`, and `notes/`, `observations/`, `runs/`
 stay writable (D-05, graded SC-05).

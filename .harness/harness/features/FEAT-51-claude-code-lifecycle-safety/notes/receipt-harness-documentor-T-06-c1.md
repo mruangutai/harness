@@ -8,7 +8,7 @@ All ten claim groups were checked against the tree at HEAD `f260b5f`; none requi
 ## Verify output — exit 0
 
 T-06's `verify:` run verbatim from the worktree root. Clauses 1–2 (last-entry greps for
-`plan-sign-gate.sh` and `plan-merge.py`), clause 3 (`DEC-210` in the index) and clause 4
+`plan-sign-gate.py` and `plan-merge.py`), clause 3 (`DEC-210` in the index) and clause 4
 (`--stdout | diff -q`) produced no output, which is their pass condition; clause 5 printed:
 
 ```
@@ -27,7 +27,7 @@ ok - test_no_amendment_construct_survives_in_the_authority
 ```
 
 Clauses 1–2 verified as matching **inside DEC-210's own body**, not elsewhere: within the awk-isolated
-last-entry buffer, `plan-sign-gate.sh` at buffer lines 23 and 30, `plan-merge.py` at 24, 31 and 50.
+last-entry buffer, `plan-sign-gate.py` at buffer lines 23 and 30, `plan-merge.py` at 24, 31 and 50.
 The buffer's line 1 is `## DEC-210 — …`, confirming DEC-210 is the last entry.
 
 Baseline before any edit: clause 1 matched 0 times, clause 3 matched 0 times, clause 4 already clean.
@@ -42,7 +42,7 @@ All paths relative to the worktree root. Anchored on names, not line numbers, wh
 | 1 | Three answers; `SUSPENDED` only in `hook_mode`, not in `VERDICTS` | `.claude/skills/harness/bin/validate-digest.py` — `hook_mode()` at :1565; suspension branch :1662–1680; refused terminal verdict :1711–1727; `VERDICTS = {"PASS","FAIL","BLOCKED","ESCALATE"}` at :35. `SUSPENDED` occurs only at :1662 and :1704, both inside `hook_mode` |
 | 2 | A suspension does not release the parent's claim | same file: accepted suspension `return 0` at :1680 sits **ahead of** `_reg.release(...)` at :1687; comment :1682–1683 states it |
 | 3 | WRITE boundary, not a kill; `notes/`, `observations/`, `runs/` untouched | `.claude/skills/harness/bin/check-domain.py:1683–1703`; the branch keys on `inflight_registry.canonical_artifact`, whose `_CANONICAL_ARTIFACT_RE` (`inflight_registry.py:24-26`) full-matches the four artifact paths only, so any other path returns `None` |
-| 4 | Four canonical artifacts, two registered gates named by script | `CANONICAL_ARTIFACTS` at `inflight_registry.py:23`. Registration read from `.claude/settings.json`: `check-domain.py` PreToolUse matcher `Write|Edit`; `plan-sign-gate.sh` PreToolUse matcher `Bash`. Verbs: `MUTATING_VERBS` at `plan-sign-gate.py:34`, `ADOPT_TOOL`/`ADOPT_VERB` at :35/:39, decision at :318–319 |
+| 4 | Four canonical artifacts, two registered gates named by script | `CANONICAL_ARTIFACTS` at `inflight_registry.py:23`. Registration read from `.claude/settings.json`: `check-domain.py` PreToolUse matcher `Write|Edit`; `plan-sign-gate.py` PreToolUse matcher `Bash`. Verbs: `MUTATING_VERBS` at `plan-sign-gate.py:34`, `ADOPT_TOOL`/`ADOPT_VERB` at :35/:39, decision at :318–319 |
 | 5 | `plan.yaml` covered by the Bash half; FEAT-41 denial is separate and keeps its message | `check-domain.py` — plan.yaml editor-route denial header at :1529, its `sys.exit(2)` at :1678; the quarantine branch begins at :1683, i.e. **after** it, so the denial fires first |
 | 6 | Not covered: `quarantine.py discard`; generic Bash write in-domain | `plan-sign-gate.py:36-38` records discard's deliberate omission and the `rm -rf` reasoning. `bash-write-guard.py:18` — "in-domain and unparseable pass". `check-domain.py` PreToolUse registration is `Write|Edit` only (`.claude/settings.json`). Plan decisions `D-18`, `D-19` carry the same statement; D-19's `because` also notes a `harness-dev-ops` exemption in `bash-write-guard.py` |
 | 7 | Adoption and discard are the only explicit acts; plan.yaml adoption via locked union | refusal text `plan-sign-gate.py:412-413` and `check-domain.py:1700-1701` both say adoption is the resumed parent's act; `plan-sign-gate.py:402-406` distinguishes the adopt tool. DEC-199 named for the locked union |

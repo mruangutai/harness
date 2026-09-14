@@ -39,7 +39,7 @@ before trusting an absence:
 
 Every hit falls into one of three buckets:
 1. **Qualified in place** — REQ-04, the Goal, the gaps bullet, D-19, T-06's list, SC-04/SC-05/SC-11
-   (each names `Write`, `check-domain.py`, or `plan-sign-gate.sh` specifically), and every T-03/T-07
+   (each names `Write`, `check-domain.py`, or `plan-sign-gate.py` specifically), and every T-03/T-07
    test-label string (`an orphan canonical write is quarantined` etc.) — qualified by the task's own
    title/gate context (T-03's title is literally "…at the check-domain.py Write gate"; T-07's is
    "Close the Bash route…").
@@ -71,7 +71,7 @@ doesn't have to re-derive this judgment call.
 READING `plan.yaml:653-733` (T-06's full `intent:` block).
 
 T-06's mandated claim list now contains, verified bullet by bullet: the `check-domain.py`
-`Write`/`Edit` half (`:694-696`); the `plan-sign-gate.sh` `PreToolUse` `Bash` half naming all four
+`Write`/`Edit` half (`:694-696`); the `plan-sign-gate.py` `PreToolUse` `Bash` half naming all four
 mutating verbs and `quarantine.py adopt` (`:696-698`); the `plan.yaml`-only-write-route-is-`plan-merge.py`-through-`Bash`
 sentence (`:699-703`); the D-18 discard-uncovered clause (`:705-708`); and the D-19
 generic-Bash-uncovered clause (`:708-713`). The two bullets D-15 supersedes are confirmed **absent**:

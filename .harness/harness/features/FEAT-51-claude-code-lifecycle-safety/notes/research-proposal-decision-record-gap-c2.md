@@ -9,7 +9,7 @@ feature: FEAT-51-claude-code-lifecycle-safety
 
 decisions:
   - id: D-15
-    choice: The DEC-209 entry T-06 writes carries BOTH halves of the quarantine boundary, and this decision SUPERSEDES two bullets of T-06's immutable intent, the bullet saying the boundary is refused at the check-domain.py Write gate on the canonical artifacts and the bullet beginning The four canonical artifacts are plan.yaml BRIEF.md feature.json and STATE.md; the entry must instead state (a) the check-domain.py Write and Edit half, which bites on BRIEF.md, feature.json and STATE.md, (b) the plan-sign-gate.sh PreToolUse Bash half, which bites on the four mutating plan-merge.py verbs apply, add-tasks, set-task-station and set-feature-station and on quarantine.py adopt and discard per D-16, and (c) explicitly that plan.yaml's only write route is plan-merge.py invoked through Bash, so plan.yaml is covered by the plan-sign-gate.sh half and NOT by FEAT-41's editor route denial, which is a second and independent refusal on a route nobody may use
+    choice: The DEC-209 entry T-06 writes carries BOTH halves of the quarantine boundary, and this decision SUPERSEDES two bullets of T-06's immutable intent, the bullet saying the boundary is refused at the check-domain.py Write gate on the canonical artifacts and the bullet beginning The four canonical artifacts are plan.yaml BRIEF.md feature.json and STATE.md; the entry must instead state (a) the check-domain.py Write and Edit half, which bites on BRIEF.md, feature.json and STATE.md, (b) the plan-sign-gate.py PreToolUse Bash half, which bites on the four mutating plan-merge.py verbs apply, add-tasks, set-task-station and set-feature-station and on quarantine.py adopt and discard per D-16, and (c) explicitly that plan.yaml's only write route is plan-merge.py invoked through Bash, so plan.yaml is covered by the plan-sign-gate.py half and NOT by FEAT-41's editor route denial, which is a second and independent refusal on a route nobody may use
     because: a documentor following T-06's bullet list verbatim writes an entry that omits the Bash half entirely and leaves a reader believing plan.yaml is covered because the FEAT-41 denial handles it, which is the exact false belief T-07 exists to overturn, and DEC-209 is the entry future readers rely on to know what the boundary covers, so an incomplete entry understates the contract that shipped
     dec: DEC-209
   - id: D-16
@@ -35,7 +35,7 @@ tasks:
     intent: |
       SC-09 grades the DEC-209 entry's CONTENT and declares verify automated with evidence
       integration. Nothing in the plan asserts that content today, so an entry that omits
-      the plan-sign-gate.sh half would ship graded met. This task is the assertion. It adds
+      the plan-sign-gate.py half would ship graded met. This task is the assertion. It adds
       NO new test file, so neither run-unit-tests.sh INTEGRATION_SCRIPTS nor
       harness.json test_kinds.integration.detect changes, and it does not touch
       DECISIONS.md or DECISIONS-INDEX.md, so no index regeneration is owed here.
@@ -82,7 +82,7 @@ tasks:
       that does not:
 
         1. the literal check-domain.py occurs in the region;
-        2. the literal plan-sign-gate.sh occurs in the region;
+        2. the literal plan-sign-gate.py occurs in the region;
         3. the literal quarantine.py adopt occurs in the region.
 
       test_dec_209_entry_states_the_bash_write_route_for_plan_yaml asserts, on that same

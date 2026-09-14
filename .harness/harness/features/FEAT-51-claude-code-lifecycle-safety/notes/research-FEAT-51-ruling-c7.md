@@ -56,7 +56,7 @@ red on correct work, so the two new conjuncts slice the **last** `## DEC-` regio
 
 Discrimination proven (`/tmp/feat51-verify-proof.py`), each conjunct separately:
 
-| Tree | `plan-sign-gate.sh` | `plan-merge.py` |
+| Tree | `plan-sign-gate.py` | `plan-merge.py` |
 |---|---|---|
 | current | red (1) | red (1) |
 | entry naming both halves appended | **green (0)** | **green (0)** |

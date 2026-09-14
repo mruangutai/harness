@@ -503,7 +503,7 @@ panel:
     reader: should-not-exist
     summary: "The unit-ruling note's \"four heredoc-hosted bin scripts\" recurrence\
       \ claim is false, so the repo-wide DEC-217 sibling its Q1 recommends should\
-      \ not be written on that evidence. `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62`\
+      \ not be written on that evidence. `gh-close-gate.sh:59/:79` and `plan-sign-gate.py:43/:62`\
       \ say *\"THE DECISION LIVES IN A FILE, NOT A HEREDOC\"* and exec `.py` files\
       \ \u2014 counter-examples, not instances. Only `post-merge-sweep.py:29-293`\
       \ and `bash-write-guard.py:42` feed Python on stdin."
@@ -1329,22 +1329,22 @@ tasks:
       diffed against one another.
       - .claude/settings.json, hooks.PreToolUse, the entry whose matcher is "Bash", its hooks array.
         That array today holds FOUR entries in this order: branch-create-gate.py,
-        bash-write-guard.py, gh-close-gate.sh, plan-sign-gate.sh - so the new hook is the FIFTH
+        bash-write-guard.py, gh-close-gate.sh, plan-sign-gate.py - so the new hook is the FIFTH
         entry, not the fourth, and no index is both after gh-close-gate.sh and before
-        bash-write-guard.py. Literal predecessor: the plan-sign-gate.sh entry. Literal successor:
+        bash-write-guard.py. Literal predecessor: the plan-sign-gate.py entry. Literal successor:
         NONE - merge-gate.py is the final entry of that array;
       - .claude/skills/harness/templates/settings.snippet.json, the same event and the same "Bash"
         matcher. THIS FILE'S ARRAY IS NOT settings.json's: it holds THREE entries -
-        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.sh - and carries NO
+        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.py - and carries NO
         gh-close-gate.sh entry at all, so "the same position" names nothing here. Literal
-        predecessor: the plan-sign-gate.sh entry. Literal successor: NONE - merge-gate.py is the
+        predecessor: the plan-sign-gate.py entry. Literal successor: NONE - merge-gate.py is the
         fourth and final entry;
       - .omp/extensions/harness-hooks.ts, the firstBlock([...]) array of policyRunner calls inside
         the toolName === "bash" branch. ITS ORDER IS DIFFERENT AGAIN: gh-close-gate.sh,
-        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.sh. Literal predecessor: the
-        policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload) element. Literal successor: NONE -
+        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.py. Literal predecessor: the
+        policyRunner(ctx.cwd, "plan-sign-gate.py", [], payload) element. Literal successor: NONE -
         merge-gate.py is the fifth and final element. BUG-1132 records what omitting this file
-        costs: plan-sign-gate.sh was wired for native Claude Code and never ported here, so under
+        costs: plan-sign-gate.py was wired for native Claude Code and never ported here, so under
         OMP its enforcement did not exist at all.
       - .claude/skills/harness/bin/merge-settings.py, the HOOK_SPECS list - THE SITE THAT MAKES THIS
         GATE INSTALL INTO AN ONBOARDED PROJECT, and the one no other site substitutes for.
@@ -1374,7 +1374,7 @@ tasks:
       after bash-write-guard.py - and not the names.
 
       OUT OF SCOPE, recorded here as one clause and NOT fixed by this task: gh-close-gate.sh and
-      plan-sign-gate.sh carry no HOOK_SPECS entry today, so both are installed in this checkout alone.
+      plan-sign-gate.py carry no HOOK_SPECS entry today, so both are installed in this checkout alone.
       That is pre-existing, it is not this bug, no file is added to this task for it, and it is reported
       to the operator as backlog.
 
@@ -1437,7 +1437,7 @@ tasks:
         today asserts gh-close-gate.sh before branch-create-gate.py before bash-write-guard.py -
         with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.py")
         is greater than -1, greater than scripts.indexOf("bash-write-guard.py"), and greater than
-        scripts.indexOf("plan-sign-gate.sh"). Assert the RELATION, never a literal index, so a
+        scripts.indexOf("plan-sign-gate.py"). Assert the RELATION, never a literal index, so a
         later reshuffle that keeps the constraint stays green and one that breaks it reddens.
 
       tests/integration/test-merge-settings.py exists but exercises hook_present generically against

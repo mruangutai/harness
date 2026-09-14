@@ -809,7 +809,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         tool_name: "Bash",
         tool_input: { command: input.command },
       };
-      // BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120 — only the main session signs an approval)
+      // BUG-1132: plan-sign-gate.py (REQ-05/DEC-120 — only the main session signs an approval)
       // was wired into `.claude/settings.json` for native Claude Code but never ported here, so
       // a `plan-merge.py sign-approval` Bash call under OMP reached no denylist at all — not
       // merely the evadable one #1103 documents. `cmd_sign_approval` itself has no identity
@@ -819,7 +819,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         policyRunner(ctx.cwd, "gh-close-gate.sh", [], payload),
         policyRunner(ctx.cwd, "branch-create-gate.py", [], payload),
         policyRunner(ctx.cwd, "bash-write-guard.py", [], payload),
-        policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload),
+        policyRunner(ctx.cwd, "plan-sign-gate.py", [], payload),
         policyRunner(ctx.cwd, "merge-gate.py", [], payload),
       ]);
       // #1103: the identity signal cmd_sign_approval (plan-merge.py) now checks on its own,
