@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for check-expertise.sh (B-10).
+"""Tests for check-expertise.py (B-10).
 
 WHY THIS EXISTS: the checker gates the ONE file injected into every spawn of an
 agent, and it had been passing files its own rules reject. A gate with no test is
@@ -19,7 +19,7 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
-CHECK = os.environ.get("CHECK_EXPERTISE_BIN") or os.path.join(HERE, "check-expertise.sh")
+CHECK = os.environ.get("CHECK_EXPERTISE_BIN") or os.path.join(HERE, "check-expertise.py")
 
 CASES, fails = [], 0
 

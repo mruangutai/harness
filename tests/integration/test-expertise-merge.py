@@ -34,7 +34,7 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(HERE, "expertise-merge.py")
-CHECK_EXPERTISE_BIN = os.path.join(HERE, "check-expertise.sh")
+CHECK_EXPERTISE_BIN = os.path.join(HERE, "check-expertise.py")
 sys.path.insert(0, os.path.dirname(os.path.abspath(CLI)))
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 _expertise_merge_spec = importlib.util.spec_from_file_location("expertise_merge_it_under_test", CLI)
@@ -139,7 +139,7 @@ def case_green_union(root):
 
     r3 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
     check(
-        "case2: check-expertise.sh still accepts the merged file",
+        "case2: check-expertise.py still accepts the merged file",
         r3.returncode == 0,
         r3.stdout + r3.stderr,
     )
@@ -271,7 +271,7 @@ def case_new_file(root):
 
 
 def case_cap_drift_detector():
-    """Case 8 — the caps this tool enforces and check-expertise.sh's own CAPS mapping must
+    """Case 8 — the caps this tool enforces and check-expertise.py's own CAPS mapping must
     agree, read as TEXT from both files rather than restated as a third literal here."""
     tool_src = open(CLI, encoding="utf-8").read()
     checker_src = open(CHECK_EXPERTISE_BIN, encoding="utf-8").read()
@@ -280,7 +280,7 @@ def case_cap_drift_detector():
     m_checker = re.search(r"CAPS\s*=\s*(\{[^}]*\})", checker_src)
     check("case8: CAPS mapping found in expertise-merge.py", m_tool is not None, tool_src[:200])
     check(
-        "case8: CAPS mapping found in check-expertise.sh",
+        "case8: CAPS mapping found in check-expertise.py",
         m_checker is not None,
         checker_src[:200],
     )
@@ -291,7 +291,7 @@ def case_cap_drift_detector():
     caps_checker = ast.literal_eval(m_checker.group(1))
     for section in ("Patterns", "Gotchas", "Outcomes", "Open"):
         check(
-            f"case8: {section} cap agrees between expertise-merge.py and check-expertise.sh",
+            f"case8: {section} cap agrees between expertise-merge.py and check-expertise.py",
             caps_tool.get(section) == caps_checker.get(section),
             f"tool={caps_tool.get(section)!r} checker={caps_checker.get(section)!r}",
         )
@@ -468,7 +468,7 @@ def case_replace_at_capacity(root):
 
     r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
     check(
-        "case11: check-expertise.sh still accepts the written file",
+        "case11: check-expertise.py still accepts the written file",
         r2.returncode == 0,
         r2.stdout + r2.stderr,
     )
@@ -496,7 +496,7 @@ def case_removal(root):
 
     r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
     check(
-        "case12: check-expertise.sh still accepts the written file",
+        "case12: check-expertise.py still accepts the written file",
         r2.returncode == 0,
         r2.stdout + r2.stderr,
     )
@@ -959,7 +959,7 @@ def case_multi_op_composition(root):
 
     r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
     check(
-        "case19: check-expertise.sh still accepts the written file",
+        "case19: check-expertise.py still accepts the written file",
         r2.returncode == 0,
         r2.stdout + r2.stderr,
     )

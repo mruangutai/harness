@@ -1,42 +1,60 @@
-#!/usr/bin/env bash
-# check-expertise.sh — validate an Expertise file against the format contract (DEC-145).
-#
-# Usage: check-expertise.sh <file.md> [<file.md> ...]
-#        check-expertise.sh <dir>          # checks every *.md under it
-#
-# Enforces, per file:
-#   - only the four canonical sections: Patterns / Gotchas / Outcomes / Open
-#   - section entry caps: 15 / 15 / 10 / 5
-#   - entry format `- XX-NN: ...` at column 0; no nested bullets
-#   - per-entry word cap: 50
-#   - no feature/task/issue tokens (FEAT-NN, T-NN, #NN) — those belong in observations
-#   - file budget: 150 lines for a CRAFT-tier file (.harness/expertise/<name>.md),
-#     40 lines for a REPOSITORY-tier file (.harness/<segment>/expertise/<name>.md)
-#     (the spawn hook truncates there); classified by the resolved absolute path
-#   - CRAFT-tier files only: an ADVISORY (never blocking) scan for repository-specific
-#     tokens (DEC-NN, .harness/, check-*.sh, ...) — see issue 340
-#   - both tiers: an ADVISORY (never blocking) once a file is within 10% of its own
-#     line budget — the only signal below that fires while there is still headroom
-#     to displace an entry rather than overflow (issue #613)
-#
-# Exit 0 = all files clean. Exit 1 = violations (listed). Exit 2 = usage error.
-set -uo pipefail
+#!/usr/bin/env python3
+"""check-expertise.py — validate an Expertise file against the format contract (DEC-145).
 
-[ $# -ge 1 ] || { echo "usage: check-expertise.sh <file-or-dir> ..." >&2; exit 2; }
+Usage: check-expertise.py <file.md> [<file.md> ...]
+       check-expertise.py <dir>          # checks every *.md under it
 
-files=()
-for arg in "$@"; do
-  if [ -d "$arg" ]; then
-    while IFS= read -r f; do files+=("$f"); done < <(find "$arg" -maxdepth 1 -name '*.md' | sort)
-  elif [ -f "$arg" ]; then
-    files+=("$arg")
-  else
-    echo "check-expertise: no such file or directory: $arg" >&2; exit 2
-  fi
-done
-[ ${#files[@]} -ge 1 ] || { echo "check-expertise: nothing to check" >&2; exit 2; }
+Enforces, per file:
+- only the four canonical sections: Patterns / Gotchas / Outcomes / Open
+- section entry caps: 15 / 15 / 10 / 5
+- entry format `- XX-NN: ...` at column 0; no nested bullets
+- per-entry word cap: 50
+- no feature/task/issue tokens (FEAT-NN, T-NN, #NN) — those belong in observations
+- file budget: 150 lines for a CRAFT-tier file (.harness/expertise/<name>.md),
+40 lines for a REPOSITORY-tier file (.harness/<segment>/expertise/<name>.md)
+(the spawn hook truncates there); classified by the resolved absolute path
+- CRAFT-tier files only: an ADVISORY (never blocking) scan for repository-specific
+tokens (DEC-NN, .harness/, check-*.sh, ...) — see issue 340
+- both tiers: an ADVISORY (never blocking) once a file is within 10% of its own
+line budget — the only signal below that fires while there is still headroom
+to displace an entry rather than overflow (issue #613)
 
-python3 -I - "${files[@]}" <<'PY'
+
+Exit 0 = all files clean. Exit 1 = violations (listed). Exit 2 = usage error.
+
+WAS A .sh (issue #1674). The body below ran inside a `python3 -I - <<'PY'` heredoc,
+where ast, linters, coverage and the #1594 reader audit could not see it. Only the
+argument expansion was ever really shell; it is the block directly below, and it
+keeps the shell's exact contract: a directory expands to its *.md children sorted,
+a missing path is exit 2, and an empty expansion is exit 2 rather than a silent pass.
+"""
+import glob as _glob
+import os as _os
+import sys as _sys
+
+
+def _expand(args):
+    """Directory -> its sorted *.md children; file -> itself; anything else exits 2."""
+    if not args:
+        print("usage: check-expertise.py <file-or-dir> ...", file=_sys.stderr)
+        _sys.exit(2)
+    out = []
+    for arg in args:
+        if _os.path.isdir(arg):
+            out.extend(sorted(_glob.glob(_os.path.join(arg, "*.md"))))
+        elif _os.path.isfile(arg):
+            out.append(arg)
+        else:
+            print(f"check-expertise: no such file or directory: {arg}", file=_sys.stderr)
+            _sys.exit(2)
+    if not out:
+        print("check-expertise: nothing to check", file=_sys.stderr)
+        _sys.exit(2)
+    return out
+
+
+_sys.argv = [_sys.argv[0]] + _expand(_sys.argv[1:])
+
 import re, sys, os
 
 CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}
@@ -75,7 +93,7 @@ REPO_TIER_RE = re.compile(r"(^|/)\.harness/[^/]+/expertise/[^/]+\.md$")
 def classify_tier(path):
     """Classify by the resolved absolute path, never the argument as typed —
     a bare-path invocation from a cwd under .harness/... must still resolve
-    to its true tier (see check-expertise.sh's CHANGE 1 note)."""
+    to its true tier (see check-expertise.py's CHANGE 1 note)."""
     ap = os.path.abspath(path)
     if CRAFT_TIER_RE.search(ap):
         return "craft", CRAFT_LINE_BUDGET
@@ -235,4 +253,3 @@ for path in sys.argv[1:]:
         print(a)
 
 sys.exit(1 if failed else 0)
-PY
