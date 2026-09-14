@@ -1,50 +1,25 @@
-# Goal-check — BUG-285-canonical-reader current unsigned plan
+# Goal-check — BUG-285-canonical-reader applied plan
 
-## Conclusion
+## Question
 
-**Question:** does the resulting plan deliver the operator's stated intent?
+does this plan deliver the operator's stated intent?
 
-**Answer:** Yes. The eight-task plan remains a `plan` mission and now applies the post-rebase rulings without treating closed issue #285 as live scope. Issue #1594 governs the canonical-reader migration, issue #1682 is an explicit nested-validation requirement in SC-03 and SC-07, and the already-landed #285 fixture is preserved rather than planned again. This is a plan-coverage judgment only: no build, shipment, signature, panel reader, or reviewer was run in this reconciliation pass.
+## Verdict
 
-## Source authority and current-main baseline
+PASS. The applied plan fully represents the operator's current intent as a plan-coverage judgment: execution and shipment remain unclaimed.
 
-- `source_issues: [285, 1594]` is retained as provenance. The feature was instantiated from #285 and then governed by #1594; D-05 records that distinction. Issue #1682 is a requirement this plan must close, not an origin issue, so it is carried through the brief and task traces rather than added to `source_issues`.
-- Issue #285 is closed by the narrower canonical-reader fix already on current main. Its comment-bearing JSON fixture and central reader coverage are present at `tests/unit/test-feature-json-reader.py`; SC-07 requires that landed coverage to stay green and reserves red-first language for the genuinely new #1682 cases.
-- The current checkout is `391b8c80cd7bd5c1bf708f3a064debec72b57e0a`. A fresh local AST inventory of `.claude/skills/harness/bin/*.py` showed the existing `FeatureJsonError`, `load_feature_json`, and `opt_int` in `feature_json_write.py`, with `gh-sync.py#load_recorded` and `factory_decompose.py#load_factory` already calling that reader. T-02 therefore relocates the landed implementation into `artifact_accessors.py`, repoints both real consumers in the same coherent task, preserves compatibility behavior, and adds the new strictness; T-03 explicitly excludes both symbols from semantic-bypass work.
-- T-03's file-and-symbol projection was rebuilt from that live AST result. It names current semantic bypass symbols rather than whole-file guesses, including the current GitHub response envelopes, both `handoff_done_when.py` plan reads, `feature-record.py#_budgets_for`, both `inflight_registry.py` parse paths, and the current `gh-sync.py` raw readers. Syntactically proven parser primitives, validated in-memory parses, and locked writer transforms remain classified exemptions rather than hidden omissions.
-- T-04's current correct-reader projection now includes the live `feature-record.py#cmd_propose_rework`, `gh-sync.py#_projected_for`, and `worktree_terminal.py#_repo_arg_for_segment` call sites, plus every other current dispatchable `load_plan` or `load_fleet` caller. The stale pre-rebase `feature-record.py#cmd_set_rework` projection is gone. Physical relocation of `manifest_domains` is deferred because its live callers are excluded `.sh` hooks.
+## Perspective grades
 
-## Operator-ruling coverage
+- **operator — pass** — SC-04 is carried by T-03 and T-04, and SC-05 by T-01, T-05, T-06, T-07, and T-08: the live classification drives every migration, all enforcement files and each changed enforcement test are main-session-direct under DEC-174, silent fail-open defaults are removed, and the established normalized violation output must remain byte-identical.
+- **code maintainer — pass** — SC-01 is carried by T-01, T-03, T-04, T-05, T-06, T-07, and prerequisite T-09; SC-02 by T-02, T-04, and T-07; and SC-03 by T-02, T-03, T-05, and T-06: together they cover the current AST-visible Python surface, converge every public reader on one dependency-light `artifact_accessors.py` layer above `harness_yaml.py`, retain the sole `state.yaml` trip-wire, centralize typed failures and strict parsing, and stop for plan amendment on any live unclassified reader.
+- **reader (reviewer / qa) — pass** — SC-06 is carried by T-03 through T-07 and SC-07 by T-02: semantic cutovers remain separate from mechanical relocations, the already-landed issue 285 inverse fixture stays central, and issue 1682 adds fail-first `NaN`/infinity and wrong-typed nested-field cases at both the accessor and observable `gh-sync.py` and `factory_decompose.py` consumer seams before issue creation.
 
-- **One accessor layer with an explicit live-code exception:** D-01 and T-02 keep Option B for active in-scope Python readers while leaving `manifest_domains` in `harness_yaml.py` until #1674. The brief records the dependency-light reason: moving a reader whose only live callers are shell-embedded hooks adds forwarding and startup risk without benefiting a Python caller.
-- **Useful documentation, not a tested route-table API:** SC-02 and T-02 retain concise module-docstring guidance naming reader and sanctioned writer/source routes. They prohibit a runtime route-table mapping, a provided prose-data interface, duplicated test tables, and assertions over docstring wording; behavior plus the AST classification prove the executable contract.
-- **No durable one-shot CLI:** T-01 proves a non-empty pre-migration condition through integration fixtures and the live classification capture. T-07 leaves only the permanent `--canonical-reader-audit` contract. No `--expect-findings` mode is built or retained.
-- **Nested validation from #1682:** SC-03 and T-02 require `parse_constant` rejection of `NaN`, `Infinity`, and `-Infinity`, and require a present wrong-typed `github` or `factory` parent/issues field to refuse rather than degrade to the same empty answer as absence. The T-02 verification command runs the central accessor suite and both real-consumer suites, including zero-mutation duplicate-parent and duplicate-task-issue scenarios.
-- **Semantic and mechanical separation:** D-04 keeps T-03 as dispatchable semantic bypass work, T-04 as correct-reader relocation, T-05/T-06 as direct-lane semantic gate work, and T-07 as direct-lane mechanical gate relocation plus final enforcement. T-02 owns the landed feature reader's relocation because moving the implementation and updating its only two consumers must remain one buildable change.
-- **Python-only boundary and DEC-174:** D-03, SC-08, and T-01/T-07 leave `.sh` parsing blocked on #1674 without a token scanner or heredoc parser. T-08 is restricted to adding `branch-create-gate.sh` to DEC-174's enforcement-layer enumeration and regenerating the index; it adds no feature-scoped #1674 narrative.
+## Current-state and gate checks
 
-## Complete SC/task traceability
-
-Every SC has at least one task, every task traces at least one SC, and all three perspectives remain served:
-
-- SC-01 ← T-01, T-03, T-05, T-06, T-07
-- SC-02 ← T-02, T-04, T-07
-- SC-03 ← T-02, T-03
-- SC-04 ← T-03, T-04
-- SC-05 ← T-01, T-05, T-06, T-07, T-08
-- SC-06 ← T-04, T-05, T-06, T-07
-- SC-07 ← T-02
-- SC-08 ← T-07, T-08
-
-The operator perspective is covered by SC-04, SC-05, and SC-08; the code-maintainer perspective by SC-01, SC-02, and SC-03; and the reader perspective by SC-06 and SC-07.
-
-## Panel proportionality and approval
-
-The existing panel roster is unchanged: scope, should-not-exist, design, and goalcheck retain their original reader/persona identities. All eight stored findings remain `disposition: open`. The four proportionality findings retain their exact ids, readers, severities, kinds, and summaries and now each carries `scope: task`:
-
-1. `PF-13232df5d4cb16267b57b26be007de43` — addressed by removing the tested/provided route-table API while retaining maintainer documentation.
-2. `PF-2f51f186cf2ca206673d12a3a1771cae` — addressed by removing durable `--expect-findings` work.
-3. `PF-f0b326189c54873879085f2f3f226700` — addressed by deferring physical `manifest_domains` relocation until #1674.
-4. `PF-2d417a03aa738f4cdd407e416cc77687` — addressed by restricting T-08 to the DEC-174 enumeration and index regeneration.
-
-The plan remains unsigned with `approval.status: pending`; this pass neither adds approval data nor claims shipment.
+- The authoritative base is `8e3bda037bf62e89966d898ccfdf8c9cabcdcdea`. The stale historical shell exclusion is not applied: PR 1688 closed issue 1674, and SC-01 plus T-01, T-05, T-06, and T-07 cover the current Python entrypoints and require amendment rather than silently absorbing later drift.
+- `source_issues: [285, 1594]` is preserved. Issue 1594 and its operator rulings govern the migration; issue 285 supplies already-landed central coverage; issue 1682 remains inside SC-03 and SC-07 rather than becoming a source issue.
+- Every stored current and prior panel finding is marked resolved in `plan.yaml`, and `review-harness-code-reviewer-plan-c2.md` confirms the material resolutions: T-05 owns team-task classification postconditions, T-06 executes every changed check-domain test, T-07 retires temporary byte-proof scaffolding after the final comparison, T-09 removes the dead differential tool, and T-02/T-07 avoid compatibility forwarders by delaying physical relocation until every caller has moved.
+- All required panel readers ran: scope through `harness-code-reviewer`, should-not-exist through `fable-advisor`, and design through `harness-ui-reviewer`; this artifact completes the goalcheck perspective.
+- T-09 is a minimal prerequisite, not scope creep. It deletes only the obsolete shell differential tool that has no live paired shell surface, and T-01 depends on it so the permanent AST inventory cannot classify dead migration machinery or preserve an exemption for it.
+- Both approvals remain pending: `BRIEF.md` has `status: pending`, and `plan.yaml` has `approval.status: pending`. The prototype gate is not applicable because the plan changes internal readers, enforcement programs, tests, and decision records without a rendered user interface; no prototype approval is required.
+- No validation commands, tests, formatters, linters, builds, or project-wide checks were run for this read-only goalcheck.

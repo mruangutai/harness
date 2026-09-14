@@ -25,6 +25,16 @@
       "ended_at": "2026-09-14T01:57:03+00:00",
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-14-plan-refresh-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-14T21:49:23+00:00",
+      "ended_at": "2026-09-14T22:30:00+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -55,6 +65,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "Main corrected the source_issues ruling: [285,1594] is accurate provenance, issue 1682 belongs in SC-03, so the apply artifact needs no further mutation"
+    },
+    {
+      "at": "2026-09-14T21:48:37+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Prerequisite #1674 is merged and the deferred plan must be re-derived against current main before approval"
     }
   ],
   "mission": "plan"

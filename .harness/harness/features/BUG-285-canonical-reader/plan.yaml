@@ -5,8 +5,8 @@ approval:
 status: plan
 source_issues: [285, 1594]
 panel:
-  last_run: 2026-09-13-plan-product
-  cycle: 0
+  last_run: 2026-09-14-plan-refresh-product
+  cycle: 2
   readers:
   - reader: scope
     persona: harness-code-reviewer
@@ -25,23 +25,23 @@ panel:
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: The fixed migration tasks omit current Python parse sites that T-07's
-      zero-drift guard must reject.
-    disposition: open
+    summary: The fixed migration tasks omit current Python parse sites that T-07's zero-drift guard must reject.
+    disposition: resolved
+    resolved_by: T-01, T-03, T-05, T-06
   - id: PF-4825fbdef33073221eb35fbee6a29203
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: T-07 changes check-plan-routes.py without a byte-identical pre/post violation-set
-      comparison.
-    disposition: open
+    summary: T-07 changes check-plan-routes.py without a byte-identical pre/post violation-set comparison.
+    disposition: resolved
+    resolved_by: T-05, T-07
   - id: PF-de964b2a856a70856e7547f6ff28a879
     severity: med
     reader: code-reviewer
     kind: substance
-    summary: No task delivers and exhaustively checks SC-02's complete accessor/writer/read-route
-      table.
-    disposition: open
+    summary: No task delivers and exhaustively checks SC-02's complete accessor/writer/read-route table.
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-13232df5d4cb16267b57b26be007de43
     severity: med
     reader: should-not-exist
@@ -62,9 +62,9 @@ panel:
     severity: low
     reader: should-not-exist
     kind: substance
-    summary: T-03's "current symbols" list omits two live dispatchable bypasses this
-      checkout still carries, pushing their semantic cutover to late T-07 discovery
-    disposition: open
+    summary: T-03's "current symbols" list omits two live dispatchable bypasses this checkout still carries, pushing their semantic cutover to late T-07 discovery
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-f0b326189c54873879085f2f3f226700
     severity: med
     reader: should-not-exist
@@ -72,7 +72,7 @@ panel:
     summary: 'manifest_domains physical relocation is all cost until #1674 — every live caller is a frozen .sh hook, and no task captures those hooks'' pre/post behavior'
     disposition: resolved
     scope: task
-    resolved_by: T-02
+    resolved_by: T-07
   - id: PF-2d417a03aa738f4cdd407e416cc77687
     severity: low
     reader: should-not-exist
@@ -81,62 +81,109 @@ panel:
     disposition: resolved
     scope: task
     resolved_by: T-08
+  - id: PF-bebc53fc17171aa26c2c3db9ee896c79
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-03 and T-04 route enforcement-test edits through a team agent.
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-c9a08e1567ca40e8e2797bd3dfe93f31
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-06 changes nine check-domain tests but executes none in its verify block.
+    disposition: resolved
+    resolved_by: T-06
+  - id: PF-158c90a12daa1920082699a379929a53
+    severity: med
+    reader: code-reviewer
+    kind: form
+    summary: Four earlier findings remain open without reconciliation.
+    disposition: resolved
+    resolved_by: T-01, T-02, T-03, T-05, T-06, T-07
+  - id: PF-ecb80606e4653b997467252e13a4f67a
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: canonical-reader-enforcement-baselines.json and --verify-enforcement-bytes are one-shot migration proof shipped as a permanent checked-in artifact and CLI mode; no task retires them after T-07
+    disposition: resolved
+    scope: task
+    resolved_by: T-07
+  - id: PF-eea8c8c4c0f93bef51d767e94aa71e2d
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: 'sh-to-py-differential.py is dead #1674 scaffolding that T-01 will classify and the permanent audit will exempt forever instead of anyone deleting it'
+    disposition: resolved
+    scope: task
+    resolved_by: T-09
+  - id: PF-25cea5eb1724e2004ba49880ea692846
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's immediate physical relocation of load_plan/load_fleet/manifest_domains creates compatibility forwarders that live across five tasks solely to be deleted in T-07
+    disposition: resolved
+    scope: task
+    resolved_by: T-02, T-07
 lanes:
-  resolved_at: 391b8c80cd7bd5c1bf708f3a064debec72b57e0a
+  resolved_at: 8e3bda037bf62e89966d898ccfdf8c9cabcdcdea
   rows:
-  - surface: .claude/skills/harness/bin/artifact_accessors.py
+  - surface: .claude/skills/harness/bin/artifact_accessors.py and dispatchable Python
+      reader callers
     lane: team
     agent: harness-backend-dev
-  - surface: dispatchable Python reader call sites and their tests
-    lane: team
-    agent: harness-backend-dev
-  - surface: hooks, validators, gate scripts, and each gate test
+  - surface: hooks, validators, gate scripts, post-merge enforcement, and each changed
+      enforcement test
     lane: main-session-direct
-    reason: DEC-174 forbids self-hosted execution at the enforcement layer
+    reason: DEC-174 governs enforcement sources and their tests by category regardless
+      of extension
   - surface: .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md
     lane: team
     agent: harness-documentor
 decisions:
   - id: D-01
-    choice: Consolidate in-scope artifact readers in one dependency-light artifact_accessors.py module above harness_yaml.py, while leaving manifest_domains in harness_yaml.py until issue 1674 makes its shell-only callers AST-readable.
-    because: Option B gives maintainers one place to find active Python readers, but moving manifest_domains now adds forwarding and hook-startup risk without a live Python caller that benefits.
+    choice: Consolidate every in-scope artifact reader in one dependency-light artifact_accessors.py module above harness_yaml.py.
+    because: One module makes reader discovery deterministic without pulling heavy dependencies into hook paths.
     dec: none
   - id: D-02
-    choice: Build an AST checker first, hand-classify every current result once, and let its live output define the migration instead of a frozen count.
-    because: Earlier text scans and site counts missed real calls and matched prose.
+    choice: Build the AST checker first, hand-classify every current result, and let its live output define migration work instead of a frozen count.
+    because: Prior text scans and copied counts missed code, matched prose, and could not see the former shell entrypoints before PR 1688.
     dec: none
   - id: D-03
-    choice: Limit raw-parse enforcement and migration to Python files until issue 1674 makes shell-embedded Python AST-readable.
-    because: Token scans and maintained heredoc extraction were rejected as brittle technical debt.
+    choice: Classify every AST-visible parse by semantic category and permit only explicit low-level primitive, validated-payload, canonical-writer-transform, module-internal, and sole-state-reader exemptions.
+    because: Treating every parse call as identical would either migrate sanctioned implementation internals or leave unbounded exceptions.
     dec: none
   - id: D-04
     choice: Land and review semantic parser bypass cutovers separately from mechanical relocation of already-correct accessors.
     because: Relocation noise can conceal the parser and error-contract changes that carry the risk.
     dec: none
-  - id: D-05
-    choice: source_issues stays [285, 1594] as written. Issue 1682 is carried as a requirement folded into SC-03, not added to source_issues.
-    because: Issue 285 is provenance because this feature was instantiated from it and is now closed by a narrower fix on main, while issue 1594 is the live intent. Issue 1682 is a defect this plan must close rather than an issue this plan originates from, so SC-03 is its correct home. No plan-merge verb reaches an existing top-level key, so even a wanted change here would have had no route; that harness gap is filed as issue 1683.
-    dec: none
 tasks:
   - id: T-01
-    title: Build and baseline the AST reader checker
+    title: Build and baseline the AST reader inventory
     traces: [SC-01, SC-05]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: The checker becomes an integration gate and DEC-174 includes a gate and its test in the carve-out.
-    depends_on: []
+    execution_reason: The inventory is implemented in check-plan-routes.py and its integration test, both inside the DEC-174 enforcement carve-out.
+    depends_on: [T-09]
     status: ready
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#main
       - tests/integration/test-check-plan-routes.py#case_20
       - tests/integration/canonical-reader-classification.json
     verify: |
-      python3 tests/integration/test-check-plan-routes.py
+      python3 tests/integration/test-check-plan-routes.py --canonical-reader-self-test
     intent: |
-      Add an AST-based canonical-reader audit to check-plan-routes.py, discriminating integration coverage to test-check-plan-routes.py, and a deterministic checked-in hand-classification artifact at tests/integration/canonical-reader-classification.json. Scan every .py file directly under .claude/skills/harness/bin, parse each with ast.parse, and inspect genuine Call nodes only so comments and docstrings are invisible. Recognize raw json.load and json.loads, PyYAML parse calls, harness_yaml low-level load_file and load_str calls, aliases established by imports, the already-landed feature_json_write.load_feature_json route, and the current parse shapes found by the AST rather than a copied name list. The artifact must contain exactly one row for every current call, keyed by file and enclosing symbol and recording call category, artifact or payload kind, semantic or mechanical disposition, canonical accessor remedy or syntactically proven exemption, assigned task T-03 through T-07 when migration is required, and the targeted test that proves that row. Include explicit rows for low-level primitives, in-memory validated payloads, canonical locked writer transforms, the sole state.yaml reader, the deferred manifest_domains route, and every dispatchable and DEC-174 site, so an exemption is visible rather than absent from the work list. Sort deterministically and make the integration test compare the artifact's complete file-and-symbol set with the live AST result before any migration. Add a test-only classification-task T-NN mode that uses the production scanner and this artifact to fail until every row assigned to that task has reached its declared postcondition; it must fail with PLAN AMENDMENT REQUIRED if the live scan contains a new or unmatched site, an artifact row lacks an owning task or targeted test, or a task assignment is not present in that task's plan files. No migration task may edit such a site until plan.yaml is explicitly amended and returned for approval. Encode only syntactically provable exemptions: parsing inside artifact_accessors or harness_yaml low-level implementation, input whose classification records why parser choice is itself validation rather than artifact access, bytes already inside a canonical locked writer transform, the current sole state.yaml reader, and manifest_domains while all live callers remain excluded shell hooks pending issue 1674. Do not scan .sh and print that boundary with issue 1674. Each finding must name file, enclosing symbol, parse category, and an exact use-accessor remedy. Add fixture cases for calls, aliases, prose, callbacks, malformed Python, a second state.yaml reader, a newly discovered unclassified site, an assignment missing from task files, and a detector-blind control. The normal integration suite must demonstrate the scanner reports a seeded raw-call fixture and ignores an equivalent prose fixture, and the live classification capture made before migration must be non-empty. Do not add expect-findings or any other durable production CLI mode whose only purpose is accepting the one-time non-empty baseline; the final live zero assertion belongs to T-07.
+      Add the canonical-reader inventory to check-plan-routes.py, discriminating integration coverage to test-check-plan-routes.py, and a deterministic checked-in hand-classification at tests/integration/canonical-reader-classification.json. Recursively parse every Python source under .claude/skills/harness/bin with ast.parse and inspect genuine Call nodes only. Resolve direct and aliased calls to stdlib JSON loaders, PyYAML loaders, harness_yaml load_file and load_str, existing load_plan, load_fleet, manifest_domains, load_feature_json, and the canonical writer callbacks that contain parsing. String constants containing helper programs, comments, and docstrings are not AST calls and must not be inventoried as executable sites.
+
+      Emit one row for every live candidate, keyed by file and enclosing class or function symbol, with parse category, artifact or payload, disposition, canonical remedy, assigned task, DEC-174 category and execution route, and a concise exemption reason where applicable. The inventory must cover all current Python entrypoints, including the PR 1688 conversions; parse-bearing bash-write-guard.py, branch-create-gate.py, check-domain.py, check-state.py, dispatch-guard.py, inject-expertise.py, gh-close-gate.py, merge-gate.py, plan-sign-gate.py, and post-merge-sweep.py must appear with main-session-direct routes. Converted files with no candidate call must be proven covered by the scanned-file manifest rather than added as fake parse rows.
+
+      The only legal exemption classes are harness_yaml low-level primitives, in-memory validation of an already supplied document, parsing inside a canonical locked writer transform, a documented module-internal format such as the claims registry, test or migration corpus data, and the current sole state.yaml reader. Every other current candidate must name one canonical accessor and T-02 through T-07. Refuse a missing or duplicate classification row, a live AST row absent from the artifact, an artifact row absent from the AST, a task assignment whose files list omits its source, or an execution route inconsistent with DEC-174. Diagnostics must name file, enclosing symbol, category, remedy, and PLAN AMENDMENT REQUIRED for new or unmatched sites.
+
+      Add detector mutants for aliases, nested calls, docstrings, comments, string-contained helper programs, canonical writer callbacks, every exemption class, and a synthetic second state.yaml reader. The self-test must prove the pre-migration live tree has unresolved rows and exits non-zero for the audit while the detector and hand-classification consistency checks pass; it must not ship a one-shot expected-count CLI mode. Preserve every pre-existing check-plan-routes result outside separately named canonical-reader cases.
 
   - id: T-02
-    title: Consolidate and harden the canonical artifact accessor layer
+    title: Establish and harden the artifact accessor layer
     traces: [SC-02, SC-03, SC-07]
     change_type: cross_module
     execution_mode: team
@@ -145,41 +192,32 @@ tasks:
     status: ready
     files:
       - .claude/skills/harness/bin/artifact_accessors.py
-      - .claude/skills/harness/bin/feature_json_write.py#FeatureJsonError
       - .claude/skills/harness/bin/feature_json_write.py#load_feature_json
-      - .claude/skills/harness/bin/feature_json_write.py#opt_int
-      - .claude/skills/harness/bin/feature_json_write.py#write_feature_json
       - .claude/skills/harness/bin/gh-sync.py#load_recorded
       - .claude/skills/harness/bin/factory_decompose.py#load_factory
-      - .claude/skills/harness/bin/harness_yaml.py#load_plan
-      - .claude/skills/harness/bin/factory_config.py#load_fleet
       - .claude/skills/harness/bin/upgrade-config.py#load_json
+      - tests/unit/test-artifact-accessors.py
       - tests/unit/test-feature-json-reader.py#LoadFeatureJsonTest
-      - tests/unit/test-feature-json-reader.py#OptIntTest
-      - tests/unit/test-feature-json-reader.py#SingleReaderStructuralTest
       - tests/integration/test-gh-sync-open.py#main
       - tests/integration/test-factory-decompose.py
-      - tests/integration/test-harness-yaml.py#test_load_plan_accepts_a_well_formed_plan
-      - tests/unit/test-factory-config.py#_find_fleet_reads
+      - tests/integration/test-harness-yaml.py
+      - tests/unit/test-factory-config.py
       - tests/integration/test-sync-agent-adapters.py#main
+      - tests/integration/test-upgrade-config.py
     verify: |
-      python3 tests/unit/test-feature-json-reader.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-harness-yaml.py && python3 tests/unit/test-factory-config.py && python3 tests/integration/test-sync-agent-adapters.py
+      python3 tests/unit/test-artifact-accessors.py && python3 tests/unit/test-feature-json-reader.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-harness-yaml.py && python3 tests/unit/test-factory-config.py && python3 tests/integration/test-sync-agent-adapters.py && python3 tests/integration/test-upgrade-config.py
     intent: |
-      Create .claude/skills/harness/bin/artifact_accessors.py as the dependency-light artifact layer above harness_yaml.py. It must import no network or subprocess modules and expose ArtifactReadError plus load_feature_json, load_harness_json, load_plan, load_fleet, load_frontmatter, load_omp_config, read_hook_payload, parse_gh_json, and write_harness_json. Move the already-landed FeatureJsonError, load_feature_json, and opt_int implementation out of feature_json_write.py into artifact_accessors.py rather than rebuilding a second reader. In the same task repoint gh-sync.py load_recorded and factory_decompose.py load_factory, update the central test imports, and leave no compatibility alias or reader re-export in feature_json_write.py; that module continues to own only the canonical write_feature_json route and its writer internals. Preserve FeatureJsonError's name, message shape, next_step attribute, absent-file return, legacy numeric-string coercion, and both consumers' current exit and diagnostic behavior except for the issue 1682 fail-open closed below.
+      Create artifact_accessors.py as the single dependency-light public artifact layer above harness_yaml.py. It must have no eager network or subprocess imports and must expose load_feature_json, load_harness_json, load_plan, load_fleet, manifest_domains, load_frontmatter, load_omp_config, read_hook_payload, parse_gh_json, and write_harness_json. During T-02 through T-06, load_feature_json, load_plan, load_fleet, and manifest_domains must delegate inward to their existing implementations in feature_json_write.py, harness_yaml.py, and factory_config.py. Do not move those bodies yet and do not add legacy-module forwarders, re-exports, or a second public import path. T-07 performs the one physical relocation after every caller has been repointed. Harden the existing feature reader in feature_json_write.py now so artifact_accessors exposes the final behavior through delegation; feature_json_write.py remains the canonical locked writer until T-07 moves only its reader implementation.
 
-      Relocate load_plan and load_fleet implementation ownership to artifact_accessors.py while retaining temporary dependency-light forwarding at harness_yaml.load_plan and factory_config.load_fleet so the already-correct caller migration remains a separate mechanical T-04 diff. T-04 must remove those Python compatibility forwarders after every live Python caller is repointed. Do not move manifest_domains: leave its definition and public contract in harness_yaml.py because every live caller is embedded in an excluded .sh hook and physical relocation is deferred to issue 1674.
+      File JSON readers must read bytes and decode UTF-8 inside the documented error boundary, reject duplicate keys at every nesting level, and reject NaN, Infinity, and -Infinity through parse_constant. YAML readers must delegate to harness_yaml so duplicate-key rejection and the timestamp-resolver behavior are not copied. load_plan must still run validate_plan_doc and load_fleet must retain every existing fleet validation and diagnostic. load_frontmatter owns delimiter extraction and strict YAML parsing once; load_omp_config accepts .yml and .yaml through the same primitive. read_hook_payload and parse_gh_json parse in-memory text without opening files and preserve caller context in their typed failures. write_harness_json must preserve upgrade-config.py rendering, backup, same-directory temporary file, flush or fsync, and atomic os.replace behavior.
 
-      The module contract docstring must give concise maintainer guidance naming each canonical reader and the sanctioned writer or source routes, including write_feature_json, write_harness_json, plan-merge.py verbs, sync-agent-adapters.py, main-session-owned files, the sole state.yaml reader trip-wire, and the deferred manifest_domains exception. Do not export a route-table mapping, expose prose as runtime data, duplicate the documentation into tests, or assert docstring wording. Tests must behaviorally exercise each public reader and writer route, while T-01 classification and AST checks prove coverage of the live parse surface.
+      Close issue 1682 at the feature.json boundary and through both real consumers. Missing github or factory blocks remain legitimate absence. When present, validate the parent and issues fields used to decide whether GitHub objects exist: retain legacy numeric-string coercion, reject booleans and values that cannot produce a recorded issue number, and reject a present issues value that is not a mapping. Neither gh-sync.py load_recorded nor factory_decompose.py load_factory may collapse a wrong-typed present parent or issues value into absence. Add consumer regressions proving refusal occurs before parent or task issue creation. Preserve the existing issue 285 comment-bearing JSON fixture; add the new NaN, Infinity, -Infinity, wrong-typed parent, wrong-typed issues, and duplicate-creation cases test-first and record their failing state before implementation.
 
-      JSON file and in-memory accessors must open or decode inside their error boundary, reject duplicate keys with object_pairs_hook, and pass parse_constant to reject NaN, Infinity, and -Infinity as invalid JSON. Preserve load_plan schema validation and load_fleet validation without copying harness_yaml's duplicate-key or timestamp-resolver logic. Frontmatter owns delimiter extraction plus strict YAML parsing once; OMP config reads .yml or .yaml through that primitive. Hook and GitHub-output readers parse in-memory text without opening files and preserve caller-visible context in errors. write_harness_json must preserve upgrade-config.py's complete rendering, backup, same-directory temporary file, flush or fsync, and atomic os.replace behavior.
-
-      Close issue 1682 at the feature.json boundary and through both real consumers. A missing github or factory block remains a legitimate absent state. When either block is present, validate the parent and issues fields needed to decide whether GitHub objects already exist: preserve the documented legacy numeric-string coercion, but refuse a present value whose type or contents cannot produce the recorded parent or issue number, and refuse a present issues value that is not a mapping. Neither load_recorded nor load_factory may turn those wrong-typed present fields into the same empty parent or issues result as absence. Add real-consumer regression cases proving gh-sync open and factory decompose refuse before any parent or task issue creation on those corrupt records, with zero mutating GitHub calls.
-
-      Preserve and extend the already-landed central coverage in tests/unit/test-feature-json-reader.py, including the comment-bearing document that closed issue 285 on current main. Do not claim a new fail-first for those landed cases. Write genuinely new issue 1682 cases first and observe them fail before implementation: NaN, Infinity, and -Infinity at the JSON boundary, wrong-typed nested parent and issues fields through load_recorded and load_factory, and the duplicate-parent or duplicate-task-issue prevention scenarios. Then require the complete named verify command to pass.
+      The module docstring must name each public reader and the sanctioned write or source route: write_feature_json, write_harness_json, plan-merge.py verbs, sync-agent-adapters.py, main-session-owned files, and the sole state.yaml reader trip-wire. Do not expose a route-table mapping or test prose. Make the T-01 classification recognize the four inward delegations as canonical accessor implementations while leaving caller migration rows unresolved for later tasks.
 
   - id: T-03
     title: Cut over dispatchable semantic bypasses
-    traces: [SC-01, SC-03, SC-04]
+    traces: [SC-01, SC-03, SC-04, SC-06]
     change_type: cross_module
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -187,71 +225,56 @@ tasks:
     status: ready
     files:
       - .claude/skills/harness/bin/board-station.py#main
-      - .claude/skills/harness/bin/board_lifecycle.py#_own_repo
-      - .claude/skills/harness/bin/board_lifecycle.py#_plan_station
-      - .claude/skills/harness/bin/board_lifecycle.py#_status_findings
+      - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/factory_claim.py#issue_number
       - .claude/skills/harness/bin/factory_config.py#product_config
-      - .claude/skills/harness/bin/factory_gh.py#run_gh
-      - .claude/skills/harness/bin/factory_gh.py#_project_field_resolve
-      - .claude/skills/harness/bin/factory_gh.py#project_resolve
-      - .claude/skills/harness/bin/factory_gh.py#issue_board_item_id
+      - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/feature-record.py#_budgets_for
-      - .claude/skills/harness/bin/feature_schema.py#recovery_command_for
-      - .claude/skills/harness/bin/feature_schema.py#problems_for_file
+      - .claude/skills/harness/bin/feature_schema.py
       - .claude/skills/harness/bin/gate_policy.py#_load_config
-      - .claude/skills/harness/bin/gh-sync.py#load_config
-      - .claude/skills/harness/bin/gh-sync.py#_feature_station
-      - .claude/skills/harness/bin/gh-sync.py#parse_source_issues
-      - .claude/skills/harness/bin/gh-sync.py#_record_pr
-      - .claude/skills/harness/bin/gh-sync.py#_open_ensure_milestone
-      - .claude/skills/harness/bin/gh-sync.py#_load_backlog_receipt
-      - .claude/skills/harness/bin/gh-sync.py#cmd_ship
+      - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/gh_board.py#load_board
       - .claude/skills/harness/bin/gh_issue_types.py#classify_capability
-      - .claude/skills/harness/bin/handoff_done_when.py#_resolve_plan
-      - .claude/skills/harness/bin/handoff_done_when.py#_plan_task
+      - .claude/skills/harness/bin/handoff_done_when.py
       - .claude/skills/harness/bin/harness_boundary.py#run_dir_grant_globs
-      - .claude/skills/harness/bin/inflight_registry.py#_parse
-      - .claude/skills/harness/bin/inflight_registry.py#live_claims
       - .claude/skills/harness/bin/layout_migration.py#_declared_segments
       - .claude/skills/harness/bin/merge-settings.py#main
       - .claude/skills/harness/bin/run_identity.py#read_marker
       - .claude/skills/harness/bin/sync-agent-adapters.py#parse_canonical
-      - .claude/skills/harness/bin/wayfind.py#cfg
-      - .claude/skills/harness/bin/wayfind.py#gh_json
-      - .claude/skills/harness/bin/worktree_terminal.py#_read_landed_feature_json
-      - .claude/skills/harness/bin/worktree_terminal.py#_read_landed_plan_yaml
-      - tests/integration/test-board-station.py#run
+      - .claude/skills/harness/bin/wayfind.py
+      - .claude/skills/harness/bin/worktree_terminal.py
+      - tests/integration/test-board-station.py
       - tests/integration/test-board-lifecycle.py
-      - tests/unit/test-factory-claim.py#recording_load_plan
+      - tests/unit/test-factory-claim.py
       - tests/unit/test-factory-config.py
       - tests/unit/test-factory-gh.py
+      - tests/unit/test-feature-record.py
       - tests/unit/test-feature-schema-build-entry.py
       - tests/unit/test-gate-policy.py
-      - tests/integration/test-gh-sync-open.py#main
-      - tests/integration/test-gh-sync-record.py#main
+      - tests/integration/test-gh-sync-open.py
+      - tests/integration/test-gh-sync-record.py
       - tests/unit/test-gh-board.py
       - tests/unit/test-issue-types.py
       - tests/unit/test-handoff-done-when.py
       - tests/unit/test-harness-boundary.py
-      - tests/integration/test-inflight-registry.py
       - tests/integration/test-layout-migration.py
       - tests/integration/test-merge-settings.py
       - tests/unit/test-run-identity.py
       - tests/integration/test-sync-agent-adapters.py
-      - tests/unit/test-wayfind.py#main
-      - tests/integration/test-worktree-terminal.py#main
+      - tests/unit/test-wayfind.py
+      - tests/integration/test-worktree-terminal.py
     verify: |
-      python3 tests/integration/test-check-plan-routes.py --classification-task T-03 && python3 tests/unit/test-factory-gh.py && python3 tests/unit/test-handoff-done-when.py && python3 tests/integration/test-merge-settings.py && python3 tests/integration/test-inflight-registry.py && python3 tests/integration/test-sync-agent-adapters.py && python3 tests/unit/test-run-identity.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-board-lifecycle.py
+      python3 tests/unit/test-factory-gh.py && python3 tests/unit/test-handoff-done-when.py && python3 tests/integration/test-merge-settings.py && python3 tests/integration/test-sync-agent-adapters.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-board-lifecycle.py
     intent: |
-      Treat T-01's complete checked-in hand-classification artifact as the authoritative input and this files list as the current projection at checkout 391b8c80cd7bd5c1bf708f3a064debec72b57e0a, not a ceiling. Before editing, run the T-03 classification-task check. If any live parse site is unclassified, any T-03 row is absent from files, or any row lacks a targeted test, stop without editing that site and require an explicit plan.yaml amendment and renewed approval. Migrate every row assigned T-03 as a dispatchable semantic bypass, including the exact current symbols listed in files. Preserve each caller's documented absent-file, non-mapping, diagnostic, exit-code, and mutation posture while removing parser choice from the caller. feature.json must use load_feature_json, plan consumers must use load_plan, harness.json and remote product configuration must use load_harness_json, frontmatter and OMP configuration must use their category readers, hook payloads must use read_hook_payload, and GitHub response text must use parse_gh_json. Replace broad exception catches with the accessor's typed error only where the current contract handles parse failure, and allow unexpected exceptions to propagate. Do not change calls classified as canonical writer transforms, low-level primitives, validated in-memory payloads, the state.yaml trip-wire, or manifest_domains; do not touch .sh.
+      Use T-01's checked-in classification as the complete input. Before editing, confirm every live row assigned here has a current source file, a listed target, a canonical remedy, a targeted test, and a team route. If any live row is new, unclassified, absent from files, or cannot be covered by the named tests, stop and require an explicit plan amendment rather than absorbing drift. Do not edit tests/integration/test-check-plan-routes.py or its classification machinery in this team task; T-05 owns the main-session-direct postcondition check for T-03.
 
-      gh-sync.py load_recorded and factory_decompose.py load_factory are not semantic bypasses in this checkout: both already route through the landed load_feature_json implementation and their relocation plus issue 1682 hardening belongs wholly to T-02. T-03 must not edit either symbol. Update each targeted existing test so it exercises the new public seam, add behavior assertions only where strictness or the typed error contract changes, demonstrate affected semantic cases failing before cutover, and make the classification-task check prove every T-03 row reached its declared postcondition. Do not relocate already-correct load_plan or load_fleet call sites in this task; T-04 keeps that mechanical diff separate.
+      Migrate every dispatchable semantic bypass row assigned T-03. The current projection includes harness.json readers in board-station main, board_lifecycle _own_repo, factory_config product_config, feature-record _budgets_for, gate_policy _load_config, gh-sync load_config, gh_board load_board, layout_migration _declared_segments, and wayfind cfg; plan.yaml bypasses in board_lifecycle _plan_station, feature_schema recovery_command_for, gh-sync _feature_station and parse_source_issues, and handoff_done_when _resolve_plan and _plan_task; feature.json reads in board_lifecycle _status_findings, factory_claim issue_number, and worktree_terminal _read_landed_feature_json; frontmatter parsing in sync-agent-adapters parse_canonical; GitHub output parsing in factory_gh run_gh, _project_field_resolve, project_resolve and issue_board_item_id, gh-sync _record_pr and _open_ensure_milestone, gh_issue_types classify_capability, and wayfind gh_json; and the other explicit payload rows the classification assigns in the listed files. Existing module-internal registry reads, schema documents, validation text, canonical writer transforms, migration corpus data, and the sole state.yaml reader stay classified exemptions rather than being routed through an unrelated accessor.
+
+      Preserve every caller's absent-file, malformed-input, non-mapping, diagnostic, exit-code, mutation, and fallback contract except where SC-03 deliberately makes corruption loud. Update existing consumer tests to exercise the public accessor seam and add assertions only for changed observable behavior. Do not relocate already-correct load_plan, load_fleet, or manifest_domains calls reserved for the separate T-04 and T-07 mechanical review units.
 
   - id: T-04
-    title: Relocate dispatchable correct-reader call sites
-    traces: [SC-02, SC-04, SC-06]
+    title: Relocate dispatchable correct-reader calls
+    traces: [SC-01, SC-02, SC-04, SC-06]
     change_type: cross_module
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -259,105 +282,158 @@ tasks:
     status: ready
     files:
       - .claude/skills/harness/bin/board_lifecycle.py#_resolve_board
-      - .claude/skills/harness/bin/factory_claim.py#_plan
-      - .claude/skills/harness/bin/factory_claim.py#_main
+      - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/factory_config.py#_main
       - .claude/skills/harness/bin/factory_decompose.py#_main
       - .claude/skills/harness/bin/factory_land.py#_main
       - .claude/skills/harness/bin/factory_workspace.py#_main
       - .claude/skills/harness/bin/feature-record.py#cmd_propose_rework
       - .claude/skills/harness/bin/feature-worktree.py#resolve_repo
-      - .claude/skills/harness/bin/gh-sync.py#parse_tasks
-      - .claude/skills/harness/bin/gh-sync.py#_projected_for
-      - .claude/skills/harness/bin/gh-sync.py#_status_plan_doc
+      - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/harness_boundary.py#resolve_fleet
-      - .claude/skills/harness/bin/worktree_terminal.py#_repo_arg_for_segment
-      - .claude/skills/harness/bin/worktree_terminal.py#classify_all
-      - tests/unit/test-factory-config.py#_find_fleet_reads
-      - tests/unit/test-factory-claim.py#recording_load_plan
-      - tests/unit/test-plan-depends-on.py#walk
+      - .claude/skills/harness/bin/worktree_terminal.py
+      - tests/unit/test-factory-config.py
+      - tests/unit/test-factory-claim.py
+      - tests/unit/test-plan-depends-on.py
       - tests/integration/test-board-lifecycle.py
       - tests/integration/test-factory-decompose.py
-      - tests/integration/test-gh-sync-open.py#main
-      - tests/integration/test-gh-sync-start-task.py#main
-      - tests/integration/test-worktree-terminal.py#main
-      - tests/integration/test-feature-worktree.py#main
+      - tests/integration/test-gh-sync-open.py
+      - tests/integration/test-gh-sync-start-task.py
+      - tests/integration/test-worktree-terminal.py
+      - tests/integration/test-feature-worktree.py
+      - tests/unit/test-factory-land.py
+      - tests/unit/test-factory-workspace.py
     verify: |
-      python3 tests/integration/test-check-plan-routes.py --classification-task T-04 && python3 tests/unit/test-factory-config.py && python3 tests/unit/test-factory-claim.py && python3 tests/unit/test-plan-depends-on.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-feature-worktree.py
+      python3 tests/unit/test-factory-config.py && python3 tests/unit/test-factory-claim.py && python3 tests/unit/test-plan-depends-on.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/integration/test-feature-worktree.py
     intent: |
-      Treat T-01's complete checked-in hand-classification artifact as the authoritative input and this files list as the current projection at checkout 391b8c80cd7bd5c1bf708f3a064debec72b57e0a, not a ceiling. Before editing, run the T-04 classification-task check. If any live parse site is unclassified, any T-04 row is absent from files, or any row lacks a targeted test, stop without editing that site and require an explicit plan.yaml amendment and renewed approval. In a relocation-only diff, repoint every listed current caller of the already-correct load_plan and load_fleet accessors to artifact_accessors and update tests to import or monkeypatch that public seam. Preserve signatures, defaults, returned values, exception meaning, messages, and control flow exactly. Do not combine a raw parser replacement or new error behavior into this task.
+      Use T-01's checked-in classification as the complete input. In a relocation-only diff, repoint every dispatchable caller already using the correct load_plan or load_fleet contract to artifact_accessors. The current projection includes board_lifecycle _resolve_board; factory_claim _BlockerCache._plan and _main; factory_config _main; factory_decompose _main; factory_land _main; factory_workspace _main; feature-record cmd_propose_rework; feature-worktree resolve_repo; gh-sync parse_tasks, _projected_for, and _status_plan_doc; harness_boundary resolve_fleet; and worktree_terminal _repo_arg_for_segment and classify_all. Preserve signatures, exceptions, messages, defaults, return values, and control flow byte-for-byte at consumer boundaries; tests should change imports or monkeypatch seams without adding new semantic expectations.
 
-      T-02 already relocates the landed load_feature_json implementation and repoints gh-sync.py load_recorded and factory_decompose.py load_factory in the same coherent change, so neither symbol belongs to this mechanical task. Remove T-02's temporary harness_yaml.load_plan and factory_config.load_fleet Python forwarders only after every current Python caller listed here is repointed and the classification-task check reaches its declared postcondition. Leave harness_yaml as the strict YAML primitive and factory_config as fleet-domain validation and query behavior. Do not move or forward manifest_domains: its physical relocation and shell-only callers remain deferred to issue 1674. Record T-04 as the mechanical review unit distinct from T-03.
+      Do not move any raw-parser bypass or accessor body into this review unit. The artifact_accessors public functions continue delegating inward, so no legacy-module compatibility forwarder or re-export exists while direct DEC-174 callers await T-07. Do not edit tests/integration/test-check-plan-routes.py or its classification machinery in this team task; T-05 owns the main-session-direct postcondition check that every T-04 row uses artifact_accessors and no semantic row changed. Record T-04 as the dispatchable mechanical review unit distinct from T-03.
 
   - id: T-05
     title: Cut over Python validators and reader gates
-    traces: [SC-01, SC-05, SC-06]
+    traces: [SC-01, SC-03, SC-05, SC-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 classifies validators, gate scripts, and each gate test as enforcement-layer carve-outs.
+    execution_reason: DEC-174 classifies validators, gate scripts, and each changed gate test as enforcement-layer work regardless of file extension.
     depends_on: [T-04]
     status: ready
     files:
+      - .claude/skills/harness/bin/check-omp-port.py
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/check-skill-weight.py
-      - .claude/skills/harness/bin/check-omp-port.py
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/code-grade.py
       - .claude/skills/harness/bin/validate-digest.py
-      - tests/integration/test-check-plan-routes.py#case_20
-      - tests/integration/test-check-skill-weight.py#WeightTests
-      - tests/integration/test-check-omp-port.py#case_live_tree_passes
-      - tests/integration/test-validate-digest.py#main
-      - tests/integration/test-code-grade-cli.py#main
+      - tests/integration/canonical-reader-enforcement-baselines.json
+      - tests/integration/test-check-omp-port.py
+      - tests/integration/test-check-plan-routes.py
+      - tests/integration/test-check-skill-weight.py
+      - tests/integration/test-check-state.py
+      - tests/integration/test-check-state-entry.py
+      - tests/integration/test-check-state-plans.py
+      - tests/integration/test-check-state-records.py
+      - tests/integration/test-check-state-worktrees.py
+      - tests/integration/test-check-state-handoff.py
+      - tests/integration/test-check-state-inv26.py
+      - tests/integration/test-check-state-feat59.py
+      - tests/integration/test-code-grade-cli.py
+      - tests/integration/test-validate-digest.py
     verify: |
-      python3 tests/integration/test-check-plan-routes.py --classification-task T-05 && python3 tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-skill-weight.py && python3 tests/integration/test-check-omp-port.py && python3 tests/integration/test-validate-digest.py && python3 tests/integration/test-code-grade-cli.py
+      python3 tests/integration/test-check-plan-routes.py --classification-task T-03 && python3 tests/integration/test-check-plan-routes.py --classification-task T-04 && python3 tests/integration/test-check-plan-routes.py --verify-enforcement-bytes tests/integration/canonical-reader-enforcement-baselines.json --classification-task T-05 && python3 tests/integration/test-check-omp-port.py && python3 tests/integration/test-check-skill-weight.py && python3 tests/integration/test-code-grade-cli.py && python3 tests/integration/test-validate-digest.py && python3 tests/integration/test-check-state-entry.py && python3 tests/integration/test-check-state-plans.py && python3 tests/integration/test-check-state-records.py
     intent: |
-      Main-session-direct under DEC-174, treat T-01's complete checked-in hand-classification artifact as the authoritative input; this files list is the current known projection, not a ceiling. Before editing, run the T-05 classification-task check. If any live parse site is unclassified, any T-05 row is absent from files, or any row lacks a targeted test, stop without editing that site and require an explicit plan.yaml amendment and renewed approval. Replace every row assigned T-05 for a semantic raw parse in the named Python validators and reader gates with artifact_accessors, including all current parse sites within each named file rather than only the former fixed symbol sample. Before editing, run each named test and capture its complete normalized violation or failure-line set, not only its exit code or pass count. Add fail-first cases for strict JSON, duplicate rejection, canonical frontmatter and OMP config parsing, plan schema validation, and typed failures where the old bypass accepted, defaulted, or raised a different exception. Remove silent broad-exception defaults for parse failures and catch only ArtifactReadError where pass-through is the existing policy; preserve all non-parse policy and wording. After editing, require every pre-existing gate case and violation line to be byte-identical, with only the new malformed-input cases adding output, and make the classification-task check prove every T-05 row reached its declared postcondition. Keep this as a semantic review unit and do not perform already-correct accessor relocations here.
+      Execute directly under DEC-174. First update tests/integration/test-check-plan-routes.py as needed and run the main-session-direct classification postcondition checks for T-03 and T-04. They must prove every assigned row uses artifact_accessors, every classified source and targeted consumer test is present, T-03 changed only semantic rows, and T-04 changed only mechanical rows. A new, unclassified, omitted, or misrouted row requires a plan amendment. Then require T-01's T-05 classification check before editing the T-05 sources. Capture every existing named case for check-omp-port.py, check-plan-routes.py, check-skill-weight.py, check-state.py, code-grade.py, and validate-digest.py as return code plus normalized complete stdout and stderr in canonical-reader-enforcement-baselines.json. This file and the --verify-enforcement-bytes mode are temporary migration proof through T-07, not permanent interfaces. The inventory must distinguish these legacy cases from newly added canonical-reader audit cases and must refuse a missing case or changed violation membership.
+
+      Replace every semantic raw parse assigned T-05 with the correct artifact accessor. This includes frontmatter and OMP configuration reads in check-omp-port.py; frontmatter and harness.json reads in check-skill-weight.py; harness.json and feature.json reads in code-grade.py and validate-digest.py; hook payload parsing in validate-digest.py; check-plan-routes.py manifest and feature-record bypasses; and every harness.json, feature.json, fleet.yaml, plan.yaml, hook or validation payload row now AST-visible in check-state.py after PR 1688. Keep state.yaml's sole reader, JSON schema loads, settings merge validation, and already-canonical calls classified according to T-01 rather than forcing them through the wrong accessor. Remove silent broad-exception defaults for in-scope artifact corruption where SC-03 requires a typed refusal, but preserve the gate's externally documented violation text, ordering, stderr, and exit code.
+
+      Update each named integration test in the same direct task. Demonstrate affected semantic cases failing before cutover, then require exact pre/post legacy output equality and the separate new strictness assertions. The T-05 classification check must prove every T-05 row reached its canonical remedy and no mechanical relocation assigned T-07 occurred.
 
   - id: T-06
-    title: Cut over Python hook and merge gates
-    traces: [SC-01, SC-05, SC-06]
+    title: Cut over Python hooks and policy gates
+    traces: [SC-01, SC-03, SC-05, SC-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 classifies hooks, merge and close gates, and their tests as enforcement-layer carve-outs.
+    execution_reason: Every named source is a hook, gate, or post-merge enforcement program and DEC-174 includes each source and its test by category.
     depends_on: [T-05]
     status: ready
     files:
+      - .claude/skills/harness/bin/bash-write-guard.py
+      - .claude/skills/harness/bin/branch-create-gate.py
+      - .claude/skills/harness/bin/check-domain.py
+      - .claude/skills/harness/bin/dispatch-guard.py
       - .claude/skills/harness/bin/gh-close-gate.py
+      - .claude/skills/harness/bin/inject-expertise.py
       - .claude/skills/harness/bin/merge-gate.py
       - .claude/skills/harness/bin/plan-sign-gate.py
-      - tests/integration/test-gh-close-gate.py#gate
-      - tests/integration/test-merge-gate.py#gate
-      - tests/integration/test-plan-sign-gate.py#gate
+      - .claude/skills/harness/bin/post-merge-sweep.py
+      - tests/integration/canonical-reader-enforcement-baselines.json
+      - tests/integration/test-bash-write-guard.py
+      - tests/integration/test-branch-create-gate.py
+      - tests/integration/test-check-domain.py
+      - tests/integration/test-check-domain-claims.py
+      - tests/integration/test-check-domain-grant.py
+      - tests/integration/test-check-domain-post.py
+      - tests/integration/test-check-domain-worktree.py
+      - tests/integration/test-check-domain-worktree-parity.py
+      - tests/integration/test-check-domain-approval.py
+      - tests/integration/test-check-domain-artifact.py
+      - tests/integration/test-dispatch-guard.py
+      - tests/integration/test-gh-close-gate.py
+      - tests/integration/test-inject-expertise.py
+      - tests/integration/test-merge-gate.py
+      - tests/integration/test-plan-sign-gate.py
+      - tests/integration/test-post-merge-sweep.py
+      - tests/integration/test-check-plan-routes.py
     verify: |
-      python3 tests/integration/test-check-plan-routes.py --classification-task T-06 && python3 tests/integration/test-gh-close-gate.py && python3 tests/integration/test-merge-gate.py && python3 tests/integration/test-plan-sign-gate.py
+      python3 tests/integration/test-check-plan-routes.py --verify-enforcement-bytes tests/integration/canonical-reader-enforcement-baselines.json --classification-task T-06 && python3 tests/integration/test-bash-write-guard.py && python3 tests/integration/test-branch-create-gate.py && python3 tests/integration/test-check-domain.py && python3 tests/integration/test-check-domain-claims.py && python3 tests/integration/test-check-domain-grant.py && python3 tests/integration/test-check-domain-post.py && python3 tests/integration/test-check-domain-worktree.py && python3 tests/integration/test-check-domain-worktree-parity.py && python3 tests/integration/test-check-domain-approval.py && python3 tests/integration/test-check-domain-artifact.py && python3 tests/integration/test-dispatch-guard.py && python3 tests/integration/test-gh-close-gate.py && python3 tests/integration/test-inject-expertise.py && python3 tests/integration/test-merge-gate.py && python3 tests/integration/test-plan-sign-gate.py && python3 tests/integration/test-post-merge-sweep.py
     intent: |
-      Main-session-direct under DEC-174, treat T-01's complete checked-in hand-classification artifact as the authoritative input; this files list is the current known projection, not a ceiling. Before editing, run the T-06 classification-task check. If any live parse site is unclassified, any T-06 row is absent from files, or any row lacks a targeted test, stop without editing that site and require an explicit plan.yaml amendment and renewed approval. Migrate every row assigned T-06 for Python hook payload, harness.json, feature.json, and merge-record semantic bypasses in the named gates to artifact_accessors, including all current parse sites within each named file rather than only the former fixed symbol sample. Capture each full pre-change denial or violation output set and compare it byte for byte after cutover. read_hook_payload must preserve deliberate missing or unreadable payload pass-throughs where the gate contract says they pass, while file readers must use strict extension-based parsing and typed errors without relocating broad except Exception fallbacks. Delete silent parse-to-empty behavior where issue 1594 identifies it; do not change command tokenization, policy order, messages, or exit codes. Add discriminating malformed, duplicate, and valid controls to each gate's existing test before production edits, show them fail, make the classification-task check prove every T-06 row reached its declared postcondition, and keep the semantic diff separate from T-07's relocation-only cleanup. Do not touch any .sh wrapper or embedded Python.
+      Execute directly under DEC-174 and require T-01's T-06 classification check before editing. Extend canonical-reader-enforcement-baselines.json with every existing named case for the listed hook and gate sources, capturing return code and normalized complete stdout and stderr before cutover. This file and the comparison mode remain temporary migration proof only until T-07's final successful comparison. A missing legacy case, a case moved into the new-audit partition, changed ordering, or changed violation membership must fail the comparison.
+
+      Migrate every semantic row assigned T-06. The current PR 1688-visible projection includes hook payload and manifest reads in bash-write-guard.py and check-domain.py; harness.json and hook payload reads in branch-create-gate.py, gh-close-gate.py, merge-gate.py, and post-merge-sweep.py; hook payload reads in dispatch-guard.py, inject-expertise.py, and plan-sign-gate.py; feature.json reads in merge-gate.py and post-merge-sweep.py; and check-domain.py's in-memory YAML and artifact bypasses. Preserve bootstrap path ordering and dependency-light imports. String-contained Python compatibility probes remain string data, not AST call sites. Keep already-correct manifest_domains and load_fleet calls for the mechanical T-07 review unit.
+
+      Update every listed integration test in this same direct task. Demonstrate new strictness assertions failing before implementation, then execute every changed test-check-domain family file plus all other named tests and require exact legacy output comparison to pass. The classification-task check must prove every semantic T-06 row reached its remedy without mechanically relocating T-07 rows.
 
   - id: T-07
-    title: Finish gate relocations and enforce zero drift
-    traces: [SC-01, SC-02, SC-05, SC-06, SC-08]
+    title: Finalize accessor ownership and relocate direct readers
+    traces: [SC-01, SC-02, SC-05, SC-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: This changes check-plan-routes.py and its integration gate, so DEC-174 requires direct execution.
+    execution_reason: This task changes enforcement sources, check-plan-routes.py, and their tests, all governed directly by DEC-174.
     depends_on: [T-06]
     status: ready
     files:
-      - .claude/skills/harness/bin/check-plan-routes.py#process_plan_yaml
-      - .claude/skills/harness/bin/check-plan-routes.py#main
-      - tests/integration/test-check-plan-routes.py#case_20
-      - tests/integration/check-plan-routes-legacy-output.json
+      - .claude/skills/harness/bin/artifact_accessors.py
+      - .claude/skills/harness/bin/bash-write-guard.py
+      - .claude/skills/harness/bin/check-domain.py
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/check-state.py
+      - .claude/skills/harness/bin/post-merge-sweep.py
+      - .claude/skills/harness/bin/harness_yaml.py
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/feature_json_write.py
+      - tests/integration/canonical-reader-classification.json
+      - tests/integration/canonical-reader-enforcement-baselines.json
+      - tests/integration/test-bash-write-guard.py
+      - tests/integration/test-check-domain.py
+      - tests/integration/test-check-domain-grant.py
+      - tests/integration/test-check-domain-worktree.py
+      - tests/integration/test-check-plan-routes.py
+      - tests/integration/test-check-state-plans.py
+      - tests/integration/test-post-merge-sweep.py
     verify: |
-      python3 tests/integration/test-check-plan-routes.py --verify-legacy-bytes tests/integration/check-plan-routes-legacy-output.json && python3 tests/integration/test-check-plan-routes.py --classification-task T-07 && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+      test ! -e tests/integration/canonical-reader-enforcement-baselines.json && ! grep -q -- '--verify-enforcement-bytes' tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-plan-routes.py --classification-task T-07 && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 tests/unit/test-artifact-accessors.py
     intent: |
-      Main-session-direct under DEC-174, treat T-01's complete checked-in hand-classification artifact as the authoritative input; this files list is the current known projection, not a ceiling. Before editing, run the T-07 classification-task check. If any live parse site is unclassified, any T-07 row is absent from files, or any row lacks a targeted test, stop without editing that site and require an explicit plan.yaml amendment and renewed approval. In a mechanical-only diff, repoint every already-correct check-plan-routes.py reader row assigned T-07 to artifact_accessors without changing behavior, then enforce the permanent live zero-drift assertion. Do not relocate manifest_domains or treat its shell-only callers as migrated.
+      Execute directly under DEC-174. Before editing, require T-01's T-07 classification check and run the complete temporary enforcement-byte comparison against canonical-reader-enforcement-baselines.json. In a mechanical-only diff, repoint every already-correct direct-lane accessor call to artifact_accessors. The current projection includes manifest_domains in bash-write-guard.py and check-domain.py, load_plan in check-plan-routes.py and check-state.py, and load_fleet in post-merge-sweep.py. Preserve imports, exception handling, diagnostics, order, and exit behavior; exact pre/post legacy return code, stdout, stderr, and violation membership must remain identical.
 
-      Before either source change, use the integration test's explicit legacy-case inventory to capture, in tests/integration/check-plan-routes-legacy-output.json, each pre-existing non-canonical-reader case's return code and raw stdout and stderr bytes keyed by case name. Keep newly introduced canonical-reader audit cases in a disjoint inventory. After the source change, replay every legacy case and require exact byte equality for return code, stdout, stderr, ordering, and violation membership; the test must fail if a legacy case is missing, moved into the audit partition, or differs by one byte. The verify-legacy-bytes mode performs this exhaustive comparison, while the normal integration run grades the new audit cases separately. The production canonical-reader-audit mode has only its permanent contract: it exits zero when every current in-scope Python parse call has the disposition recorded by T-01 and nonzero with actionable findings otherwise. No expect-findings or other one-shot acceptance mode survives in the production CLI.
+      After every dispatchable and direct caller imports artifact_accessors, replace its four temporary inward delegations by physically moving the load_feature_json reader and error types from feature_json_write.py, load_plan and manifest_domains from harness_yaml.py, and load_fleet and its reader error and validation ownership from factory_config.py into artifact_accessors.py. Delete the legacy definitions in the same mechanical review unit. Do not create or retain compatibility forwarders, re-exports, aliases, or duplicate implementations. Retain feature_json_write.py as the canonical locked writer, harness_yaml.py as the low-level strict YAML and plan-validation primitive, and factory_config.py as the home of fleet-domain queries and board behavior. Update the classification artifact to final dispositions without deleting historical task attribution.
 
-      The final audit must require migrated calls to route through artifact_accessors; allow only the syntactically proven low-level and validated-payload exemptions, canonical locked writer transforms, the sole state.yaml reader, and the manifest_domains definition whose live shell callers remain excluded pending issue 1674. It must continue to exclude every .sh file explicitly, and its synthetic second-state-reader case must still fail. Diagnostics for mutants must contain the source file, enclosing symbol, parse category, exact accessor remedy, and PLAN AMENDMENT REQUIRED for any new or unmatched site. Re-run the byte comparison, complete integration test, classification-task check, and permanent live audit. Preserve T-01's detector self-tests so a checker that matches no calls, skips malformed Python, accepts a prose hit, loses a parse category, or admits a site not represented in the plan fails loudly. Record this as the mechanical relocation review unit; do not fold any semantic parser replacement into it.
+      Turn the T-01 inventory into the permanent live zero-drift audit. It must report zero unresolved in-scope rows while continuing to validate every classified exemption. A synthetic raw call in each parse category, an alias, a new unmatched Python file, a second state.yaml reader, and an enforcement file misrouted to team must fail with file, enclosing symbol, category, exact accessor remedy, and PLAN AMENDMENT REQUIRED. Removing a scanned PR 1688-converted file or narrowing discovery must also fail.
+
+      After the completed migration passes the final byte comparison, delete canonical-reader-enforcement-baselines.json and remove the --verify-enforcement-bytes CLI mode plus its one-shot support and tests from test-check-plan-routes.py. The baseline and comparison mode must not ship. Keep only the live zero-drift audit and its discriminating integration coverage as permanent enforcement. Run the final verify against this retired state.
 
   - id: T-08
-    title: Record the branch gate carve-out
-    traces: [SC-05, SC-08]
+    title: Record the current branch gate carve-out
+    traces: [SC-05]
     change_type: docs
     execution_mode: team
     execution_agent: harness-documentor
@@ -371,4 +447,18 @@ tasks:
     verify: |
       python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
     intent: |
-      Update only DEC-174's enforcement-layer enumeration to include branch-create-gate.sh, as issue 1594's settled ruling requires, without changing the category-governs wording, adding feature-specific issue 1674 narrative, or changing any policy. Regenerate DECISIONS-INDEX.md with gen-decisions-index.py so every source anchor remains current and confirm the generated bytes match the committed index.
+      Update only DEC-174's current enforcement-layer enumeration to include branch-create-gate.py. Preserve the category-governs wording and the Python filenames already updated by PR 1688; do not add feature-specific history or change policy. Regenerate DECISIONS-INDEX.md with gen-decisions-index.py so every source anchor remains current, then require generated bytes to match the committed index.
+  - id: T-09
+    title: Delete the obsolete shell differential tool
+    traces: [SC-01]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/sh-to-py-differential.py
+    verify: |
+      test ! -e .claude/skills/harness/bin/sh-to-py-differential.py
+    intent: |
+      Delete sh-to-py-differential.py before T-01 builds the live Python reader inventory. Its capture and verify contract requires paired shell and Python entrypoints, and the current bin surface has no shell entrypoints, callers, or remaining migration use. Do not replace it, classify its json.load call, or add a permanent audit exemption for it. T-01 depends on this deletion so the checked-in classification and zero-drift guard describe only live tools.
