@@ -4,7 +4,7 @@ approval:
   date: '2026-09-14'
   approved_by: mruangutai
   status: approved
-status: plan
+status: building
 source_issues: [285, 1594]
 panel:
   last_run: 2026-09-14-plan-refresh-product
@@ -457,7 +457,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/sh-to-py-differential.py
     verify: |
