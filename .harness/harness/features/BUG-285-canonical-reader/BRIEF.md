@@ -51,6 +51,6 @@ Harness maintainers currently choose a parser at each data-read site, so the sam
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: mruangutai
+date: 2026-09-14

@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-285-canonical-reader
 approval:
-  status: pending
+  date: '2026-09-14'
+  approved_by: mruangutai
+  status: approved
 status: plan
 source_issues: [285, 1594]
 panel:

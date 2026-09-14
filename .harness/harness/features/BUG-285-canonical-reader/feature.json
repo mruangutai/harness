@@ -74,5 +74,41 @@
       "reason": "Prerequisite #1674 is merged and the deferred plan must be re-derived against current main before approval"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 3,
+    "wall_clock_minutes": 135,
+    "decision": ".harness/harness/features/BUG-285-canonical-reader/notes/handoff-plan.md"
+  },
+  "github": {
+    "milestone": 69,
+    "parent": 1689,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 1690,
+      "T-02": 1691,
+      "T-03": 1692,
+      "T-04": 1693,
+      "T-05": 1694,
+      "T-06": 1695,
+      "T-07": 1696,
+      "T-08": 1697,
+      "T-09": 1698
+    },
+    "source_issues": [
+      285,
+      1594
+    ],
+    "build_entry": "opened"
+  }
 }
