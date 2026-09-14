@@ -15,6 +15,16 @@
       "ended_at": "2026-09-13T18:17:47+00:00",
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-13-plan-apply-c1",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-14T01:28:13+00:00",
+      "ended_at": "2026-09-14T01:57:03+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -38,6 +48,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "DEC-228 downgrade misfired: the plan is an 8-task accessor migration rewriting how every DEC-174 gate reads config, not a patch. Operator ruling 2026-09-13, concurred by FEAT-59's author."
+    },
+    {
+      "at": "2026-09-14T01:57:09+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Main corrected the source_issues ruling: [285,1594] is accurate provenance, issue 1682 belongs in SC-03, so the apply artifact needs no further mutation"
     }
   ],
   "mission": "plan"
