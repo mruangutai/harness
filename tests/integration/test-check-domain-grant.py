@@ -312,7 +312,7 @@ def run_t12():
 
     # SC-08's ACTUAL clause: "a channel the user sees". stderr is not that on an allow —
     # measured, not assumed. `systemMessage` on stdout is the PreToolUse contract's
-    # user-visible channel, already live in this repo via branch-create-gate.sh:82,111.
+    # user-visible channel, already live in this repo via branch-create-gate.py:82,111.
     # Parsed rather than substring-matched: malformed JSON on a hook's stdout is worse
     # than none, so this fails if the payload is not loadable.
     def _sysmsg(res):

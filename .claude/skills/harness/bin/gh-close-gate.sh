@@ -9,7 +9,7 @@
 # NO ENVIRONMENT MARKER, and the reason is a measurement rather than a preference. Issue
 # #842 specified a marker `gh-sync.py` would set to exempt `abandon`'s own close. It cannot
 # work and is not needed: a PreToolUse hook is handed only `tool_input.command`
-# (branch-create-gate.sh:47), and `gh-sync.py` reaches `gh` through `subprocess.run`, which
+# (branch-create-gate.py:47), and `gh-sync.py` reaches `gh` through `subprocess.run`, which
 # never traverses the Bash tool. So `abandon`'s close is never presented to this gate at
 # all. A marker would only ever be settable BY HAND -- which is precisely the hole the
 # grilling flagged. What actually stops a harness command from closing an issue is deleting
@@ -49,7 +49,7 @@
 # it can still be read as text -- so it now falls back to the weaker raw-string patterns and
 # is refused only if those match.
 #
-# SELF-GATING, as branch-create-gate.sh is: github.sync off or absent exits 0 instantly, so
+# SELF-GATING, as branch-create-gate.py is: github.sync off or absent exits 0 instantly, so
 # this costs nothing where the mirror is off.
 #
 # ONE python3, not three. The config read, the command extract and the decision share a

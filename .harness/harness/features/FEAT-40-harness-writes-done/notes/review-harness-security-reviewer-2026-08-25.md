@@ -81,7 +81,7 @@ mechanism.
 
 ## Hook registration (`.claude/settings.json`) — correct
 
-`PreToolUse` → matcher `Bash` → `[branch-create-gate.sh, bash-write-guard.py, gh-close-gate.sh]`.
+`PreToolUse` → matcher `Bash` → `[branch-create-gate.py, bash-write-guard.py, gh-close-gate.sh]`.
 Fires on every Bash call as intended; no secret/token literal anywhere in the diff.
 
 ## Priority 2 — argv construction (`gh_issues.py`, `gh-sync.py`) — clean

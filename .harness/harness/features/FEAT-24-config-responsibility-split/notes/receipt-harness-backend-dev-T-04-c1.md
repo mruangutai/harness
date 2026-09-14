@@ -41,7 +41,7 @@ Individually confirmed:
   checked in addition to the verify's own grep, since the verify clause only matches double
   quotes — see item 6).
 - Non-reader survey (`wayfind.py`, `layout_migration.py`, `check-plan-routes.py`,
-  `branch-create-gate.sh`): all four positive-control greps matched (`def `/`#!/`), all four
+  `branch-create-gate.py`): all four positive-control greps matched (`def `/`#!/`), all four
   negative greps for `board_for|load_board|station_field|stations|["board"]` returned zero hits.
 
 ## 3. `bin/check-state.sh` observed state — NOT fixed, as instructed

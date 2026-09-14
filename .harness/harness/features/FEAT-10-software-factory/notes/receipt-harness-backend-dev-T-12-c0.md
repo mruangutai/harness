@@ -101,7 +101,7 @@ into operator output, the duplicated 422 phrase, `factory_claim.py:43`) were tou
 
 While sanity-checking the mutant-catching power of the live-git assertions by hand, I typed
 `git checkout -Bx bogus --track origin/nope` directly into Bash outside any fixture. It was
-correctly blocked by `branch-create-gate.sh` (DEC-144) before anything happened. Per the
+correctly blocked by `branch-create-gate.py` (DEC-144) before anything happened. Per the
 dispatch's explicit instruction, I stopped that manual-verification approach entirely rather than
 finding a way around the gate — the G1/G2 assertions' non-vacuousness rests instead on the
 outcome-based assertions (SHA/upstream, not just exit status) plus the fixture-sanity checks that

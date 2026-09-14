@@ -43,7 +43,7 @@ does not rest on this line; it rests on the verified `:144` text and the one-hit
 ## Q3 — filed, not tasked
 
 **https://github.com/mruangutai/harness/issues/869** — DEC-174 am.4's list is stale by six scripts
-(`branch-create-gate.sh`, `gh-close-gate.sh`, `inject-expertise.sh`, `context-watch.py`,
+(`branch-create-gate.py`, `gh-close-gate.sh`, `inject-expertise.sh`, `context-watch.py`,
 `post-merge-sweep.py`, `run-unit-tests.sh`). No plan task added.
 
 ## Open question — BLOCKING

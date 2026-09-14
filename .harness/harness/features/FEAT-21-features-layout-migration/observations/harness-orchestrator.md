@@ -40,7 +40,7 @@
   the only write tool I hold, so "surgical" has to mean read-lines / assert / replace-one / write.
 
 - 2026-08-14: `check-plan-routes.py` printed T-07's OK line naming 20 files where the task declares
-  21 — `.claude/skills/harness/bin/branch-create-gate.sh` is absent from the listing. Nothing in
+  21 — `.claude/skills/harness/bin/branch-create-gate.py` is absent from the listing. Nothing in
   this feature turns on it (DEVIATION vs OK is informational; the gate reported 0 violations either
   way), but a checker that silently drops a file from its own per-task report is the shape where a
   real finding would go unprinted. Worth a look when the route checker is next touched.

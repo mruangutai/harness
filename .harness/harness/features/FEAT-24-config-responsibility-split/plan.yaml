@@ -130,7 +130,7 @@ lanes:
     - surface: .claude/skills/harness/bin/layout_migration.py
       resolve: harness-backend-dev
       reason: Resolved and re-grepped at ada8e99 for every moved key. Zero matches. Not a reader.
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       resolve: harness-backend-dev
       reason: >-
         Resolved and re-grepped at ada8e99. Zero matches for any moved key. The four pinned ids it
@@ -727,7 +727,7 @@ tasks:
       hasin "an unusable board config exits 2 with one line naming the key" "$bs_out" || { echo "T-04: the board-station loud-exit case did not pass or did not run"; exit 1; }
       hasin "an explicitly null board still exits 0 having written nothing" "$bs_out" || { echo "T-04: the board-station null case did not pass or did not run"; exit 1; }
       hasin "an unusable board config is a loud failure, not a skipped station write" "$sync_out" || { echo "T-04: the gh-sync loud-failure case did not pass or did not run"; exit 1; }
-      for nr in wayfind.py layout_migration.py check-plan-routes.py branch-create-gate.sh; do
+      for nr in wayfind.py layout_migration.py check-plan-routes.py branch-create-gate.py; do
         f=".claude/skills/harness/bin/$nr"
         grep -qE '^(def |#!/)' "$f" || { echo "T-04: positive control failed - the non-reader search is not reading $nr"; exit 1; }
         grep -nE 'board_for|load_board|station_field|stations|\["board"\]' "$f" && { echo "T-04: $nr now reads a moved board key - it was surveyed as a non-reader"; exit 1; }
@@ -885,7 +885,7 @@ tasks:
 
       ONE THING THE VERIFY CHECKS THAT THIS TASK DOES NOT EDIT. It greps four files the reader
       survey classified as non-readers - wayfind.py, layout_migration.py, check-plan-routes.py and
-      branch-create-gate.sh - and fails if any of them has acquired a board read, each with a
+      branch-create-gate.py - and fails if any of them has acquired a board read, each with a
       positive control proving the search ran. All four match zero moved keys at ada8e99, so this
       clause is a regression guard, not evidence of migration; it is here because it is the only
       repeatable form the non-reader half of SC-10 can take. Do not add a board read to any of

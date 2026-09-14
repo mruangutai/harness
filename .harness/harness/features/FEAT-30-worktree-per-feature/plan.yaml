@@ -934,7 +934,7 @@ tasks:
           allowed, and only the UNDECIDABLE case is refused.
         a reset with no mode flag and with a pathspec
         creating a worktree, which is already governed by the existing rule and by
-          branch-create-gate.sh
+          branch-create-gate.py
 
       The refusal message must name three things: the command shape that was refused, that HEAD is
       shared mutable state for the duration of a run, and the alternative - work in the worktree cut

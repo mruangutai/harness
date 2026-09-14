@@ -56,7 +56,7 @@ same criterion, not by the `UNIT_SCRIPTS` entry FEAT-45 gave them:
 |---|---|
 | test-board-lifecycle.py | `python3 board_lifecycle.py` x54 |
 | test-board-station.py | `python3 board-station.py` x13 |
-| test-branch-create-gate.py | `branch-create-gate.sh` x7 |
+| test-branch-create-gate.py | `branch-create-gate.py` x7 |
 | test-check-omp-port.py | `python3 check-omp-port.py` x8 |
 | test-factory-decompose.py | `os.fork` x2, concurrent writers of one file |
 | test-feature-json-merge.py | `python3 feature-json-merge.py` x5, plus `os.fork` |

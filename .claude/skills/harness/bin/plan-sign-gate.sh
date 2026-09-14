@@ -13,7 +13,7 @@
 # The signature rule refuses one verb, not the tool. The FEAT-51 rule covers the other
 # mutating plan verbs only when the governed writer has become an orphan.
 #
-# NOT SELF-GATING, unlike gh-close-gate.sh and branch-create-gate.sh, and the difference is
+# NOT SELF-GATING, unlike gh-close-gate.sh and branch-create-gate.py, and the difference is
 # not an oversight. Those two gate on `github.sync` because the behaviour they protect only
 # exists where the mirror is on. A signature is the user's word about their own plan; it has
 # no GitHub dimension and no configuration that could make signing by an agent acceptable.

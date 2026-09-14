@@ -84,7 +84,7 @@ diff before merge (QA's precommit review independently flagged the same stale-pa
 lineage/integrity check (hash, required-approval-gate, distillation-marker) exists to catch a
 *behavioral* edit riding the same route, only diff review.
 
-**5. `branch-create-gate.sh:77-78` and `bash-write-guard.py`.** `branch-create-gate.sh:77-78`
+**5. `branch-create-gate.py:77-78` and `bash-write-guard.py`.** `branch-create-gate.py:77-78`
 hardcodes the literal segment `harness` — this is exactly ADV-2, already ruled with a synthesized
 remedy (`${REPO##*/}`, not a wildcard) in the FEAT-21 precommit security review; not re-filed here.
 Swept the rest of the range (all touched `.sh`/`.py` source, excluding test fixtures and prose) for
@@ -99,7 +99,7 @@ BLOCKED) was independently measured in the FEAT-21 precommit review and re-confi
 
 ## Not re-filed (already ruled, verified still true)
 
-- ADV-2 (`branch-create-gate.sh:77-78` hardcoded segment) — confirmed present, unchanged severity
+- ADV-2 (`branch-create-gate.py:77-78` hardcoded segment) — confirmed present, unchanged severity
   (low, fails closed, DoS-shaped not escalation-shaped).
 - Cross-segment reachability — confirmed no second segment is staged anywhere in this repo; the gap
   is real but untestable here and already recorded.
@@ -127,9 +127,9 @@ named `TOKEN_RE`. Nothing new.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "Authorization surface moved coherently to the new layout with no widened or fail-open grant found across the range; the one hardcoded-segment gap (branch-create-gate.sh) is already ruled (ADV-2); a filtered diff of all 18 injected instruction files touched in this range shows pure path-string substitutions only, but no technical control would have caught a non-path edit riding the same direct-commit route."
+  headline: "Authorization surface moved coherently to the new layout with no widened or fail-open grant found across the range; the one hardcoded-segment gap (branch-create-gate.py) is already ruled (ADV-2); a filtered diff of all 18 injected instruction files touched in this range shows pure path-string substitutions only, but no technical control would have caught a non-path edit riding the same direct-commit route."
   in_scope: true
-  scope_reason: "Range rewrites the entire write-authorization surface — team-config.yaml grants, check-domain.py shape regexes and SWEEP_GLOBS, check-state.sh discovery/label emission, check-plan-routes.py and validate-feature-json.py discovery, branch-create-gate.sh, .gitignore — plus edits injected-prompt content (11 SKILL.md, 3 agent files, harness.md, missions.md, two teams yaml, harness-pm.md Expertise) reaching every governed spawn. Authorization and prompt-injection integrity are this role's surface even though nothing here is user input in the OWASP sense."
+  scope_reason: "Range rewrites the entire write-authorization surface — team-config.yaml grants, check-domain.py shape regexes and SWEEP_GLOBS, check-state.sh discovery/label emission, check-plan-routes.py and validate-feature-json.py discovery, branch-create-gate.py, .gitignore — plus edits injected-prompt content (11 SKILL.md, 3 agent files, harness.md, missions.md, two teams yaml, harness-pm.md Expertise) reaching every governed spawn. Authorization and prompt-injection integrity are this role's surface even though nothing here is user input in the OWASP sense."
   severity_max: info
   findings: 0
   must_fix: []
@@ -137,7 +137,7 @@ DIGEST:
     - { boundary: "agent write -> team-config.yaml grant resolution (segment wildcard)", stride: "E", mitigated: true }
     - { boundary: "check-domain.py shape-sweep / SWEEP_GLOBS", stride: "T", mitigated: true }
     - { boundary: "CI backstop (check-plan-routes.py / validate-feature-json.py)", stride: "T", mitigated: true }
-    - { boundary: "branch-create-gate.sh work-tracking gate", stride: "D", mitigated: false }
+    - { boundary: "branch-create-gate.py work-tracking gate", stride: "D", mitigated: false }
     - { boundary: "injected instruction content (Expertise/SKILL.md/agents) via direct/branch commit", stride: "T", mitigated: false }
   open_questions:
     - { id: Q1, question: "d033b9d edited .harness/expertise/harness-pm.md (injected into every harness-pm SubagentStart spawn) via a direct operator commit on a branch, not through the SubagentStart-hook-gated distillation route DEC-145/harness-expertise describe as the only legitimate write path — and the same commit touched 17 other injected/preloaded instruction files (SKILL.md x11, agent files x3, harness.md, missions.md, two teams yaml) the same way. A filtered diff of all 18 confirms every changed line this time is a pure path-string substitution, nothing else. But no technical control (hash pin, required distillation marker, diff-scoped gate) distinguishes that from a behavioral or exfiltration-shaped edit riding the same route — the only catch is human diff review, which is what caught the one content issue that existed (a stale path, via QA's precommit pass). Is a technical lineage control warranted for .harness/expertise/** and the preloaded SKILL/agent set, or is 'reviewed like any other diff' the accepted posture?", blocking: false }

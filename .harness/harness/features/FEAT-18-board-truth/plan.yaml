@@ -34,7 +34,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-gh-sync.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       lane: team
       agent: harness-backend-dev
       reason: >-
@@ -238,7 +238,7 @@ decisions:
       citation still lands. gh issue develop is not used at all. The build branch is created the
       ordinary way, git checkout -b feat/FEAT-18-board-truth, like every feature shipped so far,
       and nothing links the pull request to the parent issue. TWO BREAKS FORCED IT AND BOTH WERE
-      MEASURED, NOT PREDICTED. First, the gh route bypasses branch-create-gate.sh entirely: all
+      MEASURED, NOT PREDICTED. First, the gh route bypasses branch-create-gate.py entirely: all
       four extraction patterns are git subcommands and everything else falls to else exit 0, and
       the git checkout that follows carries no -b, so DEC-144's flow-id check never runs on either
       command. Second, measured end to end on the disposable fixture
@@ -254,14 +254,14 @@ decisions:
       notes/answers-2026-08-13-revision.md; do not re-derive them.
     choice: >-
       STRUCK - no longer in force. It read: the build branch is created THROUGH the parent issue
-      with gh issue develop and then checked out locally, and branch-create-gate.sh is NOT extended
+      with gh issue develop and then checked out locally, and branch-create-gate.py is NOT extended
       to cover that route, the gap being recorded rather than closed.
     because: >-
       RECORDED, NO LONGER LOAD-BEARING - the reasoning below stays true and stays on the record,
       it simply no longer decides anything. It read: gh issue develop cannot link a branch that
       already exists, measured 2026-08-12 as API
       returned empty branch name, so the branch has to be created that way from the start - which
-      is what removes the composed Closes-N string entirely. branch-create-gate.sh extracts a
+      is what removes the composed Closes-N string entirely. branch-create-gate.py extracts a
       branch name from four forms only - git checkout -b, git switch -c or --create,
       git worktree add -b, and git branch NAME - so gh issue develop followed by a plain
       git checkout of an existing branch matches none of them and passes silently. Teaching the
@@ -357,7 +357,7 @@ tasks:
           station_field: Status
 
       Three keys and no more. Do NOT pin project_id, field_id or any option id: the four flat keys
-      branch-create-gate.sh reads today pinned exactly those, and a wrong pinned id there did
+      branch-create-gate.py reads today pinned exactly those, and a wrong pinned id there did
       nothing at all, silently. Resolution is by NAME at runtime, so a wrong name is loud.
       Add the same block to .claude/skills/harness/templates/harness.json with the value null and a
       one-line _note beside it in the style of the sibling entries, so upgrade-config.py's additive
@@ -644,7 +644,7 @@ tasks:
           INV-26 finding and its exit status is whatever the rest of the file decides - INV-26
           contributes nothing.
   - id: T-05
-    title: Delete branch-create-gate.sh's dormant board-flip block and its four config keys
+    title: Delete branch-create-gate.py's dormant board-flip block and its four config keys
     traces: [REQ-06]
     change_type: logic
     execution_mode: team
@@ -652,11 +652,11 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .claude/skills/harness/bin/branch-create-gate.py
       # AMENDED 2026-08-13, mid-build, operator re-signed. The task as signed was internally
       # inconsistent: change_type: logic makes test_matrix.logic.always ["unit"] mandatory, and
       # `logic` is not an exempt change type, but no test file was named — and
-      # branch-create-gate.sh is a live PreToolUse hook that had never had a test in its life
+      # branch-create-gate.py is a live PreToolUse hook that had never had a test in its life
       # while this task deletes a substantial block from it. The member returned BLOCKED rather
       # than inventing a PASS. check-domain.py --resolve already grants this path to
       # harness-backend-dev, so no domain boundary was crossed; check-plan-routes.py validates
@@ -664,11 +664,11 @@ tasks:
       # divergence would have gone unrecorded. Added so the signed artifact matches the tree.
       - .claude/skills/harness/bin/test-branch-create-gate.py
     verify: |
-      ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.sh | grep -q '"permissionDecision": "deny"'
+      ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
     intent: |
       One place moves cards, and after T-03 that place is gh-sync.py. Remove the other one.
 
-      In .claude/skills/harness/bin/branch-create-gate.sh delete the optional board-flip block -
+      In .claude/skills/harness/bin/branch-create-gate.py delete the optional board-flip block -
       the section whose comment begins with the words about an optional board flip, containing the
       gh api graphql projectItems lookup and the gh project item-edit call. Delete with it the four
       config values it reads: PROJ_NUM, PROJ_ID, FIELD_ID and OPT_ID must disappear from the
@@ -755,7 +755,7 @@ tasks:
          posts the ship review on it. Do not instruct any use of gh issue develop; that route is
          struck, and the two reasons live in D-08's strike record rather than in this file.
          Make this edit with the file editor, never by echoing the line through a shell:
-         branch-create-gate.sh is registered live on the Bash route and would adjudicate that
+         branch-create-gate.py is registered live on the Bash route and would adjudicate that
          literal command as a branch creation.
 
       Do not restate what DECISIONS.md holds. This file is the orchestrator's playbook, so every

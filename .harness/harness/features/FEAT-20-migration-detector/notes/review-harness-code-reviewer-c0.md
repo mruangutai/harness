@@ -17,7 +17,7 @@ pinned by number in three documents). No violation found:
 
 - `layout_migration.py`: `SURFACES` enum matches D-01 exactly (features/docs, no more); `READER_TABLE`
   has exactly the 7 rows D-01 names, none of the explicitly-excluded readers (`gh-sync.py`,
-  `branch-create-gate.sh`, `validate-feature-json.py`, `factory_claim.py`, gitignore, prose) — grepped
+  `branch-create-gate.py`, `validate-feature-json.py`, `factory_claim.py`, gitignore, prose) — grepped
   the module for all four names, zero hits. D-03's CANNOT_VERIFY/MIXED/CLEAN predicate order and the
   non-empty-reader-set precondition are implemented as specified (`layout_migration.py:200-227`). D-04's
   marker-first applicability gate is first in `scan()` (`layout_migration.py:191-193`), before any

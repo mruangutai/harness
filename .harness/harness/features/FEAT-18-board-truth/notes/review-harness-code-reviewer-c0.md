@@ -54,7 +54,7 @@ failure mode, not a hypothetical one. The edit channel is demonstrated in this v
 `plan.yaml`'s approval block records two mid-build hand amendments to this exact plan
 (`plan.yaml:8-19`). And the window is real: no hook re-runs `check-plan-routes.py`'s
 `LEGAL_TASK_STATUSES` enum after signature — confirmed by reading `.claude/settings.json`'s
-`PreToolUse` hooks (`check-domain.py`, `branch-create-gate.sh`, `bash-write-guard.py`,
+`PreToolUse` hooks (`check-domain.py`, `branch-create-gate.py`, `bash-write-guard.py`,
 `dispatch-guard.py` only) and `check-state.sh`'s own invariant list (INV-3/4/5 validate schema
 shape, never status legality). A typo introduced mid-build is invisible to INV-26 for the rest of
 that build — the same silent-window shape FEAT-14's own failure occupied, which is this feature's
@@ -97,7 +97,7 @@ remediation design is the operator's call.
     loop.
   - `check-plan-routes.py`'s status enum (T-01, SC-06): `status not in LEGAL_TASK_STATUSES`
     without `str()` coercion first — rejects, does not coerce (`check-plan-routes.py:329-338`).
-  - T-05 (`branch-create-gate.sh`): read the diff directly — the four config keys and the
+  - T-05 (`branch-create-gate.py`): read the diff directly — the four config keys and the
     board-flip block are deleted cleanly; the pre-existing `[ "$state" = "OPEN" ] || deny ...`
     line is untouched. **Ran the gate live** against the bad-flow branch payload from the task's
     own verify command: `permissionDecision: "deny"`, reason names `FEAT-99-nope` — confirmed

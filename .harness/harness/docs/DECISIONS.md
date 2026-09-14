@@ -3222,7 +3222,7 @@ DEC-85 pressure handled exactly right, and the opposite of the bin/-ownership in
 
 ## DEC-144 — The branch-creation gate joins the harness: fifth prerequisite, self-gating on the mirror
 
-Reviewed at the user's request: kaya-ai's field-proven `branch-create-gate.sh` — a `PreToolUse:Bash`
+Reviewed at the user's request: kaya-ai's field-proven `branch-create-gate.py` — a `PreToolUse:Bash`
 gate requiring every new git branch to name the work it serves, with a best-effort project-board
 In-Progress flip. Ported into `bin/` with four genericizations: the hardcoded kaya board IDs become
 OPTIONAL `harness.json` config (`github.project_number/project_id/status_field/in_progress_option`;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for branch-create-gate.sh (FEAT-18 T-05).
+"""Tests for branch-create-gate.py (FEAT-18 T-05).
 
 SC-07's second half is why this file exists: "a deletion that also disabled
 the gate would pass an absence check on its own." An absence grep alone is
@@ -31,7 +31,7 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(
-    HERE, "branch-create-gate.sh")
+    HERE, "branch-create-gate.py")
 # HERE = <repo>/.agents/skills/harness/bin — four levels up is the repo root.
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
@@ -44,7 +44,7 @@ def check(name, ok, detail=""):
 
 def fire(cmd, root=REPO_ROOT, gh_bin=None):
     payload = json.dumps({"tool_input": {"command": cmd}})
-    # BOTH NAMES, ONE VALUE (FEAT-42 T-14). branch-create-gate.sh resolves through
+    # BOTH NAMES, ONE VALUE (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name; the
     # reverted sha-3952814 copy the parity proof diffs against reads HARNESS first and the
     # host-owned name second. Setting only the host-owned name points the new copy at the
@@ -124,7 +124,7 @@ def _fixture(github_block):
     doc = {} if github_block is None else {"github": github_block}
     with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
         json.dump(doc, f)
-    # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.sh resolves through
+    # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which honours the override only when
     # .harness/team-config.yaml is readable underneath it. A fixture holding only
     # harness.json is discarded and the gate falls back to the LIVE checkout, reading the

@@ -48,7 +48,7 @@ Coupled readers:
 
 ## DELIBERATELY EXCLUDED from every reader set
 
-`gh-sync.py:729`, `branch-create-gate.sh:77`, `validate-feature-json.py`, `factory_claim.py:43`,
+`gh-sync.py:729`, `branch-create-gate.py:77`, `validate-feature-json.py`, `factory_claim.py:43`,
 the gitignore snippet, and all prose. Map #336 puts them in unit 9, "anytime". Reading them would
 redden a state the map sanctions — the false-positive failure reached from the other side.
 

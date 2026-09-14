@@ -1,15 +1,15 @@
 # Receipt — harness-backend-dev — T-05 — c2 (fix cycle: gate test red-green)
 
 ## Task
-T-05: Delete branch-create-gate.sh's dormant board-flip block and its four config keys.
+T-05: Delete branch-create-gate.py's dormant board-flip block and its four config keys.
 Cycle 2 — a genuine red-green unit test, `.claude/skills/harness/bin/test-branch-create-gate.py`,
 added in addition to (not instead of) T-05's signed `verify:`.
 
 ## Step 0 — preserve and probe, before restoring
 
 ```
-$ git status --porcelain -- .claude/skills/harness/bin/branch-create-gate.sh
- M .claude/skills/harness/bin/branch-create-gate.sh
+$ git status --porcelain -- .claude/skills/harness/bin/branch-create-gate.py
+ M .claude/skills/harness/bin/branch-create-gate.py
 ```
 
 c1's post-deletion file was already saved to the scratchpad
@@ -18,8 +18,8 @@ c1's post-deletion file was already saved to the scratchpad
 ## Step 1 — restore, then prove it worked
 
 ```
-$ git checkout -- .claude/skills/harness/bin/branch-create-gate.sh
-$ grep -cE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh
+$ git checkout -- .claude/skills/harness/bin/branch-create-gate.py
+$ grep -cE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py
 7
 ```
 
@@ -77,7 +77,7 @@ header bullet. First pass used my own wording for the header bullet, which diffe
 per the operator's reconciliation rule the diff below drove reconciling to c1's exact wording.
 
 ```
-$ diff <scratchpad>/branch-create-gate.c1.sh .claude/skills/harness/bin/branch-create-gate.sh
+$ diff <scratchpad>/branch-create-gate.c1.sh .claude/skills/harness/bin/branch-create-gate.py
 15,18c15,18
 < #   - Station moves live in gh-sync.py (FEAT-18) — this gate deliberately never
 < #     pins any board config keys again: it only ever moved one card, at branch
@@ -94,7 +94,7 @@ diff exit: 1
 After reconciling the header bullet to c1's exact text:
 
 ```
-$ diff <scratchpad>/branch-create-gate.c1.sh .claude/skills/harness/bin/branch-create-gate.sh
+$ diff <scratchpad>/branch-create-gate.c1.sh .claude/skills/harness/bin/branch-create-gate.py
 diff exit: 0
 ```
 
@@ -121,7 +121,7 @@ ok    form 2 (issue number) parses: 'gh' not installed deny names issue #123
 ## T-05's signed `verify:` — re-run after the re-applied deletion
 
 ```
-$ ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.sh | grep -q '"permissionDecision": "deny"'
+$ ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
 $ echo "verify exit: $?"
 verify exit: 0
 ```
@@ -137,5 +137,5 @@ step per the dispatch. The new test was run directly with `python3
 not in run-unit-tests.sh's explicit script list` — expected, transient, not a finding.
 
 ## Files touched
-- `.claude/skills/harness/bin/branch-create-gate.sh` (re-applied deletion, byte-identical to c1)
+- `.claude/skills/harness/bin/branch-create-gate.py` (re-applied deletion, byte-identical to c1)
 - `.claude/skills/harness/bin/test-branch-create-gate.py` (new)

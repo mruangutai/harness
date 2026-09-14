@@ -231,6 +231,128 @@ def dispatch_guard_corpus(scratch):
     ]
 
 
+def branch_create_gate_corpus(scratch):
+    """Representative config, parser, branch grammar and GitHub cases."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+
+    def make_root(name, github):
+        root = os.path.join(scratch, name)
+        harness = os.path.join(root, ".harness")
+        os.makedirs(harness, exist_ok=True)
+        with open(os.path.join(harness, "team-config.yaml"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("agents: {}\n")
+        document = {} if github is None else {"github": github}
+        with open(os.path.join(harness, "harness.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump(document, fh)
+        return root
+
+    enabled = make_root(
+        "branch-enabled", {"sync": True, "repo": "owner/repo"})
+    os.makedirs(os.path.join(
+        enabled, ".harness", "harness", "features",
+        "FEAT-1674-existing"), exist_ok=True)
+    disabled = make_root("branch-disabled", {"sync": False, "repo": "owner/repo"})
+    absent = make_root("branch-absent", None)
+    unpinned = make_root("branch-unpinned", {"sync": True})
+    malformed = make_root("branch-malformed", None)
+    with open(os.path.join(malformed, ".harness", "harness.json"), "w",
+              encoding="utf-8") as fh:
+        fh.write("{not json")
+    invalid_shape = make_root("branch-invalid-shape", "not-a-mapping")
+    with open(os.path.join(scratch, "harness_boundary.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write("raise RuntimeError('cwd shadow imported')\n")
+
+    def gh_mock(name, state, auth_ok):
+        path = os.path.join(scratch, name)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(
+                "#!/usr/bin/env python3\n"
+                "import sys\n"
+                f"state = {state!r}\n"
+                "if sys.argv[1:3] == ['issue', 'view']:\n"
+                "    if state:\n"
+                "        print(state)\n"
+                "    raise SystemExit(0)\n"
+                "if sys.argv[1:3] == ['auth', 'status']:\n"
+                f"    raise SystemExit({0 if auth_ok else 1})\n"
+                "raise SystemExit(2)\n")
+        os.chmod(path, 0o755)
+        return path
+
+    gh_open = gh_mock("gh-open", "OPEN", True)
+    gh_closed = gh_mock("gh-closed", "CLOSED", True)
+    gh_missing = gh_mock("gh-missing", "", True)
+    gh_unauthenticated = gh_mock("gh-unauthenticated", "", False)
+
+    def payload(command):
+        return json.dumps({"tool_name": "Bash",
+                           "tool_input": {"command": command}})
+
+    def env(root, gh=None):
+        return {project_override: root, "GH_BIN": gh}
+
+    enabled_env = env(enabled)
+    flow_missing = payload("git checkout -b feat/FEAT-1674-missing")
+    return [
+        {"label": "sync absent passes through",
+         "stdin": flow_missing, "env": env(absent)},
+        {"label": "sync false passes through",
+         "stdin": flow_missing, "env": env(disabled)},
+        {"label": "sync enabled without pinned repo passes through",
+         "stdin": flow_missing, "env": env(unpinned)},
+        {"label": "malformed config passes through",
+         "stdin": flow_missing, "env": env(malformed)},
+        {"label": "invalid github shape preserves helper failure",
+         "stdin": flow_missing, "env": env(invalid_shape)},
+        {"label": "malformed hook payload",
+         "stdin": "{not json", "env": enabled_env},
+        {"label": "non-branch command passes through",
+         "stdin": payload("git status --short"), "env": enabled_env},
+        {"label": "missing flow denies",
+         "stdin": flow_missing, "env": enabled_env},
+        {"label": "existing flow allows",
+         "stdin": payload("git checkout -b feat/FEAT-1674-existing"),
+         "env": enabled_env},
+        {"label": "switch create flow allows",
+         "stdin": payload("git -C /tmp switch --create=feat/FEAT-1674-existing"),
+         "env": enabled_env},
+        {"label": "worktree add flow allows",
+         "stdin": payload(
+             "git worktree add /tmp/branch-proof -B feat/FEAT-1674-existing"),
+         "env": enabled_env},
+        {"label": "branch command flow allows",
+         "stdin": payload("git branch feat/FEAT-1674-existing"),
+         "env": enabled_env},
+        {"label": "untracked branch name denies",
+         "stdin": payload("git checkout -b scratch/no-ticket"),
+         "env": enabled_env},
+        {"label": "issue branch without gh denies",
+         "stdin": payload("git checkout -b fix/123-typo"),
+         "env": env(enabled, "/no/such/gh")},
+        {"label": "open issue branch allows",
+         "stdin": payload("git checkout -b fix/123-typo"),
+         "env": env(enabled, gh_open)},
+        {"label": "closed issue branch denies",
+         "stdin": payload("git checkout -b fix/123-typo"),
+         "env": env(enabled, gh_closed)},
+        {"label": "missing issue denies",
+         "stdin": payload("git checkout -b fix/123-typo"),
+         "env": env(enabled, gh_missing)},
+        {"label": "unauthenticated gh denies",
+         "stdin": payload("git checkout -b fix/123-typo"),
+         "env": env(enabled, gh_unauthenticated)},
+        {"label": "stray argv remains ignored", "argv": ["unexpected"],
+         "stdin": flow_missing, "env": enabled_env},
+        {"label": "cwd-independent flow denial",
+         "stdin": flow_missing, "cwd": scratch, "env": enabled_env},
+        {"label": "unconfigured isolated copy", "stdin": flow_missing,
+         "isolate": True, "env": {project_override: None, "GH_BIN": None}},
+    ]
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -247,6 +369,11 @@ def post_merge_sweep_corpus(scratch):
         {"label": "unconfigured isolated copy stays non-fatal",
          "argv": ["--dry-run"], "isolate": True},
     ]
+
+
+
+
+
 
 
 def corpus(tool, scratch, impl):
@@ -300,14 +427,16 @@ def corpus(tool, scratch, impl):
             {"argv": ["--nonsense", "extra"]},                  # ignored, not an error
             {"argv": [], "isolate": True},                      # no root -> refuse, exit 2
         ]
-    if tool == "post-merge-sweep":
-        return post_merge_sweep_corpus(scratch)
     if tool == "check-domain":
         return domain_corpus(scratch)
     if tool == "bash-write-guard":
         return bash_guard_corpus(scratch)
     if tool == "dispatch-guard":
         return dispatch_guard_corpus(scratch)
+    if tool == "branch-create-gate":
+        return branch_create_gate_corpus(scratch)
+    if tool == "post-merge-sweep":
+        return post_merge_sweep_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 
@@ -320,6 +449,7 @@ def run(impl, case, scratch):
         if not os.path.exists(iso):
             shutil.copytree(BIN, iso)
         impl, cwd = os.path.join(iso, os.path.basename(impl)), iso
+
     child_env = dict(os.environ)
     for key, value in case.get("env", {}).items():
         if value is None:

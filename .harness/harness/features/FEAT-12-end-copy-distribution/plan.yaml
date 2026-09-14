@@ -98,8 +98,8 @@ decisions:
     choice: >-
       kaya-ai's committed .claude/settings.json loses EVERY harness registration, and there are
       EIGHT of them across FOUR hook events, not three PreToolUse hooks. Measured with json.load in
-      kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.sh; PreToolUse Bash
-      branch-create-gate.sh a second, duplicate time under a different variable spelling; PreToolUse
+      kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.py; PreToolUse Bash
+      branch-create-gate.py a second, duplicate time under a different variable spelling; PreToolUse
       Bash bash-write-guard.py; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
       dispatch-guard.py; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
       matcher harness-.* validate-digest.py --hook; PostToolUse Write or Edit or Bash
@@ -341,8 +341,8 @@ tasks:
       leave five registrations wired and then fail the verify. Measured with json.load in kaya on
       2026-08-10, the full set is:
 
-        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh
-        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh   (a SECOND,
+        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.py
+        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.py   (a SECOND,
                                        duplicate entry, spelled ${CLAUDE_PROJECT_DIR} where the
                                        first uses "$CLAUDE_PROJECT_DIR" - both go)
         PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.py

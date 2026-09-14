@@ -328,7 +328,7 @@ than its own. Strong form: not "the citations resolve", but "nothing was altered
 ## Carried forward from the halted plan — evidence, not decisions
 
 - Three live defects it surfaced, all independent of this DoD: `merge-gate.py:169`
-  (`if not owners: return`) silently ALLOWS a merge it cannot resolve; `branch-create-gate.sh`
+  (`if not owners: return`) silently ALLOWS a merge it cannot resolve; `branch-create-gate.py`
   would deny branch creation for every non-materialised flow post-convergence, with a false
   message; `check-domain.py:2150`'s worktree tier has been reaching nothing whenever the hook fires
   from inside a worktree, because `.git` is a file there and the `OSError` is swallowed. The third

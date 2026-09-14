@@ -26,7 +26,7 @@ start-of-task move) is derivable and is recorded as D-04, not raised as a questi
    This is the single mechanical fact D-02 turns on.
 5. **`parse_tasks()` does not read a task's `status`** (`gh-sync.py:152-198`) — it returns id, title,
    body, change_type, traces, absorbs. The station writer needs status added.
-6. **`branch-create-gate.sh` cannot see `gh issue develop`.** Its four extraction regexes match
+6. **`branch-create-gate.py` cannot see `gh issue develop`.** Its four extraction regexes match
    `git checkout -b`, `git switch -c|--create`, `git worktree add -b` and `git branch <name>`. A
    `gh issue develop` + `git fetch` + `git checkout <existing-branch>` flow matches none of them and
    passes silently. Recorded as D-08 rather than fixed.

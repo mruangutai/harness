@@ -35,7 +35,7 @@ wrong are recorded below as CONTENT, never line numbers.
 
 - Highest `INV-NN` in `check-state.sh`: **36** → this feature takes **INV-37**.
 - Highest `DEC-NNN` in `DECISIONS-INDEX.md`: **219** → this feature takes **DEC-220**.
-- Registered PreToolUse Bash gates today, in order: `branch-create-gate.sh`, `bash-write-guard.py`,
+- Registered PreToolUse Bash gates today, in order: `branch-create-gate.py`, `bash-write-guard.py`,
   `gh-close-gate.sh`, `plan-sign-gate.sh` (`.claude/settings.json`) and the same four in
   `harness-hooks.ts`'s `firstBlock([...])`. BUG-1132 is the recorded cost of registering in one and
   not the other.

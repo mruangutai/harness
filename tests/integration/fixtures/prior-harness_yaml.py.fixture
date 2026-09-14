@@ -606,7 +606,7 @@ def require_or_bootstrap(root, payload=None):
     # message they never see is the same as no message.
     #
     # `systemMessage` on stdout is the PreToolUse contract's user-visible channel, and
-    # it is proven live in this repo rather than assumed: branch-create-gate.sh:82,111
+    # it is proven live in this repo rather than assumed: branch-create-gate.py:82,111
     # already emits exactly this shape on its own allow path, and it is registered in
     # .claude/settings.json. Emitted LAST so that a failure here cannot lose the stderr
     # copy, which is what reaches the agent.

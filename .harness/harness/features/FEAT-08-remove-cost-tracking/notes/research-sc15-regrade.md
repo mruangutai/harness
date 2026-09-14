@@ -61,7 +61,7 @@ proposed backlog table. **No cost line.** Read directly, not inferred from token
 | Class | Ruling |
 |---|---|
 | Metaphorical cost/spend/budget prose (spawn, cycle, context, wall-clock) across expertise, agents, skills | Deliberate survivors. Over-removal is this feature's named dominant failure mode |
-| `$1`/`$2` in `bin/*.sh` (`deploy.sh:27-31`, `check-domain.py:61`, `branch-create-gate.sh:55`) | Shell positionals — artifact of the `\$[0-9]` pattern in the wider first pass; absent from the uniform `.md`/`.yaml`/`.json` pass |
+| `$1`/`$2` in `bin/*.sh` (`deploy.sh:27-31`, `check-domain.py:61`, `branch-create-gate.py:55`) | Shell positionals — artifact of the `\$[0-9]` pattern in the wider first pass; absent from the uniform `.md`/`.yaml`/`.json` pass |
 | `cost:` duplicate-key YAML fixtures — `test-harness-yaml.py:383,418-419`, `test-harness-yaml-corpus.py:214-218`, `test-check-domain.py:203-212` | Preserved by SC-12 (`BRIEF.md:139-142`) |
 | `cost` as a *tolerated* key — `check-state.sh:335`, `check-domain.py:308`, `gen-decisions-index.py:40`, `test-check-state.py:325-363` (asserts a `cost:` block is clean) | Hook/validator internals, not rule text an agent reads. Tolerating a key is not an instruction to emit one |
 | `$49` in `test-render-brief.py:47,71-72` | Markdown-renderer fixture; content arbitrary. Not a rule surface |

@@ -150,7 +150,7 @@ the indistinguishability itself is a standing property of D-01's wildcard, not n
   `check-plan-routes.py`'s `os.scandir` → `glob.glob` swap preserves dotfile exclusion
   (`glob`'s `*` never matches a leading dot, same as before) — confirmed by reading, and by
   running the full `test-layout-migration.py` suite (below).
-- `branch-create-gate.sh`'s hardcoded segment literal (already-ruled backlog item) moved
+- `branch-create-gate.py`'s hardcoded segment literal (already-ruled backlog item) moved
   from `.harness/features/` to `.harness/harness/features/` — same class (coincidentally
   correct for today's single segment), explicitly *not* wildcarded per `4a98cc4`'s own
   commit message ("branch-gate wildcard — contradicts signed D-01 and validator Q2 —

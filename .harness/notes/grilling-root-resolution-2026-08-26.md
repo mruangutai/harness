@@ -103,7 +103,7 @@ worktree copy: /Users/.../worktrees/harness/FEAT-37-lead-stop-and-wake
 
 ### The sixteen sites split 7 hooks / 9 scripts
 
-Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.sh`,
+Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.py`,
 `check-domain.py`, `context-watch-hook.py`, `dispatch-guard.py`, `gh-close-gate.sh`,
 `inject-expertise.sh`, `validate-digest.py`.
 
@@ -162,7 +162,7 @@ the calling agent stands, even though the hook process itself runs the main chec
 | `validate-digest.py` | **yes** — `:872`, same walk, cwd first |
 | `context-watch-hook.py` | reads `cwd` at `:58`, but passes it to `warn_for_agent` — not root resolution |
 | `bash-write-guard.py` | no — env chain only |
-| `branch-create-gate.sh` | no |
+| `branch-create-gate.py` | no |
 | `check-domain.py` | no |
 | `gh-close-gate.sh` | no |
 | `inject-expertise.sh` | no |
@@ -338,7 +338,7 @@ operation**, passed to the same function.
 - `bash-write-guard.py` — the paths it already parses out of the command.
 - `validate-digest.py` — the digest path.
 - The four with NO target — `check-domain.py --post` (a blind sweep), `inject-expertise.sh`,
-  `branch-create-gate.sh`, `gh-close-gate.sh` — pass `__file__` and take `owner_root`.
+  `branch-create-gate.py`, `gh-close-gate.sh` — pass `__file__` and take `owner_root`.
 
 **Measured that this is safe for the target-less four:** expertise files are byte-identical across
 all seven worktrees (`diff -rq` returns nothing), and `harness.json`'s `github` block reads

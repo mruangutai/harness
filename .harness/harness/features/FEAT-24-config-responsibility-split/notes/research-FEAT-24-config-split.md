@@ -36,7 +36,7 @@ named in the dispatch, classified:
   consumer; it reads `github.repo` and the board only. Confirms DEC-196's "one more call site".
 - `wayfind.py` — **no match** for any moved key. Not a reader.
 - `layout_migration.py` — **no match**. Not a reader.
-- `branch-create-gate.sh` — **no match**. `test-branch-create-gate.py:55` asserts the ABSENCE of
+- `branch-create-gate.py` — **no match**. `test-branch-create-gate.py:55` asserts the ABSENCE of
   `project_number`, `project_id`, `status_field`, `in_progress_option` from that script; kaya's
   migration removes the same four keys from kaya's config and does not touch this test.
 - `factory_decompose.py` — **board reader** (`board_for`, `board_station`), pre-clone. Above.

@@ -279,7 +279,7 @@ and shipping one here would be the same defect inside the fix for it.
 | 6 | Expertise re-home + craft/repo split (#340) | **3** |
 | 7 | Repo-aware write grants via `agent_id` (#351) | **3, 5** |
 | 8 | Live kaya proof | **5**, ideally **2** |
-| 9 | Small independents — `gh-sync.py:729`, `branch-create-gate.sh:77`, `validate-feature-json.py`, `factory_claim.py:43`, gitignore, prose | anytime |
+| 9 | Small independents — `gh-sync.py:729`, `branch-create-gate.py:77`, `validate-feature-json.py`, `factory_claim.py:43`, gitignore, prose | anytime |
 
 ### Two constraints that hold whatever order is chosen
 

@@ -62,7 +62,7 @@ Tampering + Elevation of Privilege (and Denial of Service against the legitimate
 - No hook governs a direct `inflight_registry.py` CLI call: `check-domain.py` matches
   `Write|Edit` only; `plan-sign-gate.py`'s `TOOL`/`ADOPT_TOOL` are `plan-merge.py` and
   `quarantine.py` only (`plan-sign-gate.py:26-29`) — `inflight_registry.py` is absent from both;
-  `bash-write-guard.py`/`gh-close-gate.sh`/`branch-create-gate.sh` do not mention it (grepped).
+  `bash-write-guard.py`/`gh-close-gate.sh`/`branch-create-gate.py` do not mention it (grepped).
 - **Reproduced**: agent A (`harness-backend-dev`, session `sess-A-legit`) holds a live claim on
   `FEAT-X` via `claim_with_receipt`. Before any interference, `orphan_write` for an unrelated
   agent B on `FEAT-X` correctly returns `True` (B would be quarantined). Then, with **zero**

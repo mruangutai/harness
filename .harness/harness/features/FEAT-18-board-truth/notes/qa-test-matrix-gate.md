@@ -22,7 +22,7 @@ not a stale or dirty checkout.
 - SC-06: unit/integration coverage of `check-plan-routes.py`'s new status enum, including the
   capital-`Building` typo case, plus a clean run over the live plan corpus.
 - SC-07: inspection — absence of the four board keys/item-edit call from
-  `branch-create-gate.sh`, paired with a live run proving the gate still denies.
+  `branch-create-gate.py`, paired with a live run proving the gate still denies.
 - SC-09: inspection — `SKILL.md`'s sync-point table names an owner for all six subcommands.
 - T-06 (docs) is matrix-exempt, not a gap.
 
@@ -56,7 +56,7 @@ excluded under a signed decision (DEC-187). `component`, `ui`, `eval`, `typechec
 - T-03: `python3 test-gh-sync.py` → PASS, part of the integration run above.
 - T-04: `python3 test-check-state.py` → PASS, part of the integration run above (T-04 is also
   leave-list — same treatment as T-02).
-- T-05: `! grep -qE '...' branch-create-gate.sh && python3 -c ... | ... deny` → both halves ran, grep
+- T-05: `! grep -qE '...' branch-create-gate.py && python3 -c ... | ... deny` → both halves ran, grep
   absence confirmed and the positive-control deny fired with the exact reason text.
 - T-06: verbatim `for c in open start-task close-task ...` loop + two greps → exit 0.
 

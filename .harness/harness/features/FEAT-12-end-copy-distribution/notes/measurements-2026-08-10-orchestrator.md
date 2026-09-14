@@ -81,8 +81,8 @@ Parsed with `json.load`. Every registration whose command points inside the dele
 
 | Event | Matcher | Script |
 |---|---|---|
-| `PreToolUse` | `Bash` | `branch-create-gate.sh` |
-| `PreToolUse` | `Bash` | `branch-create-gate.sh` **(a second, duplicate entry — different `$VAR` spelling)** |
+| `PreToolUse` | `Bash` | `branch-create-gate.py` |
+| `PreToolUse` | `Bash` | `branch-create-gate.py` **(a second, duplicate entry — different `$VAR` spelling)** |
 | `PreToolUse` | `Bash` | `bash-write-guard.py` |
 | `PreToolUse` | `Write\|Edit` | `check-domain.py` |
 | `PreToolUse` | `Task\|Agent` | `dispatch-guard.py` |

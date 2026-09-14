@@ -106,11 +106,11 @@ routed to whichever unit lands the second segment (unit 5 or 8, alongside D-08's
 collision), with a `case_22` sibling that chmods the segment directory rather than the feature
 directory.
 
-### Finding 3 — med, open question, not decided — branch-create-gate.sh may have the wrong side of D-01 (T-07)
+### Finding 3 — med, open question, not decided — branch-create-gate.py may have the wrong side of D-01 (T-07)
 
-`branch-create-gate.sh:77-78` now reads `ls -d "$root/.harness/harness/features/${flow}"*` — a
-**literal** segment. This dispatch explicitly names `branch-create-gate.sh` on the wildcard side of
-the D-01 sweep ("Check ... `branch-create-gate.sh` ... against the 19 agent/skill/team/command
+`branch-create-gate.py:77-78` now reads `ls -d "$root/.harness/harness/features/${flow}"*` — a
+**literal** segment. This dispatch explicitly names `branch-create-gate.py` on the wildcard side of
+the D-01 sweep ("Check ... `branch-create-gate.py` ... against the 19 agent/skill/team/command
 files ... and `test-factory-cli.py`" — i.e., expected to pattern with the glob/regex group, not the
 prose group), and structurally `ls -d "..."*` is a discovery glob, the same shape as
 `check-domain.py`'s `SWEEP_GLOBS` and `check-plan-routes.py`'s `discover_plans()` glob — both of
@@ -128,7 +128,7 @@ uniqueness rule, so a same-numbered flow in another segment is not exotic.
 
 I am not deciding this — it needs the same explicit D-01 boundary ruling the plan gave
 `team-config.yaml`/`check-domain.py`/`check-plan-routes.py` (a ROW AUDIT), which
-`branch-create-gate.sh` never got. Cannot fire today (one segment); when it does fire it is LOUD
+`branch-create-gate.py` never got. Cannot fire today (one segment); when it does fire it is LOUD
 (deny, naming the searched path) either way, so it is not an urgent block — flagging as an
 `open_question` rather than a must_fix.
 
@@ -177,6 +177,6 @@ directory rename.
 |---|---|---|---|---|
 | 1 | check-state.sh | T-05 | high | **yes — must_fix** |
 | 2 | check-plan-routes.py | T-04 | med | no (advisory) |
-| 3 | branch-create-gate.sh | T-07 | med | no (open question) |
+| 3 | branch-create-gate.py | T-07 | med | no (open question) |
 | 4 | gh-sync.py | T-10 | low | no |
 | 5 | check-state.sh:51 | T-05 | low | no |

@@ -120,7 +120,7 @@ unquoted scalars vs. wrong JSON type), already recorded elsewhere.
 
 ### 4. Widened beyond the delta; discrimination proven against the parent, not asserted
 
-**Sibling PreToolUse gates re-checked** (`gh-close-gate.py`, `branch-create-gate.sh`,
+**Sibling PreToolUse gates re-checked** (`gh-close-gate.py`, `branch-create-gate.py`,
 `plan-sign-gate.py`): none replicate `feature_for`'s per-glob-match pattern (grepped for
 `glob.glob.*feature.json` and `isinstance(document` across the three files — no matches); the
 defect class stays specific to `merge-gate.py`'s own directory scan, as cycle 3 already established

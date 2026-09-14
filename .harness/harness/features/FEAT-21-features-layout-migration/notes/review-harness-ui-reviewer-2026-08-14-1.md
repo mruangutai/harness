@@ -14,7 +14,7 @@ zero enforcing assertion anywhere in the plan — including the detector itself.
 - This feature is shell/Python gate code plus a directory rename — no markup, no CSS, no rendered
   surface. Scoping out on that basis alone would be correct, per the dispatch's own framing.
 - The dispatch names one adjacent in-remit surface: operator-facing diagnostic text emitted by
-  `branch-create-gate.sh` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.sh`
+  `branch-create-gate.py` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.sh`
   (T-05). Audited all three against the plan's actual verify blocks and the real files at HEAD, then
   swept T-02/T-03 (`team-config.yaml`, `check-domain.py`) for the same gap class since they are the
   other two reader-migration tasks in the same coupled cluster.
@@ -71,7 +71,7 @@ neither does the detector's own row for this file.**
   migrates, not from separately hardcoded literals. Direct grep of the file for
   `.harness/features` outside the join calls found exactly one hit, a comment at line 51, never
   printed to a user.
-- **T-07 GROUP 2 (`branch-create-gate.sh`)**: fully covered. Its verify does a whole-file negative
+- **T-07 GROUP 2 (`branch-create-gate.py`)**: fully covered. Its verify does a whole-file negative
   search — `'.harness/features/' not in open(...).read()` — which catches both the lookup
   (line 77) and the deny message (line 78) in one assertion. This is the pattern T-04's verify
   should have used and didn't.

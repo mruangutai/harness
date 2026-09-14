@@ -79,11 +79,11 @@ they DENY cleanly. Not vacuous.
   command never reaches it — confirmed live, `"T-05 non-merge command allows"` still passes.
 
 **Widened to sibling PreToolUse gates (per this cycle's charge).** Grepped the whole `bin/` tree for
-`permissionDecision`/`hookSpecificOutput` emitters: `gh-close-gate.py` and `branch-create-gate.sh`,
+`permissionDecision`/`hookSpecificOutput` emitters: `gh-close-gate.py` and `branch-create-gate.py`,
 both DEC-138-adjacent gates. `gh-close-gate.py`'s `denies()` operates purely on the shell-command
 string (tokens, regexes, bounded list indexing) and touches no per-feature file — the specific
 defect class here (untrusted *file content* causing an unguarded attribute error) has no analogue
-there. `branch-create-gate.sh` is a documented, intentionally different posture — it fails CLOSED on
+there. `branch-create-gate.py` is a documented, intentionally different posture — it fails CLOSED on
 `gh` unavailability by design ("this one is a gate, not a mirror"), unchanged by this diff, and
 found no unguarded exception path in its python one-liners. `plan-sign-gate.py` (a third
 PreToolUse gate found in the same directory) governs an unrelated concern — plan-signature and

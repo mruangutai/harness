@@ -43,7 +43,7 @@ positive controls, and the floor check.
 against the three files the prior gate named as false negatives:
 
 - `test-board-lifecycle.py`: `children=59` (previously `children=0`)
-- `test-branch-create-gate.py`: `children=7`, names the real `branch-create-gate.sh` path
+- `test-branch-create-gate.py`: `children=7`, names the real `branch-create-gate.py` path
 - `test-factory-decompose.py`: `children=2`, names `fork`/`fork`
 
 All three now correctly report the subprocess forking the plan itself named as the reclassification

@@ -37,7 +37,7 @@ three verdicts together; do not hand back between them.
 - **SC-08 is STRUCK, not unmet.** Nine live criteria, not ten; it does not exist and is never
   counted `not_met` — `BRIEF.md` SC-08 strike record — verified-at 6d2d61b
 - No `gh issue develop`, no linking the build branch to the parent issue, no `Closes #N` composed
-  into any PR body, no teaching `branch-create-gate.sh` to parse `gh` subcommands — D-08's strike
+  into any PR body, no teaching `branch-create-gate.py` to parse `gh` subcommands — D-08's strike
   record and `BRIEF.md` `## Out of scope` — verified-at 6d2d61b
 - The advisor is unavailable for stretches this session. Judgement calls made without it are
   labelled as unreviewed rather than deferred — this note — verified-at 6d2d61b

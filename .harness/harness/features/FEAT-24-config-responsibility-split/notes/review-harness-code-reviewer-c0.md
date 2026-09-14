@@ -152,7 +152,7 @@ am.1/am.2 read accurately against the code as I independently verified it (kaya'
 station derivation, origin-gated close); `gen-decisions-index.py --stdout` is byte-identical to
 `DECISIONS-INDEX.md` at the pin (SC-11 closed). `factory_claim.py`, `factory_land.py`,
 `factory_decompose.py`, `harness_boundary.py`, `wayfind.py`, `layout_migration.py`,
-`branch-create-gate.sh`, `check-plan-routes.py`, `run-unit-tests.sh` are byte-identical between
+`branch-create-gate.py`, `check-plan-routes.py`, `run-unit-tests.sh` are byte-identical between
 `ada8e99` and `14994b3` — confirmed by `git diff --stat`, matching the plan's
 `resolved_but_not_written` claims. SC-02 confirmed MET (see above, independently mutation-tested).
 SC-09 confirmed MET (live remote read). SC-11 confirmed MET (byte-identical index). SC-13 confirmed

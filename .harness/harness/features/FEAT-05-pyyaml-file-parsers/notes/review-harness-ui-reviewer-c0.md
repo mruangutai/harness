@@ -39,7 +39,7 @@ block-path messages in the same function (marker unreadable/unwritable, grant al
 similarly specific about cause and next step.
 
 One caveat, unverified from source: the module's own comment (`harness_yaml.py:307-311`) asserts the
-`systemMessage` channel is "proven live" via `branch-create-gate.sh:82,111` plus
+`systemMessage` channel is "proven live" via `branch-create-gate.py:82,111` plus
 `.claude/settings.json` registration. Whether the payload actually renders to the user in a live
 session is a runtime/UAT observation, not something this source-level audit confirms — flagging per
 role limits rather than repeating the dev's claim as verified.

@@ -32,7 +32,7 @@ for what this review does not cover.
   reference-path fix, consistent with the feature's stated goal.
 - `BRIEF.md` read directly: FEAT-21's own scope statement is exclusively about path-migration
   mechanics (`check-state.sh` discovery sites, `check-domain.py` sweep globs, `check-plan-routes.py`,
-  team-config grants, `branch-create-gate.sh`) — no UI/visual/interaction goal anywhere in it.
+  team-config grants, `branch-create-gate.py`) — no UI/visual/interaction goal anywhere in it.
 
 Conclusion: this diff has no rendered UI surface and no design contract was touched, checked at both
 the extension level and the specific filename (`DESIGN.md`/mockup/prototype) this role audits.

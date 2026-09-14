@@ -58,7 +58,7 @@ decisions:
       and its coupled readers are exactly unit 4's atomic trio - factory_config._PROBE,
       harness_boundary.HARNESS_CONTROL_PLANE, gen-decisions-index.DOCS_DIR. Deliberately excluded
       from both sets, and named so a later reader does not add them back - gh-sync.py line 729,
-      branch-create-gate.sh line 77, validate-feature-json.py, factory_claim.py line 43, the
+      branch-create-gate.py line 77, validate-feature-json.py, factory_claim.py line 43, the
       gitignore snippet, and all prose.
     because: >-
       Map 336 makes unit 3 one commit and unit 4 its own atomic unit with no ordering tie, so
@@ -318,7 +318,7 @@ tasks:
           until they are corrected is the behaviour we want, not a false positive.
 
       DO NOT READ these files under any surface, and say so in a module comment naming them:
-      gh-sync.py, branch-create-gate.sh, validate-feature-json.py, factory_claim.py, the
+      gh-sync.py, branch-create-gate.py, validate-feature-json.py, factory_claim.py, the
       gitignore snippet, and prose. Map 336 lands them anytime under unit 9, so reading them
       would redden a sanctioned state.
 

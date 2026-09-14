@@ -1,10 +1,10 @@
 # Receipt — harness-backend-dev — T-05 — c1
 
 ## Task
-T-05: Delete branch-create-gate.sh's dormant board-flip block and its four config keys.
+T-05: Delete branch-create-gate.py's dormant board-flip block and its four config keys.
 
 ## Change
-`.claude/skills/harness/bin/branch-create-gate.sh`:
+`.claude/skills/harness/bin/branch-create-gate.py`:
 - Deleted the optional board-flip block (the `gh api graphql projectItems` lookup and the
   `gh project item-edit` call), including its preceding comment.
 - Removed `PROJ_NUM`, `PROJ_ID`, `FIELD_ID`, `OPT_ID` from the `read -r` variable list and from
@@ -17,7 +17,7 @@ T-05: Delete branch-create-gate.sh's dormant board-flip block and its four confi
   and the derived parent station covers that case; it is in git history if needed.
 - The four `git` extraction forms (`checkout -b`, `switch -c/--create`, `worktree add -b`,
   `branch NAME`) are byte-for-byte unchanged — confirmed via
-  `git diff -- .claude/skills/harness/bin/branch-create-gate.sh` and grep of those four
+  `git diff -- .claude/skills/harness/bin/branch-create-gate.py` and grep of those four
   `grep -qE 'git'` lines showing no diff hunks touching them.
 
 ## Task's verify — exact invocation and verbatim output
@@ -25,7 +25,7 @@ T-05: Delete branch-create-gate.sh's dormant board-flip block and its four confi
 Invocation (run exactly as given in the plan/dispatch, from repo root):
 
 ```
-! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.sh | grep -q '"permissionDecision": "deny"'
+! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
 ```
 
 Overall exit status: `0` (PASS, confirmed by `echo $?` immediately after the compound command).
@@ -34,7 +34,7 @@ Overall exit status: `0` (PASS, confirmed by `echo $?` immediately after the com
 
 Command:
 ```
-grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh
+grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py
 ```
 Output: none (grep printed nothing — `-q`).
 Exit status: `1` (no match — the four keys and `item-edit` are absent from the file).
@@ -49,7 +49,7 @@ passed.
 
 Command:
 ```
-python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.sh
+python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py
 ```
 Verbatim stdout:
 ```

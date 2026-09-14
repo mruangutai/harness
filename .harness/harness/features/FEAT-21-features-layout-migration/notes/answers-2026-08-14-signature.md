@@ -4,7 +4,7 @@ Asked via the main session, all four ruled in one pass.
 
 - **Signature: APPROVED, conditional on the two edits below landing first.** The operator signs
   BRIEF and plan as revised; the main session writes the approval blocks once pm's revision is in.
-- **Q1 CONFIRMED — the unit-9 override stands.** branch-create-gate.sh, the guard instruction
+- **Q1 CONFIRMED — the unit-9 override stands.** branch-create-gate.py, the guard instruction
   paths, gh-sync.py and validate-feature-json.py ride inside the atomic commit. "Anytime" was a
   dependency-order claim, not a prohibition; two of the four break loudly post-move and two fail
   silently, and a known-broken window between merges is the worse trade.

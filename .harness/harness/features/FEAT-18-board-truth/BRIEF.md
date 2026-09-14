@@ -71,7 +71,7 @@ plan on disk is reported at the start of the next session rather than discovered
   with a capital B, which is the board's spelling and therefore the likely typo — is a violation of
   `check-plan-routes.py`, and every one of the live plans still passes it.
   verify: automated      evidence: integration
-- SC-07: `branch-create-gate.sh` no longer contains board-moving code or any read of the four board
+- SC-07: `branch-create-gate.py` no longer contains board-moving code or any read of the four board
   config keys, and it still denies a branch naming a flow that does not exist on disk. The second
   half is checked by running the gate, not by reading it: a deletion that also disabled the gate
   would pass an absence check on its own.
@@ -81,7 +81,7 @@ plan on disk is reported at the start of the next session rather than discovered
   parent issue, read back with the `linkedBranches` query. The build branch is now created the
   ordinary way, `git checkout -b feat/FEAT-18-board-truth`, and nothing links it to the issue — so
   the criterion is false by design rather than unmet. Two measured breaks forced it: the
-  `gh issue develop` route bypasses `branch-create-gate.sh` entirely, and a linked-branch PR closes
+  `gh issue develop` route bypasses `branch-create-gate.py` entirely, and a linked-branch PR closes
   its parent issue on merge with no closing keyword, which with board 3's enabled `Auto-close issue`
   and `Item closed` workflows would land the parent card in `Done` mid-build. Both were measured, not
   predicted — `notes/answers-2026-08-13-revision.md`.
@@ -138,7 +138,7 @@ plan on disk is reported at the start of the next session rather than discovered
   created the ordinary way and is not linked to the issue either. The parent issue is closed by
   `gh-sync.py ship`, which already closes it and already posts the ship review on it, so no
   harness-composed closing text is needed and none is written.
-- **Teaching `branch-create-gate.sh` to parse `gh` subcommands.** The gate covers four `git` forms
+- **Teaching `branch-create-gate.py` to parse `gh` subcommands.** The gate covers four `git` forms
   and nothing else. Striking SC-08 closes that gap by not opening it — the build branch is created
   with a form the gate already extracts — so no parsing work is in this feature.
 
@@ -153,7 +153,7 @@ the revision that struck D-08 and SC-08. Three things were settled at signature 
 here rather than left to be inferred.
 
 **Q1 — answered, but not as it was asked.** The question was whether the operator's fence on
-`branch-create-gate.sh`'s four config keys covers D-05's three. He did not rule on the fence. He
+`branch-create-gate.py`'s four config keys covers D-05's three. He did not rule on the fence. He
 raised a larger objection instead:
 
 > `harness.json` holds harness **runtime** metadata. Project, repo and GitHub data belongs with the

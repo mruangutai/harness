@@ -255,7 +255,7 @@ a card that silently misses `Done` with its only signal one line inside the outp
   `Review` because the native `Item closed` workflow moves it. FEAT-34's 13 sub-issues are closed and
   at `Review` right now.
 - **A `PreToolUse:Bash` gate cannot see `gh-sync.py`'s own `gh` calls.** The hook is handed
-  `tool_input.command` and nothing else (`branch-create-gate.sh:47`), and `gh-sync.py` reaches `gh`
+  `tool_input.command` and nothing else (`branch-create-gate.py:47`), and `gh-sync.py` reaches `gh`
   through `subprocess`, which never traverses the tool. An environment marker set inside `gh-sync.py`
   therefore cannot reach the gate at all. The gate can and should refuse every `gh issue close`
   unconditionally — abandon keeps working because its close is a subprocess, not a Bash call. This

@@ -121,7 +121,7 @@ def case_no_duplicate_write():
                 "SubagentStop": [entry("harness-.*", "x/validate-digest.py --hook")],
                 "PreToolUse": [
                     entry("Write|Edit", "x/check-domain.py"),
-                    entry("Bash", "x/branch-create-gate.sh"),
+                    entry("Bash", "x/branch-create-gate.py"),
                     entry("Bash", "x/bash-write-guard.py"),
                     entry("Task|Agent", "x/dispatch-guard.py"),
                 ],

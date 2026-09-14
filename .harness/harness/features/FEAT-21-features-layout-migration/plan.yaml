@@ -76,7 +76,7 @@ lanes:
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "pulled forward from unit 9 per D-07; it is the CI backstop for an unregistered write-time gate and would tick green over zero files after the move."
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "a registered gate script that hard-denies branch creation post-move; edited in the same human-read diff as the move. Carve-out by content overrides the measured grant."
@@ -128,7 +128,7 @@ decisions:
     choice: >-
       The atomic commit is WIDER than the five-item cluster issue 344 named. It also carries the
       test suites pinned to the old path, the guard-enforced instruction paths in agents, skills,
-      team definitions and the harness command, branch-create-gate.sh, this repository's own
+      team definitions and the harness command, branch-create-gate.py, this repository's own
       .gitignore, the three path-depth resolvers pulled forward by D-07 - test-factory-cli.py,
       gh-sync.py and validate-feature-json.py - and the one CI comment that describes the sweep
       D-07 pulls forward, in .github/workflows/tests.yml. In task terms, stated identically
@@ -138,7 +138,7 @@ decisions:
       Each of those is enforced by the same grants or globs that move, or resolves a feature path by
       arithmetic over the same depth. Leave the suites and the landed commit is red; leave the
       instruction paths and every doer's own bookkeeping write is denied at the next dispatch; leave
-      branch-create-gate.sh and no branch can be created for any feature; leave .gitignore and every
+      branch-create-gate.py and no branch can be created for any feature; leave .gitignore and every
       run directory becomes untracked, which halts a team run on a dirty tree; leave
       test-factory-cli.py and the unit suite dies on import; leave gh-sync.py and every GitHub
       mirror command succeeds while doing nothing; leave validate-feature-json.py and the CI schema
@@ -197,7 +197,7 @@ decisions:
     because: >-
       Map 336 files the first two under unit 9 "anytime", which is a DEPENDENCY-ORDER claim rather
       than a prohibition, and this plan already applied the override test once when it pulled
-      branch-create-gate.sh forward for hard-blocking post-move. That test selects for LOUD, but the
+      branch-create-gate.py forward for hard-blocking post-move. That test selects for LOUD, but the
       BRIEF's own severity ordering says SILENT is worse, and both of these are silent. Measured at
       62fef85 - gh-sync.py:729 derives root as feat_dir/../../.., which post-move resolves to
       <repo>/.harness, load_config finds no harness.json and takes skip(), documented at gh-sync.py
@@ -730,7 +730,7 @@ tasks:
     traces: [REQ-04]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: "every file here resolves to NOBODY, and branch-create-gate.sh is a gate script edited in the same human-read diff"
+    execution_reason: "every file here resolves to NOBODY, and branch-create-gate.py is a gate script edited in the same human-read diff"
     depends_on: [T-02]
     status: done
     files:
@@ -753,7 +753,7 @@ tasks:
       - .claude/skills/harness/references/missions.md
       - .claude/skills/harness/teams/build.yaml
       - .claude/skills/harness/teams/review.yaml
-      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .claude/skills/harness/bin/branch-create-gate.py
       - .gitignore
     verify: |
       set -e
@@ -769,10 +769,10 @@ tasks:
           'positive control failed: the receipt instruction names no migrated path'
       gi = open('.gitignore').read()
       assert '.harness/features/*/runs/**' not in gi and '/features/*/runs/**' in gi, 'ignore rule not moved'
-      assert '.harness/features/' not in open('.claude/skills/harness/bin/branch-create-gate.sh').read()
+      assert '.harness/features/' not in open('.claude/skills/harness/bin/branch-create-gate.py').read()
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/branch-create-gate.sh
+      bash -n .claude/skills/harness/bin/branch-create-gate.py
     intent: |
       After the move, an agent following its own written instructions must still be able to do its
       bookkeeping, and a branch must still be creatable for a feature. Three groups.
@@ -787,7 +787,7 @@ tasks:
       DO NOT TOUCH harness-init/SKILL.md or anything under harness/templates/ : both describe a path
       inside the tree being ONBOARDED, which does not move in this unit (D-05).
 
-      GROUP 2 - branch-create-gate.sh. Its flow check lists "$root/.harness/features/${flow}"* and
+      GROUP 2 - branch-create-gate.py. Its flow check lists "$root/.harness/features/${flow}"* and
       DENIES branch creation when nothing matches, so after the move no branch could be created at
       all - the rare LOUD one in issue 344's survey. Point the lookup under the repository segment,
       keep the deny path intact and keep its message naming the path actually searched. Map 336 files

@@ -39,7 +39,7 @@ comments QUOTE the HARNESS_CONTROL_PLANE entry character for character; unit 4
 rewrites them in its own commit, and the detector holding the file MIXED until then is
 the behaviour we want, not a false positive.
 
-DO NOT READ these files under any surface: gh-sync.py, branch-create-gate.sh,
+DO NOT READ these files under any surface: gh-sync.py, branch-create-gate.py,
 validate-feature-json.py, the gitignore snippet, and prose. Map
 #336 lands them anytime under unit 9, so reading them would redden a sanctioned state.
 The feature-claiming tool's features row landed with the unit that fixed its root

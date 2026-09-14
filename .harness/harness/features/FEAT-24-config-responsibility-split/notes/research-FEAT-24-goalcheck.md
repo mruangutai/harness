@@ -207,7 +207,7 @@ consumer**, the one thing SC-07's "no two consumers sharing one" forbids.
 ## SC-10 — partial, 11 of 12 items
 
 - **Non-readers 4/4** — T-04's loop over `wayfind.py`, `layout_migration.py`,
-  `check-plan-routes.py`, `branch-create-gate.sh`, each with its own positive control
+  `check-plan-routes.py`, `branch-create-gate.py`, each with its own positive control
   (`grep -qE '^(def |#!/)'`), all matching zero moved keys. T-04 GREEN, my run. (Regression guard
   only — the BRIEF's own gap note already says so.)
 - **Readers 7/8:** `gh_board.py` ✓ and `check-state.sh` ✓ (literal-absence + positive controls,

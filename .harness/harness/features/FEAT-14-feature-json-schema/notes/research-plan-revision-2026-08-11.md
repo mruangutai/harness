@@ -405,7 +405,7 @@ The sites that read or assert a feature's `phase`/`status`, and every one of the
 - **`validate-digest.py:182-183`** and **`harness-orchestrator.md:69`** — the orchestrator DIGEST
   status enum. **D-13** rules it out of scope with a named reason. T-07 item 3 forbids touching line
   69 explicitly.
-- **`branch-create-gate.sh:45`** `g.get("status_field")` — this is `harness.json`'s GitHub board
+- **`branch-create-gate.py:45`** `g.get("status_field")` — this is `harness.json`'s GitHub board
   field *name*, not a feature's status value. Untouched.
 - **`factory_gh.py` / `test-factory-gh.py` / `test-factory-claim.py`** — every hit is `gh auth
   status`, an HTTP `"status":"422"`, or a subprocess exit status. Not this vocabulary.

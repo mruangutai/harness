@@ -30,7 +30,7 @@ omission, not an oversight.
 ## 2. `run-unit-tests.sh` characterised
 
 - **Not a hook.** `.claude/settings.json` lists exactly 7 hook registrations
-  (`inject-expertise.sh`, `check-domain.py` PreToolUse+PostToolUse, `branch-create-gate.sh`,
+  (`inject-expertise.sh`, `check-domain.py` PreToolUse+PostToolUse, `branch-create-gate.py`,
   `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py --hook`). `run-unit-tests.sh`
   is not among them — confirmed by grep.
 - **Is a required-CI-job step**, same job as `check-plan-routes.py`: `.github/workflows/tests.yml:75-84`

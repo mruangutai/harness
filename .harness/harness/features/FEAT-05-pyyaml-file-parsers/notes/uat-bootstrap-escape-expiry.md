@@ -207,7 +207,7 @@ grant path needed a different one.
 
 **D-14b — FIXED, and your warning that D-14a would not close it was correct.** The grant path
 now also emits `{"systemMessage": ...}` on **stdout**, the PreToolUse contract's user-visible
-channel. Not assumed: `branch-create-gate.sh:82,111` already emits that shape on its own allow
+channel. Not assumed: `branch-create-gate.py:82,111` already emits that shape on its own allow
 path and is registered in `.claude/settings.json`, so the channel is proven live in this repo.
 Emitted last, so a failure there cannot cost the stderr copy the agent reads.
 

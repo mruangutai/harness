@@ -102,7 +102,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   cases that can only pass after the migration; `factory_land.py`, `factory_claim.py` and
   `factory_decompose.py` by a named case each pinning the value they now resolve through the new
   source. The four files the survey classified as non-readers — `wayfind.py`,
-  `layout_migration.py`, `check-plan-routes.py`, `branch-create-gate.sh` — are searched for every
+  `layout_migration.py`, `check-plan-routes.py`, `branch-create-gate.py` — are searched for every
   moved key, each with its own positive control, and must still match none.
   verify: automated      evidence: integration
 - SC-11: The two recorded statements this change falsifies — DEC-174 amendment 2's per-repository

@@ -50,7 +50,7 @@ const proc = spawnSync(join(cwd, BIN, script), args, { cwd, ... });
 executable is selected by joining it onto a caller-supplied path. I verified this myself rather than
 relaying it: eleven call sites (`:179`, `:186`, `:198`, `:205`, `:212`, `:263`, `:317`, `:318`,
 `:325`, `:357`) covering six distinct gates — `check-domain.py`, `inject-expertise.sh`,
-`branch-create-gate.sh`, `bash-write-guard.py` and `validate-digest.py`. All of them trace back to
+`branch-create-gate.py`, `bash-write-guard.py` and `validate-digest.py`. All of them trace back to
 `ctx.cwd`.
 
 **Why this is the feature's own defect and not an unrelated one.** Issue #556, which this branch

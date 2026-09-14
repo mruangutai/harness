@@ -42,7 +42,7 @@ REFUSE_ON_DIRTY = True
 REQUIRE_LANDED = True
 
 # The flow-id form this CLI accepts: FEAT or BUG, a number, and an optional kebab slug — the same
-# vocabulary branch-create-gate.sh already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
+# vocabulary branch-create-gate.py already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
 _ID_RE = re.compile(r"^(FEAT|BUG)-[0-9]+[a-z0-9-]*$")
 
 

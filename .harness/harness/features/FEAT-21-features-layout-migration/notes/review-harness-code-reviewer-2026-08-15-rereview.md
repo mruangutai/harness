@@ -99,7 +99,7 @@ comment. States something true of the code beneath it: the glob it sits above is
 
 ## D — prior advisories, regression check only
 
-1. **`branch-create-gate.sh:77-78`, hardcoded literal `harness` segment — changed, and the change
+1. **`branch-create-gate.py:77-78`, hardcoded literal `harness` segment — changed, and the change
    is a real latent narrowing, but not news.** The literal moved from `.harness/features/${flow}*`
    (pre-migration: universally correct, since no per-repo segment existed yet) to
    `.harness/harness/features/${flow}*` (post-migration: correct only where the repo's own segment
@@ -172,7 +172,7 @@ that.
 | 1 | Four bare-basename labels (`check-state.sh:126,609,619,638`) outside D-08's traded pattern still don't resolve to an openable path | low | advisory only |
 | 2 | `fpath()`'s `?` fallback is unreachable on any tree the script currently discovers | info | advisory only |
 | 3 | `_feat_dirs` dict-overwrite is unspecified under a MIXED layout, but `INV-27` already blocks that state first | info | advisory only, folded into B-1 |
-| 4 | `branch-create-gate.sh`'s hardcoded segment narrowed from universally-correct to repo-specific | low | advisory only, already tracked as B-5 |
+| 4 | `branch-create-gate.py`'s hardcoded segment narrowed from universally-correct to repo-specific | low | advisory only, already tracked as B-5 |
 | 5 | `check-plan-routes.py`'s segment-level readability guard gap was newly created by this range's migration | med | advisory only, already tracked as B-4, unchanged since precommit |
 | 6 | `gh-sync.py`/`plan.yaml` T-10 text vs. actual probe (`team-config.yaml`) still not reconciled | low | advisory only, already tracked as B-6 |
 

@@ -79,7 +79,7 @@ def case_d():
                     "PostToolUse": [{"hooks": [{"command": "x/check-domain.py --post"}]}],
                     "PreToolUse": [
                         {"hooks": [{"command": "x/check-domain.py"}]},
-                        {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                        {"hooks": [{"command": "x/branch-create-gate.py"}]},
                         {"hooks": [{"command": "x/bash-write-guard.py"}]},
                         {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}
         local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
@@ -235,7 +235,7 @@ def case_m():
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
@@ -269,7 +269,7 @@ def case_m2():
                                             "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
@@ -315,7 +315,7 @@ def case_m3():
                                 "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         code, out = run(tmp)
@@ -362,7 +362,7 @@ def case_t():
                                             "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)

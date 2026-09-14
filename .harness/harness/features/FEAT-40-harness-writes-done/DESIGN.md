@@ -121,7 +121,7 @@ construction rather than guarded against. Specifically:
 
 ## Contract 4 — the gate's refusal must route by intent, not name one command
 
-**Measured precedent:** `branch-create-gate.sh`'s deny reasons are two sentences — what is wrong,
+**Measured precedent:** `branch-create-gate.py`'s deny reasons are two sentences — what is wrong,
 then something runnable. `:87` says "Install it (+ gh auth login), or branch under a flow id
 instead"; `:78` says "plan first, then branch"; `:85` gives the exact name form.
 

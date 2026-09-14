@@ -19,7 +19,7 @@ regexes and its `SWEEP_GLOBS` stop enforcing anything while still advancing the 
 CI's plan-route guard is defeated by exactly the shape a repo segment produces. Split the cluster
 across commits and the tree is either one where every write is denied, or — worse — one whose shape
 gate is silently off. Two of the failures are loud instead: after the move, `team-config.yaml`'s
-grants no longer match, so every agent loses its own artifact paths, and `branch-create-gate.sh`
+grants no longer match, so every agent loses its own artifact paths, and `branch-create-gate.py`
 denies the creation of a branch for any feature.
 
 ## Goal
@@ -35,7 +35,7 @@ detector at a landed commit is a stop rather than a note.
 grants; `check-domain.py`'s `SWEEP_GLOBS` and its four shape regexes; `check-plan-routes.py`'s
 discovery; `check-state.sh`'s fifteen discovery sites; the test suites whose fixtures or literal
 expectations are pinned to the old path; the guard-enforced instruction paths that tell an agent
-where to write its receipt, its observations and its per-feature notes; `branch-create-gate.sh`'s
+where to write its receipt, its observations and its per-feature notes; `branch-create-gate.py`'s
 flow lookup; this repository's own `.gitignore` run-dir rule; the three mechanisms that resolve a
 feature path by arithmetic over its depth rather than by a literal — `test-factory-cli.py`'s
 module-scope plan read, `gh-sync.py`'s root derivation and `validate-feature-json.py`'s discovery
@@ -117,7 +117,7 @@ own commit.
   command — names the new path, and the only survivors of that literal outside the shipped
   `templates/` directory are ones a reviewer can name and justify individually.
   verify: inspection
-- SC-08: `branch-create-gate.sh` allows creating a branch named for a feature that exists at the new
+- SC-08: `branch-create-gate.py` allows creating a branch named for a feature that exists at the new
   location, and still denies one naming a feature that exists nowhere.
   verify: automated      evidence: integration
 - SC-09: Run directories at the new location are git-ignored, so a team run does not find a dirty

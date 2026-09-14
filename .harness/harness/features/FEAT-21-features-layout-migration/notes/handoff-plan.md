@@ -31,7 +31,7 @@ T-09 lands and verifies. Expect FEAT-20's T-01/T-02 hand-off shape.
 - The four Q1 override sites break for real post-move and three are invisible to a literal sweep —
   `test-factory-cli.py:151-153` (module-scope open, ImportError kills the suite), `gh-sync.py:729`
   (three-level climb), `validate-feature-json.py:41` (scans zero files silently),
-  `branch-create-gate.sh:77-78`, `.gitignore:7` — I read all five — verified-at 62fef85
+  `branch-create-gate.py:77-78`, `.gitignore:7` — I read all five — verified-at 62fef85
 - The plan run's consolidated digest is GONE — the revision reused `runs/2026-08-14-1-product/` and
   overwrote it. Substance survives in runs/2026-08-14-1-eng/digest{,-recheck}.md and both
   notes/review-harness-ui-reviewer-*.md — I listed the dir — verified-at 62fef85

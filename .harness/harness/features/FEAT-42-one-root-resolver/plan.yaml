@@ -35,7 +35,7 @@ lanes:
     - surface: .claude/skills/harness/bin/dispatch-guard.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       lane: main-session-direct
       reason: a registered PreToolUse hook that refuses; DEC-174 am.4 says the category decides and the list records
     - surface: .claude/skills/harness/bin/gh-close-gate.sh
@@ -1067,7 +1067,7 @@ tasks:
       before it can refuse and both cases go red for a missing module rather than a missing root.
 
   - id: T-14
-    title: Cut branch-create-gate.sh over, adding the missing test seam first
+    title: Cut branch-create-gate.py over, adding the missing test seam first
     traces: [REQ-01, REQ-02, REQ-09]
     change_type: logic
     execution_mode: main-session-direct
@@ -1075,12 +1075,12 @@ tasks:
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .claude/skills/harness/bin/branch-create-gate.py
       - .claude/skills/harness/bin/test-branch-create-gate.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      G=branch-create-gate.sh
+      G=branch-create-gate.py
       grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
       grep -q "BRANCH_CREATE_GATE_BIN" $B/test-branch-create-gate.py || { echo "seam missing"; exit 1; }
       for M in /tmp/f42-old /tmp/f42-new; do
@@ -1107,13 +1107,13 @@ tasks:
       Two edits, in this order.
 
       1. test-branch-create-gate.py:25 hardcodes GATE = os.path.join(HERE,
-      "branch-create-gate.sh"). Give it the environment seam five sibling suites already use —
-      GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(HERE, "branch-create-gate.sh")
+      "branch-create-gate.py"). Give it the environment seam five sibling suites already use —
+      GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(HERE, "branch-create-gate.py")
       — matching the spelling at test-check-domain.py:18 and test-bash-write-guard.py:17. Nothing
       else in that file changes. Without this seam am.4's identical-violation-set proof cannot be
       run at all, which is why it comes first.
 
-      2. .claude/skills/harness/bin/branch-create-gate.sh:30 is
+      2. .claude/skills/harness/bin/branch-create-gate.py:30 is
       root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". This gate refuses branch
       creation outside the allowed shapes, and with a pwd fallback it judges branch names against
       whatever checkout the shell was standing in. Resolve the root through a short python3
@@ -1536,7 +1536,7 @@ tasks:
       .claude/skills/harness/bin/ that sets the variable - a repo-wide grep over tracked .ts, .js
       and .json files excluding /bin/ returns exactly this one line at sha 3952814; every other
       match in the tree is prose. After T-10, T-11, T-14, T-16 and T-17 each of the five scripts
-      this helper invokes - check-domain.py, bash-write-guard.py, branch-create-gate.sh,
+      this helper invokes - check-domain.py, bash-write-guard.py, branch-create-gate.py,
       inject-expertise.sh and validate-digest.py - derives its own root from its own file location
       under D-4. Handing it one is therefore redundant. Worse, the value handed over is the host
       process working directory, and under D-2 and D-3 a feature worktree carries

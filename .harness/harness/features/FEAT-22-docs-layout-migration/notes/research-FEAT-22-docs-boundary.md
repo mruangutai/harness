@@ -163,7 +163,7 @@ verdict for the hook path and for `--resolve`. Its own green cannot vouch for it
 - **`READER_TABLE` needs no row edit.** Confirmed by reading `layout_migration.py:93-101`: every
   DOCS row already carries its `migrated` regex. Leave.
 - `docs/PRINCIPLES.md` stays global (map #336 ruling). It is not under `docs/harness/`.
-- `gh-sync.py`, `branch-create-gate.sh`, `validate-feature-json.py`, `factory_claim.py`, the
+- `gh-sync.py`, `branch-create-gate.py`, `validate-feature-json.py`, `factory_claim.py`, the
   gitignore snippet and prose: **unit 9**.
 - **No `fleet.yaml` edit.** Segment `harness` comes from `harness.json` `github.repo`
   (`layout_migration._declared_segments`), and the features surface already reads

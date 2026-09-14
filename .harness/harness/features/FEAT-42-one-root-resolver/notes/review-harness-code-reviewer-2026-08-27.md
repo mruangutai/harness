@@ -20,7 +20,7 @@ against what each one actually needs:
 - Fail-CLOSED on unresolvable root (correct — these are refusal-shaped gates): `check-state.sh`
   (`:38-43`, exit 2, verified directly — the stale comment at `:1143` notwithstanding, see
   below), `check-plan-routes.py` (`:510-521`, `except ValueError: … sys.exit(2)`),
-  `branch-create-gate.sh`, `gh-close-gate.sh` (per T-14/T-15 intent, not independently
+  `branch-create-gate.py`, `gh-close-gate.sh` (per T-14/T-15 intent, not independently
   re-run but consistent with the QA gate's parity re-runs).
 - Fail-OPEN by design, all pre-existing and cited (DEC-101 or the hook's own contract), none
   newly introduced: `check-domain.py`/`bash-write-guard.py`'s `_root()` uses `strict=False`
@@ -153,7 +153,7 @@ files) — noted for `harness-security-reviewer`, not assessed here.
    behaviourally discriminating one; 3 of 4 T-01 functions got the weaker kind — **low-med**,
    chore, GREEN assertions are real so no live gap today.
 4. `inject-expertise.sh`'s stderr-discard on resolver failure loses the discard-notice detail
-   that `check-state.sh`/`branch-create-gate.sh` preserve — **low**, minor consistency,
+   that `check-state.sh`/`branch-create-gate.py` preserve — **low**, minor consistency,
    acceptable given the hook's own "always exit 0, never block" contract.
 
 ```yaml

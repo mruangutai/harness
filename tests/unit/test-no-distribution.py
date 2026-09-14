@@ -473,7 +473,7 @@ def case7():
     pat = re.compile(r"(?<!`)python3 (?!-I )(-c |- )(?=[\'\"$]|<<)")
     scripts = [f for f in git_ls_files()
                if f.startswith(".claude/skills/harness/bin/") and f.endswith(".sh")]
-    check("case7_scripts_found", len(scripts) >= 8,
+    check("case7_scripts_found", len(scripts) >= 7,
           f"only {len(scripts)} gate scripts scanned — the glob stopped matching")
     naked = []
     for rel in scripts:
@@ -484,14 +484,14 @@ def case7():
           f"python3 launched without -I or safe-path bootstrap, so the cwd shadows imports: {naked}")
 
     # THE PAIRED HALF. Without a positive isolated-launch census the case above is
-    # satisfied by a regex that matches nothing at all. The native dispatch cutover
-    # removes the final safe-path bootstrap, so zero safe launches is now the invariant.
+    # satisfied by a regex that matches nothing at all. The native hook cutovers
+    # removed the final safe-path bootstrap, so zero safe launches is now the invariant.
     guarded = re.compile(r"python3 -I (-c |- )")
     hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
                if guarded.search(line))
     safe_hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
                     if "python3 -c" in line and "sys.path.pop(0)" in line)
-    check("case7_the_scan_can_see_the_invocations", hits >= 15 and safe_hits == 0,
+    check("case7_the_scan_can_see_the_invocations", hits >= 8 and safe_hits == 0,
           f"found {hits} isolated launches and {safe_hits} safe-python launches")
 
 

@@ -185,7 +185,7 @@ produce its passing test. This is FEAT-21 ship-review drift B-12 #2, avoided by 
 - **The detector's reader table needs no row edit.** Every docs row already carries its `migrated`
   pattern (`layout_migration.py:93-101`), pre-written for this migration. Confirmed by reading, and
   left alone. Those `migrated` regexes constrain the shape of the edits and are pinned in the plan.
-- **`gh-sync.py`, `branch-create-gate.sh`, `validate-feature-json.py`, `factory_claim.py`, the
+- **`gh-sync.py`, `branch-create-gate.py`, `validate-feature-json.py`, `factory_claim.py`, the
   gitignore snippet and prose are unit 9**, not this feature.
 - **The detector's own legacy patterns and fixtures are not touched.** They are how it recognises
   the pre-state; removing them would blind it.

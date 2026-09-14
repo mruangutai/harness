@@ -78,7 +78,7 @@ the walk — or track and report the offending path instead of a generic message
 
 - **Other callers of `feature_for`**: none. `grep -rn "feature_for("` finds only its
   definition and the one call site in `merge-gate.py:136`; no sibling script imports it.
-- **Sibling PreToolUse gates**: `gh-close-gate.py` and `branch-create-gate.sh` do not scan
+- **Sibling PreToolUse gates**: `gh-close-gate.py` and `branch-create-gate.py` do not scan
   `.harness/*/features/*/feature.json` at all (pattern-match on the command / directory-existence
   checks respectively) — the sentinel is local to `merge-gate.py`, not shared.
 - **DENY-with-no-malformed-record reachable?** No — `unusable` starts `False` and is set only at

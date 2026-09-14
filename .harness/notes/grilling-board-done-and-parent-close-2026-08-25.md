@@ -94,7 +94,7 @@ Measured at `cc84b29` unless stated.
 - **DEC-186 is not mainly a station rule.** It bounds read-back to five purposes, of which stations is
   one; it also carries the ban on a read-back value entering `BRIEF.md`, `plan.yaml` or an approval
   block.
-- **A `PreToolUse:Bash` gate can bind the main session.** `branch-create-gate.sh` refused two branch
+- **A `PreToolUse:Bash` gate can bind the main session.** `branch-create-gate.py` refused two branch
   names in this session.
 - **DEC-174 does not conflict with building this gate** (`DECISIONS.md:4808`): enforcement-layer
   changes are made directly by the main session; only *dispatching* them through the harness is

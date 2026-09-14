@@ -87,7 +87,7 @@ HOOK_SPECS = [
     },
     {
         "event": "PreToolUse",
-        "script": "branch-create-gate.sh",
+        "script": "branch-create-gate.py",
         # Bash matcher, separate entry from check-domain (Write|Edit). SELF-GATING on
         # harness.json github.sync — registered everywhere, no-op where the mirror is
         # off, so registration stays unconditional like every prerequisite (DEC-144).

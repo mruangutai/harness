@@ -64,7 +64,7 @@ regexes, `check-plan-routes.py`'s discovery join, and `check-state.sh`'s discove
 readers are exactly unit 4's atomic trio: `factory_config._PROBE`,
 `harness_boundary.HARNESS_CONTROL_PLANE`, and `gen-decisions-index.DOCS_DIR`.
 
-**Deliberately excluded from both sets**: `gh-sync.py:729`, `branch-create-gate.sh:77`,
+**Deliberately excluded from both sets**: `gh-sync.py:729`, `branch-create-gate.py:77`,
 `validate-feature-json.py`, `factory_claim.py:43`, the gitignore snippet, and all prose. Map #336
 places them in unit 9, landing "anytime". A detector that read them would redden a state the
 sequence sanctions.

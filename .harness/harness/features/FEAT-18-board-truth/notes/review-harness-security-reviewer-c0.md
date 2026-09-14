@@ -13,7 +13,7 @@ present, so this earns a full pass, not a scope-out.
 Reading:
 - Read `gh_board.py`, `factory_gh.py` (pre-existing, unchanged by this diff — confirmed via
   `git log -1` on the file), the INV-26 block in `check-state.sh`, `gh-sync.py`'s diff, the
-  `check-plan-routes.py` status-enum diff, `branch-create-gate.sh`'s diff (a deletion), and the
+  `check-plan-routes.py` status-enum diff, `branch-create-gate.py`'s diff (a deletion), and the
   `harness.json` `github.board` addition.
 - Traced every call site that constructs a `station` value passed to `gh_board.set_station`:
   `gh-sync.py:574` (`"Building"`, literal) and `gh-sync.py:196` via `derive_station()`
@@ -34,7 +34,7 @@ Reading:
 - Grepped all new/changed files and fixtures for `token|password|secret|Authorization|ghp_|gho_`
   — zero hits. No credential is read, stored, or logged by any new code path; `gh` remains the
   sole auth holder, consistent with the module's own stated contract (`gh_board.py:1-17`).
-- Read `branch-create-gate.sh`'s diff: it **deletes** a block that pinned `project_id`/
+- Read `branch-create-gate.py`'s diff: it **deletes** a block that pinned `project_id`/
   `field_id`/`option_id` in `harness.json` and shelled a GraphQL call using them — net risk
   reduction, no new surface.
 - **The fake-binary trap, verified, not assumed.** `gh_board.py:8-12` documents it: a test that

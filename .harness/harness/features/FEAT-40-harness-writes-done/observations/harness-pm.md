@@ -1,6 +1,6 @@
 # Observations - harness-pm
 
-- 2026-08-25: FEAT-40 — a PreToolUse:Bash hook is handed only tool_input.command (branch-create-gate.sh:47), so a gate cannot see gh calls a python script makes through subprocess. The source ticket's "environment marker gh-sync.py sets" could never have reached the gate; the correct answer was an unconditional refusal. Check the interception boundary before planning an exemption mechanism.
+- 2026-08-25: FEAT-40 — a PreToolUse:Bash hook is handed only tool_input.command (branch-create-gate.py:47), so a gate cannot see gh calls a python script makes through subprocess. The source ticket's "environment marker gh-sync.py sets" could never have reached the gate; the correct answer was an unconditional refusal. Check the interception boundary before planning an exemption mechanism.
 - 2026-08-25: FEAT-40 — the source ticket asserted #728 has no children; gh api repos/mruangutai/harness/issues/728/sub_issues returned 13. The false premise would have made the acceptance test exercise the trivial path instead of the open-child skip. Re-derive an acceptance target's own shape even when the operator states it.
 - 2026-08-25: send-back c1. plan-merge.py is ADD-ONLY — it refuses (exit 7) when a proposal carries
   an existing id with different values, so folding review findings into shipped tasks has to be done

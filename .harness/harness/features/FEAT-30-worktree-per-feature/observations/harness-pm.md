@@ -1,7 +1,7 @@
 # Observations — harness-pm — FEAT-30-worktree-per-feature
 
 - 2026-08-20: writing plan.yaml through a QUOTED bash heredoc was DENIED by
-  branch-create-gate.sh. The intent text of T-05 enumerated forbidden git shapes, one of which read
+  branch-create-gate.py. The intent text of T-05 enumerated forbidden git shapes, one of which read
   as a branch-creating checkout with a placeholder name; the gate's regex matched the command STRING
   even though the heredoc creates no branch and runs no git. Fix was to write the file with the Write
   tool instead. Two lessons: (1) any plan whose subject is git itself cannot be authored through Bash

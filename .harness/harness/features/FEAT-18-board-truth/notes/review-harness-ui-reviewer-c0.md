@@ -13,7 +13,7 @@ Diff `main...6d2d61b` (22 files, +2227/-119) touches no rendered UI surface. Evi
 - **The 7 `.md` files touched** are process artifacts, not UI contracts (`SKILL.md`, `STATE.md`, five
   `receipt-*.md` notes) — none specify spacing/colour/states/interaction for a rendered surface.
 - Everything else is backend Python/shell (`gh_board.py`, `gh-sync.py`, `check-state.sh`,
-  `branch-create-gate.sh`, `run-unit-tests.sh`, their tests) plus `harness.json` config and
+  `branch-create-gate.py`, `run-unit-tests.sh`, their tests) plus `harness.json` config and
   `plan.yaml`/`feature.json` bookkeeping.
 
 ## The two named operator-facing surfaces

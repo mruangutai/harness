@@ -19,8 +19,8 @@ The eight, from `plan.yaml` T-03 (line 311, `intent:` enumeration at 344-352):
 
 | Event | Matcher | Command |
 |---|---|---|
-| PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.sh` |
-| PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.sh` (duplicate, spelled `${CLAUDE_PROJECT_DIR}`) |
+| PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.py` |
+| PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.py` (duplicate, spelled `${CLAUDE_PROJECT_DIR}`) |
 | PreToolUse | Bash | `.claude/skills/harness/bin/bash-write-guard.py` |
 | PreToolUse | Write \| Edit | `.claude/skills/harness/bin/check-domain.py` |
 | PreToolUse | Task \| Agent | `.claude/skills/harness/bin/dispatch-guard.py` |
@@ -67,10 +67,10 @@ nothing.
 In the session, ask for something that runs one Bash command, e.g. `git status`.
 
 - **Expected:** the command runs and returns its output. No hook error before or after it.
-- **Failure looks like:** an error naming `.claude/skills/harness/bin/branch-create-gate.sh` or
+- **Failure looks like:** an error naming `.claude/skills/harness/bin/branch-create-gate.py` or
   `.claude/skills/harness/bin/bash-write-guard.py` (PreToolUse), or
   `.claude/skills/harness/bin/check-domain.py` with `--post` (PostToolUse, fires after the Bash
-  call). `branch-create-gate.sh` may appear twice — there were two registrations, spelled
+  call). `branch-create-gate.py` may appear twice — there were two registrations, spelled
   differently. Any of those paths in an error message = a surviving registration = **SC-06 not met**.
 
 ## Step 2 — a Write

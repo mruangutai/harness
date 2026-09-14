@@ -806,7 +806,7 @@ tasks:
       python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.sh' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
     intent: |
       Create .claude/skills/harness/bin/gh-close-gate.sh, a third PreToolUse Bash hook, modelled on
-      the structure of branch-create-gate.sh: read the hook JSON from stdin, take
+      the structure of branch-create-gate.py: read the hook JSON from stdin, take
       (tool_input or {}).get("command"), and deny with a structured permissionDecision — exit 0
       plus JSON with hookSpecificOutput.permissionDecision = "deny" and a
       permissionDecisionReason. Reuse that file's deny() helper shape verbatim in structure.
@@ -851,12 +851,12 @@ tasks:
 
       NO ENVIRONMENT MARKER. Issue 842 specifies an environment marker gh-sync.py sets to exempt
       abandon's own call. It cannot work and is not needed: a PreToolUse hook is handed only
-      tool_input.command (branch-create-gate.sh:47), and gh-sync.py reaches gh through subprocess,
+      tool_input.command (branch-create-gate.py:47), and gh-sync.py reaches gh through subprocess,
       which never traverses the Bash tool, so abandon's close is never presented to this gate. A
       marker would only be settable by hand, which is the hole the grilling flagged. Record this
       reasoning in the script's header comment, citing the measurement.
 
-      SELF-GATING, as branch-create-gate.sh does: read .harness/harness.json github.sync and exit 0
+      SELF-GATING, as branch-create-gate.py does: read .harness/harness.json github.sync and exit 0
       immediately when it is off or absent, so the hook costs nothing where the mirror is off.
 
       REGISTER IT in .claude/settings.json as a third command under the existing PreToolUse Bash

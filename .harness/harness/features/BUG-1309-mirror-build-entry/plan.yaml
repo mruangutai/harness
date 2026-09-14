@@ -101,7 +101,7 @@ decisions:
     dec: DEC-174
   - id: D-07
     choice: The merge refusal is a new registered PreToolUse Bash gate, merge-gate.sh plus merge-gate.py, modelled on gh-close-gate; it decides on the LOCAL feature.json receipt alone and FAILS OPEN on a GitHub read failure - when the head branch cannot be resolved through gh it falls back to the local current branch, denies only if that resolves to a feature owing a receipt, and otherwise allows the merge at exit 0 with one stderr line saying it could not verify and why.
-    because: GitHub is a mirror, never a gate - gh absent or unauthenticated means the flow succeeds and reports the sync skipped (DEC-138, DECISIONS.md:2948-2952) - and the stated intent puts changing the user-gated merge policy out of scope. Denying on a failed read would deny every gh pr merge in the repo during an outage, including for a feature recorded opened and for a PR matching no harness feature at all. A gate that cannot verify still says so, on stderr, which is the honest half of the posture branch-create-gate.sh takes over a LOCAL fact; the deny half cannot be carried over onto a remote one. Extending gh-close-gate.sh instead was rejected because its name would then lie about its subject.
+    because: GitHub is a mirror, never a gate - gh absent or unauthenticated means the flow succeeds and reports the sync skipped (DEC-138, DECISIONS.md:2948-2952) - and the stated intent puts changing the user-gated merge policy out of scope. Denying on a failed read would deny every gh pr merge in the repo during an outage, including for a feature recorded opened and for a PR matching no harness feature at all. A gate that cannot verify still says so, on stderr, which is the honest half of the posture branch-create-gate.py takes over a LOCAL fact; the deny half cannot be carried over onto a remote one. Extending gh-close-gate.sh instead was rejected because its name would then lie about its subject.
     dec: DEC-174
   - id: D-08
     choice: 'The ONE frozen set BUILD_ENTRY_ERA_EXEMPT governs the three REFUSALS this change adds, and post-merge retention is keyed on something else. The three refusals - check-state.sh INV-37 (T-06), the gh-sync.py start-task Build refusal (T-04) and the merge-gate deny (T-05) - each skip a feature whose directory basename is in that set, so a legacy feature stays Build-allowed and merge-allowed and is recovered only by an explicit operator-approved recover-terminal. POST-MERGE RETENTION (T-07) keys on the RECORDED VALUE, not on era membership: an era feature whose github.build_entry key is ABSENT is swept normally, and ANY feature that RECORDS recovery-required is RETAINED, era or not. That set, and the station rule that reads it, live in feature_schema.py as BUILD_ENTRY_ERA_EXEMPT and recovery_command_for(feat_dir), the single source T-04, T-05, T-06 and T-07 all read; a second definition of either, anywhere, is a defect. recovery_command_for names recover-terminal for a feature in the era set, at station review or done, or carrying any task recorded done, and open otherwise.'
@@ -1106,7 +1106,7 @@ tasks:
 
       merge-gate.py, reading the hook JSON on stdin, taking the root as argv[1]:
       1. SELF-GATE. Read <root>/.harness/harness.json; if github.sync is not true, exit 0
-         immediately. Same posture as gh-close-gate.sh and branch-create-gate.sh.
+         immediately. Same posture as gh-close-gate.sh and branch-create-gate.py.
       2. DETECT. Extract tool_input.command. Tokenize with the same technique plan-sign-gate.py
          uses - shlex, compare basenames, re-scan the argument of eval and bash -c, and fall
          back to a raw-text scan for a line that will not lex. A merge command is either a token
@@ -1186,7 +1186,7 @@ tasks:
            github.repo> --json headRefName -q .headRefName.
          - gh pr merge with no number: git -C <cwd> rev-parse --abbrev-ref HEAD.
          Use the GH_BIN environment override for the gh binary so the gate is testable offline,
-         exactly as branch-create-gate.sh does.
+         exactly as branch-create-gate.py does.
          THE GH ROUTE MAY FAIL - gh absent, unauthenticated, or GitHub unreachable. That is not a
          verdict. Fall back to the LOCAL resolution, git -C <cwd> rev-parse --abbrev-ref HEAD, and
          carry forward one flag saying the head branch is locally resolved rather than confirmed,
@@ -1251,7 +1251,7 @@ tasks:
            which the stated intent's out-of-scope line on the user-gated merge policy fences off.
            There is no branch in this script that denies on a read failure.
       6. DENY SHAPE. exit 0 plus the structured permissionDecision JSON on stdout, the same
-         object branch-create-gate.sh emits. The reason names the feature directory, the value
+         object branch-create-gate.py emits. The reason names the feature directory, the value
          found, and THE REMEDY THAT ACTUALLY CLEARS IT - and which remedy that is depends on
          whether github.repo is pinned, because with sync enabled and the repo left unpinned
          gh-sync.py open records nothing at all (D-09), so naming it there would send the operator
@@ -1328,20 +1328,20 @@ tasks:
       the position there is chosen so the three files and the omp-hooks ordering assertion can be
       diffed against one another.
       - .claude/settings.json, hooks.PreToolUse, the entry whose matcher is "Bash", its hooks array.
-        That array today holds FOUR entries in this order: branch-create-gate.sh,
+        That array today holds FOUR entries in this order: branch-create-gate.py,
         bash-write-guard.py, gh-close-gate.sh, plan-sign-gate.sh - so the new hook is the FIFTH
         entry, not the fourth, and no index is both after gh-close-gate.sh and before
         bash-write-guard.py. Literal predecessor: the plan-sign-gate.sh entry. Literal successor:
         NONE - merge-gate.sh is the final entry of that array;
       - .claude/skills/harness/templates/settings.snippet.json, the same event and the same "Bash"
         matcher. THIS FILE'S ARRAY IS NOT settings.json's: it holds THREE entries -
-        branch-create-gate.sh, bash-write-guard.py, plan-sign-gate.sh - and carries NO
+        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.sh - and carries NO
         gh-close-gate.sh entry at all, so "the same position" names nothing here. Literal
         predecessor: the plan-sign-gate.sh entry. Literal successor: NONE - merge-gate.sh is the
         fourth and final entry;
       - .omp/extensions/harness-hooks.ts, the firstBlock([...]) array of policyRunner calls inside
         the toolName === "bash" branch. ITS ORDER IS DIFFERENT AGAIN: gh-close-gate.sh,
-        branch-create-gate.sh, bash-write-guard.py, plan-sign-gate.sh. Literal predecessor: the
+        branch-create-gate.py, bash-write-guard.py, plan-sign-gate.sh. Literal predecessor: the
         policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload) element. Literal successor: NONE -
         merge-gate.sh is the fifth and final element. BUG-1132 records what omitting this file
         costs: plan-sign-gate.sh was wired for native Claude Code and never ported here, so under
@@ -1434,7 +1434,7 @@ tasks:
           recorded value - assert the reason does NOT contain "could not" or the gh failure text,
           since the deny must read as grounded in the local record.
       - tests/unit/omp-hooks.test.ts: extend the existing gate-ordering assertion - the one that
-        today asserts gh-close-gate.sh before branch-create-gate.sh before bash-write-guard.py -
+        today asserts gh-close-gate.sh before branch-create-gate.py before bash-write-guard.py -
         with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.sh")
         is greater than -1, greater than scripts.indexOf("bash-write-guard.py"), and greater than
         scripts.indexOf("plan-sign-gate.sh"). Assert the RELATION, never a literal index, so a
