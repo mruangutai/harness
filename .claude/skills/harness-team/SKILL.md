@@ -15,7 +15,7 @@ the author (DEC-224).
 
 **You are the host, and you are a lead** — never the orchestrator or the main session (DEC-120,
 DEC-158). Spawn allowlist, dispatch header, the `model:` ban and tool grants are
-`harness-zero-micro-management`'s rules, enforced by `dispatch-guard.sh`.
+`harness-zero-micro-management`'s rules, enforced by `dispatch-guard.py`.
 
 ## The two rules that make this safe
 

@@ -138,7 +138,7 @@ def check(root: Path) -> list[str]:
     else:
         source = extension.read_text(encoding="utf-8")
         required_wiring = {
-            "dispatch-guard.sh": "OMP task preflight",
+            "dispatch-guard.py": "OMP task preflight",
             "task:subagent:lifecycle": "OMP task terminal lifecycle",
             "gh-close-gate.sh": "GitHub close preflight",
             "inflight_registry.py": "OMP claim attachment and release",

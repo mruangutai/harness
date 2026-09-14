@@ -116,7 +116,7 @@ decisions:
       hookSpecificOutput.additionalContext and systemMessage, and rate-limits itself to one
       warning per crossing per agent using a stamp file under the system temp directory.
     because: Task|Agent is the decision point where a relay is actually cheap, is already the
-      registered seam for dispatch-guard.sh, and costs one transcript read per dispatch rather
+      registered seam for dispatch-guard.py, and costs one transcript read per dispatch rather
       than one per tool call. Exit 0 because the operator ruled the warning advises and never
       refuses. Both channels because this repository has verified additionalContext delivery
       only on SubagentStart, never on PreToolUse, so systemMessage is the fallback that at
@@ -697,11 +697,11 @@ tasks:
     files:
       - .claude/settings.json
     verify: |
-      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];e=[x for x in h if x['matcher']=='Task|Agent'];assert len(e)==1,h;c=[k['command'] for k in e[0]['hooks']];assert any('dispatch-guard.sh' in x for x in c),c;assert any('context-watch.py --hook' in x for x in c),c;print('registered alongside dispatch-guard')"
+      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];e=[x for x in h if x['matcher']=='Task|Agent'];assert len(e)==1,h;c=[k['command'] for k in e[0]['hooks']];assert any('dispatch-guard.py' in x for x in c),c;assert any('context-watch.py --hook' in x for x in c),c;print('registered alongside dispatch-guard')"
       .claude/skills/harness/bin/check-state.sh
     intent: |
       In .claude/settings.json, add one hook command to the EXISTING PreToolUse entry whose
-      matcher is exactly "Task|Agent" -- the entry that already registers dispatch-guard.sh.
+      matcher is exactly "Task|Agent" -- the entry that already registers dispatch-guard.py.
       Append to that entry's hooks array, do not create a second entry with the same matcher.
       The new element is:
         {"type": "command",

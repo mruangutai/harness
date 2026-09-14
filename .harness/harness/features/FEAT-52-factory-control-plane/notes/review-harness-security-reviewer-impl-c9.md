@@ -10,7 +10,7 @@ dynamically disproven as currently exploitable).
 
 | File(s) | Relevance | Disposition |
 |---|---|---|
-| `dispatch-guard.sh` (+42) | trust-boundary machinery | audited in depth — see findings |
+| `dispatch-guard.py` (+42) | trust-boundary machinery | audited in depth — see findings |
 | `inject-expertise.sh` (+33/-9) | trust-boundary machinery | audited in depth — clean |
 | `check-instruction-paths.py` (new, 128 ln) | doc linter, CI-gated | audited — read-only, no runtime write-authorization role, clean |
 | `inflight_registry.py` (+8/-1) | adds `feature-root` CLI verb, thin wrapper over unchanged `feature_root()` | audited — clean |
@@ -25,8 +25,8 @@ dynamically disproven as currently exploitable).
 
 ## Findings
 
-### MED — dispatch-guard.sh's T-09 block ships with none of its own mandated regression tests
-`dispatch-guard.sh:141-179`. T-09's own `intent:` in `plan.yaml` specifies four named test cases
+### MED — dispatch-guard.py's T-09 block ships with none of its own mandated regression tests
+`dispatch-guard.py:141-179`. T-09's own `intent:` in `plan.yaml` specifies four named test cases
 (REFUSED / ALLOWED / discrimination-in-the-other-direction / MISMATCH-REFUSED) to be added to
 `test-dispatch-guard.py`. **None exist**: `grep -c "HARNESS-FEATURE-TREE-ROOT" test-dispatch-guard.py`
 = 0, and the file's diff against the merge-base is empty (`git diff --stat -- '*test-dispatch-guard*'`
@@ -46,16 +46,16 @@ regression coverage of its own. Recommend landing the four cases exactly as spec
 before the next touch of this file.
 
 ### LOW — `dispatched` (T-09's persona-name value) is not anchored the way the identical class of value is anchored and tested in the sibling script
-`dispatch-guard.sh:141-146`. `dispatched = ti.get("subagent_type") or ti.get("agent")` is checked only
+`dispatch-guard.py:141-146`. `dispatched = ti.get("subagent_type") or ti.get("agent")` is checked only
 with `dispatched.startswith("harness-")` (line ~62, pre-existing) before being spliced into
 `os.path.join(owner_root, ".omp", "agents", dispatched + ".md")`. `inject-expertise.sh` faces the
 identical threat (an attacker-influenced `agent_type` used to build a path) and anchors it with
 `^harness-[a-z0-9-]+$`, with four adversarial regression cases in `test-inject-expertise.py` case12
-(including a literal `harness-qa/../../etc` case) that I ran and confirmed pass. `dispatch-guard.sh`'s
+(including a literal `harness-qa/../../etc` case) that I ran and confirmed pass. `dispatch-guard.py`'s
 T-09 block does not reuse that anchor.
 
 **Dynamically disproven as exploitable today**, not merely argued: I built a synthetic checkout and
-fired the real `dispatch-guard.sh` with `subagent_type` values containing `/../../..` sequences aimed
+fired the real `dispatch-guard.py` with `subagent_type` values containing `/../../..` sequences aimed
 at real, existing off-tree files (including one, `harness-eng-lead.md`, whose real frontmatter has no
 `bash` grant and should — on a naive reading — flip `has_bash` to `False` and require the
 tree-root line). Every attempt resolved to `FileNotFoundError` and the safe `has_bash = True`
@@ -101,7 +101,7 @@ future-proofing rather than an active fix.
   it (it's the agent's own control-plane root) — not a secret, not a new audience. No credential-shaped
   strings found in the diff outside the four named files (swept the full diff, not just those named in
   the dispatch, per this role's own P-14 pattern).
-- **DoS on legitimate dispatches**: every new hard-block path in `dispatch-guard.sh` (missing/relative/
+- **DoS on legitimate dispatches**: every new hard-block path in `dispatch-guard.py` (missing/relative/
   mismatched `HARNESS-FEATURE-TREE-ROOT`) requires the *dispatcher* to have omitted or gotten wrong a
   value the same commit updates the orchestrator/lead doctrine to always supply; every parse failure
   on the guard's own side (`dispatched`'s tools file missing/unreadable/no `tools:` key) fails **open**
@@ -125,6 +125,6 @@ future-proofing rather than an active fix.
 ## Tooling note
 The built-in `grep`/`read` tools returned false negatives/"path not found" against files I could read
 directly with `bash cat`/`grep` at the same cwd in this worktree (e.g. a literal, confirmed-present
-string in `dispatch-guard.sh` reported "No matches found"). Worked around by using `bash` directly for
+string in `dispatch-guard.py` reported "No matches found"). Worked around by using `bash` directly for
 all file reads and searches after the first occurrence. Everything in this report was verified through
 `bash`, not the flaky tool path.

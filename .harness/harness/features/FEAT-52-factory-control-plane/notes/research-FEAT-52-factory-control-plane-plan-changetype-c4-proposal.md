@@ -66,7 +66,7 @@ decisions:
     choice: "Instruction paths carry TWO anchors: HARNESS_CONTROL_PLANE_ROOT, injected by inject-expertise.sh, prefixes every READ of a Harness-owned skill, rule, reference, decision or config, and HARNESS_FEATURE_TREE_ROOT, never injected, prefixes every WRITE into a feature directory and resolves to the checkout that HOLDS that feature's directory as inflight_registry.feature_root returns worktree_for_feature(owner_root, feature) or owner_root."
     because: "One value cannot serve both directions - measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json registers the MAIN checkout copy of inject-expertise.sh and harness_boundary.resolve_root is script-directory-relative, so the injected root is the main checkout whatever the agent's cwd and the FEAT-52 feature directory does not exist there at all, which sends a write anchored to it off the reviewed branch and invisible at review_sha, while leaving the write relative sends a factory worker's records into a disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against."
     rejected:
-      - "Injecting a SECOND resolved value from inject-expertise.sh: the hook cannot identify the spawning agent's feature, because dispatch-guard.sh:76-80 records that tool_input.prompt exists only on the dispatch payload and DEC-64 fixes the SubagentStart payload's contract at agent_type, so it would have to scan the inflight registry of the control plane and of every linked worktree for a claim keyed on persona alone - ambiguous whenever two spawns of one non-single-flight persona run on different features at once - plus an unmeasured dependency on PreToolUse:Task firing before SubagentStart."
+      - "Injecting a SECOND resolved value from inject-expertise.sh: the hook cannot identify the spawning agent's feature, because dispatch-guard.py:76-80 records that tool_input.prompt exists only on the dispatch payload and DEC-64 fixes the SubagentStart payload's contract at agent_type, so it would have to scan the inflight registry of the control plane and of every linked worktree for a claim keyed on persona alone - ambiguous whenever two spawns of one non-single-flight persona run on different features at once - plus an unmeasured dependency on PreToolUse:Task firing before SubagentStart."
       - "Anchoring writes to the control-plane root: the feature tree is the one description true both for a Harness self-development run, where it is the feature worktree, and for a factory run, where the resolver collapses to the control plane because the product feature has no Harness worktree."
     dec: DEC-204
   - id: D-07
@@ -77,7 +77,7 @@ decisions:
       - "Re-implementing the lint's rule inside the hook: it would give the factory two rules free to drift apart, so the hook invokes the checker instead."
     dec: none
   - id: D-08
-    choice: "The feature-tree anchor is resolved by whoever holds a shell: a persona whose .omp/agents entry grants bash resolves its own with inflight_registry.py feature-root --feature FEAT-NN-slug, and a persona that grants none never resolves its own but receives it from its dispatcher on a line of the dispatch text spelled HARNESS-FEATURE-TREE-ROOT then a colon then one absolute path, which dispatch-guard.sh refuses the dispatch without at exit 2, the predicate being the TOOL GRANT and never a list of names."
+    choice: "The feature-tree anchor is resolved by whoever holds a shell: a persona whose .omp/agents entry grants bash resolves its own with inflight_registry.py feature-root --feature FEAT-NN-slug, and a persona that grants none never resolves its own but receives it from its dispatcher on a line of the dispatch text spelled HARNESS-FEATURE-TREE-ROOT then a colon then one absolute path, which dispatch-guard.py refuses the dispatch without at exit 2, the predicate being the TOOL GRANT and never a list of names."
     because: "The gap is present tense - .omp/agents/harness-product-lead.md:4-9, harness-eng-lead.md:4-9 and harness-validator-lead.md:4-9 grant read, glob, grep, task and write and no bash by DEC-116's design, while all three WRITE into a feature directory as normal operation (harness-team SKILL.md:44-47 mandates the run dir, :49-52 and :209-210 the team digest, :249 makes that digest the lead's reported artifact), so three of sixteen personas would otherwise be bound to a write prefix whose only specified resolution route they cannot execute, and a lead that guesses writes the run record into the wrong checkout."
     rejected:
       - "Granting the three leads bash: DEC-116 removes the shell deliberately so a lead cannot do a member's work, and re-granting it to repair a path-resolution defect is the error shape D-05 already refuses; DEC-116 also records that a lead sets cost pending_orchestrator precisely because it cannot meter its own run."
@@ -93,7 +93,7 @@ tasks:
     traces: [REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, inflight_registry.py is imported by dispatch-guard.sh, a registered PreToolUse hook
+    execution_reason: DEC-174 carve-out, inflight_registry.py is imported by dispatch-guard.py, a registered PreToolUse hook
     depends_on: []
     status: ready
     files:
@@ -105,7 +105,7 @@ tasks:
       The feature-tree write anchor is the checkout that HOLDS a feature's directory. That
       resolution already exists and is already used: inflight_registry.feature_root(owner_root,
       feature) at inflight_registry.py:260-266 returns worktree_for_feature(owner_root, feature)
-      or owner_root, and dispatch-guard.sh:115-126 resolves a dispatch's checkout by the identical
+      or owner_root, and dispatch-guard.py:115-126 resolves a dispatch's checkout by the identical
       rule. What is missing is a way for an AGENT to ask.
 
       1. Add one verb to inflight_registry.py main(), beside list, attach, release, release-all and
@@ -626,7 +626,7 @@ tasks:
       - THE EXCEPTION, and it is stated with the literal phrase "holds no shell": if your persona
         holds no shell you do not run that command and must not try. Your dispatcher resolved the
         value for you and it is on a line of your own dispatch spelled
-        `HARNESS-FEATURE-TREE-ROOT: ` followed by one absolute path. dispatch-guard.sh refuses a
+        `HARNESS-FEATURE-TREE-ROOT: ` followed by one absolute path. dispatch-guard.py refuses a
         dispatch to a shell-less persona without that line at exit 2, so you will never be running
         without it - and if you somehow are, return VERDICT BLOCKED rather than guessing a root.
         Today this is the three leads and nobody else.
@@ -649,19 +649,19 @@ tasks:
     traces: [REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, dispatch-guard.sh is a registered PreToolUse gate and test-dispatch-guard.py is its test file
+    execution_reason: DEC-174 carve-out, dispatch-guard.py is a registered PreToolUse gate and test-dispatch-guard.py is its test file
     depends_on: [T-01]
     status: ready
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       python3 .agents/skills/harness/bin/test-dispatch-guard.py
     intent: |
-      This is the runtime half of D-08. It adds ONE block to dispatch-guard.sh and four cases to
+      This is the runtime half of D-08. It adds ONE block to dispatch-guard.py and four cases to
       its test file. Nothing existing in either file is edited.
 
-      WHERE. Immediately after the "if not root:" pass-through that ends at dispatch-guard.sh:138
+      WHERE. Immediately after the "if not root:" pass-through that ends at dispatch-guard.py:138
       and before the runtime/supervisor_pid block that begins at :140, so it runs on every
       governed dispatch regardless of host runtime, and after both hb and reg are imported.
 
@@ -744,7 +744,7 @@ tasks:
       paragraph at :26-36, the one already stating the HARNESS-FEATURE first line, with the emit
       duty stated as a property of the TARGET and never as a list of names - when you dispatch a
       persona that holds no shell, your dispatch must also carry a line spelled
-      `HARNESS-FEATURE-TREE-ROOT: ` followed by the absolute value, and dispatch-guard.sh refuses
+      `HARNESS-FEATURE-TREE-ROOT: ` followed by the absolute value, and dispatch-guard.py refuses
       the dispatch at exit 2 without it. Add in the same place that you yourself hold no shell and
       received that value the same way, on a line of your own dispatch, and that an absent line is
       VERDICT BLOCKED rather than a guessed root.
@@ -794,7 +794,7 @@ tasks:
       dispatch you make to a lead carries a second line, HARNESS-FEATURE-TREE-ROOT: followed by
       the absolute path that
       `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`
-      prints. Resolve it once per feature, not once per dispatch. dispatch-guard.sh refuses a
+      prints. Resolve it once per feature, not once per dispatch. dispatch-guard.py refuses a
       dispatch to a shell-less persona without it at exit 2.
 
       In each of the three lead files: you hold no shell, so you never resolve that value
@@ -899,7 +899,7 @@ tasks:
           inflight_registry.py feature-root --feature FEAT-NN-slug, which returns
           worktree_for_feature(owner_root, feature) or owner_root: the checkout that HOLDS the
           feature directory. A persona that holds NO shell never resolves it - its dispatcher does,
-          and passes it on a HARNESS-FEATURE-TREE-ROOT line of the dispatch, which dispatch-guard.sh
+          and passes it on a HARNESS-FEATURE-TREE-ROOT line of the dispatch, which dispatch-guard.py
           refuses the dispatch without at exit 2. The predicate is the tool grant, never a name
           list, so a persona that loses its shell is covered on the day it loses it;
         - reading anything under the control-plane root is permitted and read-only, and no write
@@ -928,7 +928,7 @@ tasks:
 
       Record the REJECTED alternatives and why, because a future scan will re-suggest both:
         - injecting a SECOND resolved value from inject-expertise.sh. The hook cannot identify the
-          spawning agent's feature - dispatch-guard.sh:76-80 records that tool_input.prompt exists
+          spawning agent's feature - dispatch-guard.py:76-80 records that tool_input.prompt exists
           only on the dispatch payload and reaches no other hook, and DEC-64 fixes the
           SubagentStart payload's contract at agent_type - so it would have to scan the inflight
           registry of the control plane and of every linked worktree for a claim keyed on persona

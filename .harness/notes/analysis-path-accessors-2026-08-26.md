@@ -25,7 +25,7 @@ relayed as fact.
 | `factory_config.py:44` | `harness_root()` |
 | `harness_boundary.py:446` | `worktree_owner()` |
 | `wayfind.py:46` | `root()` |
-| `dispatch-guard.sh:75` | `_root_from()` |
+| `dispatch-guard.py:75` | `_root_from()` |
 | `post-merge-sweep.py:42` | `_resolve_repo_root()` |
 | `post-merge-sweep.py:65` | `_resolve_main_checkout_root()` |
 
@@ -63,7 +63,7 @@ spell two of them.
 | `factory_config.py` | *"the only reader of a fleet member's own product configuration… always REMOTELY via `factory_gh.file_at_ref`"* | incl. `factory_gh` — **network, at module level** | 23 |
 | `wayfind.py` | — | — | 0 |
 
-`factory_config.py`'s 23 importers all inherit an eager network import, which `dispatch-guard.sh`
+`factory_config.py`'s 23 importers all inherit an eager network import, which `dispatch-guard.py`
 cannot afford running before every Bash call.
 
 **Caveat, stated rather than hidden:** `harness_boundary.resolve_fleet()` (`:209`) lazily imports
@@ -81,7 +81,7 @@ function* is not, and it carries no comment saying so.
 **Deletion test passes on all three.** The 4-up arithmetic is duplicated verbatim at
 `factory_config.py:44-50`, `context-watch.py:67-74`, `post-merge-sweep.py:42-58`; the probe shape
 at `check-plan-routes.py:491-513` and `factory_config.py:44-58`; the walk at `wayfind.py:46-53`
-and `dispatch-guard.sh:75-88`.
+and `dispatch-guard.py:75-88`.
 
 An earlier draft's `harness_path(root, *segments)` was **DROPPED** — deleting it makes no
 complexity reappear.
@@ -100,7 +100,7 @@ accident.
 | `factory_config.py:44 harness_root()` | THIN-CALLER · 10 invocations, **0 need editing** · not barred · **the only row whose runtime behaviour changes** |
 | `harness_boundary.py:446 worktree_owner()` | **STAYS — bucket A was wrong.** It answers "which checkout owns this path" via a `.git`-pointer walk; it never touches env, derive, or probe |
 | `wayfind.py:46 root()` | THIN-CALLER · 1 site · not barred |
-| `dispatch-guard.sh:75` | THIN-CALLER · 1 site · **barred** (registered PreToolUse) |
+| `dispatch-guard.py:75` | THIN-CALLER · 1 site · **barred** (registered PreToolUse) |
 | `post-merge-sweep.py:42` | THIN-CALLER · 1 site · **barred** (self-declared post-merge hook body) |
 | `post-merge-sweep.py:65` | **STAYS — bucket A was wrong.** Asks git which linked worktree is main; its own docstring at `:71-72` insists the two never fuse |
 
@@ -181,7 +181,7 @@ The probe is inconsistent today, and that IS the defect:
 | Site | Looks for |
 | --- | --- |
 | `check-plan-routes.py:498` | `.harness/team-config.yaml` |
-| `dispatch-guard.sh:89` | `.harness/team-config.yaml` |
+| `dispatch-guard.py:89` | `.harness/team-config.yaml` |
 | `factory_config.py:39` | `.harness/harness/docs/SPEC.md` |
 | `wayfind.py:51` | the `.harness` DIRECTORY — the known fail-open |
 
@@ -252,7 +252,7 @@ source of truth.
 
 **14 call-site edits. 7 definitions removed.**
 
-`dispatch-guard.sh` and `check-state.sh` are enforcement layer. Under DEC-174 the MAIN SESSION
+`dispatch-guard.py` and `check-state.sh` are enforcement layer. Under DEC-174 the MAIN SESSION
 executes those directly, never the team.
 
 ## Still open — not ruled

@@ -175,6 +175,62 @@ shared:
     ]
 
 
+def dispatch_guard_corpus(scratch):
+    """Representative parse, identity, model, feature and run-dir cases."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+    root_env = {project_override: ROOT}
+    feature_line = "HARNESS-FEATURE: BUG-1674-sh-to-py"
+    with open(os.path.join(scratch, "harness_boundary.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write("raise RuntimeError('cwd shadow imported')\n")
+
+    def payload(*, agent="harness-eng-lead", dispatched="harness-backend-dev",
+                model=None, prompt=feature_line, runtime=None, supervisor_pid=None):
+        tool_input = {"subagent_type": dispatched, "prompt": prompt}
+        if model is not None:
+            tool_input["model"] = model
+        data = {"tool_name": "Task", "tool_input": tool_input}
+        if agent is not None:
+            data["agent_type"] = agent
+        if runtime is not None:
+            data["harness_runtime"] = runtime
+        if supervisor_pid is not None:
+            data["supervisor_pid"] = supervisor_pid
+        return json.dumps(data)
+
+    invalid_run = (
+        feature_line + "\nwrite .harness/harness/features/BUG-1674-sh-to-py/"
+        "runs/eng-t01/digest.md")
+    return [
+        {"label": "malformed hook payload", "stdin": "{not json", "env": root_env},
+        {"label": "main session model is ungoverned",
+         "stdin": payload(agent=None, model="opus"), "env": root_env},
+        {"label": "non-harness dispatcher is ungoverned",
+         "stdin": payload(agent="custom-agent", model="opus"), "env": root_env},
+        {"label": "governed model override refusal",
+         "stdin": payload(model="opus"), "env": root_env},
+        {"label": "missing dispatched persona passes through",
+         "stdin": payload(dispatched=""), "env": root_env},
+        {"label": "missing feature declaration refuses",
+         "stdin": payload(prompt="build it"), "env": root_env},
+        {"label": "invalid run-dir slug refuses",
+         "stdin": payload(agent="harness-orchestrator",
+                          dispatched="harness-eng-lead", prompt=invalid_run),
+         "env": root_env},
+        {"label": "OMP dispatch without supervisor passes through",
+         "stdin": payload(runtime="omp"), "env": root_env},
+        {"label": "stray argv remains ignored", "argv": ["unexpected"],
+         "stdin": payload(model="opus"), "env": root_env},
+        {"label": "cwd-independent model refusal", "stdin": payload(model="opus"),
+         "cwd": scratch, "env": root_env},
+        {"label": "cwd module shadow is ignored",
+         "stdin": payload(runtime="omp"), "cwd": scratch, "env": root_env},
+        {"label": "unconfigured isolated copy",
+         "stdin": payload(runtime="omp"), "isolate": True,
+         "env": {project_override: None}},
+    ]
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -250,6 +306,8 @@ def corpus(tool, scratch, impl):
         return domain_corpus(scratch)
     if tool == "bash-write-guard":
         return bash_guard_corpus(scratch)
+    if tool == "dispatch-guard":
+        return dispatch_guard_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 

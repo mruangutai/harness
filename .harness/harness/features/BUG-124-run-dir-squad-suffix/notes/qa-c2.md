@@ -2,7 +2,7 @@
 
 ## VERDICT: PASS — `matrix_ok: true`
 
-The single cycle-1 `must_fix` (naked `python3 -c` launch at `dispatch-guard.sh:34`, breaking
+The single cycle-1 `must_fix` (naked `python3 -c` launch at `dispatch-guard.py:34`, breaking
 `test-no-distribution.py` case7) is cleared at `c06c483c`. All other cycle-1 rulings (matrix
 resolution → `{unit, integration}`, the three `bugfix` predicate evaluations, the assertion-strength
 review, the Q1 test-first ruling) stand unchanged and were not re-litigated, per dispatch.
@@ -17,7 +17,7 @@ Working tree confirmed clean myself: `git -C <worktree> status --porcelain` → 
   launches) and `case7_the_scan_can_see_the_invocations`. I independently recomputed the counts the
   paired check gates on (`.claude/skills/harness/bin/*.sh`, 13 scripts): `hits=18` (`python3 -I`,
   needs `>=16`) and **`safe_hits=4`** (`python3 -c` + same-line `sys.path.pop(0)`, needs `>=3`) — the
-  fix's new same-line bootstrap at `dispatch-guard.sh:37` is exactly the fourth site the assertion now
+  fix's new same-line bootstrap at `dispatch-guard.py:37` is exactly the fourth site the assertion now
   counts.
 - `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-harness-boundary.py` → **60 of 60 checks PASS**,
   `ALL PASS`, exit 0 (unaffected by T-02; unchanged from cycle 1).
@@ -32,7 +32,7 @@ passed**, exit 0.
 ## 3. Red-capability confirmed at the new commit
 
 `DISPATCH_GUARD_BIN=<main-checkout guard>` (md5 `ca904b2906ad8d44662db428cb2dbc89`, verified myself
-against `.claude/skills/harness/bin/dispatch-guard.sh` in the main checkout before use) against the
+against `.claude/skills/harness/bin/dispatch-guard.py` in the main checkout before use) against the
 worktree's test file at `c06c483c` → **61 of 69 cases passed**, with exactly the same 8 red lines as
 cycle 1: `case 18a` (bare + `18a/b` combined-message), `case 18b`, `case 18g`, `case 21`-message,
 `case 22` (×2), `case 23`-message. The gate still reports red against the old guard binary; a fully
@@ -40,7 +40,7 @@ green result here would itself have been a FAIL. It was not.
 
 ## 4. Behavioural-equivalence ruling on the launch change (new for this cycle)
 
-Read directly from `dispatch-guard.sh:27-59` at `c06c483c`:
+Read directly from `dispatch-guard.py:27-59` at `c06c483c`:
 
 - **(a) non-isolated interpreter — HOLDS.** Line 37: `python3 -c '...' "$GUARD_BIN_DIR" 2>/dev/null
   <<'PY'` — no `-I` flag anywhere in the launch. PyYAML (user site-packages, D-03) remains reachable.
@@ -72,7 +72,7 @@ Read `plan.yaml:325` directly: the string matches the dispatch's copy character-
 (confirmed by direct comparison, not just presence). Re-ran verbatim at `c06c483c`:
 
 ```
-python3 tests/integration/test-dispatch-guard.py && python3 -c '...' | .claude/skills/harness/bin/dispatch-guard.sh 2>&1 | grep -q "eng-t01"
+python3 tests/integration/test-dispatch-guard.py && python3 -c '...' | .claude/skills/harness/bin/dispatch-guard.py 2>&1 | grep -q "eng-t01"
 ```
 
 → integration suite prints `69 of 69 cases passed`; piped guard invocation matched by
@@ -97,9 +97,9 @@ either the automated flag or the cycle-1 finding on faith:
   tree, plus `test-check-domain.py`'s `sweep/clean-tracked RED` non-discriminating mutation
   self-test.
 - **None of the four failing files are in this diff.** `git show c06c483c --stat` names only
-  `.claude/skills/harness/bin/dispatch-guard.sh` (this cycle's sole change). The full BUG-124 diff
+  `.claude/skills/harness/bin/dispatch-guard.py` (this cycle's sole change). The full BUG-124 diff
   (both cycles) touches `harness_boundary.py`, `tests/unit/test-harness-boundary.py`,
-  `dispatch-guard.sh`, `tests/integration/test-dispatch-guard.py` only — confirmed again by
+  `dispatch-guard.py`, `tests/integration/test-dispatch-guard.py` only — confirmed again by
   `git diff -U0 80ce35d1..e7994376 -- harness_boundary.py`, hunks only at `@@ -21,0 +22 @@` and
   `@@ -806,0 +808,98 @@`; `resolve_root` (the function whose behavior the root-resolution race
   depends on) is untouched by either cycle.

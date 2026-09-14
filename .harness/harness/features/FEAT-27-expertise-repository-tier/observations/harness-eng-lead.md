@@ -1,6 +1,6 @@
 # Observations — harness-eng-lead — FEAT-27-expertise-repository-tier
 
-- 2026-08-19: dispatch-guard.sh blocked my first T-02 spawn because I passed `model: sonnet`.
+- 2026-08-19: dispatch-guard.py blocked my first T-02 spawn because I passed `model: sonnet`.
   The block was correct (DEC-152/155) and cost one spawn attempt with zero member work. Worth
   noting the failure mode is silent in my own reasoning — I reached for the parameter without
   registering it as a decision. The guard, not my judgement, is what caught it.
@@ -66,7 +66,7 @@
   which is the more dangerous direction, since the orchestrator reads the DIGEST field and
   never opens the receipt.
 
-- 2026-08-19: dispatch-guard.sh has now blocked a `model:` parameter twice in FEAT-27, from two
+- 2026-08-19: dispatch-guard.py has now blocked a `model:` parameter twice in FEAT-27, from two
   DIFFERENT leads. Two of my own blocks are recorded above, so the org-level shape is not "one
   lead has a bad habit" — it is a rule the org keeps rediscovering at runtime rather than at
   authoring time. The parameter is available in the tool schema and forbidden only by a hook, so

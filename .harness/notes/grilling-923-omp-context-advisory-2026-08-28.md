@@ -88,7 +88,7 @@ than fog** (per the fog test: sharpness of the question, not availability of the
   from omp, not introduced here. We read what the host's own status line shows.
 - **An external watchdog.** Rejected in #923 §4 on structural grounds: it cannot spawn the
   replacement orchestrator (DEC-120 makes main the sole user channel, DEC-147 rejects same-layer peer
-  spawns, and an external process cannot dispatch through `dispatch-guard.sh` at all).
+  spawns, and an external process cannot dispatch through `dispatch-guard.py` at all).
 - Fixing the wording-assertion test class beyond `test-orchestrator-playbook.py` case 4.
 
 ## Facts I verified (so pm does not re-derive them)

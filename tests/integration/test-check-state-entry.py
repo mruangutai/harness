@@ -81,7 +81,7 @@ def case_d():
                         {"hooks": [{"command": "x/check-domain.py"}]},
                         {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                         {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                        {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}
+                        {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}
         local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump(base, f)
@@ -237,7 +237,7 @@ def case_m():
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         ok = "No PostToolUse check-domain hook" in out
         print(f"{'ok' if ok else 'FAIL'} - case (m): INV-9 catches a MISSING PostToolUse "
@@ -271,7 +271,7 @@ def case_m2():
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
         # tools that are uncovered, because "a hook is misconfigured" without them sends
@@ -317,7 +317,7 @@ def case_m3():
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         code, out = run(tmp)
         # The decoy DOES widen coverage on a basename match, which is honest: this fixture
         # asserts only that a `Write`-only real entry cannot pass on its own merits.
@@ -364,7 +364,7 @@ def case_t():
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
                                {"hooks": [{"command": "x/bash-write-guard.py"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         ok = out.strip() != "" and "not a valid regular expression" in out
         print(f"{'ok' if ok else 'FAIL'} - case (t1): an invalid hook matcher is REPORTED, "

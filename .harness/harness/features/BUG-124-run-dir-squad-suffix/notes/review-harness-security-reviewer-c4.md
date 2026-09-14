@@ -16,7 +16,7 @@ signed, accepted tradeoff (PF-334e1b370c596f88c39730bf43579f13). No new finding.
   L816-848, `_RUN_DIR_REF_RE`/`run_dir_refs` L855-876, `run_dir_slug_ok` L878-890,
   `run_dir_forms` L892-915), plus `glob_to_re`/`matches` (L315-348) since
   `run_dir_slug_ok` calls them on attacker-influenced candidate text.
-- `dispatch-guard.sh`: full file (314 lines) — both python3 invocations (the
+- `dispatch-guard.py`: full file (314 lines) — both python3 invocations (the
   non-isolated derivation subprocess L37-58, the `-I` isolated hook body L60-314),
   the run-dir shape-check block (L153-186) and its `try/except SystemExit: raise /
   except Exception` wrapper.
@@ -46,7 +46,7 @@ documented DEC-100 fail-open, not something a dispatch prompt can steer.
 
 **Is `HARNESS_RUN_DIR_DERIVED`/`HARNESS_RUN_DIR_GLOBS` a caller-settable bypass?**
 No. Both are set via `VAR=value python3 -I -c '...'` on the same line that invokes
-the governed interpreter (`dispatch-guard.sh` L60), which always wins over any
+the governed interpreter (`dispatch-guard.py` L60), which always wins over any
 identically-named variable already present in the hook process's inherited
 environment. `_derived`/`_globs` are computed fresh, in-script, from the actual
 exit status and stdout of the derivation subprocess (L37-58) every invocation —

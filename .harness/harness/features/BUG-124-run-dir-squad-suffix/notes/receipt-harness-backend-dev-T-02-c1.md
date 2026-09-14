@@ -1,7 +1,7 @@
 # Receipt — harness-backend-dev — BUG-124 T-02 — run c1
 
 ## Files touched
-- `.claude/skills/harness/bin/dispatch-guard.sh` (edited)
+- `.claude/skills/harness/bin/dispatch-guard.py` (edited)
 - `tests/integration/test-dispatch-guard.py` (edited — appended cases only, cases 1-17 byte-unedited)
 
 Not touched: `.claude/skills/harness/bin/harness_boundary.py`, `tests/unit/test-harness-boundary.py`
@@ -10,7 +10,7 @@ Not touched: `.claude/skills/harness/bin/harness_boundary.py`, `tests/unit/test-
 
 ## What changed
 
-`dispatch-guard.sh`:
+`dispatch-guard.py`:
 - After `GUARD_BIN_DIR` is computed, one shell block runs a non-isolated `python3 -c` (house
   precedent: check-domain.py's pop-sys.path[0]-then-insert-bin-dir-as-argument pair) that resolves
   the root, parses `.harness/team-config.yaml` once through `harness_yaml.load_str` with no
@@ -50,15 +50,15 @@ Not touched: `.claude/skills/harness/bin/harness_boundary.py`, `tests/unit/test-
 ## RED PROOF
 
 Iron Law order followed: production code was written, then (per plan direction to write tests
-FIRST) I reverted `dispatch-guard.sh` to the pre-T-02 (post-T-01) committed state via the `write`
+FIRST) I reverted `dispatch-guard.py` to the pre-T-02 (post-T-01) committed state via the `write`
 tool, wrote/appended the test cases, ran them RED, then reapplied and byte-verified the T-02
 implementation, then re-ran GREEN.
 
 ### RED run 1 — local pre-T-02 file, restored via `write` tool from `git show HEAD:...`
 
 Command: `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-dispatch-guard.py` (cwd =
-worktree root), against `dispatch-guard.sh` at md5 `ca904b2906ad8d44662db428cb2dbc89` (matches
-`git show HEAD:.claude/skills/harness/bin/dispatch-guard.sh`, i.e. the T-01-landed, pre-T-02 state).
+worktree root), against `dispatch-guard.py` at md5 `ca904b2906ad8d44662db428cb2dbc89` (matches
+`git show HEAD:.claude/skills/harness/bin/dispatch-guard.py`, i.e. the T-01-landed, pre-T-02 state).
 
 FAIL lines:
 ```
@@ -82,13 +82,13 @@ assertions). The additional message-text sub-assertions inside cases (e)/(i) als
 ```
 rm -rf /tmp/bug124-red-bin
 cp -r <worktree>/.claude/skills/harness/bin /tmp/bug124-red-bin
-git -C <worktree> show 6d969ed375f8458e32c47502ecdcc85bb9916635:.claude/skills/harness/bin/dispatch-guard.sh \
-  | python3 -c "import sys; open('/tmp/bug124-red-bin/dispatch-guard.sh','wb').write(sys.stdin.buffer.read())"
-chmod +x /tmp/bug124-red-bin/dispatch-guard.sh
-md5sum /tmp/bug124-red-bin/dispatch-guard.sh
-  -> ca904b2906ad8d44662db428cb2dbc89  (identical to RED run 1 — dispatch-guard.sh was untouched
+git -C <worktree> show 6d969ed375f8458e32c47502ecdcc85bb9916635:.claude/skills/harness/bin/dispatch-guard.py \
+  | python3 -c "import sys; open('/tmp/bug124-red-bin/dispatch-guard.py','wb').write(sys.stdin.buffer.read())"
+chmod +x /tmp/bug124-red-bin/dispatch-guard.py
+md5sum /tmp/bug124-red-bin/dispatch-guard.py
+  -> ca904b2906ad8d44662db428cb2dbc89  (identical to RED run 1 — dispatch-guard.py was untouched
      between 6d969ed3 and T-01, as expected: T-01 only touched harness_boundary.py and its test)
-DISPATCH_GUARD_BIN=/tmp/bug124-red-bin/dispatch-guard.sh env -u HARNESS_AGENT_TYPE \
+DISPATCH_GUARD_BIN=/tmp/bug124-red-bin/dispatch-guard.py env -u HARNESS_AGENT_TYPE \
   python3 tests/integration/test-dispatch-guard.py
 ```
 FAIL lines: byte-identical set to RED run 1 (same 8 FAIL lines, `61 of 69 cases passed`).
@@ -106,8 +106,8 @@ FAIL  case 18h: the paste-back carries no run-dir slug refusal
 Only case 18h's two paste-back assertions redden, as predicted — the paste-back dispatch now
 carries a raw `.harness/.../runs/eng-t01` reference and is refused a second time, proving the case
 actually depends on the anchor rewrite. Restored the line, then verified restoration:
-`diff /tmp/dispatch-guard.sh.t02-new .claude/skills/harness/bin/dispatch-guard.sh` → identical
-(no output), `git status --porcelain -- .claude/skills/harness/bin/dispatch-guard.sh` → shows only
+`diff /tmp/dispatch-guard.py.t02-new .claude/skills/harness/bin/dispatch-guard.py` → identical
+(no output), `git status --porcelain -- .claude/skills/harness/bin/dispatch-guard.py` → shows only
 the real diff against HEAD (the full T-02 change), not the mutation.
 
 ### Mutation proof (e)/(i) — the two SKIPPED lines collapsed into one generic line
@@ -139,7 +139,7 @@ Cross-checked against `plan.yaml` T-02 `verify:` (line 325 as read) — identica
 
 ```
 unset HARNESS_AGENT_TYPE
-python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;q = "HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n[.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md";sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":q.replace("[.]", ".")}}))' | .claude/skills/harness/bin/dispatch-guard.sh 2>&1 | grep -q "eng-t01"
+python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;q = "HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n[.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md";sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":q.replace("[.]", ".")}}))' | .claude/skills/harness/bin/dispatch-guard.py 2>&1 | grep -q "eng-t01"
 ```
 Output: full 69/69 PASS listing from the test suite, then the guard invocation's refusal was
 matched by the trailing `grep -q "eng-t01"` (real repo `.harness/team-config.yaml` carries the
@@ -149,7 +149,7 @@ by `grep -q`). Overall pipeline exit: `0`.
 ## Restoration integrity
 
 `git status --porcelain` at the end shows only the intended changes to
-`.claude/skills/harness/bin/dispatch-guard.sh` and `tests/integration/test-dispatch-guard.py` (plus
+`.claude/skills/harness/bin/dispatch-guard.py` and `tests/integration/test-dispatch-guard.py` (plus
 files already modified by T-01/others before this run started: `harness_boundary.py`,
 `test-harness-boundary.py`, `plan.yaml`, and an untracked T-01 receipt — none touched by me).
 `.harness/team-config.yaml` is unmodified.

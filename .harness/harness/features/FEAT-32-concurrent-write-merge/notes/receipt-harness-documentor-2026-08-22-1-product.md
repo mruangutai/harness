@@ -33,7 +33,7 @@ detail was cut, the "exercised" claim was not.
 - `harness_merge.py:36` `LOCK_TIMEOUT_SECONDS = 10.0`; `inflight_registry.py`
   `LOCK_TIMEOUT_SECONDS = 1.0`, `CLAIM_TTL_SECONDS = 3600`, `SINGLE_FLIGHT_AGENTS = ("harness-pm",)`
   — hence "today the product manager alone" rather than a plural set the code does not hold.
-- All four consumers import `harness_merge`; `dispatch-guard.sh` is the `PreToolUse` Task hook and
+- All four consumers import `harness_merge`; `dispatch-guard.py` is the `PreToolUse` Task hook and
   `validate-digest.py --hook` the `SubagentStop` hook, per `.claude/settings.json`.
 - `148c8c5` exists; `runs/2026-08-21-2-product/digest.md:28` is occurrence 8's write-up; run dirs are
   gitignored (`.gitignore:7`, confirmed with `git check-ignore -v`).

@@ -31,7 +31,7 @@ omission, not an oversight.
 
 - **Not a hook.** `.claude/settings.json` lists exactly 7 hook registrations
   (`inject-expertise.sh`, `check-domain.py` PreToolUse+PostToolUse, `branch-create-gate.sh`,
-  `bash-write-guard.py`, `dispatch-guard.sh`, `validate-digest.py --hook`). `run-unit-tests.sh`
+  `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py --hook`). `run-unit-tests.sh`
   is not among them — confirmed by grep.
 - **Is a required-CI-job step**, same job as `check-plan-routes.py`: `.github/workflows/tests.yml:75-84`
   ("Unit suite" / "Integration suite"), inside job `integration`, the one branch-protection

@@ -34,7 +34,7 @@ DISPATCHED_PERSONA_KEY=tool_input.subagent_type
 | `effort.level` | `medium` |
 
 `agent_type` is absent because the dispatch came from the main session, which
-`dispatch-guard.sh` deliberately never governs — model choice at the user channel is the
+`dispatch-guard.py` deliberately never governs — model choice at the user channel is the
 user's. So this capture confirms the dispatched persona key WITHOUT confirming anything about
 the dispatcher key on a governed spawn. A governed capture would carry `agent_type`; this one
 had no reason to.
@@ -42,7 +42,7 @@ had no reason to.
 ## Two findings the capture handed over for free
 
 **`tool_name` came back `Agent`, not `Task`.** The registered matcher is `Task|Agent`, so the
-guard fires. Had it named only `Task`, `dispatch-guard.sh` would be dark today with no signal —
+guard fires. Had it named only `Task`, `dispatch-guard.py` would be dark today with no signal —
 the exact silent-failure shape the no-`agent_type` pass-through's stderr line exists to prevent.
 The matcher's second alternative is load-bearing, not defensive.
 
@@ -85,7 +85,7 @@ sound but it is not the same evidence class as the key list above.
 
 Date: 2026-08-22. Machine: Darwin 25.5.0 arm64, macOS 26.5.2. Claude Code 2.1.235.
 
-1. Appended one best-effort line to `dispatch-guard.sh` immediately after `payload=$(cat)`,
+1. Appended one best-effort line to `dispatch-guard.py` immediately after `payload=$(cat)`,
    writing the raw payload to a scratch file **outside the repository**:
    `{ printf '%s\n' "$payload" >> "<scratch>/t01-payloads.jsonl"; } 2>/dev/null || true`
 2. `bash -n` on the script to prove the edit could not break a live PreToolUse hook.
@@ -95,7 +95,7 @@ Date: 2026-08-22. Machine: Darwin 25.5.0 arm64, macOS 26.5.2. Claude Code 2.1.23
 5. `git checkout --` on the script, then `git diff --quiet` to prove it clean.
 
 **The edit was applied to the MAIN checkout, not this worktree, and that is the whole trick.**
-The hook is registered as `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/dispatch-guard.sh`,
+The hook is registered as `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/dispatch-guard.py`,
 which resolves to `/Users/molchairuangutai/GitHub/harness`. A probe installed in this worktree
 captured nothing — verified: the file did not exist after the orchestrator dispatch that followed
 it. This is the same resolution fact FEAT-31 T-17 established, and it will silently defeat any

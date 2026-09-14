@@ -6,7 +6,7 @@ The headline exploit goal — get an approval signature onto disk as a governed 
 main session — **did not succeed against any payload I could construct**, including every attack
 shape named in the dispatch. D-10's two-limb Edit guard and the load-bearing
 `main_session.writes` record held. No governed agent can write or edit `.harness/team-config.yaml`
-itself (tested all 16 personas × Write/Edit). The registry-fuzzing surface (dispatch-guard.sh /
+itself (tested all 16 personas × Write/Edit). The registry-fuzzing surface (dispatch-guard.py /
 validate-digest.py / inflight_registry.py) fails open loudly on every corrupt input I fed it,
 matching its documented D-07/D-09 posture, with one real but low-severity gap: a poisoned
 `started_at` in the future creates a **permanent** single-flight block with no auto-heal. Two
@@ -62,13 +62,13 @@ route is #627 (bash-write-guard's allow-by-omission for a `python3` CLI invocati
 explicitly out of scope by D-08 and whose own destination refusal is the accepted mitigation — not
 re-filed.
 
-## 3. Registry fuzzing (dispatch-guard.sh / validate-digest.py / inflight_registry.py)
+## 3. Registry fuzzing (dispatch-guard.py / validate-digest.py / inflight_registry.py)
 
 Fed `.harness/.inflight-claims.json` truncated/corrupt JSON, a non-dict top level, a non-list
 claim value (string and dict), a non-numeric `started_at`, a directory at the registry path, an
 unwritable `.harness/` dir, a symlink at the registry path, a 5.8 MB / 100k-entry file, and a
-persona name containing backticks/shell metacharacters — through the **real** `dispatch-guard.sh`.
-Every case is caught by the try/except at `dispatch-guard.sh`'s claim block and **exits 0** with a
+persona name containing backticks/shell metacharacters — through the **real** `dispatch-guard.py`.
+Every case is caught by the try/except at `dispatch-guard.py`'s claim block and **exits 0** with a
 named-exception stderr line ("claim step failed (...) — passing through, the dispatch is NOT
 blocked"), matching D-07's fail-open-but-loud posture exactly. No shell/eval/format-string
 interpolation anywhere in these three files (grepped). Persona name with backticks lands inertly
@@ -78,7 +78,7 @@ regular file with the claim, and the symlinked-to file is untouched.
 
 **One real, low-severity gap:** `inflight_registry._expire` computes `now - started_at > TTL`, so
 a claim with `started_at` set far in the future (e.g. year 5138) never expires. Demonstrated:
-registry `{"harness-pm": [{"started_at": 99999999999.0, ...}]}` → `dispatch-guard.sh` exits **2**,
+registry `{"harness-pm": [{"started_at": 99999999999.0, ...}]}` → `dispatch-guard.py` exits **2**,
 "BLOCKED - single-flight (harness-pm)", indefinitely — every future `harness-pm` dispatch from
 that checkout is refused until an operator manually runs `release-all` (named in the refusal) or
 hand-edits the file. Since a persona's own claim-write already goes through this same code path
@@ -114,7 +114,7 @@ recovery command. See open_questions Q2.
 ## 5. Root-probe regression (the old `.harness`-directory bug)
 
 Grepped all eight in-scope files for a directory-based `.harness` existence check. Both
-`dispatch-guard.sh`'s and `validate-digest.py`'s root walks explicitly check
+`dispatch-guard.py`'s and `validate-digest.py`'s root walks explicitly check
 `os.path.isfile(.../.harness/team-config.yaml)` — the FILE, not the directory — each with an
 inline comment citing the prior $HOME-resolution defect by name. No regression.
 
@@ -153,7 +153,7 @@ None.
 
 ## Files read (no source edits made)
 
-`.claude/skills/harness/bin/check-domain.py`, `dispatch-guard.sh`, `validate-digest.py`,
+`.claude/skills/harness/bin/check-domain.py`, `dispatch-guard.py`, `validate-digest.py`,
 `harness_merge.py`, `inflight_registry.py`, `plan-merge.py`, `.harness/team-config.yaml`,
 `.harness/harness.json`, `.gitignore` (no gitignore-relevant surface in this diff),
 `.harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml` (D-04, D-10),

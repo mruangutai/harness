@@ -50,7 +50,7 @@ def feature_root(owner_root, feature):
 
 `git diff <base>..<review_sha> -- inflight_registry.py` touches only `main()`'s new `feature-root`
 CLI verb; this function is byte-identical to before impl-c9's review. `plan.yaml:756-758` (T-09's
-own intent for `dispatch-guard.sh`'s comparison step) says: *"Call reg.feature_root(owner_root,
+own intent for `dispatch-guard.py`'s comparison step) says: *"Call reg.feature_root(owner_root,
 declared) inside try/except; on ANY exception print one stderr line and pass through —
 AmbiguousWorktree is a refusal the resolver owns, not one this block should convert."* That sentence
 only makes sense if `feature_root()` lets `AmbiguousWorktree` propagate to its caller — which it
@@ -66,7 +66,7 @@ SILENTLY COLLAPSED TO OWNER ROOT: True
 **Failure scenario, end to end:** a feature with two linked worktrees whose basenames both
 prefix-match the feature id in play. The orchestrator resolves
 `inflight_registry.py feature-root --feature <FEAT>` to populate `HARNESS-FEATURE-TREE-ROOT:` for a
-shell-less lead's dispatch — it silently gets the control-plane root, no error. `dispatch-guard.sh`'s
+shell-less lead's dispatch — it silently gets the control-plane root, no error. `dispatch-guard.py`'s
 own comparison (`reg.feature_root(owner_root, declared)`, line ~172) computes the identical
 silently-wrong value, so the two sides agree and the guard **allows** the dispatch. The lead's
 receipt and observations land in the control plane instead of the ambiguous feature's actual
@@ -135,7 +135,7 @@ requires to surface as a refusal and does not; F2 is a mechanically recomputed `
 with four high-severity records, two of them introduced by this feature and never addressed since
 impl-c9 flagged three of them. F3 is real but would not block alone. Recommend routing back to the
 implementer: F1 needs `feature_root()` to let `AmbiguousWorktree` propagate (its caller,
-`dispatch-guard.sh`, already fails open with a stderr line the moment it does) or to print its own
+`dispatch-guard.py`, already fails open with a stderr line the moment it does) or to print its own
 diagnostic before falling back — not silently; F2's four blocking records need either a shape
 change or, where the CLI-dispatch/test-runner shape is deliberate, a written REASON at grade 2 (not
 grade 1, which does not accept one).

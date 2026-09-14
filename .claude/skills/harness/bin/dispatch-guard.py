@@ -1,64 +1,93 @@
-#!/usr/bin/env bash
-# PreToolUse hook (matcher: Task|Agent) — DEC-155/DEC-156: a harness agent never
-# passes `model:` in a dispatch. The member's model is pinned in its agent
-# frontmatter (DEC-152's tiers); a per-invocation parameter silently outranks the
-# pin, re-deciding org design per-dispatch with nothing recording it. Observed
-# live (kaya-ai FEAT-02, T-02): a lead's `model: "opus"` ran a sonnet-pinned doer
-# on opus, unsanctioned and invisible to every gate.
-#
-# Registered in .claude/settings.json — NOT agent frontmatter (frontmatter
-# PreToolUse hooks do not fire for spawned subagents, DEC-110):
-#   "PreToolUse": [{ "matcher": "Task|Agent",
-#     "hooks": [{ "type": "command",
-#       "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/dispatch-guard.sh" }] }]
-#
-# Only exit 2 blocks (DEC-100). Fail OPEN on our own parse failure — a guard that
-# blocks every spawn the moment the payload shape changes is worse than no guard.
-# The MAIN SESSION (no agent_type) is never governed: model choice at the user
-# channel is the user's.
-set -uo pipefail
+#!/usr/bin/env python3
+"""PreToolUse Task/Agent hook — enforce governed dispatch contracts.
 
-payload=$(cat)
+Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
+compatibility registration lives in `.claude/settings.json`. The guard rejects model
+overrides, validates feature/run-directory routing, and records single-flight claims.
 
-# T-08: resolved from BASH_SOURCE, never $PWD, so a test can point DISPATCH_GUARD_BIN at a
-# copied tree and the guard imports THAT copy of inflight_registry.py.
-GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WAS A .sh (issue #1674). The Python policy previously ran behind two shell-launched
+interpreters: one derived run-directory grants with user site-packages available and
+one applied policy with an isolated import path. This native entry point preserves both
+import contracts in one process, making the policy visible to Python tooling.
+"""
+import io as _bootstrap_io
+import os as _bootstrap_os
+import site as _bootstrap_site
+import sys as _bootstrap_sys
 
-# BUG-124 T-02 -- derive the run-dir grant vocabulary in a NON-isolated
-# interpreter: PyYAML lives in the user site-packages that python3 -I
-# excludes (D-03). House precedent for the sys.path handling is
-# check-domain.py: the LAUNCH LINE itself pops sys.path[0] before the
-# heredoc body below ever runs, so test-no-distribution.py case 7's
-# line-based scan sees the pop on the same line as the python3 call --
-# a pop buried a few lines into the heredoc body is invisible to that
-# scan (#556). The captured status is what lets the python body below
-# tell a benign grant-less manifest apart from a broken derivation (F-4):
-# HARNESS_RUN_DIR_DERIVED is 0 only when the bare parse below succeeded.
-if _globs=$(python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$GUARD_BIN_DIR" 2>/dev/null <<'PY'
-import os
-import sys
+_bootstrap_bin = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+_bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
 
-sys.path.insert(0, sys.argv[1])
 
-import harness_boundary as hb
-import harness_yaml
+def _bootstrap_run_dir_globs():
+    """Return the former helper interpreter's captured stdout and exit status."""
+    captured_out = _bootstrap_io.StringIO()
+    captured_err = _bootstrap_io.StringIO()
+    prior_out, prior_err = _bootstrap_sys.stdout, _bootstrap_sys.stderr
+    _bootstrap_sys.path.insert(0, _bootstrap_bin)
+    try:
+        _bootstrap_sys.stdout, _bootstrap_sys.stderr = captured_out, captured_err
+        import harness_boundary as bootstrap_boundary
+        import harness_yaml as bootstrap_yaml
 
-root = hb.resolve_root(sys.argv[1], strict=False)
-manifest_path = os.path.join(root, ".harness", "team-config.yaml")
-with open(manifest_path, encoding="utf-8") as fh:
-    text = fh.read()
-harness_yaml.load_str(text, manifest_path)
+        bootstrap_root = bootstrap_boundary.resolve_root(_bootstrap_bin, strict=False)
+        manifest_path = _bootstrap_os.path.join(
+            bootstrap_root, ".harness", "team-config.yaml")
+        with open(manifest_path, encoding="utf-8") as stream:
+            manifest_text = stream.read()
+        bootstrap_yaml.load_str(manifest_text, manifest_path)
+        for grant in bootstrap_boundary.run_dir_grant_globs(bootstrap_root):
+            print(grant)
+        status = "0"
+    except Exception:
+        status = "1"
+    finally:
+        _bootstrap_sys.stdout, _bootstrap_sys.stderr = prior_out, prior_err
+        _bootstrap_sys.path.pop(0)
+    return captured_out.getvalue().rstrip("\n"), status
 
-for glob in hb.run_dir_grant_globs(root):
-    print(glob)
-PY
-); then
-    _derived=0
-else
-    _derived=1
-fi
 
-printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" HARNESS_RUN_DIR_GLOBS="$_globs" HARNESS_RUN_DIR_DERIVED="$_derived" python3 -I -c '
+_bootstrap_globs, _bootstrap_derived = _bootstrap_run_dir_globs()
+
+# The policy interpreter formerly used `python3 -I`. Drop the invoking directory,
+# PYTHONPATH and user-site entries before its imports, then let the unchanged body add
+# the trusted bin directory at its original boundary.
+_bootstrap_pythonpath = {
+    _bootstrap_os.path.realpath(entry)
+    for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(_bootstrap_os.pathsep)
+    if entry
+}
+_bootstrap_user_sites = _bootstrap_site.getusersitepackages()
+if isinstance(_bootstrap_user_sites, str):
+    _bootstrap_user_sites = [_bootstrap_user_sites]
+_bootstrap_unsafe = _bootstrap_pythonpath | {
+    _bootstrap_os.path.realpath(_bootstrap_bin),
+    _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
+    *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
+}
+_bootstrap_sys.path[:] = [
+    entry for entry in _bootstrap_sys.path
+    if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
+]
+
+# The helper was a separate interpreter. Do not leak its project or YAML modules into
+# the isolated policy phase.
+for _bootstrap_name, _bootstrap_module in list(_bootstrap_sys.modules.items()):
+    if _bootstrap_name == "__main__":
+        continue
+    _bootstrap_file = getattr(_bootstrap_module, "__file__", None)
+    if (_bootstrap_name == "yaml" or _bootstrap_name.startswith("yaml.")
+            or (_bootstrap_file and _bootstrap_os.path.commonpath([
+                _bootstrap_os.path.realpath(_bootstrap_file),
+                _bootstrap_os.path.realpath(_bootstrap_bin),
+            ]) == _bootstrap_os.path.realpath(_bootstrap_bin))):
+        _bootstrap_sys.modules.pop(_bootstrap_name, None)
+
+_bootstrap_os.environ["HARNESS_GUARD_BIN_DIR"] = _bootstrap_bin
+_bootstrap_os.environ["HARNESS_RUN_DIR_GLOBS"] = _bootstrap_globs
+_bootstrap_os.environ["HARNESS_RUN_DIR_DERIVED"] = _bootstrap_derived
+_bootstrap_sys.stdin = _bootstrap_io.StringIO(_bootstrap_payload)
+
 import sys, json, os
 
 try:
@@ -89,9 +118,6 @@ if model:
 # ---------------------------------------------------------------------------
 # T-08 — the single-flight claim (issue #551). EVERY branch below fails OPEN.
 #
-# NO APOSTROPHES ANYWHERE IN THIS BLOCK. The whole python program is one
-# single-quoted shell argument, so a lone apostrophe closes it and bash then
-# parses python as shell. That is why no comment here uses a possessive.
 # ---------------------------------------------------------------------------
 dispatched = ti.get("subagent_type") or ti.get("agent") or ""
 if not dispatched.startswith("harness-"):
@@ -310,5 +336,3 @@ except Exception as exc:
     sys.exit(0)
 
 sys.exit(0)
-'
-exit $?

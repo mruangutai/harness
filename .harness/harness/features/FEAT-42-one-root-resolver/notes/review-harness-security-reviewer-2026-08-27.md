@@ -124,13 +124,13 @@ untouched by this feature. Flagging for the backlog, not this verdict.
 - No `sys.path.insert`, `os.environ[...] =`, or nested `subprocess`-launched `python3` in any
   production (non-test) file under `bin/` reintroduces a cwd-derived path; every `sys.path.insert`
   site anchors on `__file__`/`BASH_SOURCE`, never `os.getcwd()` or a bare relative default that
-  can fire in practice (`dispatch-guard.sh`'s `os.environ.get(...) or "."` fallback is dead code —
+  can fire in practice (`dispatch-guard.py`'s `os.environ.get(...) or "."` fallback is dead code —
   the same command line sets that env var unconditionally one token earlier).
 - `resolve_root`'s `HARNESS_PROJECT_DIR` override: grepped `.claude/settings.json` and every
   production caller — never set outside test fixtures, so the override branch cannot fire for an
   ordinary agent turn under the current, fresh-process-per-hook threat model.
 - Confirmed the stated DEC-174 blast-radius measurement myself: main checkout
-  `dispatch-guard.sh` is 6366 bytes / 0 occurrences of `HARNESS-FEATURE`/`_root_for`; the worktree
+  `dispatch-guard.py` is 6366 bytes / 0 occurrences of `HARNESS-FEATURE`/`_root_for`; the worktree
   copy is 9447 bytes / 4 occurrences; main HEAD is `3952814`. Matches exactly.
 
 ## DEC-174 blast radius: is the test suite alone adequate evidence to land this?

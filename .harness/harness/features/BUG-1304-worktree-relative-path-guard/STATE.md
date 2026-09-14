@@ -64,7 +64,7 @@ every task first time.
 
 THE THREE REQUIRED FOLLOW-UPS ARE FILED AND OPEN, and are NOT backlog rows. None was implemented
 inside BUG-1304 — doing so would expand an approved scope.
-- #1341 — `dispatch-guard.sh:122` `_root_for` basename equality should be `worktree_for_feature`
+- #1341 — `dispatch-guard.py:122` `_root_for` basename equality should be `worktree_for_feature`
   prefix alignment. Struck T-08's defect; the strike is legitimate only because #1341 owns it.
 - #1342 — `linked_worktrees` fail-OPEN on OSError and on an unreadable pointer. NARROWER than when
   filed: `RuleBug1304UnreadableConflict` settled the registry half, so only `linked_worktrees`

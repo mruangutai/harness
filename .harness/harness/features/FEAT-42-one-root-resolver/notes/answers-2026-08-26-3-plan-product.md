@@ -20,7 +20,7 @@ Counted by the operator at `3952814`, and **re-verified independently by the orc
 **20 non-test occurrences of the env fallback chain across 16 files.** (The orchestrator's earlier
 "15 files" was an undercount; 16 is correct.)
 
-Per file — 2 each: `bash-write-guard.py`, `check-domain.py`, `dispatch-guard.sh`,
+Per file — 2 each: `bash-write-guard.py`, `check-domain.py`, `dispatch-guard.py`,
 `validate-digest.py`. 1 each: `branch-create-gate.sh`, `check-plan-routes.py`, `check-state.sh`,
 `factory_config.py`, `gen-decisions-index.py`, `gh-close-gate.sh`, `harness_yaml.py`,
 `inflight_registry.py`, `inject-expertise.sh`, `run-unit-tests.sh`, `validate-feature-json.py`,
@@ -53,7 +53,7 @@ settles it**. Do not carry an operator-only check that is not one.
 
 ## THE CASCADE BELONGS IN THE BRIEF
 
-One stranding cascades UPWARD through three tiers — pm's spawn refused by `dispatch-guard.sh`, then
+One stranding cascades UPWARD through three tiers — pm's spawn refused by `dispatch-guard.py`, then
 the lead's return refused by `validate-digest.py`'s children-in-flight check, then the orchestrator's
 return refused the same way. Each stranding creates the next. **Neither #742 nor #866 records this.**
 

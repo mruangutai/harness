@@ -108,7 +108,7 @@ HOOK_SPECS = [
     },
     {
         "event": "PreToolUse",
-        "script": "dispatch-guard.sh",
+        "script": "dispatch-guard.py",
         # No agent matcher: the script passes through anything that is not a harness
         # agent, and the main session (no agent_type) is never governed (DEC-156).
         "matcher": "Task|Agent",

@@ -135,7 +135,7 @@ hand.
 | B-25 | D-01's residual: repository tiers multiply per-spawn context, worst case ~580 lines today, and neither the name regex nor the segment filter bounds the count. Signed, revisit at unit 7 | enhancement |
 | B-26 | Concurrent distillation runs race on the shared corpus — one squad's gate read another squad's mid-write file and reported a FAIL on an agent it never touched (#560 materialising) | bug |
 | B-27 | `SendMessage` is unavailable at the lead tier, so a lead cannot course-correct an in-flight member. Raised independently by three leads | bug |
-| B-28 | `dispatch-guard.sh` blocked a `model:` parameter **six times** across three different leads in this one feature. A rule its own readers break repeatedly is a rule-text problem | chore |
+| B-28 | `dispatch-guard.py` blocked a `model:` parameter **six times** across three different leads in this one feature. A rule its own readers break repeatedly is a rule-text problem | chore |
 | B-29 | Nothing asserts `review_sha` equals the branch tip (#487). It drifted here and was caught by a human, as on FEAT-25 | bug |
 | B-31 | The orchestrator playbook says the write-less reviewers' ops are returned for the orchestrator to apply. All three reviewers hold `Write` and both Expertise grants, and the orchestrator can write no file but its own — the instruction is false in both halves | bug |
 | B-32 | `harness-product-lead` holds no `Edit` on its own Expertise file, so a lead cannot self-distill; its six ops need another hand | bug |

@@ -45,7 +45,7 @@ clause `DEAD`. Per-task reasons are in the DIGEST, which is what the orchestrato
    bullets" description and the `:78` anchor were corrected to `:96`.
 
 **Step-5 claim-schema check, stated explicitly: no task assumes the old claim schema.** No task's
-`files:`, `intent:` or `verify:` names `inflight_registry.py`, `dispatch-guard.sh` or
+`files:`, `intent:` or `verify:` names `inflight_registry.py`, `dispatch-guard.py` or
 `validate-digest.py`, and the only "claim" hits in the plan are the English word and `factory_claim.py`
 (board task claiming, unrelated). Nothing added.
 

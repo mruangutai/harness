@@ -73,7 +73,7 @@ python3 -c "import yaml;d=yaml.safe_load(open('.harness/harness/features/FEAT-52
 | T-06 | `docs` | REQ-02, REQ-06 | twelve remaining factory-reachable skills, by direction. Do **not** touch harness-init/grilling/wayfinding |
 | T-07 | `docs` | REQ-02, REQ-06 | seven templates; README's eight spans split 3 READ / 5 WRITE. Bare filenames in the left column stay bare |
 | T-08 | `docs` | REQ-02, REQ-03, REQ-06 | one new section in `harness-handoff/SKILL.md` stating both anchors, the read-only policy and the literal phrase "holds no shell" |
-| T-09 | `logic` → unit | REQ-06 | `dispatch-guard.sh` refuses a shell-less dispatch with no `HARNESS-FEATURE-TREE-ROOT:` line at exit 2; predicate is the **tool grant**, never a name list. No apostrophe anywhere in the block |
+| T-09 | `logic` → unit | REQ-06 | `dispatch-guard.py` refuses a shell-less dispatch with no `HARNESS-FEATURE-TREE-ROOT:` line at exit 2; predicate is the **tool grant**, never a name list. No apostrophe anywhere in the block |
 | T-10 | `docs` | REQ-02, REQ-06 | the emit duty in the playbook, the lead loop and the team skill |
 | T-11 | `docs` | REQ-02, REQ-06 | the emit duty in the four agent definitions that dispatch or receive it; change no frontmatter |
 | T-12 | `config` | REQ-04 | wire the lint into the `integration` job, exit 1 and exit 2 distinguished; **two mutants** prove the assertion can go red. Its verify is also the plan's whole-scope run |

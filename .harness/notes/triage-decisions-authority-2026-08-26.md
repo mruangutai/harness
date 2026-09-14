@@ -194,7 +194,7 @@ exists).
 
 **FEAT-38 IS #615 and FEAT-39 IS #439.** Both exist, both stalled, neither has a BRIEF or a
 plan. FEAT-38 `STATE.md:10-12`: plan run 1 returned BLOCKED without spawning pm —
-`dispatch-guard.sh` refused under single-flight on an orphaned `harness-pm` claim. FEAT-39
+`dispatch-guard.py` refused under single-flight on an orphaned `harness-pm` claim. FEAT-39
 same cause, verdict ESCALATE. Neither has a feature dir in the main checkout.
 
 **Four product-lead runs have now died the same death**, all on `harness-pm` single-flight

@@ -61,9 +61,9 @@ Named by number; each says whether it BLOCKS or SUPPLIES.
   job, the precedent `check-plan-routes.py` set.
 - DEC-182 SUPPLIES the plan format; `plan-merge.py` is the only write route.
 - DEC-204 SUPPLIES the feature identity a write anchor needs: the FIRST line of every governed
-  dispatch is exactly `HARNESS-FEATURE: FEAT-NN-slug`, refused by `dispatch-guard.sh` when absent,
+  dispatch is exactly `HARNESS-FEATURE: FEAT-NN-slug`, refused by `dispatch-guard.py` when absent,
   so an agent always holds its own feature id with certainty. The same decision BLOCKS the
-  hook-side alternative: `dispatch-guard.sh:76-80` records the measurement that `tool_input.prompt`
+  hook-side alternative: `dispatch-guard.py:76-80` records the measurement that `tool_input.prompt`
   exists only on the dispatch payload and reaches no other hook, so `inject-expertise.sh` cannot
   know which feature a spawn belongs to.
 - DEC-116 BLOCKS the obvious remedy for the shell-less case: `harness-product-lead`,
@@ -176,7 +176,7 @@ path in this list is a READ target and anchors to the control plane.
 - SC-13: A persona that holds no shell is never left to guess its write anchor, and the refusal is
   observable at runtime. Against a temporary owner root carrying `.omp/agents/` entries for one
   shell-less persona (`harness-product-lead`, tools `read, glob, grep, task, write`) and one that
-  holds `bash` (`harness-backend-dev`), `dispatch-guard.sh` is fired with four payloads and
+  holds `bash` (`harness-backend-dev`), `dispatch-guard.py` is fired with four payloads and
   asserted separately on each: a dispatch to the shell-less persona carrying no
   `HARNESS-FEATURE-TREE-ROOT:` line exits 2 with stderr naming that persona AND the missing line;
   the same dispatch carrying the line with the value `inflight_registry.feature_root` resolves

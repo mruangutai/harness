@@ -54,7 +54,7 @@ artifacts" (`grilling-...:12`). Every path in the plan:
 
 - implementation — `.claude/skills/harness/bin/harness_boundary.py`, `inflight_registry.py`
   (`plan.yaml:148-149`), `check-domain.py` (`:256`), `bash-write-guard.py` (`:369`),
-  `dispatch-guard.sh` (`:477`);
+  `dispatch-guard.py` (`:477`);
 - focused tests — `tests/unit/test-harness-boundary.py`, `tests/integration/test-inflight-registry.py`
   (`plan.yaml:84-85`), `tests/integration/test-check-domain.py` (`:193`),
   `tests/integration/test-bash-write-guard.py` (`:297`), `tests/integration/test-dispatch-guard.py`
@@ -64,14 +64,14 @@ artifacts" (`grilling-...:12`). Every path in the plan:
 **No file falls outside the allowed surface.** The two T-08 paths are inside it by category; whether
 T-08 belongs to *this issue* is §4, not a surface violation.
 
-## 4 — T-08 (`dispatch-guard.sh _root_for`): RECOMMENDATION ONLY — strike it
+## 4 — T-08 (`dispatch-guard.py _root_for`): RECOMMENDATION ONLY — strike it
 
 **My recommendation, not a decision: STRIKE T-08 from this feature and file it as its own issue.**
 
 Reasoning. T-08's own intent concedes the enforcement hole is closed without it, because T-02
 resolves each claim by its `feature` field rather than by the registry file it sits in
 (`plan.yaml:490-492`, D-02 `:40`). What T-08 changes is *where a claim is recorded*
-(`dispatch-guard.sh:122` basename equality, `:126` owner-root fallback) — a different defect in a
+(`dispatch-guard.py:122` basename equality, `:126` owner-root fallback) — a different defect in a
 third gate, with its own regression surface: every consumer that asks `live_claim(root=owner_root)`
 stops seeing claims that move into a worktree registry. No REQ requires it (its `traces: [REQ-01]`
 is satisfiable without it), and rule 6 says take the weakest sufficient change. It is closest in

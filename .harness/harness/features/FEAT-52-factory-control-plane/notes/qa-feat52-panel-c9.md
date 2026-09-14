@@ -66,7 +66,7 @@ All 15 exit 0. **No signed verify clause is red.**
 | SC-10 | **satisfied** | `test-inflight-registry.py:case35` | 5 sub-assertions, all PASS: linked-worktree basename resolves to the worktree path (differs from owner root), no-worktree case resolves to owner root, short-form basename accepted, `--feature` required. |
 | SC-11 | **satisfied** | `test-anchor-directions.py` row 6 + `test-check-instruction-paths.py:35` | Row 6 min_occurrences=2 both-span proof at the pin; RED proof ("control-plane feature path is refused") independently reproduced at §4. |
 | SC-12 | **NO CARRIER for its own discriminating clauses** | `test-inject-expertise.py:case4` only exercises the `unknown` branch | SC-12 requires two committed cases: a clean fixture agent file yielding `HARNESS_PATH_DRIFT: none`, and the SAME file with one relative span added yielding `HARNESS_PATH_DRIFT: 1 unanchored path(s)` naming the file and line — "observed rather than assumed." `grep -n "PATH_DRIFT"` in the test file finds only case4's assertion of the `unknown` state (which fires because the fixture root has no `.omp/agents/<agent>.md` at all, an unrelated reason). Neither the `none` state nor the RED `N unanchored path(s)` state is tested anywhere. |
-| SC-13 | **NO CARRIER — most serious gap** | none | T-09 mandates exactly four new cases in `test-dispatch-guard.py` (REFUSED / ALLOWED / DISCRIMINATION-IN-OTHER-DIRECTION / MISMATCH-REFUSED) against fixture roots carrying `.omp/agents/` entries for a shell-less and a bash-holding persona. `grep -n "HARNESS-FEATURE-TREE-ROOT\|feature_root\|tree-root"` across the entire `test-dispatch-guard.py` file returns **nothing**. Worse: every one of the file's existing 42 cases builds its fixture via `_checkout()`, which creates **no `.omp/agents/` directory at all** — and the new block's own step 1 says "If the file is missing... PASS THROUGH." So the production code at `dispatch-guard.sh:147-175` (confirmed present and correctly shaped by direct read) is silently bypassed by every existing case. T-09's verify clause is green **because the new logic never fires in the suite**, not because it is proven correct. |
+| SC-13 | **NO CARRIER — most serious gap** | none | T-09 mandates exactly four new cases in `test-dispatch-guard.py` (REFUSED / ALLOWED / DISCRIMINATION-IN-OTHER-DIRECTION / MISMATCH-REFUSED) against fixture roots carrying `.omp/agents/` entries for a shell-less and a bash-holding persona. `grep -n "HARNESS-FEATURE-TREE-ROOT\|feature_root\|tree-root"` across the entire `test-dispatch-guard.py` file returns **nothing**. Worse: every one of the file's existing 42 cases builds its fixture via `_checkout()`, which creates **no `.omp/agents/` directory at all** — and the new block's own step 1 says "If the file is missing... PASS THROUGH." So the production code at `dispatch-guard.py:147-175` (confirmed present and correctly shaped by direct read) is silently bypassed by every existing case. T-09's verify clause is green **because the new logic never fires in the suite**, not because it is proven correct. |
 | SC-14 | not-my-kind | — | `verify: inspection` |
 | SC-15 | **satisfied** | `test-check-domain.py:3426-3429` ("SC-15 PAIR") | Foreign product cwd allows the feature-worktree receipt write (exit 0) and refuses the same path's in-product twin (exit 2), same fixture and cwd. |
 
@@ -124,9 +124,9 @@ git history alone; reporting this honestly rather than guessing.
 
 ## Findings, severity, blocking
 
-1. **[high, blocking]** SC-13: zero test coverage for `dispatch-guard.sh`'s new
+1. **[high, blocking]** SC-13: zero test coverage for `dispatch-guard.py`'s new
    `HARNESS-FEATURE-TREE-ROOT` enforcement block. Production code is correctly shaped
-   (`.agents/skills/harness/bin/dispatch-guard.sh:147-175`) but every existing
+   (`.agents/skills/harness/bin/dispatch-guard.py:147-175`) but every existing
    `test-dispatch-guard.py` fixture bypasses it via a fixture root with no `.omp/agents/`
    directory. A regression here (e.g. the mismatch check silently removed) would ship undetected.
 2. **[high, blocking]** SC-12: the `HARNESS_PATH_DRIFT: none` clean case and the

@@ -30,7 +30,7 @@ Two things it leaves open, both filed rather than carried:
 
 ## Working set
 - `.claude/skills/harness/bin/check-domain.py` — the approval guard, on the ALLOW path.
-- `.claude/skills/harness/bin/dispatch-guard.sh` — claim after the model refusal; root from
+- `.claude/skills/harness/bin/dispatch-guard.py` — claim after the model refusal; root from
   the manifest FILE, never the `.harness` directory, which resolves `$HOME` when installed
   globally.
 - `.claude/skills/harness/bin/inflight_registry.py`, `harness_merge.py`.

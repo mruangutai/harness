@@ -92,7 +92,7 @@ Unstruck rows become issues on your ship acceptance; anything not listed dies si
 | B-23 | Nothing at plan time compares a criterion's quantified scope against the union of `files:` across its tasks — the SC-08 root cause | enhancement |
 | B-24 | pm displaced a `P-11` whose original purpose was anti-over-harsh grading; flagged for a curation pass | chore |
 | B-25 | Observation logs are Write-not-Edit, so two concurrent contexts silently last-writer-wins | bug |
-| B-26 | `dispatch-guard.sh` refused a `model:` parameter in three independent lead contexts; the Expertise entry covering it is injected every spawn and fired for none | bug |
+| B-26 | `dispatch-guard.py` refused a `model:` parameter in three independent lead contexts; the Expertise entry covering it is injected every spawn and fired for none | bug |
 | B-27 | `harness-security-reviewer.md` is at **147 of its 150-line budget**; the spawn hook hard-truncates, so the next distillation silently loses entries off the tail and `check-expertise.sh` warns nothing | bug |
 | B-28 | Run-id sequence numbers no longer order runs — three squads each took seq `14` on one date. Nothing collides on disk, but a reader cannot order concurrent segments | chore |
 | B-29 | The directory-wide `check-expertise.sh` is dispatched per-lead while sibling leads are still writing; the prescribed single re-run does not settle it. Proposal: the orchestrator owns one gate run after all squads close, leads gate only their own members' files | bug |

@@ -54,7 +54,7 @@ exactly:
 HARNESS-FEATURE: FEAT-42-one-root-resolver
 ```
 
-with the id of the feature you are working. `dispatch-guard.sh` refuses a governed dispatch
+with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
 without it at exit 2. It is the only signal that tells the guard which checkout you were
 assigned to: your process working directory does not follow your assignment, and a claim
 recorded in the wrong checkout is why the previous planning run could not spawn at all.
@@ -151,4 +151,4 @@ apart is that the main session named the path. A `resume` dispatch that carries 
 defect in the hand-off, not a cue to search: report it rather than guessing. You never write this
 file yourself (see Domain, above).
 
-For every shell-less lead dispatch, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>` resolved once with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`; dispatch-guard.sh refuses its absence at exit 2.
+For every shell-less lead dispatch, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>` resolved once with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`; dispatch-guard.py refuses its absence at exit 2.

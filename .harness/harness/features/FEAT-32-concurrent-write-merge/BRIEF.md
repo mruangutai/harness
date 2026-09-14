@@ -169,7 +169,7 @@ file class it owns.
   whole new one. That closes #551 occurrence 2's mechanism without any wait, any sleep and any
   "it did not happen again".
 - The **cause** of #551 occurrence 1: a second spawn of a singleton persona dispatched into a live
-  one. Refused at `dispatch-guard.sh`, the `PreToolUse Task|Agent` hook, against a claim registry.
+  one. Refused at `dispatch-guard.py`, the `PreToolUse Task|Agent` hook, against a claim registry.
 - Rewiring `expertise-merge.py` onto the shared core, so there is one dialect and not two, and so
   the Expertise file class inherits the stale-lock fix.
 - **The reporting half of #551, as far as it can go.** A lead or the orchestrator returning while a
@@ -282,7 +282,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   It can go red: an allow-nothing tool fails the allow half, and a string-matching tool that never
   resolves the path fails the `..` case.
   verify: automated      evidence: integration
-- SC-06: With a live claim for `harness-pm` on disk for this checkout, `dispatch-guard.sh` fed a
+- SC-06: With a live claim for `harness-pm` on disk for this checkout, `dispatch-guard.py` fed a
   `PreToolUse Task` payload naming `harness-pm` as the dispatched persona exits 2 and its stderr
   carries the refusal marker, the claim's recorded start time and the literal command that clears
   it; with no claim on disk the same payload exits 0. It can go red: the refusal is identified by
@@ -290,7 +290,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   fails the assertion; and with `SINGLE_FLIGHT_AGENTS` mutated to an empty tuple by name in a copy
   of the tree, the refuse half must FAIL while the allow half still passes.
   verify: automated      evidence: integration
-- SC-07: `dispatch-guard.sh`'s pre-existing refusal set is unchanged by the cutover. Its
+- SC-07: `dispatch-guard.py`'s pre-existing refusal set is unchanged by the cutover. Its
   `model:`-parameter behaviour is captured as a test **before** the claim check is added — the
   script has no test today — and that test passes byte-for-byte unchanged afterwards, covering the
   refusal, the main-session pass-through, the non-harness pass-through and the unreadable-payload

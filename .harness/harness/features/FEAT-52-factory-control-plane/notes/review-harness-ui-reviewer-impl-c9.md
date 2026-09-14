@@ -81,7 +81,7 @@ for the contract (SC-09); dropping the duplicate is the correct resolution of th
 conflict, not a completeness gap. Flagging as an `open_question` per the "wording matches an
 approved plan's own text → plan question, not a defect" rule rather than filing a fix.
 
-**`dispatch-guard.sh` stderr** (`.claude/skills/harness/bin/dispatch-guard.sh:140-181`) — read
+**`dispatch-guard.py` stderr** (`.claude/skills/harness/bin/dispatch-guard.py:140-181`) — read
 against T-09's binding spec (`plan.yaml:747-765`) for its three exit-2 branches:
 - no-tree-root-line: names the persona, spells `HARNESS-FEATURE-TREE-ROOT: ` literally, names the
   remedy command `inflight_registry.py feature-root --feature <declared>` — matches spec verbatim.
@@ -104,7 +104,7 @@ encoding, no theme). No fidelity or interaction findings.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "No rendered UI surface in the 93-file diff (0 html/css/scss/tsx/jsx/vue/svelte/less hits, no DESIGN.md); the one named adjacent text surface (inject-expertise.sh preamble + dispatch-guard.sh stderr) audited and found faithful to plan.yaml, one non-blocking wording note."
+  headline: "No rendered UI surface in the 93-file diff (0 html/css/scss/tsx/jsx/vue/svelte/less hits, no DESIGN.md); the one named adjacent text surface (inject-expertise.sh preamble + dispatch-guard.py stderr) audited and found faithful to plan.yaml, one non-blocking wording note."
   mode: B
   in_scope: false
   severity_max: low

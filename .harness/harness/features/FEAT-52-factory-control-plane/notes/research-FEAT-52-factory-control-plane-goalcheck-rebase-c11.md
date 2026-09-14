@@ -96,7 +96,7 @@ blockers are evidence, location and record defects.
 5. Re-pin `review_sha` to the resulting HEAD and re-take **SC-03, SC-04, SC-05, SC-06, SC-09,
    SC-11, SC-12, SC-14** only.
 
-Advisory, not gating, not covered by any SC: `dispatch-guard.sh:175-176` carries the
+Advisory, not gating, not covered by any SC: `dispatch-guard.py:175-176` carries the
 `AmbiguousWorktree` refusal branch, and `test-dispatch-guard.py` still has no case for it — the
 resolver side is covered (`test-inflight-registry.py:1041`), the guard side is not. Worth folding
 into step 3.

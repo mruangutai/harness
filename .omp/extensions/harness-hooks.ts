@@ -838,7 +838,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
-          const result = policyRunner(ctx.cwd, "dispatch-guard.sh", [], {
+          const result = policyRunner(ctx.cwd, "dispatch-guard.py", [], {
             ...basePayload(currentAgent, "PreToolUse", ctx.cwd),
             tool_name: "Task",
             tool_input: dispatch,
@@ -851,7 +851,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
             reason = result.reason || "Harness dispatch policy denied the task.";
             break;
           }
-          // DEC-100: ONLY exit 2 BLOCKS. dispatch-guard.sh exits 0 WITHOUT printing a
+          // DEC-100: ONLY exit 2 BLOCKS. dispatch-guard.py exits 0 WITHOUT printing a
           // receipt on every pass-through branch it has — unreadable payload (:34), a
           // non-harness dispatcher (:38) or dispatched persona (:72), no checkout root
           // (:112), inflight_registry unavailable (:138), OMP runtime with no supervisor

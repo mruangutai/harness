@@ -25,9 +25,9 @@ against what each one actually needs:
 - Fail-OPEN by design, all pre-existing and cited (DEC-101 or the hook's own contract), none
   newly introduced: `check-domain.py`/`bash-write-guard.py`'s `_root()` uses `strict=False`
   deliberately to preserve DEC-101's "no manifest → enforcement OFF" carve-out (`check-domain.py
-  :127-154`); `dispatch-guard.sh` fails open on every branch **except** the missing
+  :127-154`); `dispatch-guard.py` fails open on every branch **except** the missing
   `HARNESS-FEATURE` line, which is the one exit-2 branch — confirmed by direct read
-  (`dispatch-guard.sh:100-165`), so the dispatch's framing of that one branch is accurate
+  (`dispatch-guard.py:100-165`), so the dispatch's framing of that one branch is accurate
   *as scoped to this file's own branches* (several other cutover files fail closed on
   unresolvable root independently — the "one fail-closed branch" claim is not a whole-feature
   claim and shouldn't be read as one); `validate-digest.py`'s `_root_or_none()` (`:791-802`)

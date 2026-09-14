@@ -67,4 +67,4 @@ worktree still stands for a feature at a terminal state.
 **Run-dir slugs:** `<task-or-purpose>-<squad>` (`t04-fe-eng`, `plan-product`, `fix-c2-validator`)
 — the squad suffix is what the lead's domain glob keys on; never embed the feature id. A run-dir
 path that is QUOTED rather than written — in a plan block, a pasted refusal, a bug report — is
-spelled `[.]harness/` so `dispatch-guard.sh` does not read it as a write.
+spelled `[.]harness/` so `dispatch-guard.py` does not read it as a write.

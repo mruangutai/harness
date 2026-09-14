@@ -152,7 +152,7 @@
   consequence, not just the preference, is what made it land.
 
 - 2026-08-19: **the same guard refused the same mistake in three independent lead contexts on one
-  feature** — `dispatch-guard.sh` blocking a `model:` parameter. Each lead lost a spawn turn to it.
+  feature** — `dispatch-guard.py` blocking a `model:` parameter. Each lead lost a spawn turn to it.
   The prior occurrences were recorded only in observations logs, which are never injected at spawn,
   so no successor could be warned. A lesson that lives only where it is never read is not a lesson;
   a repeated guard refusal across independent contexts is evidence the rule belongs where the call

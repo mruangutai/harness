@@ -82,7 +82,7 @@ INV-28 as next-free: confirmed — highest active is INV-27 (`:1349`), INV-20 is
 INV-10 is explicitly retired-and-unreusable (`:1403-1407`). DEC-174 amendment 4's text (read via
 the index, opened directly — not the whole file) states the enforcement enumeration verbatim as
 `check-domain.py, bash-write-guard.py, validate-digest.py, check-state.sh, check-plan-routes.py,
-dispatch-guard.sh, and the test file of each` — the BRIEF's Constraints:88-96 enumeration matches
+dispatch-guard.py, and the test file of each` — the BRIEF's Constraints:88-96 enumeration matches
 this exactly, including the non-exhaustive framing.
 
 ## 5. Fail-open, one level up (secondary, not gating)

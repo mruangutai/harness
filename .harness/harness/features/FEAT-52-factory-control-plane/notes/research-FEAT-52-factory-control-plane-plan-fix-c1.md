@@ -15,21 +15,21 @@ and is **not** injected — the agent resolves it once, from the FEAT id DEC-204
 line of its own dispatch, with a new verb `inflight_registry.py feature-root --feature <FEAT>`.
 
 The resolution is not new. `inflight_registry.feature_root` (`inflight_registry.py:260-266`) already
-returns `worktree_for_feature(owner_root, feature) or owner_root`, and `dispatch-guard.sh:115-126`
+returns `worktree_for_feature(owner_root, feature) or owner_root`, and `dispatch-guard.py:115-126`
 already resolves a dispatch's checkout by the identical rule. **That fallback is exactly the factory
 case**: a product feature has no Harness worktree, so the resolver collapses to the control plane —
 which is what #356 comment 1 ruled. For Harness self-development it returns the feature worktree.
 One rule, correct in both directions. T-10 adds one CLI branch over a shipped function.
 
 **The loser, recorded in D-06's `because:` and again in T-16's DEC entry: a second INJECTED value.**
-It is unbuildable without inventing mechanism. `dispatch-guard.sh:76-80` records the measurement
+It is unbuildable without inventing mechanism. `dispatch-guard.py:76-80` records the measurement
 that `tool_input.prompt` "exists only on the DISPATCH payload… and reaches no other hook", and
 DEC-64 fixes the SubagentStart payload's contract at `agent_type`. The hook therefore cannot know
 which feature a spawn belongs to. Resolving it hook-side would mean scanning the inflight registry
 of the control plane and of every linked worktree for a claim keyed on **persona alone** — ambiguous
 whenever two spawns of one non-single-flight persona run on different features at once — plus an
 unmeasured dependency on `PreToolUse:Task` firing before `SubagentStart`. The agent already holds
-its FEAT id with certainty, because `dispatch-guard.sh` fails **closed** without it.
+its FEAT id with certainty, because `dispatch-guard.py` fails **closed** without it.
 
 Carried by: **REQ-06**, **D-06**, **SC-11** (instruction form) and **SC-10** (runtime resolution),
 **T-10**, **T-11 clause 2**, **T-12** (supersedes T-02's receipt clause), **T-13** (supersedes
@@ -112,7 +112,7 @@ left-hand column of bare template filenames, which are names and not paths.
   silently.
   **WITHDRAWN at cycle 1 — see `## G-1` above.** The premise was wrong in tense, not only
   understated: three personas hold no Bash today. Replaced by D-08, SC-13, SC-14, T-18, T-19, T-20.
-- **Q4 (non-blocking)** — `dispatch-guard.sh:115-126` resolves a dispatch's checkout by basename
+- **Q4 (non-blocking)** — `dispatch-guard.py:115-126` resolves a dispatch's checkout by basename
   **equality**, while `harness_boundary.worktree_for_feature:193-229` resolves by **prefix** and
   refuses on ambiguity. For a prefix-named worktree the recorded claim and the feature-tree write
   anchor land in different checkouts. T-18 enforces against the prefix resolver, so the
@@ -135,7 +135,7 @@ T-06's file list and named by T-14 clause 2 (`runs/`).
 **Ruled — D-08, extending D-06, superseding nothing in it.** The anchor is resolved by whoever
 holds the shell. A persona with no `bash` never resolves its own: its **dispatcher** resolves it
 (every such persona is spawned by a tier that does hold `bash`) and passes it as a line
-`HARNESS-FEATURE-TREE-ROOT: /absolute/path`. `dispatch-guard.sh` — the one hook that can see a
+`HARNESS-FEATURE-TREE-ROOT: /absolute/path`. `dispatch-guard.py` — the one hook that can see a
 dispatch prompt (`:76-80`) and already fails closed on a missing declaration (`:96-103`) —
 refuses at exit 2 when the **dispatched** persona grants no `bash` and the line is absent, or is
 present and disagrees with `inflight_registry.feature_root` for the declared feature. **The
@@ -166,7 +166,7 @@ SC-13 discriminates in both directions on purpose: the `harness-backend-dev` cas
 omission must exit **0**, without which a guard that refuses everything passes the first
 assertion.
 
-**One divergence found and NOT fixed here, deliberately out of scope.** `dispatch-guard.sh`'s
+**One divergence found and NOT fixed here, deliberately out of scope.** `dispatch-guard.py`'s
 own `_root_for` (`:115-126`) matches a worktree by **basename equality**, while
 `harness_boundary.worktree_for_feature:193-229` matches by **prefix** and refuses on ambiguity.
 For a prefix-named worktree the claim root and the feature-tree anchor therefore disagree. T-18

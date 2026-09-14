@@ -316,7 +316,7 @@ cost nothing and would have converted the whole run to BLOCKED had it come back 
   only when ALL its clauses are, and "met with a footnote" is how an uncleared half ships as done.
   My own P-12, caught one step from publication.
 
-- 2026-08-19 (run 9): I PASSED `model:` IN THREE DISPATCHES AND `dispatch-guard.sh` BLOCKED ALL
+- 2026-08-19 (run 9): I PASSED `model:` IN THREE DISPATCHES AND `dispatch-guard.py` BLOCKED ALL
   THREE. My own G-12 is about checking capability before routing AROUND it; this is the inverse
   error — reaching for a capability I was never granted. A model pin is org design (DEC-152/155),
   and a task needing a stronger model is an ESCALATION, not a dispatch parameter. Cost: one wasted

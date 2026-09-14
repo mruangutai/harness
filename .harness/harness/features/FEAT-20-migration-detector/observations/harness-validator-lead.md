@@ -75,7 +75,7 @@
 ## Pre-merge pass, run `2026-08-14-4-validator` @ `045dcd9`
 
 - 2026-08-14: DISPATCH-GUARD BLOCKED MY OWN WAVE. I passed `model: sonnet` on all four Agent calls
-  and `dispatch-guard.sh` rejected every one, citing DEC-152/155 — a model pin is org design, not a
+  and `dispatch-guard.py` rejected every one, citing DEC-152/155 — a model pin is org design, not a
   dispatch option. The guard was right and cost one wave of latency, nothing else. I had no reason
   to set it; I added it reflexively while composing four prompts at once. Re-dispatched verbatim
   minus the parameter and all four launched.

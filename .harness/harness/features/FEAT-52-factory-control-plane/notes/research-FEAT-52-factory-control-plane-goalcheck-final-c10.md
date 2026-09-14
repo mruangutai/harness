@@ -60,7 +60,7 @@ REQ-01 -> T-03/T-14 (`inject-expertise.sh` control-plane block). REQ-02 -> T-04.
 (the five canonical sites re-anchored; whole-scope checker clean) — **its family-5 half is the one
 whose proof SC-06 lost.** REQ-03 -> SC-07 evidence (no grant widened). REQ-04 -> T-02, T-12
 (`check-instruction-paths.py` + the enforced `integration` step). REQ-05 -> `case4c`. REQ-06 ->
-T-01, T-09, T-15 (`feature-root` verb, `dispatch-guard.sh:171-183`, anchor-direction rows). Nothing
+T-01, T-09, T-15 (`feature-root` verb, `dispatch-guard.py:171-183`, anchor-direction rows). Nothing
 in the brief is unimplemented; the gaps are evidence and record gaps, not missing product.
 
 ## Recommended next ship action — one short remediation cycle, then ship

@@ -22,7 +22,7 @@ each measured clean — see dispositions below.
 **1. Trust boundary between concurrent features (`inflight_registry.py`).**
 Measured, not assumed. Read the full pre- and post-diff module
 (`.claude/skills/harness/bin/inflight_registry.py`). Findings:
-- The **automated** lifecycle (dispatch-guard.sh → `claim_with_receipt` → host-issued
+- The **automated** lifecycle (dispatch-guard.py → `claim_with_receipt` → host-issued
   `claim_id`/`agent_id`/`job_id` → `releaseClaim` in `harness-hooks.ts`) is correctly scoped:
   `claim_id` is a server-side `uuid4`, `agent_id`/`job_id` come from `ctx.agentId` /
   `task:subagent:lifecycle` event data (host-controlled, not model/tool-input controlled).
@@ -55,7 +55,7 @@ Measured, not assumed. Read the full pre- and post-diff module
 **2. Registry file as untrusted input → shell/subprocess/log injection.**
 No finding — measured. `harness-hooks.ts`'s `runPolicy()` calls `spawnSync(gatePath(script),
 args, {...})` with **no `shell: true`** and `args` as an array, so Node never tokenizes through a
-shell regardless of claim content. `dispatch-guard.sh` pipes the JSON payload to python **only
+shell regardless of claim content. `dispatch-guard.py` pipes the JSON payload to python **only
 via stdin** (`printf '%s' "$payload" | python3 -I -c '...'`); no payload field is ever
 string-interpolated into a shell command. `release_cmd()` shell-quotes every argument with
 `shlex.quote()` before composing the printed remedy string. `feature_root()`/`_root_for()`

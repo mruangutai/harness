@@ -52,7 +52,7 @@ harm) and adds a **paired well-formed control** that must exit 0. That is the ve
 **Audited 10 verifies, changed 5** (T-03, T-05, T-07, T-08, T-09). Two more defects of the same
 class found beyond L-03:
 
-- **T-08**: `grep -q 'worktree_for_feature'` already matches `dispatch-guard.sh:174`. Replaced by
+- **T-08**: `grep -q 'worktree_for_feature'` already matches `dispatch-guard.py:174`. Replaced by
   `grep -q 'worktree_for_feature(owner_root, flow)'` plus `! grep -q 'os.path.basename(wt) == flow'`
   — both proven red today.
 - **T-09**: `grep -q 'case_bug1304_retention()'` is satisfied by the `def` line; the file wires
@@ -77,7 +77,7 @@ at `check-domain.py:1864-1869` and `:383-386`.
 
 T-09's opening and D-09's strike paragraph both now say the strike **overrides Advisor rulings A and
 B**, is not symmetric with T-08's (T-02 already makes T-08 free), and leaves B-10 reachable on the
-routine suspend path (`dispatch-guard.sh:197`, `validate-digest.py:1755-1760`). OC-1 asks where the
+routine suspend path (`dispatch-guard.py:197`, `validate-digest.py:1755-1760`). OC-1 asks where the
 closure lands, not whether the hole may stay open. SC-11 supplies the missing criterion.
 
 ## Open questions

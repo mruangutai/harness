@@ -101,7 +101,7 @@ decisions:
       kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.sh; PreToolUse Bash
       branch-create-gate.sh a second, duplicate time under a different variable spelling; PreToolUse
       Bash bash-write-guard.py; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
-      dispatch-guard.sh; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
+      dispatch-guard.py; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
       matcher harness-.* validate-digest.py --hook; PostToolUse Write or Edit or Bash
       check-domain.py --post. All eight go, in this feature rather than as a deferral.
     because: >-
@@ -347,7 +347,7 @@ tasks:
                                        first uses "$CLAUDE_PROJECT_DIR" - both go)
         PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.py
         PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.py
-        PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.sh
+        PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.py
         SubagentStart  harness-.*      .claude/skills/harness/bin/inject-expertise.sh
         SubagentStop   harness-.*      .claude/skills/harness/bin/validate-digest.py --hook
         PostToolUse  Write or Edit or Bash  .claude/skills/harness/bin/check-domain.py --post

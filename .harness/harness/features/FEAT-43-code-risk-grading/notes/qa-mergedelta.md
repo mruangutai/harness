@@ -135,7 +135,7 @@ cross-check (main's replacement code) still agrees with `harness.json`.
 
 **What this sweep does NOT cover, stated plainly:**
 - **Main's own content was not re-reviewed on its merits.** `validate-digest.py`'s automatic
-  +34/−8 merge, the `dispatch-guard.sh`/`inflight_registry.py`/`check-omp-port.py` changes, the
+  +34/−8 merge, the `dispatch-guard.py`/`inflight_registry.py`/`check-omp-port.py` changes, the
   agent-template changes, and the `context-watch` removal are accepted as main's own reviewed
   work, not independently re-audited here — only their *interaction* with FEAT-43's surfaces
   (the gate, the matrix, the SEC-01 range binding) was exercised.

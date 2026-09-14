@@ -128,9 +128,9 @@ were removed. Untouched by this fix — `gh-sync.py` was not edited at all, and
 
 `git status --porcelain` on the worktree shows `.omp/extensions/harness-hooks.ts`,
 `omp-hooks.test.ts`, `check-state.sh`, `check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `dispatch-guard.sh` — I never opened `.omp/extensions/harness-hooks.ts`,
+`validate-digest.py`, `dispatch-guard.py` — I never opened `.omp/extensions/harness-hooks.ts`,
 `check-state.sh`, `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, or
-`dispatch-guard.sh` with a write or edit tool this session. `omp-hooks.test.ts` and
+`dispatch-guard.py` with a write or edit tool this session. `omp-hooks.test.ts` and
 `gh-sync.py` DO show as modified in `git status`, but those are pre-existing/concurrent
 sibling changes — confirmed by never having called write/edit against either path in this
 session's own tool history.

@@ -57,10 +57,10 @@ still form around this if the second assertion were ever dropped, so noting it f
 ## Do the new tests exercise the real seams, or still mock them?
 
 **Yes, where it matters; no in the part that was never the problem.** Cycle 0's adequacy finding
-was that `omp-hooks.test.ts:206-213`'s fixture mocked `dispatch-guard.sh` with only the golden
+was that `omp-hooks.test.ts:206-213`'s fixture mocked `dispatch-guard.py` with only the golden
 (claim-granting) response, so the pass-through shape (F1) and the toolResult/second-marker shapes
 (F2) never existed in the fixture at all — not that the mock existed. The fixture in `cc9e5cf`
-still mocks the external `dispatch-guard.sh`/`inflight_registry.py` subprocess calls (unchanged,
+still mocks the external `dispatch-guard.py`/`inflight_registry.py` subprocess calls (unchanged,
 standard for a unit-level TS test — the real subprocess behavior is independently covered by
 `test-dispatch-guard.py`'s own suite, run above). What changed is that the mock now **implements**
 the fail-open shape (comment at the fixture: "Absent from this fixture, no test could execute the
@@ -119,7 +119,7 @@ live to one reads live to all three — reconcile genuinely cannot clear it, as 
 The re-rating is sound.
 
 **F5 downgrade to unreachable — CORRECT.** Grepped both cited call sites directly:
-`dispatch-guard.sh:156` (`reg.release_cmd(root, dispatched, feature=declared)`) and
+`dispatch-guard.py:156` (`reg.release_cmd(root, dispatched, feature=declared)`) and
 `validate-digest.py:1001` (`_reg.release_cmd(_root, _persona, feature=_c.get("feature"))`) — both
 pass `feature` unconditionally. No third production caller exists. Made `feature` a required
 positional (case14's featureless sub-check, red-verified above) rather than merely documented —
@@ -129,7 +129,7 @@ the dangerous form is now unconstructible, not just unused.
 
 Change type: `cross_module` (unchanged from c0's correct inference — five interacting layers touched
 by the two fix commits too: `harness-hooks.ts`, `inflight_registry.py`, plus the tests threading
-through `dispatch-guard.sh` and `validate-digest.py`'s existing coverage).
+through `dispatch-guard.py` and `validate-digest.py`'s existing coverage).
 
 | Kind | Required? | State | Evidence |
 |---|---|---|---|

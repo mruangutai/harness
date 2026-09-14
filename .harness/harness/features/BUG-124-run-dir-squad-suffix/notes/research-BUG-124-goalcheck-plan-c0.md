@@ -40,7 +40,7 @@ Do not amend the rule shape; ownership checking on prose is the failure D-01 cor
 | Intent clause | Lands on |
 |---|---|
 | refuse before the dispatch proceeds | REQ-01 → T-02 (`plan.yaml:200-218`, check sits before the claim, D-04) |
-| mechanical, at dispatch-guard.sh | REQ-01/03 → T-02 |
+| mechanical, at dispatch-guard.py | REQ-01/03 → T-02 |
 | against the callee's own domain glob | REQ-01 → T-02 **as shape only** (see above) |
 | dispatcher can fix in one step | REQ-02 → T-01 `run_dir_forms`, T-02 refusal message, T-03 prose |
 | vocabulary from team-config.yaml | REQ-04 → T-01, T-02 |
@@ -53,7 +53,7 @@ literal ask — proportional, since `SKILL.md:272-274` is today the convention's
 ## Do the SCs convince the operator, and does the fix fire on the real shape?
 
 Mostly yes. SC-01/02 assert the reported slug `eng-t01` through the real hook stdin seam of the real
-`dispatch-guard.sh`, not a mock; SC-06 requires the red proof against `git show 6d969ed3:` of the
+`dispatch-guard.py`, not a mock; SC-06 requires the red proof against `git show 6d969ed3:` of the
 guard; SC-07 closes the strand-a-claim failure mode. SC-04 proves derivation with an invented squad,
 so the gate is not literal-token green.
 

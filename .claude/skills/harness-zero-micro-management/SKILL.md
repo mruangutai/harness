@@ -35,7 +35,7 @@ exactly:
 HARNESS-FEATURE: FEAT-42-one-root-resolver
 ```
 
-with the id of the feature you are working. `dispatch-guard.sh` refuses a governed dispatch
+with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
 without it at exit 2. It is the only signal that tells the guard which checkout you were
 assigned to: your process working directory does not follow your assignment, and a claim
 recorded in the wrong checkout is why the previous planning run could not spawn at all.
@@ -87,4 +87,4 @@ contract lives, and a rule split from its consequence is one nobody applies.
 
 | "I'll paraphrase the verify command" | The member cross-checks your verbatim string against PLAN and returns `BLOCKED` on mismatch. A paraphrase reads as a mismatch and stops the task |
 
-When dispatching a persona that holds no shell, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>`; dispatch-guard.sh refuses its absence at exit 2. Leads hold no shell and use the value supplied on their own dispatch; if absent, return `VERDICT: BLOCKED` rather than guess.
+When dispatching a persona that holds no shell, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>`; dispatch-guard.py refuses its absence at exit 2. Leads hold no shell and use the value supplied on their own dispatch; if absent, return `VERDICT: BLOCKED` rather than guess.

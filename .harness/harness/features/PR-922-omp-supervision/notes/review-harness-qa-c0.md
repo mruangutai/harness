@@ -67,12 +67,12 @@ that seeds the mock registry with two features' claims under one dead PID, drive
 
 ### Hook error/rejection-path coverage — YES, and it is exercised, not just success paths
 `omp-hooks.test.ts:206-232` (`"blocks a whole batch and rolls back earlier claims"`) drives a
-`dispatch-guard.sh` **denial** (`task === "deny"` → `{blocked: true, reason: "denied"}`) inside a
+`dispatch-guard.py` **denial** (`task === "deny"` → `{blocked: true, reason: "denied"}`) inside a
 batch where an earlier task already claimed successfully, and asserts (a) the whole batch is blocked
 with the denial reason surfaced, and (b) the earlier successful claim is rolled back
 (`inflight_registry.py release --claim-id claim-1` is asserted present in the call log). This is a
 genuine rejection-path test with rollback verification, not merely "the deny path returns
-non-2xx." `dispatch-guard.sh`'s own suite covers refusal paths independently: `case_11` (missing
+non-2xx." `dispatch-guard.py`'s own suite covers refusal paths independently: `case_11` (missing
 `HARNESS-FEATURE` line refused, stderr names the field), `case_13` (malformed flow id refused), and
 `case_14` (duplicate pm claim for one feature refused) — all pre-existing-shape cases extended by
 this diff, all asserting a distinguishing string alongside the exit code (per the file's own T-08
@@ -82,7 +82,7 @@ convention at `test-dispatch-guard.py:9-11`, avoiding the crash-exits-nonzero-to
 
 Change type inferred: **`cross_module`** — the diff moves one behavior (feature-scoped, PID-aware
 claims) through five interacting layers in the same commit: the registry primitive
-(`inflight_registry.py`), the dispatch-time enforcer (`dispatch-guard.sh`), the OMP hook adapter
+(`inflight_registry.py`), the dispatch-time enforcer (`dispatch-guard.py`), the OMP hook adapter
 (`harness-hooks.ts`), the digest-safety gate (`validate-digest.py`), and seven further gate scripts
 touched to carry the new claim shape through. No single-module change_type fits; `cross_module` is
 the correct and only per-project entry matching this shape (`.harness/harness.json:22-27`).

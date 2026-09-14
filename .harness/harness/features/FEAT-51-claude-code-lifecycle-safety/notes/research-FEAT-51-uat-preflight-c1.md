@@ -9,7 +9,7 @@ it is wrong. SC-10 stays `not_met` — I did not grade it.
 ## Why the three corrections (the root cause is one asymmetry)
 
 The claim registry a dispatch writes is the **feature's worktree** when one exists
-(`dispatch-guard.sh:115-126`, swap to `linked_worktrees` matching the feature id), but the quarantine
+(`dispatch-guard.py:115-126`, swap to `linked_worktrees` matching the feature id), but the quarantine
 branch reads the **owner** root (`check-domain.py:150-154, 188, 1685-1708`). Observed here: the
 worktree registry holds three live FEAT-51 claims, the main-checkout registry holds `claims: []`
 (`.harness/.inflight-claims.json` vs `.claude/worktrees/harness/FEAT-51-claude-code-lifecycle-safety/.harness/.inflight-claims.json`).

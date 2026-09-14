@@ -77,7 +77,7 @@ suite reads green.)
 `harness-backend-dev`/`harness-dev-ops`, so the resolver alone does not route
 them correctly. **DEC-174 governs and overrides the grant**: `check-domain.py`,
 `bash-write-guard.py`, `validate-digest.py`, `check-state.sh`,
-`check-plan-routes.py`, `dispatch-guard.sh` **and the test file of each** are
+`check-plan-routes.py`, `dispatch-guard.py` **and the test file of each** are
 the enforcement layer, planned through the harness but never executed through
 it. The FEAT-45 plan is the precedent: its T-07/T-08 (`check-state.sh` and
 `test-check-state.py`) are `execution_mode: main-session-direct`, while

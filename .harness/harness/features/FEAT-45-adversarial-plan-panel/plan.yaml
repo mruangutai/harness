@@ -18,7 +18,7 @@ approval:
   #     REQ-02's model half deliverable at all: general-purpose is a platform built-in with
   #     no definition file and therefore no model pin, while ~/.omp/agent/agents/fable-advisor.md
   #     carries `model: anthropic/claude-fable-5` in its own frontmatter, and
-  #     dispatch-guard.sh:41-51 blocks only a caller PASSING model:, never a dispatched
+  #     dispatch-guard.py:41-51 blocks only a caller PASSING model:, never a dispatched
   #     agent's own pin. The repin carries D-04, D-14, T-02, T-06, T-08, T-10, T-11, SC-15.
   # (2) ABSENT PERSONA WARNS, IT DOES NOT FAIL. REQ-14 and SC-17 require the skip to be
   #     recorded durably and to be distinguishable from a reader that never ran. A hard
@@ -141,7 +141,7 @@ decisions:
       chain. Model independence is CLAIMED, and it is delivered by the reader persona's own
       model pin in its own frontmatter, never by anything a lead passes.
     because: >-
-      MEASURED 2026-08-30. dispatch-guard.sh:41-51 blocks a lead from PASSING a model in a
+      MEASURED 2026-08-30. dispatch-guard.py:41-51 blocks a lead from PASSING a model in a
       dispatch, and states the rule it is enforcing in its own comment: a member runs on the
       model pinned in its agent frontmatter, and that pin is org design. The guard does not
       strip the target's own pin, and it exits 0 recording no claim for any persona whose name
@@ -429,7 +429,7 @@ tasks:
       denied by check-domain.py. Its findings reach disk only through the lead's transcription
       into the lead's own run digest. Carry a comment saying exactly that, and saying that this
       reader is independent BOTH of the dispatch chain AND of the authoring model: MEASURED
-      2026-08-30, dispatch-guard.sh:41-51 blocks a lead from PASSING a model but does not strip
+      2026-08-30, dispatch-guard.py:41-51 blocks a lead from PASSING a model but does not strip
       the target's own frontmatter pin, and it exits 0 recording no claim for any persona whose
       name does not start with harness-, so the persona's pin survives a lead dispatch.
 
@@ -532,7 +532,7 @@ tasks:
       .claude/skills/harness/teams/plan-panel.yaml, per harness-team/SKILL.md step 1. State
       that the second reader is a spawned non-harness subagent the lead wraps, that this makes
       it independent BOTH of the dispatch chain AND of the authoring model -- the persona
-      carries its own model pin in its own frontmatter and dispatch-guard.sh does not strip it,
+      carries its own model pin in its own frontmatter and dispatch-guard.py does not strip it,
       it only blocks a LEAD from PASSING one -- and that the roster stays at sixteen agents
       because that persona's definition lives outside this repository. Then state the
       absent-persona rule, and the playbook text must carry the literal phrase "records the
@@ -722,7 +722,7 @@ tasks:
       records: it carries its own frontmatter pin, model anthropic/claude-fable-5, so a lead
       that spawns it WITHOUT passing a model gets that model, which is what makes REQ-02's
       model claim true. general-purpose has no definition file anywhere and therefore no pin,
-      so it could never deliver that claim. MEASURED 2026-08-30: dispatch-guard.sh:41-51 blocks
+      so it could never deliver that claim. MEASURED 2026-08-30: dispatch-guard.py:41-51 blocks
       a lead from PASSING a model and does NOT strip the target's own pin, and it exits 0
       recording no claim for any persona whose name does not start with harness-, so this
       dispatch is permitted and the pin survives it.

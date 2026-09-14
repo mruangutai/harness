@@ -55,6 +55,6 @@
   Requirements / Success Criteria / Verification gaps / Constraints / Approval. **No UAT section
   exists and no criterion names a UAT.** This is my own verification, not a passthrough of pm's.
 
-- 2026-08-19: `dispatch-guard.sh` blocked my first Agent call because I passed `model: opus`. The
+- 2026-08-19: `dispatch-guard.py` blocked my first Agent call because I passed `model: opus`. The
   guard is right (DEC-152/155) and the re-dispatch without it succeeded. Cost: one blocked call.
   Do not pass `model:` — not even to match a member's own pin.

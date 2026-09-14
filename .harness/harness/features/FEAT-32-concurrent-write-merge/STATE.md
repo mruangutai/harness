@@ -49,7 +49,7 @@ falsely refused eng-lead's real return at the simplify segment. I cleared them w
 evidence for DEC-199's own sentence rather than an assertion in it.
 
 **T-07's VERIFY NOW FAILS BY DESIGN AND NOTHING IS WRONG.** It asserts
-`git diff --quiet -- dispatch-guard.sh`, true at T-07 and legitimately falsified by T-08. A temporal
+`git diff --quiet -- dispatch-guard.py`, true at T-07 and legitimately falsified by T-08. A temporal
 guard, meaningful only at its own commit. T-07 is not regressed — do not record it as failing.
 
 **A DEFECT IN A RULE FILE THIS LANE SHIPS.** T-12 installs at

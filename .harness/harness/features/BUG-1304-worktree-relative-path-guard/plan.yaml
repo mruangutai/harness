@@ -198,7 +198,7 @@ panel:
       the rewrite and green after. The audit of the other nine verifies found one
       more defect
 
-      of the same class, T-08''s grep for worktree_for_feature, which dispatch-guard.sh
+      of the same class, T-08''s grep for worktree_for_feature, which dispatch-guard.py
       already
 
       satisfies at :174; it is replaced by a positive grep for the new call and a
@@ -436,7 +436,7 @@ lanes:
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: "DEC-174 carve-out: check-domain.py, bash-write-guard.py, harness_boundary.py, inflight_registry.py and dispatch-guard.sh are registered gate scripts, so the harness plans them and the main session executes them."
+      reason: "DEC-174 carve-out: check-domain.py, bash-write-guard.py, harness_boundary.py, inflight_registry.py and dispatch-guard.py are registered gate scripts, so the harness plans them and the main session executes them."
     - surface: tests/unit/**
       lane: main-session-direct
       reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
@@ -458,7 +458,7 @@ decisions:
 
   - id: D-02
     choice: 'S is constructed by enumerating EVERY live claim held by the payload''s agent_type across ALL registries INCLUDING the owner-root registry, and resolving EACH claim''s own feature field through harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes a member to S only when worktree_for_feature returns a real worktree; a claim whose feature has no linked worktree contributes nothing. S is NEVER derived from which registry file a claim happens to sit in. A claim whose feature resolves AMBIGUOUSLY — two or more prefix-matching worktrees, harness_boundary.AmbiguousWorktree — is neither guessed into S nor dropped from it: on both routes the governed write is refused with exit 2, naming the candidate worktrees the resolver declined to choose between.'
-    because: "Ruling 2 as first written fans out over linked_worktrees(owner_root) and asks live_claim(root=w) at each, which places a claim by the file it sits in. dispatch-guard.sh _root_for places a claim by basename equality (dispatch-guard.sh:122) with an owner_root fallback (:126), while worktree_for_feature matches by PREFIX because equality was measured false in this repository: its docstring records that equality alone leaves every short-form worktree unmatched and silently unbound (harness_boundary.py:215-221). Under a short-form worktree topology the file-derived construction empties S for every agent and allows every governed main-checkout write with every success criterion still green. Feature-field resolution also PRESERVES the ruling's Q3(b) allow: the main-checkout registry is scanned, but a claim for a feature with no linked worktree resolves to None, adds no member, and leaves S empty."
+    because: "Ruling 2 as first written fans out over linked_worktrees(owner_root) and asks live_claim(root=w) at each, which places a claim by the file it sits in. dispatch-guard.py _root_for places a claim by basename equality (dispatch-guard.py:122) with an owner_root fallback (:126), while worktree_for_feature matches by PREFIX because equality was measured false in this repository: its docstring records that equality alone leaves every short-form worktree unmatched and silently unbound (harness_boundary.py:215-221). Under a short-form worktree topology the file-derived construction empties S for every agent and allows every governed main-checkout write with every success criterion still green. Feature-field resolution also PRESERVES the ruling's Q3(b) allow: the main-checkout registry is scanned, but a claim for a feature with no linked worktree resolves to None, adds no member, and leaves S empty."
     dec: none
 
   - id: D-03
@@ -526,7 +526,7 @@ decisions:
       residue above stands exactly as recorded here.
       T-09 IS IN SCOPE AND THE REGISTRY-FILE RETENTION HALF LANDS IN THIS FEATURE. The same ruling
       settled that too, on the ground the earlier draft recorded as the cost of striking it:
-      dispatch-guard.sh:197 calls the mutating live_claim on every dispatch and
+      dispatch-guard.py:197 calls the mutating live_claim on every dispatch and
       validate-digest.py:1755-1760 calls live_children at every parent return, so a dispatch-expired
       non-OMP claim would otherwise be deleted from the registry file on the routine suspend path, the
       enumerator could not see it however correct its predicate is, the agent would read unbound, and
@@ -654,8 +654,8 @@ decisions:
       THREE DEFECTS THIS FEATURE FOUND AND DELIBERATELY DOES NOT CLOSE ARE FILED AS THEIR OWN
       ISSUES, and filing them is REQUIRED, not optional. They are recorded here in one place so a
       struck task and two panel findings cannot quietly become forgotten ones:
-        1. dispatch-guard.sh _root_for places a claim by basename EQUALITY
-           (dispatch-guard.sh:122) with an owner-root fallback (:126), so a short-form worktree's
+        1. dispatch-guard.py _root_for places a claim by basename EQUALITY
+           (dispatch-guard.py:122) with an owner-root fallback (:126), so a short-form worktree's
            claim is written into the owner-root registry rather than its own. The fix is prefix
            alignment through harness_boundary.worktree_for_feature. This is struck T-08's work,
            cut by the fourth binding ruling (Q4) because the enforcement remedy resolves every
@@ -1498,18 +1498,18 @@ tasks:
       overrules, so a later reader can tell which parts of this entry an advisor settled.
 
   - id: T-08
-    title: STRUCK — dispatch-guard.sh _root_for prefix alignment, filed as its own issue (D-11)
+    title: STRUCK — dispatch-guard.py _root_for prefix alignment, filed as its own issue (D-11)
     traces: [REQ-01]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out: dispatch-guard.sh is a registered PreToolUse gate script (DEC-179)."
+    execution_reason: "DEC-174 carve-out: dispatch-guard.py is a registered PreToolUse gate script (DEC-179)."
     depends_on: [T-02]
     status: abandoned
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - tests/integration/test-dispatch-guard.py
     verify: |
-      ! grep -q 'worktree_for_feature(owner_root, flow)' .claude/skills/harness/bin/dispatch-guard.sh
+      ! grep -q 'worktree_for_feature(owner_root, flow)' .claude/skills/harness/bin/dispatch-guard.py
     intent: |
       STRUCK. This task lands NOTHING and is dispatched to nobody: its station is the terminal
       marker, and it is retained in the plan only so the record shows what was considered and why
@@ -1525,15 +1525,15 @@ tasks:
       cross-check — a short-form worktree refusal on both routes — and T-10 runs the full suite
       regardless. Retaining it would widen a two-gate bug fix into a third gate script.
 
-      THE DEFECT IS REAL AND ITS FOLLOW-UP ISSUE IS REQUIRED, NOT OPTIONAL (D-11). dispatch-guard.sh
-      _root_for(flow) places a claim by os.path.basename(wt) == flow at dispatch-guard.sh:122, with
+      THE DEFECT IS REAL AND ITS FOLLOW-UP ISSUE IS REQUIRED, NOT OPTIONAL (D-11). dispatch-guard.py
+      _root_for(flow) places a claim by os.path.basename(wt) == flow at dispatch-guard.py:122, with
       an owner_root fallback at :126. That is EQUALITY, and this repository measured the equality
       premise false in its own source: worktree_for_feature's docstring at harness_boundary.py:215-221
       records that four live worktrees were named FEAT-32 while every feature directory was
       FEAT-32-concurrent-write-merge. The consequence is a short-form worktree's claim written into
       the owner-root registry rather than its own. The fix, when the issue is taken: replace the loop
       with harness_boundary.worktree_for_feature(owner_root, flow), keep the owner_root fallback when
-      it returns None, and keep dispatch-guard.sh's existing AmbiguousWorktree handling at :175-177,
+      it returns None, and keep dispatch-guard.py's existing AmbiguousWorktree handling at :175-177,
       which names the candidates and blocks rather than guessing. D-11 records the filing obligation
       alongside this feature's two other deliberately unclosed defects.
   - id: T-09
@@ -1562,7 +1562,7 @@ tasks:
       (notes/review-fable-advisor-plan-BUG-1304-ttl-residue.md) classified the compatibility-host TTL
       asymmetry as a DEFECT this feature must close and named registry-FILE retention as one half of
       the closing boundary, and the ruling agreed. THE HOLE IT CLOSES, so a later reader knows what
-      this task is worth: dispatch-guard.sh:197 calls the mutating live_claim on every dispatch and
+      this task is worth: dispatch-guard.py:197 calls the mutating live_claim on every dispatch and
       validate-digest.py:1755-1760 calls live_children at every parent return, so without this task a
       compatibility-host claim older than 1200s is DELETED FROM THE FILE on the routine suspend path,
       the guards' enumerator cannot see it however correct its predicate is, the agent reads unbound,

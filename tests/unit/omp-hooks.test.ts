@@ -152,11 +152,11 @@ describe("OMP task lifecycle adapter", () => {
     ) => {
       calls.push({ script, args, payload });
       if (script === "inject-expertise.sh") return { blocked: false, stdout: "" };
-      if (script === "dispatch-guard.sh") {
+      if (script === "dispatch-guard.py") {
         const task = (payload.tool_input as Record<string, unknown>).task;
         if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
         // The guard's FAIL-OPEN shape: exit 0, nothing on stdout. Seven branches of
-        // dispatch-guard.sh return exactly this (:34, :38, :72, :112, :138, :145, :187).
+        // dispatch-guard.py return exactly this (:34, :38, :72, :112, :138, :145, :187).
         // Absent from this fixture, no test could execute the pass-through path and F1
         // was invisible to a green suite.
         if (task === "passthrough") return { blocked: false, stdout: "" };

@@ -97,7 +97,7 @@ T-08's intent (plan.yaml:1228) lists five new cases: 6 (refusal), 7 (allow), 8 (
 `main()` at line 250-257. T-08's own `verify:` block doesn't check for their presence either (it only
 asserts cases 1-5's markers survived and the `SINGLE_FLIGHT_AGENTS=()` red proof). The stale-claim
 guarantee (SC-09) IS tested, but only at the library level (`test-inflight-registry.py` case 3) —
-never at the hook level, so `dispatch-guard.sh`'s own stale-claim stderr line and its "library
+never at the hook level, so `dispatch-guard.py`'s own stale-claim stderr line and its "library
 missing" fail-open path (a distinct fail-open branch T-08's intent explicitly names) are unverified.
 
 ## JOB 3 — the fixture trap, audited on both files
@@ -111,7 +111,7 @@ FEAT-31 T-15 hit this exact trap with this exact fixture." I read every one of t
 bare `FIXTURE_MANIFEST` while claiming a pm/orchestrator identity. No repeat of the trap here.
 
 `test-dispatch-guard.py`'s new cases (6-8) don't use `check-domain.py`'s grant system at all —
-`dispatch-guard.sh` is a different hook with no domain-manifest dependency — so the fixture-trap
+`dispatch-guard.py` is a different hook with no domain-manifest dependency — so the fixture-trap
 shape doesn't apply to it. No finding.
 
 ## JOB 4 — test isolation, swept
@@ -151,7 +151,7 @@ gap.
 **Mutation-probed** (ran the actual plan-embedded verify script, or my own probe, and watched red/green):
 `harness_merge.py`/test-harness-merge.py (T-02), `plan-merge.py`/test-plan-merge.py (T-03),
 `observations-merge.py`/test-observations-merge.py (T-04), `expertise-merge.py`/test-expertise-merge.py
-(T-05), `inflight_registry.py`/test-inflight-registry.py (T-06), `dispatch-guard.sh`/test-dispatch-guard.py
+(T-05), `inflight_registry.py`/test-inflight-registry.py (T-06), `dispatch-guard.py`/test-dispatch-guard.py
 (T-07/T-08), `check-domain.py`/test-check-domain.py (T-14), `validate-digest.py`/test-validate-digest.py
 (T-09, my own probe — the demonstration above).
 
@@ -209,7 +209,7 @@ DIGEST:
     - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 481 }
   coverage_gaps:
     - "REQ-12 / SC-19: validate-digest.py's D-09 claim-release-and-children-refusal mechanism (lines 860-918) has no test anywhere in the repo — test-validate-digest.py was never touched by this feature (git diff 12c66b3..5107efb is empty for that file), and test-inflight-registry.py only tests the library in isolation, never validate-digest.py's wiring of it."
-    - "SC-09 (stale-claim recovery) is tested only at the library level (test-inflight-registry.py case 3); dispatch-guard.sh's own stale-claim stderr line and 'library missing' fail-open path (T-08 intent cases 9 and 10) are unwritten."
+    - "SC-09 (stale-claim recovery) is tested only at the library level (test-inflight-registry.py case 3); dispatch-guard.py's own stale-claim stderr line and 'library missing' fail-open path (T-08 intent cases 9 and 10) are unwritten."
   sc_evidence:
     - { id: SC-01, test: ".claude/skills/harness/bin/test-plan-merge.py case 1/case 2" }
     - { id: SC-02, test: ".claude/skills/harness/bin/test-plan-merge.py case 4" }

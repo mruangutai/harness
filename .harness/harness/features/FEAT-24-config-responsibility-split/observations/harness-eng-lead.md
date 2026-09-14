@@ -64,7 +64,7 @@
   shadowing does NOT work for a sibling module). I could not send this mid-flight — a lead holds
   no SendMessage tool — so it costs a re-dispatch. Put it in the first dispatch next time.
 
-- 2026-08-19: `dispatch-guard.sh` blocked my first Agent call for passing `model: sonnet` (DEC-152/155).
+- 2026-08-19: `dispatch-guard.py` blocked my first Agent call for passing `model: sonnet` (DEC-152/155).
   Correct block, my error. Model pins are org design and never a dispatch option; the tool's own
   `model` parameter is not a licence to use it from a lead.
 

@@ -35,7 +35,7 @@ Three points it was asked to settle:
 1. **A layer-1 orchestrator dispatching layer-2/3 squads is INSIDE DEC-174's "team run".** The carve-out
    pairs *"directly — ordinary edits, tests run explicitly, a human reading the diff"* against *"dispatched
    through a team run whose gates are the thing being changed"*. Orchestrator dispatch is refereed by
-   `dispatch-guard.sh` and squad writes by the domain hook — both on DEC-174's enumerated gate list — and
+   `dispatch-guard.py` and squad writes by the domain hook — both on DEC-174's enumerated gate list — and
    T-01 rewrites `harness_boundary.py`, the module every domain decision resolves through. Only the main
    session holds the user channel (DEC-120), so only it satisfies *"a human reading the diff"*.
 2. **No task decomposes into a squad-written library plus a main-session cutover.** DEC-174's library

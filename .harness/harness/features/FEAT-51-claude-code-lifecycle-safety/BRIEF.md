@@ -68,7 +68,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
 **What BLOCKS**
 
 - DEC-174 blocks a squad route on the enforcement layer. `validate-digest.py`, `check-domain.py`,
-  `dispatch-guard.sh` and the test file of each are executed directly by the main session;
+  `dispatch-guard.py` and the test file of each are executed directly by the main session;
   `inflight_registry.py` is inside the same category because both hooks import it and its answer is
   the gate's answer.
 - `check-domain.py --resolve` returns **NOBODY**, re-measured at `ad93d43e` from the main

@@ -2,15 +2,15 @@
 
 ## VERDICT: FAIL — `matrix_ok: false`
 
-**`unit` kind regresses: T-02's new code in `dispatch-guard.sh` breaks an existing, unedited unit
+**`unit` kind regresses: T-02's new code in `dispatch-guard.py` breaks an existing, unedited unit
 test.** `tests/unit/test-no-distribution.py::case7_every_python_launch_isolates_the_cwd` (issue
 #556's invariant: every `python3` launch in `.claude/skills/harness/bin/*.sh` must isolate the
 governed agent's cwd via `-I` or a same-line `sys.path.pop(0)` bootstrap) now fails, deterministically
-(3/3 reruns), against exactly one line: `.claude/skills/harness/bin/dispatch-guard.sh:34`. Confirmed
-**not pre-existing**: the identical scan against `git show 80ce35d1:.../dispatch-guard.sh` (the
+(3/3 reruns), against exactly one line: `.claude/skills/harness/bin/dispatch-guard.py:34`. Confirmed
+**not pre-existing**: the identical scan against `git show 80ce35d1:.../dispatch-guard.py` (the
 pre-diff file) finds zero naked invocations — this is introduced by T-02, not inherited.
 
-**`must_fix` — T-02, `.claude/skills/harness/bin/dispatch-guard.sh`:** the new
+**`must_fix` — T-02, `.claude/skills/harness/bin/dispatch-guard.py`:** the new
 `if _globs=$(python3 -c '` block (line 34) puts the whole derivation program inside the `-c`
 argument with `import os` / `import sys` as its first two statements and `sys.path.pop(0)` only on
 line 38 — four statements late. This is not merely a lint miss: `import os` on line 35 executes
@@ -47,12 +47,12 @@ Both change types fire on this diff (T-01 `logic`, T-02 `bugfix`), re-read direc
 `tests/unit/test-harness-boundary.py`) are squarely unit-domain. → requires `unit`.
 
 **`bugfix` (T-02):** `always: []`, three `when` legs, each evaluated against the actual diff:
-1. `{kind: unit, if: touches_runtime_code}` — **TRUE**. `dispatch-guard.sh` is executed on every
+1. `{kind: unit, if: touches_runtime_code}` — **TRUE**. `dispatch-guard.py` is executed on every
    governed dispatch; T-02 changes its behavior (new shape-check block, new env vars threaded
    through). → obligates `unit`. (Already obligated by T-01's `logic` row; the two legs converge on
    the same kind, they don't stack a second requirement.)
 2. `{kind: integration, if: fix_confined_to_tests_and_contract_docs}` — **FALSE**. T-02 edits
-   production code (`dispatch-guard.sh` itself, +73/-4 wiring an env-passing shell block and a new
+   production code (`dispatch-guard.py` itself, +73/-4 wiring an env-passing shell block and a new
    Python check block), not just tests or docs. This leg does **not** independently obligate
    `integration`.
 3. `{kind: __bug_class__, if: match_bug_class}` — **unresolvable as designed**. Per this project's
@@ -63,7 +63,7 @@ Both change types fire on this diff (T-01 `logic`, T-02 `bugfix`), re-read direc
 
 **Matrix floor from the three legs alone: `{unit}`.** I am **adding `integration` above the floor**
 (the matrix is a floor, not a ceiling): T-02's change is a shell-script behavioral gate with no unit
-surface of its own (consistent with every pre-existing dispatch-guard.sh case 1–17, which are all
+surface of its own (consistent with every pre-existing dispatch-guard.py case 1–17, which are all
 integration, never unit), and every SC-01..SC-09 in BRIEF.md is itself scoped `evidence: integration`.
 Requiring `integration` here is what the diff and the brief both already assume; recording it
 explicitly rather than silently accepting it as done.
@@ -104,8 +104,8 @@ both, full text, unmodified:
 
 ## 3. Red-capability reproduction (step 4)
 
-Confirmed `md5 -q .claude/skills/harness/bin/dispatch-guard.sh` (main checkout) =
-`ca904b2906ad8d44662db428cb2dbc89`, identical to `git show 6d969ed3:...dispatch-guard.sh` — verified
+Confirmed `md5 -q .claude/skills/harness/bin/dispatch-guard.py` (main checkout) =
+`ca904b2906ad8d44662db428cb2dbc89`, identical to `git show 6d969ed3:...dispatch-guard.py` — verified
 myself before relying on it, per instruction.
 
 `DISPATCH_GUARD_BIN=<main-checkout guard> python3 tests/integration/test-dispatch-guard.py` from the
@@ -136,7 +136,7 @@ is not implicated by Q1.
 
 **T-02 (Q1, declared exception) — ruling: the EVIDENCE is sound; the AUTHORING ORDER is a genuine,
 non-blocking process deviation.** The T-02 receipt states production code was written first, then
-`dispatch-guard.sh` was reverted to its pre-T-02 state via the `write` tool, the new integration cases
+`dispatch-guard.py` was reverted to its pre-T-02 state via the `write` tool, the new integration cases
 were appended, run RED, and the implementation reapplied and "byte-verified." I independently
 reproduced the claimed RED state myself in step 3 against the true pre-change file at the pinned SHA
 (not the receipt's self-reported revert) and got the **identical 8-case, 61/69 result** the receipt
@@ -189,7 +189,7 @@ generic-grep concern found either: `"eng-t01"`/`"run-dir slug"` do not appear in
 guard's output at all (confirmed by the red proof itself), and the T-02 receipt independently notes
 the builder caught and fixed a near-miss (a bare `-eng` substring appearing vacuously in the
 guard's unrelated `harness-eng-lead.md` persona-name text) by tightening to the full
-`<task-or-purpose>-eng`/`-oddsquad` string — I confirmed the diff (`dispatch-guard.sh` line ~171,
+`<task-or-purpose>-eng`/`-oddsquad` string — I confirmed the diff (`dispatch-guard.py` line ~171,
 `.replace(".harness/", "[.]harness/")`) and the test (`"<task-or-purpose>-eng" in r.stderr`) both use
 the full literal, not a bare suffix.
 
@@ -242,7 +242,7 @@ the sweep walks the whole `tests/unit|integration` tree, not the diff). Findings
 3. **The failure signature (`no harness root could be resolved from <tmpdir> — refusing to run`)
    is a root-resolution race under concurrent load**, consistent with the dispatch's own warning
    about four live sibling BUG orchestrator flows contending for the same machine — not a defect a
-   diff touching `harness_boundary.py`/`dispatch-guard.sh` could cause via any code path in this
+   diff touching `harness_boundary.py`/`dispatch-guard.py` could cause via any code path in this
    change.
 4. **The two files this gate is actually scoped to remain deterministic.** I re-ran
    `tests/unit/test-harness-boundary.py` and `tests/integration/test-dispatch-guard.py` again after

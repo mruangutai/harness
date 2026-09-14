@@ -21,7 +21,7 @@
   `runs/*/digest.md` and grading from the artifact worked. Corroborates the standing rule the
   other way round: the artifact on disk outranks the return channel in both directions.
 
-- 2026-08-18: Passing `model:` in a dispatch is refused by `dispatch-guard.sh` (DEC-152 tiers). It
+- 2026-08-18: Passing `model:` in a dispatch is refused by `dispatch-guard.py` (DEC-152 tiers). It
   is a hard block, not a warning, and the dispatch never runs — cheap to hit, cheap to fix, and it
   is NOT a send-back for cycle-counting purposes.
 

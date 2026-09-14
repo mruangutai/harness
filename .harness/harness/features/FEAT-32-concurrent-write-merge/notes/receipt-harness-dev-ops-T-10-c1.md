@@ -83,7 +83,7 @@ enforcement`
 
 ## Scope
 
-Did not touch: `dispatch-guard.sh`, `test-dispatch-guard.py` (content), `validate-digest.py`,
+Did not touch: `dispatch-guard.py`, `test-dispatch-guard.py` (content), `validate-digest.py`,
 `test-validate-digest.py` (content), `check-domain.py`, `test-check-domain.py` (content),
 `feature_schema.py`, `.gitignore`, `.harness/team-config.yaml`, `.claude/agents/*.md`,
 `harness-spec-driven/SKILL.md`, `harness-expertise/SKILL.md`,

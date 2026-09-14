@@ -34,7 +34,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   allowlist at preflight and refused a `general-purpose` dispatch with `Cannot spawn
   'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead`, so a
   reader absent from `harness-validator-lead`'s list cannot answer anything. The MODEL half survives
-  lead dispatch, measured 2026-08-30: `dispatch-guard.sh:41-51` blocks a lead from **passing**
+  lead dispatch, measured 2026-08-30: `dispatch-guard.py:41-51` blocks a lead from **passing**
   `model:` in a dispatch — its own comment states the rule it enforces, that a member runs on the
   model pinned in its agent frontmatter and that pin is org design — and it does not strip the
   target's own pin; it exits 0, recording no claim, for any persona not prefixed `harness-`. So a
@@ -306,7 +306,7 @@ date: 2026-08-30
 
 The independent-**model** claim in REQ-02 and REQ-05 is signed as restored. An earlier draft weakened
 it to independent-*context* on the finding that no `harness-` lead may select a model for what it
-spawns. That finding is true and the inference from it was false: `dispatch-guard.sh:41-51` blocks a
+spawns. That finding is true and the inference from it was false: `dispatch-guard.py:41-51` blocks a
 caller from **passing** `model:`, and never touches a dispatched agent's own frontmatter pin — the
 guard's own comment states that rule. The reader is therefore repinned from `general-purpose`, a
 platform built-in with no definition file and so no pin, to `fable-advisor`, whose definition carries

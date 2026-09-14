@@ -49,7 +49,7 @@ finding" so the ranking isn't padded.
   creation"). Adopting `locked_update` with its default timeout would let a lock contention stall
   a tool-call hook for up to 10s — the exact failure mode `acquire()`'s own docstring warns
   against for hook callers (`harness_merge.py:108-114`). A correct adoption has to pass an
-  explicit short `timeout=` (as `dispatch-guard.sh`'s route already does, per that same
+  explicit short `timeout=` (as `dispatch-guard.py`'s route already does, per that same
   docstring), not the bare default — an apply that used the default would trade a rare lost-write
   race for a much more frequent hook stall, which is a worse defect in a best-effort path.
 

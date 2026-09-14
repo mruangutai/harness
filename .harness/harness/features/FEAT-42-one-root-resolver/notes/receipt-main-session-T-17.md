@@ -19,7 +19,7 @@ nobody.
 `live_children` accepts a `session` filter and `validate-digest.py` never passed one, so a claim
 stranded by ANOTHER session counted as a live child of this return. Measured 2026-08-26 and
 written up in `runs/2026-08-26-2-plan-product/digest.md`: one stranded `harness-pm` claim
-refused the pm spawn at `dispatch-guard.sh`, then refused the LEAD's return here, then refused
+refused the pm spawn at `dispatch-guard.py`, then refused the LEAD's return here, then refused
 the ORCHESTRATOR's return here again. Three tiers locked out of reporting by one strand, and
 each stranding created the next.
 

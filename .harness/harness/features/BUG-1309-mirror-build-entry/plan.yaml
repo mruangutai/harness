@@ -1365,7 +1365,7 @@ tasks:
           },
         Last place is THE SAME ordering constraint stated above and not a second rule: merge-gate.sh
         must run after bash-write-guard.py so the write-guard's reason wins the overlapping refusal.
-        The element sitting last in HOOK_SPECS today, dispatch-guard.sh, carries matcher "Task|Agent"
+        The element sitting last in HOOK_SPECS today, dispatch-guard.py, carries matcher "Task|Agent"
         and is NOT a Bash gate, so appending AFTER it satisfies the constraint rather than violating it.
         Register by named neighbour - after the bash-write-guard.py entry, at the end of the list -
         never by ordinal, the rule this task already carries for the other three sites.

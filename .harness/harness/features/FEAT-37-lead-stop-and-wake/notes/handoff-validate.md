@@ -29,7 +29,7 @@ and the residual findings are filed as issues, not left in the briefing.
 - **Do not re-derive the cause of the false dispatch refusal (#917) from the briefing.** It says a
   single registry file at the outer root is shared by every worktree. That is FALSE — each root has
   its own `.harness/.inflight-claims.json`, and both files exist on disk. `inflight_registry.py:64`
-  joins the relative path onto whatever root it is given. The suspect is `dispatch-guard.sh:123
+  joins the relative path onto whatever root it is given. The suspect is `dispatch-guard.py:123
   _root_for(flow)` choosing the root, and that is a hypothesis nobody has tested.
 - **Do not run SIMPLIFY on this feature.** It must precede the `review_sha` pin, and the panel has
   already graded at `4e652f9`, so it now costs the panel run as well. It is no longer a one-run

@@ -1,6 +1,6 @@
 # Observations — harness-product-lead — FEAT-32
 
-- 2026-08-22: I passed `model: opus` in my first pm dispatch and `dispatch-guard.sh` blocked it,
+- 2026-08-22: I passed `model: opus` in my first pm dispatch and `dispatch-guard.py` blocked it,
   citing DEC-152/155. My own preloaded rule forbids it. The pull was "this judgement is hard" —
   which is exactly the red-flag wording in `harness-zero-micro-management`. Cost: one blocked call,
   no spawn lost.

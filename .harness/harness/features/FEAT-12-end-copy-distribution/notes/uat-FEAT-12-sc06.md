@@ -23,7 +23,7 @@ The eight, from `plan.yaml` T-03 (line 311, `intent:` enumeration at 344-352):
 | PreToolUse | Bash | `.claude/skills/harness/bin/branch-create-gate.sh` (duplicate, spelled `${CLAUDE_PROJECT_DIR}`) |
 | PreToolUse | Bash | `.claude/skills/harness/bin/bash-write-guard.py` |
 | PreToolUse | Write \| Edit | `.claude/skills/harness/bin/check-domain.py` |
-| PreToolUse | Task \| Agent | `.claude/skills/harness/bin/dispatch-guard.sh` |
+| PreToolUse | Task \| Agent | `.claude/skills/harness/bin/dispatch-guard.py` |
 | SubagentStart | `harness-.*` | `.claude/skills/harness/bin/inject-expertise.sh` |
 | SubagentStop | `harness-.*` | `.claude/skills/harness/bin/validate-digest.py --hook` |
 | PostToolUse | Write \| Edit \| Bash | `.claude/skills/harness/bin/check-domain.py --post` |
@@ -98,7 +98,7 @@ files under `.claude/`" is enough. The job does not matter; the spawn does.
 
 - **Expected:** the subagent spawns, does the job, and returns. No hook error at spawn, none while it
   works, none when it finishes.
-- **Failure looks like:** an error naming `.claude/skills/harness/bin/dispatch-guard.sh` at the moment
+- **Failure looks like:** an error naming `.claude/skills/harness/bin/dispatch-guard.py` at the moment
   of the spawn (PreToolUse on `Task|Agent`). If the subagent's own Bash or Write calls error, the
   paths are step 1's and step 2's.
 - **What this step cannot see:** `inject-expertise.sh` and `validate-digest.py --hook`. Their matcher

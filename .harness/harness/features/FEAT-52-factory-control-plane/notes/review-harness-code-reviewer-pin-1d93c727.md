@@ -56,7 +56,7 @@ fabricating results):
 - `check-instruction-paths.py`'s `_classify` only recognizes the two placeholders by exact string
   match (`prefix.endswith("<HARNESS_CONTROL_PLANE_ROOT>/")` etc.); any near-miss spelling falls
   through to `"unanchored instruction path"` — the safe (fail-closed) direction, not a fail-open.
-- `dispatch-guard.sh`'s shell-less feature-tree-root check fails CLOSED on a `declared_root`/
+- `dispatch-guard.py`'s shell-less feature-tree-root check fails CLOSED on a `declared_root`/
   `expected_root` mismatch and on `AmbiguousWorktree`; it deliberately fails OPEN only on a generic
   resolver exception, consistent with the file's stated policy that every branch except the
   FEAT-declaration check passes through on its own failure. Verified `linked_worktrees()` degrades

@@ -32,7 +32,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-plan-routes.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
-    - surface: .claude/skills/harness/bin/dispatch-guard.sh
+    - surface: .claude/skills/harness/bin/dispatch-guard.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
     - surface: .claude/skills/harness/bin/branch-create-gate.sh
@@ -1342,19 +1342,19 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-05, REQ-06, REQ-09]
     change_type: api
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 names dispatch-guard.sh and its test file in the enforcement layer
+    execution_reason: DEC-174 am.4 names dispatch-guard.py and its test file in the enforcement layer
     depends_on: [T-03, T-06]
     status: done
     files:
-      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/dispatch-guard.py
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      grep -q "HARNESS_PROJECT_DIR" $B/dispatch-guard.sh && { echo "chain survives"; exit 1; }
-      grep -q "_root_from" $B/dispatch-guard.sh && { echo "old resolver survives"; exit 1; }
-      grep -q 'RELEASE_ALL_CMD' $B/dispatch-guard.sh && { echo "release-all still printed"; exit 1; }
-      grep -q "HARNESS-FEATURE" $B/dispatch-guard.sh || { echo "the declared-feature field is not read"; exit 1; }
+      grep -q "HARNESS_PROJECT_DIR" $B/dispatch-guard.py && { echo "chain survives"; exit 1; }
+      grep -q "_root_from" $B/dispatch-guard.py && { echo "old resolver survives"; exit 1; }
+      grep -q 'RELEASE_ALL_CMD' $B/dispatch-guard.py && { echo "release-all still printed"; exit 1; }
+      grep -q "HARNESS-FEATURE" $B/dispatch-guard.py || { echo "the declared-feature field is not read"; exit 1; }
       for c in missing_feature_line_refused claim_lands_in_declared_worktree; do
         grep -rqE "FAIL.*$c" .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-*.md \
           || { echo "SC-10: no red receipt for $c"; exit 1; }
@@ -1469,7 +1469,7 @@ tasks:
       python3 .claude/skills/harness/bin/test-orchestrator-playbook.py || exit 1
       echo T-19-OK
     intent: |
-      T-18 makes dispatch-guard.sh refuse, at exit 2, any governed dispatch whose prompt lacks a
+      T-18 makes dispatch-guard.py refuse, at exit 2, any governed dispatch whose prompt lacks a
       HARNESS-FEATURE line. Without this task every dispatch in the organisation is refused the
       moment T-18 lands, so the two are one change split across two lanes and T-19 must follow
       T-18 immediately.
@@ -1480,7 +1480,7 @@ tasks:
       document's own voice, at the point where it already describes what a dispatch prompt
       contains: the first line of a governed dispatch prompt is
       HARNESS-FEATURE: <the feature id>, spelled exactly, and a dispatch without it is refused at
-      exit 2 by dispatch-guard.sh. Give the literal line with a real feature id shape, not a
+      exit 2 by dispatch-guard.py. Give the literal line with a real feature id shape, not a
       placeholder token a copier would paste verbatim.
 
       Say WHY in one clause, because a rule with no reason gets dropped in the next rewrite: it is

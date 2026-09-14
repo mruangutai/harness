@@ -107,7 +107,7 @@ that finding's shape, but the disposition call belongs to that reader.
   cited grant.
 - **A third governed write route.** `.claude/settings.json`'s `PreToolUse` registers exactly
   `Write|Edit → check-domain.py` and `Bash → bash-write-guard.py` (plus `Task|Agent →
-  dispatch-guard.sh`, not a write route). `check-domain.py` itself already branches on
+  dispatch-guard.py`, not a write route). `check-domain.py` itself already branches on
   `tool_input.get("notebook_path")`, so `NotebookEdit` (matched by the `Edit` pattern) is already
   routed through the SAME `domain_check()` T-03 amends — not a fourth, unbound surface. I found no
   registered hook or sweep outside T-03/T-09's reach for a `.harness/*/features/*/` target.

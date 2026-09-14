@@ -12,7 +12,7 @@ under change is the artifact doing the checking."* A `post-merge` hook checks no
 after the merge has already happened and performs two writes — record the terminal status, remove
 the checkout. **It cannot refuse anything.**
 
-That is the same functional test amendment 4 applied when it added `dispatch-guard.sh`
+That is the same functional test amendment 4 applied when it added `dispatch-guard.py`
 (`DECISIONS.md:4887`): it joined *"on the evidence that it refuses dispatches — it declined a
 `harness-orchestrator` dispatch over a `model` parameter on 2026-08-21."* A sweep that ACTS fails
 that test.

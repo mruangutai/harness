@@ -3458,7 +3458,7 @@ overrides the session (sub-agents docs).
 
 Pinned by tier: four **judging** agents run `effort: high` — `harness-orchestrator`,
 `harness-code-reviewer`, `harness-security-reviewer` and `harness-ui-reviewer` — and the other
-twelve run `effort: medium`. `dispatch-guard.sh` enforces the pinning and cites this entry by
+twelve run `effort: medium`. `dispatch-guard.py` enforces the pinning and cites this entry by
 number.
 
 The three domain leads are NOT in the `high` tier, and putting them there because they assess what
@@ -3545,7 +3545,7 @@ escalation — raise it in `open_questions` with evidence; the decision happens 
 and gets recorded. Same shape as DEC-31's reviewers-advise-don't-block: judgment is welcome,
 unilateral silent action is not.
 
-Mechanized at DEC-156: dispatch-guard.sh (PreToolUse on the spawn tool) rejects a harness
+Mechanized at DEC-156: dispatch-guard.py (PreToolUse on the spawn tool) rejects a harness
 agent's dispatch carrying a `model:` parameter. The transcript JSONL (`"model":` on the spawn
 record) remains the audit trail. Separately noted for cost accounting, not sanctioned against: the user-level
 `advisorModel: opus` setting attaches an Opus advisor to every agent regardless of execution
@@ -3583,7 +3583,7 @@ Same answer as DEC-122 — prose guarding a contract is unenforceable, a script 
   the checkpoint whitelist (seed fields + loop fields + pins), and no key may repeat. Prose keys
   (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection with their routing:
   digest.md.
-- **dispatch-guard.sh (mechanizes DEC-155):** new PreToolUse hook on the spawn tool
+- **dispatch-guard.py (mechanizes DEC-155):** new PreToolUse hook on the spawn tool
   (matcher `Task|Agent`); a harness agent's dispatch carrying a `model:` parameter is exit 2 with
   the escalation route in the message. The main session (no `agent_type`) is never governed —
   model choice at the user channel is the user's. Registered in settings.snippet.json and
@@ -3695,7 +3695,7 @@ Four moves, in force for all rule skills:
    because their triggers fire on the ship path where a silent skip costs the most.
 4. **Single-source shared contracts.** One canonical copy, pointers elsewhere (the
    `harness-digest-dev` pattern). Applied here to the DEC-155 dispatch rule (now one line +
-   pointer in harness-team, since dispatch-guard.sh enforces it mechanically) and the stale
+   pointer in harness-team, since dispatch-guard.py enforces it mechanically) and the stale
    BUILD-task-22 roll-up warning (the "until that is fixed" box outlived its fix, FEAT-02).
 
 Kept deliberately: the whys themselves, red-flag tables, and everything load-bearing for
@@ -4406,11 +4406,11 @@ work. The user considered stopping self-hosting entirely and chose the carve-out
 stays available and is a stage question, not a correctness one.
 
 **The enforcement layer, enumerated:** `check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
+`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.py`, **and the test
 file of each.** The category in the table above governs and the list only records it — a script joins
 on the day it becomes a gate, and this entry is updated when that happens.
 `check-plan-routes.py` is a gate because DEC-183 made it a step of the required `integration` CI job;
-`dispatch-guard.sh` is one because it refuses dispatches, having declined a `harness-orchestrator`
+`dispatch-guard.py` is one because it refuses dispatches, having declined a `harness-orchestrator`
 dispatch over a `model` parameter.
 
 ***A gate's test is inside the line, and that is the part worth arguing.*** The narrower reading —
@@ -6810,7 +6810,7 @@ that holds a shell resolves the feature-tree root from the FEAT id on the first 
 dispatch (DEC-204) with `inflight_registry.py feature-root --feature FEAT-NN-slug`, which returns
 `worktree_for_feature(owner_root, feature)` or `owner_root` — the checkout that HOLDS the feature
 directory. A persona that holds NO shell never resolves it: its dispatcher does, and passes it on a
-`HARNESS-FEATURE-TREE-ROOT` line of the dispatch, which `dispatch-guard.sh` refuses the dispatch
+`HARNESS-FEATURE-TREE-ROOT` line of the dispatch, which `dispatch-guard.py` refuses the dispatch
 without, at exit 2. The predicate is the tool grant, never a name list, so a persona that loses its
 shell is covered on the day it loses it. Reading anything under the control-plane root is permitted
 and read-only, and no write grant is widened by it.
@@ -6838,7 +6838,7 @@ is silent and dangerous, and a missing skill read has no signal at all.
 
 **Two alternatives were considered and refused, recorded because a future scan will re-suggest
 both.** Injecting a SECOND resolved value from `inject-expertise.sh` was refused because the hook
-cannot identify the spawning agent's feature: `dispatch-guard.sh:77-79` records that
+cannot identify the spawning agent's feature: `dispatch-guard.py:77-79` records that
 `tool_input.prompt` exists only on the dispatch payload and reaches no other hook, and DEC-64 fixes
 the `SubagentStart` payload's contract at `agent_type`, so the hook would have to scan the inflight
 registry of the control plane and of every linked worktree for a claim keyed on persona alone —

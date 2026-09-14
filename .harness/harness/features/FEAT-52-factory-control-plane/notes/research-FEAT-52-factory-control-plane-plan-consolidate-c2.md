@@ -88,7 +88,7 @@ key is inert.
   Every earlier anchoring task verifies the checker over its own file list, so no task asserts a
   by-construction red.
 - **F-4 (`lanes:` still incomplete, unchanged).** The four surfaces added in cycle 1
-  (`inflight_registry.py`, `test-inflight-registry.py`, `dispatch-guard.sh`, `templates/*.md`) still
+  (`inflight_registry.py`, `test-inflight-registry.py`, `dispatch-guard.py`, `templates/*.md`) still
   have no `lanes:` row. This rewrite could have added them — the file is written whole — but
   `lanes.resolved_at` pins the resolution to sha `e8e1b78b` and adding rows now would assert a
   resolution nobody performed. `check-plan-routes.py` reads task fields, so nothing is unenforced.
@@ -114,7 +114,7 @@ proposal carries one, and the missing block is the separately routed harness def
   only route to a consolidated plan was `rm` plus a whole re-create. A `replace` verb, or an
   `--allow-replace` flag under the same lock, would make a re-expression a first-class operation
   instead of a delete-and-recreate that only works while `approval:` is absent.
-- **Q4 (non-blocking, unchanged)** — `dispatch-guard.sh:115-126` resolves a checkout by basename
+- **Q4 (non-blocking, unchanged)** — `dispatch-guard.py:115-126` resolves a checkout by basename
   equality while `harness_boundary.worktree_for_feature:193-229` resolves by prefix; `T-09`
   enforces against the prefix resolver so the disagreement is loud, and reconciling `_root_for` is
   a separate change.
@@ -142,7 +142,7 @@ harness-backend-dev
 harness-dev-ops
 ```
 
-`.claude/skills/harness/bin/dispatch-guard.sh`
+`.claude/skills/harness/bin/dispatch-guard.py`
 
 ```
 harness-backend-dev

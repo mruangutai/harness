@@ -86,7 +86,7 @@ def schema_path_for(for_path):
     key under it hits this.
 
     WALK UP FOR THE SCHEMA FILE ITSELF, never for the `.claude` directory — probing a
-    directory resolves $HOME in a global install, which is the defect dispatch-guard.sh's
+    directory resolves $HOME in a global install, which is the defect dispatch-guard.py's
     case_20 catches by name.
 
     Returns None when no checkout schema is found above `for_path`, and the caller then

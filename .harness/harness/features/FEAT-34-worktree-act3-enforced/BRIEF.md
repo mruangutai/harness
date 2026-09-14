@@ -109,7 +109,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 
 - **DEC-174 amendment 4 — the enforcement-layer carve-out, and it bites hard here.** The
   enumeration is `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
-  **`check-state.sh`**, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test file of each**.
+  **`check-state.sh`**, `check-plan-routes.py`, `dispatch-guard.py`, **and the test file of each**.
   This feature changes `check-state.sh` and `test-check-state.py`, so **the plan round must lane
   those tasks `execution_mode: main-session-direct`** (with DEC-179's resolution) rather than
   discovering it mid-run. The amendment's own working rule applies to any helper: a module a gate

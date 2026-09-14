@@ -24,7 +24,7 @@ audit here.
 
 ## Operator-facing refusal text — audited per explicit dispatch instruction (in-remit, not declined)
 
-Traced the new stderr paths in `check-domain.py`, `dispatch-guard.sh`, `validate-digest.py`, and the
+Traced the new stderr paths in `check-domain.py`, `dispatch-guard.py`, `validate-digest.py`, and the
 merge-CLI family (`plan-merge.py`, `observations-merge.py`, `expertise-merge.py`,
 `inflight_registry.py`).
 
@@ -34,7 +34,7 @@ literal opening markers, field order, and byte-identical `release_cmd` string, t
 
 1. **`release-all` escape hatch — printed verbatim and copy-pasteable.** `inflight_registry.py:44`:
    `RELEASE_ALL_CMD = f"python3 {CLI_REL_PATH} release-all"` →
-   `python3 .claude/skills/harness/bin/inflight_registry.py release-all`. `dispatch-guard.sh`'s
+   `python3 .claude/skills/harness/bin/inflight_registry.py release-all`. `dispatch-guard.py`'s
    single-flight path (`refusal_lines()`, `inflight_registry.py:229-237`) prints this exact string as
    its last line — no placeholder, no truncation. Confirmed byte-for-byte against the constant.
 
@@ -44,7 +44,7 @@ literal opening markers, field order, and byte-identical `release_cmd` string, t
    guard at `check-domain.py:562-568`) — every one opens with a distinct, specific sentence
    (`"check-domain: BLOCKED — {agent} may not change {frag} in {rel}."` for the new approval guard vs.
    `"check-domain: {agent} is writing SHARED path {rel}..."` for the pre-existing denial). Same
-   pattern in `dispatch-guard.sh` (new single-flight message vs. the pre-existing model-pin denial)
+   pattern in `dispatch-guard.py` (new single-flight message vs. the pre-existing model-pin denial)
    and `validate-digest.py` (new D-09 children-in-flight message at `validate-digest.py:920` vs. the
    two pre-existing schema/file-shape exit-2 paths at lines 801/958 — neither of which even shares a
    `check-digest: BLOCKED` prefix with the new one). An agent or operator reading the stderr text —
@@ -66,7 +66,7 @@ literal opening markers, field order, and byte-identical `release_cmd` string, t
 5. **One residual, non-gating observation.** `RELEASE_ALL_CMD` is a bare relative-path invocation
    with no `--root` — `inflight_registry.py`'s own CLI (`_resolve_root`) requires either
    `CLAUDE_PROJECT_DIR` in the environment or an explicit `--root` flag it doesn't carry. Both
-   `dispatch-guard.sh` and `inflight_registry.claim`'s caller already compute `root` in scope when
+   `dispatch-guard.py` and `inflight_registry.claim`'s caller already compute `root` in scope when
    the refusal fires but don't fold it into the printed command. In a plain shell without
    `CLAUDE_PROJECT_DIR` set, or a cwd other than the checkout root, the pasted command would fail with
    `inflight_registry: no root - set CLAUDE_PROJECT_DIR or pass --root` rather than the intended

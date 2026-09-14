@@ -143,7 +143,7 @@ Desired post-port contract: malformed Harness digests are rejected at source, wi
 
 ### Dispatch override policy — SCHEMA-SIDE TODAY
 
-OMP exposed no per-dispatch model parameter. The attempted override was ignored rather than reaching the current Claude `dispatch-guard.sh`; the child used its agent default. Provider-neutral aliases must preserve the no-invocation-override contract without relying on a nonexistent field.
+OMP exposed no per-dispatch model parameter. The attempted override was ignored rather than reaching the current Claude `dispatch-guard.py`; the child used its agent default. Provider-neutral aliases must preserve the no-invocation-override contract without relying on a nonexistent field.
 
 ## Script-policy baseline
 

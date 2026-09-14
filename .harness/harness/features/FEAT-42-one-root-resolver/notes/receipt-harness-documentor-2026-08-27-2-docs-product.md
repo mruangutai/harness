@@ -61,12 +61,12 @@ do not edit one without the other. **Owner:** DEC-174 carve-out.
 **F6 · `.claude/skills/harness/bin/test-dispatch-guard.py:365` and `:381`** — the docstring says "with
 no cwd in its payload the root falls back to CLAUDE_PROJECT_DIR -- the real checkout", and `:381`
 implements the run-wide fix as `os.environ["CLAUDE_PROJECT_DIR"] = _iso`. **Truth:**
-`dispatch-guard.sh:141` calls `hb.resolve_root(HARNESS_GUARD_BIN_DIR or os.getcwd(), strict=False)`,
+`dispatch-guard.py:141` calls `hb.resolve_root(HARNESS_GUARD_BIN_DIR or os.getcwd(), strict=False)`,
 which reads `HARNESS_PROJECT_DIR` only — so that assignment is **inert**. Not a live leak today:
 `case_2_governed_agent_no_model` (`:68-82`) sets both names on its own `fire(env=...)`. But the
 run-wide safety net described in a 15-line docstring no longer exists, and the next case added
 without its own `env=` will leak a claim into the live registry exactly as narrated. **Owner:**
-DEC-174 carve-out (`dispatch-guard.sh`'s test).
+DEC-174 carve-out (`dispatch-guard.py`'s test).
 
 **F7 · `.github/workflows/tests.yml:188` and `:251`** — the two `::error::` messages tell a CI
 debugger to "Check CLAUDE_PROJECT_DIR and .harness/*/features/" / "…and the feature/doc roots".
@@ -159,7 +159,7 @@ distillation dispatch.
 
 `.harness/harness/docs/DECISIONS.md:5006-5008` (the "So the enforcement layer is:" sentence, in
 amendment 4 which opens at `:4983`) enumerates: `check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
+`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.py`, **and the test
 file of each** — 12 files.
 
 **Accuracy at 9d12e3a: all 12 exist under those exact names.** No renames, no deletions. Verified by
@@ -171,7 +171,7 @@ amendment itself says a script joins the day it becomes a gate:
 - **Registered hooks absent from the list** (`.claude/settings.json:12, 32, 40, 64`):
   `inject-expertise.sh`, `branch-create-gate.sh`, `gh-close-gate.sh`, `context-watch-hook.py`. Each
   fires on every session or every tool call; `gh-close-gate.sh` and `branch-create-gate.sh` *refuse*
-  actions, which is the same evidence on which `dispatch-guard.sh` joined.
+  actions, which is the same evidence on which `dispatch-guard.py` joined.
 - **CI gate steps absent from the list** (`.github/workflows/tests.yml`): `validate-feature-json.py`,
   `layout_migration.py`. `check-plan-routes.py` joined on precisely the DEC-183-made-it-a-CI-step
   argument; these two are steps of the same required job.

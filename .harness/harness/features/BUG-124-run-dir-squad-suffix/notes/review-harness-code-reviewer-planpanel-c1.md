@@ -56,7 +56,7 @@ against a NOSCAN token.** D-05's own `because` rejects a suppression marker on t
 "anything a dispatcher can type into a quote can also be typed into a directive." That argument
 applies unchanged to `[.]harness/`: nothing mechanically distinguishes a correctly-applied escape
 (a genuine quote) from the same spelling misapplied to a genuinely-bad directive to silence a real
-refusal. If that happens, dispatch-guard.sh does not see the reference at all (confirmed: `run_dir_refs`
+refusal. If that happens, dispatch-guard.py does not see the reference at all (confirmed: `run_dir_refs`
 only fires on the literal `.harness/` anchor), so the dispatch proceeds. The eventual write is still
 refused — independently verified in `check-domain.py`: `classify()`/`domain_check()` emit the literal
 token `NOBODY` and exit 2 whenever no grant's glob matches the actual write target, and no grant in
@@ -108,7 +108,7 @@ The orchestrator's claim holds under independent re-derivation from the plan's o
   separate objection.
 - **T-03's six-string `verify:`:** checked the string itself against the exact sentence the intent
   tells the doer to write. All five plain-prose phrases appear intact in sentence one
-  ("dispatch-guard.sh refuses a governed dispatch that names a run-dir path whose slug matches no
+  ("dispatch-guard.py refuses a governed dispatch that names a run-dir path whose slug matches no
   run-dir write grant in .harness/team-config.yaml, at exit 2, naming the offending slug and a
   compliant form, and the check is on slug shape and is not on ownership by the dispatched persona"),
   and the literal `[.]harness/` is mandated verbatim in sentence two. Ran the `tr -s`/`case` construct

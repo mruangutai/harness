@@ -1592,7 +1592,7 @@ tasks:
       problem the backfill just cleared.
 
       THE DEFECT: gh-sync.py:592 builds a task sub-issue title as
-      f"{task['id']} — {task['title']}", which produces "T-08 — Cut dispatch-guard.sh over to
+      f"{task['id']} — {task['title']}", which produces "T-08 — Cut dispatch-guard.py over to
       refuse...". Measured 2026-08-22 on mruangutai/harness: 188 issues carry a title matching
       ^T-NN and NONE of them names its feature, so the title alone does not identify the work across
       33 features that each have a T-08. Verified on 708, 709, 711, 712, 714, 645 and 646.

@@ -24,7 +24,7 @@
   rule while board 3's can — which converted the riskiest operator answer into a pick-from-list.
   Unioning `open_questions` upward is not enough; they need a carried ledger across segments.
 
-- 2026-08-08: `dispatch-guard.sh` rejected a `model: opus` parameter on my first lead dispatch.
+- 2026-08-08: `dispatch-guard.py` rejected a `model: opus` parameter on my first lead dispatch.
   The model pin is org design (DEC-152) and a dispatch-time override is an ESCALATION, not an
   option. Re-dispatching without the parameter was the whole fix.
 

@@ -151,7 +151,7 @@ silently.**
 | B-11 | `gh-sync.py` has `start-task` and no per-task finish command | bug |
 | B-12 | Path-shape authorisation cannot see WHICH checkout, so a write lands in the wrong tree unrefused | bug |
 | B-13 | Dispatched run-dir slugs a persona cannot write — third recurrence; fix the slug derivation | bug |
-| B-14 | `dispatch-guard.sh:105` and `harness-zero-micro-management/SKILL.md:30` hardcode this feature id as the copy-paste exemplar; a lead copying it is admitted and silently routed to the wrong checkout | bug |
+| B-14 | `dispatch-guard.py:105` and `harness-zero-micro-management/SKILL.md:30` hardcode this feature id as the copy-paste exemplar; a lead copying it is admitted and silently routed to the wrong checkout | bug |
 | B-25 | The lead digest contract cannot represent an honest send-back: a lead that records cycle 1 FAIL and cycle 2 PASS is forced to a team FAIL, so `check-state.sh` is RED on the goal-check digest at this sha | bug |
 | B-15 | `e51b814` mixes team-lane tags with enforcement-file edits; add a commit-tag-vs-files-touched check | chore |
 | B-16 | `STATE.md`'s "1040 verdict lines" does not reconcile with the measured 3139 | chore |

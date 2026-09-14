@@ -38,7 +38,7 @@ the issue 356 / 357 citations are all in the entry. Every factual claim in the i
 against the shipped code before transcription, and all held: the injected line and
 `HARNESS_PATH_DRIFT` (`inject-expertise.sh:61-85`, `exit 0` at `:161`); `feature-root` /
 `worktree_for_feature` (`inflight_registry.py:268,649`); the exit-2 refusal keyed on `has_bash`, a
-**tool grant and not a name list** (`dispatch-guard.sh`, the `if not has_bash:` branch);
+**tool grant and not a name list** (`dispatch-guard.py`, the `if not has_bash:` branch);
 inline-plus-fenced enforcement and the control-plane-anchored-feature-path violation class
 (`check-instruction-paths.py:76-88`); required CI step (`.github/workflows/tests.yml:205`). Issue
 356 comment 2 confirms the five path families and comment 4 the `CLAUDE_PROJECT_DIR` UNSET

@@ -9,14 +9,14 @@ they disagree. Measured on 2026-08-26: today's `gh-cost-2026-08-26.jsonl` exists
 worktree (1,213 lines) and the FEAT-37 worktree (36 lines) and **not at all** in the main checkout,
 because `gh_cost_log.py:111` derives the root from its own file's location and a worktree runs its own
 copy. The same mechanism split the single-flight claim registry: six `harness-pm` collisions passed a
-gate that was watching a different registry, because `dispatch-guard.sh:83` resolves from the
+gate that was watching a different registry, because `dispatch-guard.py:83` resolves from the
 DISPATCHING agent's working directory and an agent's process cwd does not follow its assignment. A
 subagent told to work in `FEAT-42`'s worktree stands in the main checkout until it happens to run `cd`.
 So a guard can be green and wrong at the same time, and the operator finds out when two agents overwrite
 each other's `plan.yaml`.
 
 Two sites already solved this privately and shared nothing — `check-domain.py:885-890` built its own
-worktree enumeration, `dispatch-guard.sh:75` its own upward walk. That copy/paste is the defect.
+worktree enumeration, `dispatch-guard.py:75` its own upward walk. That copy/paste is the defect.
 
 The override makes one wrong answer spread. `HARNESS_PROJECT_DIR`, once set by a parent, is inherited
 by every child process it spawns and by their children in turn, so a root chosen in one place is
@@ -62,7 +62,7 @@ printed remedy that does not destroy another feature's work.
   and neither consumer of the registry — the dispatch guard and the digest validator's
   children-in-flight check — can compound one stranding into a chain of refusals. Measured 2026-08-26
   (`runs/2026-08-26-2-plan-product/digest.md` and this feature's `STATE.md`): ONE stranded claim
-  refused pm's spawn at `dispatch-guard.sh`, then refused the lead's return at `validate-digest.py`,
+  refused pm's spawn at `dispatch-guard.py`, then refused the lead's return at `validate-digest.py`,
   then refused the orchestrator's return the same way. Each stranding creates the next, and the record
   survived only because the stop hook fires once.
 - REQ-07: Each issue citation in the claim registry's refusal text names the issue whose subject it
@@ -146,11 +146,11 @@ printed remedy that does not destroy another feature's work.
   verify: inspection
 - SC-11: A dispatch to an agent assigned to a feature's worktree records its claim in THAT worktree's
   registry, not in the registry of wherever the dispatcher happened to be standing. Driven against the
-  real `dispatch-guard.sh` in a fixture tree, the file's existing idiom
+  real `dispatch-guard.py` in a fixture tree, the file's existing idiom
   (`test-dispatch-guard.py:121-142`): payload `cwd` is the fixture MAIN checkout, `tool_input.prompt`
   declares `HARNESS-FEATURE:` for a feature whose fixture worktree exists, and the assertion is that
   the claim is written to the worktree's `.harness/.inflight-claims.json` while the main checkout's is
-  untouched. Shown red first against `dispatch-guard.sh:83`, which resolves from payload `cwd`.
+  untouched. Shown red first against `dispatch-guard.py:83`, which resolves from payload `cwd`.
   verify: automated      evidence: integration
 
 ## Verification gaps
@@ -176,7 +176,7 @@ printed remedy that does not destroy another feature's work.
 ## Constraints
 
 - **DEC-174 amendment 4 BLOCKS execution** on `check-domain.py`, `bash-write-guard.py`,
-  `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh` and the test file
+  `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.py` and the test file
   of each. Those are main-session-direct. Its library rule also governs here: a squad may write
   `harness_boundary.py`, and the cutover that makes a gate use it is main-session-direct, proven by an
   identical violation set before and after.

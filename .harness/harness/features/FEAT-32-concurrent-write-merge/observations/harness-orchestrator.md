@@ -74,7 +74,7 @@
   grepped its DEVIATION lines for `FEAT-32`: got 1, against the 4 STATE.md recorded at `5d9b428`.
   I was one keystroke from reporting "down from 4 to 1". Enumerating all 11 lines individually
   showed why: 6 of them name only `bin/` paths with no feature directory in them, and three of
-  those — T-07 `test-dispatch-guard.py`, T-08 `dispatch-guard.sh`, T-09 `validate-digest.py` — are
+  those — T-07 `test-dispatch-guard.py`, T-08 `dispatch-guard.py`, T-09 `validate-digest.py` — are
   FEAT-32's by task title. The true count is 4 and the record was right. LESSON: when the id you
   are counting appears in the output only INCIDENTALLY (via a path), a grep for that id measures
   the paths, not the items. Enumerate and attribute. A "changed count" against a recorded

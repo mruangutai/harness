@@ -1895,7 +1895,7 @@ def cmd_sign_approval(args):
     # and never set by this process. AN ABSENT VARIABLE IS THE MAIN SESSION, the identical
     # exemption plan-sign-gate.py's own hook already uses for the identical reason ("AN ABSENT
     # OR EMPTY agent_type IS THE MAIN SESSION"), and the one convention this whole codebase
-    # applies without exception (dispatch-guard.sh, bash-write-guard.py, check-domain.py,
+    # applies without exception (dispatch-guard.py, bash-write-guard.py, check-domain.py,
     # validate-digest.py). Treating absence as a refusal here would refuse the main session's
     # own legitimate signature — a stricter check that is wrong, not merely untested.
     #

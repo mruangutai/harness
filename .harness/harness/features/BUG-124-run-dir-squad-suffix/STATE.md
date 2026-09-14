@@ -90,7 +90,7 @@ Dead ends for the next phase:
 
 Working set: runs/panel-c4-validator/digest.md, notes/review-harness-code-reviewer-c4.md,
 plan.yaml (T-03 at 491), .claude/skills/harness/bin/harness_boundary.py,
-.claude/skills/harness/bin/dispatch-guard.sh
+.claude/skills/harness/bin/dispatch-guard.py
 
 ## Open Questions
 

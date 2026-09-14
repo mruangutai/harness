@@ -809,7 +809,7 @@ def worktree_refusal_location(owner_root):
 # THE RUN-DIR GRANT VOCABULARY (BUG-124 T-01). A dispatcher can name a run-dir path
 # a governed callee provably cannot write — an inverted slug such as `eng-t01` instead
 # of `t01-eng` resolves to no lead's grant. These four helpers are the mechanism that
-# lets dispatch-guard.sh (T-02) catch that at dispatch time instead of at write time;
+# lets dispatch-guard.py (T-02) catch that at dispatch time instead of at write time;
 # nothing here spells a squad name literally, so a renamed or added squad needs no
 # second edit (D-02).
 
@@ -824,7 +824,7 @@ def run_dir_grant_globs(root):
     reading of this manifest. Never raises: an absent, unreadable, unparseable
     manifest, a missing `harness_yaml` module, or a missing PyYAML, all yield
     `[]` — the caller decides what an empty
-    vocabulary means (dispatch-guard.sh falls through rather than refusing on a
+    vocabulary means (dispatch-guard.py falls through rather than refusing on a
     manifest it cannot read; D-04).
     """
     manifest_path = os.path.join(root, ".harness", "team-config.yaml")

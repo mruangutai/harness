@@ -12,8 +12,8 @@ file was read directly from the working tree, verified byte-identical to the pin
 Verified at source, not accepted from the BRIEF/plan text alone:
 
 - **REQ-02/REQ-05 independent-MODEL claim — TRUE, mechanism verified, not merely independent
-  CONTEXT.** `dispatch-guard.sh:33-35` blocks a **harness-prefixed caller** from passing `model:`
-  (exit 2) but never touches the target's own frontmatter; `dispatch-guard.sh:56-65` separately
+  CONTEXT.** `dispatch-guard.py:33-35` blocks a **harness-prefixed caller** from passing `model:`
+  (exit 2) but never touches the target's own frontmatter; `dispatch-guard.py:56-65` separately
   exits 0 with no claim recorded whenever the **dispatched** persona is not `harness-`-prefixed.
   `plan-panel.yaml`'s `should-not-exist` step carries no `model:` key, so a dispatch built from it
   runs `fable-advisor` on its own frontmatter pin (`model: anthropic/claude-fable-5`, per D-14,

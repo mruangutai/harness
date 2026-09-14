@@ -15,7 +15,7 @@ python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registr
 ```
 
 If your persona holds no shell, do not run that command. Your dispatcher supplies
-`HARNESS-FEATURE-TREE-ROOT: <absolute path>` in the dispatch; dispatch-guard.sh refuses its absence
+`HARNESS-FEATURE-TREE-ROOT: <absolute path>` in the dispatch; dispatch-guard.py refuses its absence
 at exit 2. If it is absent anyway, return `VERDICT: BLOCKED`.
 
 ## Check your own domain FIRST, and use what you already own

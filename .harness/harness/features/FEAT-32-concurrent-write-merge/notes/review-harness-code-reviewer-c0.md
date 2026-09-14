@@ -115,7 +115,7 @@ must_fix given it is unverified.
 
 ## Checks that came back clean
 
-- **Root probe (#3).** Both `dispatch-guard.sh:89` and `validate-digest.py:877` (and
+- **Root probe (#3).** Both `dispatch-guard.py:89` and `validate-digest.py:877` (and
   `check-domain.py`'s pre-existing, unchanged root logic) test `os.path.isfile(.../
   "team-config.yaml")` — the manifest file, never the `.harness` directory. `git diff
   12c66b3..5107efb` shows no new/changed line anywhere touching `isdir` + `.harness`. Registry root
@@ -137,7 +137,7 @@ must_fix given it is unverified.
   it is not an instance of the exit-9 destination class at all.
 - **Fail-open discipline (#2), the parts I could execute.** `inflight_registry._parse` (`:56`)
   returns `{}` and reports on stderr for corrupt JSON, empty bytes, `None`, and a non-object JSON
-  value — confirmed by direct call. `dispatch-guard.sh`'s T-08 block wraps both `live_claim` and
+  value — confirmed by direct call. `dispatch-guard.py`'s T-08 block wraps both `live_claim` and
   `claim` in one `except Exception` (`:124-130`) that exits 0 — a malformed-registry
   `AttributeError` (tested directly: a persona value that is a string or a list of non-dicts raises
   `AttributeError` in `_expire`) is caught here and passes the dispatch through, loudly. Both hooks'

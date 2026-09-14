@@ -17,7 +17,7 @@ is undeclared scope that also breaks silently.
 | 1 | OMP is the provider-neutral supervisor | supported — `config.yml` (`async.enabled: true`, `task.maxRuntimeMs: 0`), `check-omp-port.py` enforces the roster/blocking/config invariants and passes for real (`OMP port surface: ok`). See must_fix #1 for a gap in the *reconciliation* half of this. |
 | 2 | feature-scoped, process-owned claims with targeted crash reconciliation | supported for its tested cases (schema v2, feature key, targeted `reconcile`) — **but see must_fix #1**: the crash-reconciliation mechanism itself has a real gap under PID reuse that the test suite cannot exercise and the design (no TTL fallback for OMP claims) makes unrecoverable automatically. |
 | 3 | async main→orchestrator edge, blocking nested edges | supported, strongly — `harness-orchestrator.md` carries no `blocking:` key and is untouched by this diff; all 15 other `.omp/agents/harness-*.md` gained exactly `+blocking: true` (verified `git diff` on `harness-pm.md`/`harness-eng-lead.md`: one line each); `check-omp-port.py:83-87` asserts the orchestrator must NOT be blocking and every other agent MUST be — ran it, passes. |
-| 4 | enforce feature identity, terminal claim release, digest safety, GitHub close ordering | supported — `dispatch-guard.sh:74-98` is the one fail-closed branch (missing/malformed `HARNESS-FEATURE:` line); `harness-hooks.ts:547-579` (tool_result "settled"/attach) + `:592-604` (`task:subagent:lifecycle`) do targeted release; `validate-digest.py` diff adds feature/agent_id-scoped release; `harness-hooks.ts:475-480` puts `gh-close-gate.sh` first in the Bash preflight chain, ahead of branch/write guards, matching the DEC text. |
+| 4 | enforce feature identity, terminal claim release, digest safety, GitHub close ordering | supported — `dispatch-guard.py:74-98` is the one fail-closed branch (missing/malformed `HARNESS-FEATURE:` line); `harness-hooks.ts:547-579` (tool_result "settled"/attach) + `:592-604` (`task:subagent:lifecycle`) do targeted release; `validate-digest.py` diff adds feature/agent_id-scoped release; `harness-hooks.ts:475-480` puts `gh-close-gate.sh` first in the Bash preflight chain, ahead of branch/write guards, matching the DEC text. |
 | 5 | document launch, provider switching, recovery, durable GitHub mirroring | supported — `README.md` "Long-running workflow"/"Recovery after terminal loss"/"GitHub lifecycle" sections and `references/github-mirror.md`'s new "Wake and recovery" section match DEC-204 prose closely, including the read-before-act ordering. |
 
 ### Verification claims
@@ -53,8 +53,8 @@ on a miss) and it lands on the PR's own headline mechanism. Untestable by unit t
 real PID collision), and indeed `test-inflight-registry.py` case16/case20 only exercise a genuinely
 dead PID, never a reused one — the gap is real and unexercised.
 
-**2 [high] — `dispatch-guard.sh`'s intentional fail-open branches are converted into a hard batch block by the TS caller.**
-`dispatch-guard.sh` is explicit and repeated ("Only exit 2 blocks (DEC-100)... EVERY branch below
+**2 [high] — `dispatch-guard.py`'s intentional fail-open branches are converted into a hard batch block by the TS caller.**
+`dispatch-guard.py` is explicit and repeated ("Only exit 2 blocks (DEC-100)... EVERY branch below
 fails OPEN... a guard that blocks every spawn the moment the payload shape changes is worse than no
 guard") that several conditions exit 0 with **no** stdout receipt and are meant to let the dispatch
 through ungoverned: "dispatched persona ... is not a harness agent" (line 72), "registry libraries
@@ -65,7 +65,7 @@ exit code, as a hard failure: `if (!receipt) { receipts.forEach(release); reason
 dispatch policy returned no claim receipt; the task was not started."; break; }` — this both rolls
 back any earlier claims in the same batch and blocks the whole `task` call. Concretely: eng-lead
 dispatches two items in one batch; the registry import glitches transiently on item 2 (any of the
-five fail-open branches above fires); dispatch-guard.sh exits 0 as designed, but the hook now
+five fail-open branches above fires); dispatch-guard.py exits 0 as designed, but the hook now
 refuses the *entire* batch, including item 1's legitimate, already-claimed dispatch — the opposite
 of the guard's documented contract. `omp-hooks.test.ts`'s "blocks a whole batch" test (lines
 ~204-230) only exercises the `blocked: true` (exit 2, "deny") path; no test exercises "exit 0, no
@@ -123,7 +123,7 @@ DIGEST:
   findings: 4
   must_fix:
     - "inflight_registry.py:96-107,121-124 — OMP claim liveness is a bare os.kill(pid,0) with no anti-PID-reuse check and no TTL fallback; a reused supervisor PID makes a dead claim permanently un-reconciled, defeating the PR's headline 'targeted crash reconciliation' claim"
-    - "harness-hooks.ts:514-524 — treats every dispatch-guard.sh exit-0-no-receipt outcome as a hard block, inverting the guard's documented fail-open contract (dispatch-guard.sh:66-72,109-112,131-138,142-145,183-187; DEC-100 'only exit 2 blocks')"
+    - "harness-hooks.ts:514-524 — treats every dispatch-guard.py exit-0-no-receipt outcome as a hard block, inverting the guard's documented fail-open contract (dispatch-guard.py:66-72,109-112,131-138,142-145,183-187; DEC-100 'only exit 2 blocks')"
     - ".claude/skills/harness/SKILL.md:52-56 — orchestrator context-budget advisory rewritten to depend on an 'OMP context signal' that is not implemented anywhere in this diff; its own test (test-orchestrator-playbook.py case4_host_neutral_context_signal) only checks wording; not tied to any Summary bullet or DEC-204 sentence"
   spec_violations:
     - { kind: scope_creep, path: ".claude/skills/harness/SKILL.md", ref: "DEC-204 (absent)" }

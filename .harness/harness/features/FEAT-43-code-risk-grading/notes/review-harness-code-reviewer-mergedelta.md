@@ -130,7 +130,7 @@ EXIT STATUS: 0
 `detect` globs are the ones verified intact and drift-free above. SC-17's per-surface bar
 (production vs. test) resolves through this same path — intact.
 
-**(d) Reachability sweep.** Main also rewrote `dispatch-guard.sh` (+96/−, mostly rewrite),
+**(d) Reachability sweep.** Main also rewrote `dispatch-guard.py` (+96/−, mostly rewrite),
 `inflight_registry.py` (728-line diff), and added `check-omp-port.py` (+22). Grepped FEAT-43's own
 untouched source set (`code_grade.py`, `code-grade.py`, `gate_policy.py`, `test-code-grade.py`,
 `test-code-grade-cli.py`, `test-gate-policy.py`, `check-plan-routes.py`,
@@ -151,7 +151,7 @@ Confirmed: zero diff, all eleven paths byte-identical.
 ## What I did NOT cover
 
 - Main's own content was **not** re-reviewed on its merits — the #551 registry rework in
-  `inflight_registry.py`/`dispatch-guard.sh`/`check-omp-port.py`, the OMP identity threading in
+  `inflight_registry.py`/`dispatch-guard.py`/`check-omp-port.py`, the OMP identity threading in
   `validate-digest.py`'s `hook_mode()`, and the `blocking: true` frontmatter additions are main's
   own already-reviewed work. I traced their *reachability* into FEAT-43's surfaces only.
 - The eight already-closed FEAT-43 defects were not re-opened.

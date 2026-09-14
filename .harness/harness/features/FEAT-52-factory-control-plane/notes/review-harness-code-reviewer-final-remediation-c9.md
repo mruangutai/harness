@@ -12,7 +12,7 @@ suite plus `code-grade.py` at the checked-out tree (byte-identical to the pin fo
 ## BLUF
 
 **PASS.** Both `must_fix` items from remediation-c9 are genuinely closed. **F1** (AmbiguousWorktree
-silently collapsing to the control-plane root) — `dispatch-guard.sh:171-183` now calls
+silently collapsing to the control-plane root) — `dispatch-guard.py:171-183` now calls
 `hb.worktree_for_feature` directly and catches `hb.AmbiguousWorktree` with its own `except` clause,
 positioned before the generic `except Exception` fallthrough, printing the candidates and exiting 2;
 the standalone CLI (`inflight_registry.py feature-root`) does the same and is live-tested
@@ -31,14 +31,14 @@ One real, non-blocking gap carried forward and one new one found:
   `case_17`. It was never written: `grep -i ambiguous .../test-dispatch-guard.py` = 0 hits, and I
   read `case_17_shell_less_persona_requires_matching_feature_root` in full (lines 461-497) — it has
   five sub-checks (REFUSED / ALLOWED / bash-discrimination / MISMATCH REFUSED x2), no ambiguity case.
-  T-09 is `status: done`. The dispatch-guard.sh code itself is correct on inspection (verified
+  T-09 is `status: done`. The dispatch-guard.py code itself is correct on inspection (verified
   except-clause ordering, message content, and that the comparison branch lives in the `else` of a
   `try/except/else` so it never runs on a swallowed exception) — this is a coverage gap, not a live
   defect, and not part of the signed BRIEF's SC-13 (whose four named cases are all present and
   passing). Not `must_fix`: the practical failure surface is closed at its source, because the
   orchestrator's own emit path (`inflight_registry.py feature-root`, SC-14) already refuses loudly
   (exit 1, no stdout) on ambiguity, so a malformed dispatch built from that refusal never reaches
-  dispatch-guard.sh with a bogus root — it reaches it with `HARNESS-FEATURE-TREE-ROOT` simply
+  dispatch-guard.py with a bogus root — it reaches it with `HARNESS-FEATURE-TREE-ROOT` simply
   absent, which the tested REFUSED case already catches. Still, the gate's own new branch has no
   test holding it against a future edit; recommend closing before the next remediation cycle rather
   than folding into a routine follow-up. (Aside: T-09's intent header still says "FOUR NEW CASES"
@@ -70,7 +70,7 @@ One real, non-blocking gap carried forward and one new one found:
   owner_root`. This is correct and required, not a regression: FEAT-50's own committed assertion
   (`plan.yaml:1201`, `assert ir.feature_root(d, 'FEAT-X-thing') == d, 'ambiguity must fall back to
   owner_root'`) pins that exact fallback for its own consumers. The remediation fixed the two
-  call sites that matter for FEAT-52's write-anchor guarantee (dispatch-guard.sh's own comparison,
+  call sites that matter for FEAT-52's write-anchor guarantee (dispatch-guard.py's own comparison,
   and the CLI verb `inflight_registry.py feature-root` the orchestrator's emit duty runs) by
   calling `harness_boundary.worktree_for_feature` directly instead of routing through
   `feature_root()`, rather than changing the shared function's contract — the correct-direction fix

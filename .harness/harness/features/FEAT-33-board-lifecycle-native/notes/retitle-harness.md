@@ -54,7 +54,7 @@ trusted from the preview:
 ## One correction to my own reading of the preview
 
 I grepped the preview for refusals and got 8 hits. They were the words *"refuse"* and *"refusal"*
-**inside the ticket titles** — #708 "Cut dispatch-guard.sh over to refuse…", #620 "Refuse a governed
+**inside the ticket titles** — #708 "Cut dispatch-guard.py over to refuse…", #620 "Refuse a governed
 agent…". The summary's `refused: 0` was accurate and my matcher was the wrong shape.
 
 That is the same defect this feature has found nine times in other places: a matcher that cannot

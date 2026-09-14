@@ -1827,7 +1827,7 @@ def hook_mode():
     if _reg is not None:
         # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
         # the payload cwd. The old note here said cwd had to come first so this released from
-        # the same registry dispatch-guard.sh wrote to — but that guard now takes its root
+        # the same registry dispatch-guard.py wrote to — but that guard now takes its root
         # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
         # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
         # which is why it was never a root.

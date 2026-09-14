@@ -13,7 +13,7 @@ a dependency: nothing may be built until FEAT-30 merges to `main`.
 | `plan.yaml` has no shape rule | `check-domain.py:677` | `SHAPE_PATTERNS` = feature.json, state.yaml, handoff, STATE.md, CLAUDE.md — nothing else |
 | Observation log has no shape rule | same tuple | absent |
 | `validate-digest.py` fail-opens 3 ways | `:828` unreadable, `:838` no `agent_type`, `:845` `stop_hook_active`; `hook_mode` at `:804`, internal-error pass-through printed at `:869` | verified |
-| `dispatch-guard.sh` has **no test** | `ls .claude/skills/harness/bin/test-dispatch-guard.py` | absent — hence T-07 |
+| `dispatch-guard.py` has **no test** | `ls .claude/skills/harness/bin/test-dispatch-guard.py` | absent — hence T-07 |
 | Unit baseline | `run-unit-tests.sh --kind unit` | exit 0, 179 PASS/FAIL/ERROR lines, 0 beginning `FAIL` |
 | Integration baseline | `run-unit-tests.sh --kind integration` | exit 0, 93 such lines, 0 beginning `FAIL` |
 | Route check on this plan | `check-plan-routes.py <plan>` | exit 0, 0 violations, 4 `DEVIATION` lines (all DEC-174 shape) |
@@ -23,7 +23,7 @@ a dependency: nothing may be built until FEAT-30 merges to `main`.
 ## Domain resolution (DEC-179), every literal path in the plan
 
 `harness-backend-dev, harness-dev-ops` — every `.claude/skills/harness/bin/*` path, including
-`dispatch-guard.sh`, `validate-digest.py` and their tests. **Granted, yet laned
+`dispatch-guard.py`, `validate-digest.py` and their tests. **Granted, yet laned
 `main-session-direct`** for the four enforcement-layer paths, which is why the route check prints
 `DEVIATION` and not `VIOLATION`; DEC-179 makes that non-fatal and DEC-174 amendment 4 makes it
 required.
