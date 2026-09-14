@@ -47,7 +47,7 @@ You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`
    | 9 | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
 
    Report the ops in your DIGEST's `expertise_update` as the receipt.
-4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
+4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <file>` and fix every violation before
    returning. Report per-section entry counts before and after.
 
 ## The entry format — rules, not stories
@@ -79,7 +79,7 @@ still qualify without the `WHEN/DO` shape. They were previously written beside c
 no longer are.
 
 **The failure this prevents:** a role that learns one repository's answers and carries them to the
-next one. A craft entry mentioning a path as an *example* is still craft — `check-expertise.sh`
+next one. A craft entry mentioning a path as an *example* is still craft — `check-expertise.py`
 flags such entries **advisorily**, for a human to rule on, and a flag is not a violation.
 
 A **recipe** (setup steps, config values, field names) rots with the code — it qualifies only as a
@@ -109,7 +109,7 @@ gate's field list, the decision's evidence, or a procedure preloaded on every wa
 ## Open (max 5)
 ```
 
-These four section names are the only legal ones in **both** layers, and `check-expertise.sh`
+These four section names are the only legal ones in **both** layers, and `check-expertise.py`
 enforces all of it. The spawn hook hard-truncates at the budget, so an over-budget file silently
 loses its tail — the budget is physics, not advice. **Craft is 150 lines; the repository layer is
 40.** The repository budget is deliberately small: the measured worst case is 4 entries in one file,

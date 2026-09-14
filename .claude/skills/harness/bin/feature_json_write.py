@@ -28,6 +28,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import factory_cli  # noqa: E402  (local import, after sys.path fix-up)
 import feature_schema  # noqa: E402  (local import, after sys.path fix-up)
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
@@ -79,6 +80,107 @@ def parse_doc(base, display):
             [f"{display}: parsed but is not a JSON mapping (got {type(doc).__name__})"],
         )
     return doc
+
+
+class FeatureJsonError(Exception):
+    """str() is always built with factory_cli.body(what, value, next_step) -- never by hand
+    -- the same precedent factory_config.FleetError set for fleet.yaml: `value` is always a
+    path or an offending detail the operator can act on, never a class name.
+
+    `next_step` also survives as its own attribute, so a caller that wants to build its own
+    factory_cli.refuse(...) call around a different `what`/`value` -- factory_decompose.py's
+    load_factory does, to keep its own established "feature.json invalid" wording -- can
+    reuse the underlying detail without nesting `body()` inside `body()`.
+    """
+
+    def __init__(self, what, value, next_step):
+        self.next_step = next_step
+        super().__init__(factory_cli.body(what, value, next_step))
+
+
+def _reject_duplicate_keys(pairs):
+    """`object_pairs_hook` for `json.load`/`json.loads`: raise on a mapping key repeated at
+    ANY nesting depth, the same coverage harness_yaml.DuplicateKeyError already gives every
+    YAML reader in this tree. `json.load`'s own default behaviour for a repeated key is
+    silent last-wins -- switching feature.json's canonical reader from a YAML parser to the
+    stdlib json module would otherwise WEAKEN this exact strictness while the migration
+    claims to tighten it (BUG-285 property 3)."""
+    seen = set()
+    result = {}
+    for key, value in pairs:
+        if key in seen:
+            raise ValueError(f"duplicate key: {key!r}")
+        seen.add(key)
+        result[key] = value
+    return result
+
+
+def load_feature_json(path):
+    """The one canonical reader for feature.json (BUG-285), replacing the two independent
+    parsers gh-sync.py's `load_recorded` and factory_decompose.py's `load_factory` each used
+    to run for themselves -- one YAML-ish (`harness_yaml.load_file`), one JSON
+    (`json.loads`), disagreeing on 9 of 13 measured input classes
+    (`.harness/harness/features/BUG-285-yaml-loader-pin/notes/research-BUG-285-parity-survey.md`).
+    Parses with the stdlib `json` module ONLY, never a YAML loader: feature.json is written
+    exclusively by `write_feature_json` above and by factory_decompose's `write_factory`,
+    both of which emit JSON, and a reader that also accepts a YAML-only document (a bare
+    `github:\\n  parent: 40` block, no braces) accepts input neither writer ever produces.
+
+    Returns None when `path` does not exist. That is a legitimate first-sync/first-publish
+    state for both callers, and this module already draws that same line at `parse_doc`
+    above: None means absent, {} means "present, parsed, and empty", and the two are never
+    interchangeable.
+
+    Raises FeatureJsonError, naming `path`, for every other way the file can fail a caller:
+    unreadable (`OSError`) or not UTF-8 (`UnicodeDecodeError`) -- the READ happens inside
+    this same `try`, so neither exception can escape uncaught the way a non-UTF-8
+    feature.json used to escape gh-sync.py's `except OSError` as a bare traceback; not valid
+    JSON (`json.JSONDecodeError`, itself a `ValueError`); a mapping key repeated at any
+    nesting depth (`_reject_duplicate_keys` above); or a document that parses but is not a
+    JSON mapping (a top-level list, string, or number).
+
+    A file that is PRESENT but cannot be read or parsed is corruption, not absence, and
+    every one of the cases above raises rather than returning an empty document -- collapsing
+    the two was the measured FEAT-14 incident this migration exists to close: a caller that
+    cannot tell "nothing recorded yet" from "something is recorded but I can no longer read
+    it" re-creates GitHub issues, milestones and parents that already exist.
+    """
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "rb") as f:
+            text = f.read().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise FeatureJsonError("feature.json unreadable", path, f"could not be read: {e}")
+    try:
+        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys)
+    except ValueError as e:
+        raise FeatureJsonError("feature.json invalid", path, f"does not parse: {e}")
+    if not isinstance(doc, dict):
+        raise FeatureJsonError(
+            "feature.json invalid", path,
+            f"parsed but is not a JSON mapping (got {type(doc).__name__})",
+        )
+    return doc
+
+
+def opt_int(value):
+    """A recorded issue/milestone number as int, or None for `none`/absent/junk -- moved
+    here from gh-sync.py's private `_opt_int` (BUG-285 property 7) so the one coercion
+    gh-sync.py's `load_recorded` needs at three call sites (milestone, parent, each `issues`
+    member) lives beside the reader it belongs to, instead of duplicated wherever it is
+    needed.
+
+    Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT -- and "absent"
+    here meant gh-sync believed nothing was recorded and would create a duplicate parent or
+    milestone. `bool` is excluded explicitly: it is an `int` subclass in Python, so
+    `parent: true` would otherwise become `1`."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    s = str(value).strip()
+    return int(s) if s.isdigit() else None
 
 
 def write_feature_json(path, transform, timeout=None, tail_regex=None):

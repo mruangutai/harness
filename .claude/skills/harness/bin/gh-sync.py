@@ -460,8 +460,9 @@ def parse_source_issues(feat_dir):
     Returns `[]` — never raises — when plan.yaml is absent, when it carries no
     `source_issues` key, when the value is not a list, or when the feature is still on
     the PLAN.md format (no plan.yaml at all, same absence check). Members that are not
-    real integers (bool excluded — an int subclass in Python, same exclusion `_opt_int`
-    documents) are dropped silently, in the order plan.yaml wrote them; a malformed
+    real integers (bool excluded — an int subclass in Python, same exclusion
+    feature_json_write.opt_int documents) are dropped silently, in the order plan.yaml
+    wrote them; a malformed
     field here must not block issue creation, which is the whole reason this reader is
     tolerant rather than loud.
 
@@ -508,25 +509,18 @@ def type_label(change_type):
 # empty/non-mapping/unparseable is an error; file present with a `github` mapping loads
 # as today. A `github` key that IS present but is not itself a mapping is treated as the
 # error case too — refusing to sync beats guessing what is mirrored.
-
-def _opt_int(v):
-    """A recorded issue/milestone number as int, or None for `none`/absent/junk.
-
-    Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT — and
-    "absent" here meant `gh-sync` believed nothing was recorded and would create a
-    duplicate parent or milestone. bool is excluded explicitly: it is an int subclass
-    in Python, so `parent: true` would otherwise become 1."""
-    if v is None or isinstance(v, bool):
-        return None
-    if isinstance(v, int):
-        return v
-    s = str(v).strip()
-    return int(s) if s.isdigit() else None
+#
+# BUG-285: the parse/read layer above converged on feature_json_write.load_feature_json,
+# the one canonical reader shared with factory_decompose.py's load_factory — this file no
+# longer parses feature.json for itself. `_opt_int` moved to feature_json_write.opt_int,
+# alongside it, for the same reason.
 
 
 def load_recorded(feat_dir):
-    """Read the `github:` block from feature.json with json.load (B-5: converged with
-    factory_decompose.py's reader; this file has no comments to tolerate).
+    """Read the `github:` block from feature.json through
+    feature_json_write.load_feature_json (BUG-285: the one canonical reader, shared with
+    factory_decompose.py's load_factory — this function no longer parses feature.json for
+    itself).
 
     Three states stay distinct on purpose (fix1 Part B) — collapsing either pair
     reproduces a real bug:
@@ -551,50 +545,27 @@ def load_recorded(feat_dir):
     path = os.path.join(feat_dir, "feature.json")
     rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
            "source_issues": [], "build_entry": None}
-    # ABSENCE is checked before parsing, not caught after it (review finding 4) — a
-    # missing feature.json is a legitimate first sync, never an error.
-    if not os.path.exists(path):
-        return rec
     try:
-        with open(path, encoding="utf-8") as f:
-            text = f.read()
-    except OSError as e:
-        raise SystemExit(f"gh-sync: {path} could not be read, so what is already mirrored "
-                         f"cannot be known. Refusing to sync rather than risk duplicate "
-                         f"issues.\n  {e}")
-    try:
-        doc = json.loads(text)
-    except (ValueError, UnicodeDecodeError) as e:
-        # Covers a genuinely empty file too: `json.loads("")` raises JSONDecodeError,
-        # never returns None the way `yaml.load("")` silently did — that silent-None
-        # path was the exact defect this fix removes, so the JSON reader must not
-        # reintroduce it under a different parser.
-        raise SystemExit(f"gh-sync: {path} does not parse, so what is already mirrored "
-                         f"cannot be known. Refusing to sync rather than risk duplicate "
-                         f"issues.\n  {e}")
-    # A parses-but-is-not-a-mapping document (a bare list or scalar) is not an error
-    # json.loads raises, so the type must be guarded explicitly, same rule M-02 found
-    # in manifest_domains: parsing successfully is not the same as parsing usefully.
-    if not isinstance(doc, dict):
-        raise SystemExit(f"gh-sync: {path} parsed but is not a JSON mapping "
-                         f"(got {type(doc).__name__}), so what is already mirrored "
-                         f"cannot be known. Refusing to sync rather than risk duplicate "
-                         f"issues.")
-    if "github" not in doc:
-        # Row 1: a legitimate first sync — the document exists, it just has nothing
-        # recorded yet.
+        doc = feature_json_write.load_feature_json(path)
+    except feature_json_write.FeatureJsonError as e:
+        # Absent (returned as None below, never raised) and malformed (this branch) stay
+        # distinct on purpose — see the docstring above.
+        raise SystemExit(f"gh-sync: {e}. Refusing to sync rather than risk duplicate issues.")
+    if doc is None or "github" not in doc:
+        # File absent, or present as a mapping with no `github` key yet — a legitimate
+        # first sync; nothing is mirrored because nothing has run yet.
         return rec
     gh = doc.get("github")
     if not isinstance(gh, dict):
-        # The fourth state: present but not a mapping. Same refusal as row 2 — see the
-        # docstring above.
+        # The fourth state: present but not a mapping. Same refusal as an unparseable
+        # document — see the docstring above.
         raise SystemExit(f"gh-sync: {path}'s github: key is present but is not a "
                          f"mapping (got {type(gh).__name__}), so what is already "
                          f"mirrored cannot be known. Refusing to sync rather than risk "
                          f"duplicate issues.")
 
-    rec["milestone"] = _opt_int(gh.get("milestone"))
-    rec["parent"] = _opt_int(gh.get("parent"))
+    rec["milestone"] = feature_json_write.opt_int(gh.get("milestone"))
+    rec["parent"] = feature_json_write.opt_int(gh.get("parent"))
     # THE PARENT'S ORIGIN IS NOT RECORDED (DEC-203 item 4). A github block written before
     # this feature may still carry that key; it is read without complaint and never
     # surfaced, because the record has no such field any more. Where a parent came from is
@@ -609,7 +580,7 @@ def load_recorded(feat_dir):
     issues = gh.get("issues")
     if isinstance(issues, dict):
         for k, v in issues.items():
-            n = _opt_int(v)
+            n = feature_json_write.opt_int(v)
             if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
                 rec["issues"][str(k).strip()] = n
 
@@ -622,8 +593,8 @@ def load_recorded(feat_dir):
     # T-02 (FEAT-26): source_issues is a MIRROR of plan.yaml's own top-level field (D-01 of
     # that task — the plan is truth, feature.json just reflects it), so a malformed value
     # here does not put issue creation at risk: a non-list value, or a non-integer member,
-    # is dropped silently rather than raising, the same tolerance _opt_int already documents
-    # for bool (an int subclass in Python).
+    # is dropped silently rather than raising, the same tolerance feature_json_write.opt_int
+    # already documents for bool (an int subclass in Python).
     si = gh.get("source_issues")
     if isinstance(si, list):
         rec["source_issues"] = [n for n in si if isinstance(n, int) and not isinstance(n, bool)]

@@ -111,34 +111,38 @@ def _empty_factory():
 def load_factory(feat_dir):
     path = os.path.join(feat_dir, "feature.json")
     factory = _empty_factory()
-    if not os.path.exists(path):
-        return factory
-    # Issue #208: was a raw harness_yaml.load_file(path) — a malformed feature.json raised
-    # YamlParseError past the trap's `expected=` tuple, printing the class name instead of
-    # naming the file. refuse() exits via SystemExit, which factory_cli.run() propagates
-    # unchanged (never re-wrapped as "unexpected failure").
+    # BUG-285: converged onto feature_json_write.load_feature_json, the one canonical
+    # reader shared with gh-sync.py's load_recorded — this function no longer parses
+    # feature.json for itself. Was, before that, a raw call to harness_yaml's load_file
+    # (Issue #208): a malformed feature.json raised YamlParseError past the trap's
+    # `expected=` tuple, printing the class name instead of naming the file. refuse()
+    # exits via SystemExit, which factory_cli.run() propagates unchanged (never
+    # re-wrapped as "unexpected failure") — that refusal shape is unchanged here.
     try:
-        doc = harness_yaml.load_file(path)
-    except harness_yaml.YamlParseError as e:
-        factory_cli.refuse(TOOL, "feature.json invalid", path, f"does not load: {e}")
-    if not isinstance(doc, dict):
+        doc = feature_json_write.load_feature_json(path)
+    except feature_json_write.FeatureJsonError as e:
+        factory_cli.refuse(TOOL, "feature.json invalid", path, e.next_step)
+    if doc is None or "factory" not in doc:
         return factory
-    f = doc.get("factory")
+    f = doc["factory"]
     if not isinstance(f, dict):
-        return factory
-
+        factory_cli.refuse(
+            TOOL, "feature.json invalid", path,
+            "has a factory key that is not a JSON object, so what is already mirrored cannot be known",
+        )
     repo = f.get("repo")
     factory["repo"] = repo if isinstance(repo, str) and repo else None
 
-    parent = f.get("parent")
-    if isinstance(parent, int) and not isinstance(parent, bool):
+    parent = feature_json_write.opt_int(f.get("parent"))
+    if parent is not None:
         factory["parent"] = parent
 
     issues = f.get("issues")
     if isinstance(issues, dict):
         for k, v in issues.items():
-            if isinstance(v, int) and not isinstance(v, bool):
-                factory["issues"][str(k)] = v
+            issue = feature_json_write.opt_int(v)
+            if issue is not None:
+                factory["issues"][str(k)] = issue
 
     items = f.get("items")
     if isinstance(items, dict):

@@ -1,6 +1,6 @@
 ---
 name: harness-curate
-description: Out-of-band Expertise distillation — audit every .harness/expertise/ and .harness/*/expertise/ file against the format contract and distill violators into rule-form entries. Use when expertise files have bloated, when check-expertise.sh fails, or for a one-time retrofit of files written under the old mid-run rules.
+description: Out-of-band Expertise distillation — audit every .harness/expertise/ and .harness/*/expertise/ file against the format contract and distill violators into rule-form entries. Use when expertise files have bloated, when check-expertise.py fails, or for a one-time retrofit of files written under the old mid-run rules.
 ---
 
 # /harness-curate — distill Expertise out-of-band
@@ -16,9 +16,9 @@ asks for a cleanup.
    applies it by path, so an audit that reads one tier reports clean over the other.
 
    ```
-   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
+   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
    for d in <HARNESS_CONTROL_PLANE_ROOT>/.harness/*/expertise/; do
-     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh "$d"
+     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py "$d"
    done
    ```
 
@@ -43,9 +43,9 @@ asks for a cleanup.
 4. **Verify:** re-run the same two-tier audit until every file passes:
 
    ```
-   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
+   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
    for d in <HARNESS_CONTROL_PLANE_ROOT>/.harness/*/expertise/; do
-     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh "$d"
+     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py "$d"
    done
    ```
 

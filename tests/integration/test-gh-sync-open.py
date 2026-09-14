@@ -441,6 +441,19 @@ def main():
         check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
               "does not parse" in str(e) or "cannot be known" in str(e), str(e))
 
+    # Row 4: decode errors must refuse at the call site too, not merely in the shared accessor.
+    _dutf8 = nested_feature_dir("FEAT-fix1b-non-utf8")
+    _utf8_path = os.path.join(_dutf8, "feature.json")
+    with open(_utf8_path, "wb") as _f:
+        _f.write(b"\xff\xfe")
+    try:
+        _ghs.load_recorded(_dutf8)
+        check("fix1 B row4: non-UTF-8 feature.json refuses through load_recorded", False,
+              "load_recorded returned instead of raising")
+    except SystemExit as e:
+        check("fix1 B row4: non-UTF-8 feature.json refuses through load_recorded and names the file",
+              _utf8_path in str(e), str(e))
+
     # Row 2 (non-mapping document): a JSON document that parses fine but is not a mapping —
     # a bare list or a bare scalar. Same bug shape as the zero-byte case: `.get` would not
     # exist on either, so a naive fix could still fail OPEN by returning the default rec.

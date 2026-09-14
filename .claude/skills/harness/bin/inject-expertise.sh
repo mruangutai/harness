@@ -87,7 +87,7 @@ control_plane_block() {
 }
 
 # Expertise file budget (DEC-145): 150 lines for craft tiers, 40 for repository
-# tiers, enforced at authoring time by check-expertise.sh and hard-capped here
+# tiers, enforced at authoring time by check-expertise.py and hard-capped here
 # so one bloated file cannot silently tax every spawn. Truncation is LOUD — the
 # warning tells the agent curation is overdue rather than silently dropping the
 # tail, and it names the budget actually applied so the agent curates to its

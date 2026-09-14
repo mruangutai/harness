@@ -35,11 +35,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
 # DEC-145's four canonical sections and their entry caps, verbatim. This is the one place this
-# tool spells them; test-expertise-merge.py's case 8 reads check-expertise.sh's own CAPS mapping
+# tool spells them; test-expertise-merge.py's case 8 reads check-expertise.py's own CAPS mapping
 # as TEXT and asserts the two agree, rather than adding a third copy of these numbers anywhere.
 CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}
 
-# The same two patterns check-expertise.sh parses an Expertise file with, so a file this tool
+# The same two patterns check-expertise.py parses an Expertise file with, so a file this tool
 # writes is read back identically by the checker that governs the format.
 SECTION_RE = re.compile(r"^## (\w+)(?: \(max (\d+)\))?\s*$")
 ENTRY_RE = re.compile(r"^- ([A-Za-z]{1,3}-\d+): (.*)$")
@@ -85,7 +85,7 @@ def parse_expertise(text):
         if em and current is not None:
             sections[current].append([em.group(1), em.group(2)])
             continue
-        # A continuation line — check-expertise.sh treats any indented, non-empty line right
+        # A continuation line — check-expertise.py treats any indented, non-empty line right
         # after an entry as wrapped text of that entry, so this parser must reconstruct the
         # same logical text or two files holding the "same" entry could compare unequal.
         if (

@@ -1,0 +1,1488 @@
+schema: plan/1
+feature: BUG-285-yaml-loader-pin
+approval:
+  date: '2026-09-09'
+  approved_by: mruangutai
+  status: approved
+status: done
+source_issues: [285]
+
+lanes:
+  resolved_at: 7e0c2ec148c05786d2cbbc1bf1f352c3e0403738
+  rows:
+    - surface: tests/**
+      lane: team
+      agent: harness-qa
+
+decisions:
+  - id: D-01
+    choice: The discriminating fixture is a YAML block mapping, feature_id then a nested github key, not JSON carrying a hash comment.
+    because: A block mapping is YAML-only syntax that still parses to a MAPPING, so it isolates the unpinned parse guard from the already-pinned isinstance guard at gh-sync.py:578.
+    dec: none
+  - id: D-02
+    choice: T-01 is dispatched to harness-qa, not to harness-backend-dev or harness-dev-ops.
+    because: All three resolve for tests/**, but only qa's consult-when names writing regression tests and closing coverage gaps, which is the whole of this change; backend-dev's names service logic and dev-ops's names test-runner setup, not fixtures.
+    dec: none
+  - id: D-03
+    choice: change_type is bugfix on all three tasks, and the required kind is now unit, with integration retained for the two test-side tasks.
+    because: RE-DERIVED, not carried forward, after the scope amendment of 2026-09-11. The amended scope edits .claude/skills/harness/bin/factory_decompose.py, which is outside tests, is not a markdown contract file and is not under .harness, so DEC-217's touches_runtime_code predicate is now TRUE and the unit kind is demanded - harness.json test_matrix.bugfix carries unit when touches_runtime_code, and the unit kind is active with cmd .agents/skills/harness/bin/run-unit-tests.sh --kind unit. The companion predicate fix_confined_to_tests_and_contract_docs is now FALSE, so the matrix no longer demands integration by itself; T-01 and the standing 1c case keep the integration kind anyway because DEC-35 requires the diff to carry the test exercising the change and both of those tests live under tests/integration. DEC-213 selects the kind by directory, so T-03's new pin must live under tests/unit to satisfy the unit demand, under a file name not already used in tests/integration.
+    dec: DEC-217
+  - id: D-04
+    choice: The able-to-fail proof is a throwaway mutation probe against a COPY of gh-sync.py in a tempdir, recorded as a transcript, never committed as a test.
+    because: .agents/skills is a symlink to .claude/skills, so the reader is one inode and an in-place probe edit would be a live-tree edit of production code this bug forbids touching.
+    dec: none
+
+  - id: D-05
+    choice: The lanes table stays as the cycle-0 single tests row, and the routing authority for the new bin work is each task's execution_agent, resolved by check-domain.sh.
+    because: No plan-merge verb writes lanes. Measured 2026-09-11 in this worktree - apply with an added lanes row exits 7 (CONFLICT on the top-level key lanes), amend --key lanes exits 2 naming tasks and decisions as the only amendable keys, and Edit, Write and a shell redirect are all denied by the shape gate. check-plan-routes.py contains zero occurrences of the string lanes, so what actually binds the build is each task's files list resolved through check-domain.sh plus the execution_mode token, never the lanes table. The stale table is therefore a reporting defect, not a routing one, and it is raised to the harness owner as an open question rather than worked around.
+    dec: none
+
+  - id: D-06
+    choice: >-
+      load_recorded's docstring claim that the reader is converged with factory_decompose.py's
+      reader is CORRECTED by T-04, not confirmed and not left standing.
+    because: >-
+      The sentence is false today and measurably so - on 13 input classes fed as identical bytes to both
+      readers in this worktree at 6cb113f4, NINE disagree
+      (notes/research-BUG-285-parity-survey.md). The replacement must NOT assert convergence in any form,
+      qualified or not: an unverifiable prose claim of convergence is what let the two readers drift in the
+      first place, and the same claim with a repaired scope is the same false-record defect in a new
+      spelling. What T-04 writes instead is an ENUMERATION of what was measured, claiming no completeness
+      beyond it, which is what SC-15 now mandates.
+      WHAT THE ENUMERATION HOLDS, after T-02 as amended by D-14 and D-16 and after T-04, every row
+      measured at 6cb113f4:
+      - treated identically, both readers load the record: a valid JSON mapping.
+      - treated identically, both return the empty or all-None default record: an absent feature.json, and
+        a mapping whose own block key is absent.
+      - treated identically, both refuse by raising SystemExit whose observable output names the
+        feature.json path: an empty file, malformed JSON text, a YAML-only block mapping, bytes that are
+        not valid UTF-8, a document that parses to a non-mapping, and a document whose own block key is
+        present and is not a mapping.
+      - treated identically, both accept, last key wins: a document carrying a duplicate key.
+      - treated identically, both read the same VALUE out of an integer-valued member: a block mapping
+        carrying wrong-typed members, where a quoted "7" reads as 7 on both sides and a bool reads as no
+        value on both sides, because T-02 adopts _opt_int's tolerance (D-16).
+      - DELIBERATELY DIFFERENT, and each stated with its reason rather than as an exception to a
+        convergence claim: (i) NEITHER reader detects a duplicate key any more - load_factory's
+        DuplicateKeyError refusal is given up by the parser swap, there is no measured incident behind it,
+        and the compensating rule is the BRIEF constraint that nothing may emit one; (ii) BOTH refuse a
+        YAML-only block mapping, which is the point of the feature rather than a residual, because
+        feature.json stays strict JSON; (iii) the issues mapping's KEY ADMISSION still differs - measured
+        2026-09-11, load_recorded admits only keys matching T-\d+ and strips them, load_factory admits any
+        key verbatim, so {"issues": {"X-1": 5}} reads as {} on one side and {"X-1": 5} on the other. That
+        is a key-admission policy, not a coercion, no incident is measured behind it, and it is NOT closed
+        by this feature - it is raised to the operator as an open question and named here so the record
+        does not lose it.
+      - what holds what is enumerated: tests/unit/test-feature-json-readers.py, the file T-05 adds.
+      WHY THIS ENTRY WAS REVISED, TWICE. Its first revision named TWO surviving classes - a document
+      parsing to a non-mapping, and a present-but-non-mapping own block key - both CLOSED by the amended
+      T-02 under D-14. Its second (2026-09-11, this amendment) named ONE surviving class, a block mapping
+      carrying wrong-typed members, now CLOSED by T-02 under D-16 by aligning load_factory onto _opt_int's
+      tolerance. Each time the enumeration went false, which is exactly the failure mode this decision
+      exists to prevent, arriving from the other direction. The durable lesson is the FORM, not the number:
+      the docstring states the classes actually measured, cites the note they were measured in, and states
+      each deliberate difference with its reason - so a later amendment revises an enumeration instead of
+      falsifying a claim.
+    dec: none
+  - id: D-07
+    choice: >-
+      change_type is bugfix on T-04 and T-05; the required kind is unit for both, and T-05 also
+      runs the gh-sync integration suite.
+    because: >-
+      RE-DERIVED against harness.json test_matrix, not copied from D-03, and the integration
+      commands were RETARGETED on 2026-09-11 after commit efcebe2d split
+      the gh-sync integration monolith into five pole files (issue 1527) - the matrix derivation is
+      unchanged, only the measurement is corrected. T-04 edits
+      .claude/skills/harness/bin/gh-sync.py, so touches_runtime_code is TRUE and the bugfix row
+      demands unit; fix_confined_to_tests_and_contract_docs is FALSE for it, so integration is not
+      demanded by the matrix, and T-04 runs the gh-sync pole files anyway because they are the
+      standing behavioural pin on the function being edited. T-05 adds only
+      tests/unit/test-feature-json-readers.py, so touches_runtime_code is FALSE and
+      fix_confined_to_tests_and_contract_docs is TRUE, which demands integration - satisfied by
+      running tests/integration/test-gh-sync-open.py and tests/integration/test-gh-sync-record.py in
+      its verify, while the new file itself is the unit kind by directory (DEC-213). Those two poles
+      are named and the other three are not, because only these two have a measured baseline in this
+      worktree and only these two exercise load_recorded - -open calls it directly in its
+      reader-contract block at :350-474, -record reaches it through the record subcommand. Both
+      verify blocks stay well under 60s - measured in this worktree on 2026-09-11 at 6cb113f4,
+      run-unit-tests.sh --kind unit is 2.4s over 36 files, test-gh-sync-open.py is 10.6s and
+      test-gh-sync-record.py is 8.8s.
+    dec: DEC-217
+  - id: D-08
+    choice: >-
+      SUPERSEDED by D-14 on 2026-09-11, and kept as the cycle-4 record rather than deleted. AS RECORDED THEN: the shared input set that pins reader parity is SIX inputs, and TWO divergence classes are EXCLUDED from it and recorded as surviving divergences, DISCLOSED and not closed - class A, a document that parses to a non-mapping; class B, a document that parses to a mapping whose own block key is present but is not a mapping. WHAT IS LIVE NOW, RE-STATED 2026-09-11 after D-16, because the previous WHAT IS LIVE NOW clause is itself now false and is quoted here rather than deleted - it said "the parity set SPANS the measured table at ten inputs, and the one surviving divergence is a block mapping with wrong-typed members", and both halves of that went false the moment D-16 closed that row. What is live: both classes A and B are CLOSED by T-02 under the operator's 2026-09-11 ruling that absence and corruption must be distinguishable; the parity set SPANS the measured table at TWELVE inputs; and NO measured divergence survives the feature, the wrong-typed-members row being closed too, by ALIGNING load_factory onto _opt_int's tolerance rather than by refusing (D-16). Three DELIBERATE contract differences remain and are recorded with their reasons in D-06, BRIEF Risk and SC-15. Read D-14 and then D-16, not this entry, for current behaviour.
+    because: >-
+      HISTORY, superseded by D-14. Everything below was measured at 6cb113f4 and was true when written at
+      cycle 4; the one clause that is no longer live is marked. Both classes measured at that sha, and
+      both anchors pinned at it. CLASS A, a document that parses to a NON-MAPPING - on the text "[1, 2]"
+      gh-sync's load_recorded refuses via SystemExit at gh-sync.py:578 while factory_decompose's
+      load_factory returned the empty factory at the isinstance guard at factory_decompose.py:124-125.
+      NO LONGER LIVE: the clause "T-02 item 5 keeps that guard deliberately" - the amended T-02 makes that
+      guard REFUSE (D-14). CLASS B, the reader's OWN BLOCK KEY present but not a mapping - on the text
+      {"github": "x", "factory": "x"} load_recorded refuses at gh-sync.py:588-594 while load_factory did
+      f = doc.get("factory"), found a non-dict and returned the empty factory at
+      factory_decompose.py:127-128, reading the file as "nothing recorded" - the fail-open shape this bug
+      exists to remove, one level down from class A and the same shape. Class B was found by the cycle-4
+      goal-check (notes/research-BUG-285-goalcheck-plan-c4.md) after the earlier record named class A
+      alone.
+      WHY BOTH WERE EXCLUDED THEN, and why that reasoning no longer holds. The exclusion rested on one
+      premise: closing either class would change approved T-02 behaviour and widen this feature's scope
+      past the operator's ruling, so the choice to close class B remained the operator's to take at
+      signature rather than this plan's to foreclose. The operator took it on 2026-09-11 - absence and
+      corruption must be distinguishable - so the premise is spent and the exclusion with it. That is a
+      supersession by ruling plus measurement, not a reversal of a wrong call: the cycle-4 position was
+      the correct one to hold while the ruling was outstanding.
+    dec: none
+  - id: D-09
+    choice: >-
+      T-05 gets NO mutation probe. Its able-to-fail evidence is the measured pre-change
+      disagreement table, recorded in notes/research-BUG-285-foldq7.md, plus T-04's inline
+      red-then-green probe.
+    because: >-
+      The plan panel raised two info findings against doubled mutation-probe ceremony
+      (PF-2242299b369215b13ad577fe4279d52e, PF-cceab610738069ec6ea1a56ddc058195), both naming the
+      note-delivery chain as the likeliest source of a false not_met. A third probe would triple that
+      exposure to prove something already observed - the parity assertions are red on the pre-change tree
+      by direct measurement, SEVEN of the TWELVE inputs disagreeing after the set was widened to span the
+      measured table including both coercion rows (D-16; the figure was six of ten before that widening,
+      and four of seven before the D-14 widening). So the pre-change tree IS the mutant and no copy needs
+      constructing. RE-DERIVED 2026-09-11, not carried forward: the six verdict disagreements are the
+      empty file, the YAML-only block mapping, the non-UTF-8 bytes, the non-mapping document, the
+      non-mapping own block key and the duplicate block key; the seventh is the VALUE disagreement on the
+      quoted-int member row, measured live as load_recorded parent 7 against load_factory parent None. The
+      twelfth input, the bool-valued member, AGREES before the change and is a control rather than
+      able-to-fail evidence - it reddens only if the coercion is reimplemented without _opt_int's bool
+      exclusion. T-04 still carries a red-then-green probe because its own runtime edit has no other
+      able-to-fail evidence.
+    dec: none
+  - id: D-10
+    choice: >-
+      The decode failure joins the READ guard as except (OSError, UnicodeDecodeError), rather than
+      becoming a third separate arm, and the parse guard becomes a bare except ValueError.
+    because: >-
+      The decode failure is raised by f.read() inside the read try, not by the parse, so the read
+      guard's existing message - "could not be read, so what is already mirrored cannot be known"
+      - is the truthful one for it, and a separate arm would duplicate that message with no
+      observable difference. On the parse side json.loads is handed a str, so it can never raise
+      UnicodeDecodeError - measured: json.loads on a str raises JSONDecodeError - and the member
+      is dead. ValueError STAYS because json.JSONDecodeError subclasses it and that arm is live,
+      also covering the empty file. Deleting the dead member is preferred over leaving it because
+      a handler that cannot fire reads as coverage and is not, which is the same failure shape as
+      the docstring claim in D-06.
+    dec: none
+  - id: D-11
+    choice: >-
+      Parity is pinned on VERDICT plus observable-output properties, never on exit code or message
+      text equality.
+    because: >-
+      The two readers refuse by different mechanisms and both are correct in their own context -
+      gh-sync raises a bare SystemExit whose code is the message string (process status 1), while
+      load_factory goes through factory_cli.refuse, which prints to stderr and exits
+      EXIT_REFUSED (2) so factory_cli.run propagates it unwrapped per issue 208. Demanding
+      identical exit codes would force one of the two CLIs to change its contract for no operator
+      benefit. What IS pinned, per input - both readers agree on accept versus refuse; every
+      refusal raises SystemExit; every refusal's observable output (str(e) for gh-sync, captured
+      stderr for load_factory) contains the feature.json path; and none of it contains the string
+      "unexpected failure" or any exception class name.
+    dec: none
+  - id: D-12
+    choice: |-
+      T-01's YAML-only fixture goes into tests/integration/test-gh-sync-open.py, beside the
+      reader-contract cases it was written to join, and not into the pole file named for the
+      subcommand. No new test file is created.
+    because: |-
+      Measured in this worktree at 6cb113f4, after commit efcebe2d split the gh-sync integration
+      monolith into five pole files plus gh_sync_support.py (issue 1527). test-gh-sync-open.py is the
+      ONLY pole file that holds reader-level cases - cases that call load_recorded directly rather than
+      driving a subcommand: the whole T-06 Part C block (:350-399) and the whole fix1 Part B block
+      (:401-474) sit there, including the zero-byte fixture at :426-442 that this fixture's own comment
+      argues against. grep of load_recorded across the five poles returns hits in test-gh-sync-open.py
+      alone; test-gh-sync-record.py, -ship.py and -abandon.py contain none, and
+      test-gh-sync-start-task.py binds _ghs for other functions only. The split itself endorses the
+      placement: gh_sync_support.load_gh_sync's docstring at :844-846 says it is "Used by the cases that
+      assert a function's own contract rather than a subcommand's". The fixture's subject is
+      load_recorded's PARSER, so its neighbours are the other reader-contract cases, not the open
+      subcommand - the shared subject is the reader, and the pole file that owns the reader is -open by
+      measurement rather than by its name. A new test file was rejected: it would move a case out of the
+      block whose comments explain why it exists, and creating one is a scope change this retarget has
+      no authority to make.
+    dec: none
+  - id: D-13
+    choice: |-
+      T-04 gains depends_on T-01, serialising the two, and T-05 keeps depends_on T-02 and T-04.
+      The build order is T-01 then T-04 then T-05, with T-02 then T-03 free to run in parallel.
+    because: |-
+      After the retarget T-01 EDITS tests/integration/test-gh-sync-open.py while T-04 and T-05
+      RUN it in their verify blocks. A verify that runs a file another in-flight task is mid-edit
+      measures neither task's work - it can read a half-written fixture, and it makes an unrelated
+      red unattributable. depends_on is the only ordering the scheduler reads (teams/build.yaml
+      consumes from_task_depends_on; prose in intent is invisible to it), so the constraint is
+      written there. The direction is forced: T-01 must precede, because T-04 and T-05 both run
+      the file T-01 edits, while T-01 runs nothing they edit. What it costs is parallelism -
+      T-04's runtime edit no longer starts until a test-only task has landed - and that is
+      accepted because the alternative is a verify whose baseline nobody can pin. Both T-04's and
+      T-05's expected ok-count for that pole file therefore reads "above 79", not "79".
+    dec: none
+  - id: D-14
+    choice: |-
+      Divergence classes A and B are CLOSED by T-02, not disclosed. A feature.json that is PRESENT
+      and parses to a non-mapping REFUSES, and one whose own factory key is PRESENT and is not a
+      mapping REFUSES. The factory key ABSENT keeps returning the empty record, and so does an
+      absent file. The shared parity input set therefore SPANS the measured table, in both
+      directions. D-08 is SUPERSEDED by this decision.
+      PARTLY SUPERSEDED IN TURN by D-16 on 2026-09-11, and kept rather than rewritten. AS RECORDED
+      THEN: the set stood at ten inputs and "exactly ONE measured divergence survives this feature -
+      a block mapping carrying wrong-typed members". WHAT IS LIVE NOW: that row is CLOSED too, by
+      aligning load_factory onto _opt_int's tolerance rather than by refusing, the set SPANS the table
+      at TWELVE inputs, and NO measured divergence survives the feature. Three DELIBERATE contract
+      differences remain and are recorded with their reasons in BRIEF Risk and SC-15 - neither reader
+      detects a duplicate key any more, both refuse a YAML-only document, and the issues mapping's key
+      admission still differs. Read D-16 for the coercion row; the four rows this entry closed are
+      unaffected by it.
+    because: |-
+      The operator ruled on 2026-09-11 that absence and corruption must be DISTINGUISHABLE: returning
+      the empty record for an ABSENT feature.json is correct and stays, returning that SAME empty
+      record for a file that is PRESENT and malformed is the defect. Under that ruling D-08's
+      exclusion no longer holds, and the four rows it covered are closed by one guard pair inside
+      load_factory.
+      WHAT CHANGED, and why this is not scope growth. D-08 excluded both classes on the premise that
+      closing either would change approved T-02 behaviour and widen scope past the operator's
+      ruling. The premise was correct at cycle 4 and is now false: the operator has ruled the rows
+      in. D-08's record stands unaltered as the cycle-4 position - superseded by measurement plus
+      ruling, never deleted.
+      EVIDENCE, all re-measured in this worktree at 6cb113f4 on 2026-09-11.
+      One - the parity survey fed 13 input classes as identical bytes to both readers, 4 SAME and 9
+      DIFFERENT, 6 carrying the FEAT-14 incident class (notes/research-BUG-285-parity-survey.md).
+      Classes A and B are four of those rows: a top-level list, a top-level scalar string, a
+      top-level scalar int, and a present-but-non-mapping block key.
+      Two - the caller survey found exactly ONE call site, factory_decompose.py:515 inside _main(),
+      and it does not depend on malformed tolerance: a refusal there exits before ensure_labels, the
+      declared point of no return at :538, with zero remote writes made
+      (notes/research-BUG-285-caller-survey.md). No test depends on the tolerance either; the one
+      malformed fixture already asserts refusal.
+      Three - all 80 feature.json files under .harness/*/features/*/ have the factory key ABSENT.
+      Zero carry a non-mapping factory value and zero carry a non-mapping document. So the SPLIT is
+      what keeps every live file working: closing the block-key row WITHOUT splitting absent from
+      present-and-not-a-mapping would turn all 80 into refusals.
+      Four - the shape is not invented. load_recorded already carries exactly this split: "github"
+      not in doc returns the default record at gh-sync.py:583-586, while a present non-mapping
+      github value refuses at :588-594, and a document that parses to a non-mapping refuses at :578.
+      Closing these rows converges load_factory onto a shape the other reader has carried since
+      FEAT-14, which is why one guard pair discharges four table rows with no new task.
+      WHAT SURVIVES - SUPERSEDED 2026-09-11 by D-16, and kept here as the record of what was believed
+      at that hour rather than deleted. AS RECORDED THEN: "Block mapping with wrong-typed members -
+      for example a factory block recording parent as the string "7". load_recorded returns a POPULATED
+      record because _opt_int coerces "7" to 7 at gh-sync.py:512-524; load_factory returns the EMPTY
+      record because it admits only real ints at :134-135. That is a COERCION-POLICY divergence, not a
+      guard divergence ... Closing it on the load_factory side means choosing between refusing and
+      silently dropping a wrongly-typed member - a policy choice about POPULATED records ... and one the
+      operator has not ruled. It is a separate ticket."
+      WHY THAT IS NO LONGER LIVE. The operator DID rule it, on 2026-09-11, and ruled the direction as
+      well: load_factory ADOPTS _opt_int's tolerance rather than refusing. The reasoning above had
+      framed the choice as refuse-or-drop and missed the third option, which is the correct one - the
+      measurement that settles it is _opt_int's own docstring (gh-sync.py:515-518), which records that
+      the coercion exists because reading a quoted "7" as ABSENT once made gh-sync create a duplicate
+      parent or milestone. So refusing would have reopened a closed incident. D-16 carries the decision,
+      its trade-off and its drift detector; the enumeration above is preserved unaltered because a
+      superseded record is still the record (rule 15).
+    dec: none
+  - id: D-15
+    choice: |-
+      The unit assertions for the two new refusals are SPLIT across the two existing test tasks
+      rather than carried by a new one. T-03 carries the per-reader load_factory guard variants and
+      the absent-path controls; T-05 carries the cross-reader parity rows. No sixth task is minted.
+    because: |-
+      T-03 already owns the load_factory-only unit file, tests/unit/test-factory-decompose-loader.py,
+      with the exact tempdir plus redirect_stderr plus EXIT_REFUSED check shape the new guards need,
+      and it already depends on T-02, so the assertions land after the change they grade. The three
+      non-mapping document variants - list, string, int - are ONE guard, so exercising all three
+      belongs in the per-reader file; the parity set pins CROSS-READER agreement and needs one
+      representative per class, not three near-identical rows. T-05 gains the two closed classes as
+      parity rows plus a block-key-absent row and a duplicate-key row, which is what makes its set
+      span the table in both directions - inputs where load_recorded refused and load_factory did
+      not, and the duplicate-key row where load_factory refused and load_recorded did not.
+      A sixth task was REJECTED: both files already exist in the plan, both already depend on T-02,
+      and a new task would add a scheduler edge plus a third file of assertions for behaviour their
+      owners can carry. The cost of the split is that no single file holds the whole closure set; it
+      is accepted because the two files answer different questions, and SC-06 grades the source
+      guards independently of both. Machine fields stay inside check-plan-routes.py's 50-line
+      per-task cap because only intent grows, and intent is not counted.
+    dec: none
+  - id: D-16
+    choice: |-
+      The wrong-typed-members row is closed by ALIGNING load_factory onto gh-sync's TOLERANCE, not
+      by making load_factory refuse. load_factory REIMPLEMENTS _opt_int's four lines as a nested
+      helper inside itself; it does not import them, and gh-sync.py's _opt_int is not edited. The
+      duplicate is protected by T-05's cross-reader parity rows, which feed the SAME bytes to BOTH
+      readers and assert the VALUES they read are EQUAL. D-14's "exactly ONE measured divergence
+      survives" is SUPERSEDED by this decision.
+    because: |-
+      THE DIRECTION IS THE WHOLE DECISION, and the obvious fix is the wrong one. _opt_int is not
+      laxity: its docstring (gh-sync.py:515-518) records its own incident - the coercion "tolerates
+      the quoted form the old (\d+) regex silently read as ABSENT - and 'absent' here meant gh-sync
+      believed nothing was recorded and would create a duplicate parent or milestone." So making
+      load_factory admit only real ints REINTRODUCES that incident: a legacy-quoted "parent": "7"
+      reads as no parent. This row therefore differs from the five fail-open rows D-14 closed -
+      there the empty read came from a MISSING guard, here it would come from a STRICTER one, so
+      refusing would look like tightening while reopening a closed incident.
+      MEASURED, in this worktree at 6cb113f4 on 2026-09-11, one feature.json holding
+      {"github": {"parent": "7"}, "factory": {"parent": "7", "repo": "a/b"}}: load_recorded returns
+      parent 7, load_factory returns parent None. On {"parent": " 7 "} the same split appears. On
+      {"parent": true} both already return None, because _opt_int excludes bool explicitly and
+      load_factory's isinstance guard excludes it too - that row AGREES before the change and is
+      the control that reddens if the copy is written without the bool exclusion.
+      THE TRADE-OFF, and why reimplementation won. Three options were live.
+      ONE, IMPORT _opt_int. Rejected as not reachable without new machinery: gh-sync.py is
+      HYPHEN-named, so import gh_sync cannot resolve it, and reaching the helper would need
+      importlib.util.spec_from_file_location, which in this repo appears only in TEST support
+      (tests/integration/gh_sync_support.py:844-850) and in no reader - grep of
+      factory_decompose.py for gh-sync, gh_sync, _opt_int and spec_from_file_location returns
+      PROSE references only, zero imports. Importing would also couple two deliberately separate
+      CLIs at their readers.
+      TWO, HOIST the helper into a module both already import. Rejected: it would edit
+      factory_decompose.py and gh-sync.py OUTSIDE load_factory and load_recorded, which the
+      BRIEF's own Constraints forbid, and it would touch gh-sync's coercion, which this segment
+      forbids in both directions.
+      THREE, REIMPLEMENT the four lines inside load_factory. CHOSEN. What it gives up is real and
+      is the exact defect class BUG-285 exists to close: a second copy that can DRIFT. What stops
+      it is not discipline but a detector - T-05's parity rows feed the SAME bytes to BOTH readers
+      and assert the values read are EQUAL, so a change to either copy alone reddens
+      run-unit-tests.sh --kind unit. A duplicate with a behavioural equality detector is a
+      different risk from a duplicate with only a comment, and that is what makes option three
+      acceptable where it otherwise would not be.
+      WHAT THIS FALSIFIES AND WHERE IT IS AMENDED. D-06's enumeration, D-09's pre-change figure,
+      D-14's WHAT SURVIVES block, SC-14, SC-15, BRIEF Risk and BRIEF Verification gaps are all
+      amended in the same pass (2026-09-11). No record is deleted; each is superseded in place with
+      its reason and date, the form D-08 established.
+    dec: none
+panel:
+  last_run: 2026-09-11-02-planpanelc2-validator
+  cycle: 2
+  readers:
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-2242299b369215b13ad577fe4279d52e
+    severity: info
+    reader: should-not-exist
+    summary: "SC-03's mutation probe is demonstration, not coverage \u2014 its redness\
+      \ is analytically entailed by SC-01 plus gh-sync.py:523-554, and its delivery\
+      \ chain (note to DIGEST to orchestrator pathspec commit to git-show grading)\
+      \ is the likeliest source of a false not_met at build time."
+    disposition: open
+  - id: PF-cceab610738069ec6ea1a56ddc058195
+    severity: info
+    reader: should-not-exist
+    summary: Doubled mutation-probe ceremony (SC-03 + SC-09) doubles the note-delivery-chain
+      exposure the cycle-0 finding named without adding evidence; both probes' redness
+      is analytically entailed by the two-directional fixture checks in SC-01/SC-07.
+    disposition: open
+  - id: PF-142f3a51c0d0152899db48cf7cbdfe31
+    severity: low
+    reader: should-not-exist
+    summary: "`notes/research-BUG-285-panelfix-c2.md` claims \"check-plan-routes.py\
+      \ `<plan>` \u2192 exit 0, 0 violation(s)\" but the checker measured in this\
+      \ worktree exits 1 with a DEVIATION line and \"1 violation(s)\" (team-config\
+      \ skew, pre-existing); the fix record's verification claim does not reproduce\
+      \ where it says it was run."
+    disposition: open
+  - id: PF-a5b9a3c81ee99295515d75f5a776ebae
+    severity: low
+    reader: should-not-exist
+    summary: "BRIEF SC-11 specifies the non-UTF-8 refusal \"in one check\" landing\
+      \ as \"a fourth named check\", while T-03's intent check 4 mandates the same\
+      \ assertions split across TWO named checks (positive refusal in one, the no-\"\
+      unexpected failure\"/no-\"UnicodeDecodeError\" negatives in a second) \u2014\
+      \ the builder cannot satisfy both letters at once."
+    disposition: open
+  - id: PF-573413a9f130ec9517e24f31b7a5bf68
+    severity: high
+    reader: scope
+    summary: "T-02's DECIDED except clause `(json.JSONDecodeError, OSError)` in `load_factory`\
+      \ omits `UnicodeDecodeError`, so a non-UTF-8 `feature.json` crashes uncaught\
+      \ into `factory_cli.run`'s generic handler and prints an exception class name\
+      \ \u2014 the exact issue-#208 regression REQ-06 requires to not happen \u2014\
+      \ and no verify or SC in the plan exercises that input."
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-1e2dcbc0764691e922d15d780e6c7e06
+    severity: high
+    reader: should-not-exist
+    summary: "T-02's DECIDED except clause `(json.JSONDecodeError, OSError)` in `load_factory`\
+      \ omits `UnicodeDecodeError`, so a non-UTF-8 `feature.json` crashes uncaught\
+      \ into `factory_cli.run`'s generic handler and prints an exception class name\
+      \ \u2014 the exact issue-#208 regression REQ-06 requires to not happen \u2014\
+      \ and no verify or SC in the plan exercises that input."
+    disposition: resolved
+    resolved_by: T-02
+tasks:
+  - id: T-01
+    title: Pin feature.json's JSON parser with a YAML-only fixture in the gh-sync integration suite
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: []
+    status: ready
+    files:
+    - tests/integration/test-gh-sync-open.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-open.py
+    intent: |
+      Add ONE new case block to tests/integration/test-gh-sync-open.py that pins load_recorded's choice
+      of parser for feature.json: a document a YAML loader accepts as a mapping and a JSON parser
+      rejects must be REFUSED. No production-code change is in scope.
+
+      WHAT THIS TASK EDITS AND WHAT IT ONLY RUNS. It EDITS exactly one repository file,
+      tests/integration/test-gh-sync-open.py, plus its own notes file under this feature's notes/
+      directory. It RUNS that same pole file as its verify and nothing else. Do NOT edit
+      .claude/skills/harness/bin/gh-sync.py (T-04 owns that file), do NOT edit
+      tests/unit/test-feature-json-readers.py (T-05 creates it), and do NOT edit
+      tests/integration/gh_sync_support.py or any other pole file - the support module is shared by all
+      five poles, so an edit there is an edit to four suites you are not verifying.
+
+      WHERE THE FILE WENT, and why every anchor below was re-measured. THE OLD MONOLITH IS GONE. The single gh-sync integration file this task used to name no longer
+      exists: commit efcebe2d (issue 1527) split it into five pole files -
+      test-gh-sync-open.py, -record.py, -ship.py, -start-task.py, -abandon.py - plus the shared
+      tests/integration/gh_sync_support.py. Every line number in this task was re-derived in this
+      worktree at 6cb113f4 after that merge. The reader-contract cases this task joins - the ones that
+      call load_recorded DIRECTLY rather than driving a subcommand - live in test-gh-sync-open.py, and
+      in no other pole file (D-12). Re-read the anchors before you edit; if one has drifted, re-locate
+      by the literal strings quoted below rather than by number.
+
+      WHY (state this in the block's own comment): load_recorded at gh-sync.py:527 parses with
+      json.loads(text) at :566 inside a try whose except at :567 raises SystemExit("... does not parse
+      ...") at :572-574, and has a second guard, "if not isinstance(doc, dict)", at :578. Every existing
+      fixture in the region is JSON, and JSON is a YAML subset, so all of them load identically under
+      either parser. The zero-byte fixture at test-gh-sync-open.py:426-442 (the case named 'fix1 B row2:
+      a 0-byte feature.json raises SystemExit, never loads as empty') cannot detect a swap either,
+      because a YAML loader returns None for the empty string, so that document is refused by the
+      isinstance guard rather than by the parse guard. The parse guard is therefore unpinned.
+
+      INSERTION POINT: immediately after the T-06 Part C case 2 check that ENDS at
+      test-gh-sync-open.py:399 - its check() call opens at :396 and is named 'T-06C: a feature.json with
+      no github: block returns the default, does not raise' - and before the fix1 Part B comment block
+      that begins at :401 with '---------- fix1 Part B: three states must stay distinct'. If those line
+      numbers have drifted, re-locate by those two literal strings.
+
+      HELPERS ALREADY AVAILABLE, use the names the file already imports and add no import for them:
+      check(name, cond, detail), load_gh_sync() and nested_feature_dir(feat_name) are imported BY NAME
+      from gh_sync_support at test-gh-sync-open.py:22-25. Call them unqualified; do not re-import them,
+      do not qualify them with the module, and do not add a name to that import list unless you need a
+      helper that is not already in it. Their definitions, for reading only, are gh_sync_support.py:830
+      (check), :844 (load_gh_sync) and :144 (nested_feature_dir, which returns a fresh tempdir feature
+      directory). The gh-sync module handle _ghs is ALREADY BOUND at test-gh-sync-open.py:361 by
+      _ghs = load_gh_sync(), above your insertion point - reuse it, do not load the module again. json
+      is imported at :16 and os at :17.
+
+      THE ONE IMPORT YOU MUST ADD. harness_yaml is NOT imported by test-gh-sync-open.py. Add exactly
+
+          import harness_yaml
+
+      to that file's own stdlib import block at :16-20, keeping the block's alphabetical order. It
+      resolves because :13-14 already put the real .claude/skills/harness/bin on sys.path;
+      tests/integration/test-gh-sync-start-task.py:25 carries that exact line as precedent. Add no other
+      import.
+
+      WHAT TO WRITE, in this order:
+
+      1. The fixture text, as a python string literal, exactly:
+         "feature_id: F1\ngithub:\n  parent: 40\n"
+         That is a YAML block mapping: valid YAML, invalid JSON.
+
+      2. The discriminating property, asserted in BOTH DIRECTIONS as two separate named checks. One
+         half alone is not enough: if only the YAML half is asserted, a later edit can turn the
+         fixture into plain JSON and the case silently degrades into a meaningless
+         'malformed input is rejected'.
+         - check that harness_yaml.load_str(text, "BUG-285 fixture") returns a dict equal to
+           {"feature_id": "F1", "github": {"parent": 40}} - so a YAML loader accepts it AS A MAPPING
+           and would reach past the isinstance guard at gh-sync.py:578.
+         - check that json.loads(text) raises ValueError - call it inside a try, and fail the check
+           if it returns instead of raising.
+
+      3. The refusal. Write the text to os.path.join(nested_feature_dir("FEAT-bug285-yaml-only"),
+         "feature.json"), call _ghs.load_recorded on that directory inside a try, and assert on the
+         MESSAGE: str(e) must contain the feature.json path AND the substring "does not parse". Both
+         conditions in one check, joined with and. Do NOT write an or-chain of alternative wordings
+         and do NOT accept a bare 'it raised' - an unrelated SystemExit must not satisfy this case.
+         If load_recorded returns instead of raising, emit a failing check whose detail is the
+         returned rec, in the same shape as the neighbouring case at test-gh-sync-open.py:436-442.
+
+      4. Change nothing else. Do not modify, rename, delete or retarget any existing check, fixture
+         or comment anywhere in the file.
+
+      THEN PROVE THE NEW ASSERTION CAN FAIL, as a throwaway probe that leaves no trace in the tree:
+
+      a. Write a throwaway python script in a tempdir, NOT in the repo tree.
+      b. shutil.copy the real .claude/skills/harness/bin/gh-sync.py into a tempdir. NEVER edit the
+         real file in place: .agents/skills is a symlink to .claude/skills, so that file is a single
+         inode reached by both spellings and an in-place probe edit is a live-tree edit.
+      c. In the COPY ONLY, replace the single parse call at :566, "doc = json.loads(text)", with
+         "doc = harness_yaml.load_str(text, path)". No new import is needed: gh-sync.py already
+         carries "import harness_yaml" (grep it), and load_str(text, where) is harness_yaml's general
+         YAML entry point. That one-token change is the whole mutant.
+      d. Insert the real bin directory at sys.path[0] - the same insert test-gh-sync-open.py does at
+         :13-14 - then load the copy with importlib.util.spec_from_file_location, so the copy's sibling
+         imports resolve out of the real bin directory. gh_sync_support.load_gh_sync() at :844-850 is
+         the working pattern to copy.
+      e. Assert the MUTANT does NOT raise on the fixture and returns parent 40. That is the red state
+         of the new assertion, and returning parent 40 also proves the probe reached the parse branch
+         rather than an earlier guard. Then load the REAL module the same way and assert it raises
+         SystemExit whose message contains "does not parse". Print both outcomes.
+      f. Record both transcripts verbatim, plus the exact commands you ran, in your own notes file
+         under this feature's notes/ directory - name it notes/qa-<runid>.md, the path your domain
+         grants - and LEAVE that file in place. Do NOT run git commit: the commit pen is the
+         orchestrator's (DEC-153), and it stages by explicit pathspec. Report the note's exact path as
+         your DIGEST artifact so the orchestrator commits it alongside the test change - SC-03 is
+         graded with "git show <review_sha>:<that path>", so a note absent from that commit grades
+         not_met however good the proof. Then delete the throwaway script and its tempdir. Nothing
+         under tests/ or .claude/ may be left changed by the probe.
+
+      FINALLY: run the verify command from the worktree root and record its exact tallies in the same
+      notes file - the exit code, the count of lines beginning "ok", and the count of lines beginning
+      "FAIL". The pre-change baseline, measured in this worktree at sha 6cb113f4 on 2026-09-11, is exit
+      0 with 79 "ok" and 0 "FAIL" in 10.6s wall, so afterwards expect exit 0, more than 79 "ok", and 0
+      "FAIL". The FAIL-line count IS the right measure for this pole file - it prints no line beginning
+      "FAIL" on a green run, so any such line is a real failure. Capture the exit status into a shell
+      variable on the same line as the command, never from $? after a pipe: $? after a pipe reports the
+      pipe's last stage, and that has already produced one wrong measurement on this feature. The
+      "env -u HARNESS_AGENT_TYPE" prefix is load-bearing: without it the agent tool's environment leaks
+      into the test subprocesses.
+  - id: T-02
+    title: Replace load_factory's YAML loader with a JSON read, refuse a present-but-unusable feature.json, align its integer coercion with gh-sync's tolerance, and preserve the issue 208 refusal shape
+    traces:
+    - REQ-05
+    - REQ-06
+    - REQ-11
+    - REQ-12
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/factory_decompose.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-factory-decompose.py
+      env -u HARNESS_AGENT_TYPE python3 -c "
+      import sys, os, io, json, tempfile, contextlib
+      sys.path.insert(0, '.claude/skills/harness/bin')
+      import factory_decompose as fd
+      def run(payload):
+          d = tempfile.mkdtemp()
+          if payload is not None:
+              with open(os.path.join(d, 'feature.json'), 'wb') as fh:
+                  fh.write(payload)
+          err = io.StringIO()
+          try:
+              with contextlib.redirect_stderr(err):
+                  rec = fd.load_factory(d)
+          except SystemExit:
+              return 'refuse', err.getvalue()
+          return ('empty' if rec == fd._empty_factory() else 'populated'), rec
+      cases = [('yaml-only block mapping', b'factory:\n  repo: owner/name\n', 'refuse'),
+               ('top-level list', b'[1, 2]', 'refuse'),
+               ('top-level scalar string', json.dumps('x').encode(), 'refuse'),
+               ('top-level scalar int', b'3', 'refuse'),
+               ('factory key not a mapping', json.dumps({'factory': 'x'}).encode(), 'refuse'),
+               ('factory key absent', json.dumps({'feature_id': 'F1'}).encode(), 'empty'),
+               ('file absent', None, 'empty'),
+               ('quoted int parent coerces to 7', json.dumps({'factory': {'repo': 'a/b', 'parent': '7'}}).encode(), 7),
+               ('bool parent stays None', json.dumps({'factory': {'repo': 'a/b', 'parent': True}}).encode(), None)]
+      bad = 0
+      for name, payload, want in cases:
+          got, obs = run(payload)
+          ok = (got == 'refuse' and 'feature.json' in obs) if want == 'refuse' else (got == 'empty') if want == 'empty' else (got == 'populated' and obs.get('parent') == want)
+          bad += 0 if ok else 1
+          print(('ok   ' if ok else 'FAIL ') + name + ' -> ' + got + ' | ' + str(obs).strip()[:80])
+      sys.exit(0 if bad == 0 else 1)
+      "
+    intent: |
+      Change ONE function, load_factory, in .claude/skills/harness/bin/factory_decompose.py. Edit no
+      other function in that module, no test file, and not gh-sync.py.
+
+      WHAT IS WRONG. load_factory begins at line 111. Line 112 computes
+      path = os.path.join(feat_dir, "feature.json"). Line 121, inside a try opened at 120, does
+      doc = harness_yaml.load_file(path) - a YAML loader reading a JSON file. Line 122 catches
+      harness_yaml.YamlParseError, line 123 calls factory_cli.refuse. The two loaders genuinely
+      disagree in BOTH directions, measured 2026-09-11 - a YAML loader accepts a hash comment, a
+      single-quoted string, an unquoted scalar and a block mapping that json.loads rejects, and
+      json.loads accepts a duplicate key (last one wins) that harness_yaml refuses with
+      DuplicateKeyError.
+
+      AND A SECOND DEFECT, ruled in by the operator on 2026-09-11 (D-14). A feature.json that is
+      PRESENT but does not parse to a usable record returns the SAME empty record as a file that is
+      ABSENT, so absence and corruption are indistinguishable to the one caller
+      (factory_decompose.py:515 in _main(), which then re-creates every issue that already exists -
+      see notes/research-BUG-285-caller-survey.md). Four measured input classes reach it: a document
+      that parses to a top-level list, to a top-level scalar string, to a top-level scalar int, and a
+      document whose own factory key is PRESENT and is not a mapping. All four must now REFUSE. What
+      must NOT change is the ABSENT case: an absent feature.json, and a present mapping whose factory
+      key is ABSENT, both keep returning the empty record - a feature that has never synced has no
+      record. See item 5, which is the whole point of this task and not a footnote.
+
+      AND A THIRD DEFECT, ruled in by the operator's supplementary ruling of 2026-09-11 (D-16). The
+      two readers disagree about the VALUE they read out of a well-formed block: a legacy-quoted
+      "parent": "7" reads as 7 through gh-sync's load_recorded and as NO PARENT through load_factory.
+      That is the same incident class arriving by coercion policy rather than by a type guard, and
+      item 6 closes it by making load_factory ADOPT gh-sync's tolerance.
+
+      THE CHANGE, precisely.
+
+      1. load_file did the READ as well as the PARSE. json.loads does not, so you must now open the
+         file with open(path, encoding="utf-8"), read the text, and parse it with json.loads - all
+         three inside the try. json is already imported at line 35 - do not add a second import.
+         Leave the harness_yaml import at line 46 alone, load_plan at line 480 still uses it.
+
+      2. The except clause becomes, exactly,
+
+             except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+
+         This is DECIDED, do not substitute your own judgement, and DO NOT SHORTEN THE TUPLE. The
+         two-name version of this clause was the plan's own defect, found by both plan-panel readers
+         at cycle 1 and by the validator lead at source: it omitted UnicodeDecodeError.
+
+         WHY UnicodeDecodeError MUST BE NAMED. Measured in this worktree 2026-09-11:
+         issubclass(json.JSONDecodeError, ValueError) is True, issubclass(UnicodeDecodeError,
+         ValueError) is True, issubclass(UnicodeDecodeError, json.JSONDecodeError) is FALSE and
+         issubclass(UnicodeDecodeError, OSError) is FALSE. So naming JSONDecodeError and OSError does
+         NOT reach it. A feature.json whose bytes are not valid UTF-8 (b"\xff\xfe..." reproduces it)
+         raises UnicodeDecodeError out of the read, which would escape load_factory entirely and land
+         in factory_cli.run's generic handler at factory_cli.py:88-96, printing
+         "unexpected failure: {type(exc).__name__}: {exc}" - the exact CLASS NAME leak issue 208
+         exists to prevent and REQ-06 requires to survive exactly. The reader you are replacing
+         absorbed it deliberately in a SECOND, SEPARATE arm at harness_yaml.py:259, whose comment
+         says in terms: "NOT an OSError. Named separately so the next reader does not simplify the
+         pair into except OSError and quietly restore the fail-open." Do not simplify it here either.
+
+         FORM CHOSEN, AND WHAT IT GIVES UP. The explicit three-name tuple was chosen over two live
+         alternatives:
+         - A bare except ValueError, the common ancestor of json.JSONDecodeError and
+           UnicodeDecodeError. It would cover both in one name and would absorb any future ValueError
+           this read-and-parse pair grows. REJECTED, and the original reason still holds: a bare
+           ValueError is broader than the failures actually expected here and would report an
+           unrelated ValueError raised deeper in the call to the operator as an invalid feature.json.
+           The try body is two statements, so the breadth buys nothing today while blurring the
+           diagnosis.
+         - A read-then-parse split, two trys each with its own guard. It could distinguish "cannot
+           read" from "does not parse". REJECTED: item 3 fixes refuse()'s message byte for byte, so
+           both arms would emit the identical message - the split adds a branch with no observable
+           difference.
+         What the tuple gives up: it is a HAND-MAINTAINED list, so a failure mode of the read-and-
+         parse pair that is none of the three escapes to the generic handler. That is the defect this
+         amendment fixes once; what stops it recurring is not the tuple but BRIEF SC-06 (which now
+         grades the COVERAGE, not the spelling) and BRIEF SC-11 (which runs a non-UTF-8 feature.json
+         through load_factory and asserts the observable refusal).
+
+      2b. EVERY FAILURE MODE load_file ABSORBED, and where each one now lands. load_file
+         (harness_yaml.py:254-263) plus load_str (:224-242) raised YamlParseError or a subclass for
+         all of the following, and line 122 caught the lot. Confirm each is covered:
+         - Missing feature.json. FileNotFoundError, an OSError. Mostly PRE-EMPTED by the
+           os.path.exists early return at lines 114-115, which returns the empty factory without
+           opening the file - an absent feature.json is a DEFAULT, not a refusal, and that must not
+           change. The OSError arm still covers the race where the file disappears between that check
+           and the open.
+         - feat_dir holds a DIRECTORY named feature.json. os.path.exists returns True, so the early
+           return does not cover it; open raises IsADirectoryError, an OSError. Covered by arm 3.
+         - Unreadable file (permissions). PermissionError, an OSError. Covered by arm 3.
+         - Bytes not decodable as UTF-8. UnicodeDecodeError. Covered by arm 2 - and ONLY because arm
+           2 is there. This is the finding.
+         - Malformed document text. json.JSONDecodeError. Covered by arm 1.
+         - A document that parses to a list, a scalar or null. Never an exception under either reader.
+           It is handled by the type guard at line 124, which item 5 now turns into a REFUSAL.
+         - DUPLICATE KEY. Behaviour CHANGES here, deliberately and with no new handling owed.
+           harness_yaml raised DuplicateKeyError, a YamlParseError subclass (verified), so
+           load_factory refuses such a file today; json.loads returns last-one-wins and refuses
+           nothing. This consequence is already recorded for the operator in BRIEF's Constraints
+           ("nothing may emit a duplicate key, which JSON accepts silently") and Risk, so the
+           enumeration is complete without a new arm. Do not add one. After the change both readers
+           accept such a document, last key wins, and NEITHER detects the duplicate any more - that
+           residual is recorded as KNOWN AND DELIBERATE in BRIEF Risk and enumerated by SC-15.
+         - PyYAML not installed. load_str raised MissingDependency, also a YamlParseError subclass
+           (verified), so today an absent PyYAML turns every feature.json read into a refusal. json is
+           stdlib, so this failure mode DISAPPEARS. Nothing to catch.
+         - Pathological nesting. json.loads raises RecursionError, which is NOT a ValueError.
+           Measured: 2000 and 20000 nesting levels parse fine, 200000 raises. Deliberately NOT in the
+           tuple - a hand-written or tool-written feature.json cannot plausibly reach that depth, and
+           catching it would reintroduce exactly the breadth rejected above. Recorded here so the next
+           reader can see it was considered, not missed.
+
+      WHAT MUST NOT CHANGE. This is the point of the task, not a footnote.
+
+      3. The refusal call stays byte for byte as it is at line 123 -
+         factory_cli.refuse(TOOL, "feature.json invalid", path, f"does not load: {e}"). Same tool,
+         same what, same value, same next-step wording. It NAMES THE FILE through the path argument,
+         and refuse() ends in sys.exit(EXIT_REFUSED), a SystemExit, which factory_cli.run()
+         propagates unwrapped rather than re-wrapping as an unexpected failure. Issue 208 exists
+         exactly because a malformed feature.json once raised past factory_cli.run's expected tuple
+         and printed a CLASS NAME instead of naming the file. That observable behaviour - the file is
+         named, the exit is a SystemExit with EXIT_REFUSED, no class name and no unexpected failure
+         wording reaches the operator - is preserved without change, and it must hold for EVERY input
+         enumerated in 2b and for both new refusals in item 5, the non-UTF-8 one included.
+
+      4. The history comment at lines 116 to 119 is UPDATED, NEVER DELETED. It is the record of why
+         the refusal is shaped this way. Keep its issue 208 clause and add three clauses: first, that
+         the reader is now a JSON parse because feature.json is JSON, that the except arms are
+         json.JSONDecodeError, UnicodeDecodeError and OSError, and that UnicodeDecodeError is named
+         because it is a ValueError but not a JSONDecodeError and not an OSError - so a later reader
+         cannot shorten the set back without contradicting the comment in front of them; second, that
+         a PRESENT feature.json which parses to a non-mapping, or whose factory key is present and is
+         not a mapping, REFUSES, while an absent file and an absent factory key return the empty
+         record, because absence and corruption must be distinguishable (BUG-285, D-14); third, that
+         the integer-valued members are coerced the way gh-sync.py's _opt_int coerces them, and that
+         the tolerance is deliberate rather than laxity - see item 6 for the wording that must survive.
+
+      5. THE TWO NEW REFUSALS, AND THE ABSENT PATH THAT MUST SURVIVE THEM. This replaces the earlier
+         instruction to keep the non-mapping guard returning the empty factory; that instruction is
+         superseded by D-14 and contradicts the operator's ruling. Write exactly this shape, in this
+         order, immediately after the try/except:
+
+         5a. The document guard at lines 124-125 becomes a REFUSAL, not a return:
+
+                 if not isinstance(doc, dict):
+                     factory_cli.refuse(TOOL, "feature.json invalid", path,
+                                        "does not hold a JSON object, so what is already mirrored "
+                                        "cannot be known")
+
+             Same TOOL, same what ("feature.json invalid"), same value (path, which is what names the
+             file), only a different next-step clause. Do NOT put a type name or an exception class
+             name in the next step: factory_cli.message's own docstring (factory_cli.py:40-42) says
+             value is the thing the operator can act on, and every unit check on this path asserts
+             that no class name reaches stderr. This closes three measured rows at once - a top-level
+             list, a top-level scalar string and a top-level scalar int.
+
+         5b. The block-key guard at lines 126-128 is SPLIT IN TWO, and the split is the whole point:
+
+                 if "factory" not in doc:
+                     return factory
+                 f = doc["factory"]
+                 if not isinstance(f, dict):
+                     factory_cli.refuse(TOOL, "feature.json invalid", path,
+                                        "has a factory key that is not a JSON object, so what is "
+                                        "already mirrored cannot be known")
+
+             ABSENT stays a DEFAULT: a mapping that simply has nothing recorded yet is a legitimate
+             first sync, and all 80 feature.json files under .harness/*/features/*/ are in exactly
+             that state (measured in this worktree at 6cb113f4), so collapsing the split into a single
+             refusal would turn every live feature into a refusal. PRESENT AND NOT A MAPPING refuses.
+             Note that doc.get("factory") cannot distinguish the two - a recorded JSON null and an
+             absent key both give None - so the membership test must come first and the value must be
+             read with doc["factory"], not with .get.
+
+         5c. THE SHAPE IS NOT INVENTED, and you can read it in the other reader before you write it.
+             load_recorded already carries this exact pair: "github" not in doc returns the default
+             record at gh-sync.py:583-586, a present non-mapping github value refuses at :588-594, and
+             a document parsing to a non-mapping refuses at :578. Read those three sites first; you
+             are converging load_factory onto a shape that reader has carried since FEAT-14, which is
+             why four table rows close with no new task.
+
+         5d. WHAT THE ABSENT PATH IS AND WHAT PROVES IT. Line 114-115 - the os.path.exists early
+             return - is the line that must still return the empty record for an absent file, and it
+             is untouched by every edit above. The new membership test in 5b is what keeps the
+             present-mapping-with-no-factory-key case returning it too. Both are pinned by the
+             'factory key absent' and 'file absent' cases of your verify block, which assert the
+             returned record is EQUAL to _empty_factory(), and durably by T-03's absent-path checks
+             and T-05's two accept rows. If either of those two cases in your verify turns into a
+             refusal, STOP - you have broken the half of the ruling that says an unsynced feature has
+             no record.
+
+      6. THE COERCION ALIGNMENT - the LAST measured divergence, and it closes IN THIS DIRECTION.
+         load_factory ADOPTS gh-sync's tolerance (D-16). Do NOT make it refuse a wrong-typed member,
+         and do NOT edit gh-sync.py's _opt_int - that helper is out of scope in BOTH directions.
+
+         6a. THE INCIDENT THIS DEFENDS, stated here because a builder who does not know it will
+             "simplify" the coercion away as laxity. gh-sync.py's _opt_int (:512-524) carries its own
+             incident in its docstring (:515-518): the coercion "tolerates the quoted form the old
+             (\d+) regex silently read as ABSENT - and 'absent' here meant gh-sync believed nothing
+             was recorded and would create a duplicate parent or milestone." So a legacy-quoted
+             "parent": "7" read as NO PARENT is the FEAT-14 incident class itself. Measured live in
+             this worktree at 6cb113f4, one feature.json holding
+             {"github": {"parent": "7"}, "factory": {"parent": "7", "repo": "a/b"}}: load_recorded
+             returns parent 7, load_factory returns parent None. Making load_factory REFUSE such a
+             member would LOOK like tightening while reopening a closed incident - unlike item 5's
+             rows, where the empty read came from a MISSING guard, here it would come from a STRICTER
+             one. That is why this row is aligned and never refused.
+
+         6b. WHICH MEMBERS. Exactly the integer-valued members load_factory records today, and no
+             others: parent at lines 133-135, and the VALUES of the issues mapping at lines 137-141.
+             repo stays a str check; items, edges and typed are untouched. Re-read the function before
+             you edit and confirm that member list yourself rather than trusting this list.
+
+         6c. HOW - reimplement, do not import. Define ONE nested helper INSIDE load_factory (the
+             BRIEF's Constraints permit editing this module only inside this function, so a
+             module-level helper is out of bounds) and call it from both sites. Match _opt_int BY
+             VALUE, exactly:
+
+                 def _as_recorded_int(v):
+                     # Mirrors gh-sync.py's _opt_int (:512-524) BY VALUE, duplicated deliberately
+                     # (BUG-285 D-16): gh-sync.py is hyphen-named, so it cannot be imported. bool is
+                     # excluded because it is an int subclass in Python, so `parent: true` would
+                     # otherwise become 1. Drift between this copy and _opt_int is caught by
+                     # tests/unit/test-feature-json-readers.py, which feeds the SAME bytes to BOTH
+                     # readers and asserts the values they read are EQUAL.
+                     if v is None or isinstance(v, bool):
+                         return None
+                     if isinstance(v, int):
+                         return v
+                     s = str(v).strip()
+                     return int(s) if s.isdigit() else None
+
+             Then the two member reads become:
+
+                 parent = _as_recorded_int(f.get("parent"))
+                 if parent is not None:
+                     factory["parent"] = parent
+
+                 issues = f.get("issues")
+                 if isinstance(issues, dict):
+                     for k, v in issues.items():
+                         n = _as_recorded_int(v)
+                         if n is not None:
+                             factory["issues"][str(k)] = n
+
+             Keep both "is not None" tests. _empty_factory already seeds parent as None (line 103) and
+             issues as {} (line 104), so a member that coerces to None must leave the default alone
+             rather than write None over it, and a non-coercible issues value must not enter the map.
+
+         6d. WHY DUPLICATED AND NOT IMPORTED - the trade-off, decided in D-16 and not yours to
+             re-open. Importing is not reachable without new machinery: gh-sync.py is HYPHEN-named, so
+             import gh_sync cannot resolve it, and reaching _opt_int would need
+             importlib.util.spec_from_file_location, which in this repo appears only in TEST support
+             (tests/integration/gh_sync_support.py:844-850) and in no reader. Hoisting the helper into
+             a module both already import would edit both files OUTSIDE the two functions this feature
+             may touch. So the four lines are duplicated, and what stops the copy drifting is not
+             discipline but T-05's cross-reader parity rows, which feed the SAME bytes to BOTH readers
+             and assert the values they read are EQUAL - so a later change to either copy alone
+             reddens the unit suite.
+
+         6e. HOW THIS COMPOSES WITH ITEM 5, and the order matters. The refusals in 5a and 5b sit ABOVE
+             the member reads and are unchanged by this item. A wrong-typed MEMBER is not a refusal:
+             the document is a mapping and the factory key is a mapping, so control reaches the member
+             reads and the coercion decides the value. Do not hoist any refusal above the coercion,
+             and do not turn a coercion miss into a refusal - either would contradict SC-16 and the
+             tolerance this item mandates at the same time.
+
+      TEST-FIRST, and why it looks inverted here. The durable tests for this change are T-03's and
+      T-05's, which depend on you and land after. Your test-first obligation is discharged by the
+      inline behavioural probe in verify - the python3 -c command that runs NINE inputs through
+      load_factory in fresh tempdirs and demands five refusals, two empty records and two coerced
+      values. RUN IT BEFORE YOU EDIT and record which cases fail. Measured pre-change in this worktree
+      at 6cb113f4, verbatim verdicts: yaml-only block mapping -> populated, top-level list -> empty,
+      top-level scalar string -> empty, top-level scalar int -> empty, factory key not a mapping ->
+      empty, factory key absent -> empty (ok), file absent -> empty (ok), quoted int parent coerces to
+      7 -> populated with parent None, bool parent stays None -> populated with parent None (ok). SIX
+      lines print FAIL and it exits 1. Then run it after and record that it exits 0 with nine ok lines.
+      That observed red-then-green is the evidence this task owes, and your DIGEST must quote both
+      runs. Note that 'bool parent stays None' is GREEN both before and after: it is the control that
+      reddens if the coercion is reimplemented without the bool exclusion, not an able-to-fail proof.
+      Separately, and by hand in a tempdir (add nothing under tests/), write a feature.json in BINARY
+      mode whose first bytes are b"\xff\xfe", call load_factory on that directory, and record that it
+      exits via SystemExit naming the file rather than printing
+      "unexpected failure: UnicodeDecodeError" - that is the input the old two-name set dropped, and
+      your DIGEST must quote the output.
+
+      HOW THE UNIT RUNNER IN YOUR VERIFY IS GRADED. The first verify command,
+      run-unit-tests.sh --kind unit, is GRADED ON EXIT STATUS ONLY, and that status is captured into
+      a shell variable ON THE COMMAND'S OWN LINE - never read from $? after a pipe, because $? after
+      a pipe reports the pipe's last stage, and that has already produced one wrong measurement on
+      this feature. Baseline measured in this worktree on 2026-09-11 at 6cb113f4: exit 0, 36 files,
+      2.4s wall - and FOUR lines beginning "FAIL " on that GREEN run, because one unit test
+      deliberately reddens its own cases to prove its mutant is live (the block printing
+      "MUTANT ACTIVE" and "MUTATION PROOF: 3/3 cases reddened"). Do NOT assert a FAIL-line count for
+      this command and do not report a non-zero count as a regression; report the exit status.
+
+      Do not add anything under tests/ yourself, and do not run git commit - the commit pen is the
+      orchestrator's (DEC-153).
+
+  - id: T-03
+    title: Pin load_factory's JSON parser, its four new refusals and its unchanged absent path, in a unit file
+    traces:
+    - REQ-07
+    - REQ-08
+    - REQ-12
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-02]
+    status: ready
+    files:
+      - tests/unit/test-factory-decompose-loader.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-decompose-loader.py
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Add ONE new unit test file, tests/unit/test-factory-decompose-loader.py, pinning that
+      load_factory parses feature.json as JSON and that it now distinguishes an ABSENT record from a
+      PRESENT but unusable one. Edit no other file. Do not edit
+      .claude/skills/harness/bin/factory_decompose.py - T-02 already changed it and you depend on
+      that change being in the tree.
+
+      WHY A NEW FILE AND WHY THAT NAME. The kind is selected by directory (DEC-213) and the amended
+      D-03 requires the unit kind, so the test must live under tests/unit/. It cannot be called
+      test-factory-decompose.py - suite_layout.py's _unit_integration_findings refuses any test file
+      name that appears in both tests/unit/ and tests/integration/, and the integration suite already
+      owns that name.
+
+      SHAPE. Copy the harness of tests/unit/test-factory-cli.py - its anchor block at lines 11 to 15
+      that inserts .claude/skills/harness/bin on sys.path, its check(name, cond, detail) helper at
+      line 28, its FAILS and RAN counters, and its closing print plus sys.exit(1 if FAILS else 0).
+      Import factory_decompose, factory_cli, json, harness_yaml, os, tempfile and contextlib -
+      factory_cli is needed for EXIT_REFUSED in checks 3 to 8. Add no dependency that is not
+      already used by that file or by the module under test.
+
+      THE FIXTURE TEXT, as a python string literal, exactly:
+        "factory:\n  repo: owner/name\n"
+      A YAML block mapping. Valid YAML, invalid JSON. It is chosen so that under the OLD reader it
+      parses to a WELL-FORMED factory block - so a probe that accepts it also proves it reached the
+      parse branch and passed the type guard at line 124, rather than being turned back by an
+      earlier guard.
+
+      ONE SHARED REFUSAL HELPER, written once and used by checks 3 to 8. It takes a name and a BYTES
+      payload, makes a fresh tempfile.TemporaryDirectory, writes the payload to
+      os.path.join(tempdir, "feature.json") in BINARY mode, calls factory_decompose.load_factory on
+      that directory inside a try with stderr captured by contextlib.redirect_stderr, and returns the
+      (raised-SystemExit-or-None, exit code, captured stderr) it observed. Binary mode for every
+      payload, not text mode, because check 4's payload is not decodable as UTF-8 at all. Assert
+      OBSERVABLE BEHAVIOUR only, never a class name: do not assert on the phrase YamlParseError or
+      JSONDecodeError anywhere in this file.
+
+      THE CHECKS. Each is its own named check() call, and every name carries the input it feeds so a
+      red run names the input that broke.
+
+      1. harness_yaml.load_str(text, "BUG-285 fixture") returns a dict equal to
+         {"factory": {"repo": "owner/name"}}. A YAML loader accepts it AS A MAPPING.
+      2. json.loads(text) raises ValueError. Call it inside a try and FAIL the check if it returns
+         instead of raising.
+         Checks 1 and 2 are the discriminating property and they are asserted in BOTH DIRECTIONS on
+         purpose. One half alone rots - if only the YAML half is asserted, a later edit can turn the
+         fixture into plain JSON and the case silently degrades into a meaningless malformed input is
+         rejected.
+      3. The refusal of the YAML-only fixture, through the shared helper. Assert in one check, joined
+         with and: a SystemExit was raised, its code equals factory_cli.EXIT_REFUSED, and the captured
+         stderr CONTAINS the feature.json path. Do not accept a bare it raised. If load_factory
+         RETURNS instead of raising, emit a failing check whose detail is the returned factory dict.
+      4. The non-UTF-8 input (BRIEF SC-11), in TWO named checks - this split is what SC-11's letter
+         now matches, so do not merge them. Payload: the bytes b"\xff\xfetrash", which must be
+         UNDECODABLE as UTF-8, not merely malformed text.
+         4a, the positive: a SystemExit was raised, its code equals factory_cli.EXIT_REFUSED, and the
+         captured stderr CONTAINS the feature.json path - one check, joined with and.
+         4b, the negatives: the captured stderr contains neither the phrase unexpected failure nor
+         the string UnicodeDecodeError.
+         This is the input T-02's pre-amendment two-name catch set dropped; note in the check's
+         comment that it is green under the old YAML reader too, so its purpose is to stop the catch
+         set being narrowed again. Because of that it is a standing guard and NOT an able-to-fail
+         proof: do not write a red-then-green probe for it, and do not include it in the D-04 probe
+         below, which covers check 3 only.
+
+      THE FOUR NEW REFUSALS, checks 5 to 8. These are the rows the operator ruled in on 2026-09-11
+      (D-14): a feature.json that is PRESENT but does not carry a readable record must REFUSE rather
+      than return the empty record, because absence and corruption must be distinguishable. Each uses
+      the shared helper and asserts, in one check joined with and, that a SystemExit was raised, that
+      its code equals factory_cli.EXIT_REFUSED, and that the captured stderr contains the feature.json
+      path. Each also asserts the stderr contains no exception class name - reuse 4b's negative list.
+      5. b"[1, 2]" - a document parsing to a top-level LIST.
+      6. json.dumps("x").encode() - a document parsing to a top-level SCALAR STRING.
+      7. b"3" - a document parsing to a top-level SCALAR INT.
+         Checks 5 to 7 all reach the one type guard at factory_decompose.py:124, and all three are
+         written out rather than represented by one: they are the three measured rows of the parity
+         survey, and a single representative would leave two rows of the table unpinned here. The
+         cross-reader parity set in T-05 carries ONE representative instead, by D-15.
+      8. json.dumps({"factory": "x"}).encode() - the factory key PRESENT and not a mapping.
+
+      THE ABSENT PATH, checks 9 and 10, and they are the point of the split. The operator's ruling has
+      two halves and this file must pin BOTH: PRESENT-and-malformed refuses, ABSENT still returns the
+      empty record. Write both as named checks asserting that load_factory RETURNS - no SystemExit -
+      and that the returned record is EQUAL to factory_decompose._empty_factory(). Equality against
+      that function, not a spot-check of one field: it is what catches a future edit that starts
+      half-populating the default.
+      9. json.dumps({"feature_id": "F1"}).encode() - a PRESENT mapping whose factory key is ABSENT.
+         This is the row all 80 live feature.json files under .harness/*/features/*/ are in (measured
+         in this worktree at 6cb113f4), so it is the check that would redden if the split in T-02 item
+         5b were ever collapsed into a single refusal.
+      10. No feature.json written at all - the directory is empty. This is the os.path.exists early
+         return at factory_decompose.py:114-115, and it is the check that reddens if a future edit
+         moves the refusal above that guard. If either check 9 or check 10 is red, the fix has broken
+         the half of the ruling that says a feature which has never synced has no record.
+
+      ABLE-TO-FAIL, stated per check rather than assumed for the file. Checks 5 to 8 are red on the
+      PRE-CHANGE tree by direct measurement, so the pre-change tree IS their mutant and no copy needs
+      constructing: measured in this worktree at 6cb113f4, all four inputs RETURN the empty record
+      instead of refusing (notes/research-BUG-285-parity-survey.md). Checks 9 and 10 are CONTROLS -
+      green before and after by design - and are deliberately not able-to-fail proofs; their job is to
+      fail if a later edit over-reaches. Check 4 is the same kind of standing guard. Only check 3 gets
+      a constructed mutant, below.
+
+      THEN PROVE CHECK 3 CAN FAIL, following D-04's pattern, as a throwaway probe that leaves no trace
+      in the tree.
+
+      a. Write the probe script in a tempdir, NOT in the repo tree.
+      b. shutil.copy the real .claude/skills/harness/bin/factory_decompose.py into a tempdir. NEVER
+         edit the real file in place - .agents/skills is a symlink to .claude/skills, so that file is
+         one inode reached by both spellings and an in-place probe edit is a live-tree edit of
+         production code.
+      c. In the COPY ONLY, restore the pre-T-02 reader - put the explicit open-and-json.loads back to
+         doc = harness_yaml.load_file(path) and the except arms back to harness_yaml.YamlParseError.
+         Leave T-02's item 5 guards alone; reverting the PARSE alone is the whole mutant, and it is
+         what makes the YAML-only fixture parse to a well-formed mapping again.
+      d. Insert the real bin directory at sys.path[0], the same insert the unit files do, then load
+         the copy with importlib.util.spec_from_file_location so the copy's sibling imports resolve
+         out of the real bin directory.
+      e. Assert the MUTANT does NOT raise on the fixture and returns repo owner/name. That is the red
+         state of check 3, and the returned repo also proves the probe reached the parse branch
+         rather than an earlier guard. Then load the REAL module the same way and assert it raises
+         SystemExit and names the path. Print both outcomes.
+      f. Record both transcripts verbatim, plus the exact commands, in notes/qa-<runid>.md under this
+         feature's notes directory - the path your domain grants - and LEAVE that file in place.
+         SC-09 is graded with git show <review_sha>:<that path>, so a note absent from the commit
+         grades not_met however good the proof. Report the note's exact path as your DIGEST artifact.
+         Then delete the throwaway script and its tempdir. Nothing under tests/ or .claude/ may be
+         left changed by the probe.
+
+      FINALLY run both verify commands from the worktree root and record, in the same note, the exit
+      code of each. CAPTURE EACH EXIT STATUS INTO A SHELL VARIABLE on the command's own line, never
+      from $? after a pipe: $? after a pipe reports the pipe's last stage, and that has already
+      produced one wrong measurement on this feature. How each is graded:
+        - tests/unit/test-factory-decompose-loader.py run directly: exit status AND the count of
+          lines beginning FAIL, asserted directly rather than inferred from the exit code, because a
+          runner that counts a failure only when a detail string is non-empty can exit 0 while
+          printing FAIL lines. Your own file prints no such line when green.
+        - run-unit-tests.sh --kind unit: GRADED ON EXIT STATUS ONLY. Baseline measured in this
+          worktree on 2026-09-11 at 6cb113f4: exit 0, 36 files, 2.4s wall - and FOUR lines beginning
+          "FAIL " on that GREEN run, because one unit test deliberately reddens its own cases to
+          prove its mutant is live (the block printing "MUTANT ACTIVE" and "MUTATION PROOF: 3/3 cases
+          reddened"). Do NOT assert a FAIL-line count for this command and do not report a non-zero
+          count as a regression.
+      Do not run git commit - the commit pen is the orchestrator's (DEC-153).
+  - id: T-04
+    title: Make load_recorded refuse a non-UTF-8 feature.json and delete its dead except member
+    traces: [REQ-09, REQ-10, REQ-11]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on:
+    - T-01
+    status: ready
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 -c "
+      import importlib.util, os, sys, tempfile
+      BIN = '.claude/skills/harness/bin'
+      sys.path.insert(0, BIN)
+      spec = importlib.util.spec_from_file_location('ghs', os.path.join(BIN, 'gh-sync.py'))
+      m = importlib.util.module_from_spec(spec)
+      spec.loader.exec_module(m)
+      d = tempfile.mkdtemp()
+      with open(os.path.join(d, 'feature.json'), 'wb') as fh:
+          fh.write(bytes([0xff, 0xfe]) + b'trash')
+      accepted = False
+      escaped = None
+      msg = ''
+      try:
+          m.load_recorded(d)
+          accepted = True
+      except SystemExit as e:
+          msg = str(e)
+      except Exception as e:
+          escaped = type(e).__name__ + ': ' + str(e)
+      ok = (not accepted) and escaped is None and 'feature.json' in msg and 'UnicodeDecodeError' not in msg
+      if accepted:
+          print('FAIL: accepted a non-UTF-8 feature.json')
+      elif escaped is not None:
+          print('FAIL: escaped uncaught as ' + escaped)
+      elif ok:
+          print('OK refused: ' + msg.splitlines()[0])
+      else:
+          print('FAIL: refusal message unusable: ' + msg)
+      sys.exit(0 if ok else 1)
+      "
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-open.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-record.py
+    intent: |
+      Change ONE function, load_recorded, in .claude/skills/harness/bin/gh-sync.py. Edit no other
+      function in that module, no other production file, and no test file. T-05 writes the durable
+      test; do not write it yourself. In particular do NOT touch _opt_int at :512-524 - it is out of
+      scope in both directions (D-16), and T-02 aligns load_factory onto it rather than the reverse.
+
+      WHAT THIS TASK EDITS AND WHAT IT ONLY RUNS. It EDITS exactly one file,
+      .claude/skills/harness/bin/gh-sync.py. It only RUNS tests/integration/test-gh-sync-open.py and
+      tests/integration/test-gh-sync-record.py - the two gh-sync pole files with a measured baseline,
+      and the two that exercise load_recorded (the first calls it directly in its reader-contract block,
+      the second reaches it through the record subcommand). You must not edit either of them, nor
+      tests/integration/gh_sync_support.py. You carry depends_on T-01 for exactly that reason (D-13):
+      T-01 EDITS test-gh-sync-open.py, and a verify that runs a file another in-flight task is mid-edit
+      measures neither task's work.
+
+      WHAT IS WRONG, both halves, verified at source in this worktree at 6cb113f4. Re-read the
+      function before you edit - the line numbers below were re-derived after main was merged in,
+      and an earlier dispatch on this feature carried stale ones.
+
+      HALF ONE, the uncaught escape. load_recorded starts at line 527. Lines 558-560 open the file
+      with open(path, encoding="utf-8") and call f.read(). Line 561 catches OSError only, raising
+      SystemExit at 562-564 with the wording "... could not be read, so what is already mirrored
+      cannot be known. Refusing to sync rather than risk duplicate issues." A feature.json whose
+      BYTES ARE NOT VALID UTF-8 makes f.read() raise UnicodeDecodeError, which is NOT an OSError
+      (measured: issubclass(UnicodeDecodeError, OSError) is False; it is a ValueError). So that
+      input escapes load_recorded as a TRACEBACK. Measured in this worktree: writing
+      bytes([0xff, 0xfe]) + b"trash" to a feature.json and calling load_recorded raises
+      "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+      uncaught, and no SystemExit. The operator sees a stack trace where every other malformed
+      input produces a refusal.
+
+      HALF TWO, the dead arm. Line 565 opens a second try, line 566 is doc = json.loads(text), and
+      line 567 is except (ValueError, UnicodeDecodeError) as e:. text is already a str at that
+      point, and json.loads on a str can never raise UnicodeDecodeError - it raises
+      JSONDecodeError (measured). The UnicodeDecodeError member of that tuple can therefore never
+      fire. It reads as coverage of exactly the input half one lets escape, and it is not.
+
+      THE CHANGE, precisely. Two edits, no more.
+
+      1. Line 561 becomes, exactly:
+
+             except (OSError, UnicodeDecodeError) as e:
+
+         The message body at 562-564 is UNCHANGED, byte for byte, including the "could not be
+         read" wording and the trailing "\n  {e}". This placement is DECIDED (D-10): the decode
+         failure comes out of f.read(), inside this try, so "could not be read" is the truthful
+         message for it, and a separate third arm would emit an identical message with no
+         observable difference. Do not add an arm, do not reword the message, do not use {e!r} -
+         the refusal must not contain an exception class name, and str() of a UnicodeDecodeError
+         does not while repr() does.
+
+      2. Line 567 becomes, exactly:
+
+             except ValueError as e:
+
+         DELETE the dead UnicodeDecodeError member. KEEP ValueError - json.JSONDecodeError
+         subclasses it (measured) and that arm is live, and it is also what refuses a zero-byte
+         feature.json, which the comment at 568-571 records as the exact defect this reader exists
+         to prevent. Dropping ValueError, or narrowing it to json.JSONDecodeError, is a
+         REGRESSION and will be sent back. The message at 572-574 and the comment at 568-571 are
+         UNCHANGED.
+
+      WHAT MUST NOT CHANGE. The isinstance guard at line 578 stays exactly as it is - a document
+      that parses to a list or a scalar is not an error json.loads raises, so the type guard is
+      still load-bearing. The github-key guards at 583-594 stay, INCLUDING the split between
+      "github" not in doc returning the default record at 583-586 and a present non-mapping github
+      value refusing at 588-594: T-02 is converging load_factory ONTO that split (D-14), so
+      collapsing it here would break the parity T-05 then asserts. _opt_int at 512-524 stays
+      UNTOUCHED, including its docstring - T-02 converges load_factory's member coercion onto it
+      (D-16), so an edit here would move the target the other task is aiming at. No import is added:
+      nothing in these two edits needs one.
+
+      3. THE DOCSTRING AT LINE 528. Its first sentence says the reader is "converged with
+      factory_decompose.py's reader", and that claim is FALSE today: measured over 13 input classes
+      fed as identical bytes to both readers at 6cb113f4, NINE disagree
+      (notes/research-BUG-285-parity-survey.md). D-06 decides it is CORRECTED here, not confirmed and
+      not left.
+
+      DO NOT REPLACE IT WITH A CONVERGENCE CLAIM OF ANY KIND, qualified or not. Not "converged
+      except for", not "now converged", not "the one input that still diverges", not "converged on
+      every class measured". An unverifiable prose claim of convergence is what let the two readers
+      drift in the first place, and the same claim with a repaired scope is the same false-record
+      defect in a new spelling. What you write instead is an ENUMERATION of what was MEASURED,
+      claiming no completeness beyond it, in plain terms and inventing no new vocabulary. Cite
+      notes/research-BUG-285-parity-survey.md as where the enumeration was measured, and word the whole
+      passage as the classes this feature measured - never as all the classes there are.
+
+      Enumerate, in this order:
+        - WHAT BOTH READERS DO: an explicit UTF-8 read, then a json parse. Say it as a description of
+          the code, not as a claim about every possible input.
+        - BOTH LOAD THE RECORD: a valid JSON mapping.
+        - BOTH RETURN THE EMPTY OR ALL-NONE DEFAULT: an absent feature.json, and a mapping whose own
+          block key is absent. Say that this is deliberate - a feature that has never synced has no
+          record - so a later reader does not "fix" it into a refusal.
+        - BOTH REFUSE, by raising SystemExit whose observable output names the feature.json path: an
+          empty file, malformed JSON text, a YAML-only block mapping, bytes that are not valid UTF-8,
+          a document that parses to a non-mapping, and a document whose own block key is present and
+          is not a mapping. Name your own anchors for the last two (lines 578 and 588-594) and, for
+          the factory_decompose side, name the FUNCTION and the guard in words rather than a line
+          number: T-02 edits that function in the same feature, so a line number written here rots on
+          landing.
+        - BOTH ACCEPT, last key wins: a document carrying a duplicate key. Note that this is a change
+          BUG-285 made on the factory_decompose side, where a YAML loader used to refuse it.
+        - BOTH READ THE SAME VALUE out of an integer-valued member of the block: a quoted "7" reads as
+          7 on both sides and a bool reads as no value on both sides. Say that load_factory adopted
+          THIS reader's coercion (BUG-285 D-16) by reimplementing _opt_int's rule inside itself,
+          because this file is hyphen-named and cannot be imported; and say that the copy's drift is
+          caught by the parity test named below rather than by convention. Name _opt_int and your own
+          lines 512-524 for it, and on the factory_decompose side name the function and the member
+          reads in words, never a line number.
+        - WHAT IS DELIBERATELY DIFFERENT, stated as its own list with a reason each rather than as an
+          exception to a convergence claim, and stated as the differences MEASURED rather than as all
+          there are:
+            * NEITHER reader detects a duplicate key any more. load_factory used to refuse one through
+              harness_yaml's DuplicateKeyError and gives that up with the parser swap; no incident is
+              measured behind it, and what carries it instead is the BRIEF constraint that nothing may
+              emit a duplicate key.
+            * BOTH refuse a YAML-only block mapping. That is the feature's own purpose - feature.json
+              stays strict JSON - not a residual to be fixed later.
+            * The issues mapping's KEY ADMISSION differs, measured 2026-09-11: this reader admits only
+              keys matching T-\d+ and strips them (your line 613), load_factory admits any key
+              verbatim. So {"issues": {"X-1": 5}} reads as nothing recorded here and as a recorded
+              entry there. It is a key-admission policy rather than a coercion, no incident is measured
+              behind it, and BUG-285 does NOT close it - say so plainly and say it is raised to the
+              operator as a separate question.
+        - WHAT HOLDS THE ENUMERATED CLASSES: tests/unit/test-feature-json-readers.py, the file T-05
+          adds. Name it.
+      Keep the existing "this file has no comments to tolerate" clause and the whole three-states
+      body below it unchanged. Do not reflow or reword any other part of the docstring.
+
+      TEST-FIRST. The durable test is T-05's and lands after you, so your test-first obligation is
+      discharged by the first command in your verify block: it writes a non-UTF-8 feature.json into
+      a fresh tempdir and demands load_recorded refuse it by a message that names the file and
+      leaks no class name. RUN IT BEFORE YOU EDIT and record that it prints
+      "FAIL: escaped uncaught as UnicodeDecodeError: ..." and exits 1 - that exact pre-change
+      output is measured and is what you must reproduce. Then edit, run it again, and record that
+      it prints "OK refused: gh-sync: <path> could not be read, ..." and exits 0. That observed
+      red-then-green is the evidence this task owes, and your DIGEST must quote both runs.
+
+      Then run the other three verify commands and record the exit code of each. CAPTURE EVERY EXIT
+      STATUS INTO A SHELL VARIABLE on the command's own line - never read it from $? after a pipe,
+      because $? after a pipe reports the pipe's last stage, and that has already produced one wrong
+      measurement on this feature.
+
+      Pre-change baselines, measured in this worktree on 2026-09-11 at 6cb113f4, and how each command
+      is graded:
+        - run-unit-tests.sh --kind unit: exit 0, 36 files, 2.4s wall. GRADED ON EXIT STATUS ONLY. It
+          prints FOUR lines beginning "FAIL " on a GREEN run, because one unit test deliberately
+          reddens its own cases to prove its mutant is live (the block printing "MUTANT ACTIVE" and
+          "MUTATION PROOF: 3/3 cases reddened"). Do NOT assert a FAIL-line count for this command and
+          do not report a non-zero count as a regression; report the exit status.
+        - tests/integration/test-gh-sync-open.py: exit 0, 79 "ok", 0 "FAIL", 10.6s wall.
+        - tests/integration/test-gh-sync-record.py: exit 0, 56 "ok", 0 "FAIL", 8.8s wall.
+          For these TWO pole files, assert the count of lines beginning "FAIL" DIRECTLY rather than
+          inferring it from the exit code - each prints zero such lines on a green run, so any of them
+          is a real failure, and a runner that counts a failure only when a detail string is non-empty
+          can exit 0 while printing FAIL lines.
+      Expect all three unchanged afterwards, except that test-gh-sync-open.py's "ok" count will be
+      above 79 once T-01 has landed: the two edits here add refusals for an input no existing fixture
+      uses and remove a member that never fired, so nothing existing may go red.
+
+      ANY PROBE OF YOUR OWN beyond the verify block operates on a COPY in a tempdir, never on the
+      file in place: .agents/skills is a symlink to .claude/skills, so gh-sync.py is ONE INODE
+      reached by both spellings and an in-place probe edit is a live-tree edit of production code.
+      Delete the copy and its tempdir when you are done - nothing under tests/ or .claude/ may be
+      left changed by a probe. Do not run git commit; the commit pen is the orchestrator's
+      (DEC-153).
+  - id: T-05
+    title: Pin that both feature.json readers agree, on one shared input set, in a new unit file
+    traces:
+    - REQ-09
+    - REQ-11
+    - REQ-12
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-02, T-04]
+    status: ready
+    files:
+      - tests/unit/test-feature-json-readers.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-feature-json-readers.py
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-open.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-record.py
+    intent: |
+      Add ONE new test file, tests/unit/test-feature-json-readers.py. Edit no other file.
+
+      WHAT THIS TASK EDITS AND WHAT IT ONLY RUNS. It EDITS - in fact CREATES - exactly one file,
+      tests/unit/test-feature-json-readers.py, plus its own note under this feature's notes/ directory.
+      It only RUNS tests/integration/test-gh-sync-open.py and tests/integration/test-gh-sync-record.py
+      (the two gh-sync pole files with a measured baseline, which together carry the standing
+      behavioural pin on load_recorded) and the unit runner. In particular DO NOT touch
+      tests/integration/test-gh-sync-open.py - T-01 EDITS that file - and do not touch
+      tests/integration/gh_sync_support.py, which all five pole files share. A new file is what keeps
+      you out of T-01's way, and your depends_on chain (T-02, T-04, and T-04 depends on T-01) means
+      T-01's edit is already in the tree by the time your verify runs it (D-13). You DO depend on T-02
+      and T-04, whose runtime edits this file asserts, so both must be in the tree before you start -
+      if load_factory still calls harness_yaml.load_file, or still returns the empty record for a
+      document that parses to a non-mapping, or still admits only real ints for its parent member, or
+      load_recorded's read guard still says except OSError alone, STOP and report it rather than
+      writing round it.
+
+      WHAT THIS PINS, and why it is not two per-reader tests. BUG-285 exists because two readers of
+      feature.json disagree. Two independent per-reader assertions cannot catch them drifting apart
+      again; only a comparison on ONE SHARED INPUT SET can. The set SPANS the measured table in BOTH
+      DIRECTIONS on purpose (D-14, D-16): it carries inputs where load_recorded refused and load_factory
+      did not, the input where load_factory refused and load_recorded did not, AND the inputs where both
+      ACCEPTED but read a DIFFERENT VALUE. Measured at 6cb113f4, before T-02 and T-04, SEVEN of the
+      twelve inputs below disagree - six on the verdict and one on the value read - so this file is red
+      on the pre-change tree by construction, which is its able-to-fail evidence (D-09). No mutation
+      probe is wanted here; do not write one.
+
+      THIS FILE IS ALSO THE DRIFT DETECTOR FOR A DELIBERATE DUPLICATE, and that is why check group E
+      below exists. T-02 reimplements gh-sync's _opt_int inside load_factory rather than importing it,
+      because gh-sync.py is hyphen-named and cannot be imported (D-16). A second copy of a coercion rule
+      is the exact defect class BUG-285 exists to close, so it is acceptable ONLY because this file
+      feeds the SAME bytes to BOTH readers and asserts the VALUES they read are EQUAL - a change to
+      either copy alone reddens run-unit-tests.sh --kind unit. Say that, in one comment, in the file.
+
+      SHAPE. Copy the harness of tests/unit/test-factory-cli.py - its anchor block at lines 11-15
+      that puts .claude/skills/harness/bin on sys.path, its check(name, cond, detail) helper at
+      line 28, its FAILS and RAN counters, and its closing print plus sys.exit(1 if FAILS else 0).
+      Import contextlib, importlib.util, io, os, sys and tempfile. Add no dependency beyond those
+      and the two modules under test. Do NOT import tests/integration/gh_sync_support.py: it is the
+      integration suite's support module and a unit file must not depend on it.
+
+      LOADING THE TWO READERS. factory_decompose imports normally. gh-sync.py has a hyphen in its
+      name, so load it by path: insert the real bin directory at sys.path[0] first, then
+      importlib.util.spec_from_file_location("ghs", os.path.join(BIN, "gh-sync.py")) plus
+      module_from_spec and exec_module - so its sibling imports resolve out of the real bin
+      directory. tests/integration/gh_sync_support.py's load_gh_sync() at :844-850 is the working
+      pattern to READ and copy; do not import it.
+
+      THE SHARED INPUT SET, TWELVE inputs, each a name and a BYTES payload, written to feature.json in
+      BINARY mode in a fresh tempfile.TemporaryDirectory per reader per input:
+
+        1. "valid JSON mapping"        b'{"github": {"parent": 40}, "factory": {"repo": "o/n"}}'
+                                       expected verdict: accept
+        2. "absent feature.json"       no file written at all
+                                       expected verdict: accept
+        3. "own block key absent"      b'{"feature_id": "F1"}'
+                                       expected verdict: accept
+        4. "empty file"                b""
+                                       expected verdict: refuse
+        5. "malformed JSON text"       b"{ not: valid json [[["
+                                       expected verdict: refuse
+        6. "YAML-only block mapping"   b"factory:\n  repo: owner/name\n"
+                                       expected verdict: refuse
+        7. "non-UTF-8 bytes"           bytes([0xff, 0xfe]) + b"trash"
+                                       expected verdict: refuse
+        8. "document is not a mapping" b"[1, 2]"
+                                       expected verdict: refuse
+        9. "own block key not a map"   b'{"github": "x", "factory": "x"}'
+                                       expected verdict: refuse
+       10. "duplicate block key"       b'{"github": {"parent": 1}, "factory": {"repo": "a/b"},
+                                         "github": {"parent": 2}}' - one physical line, no newline
+                                       inside the braces
+                                       expected verdict: accept
+       11. "quoted int members"        b'{"github": {"parent": "7", "issues": {"T-01": "12"}},
+                                         "factory": {"parent": "7", "repo": "a/b",
+                                         "issues": {"T-01": "12"}}}' - one physical line
+                                       expected verdict: accept
+       12. "bool-valued member"        b'{"github": {"parent": true},
+                                         "factory": {"parent": true, "repo": "a/b"}}' - one physical
+                                       line
+                                       expected verdict: accept
+
+      WHAT EACH INPUT IS FOR, so a later editor cannot drop one as redundant:
+        - 1, 2 and 3 are the POSITIVE CONTROLS. Without them a reader that refused EVERYTHING would
+          satisfy every other check. 2 and 3 are also the ABSENT PATH, which the operator's ruling
+          requires to stay unchanged: an absent file and a present mapping with nothing recorded yet
+          both return the empty or all-None default record. Input 3 is the state all 80 live
+          feature.json files under .harness/*/features/*/ are in, measured at 6cb113f4.
+        - 6 is the parser-identity input: valid YAML, invalid JSON.
+        - 7 is the row T-04 closed.
+        - 8 and 9 are the rows T-02 closed under D-14: before T-02 load_recorded refused both while
+          load_factory returned the empty record.
+        - 10 is ONE OTHER DIRECTION, the only row in the table where load_factory refused what
+          load_recorded accepted: harness_yaml raises DuplicateKeyError, json.loads takes the last key
+          silently. After T-02 both accept it, last key wins, and NEITHER detects the duplicate any
+          more. That consequence is disclosed in BRIEF Constraints and Risk; this row is what pins it,
+          so a later reader cannot reintroduce a duplicate-key refusal on one side alone.
+        - 11 and 12 are THE VALUE DIRECTION, and they are why the set is twelve rather than ten. Both
+          readers ACCEPT both of them, so the verdict checks alone would report parity that does not
+          exist. 11 is the row T-02 closed under D-16: measured at 6cb113f4, load_recorded read parent
+          7 and load_factory read parent None, so a legacy-quoted parent read as NO PARENT on one side
+          - the FEAT-14 incident class reached by coercion policy. 12 is a CONTROL, green before and
+          after: both readers already read a bool as no value, because _opt_int excludes bool
+          explicitly and load_factory's guard excluded it too, and its job is to redden if the
+          coercion is reimplemented WITHOUT that exclusion, which would make parent 1 on one side.
+
+      NOTHING IS EXCLUDED FROM THE SET ANY MORE, and that is a change from the previous draft. Earlier
+      revisions excluded first two and then one measured class; all of them are now in (D-14, D-16). Do
+      not reintroduce an exclusion. What DOES remain outside this file, and must be named in ONE comment
+      rather than asserted, is the three DELIBERATE contract differences recorded in BRIEF Risk and
+      SC-15: that neither reader detects a duplicate key any more; that both refuse a YAML-only document
+      because feature.json stays strict JSON; and that the issues mapping's KEY ADMISSION still differs -
+      measured 2026-09-11, load_recorded admits only keys matching T-\d+ and strips them (gh-sync.py:613)
+      while load_factory admits any key verbatim, so {"issues": {"X-1": 5}} reads as nothing recorded on
+      one side and as a recorded entry on the other. That last one is NOT closed by BUG-285 and is raised
+      to the operator as an open question; the comment says so and cites D-16, plus D-14 and the
+      superseded D-08 as the record of what earlier drafts excluded. Choose input 11's issues key as
+      "T-01" deliberately: it is admitted identically by both readers, so the row isolates the COERCION
+      from the key-admission difference. Anchors measured at 6cb113f4; re-read both functions before you
+      copy a line number, because T-02 and T-04 both edit them.
+
+      RUNNING ONE READER ON ONE INPUT. Write a single helper that takes a callable and a payload,
+      makes the tempdir, writes the bytes if the payload is not None, calls the callable with
+      stderr captured by contextlib.redirect_stderr, and returns a (verdict, observable, record) triple:
+        - returns normally      -> ("accept", captured stderr, the returned record)
+        - raises SystemExit     -> ("refuse", captured stderr plus str(e), None)
+        - raises anything else  -> ("escape:" + type name, captured stderr, None)
+      Capturing stderr AND str(e) in one string is deliberate: gh-sync's refusal carries its
+      message in the SystemExit, load_factory's goes to stderr through factory_cli.refuse, and the
+      assertions below are written against whichever carries it. The record is returned because groups
+      D and E assert on values, not only on verdicts.
+
+      THE CHECKS, each its own named check() call. Name every check with its input, so a failure
+      report names the input that broke.
+
+      A. Per input, one check per reader, that the verdict equals the expected verdict above.
+         Twenty-four checks. An "escape:" verdict fails, and its detail must be the type name - that is
+         what catches a traceback where a refusal is owed.
+      B. Per input, one check that the two readers' verdicts are EQUAL to each other. Twelve checks.
+         Yes, this is entailed by A when A passes; it is written anyway because it is the criterion
+         the operator signed and because when A fails it is the one line that says what BUG-285 is
+         about. Do not collapse A and B into a single loop variable.
+      C. Per REFUSING reader-and-input pair (that is inputs 4 to 9, both readers, twelve checks),
+         one check, joined with and, that: the observable contains the feature.json path; the
+         observable does NOT contain the string "unexpected failure"; and the observable contains
+         NONE of the strings "UnicodeDecodeError", "JSONDecodeError", "YamlParseError", "OSError"
+         or "Traceback". Assert no exception CLASS NAME anywhere. Per D-11 do NOT assert exit-code
+         equality between the readers and do NOT compare their message texts: gh-sync raises a bare
+         SystemExit whose code is the message string, load_factory exits EXIT_REFUSED through
+         factory_cli.refuse, and both are correct in their own CLI's contract.
+      D. Per ACCEPTING reader-and-input pair for inputs 2 and 3 only (four checks), one check that
+         the returned record is the reader's own EMPTY default - equal to
+         factory_decompose._empty_factory() for load_factory, and all-None/empty for load_recorded's
+         rec. This is the half of the operator's ruling that says absence is not corruption, and
+         without it a build that made every present file refuse would still pass A, B and C.
+      E. THE VALUE PARITY, three checks, and this group is the drift detector for the duplicated
+         coercion. Assert BOTH equality across the readers AND the expected value, joined with and, so
+         that two readers agreeing on a WRONG value cannot pass:
+         E1, input 11: load_recorded's rec["parent"] equals load_factory's record["parent"] AND both
+             equal the integer 7. Measured red at 6cb113f4 - 7 against None.
+         E2, input 11: load_recorded's rec["issues"] equals load_factory's record["issues"] AND both
+             equal {"T-01": 12}. Measured red at 6cb113f4 - {"T-01": 12} against {}.
+         E3, input 12: load_recorded's rec["parent"] equals load_factory's record["parent"] AND both
+             are None. Green before and after; it reddens only if the bool exclusion is dropped from
+             either copy of the coercion, which would make one side 1.
+         Write the one comment named above beside this group: the coercion is duplicated by decision
+         (D-16) because gh-sync.py cannot be imported, and THIS group is what stops the copies drifting.
+
+      Each check() call gets a detail argument carrying the actual verdict or value and the first line
+      of the observable, so a red run is diagnosable without a rerun.
+
+      FINALLY run all four verify commands from the worktree root and record, in notes/qa-<runid>.md
+      under this feature's notes directory - the path your domain grants - the exit code of each.
+      CAPTURE EVERY EXIT STATUS INTO A SHELL VARIABLE on the command's own line, never from $? after a
+      pipe: $? after a pipe reports the pipe's last stage, and that has already produced one wrong
+      measurement on this feature.
+
+      Baselines measured in this worktree on 2026-09-11 at 6cb113f4, and how each command is graded:
+        - run-unit-tests.sh --kind unit: exit 0, 36 files, 2.4s wall. GRADED ON EXIT STATUS ONLY. It
+          prints FOUR lines beginning "FAIL " on a GREEN run, because one unit test deliberately
+          reddens its own cases to prove its mutant is live (the block printing "MUTANT ACTIVE" and
+          "MUTATION PROOF: 3/3 cases reddened"). Do NOT assert a FAIL-line count for this command and
+          do not report a non-zero count as a regression.
+        - tests/integration/test-gh-sync-open.py: exit 0, 79 "ok", 0 "FAIL", 10.6s wall. Its "ok"
+          count is ABOVE 79 once T-01 has landed, which it will have; that suite passes whether or not
+          T-01 is in the tree, so do not treat a count above 79 as a failure.
+        - tests/integration/test-gh-sync-record.py: exit 0, 56 "ok", 0 "FAIL", 8.8s wall.
+          For these TWO pole files, and for your own new unit file run directly, assert the count of
+          lines beginning "FAIL" DIRECTLY rather than inferring it from the exit code - each prints
+          zero such lines on a green run, and a runner that counts a failure only when a detail string
+          is non-empty can exit 0 while printing FAIL lines.
+      Report the note's exact path as your DIGEST artifact and LEAVE it in place. Do not run git
+      commit; the commit pen is the orchestrator's (DEC-153).

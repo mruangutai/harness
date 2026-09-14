@@ -12,9 +12,9 @@ place project Expertise changes.
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first and tell each
    member to read it too**, read your members' logs under `<FEAT>/observations/`, skim the run
    digests for lessons nobody logged, have each member distill what passes the six-spawns test
-   into its Expertise file, run `bin/check-expertise.sh <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/`,
+   into its Expertise file, run `bin/check-expertise.py <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/`,
    report per-section counts before and after." **The read is mandatory:** writing from new
-   entries alone wipes every earlier one (DEC-125), and `check-expertise.sh` catches format
+   entries alone wipes every earlier one (DEC-125), and `check-expertise.py` catches format
    violations but never a wipe.
 2. **The skim is recall, not judgment** (DEC-145). The lead relays **at most 3 candidates per
    member** as sourced observations ("your t04 digest noted X"), never pre-written entries, and
