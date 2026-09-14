@@ -47,15 +47,17 @@ panel:
     reader: should-not-exist
     kind: proportionality
     summary: SC-02's unit-verified module-exposed "complete read/write-route table" is documentation promoted to tested API with no consumer
-    disposition: open
+    disposition: resolved
     scope: task
+    resolved_by: T-02
   - id: PF-2f51f186cf2ca206673d12a3a1771cae
     severity: low
     reader: should-not-exist
     kind: proportionality
     summary: --expect-findings is one-shot scaffolding shipped as a durable CLI mode on an enforcement gate, and no task removes it
-    disposition: open
+    disposition: resolved
     scope: task
+    resolved_by: T-01
   - id: PF-d6bb3cab806a2e81acbf1244f2de1b28
     severity: low
     reader: should-not-exist
@@ -68,15 +70,17 @@ panel:
     reader: should-not-exist
     kind: proportionality
     summary: 'manifest_domains physical relocation is all cost until #1674 — every live caller is a frozen .sh hook, and no task captures those hooks'' pre/post behavior'
-    disposition: open
+    disposition: resolved
     scope: task
+    resolved_by: T-02
   - id: PF-2d417a03aa738f4cdd407e416cc77687
     severity: low
     reader: should-not-exist
     kind: proportionality
     summary: 'T-08 writes feature-scoped #1674 narrative into DEC-174 beyond the ruled enumeration update'
-    disposition: open
+    disposition: resolved
     scope: task
+    resolved_by: T-08
 lanes:
   resolved_at: 391b8c80cd7bd5c1bf708f3a064debec72b57e0a
   rows:

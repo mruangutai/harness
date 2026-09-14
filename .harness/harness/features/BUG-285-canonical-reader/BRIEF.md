@@ -52,3 +52,9 @@ Harness maintainers currently choose a parser at each data-read site, so the sam
 - Adding a canonical `state.yaml` accessor while it has one reader and an enforced write route; the guard instead trips if a second reader appears.
 - Physical relocation of `manifest_domains` before #1674; its live callers remain the excluded `.sh` hook paths.
 - Changing gate policy, messages, exit codes, violation membership, or the semantics of already-canonical callers beyond the parser/error normalization required by the live ruling.
+
+## Approval
+
+status: pending
+approved-by:
+date:
