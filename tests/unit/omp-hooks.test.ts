@@ -281,8 +281,8 @@ describe("OMP task lifecycle adapter", () => {
       input: { command: "gh issue close 12" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
     const scripts = calls.map((call) => call.script);
-    expect(scripts.indexOf("gh-close-gate.sh")).toBeGreaterThan(-1);
-    expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.py"));
+    expect(scripts.indexOf("gh-close-gate.py")).toBeGreaterThan(-1);
+    expect(scripts.indexOf("gh-close-gate.py")).toBeLessThan(scripts.indexOf("branch-create-gate.py"));
     expect(scripts.indexOf("branch-create-gate.py")).toBeLessThan(scripts.indexOf("bash-write-guard.py"));
     expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("bash-write-guard.py"));
     expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.py"));

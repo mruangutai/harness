@@ -1057,7 +1057,7 @@ tasks:
       expansion, which a PreToolUse hook cannot see.
 
       plan-sign-gate.py is the registration wrapper: it passes the repo root as argv[1] and pipes
-      stdin through, matching gh-close-gate.sh line for line.
+      stdin through, matching gh-close-gate.py line for line.
 
       Register it in .claude/settings.json as a PreToolUse Bash hook alongside the existing ones,
       and add the same entry to .agents/skills/harness/templates/settings.snippet.json.

@@ -66,7 +66,7 @@ into a filesystem path — so no path-traversal vector either. Clean.
 **3. Data exposure in digest/mirror paths.**
 No finding — measured. `validate-digest.py`'s diff only threads a `feature` parameter through
 already-local release/children-lookup calls (no new network call, no new log field). The mirror
-doc (`github-mirror.md`) changes are prose-only. `gh-close-gate.sh`'s one code change
+doc (`github-mirror.md`) changes are prose-only. `gh-close-gate.py`'s one code change
 (`python3 -P` → `python3 -I`) is a *stronger* interpreter-isolation flag, consistent with the
 same hardening applied elsewhere in this diff (T-08/T-15 comments), not a regression. No new path
 from local content (transcripts, paths, tokens) to GitHub or logs was found in this diff.

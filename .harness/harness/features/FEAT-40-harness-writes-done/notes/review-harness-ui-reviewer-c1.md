@@ -28,7 +28,7 @@ greps `ERROR - ` and the pattern already existed pre-feature for non-write read 
 
 ## Self-scope
 
-IN. Batch CLI text surface, explicitly handed down by the dispatch (`gh-sync.py`, `gh-close-gate.sh`),
+IN. Batch CLI text surface, explicitly handed down by the dispatch (`gh-sync.py`, `gh-close-gate.py`),
 consistent with this repo's established scope (repository Expertise P-01): no rendered UI, the
 markdown/CLI-message surface is what this role audits here.
 
@@ -63,11 +63,11 @@ resolved-by-implementation rather than merely inferable. `low`, non-gating.
 
 ### 3. Contract 4 refusal text — character-identical, one text, runnable
 
-`gh-close-gate.sh:49-56` (`REASON` heredoc) reproduces DESIGN.md's quoted block
+`gh-close-gate.py:49-56` (`REASON` heredoc) reproduces DESIGN.md's quoted block
 (DESIGN.md:134-140) verbatim, line for line, including "do nothing here", the em dash, and the
 untracked-issue closing sentence. **One text used for both denials**: both call sites (`:73` for
 `gh issue close`, `:81` for `gh api ... state=closed`) call `deny "$REASON"` — the same variable,
-confirmed by direct read, not by the file's own comment claiming it (`gh-close-gate.sh:47-48`
+confirmed by direct read, not by the file's own comment claiming it (`gh-close-gate.py:47-48`
 narrates "ONE refusal text... used verbatim for BOTH denials"; the code at `:72-82` bears it out).
 The printed `abandon` command —
 `python3 .claude/skills/harness/bin/gh-sync.py abandon <feature-dir> --reason-file <path> --yes` —

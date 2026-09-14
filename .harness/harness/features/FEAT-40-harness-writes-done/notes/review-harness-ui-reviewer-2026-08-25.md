@@ -50,7 +50,7 @@ Expertise P-01.
   to the sweep's own stdout unconditionally, before the gate logic runs. A `git merge` that fires
   the post-merge hook therefore surfaces every `HELD`/`FAILED` line to the operator's terminal, not
   just to the gate's internal decision.
-- No ANSI colour anywhere in the four touched CLI files (`gh-sync.py`, `gh-close-gate.sh`,
+- No ANSI colour anywhere in the four touched CLI files (`gh-sync.py`, `gh-close-gate.py`,
   `post-merge-sweep.py`, `check-state.sh` — grepped for escape sequences, zero real hits).
   Theme/colour-contrast is therefore **not applicable**, stated rather than silently skipped.
 
@@ -101,7 +101,7 @@ Expertise P-01.
 - **Final "re-run with --yes" line** (`gh-sync.py:1089-1090`) matches DESIGN.md's quote verbatim,
   em dash included.
 
-## Contract 4 — `gh-close-gate.sh` denial text
+## Contract 4 — `gh-close-gate.py` denial text
 
 Character-exact match, confirmed by diff against DESIGN.md's quoted block — same three clauses
 (do nothing if finished / run `abandon` if dropping / web UI if untracked), same wording, same

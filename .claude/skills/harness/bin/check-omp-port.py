@@ -140,7 +140,7 @@ def check(root: Path) -> list[str]:
         required_wiring = {
             "dispatch-guard.py": "OMP task preflight",
             "task:subagent:lifecycle": "OMP task terminal lifecycle",
-            "gh-close-gate.sh": "GitHub close preflight",
+            "gh-close-gate.py": "GitHub close preflight",
             "inflight_registry.py": "OMP claim attachment and release",
             # BUG-1132: absent here until this fix, so plan-sign-gate.py's own absence from
             # harness-hooks.ts's bash gate list — REQ-05/DEC-120's only enforcement — went

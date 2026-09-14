@@ -52,7 +52,7 @@ unsupported by measurement — flagged below, substance unaffected.
   asserted absent: `context-watch.py`, `context-watch-hook.py` — both confirmed absent via
   `git cat-file -e`.
 - Read `.claude/settings.json` at the pin directly: the six real hook registrations
-  (`check-domain.py` Pre+Post, `bash-write-guard.py`, `branch-create-gate.py`, `gh-close-gate.sh`,
+  (`check-domain.py` Pre+Post, `bash-write-guard.py`, `branch-create-gate.py`, `gh-close-gate.py`,
   `dispatch-guard.py`, `validate-digest.py`) are untouched by this fold and outside the diff's blast
   radius — the enforcement surface is unaffected by anything in DEC-159/198/201.
 - No new supersession, capability grant, or auth-relevant clause introduced by the fold text.

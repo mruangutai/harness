@@ -6343,7 +6343,7 @@ checkpointed step is re-dispatched.
 **GitHub mirrors durable transitions only.** The existing command ownership and write-first order
 stand. Child runtime, wakes, and recovery generate no heartbeat traffic. On wake, the owner re-reads
 `plan.yaml`, `feature.json`, and stored GitHub receipts before deciding whether a transition is due;
-duplicate delivery is an idempotent no-op. OMP's Bash preflight now invokes `gh-close-gate.sh`
+duplicate delivery is an idempotent no-op. OMP's Bash preflight now invokes `gh-close-gate.py`
 before branch and write guards, so the direct-close rule in DEC-203 applies under the canonical host.
 
 **Measured enforcement overturned the first design rather than being fitted to it.** With nested

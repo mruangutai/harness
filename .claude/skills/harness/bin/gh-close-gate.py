@@ -1,5 +1,68 @@
 #!/usr/bin/env python3
-import json, os, re, shlex, sys
+"""PreToolUse guard against hand-typed GitHub issue closure.
+
+Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude
+Code's compatibility registration lives in `.claude/settings.json`.
+
+WAS A .sh WRAPPER (issue #1674). This native entry point preserves the wrapper's
+isolated root resolution, refusal behavior and hook stream contracts while
+removing its extra interpreter launch.
+"""
+import contextlib as _bootstrap_contextlib
+import io as _bootstrap_io
+import os as _bootstrap_os
+import site as _bootstrap_site
+import sys as _bootstrap_sys
+
+_bootstrap_bin = _bootstrap_os.path.dirname(
+    _bootstrap_os.path.abspath(__file__))
+_bootstrap_original_path = list(_bootstrap_sys.path)
+_bootstrap_pythonpath = {
+    _bootstrap_os.path.realpath(entry)
+    for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(
+        _bootstrap_os.pathsep)
+    if entry
+}
+_bootstrap_user_sites = _bootstrap_site.getusersitepackages()
+if isinstance(_bootstrap_user_sites, str):
+    _bootstrap_user_sites = [_bootstrap_user_sites]
+_bootstrap_unsafe = _bootstrap_pythonpath | {
+    _bootstrap_os.path.realpath(_bootstrap_bin),
+    _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
+    *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
+}
+_bootstrap_sys.path[:] = [
+    entry for entry in _bootstrap_sys.path
+    if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
+]
+
+
+def _resolve_root():
+    """Resolve through the trusted sibling with isolated import semantics."""
+    try:
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
+            import harness_boundary
+            return harness_boundary.resolve_root(_bootstrap_bin)
+    except Exception:
+        return ""
+
+
+ROOT = _resolve_root()
+if not ROOT or not _bootstrap_os.path.isdir(ROOT):
+    print(
+        f"gh-close-gate.py: no harness root could be resolved from "
+        f"{_bootstrap_bin} — refusing to run",
+        file=_bootstrap_sys.stderr,
+    )
+    raise SystemExit(2)
+_bootstrap_sys.path[:] = _bootstrap_original_path
+
+import json
+import os
+import re
+import shlex
+import sys
 
 # ONE refusal text, used verbatim for EVERY denial. A second wording would drift, and the
 # operator would learn two different answers to one question.
@@ -12,7 +75,6 @@ REASON = (
     "cannot tell tracked from untracked, by design."
 )
 
-ROOT = sys.argv[1]
 # ---- config gate: github.sync on -- else pass through instantly
 try:
     g = json.load(open(os.path.join(ROOT, ".harness", "harness.json"))).get("github") or {}
@@ -56,56 +118,86 @@ def is_gh(tok):
     return os.path.basename(tok.strip("\\'\"$()`")) == "gh"
 
 
-def denies(line, depth=0):
-    toks = words(line)
-    if toks is None:
-        # UNPARSEABLE FALLS BACK TO A TEXT SCAN, IT DOES NOT BLANKET-DENY. An earlier cut
-        # returned True here on the reasoning that unparseable is indistinguishable from
-        # evasive. That was wrong by a wide margin, and it was measured: `shlex` raises on
-        # ANY unbalanced quote, and an apostrophe inside a heredoc or an English contraction
-        # is an unbalanced quote. `echo it's fine` did not lex, so the gate refused it. So
-        # did every `gh issue comment --body-file` whose heredoc contained the word "does
-        # not" in the possessive. The rule refused ordinary work all day and caught nothing,
-        # because a real evasion does not need an unbalanced quote to hide behind.
-        #
-        # A false deny is recoverable and a false allow is not -- but that trade only holds
-        # where the two are genuinely indistinguishable. Here they are not: an unlexable line
-        # can still be READ as text, so it gets the weaker check rather than a refusal.
-        return bool(
-            RAW_CLOSE.search(line)
-            or (RAW_API.search(line) and ISSUE_PATH.search(line) and RAW_STATE.search(line))
-        )
-    for i, t in enumerate(toks):
-        if not is_gh(t):
-            continue
-        rest = toks[i + 1:]
-        if len(rest) >= 2 and rest[0] == "issue" and rest[1] == "close":
+def _raw_denial(line):
+    """Apply the bounded text fallback when a command cannot be tokenized."""
+    # UNPARSEABLE FALLS BACK TO A TEXT SCAN, IT DOES NOT BLANKET-DENY. An earlier cut
+    # returned True here on the reasoning that unparseable is indistinguishable from
+    # evasive. That was wrong by a wide margin, and it was measured: `shlex` raises on
+    # ANY unbalanced quote, and an apostrophe inside a heredoc or an English contraction
+    # is an unbalanced quote. `echo it's fine` did not lex, so the gate refused it. So
+    # did every `gh issue comment --body-file` whose heredoc contained the word "does
+    # not" in the possessive. The rule refused ordinary work all day and caught nothing,
+    # because a real evasion does not need an unbalanced quote to hide behind.
+    #
+    # A false deny is recoverable and a false allow is not -- but that trade only holds
+    # where the two are genuinely indistinguishable. Here they are not: an unlexable line
+    # can still be READ as text, so it gets the weaker check rather than a refusal.
+    return bool(
+        RAW_CLOSE.search(line)
+        or (RAW_API.search(line) and ISSUE_PATH.search(line)
+            and RAW_STATE.search(line))
+    )
+
+
+def _method_mutates(rest):
+    """Return whether a gh api method option names a mutating request."""
+    return any(
+        argument in ("-X", "--method")
+        and index + 1 < len(rest)
+        and rest[index + 1].upper() in MUTATES
+        for index, argument in enumerate(rest)
+    )
+
+
+def _api_denial(rest):
+    """Recognize issue-closing forms beneath `gh api`."""
+    joined = " ".join(rest)
+    if "closeIssue" in joined:
+        return True
+    if not ISSUE_PATH.search(joined):
+        return False
+    # state=closed in any argument order, quoting already stripped by shlex.
+    if "state=closed" in joined:
+        return True
+    # A mutating call on an issue whose body arrives on stdin (`--input -`) or
+    # in a file carries no readable state, so the command string cannot prove
+    # it is benign. Denied under the same bias: `gh issue edit` is the route
+    # for a legitimate field change, and the refusal text names the way out.
+    return "--input" in rest or _method_mutates(rest)
+
+
+def _gh_denial(rest):
+    """Recognize a closing subcommand after the gh executable token."""
+    if len(rest) >= 2 and rest[0] == "issue" and rest[1] == "close":
+        return True
+    return bool(rest and rest[0] == "api" and _api_denial(rest))
+
+
+def _direct_denial(tokens):
+    """Recognize a direct `gh` close anywhere in a compound command."""
+    for index, token in enumerate(tokens):
+        if is_gh(token) and _gh_denial(tokens[index + 1:]):
             return True
-        if rest and rest[0] == "api":
-            joined = " ".join(rest)
-            if "closeIssue" in joined:
-                return True
-            if ISSUE_PATH.search(joined):
-                # state=closed in any argument order, quoting already stripped by shlex.
-                if "state=closed" in joined:
-                    return True
-                # A mutating call on an issue whose body arrives on stdin (`--input -`) or
-                # in a file carries no readable state, so the command string cannot prove
-                # it is benign. Denied under the same bias: `gh issue edit` is the route
-                # for a legitimate field change, and the refusal text names the way out.
-                if "--input" in rest:
-                    return True
-                for j, a in enumerate(rest):
-                    if a in ("-X", "--method") and j + 1 < len(rest) \
-                            and rest[j + 1].upper() in MUTATES:
-                        return True
-    if depth < MAX_DEPTH:
-        # `eval "gh issue close 5"` and `bash -c '...'` carry a whole command line inside
-        # ONE token. Re-scan any token that still looks like a command line.
-        for t in toks:
-            if len(t.split()) >= 3 and denies(t, depth + 1):
-                return True
     return False
+
+
+def _nested_denial(tokens, depth):
+    """Re-scan tokens that carry a nested shell command."""
+    if depth >= MAX_DEPTH:
+        return False
+    # `eval "gh issue close 5"` and `bash -c '...'` carry a whole command line inside
+    # ONE token. Re-scan any token that still looks like a command line.
+    return any(
+        len(token.split()) >= 3 and denies(token, depth + 1)
+        for token in tokens
+    )
+
+
+def denies(line, depth=0):
+    tokens = words(line)
+    if tokens is None:
+        return _raw_denial(line)
+    return _direct_denial(tokens) or _nested_denial(tokens, depth)
 
 
 if denies(cmd):

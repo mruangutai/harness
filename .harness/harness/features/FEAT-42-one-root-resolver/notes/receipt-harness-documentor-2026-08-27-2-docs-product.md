@@ -169,8 +169,8 @@ file of each** — 12 files.
 amendment itself says a script joins the day it becomes a gate:
 
 - **Registered hooks absent from the list** (`.claude/settings.json:12, 32, 40, 64`):
-  `inject-expertise.sh`, `branch-create-gate.py`, `gh-close-gate.sh`, `context-watch-hook.py`. Each
-  fires on every session or every tool call; `gh-close-gate.sh` and `branch-create-gate.py` *refuse*
+  `inject-expertise.sh`, `branch-create-gate.py`, `gh-close-gate.py`, `context-watch-hook.py`. Each
+  fires on every session or every tool call; `gh-close-gate.py` and `branch-create-gate.py` *refuse*
   actions, which is the same evidence on which `dispatch-guard.py` joined.
 - **CI gate steps absent from the list** (`.github/workflows/tests.yml`): `validate-feature-json.py`,
   `layout_migration.py`. `check-plan-routes.py` joined on precisely the DEC-183-made-it-a-CI-step

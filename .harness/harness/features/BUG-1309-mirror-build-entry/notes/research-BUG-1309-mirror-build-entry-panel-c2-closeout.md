@@ -24,7 +24,7 @@ and now has an owner, `T-13`. `approval:` is byte-identical. Nothing here gates 
   **sanctions** the extraction shape and only makes the cutover main-session-direct — a price, never
   a bar.
 - **F1, the recurrence count.** True set is **two** (`post-merge-sweep.py:29-293`,
-  `bash-write-guard.py:42`). `gh-close-gate.sh:59/:79` and `plan-sign-gate.py:43/:62` are
+  `bash-write-guard.py:42`). `gh-close-gate.py:59/:79` and `plan-sign-gate.py:43/:62` are
   counter-examples — comment *"THE DECISION LIVES IN A FILE, NOT A HEREDOC"* and `exec` a sibling
   `.py`. Corrected in `notes/…-unit-ruling.md` at the head, the anchor bullet, the Recommendation
   section, the `dec:` paragraph and Q1. One dated correcting bullet appended to

@@ -10,7 +10,7 @@ The claimed fix (`python3 -P` on 19 launches) is correct and complete for the OR
 measured vulnerability — I re-derived all 19, found none missing, and confirmed empirically
 (not just by reading the note) that `-P` strips the cwd from `sys.path` under every invocation
 shape used here (heredoc, `-c`), that `PYTHONPATH` still resolves correctly alongside `-P`, and
-that the two by-path launches left un-flagged (`gh-close-gate.sh:79`, `run-unit-tests.sh:149`)
+that the two by-path launches left un-flagged (`gh-close-gate.py:79`, `run-unit-tests.sh:149`)
 are genuinely safe — a script launched by path gets its own directory at `sys.path[0]`, even
 through a symlink. Python's own `harness_boundary.py` resolver (`resolve_root`/`root_above`/
 `root_from_script`) is not marker-plantable by an ordinary agent: `resolve_root`'s only
@@ -113,7 +113,7 @@ untouched by this feature. Flagging for the backlog, not this verdict.
 ## What I verified positively (not just re-read)
 
 - All 19 `python3 -P` launches enumerated at `9d12e3a`; the two remaining by-path launches
-  (`gh-close-gate.sh:79`, `run-unit-tests.sh:149`) confirmed safe by direct empirical test: by-path
+  (`gh-close-gate.py:79`, `run-unit-tests.sh:149`) confirmed safe by direct empirical test: by-path
   launch (relative, absolute, and through a symlink) puts the SCRIPT's own directory at
   `sys.path[0]`, never the invoking cwd; only `-c`/`-m`/`-` forms take the cwd, and every such
   form in `bin/*.sh` carries `-P`.

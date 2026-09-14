@@ -161,7 +161,7 @@ this session — see below) rather than resting on the structural argument alone
 `context-watch-hook.py` from the `PostToolUse` `Write|Edit|Bash` matcher's hook array. Every other
 registration is byte-identical pre/post: `SubagentStart` → `inject-expertise.sh`; `PreToolUse`
 `Write|Edit` → `check-domain.py`; `PreToolUse` `Bash` → `branch-create-gate.py`,
-`bash-write-guard.py`, `gh-close-gate.sh`; `PreToolUse` `Task|Agent` → `dispatch-guard.py`;
+`bash-write-guard.py`, `gh-close-gate.py`; `PreToolUse` `Task|Agent` → `dispatch-guard.py`;
 `PostToolUse` `Write|Edit|Bash` → `check-domain.py --post` (**retained, same array, same
 matcher**); `SubagentStop` → `validate-digest.py --hook`. The actual enforcement hook
 (`check-domain.py --post`) that domain-policy enforcement depends on is untouched.

@@ -417,6 +417,117 @@ def plan_sign_gate_corpus(scratch):
     ]
 
 
+def _gh_close_denial_cases(payload, enabled_env, direct_close):
+    return [
+        {"label": "malformed hook payload", "stdin": "{not json",
+         "env": enabled_env},
+        {"label": "direct issue close denies", "stdin": direct_close,
+         "env": enabled_env},
+        {"label": "REST state close denies",
+         "stdin": payload(
+             "gh api -X PATCH repos/owner/repo/issues/1674 -f state=closed"),
+         "env": enabled_env},
+        {"label": "GraphQL close mutation denies",
+         "stdin": payload(
+             "gh api graphql -f query='mutation{closeIssue(input:{issueId:\"x\"}){clientMutationId}}'"),
+         "env": enabled_env},
+        {"label": "opaque REST mutation denies",
+         "stdin": payload(
+             "gh api --method PATCH repos/owner/repo/issues/1674 --input -"),
+         "env": enabled_env},
+        {"label": "nested close command denies",
+         "stdin": payload("bash -c 'gh issue close 1674'"),
+         "env": enabled_env},
+        {"label": "unlexable close fallback denies",
+         "stdin": payload("echo it's here; gh issue close 1674"),
+         "env": enabled_env},
+        {"label": "unlexable ordinary command allows",
+         "stdin": payload("echo it's fine"), "env": enabled_env},
+        {"label": "ordinary command allows",
+         "stdin": payload("git status --short"), "env": enabled_env},
+    ]
+
+
+def _gh_close_config_cases(direct_close, env, disabled, absent, malformed,
+                           invalid_shape):
+    return [
+        {"label": "sync false allows close", "stdin": direct_close,
+         "env": env(disabled)},
+        {"label": "missing config allows close", "stdin": direct_close,
+         "env": env(absent)},
+        {"label": "malformed config allows close", "stdin": direct_close,
+         "env": env(malformed)},
+        {"label": "invalid github shape preserves failure",
+         "stdin": direct_close, "env": env(invalid_shape)},
+    ]
+
+
+def _gh_close_boundary_cases(direct_close, payload, env, enabled, scratch,
+                             shadow, project_override):
+    return [
+        {"label": "stray argv remains ignored", "argv": ["unexpected"],
+         "stdin": direct_close, "env": env(enabled)},
+        {"label": "cwd-independent denial ignores module shadow",
+         "stdin": direct_close, "cwd": scratch,
+         "env": env(enabled, PYTHONPATH=shadow)},
+        {"label": "unconfigured isolated copy refuses",
+         "stdin": direct_close, "isolate": True,
+         "env": {project_override: None, "PYTHONPATH": shadow}},
+    ]
+
+
+def gh_close_gate_corpus(scratch):
+    """Representative config, close parser, root and isolation cases."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+
+    def make_root(name, github=None, *, config=True, raw=None):
+        root = os.path.join(scratch, name)
+        harness = os.path.join(root, ".harness")
+        os.makedirs(harness)
+        with open(os.path.join(harness, "team-config.yaml"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("agents: {}\n")
+        if config:
+            with open(os.path.join(harness, "harness.json"), "w",
+                      encoding="utf-8") as fh:
+                if raw is None:
+                    json.dump({"github": github}, fh)
+                else:
+                    fh.write(raw)
+        return root
+
+    enabled = make_root(
+        "gh-close-enabled", {"sync": True, "repo": "owner/repo"})
+    disabled = make_root(
+        "gh-close-disabled", {"sync": False, "repo": "owner/repo"})
+    absent = make_root("gh-close-absent", config=False)
+    malformed = make_root("gh-close-malformed", raw="{not json")
+    invalid_shape = make_root("gh-close-invalid-shape", "not-a-mapping")
+    shadow = os.path.join(scratch, "shadow")
+    os.makedirs(shadow)
+    with open(os.path.join(shadow, "harness_boundary.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write("raise RuntimeError('PYTHONPATH shadow imported')\n")
+
+    def payload(command):
+        return json.dumps({"tool_name": "Bash",
+                           "tool_input": {"command": command}})
+
+    def env(root, **extra):
+        return {project_override: root, **extra}
+
+    direct_close = payload("gh issue close 1674 --repo owner/repo")
+    enabled_env = env(enabled)
+    return (
+        _gh_close_denial_cases(payload, enabled_env, direct_close)
+        + _gh_close_config_cases(
+            direct_close, env, disabled, absent, malformed, invalid_shape)
+        + _gh_close_boundary_cases(
+            direct_close, payload, env, enabled, scratch, shadow,
+            project_override)
+    )
+
+
 def merge_gate_corpus(scratch):
     """Representative merge parsing, receipt, root and isolation cases."""
     project_override = "HARNESS" + "_PROJECT_DIR"
@@ -581,6 +692,8 @@ def corpus(tool, scratch, impl):
         return branch_create_gate_corpus(scratch)
     if tool == "plan-sign-gate":
         return plan_sign_gate_corpus(scratch)
+    if tool == "gh-close-gate":
+        return gh_close_gate_corpus(scratch)
     if tool == "merge-gate":
         return merge_gate_corpus(scratch)
     if tool == "post-merge-sweep":

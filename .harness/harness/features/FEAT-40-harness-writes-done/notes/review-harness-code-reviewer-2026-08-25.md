@@ -29,10 +29,10 @@ Every change in scope traces to a `REQ`/`D`. No scope creep found. One omission-
 
 ## Stage 2 — code quality
 
-### Finding 1 (critical, must_fix) — `gh-close-gate.sh` has real, reachable false-ALLOWs
+### Finding 1 (critical, must_fix) — `gh-close-gate.py` has real, reachable false-ALLOWs
 
 Independently reproduced against the pinned-SHA script (JSON hook payload piped into
-`bash .claude/skills/harness/bin/gh-close-gate.sh`, `github.sync: true`), not reasoned about:
+`bash .claude/skills/harness/bin/gh-close-gate.py`, `github.sync: true`), not reasoned about:
 
 | command | result | why the regex misses it |
 |---|---|---|
@@ -62,7 +62,7 @@ signal here; passing green is consistent with the gap, not evidence against it.
 unrecoverable false-ALLOW at the gate second only to a false Done, and this is a false ALLOW an
 ordinary agent reaches with `bash -c` or `eval` — not an adversarial edge case.
 
-**Route**: `gh-close-gate.sh` and its test are enforcement layer under DEC-174. Reporting only, per
+**Route**: `gh-close-gate.py` and its test are enforcement layer under DEC-174. Reporting only, per
 this review's execution-route bound — no fix, no dispatched-fix recommendation.
 
 ### Finding 2 (high) — `cmd_abandon`'s `--yes` path aborts the whole batch on the first `gh()` failure, unlike every other multi-card writer this feature touches

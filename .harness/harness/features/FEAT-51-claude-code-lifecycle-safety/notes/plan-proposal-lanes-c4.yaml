@@ -619,7 +619,7 @@ tasks:
       ad93d43e1f232ec1ab87e08ccf70a01a08c206b7: .claude/settings.json registers
       check-domain.py on PreToolUse for Write and Edit ONLY, at the matcher on :19. The
       PreToolUse Bash matcher on :27 runs branch-create-gate.py, bash-write-guard.py,
-      gh-close-gate.sh and plan-sign-gate.py, and check-domain.py --post on :62 is a POST
+      gh-close-gate.py and plan-sign-gate.py, and check-domain.py --post on :62 is a POST
       sweep. Since FEAT-41 reversed DEC-182, plan.yaml has exactly one writer,
       plan-merge.py, and it is invoked through Bash. So T-03's quarantine branch, which
       lives in check-domain.py, covers BRIEF.md, feature.json and STATE.md and cannot reach

@@ -10,7 +10,7 @@ evasion classes (F-03, H-02, C2-03, MF-1, HIGH-2). Recorded as **D-12**; the new
 
 Measured at `ad93d43e`: `.claude/settings.json:19` registers `check-domain.py` on `PreToolUse` for
 `Write|Edit` **only**; the `Bash` matcher at `:27` runs `branch-create-gate.py`,
-`bash-write-guard.py`, `gh-close-gate.sh`, `plan-sign-gate.py`; `check-domain.py --post` at `:62`
+`bash-write-guard.py`, `gh-close-gate.py`, `plan-sign-gate.py`; `check-domain.py --post` at `:62`
 is a POST sweep. `plan.yaml`'s only writer is `plan-merge.py`, invoked through `Bash`. So T-03's
 branch covers `BRIEF.md`, `feature.json`, `STATE.md` and **cannot reach `plan.yaml`**.
 

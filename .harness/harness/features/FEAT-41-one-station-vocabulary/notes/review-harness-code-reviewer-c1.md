@@ -139,7 +139,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
   irrelevant to the match. The argument holds; it is simply untested for this specific pattern.
   Recommend a follow-up case in `_t09_spelling`, not a re-open of F-04.
 - `plan-sign-gate.py`/`.py` wiring: confirmed registered under `PreToolUse` → `Bash` matcher in
-  `.claude/settings.json:31-46`, alongside `bash-write-guard.py`/`gh-close-gate.sh` — not a
+  `.claude/settings.json:31-46`, alongside `bash-write-guard.py`/`gh-close-gate.py` — not a
   guard that exists but never fires.
 - No new bare `except:`, unchecked `subprocess` returncode, or "absence of a word means
   success" instance found beyond the F-01 class already fixed, across the explicit file set.

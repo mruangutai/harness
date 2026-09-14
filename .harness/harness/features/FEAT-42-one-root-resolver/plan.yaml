@@ -38,7 +38,7 @@ lanes:
     - surface: .claude/skills/harness/bin/branch-create-gate.py
       lane: main-session-direct
       reason: a registered PreToolUse hook that refuses; DEC-174 am.4 says the category decides and the list records
-    - surface: .claude/skills/harness/bin/gh-close-gate.sh
+    - surface: .claude/skills/harness/bin/gh-close-gate.py
       lane: main-session-direct
       reason: a registered PreToolUse hook that refuses; DEC-174 am.4 says the category decides and the list records
     - surface: .claude/skills/harness/bin/inject-expertise.sh
@@ -1134,7 +1134,7 @@ tasks:
       under the MARKER rule: three self-gate cases read the LIVE github block that way.
 
   - id: T-15
-    title: Cut gh-close-gate.sh over, adding the missing test seam first
+    title: Cut gh-close-gate.py over, adding the missing test seam first
     traces: [REQ-01, REQ-02, REQ-09]
     change_type: logic
     execution_mode: main-session-direct
@@ -1142,12 +1142,12 @@ tasks:
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/gh-close-gate.sh
+      - .claude/skills/harness/bin/gh-close-gate.py
       - .claude/skills/harness/bin/test-gh-close-gate.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      G=gh-close-gate.sh
+      G=gh-close-gate.py
       grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
       grep -q "GH_CLOSE_GATE_BIN" $B/test-gh-close-gate.py || { echo "seam missing"; exit 1; }
       for M in /tmp/f42-old /tmp/f42-new; do
@@ -1173,13 +1173,13 @@ tasks:
     intent: |
       Two edits, in this order.
 
-      1. test-gh-close-gate.py:15 hardcodes GATE = os.path.join(BIN, "gh-close-gate.sh"). Give it
+      1. test-gh-close-gate.py:15 hardcodes GATE = os.path.join(BIN, "gh-close-gate.py"). Give it
       the seam its siblings use: GATE = os.environ.get("GH_CLOSE_GATE_BIN") or the existing join.
       Leave :41 exactly as it is — that line is the one place in the repository that ASSIGNS
       HARNESS_PROJECT_DIR, it is the test-injection seam the whole design depends on, and T-07's
       invariant excludes test files precisely so it can stay.
 
-      2. .claude/skills/harness/bin/gh-close-gate.sh:64 is
+      2. .claude/skills/harness/bin/gh-close-gate.py:64 is
       root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". Replace it with a short python3
       invocation that imports harness_boundary from the script's own bin directory and prints
       resolve_root of it; exit 2 naming the failure rather than falling back to pwd. This gate has

@@ -46,7 +46,7 @@ a `|` literal block and `bash -n` parses it clean.
 
 **Why this discriminates and the old one did not:** planted outside `.claude/skills/harness/bin/`,
 the mutant is invisible to the directory-scoped scan root and visible only to the repo-wide one. The
-old `$B/gh-close-gate.sh` target went red under both, so it could not prove the widening.
+old `$B/gh-close-gate.py` target went red under both, so it could not prove the widening.
 
 ## Open question — the write guard denies this proof, and already denied the old one
 
@@ -56,7 +56,7 @@ Measured against `.claude/skills/harness/bin/bash-write-guard.py` with
 | redirect target | verdict |
 |---|---|
 | `docs/invalid-states-audit.html` (new) | **BLOCKED** — outside your domain |
-| `$B/gh-close-gate.sh` (the version already in the plan) | **BLOCKED** — takes `$B/...` literally |
+| `$B/gh-close-gate.py` (the version already in the plan) | **BLOCKED** — takes `$B/...` literally |
 | absolute path under `.claude/worktrees/.../docs/...` | **allowed** (DEC-153 carve-out, guard :687) |
 
 Root cause: the guard resolves a relative Bash path against `root` (:232, `CLAUDE_PROJECT_DIR`), not

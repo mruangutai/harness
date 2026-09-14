@@ -20,7 +20,7 @@ against what each one actually needs:
 - Fail-CLOSED on unresolvable root (correct — these are refusal-shaped gates): `check-state.sh`
   (`:38-43`, exit 2, verified directly — the stale comment at `:1143` notwithstanding, see
   below), `check-plan-routes.py` (`:510-521`, `except ValueError: … sys.exit(2)`),
-  `branch-create-gate.py`, `gh-close-gate.sh` (per T-14/T-15 intent, not independently
+  `branch-create-gate.py`, `gh-close-gate.py` (per T-14/T-15 intent, not independently
   re-run but consistent with the QA gate's parity re-runs).
 - Fail-OPEN by design, all pre-existing and cited (DEC-101 or the hook's own contract), none
   newly introduced: `check-domain.py`/`bash-write-guard.py`'s `_root()` uses `strict=False`

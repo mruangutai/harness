@@ -816,7 +816,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       // check (that is #1103's own scope), so this script was the ONLY thing standing between
       // an agent and forging a signature, and on this host it was never invoked.
       reason = firstBlock([
-        policyRunner(ctx.cwd, "gh-close-gate.sh", [], payload),
+        policyRunner(ctx.cwd, "gh-close-gate.py", [], payload),
         policyRunner(ctx.cwd, "branch-create-gate.py", [], payload),
         policyRunner(ctx.cwd, "bash-write-guard.py", [], payload),
         policyRunner(ctx.cwd, "plan-sign-gate.py", [], payload),

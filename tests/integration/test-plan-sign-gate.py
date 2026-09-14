@@ -105,7 +105,7 @@ check("the refusal names awaiting_user, which is what the agent should return in
       "awaiting_user" in err, f"stderr={err[:400]!r}")
 
 # ---------------------------------------------------------------------------------------
-# THE FOUR EVASIONS THE PRECEDENT ALREADY MEASURED (gh-close-gate.sh's own comment lists
+# THE FOUR EVASIONS THE PRECEDENT ALREADY MEASURED (gh-close-gate.py's own comment lists
 # ten reaching a grep-based gate straight through). basename strips the path, shlex strips
 # the quoting and the backslash, and each token is re-scanned so eval and bash -c are READ.
 # ---------------------------------------------------------------------------------------

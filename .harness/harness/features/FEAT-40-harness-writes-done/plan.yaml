@@ -32,7 +32,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
       reason: DEC-174 carve-out, the state checker is a validator the harness must not change through itself
-    - surface: .claude/skills/harness/bin/gh-close-gate.sh
+    - surface: .claude/skills/harness/bin/gh-close-gate.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered PreToolUse Bash gate script
     - surface: .claude/settings.json
@@ -792,7 +792,7 @@ tasks:
     depends_on: [T-02, T-05]
     status: done
     files:
-      - .claude/skills/harness/bin/gh-close-gate.sh
+      - .claude/skills/harness/bin/gh-close-gate.py
       - .claude/skills/harness/bin/test-gh-close-gate.py
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/settings.json
@@ -803,9 +803,9 @@ tasks:
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-close-gate.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-run-unit-tests-kinds.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-branch-create-gate.py'
-      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.sh' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
+      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.py' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
     intent: |
-      Create .claude/skills/harness/bin/gh-close-gate.sh, a third PreToolUse Bash hook, modelled on
+      Create .claude/skills/harness/bin/gh-close-gate.py, a third PreToolUse Bash hook, modelled on
       the structure of branch-create-gate.py: read the hook JSON from stdin, take
       (tool_input or {}).get("command"), and deny with a structured permissionDecision — exit 0
       plus JSON with hookSpecificOutput.permissionDecision = "deny" and a
