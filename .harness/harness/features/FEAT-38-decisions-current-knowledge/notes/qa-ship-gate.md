@@ -41,7 +41,7 @@ design for no gain. Recorded here rather than silently marked satisfied.
 ## 3. Suite run (measured in Python, not shell grep)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py > /tmp/qa38_suite.out 2>&1; rc=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py > /tmp/qa38_suite.out 2>&1; rc=$?
 RC=0
 ```
 - `FAIL ` lines (python `startswith('FAIL ')` over the captured file): **0**

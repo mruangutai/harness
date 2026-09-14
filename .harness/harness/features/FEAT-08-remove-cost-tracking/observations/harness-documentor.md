@@ -14,7 +14,7 @@
   in the index, run `gen-decisions-index.py` with NO flag to rewrite the file in place, then replace
   the single `⚠ RULING PENDING` sentinel it emitted. Hand-constructing the generated left side of a
   new row is never necessary.
-- 2026-08-05 (T-09): `check-state.sh:331-335` already carried a forward reference to DEC-178 (written
+- 2026-08-05 (T-09): `check-state.py:331-335` already carried a forward reference to DEC-178 (written
   by T-02) before the entry existed. Appending the entry closed the dangling reference; nothing in
   the toolchain would have flagged it if the entry had never been written.
 - 2026-08-05 (T-09): rule of thumb that kept `BODY_SUPERSESSION_RE` quiet — open every bold run in a
@@ -70,7 +70,7 @@
   attribution. A decision can be live while the HALF of it a title leans on is dead. Read the ruling's
   clauses, not just its supersession status.
 - 2026-08-05 (T-12): `.harness/README.md:86` was genuinely stale, not merely cost-flavoured — it said
-  `check-state.sh` flags "runs completed without a cost block", but `check-state.sh:329-335` now keeps
+  `check-state.py` flags "runs completed without a cost block", but `check-state.py:329-335` now keeps
   `"cost"` only as a HISTORICAL-ONLY tolerated key ("nothing produces it any more", DEC-178). The doc
   described a check with inverted polarity to the code. Deleting the clause was right; a removal
   marker would have preserved a false statement.

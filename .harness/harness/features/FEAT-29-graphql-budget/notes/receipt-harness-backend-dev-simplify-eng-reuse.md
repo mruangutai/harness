@@ -4,7 +4,7 @@
 
 One applicable finding. Read-only: nothing edited. `.harness/logs/gh-cost-2026-08-19.jsonl`
 confirmed byte-identical (39504 bytes) before and after this pass — no live `gh` call made,
-`check-state.sh` not run.
+`check-state.py` not run.
 
 ## Scope reviewed
 
@@ -60,7 +60,7 @@ behavior).
   the wrap sites' *two* subprocess calls per invocation. Collapsing them would cost more than it
   saves — judged a false positive, not a finding.
 - `_RATE_LIMIT_MARKERS`/`_looks_like_rate_limit`/`_is_rate_limit_query` (`factory_gh.py`, new):
-  grepped `check-state.sh` and the rest of `bin/` for any prior rate-limit-detection text or
+  grepped `check-state.py` and the rest of `bin/` for any prior rate-limit-detection text or
   helper — none exists. Genuinely new, not a restatement.
 - `gh_cost_log.py`'s `_MAX_ARG_LEN`/`_truncate`/`_sanitize_argv` (argv value truncation for log
   lines): grepped the whole `bin/` tree — no prior truncation helper of this shape exists to

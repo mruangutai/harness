@@ -92,7 +92,7 @@ is refused as "a RELATIVE destination" although it resolves to a legal absolute 
 of my own commands. This is the same mechanism M-2c rests on.
 
 **M-9. Baseline for SC-09**, both suites at eeabc59: `--kind unit` and `--kind integration` each pass
-with zero FAIL or ERROR lines. `check-state.sh` reports exactly two VIOLATIONs, both unapproved
+with zero FAIL or ERROR lines. `check-state.py` reports exactly two VIOLATIONs, both unapproved
 BRIEFs in the paused FEAT-26 and FEAT-28 flows, neither belonging to this feature. State the sha AND
 the condition when citing this: two violations later is not FEAT-30 regressing, and zero later is not
 an improvement — it means those flows moved.

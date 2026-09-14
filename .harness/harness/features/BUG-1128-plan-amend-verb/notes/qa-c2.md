@@ -1,7 +1,7 @@
 # QA gate — BUG-1128-plan-amend-verb — panel c2 — review_sha `08dd66bb`
 
 **BLUF: FAIL.** The evidence claims reproduce exactly (229/0, run-unit-tests.py 0 FAIL,
-check-state.sh 0 violations) and V1/V2/V4's mutation counts reproduce exactly (3/1/2). But the
+check-state.py 0 violations) and V1/V2/V4's mutation counts reproduce exactly (3/1/2). But the
 panel's own headline remedy — `_verify_amend`'s value-comparison check, the thing that "demotes
 V1, V2 and V6 to refusals" — has **zero regression coverage**: `case_amend_v3_identity_check_is_live`
 is vacuous (H2 confirmed), and a syntax-valid mutant that deletes only that check trips **0 of
@@ -19,8 +19,8 @@ Item 4's carried-over gap (`case_amend_refuses_an_unknown_key` non-discriminatin
 | claim | author said | observed (this run, `08dd66bb` pin) |
 |---|---|---|
 | `test-plan-merge.py` | 229 PASS / 0 FAIL | **matches** — `python3 .claude/skills/harness/bin/test-plan-merge.py`, exit 0, 229 PASS lines, 0 FAIL lines |
-| `run-unit-tests.py` (full) | exit 0, 0 FAIL | **matches** — `bash .claude/skills/harness/bin/run-unit-tests.py`, exit 0, `grep -c '^FAIL'` → 0 across 3814 lines. `test-plan-merge.py` confirmed present and PASS (line 3375-3376); still member of `INTEGRATION_SCRIPTS` only, never `UNIT_SCRIPTS` (`run-unit-tests.py:31`) — the matrix-floor gap from cycle 0 (V8) is structurally unchanged, not a target of this cycle's remedies |
-| `check-state.sh` | exit 0, 0 violations | **matches after my own cleanup** — first run showed exactly one `VIOLATION INV-29`, self-caused by a scratch worktree (`bug1128-qa-mutate-c2`) I created for mutation testing and then removed via `git worktree remove` (clean tree, no `--force` needed); re-run after removal: exit 0, 0 violation lines. Not attributable to this diff |
+| `run-unit-tests.py` (full) | exit 0, 0 FAIL | **matches** — `python3 .claude/skills/harness/bin/run-unit-tests.py`, exit 0, `grep -c '^FAIL'` → 0 across 3814 lines. `test-plan-merge.py` confirmed present and PASS (line 3375-3376); still member of `INTEGRATION_SCRIPTS` only, never `UNIT_SCRIPTS` (`run-unit-tests.py:31`) — the matrix-floor gap from cycle 0 (V8) is structurally unchanged, not a target of this cycle's remedies |
+| `check-state.py` | exit 0, 0 violations | **matches after my own cleanup** — first run showed exactly one `VIOLATION INV-29`, self-caused by a scratch worktree (`bug1128-qa-mutate-c2`) I created for mutation testing and then removed via `git worktree remove` (clean tree, no `--force` needed); re-run after removal: exit 0, 0 violation lines. Not attributable to this diff |
 
 ## 2 — Mutation re-derivation of V1–V4
 

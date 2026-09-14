@@ -26,7 +26,7 @@ kinds green regardless of which label applies (SC-07's task, T-04, is independen
 | integration | yes (cross_module) / only via SC-07 trace under bugfix | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | **exit 0**, 590 `^PASS ` lines, `test-omp-session-accessor.py` `7/7 checks passed` inline |
 | `--check-kinds` | drift cross-check | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --check-kinds` | `check-kinds: the script arrays and test_kinds.integration.detect agree.` exit 0 |
 | `check-omp-port.py` | cited by dispatch | satisfied | ran inside the unit suite | `18/18 cases passed`, `PASS test-check-omp-port.py` |
-| `check-state.sh` | cited by dispatch | satisfied | `bash .claude/skills/harness/bin/check-state.sh` | exit 0, 538 lines, **all `note`, zero `violation`/`error`** lines; explicit `INV-17 FEAT-44...exempt` note confirms the DEC-174 direct edits to `.harness.json`/`DECISIONS.md` are recognized deviations-by-design, not flagged |
+| `check-state.py` | cited by dispatch | satisfied | `python3 .claude/skills/harness/bin/check-state.py` | exit 0, 538 lines, **all `note`, zero `violation`/`error`** lines; explicit `INV-17 FEAT-44...exempt` note confirms the DEC-174 direct edits to `.harness.json`/`DECISIONS.md` are recognized deviations-by-design, not flagged |
 | typecheck | null cmd, disclosed gap | **BLOCKED (soft, pre-recorded)** | n/a | `test_kinds.typecheck.cmd` is `null`; this is the standing dev-ops gap named in BRIEF's Verification gaps, not new to this feature |
 | component / ui / eval | `status: unresolved`/excluded, not applicable | n/a | — | this feature touches no component/ui/eval surface |
 
@@ -173,7 +173,7 @@ wearing a different hat** — the real-binary test is discoverable and gated.
 `test-context-watch-cli.py` and `test-context-watch-hook.py`, added `test-omp-session-accessor.py`:
 27 − 2 + 1 = 26). Both counts move by exactly the number of files T-04 deleted / T-01,T-03 added —
 **no unexplained drop**. `run-unit-tests.py --check-kinds` independently confirms the array/glob pair
-agree with 0 exit. `check-state.sh`'s sweep (538 lines, all `note`) surfaced no new violation class
+agree with 0 exit. `check-state.py`'s sweep (538 lines, all `note`) surfaced no new violation class
 from the registry move.
 
 ## Incident (recorded honestly, not to be repeated)

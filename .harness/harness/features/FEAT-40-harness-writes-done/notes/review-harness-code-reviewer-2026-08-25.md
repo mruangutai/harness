@@ -32,7 +32,7 @@ Every change in scope traces to a `REQ`/`D`. No scope creep found. One omission-
 ### Finding 1 (critical, must_fix) — `gh-close-gate.py` has real, reachable false-ALLOWs
 
 Independently reproduced against the pinned-SHA script (JSON hook payload piped into
-`bash .claude/skills/harness/bin/gh-close-gate.py`, `github.sync: true`), not reasoned about:
+`python3 .claude/skills/harness/bin/gh-close-gate.py`, `github.sync: true`), not reasoned about:
 
 | command | result | why the regex misses it |
 |---|---|---|
@@ -142,7 +142,7 @@ privilege question, not the write loop's failure posture.
   skip line *before* any finding (since findings were only printed by the caller after the function
   returned), so collecting them into a `notes` list printed first by `cmd_audit` reproduces that
   order exactly, not a regression.
-- **`INV-31`** (`check-state.sh:1700-1758`): both findings append to `bad`; both subjects differ
+- **`INV-31`** (`check-state.py:1700-1758`): both findings append to `bad`; both subjects differ
   (config value vs. file); the CANNOT-RUN path is a violation, not a pass; realpath comparison
   correctly passes an absolute `core.hooksPath` naming the same directory. `test-check-state.py`
   exercises all six named states including the absolute-path-passes case.

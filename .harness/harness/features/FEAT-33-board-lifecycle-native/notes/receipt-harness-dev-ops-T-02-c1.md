@@ -21,7 +21,7 @@ board 3, 2026-08-22, case sensitive per DEC-192). `github.board._note` reworded 
 "Four keys, resolved BY NAME at runtime" to "Six keys — backlog, plan, ready, building,
 review, done — resolved BY NAME at runtime"; nothing else in that note changed.
 
-`gh_board.derive_station` and `check-state.sh` were not touched, per the plan.
+`gh_board.derive_station` and `check-state.py` were not touched, per the plan.
 
 ## Edit count per file
 
@@ -110,9 +110,9 @@ Also added: an assertion that `set(fc._STATION_KEYS)` equals the six lowercase f
 enum currently reads `["Backlog","Plan","Ready","Building","Review","Done","Abandoned"]`
 (feature-schema.json, `properties.status.enum`).
 
-## check-state.sh inertness proof
+## check-state.py inertness proof
 
-Ran `.claude/skills/harness/bin/check-state.sh` before any edit and after every edit in this
+Ran `.claude/skills/harness/bin/check-state.py` before any edit and after every edit in this
 task. Both runs: exit code 1, 442 lines. Sorted-and-hashed both captures:
 `md5(before) == md5(after) == e2efb254fe63ff8dec3c6efe586ee6a3`. `diff` between the sorted
 captures produced no output — **the two finding sets are identical**, not merely

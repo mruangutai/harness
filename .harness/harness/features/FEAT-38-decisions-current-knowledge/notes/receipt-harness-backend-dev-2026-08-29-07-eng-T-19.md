@@ -72,7 +72,7 @@ No other script printed a FAIL line anywhere in the full output below (grepped `
 across all 1967 lines — 584 PASS lines total, exactly 4 FAIL lines, all four listed above). Nothing
 else to report upward from the suite body itself.
 
-## Complete verbatim runner output (1967 lines, `bash run-unit-tests.py --kind integration 2>&1`)
+## Complete verbatim runner output (1967 lines, `python3 run-unit-tests.py --kind integration 2>&1`)
 
 ok    lead, block-style members + bare empty key
 ok    lead, fully inline lists
@@ -499,7 +499,7 @@ ok - case (m3): a decoy entry does not let a narrowed PostToolUse registration t
 ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
 ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
 ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
-ok - case (o): check-domain.py, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated budget, key and heading
 ok - INV-28 warns on a Done feature whose pr is null
 ok - INV-28 is silent on a Done feature whose pr is an integer
 ok - INV-28 is silent on an Abandoned feature whose pr is null
@@ -1430,7 +1430,7 @@ PASS  case2: P-01 present after both applies
 PASS  case2: P-02 present after both applies
 PASS  case2: P-03 present after both applies
 PASS  case2: P-04 present after both applies
-PASS  case2: check-expertise.sh still accepts the merged file
+PASS  case2: check-expertise.py still accepts the merged file
 PASS  case3: 20 concurrent trials admit only the union outcome or the lock outcome
 PASS  case4: divergent text exits 7
 PASS  case4: existing text appears in stdout
@@ -1453,11 +1453,11 @@ PASS  case9: a `..` escape carrying a legal tail is REFUSED — the match is on 
 PASS  case9: the project tier is ALLOWED — exit 0
 PASS  case9: the repository tier is ALLOWED — exit 0
 PASS  case8: CAPS mapping found in expertise-merge.py
-PASS  case8: CAPS mapping found in check-expertise.sh
-PASS  case8: Patterns cap agrees between expertise-merge.py and check-expertise.sh
-PASS  case8: Gotchas cap agrees between expertise-merge.py and check-expertise.sh
-PASS  case8: Outcomes cap agrees between expertise-merge.py and check-expertise.sh
-PASS  case8: Open cap agrees between expertise-merge.py and check-expertise.sh
+PASS  case8: CAPS mapping found in check-expertise.py
+PASS  case8: Patterns cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Gotchas cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Outcomes cap agrees between expertise-merge.py and check-expertise.py
+PASS  case8: Open cap agrees between expertise-merge.py and check-expertise.py
 PASS  case10: a following apply exits 0 after the lock holder is SIGKILLed
 PASS  case10: the proposed entry is on disk after recovery
 PASS test-expertise-merge.py

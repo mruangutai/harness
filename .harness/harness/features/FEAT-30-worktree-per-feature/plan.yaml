@@ -209,17 +209,17 @@ decisions:
       --kind unit and --kind integration each pass with zero FAIL lines and zero ERROR lines,
       re-observed unchanged at HEAD during the simplify pass with 269 PASS, 0 FAIL, 0 ERROR and
       exit 0. Separately, and explicitly NOT part of SC-09 and owned by no task: an operator-run
-      sanity check at ship time that check-state.sh reports no VIOLATION line whose text contains
+      sanity check at ship time that check-state.py reports no VIOLATION line whose text contains
       FEAT-30. A VIOLATION COUNT is rejected as the assertion form for either.
     because: >-
       SC-09's own text is about the test suites - no test that passed before this feature fails
-      after it, and the full unit and integration suites pass - so a check-state.sh clause cannot
+      after it, and the full unit and integration suites pass - so a check-state.py clause cannot
       be a half of it, and no task's verify instruments one. Inventing a verify for it would
       assert a whole-repository property against a criterion that does not claim it. The
       count-form reasoning below is kept rather than trimmed with it, because it is the
       load-bearing lesson about asserting anything over a whole-repository scan here. The count
       form was written first and was falsified three minutes later. The same command in
-      the same checkout, FACTORY_GH=/nonexistent/gh check-state.sh, reported 2 VIOLATIONs at 07:41
+      the same checkout, FACTORY_GH=/nonexistent/gh check-state.py, reported 2 VIOLATIONs at 07:41
       and 3 at 08:07; the third was the unapproved BRIEF of FEAT-31-orchestrator-context-watch,
       which the main session started and which has nothing to do with this feature. The defect is
       structural rather than stale arithmetic: a violation count over a whole-repository scan is a
@@ -1060,8 +1060,8 @@ tasks:
       file is lost. The entries input uses the same line format the file itself uses: entries of the
       form dash, an id such as P-01, a colon, then text, at column zero, grouped under the four
       canonical section headings Patterns, Gotchas, Outcomes and Open. That format and its caps are
-      DEC-145's and are enforced by check-expertise.sh; this tool must produce a file that
-      check-expertise.sh still accepts.
+      DEC-145's and are enforced by check-expertise.py; this tool must produce a file that
+      check-expertise.py still accepts.
 
       THE ALGORITHM, and the ordering matters:
         1. Take an exclusive lock: create a sibling lock file with os.open using the create-and-
@@ -1103,7 +1103,7 @@ tasks:
         2. THE GREEN CASE, the same two close-outs through the tool: starting file with P-01 and
            P-02, apply A's proposal of P-01 and P-03, then apply B's proposal of P-01 and P-04.
            Assert all four ids are present, one assertion per id, and that the file still passes
-           check-expertise.sh by forking it and asserting exit 0.
+           check-expertise.py by forking it and asserting exit 0.
         3. CONCURRENCY FOR REAL: spawn two subprocesses that apply overlapping proposals to the same
            file at the same time, join both, and assert that either the union of both proposals
            survives, or that one run exited 6 with the lock message and applied nothing. Assert
@@ -1116,7 +1116,7 @@ tasks:
         6. A file that does not exist yet is created from the proposal alone and exits 0.
         7. The lock is released: after each of cases 4, 5 and 6 the lock file does not exist.
         8. THE CAP DRIFT DETECTOR, which this task owes because step 5 re-spells DEC-145's four
-           section caps in a second file. Read .claude/skills/harness/bin/check-expertise.sh as
+           section caps in a second file. Read .claude/skills/harness/bin/check-expertise.py as
            TEXT, extract the four numbers from the CAPS mapping it assigns - those caps live inside
            a python3 heredoc in that script and cannot be imported - and assert they equal the four
            caps this tool enforces, section by section, naming any section whose two values differ.
@@ -1157,7 +1157,7 @@ tasks:
           text, which is a real conflict for the agent to resolve; exit 8, the section cap is
           exceeded, which means curating rather than appending.
         - It does not restate the entry format or the caps. Those are DEC-145's and
-          check-expertise.sh enforces them; a second copy here is the drift this repository keeps
+          check-expertise.py enforces them; a second copy here is the drift this repository keeps
           paying for.
       Add nothing about worktrees to this file. Change no other statement in it.
 
@@ -1267,7 +1267,7 @@ tasks:
          session for the same reason. This sentence discharges must_fix M-1: git worktree remove
          succeeds at exit 0 from inside the tree it removes, so guidance that omits who runs it and
          from where tells the orchestrator to delete its own cwd, which check-domain.py:428-431,
-         bash-write-guard.py:135-137 and check-state.sh:1082-1085 each already refuse to say and
+         bash-write-guard.py:135-137 and check-state.py:1082-1085 each already refuse to say and
          T-05 refuses on the Bash route. The orchestrator's part of a terminal state is to finish
          landing its artifacts and report; removal is not its act. State that remove refuses on a dirty tree, and refuses until every
          artifact under the feature's directory is present with identical content on the default

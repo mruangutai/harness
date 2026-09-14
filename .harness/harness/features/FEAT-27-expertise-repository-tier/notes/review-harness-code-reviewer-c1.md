@@ -7,8 +7,7 @@ stays empty.
 
 ## C-1 — HOME-unset unbound-variable exit — CONFIRMED, severity: low
 
-Ran it: `echo '{"agent_type":"harness-qa"}' | env -u HOME CLAUDE_PROJECT_DIR="$PWD" bash
-inject-expertise.py` → `inject-expertise.py: line 33: HOME: unbound variable`, exit 1. Prediction
+Ran it: `echo '{"agent_type":"harness-qa"}' | env -u HOME CLAUDE_PROJECT_DIR="$PWD" python3 inject-expertise.py` → `inject-expertise.py: line 33: HOME: unbound variable`, exit 1. Prediction
 holds exactly: the hook violates its own "always exit 0" contract under `set -u` with `$HOME` unset.
 
 Enumeration (not taken from the prediction): every other bare `$var` reference in the script
@@ -47,14 +46,14 @@ lines) via parameterization (T-02/T-03), widening where it can bite: repository-
 smaller and more likely to sit near their cap than craft files historically were.
 
 **Compensating control — checked, and it does catch this, but not mechanically.**
-`check-expertise.sh:76` uses `open(path).read().splitlines()`, which is **not** trailing-newline
+`check-expertise.py:76` uses `open(path).read().splitlines()`, which is **not** trailing-newline
 sensitive: for the same 41-line fixture, `splitlines()` correctly returns 41 (verified inline).
 Built a full fixture under `.harness/harness/expertise/harness-qa.md`-shaped path in scratchpad and
 ran the real script against it: `FAIL ... 42 lines — over the 40-line budget` (42 = title line +
 41 body lines) — the checker does flag it. **But** this control is a documented manual step
 (`harness-distill/SKILL.md:31`, `harness-curate/SKILL.md` steps 1/4), not a wired gate:
 `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` runs `test-check-expertise.py` (the tool's own unit
-tests) but nothing runs `check-expertise.sh` against real `.harness/**/expertise/*.md` content as
+tests) but nothing runs `check-expertise.py` against real `.harness/**/expertise/*.md` content as
 part of any automated check. A distiller who skips or misreads the step still lands a file whose
 tail silently vanishes at every spawn thereafter, with the file itself claiming (via the checker,
 if ever re-run) to be within budget only by luck of a later edit adding a trailing newline.
@@ -96,12 +95,12 @@ code fix rather than either doc being hand-edited now to hedge.
 **Severity: low**, per your own framing — inherited, not a new self-contradiction introduced by this
 diff.
 
-## C-4 — `check-expertise.sh` unguarded `open()` vs T-06's new directory-mode sweep over
+## C-4 — `check-expertise.py` unguarded `open()` vs T-06's new directory-mode sweep over
 dangling-symlink-anticipated directories — CONFIRMED, severity: med
 
 Built a fixture directory with two files: `a-dangling.md` (a dangling symlink, sorts first) and
 `z-harness-zzz.md` (a well-formed file, sorts second — chosen to prove later-in-order files are
-skipped, not just that a crash occurs). Ran `check-expertise.sh <dir>/`:
+skipped, not just that a crash occurs). Ran `check-expertise.py <dir>/`:
 
 ```
 Traceback (most recent call last):
@@ -119,13 +118,13 @@ confirmed at `:169`) — a caller checking only the exit code cannot tell "found
 
 - **The defect** (unguarded `open(path, encoding="utf-8").read()` at `:76`, and the `find -maxdepth 1
   -name '*.md' | sort` directory listing that will happily list a dangling symlink) is **inherited**:
-  `git diff b4659cd..9b929de -- check-expertise.sh` shows this diff's only changes near that code are
+  `git diff b4659cd..9b929de -- check-expertise.py` shows this diff's only changes near that code are
   adding `tier, line_budget = classify_tier(path)` immediately above it — the `open()` call itself,
   and the directory-mode `find`, are untouched.
 - **The exposure is new.** Before this diff, the only directory-mode call site documented anywhere
   (`harness-curate/SKILL.md` at `b4659cd`) pointed at `.harness/expertise/` alone — a single,
   git-tracked craft directory with no symlink concept. This diff's T-06 adds the
-  `for d in .harness/*/expertise/; do check-expertise.sh "$d"; done` loop (confirmed via
+  `for d in .harness/*/expertise/; do check-expertise.py "$d"; done` loop (confirmed via
   `git diff -- harness-curate/SKILL.md`, both steps 1 and 4), and this **same diff's** T-07/SC-11
   establish, with their own fixture (`test-inject-expertise.py` case13) and their own guard
   (`inject-expertise.py`'s `[ -r "$f" ] || continue`), that a dangling symlink under

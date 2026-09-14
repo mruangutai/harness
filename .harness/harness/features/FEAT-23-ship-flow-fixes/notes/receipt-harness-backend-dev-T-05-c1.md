@@ -63,7 +63,7 @@ all pass
 ```
 Exit code: **0**.
 
-`bash .claude/skills/harness/bin/run-unit-tests.py --kind unit` (and separately `--kind all`):
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit` (and separately `--kind all`):
 exit **0**, `PASS test-board-station.py` present in both runs.
 
 ## Task's `verify:` — full clause, re-run after the work — verbatim final line
@@ -121,7 +121,7 @@ fail this second check even if it happened to exit 0.
 ## Bounds respected
 
 No commit, no `git add`, no `gh` writes. `check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `check-state.sh` untouched. `plan.yaml`, `BRIEF.md`, `feature.json`,
+`validate-digest.py`, `check-state.py` untouched. `plan.yaml`, `BRIEF.md`, `feature.json`,
 `STATE.md`, `.harness/harness.json` untouched. `gh-sync.py`, `test-gh-sync.py`, `gh_board.py`
 untouched (called, not edited). Arch finding G's duplication (this file re-derives
 `load_config`'s github-block precondition policy rather than importing it) is left as the signed

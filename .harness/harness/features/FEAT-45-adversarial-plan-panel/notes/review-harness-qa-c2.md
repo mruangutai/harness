@@ -33,12 +33,12 @@ T-09/T-10/T-12 commits touched the same array lines.
 
 Reran the exact standing commands myself (not trusting any prior report):
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
 KIND-DRIFT: test-context-watch-cli.py is in INTEGRATION_SCRIPTS but absent from test_kinds.integration.detect
 KIND-DRIFT: test-context-watch-hook.py is in INTEGRATION_SCRIPTS but absent from test_kinds.integration.detect
 EXIT=2
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind integration   # same two lines, EXIT=2
-$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds        # same two lines, EXIT=2
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration   # same two lines, EXIT=2
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds        # same two lines, EXIT=2
 ```
 Read the script (`run-unit-tests.py:55-138`): the drift detector and the kind cross-check
 both run over the **union** of both arrays, unconditionally, before any `--kind` dispatch —
@@ -60,7 +60,7 @@ Every `done` task touching code in this diff is `change_type: logic` (T-07, T-08
 T-10, T-12; T-01/T-03/T-04 `docs`, T-02/T-05/T-06/T-11 `config` — no `always` kinds).
 Matrix floor for `logic`: `unit`, always. No `cross_module`/`feature`/`api` task exists, so
 the matrix itself does not add `integration`. I add it anyway (floor, not ceiling — P-04):
-`check-state.sh` (T-07/T-08) and `validate-digest.py`'s DEC-207/SKIPPED fixes are exercised
+`check-state.py` (T-07/T-08) and `validate-digest.py`'s DEC-207/SKIPPED fixes are exercised
 **only** by scripts `harness.json` itself classifies `integration` (`test-check-state.py`,
 `test-validate-digest.py`), never by anything in `unit`.
 
@@ -127,7 +127,7 @@ worse than a single missing entry.
   All three reject correctly by hand — so this is a **coverage gap** (near-vacuous on the
   error paths, per the dispatch's own framing), not a live defect. Flagging per O-03: this
   is reasoned, not measured by the suite itself.
-- **`check-state.sh` INV-32.** `case_inv32()` + `case_inv32_unrated_severity_fails_closed()`
+- **`check-state.py` INV-32.** `case_inv32()` + `case_inv32_unrated_severity_fails_closed()`
   bind all 5 checks (no-panel, ruling attribution/staleness, reader presence/skip) plus the
   restructured disposition gate, across both happy and adversarial fixtures. This is the
   deepest-covered file in scope — not vacuous.
@@ -137,7 +137,7 @@ worse than a single missing entry.
 
 ## Discrimination — INV-32's restructured gate, independently proven
 
-Read the restructured branch at the pin (`check-state.sh`, INV-32 block): the severity gate
+Read the restructured branch at the pin (`check-state.py`, INV-32 block): the severity gate
 is now `if disposition == "resolved": warn / elif fid in overruled: warn / elif severity not
 in {"info","low","med"}: bad`. An **absent** `severity` key and a **YAML-null** `severity`
 both `.strip().lower()` to `""` (absent) or `"none"` (null via `str(None)`), and both are
@@ -178,7 +178,7 @@ in passing via `test-plan-panel.py`'s case 9 output above (still green).
 ## open_questions
 
 - { id: Q1, question: "run-unit-tests.py's standing --kind unit/--kind integration/--check-kinds commands all exit 2 (KIND-DRIFT) at the pinned SHA because this branch's merge reintroduced test-context-watch.py/-cli.py/-hook.py registrations for files main already deleted in abd63c9. Every individual required script passes standalone, but the canonical gate entry point does not run at all. Does this block the ship, or does dev-ops get one more pass to drop the three stale array entries before re-pin?", blocking: true }
-- { id: Q2, question: "bash-write-guard denied me both writing a same-directory mutant copy of check-state.sh and later removing my own leftover scratch file (.check-state-sev-mutant.sh, top-level of the worktree, untracked, empty diff-noise) — 'outside your domain' on both a create and its own cleanup. I could not complete a live source-mutation proof for INV-32 myself; substituted direct fixture re-derivation + reading the suite's own internal mutation case. Should QA hold a scoped perturbation-write grant, or should this class of proof route to a persona that already has one (repeats prior Q-01)?", blocking: false }
+- { id: Q2, question: "bash-write-guard denied me both writing a same-directory mutant copy of check-state.py and later removing my own leftover scratch file (.check-state-sev-mutant.sh, top-level of the worktree, untracked, empty diff-noise) — 'outside your domain' on both a create and its own cleanup. I could not complete a live source-mutation proof for INV-32 myself; substituted direct fixture re-derivation + reading the suite's own internal mutation case. Should QA hold a scoped perturbation-write grant, or should this class of proof route to a persona that already has one (repeats prior Q-01)?", blocking: false }
 - { id: Q3, question: "validate-digest.py's post-signature plan-review-mode rejection (_pinned_feature_review_error) and 3 of 4 _skipped_member_error branches are unexercised by the added suite (only the happy path is a case()). I hand-verified all four reject correctly, so this is coverage, not a defect — but it is exactly the shape the dispatch asked me to interrogate. Worth a follow-up case addition before signature, or accepted as-is?", blocking: false }
 
 ## Leftover artifact

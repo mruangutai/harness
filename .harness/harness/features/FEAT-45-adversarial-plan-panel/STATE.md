@@ -20,7 +20,7 @@ with a recorded reason — and 5 entries replaced in place** (documentor `P-02`/
 `P-03`/`G-13`, validator-lead `G-09`). No file lost an entry accidentally. Twelve candidates were
 rejected on the owning member's own judgement with a stated reason (six by product, two by eng, four
 by the ui-reviewer); a further eleven or so died for the tooling reason recorded below, which is a
-different and worse thing. The canonical `bin/check-expertise.sh` passes at exit 0 over BOTH tiers,
+different and worse thing. The canonical `bin/check-expertise.py` passes at exit 0 over BOTH tiers,
 with the same five pre-existing ADVISORY lines and no new one.
 
 The skim was degraded and it was disclosed to every lead. `.harness/*/features/*/runs/**` is
@@ -30,7 +30,7 @@ gitignored (`.gitignore:7`), so all seventeen pre-merge run digests lived only i
 `harness-orchestrator` — the eng and validator members had no observation log at all and distilled
 from their own receipts and review notes.
 
-One send-back was routed. `check-expertise.sh` failed on three over-cap entries (eng-lead's craft
+One send-back was routed. `check-expertise.py` failed on three over-cap entries (eng-lead's craft
 `P-03` at 55 words and `G-13` at 54; dev-ops's repository `G-10` at 51). The eng lead was
 re-dispatched once with the entries pre-measured and application-not-re-adjudication framing; all
 three came back at 47/43/41 words with their discriminators intact and nothing else moved.
@@ -62,7 +62,7 @@ run and still settle on the first live `/harness-plan` after merge.
   members at a full craft section — qa, code-reviewer and security-reviewer among them — had
   roughly eleven candidates they judged durable die for a TOOLING reason rather than a judgement
   one, and since DEC-145 makes feature-close the only Expertise write, that write is a permanent
-  silent no-op for any agent at cap. `check-expertise.sh` cannot detect it: an unchanged valid file
+  silent no-op for any agent at cap. `check-expertise.py` cannot detect it: an unchanged valid file
   passes. The craft tier — the portable default — is the tier that starves. Recommend a
   `--drop`/`--replace` verb, or correcting the skill's promise. — harness-orchestrator
 - HARNESS DEFECT: the three leads own their Expertise files but hold `Write` WITHOUT `Bash`, so the

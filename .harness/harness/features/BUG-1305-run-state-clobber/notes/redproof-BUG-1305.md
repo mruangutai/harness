@@ -33,7 +33,7 @@ FAIL  [bug1305-artifact] existing run directory without digest is refused
       | expected exit 2, got 0
       | stderr should mention '/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/vd-bug1305-00ezp0b8/.claude/worktrees/FEAT-X/runs/r1'
       | stderr should mention 'missing'
-      | check-digest: harness-eng-lead's artifact runs/r1/digest.md not found from the hook's vantage — file-shape check skipped; check-state.sh INV-15 will audit it from repo root.
+      | check-digest: harness-eng-lead's artifact runs/r1/digest.md not found from the hook's vantage — file-shape check skipped; check-state.py INV-15 will audit it from repo root.
 ```
 
 The non-compliant fixture is the resolved, existing run directory with no durable `digest.md`; the old hook passed it with exit 0.
@@ -83,7 +83,7 @@ The pinned hook allowed a foreign first `Write` because no prior `state.yaml` ex
 
 ## SC-02
 
-Command with `CHECK_STATE_BIN` pointed at `check-state.sh` from `c369fb1f` in an isolated bin:
+Command with `CHECK_STATE_BIN` pointed at `check-state.py` from `c369fb1f` in an isolated bin:
 
 ```text
 python3 -c 'import importlib.util; p="tests/integration/test-check-state.py"; s=importlib.util.spec_from_file_location("cs", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(0 if m.case_bug1305_run_identity_invariant() else 1)'

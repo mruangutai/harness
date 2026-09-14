@@ -813,7 +813,7 @@ def check_artifact_file(agent, text, payload):
 
     FAIL OPEN, LOUDLY when the file cannot be located or read: a hook whose cwd
     drifts (worktrees, unset CLAUDE_PROJECT_DIR) must not block a legitimate
-    lead on our own resolution bug. check-state.sh INV-15 is the deterministic
+    lead on our own resolution bug. check-state.py INV-15 is the deterministic
     backstop that runs from repo root and catches what this pass-through misses.
     Blocking is for THEIR contract violation, never our lookup failure.
     """
@@ -844,7 +844,7 @@ def check_artifact_file(agent, text, payload):
     found = next((p for p in cands if os.path.isfile(p)), None)
     if not found:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
-              f"file-shape check skipped; check-state.sh INV-15 will audit it from repo root.",
+              f"file-shape check skipped; check-state.py INV-15 will audit it from repo root.",
               file=sys.stderr)
         return 0
     try:

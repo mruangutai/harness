@@ -149,7 +149,7 @@ feature**. ~850 tokens × 34 spawns ≈ 29k tokens/feature. The de-preload prece
 the tree: DEC-158 did exactly this to `harness-systematic-debugging`
 (`harness/SKILL.md:113-115`). **Quality risk is real** — DEC-125 is cited four times in this
 codebase for things that "relied on being pointed at" and failed silently; the mitigation is that
-`check-expertise.sh` catches format violations mechanically.
+`check-expertise.py` catches format violations mechanically.
 
 ### 11 — `SPEC.md:1980` vs `review.yaml`
 

@@ -39,7 +39,7 @@ cleaned up my scratch checkout.
 
 ---
 
-## F-02 — check-state.sh regex conversion: **NOT CLOSED**
+## F-02 — check-state.py regex conversion: **NOT CLOSED**
 
 **The 7-site census is honest.** Enumerated every `re.` site at 9da3986: lines 55, 56, 59 (Approval
 block, BRIEF/PLAN.md), 85, 87 (T-NN task headings, PLAN.md), 98 (T-NN ids, STATE.md — markdown, not
@@ -57,14 +57,14 @@ matches BRIEF.md:194-196's own Amendment-2 count (7 of 17, six markdown + one te
   fires `INV-21: ... no numeric parent` (the quoted-value false positive); 9da3986 does not.
 
 **But the SAME fix commit (bb6ab8c) shipped a new crash regression, reproduced live.**
-`check-state.sh:280` converts `pm_ = re.search(...)` to `_phase = str(_doc.get("phase",...))`, and
+`check-state.py:280` converts `pm_ = re.search(...)` to `_phase = str(_doc.get("phase",...))`, and
 `:283` correctly updates `idx = PHASE_ORDER.index(_phase)` — but `:287` still reads
-`f"...phase is '{pm_.group(1)}'..."`. `pm_` is undefined. `git log -p -L280,290:check-state.sh
+`f"...phase is '{pm_.group(1)}'..."`. `pm_` is undefined. `git log -p -L280,290:check-state.py
 340e18a..9da3986` confirms this is the exact diff hunk. Reproduced against `/tmp/feat05-repro2`
 (`phase: build`, `github.issues` recorded, no `notes/handoff-plan.md`):
 
 ```
-$ CLAUDE_PROJECT_DIR=/tmp/feat05-repro2 bash check-state.sh   # 9da3986
+$ CLAUDE_PROJECT_DIR=/tmp/feat05-repro2 python3 check-state.py   # 9da3986
 Traceback (most recent call last):
   File "<stdin>", line 263, in <module>
 NameError: name 'pm_' is not defined
@@ -94,7 +94,7 @@ exits 1 and would pass a weaker assertion just as it did here.
 
 **The duplicate-key scan (line 363) is not "necessary" as wired — it is dead code, though not a second
 fail-open.** `harness_yaml.load_file`'s `_StrictSafeLoader` raises `DuplicateKeyError` on any repeated
-top-level key (`harness_yaml.py:83-84`), and `check-state.sh`'s `except Exception as e:
+top-level key (`harness_yaml.py:83-84`), and `check-state.py`'s `except Exception as e:
 bad.append(...); continue` (:341-344) is broad enough to catch it — `DuplicateKeyError` is an
 `Exception` subclass. Reproduced with a `cost:`-duplicated `state.yaml` fixture
 (`/tmp/feat05-dupkey-test`): the violation surfaces as `state.yaml does not parse ... duplicate key
@@ -118,15 +118,15 @@ absolute-path invocation is immune regardless of `cd` order, which I confirmed f
 correct for):
 
 ```
-$ cd /tmp/feat05-c0-code/.claude/skills/harness/bin && CLAUDE_PROJECT_DIR=<worktree> bash ./check-state.sh   # 340e18a
+$ cd /tmp/feat05-c0-code/.claude/skills/harness/bin && CLAUDE_PROJECT_DIR=<worktree> python3 ./check-state.py   # 340e18a
 ModuleNotFoundError: No module named 'harness_yaml'
-$ cd <worktree>/.claude/skills/harness/bin && CLAUDE_PROJECT_DIR=<worktree> bash ./check-state.sh          # 9da3986
+$ cd <worktree>/.claude/skills/harness/bin && CLAUDE_PROJECT_DIR=<worktree> python3 ./check-state.py          # 9da3986
 (clean run, no traceback)
 ```
-The fix is real and correctly ordered (`check-state.sh:20` now resolves `_selfdir` before `:23`'s `cd`).
+The fix is real and correctly ordered (`check-state.py:20` now resolves `_selfdir` before `:23`'s `cd`).
 
 **No regression test covers it.** `test-check-state.py:15-17,54` sets `SCRIPT =
-os.path.dirname(os.path.realpath(__file__)) + "check-state.sh"` — always absolute — and invokes it as
+os.path.dirname(os.path.realpath(__file__)) + "check-state.py"` — always absolute — and invokes it as
 `subprocess.run([SCRIPT], cwd=tmp, ...)`. I confirmed empirically that an absolute-path invocation
 succeeds identically at both SHAs regardless of `cwd`, so this test suite would pass unchanged whether
 the `_selfdir`-before-`cd` fix is present or reverted. Exactly the "untested fix to the entry gate"
@@ -149,7 +149,7 @@ distinct-site count (19) clears T-17's >= 14 threshold with margin regardless of
 so this is not the padding-to-clear-a-threshold pattern cycle 0's framing worried about.
 
 **Spot-checked rows 1, 2, 6, 7, 8, 9, 10, 15 against their cited source lines directly** (already read
-`check-state.sh` and `upgrade-config.py` in full for F-02/F-03) — all match the code as described.
+`check-state.py` and `upgrade-config.py` in full for F-02/F-03) — all match the code as described.
 
 **Cycle 0's one named wrong row did NOT get fixed in code.** `git diff 340e18a..9da3986 --
 upgrade-config.py` shows the *only* change is the F-03 import fix (`import harness_yaml` added at the
@@ -236,7 +236,7 @@ as described.
 | F-03 | partially closed | med |
 | Q6 | closed | info |
 
-`severity_max: critical`, driven by the F-02 `pm_` NameError (`check-state.sh:287`). One `must_fix`
+`severity_max: critical`, driven by the F-02 `pm_` NameError (`check-state.py:287`). One `must_fix`
 item; the F-02b/F-05/F-03 findings are real but each describes a coverage or consistency gap where
 current behavior is otherwise correct, so they are reported as ranked notes, not additional
 `must_fix` entries.

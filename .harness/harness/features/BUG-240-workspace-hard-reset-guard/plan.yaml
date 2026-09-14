@@ -327,7 +327,7 @@ tasks:
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       python3 tests/unit/test-factory-workspace.py \
-        && bash .agents/skills/harness/bin/run-unit-tests.py --kind unit
+        && python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       T-01 has already written the failing cases. Do not weaken, rename or delete any of them; make
       them pass. .agents/skills is a symlink to ../.claude/skills, so there is exactly ONE file to

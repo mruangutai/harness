@@ -46,7 +46,7 @@ or is an accepted one-shot cost. Zero other findings.
      with an isolation test (not inferred), and the fix is small, mechanical, and behavior
      preserving (moves an import, changes no logic).
 
-2. **`check-state.sh` INV-37** (session-entry invariant, `check-state.sh:1983-2022`): full
+2. **`check-state.py` INV-37** (session-entry invariant, `check-state.py:1983-2022`): full
    script run twice, **~13.0s and ~12.9s** total, 66 feature directories on disk. Isolated the
    INV-37 body (`import feature_schema` + the per-feature glob/read/`json.load` loop) outside
    the script: `import feature_schema` is **~53ms**, the glob+read loop is **~0.2ms** (most
@@ -55,7 +55,7 @@ or is an accepted one-shot cost. Zero other findings.
    **0.4%, not a finding.** The per-feature `feature.json` re-read INV-37 does (rather than
    reusing an already-parsed document) is also not new waste specific to this diff: at least
    seven other pre-existing invariants in the same script (INV-6..8, INV-18, INV-23, INV-24,
-   INV-28/30 — `check-state.sh:604,1145,1306,1335,1551,1590,1701,2313`) follow the identical
+   INV-28/30 — `check-state.py:604,1145,1306,1335,1551,1590,1701,2313`) follow the identical
    glob-then-reopen-`feature.json` pattern per invariant block; INV-37 matches established
    convention rather than introducing a new inefficiency, and fixing the pattern would touch
    all seven sites, well outside this diff's scope.
@@ -63,7 +63,7 @@ or is an accepted one-shot cost. Zero other findings.
 3. **`feature_schema.py`'s `BUILD_ENTRY_ERA_EXEMPT`** (module-level frozen set, ~76 string
    literals) and `RUNS_AGENT_EXEMPT` precedent it sits beside: both are literal Python data,
    no computation, no I/O at import time. Not a cost site regardless of the four import call
-   sites (`merge-gate.py`, `gh-sync.py`, `post-merge-sweep.py`, `check-state.sh`) — the set
+   sites (`merge-gate.py`, `gh-sync.py`, `post-merge-sweep.py`, `check-state.py`) — the set
    itself is free; only the `jsonschema` import riding along with it (finding 1) costs
    anything.
 

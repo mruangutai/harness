@@ -45,7 +45,7 @@ Each was invoked separately as `python3 .agents/skills/harness/bin/validate-dige
 
 ## External blocker
 
-FEAT-51's missing repository-root `notes/handoff-validate.md` remains known to make the literal SC-04 `check-state.sh` review command nonzero. Per dispatch it was neither rerun nor repaired here. The five FEAT-54 digest-contract failures previously co-reported by that command are independently closed above; FEAT-51 remains an external blocker to claiming SC-04 and shipping, not a failure of either configured FEAT-54 matrix kind.
+FEAT-51's missing repository-root `notes/handoff-validate.md` remains known to make the literal SC-04 `check-state.py` review command nonzero. Per dispatch it was neither rerun nor repaired here. The five FEAT-54 digest-contract failures previously co-reported by that command are independently closed above; FEAT-51 remains an external blocker to claiming SC-04 and shipping, not a failure of either configured FEAT-54 matrix kind.
 
 ```yaml
 VERDICT: PASS

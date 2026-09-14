@@ -17,7 +17,7 @@ not a stale or dirty checkout.
   asserting field-set calls (item id + column), the derived-parent function, and the loud/quiet
   failure split.
 - SC-04: inspection — no retry anywhere on the `gh-sync.py` path.
-- SC-05: integration coverage of `check-state.sh` INV-26, with a non-vacuous mis-columned +
+- SC-05: integration coverage of `check-state.py` INV-26, with a non-vacuous mis-columned +
   corrected-twin pair.
 - SC-06: unit/integration coverage of `check-plan-routes.py`'s new status enum, including the
   capital-`Building` typo case, plus a clean run over the live plan corpus.
@@ -79,13 +79,13 @@ excluded under a signed decision (DEC-187). `component`, `ui`, `eval`, `typechec
 All four in-diff `change_type`s (`logic` ×3, `cross_module` ×1, `api` ×1, `docs` ×1) have their
 required kinds present and green. `cross_module`'s `integration` requirement is satisfied indirectly
 — `test-gh-sync.py` and `test-check-state.py` (both integration) exercise `gh_board.py`'s five public
-functions through `gh-sync.py`'s and `check-state.sh`'s real call paths, not just `test-gh-board.py`
+functions through `gh-sync.py`'s and `check-state.py`'s real call paths, not just `test-gh-board.py`
 (unit) in isolation.
 
 ## Mutation evidence
 
 I did **not** re-run mutation proof for T-02 (`gh_board.py`/`test-gh-board.py`) or T-04
-(`check-state.sh` INV-26) — both are on the explicit leave list (DEC-174 carve-outs), and running a
+(`check-state.py` INV-26) — both are on the explicit leave list (DEC-174 carve-outs), and running a
 live mutate/restore cycle on them is not mine to do even in a worktree, since the dispatch reserves
 edits and proofs on those paths to the main session. I looked for a written receipt substantiating
 the "6 of 6" / "5 of 5" figures relayed to me in the dispatch and **found none** in

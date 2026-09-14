@@ -5,13 +5,13 @@ One real gap, in-scope and code-grounded: the new closed-schema enforcement (T-0
 the `schema_version` floor only at **file creation**. An update write to an **already-created**
 `schema_version: 2` run can freely declare `schema_version: 1` in the same payload while smuggling
 undeclared step/evidence keys — `check-domain.py` accepts the write (no comparison against the
-on-disk version), and `check-state.sh`'s at-rest sweep only ever reads the *current* value, so the
+on-disk version), and `check-state.py`'s at-rest sweep only ever reads the *current* value, so the
 downgraded run is invisible to the audit forever after. This defeats REQ-02's own stated promise
 ("binds every run written after the change") for any run, at any time, with an ordinary write the
 writer already had permission to make. No fixture in the 507/181/82 new test lines exercises a
 version-2-then-1 transition — every existing/update fixture keeps the version constant across
 before/after. Remedy lives entirely inside the DEC-174 carve-out (`check-domain.py` and/or
-`check-state.sh`), so I report it rather than fix it. **Route: main-session.**
+`check-state.py`), so I report it rather than fix it. **Route: main-session.**
 
 Everything else examined — the shell bootstrap, the new JSON-schema validation logic itself, the
 `validate-digest.py` digest-contract closure, the new schema file, and the instruction-surface/decision
@@ -24,7 +24,7 @@ bypass found in those.
 - `check-domain.py` +82: confirmed **zero new bash lines** — every added line is inside the existing
   single Python heredoc (T-13's one-interpreter design), so item 1 (shell quoting/eval/globbing) has
   no new surface to audit; the surrounding bash bootstrap is unchanged by this diff.
-- `check-state.sh` +54: same shape, same conclusion — Python-only addition inside the existing heredoc.
+- `check-state.py` +54: same shape, same conclusion — Python-only addition inside the existing heredoc.
 - `run-state-schema.json` (new, 76 lines): pure JSON Schema data; `evidence.propertyNames.pattern`
   is `^[a-z][a-z0-9_]*$` — anchored, single-pass, no nested quantifiers, no ReDoS potential against
   attacker-controlled key names.
@@ -36,11 +36,11 @@ bypass found in those.
   keying, not run, since the logic is a straight dict lookup).
 - Traced the untrusted-input path for `validate-digest.py`: `parse_digest()` (regex-based field
   extraction, not `yaml.load`) is unchanged by this diff. The shared loader used by `check-domain.py`
-  /`check-state.sh` for `state.yaml`/`plan.yaml` (`harness_yaml.load_file` → `_StrictSafeLoader`, a
+  /`check-state.py` for `state.yaml`/`plan.yaml` (`harness_yaml.load_file` → `_StrictSafeLoader`, a
   `SafeLoader`/`CSafeLoader` subclass) is also unchanged by this diff — confirmed pre-existing and
   safe (no `yaml.load` with an unsafe loader anywhere in the changed files).
 - Path arguments to the new schema-loading code (`os.path.join(sys.argv[3], "run-state-schema.json")`
-  in check-domain.py, `sys.argv[2]` in check-state.sh) resolve to `_selfdir`, derived from
+  in check-domain.py, `sys.argv[2]` in check-state.py) resolve to `_selfdir`, derived from
   `BASH_SOURCE[0]` — the script's own directory, never attacker/agent-controlled input. No traversal
   introduced (item 2).
 - Every new rejection-message code path: `repr(key)` is used for all attacker-controlled step/evidence
@@ -52,7 +52,7 @@ bypass found in those.
 - Fail-open check (item 4, the "can a crafted return exit 0" question): every new branch that could
   raise (`sorted()` over a set of mixed hashable types if a step used a non-string YAML key,
   `jsonschema.iter_errors` raising) is inside the same `try/except Exception` that already denies the
-  write on any schema-check failure (`check-domain.py`) or reports a violation (`check-state.sh`).
+  write on any schema-check failure (`check-domain.py`) or reports a violation (`check-state.py`).
   Confirmed by reading the full try/except block: every exit from it, exceptional or not, adds to the
   denial/violation list. No path found where a crafted payload turns an intended-refusal into a silent
   pass. Resource exhaustion: the new validation loops are linear in the size of the payload the writer
@@ -89,7 +89,7 @@ on what is currently on disk. So: create a run at `schema_version: 2` (forced, c
 intended) → later, in an ordinary update write to that same file, submit `schema_version: 1` plus any
 undeclared step/evidence key → `_creating` is False (file exists) so the floor never fires, and
 `_valid_version` is False (1 < 2) so the closed-schema block never fires either. The write is accepted.
-`check-state.sh`'s T-07 sweep is symmetric: it only validates steps when the run's **current**
+`check-state.py`'s T-07 sweep is symmetric: it only validates steps when the run's **current**
 `schema_version` reads >= 2, so once downgraded the run is silently exempted from the at-rest audit
 for the rest of its life, indistinguishable from a legitimate historical version-1 run.
 
@@ -115,7 +115,7 @@ for the rest of its life, indistinguishable from a legitimate historical version
   downgraded mid-life. Not the `stop_hook_active` hole either (that one is documented and accepted;
   this one is not documented anywhere I found).
 - **Remedy** would live in `check-domain.py` (compare the proposed `schema_version` against the
-  on-disk value on non-creation writes, or refuse any decrease) and/or `check-state.sh` — both are
+  on-disk value on non-creation writes, or refuse any decrease) and/or `check-state.py` — both are
   DEC-174 carve-out files. **route: main-session.**
 
 ## Threat model

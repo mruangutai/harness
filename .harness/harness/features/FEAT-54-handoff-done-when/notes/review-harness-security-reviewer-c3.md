@@ -10,7 +10,7 @@ Reviewed immutable range `0ec44965a961d19177de871c3bb1f02b701e646b..39602414e1cf
 
 ### F-04 — high, must-fix — literal SC-04 is false
 
-From the exact repository root, literal `bash .claude/skills/harness/bin/check-state.sh` exited **1**. The complete output contained exactly one tagged violation and **zero** case-sensitive `Done when` matches:
+From the exact repository root, literal `python3 .claude/skills/harness/bin/check-state.py` exited **1**. The complete output contained exactly one tagged violation and **zero** case-sensitive `Done when` matches:
 
 > `FEAT-51-claude-code-lifecycle-safety: status is 'done' but notes/handoff-validate.md is missing — the validate seam was crossed without a handoff; the successor is on the disk-only path (DEC-159).`
 

@@ -25,7 +25,7 @@ T-05: Delete branch-create-gate.py's dormant board-flip block and its four confi
 Invocation (run exactly as given in the plan/dispatch, from repo root):
 
 ```
-! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
+! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
 ```
 
 Overall exit status: `0` (PASS, confirmed by `echo $?` immediately after the compound command).
@@ -49,7 +49,7 @@ passed.
 
 Command:
 ```
-python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py
+python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/branch-create-gate.py
 ```
 Verbatim stdout:
 ```

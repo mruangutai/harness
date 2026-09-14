@@ -46,7 +46,7 @@ Three independent reasons, any one of which fails the matrix on its own:
 3. **`bugfix`'s conditional `unit` requirement is unmet for T-02, T-04, T-06, T-07.**
    `test_matrix.bugfix.when` fires `unit` on `touches_runtime_code` (DEC-217: "modifies at
    least one file that is not under `tests/**`, is not `*.md`, and is not under `.harness/`").
-   True for all four: `gh-sync.py` (T-02, T-04), `check-state.sh` + `feature_schema.py` (T-06),
+   True for all four: `gh-sync.py` (T-02, T-04), `check-state.py` + `feature_schema.py` (T-06),
    `post-merge-sweep.py` (T-07). No `tests/unit/test-*.py` file was added or changed by any of
    the four; every one of their tests lives in `tests/integration/`. `fix_confined_to_tests_and_
    contract_docs` is false for all four (real runtime code changed), so `integration` is not
@@ -135,7 +135,7 @@ T-04's or T-06's era-gate cases; those are **reasoned**, not measured, from the 
   proves presence and passing, not ordering. I am not upgrading this silence into compliance.
 - **T-09**: no red/green cycle applicable (pure documentation append); receipt shows the intent's
   factual claims were checked against landed code (`gh-sync.py:625-626`, `:1357-1389`, `:289`,
-  `:1277-1323`; `check-state.sh:1983-2018`; `.claude/settings.json:48`) before being written, and
+  `:1277-1323`; `check-state.py:1983-2018`; `.claude/settings.json:48`) before being written, and
   one factual correction was made and disclosed (the era-exempt set bounds three call sites, not
   the one the intent named).
 

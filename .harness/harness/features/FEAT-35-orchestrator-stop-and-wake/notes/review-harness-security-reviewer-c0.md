@@ -39,4 +39,4 @@ reviewer, and was treated as such.
 ## Already-ticketed (cited, not refiled)
 
 #803, #804, #805 — not implicated by this diff; no new instance found. The six INV-26
-`check-state.sh` violations are accepted board lag, not findings.
+`check-state.py` violations are accepted board lag, not findings.

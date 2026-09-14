@@ -13,7 +13,7 @@ live in production right now.
 ## File census (`git diff d065b3b..fcb8984 --name-only`, 72 paths)
 
 All Python (`.py`, 16 files: `context-watch.py`, `context-watch-hook.py`, `feature_schema.py`,
-`upgrade-config.py`... and their `test-*.py`/`verify-*.py` siblings), 2 shell (`check-state.sh`,
+`upgrade-config.py`... and their `test-*.py`/`verify-*.py` siblings), 2 shell (`check-state.py`,
 `run-unit-tests.py`), JSON config (`.claude/settings.json`, `feature-schema.json`,
 `harness.json` x2), Markdown/YAML feature-process artifacts (`BRIEF.md`, `plan.yaml`, `STATE.md`,
 `feature.json`, everything under `notes/`, `observations/`), and two docs
@@ -24,7 +24,7 @@ rendered status report for the operator (inline CSS, no app logic), not an appli
 ## Stage 1 — spec compliance
 
 Read `BRIEF.md` (REQ-01..10, SC-01..15) and `plan.yaml` (D-01..26, T-01..19) in full, and the
-committed `context-watch.py`, `context-watch-hook.py`, `feature_schema.py`, `check-state.sh`,
+committed `context-watch.py`, `context-watch-hook.py`, `feature_schema.py`, `check-state.py`,
 `feature-schema.json`, `DECISIONS.md`'s DEC-159 entry, all read via `git show fcb8984:<path>` —
 not the working tree, which carries unrelated local dirt (`STATE.md`, `feature.json` run
 bookkeeping, confirmed harmless by `git status`).
@@ -196,7 +196,7 @@ only.
 
 Spot-checked `resolve_threshold`/`resolve_retention_days` (both never raise, both state their
 fallback reason where REQ-03/T-06 require it), the blind-spot footer's three lines (each
-interpolates a computed or read value — SC-08 holds on inspection), `check-state.sh`'s INV-17
+interpolates a computed or read value — SC-08 holds on inspection), `check-state.py`'s INV-17
 empty-body check (body = lines between a present heading and the next `##` line or EOF; empty =
 every such line blank after strip — matches SC-15's stated scope exactly; headings compared
 case-insensitively against `templates/HANDOFF.md`'s four sections, which match verbatim), and

@@ -109,9 +109,9 @@ hand.
 | ID | Finding | Nature |
 |---|---|---|
 | B-1 | `DEC-27` is falsified on two clauses by this feature's own code and carries no strike record, which DEC-188 requires. Not fixed here because `DECISIONS.md` is uncommitted under another flow | bug |
-| B-2 | `check-state.sh:149`'s comment names an approval-reset rule neither `:133-139` nor `:150-154` implements — an amended-but-unsigned plan reports green. DEC-174 carve-out, human-only fix | bug |
-| B-3 | `check-expertise.sh` accepts segment names (`[^/]+`) that `inject-expertise.py` silently drops (`[a-z0-9-]+`) — the checker signs `OK` on a file the hook will never inject | bug |
-| B-4 | `check-expertise.sh` crashes on a dangling `*.md` symlink and aborts the sweep, leaving later files unaudited under the same exit code as "violations found" | bug |
+| B-2 | `check-state.py:149`'s comment names an approval-reset rule neither `:133-139` nor `:150-154` implements — an amended-but-unsigned plan reports green. DEC-174 carve-out, human-only fix | bug |
+| B-3 | `check-expertise.py` accepts segment names (`[^/]+`) that `inject-expertise.py` silently drops (`[a-z0-9-]+`) — the checker signs `OK` on a file the hook will never inject | bug |
+| B-4 | `check-expertise.py` crashes on a dangling `*.md` symlink and aborts the sweep, leaving later files unaudited under the same exit code as "violations found" | bug |
 | B-5 | `cap_body`'s truncation notice is skipped exactly when truncation is silent — `wc -l` counts newlines, so a file with no trailing newline is undercounted | bug |
 | B-6 | The precedence line is emitted only when a repository block exists, so a global+project spawn now gets two un-arbitrated blocks and no precedence statement — narrows the architecture review's unconditional resolution | bug |
 | B-7 | SC-02 is pinned by nothing standing: T-01's `verify:` is one-shot and unregistered, and `test-check-domain.py` has zero repository-tier cases. Cheapest high-value fix | chore |
@@ -124,7 +124,7 @@ hand.
 | B-14 | `harness.json` detect globs are wrong both ways — `integration` names 4 of 12 scripts, `unit` matches all 29. Fixing them would flip T-03's unit kind to "missing" and FAIL the blocking gate; fix globs and registration together | chore |
 | B-15 | `test-harness-yaml.py:186-187` and `harness_yaml.py:362` claim a "D-03 equivalence proof" against a `collect()` DEC-171 deleted, and claim coverage of every agent while pinning 6 of 16 | chore |
 | B-16 | `harness-curate/SKILL.md:34`'s checklist says 150 lines where the same file audits the repository tier at 40 — it misinforms the distiller in the step that does the editing | chore |
-| B-17 | `check-expertise.sh:62` cites a "CHANGE 1 note" that exists only in `plan.yaml` — a comment narrating the plan, not the code | chore |
+| B-17 | `check-expertise.py:62` cites a "CHANGE 1 note" that exists only in `plan.yaml` — a comment narrating the plan, not the code | chore |
 | B-18 | `test-inject-expertise.py` labels four project-tier fixtures `GLOBAL BODY`, making an untested path read as covered | chore |
 | B-19 | `test-check-expertise.py`'s `valid()` and `body_with_entry()` emit byte-identical skeletons | chore |
 | B-20 | The manual sort at `inject-expertise.py:82-92` duplicates bash glob ordering and no assertion pins it | chore |

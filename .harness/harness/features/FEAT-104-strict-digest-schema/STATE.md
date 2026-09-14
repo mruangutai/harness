@@ -49,7 +49,7 @@ Every entry below is now also a briefing backlog row; the `B-N` id is what the o
 
 - Q20 (**B-5**, not blocking, pm's R1 — recommendation, not an unmet criterion):
   `test-check-state.py:51-54` asserts run/step/key but no declaration route, though
-  `check-state.sh:1526-1528` emits one. Outside SC-08's subject. One-line hardening inside the
+  `check-state.py:1526-1528` emits one. Outside SC-08's subject. One-line hardening inside the
   DEC-174 carve-out at the next main-session touch, or backlog?
 - Q14 (**B-2**, not blocking, main session, DEC-174 — **CONTESTED**): a type/range failure on a
   **declared** step key (`cycles: not-an-int`) routes via `_path[0]` into `_offending` and prints
@@ -67,7 +67,7 @@ Every entry below is now also a briefing backlog row; the `B-N` id is what the o
   unreachable today; distinct from Q15. Gate on `error.path == []` when nested `required` arrives?
 - Q19 (**B-9**, not blocking; pm's R2 restates it): SC-08's step seam is pinned by the INVOCATION
   path, not string uniqueness — `undeclared step key` has two producers (`check-domain.py:1671`,
-  `check-state.sh:1526`). Safe today because the test fires a Write hook. Hold a future test
+  `check-state.py:1526`). Safe today because the test fires a Write hook. Hold a future test
   asserting that phrase against combined or at-rest output to a producer-unique string?
 - Q11 (**B-25**, RECURRED, persona-level pattern, harness defect): `harness-code-reviewer`'s
   `mktemp -d` probe was refused by `bash-write-guard` for the SECOND consecutive cycle (writing only
@@ -91,7 +91,7 @@ Every entry below is now also a briefing backlog row; the `B-N` id is what the o
 - Q9 (**B-6**, pm's R4 restates it): REQ-08's generic-lead archive exemption
   (`validate-digest.py:1407`) has no test able to redden. Does not falsify REQ-08 — present at the
   pin, behaviour demonstrated — but it is the standing regression risk on that requirement.
-- Q1 (**B-1**, DEC-174): **CF-1** (security, `med`) — `check-state.sh:1525-1526` interpolates
+- Q1 (**B-1**, DEC-174): **CF-1** (security, `med`) — `check-state.py:1525-1526` interpolates
   `run_id` and the step id as bare strings; the DEC-85 route can spoof the INV-16 audit line. Carried
   unchanged at c11; one of the two items the operator's UAT read, and it passed with it disclosed.
 - Q2 (**operator decision at ship, plus B-29**): **CF-3** (`low`) — `abff2a84`, a FEAT-56 station

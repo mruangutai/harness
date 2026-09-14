@@ -82,7 +82,7 @@ and not isinstance(number, bool)` guard at 596 would pass the entire suite uncha
 exercises that shape.
 
 **3. INV-28's four silence cases — can each go red?** Confirmed by live perturbation (not
-reasoning alone): copied `check-state.sh` to a disposable scratch path, mutated INV-28's block
+reasoning alone): copied `check-state.py` to a disposable scratch path, mutated INV-28's block
 to always warn unconditionally (removed the `github.sync` gate, the `status == Done` check,
 and the `pr`-is-int check), pointed `test-check-state.py` at the mutant via its own
 `CHECK_STATE_BIN` env-var seam (no source edit, no worktree needed for this one — the seam
@@ -92,11 +92,11 @@ always-warn mutant (`is silent on ... integer`, `... Abandoned`, `... not termin
 flipped, confirming the block ran at all). None of the four is vacuous — each fixture tree is
 non-empty and shaped exactly as the offending case, so a broken implementation is caught, not
 passed by an empty tree. Restored: deleted the scratch copy and its fixture dir; `git status
---porcelain` on `check-state.sh` in the worktree confirms untouched.
+--porcelain` on `check-state.py` in the worktree confirms untouched.
 
 **4. `pr: true`** — coverage finding, confirmed by grep. No case in `test-gh-sync.py` asserts
 that a boolean `pr` is not read as a recorded PR number, even though `_record_pr` (gh-sync.py
-:562) and INV-28 (check-state.sh :1078, with its own comment noting the exclusion is
+:562) and INV-28 (check-state.py :1078, with its own comment noting the exclusion is
 "load-bearing") both carry an explicit `isinstance(existing, int) and not isinstance(existing,
 bool)` guard. `test-check-state.py`'s `_inv28_fixture` helper never emits a `pr: true`
 fixture either. A mutant dropping the bool exclusion in either file would pass both suites

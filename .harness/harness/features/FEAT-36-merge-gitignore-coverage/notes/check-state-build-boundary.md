@@ -1,6 +1,6 @@
 # Canonical state check — build boundary
 
-The canonical `.agents/skills/harness/bin/check-state.sh` was run before the trace commit. It returned exit 1 with three FEAT-36 findings:
+The canonical `.agents/skills/harness/bin/check-state.py` was run before the trace commit. It returned exit 1 with three FEAT-36 findings:
 
 ```text
 FEAT-36-merge-gitignore-coverage: a validator run exists but review_sha is not pinned — reviewers would diff HEAD (the GAP-7 failure).

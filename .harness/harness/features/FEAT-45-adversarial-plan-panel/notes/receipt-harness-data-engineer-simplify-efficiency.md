@@ -44,7 +44,7 @@ W5: T-08, T-10
 
 - **T-07 `[T-05]` — FALSE.** INV-32's four checks (panel shape, per-finding severity gating,
   rulings attribution, stale-ruling) are fully re-specified in T-07's own intent, verbatim from
-  the decisions — `check-state.sh` reads a project's *real* `plan.yaml`, never the *template*
+  the decisions — `check-state.py` reads a project's *real* `plan.yaml`, never the *template*
   T-05 edits. **Saves 1 step.**
 
 - **T-09 `[T-05]` — FALSE.** `panel_findings.py`'s hash algorithm (lowercase+collapse-whitespace,
@@ -53,7 +53,7 @@ W5: T-08, T-10
 
 - **T-08 `[T-07]` — REAL, keep.** `test-check-state.py`'s `inv32-red` case locates the literal
   marker lines `# INV-32 BEGIN (FEAT-45 T-07)` / `# INV-32 END (FEAT-45 T-07)` inside
-  `check-state.sh`, copies the file, and slices out the region T-07 wrote — a genuine read of
+  `check-state.py`, copies the file, and slices out the region T-07 wrote — a genuine read of
   T-07's produced content, not just its existence.
 
 - **T-10 `[T-02, T-03, T-04, T-06, T-09]`** — mixed:
@@ -78,7 +78,7 @@ W5: T-08, T-10
     from "T-10 needs T-09's output" to "shared-file serialization on `run-unit-tests.py`" so a
     future reader doesn't drop it as a false content edge — which it would otherwise correctly look like.
   - **T-07/T-08 correctly absent** from T-10's `depends_on` — `test-plan-panel.py` grades
-    doctrine/wiring files only; it never touches `check-state.sh` or `test-check-state.py`.
+    doctrine/wiring files only; it never touches `check-state.py` or `test-check-state.py`.
 
 ## Cost
 
@@ -88,8 +88,7 @@ including the relabeled T-09 one): **2 waves** — `{T-01,T-02,T-03,T-04,T-05,T-
 
 ## Repeated work: `run-unit-tests.py --kind unit` in T-09 and T-10 verify
 
-Measured once, read-only, on this checkout: **wall 20.3s** (`time bash
-.claude/skills/harness/bin/run-unit-tests.py --kind unit`). Not negligible in absolute terms, but
+Measured once, read-only, on this checkout: **wall 20.3s** (`time python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit`). Not negligible in absolute terms, but
 each task registers a *different* new test file (`test-panel-findings.py` vs.
 `test-plan-panel.py`) and each verify's own full-suite run is that task's own proof its
 registration didn't drift — this is the KIND-DRIFT boundary check DEC-174 exists for, not

@@ -46,8 +46,8 @@ decisions:
       - "A dollar sigil: it would read as a shell variable that provably does not exist in the agent's shell."
     dec: none
   - id: D-03
-    choice: "The lint is a standalone checker, check-instruction-paths.py, wired as a step of the required integration CI job rather than as an invariant inside check-state.sh."
-    because: "check-state.sh audits per-feature state while this is a repo-wide instruction lint with its own scope list, a standalone script is runnable verbatim as a task verify command, and DEC-183 set the precedent for promoting a checker to a required CI step."
+    choice: "The lint is a standalone checker, check-instruction-paths.py, wired as a step of the required integration CI job rather than as an invariant inside check-state.py."
+    because: "check-state.py audits per-feature state while this is a repo-wide instruction lint with its own scope list, a standalone script is runnable verbatim as a task verify command, and DEC-183 set the precedent for promoting a checker to a required CI step."
     rejected: []
     dec: DEC-183
   - id: D-04

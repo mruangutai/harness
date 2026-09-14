@@ -21,7 +21,7 @@ Per-file md5 across `6126ac07` (old review pin) / `99035a9c` (amended away) / `1
 reproduces the dispatch's contract table exactly: `check-domain.py`, `test-check-domain.py`,
 `test-validate-digest.py` byte-identical `99035a9c`→`168f875f` (F1/F3 fixes present, unchanged);
 `validate-digest.py` differs by exactly the F3 message-wording line (the `lead`-comment reword from
-`99035a9c` is reverted, restoring the original wording); `check-state.sh` and `test-check-state.py`
+`99035a9c` is reverted, restoring the original wording); `check-state.py` and `test-check-state.py`
 are byte-identical to the **old pin** `6126ac07` — F2 is **not present** at the tip, confirmed
 deliberate (§6), not an accidental revert.
 
@@ -51,8 +51,8 @@ surface (see §3).
 
 | kind | required? | runner state | command | exit | result / reason |
 |---|---|---|---|---|---|
-| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **satisfied** — 36 files, 2.25s wall |
-| integration | qa-added | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **satisfied** — 70 files, 69.84s wall; F1/F3 cases pass (§5) |
+| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **satisfied** — 36 files, 2.25s wall |
+| integration | qa-added | active | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **satisfied** — 70 files, 69.84s wall; F1/F3 cases pass (§5) |
 | functional | no | excluded (DEC-187) | — | — | **not_applicable** — repo has no third bucket; diff adds nothing under `tests/functional/` |
 | component | no | unresolved | — | — | **not_applicable** — diff touches no `*.spec.tsx`/`*.stories.tsx` |
 | ui | no | unresolved | — | — | **not_applicable** — diff touches no `tests/e2e/**`, no interaction flow |
@@ -62,9 +62,9 @@ surface (see §3).
 | handoff_comprehension | no | `locally_run` | `tests/manual/probe-handoff-comprehension.py` | not run | **not_applicable** — diff does not change the handoff contract |
 | issue_types_live | no | `locally_run` | `tests/manual/probe-issue-types.py` | not run | **not_applicable** — diff does not touch the issue-type path |
 
-## 4. Complete canonical suite at `168f875f` (re-run required — check-state.sh/its test differ at the tip)
+## 4. Complete canonical suite at `168f875f` (re-run required — check-state.py/its test differ at the tip)
 
-`env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py` (no `--kind`), from
+`env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py` (no `--kind`), from
 the worktree root, exit captured into a variable (not through a pipe):
 
 - `FULL_EXIT=0`. `pool: 8 workers, 106 files, 72.66s wall`.
@@ -77,7 +77,7 @@ the worktree root, exit captured into a variable (not through a pipe):
 - `--kind unit`: `UNIT_EXIT=0`, 36 files, 2.25s wall.
 - `--kind integration`: `INTEG_EXIT=0`, 70 files, 69.84s wall, `ALL PASSED`.
 
-This full re-run at `168f875f` was required and not duplicate work: `check-state.sh` and
+This full re-run at `168f875f` was required and not duplicate work: `check-state.py` and
 `test-check-state.py` differ at the tip from `99035a9c` (the previously graded commit), so the
 prior cycle's suite result does not transfer.
 
@@ -122,11 +122,11 @@ path at all (§8 spells out the resulting gap).
 
 ## 6. The F2 declination — reproduced evidence, not re-litigated
 
-Declination is **settled** per dispatch: raw-persona validation in `check-state.sh`'s at-rest sweep
+Declination is **settled** per dispatch: raw-persona validation in `check-state.py`'s at-rest sweep
 made an existing FEAT-104 run digest fail, stranding history under REQ-08/SC-12. Reproduced
 directly rather than taken on relay.
 
-`check-state.sh:1590` calls `_vd_mod.validate("lead", _dtext)` unconditionally in the at-rest sweep
+`check-state.py:1590` calls `_vd_mod.validate("lead", _dtext)` unconditionally in the at-rest sweep
 — confirmed by reading the source at the tip (no persona-switch branch exists there; that logic
 existed only in the amended-away `99035a9c`).
 
@@ -152,7 +152,7 @@ validation (`validate("harness-validator-lead", …)`) reports:
 Validating the same file as `"lead"` reports **zero** errors — the generic-`lead` exemption
 (`validate-digest.py:1407`, `if raw_persona != "lead":`) is exactly what keeps this historical
 record readable. This is the concrete case the declination's rationale describes: adopting F2 would
-make `check-state.sh`'s at-rest sweep report this exact, already-completed FEAT-104 run as a
+make `check-state.py`'s at-rest sweep report this exact, already-completed FEAT-104 run as a
 violation. The declination is evidenced, not merely asserted.
 
 **In-flight run dirs, excluded from the verdict, reported separately (a sibling may be writing one
@@ -204,10 +204,10 @@ zero `digest`/persona-selection cases (confirmed by direct grep — no match for
 *step* keys inside `state.yaml`, not about the digest-lint sweep's persona choice. SC-11/SC-12
 (REQ-08's cited automated/inspection evidence) cover a different concern — writability of existing
 `schema_version: 1` files and non-modification of run artifacts — neither exercises
-`check-state.sh`'s call to `validate("lead", …)` on a digest.
+`check-state.py`'s call to `validate("lead", …)` on a digest.
 
 **Concrete failure scenario:** a future change that removes or narrows the `raw_persona != "lead"`
-guard in `validate-digest.py`, or that changes `check-state.sh` to pass a run's real host persona
+guard in `validate-digest.py`, or that changes `check-state.py` to pass a run's real host persona
 instead of `"lead"`, would immediately break `2026-09-09-02-qa-gate-validator/digest.md` (§6) and
 every future lead digest shaped like it — silently, since nothing in the standing suite exercises
 this path.
@@ -217,7 +217,7 @@ to `tests/integration/test-check-state.py` that feeds the sweep a completed run'
 lead-roll-up-shaped keys (e.g. `failures`/`kinds`/`suite`, as genuinely present in
 `2026-09-09-02-qa-gate-validator`) and asserts `validate("lead", …)` reports no violation for it,
 pinning the compatibility behavior explicitly instead of leaving it implicit in
-`check-state.sh`'s hardcoded persona literal.
+`check-state.py`'s hardcoded persona literal.
 
 ## 9. Assertion strength — F1 and F3
 
@@ -277,8 +277,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
     - { kind: functional, state: not_applicable, cmd: none }
     - { kind: component, state: not_applicable, cmd: none }
     - { kind: ui, state: not_applicable, cmd: none }
@@ -288,7 +288,7 @@ DIGEST:
     - { kind: handoff_comprehension, state: not_applicable, cmd: none }
     - { kind: issue_types_live, state: not_applicable, cmd: none }
   coverage_gaps:
-    - "REQ-08's generic-`lead` archive-reader exemption (validate-digest.py:1407, check-state.sh:1590) has zero test coverage able to report RED — test-check-state.py carries no digest/persona case at all. Concrete failure: a future narrowing of the exemption would silently break 2026-09-09-02-qa-gate-validator/digest.md and every future lead digest shaped like it. Remedy named for main session in §8; not implemented (DEC-174)."
+    - "REQ-08's generic-`lead` archive-reader exemption (validate-digest.py:1407, check-state.py:1590) has zero test coverage able to report RED — test-check-state.py carries no digest/persona case at all. Concrete failure: a future narrowing of the exemption would silently break 2026-09-09-02-qa-gate-validator/digest.md and every future lead digest shaped like it. Remedy named for main session in §8; not implemented (DEC-174)."
     - "T-05 change_type: logic vs. DEC-212 touches_config_shape predicate — carried-forward advisory, unresolved, not re-derived (unchanged since last two cycles)."
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-validate-digest.py:_t04_documented_failures + rogue-key cases" }

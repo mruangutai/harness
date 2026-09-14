@@ -10,7 +10,7 @@ verbatim `verify:` clauses, the pre-edit baselines, and the four traps that woul
 ## Order
 
 1. **T-01** `validate-digest.py` + `test-validate-digest.py` — PLAN.md:140-176
-2. **T-02** `check-state.sh` + `test-check-state.py` — PLAN.md:178-233
+2. **T-02** `check-state.py` + `test-check-state.py` — PLAN.md:178-233
 3. **T-05** `.claude/agents/harness-orchestrator.md` — PLAN.md:310-346
 4. **T-06** `.claude/skills/harness/SKILL.md` — PLAN.md:348-403  (riskiest — D-08 over-removal)
 5. **T-07** `.claude/skills/harness-team/SKILL.md` — PLAN.md:405-451
@@ -35,7 +35,7 @@ value" clause. These were measured before any edit:
 
 **Gate baselines, at the working tree as of commit `b5f20af`** — deliberately not stated as "at
 `ae2443d`", because one of the three is not a property of the SHA: `run-unit-tests.py` exit 0
-(`10/10 checks passed`, all 13 scripts PASS); `check-docs.sh` exit 0; `check-state.sh` exit 0 with
+(`10/10 checks passed`, all 13 scripts PASS); `check-docs.sh` exit 0; `check-state.py` exit 0 with
 zero violations — see trap 2 for why that last one carries two readings and not one.
 
 ## Four traps — a naive run reports these as failures
@@ -44,15 +44,15 @@ zero violations — see trap 2 for why that last one carries two readings and no
 expect `path:0` for BOTH files; `grep` exits 1 when every count is zero. The PLAN states it inline:
 "the count lines are the evidence, never the exit status". Do not chain these with `&&`.
 
-**Trap 2 — `check-state.sh` is repo-wide and the concurrent FEAT-09 flow moves it.** Measured twice
+**Trap 2 — `check-state.py` is repo-wide and the concurrent FEAT-09 flow moves it.** Measured twice
 in one session at the same SHA: at session start it exited **1** on
 `VIOLATION  FEAT-09-plan-time-route-check/BRIEF.md is NOT approved`; forty minutes later, after that
 flow was signed, it exits **0** with zero violations. Nothing in FEAT-08 changed between the two.
 
-So T-02's and T-08's `check-state.sh exits 0` clause is currently clean and discriminating. **If it
+So T-02's and T-08's `check-state.py exits 0` clause is currently clean and discriminating. **If it
 exits 1, read the violation before calling it a T-02 failure** — a line naming
 `FEAT-09-plan-time-route-check` is that flow's approval state, not this task's. Do NOT re-root via
-`CLAUDE_PROJECT_DIR` (`check-state.sh:22` makes it trivial); that is the re-baselining the ruling
+`CLAUDE_PROJECT_DIR` (`check-state.py:22` makes it trivial); that is the re-baselining the ruling
 forbids. The `note` lines about pruned FEAT-05/FEAT-06 run dirs are pre-existing and are not
 violations.
 
@@ -72,10 +72,10 @@ the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0 (thi
 `bin/` — the whole-suite clause is mandatory, per SC-11).
 
 **T-02** — `python3 .claude/skills/harness/bin/test-check-state.py` exits 0; AND
-`.claude/skills/harness/bin/check-state.sh` exits 0 with zero violations against the repo as it
+`.claude/skills/harness/bin/check-state.py` exits 0 with zero violations against the repo as it
 stands (67 historical `state.yaml` with `cost:` blocks still present — this is SC-03's command);
-AND `grep -n 'INV-11' .claude/skills/harness/bin/check-state.sh` returns nothing; AND
-`grep -n 'CHECKPOINT_KEYS' -A 12 .claude/skills/harness/bin/check-state.sh | grep -c '"cost"'`
+AND `grep -n 'INV-11' .claude/skills/harness/bin/check-state.py` returns nothing; AND
+`grep -n 'CHECKPOINT_KEYS' -A 12 .claude/skills/harness/bin/check-state.py | grep -c '"cost"'`
 returns 1; AND the WHOLE unit suite `run-unit-tests.py` exits 0 (touches `bin/`, SC-11).
 
 *(Second clause: apply trap 2 only if it exits 1.)*
@@ -119,7 +119,7 @@ evidence, never the exit status); AND
 ['.claude/skills/harness/teams/build.yaml','.claude/skills/harness/teams/review.yaml']]"` exits 0;
 AND `python3 .claude/skills/harness/bin/test-team-catalog.py` exits 0 — the test that reads these
 files; AND the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0; AND
-`.claude/skills/harness/bin/check-state.sh` exits 0.
+`.claude/skills/harness/bin/check-state.py` exits 0.
 
 *(Last clause: apply trap 2 only if it exits 1.)*
 

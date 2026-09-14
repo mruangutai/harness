@@ -8,15 +8,15 @@ Counts after the edits: 7 REQ, 16 SC, 8 tasks, 8 decisions.
 ## The INV-32 ruling's home — `notes/answers-2026-08-31-plan.md` (F-L1, applied)
 
 Took the orchestrator's recommendation. `approval.rulings` is validated for panel-finding
-overrules only: `check-state.sh:189-204` demands each entry carry a `finding` id present in
+overrules only: `check-state.py:189-204` demands each entry carry a `finding` id present in
 `panel.findings`, a non-empty `who`, and a `YYYY-MM-DD` `date`, so `{id: INV-32, choice: c}` emits
 two rows naming FEAT-50 and the operator's signature becomes the act that falsifies SC-11. DEC-44
 already makes the answers file the durable home for an operator answer and this feature has one.
 `BRIEF.md`'s open-ruling section now names that file and the exact five-key section shape; SC-12
 grades that section and nothing else; SC-11 and SC-12 are satisfiable together because the ruling
-lands in a file `check-state.sh` never opens.
+lands in a file `check-state.py` never opens.
 
-**Evidence for zero new INV-32 rows.** Read `check-state.sh:176-220` at source. Line 189 is
+**Evidence for zero new INV-32 rows.** Read `check-state.py:176-220` at source. Line 189 is
 `rulings = approval.get("rulings", [])`, so an ABSENT key is the empty list and the loop at :194
 iterates zero times — the only INV-32 rows a signature can then produce come from the `panel:`
 block itself, which the panel segment supplies. `approval.rulings: []` is therefore **dropped**

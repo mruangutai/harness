@@ -14,10 +14,10 @@ option-name error paths behave exactly as they do today.
 - ~~**`project_items` (`gh project item-list`) → out of scope.** 31 points once per invocation is not
   the burn, and it is never called in a loop. Leave it on `gh project item-list`, whose `--query`
   server-side filter and `totalCount` truncation guard were validated live on 2026-08-10.~~
-  **STRUCK 2026-08-19 (#571).** `check-state.sh` INV-26 calls this read once per run, and the whole
+  **STRUCK 2026-08-19 (#571).** `check-state.py` INV-26 calls this read once per run, and the whole
   run measures **506 GraphQL points, on board 3 with 473 items, at commit `6bbd706`**, measured by
   differencing `gh api rate_limit --jq .resources.graphql.used`. The standalone read read 608 in one
-  sample, but `check-state.sh` CONTAINS it, so the call cannot exceed the run: quote **490 to 506**
+  sample, but `check-state.py` CONTAINS it, so the call cannot exceed the run: quote **490 to 506**
   and treat 608 as a contaminated upper bound. Per item that is roughly **1.05 to 1.29 points**.
   **It IS the burn.** The `--query` and `totalCount` observations still stand; only the exclusion
   does not.

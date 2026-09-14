@@ -18,12 +18,12 @@ station by station, for the PLAN phase question "can this plan reach it":
 | completed validation | every task carries a runnable `verify:`; `change_type:` present on all 8 | yes |
 | merged PR / ship closeout / closed issue | lifecycle stations, orchestrator-owned; correctly not plan tasks | yes |
 | issue-specific verification | SC-01..SC-08 with `verify:` methods (`BRIEF.md:105-148`) | yes, except SC-06 and SC-07 — §6 |
-| `check-state.sh` exiting 0 | **no task, no verify, no mechanism** | gap 1 |
+| `check-state.py` exiting 0 | **no task, no verify, no mechanism** | gap 1 |
 
-Named station with no mechanism: **`check-state.sh` exit 0 and a full-suite regression run**. Eight
+Named station with no mechanism: **`check-state.py` exit 0 and a full-suite regression run**. Eight
 tasks change two registered PreToolUse gates and two shared libraries; the widest `verify:` in the
 plan is T-08's three guard suites (`plan.yaml:479-483`). Nothing in the plan runs the harness suite
-or `check-state.sh`, and the intent names both. It rests entirely on main-session closeout.
+or `check-state.py`, and the intent names both. It rests entirely on main-session closeout.
 
 ## 2 — B-10's defect vs the plan's remedy: legitimate substitution, not a swapped problem
 
@@ -143,7 +143,7 @@ construction under every task, T-08 included. Strike T-08 and the gap returns to
 
 ## Gaps found
 
-1. **gating** — No task or `verify:` covers `check-state.sh` exiting 0 or a full-suite regression,
+1. **gating** — No task or `verify:` covers `check-state.py` exiting 0 or a full-suite regression,
    though the intent names both as success (`grilling-...:9`). Eight tasks change two registered
    gates. Add a closeout verify or state explicitly that main-session closeout carries it.
 2. **gating** — A third same-persona-class residue is unstated *and* one task's intent can create

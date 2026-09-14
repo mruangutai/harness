@@ -76,7 +76,7 @@ c3 routes to the extend branch — the fixture had to say which fresh-board shap
 
 ## Suite
 
-`bash .claude/skills/harness/bin/run-unit-tests.py --kind all` -> **EXIT 1**, 838 `^PASS`,
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all` -> **EXIT 1**, 838 `^PASS`,
 2 `^FAIL`, 45 `^PASS test-`. Log: scratchpad `c3-suite.log`.
 
 The single failing check is **not from this diff**: `test-no-distribution.py`'s

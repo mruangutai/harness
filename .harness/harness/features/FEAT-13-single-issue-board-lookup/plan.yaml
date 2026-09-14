@@ -119,7 +119,7 @@ tasks:
       - .claude/skills/harness/bin/test-factory-integration.py
       - .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-lookup-swap.md
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
       python3 .claude/skills/harness/bin/test-factory-integration.py &&
       grep -q 'def issue_board_item_id' .claude/skills/harness/bin/factory_gh.py &&
       ! grep -q 'factory_gh\.project_items' .claude/skills/harness/bin/factory_decompose.py &&
@@ -138,7 +138,7 @@ tasks:
 
         HALF A. Write step 1 (the helper in factory_gh.py) and the step-5 assertions that live in
         test-factory-gh.py, and nothing else. Then run:
-          bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+          python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
         It must pass. Record that intermediate result in your receipt at
         .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-lookup-swap.md
         — the command, its exit status, the date — before touching anything else. That path is in

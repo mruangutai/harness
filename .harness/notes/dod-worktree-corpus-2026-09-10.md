@@ -50,7 +50,7 @@ feature. The 88-wide sweep was a convenient glob, never a requirement. The corpu
 **planning** time — precedent and prior decisions — which is a read, not an audit.
 
 Measured cost of the sweep that was never earning anything: 89 feature directories, 60 with no
-commit in over 7 days, 454 of `check-state.sh`'s 1181 finding lines naming one of those 60 — all
+commit in over 7 days, 454 of `check-state.py`'s 1181 finding lines naming one of those 60 — all
 re-derived every run about records nothing writes.
 
 An earlier idea of mine — an incremental sweep with a content+checker-version cache key — is
@@ -104,7 +104,7 @@ so it travels with a clone". That conflated the tracked hook scripts with the `c
 config pointing at them, which is LOCAL git config and is NOT cloned — measured:
 `git ls-files | grep -c gitconfig` returns 0. The mechanism does travel, but by two other means, and
 they should be cited rather than assumed: `harness-init/SKILL.md:81` sets `core.hooksPath` as an
-onboarding step, and `check-state.sh:2607` is INV-31, which REFUSES a clone whose `core.hooksPath`
+onboarding step, and `check-state.py:2607` is INV-31, which REFUSES a clone whose `core.hooksPath`
 is wrong ("no harness hook runs on this clone"). A fresh clone missing the config is therefore a
 named and gated state, not a silent hole. `post-merge` there is a deliberate shim whose
 body lives in `bin/post-merge-sweep.py` so a test can reach it (FEAT-34 T-11, D-08), and that sweep
@@ -268,7 +268,7 @@ synthetic fixture; the real host is measured once, by hand, and recorded.
   it — a call-count or an opened-path assertion — rather than inferring it from output.
 - **Mutation, fail-closed:** break what the audit expects to reach and assert a **non-zero exit
   whose message carries the counts**. The measured pre-change behaviour is the baseline this must
-  contradict: `check-state.sh` in a sparse worktree swept **1 of 88** and **exited 0**. A test that
+  contradict: `check-state.py` in a sparse worktree swept **1 of 88** and **exited 0**. A test that
   cannot distinguish those two states is not testing anything.
 
 ### D-4 — branch uniqueness
@@ -382,7 +382,7 @@ never folded back.
 
 2. **M-1's gate behaviour: exits 3-7 gate, exit 8 reports.** The mechanism section above says
    `--verify` "fails loudly" when a gate calls it. Amended at cycle 6 on finding PL-02: gating on
-   the dirty-tree exit would make `check-state.sh` — the canonical pre-commit gate for the whole
+   the dirty-tree exit would make `check-state.py` — the canonical pre-commit gate for the whole
    repository — refuse in every dirty feature worktree, which is the normal mid-task state, and
    refuse ahead of the very commit that is exit 8's own stated remedy. The structural exits (3-7)
    gate; the dirty tree is reported and non-gating. SC-09 carries the reason inline.

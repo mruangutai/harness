@@ -34,7 +34,7 @@ relayed as fact.
 Two more root resolvers exist that the AST expression **structurally cannot see**:
 
 - `harness_yaml.py:449` — `root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()`, inside `require_or_die()`. Missed because the join lives in `_marker_path`, not in this function's body.
-- `check-state.sh:22` — the shell chain, a module-level assignment, not a function.
+- `check-state.py:22` — the shell chain, a module-level assignment, not a function.
 
 **So it is 9+ resolvers, not 7.** Any "all call sites" claim rests on a detector that cannot
 spell two of them.
@@ -44,7 +44,7 @@ spell two of them.
 `context-watch.py:78, :164, :572`, `factory_claim.py:99`, `factory_config.py:334`,
 `feature-worktree.py:56`, `feature_schema.py:71`, `gh_cost_log.py:108` (out of scope),
 `harness_yaml.py:441`, `inflight_registry.py:52`, `layout_migration.py:194`,
-`worktree_terminal.py:38`, `board_lifecycle.py:451`, `wayfind.py:57`, `check-state.sh:58`.
+`worktree_terminal.py:38`, `board_lifecycle.py:451`, `wayfind.py:57`, `check-state.py:58`.
 
 ### C — NOT PATH ACCESSORS (58) — stay.
 
@@ -148,7 +148,7 @@ guess.**
   `team-config.yaml:101` would fix it: `- { path: .harness/notes/analysis-*.md, upsert: true }`.
 - **Q4** — is `post-merge-sweep.py` inside DEC-174's execution bar? It is a self-declared
   post-merge hook body, absent from `.claude/settings.json`'s registered list.
-- **Q5** — `harness_yaml.py:449` and `check-state.sh:22` are the 8th and 9th resolvers. Fold in
+- **Q5** — `harness_yaml.py:449` and `check-state.py:22` are the 8th and 9th resolvers. Fold in
   or backlog?
 
 ## A HARNESS DEFECT the run surfaced
@@ -246,13 +246,13 @@ source of truth.
 | `dispatch-guard._root_from()` | `root_above(payload_path)` | 1 |
 | `post-merge-sweep._resolve_repo_root()` | `root_from_script(BIN_DIR)` | 1 |
 | `harness_yaml.py:449` | `resolve_root(_BIN_DIR)` | 1 |
-| `check-state.sh:22` | `resolve_root(_BIN_DIR)` | 1 |
+| `check-state.py:22` | `resolve_root(_BIN_DIR)` | 1 |
 | `harness_boundary.worktree_owner()` | — | **stays** |
 | `post-merge-sweep._resolve_main_checkout_root()` | — | **stays**, asks git, different question |
 
 **14 call-site edits. 7 definitions removed.**
 
-`dispatch-guard.py` and `check-state.sh` are enforcement layer. Under DEC-174 the MAIN SESSION
+`dispatch-guard.py` and `check-state.py` are enforcement layer. Under DEC-174 the MAIN SESSION
 executes those directly, never the team.
 
 ## Still open — not ruled

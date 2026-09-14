@@ -25,7 +25,7 @@ edit confined to the conflicting line(s), never a reconstructed whole-file paylo
 prior read — done here as a Python string-substitution pass that asserts each old line occurs
 exactly once, replaces it, and asserts the resulting line-count and the exact set of changed line
 indices before writing, so an unrelated line moving would abort the write rather than silently land;
-(3) `check-expertise.sh` on the result. Also corrected: write the DURABLE checkout absolutely, not
+(3) `check-expertise.py` on the result. Also corrected: write the DURABLE checkout absolutely, not
 the worktree — the worktree is merged and slated for removal, and a write there (confirmed live for
 `harness-dev-ops.md`: durable byte-identical to HEAD, worktree copy carrying real edits) is
 orphaned the moment the worktree is deleted.
@@ -40,7 +40,7 @@ EXIT=7          # applies nothing; file md5 unchanged (89f8879e...)
 # targeted edit: read, assert each old line's exact text occurs exactly once, replace,
 # assert 45 lines before == 45 lines after, assert changed line indices == {8, 10, 40}, write.
 
-$ check-expertise.sh <durable>/harness-code-reviewer.md
+$ check-expertise.py <durable>/harness-code-reviewer.md
 OK
 EXIT=0
 
@@ -96,7 +96,7 @@ repository.
 
 ## What did not run
 
-No project-wide validation, linter, formatter, or test suite ran. `check-expertise.sh` ran only
+No project-wide validation, linter, formatter, or test suite ran. `check-expertise.py` ran only
 against the one changed file, per the assignment's constraint.
 
 ```yaml

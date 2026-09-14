@@ -2,7 +2,7 @@
 
 - 2026-08-21: verifying a "3 files are non-conforming" claim, I invented the conforming set from
   the name instead of reading it. I assumed `SEAM_NOTES` contained `ship` and measured 1 non-seam
-  handoff stem where the operator's answers file said 3. Reading `check-state.sh:495-508` showed the
+  handoff stem where the operator's answers file said 3. Reading `check-state.py:495-508` showed the
   values are exactly `["plan","build","validate"]` — `ship` is NOT a seam stem, so `handoff-ship.md`
   IS non-seam and the answers file was right. The failure mode: a plausible enum guessed from a
   domain word, producing a confident number that contradicted the operator. Read the literal.

@@ -87,9 +87,9 @@ added). Verified this is a well-formed draft 2020-12 schema via
 `jsonschema.Draft202012Validator.check_schema(...)`.
 
 Every property carries a `description`. Object-valued and reader-censused properties cite the
-reader BY NAME (`gh-sync.py's load_recorded`, `check-state.sh INV-21`, `factory_decompose.py's
-load_factory`, `factory_claim.py's issue_number`, `check-state.sh INV-24`, `check-plan-routes.py's
-finished-feature skip`, `check-state.sh INV-17's seam table`), never by line number, per the
+reader BY NAME (`gh-sync.py's load_recorded`, `check-state.py INV-21`, `factory_decompose.py's
+load_factory`, `factory_claim.py's issue_number`, `check-state.py INV-24`, `check-plan-routes.py's
+finished-feature skip`, `check-state.py INV-17's seam table`), never by line number, per the
 intent's explicit instruction that T-11/T-12 move those lines inside this same build.
 `feature_id`, `branch`, `pr`, `max_total_cycles` — the four keys the BRIEF records as having no
 demonstrated reader — carry a description saying so, rather than inventing a reader for them.

@@ -15,7 +15,7 @@ ops-path exit-11 CONFLICT convention) instead of silently keeping only the last-
 
 ## Dead ends
 
-- Do not touch check-expertise.sh — D-04 keeps the fix scoped to expertise-merge.py alone;
+- Do not touch check-expertise.py — D-04 keeps the fix scoped to expertise-merge.py alone;
   the format checker is structurally blind here because the drop precedes the write —
   source: plan.yaml decisions, verified-at 7f924326.
 

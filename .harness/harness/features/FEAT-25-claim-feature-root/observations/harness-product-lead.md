@@ -39,7 +39,7 @@
      pm is not to be dinged for inheriting the clean-pin gate result.
 
   4. **Clause (b)'s `load_board` verdict must be scoped to ADDED LINES of the graded diff.**
-     `load_board` is present in the repo — the panel found it in `check-state.sh`,
+     `load_board` is present in the repo — the panel found it in `check-state.py`,
      `board-station.py`, `test-factory-config.py`, `test-gh-sync.py`, `test-gh-board.py`. A
      repo-wide grep returns five legitimate hits and reads as a clause-(b) failure. Check the shape
      of pm's evidence string, not only its verdict.

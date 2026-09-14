@@ -61,7 +61,7 @@ or the rule silently stops applying somewhere. No finding.
 
 **D-12 (run-unit-tests.py not enforcement-path):** not redundant with T-09/T-10's intents.
 It's a DEC-174 lane classification — the actual answer to "does touching run-unit-tests.py's
-UNIT_SCRIPTS array require main-session-direct treatment like check-state.sh does?" The `lanes:`
+UNIT_SCRIPTS array require main-session-direct treatment like check-state.py does?" The `lanes:`
 rows confirm the answer it records (run-unit-tests.py is `team`/`harness-dev-ops`, not a
 DEC-174 carve-out) but D-12 is the one place that states *why*, which a DEC-174 reviewer would
 otherwise have to re-derive. Keep.

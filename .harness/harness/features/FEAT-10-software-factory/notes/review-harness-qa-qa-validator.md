@@ -67,9 +67,9 @@ other 6 (cli, config, integration-test-file, scaffolding, config-file, docs) do 
 
 ## Findings distinct from the blocking one
 
-- **SC-06 has no evidence in this diff.** Its `evidence: integration` traces to `check-state.sh`
+- **SC-06 has no evidence in this diff.** Its `evidence: integration` traces to `check-state.py`
   INV-24, which is T-08 — explicitly withheld under the DEC-174 carve-out per this dispatch.
-  `grep -n INV-24` on both `check-state.sh` and `test-check-state.py` returns nothing. This is
+  `grep -n INV-24` on both `check-state.py` and `test-check-state.py` returns nothing. This is
   not a defect of the diff under gate (T-08 correctly sits outside it), but it is a real
   coverage gap the operator should see stated rather than assumed: **SC-06 is unverified until
   the main session does T-08 directly.**

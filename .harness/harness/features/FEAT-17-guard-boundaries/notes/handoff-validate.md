@@ -22,7 +22,7 @@ close a record gap, not to hand work forward.
 - Fixed with a third return state callers refuse rather than ignore, plus `MULTILINE` on the pointer
   regex — `$` had anchored at end-of-string, so any second line failed the whole match —
   `notes/ship-review-2026-08-12.md`
-- **F-B [med]:** `check-state.sh` absorbed the `ImportError`, skipped every INV-25 branch, and printed
+- **F-B [med]:** `check-state.py` absorbed the `ImportError`, skipped every INV-25 branch, and printed
   *"all state invariants hold"* while exiting 0. The fourth import route and the only one that did not
   fail closed. Now a violation — `notes/ship-review-2026-08-12.md`
 - **F-C [med, record]:** DEC-193's claim of preserved Bash-route behaviour was too wide by one column.

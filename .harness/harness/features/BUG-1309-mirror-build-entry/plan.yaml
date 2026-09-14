@@ -38,9 +38,9 @@ lanes:
       lane: team
       agent: harness-backend-dev
       reason: resolved by check-domain.py to harness-backend-dev and harness-dev-ops; a data declaration, not an enforcement path
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
-      reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and its own invariant is the artifact doing the checking
+      reason: DEC-174 enforcement carve-out - check-state.py is the state validator, and its own invariant is the artifact doing the checking
     - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - the post-merge hook driver decides whether evidence of a failed ship is destroyed
@@ -104,8 +104,8 @@ decisions:
     because: GitHub is a mirror, never a gate - gh absent or unauthenticated means the flow succeeds and reports the sync skipped (DEC-138, DECISIONS.md:2948-2952) - and the stated intent puts changing the user-gated merge policy out of scope. Denying on a failed read would deny every gh pr merge in the repo during an outage, including for a feature recorded opened and for a PR matching no harness feature at all. A gate that cannot verify still says so, on stderr, which is the honest half of the posture branch-create-gate.py takes over a LOCAL fact; the deny half cannot be carried over onto a remote one. Extending gh-close-gate.py instead was rejected because its name would then lie about its subject.
     dec: DEC-174
   - id: D-08
-    choice: 'The ONE frozen set BUILD_ENTRY_ERA_EXEMPT governs the three REFUSALS this change adds, and post-merge retention is keyed on something else. The three refusals - check-state.sh INV-37 (T-06), the gh-sync.py start-task Build refusal (T-04) and the merge-gate deny (T-05) - each skip a feature whose directory basename is in that set, so a legacy feature stays Build-allowed and merge-allowed and is recovered only by an explicit operator-approved recover-terminal. POST-MERGE RETENTION (T-07) keys on the RECORDED VALUE, not on era membership: an era feature whose github.build_entry key is ABSENT is swept normally, and ANY feature that RECORDS recovery-required is RETAINED, era or not. That set, and the station rule that reads it, live in feature_schema.py as BUILD_ENTRY_ERA_EXEMPT and recovery_command_for(feat_dir), the single source T-04, T-05, T-06 and T-07 all read; a second definition of either, anywhere, is a defect. recovery_command_for names recover-terminal for a feature in the era set, at station review or done, or carrying any task recorded done, and open otherwise.'
-    because: 'No existing feature.json carries the field, so an unguarded invariant would report roughly fifty violations on its first run and be muted by the operator within a day. Same shape as BUG-1071''s INV-32 era guard and feature_schema.RUNS_AGENT_EXEMPT. The exemption covers all three refusals, from one source, because the stated intent''s settled bullet 7 makes legacy recovery an explicit operator-approved act, so a refusal that FORCES that act is not the stated policy; and because blocking a legacy merge would change the user-gated merge policy the same intent fences off as out of scope. RETENTION IS DELIBERATELY DIFFERENT. Settled bullet 8 requires a feature under recovery while GitHub is unavailable to remain non-terminal and to KEEP its worktree until recovery and Ship BOTH succeed, so sweeping a feature that RECORDS recovery-required would delete the very checkout the operator''s own policy preserves - era membership excuses a feature that could not have a receipt, never one that has a bad one. The exemption still covers the ABSENT key for retention, which is why an era feature merged with no receipt is swept normally. The reason recorded here in the earlier draft - that an ungated retention would be refused downstream by check-state.sh INV-29 - is FALSE as measured, and is replaced rather than kept beside this one: worktree_terminal.py:389-394 classifies a standing worktree terminal ONLY when the LANDED plan.yaml carries top-level status done, and a feature owing a receipt never reaches that station, because cmd_ship''s no-recorded-milestone skip at gh-sync.py:1799-1800 returns before _record_pr at :1962 and before _record_station(feat_dir, done) at :1975. The guard that speaks to a terminal feature with no receipt is INV-37 (T-06), by design. The station rule has one home because four call sites choose between open and recover-terminal, and open on a feature whose work is already under way or finished creates the task-level historical mirror records the stated intent puts out of scope - merged-ness cannot discriminate that case, since a done-but-unmerged feature and a legacy mid-build one reach the forbidden act through the same call, and a second copy of the rule is where one of the four quietly keeps naming open.'
+    choice: 'The ONE frozen set BUILD_ENTRY_ERA_EXEMPT governs the three REFUSALS this change adds, and post-merge retention is keyed on something else. The three refusals - check-state.py INV-37 (T-06), the gh-sync.py start-task Build refusal (T-04) and the merge-gate deny (T-05) - each skip a feature whose directory basename is in that set, so a legacy feature stays Build-allowed and merge-allowed and is recovered only by an explicit operator-approved recover-terminal. POST-MERGE RETENTION (T-07) keys on the RECORDED VALUE, not on era membership: an era feature whose github.build_entry key is ABSENT is swept normally, and ANY feature that RECORDS recovery-required is RETAINED, era or not. That set, and the station rule that reads it, live in feature_schema.py as BUILD_ENTRY_ERA_EXEMPT and recovery_command_for(feat_dir), the single source T-04, T-05, T-06 and T-07 all read; a second definition of either, anywhere, is a defect. recovery_command_for names recover-terminal for a feature in the era set, at station review or done, or carrying any task recorded done, and open otherwise.'
+    because: 'No existing feature.json carries the field, so an unguarded invariant would report roughly fifty violations on its first run and be muted by the operator within a day. Same shape as BUG-1071''s INV-32 era guard and feature_schema.RUNS_AGENT_EXEMPT. The exemption covers all three refusals, from one source, because the stated intent''s settled bullet 7 makes legacy recovery an explicit operator-approved act, so a refusal that FORCES that act is not the stated policy; and because blocking a legacy merge would change the user-gated merge policy the same intent fences off as out of scope. RETENTION IS DELIBERATELY DIFFERENT. Settled bullet 8 requires a feature under recovery while GitHub is unavailable to remain non-terminal and to KEEP its worktree until recovery and Ship BOTH succeed, so sweeping a feature that RECORDS recovery-required would delete the very checkout the operator''s own policy preserves - era membership excuses a feature that could not have a receipt, never one that has a bad one. The exemption still covers the ABSENT key for retention, which is why an era feature merged with no receipt is swept normally. The reason recorded here in the earlier draft - that an ungated retention would be refused downstream by check-state.py INV-29 - is FALSE as measured, and is replaced rather than kept beside this one: worktree_terminal.py:389-394 classifies a standing worktree terminal ONLY when the LANDED plan.yaml carries top-level status done, and a feature owing a receipt never reaches that station, because cmd_ship''s no-recorded-milestone skip at gh-sync.py:1799-1800 returns before _record_pr at :1962 and before _record_station(feat_dir, done) at :1975. The guard that speaks to a terminal feature with no receipt is INV-37 (T-06), by design. The station rule has one home because four call sites choose between open and recover-terminal, and open on a feature whose work is already under way or finished creates the task-level historical mirror records the stated intent puts out of scope - merged-ness cannot discriminate that case, since a done-but-unmerged feature and a legacy mid-build one reach the forbidden act through the same call, and a second copy of the rule is where one of the four quietly keeps naming open.'
     dec: none
 
   - id: D-09
@@ -149,7 +149,7 @@ decisions:
       merge through the tracked core.hooksPath post-merge shim and executes post-merge-sweep.py end to
       end (test-hooks-install.py:388-432), which is the same subject this plan's own lanes row already
       routes main-session-direct for tests/integration/test-post-merge-sweep.py. --resolve grants team
-      for check-state.sh and post-merge-sweep.py themselves, which is exactly why the carve-out rows in
+      for check-state.py and post-merge-sweep.py themselves, which is exactly why the carve-out rows in
       this plan override it, so a team grant cannot settle the question. The narrower reading is
       required because the wider one would pull tests/integration/test-gh-sync.py and
       test-validate-feature-json.py into the carve-out, and this plan's signed lanes rows place both in
@@ -1496,15 +1496,15 @@ tasks:
       to redden is reported as non-discriminating rather than kept.
 
   - id: T-06
-    title: Add check-state.sh INV-37 for a terminal feature with no Build-entry receipt
+    title: Add check-state.py INV-37 for a terminal feature with no Build-entry receipt
     traces: [REQ-10]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and the artifact under change is the artifact doing the checking
+    execution_reason: DEC-174 enforcement carve-out - check-state.py is the state validator, and the artifact under change is the artifact doing the checking
     depends_on: [T-01]
     status: done
     files:
-    - .claude/skills/harness/bin/check-state.sh
+    - .claude/skills/harness/bin/check-state.py
     - .claude/skills/harness/bin/feature_schema.py
     - tests/integration/test-check-state.py
     verify: |
@@ -1535,7 +1535,7 @@ tasks:
         names exactly ONE recovery command. WHICH command is chosen by the feature's OWN recorded
         station, never by whether it is merged, and the choice is made by calling the shared
         classifier this task adds - feature_schema.recovery_command_for(feat_dir) - never by a
-        station test written inside check-state.sh. Naming both commands is what this line must
+        station test written inside check-state.py. Naming both commands is what this line must
         not do: an operator reading "or recover-terminal if it is already merged" on a
         done-but-unmerged or legacy mid-build feature runs the bare open and creates exactly the
         historical task sub-issues the operator fenced off as out of scope.
@@ -1560,9 +1560,9 @@ tasks:
         command, never to decide whether the invariant fires.
 
       THE SHARED SOURCE (D-08). The era-exempt set and the station rule that reads it live in
-      .claude/skills/harness/bin/feature_schema.py, NOT in check-state.sh, because T-04
+      .claude/skills/harness/bin/feature_schema.py, NOT in check-state.py, because T-04
       (gh-sync.py) and T-05 (merge-gate.py) must read the same two things and a bash-local literal
-      cannot be read by either. check-state.sh already imports that module for INV-23 at :1345, so
+      cannot be read by either. check-state.py already imports that module for INV-23 at :1345, so
       this adds a name, not a mechanism. Add exactly two public names, beside RUNS_AGENT_EXEMPT:
 
         BUILD_ENTRY_ERA_EXEMPT - a frozen literal set of feature directory names, generated ONCE at
@@ -1599,11 +1599,11 @@ tasks:
       THE ERA SET HAS EXACTLY ONE DEFINITION: the symbol BUILD_ENTRY_ERA_EXEMPT in
       .claude/skills/harness/bin/feature_schema.py, which this task adds. This invariant, T-04's Build
       refusal, T-05's merge deny and T-07's post-merge retention gate all read that ONE symbol; a second
-      definition anywhere - a literal list, a re-derived glob, a copy in check-state.sh - is a DEFECT.
+      definition anywhere - a literal list, a re-derived glob, a copy in check-state.py - is a DEFECT.
 
       Tests, in tests/integration/test-check-state.py, following its existing fixture style, and
       the failing state must be demonstrated first - build the violating fixture, run the
-      pre-change check-state.sh against it, and confirm it reports NOTHING.
+      pre-change check-state.py against it, and confirm it reports NOTHING.
 
       THE CASE NAMES BELOW ARE A CONTRACT, not labels: this task's verify: greps the runner's
       per-case ok line, so a renamed or missing case fails the verify. Collect the new cases as
@@ -1720,7 +1720,7 @@ tasks:
       ABSENT build_entry could not have written a receipt, so it is swept; ANY feature that RECORDS
       "recovery-required" wrote that receipt itself, so it is retained, era or not. An earlier draft
       of this paragraph justified the gate by predicting that an ungated retention would be REFUSED
-      downstream by check-state.sh INV-29. THAT PREDICTION IS FALSE, measured at source:
+      downstream by check-state.py INV-29. THAT PREDICTION IS FALSE, measured at source:
       worktree_terminal.py:389-394 classifies a standing worktree terminal ONLY when the LANDED
       plan.yaml carries top-level status done, and a feature owing a mirror receipt never reaches
       that station, because cmd_ship's no-recorded-milestone skip at gh-sync.py:1799-1800 returns
@@ -1898,7 +1898,7 @@ tasks:
       gh-sync.py recover-terminal --yes, which creates the milestone and the parent and source
       issues only, never historical task sub-issues, and records recovered-terminal; while
       GitHub is unavailable that recovery stays non-terminal and post-merge-sweep.py keeps the
-      worktree. check-state.sh INV-37 reports a sync-enabled feature carrying no receipt even
+      worktree. check-state.py INV-37 reports a sync-enabled feature carrying no receipt even
       when its station is terminal and its task statuses are absent, bounded by a frozen
       era-exempt set.
 

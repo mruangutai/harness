@@ -26,7 +26,7 @@ T-04, T-10 and T-14 have no interaction with the four new tasks and are ready in
 
 ## One defect the re-signature carries forward
 
-T-14's verify line 2 was written as `check-state.sh | grep -c 'handoff-' || true` against an expected
+T-14's verify line 2 was written as `check-state.py | grep -c 'handoff-' || true` against an expected
 count of 0. The real count is **3** — three INV-17 exemption notes containing the literal `handoff-`.
 The `|| true` meant the line could not fail in either direction, so the wrong baseline was never
 caught. pm re-anchored it on the ` VIOLATION ` prefix. This is the third assertion found today that

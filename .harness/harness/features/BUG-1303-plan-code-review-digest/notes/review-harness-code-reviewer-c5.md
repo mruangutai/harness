@@ -124,7 +124,7 @@ No new Stage-2 finding beyond the advisory in MF-2(c) above (explicitly not a `m
   captured immediately): exit 0, 46 files, wall 62.35s, 0 `^FAIL ` lines (grepped the full captured
   output). Contract cited 60.9s — consistent.
 - `gen-decisions-index.py --stdout | diff -q - DECISIONS-INDEX.md`: silent, exit 0.
-- `check-state.sh`: exit 0 (many pre-existing repo-wide `note`-level items unrelated to BUG-1303, no
+- `check-state.py`: exit 0 (many pre-existing repo-wide `note`-level items unrelated to BUG-1303, no
   `INV`-numbered violation naming this feature).
 
 No disagreement with the orchestrator's pre-measured numbers.

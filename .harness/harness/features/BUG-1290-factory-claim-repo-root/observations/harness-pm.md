@@ -6,7 +6,7 @@
   path to `--proposal`. Same single write route, no guard collision.
 - 2026-09-05: deleting a `.harness`/`features` join from a bin script is never a one-file change in
   this repo — `layout_migration.READER_TABLE` has a row per reader file, one reader classified
-  `neither` makes the whole `features` surface `CANNOT_VERIFY`, and check-state.sh INV-27 turns that
+  `neither` makes the whole `features` surface `CANNOT_VERIFY`, and check-state.py INV-27 turns that
   into a failure. Measured baseline at eb9d044e: surface CLEAN, factory_claim.py `migrated`. The
   fixture module `layout_fixtures.py` must change its STUB key in the SAME edit (import-time guard).
   Check the reader table before planning any deletion of a path join.

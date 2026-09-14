@@ -141,7 +141,7 @@ briefing, `notes/ship-review-2026-09-06-13-ship.md`, which this supersedes rathe
 The five-arm table, the empty production diff and the budget figures are **my own measurements**.
 Everything else is attributed.
 
-**One thing I cannot tell you from here.** `check-state.sh` resolves features through the project
+**One thing I cannot tell you from here.** `check-state.py` resolves features through the project
 root — the main checkout — where this feature's directory does not exist on `main`. Run from this
 worktree it therefore says **nothing at all** about BUG-1290 (814 lines of output, zero mentions).
 That is not a clean bill of health; it is a measurement I could not take. The standing INV-29

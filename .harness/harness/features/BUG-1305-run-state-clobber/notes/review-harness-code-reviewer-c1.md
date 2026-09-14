@@ -53,16 +53,15 @@ creep; the two ANSWERED adversarial questions from the dispatch:
 
 **F-01 (severity: med → resolved by me in this pass, not a live defect) — SC-09/SC-07's
 "control-plane root" pin was captured over the wrong tree; substance re-verified clean.**
-`notes/regression-delta-BUG-1305.md`'s `## Suite results` records `bash
-.claude/skills/harness/bin/check-state.sh: exit 0 ... no INV-36/run-identity finding` with no
-`HARNESS_PROJECT_DIR` override and no absolute path shown. `check-state.sh`'s root resolves via
+`notes/regression-delta-BUG-1305.md`'s `## Suite results` records `python3 .claude/skills/harness/bin/check-state.py: exit 0 ... no INV-36/run-identity finding` with no
+`HARNESS_PROJECT_DIR` override and no absolute path shown. `check-state.py`'s root resolves via
 `harness_boundary.resolve_root(bin_dir)`, which derives from **where the script itself lives**
 unless overridden — i.e. from the worktree, not `/Users/molchairuangutai/GitHub/harness`. I counted:
 worktree `.harness` tree = 19 `runs/*/state.yaml`; the real control-plane root = 356 (BRIEF's cited
 "630 ... and grows continuously" is from an earlier day, consistent with continuous growth). SC-09's
 fifth pin and SC-07's mirror sentence both explicitly require the run be over "this machine's own
 control-plane root" — the note shows no evidence it was. **I ran it myself, live, over
-`/Users/molchairuangutai/GitHub/harness`: `bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep
+`/Users/molchairuangutai/GitHub/harness`: `python3 .claude/skills/harness/bin/check-state.py 2>&1 | grep
 -c INV-36` → `0`, exit `0`.** The mechanism is correct; the artifact's own evidence just isn't what it
 claims to be. Ship-rulable: yes — no code change, and my own re-run is now on the record; the
 operator can accept it in place of a note re-capture, or ask for one more (cheap) command run.
@@ -165,7 +164,7 @@ one-line comment (or an explicit `if not _post:` matching the sibling guard's sh
 recommended, not required, remedy.
 
 **Considered and dismissed:**
-- `check-state.sh:1502-1514`'s redundant `_uid_reason` guard (the `bad.append` not gated on
+- `check-state.py:1502-1514`'s redundant `_uid_reason` guard (the `bad.append` not gated on
   `if _uid_reason:`) — already found and correctly triaged as an APPLY candidate, NOT applied, in
   `notes/receipt-harness-backend-dev-simplify-simplification-c1.md`. I confirmed it independently:
   the outer `if` guarantees `uid_conflict` never returns `None` at the point it's called, so there is

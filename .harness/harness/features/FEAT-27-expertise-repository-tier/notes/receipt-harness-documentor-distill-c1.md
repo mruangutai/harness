@@ -1,6 +1,6 @@
 # Receipt — harness-documentor — distill — c1
 
-**Five entries added across both tiers; both files pass `check-expertise.sh` with exit 0 and no
+**Five entries added across both tiers; both files pass `check-expertise.py` with exit 0 and no
 advisories.** Nothing staged, nothing committed. No other agent's file touched.
 
 ## Ops applied
@@ -42,7 +42,7 @@ displaced and no section was at cap.
   the next reader to re-derive it and read the equality as a bug.
 - **G-04 (repository).** In this repo, `SPEC.md` states intent and drifts; the scripts under
   `.claude/skills/harness/bin/` are the authority when they disagree. Grounded in four SPEC claims
-  falsified by `check-expertise.sh` and `inject-expertise.py` during this feature.
+  falsified by `check-expertise.py` and `inject-expertise.py` during this feature.
 
 ## Rejections
 
@@ -63,4 +63,4 @@ P-01/P-02, G-01/G-02/G-03) — no op in this run names a craft ID that the migra
 
 ## Verify
 
-`.claude/skills/harness/bin/check-expertise.sh` over both files: `OK`, exit 0 each.
+`.claude/skills/harness/bin/check-expertise.py` over both files: `OK`, exit 0 each.

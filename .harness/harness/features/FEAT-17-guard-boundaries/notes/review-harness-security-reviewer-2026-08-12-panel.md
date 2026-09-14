@@ -13,7 +13,7 @@
 Identical — that one line predates this run (not mine; I made no repo-tree writes). All fixtures were built under `/private/tmp/claude-501/.../scratchpad/wtattack/`, outside the repo.
 
 **Files touched (diff `main...c6a28bd`):**
-`.claude/skills/harness/bin/{bash-write-guard.py,check-domain.py,check-state.sh,harness_boundary.py,test-bash-write-guard.py,test-check-domain.py,test-check-state.py}`,
+`.claude/skills/harness/bin/{bash-write-guard.py,check-domain.py,check-state.py,harness_boundary.py,test-bash-write-guard.py,test-check-domain.py,test-check-state.py}`,
 `.harness/features/FEAT-17-guard-boundaries/{BRIEF.md,STATE.md,feature.json,notes/*,plan.yaml}`,
 `.harness/notes/grilling-central-product-config-2026-08-12.md`,
 `docs/harness/{DECISIONS-INDEX.md,DECISIONS.md}`.

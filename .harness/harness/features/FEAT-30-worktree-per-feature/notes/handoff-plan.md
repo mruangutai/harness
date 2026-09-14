@@ -34,7 +34,7 @@ DAG's first `main-session-direct` task, and return `notes/layer0-segments-FEAT-3
   T-01's `dest_for` builds `<segment>/<id>`, two. Until T-04 lands, a REAL worktree from the new CLI
   escapes the sweep and the boundary strip — silent fail-open, not a block — verified-at 49c528a
 - Mirror open: milestone #19, parent #572 adopted, sub-issues #616–#625 — `feature.json` — verified-at 49c528a
-- `check-state.sh` foreign noise is 9 rows (FEAT-26/FEAT-28 unapproved BRIEFs, 7 FEAT-29 board
+- `check-state.py` foreign noise is 9 rows (FEAT-26/FEAT-28 unapproved BRIEFs, 7 FEAT-29 board
   drift); a violation COUNT is a shared mutable global across concurrent flows, so scope any
   assertion to FEAT-30 by name — `notes/orchestrator-M13-d08-baseline-unstable.md` — verified-at 49c528a
 

@@ -62,7 +62,7 @@ Labels `F-1..F-7`/`GOALCHECK-F1` exist only here and in the digest — the schem
 
 GOALCHECK-F1 and F-2 are two sites of one defect and F-1 is its cause; the lead's `fix_order`
 says F-1's remedy subsumes both. All three are transcribed at their own severity anyway, because
-an id absent from `panel.findings` cannot be overruled and `check-state.sh` refuses a ruling
+an id absent from `panel.findings` cannot be overruled and `check-state.py` refuses a ruling
 naming an absent id. If the operator accepts F-1's risk they should expect to name all three ids,
 or none.
 

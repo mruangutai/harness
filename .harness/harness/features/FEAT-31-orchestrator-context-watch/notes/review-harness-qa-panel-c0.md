@@ -99,7 +99,7 @@ test failure here).
   catch it. **Severity: low** — the current default is the safe direction (denies rather than
   passes), so nothing ships broken *today*, but the safety of that default is asserted only in a
   comment, not a test.
-- **`check-state.sh` INV-17 whitespace-only body.** Read the implementation: `hl` is built with
+- **`check-state.py` INV-17 whitespace-only body.** Read the implementation: `hl` is built with
   `.strip()` up front, so a body line of `"   "` collapses to `""` and is correctly treated as empty
   by the `any(_b for _b in _body)` check. But the test fixture (`_empty_section` in
   `test-check-state.py`) only ever inserts a **literal empty string** (`out.append("")`), never a

@@ -25,7 +25,7 @@ checkout; it refuses at exit 1 when the feature dir resolves inside `.claude/wor
 - plan.yaml `panel.readers` carries all three INV-32 readers with `approval:` and `status:`
   byte-unchanged; the re-pin covers it — `git diff ac8dd671 d5dbb9da -- tests/ .claude/` is empty
   — verified-at 1361c0a1
-- `check-state.sh` exits 0 with ZERO violations tree-wide — run at the orchestrator tier from this
+- `check-state.py` exits 0 with ZERO violations tree-wide — run at the orchestrator tier from this
   worktree, which is the only checkout whose working tree holds this feature — verified-at 1361c0a1
 - runs/2026-09-05-1-eng/digest.md now satisfies the DEC-156 contract; the lead's original 6339 bytes
   are preserved byte-identically — `validate-digest.py lead` exits 0, head -c 6339 md5

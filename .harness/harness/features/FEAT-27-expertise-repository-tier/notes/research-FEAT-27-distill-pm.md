@@ -1,7 +1,7 @@
 # Distillation — harness-pm — FEAT-27
 
 **Nine ops applied, both tiers clean, no entry deleted.** Craft file 123 -> 130 lines (budget 150);
-repository file created at 18 lines (budget 40). `check-expertise.sh` exits 0 over both, with one
+repository file created at 18 lines (budget 40). `check-expertise.py` exits 0 over both, with one
 advisory (see below) I ruled on and kept.
 
 Written here, not at the dispatch-named `notes/distill-harness-pm.md`: `check-domain.py` denies that
@@ -56,7 +56,7 @@ excludes `intent:`, so a long `files:` list starves `verify:`.
 No surviving entry is contradicted by this feature's evidence. Two were **incomplete**, not false,
 and were replaced rather than dropped: P-10 (body anchoring, proven blind to renumbering — craft
 `harness-documentor.md` keeps P-02/P-10/G-03/G-04/G-05 while the repository file renumbers the same
-five) and P-14. `check-expertise.sh` flags P-01's `.harness/harness/features/` exemplar as a
+five) and P-14. `check-expertise.py` flags P-01's `.harness/harness/features/` exemplar as a
 repository-layer candidate; ruled craft — the rule is about non-discriminating verifies anywhere and
 the path is a live exemplar pointer, which the distill rules explicitly permit.
 

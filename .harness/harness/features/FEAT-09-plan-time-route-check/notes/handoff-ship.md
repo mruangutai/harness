@@ -28,7 +28,7 @@ become issues.
   files, ALL under `.harness/`, zero source — my own re-run — verified-at 2d26c2f
 - Gates: unit exit 0 (32 PASS, 0 FAIL, 13 scripts), docs 0, state 0, index drift 0 — my own
   re-runs — verified-at 2d26c2f
-- All 12 Expertise files pass `check-expertise.sh` exit 0, including the two lead files their owners
+- All 12 Expertise files pass `check-expertise.py` exit 0, including the two lead files their owners
   flagged as unverified — my own run — verified-at 2d26c2f
 - SC-04 is TRUE AS WRITTEN; the "FALSE" wording in older notes is superseded history — verified-at 3a5a245
 - GitHub #100 (T-02) is still OPEN: its close condition is met but `gh-sync.py close-task` was
@@ -44,7 +44,7 @@ become issues.
 - Do NOT use base `ae2443d`. It still RESOLVES and returns the wrong scope silently: 71 files vs a
   true 14 at 3c245c3, 84 vs 30 at HEAD. Base is `47ed11f` — my own re-measurement — verified-at 3a5a245
 - Do NOT write a cost line or invent a figure — the harness no longer meters spend (DEC-178)
-- Do NOT change `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh` or
+- Do NOT change `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` or
   `check-docs.sh` through a team run — DEC-174 carve-out, main-session-direct only
 
 ## Working set

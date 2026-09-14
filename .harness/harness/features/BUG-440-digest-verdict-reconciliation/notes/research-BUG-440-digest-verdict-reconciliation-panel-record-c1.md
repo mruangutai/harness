@@ -90,7 +90,7 @@ panel (pm's goal-check of the drafted plan against the operator's stated intent,
 It is absent from the validator lead's digest because the `plan-panel` team declares two steps and an
 orchestrator-sequenced segment is not a team step. **It is not a skip.**
 
-Why it had to be fixed before signature, not after: `check-state.sh:534` sets
+Why it had to be fixed before signature, not after: `check-state.py:534` sets
 `expected_readers = {"should-not-exist", "scope", "goalcheck"}` and :544-547 appends a BLOCKING
 violation for any of the three whose recorded status is neither `ran` nor `skipped`. INV-32 grades
 approved plans only, so a two-reader record is green today and turns red the instant the operator
@@ -137,7 +137,7 @@ re-derived 5 of 5
 
 ```
 MANIFEST /Users/molchairuangutai/GitHub/harness/.harness/team-config.yaml
-DEVIATION T-01 .claude/skills/harness/bin/check-state.sh, tests/integration/test-check-state.py, .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
+DEVIATION T-01 .claude/skills/harness/bin/check-state.py, tests/integration/test-check-state.py, .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md granted to harness-backend-dev, harness-dev-ops, harness-orchestrator, harness-qa but declared main-session-direct
 0 violation(s) across 1 plan(s)
 EXIT=0
 ?? .harness/harness/features/BUG-440-digest-verdict-reconciliation/

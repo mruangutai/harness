@@ -21,7 +21,7 @@ Date: 2026-08-10.
 
 Full-suite RED confirming only this file broke:
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit; echo exit=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit; echo exit=$?
 ```
 ```
 [... every other suite: PASS ...]
@@ -33,7 +33,7 @@ Date: 2026-08-10.
 GREEN, after the helper landed (step 1 in `factory_gh.py`, nothing else touched):
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit; echo exit=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit; echo exit=$?
 ```
 ```
 PASS test-factory-cli.py
@@ -100,13 +100,13 @@ integration stub branch, then the task's full `verify:`.
   `project.number` is hardcoded `9`, matching `fleet_dict`'s `board.number`. GREEN: 97/97 checks
   passed (same count as the pre-task baseline).
 
-Full unit run after all of HALF B: `bash .claude/skills/harness/bin/run-unit-tests.py --kind
+Full unit run after all of HALF B: `python3 .claude/skills/harness/bin/run-unit-tests.py --kind
 unit` — exit 0, every one of the 10 suites `PASS`.
 
 ## Task verify — exact invocation, verbatim tail, exit status
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
   python3 .claude/skills/harness/bin/test-factory-integration.py &&
   grep -q 'def issue_board_item_id' .claude/skills/harness/bin/factory_gh.py &&
   ! grep -q 'factory_gh\.project_items' .claude/skills/harness/bin/factory_decompose.py &&

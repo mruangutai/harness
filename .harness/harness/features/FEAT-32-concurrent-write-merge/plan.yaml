@@ -2212,7 +2212,7 @@ tasks:
       body = src[i:j]
       assert "dispatch-guard.py" in body, "amendment 4 still omits dispatch-guard.py"
       for f in ("check-domain.py", "bash-write-guard.py", "validate-digest.py",
-                "check-state.sh", "check-plan-routes.py"):
+                "check-state.py", "check-plan-routes.py"):
           assert f in body, "amendment 4 lost %s from its enumeration" % f
       flat = " ".join(body.split())
       assert "the category decides, the list records" in flat, \
@@ -2228,7 +2228,7 @@ tasks:
 
       WHY, measured at 62f861c. DEC-174 amendment 4's heading is at DECISIONS.md:4836 and its
       enumeration sentence is at :4859-4860: "So the enforcement layer is: check-domain.py,
-      bash-write-guard.py, validate-digest.py, check-state.sh, check-plan-routes.py, and the test file
+      bash-write-guard.py, validate-digest.py, check-state.py, check-plan-routes.py, and the test file
       of each." dispatch-guard.py is demonstrably a gate - it refused this feature's own orchestrator
       dispatch over a model: parameter during run 2026-08-21-1-product - and the enumeration omits it.
       Amendment 4 already settles what that means: at :4860-4862 it says a script that becomes a gate

@@ -15,7 +15,7 @@ new test clauses in `tests/integration/test-check-domain.py` are independently e
   `notes/`/`observations/`/`STATE.md`/`feature.json` tree: `tests/integration/test-check-domain.py`.
   `git diff --numstat` on that path alone: **+4/-2**, exactly the claimed delta (case-name string
   plus two new `and` clauses in `_undeclared_cases()`). Confirmed byte-identical (zero diff) for
-  `check-domain.py`, `check-state.sh`, `validate-digest.py`, `run-state-schema.json`, and
+  `check-domain.py`, `check-state.py`, `validate-digest.py`, `run-state-schema.json`, and
   `tests/integration/test-validate-digest.py` between the two pins. **Claim CONFIRMED.**
 - `git diff --stat 790023f0..3321bcdd`: **8 files**, all under
   `.harness/harness/features/FEAT-104-strict-digest-schema/` (`STATE.md`, `feature.json`, four
@@ -125,15 +125,15 @@ over Bash (a prior attempt to write a disposable `/tmp` copy via shell redirect 
 - **F3** (undeclared-key rejection naming `validate-digest.py`/`PASSTHROUGH`/`DOCUMENTED_OPTIONAL`/
   `SCHEMAS`, three-rogue-key case at `test-validate-digest.py:3130-3145`): byte-identical to c9.
   **Still CLOSED.**
-- **F2** (`check-state.sh:1590`, `_vd_mod.validate("lead", _dtext)` in the at-rest sweep — the
-  generic-persona archive-reader exemption): `check-state.sh` is byte-identical to c9; topology
+- **F2** (`check-state.py:1590`, `_vd_mod.validate("lead", _dtext)` in the at-rest sweep — the
+  generic-persona archive-reader exemption): `check-state.py` is byte-identical to c9; topology
   confirmed unchanged (`validate("lead", ...)` still the literal call, `_host` still unused for this
   purpose). **DECLINED disposition stands, not reopened.** Its residual (no test would catch a future
   edit substituting `_host` for the literal `"lead"`) is carried forward as CF/Q, not re-raised new.
 
 ## Carried-forward, non-gating (not re-raised)
 
-- CF-1 (security, med — `check-state.sh` INV-16 bare-string interpolation) — carried, unchanged
+- CF-1 (security, med — `check-state.py` INV-16 bare-string interpolation) — carried, unchanged
   (file byte-identical to c9).
 - CF-3 (code, low — `abff2a84` FEAT-56 cross-feature root commit riding this branch) — carried,
   unchanged; still present in `origin/main..790023f0` per c9's own analysis, no new commit removes it.

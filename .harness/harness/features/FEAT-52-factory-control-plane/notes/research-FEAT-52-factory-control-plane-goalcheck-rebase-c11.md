@@ -53,7 +53,7 @@ Suites run by me at HEAD (tracked tree clean apart from my own notes/observation
 `HARNESS_AGENT_TYPE` unset): `test-inject-expertise.py` 21 ok, `test-dispatch-guard.py` 48 ok,
 `test-inflight-registry.py` 126 ok, `test-check-domain.py` 301 ok, `test-suite-layout.py` 20 PASS —
 all exit 0. `test-gen-decisions-index.py` **exit 1**, one FAIL. `run-unit-tests.py --check-layout`
-**exit 2**. `check-state.sh` exit 1, but both VIOLATIONs are FEAT-51's; FEAT-52 carries notes only
+**exit 2**. `check-state.py` exit 1, but both VIOLATIONs are FEAT-51's; FEAT-52 carries notes only
 (five unrecorded run dirs).
 
 ## Blockers, criterion-level

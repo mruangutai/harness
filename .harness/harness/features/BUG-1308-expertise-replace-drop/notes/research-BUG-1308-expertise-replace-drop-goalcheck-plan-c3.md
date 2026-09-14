@@ -83,7 +83,7 @@ the one open finding (PF-12c69147, low) is recorded open with no acceptance and 
 
 `panel.readers` now carries three entries — should-not-exist (ran, fable-advisor),
 scope (ran, harness-code-reviewer), goalcheck (ran, harness-pm, 0 findings), closing INV-32's
-third-reader gap (check-state.sh:533,541-547). The goalcheck reader's cycle-2 evidence is
+third-reader gap (check-state.py:533,541-547). The goalcheck reader's cycle-2 evidence is
 `notes/research-BUG-1308-expertise-replace-drop-goalcheck-plan-c2.md` (PASS); this note is its
 cycle-3 run. `panel.findings` is unchanged: 14 entries, 13 `resolved` + 1 `open`, deep-equal to the
 pre-write state including every id, severity, summary and `resolved_by`. `cycle` and `last_run`

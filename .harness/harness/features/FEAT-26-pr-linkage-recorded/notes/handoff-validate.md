@@ -18,7 +18,7 @@ Three things it leaves open, all filed or recorded rather than carried:
 - `run-unit-tests.py --kind all` at merge: **45 scripts PASS, 0 FAIL, exit 0**.
 - Goal-check: **11 of 11 signed criteria MET, 0 NOT MET, 0 UNVERIFIABLE**, each row citing a
   command run in the worktree or a `file:line` read.
-- `check-state.sh` at merge: one violation, FEAT-34's unsigned BRIEF — a different flow.
+- `check-state.py` at merge: one violation, FEAT-34's unsigned BRIEF — a different flow.
 - **The seat was proved on itself.** `record-pr` run against this feature's own directory
   after merge resolved `feat/FEAT-26` to `752`. Then `ship` printed `pr already recorded as
   #752 — not overwritten`, which is SC-03 observed live rather than asserted.
@@ -51,7 +51,7 @@ Three things it leaves open, all filed or recorded rather than carried:
   `STATE.md`, and `notes/research-FEAT-26-goal-check.md`.
 - `.claude/skills/harness/bin/gh-sync.py` — `record-pr`, `cmd_closes`, `source_issues`
   mirroring, and the docstring's DEC-200 paragraph.
-- `.claude/skills/harness/bin/check-state.sh` — INV-28, hand-written under the DEC-174
+- `.claude/skills/harness/bin/check-state.py` — INV-28, hand-written under the DEC-174
   carve-out, sitting before INV-25's block.
 - `feature-schema.json` — `github.source_issues`; the `pr` annotation names all 3 readers.
 - `test-gh-sync.py`, `test-check-state.py`, `test-validate-feature-json.py` — the

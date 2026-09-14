@@ -11,7 +11,7 @@ Everything the cycle-2 fix (`8a0121b0`) closed **stays closed**: I rebuilt VL-01
 the pinned code, on temp-copy fixtures, not from the code's shape or from trusting the history. All
 five are CLOSED. But item 4 of this dispatch ("attack the validator's completeness") found a real,
 previously-unidentified hole: **`target` is never validated against the entry-id grammar**, and an
-`add` op can plant a colliding id that neither the tool's own cap check nor `check-expertise.sh`
+`add` op can plant a colliding id that neither the tool's own cap check nor `check-expertise.py`
 detects. See NF-01. This is new, verified by execution, not a false premise, and it is a fail-open
 exactly in the shape this review is instructed to hunt.
 
@@ -31,7 +31,7 @@ exactly in the shape this review is instructed to hunt.
 | REQ-09 regression coverage | Delivered | `case_replace_at_capacity`, `case_removal`, `case_missing_target`, `case_ambiguous_target`, `case_atomic_failure`, `case_multi_op_composition` (case19) all present and green (full suite run, 0 `^FAIL` across both files). |
 
 SC-08/SC-10 spot-checked: a hand-crafted `add`-forged-duplicate file (see NF-01) still passes
-`check-expertise.sh` at exit 0 — that is itself part of NF-01, not a violation of SC-08's own text
+`check-expertise.py` at exit 0 — that is itself part of NF-01, not a violation of SC-08's own text
 (SC-08 only requires replace/drop outputs pass the checker, which they do). DEC-219 row in
 `DECISIONS-INDEX.md:219` carries the literal substring `replace and drop through the ops subcommand`,
 required by SC-10; `test-gen-decisions-index.py` is part of the green integration run.
@@ -110,7 +110,7 @@ the new id is the full 15-character string `"P-07: SNEAKY"`, distinct from the r
 line re-parses as **id `P-07`**, entry `"SNEAKY: attacker text"`. Id census before: 14 unique ids.
 Census after re-parse: 15 raw entries, but `P-07` now appears **twice** with different text — a
 genuine on-disk duplicate the cap check (`15 ≤ 15`) never saw, because it counted the in-memory
-representation, not the round-tripped one. `check-expertise.sh` on the resulting file also exits 0 —
+representation, not the round-tripped one. `check-expertise.py` on the resulting file also exits 0 —
 it does not check id uniqueness either, so nothing currently shipped catches this.
 
 Consequence, not merely cosmetic: any future legitimate `replace`/`drop` targeting `P-07` on this file
@@ -122,7 +122,7 @@ This is exactly the fail-open shape this review is instructed to hunt: a lookup 
 that accepts a value it should refuse, and the acceptance is invisible until a *later*, unrelated
 operation trips over it. **Severity: high** — realistic input (a stray colon in an LLM-authored
 `target`, not an adversarial payload), silent corruption of the id-uniqueness invariant every other
-part of this feature assumes, undetected by both gates that exist (`_check_caps`, `check-expertise.sh`).
+part of this feature assumes, undetected by both gates that exist (`_check_caps`, `check-expertise.py`).
 Cheap, well-scoped fix: validate `target` against `ENTRY_RE`'s id pattern in
 `_validate_target_section`, for all three verbs, the same place `_reject_multiline` already lives.
 
@@ -130,8 +130,8 @@ Cheap, well-scoped fix: validate `target` against `ENTRY_RE`'s id pattern in
 
 - `python3 tests/unit/test-expertise-ops.py`: 0 `^FAIL`, ends `PASS test-expertise-ops.py`.
 - `python3 tests/integration/test-expertise-merge.py`: 0 `^FAIL`, ends `PASS test-expertise-merge.py`.
-- `bash .agents/skills/harness/bin/run-unit-tests.py --kind unit`: 0 `^FAIL ` lines, 74 files.
-- `bash .agents/skills/harness/bin/run-unit-tests.py --kind integration`
+- `python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit`: 0 `^FAIL ` lines, 74 files.
+- `python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration`
   (`run-integration-tests.sh` does not exist at this path): 0 `^FAIL ` lines, 46 files, 62.89s wall.
 - `python3 .claude/skills/harness/bin/code-grade.py --base $(git merge-base origin/main pin) --head pin`:
   78 functions graded, 4 `RESULT: FAIL` (all `SEVERITY: med`, all `GRADE: 2`), 0 high/critical, 0

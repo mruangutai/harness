@@ -16,11 +16,11 @@ untracked panel note files (this one included). Both Stage 1
   colon/double-space variants the suite also uses — corrected with `^PASS[ :]`; both regexes agree
   on 819. Flagging the counting pitfall since it nearly produced a false "different numbers"
   report.)
-- `check-state.sh`: exit 1, exactly **one** `VIOLATION` line, `INV-29` on the standing
+- `check-state.py`: exit 1, exactly **one** `VIOLATION` line, `INV-29` on the standing
   `BUG-1080-inv6-plan-phase-runs` worktree — the stated environmental exemption, not reported as a
   finding.
 - Every changed production file under `.claude/skills/harness/bin/` (`board-station.py`,
-  `board_lifecycle.py`, `check-domain.py`, `check-plan-routes.py`, `check-state.sh`,
+  `board_lifecycle.py`, `check-domain.py`, `check-plan-routes.py`, `check-state.py`,
   `factory_claim.py`, `factory_config.py`, `factory_decompose.py`, `factory_land.py`,
   `feature-schema.json`, `gh-sync.py`, `gh_board.py`, `harness_boundary.py`, `harness_yaml.py`,
   `plan-merge.py`, `plan-sign-gate.py`/`.sh`, `run-unit-tests.py`, `worktree_terminal.py`) has a
@@ -52,14 +52,14 @@ Ran the operator's own commands independently, at review_sha:
 
 ### `(inv34.e)` doubled-defence — **genuinely non-vacuous, both layers independently load-bearing**
 
-Target: `check-state.sh:211` (keying: `if doc.get("station_only") is True: continue`) and
+Target: `check-state.py:211` (keying: `if doc.get("station_only") is True: continue`) and
 `harness_yaml.py:326-327` (loader: refuses `tasks: []` without a `station_only: true` marker).
 Reproduced all three legs from the handoff, in `/tmp/feat41-c4`:
 
 | what I reverted | what I ran | result |
 |---|---|---|
-| keying only (`check-state.sh:211` → `if not doc.get("tasks"): continue`, the pre-fix form) | `test-check-state.py` | **green** — caught by the untouched loader raising `PlanSchemaError` before the loop runs at all |
-| loader only (`harness_yaml.py:326-327` → `if False:`, so `tasks: []` loads without the marker) | `test-check-state.py` | **green** — caught by the untouched keying: `station_only` isn't `True`, so the loop does *not* skip, and the STATE.md-dangling-task check (`check-state.sh:220-226`, same loop body, one function below the keying line) fires on the fixture's `T-99` reference |
+| keying only (`check-state.py:211` → `if not doc.get("tasks"): continue`, the pre-fix form) | `test-check-state.py` | **green** — caught by the untouched loader raising `PlanSchemaError` before the loop runs at all |
+| loader only (`harness_yaml.py:326-327` → `if False:`, so `tasks: []` loads without the marker) | `test-check-state.py` | **green** — caught by the untouched keying: `station_only` isn't `True`, so the loop does *not* skip, and the STATE.md-dangling-task check (`check-state.py:220-226`, same loop body, one function below the keying line) fires on the fixture's `T-99` reference |
 | both reverted simultaneously | `test-check-state.py` | **FAIL** — `case (inv34.e)` goes red, exactly as claimed |
 
 This is real defense in depth, not two guards hitting one detector (ruled out the O-05 vacuity

@@ -20,7 +20,7 @@ BRIEF's 15 SCs via product-lead, then close-out and the briefing.
   guard-claim comment at `.github/workflows/tests.yml:110-114` is byte-unchanged —
   `git diff 88b1182..11cb644 --stat` — verified-at 11cb644
 - The detector is live and non-vacuous on this tree: `features: CLEAN`, `docs: CLEAN`,
-  `examined 20 feature dir(s), 1 doc root(s), 7 reader file(s)`, exit 0; `check-state.sh` exits 0
+  `examined 20 feature dir(s), 1 doc root(s), 7 reader file(s)`, exit 0; `check-state.py` exits 0
   with zero INV-27 lines — `.claude/skills/harness/bin/layout_migration.py` run directly — verified-at 11cb644
 - Nothing in the repository asserts the `Layout gate` step exists — re-derived twice, by T-03's squad
   and by qa: the only `.py` naming the workflow is a back-pointer comment at

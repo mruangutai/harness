@@ -73,19 +73,19 @@ behavioural, not by-name, and that is a legitimate answer to "is there a checked
 `squad-appliable`, `info`, does not gate. Flagging the limitation on my own re-run rather than
 silently trusting: this is inherited, not independently re-measured by me.
 
-**4. `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` where `check-expertise.sh:44` requires
+**4. `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` where `check-expertise.py:44` requires
 `[A-Z]{1,3}`.** Confirmed byte-for-byte. Failure scenario: a distilling agent's scratch entries
 file carries a lowercase or mixed-case id (typo, or a model producing `- ab-01: ...`);
 `expertise-merge.py apply` parses it as a valid entry (`ENTRY_RE` matches), cap-counts it, and
 writes it to the actual `.harness/expertise/<agent>.md` file with exit 0 and `ADDED ab-01` on
 stdout — a clean success signal. The only thing that later catches this is a **manual** step:
-`harness-distill/SKILL.md` item 4 instructs the agent to separately run `check-expertise.sh <file>`
+`harness-distill/SKILL.md` item 4 instructs the agent to separately run `check-expertise.py <file>`
 and fix violations before returning. There is no automatic call from `expertise-merge.py` into
-`check-expertise.sh`, so a distilling agent that returns without running item 4 leaves a
+`check-expertise.py`, so a distilling agent that returns without running item 4 leaves a
 format-invalid entry live in a file injected into every future spawn of that persona. Narrowing
 `expertise-merge.py`'s regex to match would be the fix, not a regression, since it is the *merge
 tool* that is over-permissive relative to the *format contract's own checker* — the same file
-already keeps its `CAPS` dict in cross-checked agreement with `check-expertise.sh`'s (via
+already keeps its `CAPS` dict in cross-checked agreement with `check-expertise.py`'s (via
 `test-expertise-merge.py`'s case 8, per the file's own header comment) but never did the same for
 `ENTRY_RE`. `squad-appliable`, `med`, does not gate (mitigated by the manual SKILL.md step, and no
 observed instance in the shipped file).

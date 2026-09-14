@@ -45,11 +45,11 @@ review then mutated all three, individually.
 | Range gate over the `origin/main`-derived base | **exit 0**, 206 gated, zero blocking |
 | Engine against its own bar | 53 functions, zero below grade 4 |
 | Five focused FEAT-43 suites | all exit 0 |
-| `check-state.sh` | **exit 0**, zero violations |
+| `check-state.py` | **exit 0**, zero violations |
 | Goal-check | **20 of 20** — see the note below |
 
 **A methodological correction the review made against me, and it is right.** My earlier
-`check-state.sh` exit-0 reading was taken *before* the review's own run directory existed. A gate
+`check-state.py` exit-0 reading was taken *before* the review's own run directory existed. A gate
 reading taken before the run that perturbs it is not evidence about that run. The exit 0 above was
 taken after, and it is the one that counts.
 
@@ -113,5 +113,5 @@ become issues on acceptance.
 ## State of the branch
 
 Nothing shipped. No PR merged, no deploy, no issue closed, nothing distilled; the worktree stands.
-`review_sha` is `73c636dda65977faa9f9c171eedad35fed3213eb`, `check-state.sh` exits 0, the working
+`review_sha` is `73c636dda65977faa9f9c171eedad35fed3213eb`, `check-state.py` exits 0, the working
 tree is clean, and no source has moved past the pin.

@@ -12,7 +12,7 @@ recommended single apply.
 
 - `feature_schema.py:226` — the one definition (`BUILD_ENTRY_ERA_EXEMPT = {...}`).
 - `gh-sync.py:1361,1380` — reads `feature_schema.BUILD_ENTRY_ERA_EXEMPT` directly.
-- `check-state.sh:2002` — reads `_fs37.BUILD_ENTRY_ERA_EXEMPT` (imported at `check-state.sh:1987`).
+- `check-state.py:2002` — reads `_fs37.BUILD_ENTRY_ERA_EXEMPT` (imported at `check-state.py:1987`).
 - `post-merge-sweep.py:223` — reads `feature_schema.BUILD_ENTRY_ERA_EXEMPT` (imported at line 42,
   after `sys.path.insert` at line 38 — the heredoc **can** import; it already does, for this and
   three other modules, so nothing here is import-blocked).

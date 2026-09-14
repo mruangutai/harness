@@ -22,7 +22,7 @@ dispatched at either.
   status captured in a variable — verified-at e2c800f1
 - `gen-decisions-index.py --stdout | diff -q -` is silent at exit 0, so SC-06's idempotence clause is
   now true; it was FALSE at the superseded pin 59c5de97 — orchestrator run — verified-at e2c800f1
-- `check-state.sh` exits 0 from this worktree; its notes name other features, none BUG-1303 —
+- `check-state.py` exits 0 from this worktree; its notes name other features, none BUG-1303 —
   orchestrator run — verified-at e2c800f1
 - `review_sha` e2c800f1 is HEAD and the tree is clean, so the pin covers every reviewed byte —
   `git status --porcelain` empty — verified-at e2c800f1

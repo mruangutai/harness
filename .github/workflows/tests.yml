@@ -302,7 +302,7 @@ jobs:
           fi
 
           rc=0
-          out=$(bash .agents/skills/harness/bin/check-state.py 2>&1) || rc=$?
+          out=$(python3 .agents/skills/harness/bin/check-state.py 2>&1) || rc=$?
           printf '%s\n' "$out"
 
           # NOTE ROWS ARE NOT VIOLATIONS. check-state.py already decides that: it exits 0

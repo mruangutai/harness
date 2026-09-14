@@ -20,7 +20,7 @@ the range returns nothing.
 `git diff --stat ea476fd..045dcd9 -- '*.py' '*.sh' '*.yml' docs/harness/DECISIONS.md
 docs/harness/DECISIONS-INDEX.md` returns **empty** — confirmed with an extension/path filter, not by
 eyeballing the name-status list. None of `layout_migration.py`, `test-layout-migration.py`,
-`check-state.sh`, `test-check-state.py`, `.github/workflows/tests.yml`, `DECISIONS.md`,
+`check-state.py`, `test-check-state.py`, `.github/workflows/tests.yml`, `DECISIONS.md`,
 `DECISIONS-INDEX.md`, `plan.yaml`/`BRIEF.md` appear. There is nothing here for Stage 1 or Stage 2 to
 review; my `c0` review at `ea476fd` still covers every source line that exists at `045dcd9`.
 

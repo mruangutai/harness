@@ -82,6 +82,6 @@ feature is its precondition, not its substitute.
   with the plan's clauses known-stale and the criterion evidence carried by this note?
 - **Q2 (non-blocking, harness owner)** — carried from c13 and now demonstrated a fourth time: nothing
   between plan and qa cross-checks a BRIEF `evidence:` kind against its carrier's directory, nor a
-  task `verify:` path against the tree. Both were found only at goal-check. One `check-state.sh`
+  task `verify:` path against the tree. Both were found only at goal-check. One `check-state.py`
   invariant over BRIEF `evidence:` versus carrier path, plus a path-existence check on every
   `verify:` token, would close both.

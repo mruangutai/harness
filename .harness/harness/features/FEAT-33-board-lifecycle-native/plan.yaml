@@ -45,9 +45,9 @@ lanes:
     - surface: .claude/skills/harness/templates/harness.json
       lane: main-session-direct
       reason: check-domain.py --resolve returns NOBODY at 46ee87c; the scaffold template for a repository joining the fleet
-    - surface: .claude/skills/harness/bin/check-state.sh and its test file test-check-state.py
+    - surface: .claude/skills/harness/bin/check-state.py and its test file test-check-state.py
       lane: main-session-direct
-      reason: check-domain.py --resolve grants harness-backend-dev and harness-dev-ops at 46ee87c, but DEC-174 names check-state.sh in the enforcement layer, so no squad may execute a change to it and the carve-out wins
+      reason: check-domain.py --resolve grants harness-backend-dev and harness-dev-ops at 46ee87c, but DEC-174 names check-state.py in the enforcement layer, so no squad may execute a change to it and the carve-out wins
 
 decisions:
   - id: D-01
@@ -125,7 +125,7 @@ decisions:
 
   - id: D-15
     choice: The station a parent card should read is feature.json's own status resolved through the board's declared stations map, and no new vocabulary is introduced for it.
-    because: check-state.sh:494 already declares the closed set Backlog Plan Ready Building Review Done Abandoned, the feature.json schema already enforces it, and gh-sync.py's _record_status already writes it at ship and abandon - so the event-driven map is a coupling of two existing writes rather than a new concept, and the offline comparison of a recorded status against a card station needs no new derivation and no extra network read.
+    because: check-state.py:494 already declares the closed set Backlog Plan Ready Building Review Done Abandoned, the feature.json schema already enforces it, and gh-sync.py's _record_status already writes it at ship and abandon - so the event-driven map is a coupling of two existing writes rather than a new concept, and the offline comparison of a recorded status against a card station needs no new derivation and no extra network read.
     dec: DEC-192
   - id: D-16
     choice: Recording a feature's status and writing its parent card's station become ONE act inside gh-sync.py's _record_status, and a new status subcommand is the only way to record a phase status.
@@ -133,7 +133,7 @@ decisions:
     dec: DEC-174
   - id: D-17
     choice: gh_board.derive_station is left exactly as it is - it keeps returning the building station, the review station, or None - and the explicit status write is ADDED beside it rather than replacing it.
-    because: check-state.sh INV-26 grades the parent card against derive_station's return, so removing the review branch would silence INV-26's parent comparison instead of improving it. T-22 does edit check-state.sh, by main-session-direct cutover under the DEC-174 carve-out (D-24), but that edit is a bounded INV-26 widening for the done-task-with-open-sub-issue case and does not touch the parent comparison - so the file being editable here does not license this change. The derivation stops being the only path to Review; it does not stop being the expectation INV-26 reads.
+    because: check-state.py INV-26 grades the parent card against derive_station's return, so removing the review branch would silence INV-26's parent comparison instead of improving it. T-22 does edit check-state.py, by main-session-direct cutover under the DEC-174 carve-out (D-24), but that edit is a bounded INV-26 widening for the done-task-with-open-sub-issue case and does not touch the parent comparison - so the file being editable here does not license this change. The derivation stops being the only path to Review; it does not stop being the expectation INV-26 reads.
     dec: DEC-174
   - id: D-18
     choice: Ready holds a feature's TASK SUB-ISSUES and never a parent card, on every board, and the factory's claim queue is not touched.
@@ -156,8 +156,8 @@ decisions:
     because: operator ruling, 2026-08-23, recorded verbatim in notes/rulings-2026-08-23.md. A closed card is moved to the done column by the native Item closed workflow, so a sub-issue cannot hold Review while it is closed - the earlier per-commit close and the ruling that sub-issues reach Review could not both stand, and the operator chose Review. The stated cost the operator accepted - this returns to FEAT-31's close-everything-at-merge shape, so a sub-issue's Done depends on the merge again, and Review becomes reachable because it is written explicitly rather than because the close was deferred. What is no longer written per commit is only the close - the task's status is still recorded as done in plan.yaml in the same act as the commit, and the parent's derived station is still written by start-task.
     dec: DEC-138
   - id: D-24
-    choice: A task whose recorded status is done but whose sub-issue is deliberately still open is made legal in check-state.sh INV-26 by a main-session-direct cutover (T-22), and SC-10's untouched-enforcement-file list narrows from five files to four. It is NOT made legal by giving the task a status INV-26 does not map, and NOT absorbed by accepting a standing violation.
-    because: INV-26 builds _EXPECT at check-state.sh:1234 as {building, done, pending} and compares every recorded sub-issue's card against it at :1304-1318 - re-derived at 57e18ca, where _want is read at :1304, the silent skip sits at :1305-1306 and the comparison that appends the violation is the elif at :1315-1318 - so status done demands the done column. Today close-task closes the sub-issue at commit and the native workflow lands it in the done column, which is why the invariant has always agreed. Under D-23 the sub-issue is open and at building or review for the whole Review phase, so EVERY done task of EVERY feature becomes an INV-26 violation in the gate that runs at every harness door and before every commit - including this feature's own validate phase. The two alternatives are worse - a status INV-26 does not map is silently skipped, which weakens a gate by the back door, and a standing false violation trains the operator to read violations as noise. DEC-174 keeps this edit out of every squad's hands, so it is the operator's own, and it is the only edit to the enforcement layer this feature requires. RULED - the operator accepted T-22, this decision and SC-20 on 2026-08-23 as ruling 4 in notes/rulings-2026-08-23.md, and accepted with it the cost that SC-10's untouched list is four gate files rather than five. The separation the ruling made explicit is the one this decision turns on - an issue's STATE is GitHub's own open-or-closed field and a card's STATION is the board column, and INV-26's defect was reading a station off a state.
+    choice: A task whose recorded status is done but whose sub-issue is deliberately still open is made legal in check-state.py INV-26 by a main-session-direct cutover (T-22), and SC-10's untouched-enforcement-file list narrows from five files to four. It is NOT made legal by giving the task a status INV-26 does not map, and NOT absorbed by accepting a standing violation.
+    because: INV-26 builds _EXPECT at check-state.py:1234 as {building, done, pending} and compares every recorded sub-issue's card against it at :1304-1318 - re-derived at 57e18ca, where _want is read at :1304, the silent skip sits at :1305-1306 and the comparison that appends the violation is the elif at :1315-1318 - so status done demands the done column. Today close-task closes the sub-issue at commit and the native workflow lands it in the done column, which is why the invariant has always agreed. Under D-23 the sub-issue is open and at building or review for the whole Review phase, so EVERY done task of EVERY feature becomes an INV-26 violation in the gate that runs at every harness door and before every commit - including this feature's own validate phase. The two alternatives are worse - a status INV-26 does not map is silently skipped, which weakens a gate by the back door, and a standing false violation trains the operator to read violations as noise. DEC-174 keeps this edit out of every squad's hands, so it is the operator's own, and it is the only edit to the enforcement layer this feature requires. RULED - the operator accepted T-22, this decision and SC-20 on 2026-08-23 as ruling 4 in notes/rulings-2026-08-23.md, and accepted with it the cost that SC-10's untouched list is four gate files rather than five. The separation the ruling made explicit is the one this decision turns on - an issue's STATE is GitHub's own open-or-closed field and a card's STATION is the board column, and INV-26's defect was reading a station off a state.
     dec: DEC-174
   - id: D-20
     choice: The backfill derives each ticket's feature id from that ticket's OWN milestone and refuses any task ticket with no milestone rather than guessing.
@@ -284,23 +284,23 @@ tasks:
       card the operator promoted to Ready, whose meaning is documented in kaya-ai's own
       harness.json.
 
-      Do NOT touch .claude/skills/harness/bin/check-state.sh in THIS task. Re-derived at 46ee87c,
+      Do NOT touch .claude/skills/harness/bin/check-state.py in THIS task. Re-derived at 46ee87c,
       and the anchor MOVED: INV-26 builds _EXPECT at :1234 (not :1184) from stations["building"],
       stations["done"] and stations["backlog"] only, so a sixth key is inert there. The one INV-26
       change this feature needs is T-22's, it is the operator's own hand under DEC-174, and it is
       not yours.
 
-      BUT PROVE THE INERTNESS, DO NOT ASSERT IT. This task moves INV-26's accept set: check-state.sh
+      BUT PROVE THE INERTNESS, DO NOT ASSERT IT. This task moves INV-26's accept set: check-state.py
       calls gh_board.load_board(root) at :1197 - re-derived at 46ee87c, the earlier :1147 anchor
       MOVED - which calls the validator you are widening. DEC-174
       amendment 4 says a module a gate imports is not itself a gate, so this is team work - and it
       names the evidence idiom that makes that safe. Use it: run
-      `.claude/skills/harness/bin/check-state.sh` BEFORE any edit and capture the full finding list,
+      `.claude/skills/harness/bin/check-state.py` BEFORE any edit and capture the full finding list,
       run it again AFTER every edit in this task, and assert the two finding sets are IDENTICAL -
       not merely that both exit 0, because a gate that gained and lost one finding also exits 0
       twice. If any finding appears or disappears, STOP and report it: you have changed a gate's
       behaviour from a library, which is the exact thing amendment 4 permits only with this proof.
-      Put both captures in your receipt. This also discharges the check-state.sh half of SC-10.
+      Put both captures in your receipt. This also discharges the check-state.py half of SC-10.
 
       REPAIR THE FIXTURES. Every site below was re-derived at 46ee87c and declares a five-key
       station map that this change rejects. Each must gain "plan" with the value the surrounding
@@ -1132,7 +1132,7 @@ tasks:
          project's web UI enables them, so this is a HARD GATE the operator performs by hand, and
          onboarding is not finished until the audit reports them enabled.
       4. State the accepted cost the operator ruled on: this check runs ONCE, here, and not in
-         check-state.sh - check-state.sh runs at every /harness door and before every commit, so a
+         check-state.py - check-state.py runs at every /harness door and before every commit, so a
          network call there would fire dozens of times per build. Between one init run and the
          next, a workflow switched off later is invisible.
 
@@ -1182,8 +1182,8 @@ tasks:
         && printf '%s\n' "$LIVE" | tail -1 | grep -q '0 finding(s)' \
         && test "$(printf '%s\n' "$LIVE" | grep -c '^board_lifecycle: STATUS:')" = 0 \
         && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/bash-write-guard.py .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" \
-        && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION' | grep FEAT-33)" \
-        && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION')" \
+        && test -z "$(.claude/skills/harness/bin/check-state.py 2>&1 | grep '^  VIOLATION' | grep FEAT-33)" \
+        && test -z "$(.claude/skills/harness/bin/check-state.py 2>&1 | grep '^  VIOLATION')" \
         && echo OK
       # The two check-state clauses are deliberately redundant and neither is a count. Zero
       # violations is the invariant SC-10 was always after. The FEAT-33 clause is the one that
@@ -1213,17 +1213,17 @@ tasks:
       7. THIS TASK OWNS SC-10's NEGATIVE CLAUSE, which no other task instruments. SC-10 asserts
          that nothing already weakened AND that no edit reached check-domain.py,
          bash-write-guard.py, validate-digest.py or check-plan-routes.py. THE LIST IS FOUR FILES,
-         NOT FIVE: check-state.sh left it under D-24, because D-23's ruling makes INV-26 fire on
+         NOT FIVE: check-state.py left it under D-24, because D-23's ruling makes INV-26 fire on
          every done task with a deliberately-open sub-issue, and T-22 is the operator's own
          cutover that fixes it. Everything else in the enforcement layer stays untouched. A
          negative assertion nobody runs passes vacuously, so the verify above runs it: a
          `git diff --name-only <merge-base>..HEAD` over exactly those four paths must be EMPTY, and
-         `check-state.sh` must exit 0 on this checkout. If the diff is non-empty, the DEC-174
+         `check-state.py` must exit 0 on this checkout. If the diff is non-empty, the DEC-174
          carve-out was violated and this task STOPS - it does not revert someone else's work.
          SC-10's suite half is carried by every build task's `--kind all` verify (T-02 through
          T-08); do not re-run the full suite here, it takes minutes and adds nothing. T-22 is in
-         this task's depends_on because check-state.sh must already accept the open-sub-issue
-         shape, or this verify's own `check-state.sh` clause reds on this feature's own tasks.
+         this task's depends_on because check-state.py must already accept the open-sub-issue
+         shape, or this verify's own `check-state.py` clause reds on this feature's own tasks.
 
       WHAT THE GREP IS AND IS NOT. `grep -q "0 findings"` reads a report this same session writes,
       so it is satisfied by typing the string and is NOT evidence. The real gate in this verify is
@@ -1362,7 +1362,7 @@ tasks:
 
       5. THE SUBCOMMAND'S REFUSALS, each exit 2 with one line naming the offending value:
          - a Status outside the closed set Backlog, Plan, Ready, Building, Review, Done, Abandoned.
-           The set is the one check-state.sh:494 declares and the feature.json schema enforces; do
+           The set is the one check-state.py:494 declares and the feature.json schema enforces; do
            not invent a seventh value and do not accept a lower-case spelling.
          - Ready, unless plan.yaml's approval.status reads approved. THE SIGNATURE IS THE EVENT
            (operator ruling): a Ready write with an unsigned plan is a false statement about the
@@ -1373,9 +1373,9 @@ tasks:
          Done and Abandoned are accepted - they record the status - and write no station, per step 2.
 
       6. gh_board.derive_station is NOT changed (D-17). It keeps returning the building station, the
-         review station, or None, and _apply_parent_rule keeps calling it. check-state.sh INV-26
+         review station, or None, and _apply_parent_rule keeps calling it. check-state.py INV-26
          grades the parent card against that return, so removing the review branch would silence
-         INV-26's parent comparison rather than improve it. T-22 does edit check-state.sh, but that
+         INV-26's parent comparison rather than improve it. T-22 does edit check-state.py, but that
          edit is a bounded INV-26 widening for the done-task-with-open-sub-issue case and does not
          touch the parent comparison, so an editable file does not license this change. The
          derivation stops being the ONLY path to Review; it does not stop being the expectation
@@ -1545,7 +1545,7 @@ tasks:
         not become a second report of it.
       - a feature whose issues are recorded under factory.issues rather than github.issues is
         exempt: its cards live on the PRODUCT's board, not this one - the same carve-out
-        check-state.sh's INV-26 already makes for the factory lane.
+        check-state.py's INV-26 already makes for the factory lane.
 
       THIS DOES NOT DUPLICATE INV-26. INV-26 compares each TASK's plan.yaml status against that
       task's own card, and it compares the parent against gh_board.derive_station. Neither reads
@@ -1781,7 +1781,7 @@ tasks:
         it is now written explicitly, not because the close was deferred.
       - The consequence for INV-26, and the one enforcement-layer edit this feature makes: a task
         whose plan.yaml status is done now has a deliberately OPEN sub-issue standing at the
-        building or review column for the whole Review phase, while check-state.sh:1234's _EXPECT
+        building or review column for the whole Review phase, while check-state.py:1234's _EXPECT
         maps status done to the done column. Record that INV-26 was widened by the operator's own
         hand under the DEC-174 carve-out to accept that shape, and that this is the only edit to a
         gate script in this feature.
@@ -1791,10 +1791,10 @@ tasks:
         close-task runs while later tasks are still pending and nothing calls gh-sync again until
         ship. A station that is never written is the same shape as an assertion that cannot go red.
       - What did NOT change, so a future scan does not remove it: gh_board.derive_station still
-        returns the building station, the review station, or None, and check-state.sh INV-26 still
+        returns the building station, the review station, or None, and check-state.py INV-26 still
         grades the parent against it. The derivation stopped being the only path to Review; it did
         not stop being the expectation the gate reads. Removing it would silence INV-26's parent
-        comparison, and check-state.sh is untouchable under DEC-174.
+        comparison, and check-state.py is untouchable under DEC-174.
       - The ceiling, recorded as a limit rather than as a solution: the only genuinely caused writes
         available are GitHub's own workflows and a Claude Code hook; hooks are the enforcement layer
         DEC-174 forbids executing here, and a board read inside a PostToolUse Write or Edit hook
@@ -1920,16 +1920,16 @@ tasks:
     traces: [REQ-08]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-state.sh is named in DEC-174's enforcement layer, so no squad may execute a change to it whatever check-domain.py grants; this is the operator's own hand
+    execution_reason: check-state.py is named in DEC-174's enforcement layer, so no squad may execute a change to it whatever check-domain.py grants; this is the operator's own hand
     depends_on: [T-13, T-14]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      ! .claude/skills/harness/bin/check-state.sh | grep -E "INV-26 .*should read"
+      ! .claude/skills/harness/bin/check-state.py | grep -E "INV-26 .*should read"
     intent: |
-      THIS TASK IS THE OPERATOR'S OWN HAND. DEC-174 names check-state.sh in the enforcement layer
+      THIS TASK IS THE OPERATOR'S OWN HAND. DEC-174 names check-state.py in the enforcement layer
       and the harness plans changes to it but never executes them. Nothing here may be dispatched
       to a squad, and no agent may perform the edit. If you are not the operator, stop and say so.
 
@@ -1950,7 +1950,7 @@ tasks:
       the elif that appends the INV-26 station finding BY SYMBOL, never by the line numbers written
       here, and do not touch INV-28 if it is already present.
 
-      WHY IT IS UNAVOIDABLE (D-24). INV-26 builds _EXPECT at check-state.sh:1234 as
+      WHY IT IS UNAVOIDABLE (D-24). INV-26 builds _EXPECT at check-state.py:1234 as
       {"building": stations["building"], "done": stations["done"], "pending": stations["backlog"]}
       and compares every recorded sub-issue's card against it at :1304-1318 - _want at :1304, the
       silent skip at :1305-1306, the elif that appends the violation at :1315-1318, all re-derived
@@ -1971,7 +1971,7 @@ tasks:
       widening would silence the mis-columned done card the invariant was extended to catch.
 
       PROVE IT THE WAY DEC-174 amendment 4 requires (DECISIONS.md, DEC-174 amendment 4, the "where
-      the line falls for a library a gate calls" paragraph): capture check-state.sh's FULL finding
+      the line falls for a library a gate calls" paragraph): capture check-state.py's FULL finding
       list before the edit and again after, and show that the two differ ONLY by the INV-26 station
       findings this change is meant to remove. Any other finding that appears or disappears is a
       defect in the edit. Put both captures in the task's own record under this feature's notes/.

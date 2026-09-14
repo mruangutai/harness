@@ -133,5 +133,5 @@ never mentions "GraphQL budget exhausted", so the unrelated case behaves as befo
 ## No live `gh` call
 
 Every test drives `factory_gh.subprocess.run` (or the recorder helper wrapping it) — no `gh`
-binary invoked, no `check-state.sh` run, per the hard constraints. `gh_cost_log.py` /
+binary invoked, no `check-state.py` run, per the hard constraints. `gh_cost_log.py` /
 `test-gh-cost-log.py` were not created (T-03 remains untouched, as instructed).

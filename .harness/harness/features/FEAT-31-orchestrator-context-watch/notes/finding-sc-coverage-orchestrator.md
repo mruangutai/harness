@@ -15,7 +15,7 @@ Loaded `plan.yaml` at HEAD e5f88c4 with `harness_yaml.load_file` — 14 tasks, 2
 touches **14 distinct files**, enumerated in full:
 
 ```
-check-state.sh              T-10 T-14      test-context-watch.py        T-02 T-06
+check-state.py              T-10 T-14      test-context-watch.py        T-02 T-06
 context-watch.py            T-01 T-06 T-08 test-run-unit-tests-kinds.py T-12
 run-unit-tests.py           T-02 T-07 T-12 test-upgrade-config.py       T-05
 test-check-state.py         T-10 T-14      upgrade-config.py            T-05

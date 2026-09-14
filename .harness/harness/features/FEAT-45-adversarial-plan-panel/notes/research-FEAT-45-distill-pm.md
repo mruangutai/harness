@@ -44,7 +44,7 @@ versus copied *fields*; `P-16` is whether the propagating code path is *reachabl
 Repository tier (all five in free space, no displacement): `P-01` `evidence: unit` versus the script
 array that actually runs the assertions — the mislabel I only caught at goal-check; `G-11` the
 `.agents/skills` → `.claude/skills` symlink identity; `G-12` `DEVIATION` at exit 0 is the expected
-carve-out output; `G-13` the hand-written ` :: <ruling>` index tail; `G-14` a `check-state.sh` mutant
+carve-out output; `G-13` the hand-written ` :: <ruling>` index tail; `G-14` a `check-state.py` mutant
 must live in the harness bin directory.
 
 ## Rejected, with reasons
@@ -71,4 +71,4 @@ rewritten. The advisory stands as an advisory.
 
 ## Not run
 
-`check-expertise.sh` (the orchestrator validates centrally), no commit, no formatter, no suite.
+`check-expertise.py` (the orchestrator validates centrally), no commit, no formatter, no suite.

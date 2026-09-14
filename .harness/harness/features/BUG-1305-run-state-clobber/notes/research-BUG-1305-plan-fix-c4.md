@@ -7,12 +7,12 @@ shape); `check-instruction-paths.py` exits 0 over 62 files. `approval.status` is
 `status: plan`, no `panel:` key, both retired tasks still `abandoned` in place.
 
 **Every anchor written into a task was verified at source in THIS run**, reading the worktree copies
-of `check-domain.py` and `check-state.sh` at HEAD `c369fb1f` with no tracked modification, so the
+of `check-domain.py` and `check-state.py` at HEAD `c369fb1f` with no tracked modification, so the
 worktree text IS the pinned text: `if absolute_path is not None:` `:1508`; prior read and
 `prior_unreadable` refusal `:1509-1529` (`if prior_unreadable:` `:1526`, `return out` `:1529`);
 `if prior_state:` ladder `:1530`; unparseable-prior refusal head `:1542` (branch `:1539-1545`);
 Issue-1124 compare `:1567-1574`; shape phase `:1581-1582`; `ALLOWED` `:1450-1453`; Edit
-reconstruction `:1905-1923`; POST `elif target:` `:1930-1950`; `check-state.sh` `CHECKPOINT_KEYS`
+reconstruction `:1905-1923`; POST `elif target:` `:1930-1950`; `check-state.py` `CHECKPOINT_KEYS`
 `:1390-1405` and the run-directory loop `:1426`.
 
 ## Disposition by finding

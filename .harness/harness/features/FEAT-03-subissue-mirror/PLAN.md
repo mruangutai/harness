@@ -576,10 +576,10 @@ Three things this plan depends on that are **not tasks**, because no agent domai
 - change_type: logic
 - traces: REQ-07, SC-08, D-05
 - files:
-  - edit `.claude/skills/harness/bin/check-state.sh`
+  - edit `.claude/skills/harness/bin/check-state.py`
   - create `.claude/skills/harness/bin/test-check-state.py`
   - edit `.claude/skills/harness/bin/run-unit-tests.py` (add the new script to the explicit list)
-- intent: in `check-state.sh`'s embedded python block, after the INV-20 block (`:342`) and before
+- intent: in `check-state.py`'s embedded python block, after the INV-20 block (`:342`) and before
   INV-13 (`:366`), add **INV-21 at warn level** (`warn.append`, never `bad`): when `harness.json`
   `github.sync` is true (`cj` is already in scope there), then for each
   `.harness/features/*/feature.yaml` whose `github:` block has a non-empty `issues:` map and no
@@ -588,8 +588,8 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   write-only, DEC-138). `INV-21` is a free number (0 matches in the file today). Parse with the same
   regex-on-text style the file already uses; no YAML dependency. It must stay **vacuous when
   `github.sync` is false**, which is the case in this repo, so the check costs nothing here.
-  `test-check-state.py` builds temp dirs and runs `check-state.sh` with `CLAUDE_PROJECT_DIR` pointed
-  at each (the script already honours it, `check-state.sh:14`), asserting: (a) `sync: true` +
+  `test-check-state.py` builds temp dirs and runs `check-state.py` with `CLAUDE_PROJECT_DIR` pointed
+  at each (the script already honours it, `check-state.py:14`), asserting: (a) `sync: true` +
   `issues: {T-01: 41}` + no `parent` → the INV-21 note appears and the exit code is unchanged by it;
   (b) same fixture with `parent: 40` → no INV-21 note; (c) `sync: false` + issues + no parent → no
   INV-21 note. Fixtures need whatever minimal `.harness/` shape the earlier invariants require to
@@ -597,10 +597,10 @@ Three things this plan depends on that are **not tasks**, because no agent domai
 - verify:
   - `python3 .claude/skills/harness/bin/test-check-state.py` → exit 0, three cases pass.
     `observed @f929d44: exit 2` (file absent — not discriminating). Discriminating receipt:
-    `grep -c 'INV-21' .claude/skills/harness/bin/check-state.sh` is **0** today and must be ≥1 after.
+    `grep -c 'INV-21' .claude/skills/harness/bin/check-state.py` is **0** today and must be ≥1 after.
   - `.claude/skills/harness/bin/run-unit-tests.py` → exit 0 (the new script is listed, so the orphan
     check does not fire; an unlisted one would exit **2**). `observed @f929d44: exit 127`.
-  - `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh` → its output contains **no**
+  - `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.py` → its output contains **no**
     `INV-21` line in this repo (`github.sync` is false), and its **exit code is unchanged from the
     pre-change baseline**. `observed @f929d44: exit 1` — do **not** assert exit 0 here: the 1 comes
     from `FEAT-03-subissue-mirror/BRIEF.md is NOT approved` plus an orphaned run dir, both unrelated
@@ -644,7 +644,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     `observed @f929d44: exit 0` (45 patterns across 69 files) — **a baseline, not a discriminating
     receipt**: this task's contract is that the checker's status does not change.
   - `grep -c 'amendment 7' docs/harness/DECISIONS.md` → ≥1. `observed @f929d44: 0` — discriminating.
-  - `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh` → output contains no
+  - `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.py` → output contains no
     `INV-10` line, and the exit code is unchanged from the pre-change baseline.
     `observed @f929d44: exit 1, no INV-10 line` — as in T-07, do not assert exit 0.
 

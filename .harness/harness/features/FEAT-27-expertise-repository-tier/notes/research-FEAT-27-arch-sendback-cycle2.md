@@ -13,7 +13,7 @@ survive. `yaml.safe_load` loads the plan and `check-plan-routes.py` reports 0 vi
   is a directory the hook *would* read if it were created (`inject-expertise.py` already points
   `$index` at `.harness/codebase/INDEX.md`). D-01 now states N = 1 today, growing by one per
   repository, with the measured five-directory tree named.
-- `grep -i expertise .claude/skills/harness/bin/check-state.sh` returns exactly two lines, `:343`
+- `grep -i expertise .claude/skills/harness/bin/check-state.py` returns exactly two lines, `:343`
   and `:353`, both spelling `Expertise` and both INV-9 prose about the `SubagentStart` registration.
   Case-sensitive `grep expertise` returns zero. BRIEF's constraint bullet now says both; the
   conclusion (no carve-out script is edited) is unchanged.

@@ -54,7 +54,7 @@ residual is untested, by design closing the deletion half only. No reader re-lit
 PF-049c59c515c538bc41da6616176f8987 or the signed residual; PF-049 stays `open` as a deliberate
 non-action, and an info finding needs no ruling.
 
-**Two record violations found by `check-state.sh` and CLOSED here.** Both real, neither caused here.
+**Two record violations found by `check-state.py` and CLOSED here.** Both real, neither caused here.
 (1) INV-26: tasks were finished but the mirror had never run, so no issues existed. `gh-sync.py open`
 is the orchestrator's own subcommand — ran it, then re-ran `status review`, putting #1477 and #1478
 at `review`. (2) INV-32: the `goalcheck` reader was absent from `plan.yaml`'s `panel.readers`, so the
@@ -76,7 +76,7 @@ commit after a pin touches `feature.json`/`STATE.md` ONLY.
 `de97f4a2`, behind the branch point, and that diff falsely attributes three other flows' merged PRs
 (#1456, #1455, #1465) to BUG-442. True diff: 15 files, +1421/-0, one code file.
 
-**Next:** the main session's ship decision. Two expected `check-state.sh` lines remain:
+**Next:** the main session's ship decision. Two expected `check-state.py` lines remain:
 `notes/handoff-build.md` missing (known worktree defect below), and INV-29 for OTHER worktrees.
 
 Log — station transitions:
@@ -95,7 +95,7 @@ Log — station transitions:
   from a worktree. (2) `bash-write-guard.py` rejected a relative-path `rm` naming the main-checkout
   target. (3) `notes/handoff-<phase>.md` is unwritable from a worktree pre-merge. (4) Relative
   read/grep tool paths silently returned a STALE 908-line copy of `test-harness-yaml.py` from the main
-  checkout with no error, and (5) `check-state.sh` from the main checkout prints NOTHING about a
+  checkout with no error, and (5) `check-state.py` from the main checkout prints NOTHING about a
   worktree-hosted feature, reading as a pass.
 - Harness defect, non-blocking, observed by me this run. `check-domain` enforces STATE.md's 120-line
   shape gate on the Write tool, but a `python3 - <<PY` heredoc that opens the same path writes it

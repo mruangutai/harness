@@ -41,7 +41,7 @@ none executes a `cmd`:**
   `python3 "$BIN_DIR/$s"`). Nothing parsed reaches `argv`.
 - `test-run-unit-tests-kinds.py:61-66` writes a mutated `detect` into a fixture and drives
   `["bash", RUNNER, "--check-kinds"]` (line 47) — argv all literal.
-- `check-state.sh:480` parses `harness.json` and consults `test_kinds` for INV checks only; no
+- `check-state.py:480` parses `harness.json` and consults `test_kinds` for INV checks only; no
   `cmd` is executed there.
 - `upgrade-config.py:209-211` is the only script that touches `test_kinds.*.cmd` at all, and it
   formats the value into a diagnostic string. It is not even in the candidate set (it matches no
@@ -59,7 +59,7 @@ it, outside `bin/`.
 | check-domain.py | FIXED-LITERAL-ARGV | line 1478 _unmodified_since_commit runs ["git", "-C", _checkout] + _argv where _argv is one of two literal lists (1476-1477) and _checkout comes from the _sweep list built at 1417-1421 from the resolved root plus harness_boundary.linked_worktrees, both excluded provenances |
 | check-omp-port.py | FIXED-LITERAL-ARGV | line 152 runs [sys.executable, str(sync), "--root", str(root), "--check"]; sync is a literal path join off root (line 150) and root is the CLI argument. The many yaml.safe_load reads (43, 60, 116) feed assertions only, never argv |
 | check-plan-routes.py | TEXT-DERIVED-ARGV | line 74 resolve_agents runs [CHECK_DOMAIN, "--resolve", path]; path is a task files: entry, called at line 199 and line 356 over literal_entries and literals, which come from harness_yaml.load_plan(plan.yaml) at line 308 or the PLAN.md regex reader. A plan-authored string is the third argv element |
-| check-state.sh | TEXT-DERIVED-ARGV | line 1633 runs [_gh_bin30, "api", "--paginate", "repos/%s/milestones..." % _repo30]; _repo30 is harness.json github.repo, read at line 1583 from the parsed config. The other sites (470, 1117, 1405, 1749) are literal git and gh argv |
+| check-state.py | TEXT-DERIVED-ARGV | line 1633 runs [_gh_bin30, "api", "--paginate", "repos/%s/milestones..." % _repo30]; _repo30 is harness.json github.repo, read at line 1583 from the parsed config. The other sites (470, 1117, 1405, 1749) are literal git and gh argv |
 | factory_gh.py | FIXED-LITERAL-ARGV | line 153 run_gh runs [gh] + list(args); gh is _gh_binary(), the FACTORY_GH env var or the literal "gh", and args arrive as a function parameter. This file itself parses nothing off disk — its json.loads calls (170, 420, 521, 805) consume gh stdout for return values and error text, not argv |
 | factory_workspace.py | TEXT-DERIVED-ARGV | lines 103, 129 and 130 pass default_branch into git checkout and git reset --hard argv; default_branch is entry["default_branch"] read from the parsed fleet.yaml at lines 113-115 via factory_config.load_fleet and repo_entry |
 | feature-worktree.py | TEXT-DERIVED-ARGV | _run_git at line 91 runs ["git"] + args; line 125 passes default_branch to git worktree add -b and line 289 embeds it in git rev-parse <default_branch>:<rel>. default_branch is entry["default_branch"] from the parsed fleet.yaml, returned by resolve_repo at line 87 |
@@ -82,7 +82,7 @@ it, outside `bin/`.
 | test-check-expertise.py | FIXED-LITERAL-ARGV | line 55 runs [CHECK, p] where p is a fixture path this file wrote into its own tempdir, and the argv parameter at line 90 is assembled by the caller from those same constants |
 | test-check-omp-port.py | FIXED-LITERAL-ARGV | line 17 runs [sys.executable, str(CHECK), str(root)]; CHECK is a module constant and root is the fixture tree this file builds |
 | test-check-plan-routes.py | FIXED-LITERAL-ARGV | line 62 runs the checker with argv from module constants plus the fixture plan path the case created; the plan text under test is read by the CHILD, never spliced into this file's argv |
-| test-check-state.py | TEXT-DERIVED-ARGV | line 2620-2628 imports shlex, regex-matches the backticked command out of short_line (check-state.sh's own captured STDOUT) and builds argv = [sys.executable] + shlex.split(m.group(1)), which line 2655 EXECUTES. This is the argv-from-parsed-text shape, deliberately: SC-17 of an earlier feature required the printed command to be run rather than read. It is mitigated but not eliminated — argv[1] is rewritten to the real script path (line 2635) and the resolver probe at 2644-2652 refuses to run unless the resolved root is the fixture. Its other ~25 sites are literal git and SCRIPT argv |
+| test-check-state.py | TEXT-DERIVED-ARGV | line 2620-2628 imports shlex, regex-matches the backticked command out of short_line (check-state.py's own captured STDOUT) and builds argv = [sys.executable] + shlex.split(m.group(1)), which line 2655 EXECUTES. This is the argv-from-parsed-text shape, deliberately: SC-17 of an earlier feature required the printed command to be run rather than read. It is mitigated but not eliminated — argv[1] is rewritten to the real script path (line 2635) and the resolver probe at 2644-2652 refuses to run unless the resolved root is the fixture. Its other ~25 sites are literal git and SCRIPT argv |
 | test-context-watch-cli.py | FIXED-LITERAL-ARGV | line 56 _run_cli runs [sys.executable, CONTEXT_WATCH_PATH] + args; the transcript JSONL fixtures it writes (lines 50-52) are read by the child from a path, never expanded into argv |
 | test-context-watch-hook.py | FIXED-LITERAL-ARGV | line 84 fire runs [hook] with the payload JSON on stdin; hook is the constant path resolved in the fixture builder |
 | test-dispatch-guard.py | FIXED-LITERAL-ARGV | line 48 runs [GUARD] with the payload on stdin, line 302 builds the mutant path by os.path.join off this file's own tempdir, and the git fixture calls (347-358) are literal argv |
@@ -134,7 +134,7 @@ it, outside `bin/`.
 executable is always a literal or an env var, and the value is a repo slug, a branch name or a pid:
 
 - `board_lifecycle.py:1003` — `harness.json` `github.repo` into `gh label create --repo`
-- `check-state.sh:1633` — `harness.json` `github.repo` into a `gh api` path
+- `check-state.py:1633` — `harness.json` `github.repo` into a `gh api` path
 - `wayfind.py:66,83,170` — `harness.json` `github.repo` into `gh ... -R`
 - `check-plan-routes.py:74` — a `plan.yaml` `files:` path into `check-domain.py --resolve`
 - `factory_workspace.py:103,129,130` — `fleet.yaml` `default_branch` into `git checkout`/`reset`
@@ -151,7 +151,7 @@ deleted:
   (`gh-sync.py:289`) and `plan.yaml`/`PLAN.md` (`gh-sync.py:305-355`), into `gh issue create`
   argv. This is argv assembled from approval-gated prose.
 - `test-check-state.py:2620-2655` — a backticked command string regex-matched out of
-  `check-state.sh`'s stdout, `shlex.split` into argv, and executed. A test, and guarded (the
+  `check-state.py`'s stdout, `shlex.split` into argv, and executed. A test, and guarded (the
   resolver probe at 2644 refuses unless the resolved root is the fixture), but structurally the
   same move.
 

@@ -62,8 +62,8 @@ the walk cost by orders of magnitude.
   already imported pre-diff for `product_config`'s existing use). No module-level work runs at
   import time — `product_config_report`, `_check_product_configs` and the new argparse flags are
   all inside function bodies, not executed at import.
-- **check-state.sh reachability**: grepped `check-state.sh` for `check-product-configs` and
-  `check_product_configs` — zero matches. `check-state.sh` imports `factory_config` (lines 80,
+- **check-state.py reachability**: grepped `check-state.py` for `check-product-configs` and
+  `check_product_configs` — zero matches. `check-state.py` imports `factory_config` (lines 80,
   1888, 2028) only for `TERMINAL_MARKER` and `MANDATED_STATIONS`, both pre-existing module
   constants unrelated to this diff, and never calls `product_config_report`,
   `_check_product_configs`, or passes `--check-product-configs` anywhere. Confirmed by grep, not

@@ -25,7 +25,7 @@ PreToolUse/PostToolUse hooks fired via `settings.snippet.json`, i.e. mediated by
 call). The content itself is repo-tracked and reviewed at the same trust level as every other
 script already wired into those Claude hooks, so this does not create a *new* population of
 attackers — anyone who can merge malicious code to the default branch already controls
-`check-state.sh`, `merge-settings.py`, etc. — but it does mean that code now runs unconditionally,
+`check-state.py`, `merge-settings.py`, etc. — but it does mean that code now runs unconditionally,
 without even Claude's tool-permission prompt as a speed bump, for every clone with `core.hooksPath`
 set. `D-08`'s signed decision names "core.hooksPath takes over hook resolution for the WHOLE
 clone" as an accepted cost, but that clause is about *other hooks stopping*, not about this new
@@ -38,7 +38,7 @@ like it wasn't stated in those terms.
 `post-merge-sweep.py`'s heredoc passes exactly two values through the shell layer
 (`POST_MERGE_SWEEP_BIN_DIR`, `POST_MERGE_SWEEP_DRY_RUN`, both script-derived, not attacker input);
 everything downstream is Python `subprocess.run([...])` list-argv (`git worktree list`,
-`git config`, `gh-sync.py ship`, `feature-worktree.py remove`, `gh api`). `check-state.sh`'s
+`git config`, `gh-sync.py ship`, `feature-worktree.py remove`, `gh api`). `check-state.py`'s
 INV-29/INV-30 additions are the same embedded-Python-heredoc style as the rest of the file, with no
 new shell string construction. `test-hooks-install.py` uses `shell=True` (lines ~1247–1265 of the
 full diff) but only against three hardcoded constant command strings lifted verbatim from
@@ -65,7 +65,7 @@ not merely asserted.
 `.harness/harness.json` (operator config, not remote-attacker-controlled), never from a landed
 `feature.json`'s fields. `gh auth status`'s output is never printed (only `.returncode` is used).
 `INV-30`'s offline-silent posture is explicitly excepted by the dispatch (matches INV-26's
-precedent at `check-state.sh:1205`) — not re-filed.
+precedent at `check-state.py:1205`) — not re-filed.
 
 **5. Data exposure in logs/output — none new.**
 `post-merge-sweep.py` echoes `gh-sync.py ship`'s stdout/stderr verbatim into the hook's own output
@@ -98,7 +98,7 @@ VERDICT: PASS
 DIGEST:
   headline: "No exploitable defect in the named surfaces; all subprocess construction is list-argv, destructive removal is guarded and tested, gh/token handling introduces no new exposure."
   in_scope: true
-  scope_reason: "Feature adds a git post-merge hook (native code execution on merge), a worktree-deleting sweep, and two check-state.sh invariants with gh subprocess calls — a real trust-boundary surface, not process record."
+  scope_reason: "Feature adds a git post-merge hook (native code execution on merge), a worktree-deleting sweep, and two check-state.py invariants with gh subprocess calls — a real trust-boundary surface, not process record."
   severity_max: info
   findings: 1
   must_fix: []

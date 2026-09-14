@@ -157,6 +157,6 @@ against real worktrees above; `FEAT-33`/`FEAT-35` correctly resolved to `main` a
 - `.claude/skills/harness/bin/test-worktree-terminal.py` (new — T-01's own RED/GREEN suite; see
   TDD provenance note above)
 
-No other files were written. `check-state.sh` and `test-check-state.py` were read only, never
+No other files were written. `check-state.py` and `test-check-state.py` were read only, never
 edited, per the DEC-174 carve-out named in the dispatch. Tree left dirty; no `git add`, `commit`,
 `worktree remove`, or `gh` command was run.

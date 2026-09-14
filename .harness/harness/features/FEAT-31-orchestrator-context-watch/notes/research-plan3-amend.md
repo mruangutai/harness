@@ -80,11 +80,11 @@ fold makes a failed refactor indistinguishable from a failed empty-body check, a
 T-10's check is written **once**, into the single extracted site, instead of inside the loop and then
 moved.
 
-C-3 resolved **by structure**: the `for prev in SEAM_NOTES[_status]` loop (`check-state.sh:592`)
+C-3 resolved **by structure**: the `for prev in SEAM_NOTES[_status]` loop (`check-state.py:592`)
 keeps only the missing-note branch; the shape check moves out into one glob pass over
 `notes/handoff-*.md` marked `# INV-17 handoff shape pass, all stems (FEAT-31 T-14)`. One call site +
 a glob that finds seam-stem files too ⇒ **no file can be reported twice by construction**, not by a
-rule someone must remember. `SEAM_NOTES` (`check-state.sh:495`) unchanged; stems never derived (the
+rule someone must remember. `SEAM_NOTES` (`check-state.py:495`) unchanged; stems never derived (the
 comment at `:475-481`); `HANDOFF_HEADINGS` (`:509`) and the 60-line cap unchanged; failures stay
 `bad.append` VIOLATIONs. `HANDOFF_EXEMPT_LITERAL` (`:523`) and `_handoff_exempt` (`:525`) gate only
 the missing-note branch — case G asserts that.
@@ -105,7 +105,7 @@ rule. Recorded in T-10's intent as a re-assert-at-your-sha instruction, not a re
 ## C-6 applied
 
 `RE_HANDOFF` is at **`check-domain.py:665`** in this worktree (`:706` is the main checkout, a
-different branch). `SEAM_NOTES` at **`check-state.sh:495`**. T-10's stale `6f651f1` line citations
+different branch). `SEAM_NOTES` at **`check-state.py:495`**. T-10's stale `6f651f1` line citations
 (509 / 614 / 474) were rewritten symbol-first, with an explicit warning that T-14 moves the code so
 the numbers will not hold when T-10's doer arrives.
 
@@ -129,7 +129,7 @@ SC-10.
   (its output carries `DEVIATION T-12 … test-run-unit-tests-kinds.py`, a string unique to this
   feature). Advisory DEVIATIONs went 1 → 4 (T-10 at baseline; + T-12, T-14 new; T-10 retained) —
   all three are declared `main-session-direct` on granted paths, which is the intended DEC-174 shape.
-- `check-state.sh` → exit 1 with **9 violations, none for FEAT-31**; the only FEAT-31 line is the
+- `check-state.py` → exit 1 with **9 violations, none for FEAT-31**; the only FEAT-31 line is the
   expected `plan.yaml approval is pending — awaiting the user` note.
 - BRIEF diff: exactly `-2 / +4` lines, at lines 188-189 (old) → 188-191 (new). Listed below.
 

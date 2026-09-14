@@ -12,20 +12,20 @@ every `verify:` is a literal block, `check-plan-routes.py` exits 0, both `approv
 six edits, no new import surface, zero runtime risk — and the reason it was rejected: a lookup miss
 and "nothing to check here" share a code path, so divergence is invisible *by construction*.
 
-It lands in **T-06**, which gains `check-state.sh` and `test-check-state.py` in `files:`:
+It lands in **T-06**, which gains `check-state.py` and `test-check-state.py` in `files:`:
 
 - **Sub-clause 1, the fail-open dies.** T-06's intent deletes `_st26`/`_EXPECT` (circa `:1403-1405`)
   outright, builds `rec` from the `feature.json` the loop already holds, calls `project(_pdoc, rec)`
   once per feature, and **deletes** `if _want is None: continue`. An unplaced task id and a
   `FleetError` out of `project` are both violation lines naming feature, task id and value.
 - **Sub-clause 2, DEC-174 re-checked.** T-06 stays `main-session-direct`; `execution_reason` now
-  names `check-state.sh` as the gate script. `check-plan-routes.py` reports T-06's DEVIATION over
+  names `check-state.py` as the gate script. `check-plan-routes.py` reports T-06's DEVIATION over
   the `.claude/skills/harness/bin/**` surface, exit 0 — the lane is correct.
-- **A measurement that strengthens D-11:** `check-state.sh` *already* imports `gh_board`, and an
+- **A measurement that strengthens D-11:** `check-state.py` *already* imports `gh_board`, and an
   import failure is *already* a loud violation at circa `:1337-1349`. The new failure mode the lead
   accepted is already paid for.
 - **The window is closed without softening D-11.** T-04 renames `pending` out from under
-  `_EXPECT`, so T-04 gains `check-state.sh` and repoints the six literals — including the
+  `_EXPECT`, so T-04 gains `check-state.py` and repoints the six literals — including the
   **inverting** guard at circa `:1440` — as *not breaking a gate it renames*, explicitly not as the
   fix. T-06 then deletes the map. No ordering leaves INV-26 blind.
 
@@ -41,7 +41,7 @@ It lands in **T-06**, which gains `check-state.sh` and `test-check-state.py` in 
 - **F-09d** `STATUS_ORDER` is **defined at :513**, used at :604 (and :548). Both change.
 - **F-03** deletable unit is **1655-1691** exactly: 1692 blank, 1693 begins the results loop.
 - **F-06 count corrected.** The reader's 31 was match-count. Line-count at ee66ae2 is **26 across
-  5 files** (`check-state.sh` 13, `gh-sync.py` 7, `board_lifecycle.py` 3, `check-plan-routes.py` 3,
+  5 files** (`check-state.py` 13, `gh-sync.py` 7, `board_lifecycle.py` 3, `check-plan-routes.py` 3,
   `worktree_terminal.py` 1). Three are stale comments; T-04 now owns two of them so SC-02 can
   reach zero without excusing comments.
 - **F-05 count corrected.** Ten today; **four** survive, not one — `board-station.py:153`,
@@ -96,10 +96,10 @@ Every task's line references were extracted and cross-checked against the file�
 - **One residual, fixed in place: T-07.** It cites `_STATUS_TO_STATION_KEY at :445-448` for
   *deletion* in `board_lifecycle.py`, which T-02 edits at `:438` — seven lines above — and T-02 is
   an ordered predecessor. T-07 also carries `check-plan-routes.py:418/605-618/711` beneath T-04's
-  deletion of `LEGAL_TASK_STATUSES` (line 415) and `check-state.sh:1577` beneath T-06's deletion of
+  deletion of `LEGAL_TASK_STATUSES` (line 415) and `check-state.py:1577` beneath T-06's deletion of
   `_st26`/`_EXPECT`. All of these name their identifier, so they are navigation, not addresses —
   one paragraph added to T-07 saying so and instructing re-derivation.
-- **Checked and clean:** T-02 (`check-state.sh circa 1403`) and T-04 (`circa 1403-1405`) have no
+- **Checked and clean:** T-02 (`check-state.py circa 1403`) and T-04 (`circa 1403-1405`) have no
   ordering between them but touch **disjoint identifiers** (`_st26` vs `_EXPECT` keys, defaults,
   the `not any(...)` guard), and both use `circa` plus the identifier. Either order works; no edge
   added. T-09's `check-domain.py:1004-1022` has **no predecessor** touching that file and already

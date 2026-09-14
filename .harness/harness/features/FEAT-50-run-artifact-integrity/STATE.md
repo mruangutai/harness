@@ -34,7 +34,7 @@ so all seven are copied together: `STATE.md`, `feature.json`, `plan.yaml`, `note
 `observations/harness-orchestrator.md`. Only the two lines above actually change. The commands are
 in `notes/handoff-ship.md` and in the briefing's *Terminal state* section.
 
-Until they land, `check-state.sh` exits 1 with two FEAT-50 rows — INV-33 (stale `review_sha`,
+Until they land, `check-state.py` exits 1 with two FEAT-50 rows — INV-33 (stale `review_sha`,
 because FEAT-41's migration edited `plan.yaml` after the pin) and INV-26 (plan derives `review`,
 board reads `done`). Both close on the station write; neither is a defect in delivered code.
 

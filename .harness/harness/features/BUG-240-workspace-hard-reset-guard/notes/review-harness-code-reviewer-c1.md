@@ -186,7 +186,7 @@ non-gating per the batch context, not a new item).
   them, so the direct test run below reflects the pinned code).
 - `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-workspace.py` → `39/39 checks
   passed`, exit 0; case 8 present and `ok` (not `skip`).
-- `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` →
+- `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` →
   every suite line `PASS`/`N/N`, no `FAIL` anywhere, `test-factory-workspace.py` reported
   `39/39 checks passed` in the aggregate run too.
 - `python3 .claude/skills/harness/bin/code-grade.py --base 6d969ed3... --head bae47f3c...` (table

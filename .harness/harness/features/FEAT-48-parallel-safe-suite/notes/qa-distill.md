@@ -3,7 +3,7 @@
 BLUF: 5 entries applied — 3 craft displacements (P-06, G-06, G-09), 2 repository additions
 (G-07, G-08). All three relayed candidates accepted after independent judgment; two self-derived
 repository facts added from the ship briefing (B-9, and the `bugfix.when` placeholder observed
-across qa-c7/c8/c9). Both files pass `check-expertise.sh` (`OK`).
+across qa-c7/c8/c9). Both files pass `check-expertise.py` (`OK`).
 
 ## Source material read
 

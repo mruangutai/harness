@@ -104,7 +104,7 @@ plan.yaml (T-03 at 491), .claude/skills/harness/bin/harness_boundary.py,
   features are graded against the OWNER checkout root. (a) `handoff_done_when.problems()` receives
   the owner root while the note's prefix comes from its own worktree-relative path
   (handoff_done_when.py:11,51-54) and an absolute pointer is refused as "is absolute" (:69-70), so
-  there is NO legal spelling and no handoff note can be written at all. (b) `check-state.sh` globs
+  there is NO legal spelling and no handoff note can be written at all. (b) `check-state.py` globs
   the owner checkout's `.harness/*/features/*` (:118-120), so a full run from inside this worktree
   cannot grade this feature. (c) observed this cycle: `gh-sync.py` must be invoked from the WORKTREE
   for `status` and from the MAIN checkout for `ship`, so two subcommands disagree about the root.

@@ -9,8 +9,8 @@ working tree already sits exactly at the pinned SHA, and
 `git diff 6296149 --name-only -- <every file Read below>` returns empty. All Read/
 grep results in this artifact are valid for the pinned SHA, not a stale checkout.
 
-## 1. `check-state.sh` INV-27 cause-table restructure (:1298-1319)
-Diff confirmed via `git diff a714bd0..6296149 -- .../check-state.sh`: table values
+## 1. `check-state.py` INV-27 cause-table restructure (:1298-1319)
+Diff confirmed via `git diff a714bd0..6296149 -- .../check-state.py`: table values
 became a mix of plain strings and lambdas; `blame()` is now computed once (:1318) and
 appended to every cause's text (:1319), replacing the old per-lambda `+ blame(...)`
 inlining for only `unreadable`/`neither`.
@@ -26,7 +26,7 @@ inlining for only `unreadable`/`neither`.
   filesystem-derived**: whoever creates a directory under `.harness/` in the working
   tree names that segment, and it flows unescaped into the printed finding. Not new —
   `render()` (`layout_migration.py:315-317`) has done the identical join since before
-  a714bd0, and the check-state.sh side of this specific lambda is byte-identical
+  a714bd0, and the check-state.py side of this specific lambda is byte-identical
   across a714bd0→6296149. Recording per P-12 rather than dropping: whoever can create
   that directory already has write access to the repo tree (P-02, no privilege
   gained), and the string is displayed as plain CLI text, never eval'd or

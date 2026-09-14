@@ -14,7 +14,7 @@ measurements, not by judgement:
    the same commit, mirroring FEAT-21's signed wildcard shape (`.harness/*/features/**` →
    `.harness/*/docs/**`). FEAT-21's ship review B-16 is the recorded cost of shipping a path without
    its grant.
-2. **A DEC-174 file IS touched, and so is a signed decision's ruling text.** `check-state.sh:676`
+2. **A DEC-174 file IS touched, and so is a signed decision's ruling text.** `check-state.py:676`
    and `check-domain.py:953` each carry one diagnostic string naming `docs/harness/DECISIONS.md`,
    and **DEC-189's ruling enumerates `docs/harness/**` as one of the four named control-plane
    paths** — the move falsifies that sentence.
@@ -95,7 +95,7 @@ semantics:
 **(d) instruction-side literals — take the new path**
 - `CLAUDE.md` (resolve: NOBODY), `.claude/skills/harness-principles/SKILL.md` (NOBODY),
   `.claude/skills/harness/templates/plan.yaml:44` (NOBODY), `check-plan-routes.py:44` (a comment),
-  `check-domain.py:953` + `check-state.sh:676` (diagnostic prose, both DEC-174).
+  `check-domain.py:953` + `check-state.py:676` (diagnostic prose, both DEC-174).
 
 ## The coupled cluster, re-verified
 
@@ -148,7 +148,7 @@ CLAUDE.md                                                         -> NOBODY
 .harness/expertise/harness-documentor.md                          -> harness-documentor
 ```
 
-**DEC-174, plainly: YES, two files are touched** — `check-state.sh:676` and `check-domain.py:953`,
+**DEC-174, plainly: YES, two files are touched** — `check-state.py:676` and `check-domain.py:953`,
 one diagnostic prose line each. Neither is a path resolution; both are user-facing staleness.
 Folding them costs nothing extra, because four other surfaces (`team-config.yaml`, `CLAUDE.md`,
 `harness-principles/SKILL.md`, `templates/plan.yaml`) already resolve NOBODY and force a
@@ -378,7 +378,7 @@ wording. Tokens below are verbatim, at post-edit line numbers:
 
 Each item's factual claim was re-derived at source rather than trusted (P-15):
 
-- `CLAUDE.md` is **75** lines; `check-state.sh:674` warns above **80**. Five lines of headroom, as stated.
+- `CLAUDE.md` is **75** lines; `check-state.py:674` warns above **80**. Five lines of headroom, as stated.
 - The deny-message advertise filter is a comprehension over `applicable_globs` calling
   `is_control_plane_glob(g)` and iterating `HARNESS_CONTROL_PLANE` on the same expression
   (`harness_boundary.py:339-343`). D-02 and T-08 describe it correctly.
@@ -455,7 +455,7 @@ Run against the tree at `0f12f14` before any migration:
   output — T-05's `grep -qi 'harness/docs'` assertions can fire at all.
 - Those greps return **zero hits in both suites pre-migration**, so they cannot pass by accident.
   The existing labels carry `docs/harness/**`, which does not contain `harness/docs`.
-- `--stdout` (`gen-decisions-index.py:391-397`), `check-expertise.sh` and `check-domain.py --resolve`
+- `--stdout` (`gen-decisions-index.py:391-397`), `check-expertise.py` and `check-domain.py --resolve`
   all exist; no verify names a flag that is not there.
 - T-09's `grep -q ... && { exit 1; }` at `:868` was tested under `bash -e`: an unmatched grep in an
   AND-list does **not** exit the shell, empirically. Not the G-14 shape. No fix needed.

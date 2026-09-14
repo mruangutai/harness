@@ -10,7 +10,7 @@ criterion change, never code. `SC-08` is **met**: it is `verify: automated`, not
 dispatch premise that said otherwise does not survive the artifact.
 
 Every automated verdict below rests on my own sole-runner run of `--kind integration` at this pin:
-**exit 0**, wall clock **229s** (`3:49.12`), `ps`-verified clean before start. `check-state.sh`:
+**exit 0**, wall clock **229s** (`3:49.12`), `ps`-verified clean before start. `check-state.py`:
 **exit 0**, zero `VIOLATION` lines, zero `INV-29`/`INV-30` findings.
 
 ---
@@ -36,7 +36,7 @@ Both panel readings re-derived at the pin against the test source, not inherited
 **So a signed requirement has no criterion that can falsify it.** SC-01 grades command text on a
 fixture where the bug is invisible; SC-05 uses the fixture where the bug is live but grades only
 firing. No third criterion touches the command. The four defect links re-derived independently at
-the pin — `worktree_terminal.py:248-251,271-275`, `check-state.sh:1320-1329`,
+the pin — `worktree_terminal.py:248-251,271-275`, `check-state.py:1320-1329`,
 `feature-worktree.py:56-59,207-214`, `post-merge-sweep.py:150` — all hold as stated.
 
 ### Paste-ready: the criterion that closes it
@@ -119,7 +119,7 @@ path. **Do not route code for this.**
   `feature.json` is not readable on the default branch at hook-fire time; and the separate
   `git commit` that completes the squash does **not** re-fire `post-merge`. `REQ-07` is therefore
   unmet on the squash path, forced by git's hook semantics rather than chosen. What carries it:
-  `INV-29` refuses at the next `check-state.sh` run — the same mechanism the brief already relies on
+  `INV-29` refuses at the next `check-state.py` run — the same mechanism the brief already relies on
   for every missed removal. The practical path after a PR merge is `git pull`, a fast-forward, and it
   is proven in full.
 ```
@@ -203,7 +203,7 @@ block below carries it under `amendments-signed: Amendment 2`.
 
 ## REQ coverage
 
-`REQ-01`, `REQ-03`..`REQ-06` → `worktree_terminal.py` + `check-state.sh` INV-29 (T-01/T-02/T-06/T-07).
+`REQ-01`, `REQ-03`..`REQ-06` → `worktree_terminal.py` + `check-state.py` INV-29 (T-01/T-02/T-06/T-07).
 `REQ-07`..`REQ-08`, `REQ-11` → `post-merge-sweep.py` (T-03/T-04). `REQ-09`, `REQ-13` →
 `hooks/post-merge` + `harness-init/SKILL.md` (T-11/T-12/T-13). `REQ-10` → `harness-handoff/SKILL.md:82`
 + `harness/SKILL.md:434-437` (T-10). `REQ-12` → INV-30 (T-08/T-09).

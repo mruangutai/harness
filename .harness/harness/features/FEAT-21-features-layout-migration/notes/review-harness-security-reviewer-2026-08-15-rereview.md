@@ -13,15 +13,15 @@ granted lane, and the range introduces no new exposure.
 
 **Confirmed NOT reintroduced, with execution evidence, not a read-and-conclude.**
 
-- `plan_docs` keys (`check-state.sh:82` derivation) are `os.path.basename(os.path.dirname(p))` —
-  bare. The INV-26 loop's `_feat` (`check-state.sh:1161`) is `os.path.basename(_fp)` — also bare,
+- `plan_docs` keys (`check-state.py:82` derivation) are `os.path.basename(os.path.dirname(p))` —
+  bare. The INV-26 loop's `_feat` (`check-state.py:1161`) is `os.path.basename(_fp)` — also bare,
   same shape. Both glob at the same depth (`.harness/*/features/*`).
 - Measured live (not argued): a Python probe replicating the exact `plan_docs` and INV-26
   glob logic against this repo's real `.harness/` tree shows 12 of 21 feature dirs have
   `plan.yaml` and all 12 keys land in `plan_docs` — the 9 "misses" are legacy features that
   use `PLAN.md`, not `plan.yaml` (verified: `FEAT-01`, `FEAT-02`, `FEAT-03-subissue-mirror`
   each contain `PLAN.md`, no `plan.yaml`), i.e. correctly-skipped, not silently dropped.
-- Ran `check-state.sh` live end-to-end (`gh auth status` confirmed authenticated, `github.sync:
+- Ran `check-state.py` live end-to-end (`gh auth status` confirmed authenticated, `github.sync:
   true`, `repo: mruangutai/harness` in `harness.json`) — exit 0. A standalone instrumented
   replay of the INV-26 body (same imports: `gh_board`, same live board load, same
   `_gh_bin`/auth check) confirms the board loaded with 324 stations, `_gh_ok=True`, and the
@@ -165,7 +165,7 @@ the indistinguishability itself is a standing property of D-01's wildcard, not n
 
 | # | Finding | Severity | Blocks ship? |
 |---|---|---|---|
-| 1 | `fpath()`'s `?` fallback (`check-state.sh:59`) is unreachable dead code under the current single-repo-segment tree; would print a visible non-path placeholder, not a misleading wrong path, if a future divergence ever reached it | info | advisory only |
+| 1 | `fpath()`'s `?` fallback (`check-state.py:59`) is unreachable dead code under the current single-repo-segment tree; would print a visible non-path placeholder, not a misleading wrong path, if a future divergence ever reached it | info | advisory only |
 | 2 | D-01's wildcard grant makes orchestrator vs. named-agent authorship of `notes/**` files indistinguishable from git history alone (pre-existing, not worsened) | info | advisory only |
 
 No must-fix. Authorization surface, fail-open closure, close-out lane discipline, and the

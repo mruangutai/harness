@@ -21,7 +21,7 @@ note at notes/handoff-plan.md (seq-2, re-verified at 6bbd706).
   reduced — that reversal is the whole of FEAT-28.
 - BLOCKING, for the owner: DEC-174's width is stated two ways that disagree about this file.
   DECISIONS.md @4627 enumerates four enforcement-layer files (check-domain.py,
-  bash-write-guard.py, validate-digest.py, check-state.sh), excluding check-plan-routes.py;
+  bash-write-guard.py, validate-digest.py, check-state.py), excluding check-plan-routes.py;
   DECISIONS-INDEX.md states the CATEGORY "its own hooks, validators or gate scripts", which
   would include it. DEC-183 made check-plan-routes.py a CI gate AFTER DEC-174 was written, so
   the enumeration predates the fact. FEAT-28 edits the gate's TEST, not the gate. If the broad

@@ -54,7 +54,7 @@ substring check on the joined text) so a future regression is actually caught.
   `test-gh-sync.py` at HEAD — `ALL PASSED`.
 - T-04 `cmd_closes`: all four required cases present and green, including the no-gh-call
   assertion against the fake gh's own log (not just exit code) and the out-of-order assertion.
-- T-05 INV-28 (`check-state.sh`): all six required labels present and green
+- T-05 INV-28 (`check-state.py`): all six required labels present and green
   (`test-check-state.py`), warn-level, gated on `github.sync`, bool exclusion present in the shell
   (`isinstance(_pr, int) and not isinstance(_pr, bool)`).
 - T-06 backfill: re-ran the task's own 23-entry verify block against the eleven touched
@@ -97,7 +97,7 @@ substring check on the joined text) so a future regression is actually caught.
    future reordering. Severity: low — code verified correct by inspection, gap is coverage only,
    on a clause the plan explicitly called out by name.
 
-3. `check-state.sh`'s INV-28 status comparison, `str(pdoc.get("status", "")).split()[:1] !=
+3. `check-state.py`'s INV-28 status comparison, `str(pdoc.get("status", "")).split()[:1] !=
    ["Done"]`, is a first-whitespace-token match rather than the "exact string `Done`" the
    comment two lines above it claims. It doesn't misfire on any realistic status value (all seven
    enum values are single tokens), so this is a style note, not a finding with a failure

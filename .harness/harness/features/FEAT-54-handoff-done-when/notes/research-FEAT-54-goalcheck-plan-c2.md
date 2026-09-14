@@ -91,7 +91,7 @@ T-08/10 · REQ-10 T-09/12. One clause of REQ-09 is not covered by any task — s
 | SC-01 | a 4-heading fixture write exits 0, or the refusal text omits `## Done when`/the template |
 | SC-02 | any of the five malformed fixtures exits 0, or a message omits the count |
 | SC-03 | an unresolvable pointer of any one type exits 0 (asserted per type, so 3-of-4 cannot hide) |
-| SC-04 | `check-state.sh` over the repo prints a line mentioning "Done when" |
+| SC-04 | `check-state.py` over the repo prints a line mentioning "Done when" |
 | SC-05 | the 61-line note is allowed, or the 60-line note is refused |
 | SC-06 | an edit that does not add the section is allowed |
 | SC-07 | a second `## Done when` body parser or a second pointer-target read is found in either gate at `review_sha` |
@@ -138,11 +138,11 @@ carries **0** `FEAT-52` occurrences; see F-05.
 
 | Anchor as the plan cites it | Read at | Result |
 |---|---|---|
-| `check-state.sh:1059` `HANDOFF_HEADINGS = ["## next","## trust","## dead ends","## working set"]` | `check-state.sh:1059` | **unmoved**, text exact |
-| `check-state.sh:1199` computes `miss` | `check-state.sh:1199` (`miss = [h for h in HANDOFF_HEADINGS if h not in hl]`) | **unmoved** |
-| `check-state.sh:1219` selects non-empty-body headings | `check-state.sh:1219` (`if _l not in HANDOFF_HEADINGS:`) | **unmoved** |
-| INV-17 handoff glob | `check-state.sh:1197` (`glob(... "notes","handoff-*.md")`) | present |
-| 60-line cap / `_handoff_exempt` / parsed config `cj` | `check-state.sh:1228`,`:1231`; `:1075`; `:980-986` | all present |
+| `check-state.py:1059` `HANDOFF_HEADINGS = ["## next","## trust","## dead ends","## working set"]` | `check-state.py:1059` | **unmoved**, text exact |
+| `check-state.py:1199` computes `miss` | `check-state.py:1199` (`miss = [h for h in HANDOFF_HEADINGS if h not in hl]`) | **unmoved** |
+| `check-state.py:1219` selects non-empty-body headings | `check-state.py:1219` (`if _l not in HANDOFF_HEADINGS:`) | **unmoved** |
+| INV-17 handoff glob | `check-state.py:1197` (`glob(... "notes","handoff-*.md")`) | present |
+| 60-line cap / `_handoff_exempt` / parsed config `cj` | `check-state.py:1228`,`:1231`; `:1075`; `:980-986` | all present |
 | `check-domain.py` `RE_HANDOFF` branch of `shape_problems`, at the `"handoff shape (DEC-159)"` head | `check-domain.py:1511` (branch), `:1527` (`_head("handoff shape (DEC-159).")`) | present, exact string |
 | `run-unit-tests.py` KINDCHECK heredoc, "spanned :111-163 when this task was written" | `run-unit-tests.py:111` (`python3 -I - <<'KINDCHECK'`) and `:163` (`KINDCHECK`) | **unmoved** — the plan's own advice to locate by delimiter still holds |
 | `code_grade.py:468-471` defaults `exclude` to none (panel finding PF-9183) | `code_grade.py:469` (`for pattern in _patterns(kind.get("exclude", ""))`) | inside the cited span; claim true — all 8 kinds at HEAD carry `exclude` |
@@ -176,7 +176,7 @@ No moved anchor.
    at `check-domain.py:1512-1513` — "the handoff note is working memory for a successor — four fixed
    / sections" — is instructed by no task. SC-08 will not catch it: its scope is
    "`check-domain.py`'s required-section list", not its comments. Repair is one clause in T-04's
-   intent. (Same class, lower stakes, at `check-state.sh:1188` and `:1201-1204`; those are dated
+   intent. (Same class, lower stakes, at `check-state.py:1188` and `:1201-1204`; those are dated
    FEAT-31 measurement/rationale comments, not statements of the live contract, and rule 15 argues
    for leaving the record alone — I do **not** raise them.)
 4. **F-04 — advisory — T-04 double-reports a missing section at the write gate.** T-04 adds

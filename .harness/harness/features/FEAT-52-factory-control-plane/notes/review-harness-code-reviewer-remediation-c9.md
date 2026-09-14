@@ -122,7 +122,7 @@ window, etc.) because the test only checks the count line, not the lines that fo
 
 ## Not re-raised (already covered above or out of scope per dispatch)
 
-`check-state.sh` VIOLATION lines, `team-config.yaml` DEVIATION sub-cases, `STATE.md`'s stale status,
+`check-state.py` VIOLATION lines, `team-config.yaml` DEVIATION sub-cases, `STATE.md`'s stale status,
 the untracked feature directory — impl-c9's own ruled-out list, unaffected by these commits. SC-04,
 SC-05, SC-07, SC-09, SC-10 (literal text), SC-11, SC-14, SC-15 were MET at impl-c9 and nothing in the
 remediation diff touches their mechanisms; re-verified unchanged by `git diff` scope on each cited

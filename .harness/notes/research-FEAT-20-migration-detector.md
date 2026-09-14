@@ -26,7 +26,7 @@ Coupled readers, and the literal each is written in at `88b1182`:
 | `check-domain.py` SWEEP_GLOBS | `.harness/features/*/feature.json` and three siblings | `:597-600` |
 | `check-domain.py` shape regexes | `^\.harness/features/[^/]+/…` (four) | `:663-666` |
 | `check-plan-routes.py` discovery | `os.path.join(root, ".harness", "features")` | `:539` |
-| `check-state.sh` discovery globs | `glob(join(H, "features", "*", …))`, 15 sites at this sha | throughout |
+| `check-state.py` discovery globs | `glob(join(H, "features", "*", …))`, 15 sites at this sha | throughout |
 
 The count 15 is recorded as an observation only. The dispatch said 13 and map #336 said 14; the
 number drifts, which is exactly why the check must assert FORMS PRESENT PER FILE and never counts.
@@ -69,14 +69,14 @@ is the shape that makes a check pass forever.
 
 ## Applicability — the finding that changed the design late
 
-Every coupled reader is a harness control-plane file. `check-state.sh` also runs at session entry in
+Every coupled reader is a harness control-plane file. `check-state.py` also runs at session entry in
 onboarded product repositories, and `test-check-state.py`'s fixtures are bare `.harness/` skeletons
 built under `tempfile.TemporaryDirectory` — a shared `make_fixture` helper at `:40` plus many cases
 calling `os.makedirs` directly. Neither holds a single reader file. Judged by the cannot-verify rule
 alone, INV-27 would exit 2 on a healthy product repo and break every existing check-state case the
 moment it landed.
 
-Hence the positive control: `.claude/skills/harness/bin/check-state.sh` present at the scanned root
+Hence the positive control: `.claude/skills/harness/bin/check-state.py` present at the scanned root
 means the tree is a harness control-plane checkout and is judged; absent means NOT APPLICABLE, zero
 counts, exit 0. Inside harness the marker is present by construction. The CI step's zero-count
 assertion is the only thing standing between that branch and a silent pass, which is why it is a
@@ -85,7 +85,7 @@ criterion and not a comment.
 ## Lane precedent
 
 FEAT-18's `plan.yaml` lane rows: `gh_board.py` resolved to `harness-backend-dev` and
-`harness-dev-ops`, and was still `main-session-direct` because `check-state.sh` imports it and an
+`harness-dev-ops`, and was still `main-session-direct` because `check-state.py` imports it and an
 invariant computes its verdict from its return value — a DEC-174 carve-out BY CONTENT, on
 FEAT-17's `harness_boundary.py` precedent. This feature's module is the same shape.
 

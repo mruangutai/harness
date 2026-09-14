@@ -45,8 +45,8 @@ defect.
 
 | kind | required? | runner (`cmd`) | command | exit | verdict |
 |---|---|---|---|---|---|
-| `unit` | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | `0` (36 files) | **satisfied** |
-| `integration` | not mechanically required by matrix for `logic`; added by qa, warranted by the diff | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | `0` (70 files) | **satisfied** — every new automated SC (§3) binds here |
+| `unit` | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` | `0` (36 files) | **satisfied** |
+| `integration` | not mechanically required by matrix for `logic`; added by qa, warranted by the diff | active | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` | `0` (70 files) | **satisfied** — every new automated SC (§3) binds here |
 | `functional` | no | excluded, DEC-187 | — | — | not applicable |
 | `eval` | no | excluded, DEC-187 | — | — | not applicable |
 | `component`, `ui`, `typecheck` | no | `cmd: null`, unresolved | — | — | not applicable — no `.ts`/`.tsx`/`e2e/**` file in the diff |

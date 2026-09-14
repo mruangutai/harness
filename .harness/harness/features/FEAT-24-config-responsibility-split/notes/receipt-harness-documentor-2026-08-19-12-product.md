@@ -48,7 +48,7 @@ repository-layer and are reported here rather than written:
 ## Gates
 
 ```
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-documentor.md
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-documentor.md
 OK   .harness/expertise/harness-documentor.md
 exit=0
 ```

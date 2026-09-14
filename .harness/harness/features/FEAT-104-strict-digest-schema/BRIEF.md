@@ -126,7 +126,7 @@ evidence a dying orchestrator must not lose. Historical run artifacts stay reada
   worktree even though the default does not.
   verify: inspection
 - SC-13: The operator reads the diff of the four carve-out files (`validate-digest.py`,
-  `check-domain.py`, `check-state.sh` and their tests) and confirms it changes nothing beyond the
+  `check-domain.py`, `check-state.py` and their tests) and confirms it changes nothing beyond the
   declared contract — DEC-174 requires a human to read this diff, and no automated gate substitutes.
   verify: uat
 - SC-15: Creating a run `state.yaml` that declares `schema_version: 1`, that omits it, or that
@@ -171,7 +171,7 @@ An operator can treat this feature as done only when all of the following are tr
 
 ## Constraints
 
-- **DEC-174 (blocks):** `validate-digest.py`, `check-domain.py`, `check-state.sh` and each gate's own
+- **DEC-174 (blocks):** `validate-digest.py`, `check-domain.py`, `check-state.py` and each gate's own
   tests are never executed-against by a harness run. Every task touching them is a declared
   `main-session-direct` step.
 - **DEC-179 (supplies):** routing for every literal `files:` path is resolved at plan time by

@@ -15,7 +15,7 @@ mutation-tested RED with no vacuity and no crash-not-caught; both suite invocati
 | T-04 | docs | harness-plan.md | prose bullet edit | agree |
 | T-05 | config | templates/plan.yaml, harness-spec-driven/SKILL.md | template keys + <=16-line prose subsection, no logic | agree |
 | T-06 | config | .omp/…validator-lead.md, .claude/…(generated) | `spawns:` list entry (data) + prose section, no logic | agree |
-| T-07 | logic | check-state.sh | new INV-32 python-heredoc pass, real branching | agree |
+| T-07 | logic | check-state.py | new INV-32 python-heredoc pass, real branching | agree |
 | T-08 | logic | test-check-state.py | 9 new test cases incl. mutation proof | agree |
 | T-09 | logic | panel_findings.py, its test, run-unit-tests.py | new hashing module + CLI | agree |
 | T-10 | logic | test-plan-panel.py, run-unit-tests.py | new wiring-assertion test | agree |
@@ -54,11 +54,11 @@ No discovery shrinkage; no KIND-DRIFT failure (would have exited 2 before any sc
 ## 4. Test-first audit (`git log --oneline 1d3e5db..HEAD -- <file>`)
 
 All four files land in a single squashed commit alongside their production code
-(`test-check-state.py`+`check-state.sh` in `7ee3f65`; `test-panel-findings.py`+
+(`test-check-state.py`+`check-state.py` in `7ee3f65`; `test-panel-findings.py`+
 `panel_findings.py` in `5178bb1`; `test-plan-panel.py`+`test-harness-yaml-corpus.py` in
 `fc42462`), so **git history alone cannot order test vs. code within a commit — same-commit,
 cannot-determine from git for all four.** Two mitigations narrow this:
-- T-08/T-07 (`check-state.sh`): the failing-first obligation (SC-04, SC-17) is discharged
+- T-08/T-07 (`check-state.py`): the failing-first obligation (SC-04, SC-17) is discharged
   structurally, not by commit order — the marker-anchored `inv32-red` mutation inside
   `test-check-state.py` itself proves the assertion reddens against a mutant lacking INV-32
   (verified below, §5).
@@ -102,7 +102,7 @@ resolves the scope step's one real (non-empty) output plus the goal-check note p
 real resolutions, not an empty walk); case (8) discovery confirmed the real `fable-advisor`
 entries exist in both places before mutating either away.
 
-`check-state.sh`'s own D-13 mutant (`inv32-red`, read at
+`check-state.py`'s own D-13 mutant (`inv32-red`, read at
 `test-check-state.py:3017-3047`) was independently read, not re-executed by me: it brackets
 by the exact marker comments T-07 requires, writes the mutant beside the original (never in
 a fixture tmpdir, avoiding the import-death trap the file's own docstring records), asserts
@@ -114,7 +114,7 @@ invocations above.
 
 All `verify: automated` SCs (01–08, 13–15, 17) have a locatable assertion:
 - SC-01→`test-plan-panel.py` cases 1a/1b/1c · SC-02→case 2 · SC-03→case 3 ·
-  SC-04→`check-state.sh` INV-32 check 1 + `test-check-state.py` no-panel/inv32-red ·
+  SC-04→`check-state.py` INV-32 check 1 + `test-check-state.py` no-panel/inv32-red ·
   SC-05→`test-check-state.py` ruling-unattributed · SC-06→case 5 · SC-07→INV-32 check 1 ·
   SC-08→`run-unit-tests.py`'s own drift detector (general mechanism, exits 2 before any
   script if a `test-*.py` is unregistered — not feature-specific but load-bearing) ·

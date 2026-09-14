@@ -51,7 +51,7 @@ gate_status:
     excluded every time
   distillation: 'COMPLETE. 11 agent Expertise files updated, harness-visual-designer.md
     created for the first time. No wipes — entry counts checked before and after rather
-    than trusted. check-expertise.sh over the directory exits 1 on ONE file, harness-documentor.md
+    than trusted. check-expertise.py over the directory exits 1 on ONE file, harness-documentor.md
     (G-04, 53 words against a 50 cap). PRE-EXISTING, not caused here: git log 8dedeae..HEAD
     shows that file untouched by this feature. Two leads independently declined to
     spawn documentor to trim three words on DEC-125 wipe-risk grounds and I endorsed
@@ -74,7 +74,7 @@ gate_status:
   review_panel: 'PASS at severity_max: info — four reviewers in one turn, zero must_fix,
     none of the four pre-briefed items re-raised as a discovery'
   seam_handoffs: 'WRITTEN, and owed: I ran build, validate and ship in one session
-    without stopping, and check-state.sh correctly reported both missing seam notes
+    without stopping, and check-state.py correctly reported both missing seam notes
     as VIOLATIONS rather than advice. notes/handoff-build.md and notes/handoff-validate.md
     are written retrospectively and say so rather than presenting themselves as contemporaneous.'
   ship_refresh: SKIPPED, documented — no codebase map exists (no INDEX.md anywhere

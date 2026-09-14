@@ -17,7 +17,7 @@ historical task sub-issues this feature exists to prevent were created once alre
 gate. The cause is known and stated: the mirror act was doctrinally attached to "mission
 ship, right after the approval gate passes" (`references/github-mirror.md`, originating at
 `ab4d2fdc`), which reads as the terminal Ship phase, while the orchestrator playbook's build phase
-names no mirror act at all; and `check-state.sh` INV-26 exempts terminal features and
+names no mirror act at all; and `check-state.py` INV-26 exempts terminal features and
 all-status-absent plans, which is exactly the shape FEAT-55 presented.
 
 ## Goal
@@ -137,11 +137,11 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   `T-07 era-exempt recovery-required keeps the worktree` and
   `T-07 era-exempt absent build_entry is swept`.
   verify: automated        evidence: integration
-- SC-07: `check-state.sh` reports a violation for a sync-enabled feature that carries no Build-entry
+- SC-07: `check-state.py` reports a violation for a sync-enabled feature that carries no Build-entry
   outcome even when its station is terminal AND every task status is absent — the exact FEAT-55
   shape — and reports nothing for the same fixture once the outcome is recorded. The violating
   fixture is DISCRIMINATING at `review_sha`: pointed at the pre-change copy of the script recovered
-  with `git show <base>:.claude/skills/harness/bin/check-state.sh` (the `CHECK_STATE_BIN` escape),
+  with `git show <base>:.claude/skills/harness/bin/check-state.py` (the `CHECK_STATE_BIN` escape),
   or at a mutation of that production path, the violation case FAILS — and a case that cannot be
   made to redden is reported as non-discriminating rather than kept.
   verify: automated        evidence: integration
@@ -182,7 +182,7 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   never a live repository. What is therefore NOT proven automatically: that a real `gh pr merge`
   against GitHub is refused in the operator's own session. SC-10 carries that, by hand.
 - The Build-entry outcome for the legacy already-merged corpus is not backfilled. The new
-  `check-state.sh` invariant binds features created from this change onward, through a frozen
+  `check-state.py` invariant binds features created from this change onward, through a frozen
   era-exempt set; the existing corpus stays exempt and is recovered case by case on the operator's
   say-so. Concretely, 17 sync-enabled feature directories record no milestone at all (FEAT-01,
   FEAT-02, FEAT-03, FEAT-04, FEAT-05, FEAT-10, FEAT-15, FEAT-17, FEAT-19, FEAT-28, FEAT-36,

@@ -68,7 +68,7 @@ outlive the fix).
 its own suggested fix ("Return BLOCKED or FAIL, or report the real result") and since no real gate
 result exists to report (none ran this dispatch), `VERDICT` is now `BLOCKED` — a routing artifact
 of the schema gap, not a statement that distillation failed. The work itself (Expertise file,
-`check-expertise.sh` OK, this artifact) is already durably written to disk and unaffected by this
+`check-expertise.py` OK, this artifact) is already durably written to disk and unaffected by this
 verdict.
 
 ```yaml

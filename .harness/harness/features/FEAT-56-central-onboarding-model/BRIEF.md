@@ -51,7 +51,7 @@ red if any of them regresses to a Claude-only path.
   `harness.json`, no central-tree creation for a member. It states the central model only insofar
   as it names the artifact that does own it.
 - REQ-02: Installing the eight prerequisites and setting `core.hooksPath` survives as an operation
-  on the CONTROL-PLANE CLONE, because `check-state.sh` INV-9 and INV-31 grade this clone against it
+  on the CONTROL-PLANE CLONE, because `check-state.py` INV-9 and INV-31 grade this clone against it
   on every run and a fresh clone of the control plane still needs it.
 - REQ-03: No executable site — gate script, classification table or user-facing remedy — asserts
   that onboarding installs harness artifacts into a product repository, and each remedy names
@@ -177,7 +177,7 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 - SC-03: Each of the six named executable sites states the central model AND names the artifact that
   owns the job its remedy describes, checked one file at a time, never by one file-global search:
   `bin/check-instruction-paths.py` (`MAIN_SESSION_ONLY`, which must list `harness-add-repo`),
-  `bin/check-state.sh` (its four `/harness-init` remedies — each must be a checkout-configuration
+  `bin/check-state.py` (its four `/harness-init` remedies — each must be a checkout-configuration
   or `--upgrade` condition, never a registration one), `bin/check-domain.py` (the fail-open
   message), `bin/upgrade-config.py` (docstring plus two remedies), `bin/gh-sync.py` (the
   `github.repo` skip message), `bin/layout_migration.py` (the `MARKER` applicability rationale). A
@@ -318,7 +318,7 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   OMP session actually resolves `/harness-plan` from `.omp/commands/` is observed by the operator in
   a live session — gated by SC-15 (`uat`), which is required and blocks the ship decision, but which
   no runner can take over: `.omp/config.yml` cannot be exercised by a test in this repository.
-- **`check-state.sh` deliberately makes no network call**, so no every-run invariant can grade a
+- **`check-state.py` deliberately makes no network call**, so no every-run invariant can grade a
   fleet member's remote `harness.json`. REQ-05 is discharged by an operator-run check (SC-05), which
   means a member whose config is deleted after onboarding stays invisible until the next build.
 - **One gate is KNOWN-RED on this branch until merge, by construction.**

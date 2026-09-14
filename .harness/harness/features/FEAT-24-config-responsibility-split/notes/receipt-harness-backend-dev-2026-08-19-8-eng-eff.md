@@ -12,8 +12,8 @@ with measurement attached (below), not inferred from the call graph.
 
 ## What was measured
 
-1. **check-state.sh session-entry path — no new network I/O.** `git diff ada8e99..3396b5e --
-   check-state.sh` (lines ~1097–1284, the INV-26 block) shows `_gb.load_board(root)` still
+1. **check-state.py session-entry path — no new network I/O.** `git diff ada8e99..3396b5e --
+   check-state.py` (lines ~1097–1284, the INV-26 block) shows `_gb.load_board(root)` still
    reads the LOCAL `root/.harness/harness.json` (`gh_board.py:44`, `os.path.join(root,
    ".harness", "harness.json")`) — it never routes through `factory_config.product_config`'s
    remote read. The diff only wraps the existing call in try/except for the new `FleetError`
@@ -56,7 +56,7 @@ with measurement attached (below), not inferred from the call graph.
 
 ## Suite
 
-`bash .claude/skills/harness/bin/run-unit-tests.py --kind all` — rc=0, zero `FAIL` lines,
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all` — rc=0, zero `FAIL` lines,
 wall-clock ≈78s (`1:18.36 total` per `time`). This full-suite run is a deliberate boundary-step
 run (this is the last build step before `review_sha` pins), not waste — consistent with the
 dispatch's framing, not flagged.

@@ -47,7 +47,7 @@
 | repo | Gotchas | 3/15 | 4/15 (G-04 added) |
 | repo | Patterns/Outcomes/Open | 0 each | 0 each (unchanged) |
 
-`check-expertise.sh` clean on both `.harness/expertise/` and `.harness/harness/expertise/` after
+`check-expertise.py` clean on both `.harness/expertise/` and `.harness/harness/expertise/` after
 the edits (no ADVISORY against `harness-qa.md` in either).
 
 ## Process note

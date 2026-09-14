@@ -51,7 +51,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer; second-half surface for SC-07's write route
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer; second-half surface for SC-14's INV-17 seam table
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -59,7 +59,7 @@ lanes:
       reason: DEC-174 am.4 pairs the gate's test with the gate
     - surface: .claude/skills/harness/bin/feature-schema.json
       lane: main-session-direct
-      reason: CORRECTED 2026-08-21 by plan5 - this row previously read team, harness-backend-dev with the note that "the gate that enforces it is main-session-direct". That note was the answer and the row contradicted it. check-domain.py:815 already calls feature_schema.problems_for_text, so this file IS the gate's rule table and editing it changes what the gate rejects with no separate cutover to be anyone else's hands. DECISIONS.md lines 4864 to 4867 at 2cf792f place the cutover on the main-session-direct side, and lines 4859 to 4862 make the enumeration a category rather than a list. check-domain.py --resolve grants the path to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant, exactly as for check-domain.py and check-state.sh. See D-23.
+      reason: CORRECTED 2026-08-21 by plan5 - this row previously read team, harness-backend-dev with the note that "the gate that enforces it is main-session-direct". That note was the answer and the row contradicted it. check-domain.py:815 already calls feature_schema.problems_for_text, so this file IS the gate's rule table and editing it changes what the gate rejects with no separate cutover to be anyone else's hands. DECISIONS.md lines 4864 to 4867 at 2cf792f place the cutover on the main-session-direct side, and lines 4859 to 4862 make the enumeration a category rather than a list. check-domain.py --resolve grants the path to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant, exactly as for check-domain.py and check-state.py. See D-23.
     - surface: .claude/skills/harness/bin/feature_schema.py
       lane: main-session-direct
       reason: the module check-domain.py imports in process at :815. Same reasoning as feature-schema.json above - the library write IS the cutover here, because the gate already imports it, so DEC-174 am.4's "a squad may write the library" split is NOT available. check-domain.py --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant. See D-23.
@@ -130,7 +130,7 @@ decisions:
     because: In PostToolUse the tool has already run, so exit 2 only carries stderr back to the agent, which is exactly the operator ruling that the warning advises and does not refuse. A matcher that never fires for an orchestrator is the green-and-incapable-of-red failure in hook form.
     dec: none
   - id: D-14
-    choice: SECOND HALF. Four surfaces are main-session-direct and every cutover is the operator's hands — .claude/settings.json, check-domain.py, check-state.sh and test-check-state.py.
+    choice: SECOND HALF. Four surfaces are main-session-direct and every cutover is the operator's hands — .claude/settings.json, check-domain.py, check-state.py and test-check-state.py.
     because: DEC-174 carves out the enforcement layer and its list is non-exhaustive; settings.json and the templates directory additionally resolve to NOBODY.
     dec: DEC-174
   - id: D-15
@@ -139,7 +139,7 @@ decisions:
     dec: DEC-191
   - id: D-16
     choice: SECOND HALF. SC-15 IS SPLIT. Its automatable half asserts that INV-17 rejects a handoff whose four required section headings are all present but whose Next section body is empty, which is the exact mutation SC-15 names. Its agent-behaviour half, that a fresh orchestrator's first dispatch matches the predecessor's Next section, has NO TASK and is routed to the operator alongside SC-10, because only a live orchestrator can produce a first dispatch.
-    because: Measured at 6f651f1, INV-17 tests only heading PRESENCE, via HANDOFF_HEADINGS at check-state.sh line 509 and the membership test at line 614, so an emptied Next section passes the gate today and the new assertion goes red before the change. No automated test can spawn a harness orchestrator, and D-12 forbids reading the projects directory, so the behaviour half is unautomatable for the same reason SC-10 is. Raised to the operator as a blocking open question because it narrows an approved criterion that reads verify automated, evidence integration.
+    because: Measured at 6f651f1, INV-17 tests only heading PRESENCE, via HANDOFF_HEADINGS at check-state.py line 509 and the membership test at line 614, so an emptied Next section passes the gate today and the new assertion goes red before the change. No automated test can spawn a harness orchestrator, and D-12 forbids reading the projects directory, so the behaviour half is unautomatable for the same reason SC-10 is. Raised to the operator as a blocking open question because it narrows an approved criterion that reads verify automated, evidence integration.
     dec: DEC-159
 
   - id: D-17
@@ -158,8 +158,8 @@ decisions:
     dec: DEC-174
 
   - id: D-20
-    choice: SC-14's approved second half is a SIBLING task T-14, not folded into T-10, and T-14 runs BEFORE T-10 (T-10 depends_on T-14). T-14 RESTRUCTURES - it moves the handoff shape check OUT of the for prev in SEAM_NOTES[_status] loop in check-state.sh into a single pass that globs notes/handoff-*.md per feature directory, so the loop keeps only the missing-note branch. SEAM_NOTES is UNCHANGED. C-3's double-report risk is resolved BY STRUCTURE, not by ordering. BRIEF.md's SC-14 mechanism clause is rewritten by this plan round because the mechanism it named is now forbidden.
-    because: A sibling is chosen over a fold because T-14 is a refactor with its own red proof while T-10 is a new rule, and one dispatch carrying both makes a failed refactor indistinguishable from a failed empty-body check. T-14 runs FIRST so T-10's empty-body check is written ONCE, into the single extracted shape-check site, instead of being written inside the loop and then moved. BY STRUCTURE beats BY ORDERING because after the extraction the shape check has exactly ONE call site and the glob finds every existing note including the seam-stem ones, so no file can be reported twice by construction rather than by a rule someone must remember. Measured at 7299669 - check-state.sh line 592's loop both builds the required-note path and shape-checks it at line 614, which is the shared site; SEAM_NOTES is at line 495 and the comment above it, lines 475 to 481, records that deriving stems from status values matches on a case-insensitive filesystem and goes dark on Linux CI — the only machine that gates the merge. HANDOFF_HEADINGS at line 509 and the 60-line cap are untouched. A shape failure stays a VIOLATION through bad.append; the warn-instead variant was offered to the operator and REJECTED. The FEAT-01 and FEAT-02 literal exemption at HANDOFF_EXEMPT_LITERAL line 523 and the all-main-session-direct exemption at _handoff_exempt line 525 skip only the MISSING-note branch - once a file exists the shape check runs regardless, and the glob widens which files reach it rather than changing that rule. main-session-direct for the same reason as T-10, DECISIONS.md lines 4851 to 4854.
+    choice: SC-14's approved second half is a SIBLING task T-14, not folded into T-10, and T-14 runs BEFORE T-10 (T-10 depends_on T-14). T-14 RESTRUCTURES - it moves the handoff shape check OUT of the for prev in SEAM_NOTES[_status] loop in check-state.py into a single pass that globs notes/handoff-*.md per feature directory, so the loop keeps only the missing-note branch. SEAM_NOTES is UNCHANGED. C-3's double-report risk is resolved BY STRUCTURE, not by ordering. BRIEF.md's SC-14 mechanism clause is rewritten by this plan round because the mechanism it named is now forbidden.
+    because: A sibling is chosen over a fold because T-14 is a refactor with its own red proof while T-10 is a new rule, and one dispatch carrying both makes a failed refactor indistinguishable from a failed empty-body check. T-14 runs FIRST so T-10's empty-body check is written ONCE, into the single extracted shape-check site, instead of being written inside the loop and then moved. BY STRUCTURE beats BY ORDERING because after the extraction the shape check has exactly ONE call site and the glob finds every existing note including the seam-stem ones, so no file can be reported twice by construction rather than by a rule someone must remember. Measured at 7299669 - check-state.py line 592's loop both builds the required-note path and shape-checks it at line 614, which is the shared site; SEAM_NOTES is at line 495 and the comment above it, lines 475 to 481, records that deriving stems from status values matches on a case-insensitive filesystem and goes dark on Linux CI — the only machine that gates the merge. HANDOFF_HEADINGS at line 509 and the 60-line cap are untouched. A shape failure stays a VIOLATION through bad.append; the warn-instead variant was offered to the operator and REJECTED. The FEAT-01 and FEAT-02 literal exemption at HANDOFF_EXEMPT_LITERAL line 523 and the all-main-session-direct exemption at _handoff_exempt line 525 skip only the MISSING-note branch - once a file exists the shape check runs regardless, and the glob widens which files reach it rather than changing that rule. main-session-direct for the same reason as T-10, DECISIONS.md lines 4851 to 4854.
     dec: DEC-174
 
   - id: D-21
@@ -323,7 +323,7 @@ tasks:
       # 2cf792f in this worktree: the last line is "15 of 15 cases passed". Composition is what
       # makes both claims enforced -- line 1 catches a failing case, line 2 catches a run that
       # stopped printing the summary at all.
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect the line: PASS test-context-watch.py
       # expect NO line containing MISCONFIGURED
     intent: |
@@ -492,7 +492,7 @@ tasks:
       # task's intent adds four named cases -- D, E, F, G -- so 19 is the floor. A run that
       # reports 15 or 18 exits 1 HERE. The previous form named no number and no comparison, so it
       # was green for any count including 15.
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect the line: PASS test-context-watch.py
     intent: |
       TOOL CHANGE. Add to context-watch.py a --config PATH flag defaulting to
@@ -545,7 +545,7 @@ tasks:
       # a summary line naming the number of cases passed"), in exactly the form its sibling
       # test-context-watch.py already emits and which was measured at 2cf792f. Asserting the
       # COUNT is 1 catches a vanished summary and a duplicated one.
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
       # expect the line: PASS test-context-watch-cli.py
       # expect NO line containing MISCONFIGURED
     intent: |
@@ -684,11 +684,11 @@ tasks:
     traces: [REQ-10]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, so no team agent performs the cutover even though check-domain.py --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669
+    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.py is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, so no team agent performs the cutover even though check-domain.py --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669
     depends_on: [T-14]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
@@ -702,13 +702,13 @@ tasks:
       # task's five -- case A, case B, and case C's three sections one at a time -- is 100.
       # Each new case MUST print one line beginning "ok" on pass, which is this file's existing
       # convention across all 90.
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
       # expect the line: PASS test-check-state.py
       # expect NO line containing MISCONFIGURED
     intent: |
       SC-15 requires that the relay be SHOWN TO FAIL when the handoff's "## Next" is emptied.
       Measured in the FEAT-31 worktree at 7299669 it cannot be: INV-17's shape check in
-      .claude/skills/harness/bin/check-state.sh tests only that the HEADING is present.
+      .claude/skills/harness/bin/check-state.py tests only that the HEADING is present.
       HANDOFF_HEADINGS is the four literals "## next", "## trust", "## dead ends",
       "## working set", and the `miss` computation beside it is the headings absent from the
       lowercased line list. So a handoff carrying all four headings with NOTHING under "## Next"
@@ -726,7 +726,7 @@ tasks:
       and no risk of double-reporting. If the marker is absent, T-14 has not landed: STOP and
       report it rather than re-adding the check inside the loop.
 
-      PART ONE — check-state.sh. Inside T-14's single shape-check pass, after the `miss` check
+      PART ONE — check-state.py. Inside T-14's single shape-check pass, after the `miss` check
       and the 60-line cap check, add a check that each of the four required sections has a
       NON-EMPTY BODY. A section's body is the lines after its heading up to the next line whose
       stripped form begins with two hash characters, or end of file. A body is empty when every
@@ -761,14 +761,14 @@ tasks:
 
       Case A, ACCEPTED: a fixture feature directory whose status has crossed a seam, carrying
       notes/handoff-plan.md with all four headings and a non-empty body under each, the "## Next"
-      body naming a concrete dispatch. Assert check-state.sh emits NO INV-17 line for it.
+      body naming a concrete dispatch. Assert check-state.py emits NO INV-17 line for it.
       Case B, REJECTED: the SAME fixture with the "## Next" body emptied and the heading left in
-      place. Assert check-state.sh emits an INV-17 line that names the fixture feature AND names
+      place. Assert check-state.py emits an INV-17 line that names the fixture feature AND names
       Next.
       Case C: the other three sections emptied ONE AT A TIME, each asserted as its own case, so a
       check that only inspects "## Next" cannot pass all of them.
 
-      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.sh
+      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.py
       into the same tmpdir with the new empty-body check removed, locating it by the marker comment
       specified in part one. Assert the mutant text DIFFERS from the original text before running
       anything. Then run both against case B and assert the COUNT of INV-17 lines is strictly
@@ -864,7 +864,7 @@ tasks:
       - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/skills/harness/bin/test-run-unit-tests-kinds.py
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
       # expect exit 0 and NO line containing KIND-DRIFT -- this one is ALREADY ENFORCED and is
       # left alone: this task's own intent specifies exit 2 on every KIND-DRIFT line, so exit 0
       # forbids one by construction.
@@ -998,7 +998,7 @@ tasks:
       # and the STATED line is required to be present, so a silent non-zero exit fails too.
       ls .claude/skills/harness/bin/test-verify-context-watch-live.py 2>/dev/null; test $? -ne 0
       # expect success: this file must NOT be named or shadowed by a test-*.py sibling
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect NO line containing MISCONFIGURED — the file's name keeps it out of the drift detector
     intent: |
       Create .claude/skills/harness/bin/verify-context-watch-live.py. THE FILENAME IS PART OF THE
@@ -1055,11 +1055,11 @@ tasks:
     traces: [REQ-09, REQ-10]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, and this task changes which files INV-17 rejects, which lines 4856 to 4859 place squarely on the main-session-direct side. check-domain.py --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669; the carve-out is narrower than the grant. See D-20.
+    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.py is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, and this task changes which files INV-17 rejects, which lines 4856 to 4859 place squarely on the main-session-direct side. check-domain.py --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669; the carve-out is narrower than the grant. See D-20.
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
@@ -1070,7 +1070,7 @@ tasks:
       # form named an output that does not exist. Floor: 90 plus this task's five named cases
       # D, E, F, G, H = 95. Each new case must print one line beginning "ok" on pass, the
       # convention all 90 already follow.
-      test "$(bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep -c '^  VIOLATION.*handoff-')" = "0"
+      test "$(python3 .claude/skills/harness/bin/check-state.py 2>&1 | grep -c '^  VIOLATION.*handoff-')" = "0"
       # THE MIGRATION CLAIM IS ASSERTED, NOT COMMENTED, AND THE `|| true` IS GONE. The previous
       # form was `... | grep -c 'handoff-' || true`, which cannot fail: `|| true` forces exit 0
       # and the expected value sat in a comment. Two further corrections, both measured at
@@ -1079,21 +1079,21 @@ tasks:
       # exemptions for FEAT-15, FEAT-21 and FEAT-22, not violations. The old comment's "0 at
       # 7299669" was true of the total then and is false of the total now, so asserting the total
       # would go red for a reason this task did not cause. (2) The prefix is the contract:
-      # check-state.sh:1366 prints violations as "  VIOLATION  <msg>" and notes as "  note ".
+      # check-state.py:1366 prints violations as "  VIOLATION  <msg>" and notes as "  note ".
       # This is the assertion that carries this task's own claim -- "this task adds ZERO
       # violations" -- and it goes RED the moment the new glob pass reports a real handoff note.
-      # Note check-state.sh exits non-zero at 2cf792f for ONE unrelated violation, FEAT-26's
+      # Note check-state.py exits non-zero at 2cf792f for ONE unrelated violation, FEAT-26's
       # unapproved BRIEF.md, which is why the exit status is not the assertion here.
     intent: |
       SC-14's second half, as ruled by the operator on 2026-08-21: INV-17 must shape-check EVERY
       handoff note in a feature directory, not only the ones SEAM_NOTES names. Measured in the
-      FEAT-31 worktree at 7299669, check-state.sh builds handoff paths ONLY by looping
+      FEAT-31 worktree at 7299669, check-state.py builds handoff paths ONLY by looping
       SEAM_NOTES[_status] (line 592), so a note with any other stem is never opened, while
       check-domain.py's RE_HANDOFF (line 665 in THIS worktree, a different line in the main
       checkout — prefer the symbol name) already accepts handoff-[a-z0-9-]+\.md, so writing a
       mid-phase note is already legal and already unchecked.
 
-      PART ONE — check-state.sh, AND IT IS A RESTRUCTURE, NOT AN ADDITION. Today one loop both
+      PART ONE — check-state.py, AND IT IS A RESTRUCTURE, NOT AN ADDITION. Today one loop both
       builds the required-note path and shape-checks it. Adding a glob pass on top of that would
       report every seam-stem failure TWICE. Resolve it BY STRUCTURE:
         (a) The `for prev in SEAM_NOTES[_status]` loop keeps ONLY the missing-note branch and its
@@ -1128,7 +1128,7 @@ tasks:
       exactly as it is.
 
       THE MIGRATION RECEIPT — THIS TASK CARRIES IT, and it is re-asserted rather than re-derived
-      blind, because check-state.sh sweeps every feature directory on every run so these files are
+      blind, because check-state.py sweeps every feature directory on every run so these files are
       read the moment the glob lands. Measured in the FEAT-31 worktree at 7299669: 69 files match
       .harness/harness/features/*/notes/handoff-*.md, of which 66 carry seam stems (25 plan,
       21 build, 20 validate) and THREE carry non-seam stems and are therefore newly in reach —
@@ -1147,7 +1147,7 @@ tasks:
       .harness or .claude/skills, and NOTHING reads ~/.claude/projects.
 
       Case D, THE WIDENING: a fixture feature directory carrying notes/handoff-midphase.md — a stem
-      in no SEAM_NOTES list — with one of the four headings missing. Assert check-state.sh emits an
+      in no SEAM_NOTES list — with one of the four headings missing. Assert check-state.py emits an
       INV-17 line naming handoff-midphase.md. Assert this case FAILS before part one lands, which
       is the point of the criterion.
       Case E, THE CAP REACHES IT TOO: the same non-seam note with all four headings and 61 lines.
@@ -1161,7 +1161,7 @@ tasks:
       Case H, ACCEPTED: a fixture whose notes hold three well-formed handoff notes, two seam stems
       and one non-seam stem. Assert ZERO INV-17 lines for that feature.
 
-      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.sh
+      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.py
       into the same tmpdir with the entire new pass removed, locating it by the marker comment in
       part one (b). ASSERT THE MUTANT TEXT DIFFERS from the original before running anything: a
       mutation that failed to apply reports a surviving mutant that never existed. Then run both
@@ -1182,7 +1182,7 @@ tasks:
     traces: [REQ-04]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, and the module/cutover split is UNAVAILABLE here rather than declined - saying so explicitly because silence on this point is a send-back. DECISIONS.md lines 4864 to 4867 at 2cf792f rule that a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct, proven by the gate's violation set being identical before and after. check-domain.py:815 ALREADY calls feature_schema.problems_for_text in process, so there is no cutover left to separate out - the library write IS the cutover, and it changes the gate's violation set for every writer including the main session the instant it lands, with no hand the carve-out governs in between. Lines 4859 to 4862 make the enumeration a category rather than a list and name check-domain.py plus the test file of each; am.4 therefore also pulls test-check-domain.py, and test-validate-feature-json.py is the test of the rule this task adds. check-domain.py --resolve at 2cf792f grants feature-schema.json, feature_schema.py, test-validate-feature-json.py and test-check-domain.py all to harness-backend-dev and harness-dev-ops; the carve-out is narrower than the grant, exactly as D-19 records for check-domain.py and check-state.sh. See D-23.
+    execution_reason: DEC-174 carve-out, and the module/cutover split is UNAVAILABLE here rather than declined - saying so explicitly because silence on this point is a send-back. DECISIONS.md lines 4864 to 4867 at 2cf792f rule that a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct, proven by the gate's violation set being identical before and after. check-domain.py:815 ALREADY calls feature_schema.problems_for_text in process, so there is no cutover left to separate out - the library write IS the cutover, and it changes the gate's violation set for every writer including the main session the instant it lands, with no hand the carve-out governs in between. Lines 4859 to 4862 make the enumeration a category rather than a list and name check-domain.py plus the test file of each; am.4 therefore also pulls test-check-domain.py, and test-validate-feature-json.py is the test of the rule this task adds. check-domain.py --resolve at 2cf792f grants feature-schema.json, feature_schema.py, test-validate-feature-json.py and test-check-domain.py all to harness-backend-dev and harness-dev-ops; the carve-out is narrower than the grant, exactly as D-19 records for check-domain.py and check-state.py. See D-23.
     depends_on: []
     status: done
     files:
@@ -1315,7 +1315,7 @@ tasks:
       test "$(python3 .claude/skills/harness/bin/test-context-watch.py | grep -oE '^[0-9]+ of' | head -1 | cut -d' ' -f1)" -ge 22
       # MEASURED FLOOR: 15 cases at 2cf792f, plus T-06's four (D, E, F, G) which this task depends
       # on, plus this task's three (H, I, J) = 22.
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect NO line containing MISCONFIGURED
     intent: |
       THIS TASK BUILDS A LIBRARY, NOT A HOOK, AND THE DISTINCTION IS THE WHOLE REASON IT IS A
@@ -1401,7 +1401,7 @@ tasks:
       # THE SUMMARY AND ITS FLOOR ARE BOTH ASSERTED. The file does not exist at 2cf792f so there
       # is no measured count to floor; the four cases below are what this task's intent names, and
       # the summary shape is the one measured on test-context-watch.py at 2cf792f.
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
       # expect NO line containing MISCONFIGURED -- run-unit-tests.py:52-53 print it and exit 2, so
       # exit 0 already forbids it. This is the line that proves the INTEGRATION_SCRIPTS append
       # landed.

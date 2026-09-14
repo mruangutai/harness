@@ -16,7 +16,7 @@ land in the same commit each time.
 | Command | Claimed | Measured |
 |---|---|---|
 | `test-check-state.py` | 155 ok / 0 FAIL, exit 0 | **155 ok-lines / 0 FAIL, exit 0.** (154 lines match `^ok - `; case `(d)` prints `ok   case (d): ...` — three spaces, no dash — which is why a naive grep undercounts by one. Confirmed pre-existing format, not new.) |
-| `check-state.sh` | exit 0 / 0 violations / 32 INV-32 notes | **exit 0, 0 `VIOLATION` lines anywhere in 691 total lines, 32 `INV-32` lines, all 32 `note` (0 `warn`, 0 `VIOLATION`).** All 32 are pre-era notes now — FEAT-40 is no longer "undated" (F1 backfilled `approval.date: 2026-08-25`), so the F1-era 31+1 split collapses to a uniform 32. |
+| `check-state.py` | exit 0 / 0 violations / 32 INV-32 notes | **exit 0, 0 `VIOLATION` lines anywhere in 691 total lines, 32 `INV-32` lines, all 32 `note` (0 `warn`, 0 `VIOLATION`).** All 32 are pre-era notes now — FEAT-40 is no longer "undated" (F1 backfilled `approval.date: 2026-08-25`), so the F1-era 31+1 split collapses to a uniform 32. |
 | `run-unit-tests.py` | exit 0, zero FAIL lines | **exit 0, 0 case-matching `FAIL` anywhere in 3416 lines of output; 1061 `PASS <script>` lines; `test-check-state.py` present and PASS.** |
 
 No discrepancy on any of the three. FEAT-40's backfilled date is independently verified
@@ -83,9 +83,9 @@ regression unlikely, but not impossible under a future refactor).
 ## 5. Test-first audit — unverifiable from commit history
 
 ```
-bf12a96  check-state.sh + test-check-state.py (both touched, one commit)
-f11b41a  check-state.sh + test-check-state.py + FEAT-40 plan.yaml (one commit)
-6b65ecc  check-state.sh + test-check-state.py + harness.json + templates/harness.json (one commit)
+bf12a96  check-state.py + test-check-state.py (both touched, one commit)
+f11b41a  check-state.py + test-check-state.py + FEAT-40 plan.yaml (one commit)
+6b65ecc  check-state.py + test-check-state.py + harness.json + templates/harness.json (one commit)
 ```
 
 Every commit bundles production and test edits together; git history cannot distinguish

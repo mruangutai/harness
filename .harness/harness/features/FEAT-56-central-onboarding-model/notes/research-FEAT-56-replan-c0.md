@@ -28,7 +28,7 @@ which I measured as needing nothing.
    `harness-add-repo` satisfies it — so the `MAIN_SESSION_ONLY` entry is what removes it from the
    anchor scan. **T-09 therefore lands BEFORE T-10**: `_skill_docs` builds its list from
    `os.listdir`, so a tuple entry for a directory that does not exist yet is a no-op, while the
-   reverse order reddens `check-instruction-paths.py` — which `check-state.sh` runs at every door
+   reverse order reddens `check-instruction-paths.py` — which `check-state.py` runs at every door
    and before every commit — on an otherwise-correct tree.
 
 ## Lane split (all resolved per file, §4)

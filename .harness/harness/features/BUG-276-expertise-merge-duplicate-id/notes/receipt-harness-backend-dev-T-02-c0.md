@@ -78,7 +78,7 @@ the other modified/untracked entries (`expertise-merge.py`, `plan.yaml`,
 - Did not add a regression sub-case for exit 0/7/8 (already pinned by
   `case_add_only_compatibility` at line 614).
 - Did not modify `case_ops_target_grammar_well_formed`, any other case, helper, or fixture.
-- Did not touch `check-expertise.sh`, `expertise-merge.py`, or `test-expertise-ops.py`.
+- Did not touch `check-expertise.py`, `expertise-merge.py`, or `test-expertise-ops.py`.
 - No commit, no staging.
 
 ## Files touched

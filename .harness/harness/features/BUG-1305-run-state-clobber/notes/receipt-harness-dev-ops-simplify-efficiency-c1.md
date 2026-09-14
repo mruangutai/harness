@@ -5,7 +5,7 @@
 `tempfile`+`uuid` at module top even though only its POST-only mint functions need them. Since
 `harness_boundary` is imported on essentially every `check-domain.py` invocation (every governed
 Write/Edit, not just run-directory writes), this adds real per-write latency system-wide. Two other
-candidate costs (the PRE witness read, the `check-state.sh` corpus sweep) are measured and
+candidate costs (the PRE witness read, the `check-state.py` corpus sweep) are measured and
 negligible — explicitly not worth applying.
 
 ## Method
@@ -61,14 +61,14 @@ Even paid on every PRE Edit to a young run's `state.yaml`, this is three orders 
 the per-call interpreter cost above. Not worth a separate apply — folding tempfile/uuid out of the
 module top (finding 1) already removes the only real cost near this path.
 
-### 3. [Measured, negligible] `check-state.sh` corpus sweep, INV-36
+### 3. [Measured, negligible] `check-state.py` corpus sweep, INV-36
 
 New per-run-directory work: `os.path.lexists(marker_path)` always, `read_marker` + `conflict`/
 `uid_conflict` only when the marker exists. At the corpus size named in plan.yaml D-13 (630 run
 directories 2026-09-05, up from 575), the *lexists* stat alone costs ~1.08ms across the whole
 corpus; if every directory eventually carried a witness (it does not today — D-13's whole point is
 that the historical corpus has none), the full `read_marker` cost would add ~10.6ms. Measured
-`check-state.sh` end-to-end on this checkout: 12.9s. 11.7ms against 12.9s is 0.09% — negligible,
+`check-state.py` end-to-end on this checkout: 12.9s. 11.7ms against 12.9s is 0.09% — negligible,
 and it only grows as fast as new run directories are created (bounded, linear, not compounding).
 Not worth applying.
 

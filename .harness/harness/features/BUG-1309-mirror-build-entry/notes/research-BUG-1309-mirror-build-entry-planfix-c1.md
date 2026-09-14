@@ -33,9 +33,9 @@ at all**, deliberately: an operator who reads the word and runs it performs the 
 
 **The shared source, one home, three readers.** `BUILD_ENTRY_ERA_EXEMPT` and `recovery_command_for`
 are defined by T-06 in `.claude/skills/harness/bin/feature_schema.py` (`plan.yaml:540-566`), beside
-the `RUNS_AGENT_EXEMPT` precedent the plan already cited. That file — not `check-state.sh` — because
-a bash-local literal is unreadable by `gh-sync.py` and `merge-gate.py`, and `check-state.sh` already
-imports the module for INV-23 (`check-state.sh:1345`). T-04 and T-05 both state they define no
+the `RUNS_AGENT_EXEMPT` precedent the plan already cited. That file — not `check-state.py` — because
+a bash-local literal is unreadable by `gh-sync.py` and `merge-gate.py`, and `check-state.py` already
+imports the module for INV-23 (`check-state.py:1345`). T-04 and T-05 both state they define no
 station rule and no era set of their own. Consequences accepted: `feature_schema.py` joins T-06's
 `files:`, and T-04/T-05 gain `T-06` in `depends_on` (no cycle: T-06←T-01).
 
@@ -63,7 +63,7 @@ OK T-02 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor
@@ -71,7 +71,7 @@ OK T-09 granted to harness-documentor
 ```
 
 Exit 0. Same three DEVIATION rows as c0 — the expected DEC-174 carve-out output; T-06's row now also
-lists `feature_schema.py`, which is granted-but-carve-out for the same reason `check-state.sh` is.
+lists `feature_schema.py`, which is granted-but-carve-out for the same reason `check-state.py` is.
 
 **Tool note:** the dispatch named `apply --proposal -`, which exits 7 CONFLICT on a changed value.
 All nine writes went through `plan-merge.py amend --expect-sha256` (compare-and-swap), the tool's
@@ -109,7 +109,7 @@ exact merged-ness discriminator ruling R2 rejects, in the task that defines the 
 T-06's `intent:` changed, amended under the same id via `plan-merge.py amend --expect-sha256`.
 
 - **INV-37 now emits ONE line, command chosen by `feature_schema.recovery_command_for(feat_dir)`**,
-  never by merged-ness, and never by a station test written inside `check-state.sh`. The `open`
+  never by merged-ness, and never by a station test written inside `check-state.py`. The `open`
   variant keeps the original wording with `run gh-sync.py open <feature-dir>.`; the
   `recover-terminal` variant reads "...and the feature's own record says the work is already under
   way or finished, so creating the mirror now would mean task sub-issues for completed work - run

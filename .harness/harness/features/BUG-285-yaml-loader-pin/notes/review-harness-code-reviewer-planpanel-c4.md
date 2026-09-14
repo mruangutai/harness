@@ -74,9 +74,9 @@ OK T-05 granted to harness-backend-dev, harness-dev-ops, harness-qa
 Zero `DEVIATION` lines. Confirms main's merge made the manifests byte-identical — the standing low
 finding (PF-142f3a51...) premised on a team-config skew is resolved.
 
-**B2 — `check-state.sh` INV-15 sweep, from worktree root:**
+**B2 — `check-state.py` INV-15 sweep, from worktree root:**
 ```
-$ b2_out=$(bash .agents/skills/harness/bin/check-state.sh 2>&1); b2_exit=$?
+$ b2_out=$(python3 .agents/skills/harness/bin/check-state.py 2>&1); b2_exit=$?
 ```
 `b2_exit=1` (unrelated: 3 pre-existing `VIOLATION` lines — BRIEF not approved, `notes/handoff-
 plan.md` over the 60-line handoff cap, INV-37 no `github.build_entry` recorded). No line in the

@@ -16,10 +16,10 @@ exactly the condition the guard exists to stop, so I stopped rather than merging
 - T-03 intent carries a `per D-09` paragraph building `wt1` as a real linked worktree and telling
   the executor to report, not adjust, any flipped verdict. T-04 converts the two `run_post`
   fixtures with assertions unchanged. A-4's `+0.22 ms` sentence is in T-04 PART 3.
-- `D-08` rewritten: SC-09 is the suite half only; the `check-state.sh` clause is labelled an
+- `D-08` rewritten: SC-09 is the suite half only; the `check-state.py` clause is labelled an
   operator-run ship-time sanity check owned by no task, with no new `verify:` invented.
 - T-06's `files:` is still exactly `expertise-merge.py` + `test-expertise-merge.py`; the caps
-  drift case reads `check-expertise.sh`'s `CAPS` mapping.
+  drift case reads `check-expertise.py`'s `CAPS` mapping.
 - `approval.status: pending`, `lanes.resolved_at: eeabc59`, and A-1/A-3/A-5/A-6 all untouched
   (no `_roster` lift, no `basename` derivation, `factory_config.py` in no `files:` list, and
   T-09 still carries both of A-3's sentences).

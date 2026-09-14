@@ -138,5 +138,5 @@ second git invocation path, exactly what R-04 forbids.
 ## Not touched (leave list / out of scope)
 
 `factory_config.py`, `factory_gh.py`, `factory_decompose.py`, `factory_claim.py`,
-`factory_workspace.py`, `factory_cli.py`, `check-state.sh`, `test-check-state.py`,
+`factory_workspace.py`, `factory_cli.py`, `check-state.py`, `test-check-state.py`,
 `.harness/factory/fleet.yaml` — none edited, none read for editing.

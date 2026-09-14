@@ -185,8 +185,8 @@ survivors become issues.
 | B-7 | **A send-back gives the returning member a fresh context**, so questions it raised in its own prior return are unrecoverable to it. Raised independently twice | bug |
 | B-8 | **The task regex cannot tell a task *definition* from a *reference* to one**, so amending a task by heading trips the state checker on a correct amendment | bug |
 | B-9 | **Nothing detects divergence between a live config and its template.** The unit suite exited 0 on a half-stripped pair. Raised twice from the engineering lane | bug |
-| B-10 | **`check-expertise.sh` silently ignores any line it does not recognise.** Caught live, not hypothesised: a lead's write leaked two stray lines that matched no rule, and the checker would have reported OK on a file that is then injected into that agent at every spawn | bug |
-| B-11 | **`check-expertise.sh` does not enforce the entry shape**, only section names, word cap and file budget. One accepted entry this feature is past-tense narrative and passes | enhancement |
+| B-10 | **`check-expertise.py` silently ignores any line it does not recognise.** Caught live, not hypothesised: a lead's write leaked two stray lines that matched no rule, and the checker would have reported OK on a file that is then injected into that agent at every spawn | bug |
+| B-11 | **`check-expertise.py` does not enforce the entry shape**, only section names, word cap and file budget. One accepted entry this feature is past-tense narrative and passes | enhancement |
 | B-12 | **`bash-write-guard.py` over-blocks.** It denies `cp` and redirects into the *session scratchpad*, not just repo paths, and reads a bare `>50` inside quoted prose as a redirect to a file named `50` | bug |
 | B-13 | **A `grep -v` allow-list clause exits 1 while printing nothing.** Correct as written, since the clause is defined on output — but any wrapper treating non-zero as failure reads a green clause as red | chore |
 | B-14 | **No `verify:` clause can prove that text a task promised to leave verbatim did not move.** Every clause in this feature is an absence or a count check; the guarantee was discharged by reading the diff | enhancement |

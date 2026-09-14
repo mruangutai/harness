@@ -15,7 +15,7 @@ tasks stand at station `ready`. Nothing has been built: `dafd8e8` carries plan a
 declare `execution_mode: main-session-direct` citing DEC-174; the live domain hook denies
 `harness-orchestrator` every implementation surface (measured — a probe Write to
 `.claude/skills/harness/bin/.orch-probe.tmp` returned `check-domain: BLOCKED`); `tests/**` and
-`.harness/team-config.yaml` resolve to `NOBODY`; and `check-state.sh` INV-17 independently reports
+`.harness/team-config.yaml` resolve to `NOBODY`; and `check-state.py` INV-17 independently reports
 that no squad runs this feature. A `fable-advisor` consult
 (`runs/2026-09-02-01-advisor-validator/`) found no legitimate squad-executable route.
 
@@ -26,7 +26,7 @@ Bookkeeping reconciled this run: feature.json's illegal `status` key removed and
 recorded with `code_grade: n_a`; `cycles_used: 2` derived from `panel.cycle: 2` and the c0/c1/c2
 plan-panel artifacts; every station written through `plan-merge.py`; the GitHub mirror opened
 (milestone #42, parent #1236, sub-issues #1237-#1243); the malformed cycle-2 lead digest repaired by
-its own squad. `check-state.sh` now reports zero FEAT-47 violations.
+its own squad. `check-state.py` now reports zero FEAT-47 violations.
 
 ## Open Questions
 

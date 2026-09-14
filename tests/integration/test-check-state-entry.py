@@ -16,6 +16,8 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT,
@@ -954,6 +956,36 @@ def case_inv30_silent_on_nonterminal():
         return ok
 
 
+def case_no_root_replays_resolver_stderr():
+    """An unconfigured isolated copy keeps the resolver's full traceback.
+
+    The former shell entry point replayed stderr from its isolated root-resolution
+    helper. Replacing that traceback with only ``str(exc)`` loses the failure's
+    source and violates the conversion's byte-preservation contract.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        isolated = os.path.join(tmp, "bin")
+        shutil.copytree(_anchor_bin, isolated)
+        script = os.path.join(isolated, "check-state.py")
+        env = os.environ.copy()
+        env.pop("HARNESS_PROJECT_DIR", None)
+        result = subprocess.run(
+            [script], cwd=isolated, env=env, capture_output=True, text=True)
+        lines = result.stderr.splitlines()
+        ok = (
+            result.returncode == 2
+            and not result.stdout
+            and bool(lines)
+            and lines[0].startswith(
+                "check-state.py: no harness root could be resolved from ")
+            and "Traceback (most recent call last):" in result.stderr
+            and "ValueError: no harness root found:" in result.stderr
+            and "check-state.py: no harness root found:" not in result.stderr
+        )
+        print(f"{'ok' if ok else 'FAIL'} - no-root refusal replays the resolver traceback")
+        return ok
+
+
 def main():
     results = []
     ok, code_a = case_a()
@@ -986,6 +1018,7 @@ def main():
     results.append(case_inv30_silent_offline())
     results.append(case_inv30_silent_on_null_milestone())
     results.append(case_inv30_silent_on_nonterminal())
+    results.append(case_no_root_replays_resolver_stderr())
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "

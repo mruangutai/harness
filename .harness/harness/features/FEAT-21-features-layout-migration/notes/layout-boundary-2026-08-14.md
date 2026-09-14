@@ -11,7 +11,7 @@ layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
 exit: 0
 ```
 
-## check-state.sh (verbatim)
+## check-state.py (verbatim)
 ```
   note       FEAT-19-central-product-config/plan.yaml approval is pending — awaiting the user.
   note       FEAT-08-remove-cost-tracking/PLAN.md approval is pending — awaiting the user.
@@ -68,7 +68,7 @@ layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
 exit: 0
 ```
 
-## check-state.sh
+## check-state.py
 ```
 exit: 0
 note lines: 40 (pre-move baseline 39; the 40th, proven by diffing the two note bodies, is the orphaned-run note for runs/2026-08-14-1-validator — the operator-requested pre-commit validator panel running concurrently, whose digest reconciles it on return)
@@ -93,7 +93,7 @@ in the live control plane and were each already migrated or left legacy-by-desig
 |---|---|---|
 | factory_config.harness_root() — 4-level ".." walk with CLAUDE_PROJECT_DIR probe | YES (the root itself) | CORRECT today; depth is bin/-anchored, not features-anchored. Moves only if bin/ moves (#357 closed unbuilt) |
 | check-plan-routes.py root derivation + manifest probe | YES | CORRECT — probes .harness/team-config.yaml (case_20 convention) |
-| check-state.sh 14x join(H, "*", "features", ...) | YES | CORRECT — migrated by T-05 |
+| check-state.py 14x join(H, "*", "features", ...) | YES | CORRECT — migrated by T-05 |
 | gh-sync.py walk-up probing .harness/team-config.yaml, then join(root, ".harness", "harness.json") | YES | CORRECT — T-10's depth-agnostic walk; config read from the resolved root |
 | validate-feature-json.py join(root, ".harness", "*", "features", ...) | YES | CORRECT — migrated by T-10 |
 | layout_migration.py / layout_fixtures.py pattern and evidence joins | YES (they ARE the detector) | CORRECT — segment-aware by construction (FEAT-20 + am.1) |

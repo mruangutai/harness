@@ -25,7 +25,7 @@ live `gh` — no live `gh` call was made.
 Note: `--kind integration` runs `test-check-state.py` as one of its 12 registered scripts (it is
 already inside `INTEGRATION_SCRIPTS`, not something dispatched directly). It passed and the cost
 log's byte count did not move, evidence it drove no live `gh` call. This was not a direct invocation
-of `check-state.sh` or `test-check-state.py`; it ran only as a member of the mandated `--kind
+of `check-state.py` or `test-check-state.py`; it ran only as a member of the mandated `--kind
 integration` command in item 1 of the dispatch. Flagging for the record rather than silently
 absorbing it, since a separate constraint names that file — no independent invocation of either was
 made.

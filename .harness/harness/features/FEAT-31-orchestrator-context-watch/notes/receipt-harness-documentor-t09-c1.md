@@ -46,7 +46,7 @@ Also: `run-unit-tests.py --check-kinds` exit **0**; `gen-decisions-index.py --st
    `⚠ RULING PENDING`; the ruling after ` :: ` is hand-written and preserved. My first ruling was 51
    words and `test-gen-decisions-index.py` FAILED on the cap. Final ruling is 27 words and names the
    key literally, which is what makes verify line 2 non-zero.
-2. **`check-state.sh` exits 1, and none of it is mine:** FEAT-26's BRIEF not approved, and INV-26
+2. **`check-state.py` exits 1, and none of it is mine:** FEAT-26's BRIEF not approved, and INV-26
    board drift on FEAT-31 T-01/T-02 (plan says done, board reads Building). Pre-existing; no
    DECISIONS-related violation. Tree left dirty, nothing staged, nothing committed, HEAD unmoved.
 Dispatch said the tree carried uncommitted user edits to plan.yaml/feature.json/STATE.md/

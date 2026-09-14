@@ -70,7 +70,7 @@ absent-destination paths — matches what I'd want to see for an integrity guard
 
 ## Not re-litigated
 D-07 (silent-drop in parse/render), D-09 (no exit-11 doc row in harness-distill SKILL.md), D-04
-(check-expertise.sh untouched), D-05 (exit codes 10/12 absent from docstring), case27b — all
+(check-expertise.py untouched), D-05 (exit codes 10/12 absent from docstring), case27b — all
 signed dead ends, out of scope, not raised here.
 
 ## Open questions

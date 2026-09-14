@@ -33,7 +33,7 @@
 
 - 2026-08-19: I hit my own P-14 while checking T-03's intent premise. Grepping
   harness-distill/SKILL.md for "advisory|scan|token" returned one irrelevant line and I nearly
-  reported the premise falsified. The skill spells it "advisorily" (:61-62: "check-expertise.sh
+  reported the premise falsified. The skill spells it "advisorily" (:61-62: "check-expertise.py
   flags such entries advisorily, for a human to rule on, and a flag is not a violation"), so
   the premise holds and T-03 closes a real doc-ahead-of-code gap. The near-miss is the point:
   I authored P-14 and still ran the one-spelling grep first.

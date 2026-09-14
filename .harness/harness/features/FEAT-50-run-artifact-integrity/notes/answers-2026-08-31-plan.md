@@ -29,12 +29,12 @@ in this phase. Deliverables are `BRIEF.md` and `plan.yaml`, both left
    referenced for this work. (This corrected an earlier numbering.)
 2. **No regressions.** The two fixes FEAT-45 shipped must remain green:
    the missing-panel-finding-severity fail-closed fix (INV-32 in
-   `check-state.sh`) and the zero-test-collection fix in the test runner.
+   `check-state.py`) and the zero-test-collection fix in the test runner.
 3. **New deterministic regressions** for all three issues.
 4. **Canonical commands must exit 0**:
    `.claude/skills/harness/bin/run-unit-tests.py --kind unit`,
    `.claude/skills/harness/bin/run-unit-tests.py --kind integration`, and
-   `.claude/skills/harness/bin/check-state.sh`.
+   `.claude/skills/harness/bin/check-state.py`.
    See the open question below — the third does not hold today, for a reason
    unrelated to these issues.
 5. **Scope is bounded** to these three issues and their tests. No unrelated
@@ -76,10 +76,10 @@ suite reads green.)
 `check-domain.py --resolve` **grants** the enforcement scripts to
 `harness-backend-dev`/`harness-dev-ops`, so the resolver alone does not route
 them correctly. **DEC-174 governs and overrides the grant**: `check-domain.py`,
-`bash-write-guard.py`, `validate-digest.py`, `check-state.sh`,
+`bash-write-guard.py`, `validate-digest.py`, `check-state.py`,
 `check-plan-routes.py`, `dispatch-guard.py` **and the test file of each** are
 the enforcement layer, planned through the harness but never executed through
-it. The FEAT-45 plan is the precedent: its T-07/T-08 (`check-state.sh` and
+it. The FEAT-45 plan is the precedent: its T-07/T-08 (`check-state.py` and
 `test-check-state.py`) are `execution_mode: main-session-direct`, while
 `panel_findings.py`, a library a gate imports, went to the team.
 
@@ -89,15 +89,15 @@ Measured `--resolve` verdicts:
 |---|---|---|
 | `bin/validate-digest.py`, `bin/test-validate-digest.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
 | `bin/check-domain.py`, `bin/test-check-domain.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
-| `bin/check-state.sh`, `bin/test-check-state.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
+| `bin/check-state.py`, `bin/test-check-state.py` | backend-dev, dev-ops | `main-session-direct` (DEC-174) |
 | `skills/harness/SKILL.md`, `skills/harness-team/SKILL.md`, `skills/harness-handoff/SKILL.md` | NOBODY | `main-session-direct` |
 | `.harness/harness/docs/DECISIONS.md` | harness-documentor | `team` |
 | a new module a gate *imports* | backend-dev, dev-ops | `team`; the cutover that makes the gate use it is `main-session-direct` |
 
 ## Open question for the operator — raised by the orchestrator, blocking
 
-**Constraint 4's `check-state.sh` clause cannot be met by fixing these three
-issues.** Measured at HEAD in the main checkout: `check-state.sh` exits **1**
+**Constraint 4's `check-state.py` clause cannot be met by fixing these three
+issues.** Measured at HEAD in the main checkout: `check-state.py` exits **1**
 with **32 `INV-32` VIOLATION rows** — "plan is approved with no complete panel
 result recorded" — one for every plan approved before FEAT-45 shipped the panel,
 **including FEAT-45's own plan**, none of which carries a top-level `panel:`
@@ -108,11 +108,11 @@ It is out of the stated scope and needs an operator ruling. Three options:
 
 - **(a)** Scope INV-32 to plans whose `approval.date` is on or after DEC-207,
   so a plan that predates the panel is not asked for one. Smallest change;
-  touches `check-state.sh`, which is `main-session-direct`.
+  touches `check-state.py`, which is `main-session-direct`.
 - **(b)** Backfill a `panel:` key into 32 approved plans. Rewrites 32 signed
   records to describe a panel that never ran — falsifying the record, which
   PRINCIPLES rule 15 forbids. Recorded as available and not recommended.
-- **(c)** Restate the criterion as: `check-state.sh` emits **no violation
+- **(c)** Restate the criterion as: `check-state.py` emits **no violation
   attributable to FEAT-50**, and the INV-32 row count is **identical before and
   after** this feature (32 at 75daa3b). Meets the intent of constraint 4 without
   touching the backlog, and leaves (a) as its own ticket.
@@ -144,7 +144,7 @@ note: INV-32 is being fixed in another session; hold FEAT-50's signature and bui
 
 **Ruling, verbatim in substance:** INV-32 is being fixed in another session. Hold
 signature and build until that lands. Do not alter INV-32, and do not weaken the
-exact `check-state.sh` exit-0 success criterion.
+exact `check-state.py` exit-0 success criterion.
 
 This is none of options (a), (b) or (c) that the plan offered — it is a fourth
 option the operator took instead, and it is recorded as `choice: d` rather than
@@ -154,11 +154,11 @@ falsify what was ruled (PRINCIPLES rule 15).
 **What it settles.**
 
 1. **FEAT-50 plans NO INV-32 work.** Neither option (a)'s `approval.date` scoping
-   nor option (b)'s 32-plan backfill enters this plan. `check-state.sh` is not
+   nor option (b)'s 32-plan backfill enters this plan. `check-state.py` is not
    edited by any task, and the lane row for it stays declared-but-unedited.
 2. **The exit-0 criterion is restored, not weakened.** The operator's stated
    intent constraint 4 requires
-   `.claude/skills/harness/bin/check-state.sh` to exit 0, and that clause stands
+   `.claude/skills/harness/bin/check-state.py` to exit 0, and that clause stands
    as written. Form (c) — "no violation row names FEAT-50, exit code not graded" —
    was a WEAKENING and is refused. The criterion must require exit 0. The clause
    "no violation row names FEAT-50" may be KEPT alongside it, because adding a
@@ -167,7 +167,7 @@ falsify what was ruled (PRINCIPLES rule 15).
    is not reachable from this feature's diff: the 32 retroactive `INV-32` rows are
    fixed in another session, outside FEAT-50's scope and outside its branch. So
    the plan is complete but UNSIGNABLE until that fix lands on the default branch
-   and `check-state.sh` exits 0 with FEAT-50's directory present. That is a stated
+   and `check-state.py` exits 0 with FEAT-50's directory present. That is a stated
    external blocker, not an unresolved plan defect, and it is the ONLY thing
    standing between this plan and signature.
 4. **Q4 is unaffected.** See below.
@@ -268,4 +268,4 @@ F-C1-01's consequence depends on.
 not dismissed: it stays `disposition: open` at the reader's own `med`, because a
 finding's severity is never reassigned and a premise that does not hold TODAY is not a
 premise that cannot hold. It does not gate the signature — `med` is below INV-32's
-gating threshold (`check-state.sh:218-219`) — and the operator may read it as advisory.
+gating threshold (`check-state.py:218-219`) — and the operator may read it as advisory.

@@ -88,7 +88,7 @@ Actual output (verbatim, tail):
 ```
 ok   - case 21: real root's harness/docs surface is CLEAN with migrated evidence
 ok   - case 22: real root's harness/features surface is CLEAN with migrated evidence
-READER ROW PROBE: ok 5 {'.harness/team-config.yaml': 'migrated', '.agents/skills/harness/bin/check-domain.py': 'migrated', '.agents/skills/harness/bin/check-plan-routes.py': 'migrated', '.agents/skills/harness/bin/factory_config.py': 'migrated', '.agents/skills/harness/bin/check-state.sh': 'migrated'}
+READER ROW PROBE: ok 5 {'.harness/team-config.yaml': 'migrated', '.agents/skills/harness/bin/check-domain.py': 'migrated', '.agents/skills/harness/bin/check-plan-routes.py': 'migrated', '.agents/skills/harness/bin/factory_config.py': 'migrated', '.agents/skills/harness/bin/check-state.py': 'migrated'}
 ```
 All 22 cases + all sub-checks `ok`, no `FAIL` lines. Exit code: 0.
 

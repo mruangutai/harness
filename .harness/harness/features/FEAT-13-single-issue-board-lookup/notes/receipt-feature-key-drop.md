@@ -40,7 +40,7 @@ expertise_collision: 'THE ONE THING THAT NEEDS THE OPERATOR, and it is not a FEA
   files, uncommitted, in the main checkout - its distill receipts are on disk there
   and its modified set GREW during my run, which is how I know it is live rather than
   stale. Two features are writing one shared memory in two checkouts with no lineage
-  check anywhere: check-expertise.sh validates FORMAT, not lineage, so a wipe passes
+  check anywhere: check-expertise.py validates FORMAT, not lineage, so a wipe passes
   it cleanly. Both eng-lead and product-lead independently hit this and both returned
   it blocking. MY RESOLUTION, conservative on purpose: I committed only the three
   files FEAT-13 alone touched - product-lead, ui-reviewer, validator-lead - and did

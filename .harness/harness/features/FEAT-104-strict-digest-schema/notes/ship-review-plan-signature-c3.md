@@ -47,7 +47,7 @@ I then ruled removal rather than asking you a third time: your packet had been t
 survived *only* for want of that verb, and a human closed exactly that gap the same day.
 
 **Removal also clears a red gate.** B-1's INV-26 false positive was tripped by T-02's `abandoned`
-value alone. With T-02 gone, `check-state.sh` reports exactly **one** FEAT-104 violation — "BRIEF.md
+value alone. With T-02 gone, `check-state.py` reports exactly **one** FEAT-104 violation — "BRIEF.md
 is NOT approved", which is the signature gate itself working.
 
 ## One residual, and the one-line command that closes it
@@ -79,7 +79,7 @@ Nothing dangles after the removal: no `depends_on`, panel finding, SC or REQ ref
 
 ## Gate state at signature
 
-- `check-state.sh`: **one** FEAT-104 violation — BRIEF not approved. The gate working.
+- `check-state.py`: **one** FEAT-104 violation — BRIEF not approved. The gate working.
 - `check-plan-routes.py`: exit 1 on the pre-existing manifest deviation (this worktree's
   `.harness/team-config.yaml` is behind the owner root by `4d81e460`). No task violation. You
   struck B-2, so it stays.

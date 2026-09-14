@@ -59,7 +59,7 @@ the dispatch instructions.
 | `docs` | T-06, T-08, T-09, T-11 | none | n/a by matrix; T-06/T-11 exercised by checks 5,8; T-08 by checks 7,9 + `check-docs.sh` (run, exit 0, 45 patterns, 0 stale) |
 
 **`bugfix.when: {kind: __bug_class__, if: match_bug_class}` — disposed, not silently dropped.**
-T-01's diff (`check-state.sh`) is a pure string-comparison logic fix: `_sha = (val("review_sha") or
+T-01's diff (`check-state.py`) is a pure string-comparison logic fix: `_sha = (val("review_sha") or
 "").strip().lower()` then a membership test against `harness_yaml.PLACEHOLDER_UNSET`. No I/O,
 concurrency, external system, or security boundary is touched — it is the same shape of defect as
 the rest of the bash-heredoc/Python state-check surface already covered by `unit`. Evaluated against
@@ -71,7 +71,7 @@ demonstrates the exact fixture the fix must flip.
 ## Test-first audit (D-06)
 
 T-01 carries an explicit red-first requirement with a verbatim receipt, not a prose claim. Verified
-present at `notes/before-check-state-635ef14.txt:12-29` — invocation, HEAD `635ef14`, `check-state.sh`
+present at `notes/before-check-state-635ef14.txt:12-29` — invocation, HEAD `635ef14`, `check-state.py`
 stated UNMODIFIED, then case (h) printed `FAIL` with the exact violation text, terminal `exit: 1`.
 This is the discriminating artifact D-06 required; it is not an assertion I am taking on trust.
 
@@ -89,10 +89,10 @@ diff has no runner. Restating those is not a finding. One thing **not** already 
   row — read the function; it is not decoration. No gap here.
 - **See coverage gap above (SC-05 count conjunct)** — the one adequacy question with a real answer.
 
-**SC-03 — resolved, not left as ambient worry.** Re-running `check-state.sh` on the current tree
+**SC-03 — resolved, not left as ambient worry.** Re-running `check-state.py` on the current tree
 against the `635ef14` before-capture surfaces one extra line: `FEAT-06…: run dir qa-validator exists
 on disk but feature.yaml does not record it — orphaned work`. This is **not** an INV-6 line. Settled
-by checking, not assuming: `git diff 635ef14..9f87c48 -- .claude/skills/harness/bin/check-state.sh`
+by checking, not assuming: `git diff 635ef14..9f87c48 -- .claude/skills/harness/bin/check-state.py`
 touches **only** the INV-6 hunk (one `if` replaced by a 4-line equivalent condition — see the diff
 above); no other invariant's logic changed. The extra note is produced by an untouched code path
 firing against `runs/qa-validator/`, a directory created *after* `635ef14` for this qa dispatch itself

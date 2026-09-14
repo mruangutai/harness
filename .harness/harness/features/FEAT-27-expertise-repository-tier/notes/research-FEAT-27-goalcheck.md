@@ -9,7 +9,7 @@ as context, never as evidence for a criterion.
 ## Independence, labelled
 
 Three proofs are mine and were not run by qa: the **pre-change hook** re-run (SC-01, SC-09), the
-**budget-collapse mutant** on `check-expertise.sh` (SC-05), and my own reconstruction of SC-03's
+**budget-collapse mutant** on `check-expertise.py` (SC-05), and my own reconstruction of SC-03's
 thirty-two assertions from T-04's commit diff rather than from T-04's `verify:` block. Two are
 re-derivations of qa's method with my own hands on the command (SC-11's guard mutant, SC-02's
 sixteen resolves). Only SC-06 rests substantially on re-running cases qa ran.
@@ -24,7 +24,7 @@ sixteen resolves). Only SC-06 rests substantially on re-running cases qa ran.
 | 04 | met | automated, independent | `run_extra case1` both directions + 10 token classes; and I observed the real advisory format, which names file, line, entry id and quoted token: `.harness/expertise/harness-backend-dev.md:75: G-08 names 'team-config' …`, rc 0 |
 | 05 | met | automated, independent (mutation) | `case5`/`case6` pass at HEAD; against a scratchpad copy with `REPO_LINE_BUDGET = 40` → `150` (one-line diff shown), **exactly those two cases FAIL**, 20/22. The split is enforced by path, not by one constant |
 | 06 | met | automated, re-run | `case3` (no tier → rc 0, the string `repository` absent from the context entirely) + `case5a`/`case5b` (missing / unparseable payload → rc 0, stderr empty). `case3` also fails against the pre-change hook, so it is not vacuous |
-| 07 | met | automated, independent | I ran `check-expertise.sh` over each tier: **fifteen** craft files each named `OK`, rc 0 (six `ADVISORY` lines, by design); **six** repository files each named `OK`, rc 0. Each file named individually, not a bare directory exit code |
+| 07 | met | automated, independent | I ran `check-expertise.py` over each tier: **fifteen** craft files each named `OK`, rc 0 (six `ADVISORY` lines, by design); **six** repository files each named `OK`, rc 0. Each file named individually, not a bare directory exit code |
 | 08 | met | inspection (declared), independent | Four files, one at a time. `SPEC.md:812,959` and `harness-distill/SKILL.md:45-46` use the prose placeholder; `harness-curate/SKILL.md:19-21,43-45` uses the literal glob inside runnable commands — exactly the admissible split. Zero hits of `expertise/<repo>` or `**/expertise` in any of the four. **One judgement call, stated:** `.harness/README.md:18-19` renders both paths relative (`expertise/<agent>.md`, `<repo>/expertise/<agent>.md`) because that table is rooted at `.harness/` — a third *rendering*, but not either named forbidden form, and it resolves correctly in the document's own coordinates |
 | 09 | met | automated, independent | `case7a` asserts `[TRUNCATED at 40 lines` and the absence of 150; it **FAILS against the pre-change hook**, so it discriminates |
 | 10 | met | automated, independent (production) | Real hook, real tree, `harness-documentor`: precedence stated once in words, positioned before the repository header; the segment-name warning present; `authoritative on conflict` absent; headers label scope only; stderr 0 bytes |

@@ -956,10 +956,10 @@ tasks:
       one matched in the failure message, so a partial regression is legible. Register the case in the
       runner list at the bottom of the file.
 
-      The test suite is the home rather than the generator or check-state.sh, for three reasons: it
+      The test suite is the home rather than the generator or check-state.py, for three reasons: it
       runs by default because test-gen-decisions-index.py is in run-unit-tests.py's
       INTEGRATION_SCRIPTS, it can be shown to redden, and it lets the generator drop its amendment
-      code entirely instead of keeping the regexes alive purely to police them. A check-state.sh
+      code entirely instead of keeping the regexes alive purely to police them. A check-state.py
       refusal was considered and refused: it would put a documentation convention on the enforcement
       layer, a far heavier surface.
 
@@ -1062,7 +1062,7 @@ tasks:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/check-plan-routes.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/factory_decompose.py
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/harness_yaml.py
@@ -1122,7 +1122,7 @@ tasks:
 
       Two sites need a decision rather than a swap, and neither is a find-and-replace:
 
-        check-state.sh carries a live invariant literally NAMED "INV-24 (DEC-186)" near line 943, and
+        check-state.py carries a live invariant literally NAMED "INV-24 (DEC-186)" near line 943, and
         test-check-state.py asserts on that name near line 995. Renaming the invariant changes an
         identifier the test matches. Rename BOTH together, to INV-24 (DEC-203), and run
         test-check-state.py to confirm. Do not rename the invariant NUMBER.
@@ -1263,7 +1263,7 @@ tasks:
       grep -qi 'amendment' "$E" && exit 1
       grep -qE '^- P-01: WHEN ' "$E" || exit 1
       grep -qE '^- P-02: ' "$E" || exit 1
-      bash .claude/skills/harness/bin/check-expertise.sh "$E" || exit 1
+      python3 .claude/skills/harness/bin/check-expertise.py "$E" || exit 1
       exit 0
     intent: |
       In .harness/harness/expertise/harness-documentor.md, entry P-01 currently begins:
@@ -1282,7 +1282,7 @@ tasks:
       that a correction REWRITES the entry it corrects in place, and that a claim the correction
       falsifies survives as one clause of current truth in that entry with no date and no
       attribution - because without that clause a reader re-proposes something already measured
-      false. Keep it to the file's entry format and length discipline; check-expertise.sh enforces
+      false. Keep it to the file's entry format and length discipline; check-expertise.py enforces
       both.
 
       Leave P-02 and every other entry alone. P-02 governs new entries and is unaffected.
@@ -1958,7 +1958,7 @@ tasks:
           print('MISSING:', need); sys.exit(1)
       print('detect entries:', len(det))
       PY
-      bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds || exit 1
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds || exit 1
     intent: |
       Remove the explicit literal path .claude/skills/harness/bin/test-check-decision-claims.py from
       the integration test kind's detect value in .harness/harness.json. KEEP

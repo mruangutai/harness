@@ -108,7 +108,7 @@ Resolved 2026-08-21 with check-domain.py --resolve from the FEAT-31 worktree roo
 |---|---|---|---|
 | .claude/skills/harness/bin/check-domain.py | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
 | .claude/settings.json | NOBODY | main-session-direct, forced | yes |
-| .claude/skills/harness/bin/check-state.sh | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
+| .claude/skills/harness/bin/check-state.py | backend-dev, dev-ops | main-session-direct, DEC-174 | yes |
 | .claude/skills/harness/bin/test-check-state.py | backend-dev, dev-ops | main-session-direct, DEC-174 am.4 | no |
 | .claude/skills/harness/templates/harness.json | NOBODY | main-session-direct, forced | NO |
 | .claude/skills/harness/bin/run-unit-tests.py | backend-dev, dev-ops | judgement call | no |

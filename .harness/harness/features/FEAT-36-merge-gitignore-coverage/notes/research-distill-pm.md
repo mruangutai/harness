@@ -25,5 +25,5 @@ No Expertise operation is warranted. Both digest-skim candidates are already cov
 
 - Exact applied ops: `[]`.
 - `.harness/expertise/harness-pm.md` was not changed and `expertise-merge.py` was therefore not invoked.
-- Per-file check: `check-expertise.sh` was correctly skipped because the Expertise file did not change.
+- Per-file check: `check-expertise.py` was correctly skipped because the Expertise file did not change.
 - Touched file: `.harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/research-distill-pm.md`.

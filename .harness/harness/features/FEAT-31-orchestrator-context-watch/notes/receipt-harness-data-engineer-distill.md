@@ -79,7 +79,7 @@ Repository-tier file: untouched, 0 changes.
 - From relayed Candidate A: 1 (P-10)
 - From relayed Candidate B: 1 (P-11)
 
-## check-expertise.sh result (verbatim, full directory)
+## check-expertise.py result (verbatim, full directory)
 
 ```
 OK   .harness/expertise/harness-ai-dev.md

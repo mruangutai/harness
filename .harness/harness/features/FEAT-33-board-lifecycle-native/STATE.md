@@ -35,6 +35,6 @@ native-correct. cycles_used 1 of 10. Terminus: signature, then a build phase.
 - Q5 (harness defect): no agent tier below the main session holds SendMessage or a wait
   primitive, so neither an orchestrator nor a lead can correct a running subordinate; every
   attempt becomes a competing sibling spawn.
-- Q6 (harness defect): check-state.sh:123 sends an unapproved BRIEF to `bad` (exit 1) while
+- Q6 (harness defect): check-state.py:123 sends an unapproved BRIEF to `bad` (exit 1) while
   :139/:154 send the identical plan-pending state to `warn`, so every plan phase awaiting
   signature exits 1 by construction.

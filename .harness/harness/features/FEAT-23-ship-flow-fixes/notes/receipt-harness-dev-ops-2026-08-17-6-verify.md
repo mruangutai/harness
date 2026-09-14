@@ -109,7 +109,7 @@ shows above.
 ## 5. Full suite, both buckets
 
 ```
-cd /Users/molchairuangutai/GitHub/harness && bash .claude/skills/harness/bin/run-unit-tests.py --kind all
+cd /Users/molchairuangutai/GitHub/harness && python3 .claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 Exit code: `0`.

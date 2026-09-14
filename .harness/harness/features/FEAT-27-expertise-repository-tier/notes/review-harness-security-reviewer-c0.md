@@ -81,7 +81,7 @@ entry (`.harness/harness/expertise/harness-orchestrator.md` O-01, moved verbatim
 `OQ-02`) already states there is **no lineage protection** on any Expertise file — "an undeclared
 edit... rides any cluster commit and only a human notices" — and repository tier multiplies the
 count of such files per agent from 1 to 1+N without closing that gap. Human diff review remains the
-only backstop for content-level (semantic) poisoning; `check-expertise.sh` checks structure/budget
+only backstop for content-level (semantic) poisoning; `check-expertise.py` checks structure/budget
 only, never meaning.
 
 ## 5. Fail-open cost — unchanged, inherited, correctly scoped
@@ -96,7 +96,7 @@ as a finding.
 
 `inject-expertise.py` emits only the querying agent's own craft + its own repository-tier files +
 the codebase index — the injected consumer is exactly the spawned agent (by design). No path,
-secret, or unrelated-agent content in its output. `check-expertise.sh`'s new advisory lines
+secret, or unrelated-agent content in its output. `check-expertise.py`'s new advisory lines
 (`:150-156`) print only the path already supplied as an argv by the caller and a token already
 present in the file being linted — nothing new is disclosed to a party who didn't already have read
 access. Grepped the full diff for credential-shaped strings (API keys, tokens, private-key headers)
@@ -104,7 +104,7 @@ access. Grepped the full diff for credential-shaped strings (API keys, tokens, p
 
 ## 7. Advisory scan never gates — confirmed in code
 
-`check-expertise.sh`'s repository-token advisory list is appended to a separate `advisories` list,
+`check-expertise.py`'s repository-token advisory list is appended to a separate `advisories` list,
 never to `problems`, and `sys.exit(1 if failed else 0)` reads only `failed`. The advisory scan
 structurally cannot flip the exit code — confirmed by reading the control flow, not by re-running
 the (already green) test suite.

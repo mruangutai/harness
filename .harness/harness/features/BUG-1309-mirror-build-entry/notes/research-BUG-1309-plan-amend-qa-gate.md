@@ -28,12 +28,12 @@ What each `verify:` actually proves:
 - `tests/integration/test-hooks-install.py` → harness-backend-dev, harness-dev-ops, harness-qa
 - `tests/unit/test-feature-schema-build-entry.py` → harness-backend-dev, harness-dev-ops, harness-qa
 - `tests/unit/test-gh-sync-build-entry.py` → harness-backend-dev, harness-dev-ops, harness-qa
-- control: `post-merge-sweep.py`, `check-state.sh` → harness-backend-dev, harness-dev-ops
+- control: `post-merge-sweep.py`, `check-state.py` → harness-backend-dev, harness-dev-ops
 
 ## Overturned premise: the fixture repair is main-session-direct, not team (D-11)
 
 The dispatch pinned T-10 to `team` on the `--resolve` grant. **A team grant cannot settle carve-out
-membership**: the same resolver grants team on `post-merge-sweep.py` and `check-state.sh` themselves
+membership**: the same resolver grants team on `post-merge-sweep.py` and `check-state.py` themselves
 (control row above), which is exactly why this plan's signed `lanes` rows override it on T-04/T-06/T-07.
 `DECISIONS.md:4360-4363` puts "**the test file of each**" gate inside the carve-out and states the
 category governs, not the enumeration; case (e) of that file runs a real `git merge` through the
@@ -74,7 +74,7 @@ OK T-02 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor

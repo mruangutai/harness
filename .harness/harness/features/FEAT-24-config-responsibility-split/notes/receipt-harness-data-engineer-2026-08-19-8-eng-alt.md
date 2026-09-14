@@ -82,7 +82,7 @@ this diff's fix is a proxy assertion over that same blind spot, not a deeper sea
   correctness.
 
 ## Suite
-`bash .claude/skills/harness/bin/run-unit-tests.py --kind all` — rc=0, zero `FAIL` lines, ended
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all` — rc=0, zero `FAIL` lines, ended
 `106/106 checks passed. PASS test-factory-integration.py`. Ran the three named directly too:
 `test-factory-config.py` (79/79), `test-gh-board.py` (all pass), `test-factory-decompose.py`
 (181/181). All green.

@@ -26,8 +26,8 @@ The unit transcript names `test-handoff-done-when.py` exit 0 and `test-probe-han
 
 ## Literal inspections
 
-- **SC-04 FAIL:** from repository root, exact command `bash .claude/skills/harness/bin/check-state.sh` exited **1**. No output line named `Done when`. Actual violations included the unrelated FEAT-51 missing `notes/handoff-validate.md` and five malformed lead-digest-contract records under FEAT-54 run directories. Per the criterion, no absence-of-`Done when` observation can override the nonzero exit.
-- **SC-07 PASS:** `check-domain.py:1562-1563` imports/calls `handoff_done_when.problems(..., resolve=True)`; `check-state.sh:54,1251` imports/calls the same implementation with `resolve=False`. The reviewed gates carry no second Done-when target resolver.
+- **SC-04 FAIL:** from repository root, exact command `python3 .claude/skills/harness/bin/check-state.py` exited **1**. No output line named `Done when`. Actual violations included the unrelated FEAT-51 missing `notes/handoff-validate.md` and five malformed lead-digest-contract records under FEAT-54 run directories. Per the criterion, no absence-of-`Done when` observation can override the nonzero exit.
+- **SC-07 PASS:** `check-domain.py:1562-1563` imports/calls `handoff_done_when.problems(..., resolve=True)`; `check-state.py:54,1251` imports/calls the same implementation with `resolve=False`. The reviewed gates carry no second Done-when target resolver.
 - **SC-08 PASS:** template `HANDOFF.md:4-16`, playbook `SKILL.md:310-316`, DEC-159 `DECISIONS.md:3698-3727`, DEC-214 `:6696-6716`, and both gate heading lists/messages state five sections and name `## Done when`; only the authorized historical measurements remain four-section prose.
 - **SC-11 PASS:** merge base was exactly `0ec44965a961d19177de871c3bb1f02b701e646b`; primary intersection was empty. The positive control contained exactly `handoff-build.md` and `handoff-plan.md`, identical to the added-only set; set diff exited 0.
 

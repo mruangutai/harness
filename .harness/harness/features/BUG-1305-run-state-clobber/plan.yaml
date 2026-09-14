@@ -30,7 +30,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: "DEC-174 carve-out; check-domain.py --resolve at c369fb1f grants harness-backend-dev and harness-dev-ops, and the harness does not execute changes to its own registered PreToolUse gate"
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: "DEC-174 carve-out; --resolve grants harness-backend-dev and harness-dev-ops, and this is the state gate run at every /harness entry"
     - surface: .claude/skills/harness/bin/validate-digest.py
@@ -73,7 +73,7 @@ decisions:
     because: 'a resumed owning run and a foreign run reusing the slug carry IDENTICAL seed fields and DIFFERENT session identities by construction, so a denial keyed on session disagreement refuses exactly the resumed-owner writes this feature exists to protect - _resolve_identity (harness_yaml.py:511-546) resolves a property of the SESSION, never of the RUN, and no fail-open row and no additional recorded field can separate the two cases at state.yaml write time. The discriminator that survives is a value minted per RUN and carried by that run own checkpoint: a resumed owner presents it because it reads it out of the file it is updating, and a foreign run cannot present it without deliberately copying it (D-11). The acquisition discriminator this replaces - CREATION versus CONTINUATION - was measured to refuse approximately only the owner recovering a lost checkpoint and approximately no foreign run (plan panel ranks 1 and 2), because an empty prior_state arises from a readable ZERO-BYTE file as well as from an absent one (check-domain.py:1508-1518 at c369fb1f).'
     dec: none
   - id: D-02
-    choice: "Post-hoc detection is hosted by check-state.sh and is fed by the same marker the write guard reads; the marker is one mechanism with two consumers, not two artifacts."
+    choice: "Post-hoc detection is hosted by check-state.py and is fed by the same marker the write guard reads; the marker is one mechanism with two consumers, not two artifacts."
     because: "a clobbered checkpoint is definitionally silent about its own history, and building the witness twice guarantees the two copies disagree"
     dec: none
   - id: D-03
@@ -97,15 +97,15 @@ decisions:
     because: "the two live grammars disagree, so a remedy coupled to either one is wrong in half the corpus and would need migrating when the doctrine task lands"
     dec: none
   - id: D-08
-    choice: "Mode B is closed inside validate-digest.py's already-registered SubagentStop hook by fixing check_artifact_file's root resolution and failing closed on a resolvable run directory with no digest; check-state.sh is NOT wired to a hook."
-    because: "that interpreter is already paid per spawn while check-state.sh's sweep grows with run history forever, and the /harness-entry instruction that would otherwise cover the gap is instruction-enforced with nobody having verified it executes"
+    choice: "Mode B is closed inside validate-digest.py's already-registered SubagentStop hook by fixing check_artifact_file's root resolution and failing closed on a resolvable run directory with no digest; check-state.py is NOT wired to a hook."
+    because: "that interpreter is already paid per spawn while check-state.py's sweep grows with run history forever, and the /harness-entry instruction that would otherwise cover the gap is instruction-enforced with nobody having verified it executes"
     dec: none
   - id: D-09
     choice: "Each automated criterion's pre-change failure is demonstrated at build time against a pinned copy of the pre-change script and recorded verbatim in notes/redproof-BUG-1305.md; no pre-change script is committed as a test fixture."
     because: "a committed prior-script fixture rots against every later edit, and a test that fetches a historical blob is unreachable under a depth-1 CI checkout"
     dec: none
   - id: D-10
-    choice: "Every task touching check-domain.py, check-state.sh, validate-digest.py, run_identity.py or their tests is main-session-direct with a DEC-174 reason."
+    choice: "Every task touching check-domain.py, check-state.py, validate-digest.py, run_identity.py or their tests is main-session-direct with a DEC-174 reason."
     because: "the harness plans changes to its own enforcement layer and does not execute them"
     dec: DEC-174
 
@@ -114,7 +114,7 @@ decisions:
     because: "the acquisition refusal this replaces was measured to refuse approximately only the legitimate owner recovering a lost checkpoint and approximately no foreign run - the plan panel union finding at ranks 1 and 2 - because a foreign run reusing a slug always presents a PRESENT prior with equal seed fields. The Advisor consult recorded this mechanism as fallback Q2c and declined it only on the condition that a second identity signal could deny instead, and cycle 2 F-01 destroyed that condition by measuring that a resolved session identity cannot separate a resumed owner from a foreign run. A minted identity is the weakest thing that CAN separate them, because a foreign run has no way to hold the value except by copying it deliberately."
     dec: none
   - id: D-12
-    choice: "run_uid is minted by check-domain.py in its existing PostToolUse mode, which already reads what landed - the hook mints the value, appends one run_uid line to the landed state.yaml by text, and records the same value in the write-once witness beside it. The PRE routes never mint. Both key vocabularies that reject unknown top-level keys, ALLOWED in check-domain.py and CHECKPOINT_KEYS in check-state.sh, gain run_uid in the same task that introduces the field."
+    choice: "run_uid is minted by check-domain.py in its existing PostToolUse mode, which already reads what landed - the hook mints the value, appends one run_uid line to the landed state.yaml by text, and records the same value in the write-once witness beside it. The PRE routes never mint. Both key vocabularies that reject unknown top-level keys, ALLOWED in check-domain.py and CHECKPOINT_KEYS in check-state.py, gain run_uid in the same task that introduces the field."
     because: "minting has to happen where a shell observes every governed write, and POST is the only such place - a PreToolUse hook cannot alter a payload, the leads that author state.yaml hold no shell, and no program in the tree writes a run state.yaml. The cost is that the POST reporter becomes a writer of one line into the file it just read, which is why it appends a single top-level key by text rather than round-tripping the YAML, and never touches a file it could not parse."
     dec: none
   - id: D-13
@@ -230,7 +230,7 @@ panel:
     readers:
     - scope
     summary: 'T-12/SC-12 date the PostToolUse-delivery assumption once and nothing
-      re-verifies it: check-state.sh INV-9 checks matcher registration, not delivery.'
+      re-verifies it: check-state.py INV-9 checks matcher registration, not delivery.'
     disposition: open
     note: 'Rank 1''s strike removed this finding''s subject rather than its substance:
       nothing now dates the assumption at all. The gap is DISCLOSED at the signature
@@ -293,7 +293,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - a module imported by check-domain.py and check-state.sh is enforcement-layer code the harness plans but does not execute"
+    execution_reason: "DEC-174 carve-out - a module imported by check-domain.py and check-state.py is enforcement-layer code the harness plans but does not execute"
     depends_on: []
     status: done
     files:
@@ -444,7 +444,7 @@ tasks:
     status: done
     files:
     - .claude/skills/harness/bin/check-domain.py
-    - .claude/skills/harness/bin/check-state.sh
+    - .claude/skills/harness/bin/check-state.py
     - .claude/skills/harness/bin/bash-write-guard.py
     - .claude/skills/harness/bin/harness_boundary.py
     - tests/integration/test-check-domain.py
@@ -476,7 +476,7 @@ tasks:
       sets reject unknown top-level keys and both must learn run_uid in this task:
         - check-domain.py ALLOWED (:1450-1453 at c369fb1f, inside the RE_STATE_YAML branch) - without
           it the shape gate refuses the very key the POST hook injects, on the author next write;
-        - check-state.sh CHECKPOINT_KEYS (:1390-1405 at c369fb1f) - without it INV-16 reports every
+        - check-state.py CHECKPOINT_KEYS (:1390-1405 at c369fb1f) - without it INV-16 reports every
           checkpoint carrying the field, which is every checkpoint written after this lands.
       The comment at check-domain.py:1444-1447 already says the KEY VOCABULARY stays in sync with
       CHECKPOINT_KEYS; keep that true. Add one regression case to tests/integration/test-check-state.py
@@ -687,35 +687,35 @@ tasks:
       `witness guard` subheading: on the pre-change tree all three land with exit 0.
 
   - id: T-03
-    title: Report an already-clobbered checkpoint from check-state.sh against the marker
+    title: Report an already-clobbered checkpoint from check-state.py against the marker
     traces: [REQ-02, REQ-03]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - check-state.sh is the state gate script, and its own test file rides the same carve-out"
+    execution_reason: "DEC-174 carve-out - check-state.py is the state gate script, and its own test file rides the same carve-out"
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - tests/integration/test-check-state.py
       - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
     verify: |
       grep -q '^## SC-02' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && python3 tests/integration/test-check-state.py
     intent: |
-      Add post-hoc clobber detection to check-state.sh, inside the existing per-run-directory loop
+      Add post-hoc clobber detection to check-state.py, inside the existing per-run-directory loop
       `for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.yaml")):`
       (around :1426 at c369fb1f), immediately after the INV-16 shape block and before the INV-15
       digest block, so one loop pass answers all three questions.
 
       WRITE THE TEST CASES FIRST AND SHOW THEM RED. Build the fixture tree, copy the bin directory
-      with isolated_bin, overwrite the copied check-state.sh with `git show
-      c369fb1f:.claude/skills/harness/bin/check-state.sh`, and run the new cases with CHECK_STATE_BIN
+      with isolated_bin, overwrite the copied check-state.py with `git show
+      c369fb1f:.claude/skills/harness/bin/check-state.py`, and run the new cases with CHECK_STATE_BIN
       pointed at that copy (test-check-state.py:22 already reads that variable). Append to
       .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
       headed exactly `## SC-02` with the exact commands and the VERBATIM pre-change output showing
       the violating fixture going UNREPORTED there.
 
       Give the invariant the next unused INV number: list the existing ids with a grep for `INV-` in
-      check-state.sh and take the first integer above the highest one present. Do not reuse a number
+      check-state.py and take the first integer above the highest one present. Do not reuse a number
       and do not hard-code one from this instruction.
 
       THE INVARIANT IS SELF-LIMITING BY CONSTRUCTION, and that is D-13 rather than an omission. It
@@ -752,7 +752,7 @@ tasks:
       THE MESSAGE MUST DISTINGUISH A CLOBBER FROM A MALFORMED CHECKPOINT, which is REQ-03: INV-16
       existing finding says "non-checkpoint top-level key(s)" and speaks about shape; this one must
       say the recorded identity disagrees with the directory it occupies and must never reuse the
-      shape wording. An operator reading only check-state.sh output must be able to tell which of the
+      shape wording. An operator reading only check-state.py output must be able to tell which of the
       two happened and which record to recover.
 
       New cases in tests/integration/test-check-state.py, in one new function registered in main()
@@ -873,7 +873,7 @@ tasks:
           and the digest file is the deliverable.
       Update the docstring in the same edit so it describes what the function now does: the
       "FAIL OPEN, LOUDLY when the file cannot be located or read" paragraph becomes fail-open only
-      for the no-root case, and the sentence naming check-state.sh INV-15 as the backstop must not
+      for the no-root case, and the sentence naming check-state.py INV-15 as the backstop must not
       claim more than the backstop delivers - INV-15 runs on a /harness-entry instruction, not on a
       hook, and nobody has verified that instruction is executed.
 
@@ -1023,7 +1023,7 @@ tasks:
           D-01 and D-11 exist to protect;
         - T-06 digest content guard message - permitted side: a lead own-run append repair via Edit
           exiting 0;
-        - T-02 POST minting and T-03 detection invariant - permitted side: check-state.sh exiting 0, with
+        - T-02 POST minting and T-03 detection invariant - permitted side: check-state.py exiting 0, with
           no finding from the new invariant, over a fixture tree of legacy run directories that hold
           checkpoints and no witness.
         - T-05 fail-closed `return 2` in validate-digest.py's check_artifact_file - permitted side: a run
@@ -1040,7 +1040,7 @@ tasks:
           the one filename rather than to the directory. This is the SIXTH pair, added because the rank-2
           remedy itself created a refusing branch after the count was fixed at five; SC-13 grades that
           branch's own test coverage, and this pair is its place in the REQ-07 accounting.
-      Then run check-state.sh over THIS repository own .harness tree and record its exit code and any
+      Then run check-state.py over THIS repository own .harness tree and record its exit code and any
       run-directory findings verbatim. A non-zero exit whose findings name run directories that carry an
       agreeing witness, or ANY finding from the new invariant against a directory carrying no witness, is
       a REQ-07 failure in direction two and must be reported as such, not tuned away.
@@ -1067,7 +1067,7 @@ tasks:
         `## Removed or altered assertions` - the enumeration, or the single word none under it when there
         are none; the heading is present either way.
         `## Newly refused writes` - the six pairs above, each with its permitted-side case name and
-        observed exit code, the disclosed dropped-run_uid refusal, plus the check-state.sh run over this
+        observed exit code, the disclosed dropped-run_uid refusal, plus the check-state.py run over this
         repository own tree.
         `## Suite results` - the two commands above, each with its exit code, its FAIL-line count, and any
         failure lines verbatim.
@@ -1233,7 +1233,7 @@ tasks:
     traces: []
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - run_identity.py is imported by two registered gate scripts and check-state.sh is the state gate run at every /harness entry, so the harness plans this change and does not execute it"
+    execution_reason: "DEC-174 carve-out - run_identity.py is imported by two registered gate scripts and check-state.py is the state gate run at every /harness entry, so the harness plans this change and does not execute it"
     depends_on: []
     status: abandoned
     files:
@@ -1245,7 +1245,7 @@ tasks:
       verb, so a retired task is re-specified rather than deleted, and this body is the record of why.
 
       What it was for: it seeded a write-once marker into every run directory that predates the mechanism,
-      then enabled a check-state.sh invariant reporting any checkpoint that still had none - the
+      then enabled a check-state.py invariant reporting any checkpoint that still had none - the
       "detection is total" half of REQ-02 as originally written.
 
       Why it earns no place now. The corpus it backfills is machine-local, untracked and CONTINUOUSLY

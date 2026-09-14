@@ -25,7 +25,7 @@ low/defence-in-depth.
 - `gh_issues.py`, `gh-sync.py`, `wayfind.py` (diff, not just final state — wayfind's changes are a
   mechanical extraction to the shared module, confirmed byte-for-byte against the pre-refactor
   inline calls).
-- `check-state.sh`'s new INV-21 block (pure regex read of `feature.yaml`, no subprocess, no new
+- `check-state.py`'s new INV-21 block (pure regex read of `feature.yaml`, no subprocess, no new
   surface).
 - `run-unit-tests.py`, `test-gh-sync.py` (fake-`gh` harness), `test-check-state.py`.
 - `.harness/harness.json`, `docs/harness/DECISIONS.md` diffs (config/doc only, no executable

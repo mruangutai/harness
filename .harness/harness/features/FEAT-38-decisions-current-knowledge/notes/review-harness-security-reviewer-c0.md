@@ -76,7 +76,7 @@ adding content to this file. The vulnerability does not depend on that conventio
   `permissions:` block narrows the default token, which is a hardening gap but not itself exploitable by this
   diff's content — noted, not rated as its own finding since it's pre-existing workflow shape, not new in this
   diff.
-- **Swept scripts** (`check-domain.py`, `check-state.sh`, `run-unit-tests.py`, `board_lifecycle.py`,
+- **Swept scripts** (`check-domain.py`, `check-state.py`, `run-unit-tests.py`, `board_lifecycle.py`,
   `check-plan-routes.py`, `factory_decompose.py`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`,
   `upgrade-config.py`, `validate-digest.py`, and the touched `test-*.py`): diffed every changed line across the
   full sweep for `curl|wget|eval|os.system|shell=True|` command substitution `` `...` ``/`$(...)`, and

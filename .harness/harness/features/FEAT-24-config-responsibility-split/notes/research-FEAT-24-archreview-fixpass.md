@@ -14,7 +14,7 @@ weakened anywhere.** The plan is ready for the signature gate to re-open on it.
 | `load_board` coerces a digit string; `_validate_board` rejects it | `gh_board.py:80-85` vs `factory_config.py:88` |
 | `skip()` and `die()` both `print()` to **stdout** | `gh-sync.py:70-80` |
 | an expected exception "is printed verbatim, not re-wrapped" | `factory_cli.py:77` |
-| `derive_station(_pdoc)` called unwrapped | `check-state.sh:1180` |
+| `derive_station(_pdoc)` called unwrapped | `check-state.py:1180` |
 | `os.access` is the import-time probe | `factory_config.py:41` |
 | `check()` is the file's one case-dispatch point | `test-factory-config.py:30` |
 
@@ -24,7 +24,7 @@ weakened anywhere.** The plan is ready for the signature gate to re-open on it.
   examples corrected) and 2b (stations message names the five). Full-key-path pins added to one
   case per entry point: `github.board.owner` present AND `github.board.board` absent, in T-02's
   `owner missing` board_for case and T-04's matching `load_board` case.
-- **F-2** — a paragraph in T-04's intent (one commit with T-05; `check-state.sh` EXPECTED to exit 1
+- **F-2** — a paragraph in T-04's intent (one commit with T-05; `check-state.py` EXPECTED to exit 1
   between them; do not edit it, DEC-174; return on T-04's own verify) mirrored into T-05's intent.
   **N-3** got its own sentence in T-02 and T-03 — different task pair, so the F-2 note could not
   carry it.

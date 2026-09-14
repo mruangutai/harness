@@ -3,7 +3,7 @@
 ## BLUF
 
 Reachability question: **both compares ARE reachable and neither is dead code** — proven by
-execution, not inference (below). One real simplification finding in `check-state.sh`'s new
+execution, not inference (below). One real simplification finding in `check-state.py`'s new
 INV-36 block (APPLY candidate). Part 2: no grade regression in the three named production
 files' changed functions; `uid_conflict` (new, `run_identity.py:123`) fails the production
 bar at grade 3; `main()` in `tests/integration/test-check-domain.py` genuinely worsened
@@ -44,7 +44,7 @@ Executed proof, not inference:
 
 **Verdict: no defect.** This is the valuable negative result — retire the question.
 
-### Finding — redundant conjunct masks an unguarded consumer (`check-state.sh:1502–1514`)
+### Finding — redundant conjunct masks an unguarded consumer (`check-state.py:1502–1514`)
 
 ```
 _wuid = _marker.get("run_uid") if isinstance(_marker, dict) else None

@@ -43,14 +43,14 @@ No FEAT-08 path appears in any `files:` here.
 
 - D-01: **The plan-time checker is a NEW script, `.claude/skills/harness/bin/check-plan-routes.py`,
   invoked by pm at PLAN write — not a mode of `check-domain.py` and not an invariant inside
-  `check-state.sh`.** — rationale: fog patch 1 was "new script, mode, or invariant", and the answer
+  `check-state.py`.** — rationale: fog patch 1 was "new script, mode, or invariant", and the answer
   follows from when it must fire. It must fire while the plan is still being written, when the
   author can still move a task's lane; an entry-time sweep reports it after the plan is finished.
   `check-domain.py` is a `PreToolUse` hook whose contract is a JSON payload on stdin and `exit 2`;
   making it also a plan-phase CLI multiplies its invocation contracts on the one file DEC-174
   carves out. `--resolve` is the *matcher access point*, not the checker. tradeoffs: a fourteenth
   script in `bin/`, and a check that runs when pm remembers rather than at every `/harness` entry —
-  see the open question about promoting it to a `check-state.sh` invariant once FEAT-08 releases
+  see the open question about promoting it to a `check-state.py` invariant once FEAT-08 releases
   that file.
 - D-02: **`--resolve <path>` prints newline-separated, sorted agent names, or the literal token
   `NOBODY`, and exits 0 on any successful resolution; exit 2 is reserved for an unreadable,
@@ -105,9 +105,9 @@ No FEAT-08 path appears in any `files:` here.
   surface (DEC-119). tradeoffs: prior plans use a token the checker will not recognise — they are
   history and are not re-written, so the checker must treat an unknown token as "not a declared
   main-session step", which is the safe direction.
-- D-08: **`check-plan-routes.py` re-uses `check-state.sh`'s task-block regex
-  (`^(?:-\s*|#+\s*)(T-\d+)\b...`, `check-state.sh:93-94`) by copying it, not by sharing it.** —
-  rationale: `check-state.sh` is owned by the in-flight FEAT-08 and cannot be touched here, and
+- D-08: **`check-plan-routes.py` re-uses `check-state.py`'s task-block regex
+  (`^(?:-\s*|#+\s*)(T-\d+)\b...`, `check-state.py:93-94`) by copying it, not by sharing it.** —
+  rationale: `check-state.py` is owned by the in-flight FEAT-08 and cannot be touched here, and
   PLAN.md is markdown, not YAML, so PyYAML does not apply. This is a duplicated *task-block* parser,
   never a duplicated *path matcher* — the constraint the feature exists to protect (D-02, SC-08) is
   untouched. tradeoffs: two places know how a task block is spelled; consolidation is raised as an
@@ -169,7 +169,7 @@ date: 2026-08-05
   intent: `check-plan-routes.py` takes one or more PLAN.md paths as argv (defaulting to
     `.harness/features/*/PLAN.md` when given none) and, for each, extracts task blocks with the
     regex `^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)` under `re.M|re.S` — copied
-    from `check-state.sh:93-94` per D-08. From each block it reads the `files:` line, splitting on
+    from `check-state.py:93-94` per D-08. From each block it reads the `files:` line, splitting on
     commas and stripping backticks and whitespace, and the `execution_mode:` line, taking the first
     whitespace-delimited token after the colon. For each literal path it shells out to
     `.claude/skills/harness/bin/check-domain.py --resolve <path>` with `stdin=DEVNULL` and reads the

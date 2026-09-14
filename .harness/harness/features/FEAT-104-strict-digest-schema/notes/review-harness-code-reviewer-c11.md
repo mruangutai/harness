@@ -97,7 +97,7 @@ join) would have failed both `in stderr` clauses, as `qa`'s own prior analysis (
 `grep -rn 'missing required step key\|undeclared step key'` across `.claude/skills/harness/bin/`:
 `"missing required step key"` has **exactly one producer** (`check-domain.py:1663`).
 `"undeclared step key"` (substring inside `"undeclared step key or evidence shape."`) has **two
-producers**: `check-domain.py:1671` (write-time) and `check-state.sh:1526` (at-rest sweep) — this is
+producers**: `check-domain.py:1671` (write-time) and `check-state.py:1526` (at-rest sweep) — this is
 the pre-existing CF drift (§7), unaffected by this delta. For the SC-08 discriminating clause itself
 (the `strict` fixture, `rogue_step_key` only, no missing-required violation), the new head cannot
 fire — that fixture's step has both `id` and `status` present, so `_missing_required` stays empty
@@ -131,8 +131,8 @@ reading) stands — not reopened.
   whole-buffer style); not worsened, not newly gating.
 - **F-104C10-02** (info, thin step-seam symbol vs. digest seam's three Python identifiers) — CARRIED,
   unchanged. The message text this citation targets is untouched by the delta.
-- **CF-2** (severity contested: qa med / code info / c9 lead low — `check-state.sh:1590` discards
-  `_host`, passes literal `"lead"`) — CARRIED, unchanged; `check-state.sh` is byte-identical since
+- **CF-2** (severity contested: qa med / code info / c9 lead low — `check-state.py:1590` discards
+  `_host`, passes literal `"lead"`) — CARRIED, unchanged; `check-state.py` is byte-identical since
   790023f0. My rating stays **info**: correct today by construction and pinned by
   `_t01_adequacy_failures`'s bidirectional case; only a *future* edit substituting `_host` would
   reopen it, and nothing in this delta touches that call site.
@@ -140,10 +140,10 @@ reading) stands — not reopened.
   unchanged; still present in `origin/main..984bd26b`, still outside SC-13's four-file scope, still
   benign.
 - **Q7** (5 spellings of the strict-schema-version predicate across `check-domain.py`/
-  `check-state.sh`) — CARRIED, unchanged; neither file's `_valid_version`/predicate logic is touched
+  `check-state.py`) — CARRIED, unchanged; neither file's `_valid_version`/predicate logic is touched
   by this delta (confirmed by the numstat in §1 — only `shape_problems`'s tail changed).
 - **F1/F2/F3** — F1 and F3 remain CLOSED (unaffected code, per c10). F2's DECLINED disposition
-  STANDS — `check-state.sh` topology (the `validate("lead", ...)` call site) is unchanged.
+  STANDS — `check-state.py` topology (the `validate("lead", ...)` call site) is unchanged.
 - **`_no_parser` bootstrap early return** — CARRIED. Pre-existing, sits above both FEAT-104 blocks in
   source order, unaffected by this delta (the touched lines are inside the already-`_no_parser`-
   gated `state.yaml` branch's tail, not the guard itself). No new information.

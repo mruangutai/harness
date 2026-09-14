@@ -214,8 +214,7 @@ same file. **Keep it if the project colocates tests**; drop it only if the proje
 a separate root. It is the one exception to the disjointness rule above, and it is not an oversight.
 ### 6. Verify, then warn about the restart
 
-```bash
-.agents/skills/harness/bin/check-state.py                 # this harness checkout
+```python3 .agents/skills/harness/bin/check-state.py                 # this harness checkout
 .agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
 python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
 ```

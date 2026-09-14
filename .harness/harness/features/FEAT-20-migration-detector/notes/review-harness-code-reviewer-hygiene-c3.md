@@ -7,18 +7,18 @@ found outside the dispatcher's one pre-identified change; no must_fix.
 
 ## 1. Extraction equivalence — one unflagged drift found
 
-Cross-checked all 5 causes + MIXED at both call sites (`check-state.sh` INV-27, `layout_migration.py`
+Cross-checked all 5 causes + MIXED at both call sites (`check-state.py` INV-27, `layout_migration.py`
 `render()`):
 
 - `no-evidence`, `no-rows`: byte-identical wording at both SHAs, both sites.
 - `undeclared-segment`: the dispatcher's pre-identified change confirmed — "an UNDECLARED segment"
-  (check-state.sh's old wording) → "undeclared segment" (render()'s old, now shared, wording).
-- MIXED: `check-state.sh`'s old `_rd = ", ".join(...)` (comma-joined) is exactly what `blame_text()`
+  (check-state.py's old wording) → "undeclared segment" (render()'s old, now shared, wording).
+- MIXED: `check-state.py`'s old `_rd = ", ".join(...)` (comma-joined) is exactly what `blame_text()`
   now returns — no change in that branch.
 - **`unreadable` / `neither` — render() gains a clause it never had.** At 6296149, `render()`'s
   `CANNOT_VERIFY` block only appended cause wording for `no-evidence`/`no-rows`/`undeclared-segment`
   (three explicit `if`s); `unreadable` and `neither` got no cause sentence at all in `render()` output
-  — only the bare `blame()` list. `check-state.sh`'s old `_cv_wording` table, by contrast, already
+  — only the bare `blame()` list. `check-state.py`'s old `_cv_wording` table, by contrast, already
   had wording for all 5. At d15daa3, `cause_text()` covers all 5 uniformly and `render()` now calls it
   unconditionally for every `CANNOT_VERIFY`, so a direct `layout_migration.py` invocation now also
   prints "a coupled reader could not be read" / "a coupled reader matches neither form" for those two
@@ -68,7 +68,7 @@ here since only value-equal data (path strings) crosses that boundary, nothing c
 
 ## 5. No regression outside claimed surface
 
-`--stat` confirms every touched source file maps to a claimed bucket: `check-state.sh` and
+`--stat` confirms every touched source file maps to a claimed bucket: `check-state.py` and
 `layout_migration.py` (extraction), `layout_fixtures.py` (derivation + guard + softened docstring —
 verified true: `case_20`'s scanner does open this file since it isn't `test-*.py`, but zero lines match
 its `PREDICATES` tuple so it emits no assertion; "skipped by that scanner" is loose phrasing for a true
@@ -85,14 +85,14 @@ this diff.
 c2's Q2 (no test pins CI/session-entry parity per cause) is weaker now, not resolved: the extraction
 removes the *mechanism* of the prior drift (one shared table instead of two), so a future regression
 would require re-inlining wording at a call site rather than editing one of two copies. Still no test
-asserts that `check-state.sh` actually calls `cause_text`/`blame_text` rather than reimplementing.
+asserts that `check-state.py` actually calls `cause_text`/`blame_text` rather than reimplementing.
 Non-blocking, carried forward at reduced severity.
 
 ## Rejected candidates
 
 - Separator/join-format change (" — " → "; readers: ", per-item → comma-joined) as a finding — rejected,
   this is item 5's named "; readers: " convention, applied consistently.
-- Unrecognised-cause fallback wording difference (mentions "its call sites" vs "check-state.sh") —
+- Unrecognised-cause fallback wording difference (mentions "its call sites" vs "check-state.py") —
   rejected, unreachable defensive path (5 causes are exhaustive per `scan()`), still loud either way.
 - Double-import of `layout_migration` via `layout_fixtures`'s plain import — rejected as a finding,
   noted in §4: no identity-dependent comparison crosses that boundary.
@@ -113,7 +113,7 @@ DIGEST:
   human_commits_in_scope: []
   open_questions:
     - { id: Q1, question: "render()'s CANNOT_VERIFY block now unconditionally calls cause_text(), so a bare layout_migration.py invocation emits cause wording for 'unreadable'/'neither' that it never emitted at 6296149. Plausibly intended (single-table consolidation) but not named as a change in the dispatch or the commit's crumb list. Confirm intent.", blocking: false }
-    - { id: Q2, question: "c2's parity-coverage advisory (no test asserts check-state.sh actually calls cause_text/blame_text) is weaker post-extraction but still open: nothing pins that INV-27 uses the module's functions rather than a reimplementation.", blocking: false }
+    - { id: Q2, question: "c2's parity-coverage advisory (no test asserts check-state.py actually calls cause_text/blame_text) is weaker post-extraction but still open: nothing pins that INV-27 uses the module's functions rather than a reimplementation.", blocking: false }
   files_touched: [.harness/features/FEAT-20-migration-detector/notes/review-harness-code-reviewer-hygiene-c3.md]
   expertise_update: []
 artifact: .harness/features/FEAT-20-migration-detector/notes/review-harness-code-reviewer-hygiene-c3.md

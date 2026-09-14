@@ -10,7 +10,7 @@ commands below ran from that worktree root.
 |---|---|
 | `python3 .../test-check-state.py` | **161 ok / 0 FAIL**, exit **0** — matches author's claim exactly |
 | `python3 .../test-validate-feature-json.py` | **61 PASS / 0 FAIL**, "ALL PASS", exit **0** |
-| `bash .../check-state.sh` (live, worktree root) | exit **0**, **0 VIOLATION** lines (only `note`-level advisories, none referencing INV-6/BUG-1080) |
+| `python3 .../check-state.py` (live, worktree root) | exit **0**, **0 VIOLATION** lines (only `note`-level advisories, none referencing INV-6/BUG-1080) |
 
 ## 4. Mutation table — MY OWN mutants, run against a mirrored `/tmp` copy of the bin/ dir via
 `CHECK_STATE_BIN` (the suite's own documented escape hatch). Six cases: `plan_run_is_exempt` (A),
@@ -28,7 +28,7 @@ commands below ran from that worktree root.
 | M7 (mine, targeting C) | exempt on ANY non-empty `code_grade` value (`== ""` instead of `!= "n_a"`) | **C only — 1 case** |
 
 Raw tool output for each mutant, and the diff proving each mutant is a single clean hunk against
-the real `check-state.sh`, is reproducible from `/tmp/run_inv6_cases.py` + `/tmp/mutbin_m{1..7}`
+the real `check-state.py`, is reproducible from `/tmp/run_inv6_cases.py` + `/tmp/mutbin_m{1..7}`
 (ephemeral, built and run entirely outside the repo per the READ-ONLY constraint; worktree verified
 `git status --porcelain` clean of any source change before and after).
 
@@ -57,21 +57,21 @@ so all six functions are called unconditionally before `all()` runs — no short
 **Confirmed: a single case silently failing flips the suite's exit code from 0 to 1.** No dead
 weight in the six.
 
-## 6. Schema/runtime agreement — feature-schema.json vs check-state.sh (DISAGREE, one direction)
+## 6. Schema/runtime agreement — feature-schema.json vs check-state.py (DISAGREE, one direction)
 
 `feature-schema.json:61` declares `"code_grade": {"enum": ["n_a"]}` — closed, **exact-string**
-match (JSON Schema `enum` is not case- or whitespace-normalized). `check-state.sh:445` tests
+match (JSON Schema `enum` is not case- or whitespace-normalized). `check-state.py:445` tests
 `str(entry.get("code_grade","")).strip().lower() != "n_a"` — case- and whitespace-insensitive.
 
 Measured directly: built a real JSON `feature.json` (not the test suite's YAML-in-`.json`
 convenience fixture) with `code_grade: "N_A"` and ran both gates against it:
 - `validate-feature-json.py <file>` → **rejects**: `/runs/0/code_grade: 'N_A' is not one of ['n_a']`
-- `check-state.sh` over the same value (via `_inv6_feature`, which uses check-state.sh's own
+- `check-state.py` over the same value (via `_inv6_feature`, which uses check-state.py's own
   YAML-tolerant loader) → **exempts silently** (`_PIN_MSG` absent from output)
 
 So a document can be **schema-INVALID and gate-EXEMPT** at once for any case/whitespace variant of
 `n_a` (`"N_A"`, `" n_a "`, `"N_A "`, ...). The reverse direction does not occur: the only
-schema-VALID value (`"n_a"` exactly) is always exempted by check-state.sh's test too, since exact
+schema-VALID value (`"n_a"` exactly) is always exempted by check-state.py's test too, since exact
 match implies the lenient match. **No test in the diff or in `test-validate-feature-json.py`
 exercises this divergence** — that file has zero `code_grade` cases at all (`grep` empty). Recorded
 as a `coverage_gap`.
@@ -106,7 +106,7 @@ prompts it, so the fix's real-world effect is unverified and plausibly inert.
 
 ## Test-first audit (re-derived against `git show 9f2a0702` copy in a mirrored tmp tree)
 
-Ran the CURRENT six cases against the PRE-FIX `check-state.sh` (`any(sq == "validator" ...)`, no
+Ran the CURRENT six cases against the PRE-FIX `check-state.py` (`any(sq == "validator" ...)`, no
 `code_grade` concept at all):
 
 ```
@@ -125,7 +125,7 @@ regression guard for the fix's fail-closed behavior, not a vacuous carry-over.
 
 ## Test-matrix gate
 
-Change type: **bugfix** at minimum (BUG-1080, a defect fix to `check-state.sh`); the diff also
+Change type: **bugfix** at minimum (BUG-1080, a defect fix to `check-state.py`); the diff also
 couples a shell predicate to a JSON Schema property (`feature-schema.json`) and its own test file,
 which is exactly the shape `cross_module` names — floor is `unit` either way, `unit`+`integration`
 under the broader reading. No `plan.yaml`/`BRIEF.md` exists for this feature (main-session-direct,

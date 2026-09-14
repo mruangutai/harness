@@ -44,7 +44,7 @@ Current-pin reproduction called the real output functions with an ESC/OSC-bearin
 - **Prompt/command injection:** SEC-F-10 is the gating path. List-form `subprocess.run` prevents shell interpolation in the launcher, but it does not sandbox a coding agent whose own tools remain enabled; `--auto-approve` makes the distinction load-bearing.
 - **Filesystem/path traversal:** finding and approval pointers share one grammar and one contained, bounded reader. Plan and BRIEF targets are derived from the note's feature directory and pass through the same realpath containment. Ordinary absolute/traversal/control, symlink escape, directory/FIFO, oversized and decoding cases fail closed. The probe independently constrains selected notes before any model call.
 - **YAML/deserialization:** only `yaml.safe_load` is used for the bounded plan target; parse/type errors become unresolved authorities. Persisted mode (`resolve=False`) does not open authority targets. No unsafe object constructor is used.
-- **Hook fail-open:** the write gate catches import/resolver exceptions and turns them into problems; only exit 2 is treated as blocking, and the current real-hook exception fixture observed exit 2 with `REFUSING`. Invalid-UTF-8 Edit reconstruction likewise exited 2 before mutation. The state check reports an unavailable module as a violation and exits 1, appropriate for that non-hook gate (`check-state.sh:53-56,1243-1262`).
+- **Hook fail-open:** the write gate catches import/resolver exceptions and turns them into problems; only exit 2 is treated as blocking, and the current real-hook exception fixture observed exit 2 with `REFUSING`. Invalid-UTF-8 Edit reconstruction likewise exited 2 before mutation. The state check reports an unavailable module as a violation and exits 1, appropriate for that non-hook gate (`check-state.py:53-56,1243-1262`).
 - **Auth/authorization/SSRF/redirects/spreadsheet injection:** no route, session, tenant boundary, redirect, CSV/spreadsheet export, SQL/NoSQL, or user-selected URL was added. `--model` is an argv value, not shell text.
 - **Secrets/dependencies/data exposure:** a credential-signature scan over the full **93-path** pinned diff found no API-key, GitHub-token, AWS-key, Slack-token, or private-key literal. No dependency was added; PyYAML was already required. Sending a deliberately admitted repository handoff to the selected model provider is disclosed and manual, but SEC-F-10 makes the provider invocation unsafe because the recipient is a tool-capable agent rather than a text-only model call.
 - **Availability:** note and authority reads are bounded at 1 MiB and special files are rejected/nonblocking on the exercised paths. No unbounded network loop or recursive parser was introduced.
@@ -58,7 +58,7 @@ Current-pin reproduction called the real output functions with an ESC/OSC-bearin
 5. `.claude/skills/harness/bin/check-domain.py` — PreToolUse trust boundary, Edit reconstruction, exit-2 behavior.
 6. `.harness/harness.json` — frozen baseline, locally-run probe registration, and authoritative `review: advisory_unless_high` policy.
 7. `tests/integration/test-check-state.py` — 17 focused persisted-mode/baseline/grammar outcomes.
-8. `.claude/skills/harness/bin/check-state.sh` — corpus input, baseline use, no target re-resolution, module-failure reporting.
+8. `.claude/skills/harness/bin/check-state.py` — corpus input, baseline use, no target re-resolution, module-failure reporting.
 9. `.claude/skills/harness/templates/HANDOFF.md` — author-facing untrusted input contract and typed pointer surface.
 10. `.claude/skills/harness/SKILL.md` — five-section author/orchestrator instruction surface.
 11. `tests/manual/probe-handoff-comprehension.py` — model, host-tool, repository-input and terminal-output boundaries; source of both findings.
@@ -70,7 +70,7 @@ Current-pin reproduction called the real output functions with an ESC/OSC-bearin
 
 ## Measurements and adequacy limits
 
-- Exact SC-04, repository root: `bash .claude/skills/harness/bin/check-state.sh` → **exit 0**, **0 `Done when` findings**, **0 tagged violations**.
+- Exact SC-04, repository root: `python3 .claude/skills/harness/bin/check-state.py` → **exit 0**, **0 `Done when` findings**, **0 tagged violations**.
 - Focused current-pin checks: validator **54/54**; probe admission **6/6**; real write-hook group **41/41**; persisted-state group **17/17**; probe registration/isolation **5/5**.
 - No credentialled model call, SC-10 UAT, formatter, linter, build, or unrelated suite ran.
 - SEC-F-10 was not exercised with a malicious live model prompt. Its mechanism is bound to the current program argv and the installed runtime's own help: tools default enabled, `--no-tools` disables them, and `--auto-approve` bypasses approval. Model obedience is the only unexecuted precondition.

@@ -1108,7 +1108,7 @@ ok - case (m3): a decoy entry does not let a narrowed PostToolUse registration t
 ok - case (n/feature.json over): at 301 feature.json / 120 STATE.md lines, INV-23 fires on [feature.json] — wanted [feature.json]
 ok - case (n/STATE.md over): at 300 feature.json / 121 STATE.md lines, INV-23 fires on [STATE.md] — wanted [STATE.md]
 ok - case (n/both within): at 300 feature.json / 120 STATE.md lines, INV-23 fires on [nothing] — wanted [nothing]
-ok - case (o): check-domain.py, check-state.sh and HANDOFF.md agree on every duplicated budget, key and heading
+ok - case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated budget, key and heading
 ok - case (p/over): CLAUDE.md at 81 lines -> INV-23 fires (want fires)
 ok - case (p/at the budget): CLAUDE.md at 80 lines -> INV-23 silent (want silent)
 ok - case (p/warn): the CLAUDE.md finding is a `note`, not a `VIOLATION` — warn level, so it cannot halt /harness entry

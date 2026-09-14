@@ -5,7 +5,7 @@
 `git diff --name-status 3c75aa6..a714bd0` — 8 files, all `.sh` / `.py` / `.yaml` / `.md`:
 
 ```
-M .claude/skills/harness/bin/check-state.sh
+M .claude/skills/harness/bin/check-state.py
 A .claude/skills/harness/bin/layout_fixtures.py
 M .claude/skills/harness/bin/layout_migration.py
 M .claude/skills/harness/bin/test-check-state.py
@@ -17,13 +17,13 @@ M docs/harness/DECISIONS.md
 
 No `.html/.css/.scss/.tsx/.jsx/.vue/.svelte`, no `DESIGN.md`-governed rendered surface anywhere in
 this diff. Ordinary Mode A/B UI review is out of scope — **except** the one surface the dispatch
-explicitly handed me: the reworded INV-27 diagnostic text in `check-state.sh`, which a human reads
+explicitly handed me: the reworded INV-27 diagnostic text in `check-state.py`, which a human reads
 at session entry. Treated as in-remit per this role's own P-06 (a dispatch that names an adjacent
 non-rendered surface puts it in-remit).
 
 ## Finding — diagnosis clause and blame list can now disagree (real, PASS-level, non-gating)
 
-`check-state.sh:1290-1310` composes two `CANNOT_VERIFY` messages from `layout_migration.blame()`:
+`check-state.py:1290-1310` composes two `CANNOT_VERIFY` messages from `layout_migration.blame()`:
 
 - cause `"unreadable"` → `"a coupled reader could not be read — {blame(rep)}"`
 - cause `"neither"` → `"a coupled reader matches neither form — {blame(rep)}"`

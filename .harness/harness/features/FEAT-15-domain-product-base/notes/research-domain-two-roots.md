@@ -138,7 +138,7 @@ up to two candidates from one target).
   draws `DEVIATION`, exit 0 — not `VIOLATION`. The marker stays.
 - `check-plan-routes.py` on this feature's own `plan.yaml` → five `DEVIATION` lines,
   `0 violation(s)`, **exit 0**, every carve-out marker intact.
-- `check-state.sh` → **exit 1 at `06ae963`, BRIEF pending, `feature.yaml` absent (the
+- `check-state.py` → **exit 1 at `06ae963`, BRIEF pending, `feature.yaml` absent (the
   orchestrator's file, not pm's)**. Both findings are expected at this phase.
 
 ## 10. What prefix inference does to the existing suite — measured, not counted by grep

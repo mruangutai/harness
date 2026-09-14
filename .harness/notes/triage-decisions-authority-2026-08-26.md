@@ -137,7 +137,7 @@ VERIFIED: **DEC-186 and DEC-192 are cited inside eight live files under `bin/` p
 `.github/workflows/tests.yml`** — while `DECISIONS.md:5915` says a struck decision is "removed
 from every gate". They are struck and they are in the gates. Nobody has ruled on that.
 
-`check-state.sh:918` carries a live invariant literally named `INV-24 (DEC-186)`.
+`check-state.py:918` carries a live invariant literally named `INV-24 (DEC-186)`.
 
 `test-gen-decisions-index.py:133` uses **DEC-104's body as a test fixture**. Deleting the entry
 may break the test, not merely orphan a citation.
@@ -177,7 +177,7 @@ the struck entry under a new number, i.e. deletion in name only.
 3. **Delete DEC-140.** One entry, zero external citations — the cheapest possible test of steps
    1 and 2 together.
 4. **Repoint DEC-186/192/196 to DEC-203 (21 live occurrences), then delete.** Fold #844 in as
-   its first item. Settle #748 at the same time. `check-state.sh:918`'s `INV-24 (DEC-186)` needs
+   its first item. Settle #748 at the same time. `check-state.py:918`'s `INV-24 (DEC-186)` needs
    a decision, not a find-and-replace.
 5. **Execute #615: fold amendments in place. Budget for 38, not 25.** Mechanical ones first,
    DEC-138's eight and DEC-196's four last. Delete the two dead amendments. Fix the duplicate

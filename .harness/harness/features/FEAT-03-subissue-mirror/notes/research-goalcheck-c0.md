@@ -54,16 +54,16 @@ new-verb half. See Q1.
 | SC-05 | met | automated | `test-gh-sync.py:212,214,297,324,328` plus `:237` — `:237`'s re-run reads `attached:` back from disk in a fresh process, which is the attach-receipt round trip |
 | SC-06 | met | inspection | `wayfind.py` — all four absence greps **0**; carve-out presence greps both **1** (`sub_issues", "--paginate"`, `dependencies/blocked_by",$`); `grep -cE 'parent_args\|blocked_by_args' gh-sync.py` = **0**; five builders at `gh_issues.py:13,17,21,25,29` |
 | SC-07 | met | inspection | `harness.json test_kinds.unit.cmd` = `run-unit-tests.py`; `run-unit-tests.py:6` lists both named scripts (plus T-07's third); `detect` resolves to all three files (was `[]`) |
-| SC-08 | met | automated | `test-check-state.py:64,74,84,95` — three fixtures plus "exit code unchanged by INV-21 (a: 1, b: 1)"; warn level confirmed at `check-state.sh:382` (`warn.append`, not `bad`) |
+| SC-08 | met | automated | `test-check-state.py:64,74,84,95` — three fixtures plus "exit code unchanged by INV-21 (a: 1, b: 1)"; warn level confirmed at `check-state.py:382` (`warn.append`, not `bad`) |
 | SC-09 | met | inspection | zero `sub_issues_summary` assertions in `bin/` (sole match is a docstring at `test-check-state.py:6`); `test-gh-sync.py` fakes gh solely via `GH_SYNC_GH` (`:103`); no `gh` invocation in `test-check-state.py` or `test-validate-digest.py` |
-| SC-10 | met | inspection | only FEAT-03's own `feature.yaml` is in `4d00dbc..HEAD`; its `github:` block (`:81-84`) still reads `parent: none` / `milestone: none` / `issues: {}` — the two diff hits are `cycles_used` and a `skipped_segments` reason string, not the block. Zero `backfill\|retrofit\|migrat` matches in `gh-sync.py`, `gh_issues.py`, `wayfind.py`, `check-state.sh` |
-| SC-11 | met | inspection | `check-docs.sh` exit **0** ("no stale statements found", 45 patterns / 77 files); `amendment 7` count 1 in `DECISIONS.md`; `check-state.sh` output carries **no** `INV-10` line |
+| SC-10 | met | inspection | only FEAT-03's own `feature.yaml` is in `4d00dbc..HEAD`; its `github:` block (`:81-84`) still reads `parent: none` / `milestone: none` / `issues: {}` — the two diff hits are `cycles_used` and a `skipped_segments` reason string, not the block. Zero `backfill\|retrofit\|migrat` matches in `gh-sync.py`, `gh_issues.py`, `wayfind.py`, `check-state.py` |
+| SC-11 | met | inspection | `check-docs.sh` exit **0** ("no stale statements found", 45 patterns / 77 files); `amendment 7` count 1 in `DECISIONS.md`; `check-state.py` output carries **no** `INV-10` line |
 | SC-12 | met | automated | `test-gh-sync.py:168,172,176,353,529` — see the ruling above |
 
 ## REQ coverage — 9 of 9 traced
 
 REQ-01/05 → T-03 (`cmd_open`). REQ-02/03 → T-04 (`cmd_close_task`). REQ-04 → T-05 `cmd_abandon` +
-T-06 `cmd_ship`. REQ-06 → T-02 (`gh_issues.py`). REQ-07 → T-07 (`check-state.sh:366-382`). REQ-08 →
+T-06 `cmd_ship`. REQ-06 → T-02 (`gh_issues.py`). REQ-07 → T-07 (`check-state.py:366-382`). REQ-08 →
 T-01 (`run-unit-tests.py`) and SC-09's no-real-gh receipt. REQ-09 → T-08 (DEC-138 am.7) **for the
 DECISIONS half only**; its second half ("no live prose states the superseded contract") is SC-13's,
 carved out of this check and owned by the main session.
@@ -81,7 +81,7 @@ no uat criterion exists, so the gate does not fire and **no UAT script is needed
 GitHub assertion runs against `test-gh-sync.py`'s fake `gh` (`GH_SYNC_GH` override).
 
 - **Rests on the fake — SC-01, SC-02, SC-03, SC-04, SC-05, SC-12** (six of the seven automated SCs).
-- **Does NOT rest on the fake — SC-08.** `test-check-state.py` drives `check-state.sh` over temp-dir
+- **Does NOT rest on the fake — SC-08.** `test-check-state.py` drives `check-state.py` over temp-dir
   fixtures and invokes no `gh` at all.
 - **The five inspection SCs are static/structural** (greps, config reads, a diff) — no gh either way.
 
@@ -99,7 +99,7 @@ candidates, none a goal-check gap.
 
 ## Two baseline notes the briefing should not inherit stale
 
-1. **`check-state.sh` now exits 0** in this repo (measured this run; only a `note` about an orphaned
+1. **`check-state.py` now exits 0** in this repo (measured this run; only a `note` about an orphaned
    `2026-07-31-13-product` run dir). qa observed exit **1** with a `notes/handoff-build.md` missing
    VIOLATION; that file now exists (`notes/handoff-build.md`, 3896 bytes). The baseline moved in the
    safe direction. SC-11 asserts INV-10 clean, not an exit code, so no verdict changes.

@@ -17,7 +17,7 @@ string comparison of the prior `run_id` against the new one, and no mechanism bi
 anything but itself — the value is author-chosen and conventionally equals the run-directory slug,
 whose naming rule enforces no uniqueness. Two genuinely different runs that choose the same slug
 produce equal `run_id`s, and the second write is accepted as a legitimate upsert of the first. Worse,
-**nothing detects a clobber that has already happened**: `check-state.sh`'s run invariants grade a
+**nothing detects a clobber that has already happened**: `check-state.py`'s run invariants grade a
 `state.yaml`'s own shape and never ask whether the checkpoint sitting in a run directory belongs to
 the run that owns it. So the operator learns about a destroyed checkpoint only when a human notices
 that a record they remember writing is gone — which is how both BUG-1286 instances were found.
@@ -25,8 +25,8 @@ that a record they remember writing is gone — which is how both BUG-1286 insta
 **Mode B.** A durable lead digest in the same feature — `runs/2026-09-05-02-validator/digest.md` —
 carried no `artifact:` line, failing the lead digest contract, and stayed that way in the factory's
 record. No automatic path grades a durable digest file: the digest hook's file check fails open by
-design under worktree or working-directory drift and names `check-state.sh` as its backstop, and
-`check-state.sh` is registered in no hook at all, so it runs only when a human runs it. At the same
+design under worktree or working-directory drift and names `check-state.py` as its backstop, and
+`check-state.py` is registered in no hook at all, so it runs only when a human runs it. At the same
 time the digest content guard refuses any same-run correction that is not a pure append, on both the
 Write and the Edit route — so a lead who wants to repair its own record mid-file has no route through
 the guards, and the file's own inline comment describing that guard as "intentionally Write/PRE-only"
@@ -214,7 +214,7 @@ than freezing a defect into it.
 
 - **DEC-174 (blocks execution, not planning).** The harness plans changes to its own hooks,
   validators and gate scripts but never executes them. Every task touching `check-domain.py`,
-  `bash-write-guard.py`, `check-state.sh`, `validate-digest.py` or `.claude/settings.json` — and each
+  `bash-write-guard.py`, `check-state.py`, `validate-digest.py` or `.claude/settings.json` — and each
   gate's own tests — carries `execution_mode: main-session-direct`.
 - **DEC-179 (supplies the mechanism for the above).** That routing is resolved at plan time by
   `check-plan-routes.py`, so an ungranted surface becomes a *declared* main-session step rather than
@@ -368,7 +368,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   the legacy directory — prior and incoming both carrying no `run_uid` — still accepting an
   equal-run_id update; the resumed owner, carrying its own checkpoint's `run_uid` from a different
   session, still exiting 0, together with BOTH recovering-owner cases of SC-01(d) exiting 0; the
-  lead's own-run digest append repair still exiting 0; `check-state.sh` exiting 0 over a fixture
+  lead's own-run digest append repair still exiting 0; `check-state.py` exiting 0 over a fixture
   tree of legacy run directories that carry checkpoints and no witness at all; and the fifth pair,
   T-05's new fail-closed `return 2` in `validate-digest.py`, still exiting 0 over a run directory
   whose `digest.md` exists and is compliant and over the no-root-resolves case that fails open; and
@@ -377,7 +377,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   at exit 0, and leaving a Bash write to an unrelated ordinary file in that directory unaffected,
   so the denial is scoped to the one filename rather than to the directory.
   The note also records
-  `check-state.sh`'s exit code and findings over this repository's own `.harness` tree, and states
+  `check-state.py`'s exit code and findings over this repository's own `.harness` tree, and states
   the two newly refused write classes this feature knowingly introduces — an owner that rewrites
   its checkpoint and drops `run_uid`; and an Edit of a governed `state.yaml`, `digest.md`, or
   handoff note whose complete candidate cannot be reconstructed from the tool payload (unmatched
@@ -385,7 +385,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   the Advisor at cycle 13 in service of SC-01(a)) — each with the test that pins its message.
   **It FAILS if any of these holds:** an assertion present at `c369fb1f` is absent or weakened at the
   review sha and is not enumerated under the first heading; any one of the six permitted-write cases
-  is absent from the suite at the review sha or is asserted to exit non-zero; `check-state.sh`
+  is absent from the suite at the review sha or is asserted to exit non-zero; `check-state.py`
   reports a run directory whose checkpoint and witness agree, or reports any directory carrying no
   witness; either heading is
   absent; the `## Suite results` heading is absent, or records a non-zero exit or any FAIL line for

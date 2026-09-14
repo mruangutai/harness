@@ -8,7 +8,7 @@ run directory `runs/2026-09-06-08-validator` or `INV-15`, and no tracked/committ
 - Output (verbatim): `digest ok`
 - Result: matches expected exactly. PASS.
 
-## 2. `bash .agents/skills/harness/bin/check-state.sh; echo "EXIT=$?"`
+## 2. `python3 .agents/skills/harness/bin/check-state.py; echo "EXIT=$?"`
 - Exit: `1`
 - Full output is 1164 lines (captured at `/tmp/check_state_full.txt` during this run; also
   `artifact://854` for the raw truncated tool output). The only severity token that appears

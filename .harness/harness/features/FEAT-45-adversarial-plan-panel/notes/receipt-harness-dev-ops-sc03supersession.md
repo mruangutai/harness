@@ -37,7 +37,7 @@ resolves to persona code-reviewer (superseded-run record survives)`.
 
 ### 2. `run-unit-tests.py --kind unit`
 ```
-$ out=$(HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1); rc=$?
+$ out=$(HARNESS_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1); rc=$?
 $ printf '%s\n' "$out" | grep -c '^FAIL '
 0
 $ echo "runner_rc=$rc"

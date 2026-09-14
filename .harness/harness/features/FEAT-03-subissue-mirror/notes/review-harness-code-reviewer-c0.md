@@ -54,7 +54,7 @@ Every change traces to a task/`REQ`/`D`. Walked T-01 through T-08 against the di
   subcommand; milestone unconditional given a recorded milestone. `state_reason` enum is exactly
   `completed`(default)/`not_planned`, no `not_doing`. Neither writes `save_recorded` — confirmed by
   grep, not assumed — which is what keeps the absent-origin fixture's premise real.
-- **T-07** (`check-state.sh` INV-21): warn-level, vacuous when `github.sync` is false (confirmed live:
+- **T-07** (`check-state.py` INV-21): warn-level, vacuous when `github.sync` is false (confirmed live:
   0 `INV-21` lines in this repo, exit code unaffected). Parent regex (`^\s*parent:\s*\d+`) cannot
   false-match `parent_origin:`, independently re-derived, not just trusted from the digest.
 - **T-08** (`DECISIONS.md` amendment 7): lands at `:4299-4374`, states the table (created/adopted/

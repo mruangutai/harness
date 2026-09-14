@@ -2,12 +2,12 @@
 
 ## BLUF — the burn is attributed, and it is one line of a gate script
 
-**`check-state.sh` costs 506 GraphQL points per run, measured.** CLAUDE.md's own conventions say
-"Check `bin/check-state.sh` BEFORE committing, never after," so a session with ~9 commit-prep runs
+**`check-state.py` costs 506 GraphQL points per run, measured.** CLAUDE.md's own conventions say
+"Check `bin/check-state.py` BEFORE committing, never after," so a session with ~9 commit-prep runs
 spends ~4,550 points on nothing but the state gate. That accounts for the ~4,700 that #571 could
 not attribute.
 
-The cost is INV-26 (`check-state.sh:1174`), which calls `gh_board.board_stations()` ->
+The cost is INV-26 (`check-state.py:1174`), which calls `gh_board.board_stations()` ->
 `factory_gh.project_items()` -> `gh project item-list --limit 500`. On board 3 (473 items) that
 single call measures **608 points**, because cost is linear in items returned (~1.05-1.29 pts/item).
 
@@ -16,7 +16,7 @@ single call measures **608 points**, because cost is linear in items returned (~
 real, worth a cheap fix, but it cannot carry 4,700.
 
 **Branch chosen by the evidence: (a) a code fix, WITH (c) instrumentation. Not (b).** The dominant
-term is harness code, not main-session behaviour. But the fix surface is `check-state.sh`, a
+term is harness code, not main-session behaviour. But the fix surface is `check-state.py`, a
 **DEC-174 carve-out file** — so that edit is `main-session-direct`, by a human, never dispatched.
 
 ## Rig validation — the instrument costs zero
@@ -34,7 +34,7 @@ REST `core.used` moved 15 -> 16 across the whole session, confirming `rate_limit
 | Moment | UTC | graphql.used | remaining |
 |---|---|---|---|
 | Session start | 2026-08-19 13:43:03 | 0 | 5000 |
-| After the decisive check-state.sh run | ~13:52 | 1683 | 3317 |
+| After the decisive check-state.py run | ~13:52 | 1683 | 3317 |
 | Session end, after the targeted-query proof | ~13:58 | 1684 | 3316 |
 
 The quoted 06:36 baseline had reset; it was re-derived, not inherited. Stopped above the 2000 floor.
@@ -54,7 +54,7 @@ within the session; it is live.
 | Call | Delta |
 |---|---|
 | no-op control | **0** |
-| **`.claude/skills/harness/bin/check-state.sh` (whole run)** | **506** |
+| **`.claude/skills/harness/bin/check-state.py` (whole run)** | **506** |
 | **targeted `gh api graphql`, 100 nodes, number + repo + one field value** | **1** |
 | `gh project item-list 3 --limit 500` | **608** |
 | `gh project item-list 3 --limit 500 --query FEAT-29` (0 hits) | 102 |
@@ -93,13 +93,13 @@ per-node floor.
 
 ## The attribution, and exactly how confident it is
 
-- **Mine, measured:** `check-state.sh` = **506 points per run**, at `6bbd706`, board 3 at 473
+- **Mine, measured:** `check-state.py` = **506 points per run**, at `6bbd706`, board 3 at 473
   items, `gh` authenticated, `github.sync: true`. This is the authoritative figure.
-- **The standalone `item-list` reading of 608 is an upper bound, not the number.** `check-state.sh`
+- **The standalone `item-list` reading of 608 is an upper bound, not the number.** `check-state.py`
   CONTAINS that call, so the call cannot exceed the run: the true cost is 490-506, and the 608 was
   almost certainly inflated by the concurrent traffic recorded above. Per-item works out at roughly
   1.05-1.29 pts/item; quote the range, never a single derived digit.
-- **Mine, read from code:** INV-26 (`check-state.sh:1130-1176`) is the only live caller of
+- **Mine, read from code:** INV-26 (`check-state.py:1130-1176`) is the only live caller of
   `board_stations`. It is unconditional whenever `github.sync: true`, a repo is declared and
   `gh auth status` succeeds. `gh-sync.py` and `board-station.py` import `gh_board` but use
   `load_board` / `derive_station` / `set_station` only — they do NOT call `board_stations`.
@@ -107,7 +107,7 @@ per-node floor.
   CLAUDE.md's before-every-commit convention and the session's commit activity; **nothing records
   it**, so treat the multiplier as an estimate and the per-run 506 as the fact.
 
-`.github/workflows/tests.yml` does not run `check-state.sh` (grepped) — so CI is not a second
+`.github/workflows/tests.yml` does not run `check-state.py` (grepped) — so CI is not a second
 multiplier today.
 
 ## Why the recorded 31 was wrong, stated honestly
@@ -140,7 +140,7 @@ narrowing the read to the feature set INV-26 actually iterates.
 changes the query shape, it does not avoid pagination. `factory_claim.py:304` runs one queried call
 per served repo, so that site is ~102N — worth knowing, not the burn.
 
-**The fix surface is a DEC-174 carve-out.** `check-state.sh` is named in the carve-out. Editing
+**The fix surface is a DEC-174 carve-out.** `check-state.py` is named in the carve-out. Editing
 INV-26's call site is `execution_mode: main-session-direct`. `gh_board.py` and `factory_gh.py` are
 NOT carve-out files, so the cheaper read can be built and unit-tested by the team; only the gate's
 call site is a human edit.
@@ -165,7 +165,7 @@ plus a unit test of the query builder; grade the real saving as a ONE-SHOT diffe
 on board 3, recorded with raw before/after, verified by `inspection`.
 
 Proving the assertions can go red:
-- **Cost:** point the differencing harness at today's `check-state.sh` before the fix — it must
+- **Cost:** point the differencing harness at today's `check-state.py` before the fix — it must
   report ~506 and fail a 100-point threshold. That red state is observable right now.
 - **Absence:** avoid both broken idioms. `test "$(git grep ... | wc -l)" = 0` passes when the
   search ERRORS (#248), and `git grep -E` does not honour `\b` (#249). Use `git grep -q ...; test

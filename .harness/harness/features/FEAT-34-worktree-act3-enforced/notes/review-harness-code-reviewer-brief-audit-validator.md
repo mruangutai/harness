@@ -38,7 +38,7 @@ a refusal that fires but says nothing actionable would pass every SC as written.
 
 REQ-05↔SC-02 checked directly: SC-02's deadlock fixture (working tree `Done`/default `Review` →
 no finding; inverse → finding) is exactly REQ-05's HAZARD case from the grilling note
-(`check-state.sh:22` reads the working tree by default) and is well-covered.
+(`check-state.py:22` reads the working tree by default) and is well-covered.
 
 ## 3. REQ-06 suppression risk — SC-05 does not test the operator's actual concern (must_fix)
 
@@ -62,7 +62,7 @@ worktree is short-named to actually prove what its own prose claims.
 
 ## 4. Citations — all resolved, one correction confirmed correct
 
-Re-derived at `HEAD` (`3ed95a4`): `check-state.sh:1076` (`worktree list --porcelain`), `:1086`
+Re-derived at `HEAD` (`3ed95a4`): `check-state.py:1076` (`worktree list --porcelain`), `:1086`
 (`for _rec in _wt_out.split`) through `:1094` (`_entries.append`) — **the BRIEF's `:1086-1094` is
 right; the grilling note's `:1083-1090` is stale**, confirming the BRIEF's self-reported
 correction. `:1132`/`:1148` match the "no removal guidance / prints `remove <path>`" comment
@@ -81,7 +81,7 @@ so SC-09's claim "15 of 16 fail today" is accurate as its own red proof.
 INV-28 as next-free: confirmed — highest active is INV-27 (`:1349`), INV-20 is in use (`:884`),
 INV-10 is explicitly retired-and-unreusable (`:1403-1407`). DEC-174 amendment 4's text (read via
 the index, opened directly — not the whole file) states the enforcement enumeration verbatim as
-`check-domain.py, bash-write-guard.py, validate-digest.py, check-state.sh, check-plan-routes.py,
+`check-domain.py, bash-write-guard.py, validate-digest.py, check-state.py, check-plan-routes.py,
 dispatch-guard.py, and the test file of each` — the BRIEF's Constraints:88-96 enumeration matches
 this exactly, including the non-exhaustive framing.
 

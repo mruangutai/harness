@@ -2,7 +2,7 @@
 
 Read-only pass over `BRIEF.md` and `plan.yaml` plus the code they cite. One concrete finding, one
 lower-confidence advisory. Everything else checked (line/function citations across gh-sync.py,
-board_lifecycle.py, factory_claim.py, factory_land.py, factory_decompose.py, check-state.sh,
+board_lifecycle.py, factory_claim.py, factory_land.py, factory_decompose.py, check-state.py,
 check-plan-routes.py, worktree_terminal.py, factory_config.py, check-domain.py, team-config.yaml,
 DECISIONS-INDEX.md for DEC-160/174/180/182/188/191/192/203) resolved to the referent the plan
 claims — no other dead references found.

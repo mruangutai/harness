@@ -24,7 +24,7 @@ $ git status --porcelain
 (empty)
 
 $ git diff --stat 340e18a..9da3986
- .claude/skills/harness/bin/check-state.sh          |  88 +++++--
+ .claude/skills/harness/bin/check-state.py          |  88 +++++--
  .claude/skills/harness/bin/gh-sync.py              |   7 +-
  .claude/skills/harness/bin/harness_yaml.py         |  35 ++-
  .claude/skills/harness/bin/run-unit-tests.py       |   2 +-
@@ -111,7 +111,7 @@ Both block, and both name the actual cause (D-14a satisfied — this is not a si
   truncates the file, an empty file left by a failed editor save).
 
   **The fix for this exact shape already exists elsewhere in this same diff**, and was not
-  reused here — the same observation cycle 0 made about F-01 itself. `check-state.sh:115-125`
+  reused here — the same observation cycle 0 made about F-01 itself. `check-state.py:115-125`
   (touched in this diff) wraps its own `harness_yaml.load_file` call in `except Exception as e:`
   AND explicitly checks `if not isinstance(doc, dict):` before using the result. `manifest_domains`
   does neither.
@@ -150,7 +150,7 @@ parse call, nothing that could raise a harness-logic bug is inside it.
   .claude/skills/harness/bin/`, excluding tests):
   - `check-domain.py:135,146` / `bash-write-guard.py:288,296` — the two write-gating hooks, covered
     above.
-  - `check-state.sh:116,275,340,466` — every call already idioms `harness_yaml.load_file(fy) or {}`
+  - `check-state.py:116,275,340,466` — every call already idioms `harness_yaml.load_file(fy) or {}`
     **and** (at least at `:116-125`) follows with `isinstance(doc, dict)` before use. Correct
     pattern, matches c0's earlier praise of this file.
   - `upgrade-config.py:108,133` — calls `harness_yaml.load_str` directly; this is a standalone
@@ -214,7 +214,7 @@ DIGEST:
       proceeds ungoverned, the identical F-01 blast radius. Verified live at BOTH 340e18a (pre-fix)
       and current tree (post-fix) against isolated binary copies for all three shapes on
       check-domain.py and one shape on bash-write-guard.py -- the fix neither introduced nor closed
-      this. check-state.sh:115-125 (touched in this same diff) already carries the correct pattern
+      this. check-state.py:115-125 (touched in this same diff) already carries the correct pattern
       (`except Exception` + `isinstance(doc, dict)` before use); mirror it into manifest_domains, or
       have it raise YamlParseError itself when parsed is not a dict, immediately after load_file returns.
   threat_model:

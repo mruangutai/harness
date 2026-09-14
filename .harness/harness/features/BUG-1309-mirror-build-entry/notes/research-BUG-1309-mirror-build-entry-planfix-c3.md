@@ -18,7 +18,7 @@ predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so the
 normally.`, carrying no `open` token, the same shape as T-04's and T-05's era lines. The gate covers
 the ABSENT key only: an era-named feature that actually recorded `recovery-required` is retained like
 any other. The INV-29 derivation is stated in the intent and in D-08's `because` (verified at source:
-`check-state.sh:1929-1935`). One symbol, one definition — stated in the intent, as T-04/T-05/T-06 state it.
+`check-state.py:1929-1935`). One symbol, one definition — stated in the intent, as T-04/T-05/T-06 state it.
 Import route named: `sys.path.insert(0, BIN_DIR)` is already at `post-merge-sweep.py:37`.
 
 **Test pair added:** `"T-07 era-exempt absent build_entry is swept"` beside
@@ -77,7 +77,7 @@ OK T-02 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor

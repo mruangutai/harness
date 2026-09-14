@@ -151,7 +151,7 @@ cite. The paths: `runs/2026-09-06-08-eng/digest.md`, `runs/2026-09-06-09-validat
 briefing, `notes/ship-review-2026-09-06-07-ship.md`, which this one supersedes rather than replaces.
 
 The four-arm table, the empty production diff, the removed scratch worktree and every
-`check-state.sh` finding below are **my own measurements**. Everything else is attributed.
+`check-state.py` finding below are **my own measurements**. Everything else is attributed.
 
 ---
 
@@ -184,7 +184,7 @@ is carried forward verbatim; anything not listed here dies silently.
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-23 | bug | **The plan-panel record is incomplete and `check-state.sh` INV-32 is red on it** — readers `scope`, `should-not-exist` and `goalcheck` are all unrecorded. Re-measured today: still red, unchanged. `plan.yaml` is byte-identical to the approval commit, so this predates every cycle since. Only the product manager may write `panel:`. |
+| B-23 | bug | **The plan-panel record is incomplete and `check-state.py` INV-32 is red on it** — readers `scope`, `should-not-exist` and `goalcheck` are all unrecorded. Re-measured today: still red, unchanged. `plan.yaml` is byte-identical to the approval commit, so this predates every cycle since. Only the product manager may write `panel:`. |
 | B-24 | chore | **No `notes/handoff-build.md` exists** — the build seam was crossed without one, by a predecessor. Still flagged. Deliberately **not** fabricated after the fact; writing a "working memory" note for a phase nobody ran would falsify the record. |
 | B-25 | chore | **Run bookkeeping fails its own contracts, and it recurred today.** All five of this cycle's `state.yaml` files carry the forbidden `run_uid` key; five older run digests still fail the lead digest contract (today's five do **not** — that part improved). Systemic lead behaviour across three cycles. |
 
@@ -207,7 +207,7 @@ Defects in the factory itself, not in the change. Listed because this repository
 | B-26 | chore | **Agent scratch worktrees are not cleaned up and escape the invariant's naming. Recurred today**: a qa dispatch created `/private/tmp/qa-b16-proof-worktree`, outside the segment layout, which tripped INV-25 *and* an INV-29 the invariant could not compose a removal command for. **I removed it** (clean, no unlanded work). `qa-bug440-c3-probe` and the `qa-c2-*` trees from earlier panels still stand. |
 | B-31 | chore | **`test_matrix.bugfix` carries a permanently inert leg.** `match_bug_class` has no bug-class taxonomy anywhere in this repository, so it can never fire. An inert predicate in an auditable matrix reads as coverage that does not exist. Retire the leg or supply the taxonomy. Raised by qa. |
 
-**Unrelated to this feature, seen while measuring:** `check-state.sh` also reports a standing
+**Unrelated to this feature, seen while measuring:** `check-state.py` also reports a standing
 worktree for `FEAT-55-issue-types-created-work`, whose feature reached a terminal state on the
 default branch (INV-29). Not mine to remove — it belongs to that flow — but it is red now.
 

@@ -12,7 +12,7 @@ ruled that a plan leaving that route open "is not deliverable as written" (`note
 
 Verified independently: every code anchor and prose gloss the plan asserts is correct
 (check-domain.py `RE_STATE_YAML` :1439 / `_no_parser` :1475 / #1124 branch :1567 / `RE_RUN_DIGEST`
-comment :1237-1238 / Edit reconstruction :1905; check-state.sh loop :1426 with INV-16 :1443 before
+comment :1237-1238 / Edit reconstruction :1905; check-state.py loop :1426 with INV-16 :1443 before
 INV-15 :1476; validate-digest.py `check_artifact_file` :1486 and its single-candidate `cands` :1535;
 harness_yaml `_resolve_identity` :511; inflight_registry :255-258; SKILL.md:272-274;
 harness-team/SKILL.md:45; DECISIONS.md:3243). Lane rows spot-checked with

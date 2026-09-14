@@ -39,7 +39,7 @@ concrete recovery command (not just the triggering fact), and whether it compose
 | `merge-gate.py` deny — receipt owed | Builds `command_line` from `recovery_command_for(feat_dir)` + `os.path.realpath(feat_dir)` (+ `--yes` when `recover-terminal`) and embeds it in the denial text | **Yes** — copy-paste runnable |
 | `merge-gate.py` deny — repo unpinned | Names the exact `gh repo view --json nameWithOwner -q .nameWithOwner` fallback and the `harness.json` path to edit | **Yes** |
 | `merge-gate.py` era-exempt notice | `recover-terminal {realpath(feat_dir)} --yes` | **Yes** |
-| `check-state.sh` INV-37 (both branches) | `gh-sync.py open {_fp37}` / `gh-sync.py recover-terminal {_fp37} --yes`, path adjacent to command in both | **Yes** |
+| `check-state.py` INV-37 (both branches) | `gh-sync.py open {_fp37}` / `gh-sync.py recover-terminal {_fp37} --yes`, path adjacent to command in both | **Yes** |
 | `gh-sync.py` `_build_entry_preflight` refuse — entry absent, command=="open" | `Run gh-sync.py open {realpath(feat_dir)} first.` | **Yes** |
 | `gh-sync.py` `_build_entry_preflight` refuse — entry absent, command=="recover-terminal" | `Run gh-sync.py recover-terminal {realpath(feat_dir)} --yes.` | **Yes** |
 | `gh-sync.py` `_build_entry_recovery_notice` — **non-exempt**, entry=="recovery-required" | `"...for {realpath(feat_dir)}; Build proceeds, the MERGE is refused until gh-sync.py open records opened"` | **Finding — see below** |

@@ -22,15 +22,15 @@ Result: `unit_count=30 integration_count=27 missing=0` — no other dangling nam
 Only the three files named in the dispatch were missing; the sweep confirms no others.
 
 ## Acceptance measurements
-1. `bash run-unit-tests.py --kind unit`: `rc=0`, `FAIL_lines=0` (grep `^FAIL `),
+1. `python3 run-unit-tests.py --kind unit`: `rc=0`, `FAIL_lines=0` (grep `^FAIL `),
    `total_lines=1414`.
-2. `bash run-unit-tests.py` (full, no args): `rc=0`, `FAIL_lines=0`, `total_lines=3357`.
+2. `python3 run-unit-tests.py` (full, no args): `rc=0`, `FAIL_lines=0`, `total_lines=3357`.
    Pre-merge baseline was 1012 lines at rc=0. Current full run (3357 lines) is well above
    that order of magnitude — discovery is restored, not still suppressed. (Higher than
    baseline is expected: baseline predates T-09/T-10's `test-panel-findings.py` /
    `test-plan-panel.py` additions and this run also now includes the previously-dead
    `--kind unit` slice contributing to total collected output.)
-3. `bash run-unit-tests.py --check-kinds`: `rc=0`, output
+3. `python3 run-unit-tests.py --check-kinds`: `rc=0`, output
    `check-kinds: the script arrays and test_kinds.integration.detect agree.`
 4. Existence check for step 2 (dangling-registration sweep): see above — `missing=0`.
 

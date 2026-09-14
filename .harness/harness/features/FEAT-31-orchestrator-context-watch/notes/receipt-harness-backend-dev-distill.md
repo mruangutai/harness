@@ -6,7 +6,7 @@ Applied 2 merges + 2 replacements + 2 drops + 2 adds to the craft file
 (`.harness/expertise/harness-backend-dev.md`), and 1 add to the repository-tier file
 (`.harness/harness/expertise/harness-backend-dev.md`). Both sections that were at cap (Patterns,
 Gotchas — 15/15 each) stayed at cap: each new entry displaced room freed by merging two existing
-entries that shared a root cause, never a bare append over cap. `check-expertise.sh` is clean on
+entries that shared a root cause, never a bare append over cap. `check-expertise.py` is clean on
 both my files (one pre-existing, unrelated ADVISORY on G-08, not introduced this run).
 
 ## Tool-shape correction, recorded because it cost real work
@@ -88,7 +88,7 @@ mode (code fixed before tests were written at all, not a RED run that came back 
 tree), so it does not contradict P-06; it is the trigger P-13 used to cover, now folded into P-09.
 No `drop`/`replace` was needed on stale-entry grounds alone.
 
-## check-expertise.sh result (verbatim, whole directory)
+## check-expertise.py result (verbatim, whole directory)
 
 ```
 OK   .harness/expertise/harness-ai-dev.md

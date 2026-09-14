@@ -24,7 +24,7 @@ every invocation explicitly:
 
 ## 1. Mandated verify (verbatim command, actual output)
 ```
-bash .claude/skills/harness/bin/run-unit-tests.py integration 2>&1 | grep -c "KIND-DRIFT\|MISCONFIGURED"
+python3 .claude/skills/harness/bin/run-unit-tests.py integration 2>&1 | grep -c "KIND-DRIFT\|MISCONFIGURED"
 ```
 Output: `0`
 
@@ -33,7 +33,7 @@ usage/exit-2 branch before either checker runs) — reported per contract, not t
 
 ## 2. `--check-kinds` (the real drift/cross-check evidence)
 ```
-$ CLAUDE_PROJECT_DIR=.../FEAT-34-worktree-act3-enforced bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+$ CLAUDE_PROJECT_DIR=.../FEAT-34-worktree-act3-enforced python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 exit: 0
 ```

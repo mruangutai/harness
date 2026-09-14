@@ -102,7 +102,7 @@ decisions:
       not taken.
     because: >-
       Once claim delegates, no regex on its text can tell legacy from migrated, so the reader classifies
-      as neither and the whole features surface goes CANNOT_VERIFY, which check-state.sh INV-27
+      as neither and the whole features surface goes CANNOT_VERIFY, which check-state.py INV-27
       (:2363-2367) reports as a failure.
       CITATION CORRECTED: the FEAT-42 precedent recorded at layout_migration.py:98-104 is a REMOVAL, not
       a move. factory_config.py's docs row was deleted because after that change NO file carried the
@@ -137,7 +137,7 @@ panel:
   - 'Record repair, 2026-09-08, branch chore/BUG-1290-factory-claim-repo-root: the
     two validator-segment reader entries were keyed on `step:`, which INV-32 does
     not read, and the product-segment `goalcheck` reader was never transcribed at
-    all - so check-state.sh reported all three readers as never having run. Both existing
+    all - so check-state.py reported all three readers as never having run. Both existing
     keys are now `reader:`; the goalcheck entry is transcribed from its surviving
     artifact, which has been on disk since 2026-09-05. No verdict, severity, disposition,
     finding id or finding text was changed.'
@@ -533,7 +533,7 @@ tasks:
       factory_claim.py stops carrying any .harness / features join in T-03, so
       layout_migration.READER_TABLE's row for it (:92-94) can no longer tell legacy from migrated. It
       then classifies as neither, which makes the whole features surface CANNOT_VERIFY and reddens
-      check-state.sh INV-27 (:2363-2367). Measured on the worktree at eb9d044e, before any task ran:
+      check-state.py INV-27 (:2363-2367). Measured on the worktree at eb9d044e, before any task ran:
       that surface is CLEAN and factory_claim.py classifies as migrated.
 
       1. In layout_migration.py, MOVE that row onto .agents/skills/harness/bin/factory_config.py, which

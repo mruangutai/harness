@@ -19,7 +19,7 @@ Nothing in this feature is operated by a person. The ui-reviewer segment can be 
 
 Every `files:` entry in PLAN.md's nine tasks is one of: a YAML data file read by an agent
 (`teams/review.yaml`, `teams/gate-probe.yaml`, new `teams/build.yaml`), a shell invariant
-(`bin/check-state.sh`), a Python constant and its two consumers (`bin/harness_yaml.py`,
+(`bin/check-state.py`), a Python constant and its two consumers (`bin/harness_yaml.py`,
 `bin/validate-digest.py`), gate tests and the runner (`bin/test-check-state.py`,
 `bin/test-harness-yaml-corpus.py`, new `bin/test-team-catalog.py`, `bin/run-unit-tests.py`),
 agent-preloaded markdown (`harness/SKILL.md`, `harness-team/SKILL.md`), and one docs row

@@ -68,7 +68,7 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
 
 - **Case 1 — am.N fold into bare DEC-N**: 15 sites (`harness_yaml.py`, `test-harness-yaml-corpus.py`,
   `upgrade-config.py`, `factory_decompose.py`, `test-dispatch-guard.py`, `test-no-distribution.py`,
-  `plan-merge.py`, `test-check-state.py`, `test-team-catalog.py`, `check-state.sh`,
+  `plan-merge.py`, `test-check-state.py`, `test-team-catalog.py`, `check-state.py`,
   `check-domain.py`, `gh-sync.py` x4). Every fold checked against DEC-171/DEC-138/DEC-174's
   current (post-fold) body for continued truth.
 - **Case 2 — successor swap**: 21 sites. DEC-137→DEC-162 (1), DEC-186→DEC-203 (7, including the
@@ -77,7 +77,7 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
   (`gh-sync.py:34` "unenforced write path around a guarded surface"; `test-validate-digest.py:315`
   and `validate-digest.py:722` — dropped from a `DEC-19/DEC-110/DEC-119` / `DEC-19 / DEC-110 /
   DEC-119` list, leaving the still-valid DEC-110/DEC-119 citations, since the pattern is already
-  spelled out in the surrounding prose; `check-state.sh:6` and `validate-digest.py:872` —
+  spelled out in the surrounding prose; `check-state.py:6` and `validate-digest.py:872` —
   restated as standalone prose since each already carries its own in-line explanation).
 - **Special rewrite — historical narrative → current arrangement**: 1 site
   (`test-gen-decisions-index.py`), per the dispatch's explicit instruction: dropped the DEC-104/
@@ -91,7 +91,7 @@ tree, including inside files on T-12's own list, before this dispatch ran — co
 
 ## INV-24 rename
 
-Renamed the identifier in both `check-state.sh:943` (`# --- INV-24 (DEC-186):` →
+Renamed the identifier in both `check-state.py:943` (`# --- INV-24 (DEC-186):` →
 `# --- INV-24 (DEC-203):`) and `test-check-state.py:995` (`"""INV-24 (DEC-186):` →
 `"""INV-24 (DEC-203):`) in the same batch. Invariant NUMBER (`INV-24`) unchanged; only the
 parenthetical citation changed. The actual runtime match in `test-check-state.py`'s `case_s`

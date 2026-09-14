@@ -7,7 +7,7 @@ Author-nothing dispatch: no tests, fixtures or source touched.
 
 `test_matrix` binds 2 of the 4 tasks:
 - T-01 (`layout_migration.py`, `test-layout-migration.py`, `run-unit-tests.py`) — `change_type: logic` → **unit** required.
-- T-02 (`check-state.sh`, `test-check-state.py`) — `change_type: cross_module` → **unit + integration** required.
+- T-02 (`check-state.py`, `test-check-state.py`) — `change_type: cross_module` → **unit + integration** required.
 - T-03 (`.github/workflows/tests.yml`) — `change_type: config` → matrix requires `[]`. `verify: inspection` only.
 - T-04 (`docs/harness/DECISIONS.md`, `DECISIONS-INDEX.md`) — `change_type: docs` → matrix requires `[]`. `verify: inspection` only.
 

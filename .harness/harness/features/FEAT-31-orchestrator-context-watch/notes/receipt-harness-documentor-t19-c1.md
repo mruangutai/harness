@@ -48,7 +48,7 @@ unbroken on single physical lines.
 
 - `python3 .claude/skills/harness/bin/gen-decisions-index.py` — run **unconditionally** after the
   body edit. Exit 0.
-- `bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds` — **exit 0**
+- `python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds` — **exit 0**
   ("the script arrays and test_kinds.integration.detect agree").
 
 ## Facts verified at source, not assumed
@@ -69,7 +69,7 @@ No other decision entry (DEC-198 untouched), no new entry, no skill, no `plan.ya
 `feature.json`. The pre-existing dirty edits to `plan.yaml`, `feature.json` and
 `observations/harness-pm.md` were present at spawn and are left exactly as found.
 
-## check-state.sh — exit 1, and none of it is mine
+## check-state.py — exit 1, and none of it is mine
 
 Run before reporting, per CLAUDE.md. Three VIOLATIONs, all outside this task's surface — nothing
 about `DECISIONS.md` or `DECISIONS-INDEX.md`:

@@ -68,20 +68,20 @@ For the grade-2 functions, no complexity exception is justified: `problems` mixe
 
 ### SC-04 — met for the Done-when subject
 
-Ran `.claude/skills/harness/bin/check-state.sh` from the repository root. Exit status was **1** because of the unrelated pre-existing `FEAT-51-claude-code-lifecycle-safety` missing `handoff-validate.md` violation. The full 810-line output contains **no** `Done when` line, so no handoff Done-when corpus violation was reported.
+Ran `.claude/skills/harness/bin/check-state.py` from the repository root. Exit status was **1** because of the unrelated pre-existing `FEAT-51-claude-code-lifecycle-safety` missing `handoff-validate.md` violation. The full 810-line output contains **no** `Done when` line, so no handoff Done-when corpus violation was reported.
 
 ### SC-07 — met
 
 The two gates use the shared implementation:
 
 - `check-domain.py:1562,1567` imports and calls `handoff_done_when.problems(..., resolve=True)`;
-- `check-state.sh:54-56,1243-1251` imports and calls the same function with `resolve=False`.
+- `check-state.py:54-56,1243-1251` imports and calls the same function with `resolve=False`.
 
-Neither gate contains a second Done-when body parser or pointer-target resolver. `check-state.sh:1215-1242` is the existing parser for the four narrative section bodies only and does not parse the Done-when body or open authority targets.
+Neither gate contains a second Done-when body parser or pointer-target resolver. `check-state.py:1215-1242` is the existing parser for the four narrative section bodies only and does not parse the Done-when body or open authority targets.
 
 ### SC-08 — met
 
-Current contract surfaces state five sections and name `## Done when`: `.claude/skills/harness/SKILL.md:310-316`, `check-domain.py:1547-1567`, `check-state.sh:1069-1070,1212-1251`, `templates/HANDOFF.md:4-16,37-40`, and `DECISIONS.md:3698-3727,6696-6724`. The only four-heading claims in the live gate scripts are the two criterion-authorized historical FEAT-31 comments at `check-state.sh:1194-1202` and `:1215-1219`. DEC-160's older four-section wording is historical decision evidence, not a current contract assertion.
+Current contract surfaces state five sections and name `## Done when`: `.claude/skills/harness/SKILL.md:310-316`, `check-domain.py:1547-1567`, `check-state.py:1069-1070,1212-1251`, `templates/HANDOFF.md:4-16,37-40`, and `DECISIONS.md:3698-3727,6696-6724`. The only four-heading claims in the live gate scripts are the two criterion-authorized historical FEAT-31 comments at `check-state.py:1194-1202` and `:1215-1219`. DEC-160's older four-section wording is historical decision evidence, not a current contract assertion.
 
 ### SC-11 — met
 

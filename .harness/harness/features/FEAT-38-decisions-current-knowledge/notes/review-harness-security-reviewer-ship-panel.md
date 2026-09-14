@@ -18,17 +18,17 @@ residual is argument-content, not command-injection.
 |---|---|---|---|---|
 | 1 | `board_lifecycle.py:1003` `_ensure_abandoned_label` | `harness.json` `github.repo` via `_own_repo`/`_resolve_board`; CLI override validated against fleet.yaml's known-repo list at `_resolve_board:314` before use | `[gh_bin, "label", "create", ..., "--repo", repo_name, ...]` | real but low — value is config-derived and, on the override path, allowlist-checked before reaching argv |
 | 2 | `check-plan-routes.py:74` `resolve_agents` | `plan.yaml` task `files:` entries | `[CHECK_DOMAIN, "--resolve", path]` — becomes `HARNESS_RESOLVE_PATH` **env var**, never re-parsed as argv (`check-domain.py:71`) | read-only route lookup, no execution downstream |
-| 3 | `check-state.sh:1633` INV-30 | `harness.json` `github.repo`, **no shape validation before use** (unlike `wayfind.py`/`gh-sync.py`, which check the value contains `/`) | `%s`-formatted into a REST **path string**: `"repos/%s/milestones?..." % _repo30`, still one list argv element | see finding F-1 below — worst-shaped of the 11 |
+| 3 | `check-state.py:1633` INV-30 | `harness.json` `github.repo`, **no shape validation before use** (unlike `wayfind.py`/`gh-sync.py`, which check the value contains `/`) | `%s`-formatted into a REST **path string**: `"repos/%s/milestones?..." % _repo30`, still one list argv element | see finding F-1 below — worst-shaped of the 11 |
 | 4 | `factory_workspace.py:103,129,130` | `fleet.yaml` `default_branch` | `["checkout", default_branch]`, `f"origin/{default_branch}"` | operator-config only |
 | 5 | `feature-worktree.py:125,289` | `fleet.yaml` `default_branch` | `["worktree","add","-b",branch,dest,default_branch]`, `f"{default_branch}:{rel}"` | operator-config only |
 | 6 | `gh-sync.py:775,789` (current line numbers 773/790) | `BRIEF.md`/`plan.yaml` prose (`brief['phrase']`,`brief['problem']`,`brief['goal']`,`task['title']`,`task['body']`) | `["issue","create","--repo",repo,"--title",title,"--body",body,...]` | see finding F-2 — closest in shape to the deleted mechanism, but this file's diff here is **comment-only** (DEC-number fixes), pre-existing and out of FEAT-38's scope |
 | 7 | `inflight_registry.py:159` | registry JSON `supervisor_pid` | `["ps","-o","lstart=","-p",str(pid)]` | narrow — `pid` is int/positive-validated at `:131` before use, matches the row's own note |
 | 8 | `post-merge-sweep.py:215` | `fleet.yaml` repo name, or literal `"harness"` | `["python3",...,"feature-worktree.py","remove","--repo",repo_arg,"--id",wt_id]` | operator-config only |
-| 9 | `test-check-state.py:2620-2655` | `check-state.sh`'s own stdout (backticked command), `shlex.split` then executed | `[sys.executable] + shlex.split(...)` | test-only, guarded by a resolver probe that refuses unless the resolved root is the fixture (`:2644`) — matches the row's "mitigated but not eliminated" framing exactly |
+| 9 | `test-check-state.py:2620-2655` | `check-state.py`'s own stdout (backticked command), `shlex.split` then executed | `[sys.executable] + shlex.split(...)` | test-only, guarded by a resolver probe that refuses unless the resolved root is the fixture (`:2644`) — matches the row's "mitigated but not eliminated" framing exactly |
 | 10 | `wayfind.py:66,83,170` | `harness.json` `github.repo`, via `cfg()` | `[ghi.gh_bin()] + args`, `[...,"-R",repo,"--body-file","-"]` (body itself travels on **stdin**, not argv) | operator-config only |
 | 11 | `worktree_terminal.py:150,160` | `fleet.yaml` `default_branch` (via `feature-worktree.py`'s own `resolve_repo`) | `["ls-tree","--name-only",f"{default_branch}:{features_rel}"]`, `["rev-parse",f"{default_branch}:{rel}"]` | operator-config only |
 
-**F-1 (severity: low)** — `check-state.sh:1633` is the one row of the 11 that embeds the
+**F-1 (severity: low)** — `check-state.py:1633` is the one row of the 11 that embeds the
 config-derived value into a **formatted URL-path string** rather than binding it as a discrete
 flag value, and it is the only one of the config-repo sites with **no shape check** at the read site
 (contrast `wayfind.py:cfg()`'s truthy check and `gh-sync.py:201`'s `/`-required check, both cited by
@@ -71,7 +71,7 @@ are incomplete and one is mismatched:
    values land as flag *values* not flag names, `BRIEF.md` is approval-gated. Estimate: low
    severity, but the highest-value backlog item of the eleven because it is genuinely
    free-text-shaped, not slug-shaped.
-2. **`check-state.sh:1633`** (F-1): switch the `%s`-into-URL-path pattern to a bound `gh api`
+2. **`check-state.py:1633`** (F-1): switch the `%s`-into-URL-path pattern to a bound `gh api`
    template placeholder (`gh api repos/{owner}/{repo}/milestones...` uses its own `-f`/`{}`
    substitution) or add the same `/`-shape check `wayfind.py`/`gh-sync.py` already apply to
    `github.repo` before formatting it into a path. Severity: low, no escalation path, defense in
@@ -98,7 +98,7 @@ and the `.claude`/`.github` hook surfaces:
 - **`run-unit-tests.py:108`** reads only `test_kinds.integration.detect` (a pipe-separated glob),
   set-compares it against its own two literal bash arrays, and runs only what those arrays name
   (`python3 "$BIN_DIR/$s"`, `:149`). Nothing parsed from `detect` reaches argv.
-- **`check-state.sh`** reads `cj` (parsed `harness.json`) for `test_kinds`-scoped INV checks; zero
+- **`check-state.py`** reads `cj` (parsed `harness.json`) for `test_kinds`-scoped INV checks; zero
   hits for `"cmd"`/`'cmd'`/`.cmd` anywhere in the file.
 - **`upgrade-config.py:209-211`** is the only script that reads `test_kinds.*.cmd` at all, and only
   to format it into a preserved-value diagnostic string (`f"test_kinds.{k}.cmd = {v.get('cmd')!r}"`)
@@ -183,7 +183,7 @@ privilege was introduced by this feature.
 
 ## Summary
 
-No must-fix findings. `severity_max` is `low` (F-1, the `check-state.sh` URL-path formatting gap —
+No must-fix findings. `severity_max` is `low` (F-1, the `check-state.py` URL-path formatting gap —
 defense-in-depth only, requires an actor already privileged to write `harness.json`). Everything else
 is `info` or a correctly-accepted, signed cost. The class-sweep commissioned by this feature (T-29)
 did its job: it found a genuinely non-empty `TEXT-DERIVED-ARGV` residual, every row of my eleven is

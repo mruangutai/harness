@@ -8,7 +8,7 @@
   this phase added none. Runs 12 of 20, informational and a floor (the operator's five
   main-session-direct tasks are not runs).
 - review_sha: **`a76d69a`**, pinned and committed. Branch tip is one commit past it and changes only
-  that value. **I ran the qa segment BEFORE pinning, contrary to INV-6** — `check-state.sh` caught it.
+  that value. **I ran the qa segment BEFORE pinning, contrary to INV-6** — `check-state.py` caught it.
   No harm: the dispatch carried the explicit range and qa's numbers match mine. Ordering was wrong.
 - All ten tasks read `status: done`. Both approvals `approved` (`BRIEF.md:275-279`, `plan.yaml:4-5`).
 - **Briefing: `notes/ship-review-2026-08-21-04-validator.md`** (+ rendered `.html`).
@@ -107,5 +107,5 @@ is exact: 10 FAILs, all new refuse cases; T-04's counts hold; D-09's cost is ass
   (`plan.yaml:736-739` vs `:861-863`), not T-05's. Q21's recorded subject is **T-10, not T-04**. My qa
   dispatch's T-04 premise was inverted — the leg lacking execution evidence is unit, not integration.
 - Issue **#626** is filed, unblocked and OUT OF SCOPE here; it may be one entry short (`DECISIONS-INDEX.md:114`,
-  DEC-95). `check-state.sh`'s other rows are FEAT-26/28/29; the count is a shared mutable global, so
+  DEC-95). `check-state.py`'s other rows are FEAT-26/28/29; the count is a shared mutable global, so
   scope by name never count. Ship-refresh is a legitimate SKIP: no `INDEX.md` map exists in this repo.

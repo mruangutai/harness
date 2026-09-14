@@ -43,7 +43,7 @@ syntax (`DROP`, empty text, etc.) that removes a base entry. `harness-distill/SK
 achievable with this CLI once a section is at cap. This is a harness defect, not a workaround to
 carry forward, so it is raised as an open question rather than encoded anywhere in Expertise.
 
-## check-expertise.sh
+## check-expertise.py
 
 | File | Exit |
 |---|---|

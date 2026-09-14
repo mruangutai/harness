@@ -1,7 +1,7 @@
 # Security review — FEAT-104-strict-digest-schema — panel c10 @ 790023f0
 
 **VERDICT: PASS.** `must_fix` is empty at this pin. No new finding. Every security-relevant source
-file (`check-domain.py`, `check-state.sh`, `validate-digest.py`, `run-state-schema.json`) is
+file (`check-domain.py`, `check-state.py`, `validate-digest.py`, `run-state-schema.json`) is
 **byte-identical** to the c9 pin (168f875f) — the entire delta between c9 and c10 in non-feature-
 directory files is `tests/integration/test-check-domain.py` at exactly `+4/-2` (verified with
 `git diff --stat 168f875f..790023f0`), matching the dispatch's claim precisely. c9's finding set
@@ -12,7 +12,7 @@ the carry-forward, and confirms it.
 
 `git diff --stat origin/main..790023f0`: 75 files, +10697/-31. Read/diffed directly:
 - **In scope, has security surface** — read every hunk: `check-domain.py` (+102, write-time gate),
-  `check-state.sh` (+54, at-rest sweep), `validate-digest.py` (+94/-... , agent-return validator),
+  `check-state.py` (+54, at-rest sweep), `validate-digest.py` (+94/-... , agent-return validator),
   `run-state-schema.json` (new file, +76, declarative JSON Schema consumed by both gates), the 3
   `.claude/agents/harness-*-lead.md` files, `harness-team/SKILL.md`, `harness/SKILL.md`,
   `DECISIONS.md`/`DECISIONS-INDEX.md`/`SPEC.md` (DEC-223 write-up).
@@ -44,7 +44,7 @@ downgrade from an already-strict prior checkpoint is also denied; (2) for a `sch
 document, the `steps[]` array is validated against `run-state-schema.json`'s closed step shape via
 `jsonschema.Draft202012Validator`, with `evidence:` as the one governed free-form container
 (lowercase-identifier keys, scalar/scalar-array values, `propertyNames` pattern-enforced).
-`check-state.sh` mirrors the same schema at rest (INV-16) for `schema_version >= 2` runs already on
+`check-state.py` mirrors the same schema at rest (INV-16) for `schema_version >= 2` runs already on
 disk. `validate-digest.py` adds `PASSTHROUGH`/`DOCUMENTED_OPTIONAL` typed tables and a closed-set
 check (`undeclared = sorted(set(seen) - legal_fields)`) that rejects any digest key outside a
 persona's declared+documented set, in one message naming every offending key (REQ-05/SC-07).
@@ -65,10 +65,10 @@ trust boundary.**
   — `repr()` quote-escapes; safe.
 - `check-domain.py` downgrade message: `{_version!r}` explicit repr; `_prior_version` is
   type-constrained to a plain positive int by `_prior_is_strict` before interpolation — safe.
-- `check-state.sh` INV-16 offending-key list `_names`: Python list — `str()` of a list already
+- `check-state.py` INV-16 offending-key list `_names`: Python list — `str()` of a list already
   `repr()`s each element — safe.
 - `validate-digest.py` undeclared-key names: `", ".join(repr(field) for field in undeclared)` — safe.
-- **`check-state.sh` INV-16's `run_id`/step `id`** (`f"... run {sdoc.get('run_id', '<unknown>')}
+- **`check-state.py` INV-16's `run_id`/step `id`** (`f"... run {sdoc.get('run_id', '<unknown>')}
   step {_step_id}: ..."`, `:1525`): interpolated as **bare strings**, no `!r`. This is **CF-1**
   (c9's SEC-C9-01), re-verified present at this exact byte offset — **carried, unchanged**, not a
   new finding. *Concrete failure scenario, restated from c9, still valid:* an actor who can place a
@@ -76,7 +76,7 @@ trust boundary.**
   accepted **DEC-85** Bash-write bypass, confirmed still standing in `DECISIONS.md` today —
   serialization + `isolation: worktree` is the real write-safety mechanism, the hook is a
   guardrail, `bash-write-guard.py` narrows only the casual case) sets `run_id` or a step `id` to a
-  string carrying ANSI/terminal control bytes. At the next `/harness` entry, `check-state.sh`'s
+  string carrying ANSI/terminal control bytes. At the next `/harness` entry, `check-state.py`'s
   INV-16 sweep prints that value unescaped into the operator's terminal — the audit line meant to
   flag the schema violation can itself be overwritten or hidden on-screen. Severity **med**: it
   requires the already-out-of-scope Bash-write precondition, and the outcome is a visual/terminal
@@ -100,7 +100,7 @@ trust boundary.**
   key-whitelist check before this feature. This is not a new gap: it is documented in-file (line
   ~1554-1560) as a deliberate, user-ruled trade-off — "no line-scan alternative, no degraded mode"
   — with a stated compensating control: a malformed checkpoint written during a bootstrap grant is
-  still caught, named, and reported by `check-state.sh`'s at-rest sweep at the next entry, which now
+  still caught, named, and reported by `check-state.py`'s at-rest sweep at the next entry, which now
   (this diff) also carries the same closed-schema check via INV-16. The new FEAT-104 write-time
   checks inherit the pre-existing bootstrap-grant exemption without widening its scope or weakening
   its compensating control — assessed and dismissed, not a finding.
@@ -110,12 +110,12 @@ trust boundary.**
   case): present, unchanged, test-confirmed green (34/34 T-04 undeclared-key cases, including the
   one-message-for-three-keys case) — **CLOSED**, confirmed.
 - **F2** (generic `lead` archive-reader exemption in `validate-digest.py`): topology re-traced, not
-  relitigated. `check-state.sh:1536` calls `_vd_mod.validate("lead", _dtext)` with the **literal**
+  relitigated. `check-state.py:1536` calls `_vd_mod.validate("lead", _dtext)` with the **literal**
   string `"lead"` — this is the only call site using that literal. `validate-digest.py`'s
   `hook_mode()` (SubagentStop, unchanged by this diff) reads `agent = d["agent_type"]` — the real
   dispatched persona (e.g. `"harness-eng-lead"`) — and passes that raw value into `validate()`, so
   `raw_persona != "lead"` for every live return and the undeclared-key check applies to it in full.
-  The exemption is reachable only through the archive-reader path check-state.sh uses for historical
+  The exemption is reachable only through the archive-reader path check-state.py uses for historical
   digests, exactly as REQ-08/SC-12 requires. **DECLINED disposition stands**; not reopened.
 
 ## No secrets, no new injection surface
@@ -129,7 +129,7 @@ path in both scripts (pre-existing, BASH_SOURCE-anchored, no traversal). The 3 l
 
 ## Carried, unchanged (not re-raised as new)
 
-- **CF-1** (`check-state.sh` INV-16 bare `run_id`/step-id interpolation, med): confirmed present,
+- **CF-1** (`check-state.py` INV-16 bare `run_id`/step-id interpolation, med): confirmed present,
   see above.
 - **DEC-85** (Bash-write bypass, standing accepted risk): confirmed still documented in
   `DECISIONS.md` as the accepted trade-off (serialization + `isolation: worktree` is the real
@@ -141,8 +141,8 @@ path in both scripts (pre-existing, BASH_SOURCE-anchored, no traversal). The 3 l
 |---|---|---|
 | state.yaml write vs. check-domain.py schema_version floor/downgrade | Tampering | true |
 | state.yaml write vs. check-domain.py closed step schema | Tampering | true |
-| bootstrap-grant (`_no_parser`) vs. new FEAT-104 write-time checks | Tampering | false, precondition-absent outside first-session bootstrap; compensating control is check-state.sh's at-rest INV-16 sweep, itself part of this diff |
-| Bash-authored state.yaml vs. check-state.sh INV-16 report echo (CF-1) | Spoofing | false, gated behind the pre-existing DEC-85 precondition |
+| bootstrap-grant (`_no_parser`) vs. new FEAT-104 write-time checks | Tampering | false, precondition-absent outside first-session bootstrap; compensating control is check-state.py's at-rest INV-16 sweep, itself part of this diff |
+| Bash-authored state.yaml vs. check-state.py INV-16 report echo (CF-1) | Spoofing | false, gated behind the pre-existing DEC-85 precondition |
 | at-rest digest sweep vs. raw persona (F2) | Tampering (defence-in-depth) | true — literal-"lead" call site confirmed singular; live returns use their raw persona |
 | digest undeclared-key rejection vs. crafted key names | Information disclosure / injection | true — repr() on every offending-key surface |
 | run-state-schema.json path resolution, both scripts | Tampering (path traversal) | true — selfdir-anchored |
@@ -150,5 +150,5 @@ path in both scripts (pre-existing, BASH_SOURCE-anchored, no traversal). The 3 l
 ## Open questions
 
 - Q1 (from c9, still open, non-blocking): CF-1's one-line fix (`!r}` on `run_id`/`_step_id` in
-  `check-state.sh`'s INV-16 message) is inside the DEC-174 carve-out — route to the next
+  `check-state.py`'s INV-16 message) is inside the DEC-174 carve-out — route to the next
   main-session touch of that file.

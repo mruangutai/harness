@@ -22,9 +22,9 @@ lanes:
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
       reason: check-domain.py --resolve returns NOBODY for this path, so no agent may write it
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
-      reason: DEC-174 carve-out, check-state.sh is the state gate and cannot vouch for its own change
+      reason: DEC-174 carve-out, check-state.py is the state gate and cannot vouch for its own change
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       reason: it is the gate script's own test and is edited in the same DEC-174 direct step
@@ -816,7 +816,7 @@ tasks:
       Write feature.yaml SURGICALLY — locate the factory block textually and rewrite only those
       lines, preserving the rest of the file byte for byte. Do not load it and dump it back. That
       same file carries gh-sync.py's github block and the operator's comments; gh-sync.py does
-      surgical text rewriting for exactly this reason, and check-state.sh's INV-23 budgets comment
+      surgical text rewriting for exactly this reason, and check-state.py's INV-23 budgets comment
       lines, so a round trip that reformats the file trips a gate in a different feature and reads
       as an unrelated regression.
 
@@ -1431,20 +1431,20 @@ tasks:
     traces: [REQ-06, REQ-07]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — check-state.sh is a gate script, and green gates cannot vouch for the code that produces them; its own test file is edited in the same direct step
+    execution_reason: DEC-174 carve-out — check-state.py is a gate script, and green gates cannot vouch for the code that produces them; its own test file is edited in the same direct step
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      grep -q "INV-24" .claude/skills/harness/bin/check-state.sh && grep -q "INV-24" .claude/skills/harness/bin/test-check-state.py && .claude/skills/harness/bin/run-unit-tests.py --kind integration > /tmp/v-t08.txt 2>&1 && grep -q "^PASS test-check-state.py$" /tmp/v-t08.txt
+      grep -q "INV-24" .claude/skills/harness/bin/check-state.py && grep -q "INV-24" .claude/skills/harness/bin/test-check-state.py && .claude/skills/harness/bin/run-unit-tests.py --kind integration > /tmp/v-t08.txt 2>&1 && grep -q "^PASS test-check-state.py$" /tmp/v-t08.txt
     intent: |
-      Add INV-24 to check-state.sh, covering the factory block that T-04 writes into a feature's
+      Add INV-24 to check-state.py, covering the factory block that T-04 writes into a feature's
       feature.yaml.
 
       For every .harness/features/*/feature.yaml that parses and carries a `factory` mapping:
-        - Load .harness/factory/fleet.yaml with the same harness_yaml helper check-state.sh
+        - Load .harness/factory/fleet.yaml with the same harness_yaml helper check-state.py
           already uses. If the fleet file is absent, append one `bad` entry saying the feature
           records factory state but no fleet declares the repository, and skip the rest for that
           feature.
@@ -1468,7 +1468,7 @@ tasks:
       A feature.yaml with no factory block is not a violation and must produce no output.
 
       Add cases to test-check-state.py in the same task, in the style of its existing cases,
-      forking the real check-state.sh against a temporary tree: a feature with a factory block
+      forking the real check-state.py against a temporary tree: a feature with a factory block
       naming a listed repository passes; a feature naming an unlisted repository produces a
       violation whose message contains the repository name; two features recording the same
       repository and issue number produce a violation naming both; ONE FEATURE'S factory.parent
@@ -1478,7 +1478,7 @@ tasks:
       factory block carrying no parent key produces no INV-24 output; a factory block with no fleet
       file present produces a violation; a tree with no factory blocks at all produces no INV-24
       output. Name the new cases so that the literal string INV-24 appears in test-check-state.py
-      as well as in check-state.sh. Do not add a new file to the bin directory — these cases go
+      as well as in check-state.py. Do not add a new file to the bin directory — these cases go
       into the existing test script, which is already registered in INTEGRATION_SCRIPTS.
 
   - id: T-09

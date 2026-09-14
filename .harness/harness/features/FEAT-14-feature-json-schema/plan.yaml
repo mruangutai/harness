@@ -50,7 +50,7 @@ lanes:
     - surface: .claude/skills/harness/bin/**
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered gate script
     - surface: .claude/skills/harness/bin/check-domain.py
@@ -116,12 +116,12 @@ decisions:
       draft of this decision priced a phase backfill onto FEAT-01 and FEAT-02; phase is gone, so
       that analysis is void and is not carried forward.
       THE CONSEQUENCE THAT SURVIVES, AND IT IS LARGER THAN THE BACKFILL WAS. status is REQUIRED and
-      is already present on all 17 files, so INV-17 in check-state.sh loses its exemption carrier
-      outright rather than on two files. INV-17 is guarded today by phase ABSENCE - check-state.sh
+      is already present on all 17 files, so INV-17 in check-state.py loses its exemption carrier
+      outright rather than on two files. INV-17 is guarded today by phase ABSENCE - check-state.py
       line 451 reads if _phase not in PHASE_ORDER continue, and line 436 says pre-DEC-159 features
       stay quiet - and FEAT-01 and FEAT-02 are quiet only because they carry no phase. With phase
       deleted and nothing put in its place, _phase is the empty string on all 17, so the continue
-      fires every time and INV-17 stops firing ENTIRELY while check-state.sh still exits clean. A
+      fires every time and INV-17 stops firing ENTIRELY while check-state.py still exits clean. A
       gate that examines nothing reports no violations. T-12 is the task that answers this, and it
       is a task rather than a note precisely because the failure mode is silence.
     dec: DEC-159
@@ -130,7 +130,7 @@ decisions:
       bin/feature_schema.py holding the schema load and the validation, plus a thin CLI wrapper
       bin/validate-feature-json.py for CI, the migration tasks and the corpus sweep. check-domain.py
       IMPORTS the module in process on its existing write-payload path; it does not spawn the CLI.
-      The PreToolUse bash-write-guard and a check-state.sh sweep are rejected as the primary point.
+      The PreToolUse bash-write-guard and a check-state.py sweep are rejected as the primary point.
     because: check-domain.py already inspects write payloads on this exact path for the line
       budget, so write-time denial costs an import and a call rather than schema logic inside a
       carve-out gate; bash-write-guard guards the Bash route, not the Write tool the orchestrator
@@ -220,7 +220,7 @@ decisions:
       lowercase alias would reintroduce the same layer through the back door, so it is refused.
     dec: none
   - id: D-12
-    choice: INV-17 SURVIVES the collapse. check-state.sh keeps an ordered list of the six status
+    choice: INV-17 SURVIVES the collapse. check-state.py keeps an ordered list of the six status
       values and a separate literal table naming, per status, the handoff-note STEMS that must exist
       once a feature is at or past it. The stems stay lowercase literals - plan, build, validate -
       and are NOT derived from the status values.
@@ -308,19 +308,19 @@ tasks:
       (object), additionalProperties false). No property is required inside factory.
       Do NOT add a notes property anywhere, at any level.
       branch and review_sha are plain strings and the literal string none is a legal
-      value for both - check-state.sh INV-6 already treats none as unset via
+      value for both - check-state.py INV-6 already treats none as unset via
       PLACEHOLDER_UNSET, so do not model them as nullable. pr, by contrast, IS
       integer-or-null: it is the string none in every live file today and T-04
       rewrites those to null.
 
       Every property carries a description string. For the object-valued ones the
       description names the code that reads it, verbatim from these census results:
-      runs items are read at check-state.sh lines 184-190; review_sha at 195;
+      runs items are read at check-state.py lines 184-190; review_sha at 195;
       cycles_used at 203; max_total_runs at 249; status by check-plan-routes.py's
-      finished-feature skip and by check-state.sh INV-17's seam table; github by
-      gh-sync.py load_recorded and check-state.sh INV-21; factory by
+      finished-feature skip and by check-state.py INV-17's seam table; github by
+      gh-sync.py load_recorded and check-state.py INV-21; factory by
       factory_decompose.py load_factory, factory_claim.py issue_number and
-      check-state.sh INV-24. CITE status BY THE READER'S NAME, NOT BY A LINE NUMBER -
+      check-state.py INV-24. CITE status BY THE READER'S NAME, NOT BY A LINE NUMBER -
       T-11 and T-12 both move those lines inside this same build, so a line anchor
       written here is stale before it is read.
 
@@ -652,10 +652,10 @@ tasks:
       exactly that state on 2026-08-10 and FEAT-15 was an hour earlier. Such a directory is
       not in the glob, so it gets no receipt and no rewrite; record it by name in this
       task's report as skipped-no-feature-file, so the operator sees which directories the
-      migration did not touch. check-state.sh INV-18 already flags the condition; this task
+      migration did not touch. check-state.py INV-18 already flags the condition; this task
       neither creates a feature file for one nor treats it as an error.
 
-      CAPTURE THE PRE-MIGRATION check-state.sh BASELINE BEFORE YOU TOUCH ANYTHING. T-08's
+      CAPTURE THE PRE-MIGRATION check-state.py BASELINE BEFORE YOU TOUCH ANYTHING. T-08's
       verify asserts its violation set has not GROWN, and the only honest baseline is the
       one taken before this task's first write - by T-06 the gate reads feature.json while
       the corpus is still YAML, so a capture taken later is a degenerate window of INV-18
@@ -664,7 +664,7 @@ tasks:
       satisfied and re-confirmed, in the same sitting as the rewrites, immediately before
       the first receipt write. A capture taken at task start and then held through a wait
       for FEAT-12 to ship is stale by exactly the mechanism this whole amendment exists to
-      remove. This task's verify clause fails if the file is absent. Run check-state.sh,
+      remove. This task's verify clause fails if the file is absent. Run check-state.py,
       keep every stdout line containing VIOLATION stripped of surrounding whitespace, one
       per line, and write them to
       .harness/features/FEAT-14-feature-json-schema/notes/baseline-check-state.txt.
@@ -951,12 +951,12 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-06, REQ-07, REQ-08]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh, check-domain.py and validate-digest.py are
+    execution_reason: DEC-174 carve-out - check-state.py, check-domain.py and validate-digest.py are
       three of the four named enforcement scripts, edited directly and never dispatched
     depends_on: [T-04]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-check-state.py
@@ -981,7 +981,7 @@ tasks:
       DEC-174: make these edits directly, run the tests explicitly, read the diff. Do
       not dispatch this task.
 
-      1. check-state.sh. Six globs name feature.yaml (around lines 148, 439, 486, 506,
+      1. check-state.py. Six globs name feature.yaml (around lines 148, 439, 486, 506,
       713, 752); all become feature.json. Every message naming feature.yaml becomes
       feature.json. Two substantive changes beyond the rename:
         - INV-18's message (around line 487) currently says to instantiate it from the
@@ -1022,7 +1022,7 @@ tasks:
       633) is renamed RE_FEATURE_JSON with its pattern ending feature\.json. Rename every
       use; leave the other four shape patterns alone. The
       budget message around line 636 changes from 200 to 300 and drops the comment-line
-      half, matching check-state.sh. Then add the schema check to the SAME payload path
+      half, matching check-state.py. Then add the schema check to the SAME payload path
       that already applies the line budget, inside shape_problems, so it returns lines
       like every other shape finding and both call sites (the named PRE target and the
       POST sweep) get it for free.
@@ -1109,9 +1109,9 @@ tasks:
       deny() and therefore keeps ROUTING - it is not a schema finding and its advice is
       still the right advice.
       KNOW WHAT THIS TASK LEAVES BEHIND. Between this task and T-08 the globs name
-      feature.json while the corpus is still feature.yaml, so check-state.sh INV-18
+      feature.json while the corpus is still feature.yaml, so check-state.py INV-18
       fires for every feature still on YAML. That window is accepted and expected; this task
-      is verified by the fixture-based integration suite, not by a green check-state.sh,
+      is verified by the fixture-based integration suite, not by a green check-state.py,
       and the branch is not committed against a green state check until T-08 closes the
       window. Do not "fix" the red by reverting a glob.
       THE PROHIBITED-TOOL WINDOW IS OPEN ACROSS THIS TASK. Do NOT invoke gh-sync.py,
@@ -1317,7 +1317,7 @@ tasks:
       if len(glob.glob('.harness/features/*/feature.json')) < len(glob.glob('.harness/features/*/notes/receipt-feature-key-drop.md')): bad.append('fewer feature.json files than T-04 drop receipts - a feature was lost in conversion')
       r = subprocess.run(['.claude/skills/harness/bin/validate-feature-json.py'], capture_output=True, text=True)
       if r.returncode: bad.append('validator exit %d: %s' % (r.returncode, r.stdout[-800:]))
-      cs = subprocess.run(['.claude/skills/harness/bin/check-state.sh'], capture_output=True, text=True)
+      cs = subprocess.run(['.claude/skills/harness/bin/check-state.py'], capture_output=True, text=True)
       v = [l.strip() for l in cs.stdout.splitlines() if 'VIOLATION' in l]
       bad += ['NEW violation vs the pre-migration baseline: ' + x for x in v if x.split('\u2014')[0].strip().replace('feature.yaml', 'feature.json') not in B] + (['violation set GREW from %d at the pre-migration baseline to %d' % (len(B), len(v))] if len(v) > len(B) else [])
       EX = {'FEAT-01', 'FEAT-02'} | {p.split('/')[2] for p in glob.glob('.harness/features/*/plan.yaml') for T in [(yaml.safe_load(open(p)) or {}).get('tasks') or []] if T and all(isinstance(i, dict) and i.get('execution_mode') == 'main-session-direct' for i in T)}
@@ -1385,9 +1385,9 @@ tasks:
       T-05 created, not merely that it carries the right keys.
 
       Then run, and report the output of, each of: the validator with no arguments,
-      check-state.sh, run-unit-tests.py with no kind filter, and check-plan-routes.py
+      check-state.py, run-unit-tests.py with no kind filter, and check-plan-routes.py
       over every live plan. The validator, the unit runner and the route checker must all
-      exit 0. check-state.sh must NOT be judged by its exit code, and NOT against any
+      exit 0. check-state.py must NOT be judged by its exit code, and NOT against any
       violation list written at plan time. The bar is that its violation set does not GROW
       and no new violation text appears, measured against
       notes/baseline-check-state.txt, which T-04 captured before the migration's first
@@ -1533,7 +1533,7 @@ tasks:
       drift this org keeps paying for, and the board is the surface the operator actually
       reads. Record the consequence that made this a task rather than a rename: deleting
       phase without replacing INV-17's guard would have left that invariant skipping all
-      17 features while check-state.sh still reported clean. Reference DEC-148, DEC-159,
+      17 features while check-state.py still reported clean. Reference DEC-148, DEC-159,
       DEC-172 and the closed-key-set entry above.
 
       DO NOT EDIT docs/harness/DECISIONS-INDEX.md in this task. The index is generated.
@@ -1713,30 +1713,30 @@ tasks:
     traces: [REQ-07]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh is one of the four named enforcement
+    execution_reason: DEC-174 carve-out - check-state.py is one of the four named enforcement
       scripts, edited directly by the main session and never dispatched
     depends_on: [T-06]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 - <<'PY'
       import subprocess, sys
       bad = []
-      raw = open('.claude/skills/harness/bin/check-state.sh').read()
+      raw = open('.claude/skills/harness/bin/check-state.py').read()
       code = ''.join(l.split('#', 1)[0] for l in raw.splitlines(True))
       if 'PHASE_ORDER' in code:
-          bad.append('check-state.sh still assigns or reads PHASE_ORDER in CODE - the phase '
+          bad.append('check-state.py still assigns or reads PHASE_ORDER in CODE - the phase '
                      'vocabulary must not survive as an executable constant. A COMMENT naming it '
                      'is expected and legal: the intent requires recording what replaced it, so '
                      'this check reads code with comments stripped, never the raw file')
       if '_doc.get("phase"' in code or "_doc.get('phase'" in code:
-          bad.append('check-state.sh still reads a phase key in CODE that no feature file carries')
+          bad.append('check-state.py still reads a phase key in CODE that no feature file carries')
       for stem in ('handoff-Plan', 'handoff-Building', 'handoff-Review', 'handoff-Done',
                    'handoff-Ready', 'handoff-Backlog'):
           if stem in code:
-              bad.append('check-state.sh BUILDS the handoff path %s.md from a capitalized status '
+              bad.append('check-state.py BUILDS the handoff path %s.md from a capitalized status '
                          'value; the notes on disk are lowercase, so this passes on a '
                          'case-insensitive filesystem and fails on Linux CI. Naming the hazard in '
                          'a comment is required by the intent and is not a finding' % stem)
@@ -1757,12 +1757,12 @@ tasks:
       by `PHASE_ORDER = [`, the read by `_doc.get("phase"`, and the handoff path by the
       expression that joins `notes` with a handoff filename.
 
-      WHY THIS IS A TASK AND NOT A DELETED CONSTANT. check-state.sh assigns
+      WHY THIS IS A TASK AND NOT A DELETED CONSTANT. check-state.py assigns
       PHASE_ORDER = ["plan","build","validate","ship"], reads the phase key just below it,
       and then does `if _phase not in PHASE_ORDER: continue`. Delete phase from the corpus
       and leave those lines standing, and _phase is the empty string on all 17 features,
       never in PHASE_ORDER, so the loop continues on every one of them: INV-17 stops
-      firing ENTIRELY and check-state.sh reports no INV-17 violation, ever, while exiting
+      firing ENTIRELY and check-state.py reports no INV-17 violation, ever, while exiting
       exactly as it does today. A gate that examines nothing reports nothing wrong. That
       is the failure this task exists to prevent, and it is why this task's success
       criterion asserts a violation is RAISED rather than that the script exits clean.
@@ -1857,7 +1857,7 @@ tasks:
       PLAN.md.
       IMPLEMENT IT LAZILY: evaluate the predicate ONLY when a required note is found
       missing, never for every feature on every run. Load the plan with
-      harness_yaml.load_file, which check-state.sh already imports and uses for
+      harness_yaml.load_file, which check-state.py already imports and uses for
       feature files.
 
       2c. THE EXEMPTION IS REPORTED, NEVER SILENT. An exempted feature emits one line
@@ -1896,12 +1896,12 @@ tasks:
       helper that writes .harness/features/<FEAT>/plan.yaml from a supplied tasks: list -
       including the empty and the absent case - so those three cases are writable at all.
       Without it they cannot be written and SC-18 would assert tests that do not exist.
-      NO CASE IN THIS TASK MAY REST ON check-state.sh EXITING 0. A dead invariant produces
+      NO CASE IN THIS TASK MAY REST ON check-state.py EXITING 0. A dead invariant produces
       exactly that exit. Assert on the presence or absence of specific output lines.
         - INV-17 RAISES a violation on a constructed fixture: a feature directory whose
           status is Review with notes/handoff-build.md ABSENT. Assert the violation is
           present in the output AND that its text names handoff-build. This is the
-          positive firing case. Asserting that check-state.sh exits 0 proves nothing here
+          positive firing case. Asserting that check-state.py exits 0 proves nothing here
           - a dead invariant produces exactly that - so no case in this task may rest on
           a clean exit;
         - INV-17 STAYS QUIET for the exemption set: a fixture named FEAT-01 at status
@@ -1943,7 +1943,7 @@ tasks:
       now rejects. Rewrite both around status - the first becomes the Review case in the
       list above, and the second simply drops the phase line.
 
-      4. LEAVE check-state.sh LINE 599 ALONE. It reads
+      4. LEAVE check-state.py LINE 599 ALONE. It reads
       str(sdoc.get("status","")).strip() == "complete" and it is a DIFFERENT status - a
       RUN's status inside state.yaml, governed by CHECKPOINT_KEYS and DEC-154, which this
       feature puts out of scope. complete is also one of the old feature-file values, so

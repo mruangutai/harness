@@ -132,7 +132,7 @@ governed run artifact whose complete candidate cannot be reconstructed... now fa
 names all three permits by exact case name: `uniquely reconstructable state Edit remains allowed`,
 `digest Edit append repair remains allowed`, `handoff valid reconstructable PRE-Edit remains
 allowed`. Requirement met. `## Suite results` records only `exit 0` lines and `0 lines beginning
-FAIL` for both unit and integration kinds, and `check-state.sh` exit 0 with 0 `INV-36` lines; the
+FAIL` for both unit and integration kinds, and `check-state.py` exit 0 with 0 `INV-36` lines; the
 one non-zero exit in the note (`exit 4; 6/10 passed`) is explicitly the OLD pre-change hook run for
 historical contrast, not a live failure — correctly framed, no discrepancy found.
 

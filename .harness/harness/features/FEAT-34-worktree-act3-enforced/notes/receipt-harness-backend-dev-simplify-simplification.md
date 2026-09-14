@@ -55,15 +55,15 @@ None that meet the bar.
 
 Checked and explicitly NOT flagging (with reason):
 
-- `check-state.sh:1582` (INV-30) — `str(_doc30.get("status", "")).split()[:1] != ["Done"]`
+- `check-state.py:1582` (INV-30) — `str(_doc30.get("status", "")).split()[:1] != ["Done"]`
   looks like an over-elaborate pipeline for a status equality check, and the adjacent comment
   ("the exact string `Done` and nothing else") overclaims precision the `.split()[:1]` form does
   not literally enforce (a hypothetical "Done extra" would also match). But the identical idiom
-  already exists, unchanged by this diff, at `check-state.sh:1073` inside the pre-existing INV-28
+  already exists, unchanged by this diff, at `check-state.py:1073` inside the pre-existing INV-28
   block. INV-30 reused an established sibling pattern rather than inventing a new one — that is
   the REUSE angle's territory, and trimming it here would put INV-30 out of step with INV-28 for
   no semantic gain. Not flagged, per the hard constraint on preserving anchoring precedent.
-- The INV-29 discriminator (`_repo_level29`, `check-state.sh` inside the new block) — the
+- The INV-29 discriminator (`_repo_level29`, `check-state.py` inside the new block) — the
   three-way `feature_id is None and (repo is not None or (fleet_path matches))` conjunct looks
   dense, but its own comment states the reason it must key on more than `feature_id`: a
   repository-level failure record and a genuine out-of-segment worktree record are otherwise

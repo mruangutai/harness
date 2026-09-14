@@ -187,13 +187,13 @@ Run:
 
 ```bash
 # Complete suite
-bash .agents/skills/harness/bin/run-unit-tests.py
+python3 .agents/skills/harness/bin/run-unit-tests.py
 
 # Provider-neutral surface and adapter drift
 python3 .agents/skills/harness/bin/check-omp-port.py
 
 # Project invariants
-bash .agents/skills/harness/bin/check-state.sh
+python3 .agents/skills/harness/bin/check-state.py
 ```
 
 To change a role, edit `.omp/agents/<name>.md`, then regenerate and check Claude compatibility:

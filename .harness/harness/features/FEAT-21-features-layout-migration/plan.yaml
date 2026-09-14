@@ -24,7 +24,7 @@ lanes:
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script. The measured grant is overridden by the carve-out, which is why the measurement does not settle the lane on its own."
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
       reason: "DEC-174 carve-out named in CLAUDE.md - the state gate. Carve-out overrides the measured grant."
@@ -35,7 +35,7 @@ lanes:
     - surface: .claude/skills/harness/bin/layout_migration.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "Carve-out by content, ruled in FEAT-20: check-state.sh computes INV-27's verdict from this module's return value. Carve-out overrides the measured grant."
+      reason: "Carve-out by content, ruled in FEAT-20: check-state.py computes INV-27's verdict from this module's return value. Carve-out overrides the measured grant."
     - surface: .claude/skills/harness/bin/test-layout-migration.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -43,7 +43,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "co-changes with check-state.sh, in the same diff a human reads. Measured on this path as the representative for every test-*.py row below, all of which share the bin/** grant."
+      reason: "co-changes with check-state.py, in the same diff a human reads. Measured on this path as the representative for every test-*.py row below, all of which share the bin/** grant."
     - surface: .claude/skills/harness/bin/test-check-domain.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
@@ -210,7 +210,7 @@ decisions:
       module scope and is in UNIT_SCRIPTS, so post-move the whole unit suite dies on import and
       T-09's own suite check fails. The cost is diff size, not correctness - measured at 62fef85,
       none of the three is a row in layout_migration.READER_TABLE (lines 74-101, whose four features
-      rows are team-config.yaml, check-domain.py, check-plan-routes.py and check-state.sh), so the
+      rows are team-config.yaml, check-domain.py, check-plan-routes.py and check-state.py), so the
       detector reads none of them either way and none reddens it at any commit. Two of the three,
       gh-sync.py and validate-feature-json.py, are ADDITIONALLY on the module's explicit
       DO-NOT-READ list at lines 42-44; test-factory-cli.py is NOT on that list and does not need to
@@ -218,7 +218,7 @@ decisions:
     dec: none
   - id: D-08
     choice: >-
-      check-state.sh's feature dictionaries KEEP keying on the bare directory basename. Only the
+      check-state.py's feature dictionaries KEEP keying on the bare directory basename. Only the
       finding LABEL gains its repository segment, built from the discovered path rather than from
       the key. The key-collision defect proper is deferred to unit 5 or unit 8.
     because: >-
@@ -226,7 +226,7 @@ decisions:
       collapse last-write-wins - and DEC-133 coins ids per-BRIEF with no cross-repo uniqueness rule
       while every onboarded repo starts at FEAT-01, so the collision is likely rather than exotic.
       It cannot fire at this feature's landed commit, because one repository exists. Qualifying the
-      KEY is the tempting fix and is the one measured hazard here - check-state.sh derives the
+      KEY is the tempting fix and is the one measured hazard here - check-state.py derives the
       feature name in two different shapes, os.path.basename(os.path.dirname(p)) at ten sites and
       os.path.basename(_fp) at the station-mirror site whose lookup is plan_docs.get(_feat). Qualify
       one shape and not the other and every station-mirror check silently continues past every
@@ -254,7 +254,7 @@ tasks:
       exit "$ru"
     intent: |
       Close issue 387. Nothing today asserts that layout_migration.render (the CI rendering) and the
-      INV-27 rendering consumed by check-state.sh name the same reader set and the same cause for
+      INV-27 rendering consumed by check-state.py name the same reader set and the same cause for
       the same input. That seam produced two divergences on 2026-08-14 and the fix that followed
       changed the policy without adding a test, so a third divergence would be equally silent.
 
@@ -278,9 +278,9 @@ tasks:
       edited. Run and save the verbatim output of both, together with git rev-parse HEAD, to a
       scratch file T-09 will read:
         python3 .claude/skills/harness/bin/layout_migration.py
-        bash .claude/skills/harness/bin/check-state.sh
+        python3 .claude/skills/harness/bin/check-state.py
       The detector must print features: CLEAN with evidence legacy, docs: CLEAN with evidence legacy,
-      and a summary of 0 mixed, 0 cannot-verify; check-state.sh must exit 0 emitting no INV-27 line at
+      and a summary of 0 mixed, 0 cannot-verify; check-state.py must exit 0 emitting no INV-27 line at
       all. If either is not true, STOP: the base has drifted and this plan's audits were taken against
       a different tree.
 
@@ -360,7 +360,7 @@ tasks:
           print('expected 4 migrated shape regexes'); sys.exit(1)
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/check-domain.py
+      python3 -m py_compile .claude/skills/harness/bin/check-domain.py
     intent: |
       Rewrite the eight stale sites in check-domain.py onto a wildcard repository segment (D-01).
 
@@ -489,7 +489,7 @@ tasks:
       counters must count feature directories again.
 
   - id: T-05
-    title: Move check-state.sh's fifteen feature-discovery sites onto a repository segment
+    title: Move check-state.py's fifteen feature-discovery sites onto a repository segment
     traces: [REQ-02]
     change_type: logic
     execution_mode: main-session-direct
@@ -497,12 +497,12 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
       set -e
       python3 - <<'PY'
       import re, sys
-      p = '.claude/skills/harness/bin/check-state.sh'
+      p = '.claude/skills/harness/bin/check-state.py'
       t = open(p, encoding='utf-8').read()
       bad = re.findall(r'.*os\.path\.join\(H, "features".*', t)
       if bad:
@@ -511,9 +511,9 @@ tasks:
           print('migrated discovery form absent'); sys.exit(1)
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/check-state.sh
+      python3 -m py_compile .claude/skills/harness/bin/check-state.py
     intent: |
-      Rewrite every feature-discovery site in check-state.sh so it finds features under a repository
+      Rewrite every feature-discovery site in check-state.py so it finds features under a repository
       segment. This is the highest-value silent failure in the repository: if these sites stop
       matching, INV-8, INV-12, INV-15, INV-17, INV-18 and INV-26, the budgets and the station mirror
       all evaluate over an empty set and the gate that session entry runs reports a healthy tree.
@@ -521,8 +521,8 @@ tasks:
       THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file has legacy pattern
       os\.path\.join\(H, "features" and migrated pattern os\.path\.join\(H, [^,)]+, "features" . At
       62fef85:
-        git grep -c 'os\.path\.join(H, "features"' 62fef85 -- .../check-state.sh  ->  15
-        git grep -c 'join(H,'                      62fef85 -- .../check-state.sh  ->  23
+        git grep -c 'os\.path\.join(H, "features"' 62fef85 -- .../check-state.py  ->  15
+        git grep -c 'join(H,'                      62fef85 -- .../check-state.py  ->  23
       The broader pattern adds exactly eight lines, and every one of them joins a SIBLING of
       features - harness.json three times, codebase four times, factory/fleet.yaml once. None is a
       features site and none moves in this unit. So the narrow pattern names every stale site, all
@@ -634,7 +634,7 @@ tasks:
       Per file, what to do and why:
 
         test-check-state.py - its fixture builder writes feature directories at
-        .harness/features/FEAT-TEST/ , and check-state.sh now discovers under a segment, so every
+        .harness/features/FEAT-TEST/ , and check-state.py now discovers under a segment, so every
         case would evaluate over an empty set and assert findings that no longer appear. Give the
         fixture builder a repository segment - one segment name, used consistently - so the fixtures
         sit at .harness/<seg>/features/FEAT-TEST/ . Change the builder, not each call site, wherever
@@ -772,7 +772,7 @@ tasks:
       assert '.harness/features/' not in open('.claude/skills/harness/bin/branch-create-gate.py').read()
       print('OK')
       PY
-      bash -n .claude/skills/harness/bin/branch-create-gate.py
+      python3 -m py_compile .claude/skills/harness/bin/branch-create-gate.py
     intent: |
       After the move, an agent following its own written instructions must still be able to do its
       bookkeeping, and a branch must still be creatable for a feature. Three groups.
@@ -1064,7 +1064,7 @@ tasks:
       grep -qxF 'docs: CLEAN — evidence legacy' "$o"
       grep -qF '0 mixed, 0 cannot-verify' "$o"
       s=$(mktemp); sc=0
-      bash .claude/skills/harness/bin/check-state.sh >"$s" 2>&1 || sc=$?
+      python3 .claude/skills/harness/bin/check-state.py >"$s" 2>&1 || sc=$?
       if grep -q 'INV-27' "$s"; then echo "INV-27 finding present"; cat "$s"; exit 1; fi
       test "$sc" = 0
       u=$(mktemp); ru=0
@@ -1090,7 +1090,7 @@ tasks:
         features: CLEAN - evidence legacy
         docs: CLEAN - evidence legacy
         layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
-      with check-state.sh exiting 0 and emitting no INV-27 line. If T-01's capture is missing or does
+      with check-state.py exiting 0 and emitting no INV-27 line. If T-01's capture is missing or does
       not read that way, STOP and report it rather than reconstructing it from memory.
 
       AFTER the move, with T-02 through T-08 and T-10 applied in the working tree, run both again. The

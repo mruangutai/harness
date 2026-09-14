@@ -50,7 +50,7 @@ One citation each, read individually at the pin:
    on the tuple entry. Matches the code around it: `_skill_docs` (same file, ~line 28-31) excludes
    `MAIN_SESSION_ONLY` names from the SKILL.md anchor sweep, which is exactly what the rationale
    claims.
-2. `.claude/skills/harness/bin/check-state.sh:111` — "harness: no .harness/ here — this clone is
+2. `.claude/skills/harness/bin/check-state.py:111` — "harness: no .harness/ here — this clone is
    not an onboarded harness control plane. Run /harness-init in the control-plane clone." The
    other three remedies also correctly name the clone (`:287`, `:407` INV-32 panel_era_start, and
    `:2434-2436` INV-31 rationale) — checked individually, not by a file-global grep.
@@ -132,7 +132,7 @@ Checked line-by-line against T-04's `intent:` block (plan.yaml):
   bottom of the file) — never inside `_main` or `_check_product_configs` — ✓.
 - `--check-product-configs` wins over `--show` when both given, with the comment T-04 asked for
   present (`factory_config.py:441-445`, `:453-456`) — ✓.
-- No `check-state.sh` change, with the required comment naming the board-audit precedent
+- No `check-state.py` change, with the required comment naming the board-audit precedent
   (`factory_config.py:448-452` docstring / `:472-477` argparse comment) — ✓.
 
 **Fail-open hunt, empty-`repos` shape — assessed and dismissed.** `product_config_report` over an

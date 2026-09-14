@@ -40,11 +40,11 @@
   simulation returns a clean number DO state what it is silent about in the same breath, or the
   number will be read as covering more than it does.
 
-- 2026-08-10: `check-state.sh` flagged four violations in MY OWN `STATE.md` — it parses bare `T-NN`
+- 2026-08-10: `check-state.py` flagged four violations in MY OWN `STATE.md` — it parses bare `T-NN`
   tokens and cross-checks them against THIS feature's plan, so naming another feature's task ids in
   prose (FEAT-12's T-12/T-14, FEAT-14's T-09/T-10) reads as dangling references. Write foreign task
   ids in words, never in the `T-NN` form. product-lead caught this before I did; running
-  `check-state.sh` on my own artifacts should be part of recording, not something a lead reports.
+  `check-state.py` on my own artifacts should be part of recording, not something a lead reports.
 
 - 2026-08-10: I nearly wrote `cycles_used: 0` on the revision because the revision run itself had
   zero send-backs. The first run had one, and the counter is cumulative for the feature. A phase

@@ -43,7 +43,7 @@ accepted on report.
 
 **Gates at the ship pin:** full independent panel PASS at `17106762`; three delta reviews PASS
 (`6752597`, `e12d53b1`, `cd8dae47`), all `must_fix: []`, the last at `severity_max: low` — down from
-`med` because the untested-branch driver is closed; test matrix PASS; `check-state.sh` exit 0;
+`med` because the untested-branch driver is closed; test matrix PASS; `check-state.py` exit 0;
 canonical suite 957 results with one failing suite (`test-hooks-install.py (e-green) SC-14`,
 untouched by this diff, reproduces on main, B8); SIMPLIFY an empty pass.
 
@@ -92,7 +92,7 @@ Three `None` guards in `_Counter` — `visit_AnnAssign/node.value`, `visit_With/
 `visit_Try/handler.type` — matching the pattern `visit_Assert` already used in the same class. My own
 sweep over `bin/*.py`: **99 graded, 0 crash**, up from 83/16; `harness_merge.py` and
 `harness_boundary.py` now grade. Range gate exit 0 at 201 records, engine 53 functions zero below
-grade 4, five suites exit 0, `check-state.sh` exit 0.
+grade 4, five suites exit 0, `check-state.py` exit 0.
 
 **The class is closed structurally, not patched three times.** `ast.NodeVisitor.generic_visit` skips
 `None` behind an `isinstance(value, AST)` check, so only a custom `visit_*` override calling

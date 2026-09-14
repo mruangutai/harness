@@ -13,7 +13,7 @@ FEAT-19/FEAT-40/FEAT-11/FEAT-10 and the template; FEAT-104 has none.
 
 **No rendered UI surface changed in this diff.** By the letter of Mode B's remit this scopes OUT.
 Per the dispatch's explicit override, I scope **IN** on the adjacent non-rendered surface it names:
-the denial/rejection text emitted by `check-domain.py`, `check-state.sh`, `validate-digest.py` —
+the denial/rejection text emitted by `check-domain.py`, `check-state.py`, `validate-digest.py` —
 judged as an interface (what was refused / why / where the fix route is).
 
 **Bookkeeping-commit claim, verified**: `git diff --stat 790023f0..3321bcdd` touches only 8 files,
@@ -96,7 +96,7 @@ DEC-174: no fix applied; reasoned from code plus a live, disposable repro — no
   Read `validate-digest.py:1411-1423` verbatim: unchanged since c9, still one message, all keys,
   file, and the three symbol names (`PASSTHROUGH`/`DOCUMENTED_OPTIONAL`/`SCHEMAS`). Test
   `_t04_three_key_failures` still present and asserting the aggregation.
-- **F2** (generic `lead` exemption in `check-state.sh:1590`, `validate("lead", ...)`) — topology
+- **F2** (generic `lead` exemption in `check-state.py:1590`, `validate("lead", ...)`) — topology
   confirmed unchanged (same call site, same line). Disposition **DECLINED stands** — not
   relitigated. Residual carried as **Q9/Q3, unchanged**.
 - **CF-1** (INV-16 bare-string interpolation) — not this role's lens; carried, unchanged, not

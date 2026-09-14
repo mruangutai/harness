@@ -58,7 +58,7 @@ Every changed production file has a corresponding test change in the pinned diff
 | SC-07 | `test-check-domain.py` green (worktree-strip cases intact); `check-domain.py --resolve` not independently rerun here — covered by SC-13's own DEVIATION-line output which lists the same script/agent pairing, consistent |
 | SC-08/09 | out of my 5 assigned suites; reported ground truth (canonical suites exited 0) covers `test-check-state.py`/`test-run-unit-tests-kinds.py` — not independently rerun per task constraints |
 | SC-10 | reported ground truth, not rerun (constraint) |
-| SC-11 | reported ground truth (`check-state.sh` exit 0) per dispatch; brief's own text (Verification gaps) discloses this was previously an external blocker, now reported met |
+| SC-11 | reported ground truth (`check-state.py` exit 0) per dispatch; brief's own text (Verification gaps) discloses this was previously an external blocker, now reported met |
 | SC-12 | inspection-only; not in my scope (no test to name) |
 | SC-13 | ran directly: `0 violation(s) across 1 plan(s)`, exit 0, 9 `DEVIATION` lines (T-01,02,03,04,05,09,10,11,12) — matches brief's stated count exactly |
 | SC-14 | ran directly: `gen-decisions-index.py --stdout` diffs clean; heading grep count = 1 |
@@ -111,9 +111,9 @@ No defined-but-unregistered case found among the seven named. All ran green in t
    `test-bash-write-guard.py:905`'s `changed != source`), which rules out vacuous-pass-by-identical-
    mutant, but does not close the disclosed limit itself.
 3. **Not rerun per task constraint**: `test-check-state.py`, `test-run-unit-tests-kinds.py`,
-   `check-state.sh`, and both full `run-unit-tests.py --kind {unit,integration}` invocations (SC-08,
+   `check-state.py`, and both full `run-unit-tests.py --kind {unit,integration}` invocations (SC-08,
    SC-09, SC-10, SC-11's exit-0 clause) — accepted as reported ground truth (exit 0) per the
-   dispatch, not independently measured by me. Note: `check-state.sh` was inadvertently run once by
+   dispatch, not independently measured by me. Note: `check-state.py` was inadvertently run once by
    me while probing SC-11's own evidence formula; it exited 0 with zero `FEAT-50` violation rows,
    consistent with the reported ground truth — recorded here for the record, not as new
    verification, since the dispatch asked me not to rerun it.

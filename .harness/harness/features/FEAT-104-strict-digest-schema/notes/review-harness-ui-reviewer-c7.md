@@ -13,7 +13,7 @@ These are generated ship-review report artifacts from an earlier plan-signature 
 authored product UI (repo Expertise P-02/G-11 — confirmed directly, not assumed).
 
 **Ruling: no rendered UI surface in this diff.** The remaining 52 files are enforcement
-scripts (`validate-digest.py`, `check-domain.py`, `check-state.sh`), a JSON schema, agent/skill
+scripts (`validate-digest.py`, `check-domain.py`, `check-state.py`), a JSON schema, agent/skill
 instruction markdown, a decision log, and tests/fixtures — none of it a rendered surface this
 role's Mode A/B lens (spacing/colour/states/interaction/contrast) applies to.
 

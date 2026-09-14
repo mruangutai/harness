@@ -97,7 +97,7 @@ there (they reach `unit` only via `unit.detect`'s catch-all `.claude/skills/harn
 glob). Read `run-unit-tests.py`: `test-code-grade.py` and `test-gate-policy.py` are in
 `UNIT_SCRIPTS`; `test-code-grade-cli.py` is in `INTEGRATION_SCRIPTS`.
 
-Ran the shipped cross-check itself: `bash run-unit-tests.py --check-kinds` → **exit 0**,
+Ran the shipped cross-check itself: `python3 run-unit-tests.py --check-kinds` → **exit 0**,
 `check-kinds: the script arrays and test_kinds.integration.detect agree.` (Note the check's own
 documented scope, read at `run-unit-tests.py:82-88`: it is a set-membership comparison — every
 `INTEGRATION_SCRIPTS` name must appear literally in `integration.detect`, and no `UNIT_SCRIPTS`

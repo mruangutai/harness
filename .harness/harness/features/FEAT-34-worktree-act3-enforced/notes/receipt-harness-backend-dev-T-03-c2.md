@@ -15,7 +15,7 @@ T-03's mandated verify passes.
   `_resolve_main_checkout_root(root)`): runs `git worktree list --porcelain` with
   `cwd=root` — the BIN_DIR-derived root, **never `os.getcwd()`** — and returns porcelain
   index 0 (the main checkout). This is INV-25's own precedent
-  (`check-state.sh:1138-1143`) and the same index `worktree_terminal.classify` already
+  (`check-state.py:1138-1143`) and the same index `worktree_terminal.classify` already
   keys on (`worktree_terminal.py:194-203`) — one rule, two uses, no second rule invented.
 - `main()` (`post-merge-sweep.py:~199-212`): resolves `main_checkout_root` right after
   `root`, prints it unconditionally (`"post-merge-sweep: resolved main checkout root:
@@ -35,7 +35,7 @@ T-03's mandated verify passes.
 ## Verify (verbatim, cross-checked against `plan.yaml:384-385`)
 
 ```
-bash -n .claude/skills/harness/bin/post-merge-sweep.py && bash .claude/skills/harness/bin/post-merge-sweep.py --dry-run
+python3 -m py_compile .claude/skills/harness/bin/post-merge-sweep.py && python3 .claude/skills/harness/bin/post-merge-sweep.py --dry-run
 ```
 
 Output:
@@ -54,7 +54,7 @@ worktree; the main-checkout root is the actual `harness` checkout.
 | `python3 .claude/skills/harness/bin/test-post-merge-sweep.py` | **47 PASS**, exit 0 (was 41; see T-04 receipt) |
 | `python3 .claude/skills/harness/bin/test-hooks-install.py` | 29 PASS, exit 0 (unchanged) |
 | `python3 .claude/skills/harness/bin/test-worktree-terminal.py` | 34 PASS, exit 0 (unchanged) |
-| `.claude/skills/harness/bin/check-state.sh` | exit 0, zero `violation` lines (only pre-existing `note` lines, unrelated to this change) |
+| `.claude/skills/harness/bin/check-state.py` | exit 0, zero `violation` lines (only pre-existing `note` lines, unrelated to this change) |
 | `.claude/skills/harness/bin/run-unit-tests.py` | exit 0, zero `^FAIL` lines, run twice independently for confirmation (2973-line and 2404-line full outputs) |
 
 ## `classify(root)` — which value it receives, and why

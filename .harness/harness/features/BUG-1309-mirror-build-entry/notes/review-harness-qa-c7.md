@@ -23,7 +23,7 @@ T-05 (`merge-gate.py`/`.sh`, `.claude/settings.json`, `settings.snippet.json`, `
 
 | kind | cmd | exit | discovered |
 |---|---|---|---|
-| unit | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 33 files, all `PASS`, no FAIL/ERROR-as-failure lines |
+| unit | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 33 files, all `PASS`, no FAIL/ERROR-as-failure lines |
 | integration | same, `--kind integration` | 0 | 50 files, all `PASS`; `test-merge-gate.py` exit 0, 19/19 `ok`, `ALL PASSED` |
 
 Both env-scrubbed per repo Expertise G-07 (`HARNESS_AGENT_TYPE` unset — otherwise

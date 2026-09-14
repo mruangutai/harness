@@ -63,7 +63,7 @@ this state. `tests/integration/test-merge-gate.py` has exactly one era-exempt ca
 in both directions and, on the code as written, real: an operator who trusts the printed notice
 and proceeds to merge gets an unexpected deny.
 
-By contrast, `post-merge-sweep.py:223-231` and `check-state.sh:2002` (INV-37) both implement the
+By contrast, `post-merge-sweep.py:223-231` and `check-state.py:2002` (INV-37) both implement the
 **unconditional** era-membership skip D-08/DEC-220 actually describe — the era check there does
 not consult the recorded value at all — which is the strongest evidence this is `merge-gate.py`
 deviating from its own decision record, not the decision record being stale.
@@ -150,7 +150,7 @@ Definition: `feature_schema.py:226` `BUILD_ENTRY_ERA_EXEMPT = {...}` (one litera
 frozen at commit `71d4ba1f`). I enumerated every external reader by grep, not by trusting SIMPLIFY's
 count:
 
-1. `check-state.sh:2002` — `if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or ...: continue` (INV-37,
+1. `check-state.py:2002` — `if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or ...: continue` (INV-37,
    T-06) — unconditional skip, matches D-08's literal text.
 2. `gh-sync.py:1361` — `_build_entry_preflight`'s Build refusal (T-04).
 3. `gh-sync.py:1380` — `_build_entry_recovery_notice`'s messaging branch (paired with #2).
@@ -179,7 +179,7 @@ absence into a permissive value:
 - `post-merge-sweep.py:222-228` reads raw; a `None` (and any other value outside the pass-set)
   falls to the `elif` and **retains** the worktree — fail-closed toward keeping evidence, not
   toward deleting it.
-- `check-state.sh:2010` (`(_doc37.get("github") or {}).get("build_entry") is not None`) treats
+- `check-state.py:2010` (`(_doc37.get("github") or {}).get("build_entry") is not None`) treats
   *only* a non-`None` value as "receipt present"; true absence is exactly the condition INV-37
   flags. No collapse.
 

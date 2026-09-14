@@ -14,18 +14,18 @@ lanes:
       lane: main-session-direct
       reason: >-
         New module. check-domain.py --resolve at 88b1182 answers harness-backend-dev and
-        harness-dev-ops, the same pair the four carve-out files answer, but check-state.sh
+        harness-dev-ops, the same pair the four carve-out files answer, but check-state.py
         computes INV-27's verdict from its return value, so it is a DEC-174 carve-out BY
         CONTENT on FEAT-18's gh_board.py precedent, itself on FEAT-17's harness_boundary.py.
     - surface: .claude/skills/harness/bin/test-layout-migration.py
       lane: main-session-direct
       reason: co-changes with the module a gate verdict is computed from, in the same diff a human reads
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - the state gate
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
-      reason: co-changes with check-state.sh, in the same diff a human reads
+      reason: co-changes with check-state.py, in the same diff a human reads
     - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: >-
@@ -53,7 +53,7 @@ decisions:
       FEATURES takes its disk evidence from .harness/features/*/feature.json against
       .harness/*/features/*/feature.json, and its coupled readers are exactly unit 3's atomic
       cluster - team-config.yaml write grants, check-domain.py SWEEP_GLOBS, check-domain.py's four
-      shape regexes, check-plan-routes.py's discovery join, check-state.sh's discovery globs.
+      shape regexes, check-plan-routes.py's discovery join, check-state.py's discovery globs.
       Surface DOCS takes its evidence from docs/harness/SPEC.md against .harness/*/docs/SPEC.md,
       and its coupled readers are exactly unit 4's atomic trio - factory_config._PROBE,
       harness_boundary.HARNESS_CONTROL_PLANE, gen-decisions-index.DOCS_DIR. Deliberately excluded
@@ -68,14 +68,14 @@ decisions:
     dec: none
   - id: D-02
     choice: >-
-      Building the detector is main-session-direct. The module, its unit test, check-state.sh,
+      Building the detector is main-session-direct. The module, its unit test, check-state.py,
       test-check-state.py and the run-unit-tests.py registration are all built by hand. Only the CI
       step is dispatched, to harness-dev-ops.
     because: >-
-      check-state.sh computes a gate verdict from the module's return value, which FEAT-18 already
+      check-state.py computes a gate verdict from the module's return value, which FEAT-18 already
       ruled a DEC-174 carve-out by content for gh_board.py on identical --resolve output. The
       rejected alternative was invoking the detector only from CI to keep a team lane, and it was
-      rejected because session entry is the higher-value call site - check-state.sh going quiet is
+      rejected because session entry is the higher-value call site - check-state.py going quiet is
       the defect this feature exists to prevent. The cost is stated, not argued away - two of the
       four tasks, and five of the eight files, are hand-built.
     dec: DEC-174
@@ -107,11 +107,11 @@ decisions:
   - id: D-04
     choice: >-
       Applicability is decided before any surface is judged, by one positive control - the presence
-      of .claude/skills/harness/bin/check-state.sh at the scanned root. A root without it is
+      of .claude/skills/harness/bin/check-state.py at the scanned root. A root without it is
       reported as NOT APPLICABLE with zero examined counts and exit 0, and no surface is judged at
       all.
     because: >-
-      Every coupled reader is a harness control-plane file. check-state.sh also runs at session
+      Every coupled reader is a harness control-plane file. check-state.py also runs at session
       entry in onboarded product repositories, and test-check-state.py's existing fixtures are bare
       .harness skeletons - neither holds any reader file, so D-03 alone would exit 2 on a healthy
       product repo and on every existing test case. What keeps the branch from becoming a silent
@@ -135,7 +135,7 @@ tasks:
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out by content - check-state.sh computes INV-27's verdict from this module's
+      DEC-174 carve-out by content - check-state.py computes INV-27's verdict from this module's
       return value. Lane row above, FEAT-18 gh_board.py precedent.
     depends_on: []
     status: done
@@ -161,10 +161,10 @@ tasks:
       inside the fix for issue 148, and that is the whole reason this feature is unit 0.
 
       APPLICABILITY, DECIDED FIRST. Before any surface is judged, test whether the scanned root
-      holds .claude/skills/harness/bin/check-state.sh. If it does not, the root is not a harness
+      holds .claude/skills/harness/bin/check-state.py. If it does not, the root is not a harness
       control-plane checkout: report NOT APPLICABLE, print zero for all three examined counts, and
       exit 0 without judging a surface. This is what keeps a healthy onboarded product repository
-      and every existing check-state.sh fixture from reddening, since neither holds any coupled
+      and every existing check-state.py fixture from reddening, since neither holds any coupled
       reader file at all. It is not a hole: inside harness the marker is present by construction,
       and case 1 of this suite scans the real root and asserts non-zero counts, so a missing or
       renamed marker reddens the unit suite. Do not describe the CI step as the guarantee - see
@@ -206,7 +206,7 @@ tasks:
             .harness/features are docstring and diagnostic-message prose, and the join-shaped
             pattern excludes all six by construction - that is deliberate, see the MIXED-FOREVER
             rule below.
-          .claude/skills/harness/bin/check-state.sh
+          .claude/skills/harness/bin/check-state.py
             legacy   = os\.path\.join\(H, "features"
             migrated = os\.path\.join\(H, [^,)]+, "features"
             audited: 15 of 15 discovery sites match this legacy fragment, INCLUDING the two that
@@ -258,7 +258,7 @@ tasks:
             join-shaped pattern. If unit 4 updated DOCS_DIR and left HEADER, the file would match
             the migrated form only: CLEAN, while the shipped index tells every agent to open a
             path that no longer exists. That is the MF-3 defect class this plan already closed for
-            check-state.sh, in a second row. The alternation is therefore run at both spellings.
+            check-state.py, in a second row. The alternation is therefore run at both spellings.
             The cost is stated and accepted, not argued away: the same slash-shaped alternative
             also matches the module docstring at lines 2, 5 and 10, which no pattern can separate
             from line 76 because they are spelled identically. Audited at 88b1182, which is HEAD
@@ -376,7 +376,7 @@ tasks:
       missing-line error.
       On the NOT APPLICABLE branch, and before those two lines, the CLI prints one further line
       whose leading token is the pinned literal NOT APPLICABLE, of the exact form:
-          NOT APPLICABLE: no harness control-plane marker at <root>/.claude/skills/harness/bin/check-state.sh
+          NOT APPLICABLE: no harness control-plane marker at <root>/.claude/skills/harness/bin/check-state.py
       NOT APPLICABLE is a pinned string exactly like every other format string in this contract,
       and case 14 asserts that literal as well as the three zero counts.
       Put a comment above these format strings saying that .github/workflows/tests.yml greps the
@@ -386,7 +386,7 @@ tasks:
       carrying the per-surface verdicts, the counts, and the responsible reader paths EACH WITH
       ITS MATCHED FORM-SET - the same five values the CLI tag renders, carried as data and not as
       preformatted text - plus, for a CANNOT_VERIFY surface, which of the four causes fired; and a
-      function returning the exit code for that result. check-state.sh imports these in T-02, so
+      function returning the exit code for that result. check-state.py imports these in T-02, so
       neither may print to stdout or call sys.exit. THE FORM-SET AND THE CAUSE MUST BE ON THE
       STRUCTURED RESULT, not only in the CLI text: T-02 composes INV-27's wording from this object
       and never re-parses stdout, so a fix that lands only in the CLI leaves the session-entry
@@ -442,7 +442,7 @@ tasks:
        12  a reader file carrying BOTH forms -> exit 1, that file named and tagged [both]
        13  a tree that is MIXED on one surface and CANNOT_VERIFY on the other -> exit 2, proving
            cannot-verify outranks mixed
-       14  a tree with no .claude/skills/harness/bin/check-state.sh -> exit 0, the output carries
+       14  a tree with no .claude/skills/harness/bin/check-state.py -> exit 0, the output carries
            the PINNED NOT APPLICABLE LITERAL exactly as the OUTPUT CONTRACT spells it, and both
            trailer lines still print with all three examined counts and all three surface counts
            at zero. Assert the literal and the counts, not just the exit code. What stands between this branch and a silent pass inside harness is cases
@@ -471,17 +471,17 @@ tasks:
       load-bearing for the reason stated in it.
 
   - id: T-02
-    title: Wire the detector into check-state.sh as INV-27 and prove it against fixtures
+    title: Wire the detector into check-state.py as INV-27 and prove it against fixtures
     traces: [REQ-01, REQ-05, REQ-06, REQ-08]
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out named in CLAUDE.md - check-state.sh is the state gate, and
+      DEC-174 carve-out named in CLAUDE.md - check-state.py is the state gate, and
       test-check-state.py co-changes with it in the same diff a human reads.
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
       - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
@@ -493,7 +493,7 @@ tasks:
       grep -q '^PASS test-check-state\.py$' "$i" || { echo "integration suite did not run test-check-state.py"; exit 1; }
       [ "$ru" -eq 0 ] && [ "$ri" -eq 0 ]
     intent: |
-      Add INV-27 to check-state.sh. INV-27 is free at 88b1182, verified by grep; do not reuse
+      Add INV-27 to check-state.py. INV-27 is free at 88b1182, verified by grep; do not reuse
       INV-10, which is retired.
 
       INV-27 imports layout_migration inside the heredoc, the same way INV-25 imports
@@ -519,11 +519,11 @@ tasks:
       A FAILED IMPORT IS ITSELF A VIOLATION, worded like INV-25's and INV-26's CANNOT RUN
       branches and appended to `bad`, never a silent skip. A clean result appends nothing.
 
-      Do NOT call the CLI as a subprocess and do not read its exit code inside check-state.sh:
+      Do NOT call the CLI as a subprocess and do not read its exit code inside check-state.py:
       import the two functions T-01 exposes.
 
-      WATCH WHAT YOU WRITE INTO check-state.sh, WHICH IS ITSELF A COUPLED READER. INV-27's new
-      code and comments must not contain the MIGRATED form of check-state.sh's own row - a
+      WATCH WHAT YOU WRITE INTO check-state.py, WHICH IS ITSELF A COUPLED READER. INV-27's new
+      code and comments must not contain the MIGRATED form of check-state.py's own row - a
       join of H with a segment before "features". If they do, this file matches both forms and
       the detector reddens the live tree. Case 1 of test-layout-migration.py catches it, so the
       failure is loud, but write it right the first time.
@@ -531,19 +531,19 @@ tasks:
       EXISTING CASES MUST STAY GREEN, AND THE REASON MATTERS. test-check-state.py builds sandboxed
       fixture trees - a shared make_fixture helper near the top of the file, plus many cases that
       call os.makedirs directly under a TemporaryDirectory. None of those trees holds any coupled
-      reader file, and none holds .claude/skills/harness/bin/check-state.sh. Under D-04 they are
+      reader file, and none holds .claude/skills/harness/bin/check-state.py. Under D-04 they are
       therefore NOT APPLICABLE and INV-27 appends nothing, which is exactly why the existing cases
       keep passing. Do NOT make them applicable by adding reader stubs to the shared helper: that
       would put an INV-27 verdict inside every unrelated case. Build the applicable trees only in
       the new cases below, by writing the marker file and the reader stubs explicitly there.
 
       Add to test-check-state.py at minimum:
-        - a fixture tree that the detector reddens, asserting check-state.sh exits 1 and its
+        - a fixture tree that the detector reddens, asserting check-state.py exits 1 and its
           output carries INV-27, the responsible reader path, THAT PATH'S FORM-SET TAG, and the
           remedy clause. Assert the tag and the remedy here and not only in the unit suite: this
           is the only automated evidence that the session-entry call site renders them at all,
           and the unit suite cannot stand in for it
-        - a fixture tree the detector cannot judge, asserting check-state.sh exits 1 and its
+        - a fixture tree the detector cannot judge, asserting check-state.py exits 1 and its
           output carries INV-27 and the CANNOT VERIFY wording
         - an APPLICABLE clean fixture tree - marker file present, every reader stub written in its
           legacy form, features under the legacy root - asserting no INV-27 line appears in the
@@ -653,7 +653,7 @@ tasks:
         A partial layout migration is detected per coupled surface, never tree-wide. Two surfaces
         exist - features, whose coupled readers are team-config.yaml's write grants,
         check-domain.py's SWEEP_GLOBS and shape regexes, check-plan-routes.py's discovery join and
-        check-state.sh's discovery globs; and docs, whose coupled readers are factory_config's
+        check-state.py's discovery globs; and docs, whose coupled readers are factory_config's
         probe, harness_boundary's control-plane entry and gen-decisions-index's docs directory.
         The two surfaces have no ordering tie, so a tree with one migrated and the other not is a
         sanctioned state and passes. Each reader carries a two-form data row, and a reader
@@ -672,7 +672,7 @@ tasks:
         one its evidence speaks, not whether every site inside it was updated. A legacy pattern is
         therefore written as the weakest fragment every stale site necessarily contains, audited
         against the real file rather than inferred from the commonest site - an earlier draft
-        specified check-state.sh's legacy form with a trailing wildcard and would have missed the
+        specified check-state.py's legacy form with a trailing wildcard and would have missed the
         two discovery sites that carry none, reporting a clean tree with two dead call sites.
 
         THE MAINTENANCE CONTRACT ON EVERY LATER UNIT. Any unit that changes a reader's form

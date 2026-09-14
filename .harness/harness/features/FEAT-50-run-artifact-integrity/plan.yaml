@@ -247,7 +247,7 @@ lanes:
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops, and DEC-174
         OVERRIDES that grant. It is the domain gate's own test.
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops, and DEC-174
@@ -435,15 +435,15 @@ decisions:
       and that is now a recorded ruling rather than a deferral: the operator ruled on 2026-08-31
       (notes/answers-2026-08-31-plan.md, "Operator ruling — INV-32", choice d) that INV-32 is
       being fixed in ANOTHER session, so neither option (a)'s approval.date scoping nor option
-      (b)'s 32-plan backfill enters this plan and check-state.sh is edited by no task here.
+      (b)'s 32-plan backfill enters this plan and check-state.py is edited by no task here.
       D-09 records what that ruling costs this feature.
     dec: none
 
   - id: D-09
     choice: >-
-      FEAT-50 carries the UNWEAKENED check-state.sh exit-0 criterion (SC-11) and BLOCKS its own
+      FEAT-50 carries the UNWEAKENED check-state.py exit-0 criterion (SC-11) and BLOCKS its own
       signature and its own build on an EXTERNAL event: the retroactive INV-32 fix landing on the
-      default branch. No task here touches check-state.sh, no approval.date scoping and no
+      default branch. No task here touches check-state.py, no approval.date scoping and no
       32-plan panel backfill enters this plan. SC-11 therefore becomes gradeable only after that
       external fix lands with FEAT-50's feature directory present.
     because: >-
@@ -759,7 +759,7 @@ tasks:
       domain-legal, so nothing bound a write to the checkout the agent was dispatched into. Six
       such writes happened during FEAT-45 and three of the artifacts existed nowhere else.
     verify: |
-      bash -n .claude/skills/harness/bin/check-domain.py || exit 1
+      python3 -m py_compile .claude/skills/harness/bin/check-domain.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
       HOOK = os.path.abspath('.claude/skills/harness/bin/check-domain.py')
@@ -793,7 +793,7 @@ tasks:
       assert 'FEAT-X' in bound.stderr, f'worktree unnamed: {bound.stderr[:300]}'
       print('OK')
       EOF
-      bash .claude/skills/harness/bin/check-domain.py --resolve \
+      python3 .claude/skills/harness/bin/check-domain.py --resolve \
         .claude/skills/harness/bin/check-domain.py | grep -q 'harness-backend-dev'
 
   - id: T-04
@@ -876,7 +876,7 @@ tasks:
       lead's alone but nothing enforced uniqueness, <run_dir>/digest.md was a plain overwrite, and a
       lead reusing a run directory across cycles destroyed the cycle-0 record.
     verify: |
-      bash -n .claude/skills/harness/bin/check-domain.py || exit 1
+      python3 -m py_compile .claude/skills/harness/bin/check-domain.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
       HOOK = os.path.abspath('.claude/skills/harness/bin/check-domain.py')
@@ -1267,7 +1267,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/bash-write-guard.py
     verify: |
-      bash -n .claude/skills/harness/bin/bash-write-guard.py || exit 1
+      python3 -m py_compile .claude/skills/harness/bin/bash-write-guard.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
       G = os.path.abspath('.claude/skills/harness/bin/bash-write-guard.py')

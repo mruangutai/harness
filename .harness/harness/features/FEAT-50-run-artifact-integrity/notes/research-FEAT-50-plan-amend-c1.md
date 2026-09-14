@@ -7,7 +7,7 @@ and `approval.rulings` is still absent. Two files changed: `BRIEF.md`, `plan.yam
 
 ## What each ruling produced
 
-**INV-32 (`choice: d`).** SC-11 now requires `check-state.sh` to exit 0 AND no violation row to
+**INV-32 (`choice: d`).** SC-11 now requires `check-state.py` to exit 0 AND no violation row to
 name FEAT-50 — form (c)'s weakening is refused, the FEAT-50 clause kept alongside. SC-12 regrades
 onto the `## Operator ruling — INV-32` section that now exists, and is explicitly NOT met if that
 section is ever restated in the (a)/(b)/(c) shape. `D-09` records the external blocker; `D-08`'s
@@ -72,7 +72,7 @@ already consumes the key at `:1514` and `:1598-1599`. Provenance is recorded in 
 
 ## Send-back c1a — SC-11's positive control was corpus-dependent (fixed)
 
-**The defect, confirmed at source.** `check-state.sh:1868-1872` is the only output site: it prints a
+**The defect, confirmed at source.** `check-state.py:1868-1872` is the only output site: it prints a
 `VIOLATION ` row per `bad`, a `note ` row per `warn`, and `  all state invariants hold.` when both
 are empty. So a run with no `bad` and no `warn` contains no `INV-` substring at all, and SC-11's old
 control `grep -q 'INV-'` rested on an accident of today's corpus. It was weakest exactly when the
@@ -83,7 +83,7 @@ would have turned SC-11 red over correct delivery. Same failure mode SC-13 and S
 reporting block's own unconditional output:
 
 ```
-out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1); rc=$?; printf '%s\n' "$out" | grep -qE '^  (VIOLATION |note |all state invariants hold\.)' && test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -q 'FEAT-50'
+out=$(python3 .claude/skills/harness/bin/check-state.py 2>&1); rc=$?; printf '%s\n' "$out" | grep -qE '^  (VIOLATION |note |all state invariants hold\.)' && test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -q 'FEAT-50'
 ```
 
 Both graded clauses are byte-unchanged: exit 0 AND no row naming `FEAT-50`. Neither weakened —
@@ -117,7 +117,7 @@ external blocker — neither names the control command. Nothing else changed.
 ## Send-back c1b — SC-11's third clause was stricter than its prose (fixed)
 
 **The defect, confirmed at source.** SC-11's prose grades "no VIOLATION row names FEAT-50"; its
-third clause was `! ... grep -q 'FEAT-50'`, which matches ANY line. `check-state.sh:1868-1869`
+third clause was `! ... grep -q 'FEAT-50'`, which matches ANY line. `check-state.py:1868-1869`
 prefixes the two row kinds distinctly — `  VIOLATION  {m}` and `  note       {m}` — and a `warn`
 row is by design not a violation (`:1872` exits non-zero on `bad` only). Grepped the warn sites:
 INV-22 (`:377`, `:382`, `:386`), INV-21 (`:1009`) and INV-28 (`:1150`) all interpolate `{feat}`

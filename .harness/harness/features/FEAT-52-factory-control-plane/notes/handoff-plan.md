@@ -5,7 +5,7 @@
 Do NOT dispatch a build segment, do NOT re-run the panel, do NOT re-open the findings — the
 Advisor disposed of all 17 and its batch is applied. The signature is TWO acts, both the main
 session's: (1) `BRIEF.md` `## Approval` (:209-213) → `status: approved`, `approved-by`, `date`;
-it is check-state.sh's one remaining FEAT-52 VIOLATION. (2) `python3
+it is check-state.py's one remaining FEAT-52 VIOLATION. (2) `python3
 .agents/skills/harness/bin/plan-merge.py sign-approval --file <plan.yaml> --by <operator>
 --date YYYY-MM-DD`, plus `approval.rulings` only for a finding the operator overrules. Tell the
 operator SC-15 was ADDED to BRIEF — it is a new criterion, not a task tweak. Then the eng segment
@@ -18,7 +18,7 @@ starts at T-01/T-02 (`depends_on: []`), though 12 of 15 tasks are `main-session-
 - Plan is 15 tasks / 8 decisions, `status: plan`, `approval: {status: pending}` after the batch — same load — verified-at 8ff525e2
 - `BRIEF.md` carries SC-01..SC-15, no existing criterion reworded, `## Approval` still pending — read at source, this session — verified-at 8ff525e2
 - T-01's `verify:` now runs `test-inflight-registry.py && test-check-domain.py`, so the new R1 receipt-write case is actually executed by a task's verify — quoted from the task, this session — verified-at 8ff525e2
-- check-state.sh reports exactly one FEAT-52 VIOLATION (BRIEF not approved) plus the pending-approval note; the digest-contract violation and every orphan-run note are cleared — full runs before and after — verified-at 8ff525e2
+- check-state.py reports exactly one FEAT-52 VIOLATION (BRIEF not approved) plus the pending-approval note; the digest-contract violation and every orphan-run note are cleared — full runs before and after — verified-at 8ff525e2
 - `sign-approval` inserts an absent `approval:` after `feature:` and refuses any caller carrying `HARNESS_AGENT_TYPE` (exit 10) — read at plan-merge.py:1023-1060, NOT executed — verified-at 8ff525e2
 - cycles_used stays 7 of 10: all four runs this session reported 0 send-backs — their digests — verified-at 8ff525e2
 - The seven amend items are the right edits, and SC-15's ALLOW/REFUSE pair discriminates — validator lead's assessment over the advisor's drafts, runs/2026-09-01-06-validator/digest.md — UNVERIFIED by me beyond confirming the text landed
@@ -30,7 +30,7 @@ starts at T-01/T-02 (`depends_on: []`), though 12 of 15 tasks are `main-session-
 - Giving a member a scratch path inside a lead run dir, or a lead a `notes/review-*` artifact path: check-domain.py refuses both (#216) — each cost one retry, this session — verified-at 8ff525e2
 - Prepending a contract block to a recorded digest: check-domain.py:1204 admits only a payload whose opening bytes are the prior file verbatim; validate-digest anchors on the LAST `^VERDICT:`, so the block goes at the foot — refused then applied, this session — verified-at 8ff525e2
 - Proving BRIEF/plan integrity by `git diff` or `git show HEAD:<path>`: the feature dir is untracked, so diff is empty for changed and unchanged files alike and `show` exits 128 — hit by pm, the panel and me — verified-at 8ff525e2
-- A /tmp fixture probe of INV-32: bash-write-guard blocks an orchestrator `cp` outside its domain. Verify INV-32's clauses against the live document instead (check-state.sh:418-541) — this session — verified-at 8ff525e2
+- A /tmp fixture probe of INV-32: bash-write-guard blocks an orchestrator `cp` outside its domain. Verify INV-32's clauses against the live document instead (check-state.py:418-541) — this session — verified-at 8ff525e2
 - Correcting PF-4ea5b566's imprecise summary: it would change the content-hash id and invalidate any ruling on it. Flag it, never edit it — STATE Q8 — verified-at 8ff525e2
 
 ## Working set

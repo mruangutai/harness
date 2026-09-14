@@ -20,7 +20,7 @@ lie in the one artifact whose whole job is to be trusted.
   on both sides, verbatim output in `notes/receipt-harness-backend-dev-fix1-c1.md` and
   `notes/review-harness-code-reviewer-confirm.md`.
 - All four gates green at merge, and re-run green on `main` after it: validator 0,
-  `check-state.sh` 0, routes `0 violation(s) across 10 plan(s)`, full unit suite 0.
+  `check-state.py` 0, routes `0 violation(s) across 10 plan(s)`, full unit suite 0.
 - CI's one required context, `integration`, passed on PR #293 before merge.
 - The corpus carries **zero** `feature.yaml`. All 17 are `feature.json` and validate.
 

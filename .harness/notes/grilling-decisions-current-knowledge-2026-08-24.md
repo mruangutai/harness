@@ -31,7 +31,7 @@ produce any of them. Strike records stay.
   accumulated precisely because the deletion was somebody's later problem.
 - **Does anything detect a regression?** → ONE TEST ASSERTION in `test-gen-decisions-index.py`:
   `DECISIONS.md` holds no amendment heading and no supersession clause. It runs in the suite and
-  refuses nothing at write time. Deliberately NOT a `check-state.sh` refusal — that would put a
+  refuses nothing at write time. Deliberately NOT a `check-state.py` refusal — that would put a
   documentation convention on the enforcement layer, a far heavier surface.
 - **Do strike records go too?** → NO. DEC-188 keeps a struck entry so citations still land
   somewhere, and this repo has no propagation checker.
@@ -84,7 +84,7 @@ All measured at `513c4a4` unless noted.
 - **Live citations to the 8 superseded entries: 13 in total, across only two of them** —
   `DEC-19` (7) and `DEC-102` (6). The other six are cited by nothing in `.claude/skills`,
   `.claude/agents` or `docs/`. Counted with a numeric boundary so `DEC-19` does not match `DEC-193`.
-- Those 13 sit in nine files, including `harness-team/SKILL.md`, `check-state.sh`,
+- Those 13 sit in nine files, including `harness-team/SKILL.md`, `check-state.py`,
   `validate-digest.py`, `gh-sync.py` and `harness-orchestrator.md`.
 - **The amendment convention is written down NOWHERE** — not in `SPEC.md`, not in
   `harness-documentor`'s agent file or skill. It exists only in the generator's regexes, so the new

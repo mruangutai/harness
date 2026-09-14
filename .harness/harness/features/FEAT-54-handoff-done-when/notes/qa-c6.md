@@ -20,7 +20,7 @@ commits).
 Ran literally from `/Users/molchairuangutai/GitHub/harness` (repository root):
 
 ```
-env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/check-state.sh
+env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-state.py
 ```
 
 - **Exit code: 0**

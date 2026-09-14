@@ -4,7 +4,7 @@
 
 ## The result
 
-**`check-state.sh` costs 5 GraphQL points. It cost 506.** Both numbers are differenced measurements
+**`check-state.py` costs 5 GraphQL points. It cost 506.** Both numbers are differenced measurements
 across a real run, not inferences from a changed call shape.
 
 **The saving is the query shape, and the competing explanation is ruled out.** Board 6 — four items —
@@ -51,7 +51,7 @@ every other inefficiency here combined, and it is B-16.
 
 ## Close-out
 
-**Distillation: 34 entries across 14 Expertise files, `check-expertise.sh` exit 0 on 16 of 16.** Every
+**Distillation: 34 entries across 14 Expertise files, `check-expertise.py` exit 0 on 16 of 16.** Every
 capped section held at cap by displacement. The rejections are the signal: pm rejected a candidate
 because a preloaded rule skill already carries it verbatim — which grades the lead's relay, not pm, and
 the lead recorded that against itself. The eng lead reported the digest-skim's honest yield as **one**
@@ -85,17 +85,17 @@ Unstruck rows become issues on your ship acceptance; anything not listed dies si
 | B-16 | `SubagentStop` forces a digest from a lead with a member in flight — **seven occurrences here**, the largest single source of waste | bug |
 | B-17 | `factory_config.harness_root()` falls back to the real checkout when `CLAUDE_PROJECT_DIR` lacks `SPEC.md` | bug |
 | B-18 | A task `verify:` reading the working tree cannot distinguish committed from uncommitted work | bug |
-| B-19 | Issue #588 survives: `check-state.sh:1172-1176` still swallows a failed board read into silence | bug |
+| B-19 | Issue #588 survives: `check-state.py:1172-1176` still swallows a failed board read into silence | bug |
 | B-20 | Leads hold no `SendMessage`, so a lead cannot course-correct an in-flight member | bug |
-| B-21 | `check-expertise.sh` has no notion of prior state, so it cannot detect a DEC-125 wipe — proving zero drops took a separate git audit | bug |
+| B-21 | `check-expertise.py` has no notion of prior state, so it cannot detect a DEC-125 wipe — proving zero drops took a separate git audit | bug |
 | B-22 | backend-dev's craft `P-07` was replaced with a version adding an escape hatch to a previously absolute rule — the one entry that got weaker | chore |
 | B-23 | Nothing at plan time compares a criterion's quantified scope against the union of `files:` across its tasks — the SC-08 root cause | enhancement |
 | B-24 | pm displaced a `P-11` whose original purpose was anti-over-harsh grading; flagged for a curation pass | chore |
 | B-25 | Observation logs are Write-not-Edit, so two concurrent contexts silently last-writer-wins | bug |
 | B-26 | `dispatch-guard.py` refused a `model:` parameter in three independent lead contexts; the Expertise entry covering it is injected every spawn and fired for none | bug |
-| B-27 | `harness-security-reviewer.md` is at **147 of its 150-line budget**; the spawn hook hard-truncates, so the next distillation silently loses entries off the tail and `check-expertise.sh` warns nothing | bug |
+| B-27 | `harness-security-reviewer.md` is at **147 of its 150-line budget**; the spawn hook hard-truncates, so the next distillation silently loses entries off the tail and `check-expertise.py` warns nothing | bug |
 | B-28 | Run-id sequence numbers no longer order runs — three squads each took seq `14` on one date. Nothing collides on disk, but a reader cannot order concurrent segments | chore |
-| B-29 | The directory-wide `check-expertise.sh` is dispatched per-lead while sibling leads are still writing; the prescribed single re-run does not settle it. Proposal: the orchestrator owns one gate run after all squads close, leads gate only their own members' files | bug |
+| B-29 | The directory-wide `check-expertise.py` is dispatched per-lead while sibling leads are still writing; the prescribed single re-run does not settle it. Proposal: the orchestrator owns one gate run after all squads close, leads gate only their own members' files | bug |
 
 B-4 and B-14 remain struck — you fixed both in amendments 4 and 1.
 

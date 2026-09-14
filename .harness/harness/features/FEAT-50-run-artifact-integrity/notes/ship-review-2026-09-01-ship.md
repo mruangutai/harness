@@ -2,7 +2,7 @@
 
 > **Correction, 2026-09-01, after this document was posted to issue #1082.** Two claims below were
 > wrong when posted and are corrected in place, with the original wording quoted so the record
-> shows what changed rather than hiding it. Both concern `check-state.sh`, and both are marked
+> shows what changed rather than hiding it. Both concern `check-state.py`, and both are marked
 > **[CORRECTED]**. The comment on #1082 carries the pre-correction text; this file is the record.
 
 **The feature is delivered and already on `main`.** Pull request **#1105** ("fix: preserve feature
@@ -39,7 +39,7 @@ re-narrated by a fresh agent. The sources are:
 Two things this briefing does **not** rest on, stated so you can price it: there is **no post-build
 `harness-pm` goal-check run** on disk (see "Goal-check" below), and the closeout ran under an
 explicit instruction to skip project-wide suites, so the only measurement taken first-hand here is
-`check-state.sh`.
+`check-state.py`.
 
 ## What was built
 
@@ -109,7 +109,7 @@ the same criteria gathered by a different persona:
 
 Two criteria are worth naming individually:
 
-- **SC-11 — NOT met today. [CORRECTED]** The criterion is "`check-state.sh` exits 0 **and** no
+- **SC-11 — NOT met today. [CORRECTED]** The criterion is "`check-state.py` exits 0 **and** no
   violation row names `FEAT-50`". Measured just now in the main checkout: **exit 1**, with a
   `FEAT-50` violation row.
 
@@ -124,7 +124,7 @@ Two criteria are worth naming individually:
   `plan.yaml`, rewriting FEAT-50's plan as it went, and left the station reading `review` "because
   a migration moves a value and does not re-adjudicate it" (its own commit message). Adjudicating
   it is what this closeout does. **INV-33 is deliberately silent on a terminal station**
-  (`check-state.sh:588`), so recording `status: done` on `main` closes the row — and a second row,
+  (`check-state.py:588`), so recording `status: done` on `main` closes the row — and a second row,
   INV-26 (*"the plan derives review — the board reads done"*), which this closeout's own GitHub
   writes opened and which the same one-line change closes. See **Terminal state** for the exact
   commands. **Neither row is a defect in FEAT-50's delivered code; both are the record catching up
@@ -216,7 +216,7 @@ anything not on this table dies silently.**
 `PF-b3e87de8…` (SC-11's clearing act for the three DEC-156-failing lead digests being owned by no
 task) is **not** listed: it is resolved. The `runs/` tree is gitignored, so those digests never
 reached the default branch and die with the checkout. **[CORRECTED]** — *as posted this sentence
-also claimed "`check-state.sh` measured clean today", which is withdrawn above.*
+also claimed "`check-state.py` measured clean today", which is withdrawn above.*
 
 ## Terminal state
 
@@ -249,7 +249,7 @@ worktree, and finally remove the checkout **from outside it** —
 `git worktree remove` exits 0 when run from inside the tree it deletes, which is why no agent in
 that tree may run it.
 
-Until that lands, `check-state.sh` reports two rows against FEAT-50 — INV-33 (stale pin) and INV-26
+Until that lands, `check-state.py` reports two rows against FEAT-50 — INV-33 (stale pin) and INV-26
 (plan derives `review`, board reads `done`) — and both close on the station write. Expect INV-29 to
 start refusing on the standing worktree the moment it does, since that classifier reads the landed
 station from the default branch.

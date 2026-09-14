@@ -30,11 +30,11 @@ budgets — same non-UI classification.
 
 ## The one surface worth a real look — inject-expertise.py's precedence text
 
-Dispatch named the hook's emitted header/precedence line and `check-expertise.sh`'s advisory
+Dispatch named the hook's emitted header/precedence line and `check-expertise.py`'s advisory
 output as an adjacent surface worth auditing for legibility/consistency/truthfulness even absent a
 rendered UI (P-06). I read both scripts' diffs and both files' test suites end to end.
 
-**`check-expertise.sh`'s new ADVISORY line** (`ADVISORY {path}:{lno}: {label} names '{tok}' —
+**`check-expertise.py`'s new ADVISORY line** (`ADVISORY {path}:{lno}: {label} names '{tok}' —
 repository-layer candidate; rule on it (issue 340)`) is legible, consistently formatted against the
 existing `FAIL`/`OK` prefixes, truthful about its own non-blocking nature (never appended to
 `problems`, never flips exit code — verified in the diff), and matches its own header comment.

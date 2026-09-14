@@ -36,7 +36,7 @@ breaks the no-migration ruling; the diff rule is the single enforcement point.
 
 ## T-C — SC-14's second half is already true **twice over**, not once
 
-- `check-state.sh:593` is the only place a handoff path is constructed, from `SEAM_NOTES[_status]`, so
+- `check-state.py:593` is the only place a handoff path is constructed, from `SEAM_NOTES[_status]`, so
   `notes/handoff-<anything-else>.md` is never opened, demanded or rejected.
 - **Not previously named:** `check-domain.py:665` `RE_HANDOFF` is
   `^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$` — the write-time shape gate already

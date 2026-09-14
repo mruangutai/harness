@@ -230,7 +230,7 @@ untouched pre-cycle-2 `gh-sync.py`) and **273 after** (this cycle's rewired
 9 fixtures now exercising the real locked-writer path instead of a destination check
 that did not exist before this feature.
 
-### bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+### python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 
 ```
 check-kinds: the script arrays and test_kinds.integration.detect agree.

@@ -15,7 +15,7 @@ diff warrants sits outside it.
 
 ## Full suite (observed, not inferred)
 
-`bash .claude/skills/harness/bin/run-unit-tests.py` (no flag — runs unit+integration together),
+`python3 .claude/skills/harness/bin/run-unit-tests.py` (no flag — runs unit+integration together),
 output captured to file, exit code read from `$?` immediately after, `FAIL ` count from a Python
 scan of the captured file (never grep, never a tail):
 - **Exit code observed: `0`.**
@@ -24,7 +24,7 @@ scan of the captured file (never grep, never a tail):
 
 ## `--check-kinds`
 
-`bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds` → **exit `0`**,
+`python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds` → **exit `0`**,
 `"check-kinds: the script arrays and test_kinds.integration.detect agree."` Mechanical half of
 conflict resolutions 1 and 2 holds.
 

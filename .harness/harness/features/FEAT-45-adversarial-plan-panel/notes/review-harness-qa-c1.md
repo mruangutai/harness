@@ -46,7 +46,7 @@ Read at `test-check-state.py:2982-2993` (worktree path — a read against the ba
 path resolves to the main checkout, not this worktree; re-grounded on the absolute worktree
 path per the pin constraint). The fixture builds **one** plan carrying three findings in a
 single list — `severity: "unrated"`, an absent `severity` key, and `severity: None` — runs
-`check-state.sh` once, and asserts `code == 1 and all(finding["id"] in out for finding in
+`check-state.py` once, and asserts `code == 1 and all(finding["id"] in out for finding in
 findings)`. This is a per-item assertion via `all()` over three separately-named ids, not a
 single collapsed string/count check (P-04/G-12 satisfied): each of the three ids must
 independently appear in the gate's output.
@@ -57,7 +57,7 @@ the assertion is `all(id in out for id in findings)`, a regression on any single
 `out`, making that one term of the `all()` False, which fails the whole case. The fixture
 cannot silently pass a partial regression on any of the three directions.
 
-Read the gate itself: `check-state.sh:212-215` —
+Read the gate itself: `check-state.py:212-215` —
 `severity = str(item.get("severity", "")).strip().lower()` then
 `if severity not in {"info", "low", "med"} and disposition != "resolved" and fid not in
 overruled:`. This is the inverted allow-list M1's fix describes. `.get(..., "")` on a missing
@@ -106,7 +106,7 @@ discovery. Still advisory (`med`), still does not gate `advisory_unless_high`.
 ## SC evidence (unchanged automated set from c0, all still locatable at the pin)
 
 SC-01→`test-plan-panel.py` 1a/1b/1c · SC-02→case 2 · SC-03→case 3 (proxy, see M5) ·
-SC-04→`check-state.sh` INV-32 check 1 + `test-check-state.py` no-panel/inv32-red ·
+SC-04→`check-state.py` INV-32 check 1 + `test-check-state.py` no-panel/inv32-red ·
 SC-05→`test-check-state.py` ruling-unattributed · SC-06→case 5 · SC-07→INV-32 check 1 ·
 SC-08→`run-unit-tests.py` drift detector · SC-13→`panel_findings.py` hash + stale-ruling ·
 SC-14→case 4a/4b · SC-15→case 8a/8b · SC-17→reader-missing/reader-skipped + inv32-red +
@@ -119,7 +119,7 @@ majority of `test-plan-panel.py`'s 24 checks** (string/glob/YAML-shape assertion
 runtime behaviour — cycle 0 found only 3 of 24 execute real runtime behaviour (the two
 `check-domain.py --resolve` subprocess calls, plus the sync-adapters import check). This has
 not changed at the new pin (file byte-identical). `test-check-state.py`'s INV-32 cases, by
-contrast, ARE runtime-behavioural: each spins a real subprocess against `check-state.sh` over
+contrast, ARE runtime-behavioural: each spins a real subprocess against `check-state.py` over
 a synthetic fixture tree and asserts on stdout content, which is a materially stronger
 guarantee than `test-plan-panel.py`'s doctrine-grading.
 
@@ -149,10 +149,10 @@ DIGEST:
     - { id: SC-01, test: "test-plan-panel.py cases 1a/1b/1c" }
     - { id: SC-02, test: "test-plan-panel.py case 2" }
     - { id: SC-03, test: "test-plan-panel.py case 3 (proxy, see M5 gap)" }
-    - { id: SC-04, test: "check-state.sh INV-32 check 1 + test-check-state.py no-panel/inv32-red" }
+    - { id: SC-04, test: "check-state.py INV-32 check 1 + test-check-state.py no-panel/inv32-red" }
     - { id: SC-05, test: "test-check-state.py ruling-unattributed" }
     - { id: SC-06, test: "test-plan-panel.py case 5" }
-    - { id: SC-07, test: "check-state.sh INV-32 check 1" }
+    - { id: SC-07, test: "check-state.py INV-32 check 1" }
     - { id: SC-08, test: "run-unit-tests.py drift detector" }
     - { id: SC-13, test: "panel_findings.py hash + test-check-state.py stale-ruling" }
     - { id: SC-14, test: "test-plan-panel.py case 4a/4b" }

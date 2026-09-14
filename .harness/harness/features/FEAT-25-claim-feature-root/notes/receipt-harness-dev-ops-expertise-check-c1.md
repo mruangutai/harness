@@ -2,7 +2,7 @@
 
 ## Command run
 ```
-.claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+.claude/skills/harness/bin/check-expertise.py .harness/expertise/
 ```
 (from repo root `/Users/molchairuangutai/GitHub/harness`)
 

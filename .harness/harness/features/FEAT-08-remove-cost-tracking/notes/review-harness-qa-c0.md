@@ -21,7 +21,7 @@ source tree.
   discrepancy in the framing, not a gate finding (doesn't change `matrix_ok`).
 
 ## Phase 1 (BRIEF/PLAN only, before reading code)
-Expected: the matrix binds `unit` to logic tasks touching `validate-digest.py`, `check-state.sh`,
+Expected: the matrix binds `unit` to logic tasks touching `validate-digest.py`, `check-state.py`,
 and the deletion of `cost-report.py`/its test/the runner's script list. Config-only edits
 (`harness.json` × 2) and docs tasks require nothing under the matrix. SC-11 explicitly demands the
 *whole* unit suite green, not just the touched scripts.
@@ -53,7 +53,7 @@ before crediting either, per the dispatch instruction:
   `grep -n INV-11 test-check-state.py` returns nothing (both sites reworded). `case_k`'s docstring
   and body assert BOTH directions the amendment requires — a `status: complete` run with no `cost:`
   block is clean (the DETECTOR, would have failed pre-removal), and one WITH a `cost:` block is also
-  clean (D-03 whitelist regression guard). `test-check-state.py` exits 0; `check-state.sh` exits 0
+  clean (D-03 whitelist regression guard). `test-check-state.py` exits 0; `check-state.py` exits 0
   zero violations; `CHECKPOINT_KEYS` block still has `"cost"` (count=1); whole suite exits 0.
 - T-03: `cost-report.py` and `test-cost-report.py` both absent; `grep -c test-cost-report
   run-unit-tests.py` = 0; whole suite exits 0 (drift detector not tripped — confirmed by a live

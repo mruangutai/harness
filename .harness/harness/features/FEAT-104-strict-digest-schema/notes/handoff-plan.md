@@ -20,7 +20,7 @@ table before routing anything, and do not hand a carve-out file to a squad.
 - The plan's legal key set is derived from the documented persona blocks, not from observed
   digests; the earlier observed-digest derivation would have rejected 16 documented fields —
   `notes/research-FEAT-104-planfix-c1.md` — verified-at 7e0c2ec1
-- `check-state.sh`'s INV-26 red on this feature is a FALSE positive caused solely by T-02's
+- `check-state.py`'s INV-26 red on this feature is a FALSE positive caused solely by T-02's
   `abandoned` status defeating its `all(status == "ready")` skip; measured directly, not inferred —
   `notes/ship-review-plan-signature-c1.md` B-1 — verified-at 7e0c2ec1
 - `check-plan-routes.py` exits 1 on a pre-existing manifest deviation, not on any task; six of its
@@ -34,7 +34,7 @@ table before routing anything, and do not hand a carve-out file to a squad.
 - Do not run `gh-sync.py open` before the signature; build entry is post-approval —
   `.agents/skills/harness/references/github-mirror.md` — verified-at 7e0c2ec1
 - Do not set task stations to `plan` to silence INV-26; `ready` IS the not-started station and
-  the change makes it worse — `.claude/skills/harness/bin/check-state.sh:2136-2148` — verified-at 7e0c2ec1
+  the change makes it worse — `.claude/skills/harness/bin/check-state.py:2136-2148` — verified-at 7e0c2ec1
 - Do not re-derive the digest/step key measurement; it is current as of 2026-09-09 —
   `notes/research-FEAT-104-triage-c0.md` — verified-at 7e0c2ec1
 

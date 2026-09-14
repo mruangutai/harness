@@ -72,7 +72,7 @@ negated assertions on `CLEAN`/`evidence`/dash literals:
 
 ## 4. Enforcement-layer files (DEC-174) — report only, no fix drafted
 
-`check-domain.py` and `check-state.sh` are both in the diff, each a single-line diagnostic-prose edit
+`check-domain.py` and `check-state.py` are both in the diff, each a single-line diagnostic-prose edit
 (`docs/harness/DECISIONS.md` → `.harness/harness/docs/DECISIONS.md`, lines 953/676 named in the
 plan). Grepped both files post-change for any remaining `docs/harness` mention outside the migrated
 form — **none found**. No defect, nothing to route back.

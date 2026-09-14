@@ -20,11 +20,11 @@ code (all 8 steps executed, zero drift) and **no UAT step touches PANEL-3's cont
 > to redden is reported as non-discriminating rather than kept.
 
 **SC-07 — trailing sentence only. BEFORE:**
-> The violating fixture must be shown passing `check-state.sh` before the invariant lands.
+> The violating fixture must be shown passing `check-state.py` before the invariant lands.
 
 **SC-07 AFTER (`BRIEF.md:133-137`):**
 > The violating fixture is DISCRIMINATING at `review_sha`: pointed at the pre-change copy of the
-> script recovered with `git show <base>:.claude/skills/harness/bin/check-state.sh` (the
+> script recovered with `git show <base>:.claude/skills/harness/bin/check-state.py` (the
 > `CHECK_STATE_BIN` escape), or at a mutation of that production path, the violation case FAILS —
 > and a case that cannot be made to redden is reported as non-discriminating rather than kept.
 
@@ -55,9 +55,9 @@ never touched.** All runs `env -u HARNESS_AGENT_TYPE`.
   refusal cases print `gh-sync: issue #41 -> building (T-01)` / `#40 -> building (parent)` — i.e.
   `start-task` proceeded normally and no refusal was emitted. Not a crash, not an argument error.
 
-**SC-07 — `tests/integration/test-check-state.py`, pre-change `check-state.sh` via `CHECK_STATE_BIN`**
+**SC-07 — `tests/integration/test-check-state.py`, pre-change `check-state.py` via `CHECK_STATE_BIN`**
 - GREEN (`/tmp/b1309/pin`, default `SCRIPT`): exit 0, 225 ok / 0 FAIL; all nine `T-06` cases `ok`.
-- RED (`CHECK_STATE_BIN=/tmp/b1309/red-cs/.claude/skills/harness/bin/check-state.sh`): **exit 1,
+- RED (`CHECK_STATE_BIN=/tmp/b1309/red-cs/.claude/skills/harness/bin/check-state.py`): **exit 1,
   224 ok / 1 FAIL — exactly one case, and it is the violation case:**
   `FAIL - T-06 INV-37 fires at a done station with no task statuses`.
 - Advisory (not a downgrade): its sibling `T-06 INV-37 message discriminator names recover-terminal

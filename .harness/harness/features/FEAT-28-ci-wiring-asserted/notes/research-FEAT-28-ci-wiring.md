@@ -140,7 +140,7 @@ the DEC-183 reversal question moved from this note into `## Approval`, unanswere
    `integration` — there is no unit/integration mismatch.** A "kind is unit" claim would have been a
    new falsehood.
 3. **DEC-183 question** now in `## Approval` (line ~166), `status: pending` byte-identical.
-   check-state.sh:91-92 matches `status:\s*approved` inside that section; the added prose contains
+   check-state.py:91-92 matches `status:\s*approved` inside that section; the added prose contains
    no such string, so the gate reading is unchanged.
 
 ## Open (for the plan owner, not for me — BRIEF-only scope)

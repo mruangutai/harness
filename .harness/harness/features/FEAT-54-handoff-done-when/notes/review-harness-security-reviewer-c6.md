@@ -2,7 +2,7 @@
 
 **PASS, info.** Zero new gating findings. The only code-shaped delta since c5's already-PASSED
 security review (`4690f724`) is prose inside the three in-feature handoff notes (F-11 fix);
-`handoff_done_when.py`, `check-domain.py`, `check-state.sh`, and `probe-handoff-comprehension.py`
+`handoff_done_when.py`, `check-domain.py`, `check-state.py`, and `probe-handoff-comprehension.py`
 are byte-identical to what c5 already reviewed clean, confirmed by `git diff 4690f724..dd55b357`
 returning empty for all four.
 
@@ -27,7 +27,7 @@ pointers carry a path).** Read the full 288 lines via `git show`. Two-layer defe
 - Resolver exceptions fail closed: `_resolution_problems` catches any exception per pointer and
   turns it into a blocking problem string ("resolver failed closed").
 
-**2. `check-domain.py` / `check-state.sh` — shell invocation and argument handling (the dispatch's
+**2. `check-domain.py` / `check-state.py` — shell invocation and argument handling (the dispatch's
 second ask).** Both import `handoff_done_when` and call `.problems(rel, content, root, resolve=…)`
 as an **in-process Python function call** — note content never reaches a shell, so word-splitting
 and quoting concerns don't apply to this integration point. Grepped both files for `shell=True`,
@@ -80,7 +80,7 @@ VERDICT: PASS
 DIGEST:
   headline: "Zero new gating findings; the only code delta since c5's PASS is in-feature handoff-note prose (F-11), already path-safe."
   in_scope: true
-  scope_reason: "handoff_done_when.py parses markdown and resolves typed pointers (finding:/approval:) against real files with a path component; check-domain.py/check-state.sh invoke it at write time; probe-handoff-comprehension.py shells out to omp with live credentials. All three are genuine security surface."
+  scope_reason: "handoff_done_when.py parses markdown and resolves typed pointers (finding:/approval:) against real files with a path component; check-domain.py/check-state.py invoke it at write time; probe-handoff-comprehension.py shells out to omp with live credentials. All three are genuine security surface."
   severity_max: info
   findings: 0
   must_fix: []

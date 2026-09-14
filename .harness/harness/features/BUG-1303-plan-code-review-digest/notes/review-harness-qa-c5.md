@@ -106,7 +106,7 @@ touch that file.
   with a loaded pool run, not evidence of a regression (no new `^FAIL`, no file-count drift).
 - `gen-decisions-index.py --stdout | diff -q` (not in the three named commands but load-bearing for
   MF-1): silent, exit 0 — matches contract.
-- `check-state.sh`: ran it (rc=0) — matches contract; output is advisory `note` lines only (INV-17,
+- `check-state.py`: ran it (rc=0) — matches contract; output is advisory `note` lines only (INV-17,
   INV-23, INV-28 across unrelated features), no error-level lines, consistent with a healthy state.
 
 ## Adequacy statement

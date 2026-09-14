@@ -36,7 +36,7 @@ in-feature fix needs an operator-recorded budget raise first (DEC-157).
 - Do not re-run the panel, qa, simplify or the goal-check: all four ran at this exact pin with zero
   send-backs — `feature.json` `runs:` — verified-at 984bd26b
 - Do not route any `B-N` row to a lead: every remedy edits `validate-digest.py`, `check-domain.py`,
-  `check-state.sh`, `run-state-schema.json` or their tests — DEC-174 — verified-at 984bd26b
+  `check-state.py`, `run-state-schema.json` or their tests — DEC-174 — verified-at 984bd26b
 - Do not spend a cycle re-adjudicating CF-3: the recommendation is ACCEPT and record, and excising it
   would rewrite history beneath a signed pin — `runs/2026-09-09-10-panel-validator/digest.md` CF-3 —
   verified-at 168f875f

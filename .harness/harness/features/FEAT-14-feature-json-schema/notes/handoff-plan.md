@@ -15,9 +15,9 @@ migration it protects.
   board's six capitalized columns, 12 tasks / 13 decisions / 18 SCs, 8 required of ELEVEN keys —
   `notes/answers-2026-08-11-revision.md`, `safe_load` — verified-at a29ad06
 - Deleting `phase` kills TWO required gates unless T-11 and T-12 land: `check-plan-routes.py:386`
-  matches nothing and route-checks every finished feature forever; `check-state.sh:451`
+  matches nothing and route-checks every finished feature forever; `check-state.py:451`
   `if _phase not in PHASE_ORDER: continue` sees `""` for all 17 — verified-at a29ad06
-- A dead INV-17 exits 0, so "check-state.sh passes" is NOT evidence T-12 worked. SC-18's two
+- A dead INV-17 exits 0, so "check-state.py passes" is NOT evidence T-12 worked. SC-18's two
   opposite-direction assertions are — `BRIEF.md` SC-18 — verified-at a29ad06
 - Handoff stems stay lowercase literals, never derived from capitalized status values: a derived
   `handoff-Build.md` passes here and fails on Linux CI — `plan.yaml` D-12 — verified-at a29ad06

@@ -10,7 +10,7 @@ QA questions, not a UI one.
 ## Trust
 
 - The gate is green on the real tree: exit 0, 0 violations, 32 INV-32 notes — 31 pre-era,
-  1 undated — `check-state.sh` in this worktree — verified-at bf12a96b
+  1 undated — `check-state.py` in this worktree — verified-at bf12a96b
 - `test-check-state.py` is 151 ok / 0 FAIL, exit 0 — verified-at bf12a96b
 - The four new cases were RED first, failing for the intended reasons: pre-era violated,
   boundary inexact, undated violated, markers absent — verified-at 75daa3bb + working tree
@@ -24,7 +24,7 @@ QA questions, not a UI one.
 
 ## Dead ends
 
-- Asserting on `check-state.sh`'s exit code in the new cases — a bare fixture holding only
+- Asserting on `check-state.py`'s exit code in the new cases — a bare fixture holding only
   `plan.yaml` is red for unrelated reasons, so the assertion would bind those invariants
   instead of the guard; measured, and it is why the first green run still showed 4 FAIL —
   verified-at working tree, 2026-08-31
@@ -34,7 +34,7 @@ QA questions, not a UI one.
 
 ## Working set
 
-- `.claude/skills/harness/bin/check-state.sh` — `INV-32 ERA BEGIN/END (BUG-1071)`, 180-216
+- `.claude/skills/harness/bin/check-state.py` — `INV-32 ERA BEGIN/END (BUG-1071)`, 180-216
 - `.claude/skills/harness/bin/test-check-state.py` — the four `case_inv32_*era*` cases, 3119-3201
 - `.harness/harness/features/BUG-1071-inv32-era-guard/review_sha` — the pin
 - `issue://1071` — the defect, with the measurements that opened it

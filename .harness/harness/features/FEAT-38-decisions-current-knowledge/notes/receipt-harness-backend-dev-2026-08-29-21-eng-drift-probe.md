@@ -14,7 +14,7 @@ Result: commit `56c9c07`, working copy healthy (git index materialized so `check
 finding). Baseline copy also tarred to `/tmp/feat38-probe-baseline.tgz` for state-4's reset.
 
 All commands below run with `cwd=/tmp/feat38-probe`, invoking
-`bash .claude/skills/harness/bin/run-unit-tests.py …`. No command touches the real worktree.
+`python3 .claude/skills/harness/bin/run-unit-tests.py …`. No command touches the real worktree.
 
 ## Predictions (written before any state past 0 was run)
 
@@ -56,7 +56,7 @@ independent of when `harness.json` is edited) stays green throughout.
 ## Measured results
 ### State 0 — baseline
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 EXIT=0
 ```
@@ -80,7 +80,7 @@ every kind, before any test runs. This is the mechanism the plan's ordering rati
 
 ### State 2 — + T-25 (path also removed from harness.json's detect; files still on disk)
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.py's explicit script list
 STATE2_EXIT=2
 ```

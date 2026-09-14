@@ -14,7 +14,7 @@ wrapping it earlier masks the exit codes you would be testing. Re-run both valid
 - qa PASS, `matrix_ok: true`, `must_fix: []`, severity med; panel FAIL, severity high, 3 must_fix — runs/2026-08-12-09-qa-validator/digest.md and runs/2026-08-12-09-panel-validator/digest.md — verified-at c6a28bd
 - Both runs examined c6a28bd and confirmed the pin themselves — each digest reports the SHA it read — verified-at c6a28bd
 - F-A is real: three `return None` paths in worktree_owner and every caller reads None as not-a-worktree — I read harness_boundary.py:374-400 at source — verified-at c6a28bd
-- F-B is real and is exit 0, not exit 1: `except Exception: _wt_seg = None` then `if _wt_seg:` skips all of INV-25 with no bad and no warn — I read check-state.sh:960-980 at source — verified-at c6a28bd
+- F-B is real and is exit 0, not exit 1: `except Exception: _wt_seg = None` then `if _wt_seg:` skips all of INV-25 with no bad and no warn — I read check-state.py:960-980 at source — verified-at c6a28bd
 - The two post-goal-check SC-07 cases landed and are honest; the Bash one records that TWO rules independently grant it and so discriminates neither alone — I read the diff 2e02cfc..c6a28bd — verified-at c6a28bd
 - F-C's three changed cells rest on the panel's executed before/after with a malformed fleet.yaml — I did NOT re-run that probe — UNVERIFIED by me
 - classify's `shared` outcome is unreachable, making bash-write-guard.py:571-577 dead — qa's analysis, three separate guards cited — UNVERIFIED by me
@@ -33,4 +33,4 @@ wrapping it earlier masks the exit codes you would be testing. Re-run both valid
 - .harness/features/FEAT-17-guard-boundaries/runs/2026-08-12-09-qa-validator/digest.md — matrix accounting and adequacy notes
 - .harness/features/FEAT-17-guard-boundaries/notes/review-harness-security-reviewer-2026-08-12-panel.md — F-A's executed evidence
 - .claude/skills/harness/bin/harness_boundary.py:374-400 — F-A's three return-None paths
-- .claude/skills/harness/bin/check-state.sh:960-980 — F-B's silent absorb
+- .claude/skills/harness/bin/check-state.py:960-980 — F-B's silent absorb

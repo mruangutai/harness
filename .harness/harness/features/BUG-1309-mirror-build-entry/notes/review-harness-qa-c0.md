@@ -14,7 +14,7 @@ every number below is freshly measured in this session.
   diff yet) — contributes nothing, per this checkout's own Expertise.
 - `feature` (T-03, T-05) → `always: [unit, integration]`, no `ui` (no interaction flow, this is a CLI).
 - `config` (T-01) → `github.build_entry` is a brand-new closed enum key nested under `github` in
-  `feature-schema.json`, read by three gate scripts (`check-state.sh`, `merge-gate.py`, `gh-sync.py`
+  `feature-schema.json`, read by three gate scripts (`check-state.py`, `merge-gate.py`, `gh-sync.py`
   itself) — a structural-nesting change to a config a gate script reads, tripping
   `touches_config_shape` (DEC-212) → `integration` required.
 - Combined floor: **{unit, integration}**. Both `active` in `test_kinds` with real `cmd`s.
@@ -30,11 +30,11 @@ Both non-zero discovery, both green. `matrix_ok: true`.
 
 ## The three gates' live discovery counts (not just exit code)
 
-- **`check-state.sh` INV-37**: ran live against this checkout (`github.sync: true` in
+- **`check-state.py` INV-37**: ran live against this checkout (`github.sync: true` in
   `.harness/harness.json`, so the invariant's own guard is open). Direct corpus scan: **75 of 75**
   plan-carrying feature directories in this repo are inside `feature_schema.BUILD_ENTRY_ERA_EXEMPT`
   — **0 objects discovered as violations**, and 0 non-exempt candidates existed to check in the first
-  place. `check-state.sh` itself exits 1 (pre-existing, unrelated INV-17/INV-23/INV-28 notes on other
+  place. `check-state.py` itself exits 1 (pre-existing, unrelated INV-17/INV-23/INV-28 notes on other
   features — none is INV-37; confirmed by grep, 0 hits).
 - **`merge-gate.py`**: ran live (`git merge feat/BUG-1309-mirror-build-entry`) from inside this exact
   worktree — genuine non-fixture invocation. Result: `allowed... predates the build-entry receipt`,
@@ -50,7 +50,7 @@ This 75/75 era-exempt fact is a **verification-scope limitation, not a defect** 
 "Verification gaps" section already discloses it (17 sync-enabled legacy features knowingly
 unrecovered, forward-only guarantee). Recorded here because it means every "fires"/"denies" behaviour
 this gate re-confirms today is proven by synthetic fixtures, never by a live positive discovery in
-this tree — worth knowing next time someone treats a clean `check-state.sh` run as proof INV-37 works.
+this tree — worth knowing next time someone treats a clean `check-state.py` run as proof INV-37 works.
 
 ## Adequacy — each named behaviour, and what binds it
 
@@ -87,8 +87,8 @@ this tree — worth knowing next time someone treats a clean `check-state.sh` ru
   half). The Build-block half is the same REASONED inference noted above (absence state is shared).
 
 No behaviour in the signed policy list is fully unbound. The softest spots, in order: (1) INV-37's
-"open"-branch message text (`check-state.sh:2012-2016`) is exercised only through the pure
-`recovery_command_for() == "open"` unit assertion, never through a captured `check-state.sh` stdout
+"open"-branch message text (`check-state.py:2012-2016`) is exercised only through the pure
+`recovery_command_for() == "open"` unit assertion, never through a captured `check-state.py` stdout
 containing that exact message — a mutation dropping "gh-sync.py open" or the feature path from that
 f-string would pass the whole suite; the sibling recover-terminal message IS asserted against captured
 stdout (`test-check-state.py:4658-4663`). Severity: low — it is the friendlier, non-blocking half of
@@ -111,7 +111,7 @@ sound, not independently reproduced end-to-end.
 
 ## Findings (concrete scenario required)
 
-1. **[low]** `check-state.sh`'s INV-37 "open"-branch message (:2012-2016) is untested at the
+1. **[low]** `check-state.py`'s INV-37 "open"-branch message (:2012-2016) is untested at the
    integration level — mutating that f-string to drop "gh-sync.py open" or the feature path would
    pass every test in this suite. Scenario: a future edit that renames the remedy verb or truncates
    the path in that one branch ships silently; an operator reading the message gets a broken or
@@ -138,7 +138,7 @@ DIGEST:
     - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 33 }
     - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 50 }
   coverage_gaps:
-    - "check-state.sh INV-37's 'open' remedy message (the non-terminal, no-done-task branch) is asserted only through the pure recovery_command_for() unit check, never through captured check-state.sh stdout — the recover-terminal sibling branch IS asserted against captured output"
+    - "check-state.py INV-37's 'open' remedy message (the non-terminal, no-done-task branch) is asserted only through the pure recovery_command_for() unit check, never through captured check-state.py stdout — the recover-terminal sibling branch IS asserted against captured output"
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-gh-sync.py: T-02 second open stays opened / opened never downgrades" }
     - { id: SC-02, test: "tests/integration/test-gh-sync.py: T-02 first-call failure records recovery-required / partial remote write records nothing / contract error records nothing" }

@@ -5,7 +5,7 @@ resolves through `harness_boundary.resolve_root(<own bin dir>)`. The override-re
 normalisation landed with a RED-then-GREEN test. Both plan-verify greps are clean and the unit
 suite is fully green. `--kind all` has exactly one real failure outside the anticipated 6
 `[hook]` cases: `test-check-state.py` (4 sub-cases + module FAIL), caused by this same T-04
-delete but blocked from repair by DEC-174 (it tests `check-state.sh`, a gate script). VERDICT is
+delete but blocked from repair by DEC-174 (it tests `check-state.py`, a gate script). VERDICT is
 FAIL for that reason — not because production code is wrong.
 
 ## What changed (production)
@@ -47,7 +47,7 @@ NAME `harness_root`, not the functional `CLAUDE_PROJECT_DIR`-keyed fixtures that
 ## NOT fixed — DEC-174
 `test-check-state.py` has the identical class of bug (2 fixtures lack `HARNESS_PROJECT_DIR`/
 MARKER coverage: INV-27's "unjudgeable tree" case and INV-29's fleet-declared-repo/SC-17(c)
-cases — 4 sub-case failures). `check-state.sh` is a gate script (explicitly listed off-limits in
+cases — 4 sub-case failures). `check-state.py` is a gate script (explicitly listed off-limits in
 my dispatch); its test is "their tests" under AGENTS.md's DEC-174 carve-out. I made the ONE prose
 edit my dispatch explicitly authorized (renaming the bare `harness_root` mentions at :2479,:2553
 so the plan's first verify grep is clean) and touched nothing else in that file — no logic, no

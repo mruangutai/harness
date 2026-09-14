@@ -70,7 +70,7 @@
   there as S-04), hosted by a second lead, which created its own dir. Recording it in `feature.json`
   `runs:` would have double-counted it AND forced me to invent a verdict, since the schema's run
   entry has no field in which to say "inherited from another run's step record". Leaving it out costs
-  one `check-state.sh` NOTE about an unrecorded dir; that note is the honest outcome.
+  one `check-state.py` NOTE about an unrecorded dir; that note is the honest outcome.
 
 - 2026-08-19: A stale `detect` glob in `harness.json` looked like it would fail the blocking gate on
   a correct task, and one command disproved it. `test_kinds.integration.detect` does not name

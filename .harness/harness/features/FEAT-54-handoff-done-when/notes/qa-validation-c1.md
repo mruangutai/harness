@@ -53,4 +53,4 @@ Risk grading left the worktree bytes and index unchanged. Before and after, SHA-
 
 ## Separate external blocker
 
-SC-04's exact repository-root `check-state.sh` check remains blocked by the unrelated FEAT-51 `status is 'done' but notes/handoff-validate.md is missing` defect already established in the c0 QA evidence. Per dispatch, QA did not rerun or repair FEAT-51 and does not count it among the c1 unit/integration matrix failures. It remains an external ship blocker independent of the c1 risk-grade failure.
+SC-04's exact repository-root `check-state.py` check remains blocked by the unrelated FEAT-51 `status is 'done' but notes/handoff-validate.md is missing` defect already established in the c0 QA evidence. Per dispatch, QA did not rerun or repair FEAT-51 and does not count it among the c1 unit/integration matrix failures. It remains an external ship blocker independent of the c1 risk-grade failure.

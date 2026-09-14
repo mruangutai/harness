@@ -12,7 +12,7 @@ $ git status --porcelain
 (empty)
 
 $ git diff --stat 340e18a..9da3986
- .claude/skills/harness/bin/check-state.sh          |  88 +++++--
+ .claude/skills/harness/bin/check-state.py          |  88 +++++--
  .claude/skills/harness/bin/gh-sync.py              |   7 +-
  .claude/skills/harness/bin/harness_yaml.py         |  35 ++-
  .claude/skills/harness/bin/run-unit-tests.py       |   2 +-

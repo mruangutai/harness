@@ -24,7 +24,7 @@ commits — session log, map hand-off, handoff supersede, state closes, ship rev
 distillation, operator ruling x2, panel commit, orchestrator observations).
 
 None of the 8 reviewable source files (`layout_migration.py`, `test-layout-migration.py`,
-`check-state.sh`, `test-check-state.py`, `run-unit-tests.py`, `tests.yml`, `DECISIONS.md`,
+`check-state.py`, `test-check-state.py`, `run-unit-tests.py`, `tests.yml`, `DECISIONS.md`,
 `DECISIONS-INDEX.md`) appear in the delta. Every changed path is one of:
 - 12 `.harness/expertise/*.md` — the close-out distillation writes (matches
   `072be78 close-out: twelve Expertise files sharpened`)

@@ -47,7 +47,7 @@ P-01 is repository-shaped (names `.claude/skills/harness/bin/*.{py,sh}`, `bin/fa
 moving. No grant exists for `.harness/harness/expertise/harness-security-reviewer.md`; the lead or
 an agent holding that grant should relocate it.
 
-## check-expertise.sh
+## check-expertise.py
 
 First run: `FAIL` — G-12 (62 words) and O-04 (58 words) both over the 50-word cap. Trimmed both;
 second run: `OK`.

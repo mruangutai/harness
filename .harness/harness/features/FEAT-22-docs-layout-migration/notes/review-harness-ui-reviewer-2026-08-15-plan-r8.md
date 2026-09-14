@@ -81,7 +81,7 @@ consistent with "the fold adds exactly one file" but I have not verified an r7 a
 and the two gate diagnostics." The task now owns seven files (`:845-852`). Six of the seven fit the
 title's two categories cleanly: four instruction-side prose files (`CLAUDE.md`,
 `harness-principles/SKILL.md`, `templates/plan.yaml`, `check-plan-routes.py`'s comment) and the two
-named gate diagnostics (`check-state.sh`, `check-domain.py`). The seventh,
+named gate diagnostics (`check-state.py`, `check-domain.py`). The seventh,
 `.harness/notes/audit-decisions.py`, belongs to neither category, and the task's own intent says so in
 its own words at `:867-868`: "six are a present-tense claim in live instruction or live code, and the
 seventh is a live tool that READS the moved docs at import." Its failure mode is categorically

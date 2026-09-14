@@ -20,7 +20,7 @@ overrun killed a flow one $5 step from done — a crossing is flagged in a headl
 in both configs carrying a dated per-model rate table that must be re-verified against published
 pricing whenever rates change and that REFUSES to price a run it does not cover, and a
 `(model, speed, inference_geo)` keying scheme whose own note warns that ignoring `speed` is a silent
-halving (`.harness/harness.json:194`). `check-state.sh` warns when the table is more than 90 days
+halving (`.harness/harness.json:194`). `check-state.py` warns when the table is more than 90 days
 stale (`:261-271`) — a standing maintenance obligation for a number nobody is allowed to act on.
 
 The instrumentation touches **18 files** today
@@ -83,7 +83,7 @@ else answers it either.
   drift detector (`:9-24`, exits 2 on an unlisted `test-*.py`) is satisfied rather than merely
   bypassed.
   verify: automated        evidence: unit
-- SC-03: `.claude/skills/harness/bin/check-state.sh` reports **zero violations** against the repo as
+- SC-03: `.claude/skills/harness/bin/check-state.py` reports **zero violations** against the repo as
   it stands, with all 67 historical run `state.yaml` files and all 7 `feature.yaml` files in place.
   This single command proves three things at once: INV-11 no longer fails a complete run that has no
   meter to run, `cost` is still in `CHECKPOINT_KEYS` so 67 historical `cost:` blocks are not 67 new
@@ -105,7 +105,7 @@ else answers it either.
   to three literal files; a SKILL.md outside those three is not covered — see A-5 §4.**
   `budgets.max_total_cycles` and `_max_total_cycles_rationale` are present and unchanged in
   BOTH `.harness/harness.json` and `.claude/skills/harness/templates/harness.json`, and
-  `git diff` shows no change to any line of `check-state.sh` or `SKILL.md` that mentions
+  `git diff` shows no change to any line of `check-state.py` or `SKILL.md` that mentions
   `cycles_used`, `max_cycles` or `max_total_cycles`.
   verify: automated        evidence: command
 - SC-06: **UNDER AMENDMENT A-5 — see `## Amendments`. The approved text below is left in place and
@@ -130,7 +130,7 @@ else answers it either.
   verify: automated        evidence: command
 - SC-09: `docs/harness/DECISIONS.md` carries a new entry that (a) records the removal and its reason,
   (b) states explicitly that DEC-148's context watchdog is DROPPED with the file — not preserved as a
-  standalone script and not folded into `check-state.sh` — with the reason, and (c) states that
+  standalone script and not folded into `check-state.py` — with the reason, and (c) states that
   historical `cost_usd` figures are deliberately left in place. Its `DECISIONS-INDEX.md` row carries a
   real ruling, not the generator's `⚠ RULING PENDING` sentinel.
   verify: inspection
@@ -196,16 +196,16 @@ resolves to a soft skip.
 - **`max_total_cycles`, `cycles_used` and cycle counting are OUT OF SCOPE and untouched** (DEC-157).
   This is the only budget with teeth and is explicitly kept.
 - **Historical `cost_usd` / `max_cost_usd` in shipped `feature.yaml` are LEFT IN PLACE** as the only
-  surviving record of what features cost. `check-state.sh` must stop *requiring* them; nothing erases
+  surviving record of what features cost. `check-state.py` must stop *requiring* them; nothing erases
   what is written.
-- **`cost` stays in `check-state.sh`'s `CHECKPOINT_KEYS`** — allowed, never required. Forced, not
+- **`cost` stays in `check-state.py`'s `CHECKPOINT_KEYS`** — allowed, never required. Forced, not
   chosen: all 67 run `state.yaml` files on disk carry a `cost:` block (re-measured at `ae2443d`:
-  67 of 67), and `check-state.sh:401` flags any top-level key not in that set, so removing it would
+  67 of 67), and `check-state.py:401` flags any top-level key not in that set, so removing it would
   turn every historical run into a violation.
 - **No historical DECISIONS entry is rewritten.** DEC-99, DEC-114, DEC-134, DEC-148, DEC-157 and
   DEC-163 are history. The new entry records the removal; the past stays. The one permitted touch is
   the DEC-148 **index row's ruling prose**, which is a hand-written summary, not the entry.
-- **DEC-174 carve-out.** `check-state.sh`, `validate-digest.py` and their tests are the harness's own
+- **DEC-174 carve-out.** `check-state.py`, `validate-digest.py` and their tests are the harness's own
   enforcement layer: those edits are made **directly** — ordinary edits, tests run explicitly, a human
   reading the diff — never dispatched through a team run whose gates are the thing being changed.
 - **Files-only; PyYAML is required (DEC-171 am.1).** No new dependency, no build step.
@@ -541,7 +541,7 @@ still carrying it, and after the pin is deleted the committed suite covers it on
 
 #### 5. Falsifiability closure — why SC-01 is the falsifier for both follow-up edits
 
-T-02's `verify:` clauses check `check-state.sh`, not `test-check-state.py`, so **nothing in T-02
+T-02's `verify:` clauses check `check-state.py`, not `test-check-state.py`, so **nothing in T-02
 catches the INV-11 prose rewording**. That is the unfalsifiable-site failure A-3 named, and it would
 recur here. **The amended SC-01's four-file set closes it:** `test-check-state.py` and
 `test-validate-digest.py` are each in the sweep today and each leaves it only if its follow-up edit
@@ -580,7 +580,7 @@ a throwaway `git clone --local --no-hardlinks` under the session scratchpad.
 
 #### 1. SC-05 — clause 2 measures a formatting change, not the cycle budget
 
-The approved clause 2 forbids any `git diff` line in `check-state.sh` or `SKILL.md` mentioning
+The approved clause 2 forbids any `git diff` line in `check-state.py` or `SKILL.md` mentioning
 `cycles_used`, `max_cycles` or `max_total_cycles`. Exactly one line matches, and only because the
 historical-only money key was split onto its own line:
 `-    "cycles_used", "cost",` → `+    "cycles_used",`. The cycle key is untouched; its neighbour
@@ -590,7 +590,7 @@ that property through something any reformat trips.
 
 **Clause 2 is REPAIRED, not deleted — it returns as clause (c) with a named tolerance**, the same
 device clause (b) uses. An earlier draft of this amendment dropped it, which would have left
-`check-state.sh` and `SKILL.md` — the surfaces constraint bullet 1 protects — guarded by no criterion
+`check-state.py` and `SKILL.md` — the surfaces constraint bullet 1 protects — guarded by no criterion
 at all. The delivered state is exactly one diff line, known and characterised, so the clause is
 written as "this one line and no other".
 
@@ -648,8 +648,8 @@ compares `json.loads` of `git show ae2443d:` each config against `json.load` of 
 >   no semantic content, so a criterion that DEMANDED it would go red on a null reformat that clause
 >   (a) blesses. As measured at `93e4a17`, `.harness/harness.json` is empty and the template exercises
 >   the tolerance on exactly one line — but either file may legitimately be in either state.
->   **(c) The rule surfaces — `check-state.sh` and `SKILL.md`, restored from the approved clause 2.**
->   Over `.claude/skills/harness/bin/check-state.sh` and the **three** SKILL.md files that carry any
+>   **(c) The rule surfaces — `check-state.py` and `SKILL.md`, restored from the approved clause 2.**
+>   Over `.claude/skills/harness/bin/check-state.py` and the **three** SKILL.md files that carry any
 >   of the three cycle tokens at both `ae2443d` and `HEAD` — `.claude/skills/harness/SKILL.md`,
 >   `.claude/skills/harness-team/SKILL.md`, `.claude/skills/harness-code-review/SKILL.md` — the ONLY
 >   `git diff ae2443d..HEAD` line mentioning `cycles_used`, `max_cycles` or `max_total_cycles` is the
@@ -660,12 +660,12 @@ compares `json.loads` of `git show ae2443d:` each config against `json.load` of 
 >   SC-07 owns money-key absence and tolerating it would weaken this criterion.
 >   The command prints NOTHING and exits 1 (no residual line):
 >   ```sh
->   git diff ae2443d..HEAD -- .claude/skills/harness/bin/check-state.sh .claude/skills/harness/SKILL.md .claude/skills/harness-team/SKILL.md .claude/skills/harness-code-review/SKILL.md \
+>   git diff ae2443d..HEAD -- .claude/skills/harness/bin/check-state.py .claude/skills/harness/SKILL.md .claude/skills/harness-team/SKILL.md .claude/skills/harness-code-review/SKILL.md \
 >     | grep -E '^[-+].*(cycles_used|max_cycles|max_total_cycles)' \
 >     | grep -v -e '^-    "cycles_used", "cost",$' -e '^+    "cycles_used",$'
 >   ```
 >   The tolerated pair is a **tolerance, not a requirement**: reverting the split entirely — restoring
->   `check-state.sh` to its `ae2443d` text — produces no token-bearing diff line at all and also leaves
+>   `check-state.py` to its `ae2443d` text — produces no token-bearing diff line at all and also leaves
 >   the residual empty (probed, §3). Measured at `93e4a17`: residual EMPTY, exit 1; the unfiltered
 >   pipeline emits exactly the two tolerated lines and nothing else.
 >   **Precondition.** All three clauses read the `ae2443d` side from this repository's git object
@@ -762,17 +762,17 @@ in-BRIEF precedent** — it is a signed over-removal guard with no base-commit d
 | SC-06 (a): `cost_usd: 240.82` → `999.99` in FEAT-05's `feature.yaml` | **89, unchanged — the counts clause is BLIND.** This is the negative case, and it is why (c) exists |
 | SC-06 (c): the same perturbation, committed in a throwaway clone | **FAILS** — the emptiness test emits `.harness/features/FEAT-05-pyyaml-file-parsers/feature.yaml` |
 | SC-05 (c): `` `budgets.max_total_cycles` `` → `` `budgets.max_cycles` `` in `.claude/skills/harness/SKILL.md`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
-| SC-05 (c): `cu = val("cycles_used")` → `… or 0` in `check-state.sh`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
+| SC-05 (c): `cu = val("cycles_used")` → `… or 0` in `check-state.py`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
 | SC-05 (c): a prose edit to the `max_cycles` line of `.claude/skills/harness-code-review/SKILL.md`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
 | SC-05 (c): `cycles_used: <n>` → `cycles_used: <count>` in `.claude/skills/harness-team/SKILL.md`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
-| SC-05 (c): the split REVERTED — `    "cycles_used", "cost",` restored in `check-state.sh`, committed in a clone | **PASSES**, residual empty, exit 1 — no token-bearing diff line exists at all, which is why the tolerated pair is a tolerance and not a requirement |
+| SC-05 (c): the split REVERTED — `    "cycles_used", "cost",` restored in `check-state.py`, committed in a clone | **PASSES**, residual empty, exit 1 — no token-bearing diff line exists at all, which is why the tolerated pair is a tolerance and not a requirement |
 
 **Every row above was re-run against the FINAL literal command text now written into the criteria**,
 not against the earlier metavariable drafts — the commands in the criteria are the commands that
 produced these results. SC-05 (a) was additionally run twice, once from the repo with `ROOT` at its
 default and once with `ROOT` pointing at the scratch clone, confirming `ROOT` is the sole difference
 between a real and a scratch run for that clause. **SC-05 (c) is probed on four mutants covering all
-four of its files** — `check-state.sh`, `harness/SKILL.md`, `harness-code-review/SKILL.md`,
+four of its files** — `check-state.py`, `harness/SKILL.md`, `harness-code-review/SKILL.md`,
 `harness-team/SKILL.md` — each unrelated to the money-key split, plus the revert case; the
 unperturbed clone returns the empty residual before and after every one.
 
@@ -832,7 +832,7 @@ against an unmutated scratch copy.
 - **SC-05: BOTH approved clauses survive; one is narrowed, and the narrowing is stated here rather
   than implied.** Clause 1 (the two keys present and unchanged in both configs) is restated as (a)
   and (b) in a form that measures it directly. Clause 2 (no `cycles_used` / `max_cycles` /
-  `max_total_cycles` diff line in `check-state.sh` or `SKILL.md`) is **restored as (c)**, not
+  `max_total_cycles` diff line in `check-state.py` or `SKILL.md`) is **restored as (c)**, not
   deleted — an earlier draft of this amendment dropped it, which would have left the surfaces that
   `## Constraints` bullet 1 protects guarded by nothing. **Two things about (c) are narrower than the
   text the user first signed, and both are deliberate:** it admits exactly one diff line (the

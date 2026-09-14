@@ -9,7 +9,7 @@ T-07). Stage 1 (spec compliance) and Stage 2 (code quality) both clean. No `must
 All 10 tasks trace to a `REQ`/`D` and match PLAN's specific values. Ran every task's `verify:`
 myself (issue #19 means nobody else had):
 
-- **T-01** (`check-state.sh:156-160`, `harness_yaml.py` `PLACEHOLDER_UNSET`, `validate-digest.py`):
+- **T-01** (`check-state.py:156-160`, `harness_yaml.py` `PLACEHOLDER_UNSET`, `validate-digest.py`):
   `run-unit-tests.py` exit 0; `grep -rn '"none", "null", "n/a"' bin/` → 1; `PLACEHOLDER_UNSET` in
   both consumers; test-check-state.py cases (h)/(i)/(j) present, matching D-06's three-fixture spec
   exactly (value axis + precondition axis both covered).
@@ -46,7 +46,7 @@ myself (issue #19 means nobody else had):
 
 ### SC-03 (inspection, mine)
 
-Re-ran `check-state.sh` on the real tree; diffed against `notes/before-check-state-635ef14.txt`.
+Re-ran `check-state.py` on the real tree; diffed against `notes/before-check-state-635ef14.txt`.
 **One delta**: `FEAT-06…: run dir panel-validator exists on disk but feature.yaml does not record
 it — orphaned work`. This is my own review dispatch's run dir (this review's own `runs/`), created
 after `9f87c48` — **not scored against the diff**, per the dispatch's explicit instruction. No INV-6
@@ -55,7 +55,7 @@ line anywhere; confirmed at the reviewed SHA itself
 precondition is unmet at the pinned commit, matching BRIEF SC-03's stated precondition). The working
 tree's `feature.yaml` (uncommitted, `review_sha: 9f87c48` + one `squad: validator` run) is this
 review's own live state, pinned correctly *before* the validator entry per PLAN's own build-exit
-protocol — also not part of the diff. `git diff 635ef14..9f87c48 -- check-state.sh` touches only the
+protocol — also not part of the diff. `git diff 635ef14..9f87c48 -- check-state.py` touches only the
 INV-6 hunk. **SC-03: whole violation set unchanged except INV-6, and INV-6 fires on no existing
 feature — CONFIRMED.**
 
@@ -68,7 +68,7 @@ each task actually touched:
 
 | Task | Files touched | Stated reason | Correct? |
 |---|---|---|---|
-| T-01 | `check-state.sh`, `validate-digest.py` (CLAUDE.md's 5), `test-check-state.py`, `harness_yaml.py` (D-05) | carve-out | yes |
+| T-01 | `check-state.py`, `validate-digest.py` (CLAUDE.md's 5), `test-check-state.py`, `harness_yaml.py` (D-05) | carve-out | yes |
 | T-02 | `teams/review.yaml` (no grant) | domain-ungranted | yes |
 | T-04 | `teams/build.yaml` (no grant) | domain-ungranted | yes |
 | T-05 | `test-harness-yaml-corpus.py` (mission extension, not D-05, not CLAUDE.md's 5) | carve-out | yes |
@@ -92,7 +92,7 @@ No fail-open found. Traced every miss/exception branch added in the diff:
   Exception` and the check reports `FAIL`, never a silent pass. Check (9)'s `panel_set()` raises
   loudly on 0 or 2+ `∥`-bearing brace groups rather than guessing one — the exact pattern this
   feature's charter is about, done correctly.
-- `check-state.sh`'s INV-6 rewrite: `_sha = (val("review_sha") or "").strip().lower()` correctly
+- `check-state.py`'s INV-6 rewrite: `_sha = (val("review_sha") or "").strip().lower()` correctly
   folds `None` (absent key) and `""` into the same empty-string branch as an explicit placeholder —
   no gap between "absent" and "placeholder" reopened.
 - `test-harness-yaml-corpus.py`'s `scan()` rewrite (glob → `os.walk`) is a real defect it caught

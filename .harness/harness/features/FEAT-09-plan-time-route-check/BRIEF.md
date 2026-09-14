@@ -104,8 +104,8 @@ build phase never discovers routing again.
   thing being changed.
 - **FEAT-08 (issue #58) is in flight and owns a disjoint file set.** No task here may write
   `harness/SKILL.md`, `harness-team/SKILL.md`, `harness-orchestrator.md`, `teams/*.yaml`,
-  `harness.json`, `check-state.sh`, `validate-digest.py`, `cost-report.py`, or anything under
-  `docs/harness/`. Consequences: the checker cannot become a `check-state.sh` invariant in this
+  `harness.json`, `check-state.py`, `validate-digest.py`, `cost-report.py`, or anything under
+  `docs/harness/`. Consequences: the checker cannot become a `check-state.py` invariant in this
   feature, and this feature ships without its `DECISIONS.md` entry (both raised as open questions).
 - Prose-only enforcement was rejected in grilling, for the DEC-125 "relied on being pointed at"
   reason. The rule text is necessary but is not the mechanism.

@@ -80,10 +80,10 @@ SC-11's claim ("no live harness file loses a route") holds as measured at e05752
 ## (5) Suite and matrix
 
 - `python3 .claude/skills/harness/bin/test-check-domain.py` at e057525: **exit 0**, 98/98.
-- `bash .claude/skills/harness/bin/run-unit-tests.py` (no `--kind`, the full run) at e057525:
+- `python3 .claude/skills/harness/bin/run-unit-tests.py` (no `--kind`, the full run) at e057525:
   **exit 0**, includes `test-check-domain.py`'s 98 cases plus `test-factory-integration.py`
   (97/97) and `test-no-distribution.py`.
-- **Confirmed, not just repeated from the BRIEF:** `bash .claude/skills/harness/bin/run-unit-tests.py
+- **Confirmed, not just repeated from the BRIEF:** `python3 .claude/skills/harness/bin/run-unit-tests.py
   --kind unit` exits 0 (`ALL PASS`) and its output contains **zero** mention of check-domain —
   `test-check-domain.py` is claimed by `harness.json`'s `unit` detect glob
   (`.claude/skills/harness/bin/test-*.py`) but is actually run only under `--kind integration`'s

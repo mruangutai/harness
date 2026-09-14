@@ -299,11 +299,11 @@ cheap moment. Every place that names it also names the tool with it: never a bar
 - SC-09: `.harness/README.md` names `products/` with its writer, so the layout record does not
   omit a directory the factory depends on.
   verify: inspection
-- SC-10: No invariant fires on the presence of `.harness/products/`, and `check-state.sh` passes
+- SC-10: No invariant fires on the presence of `.harness/products/`, and `check-state.py` passes
   on this repository after the change.
   verify: automated      evidence: integration
   (The `integration` evidence is `test-check-state.py`, which runs against fixture trees. A pass
-  on **this** repository is the pre-commit `check-state.sh` run and is cited separately.)
+  on **this** repository is the pre-commit `check-state.py` run and is cited separately.)
 - SC-11: The new resolver is registered in `run-unit-tests.py`'s script arrays, so its tests
   actually run rather than existing unread.
   verify: automated      evidence: unit
@@ -362,7 +362,7 @@ surface this feature could plausibly want.
 ## Constraints
 
 - **DEC-174** — `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
-  `check-state.sh` are never changed through a team run. Any task touching them is
+  `check-state.py` are never changed through a team run. Any task touching them is
   `main-session-direct`.
 - **DEC-179** — routing is resolved at plan time by `check-domain.py --resolve`. **Three** of this
   feature's surfaces resolve to NOBODY and are declared main-session steps for that reason, which

@@ -121,15 +121,15 @@ were removed. Untouched by this fix — `gh-sync.py` was not edited at all, and
 - `python3 .claude/skills/harness/bin/test-gh-sync.py` — **ALL PASSED.**
 - `python3 .claude/skills/harness/bin/test-feature-json-merge.py` — **37/37 checks passed.**
 - `python3 .claude/skills/harness/bin/test-harness-merge.py` — **18/18 checks passed.**
-- `bash .claude/skills/harness/bin/run-unit-tests.py` — **exit 0, 0 `FAIL` lines** (captured to
+- `python3 .claude/skills/harness/bin/run-unit-tests.py` — **exit 0, 0 `FAIL` lines** (captured to
   a log and grepped for `^FAIL `: zero matches, 1038 `PASS`-prefixed script names printed).
 
 ## DEC-174 boundary
 
 `git status --porcelain` on the worktree shows `.omp/extensions/harness-hooks.ts`,
-`omp-hooks.test.ts`, `check-state.sh`, `check-domain.py`, `bash-write-guard.py`,
+`omp-hooks.test.ts`, `check-state.py`, `check-domain.py`, `bash-write-guard.py`,
 `validate-digest.py`, `dispatch-guard.py` — I never opened `.omp/extensions/harness-hooks.ts`,
-`check-state.sh`, `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, or
+`check-state.py`, `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, or
 `dispatch-guard.py` with a write or edit tool this session. `omp-hooks.test.ts` and
 `gh-sync.py` DO show as modified in `git status`, but those are pre-existing/concurrent
 sibling changes — confirmed by never having called write/edit against either path in this

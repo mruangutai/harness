@@ -49,10 +49,10 @@ True, matches "refuses a version-2 checkpoint downgrade").
 The reworded comment reads "Generic `lead` **remains** an explicit compatibility persona for
 callers that truly cannot recover the producing raw persona or contract era." — this narrates
 continuity through the fix rather than stating today's rule, and it drops the one concrete anchor
-the pre-fix comment carried (naming `check-state.sh` as the actual caller).
+the pre-fix comment carried (naming `check-state.py` as the actual caller).
 **Cost:** "remains" has no antecedent for a reader six months out with no memory of this commit,
 and without the caller name the comment can no longer be checked against the real invariant F2
-just introduced in `check-state.sh:1590-1596` (99035a9c) — `"lead"` is now provably used *only* for
+just introduced in `check-state.py:1590-1596` (99035a9c) — `"lead"` is now provably used *only* for
 the `schema_version 1` legacy branch, `_host` is used for `>= 2`. The comment states a looser,
 unfalsifiable "callers that truly cannot recover" instead of that exact, checkable rule.
 **Alternative (concrete):**
@@ -80,7 +80,7 @@ requirement — and is not flagged; it is a correct addition, not narration.)
 No prior SIMPLIFICATION receipt exists for this feature (this is the first run of this angle), so
 there is nothing of my own to reaffirm. A sibling in this same postfix run
 (`receipt-harness-ai-dev-simplify-altitude-postfix.md`) already covers the cross-file duplication
-of the same "strict version" idiom between `check-domain.py` and `check-state.sh` under accepted
+of the same "strict version" idiom between `check-domain.py` and `check-state.py` under accepted
 residual **S2** ("its fold-in already covers the newly-repeated type-check idiom too") — I do not
 re-derive that cross-file angle here; F-S1 above is a narrower, same-file finding (three
 restatements inside `check-domain.py` alone) that S2's fold-in note does not itself spell out. A

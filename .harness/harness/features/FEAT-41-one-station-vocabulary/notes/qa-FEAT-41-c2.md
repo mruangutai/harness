@@ -15,13 +15,13 @@ finding — `set-task-station`/`set-feature-station` accept no caller identity a
 an ordinary Bash call — still reproduces exactly as described**, unresolved by anything in this
 cycle's diff. Baseline reproduces cleanly; SC-08 is disclosed-false by exactly one file as claimed.
 
-## 1. Baseline reproduction — serial, solo, this session owned both suites and check-state.sh throughout
+## 1. Baseline reproduction — serial, solo, this session owned both suites and check-state.py throughout
 
 | check | expected | observed |
 |---|---|---|
 | `run-unit-tests.py --kind unit` | exit 0, 505 PASS | **matches**: exit 0, 505 `^PASS ` lines, 0 `^FAIL `. 31 scripts declared in `UNIT_SCRIPTS`, all 31 seen as script-level `PASS <name>.py` markers (one extra `.py`-suffixed line, `case_floor_inflight_registry.py`, is a subcase name, not a 32nd script) — full discovery, no shrinkage. 20.6s wall. |
 | `run-unit-tests.py --kind integration` | exit 0, 819 PASS | **matches**: exit 0, 819 `^PASS ` lines, 0 `^FAIL `. 28 scripts declared in `INTEGRATION_SCRIPTS`, all 28 seen as script-level `PASS <name>.py` markers, set-equal both directions (`declared == seen`). 3m11s wall. |
-| `check-state.sh` | exit 0, 0 violations, 0 tracebacks | **matches**: exit 0, `grep -ic violation` = 0, `grep -ic traceback` = 0. 14.9s wall. |
+| `check-state.py` | exit 0, 0 violations, 0 tracebacks | **matches**: exit 0, `grep -ic violation` = 0, `grep -ic traceback` = 0. 14.9s wall. |
 | gated HIGH code-grade records | 0, new `code-grade.py --base 7c4f0bd --head 39477a5` | **matches**: 107 `RESULT: PASS`, 8 `RESULT: FAIL`, all 8 at `GRADE: 2`/`SEVERITY: med` — zero at grade 3/HIGH. Qualnames: `_verify_spliced`, `_task_status_line`, `cmd_sign_approval.transform`, `denies`, `_t09_symlink`, `_t09_case_fold`, `case_set_task_station_one_line`, `case_f02_sign_approval_cannot_write_an_unparseable_signature` (two of these — `_t09_symlink`, `_t09_case_fold` — are this cycle's own new fixture functions, gated at grade 2 for their own size, not HIGH). |
 
 Note on `--kind unit` coverage (per handoff's own Dead End): 31 unit + 28 integration = 59 scripts
@@ -29,7 +29,7 @@ declared and discovered this run, up from the "29 of 56" the handoff cites — t
 count itself grew across the rebase/migration. Both kinds' declared sets were fully discovered
 (no glob shrinkage), confirmed above by set-equality, not by exit code alone.
 
-**Suite-owner note:** I was the sole process executing `run-unit-tests.py`/`check-state.sh` in this
+**Suite-owner note:** I was the sole process executing `run-unit-tests.py`/`check-state.py` in this
 worktree for the full ~3.5 minutes; no other job of mine touched the tree during either run.
 
 ## 2. Mutation re-run 1 — `_I` case-fold patterns (check-domain.py)
@@ -171,7 +171,7 @@ and the unresolved disposition status.
 |---|---|---|
 | `42bc5fe` (H-01+H-02, = `707b547` pre-rebase, identical diffstat) | fix + test together | **holds** — `check-domain.py`+`test-check-domain.py`, `plan-sign-gate.py`+`test-plan-sign-gate.py`, all four in one commit |
 | `c4da870` (two coverage gaps, = `5dc5374` pre-rebase, identical diffstat) | test-only, no production change needed | **holds, and correctly test-only** — `test-check-domain.py`+`test-plan-merge.py` only. No source change is required because both guards (`_I` widening, `_verify_signature`'s wiring) already existed; this commit closes coverage debt, not new behavior. No test-first violation: nothing to precede |
-| `542e888` (rebase + BUG-1055 migration) | data migration, not new behavior | **holds as migration, not TDD-applicable** — one file changed, a single `status` key deleted from `BUG-1055-code-grade-absent-path/feature.json`. No dedicated test added, but the change is validated by the standing `check-state.sh`/schema sweep (§1, 0 violations) rather than by a new assertion — consistent with T-07's own prior migration of ten other directories, which also added no per-directory test |
+| `542e888` (rebase + BUG-1055 migration) | data migration, not new behavior | **holds as migration, not TDD-applicable** — one file changed, a single `status` key deleted from `BUG-1055-code-grade-absent-path/feature.json`. No dedicated test added, but the change is validated by the standing `check-state.py`/schema sweep (§1, 0 violations) rather than by a new assertion — consistent with T-07's own prior migration of ten other directories, which also added no per-directory test |
 | `1a155ed` | re-pin `review_sha` | metadata-only, no test-first question applies |
 | `a592c00` | handoff rewrite | notes-only, no test-first question applies |
 | `39477a5` | handoff edit | notes-only, no test-first question applies |
@@ -216,11 +216,11 @@ outside tests returns 0 hits.
 | SC-06 | PASS | automated, integration | `test-check-domain.py` exit 0 inside the full integration run (§1) |
 | SC-07 | PASS | automated, integration | `test-plan-sign-gate.py` exit 0 inside the full integration run (§1) |
 | SC-08 | **FAIL, literal; disclosed, not a regression** | automated | §8: one `feature.json` (BUG-1071) still carries `status`, re-measured and confirmed as the sole exception |
-| SC-09 | PASS | inspection | `git show 39477a5:.../FEAT-40.../plan.yaml` → `status: done`; 0 `INV-26` lines in the check-state.sh run |
+| SC-09 | PASS | inspection | `git show 39477a5:.../FEAT-40.../plan.yaml` → `status: done`; 0 `INV-26` lines in the check-state.py run |
 | SC-10 | PASS | automated | `test-gh-sync.py` run standalone: exit 0, 0 FAIL, 296 case lines |
-| SC-11 | **PASS — decisive, serial** | automated | §1: this run is a solely-owned, serial, foreground run of both suites plus check-state.sh, all exit 0 at the expected counts. Cycle 0's concurrency confound (a simultaneous second run in the same checkout) structurally cannot have recurred here |
+| SC-11 | **PASS — decisive, serial** | automated | §1: this run is a solely-owned, serial, foreground run of both suites plus check-state.py, all exit 0 at the expected counts. Cycle 0's concurrency confound (a simultaneous second run in the same checkout) structurally cannot have recurred here |
 | SC-12 | PASS (struck) | inspection | struck with T-13 exactly as pre-authorized, unchanged this cycle |
-| SC-13 | PASS | automated | `grep _EXPECT check-state.sh` → 0 hits; `test-check-state.py` green inside the integration run |
+| SC-13 | PASS | automated | `grep _EXPECT check-state.py` → 0 hits; `test-check-state.py` green inside the integration run |
 | SC-14 | PASS | automated | T-15's own verify script, run verbatim → exit 0, "three amendment records present, three amended clauses still standing" |
 
 ## 10. Unexamined
@@ -273,7 +273,7 @@ DIGEST:
     - { id: SC-08, verdict: FAIL, method: automated, evidence: "re-measured survey: 47 feature.json, 1 (BUG-1071) still carries status; disclosed, not a regression, per §8" }
     - { id: SC-09, verdict: PASS, method: inspection, evidence: "git show 39477a5:.../FEAT-40.../plan.yaml has top-level status: done; 0 INV-26 lines" }
     - { id: SC-10, verdict: PASS, method: automated, evidence: "test-gh-sync.py standalone: exit 0, 0 FAIL, 296 case lines" }
-    - { id: SC-11, verdict: PASS, method: automated, evidence: "decisive serial, solely-owned run: unit 505/0, integration 819/0, check-state.sh 0/0, all exit 0" }
+    - { id: SC-11, verdict: PASS, method: automated, evidence: "decisive serial, solely-owned run: unit 505/0, integration 819/0, check-state.py 0/0, all exit 0" }
     - { id: SC-12, verdict: PASS, method: inspection, evidence: "struck with T-13 exactly as pre-authorized, unchanged" }
     - { id: SC-13, verdict: PASS, method: automated, evidence: "grep _EXPECT 0 hits; test-check-state.py green in integration run" }
     - { id: SC-14, verdict: PASS, method: automated, evidence: "T-15's own verify script run verbatim, exit 0" }

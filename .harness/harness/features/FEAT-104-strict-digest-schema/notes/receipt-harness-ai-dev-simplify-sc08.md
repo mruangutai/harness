@@ -53,7 +53,7 @@ inference from the diff.
 ## Standing residual carried forward, not re-raised
 
 Q7 (`is_strict_schema_version()` predicate spelled 3 complete + 2 partial times across `check-domain.py`
-and `check-state.sh`) — open and accepted, out of scope for this delta.
+and `check-state.py`) — open and accepted, out of scope for this delta.
 
 ## Recommendation
 

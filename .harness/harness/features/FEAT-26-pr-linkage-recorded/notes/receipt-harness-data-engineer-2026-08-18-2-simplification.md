@@ -41,7 +41,7 @@ found — not flagged.
   findings). If any other angle's finding touches D-02's zero/many wording, or the eleven/four
   backfill split, three independent spellings (BRIEF SC-02, plan D-02, plan T-03 intent) need
   synchronized edits in that revision round, and there is no automated check that would catch
-  one left stale — `check-state.sh` does not audit plan prose, only feature.json.
+  one left stale — `check-state.py` does not audit plan prose, only feature.json.
 - **Alternative**: the task intent cites the decision id ("see D-02 for why exactly-one, not
   first-match") instead of restating the because-clause; the decision stays the single
   authoritative spelling.

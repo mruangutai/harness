@@ -22,7 +22,7 @@ touched file is BUG-440's own planning/tracking bookkeeping under
 notes/, observations/) — expected harness workflow byproduct, not scope creep. No file outside the
 declared scope touches production or test code.
 
-- **REQ-01** (`check-state.sh:1541-1550`): finding appended to `bad` (blocking), never `warn`.
+- **REQ-01** (`check-state.py:1541-1550`): finding appended to `bad` (blocking), never `warn`.
   Message names all five things: feature (`os.path.basename(_feat_dir)`), run id (`_rid`), digest
   verdict (`_dm.group(1)!r`), feature.json verdict (`_rv!r`), digest.md path
   (`os.path.relpath(dg, H)`), feature.json path (`os.path.relpath(.../feature.json, H)`). Verified
@@ -31,43 +31,43 @@ declared scope touches production or test code.
   exists in this arm at all. Verified clean.
 - **REQ-03**, all five cases traced from code, not the test:
   - (a) non-lead host / (b) not-complete: both gated by the pre-existing `if complete and _host in
-    LEADS:` at check-state.sh:1520 — INV-37 code is unreachable outside it. Verified clean.
+    LEADS:` at check-state.py:1520 — INV-37 code is unreachable outside it. Verified clean.
   - (c) missing digest.md: first `if not os.path.isfile(dg):` branch, unchanged, INV-37 code
     unreached. Verified clean.
   - (d) `validate("lead", ...)` fails: the new region is `else:` on `if _errs:` at
-    check-state.sh:1533/1541 — confirmed by reading indentation, not the outer `if/elif/else` at
+    check-state.py:1533/1541 — confirmed by reading indentation, not the outer `if/elif/else` at
     :1523/:1526/:1531. A failing digest gets exactly its existing contract-violation line and
     nothing stacks. Verified clean.
-  - (e) unclaimed run directory: membership is `if _rid in _recorded:` (check-state.sh:1544) — an
+  - (e) unclaimed run directory: membership is `if _rid in _recorded:` (check-state.py:1544) — an
     explicit `in` test, not a `.get()` chain that would compare `None == None`. Verified clean.
-- **REQ-04**: grepped the whole new region (check-state.sh:1516-1557) for
+- **REQ-04**: grepped the whole new region (check-state.py:1516-1557) for
   `open\(|os\.(rename|remove|replace|mkdir|makedirs)|shutil\.|\.write\(` — the only hit is the
   pre-existing read-mode `open(dg, ...)`. No write, rename, or mkdir anywhere in the region. Verified
   clean.
-- **D-07** (`check-state.sh:604, 654-655, 1550-1553`): `run_verdicts` is `dict[feat_dir][rid] ->
+- **D-07** (`check-state.py:604, 654-655, 1550-1553`): `run_verdicts` is `dict[feat_dir][rid] ->
   list`, built with `.setdefault(..., []).append(...)` (never overwritten). The comparison loop is
   `for _rv in dict.fromkeys(_recorded[_rid]):` — collapses byte-identical duplicates, compares each
   distinct value, one finding per distinct contradiction. The `runs` 3-tuple at
-  check-state.sh:645-651 is untouched (still `(id, squad, verdict)`), and the INV-7/INV-22 unpacks
+  check-state.py:645-651 is untouched (still `(id, squad, verdict)`), and the INV-7/INV-22 unpacks
   still expect three. Verified clean.
 - **PF-b884d6ee**: read indentation directly — `runs.append((...))` and
   `run_verdicts.setdefault(...)` are both at 8 spaces inside `for entry in (...)`, outside any `if`.
   `code_reviewing_runs.append(entry)` sits at 12 spaces inside `if _squad == "validator" and
-  entry.get("code_grade") != "n_a":` (check-state.sh:668-669), several lines below and structurally
+  entry.get("code_grade") != "n_a":` (check-state.py:668-669), several lines below and structurally
   separate. Verified clean.
 - **SC-07**: `validate-digest.py:1155-1160` is
   `anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))` / `if anchors: text =
   text[anchors[-1].start():]` / `m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)`. New code
-  (check-state.sh:1546-1548) uses the identical two regex patterns and identical `re.M` flag,
+  (check-state.py:1546-1548) uses the identical two regex patterns and identical `re.M` flag,
   restructured as a ternary rather than an if-block (variable names differ, patterns do not — the
   citing comment at :1545 names the lines). `_dtext` is read once (:1532) and reused, no second
   `open()` of `dg`. No literal `PASS`/`FAIL`/`BLOCKED`/`ESCALATE` token anywhere in
-  check-state.sh:1516-1557 (grepped). Verified clean.
+  check-state.py:1516-1557 (grepped). Verified clean.
 - **Key identity (item 9, the highest-value check asked for)**: `os.path.dirname(fy)` (recording
   site, fy from `glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))`) and
   `os.path.dirname(os.path.dirname(rundir))` (read site, rundir from `glob.glob(os.path.join(H, "*",
   "features", "*", "runs", "*", "state.yaml"))`) both derive from the SAME `H` variable
-  (`check-state.sh:68`, set once) via `os.path.join` over the same wildcard-expanded directory-name
+  (`check-state.py:68`, set once) via `os.path.join` over the same wildcard-expanded directory-name
   segments. Simulated with `H` variants including a trailing slash and relative `..` components — the
   two derivations produced byte-identical strings in every case, because both are pure string
   algebra over identical inputs, never `os.path.realpath`/`normpath`. **Not vacuous.** A symlinked or
@@ -125,11 +125,11 @@ case_bug440_digest_verdict_reconciliation.build    :4649  GRADE 4  PASS
   plain list/tuple, or teaching the helper to read per-name verdicts, whichever this repo's authors
   prefer — not gating.
 
-- **F-03 (info, non-gating)** — `check-state.sh:1541-1557`: the new INV-37 block sits in the `else:`
+- **F-03 (info, non-gating)** — `check-state.py:1541-1557`: the new INV-37 block sits in the `else:`
   arm on `if _errs:`, which is *outside* the `try/except Exception` at :1531-1535 that shields the
   digest read/`validate()` call. If the tail-anchor regex work ever raised (it practically cannot —
   `_dtext` is already a plain `str` from a successful `.read()`, and both patterns are static), the
-  whole `check-state.sh` sweep would crash rather than report one more violation and continue. This
+  whole `check-state.py` sweep would crash rather than report one more violation and continue. This
   is a loud failure, not a silent one — the opposite of the fail-open pattern this review specifically
   hunts for — so it is not gating, but it is inconsistent with the file's general practice one line
   above of wrapping digest-file handling in a guard.

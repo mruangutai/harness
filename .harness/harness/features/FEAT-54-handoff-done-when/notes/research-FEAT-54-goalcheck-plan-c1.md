@@ -14,8 +14,8 @@ re-derived from BRIEF.md / plan.yaml / the tree.
 | F | Verdict | Pointer / evidence |
 |---|---|---|
 | F-01 | **PARTIAL** | primary clause CLOSED (BRIEF.md:121-125); positive control STILL OPEN (BRIEF.md:126-127) — see finding 1 |
-| F-02 | CLOSED | D-08 plan.yaml:89-92; T-11 plan.yaml:589-648; T-07 `depends_on: [T-06, T-11]` plan.yaml:392-394; `test -n "$out"` gone, control `grep -qi 'done when' check-state.sh` at plan.yaml:401; REQ-07 base framing BRIEF.md:37-41 |
-| F-03 | CLOSED | T-07 intent plan.yaml:411-419 renames `HANDOFF_HEADINGS` (verified live at check-state.sh:1059, read at :1199 and :1219 — anchors correct) to `HANDOFF_SECTIONS` with five entries + `HANDOFF_NARRATIVE_HEADINGS`; SC-08 unchanged, now meetable |
+| F-02 | CLOSED | D-08 plan.yaml:89-92; T-11 plan.yaml:589-648; T-07 `depends_on: [T-06, T-11]` plan.yaml:392-394; `test -n "$out"` gone, control `grep -qi 'done when' check-state.py` at plan.yaml:401; REQ-07 base framing BRIEF.md:37-41 |
+| F-03 | CLOSED | T-07 intent plan.yaml:411-419 renames `HANDOFF_HEADINGS` (verified live at check-state.py:1059, read at :1199 and :1219 — anchors correct) to `HANDOFF_SECTIONS` with five entries + `HANDOFF_NARRATIVE_HEADINGS`; SC-08 unchanged, now meetable |
 | F-04 | CLOSED | SC-09 `evidence: integration` BRIEF.md:114; `test-run-unit-tests-kinds.py` confirmed in `INTEGRATION_SCRIPTS` (run-unit-tests.py:31); T-12 plan.yaml:649-692; no-model-call moved into T-09 verify audithook plan.yaml:497-509 |
 | F-05 | CLOSED | SC-07 `verify: inspection` BRIEF.md:103; T-13 authors the experiment plan.yaml:693-741; D-09 plan.yaml:93-96 |
 | F-06 | CLOSED | (b)→SC-10 BRIEF.md:115-120; (d)→SC-12 BRIEF.md:129-132; (e)→SC-13 BRIEF.md:133-137; (i)→SC-14 BRIEF.md:138-141 (second clause under-authored, finding 2) |
@@ -106,7 +106,7 @@ SC-10 uat.
 2. **(medium) SC-14's state-check clause has no authoring case.** SC-14 (BRIEF.md:138-141) requires the
    25-line-`Trust`/60-line note to be "reported by no state-check line", but T-06's cases (a)–(g)
    (plan.yaml:365-379) contain no per-section-cap fixture; only T-03(h) covers the write gate.
-   Consequence: a per-section cap added to check-state.sh's INV-17 ships green and SC-14 still reads met
+   Consequence: a per-section cap added to check-state.py's INV-17 ships green and SC-14 still reads met
    on half its subject.
 3. **(low) T-12's anchor is rotted.** It cites the KINDCHECK block at `run-unit-tests.py:76-83`
    (plan.yaml:666); the block is at :111-163 — lines 61-80 are the unrelated drift-detector loop.

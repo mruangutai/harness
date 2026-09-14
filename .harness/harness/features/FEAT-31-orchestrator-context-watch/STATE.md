@@ -9,7 +9,7 @@
 - `review_sha`: **`0fc10e5a9f48afae512baed6d9297aab88e7f181`**
 - **briefing: `notes/ship-review-ship1.md`** (+ `.html`) — the operator's artifact and where the full
   detail now lives. It proposes **B-1..B-22**; anything not listed there dies silently.
-- `check-state.sh`: ONE violation, FEAT-26's unapproved BRIEF (another flow). None in FEAT-31.
+- `check-state.py`: ONE violation, FEAT-26's unapproved BRIEF (another flow). None in FEAT-31.
 - **BOTH GATES PASS** (approved / operator / 2026-08-21). **The operator PRE-APPROVED the ship.**
 
 ### ALL THREE MACHINE GATES ARE SETTLED — THE UAT IS THE ONLY THING LEFT

@@ -52,7 +52,7 @@ deleted (it never touched disk).
    differ from `HEAD` — those are prior cycles' uncommitted amendments, not this spawn's.
 2. `CLAUDE_PROJECT_DIR=$PWD python3 .claude/skills/harness/bin/check-plan-routes.py <plan.yaml>` →
    `0 violation(s) across 1 plan(s)`, exit 0; all five tasks carry all eleven keys.
-3. `CLAUDE_PROJECT_DIR=$PWD env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/check-state.sh` →
+3. `CLAUDE_PROJECT_DIR=$PWD env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/check-state.py` →
    **no `INV-35` line**. For this feature: the expected unsigned-BRIEF violation, plus one
    pre-existing, unrelated violation — `runs/2026-09-04-17-product/digest.md` fails the lead digest
    contract (DEC-156). Not mine to write; raised as Q1.

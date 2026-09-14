@@ -184,7 +184,7 @@ riding inside a `verify: automated` tag.
   (`diff <(...) ...`, no file write) — SC-14's base assertion holds even though qa separately
   proved the check itself is blind to a prose-only mutant.
 - `validate-feature-json.py` (no args) over the live corpus: 17 files, exit 0.
-- `templates/feature.json` validates clean (SC-12); both instruction sites (`check-state.sh`
+- `templates/feature.json` validates clean (SC-12); both instruction sites (`check-state.py`
   INV-18, `harness/SKILL.md:23`) name it by filename.
 - SC-13 repo sweep: every surviving `feature.yaml` string outside `.harness/features/**`
   matches exactly the R-01 carve-out list (BUILD.md:335/353/357, check-plan-routes.py:405,
@@ -206,7 +206,7 @@ headline finding above, not a restatement of qa's.
 All probes ran in the pre-existing disposable worktree
 (`/private/tmp/claude-501/-Users-molchairuangutai-GitHub-harness/cd83b531-.../scratchpad/feat14-probe`,
 already clean at HEAD, left clean — `git status --porcelain` empty before and after). No edits
-to any DEC-174 carve-out file — `check-domain.py`, `check-state.sh`, `check-plan-routes.py` and
+to any DEC-174 carve-out file — `check-domain.py`, `check-state.py`, `check-plan-routes.py` and
 their test files were READ and RUN only.
 
 `bash-write-guard.py` denies every detected write pattern from `harness-code-reviewer`

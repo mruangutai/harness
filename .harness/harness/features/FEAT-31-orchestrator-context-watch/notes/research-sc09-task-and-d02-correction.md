@@ -56,7 +56,7 @@ must be non-zero.
 
 - **Approval.** The task set changed after signature. `harness-spec-driven` says that resets
   approval; the `approval:` block is not mine to write. It is byte-identical to HEAD.
-- **Board.** `check-state.sh` INV-26 now wants issue #672 (T-19, auto-created on write) moved off
+- **Board.** `check-state.py` INV-26 now wants issue #672 (T-19, auto-created on write) moved off
   Backlog. Orchestrator's.
 - **Pre-existing, not mine:** `check-domain.py --post` reports undeclared `agent` keys at
-  `feature.json` `/runs/9-12`, and `check-state.sh` flags FEAT-26's unapproved BRIEF.
+  `feature.json` `/runs/9-12`, and `check-state.py` flags FEAT-26's unapproved BRIEF.

@@ -15,7 +15,7 @@ that does not bind to the instruction; a real (if narrow) evasion mutant leaves 
    (`accepted_runs_item_code_grade_n_a`, `rejected_runs_item_code_grade_other_value`,
    `rejected_runs_item_code_grade_case_variant`, lines 23–25 of output) run and pass, and are
    present in `main()`'s call list (lines 714–716) — not defined-but-uncalled.
-3. **`check-state.sh`** over the real tree: exit 0, **0 `VIOLATION` lines**. Not an empty sweep:
+3. **`check-state.py`** over the real tree: exit 0, **0 `VIOLATION` lines**. Not an empty sweep:
    43 distinct `FEAT-*`/`BUG-*` IDs appear in its output (`note`/`INV-32` lines name them), and
    BUG-1080's own feature is among the referenced set (15 mentions). A substantial, non-trivial
    corpus, clean.
@@ -41,7 +41,7 @@ following SKILL.md's prose, same as every other `runs:` field (`id`, `squad`, `v
 would be scope creep past what the finding asked for. The exemption is REAL in the sense that a
 compliant writer following the doc produces a schema-valid, gate-exempt document (verified
 directly, `test-validate-feature-json.py`'s `accepted_runs_item_code_grade_n_a` and
-`check-state.sh`'s live behavior on CASE-01 in Q-C below both confirm the value round-trips
+`check-state.py`'s live behavior on CASE-01 in Q-C below both confirm the value round-trips
 clean). It remains a *behavioral* fix, contingent on the writer reading and following the doc —
 inherent to a documentation-only remedy, and correctly scoped for a HIGH about discoverability.
 
@@ -72,10 +72,10 @@ of the whole document.
 ## Q-C — Can a document be schema-invalid AND gate-exempt (or the reverse) now?
 
 Built 10 real `feature.json` files on disk (not YAML-in-fixture) under a scratch harness tree,
-ran both `validate-feature-json.py <file>` and `check-state.sh` (pointed at the scratch tree via
+ran both `validate-feature-json.py <file>` and `check-state.py` (pointed at the scratch tree via
 `HARNESS_PROJECT_DIR` + a copied `team-config.yaml` marker) against each:
 
-| # | `code_grade` value | schema (`validate-feature-json.py`) | gate (`check-state.sh` INV-6) | cell |
+| # | `code_grade` value | schema (`validate-feature-json.py`) | gate (`check-state.py` INV-6) | cell |
 |---|---|---|---|---|
 | 1 | `"n_a"` | **valid** (exit 0) | **exempt** (silent) | safe — the intended cell |
 | 2 | `"N_A"` | invalid (`'N_A' is not one of ['n_a']`) | **liable** (fires) | safe |
@@ -88,20 +88,20 @@ ran both `validate-feature-json.py <file>` and `check-state.sh` (pointed at the 
 | 9 | key absent | **valid** (key is optional, not required) | liable (fires) | correct by design — absence means code review (FEAT-31-style default), not a mismatch |
 | 10 | `n_a` **unquoted, trailing spaces, file is valid YAML but not valid JSON** | **invalid** (`not valid JSON: Expecting value: line 1 column 1`) | **exempt** (silent — no INV-6 violation for this feature anywhere in output) | **⚠️ DANGEROUS — schema-invalid AND gate-exempt** |
 
-**Case 10 is the real finding.** `check-state.sh` parses every `feature.json` through
+**Case 10 is the real finding.** `check-state.py` parses every `feature.json` through
 `harness_yaml` (a tolerant YAML superset parser, per its own module docstring), which reads bare
 `n_a` with trailing whitespace as the Python string `"n_a"` — already stripped by ordinary YAML
-scalar parsing, before check-state.sh's own (deliberately non-stripping) exact-match runs.
+scalar parsing, before check-state.py's own (deliberately non-stripping) exact-match runs.
 `validate-feature-json.py`'s CLI enforces strict JSON for a `.json`-suffixed path and rejects the
 same bytes outright at the parse stage. The two layers disagree in the dangerous direction: a
 malformed `feature.json` that would fail schema validation can still be silently read as exempt by
 the read-time gate. This directly contradicts the remedy's own comment at
-`check-state.sh:444-447` ("A document must never be schema-invalid and gate-exempt at the same
+`check-state.py:444-447` ("A document must never be schema-invalid and gate-exempt at the same
 time: any deviation fails BOTH") — that claim holds only for well-formed-JSON documents; it does
 not hold for the parser-divergence axis.
 
 **Scoped, not escalated to blocking**: this is not something the `.strip()`/`.lower()` removal
-introduced — it is a pre-existing property of `check-state.sh` using a YAML-tolerant reader for a
+introduced — it is a pre-existing property of `check-state.py` using a YAML-tolerant reader for a
 JSON-named file, present before BUG-1080 and orthogonal to this diff. It is also **largely
 guarded in the normal path**: `check-domain.py`'s write hook (`check-domain.py:1133-1150`) calls
 the *same* `feature_schema.problems_for_text` on every write to `feature.json` and denies a write
@@ -109,7 +109,7 @@ that fails it — so a compliant agent writing through the normal tool path cann
 content on disk in the first place. The gap is real only for content that reaches disk
 out-of-band: a pre-existing malformed file, a git merge, a manual edit, or (per that same file's
 own commented incident history) a hook that fails open. Recommend a backlog item to make
-`check-state.sh`'s `code_grade` read strict-JSON-parse-equivalent, or to have it flag
+`check-state.py`'s `code_grade` read strict-JSON-parse-equivalent, or to have it flag
 non-strict-JSON `feature.json` files directly, rather than treating this as a BUG-1080 blocker.
 
 ## Q-D — Are the three new schema cases non-vacuous?
@@ -146,7 +146,7 @@ all." As written, two of the three new schema cases would not catch a broken or 
 None found. Full `run-unit-tests.py` clean rerun (§4) covers this — no regressions across the
 1064-script sweep, and the diff (`git diff --stat a2fb6c0b..e9b11035`, 4 files, +100/-3) touches
 only additive test cases, the SKILL.md paragraph, and the exact-match tightening already ruled
-correct in cycle 0. `check-state.sh`'s clean 43-feature sweep (§3) is itself a regression check
+correct in cycle 0. `check-state.py`'s clean 43-feature sweep (§3) is itself a regression check
 across the whole corpus, not just BUG-1080's own feature.
 
 ## Matrix-gate verdict
@@ -168,19 +168,19 @@ DIGEST:
   kinds:
     - { kind: unit, state: satisfied, cmd: "python3 .claude/skills/harness/bin/test-check-state.py", named_tests: 164 }
     - { kind: unit, state: satisfied, cmd: "python3 .claude/skills/harness/bin/test-validate-feature-json.py", named_tests: 65 }
-    - { kind: integration, state: satisfied, cmd: "bash .claude/skills/harness/bin/check-state.sh", named_tests: 1 }
-    - { kind: integration, state: satisfied, cmd: "bash .claude/skills/harness/bin/run-unit-tests.py", named_tests: 1064 }
+    - { kind: integration, state: satisfied, cmd: "python3 .claude/skills/harness/bin/check-state.py", named_tests: 1 }
+    - { kind: integration, state: satisfied, cmd: "python3 .claude/skills/harness/bin/run-unit-tests.py", named_tests: 1064 }
   coverage_gaps:
     - "case_inv6_producer_is_documented binds to string-presence anywhere in SKILL.md, not to the step-6 instruction specifically (Q-B, demonstrated with a real adversarial mutant)"
     - "rejected_runs_item_code_grade_other_value and rejected_runs_item_code_grade_case_variant are vacuous re: the code_grade enum specifically — pass under both a widened and a removed enum because an incidental agent-missing confound in the fixture keeps problems != [] true regardless (Q-D)"
   sc_evidence:
     - { id: "cycle-0 HIGH (code_grade producer)", test: ".claude/skills/harness/bin/test-check-state.py:3432 case_inv6_producer_is_documented; SKILL.md:65" }
-    - { id: "cycle-0 Q2 (exact-match value test)", test: ".claude/skills/harness/bin/check-state.sh:444-448; test-check-state.py:3408 case_inv6_case_variant_is_not_exempt" }
+    - { id: "cycle-0 Q2 (exact-match value test)", test: ".claude/skills/harness/bin/check-state.py:444-448; test-check-state.py:3408 case_inv6_case_variant_is_not_exempt" }
     - { id: "cycle-0 Q3 (message names the remedy)", test: ".claude/skills/harness/bin/test-check-state.py:3420 case_inv6_message_names_the_remedy" }
   open_questions:
     - { id: Q1, question: "Anchor case_inv6_producer_is_documented to the step-6 paragraph (or its containing list item) rather than the whole SKILL.md text, so an instruction that moves or is deleted-but-string-survives-elsewhere reddens it.", blocking: false }
     - { id: Q2, question: "Add an 'agent' key to the other_value and case_variant fixtures in test-validate-feature-json.py (or assert on the specific code_grade message) so a broken/removed enum constraint reddens them — currently both stay green under a widened OR fully-removed enum.", blocking: false }
-    - { id: Q3, question: "Backlog: check-state.sh reads feature.json through a YAML-tolerant parser and can therefore silently INV-6-exempt a document that validate-feature-json.py would reject as not-valid-JSON (demonstrated, case 10 in Q-C's matrix). Write-time guarded by check-domain.py today; not reachable through normal agent writes, only through out-of-band disk changes (merge, manual edit, hook bypass).", blocking: false }
+    - { id: Q3, question: "Backlog: check-state.py reads feature.json through a YAML-tolerant parser and can therefore silently INV-6-exempt a document that validate-feature-json.py would reject as not-valid-JSON (demonstrated, case 10 in Q-C's matrix). Write-time guarded by check-domain.py today; not reachable through normal agent writes, only through out-of-band disk changes (merge, manual edit, hook bypass).", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: ".harness/harness/features/BUG-1080-inv6-plan-phase-runs/notes/qa-bug1080-c1.md"

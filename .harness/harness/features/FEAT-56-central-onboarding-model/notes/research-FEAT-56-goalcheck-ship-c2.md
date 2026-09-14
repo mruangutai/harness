@@ -73,7 +73,7 @@ row `2.1.172` at **:962** — both inside DEC-83, which spans `:953-991`.
 | Site | Citation |
 |---|---|
 | `check-instruction-paths.py` | **:18** — `MAIN_SESSION_ONLY` lists `"harness-add-repo"` |
-| `check-state.sh` | **:111**, **:287** (unconfigured/half-onboarded clone → `/harness-init` *in this clone*), **:408**, **:2375** (both `--upgrade`). Four remedies, zero registration ones |
+| `check-state.py` | **:111**, **:287** (unconfigured/half-onboarded clone → `/harness-init` *in this clone*), **:408**, **:2375** (both `--upgrade`). Four remedies, zero registration ones |
 | `check-domain.py` | **:386-388** — "That path is the control plane's own manifest; a product repository never carries one. Run /harness-init in the control-plane clone." |
 | `upgrade-config.py` | docstring **:2-6** (control-plane clone; a fleet member's copy must be committed to its default branch); remedies **:191-192** and **:234-236** |
 | `gh-sync.py` | **:255-256** — "for a fleet member, that file lives in the member's own repository on its default branch" |

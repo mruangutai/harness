@@ -55,7 +55,7 @@ a caller; it is the established home.
 
 ### F3 — Accepted residual named without its compensating control? (assignment item 2)
 **Checked:** `BRIEF.md`'s "Verification gaps" section names the residual explicitly —
-"`check-state.sh` deliberately makes no network call, so no every-run invariant can grade a fleet
+"`check-state.py` deliberately makes no network call, so no every-run invariant can grade a fleet
 member's remote `harness.json`. REQ-05 is discharged by an operator-run check (SC-05), which means
 a member whose config is deleted after onboarding stays invisible until the next build." The
 control (`--check-product-configs`, operator-run) is named alongside the gap, not left implicit.

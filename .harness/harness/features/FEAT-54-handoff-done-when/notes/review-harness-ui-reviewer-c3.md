@@ -40,7 +40,7 @@ A separate prior security advisory remains: `probe-handoff-comprehension.py:86-9
 From the exact repository root, I ran exactly:
 
 ```sh
-bash .claude/skills/harness/bin/check-state.sh
+python3 .claude/skills/harness/bin/check-state.py
 ```
 
 Result: **exit 1**. Tagged `VIOLATION` census: **1**. Complete remaining violation:
@@ -68,7 +68,7 @@ DIGEST:
   must_fix:
     - "F-04: obtain a review pin where the exact repository-root SC-04 command exits 0 without waiving it, substituting a fixture, or mutating FEAT-51 as this dispatch forbids. Owner: harness-orchestrator/main-direct repository-state and review-pin lane."
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-state.sh", actual: "literal root command exit 1; one tagged FEAT-51 missing-handoff violation; zero Done when matches", specified: "BRIEF SC-04 requires a clean review-time root check" }
+    - { path: ".claude/skills/harness/bin/check-state.py", actual: "literal root command exit 1; one tagged FEAT-51 missing-handoff violation; zero Done when matches", specified: "BRIEF SC-04 requires a clean review-time root check" }
   a11y: []
   open_questions: []
   files_touched: [.harness/harness/features/FEAT-54-handoff-done-when/notes/review-harness-ui-reviewer-c3.md]

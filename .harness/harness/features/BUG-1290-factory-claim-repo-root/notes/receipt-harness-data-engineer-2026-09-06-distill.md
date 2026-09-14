@@ -3,7 +3,7 @@
 ## BLUF
 3 own-derived entries added to craft Gotchas (G-09, G-10, G-11); Patterns left untouched (at cap,
 no candidate justified displacing an existing entry); repository tier untouched. One lead-relayed
-candidate rejected as already covered. `check-expertise.sh` passes on my craft file.
+candidate rejected as already covered. `check-expertise.py` passes on my craft file.
 
 ## Source material
 No observations log was kept this feature (per dispatch). Sole material: my two efficiency-angle
@@ -57,10 +57,10 @@ section (both landed in Gotchas, which had room), and no lead-relayed candidate 
 to justify replacing an existing at-cap Patterns entry.
 
 ## Tooling
-Both `expertise-merge.py ops` and `check-expertise.sh` ran directly, scoped to my own craft file
+Both `expertise-merge.py ops` and `check-expertise.py` ran directly, scoped to my own craft file
 only (per dispatch, never the shared directory). Ops applied cleanly on first JSON-list attempt
 after two malformed-payload retries (YAML input, then a wrapped `{"expertise_update": [...]}` dict
-— the tool wants the bare list). `check-expertise.sh .harness/expertise/harness-data-engineer.md`
+— the tool wants the bare list). `check-expertise.py .harness/expertise/harness-data-engineer.md`
 → `OK`.
 
 ## Open questions

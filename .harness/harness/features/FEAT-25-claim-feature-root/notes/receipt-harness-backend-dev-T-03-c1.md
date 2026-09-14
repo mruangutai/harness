@@ -92,7 +92,7 @@ requirement exactly (d1ffd7f baseline 40 + this one new case). Zero `FAIL` lines
 
 GREEN, exit 0, zero `FAIL` lines. In particular case **(x.3) an applicable clean tree -> NO INV-27
 line** passed — my STUB legacy fragment does not also match the row's migrated pattern (no
-`[both]` form-set introduced). No DEC-174 blocker encountered; `check-state.sh` was not touched.
+`[both]` form-set introduced). No DEC-174 blocker encountered; `check-state.py` was not touched.
 
 ## Verify block — final line and exit status
 

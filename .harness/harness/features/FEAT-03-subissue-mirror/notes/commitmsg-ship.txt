@@ -24,10 +24,10 @@ pre-existing violations of its own validator, and
 `harness-orchestrator.md` carried eleven — six entries over the 50-word
 cap and five naming feature ids. Both were being injected at every spawn
 in that state. Four files were created from absent. All eight now pass
-`check-expertise.sh`; prior entries were condensed, never dropped.
+`check-expertise.py`; prior entries were condensed, never dropped.
 
 Also lands `notes/handoff-validate.md`, which the validate-to-ship seam
-requires and whose absence check-state.sh reports as a VIOLATION.
+requires and whose absence check-state.py reports as a VIOLATION.
 
 Thirteen lead Expertise ops ride up unapplied and need an owner: the
 dispatch told each lead not to self-apply, on an over-generalized

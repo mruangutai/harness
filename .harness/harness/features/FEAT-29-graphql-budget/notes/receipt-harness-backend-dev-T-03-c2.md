@@ -112,10 +112,10 @@ the LEAVE LIST.
 
 - Did not rewrite T-03's stale `intent:` paragraph in `plan.yaml` — flagged as an open_question,
   not edited.
-- Did not touch `check-state.sh`, `CLAUDE.md`, `.harness/notes/**`, `.harness/logs/**`,
+- Did not touch `check-state.py`, `CLAUDE.md`, `.harness/notes/**`, `.harness/logs/**`,
   `factory_gh.py`, `gh-sync.py`, `run-unit-tests.py`, or `test-factory-gh.py` — all on the LEAVE
   LIST, none needed touching for this scope change.
-- Did not run `check-state.sh` and made no live `gh` call, per dispatch instruction.
+- Did not run `check-state.py` and made no live `gh` call, per dispatch instruction.
 
 ## Open questions
 

@@ -92,7 +92,7 @@ decorative.
 - D-07 (parse_expertise/render silent drop on ENTRY_RE misses) — recorded separate defect,
   explicitly out of scope here. Confirmed present in the code, confirmed not touched by this diff,
   confirmed the BRIEF/plan record it correctly. Advisory only.
-- `check-expertise.sh` untouched — confirmed, per BRIEF constraint; correct.
+- `check-expertise.py` untouched — confirmed, per BRIEF constraint; correct.
 - No exit-11 row in `.claude/skills/harness-distill/SKILL.md`'s refusal table (D-09) — confirmed
   absent, decision correctly defers to operator at signature. Advisory only.
 

@@ -59,8 +59,8 @@ none left. **`test-check-state.py` prints no summary line at all** — 90 `^ok` 
 T-14's comment named an output that does not exist. Floors: `test-context-watch.py` 15, `test-check-state.py`
 90, `test-upgrade-config.py` 9 (`9/9 cases passed.` — a different shape from `15 of 15 cases passed`,
 so patterns are per-file), `test-validate-feature-json.py` 43 `^PASS `, `test-check-domain.py` 167 `^ok`.
-`check-state.sh` handoff lines are **3, all `note`, 0 `VIOLATION`** — the old `0 at 7299669` is now
-false of the total, so the assertion is on the `  VIOLATION  ` prefix (`check-state.sh:1366`).
+`check-state.py` handoff lines are **3, all `note`, 0 `VIOLATION`** — the old `0 at 7299669` is now
+false of the total, so the assertion is on the `  VIOLATION  ` prefix (`check-state.py:1366`).
 
 **One assertion form I wrote and then rejected:** piping a test into `grep -q` swallows its exit
 status, so a suite reporting `13 of 15` and exiting 1 would pass. Every verdict line is left bare.
@@ -76,7 +76,7 @@ status, so a suite reporting `13 of 15` and exiting 1 would pass. Every verdict 
   opening phrase alongside the line range and name the sha.
 - **DEC-90 is STRUCK** (index line 109, 2026-08-21) but BRIEF.md cites it as a live `BLOCKS`
   constraint. Approved artifact, not mine.
-- `check-state.sh` exits non-zero on **one** unrelated violation: FEAT-26's unapproved BRIEF.md.
+- `check-state.py` exits non-zero on **one** unrelated violation: FEAT-26's unapproved BRIEF.md.
 
 ## Open for the operator
 

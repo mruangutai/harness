@@ -53,7 +53,7 @@ issue. Composite: gate half **met** (`test-check-state.py` `(t10-b)` rejects an 
 
 **DEC-159's enforcement paragraph still says `check-domain.py` denies a handoff note ">40 lines"**
 (`DECISIONS.md:3986`), while the same entry states the ~60 cap and both gates enforce 60
-(`check-domain.py:952`, `check-state.sh:664`). A falsified clause standing in the authority — the
+(`check-domain.py:952`, `check-state.py:664`). A falsified clause standing in the authority — the
 DEC-188 shape, pre-existing, not introduced by this feature. Not filed as an issue (searched). It
 does not fail SC-09, whose subject is the mid-flight case and the watchdog clause.
 

@@ -40,7 +40,7 @@ one sitting. Nothing was dispatched on the revision; nothing was signed.
 | Expertise files holding both layers mixed | 10 |
 
 **Three of the four DEC-174 carve-out scripts are in the docs-migration surface** —
-`check-domain.py`, `check-state.sh`, plus `harness_boundary.py`, which DEC-193 names as the one
+`check-domain.py`, `check-state.py`, plus `harness_boundary.py`, which DEC-193 names as the one
 shared rule. Every one of those edits is main-session-direct by rule.
 
 ## Decisions so far
@@ -257,7 +257,7 @@ Carried in from the two stores above. Each is settled; none is a ticket.
 ### The shape
 
 **Unit 0 — the migration detector — lands BEFORE anything moves.** `#344` established that no
-mechanism in the tree can detect a partial migration: `check-state.sh`'s fourteen discovery globs
+mechanism in the tree can detect a partial migration: `check-state.py`'s fourteen discovery globs
 return nothing and it reports a healthy tree, while CI's plan-route guard is defeated by exactly the
 shape a repo segment produces (`examined > 0, plans == 0`, a case its own comment names as uncaught).
 So every intermediate state in any sequence would hide its own mistakes.
@@ -288,7 +288,7 @@ and its `SWEEP_GLOBS`, `check-plan-routes.py`'s discovery, and the physical move
 coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.py --resolve`, which reads
 `team-config.yaml` and calls `harness_boundary.matches`. Split them and you get either a tree where
 every write is denied, or — worse and undetectable — a tree whose shape gate is silently off.
-`check-state.sh`'s glob block lands with or before it, because it is the only thing that would report
+`check-state.py`'s glob block lands with or before it, because it is the only thing that would report
 a partial move at all.
 
 **Unit 4 is its own atomic unit** and has no ordering tie to unit 3. `factory_config._PROBE`,

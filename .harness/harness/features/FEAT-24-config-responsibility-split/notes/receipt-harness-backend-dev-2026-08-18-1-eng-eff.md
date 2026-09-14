@@ -57,9 +57,9 @@ variable-capture fix since it's free to apply.
 
 ## Checked and NOT flagged (dispatch asked explicitly)
 
-- **check-state.sh / bash-write-guard.py (session-entry and every-write paths):** grepped both for
+- **check-state.py / bash-write-guard.py (session-entry and every-write paths):** grepped both for
   `product_config|board_for|file_at_ref|load_board` — zero hits. INV-26's `load_board(root)` at
-  `check-state.sh:1131` reads the LOCAL project's `.harness/harness.json` off disk, not a fleet
+  `check-state.py:1131` reads the LOCAL project's `.harness/harness.json` off disk, not a fleet
   member's remote config, so T-04/T-05 add no network round-trip to the session-entry gate.
   `resolve_fleet` (`harness_boundary.py:128`, used by the write guard through `check-domain.py`)
   reads `fleet.yaml` directly and never calls `board_for`/`product_config`, confirming T-07's own

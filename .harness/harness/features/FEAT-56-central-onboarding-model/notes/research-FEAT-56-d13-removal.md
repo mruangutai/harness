@@ -61,7 +61,7 @@ added to the "names an exact command, not a file the runner discovers" gap bulle
 Each config task loads its OWN files and asserts the key absent from the loaded mapping; the greps
 are the second net (a key surviving inside a string), and the two YAML sites additionally assert the
 trailing comment `# floor for the spawn env vars (DEC-83)` is gone with its line. T-18 also asserts
-`check-state.sh` **still runs** (`| grep -c 'INV-'` > 0, 17s measured) rather than exits 0 — HEAD
+`check-state.py` **still runs** (`| grep -c 'INV-'` > 0, 17s measured) rather than exits 0 — HEAD
 already carries pre-existing VIOLATION lines (unapproved BRIEF, stale `review_sha`), so exit 0 is
 unachievable and would be a verify nobody can pass. T-20's `2.1.172`/`2.1.219` greps are labelled in
 its `intent` as **preservation guards, already green and non-discriminating**; its two discriminating

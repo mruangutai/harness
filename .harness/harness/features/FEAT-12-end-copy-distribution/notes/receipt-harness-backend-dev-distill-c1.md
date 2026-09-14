@@ -165,7 +165,7 @@ contract truthfulness (`suite: n/a` with `VERDICT: PASS` is rejected per DEC-173
 **Exit: 0. PASS count: 104. FAIL count: 0.** Note this does not validate the word-count fix itself:
 cycle 1's identical suite was green while the 53-word entries sat in the tree, so
 `run-unit-tests.py` does not gate Expertise-file format — the re-run establishes `suite: pass`
-truthfully, nothing more. `check-expertise.sh` was not run (carve-out stands); the word/line counts
+truthfully, nothing more. `check-expertise.py` was not run (carve-out stands); the word/line counts
 above were derived by running the checker's own tokenizer logic against the file directly, not
 eyeballed. Re-grepped for `FEAT-\d+|T-\d+|#\d+` across the whole file post-edit: zero hits
 (measured this cycle, not inherited from cycle 1).

@@ -124,7 +124,7 @@ abandoned" survives as English in the new sentence and a fast reader could take 
   comment says one of them is, which is worse than silence. **Owner: the main session, as a
   standalone `tests.yml` item, not this feature.** One test asserting both steps present and
   unneutered closes both halves at once; it is the cheapest item in this whole report.
-- **Q3 — operator-owed BRIEF corrections, three now, not two.** Line 421 (`check-state.sh` "exits 1
+- **Q3 — operator-owed BRIEF corrections, three now, not two.** Line 421 (`check-state.py` "exits 1
   today" — it exits 0 at HEAD with a zero-byte T-04 baseline); SC-13 lines 448-454 ("exactly two
   carve-outs" — five apply under R-01); and **SC-10's parenthetical** ("FEAT-11, 20 keys" — 22, and
   not the maximum). I did not edit `BRIEF.md`.

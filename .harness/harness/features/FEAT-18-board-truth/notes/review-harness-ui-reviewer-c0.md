@@ -12,7 +12,7 @@ Diff `main...6d2d61b` (22 files, +2227/-119) touches no rendered UI surface. Evi
   does not exist. No contract exists for this feature for me to audit against.
 - **The 7 `.md` files touched** are process artifacts, not UI contracts (`SKILL.md`, `STATE.md`, five
   `receipt-*.md` notes) — none specify spacing/colour/states/interaction for a rendered surface.
-- Everything else is backend Python/shell (`gh_board.py`, `gh-sync.py`, `check-state.sh`,
+- Everything else is backend Python/shell (`gh_board.py`, `gh-sync.py`, `check-state.py`,
   `branch-create-gate.py`, `run-unit-tests.py`, their tests) plus `harness.json` config and
   `plan.yaml`/`feature.json` bookkeeping.
 
@@ -23,12 +23,12 @@ as in-remit (not a rendered UI, no DESIGN.md, but worth an `info` note if a legi
 
 1. **GitHub project board** (via `gh_board.py`) — not rendered/styled by this diff; it reads/writes
    station values (`Backlog`/`Building`/`Review`/`Done`) via the GitHub API. No markup, no styling, no
-   a11y tree to audit. Column-name strings observed in `check-state.sh`'s new INV-26 block
+   a11y tree to audit. Column-name strings observed in `check-state.py`'s new INV-26 block
    (`_EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}`) are short, unambiguous
    labels — no legibility issue.
-2. **CLI output** — `check-state.sh`'s new INV-26 violation lines and `gh-sync.py`'s new stderr/stdout
+2. **CLI output** — `check-state.py`'s new INV-26 violation lines and `gh-sync.py`'s new stderr/stdout
    lines (`git diff main...6d2d61b -- .claude/skills/harness/bin/gh-sync.py | grep -n "print(\|stderr"`,
-   and the INV-26 block in `check-state.sh`). All are single-line, well-formed sentences naming the
+   and the INV-26 block in `check-state.py`). All are single-line, well-formed sentences naming the
    feature, task ID, issue number, expected vs. actual station (e.g. `INV-26 {_feat} {_tid} (issue
    #{_num}): plan says {status}, so the card should read {_want} — the board reads {_found}.`). No
    truncation, no ambiguous abbreviation, no legibility defect worth recording even at `info`.

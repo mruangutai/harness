@@ -47,7 +47,7 @@ the same file and in `qa-matrix-gate.md`) and are being carried up by the lead â
   unchanged; no candidate or observation was repository-scoped (all three concern general
   test-crediting/counting practice, true in any repo).
 
-Both files pass `check-expertise.sh`.
+Both files pass `check-expertise.py`.
 
 ## Per-section counts (craft, `.harness/expertise/harness-qa.md`)
 

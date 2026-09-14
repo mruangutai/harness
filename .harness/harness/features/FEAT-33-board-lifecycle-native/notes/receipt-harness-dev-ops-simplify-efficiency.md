@@ -53,7 +53,7 @@ Flag-only — no edits made.
   success"). Not flagged.
 - **T-10's `board_lifecycle.py provision`/`audit` calls added to `/harness-init`.** Runs once per
   onboarding, not at every session entry or every write — the plan itself states this in T-10's own
-  intent (contrasted explicitly with `check-state.sh`, which would run "dozens of times per build").
+  intent (contrasted explicitly with `check-state.py`, which would run "dozens of times per build").
   This is the hot-path scrutiny the angle asks for, already applied by the plan's own author. Not
   flagged.
 - **`start-task`'s new one-board-read-plus-one-issue-read cost (T-07), added to a hot path

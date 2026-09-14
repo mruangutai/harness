@@ -7,7 +7,7 @@ longer fires for this plan. The plan is otherwise unchanged and remains unsigned
 
 ## Why it fired, and why the block form is the fix
 
-`check-state.sh` INV-35 (`.claude/skills/harness/bin/check-state.sh:192-199`) documents its one
+`check-state.py` INV-35 (`.claude/skills/harness/bin/check-state.py:192-199`) documents its one
 known gap: the scanner tracks block scalars and skips their bodies, but does **not** track a
 multi-line **flow-quoted** scalar, on the stated premise that this corpus uses block scalars
 exclusively for multi-line prose. `plan-merge.py set-panel` (`plan-merge.py:1048`) dumps the panel
@@ -34,7 +34,7 @@ modified.
 ## The five checks
 
 1. `yaml.safe_load` summary sha256 before == after == `2d1be049b9…` — **equal True**.
-2. `check-state.sh` — **0 lines** matching `INV-35` (was 1, naming plan.yaml:196).
+2. `check-state.py` — **0 lines** matching `INV-35` (was 1, naming plan.yaml:196).
 3. `approval: {status: pending}`, no `rulings` key; top-level `status: plan`.
 4. Panel: **9 findings**, same 9 ids, `{med:1, low:3, info:5}`, `disposition: open` on all 9.
 5. `check-plan-routes.py` — `0 violation(s) across 1 plan(s)`, exit 0; all 5 tasks carry 11 keys.
@@ -48,7 +48,7 @@ No other key, decision, task, requirement or criterion differs.
 
 ## Open question — for the harness owner, not for this feature
 
-`plan-merge.py set-panel` can emit a shape `check-state.sh` INV-35 misreads: the emitter and the
+`plan-merge.py set-panel` can emit a shape `check-state.py` INV-35 misreads: the emitter and the
 invariant disagree. The gap is documented in the scanner as unreached; `set-panel` reaches it
 whenever a panel scalar containing ` #<digit>` wraps so the hash lands after a line break. **The fix
 applied here is not stable** — any later `set-panel` run re-emits the flow form and INV-35 fires

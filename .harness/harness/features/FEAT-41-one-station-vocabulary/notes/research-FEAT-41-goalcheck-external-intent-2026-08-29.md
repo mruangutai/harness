@@ -27,7 +27,7 @@ Three real findings instead, ranked:
 2. **CHANGE BEFORE BUILD — SC-02 has no verify anywhere, and six of its 27 lines have no owner.**
    Dumped all 13 `verify:` blocks: none runs SC-02's own grep. Declared `verify: automated evidence:
    unit`; its observation is a tree-wide grep no task executes. Worse, six of the 27 lines are
-   `check-state.sh:539-552` `SEAM_NOTES`, a **second** capitalised station table, keyed by the six
+   `check-state.py:539-552` `SEAM_NOTES`, a **second** capitalised station table, keyed by the six
    capitalised names. T-07 names only `STATUS_ORDER` (`:538` def, `:629` use). D-04's `because` and
    `notes/research-FEAT-41-vocabulary-surface.md:39` both know the table exists; no task instruction
    touches it. Rekeying `STATUS_ORDER` lowercase without `SEAM_NOTES` makes `SEAM_NOTES[_status]`
@@ -53,7 +53,7 @@ a validator run."* T-14 ships a different precondition on the operator's Q7 — 
 (wider), non-terminal added on Q6 (narrower). The byte comparison is delivered exactly as asked; the
 scope is not the one the ticket states. Both deltas are operator-sanctioned, so this is not a defect —
 but after ship #867's body reads as the spec for something else. Recommend a comment on #867 at ship
-acceptance, not a plan change. (#867's own "T-07 and T-10 already touch check-state.sh" is now stale:
+acceptance, not a plan change. (#867's own "T-07 and T-10 already touch check-state.py" is now stale:
 T-10's file list is gh-sync.py and two tests.)
 
 ## Scope: what grew, what was asked for
@@ -88,7 +88,7 @@ PB-04's "recording job, not a fresh derivation" is false for the new entry.
 | SC-02 | **PROXY, unpinned.** No verify runs it; `evidence: unit` for a tree grep; 6 of 27 lines unowned |
 | SC-05 | **PROVES the wrong thing** — names `plan-write.py`, T-09 forbids it (finding 3) |
 | SC-08 | **PARTIAL PROXY.** Eleven readers claimed, five given a failing-first case |
-| SC-09 | **METHOD MISMATCH.** Clause 1 (`git show <review_sha>:…`) is properly inspection at a pinned ref. Clause 2, "a full run of `check-state.sh` reports no INV-26 line" — the load-bearing regression bound — is a **command result** graded as inspection, discharged by a receipt paste |
+| SC-09 | **METHOD MISMATCH.** Clause 1 (`git show <review_sha>:…`) is properly inspection at a pinned ref. Clause 2, "a full run of `check-state.py` reports no INV-26 line" — the load-bearing regression bound — is a **command result** graded as inspection, discharged by a receipt paste |
 | SC-11 | **PROXY at plan level.** No task verify runs `run-unit-tests.py` in full; rests entirely on the qa gate |
 | SC-13 | **PROVES, but weaker than its task.** SC-13's stated grep is `_EXPECT` alone — precisely the blind grep T-06's own intent warns leaves `_st26` at `:1526` live. Met by T-06's stronger two-name verify, not by the criterion as written |
 
@@ -141,7 +141,7 @@ question if DEC-188's amendment path is taken.
 
 8 of 10 cycles used, 2 of headroom for build + validate + ship. Thirteen tasks, all hand-built by the
 operator under DEC-174 with no delegable lane. Four of them (T-02, T-04, T-06, T-07) co-edit
-`check-state.sh` and `test-check-state.py`, and `test-gh-sync.py` at 149 s runs in three verifies
+`check-state.py` and `test-check-state.py`, and `test-gh-sync.py` at 149 s runs in three verifies
 (~447 s). One routed-back FAIL on any of those four consumes a cycle. Surface **L**, risk **med**.
 Recommend: **proceed**, after the three change-before-build items land as one consolidated edit
 (DEC-176) — none of them is a re-plan, all three are one-sentence corrections.

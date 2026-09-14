@@ -51,14 +51,14 @@
   are in direct tension, and the window between them is a guaranteed VIOLATION.** The playbook says
   record `done` in `plan.yaml` FIRST, then run `close-task`, and separately that `close-task` runs
   when the `[harness:t-NN]` commit is recorded. Doing it literally — plan write, commit, close-task
-  — puts `check-state.sh` inside the window where the plan says `done` and the board still says
+  — puts `check-state.py` inside the window where the plan says `done` and the board still says
   `Building`, and INV-26 fires: "plan says done, so the card should read Done — the board reads
   Building." Exit 1. Resolution that satisfies both rules: plan write → `close-task` → `check-state`
   → commit. The load-bearing constraint is only that the PLAN carries the new status before the
   subcommand runs, because the parent station is derived from it; git has no part in that
   derivation, so moving the commit to last costs nothing. I lost a cycle treating the violation as
   a real defect before reading which of the two orderings was actually forced.
-- 2026-08-17: `check-state.sh` prints ~30 `note` lines from OTHER features on every run, and the one
+- 2026-08-17: `check-state.py` prints ~30 `note` lines from OTHER features on every run, and the one
   `VIOLATION` line for mine was invisible in the tail. `grep -v "^  note "` reduced it to a single
   line. Reading the tail of a repo-wide checker is how a violation about your own feature gets
   missed; filter to severity first, then grep your feature id.

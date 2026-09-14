@@ -33,7 +33,7 @@ consumed in check-domain.py's `RE_STATE_YAML` PRE branch after T-02's `conflict(
 enumerated fail-open rows (no marker; null recorded identity; unresolvable `_resolve_identity`; equal
 identities; no live claim or a raising registry read; a `runtime: "omp"` claim — `inflight_registry.py:255-258`;
 a runtime T-04 did not record as discriminating). `conflict()` still never consults identity, so
-check-state.sh's sweep is unaffected. **No-op branch named:** on `discriminates: no|inconclusive` T-09
+check-state.py's sweep is unaffected. **No-op branch named:** on `discriminates: no|inconclusive` T-09
 changes no code and writes `notes/identity-denial-BUG-1305.md` with `disposition: not-executed` and
 the residual in operator terms — that note is where the report lands, and SC-01's contingent clause
 points at it. T-04's intent now states what each answer triggers; the "do not write a task for it"

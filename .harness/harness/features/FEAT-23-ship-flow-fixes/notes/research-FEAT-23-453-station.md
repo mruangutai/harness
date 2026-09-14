@@ -152,7 +152,7 @@ RED: not registered (exit 1 path taken)
 
 ## T-05 — conjunct 3, the drift detector, proved by MUTATION
 
-The clause ends with `bash run-unit-tests.py --kind unit`. Green-by-default is the FEAT-22 failure
+The clause ends with `python3 run-unit-tests.py --kind unit`. Green-by-default is the FEAT-22 failure
 shape, so it was mutated rather than assumed. The detector runs over the **union** of both buckets
 (`run-unit-tests.py:36-39`), so `--kind unit` catches an unregistered integration file too — and
 `--kind unit` costs **2.8s measured**, against 52.5s for the integration bucket.

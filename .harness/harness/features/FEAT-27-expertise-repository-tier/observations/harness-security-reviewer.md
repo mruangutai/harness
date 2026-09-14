@@ -19,7 +19,7 @@
   referential) exists in the shipped tree today; "kaya" is fixture-only. Worth a future reviewer
   re-checking severity once a second, genuinely distinct repository segment goes live — that is the
   trigger that would make this exploitable rather than theoretical.
-- 2026-08-19: `check-expertise.sh`'s repository-token advisory scan (issue 340) is structurally
+- 2026-08-19: `check-expertise.py`'s repository-token advisory scan (issue 340) is structurally
   incapable of gating — appended to a separate `advisories` list never read by
   `sys.exit(1 if failed else 0)`. Confirmed by reading control flow, not by re-running the suite
   (O-01 in my own craft Expertise: re-running an already-green suite is confirmatory, not

@@ -25,8 +25,8 @@ pm re-plan under a fresh signature, not a fix cycle.
 - **`board-station.py`'s Unicode-digit gate is fixed and red-first proved AFTER the fact by me**:
   reverting the one line reddens the new case with `rc4=1 (1 means int() raised)`, restoring greens
   it, file byte-identical by SHA — my own probe — verified-at 1d49644
-- `check-expertise.sh` exits 0 over all 15 files after 30 distilled entries — verified-at 9885670
-- Parent #454 is at `Review`; `check-state.sh` exits 0 — verified-at 9885670
+- `check-expertise.py` exits 0 over all 15 files after 30 distilled entries — verified-at 9885670
+- Parent #454 is at `Review`; `check-state.py` exits 0 — verified-at 9885670
 - `cycles_used` 5 of 10, `len(runs)` 20 of 20 (AT the bound) — the run budget is INFORMATIONAL and must not stop
   anything (INV-22) — `feature.json` — verified-at 9885670
 

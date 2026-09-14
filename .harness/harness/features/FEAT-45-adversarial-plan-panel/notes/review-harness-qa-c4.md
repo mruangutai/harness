@@ -89,7 +89,7 @@ c4 delta updated D-05 and one other task-intent paragraph (`:773`, now correctly
 match. Ran T-09's literal verify clause at the pin: it **fails** (`rc=1`, `test 11 -eq "${#A}"`
 false, actual length 35) — confirms the lead's pre-read exactly. Not a live gate: nothing
 re-executes a `done` task's `verify:` clause automatically (no reference to task-level `verify`
-execution found in `check-state.sh`/`validate-digest.py`/`run-unit-tests.py`), so this cannot
+execution found in `check-state.py`/`validate-digest.py`/`run-unit-tests.py`), so this cannot
 redden CI or block a future run. It is stale historical narrative on a completed task, not
 executable — hence IMPROVEMENT not DEFECT, but worth a follow-up sweep since a human reading
 `T-09` cold would be actively misled.

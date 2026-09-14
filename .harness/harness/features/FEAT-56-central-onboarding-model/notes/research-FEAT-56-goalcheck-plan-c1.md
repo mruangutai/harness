@@ -30,7 +30,7 @@ BRIEF as read today, worktree tip.
   targets *the control plane's own harness.json*. T-15's own intent asserts detection "lives … in
   `harness-init` for this control plane's own `harness.json`" — **no task puts it there.** So an
   operator following the cut skill installs the eight prerequisites, is told to seed `# SEED` globs in
-  a manifest that was never instantiated, and reaches step 9 where `check-state.sh` cannot exit 0 on a
+  a manifest that was never instantiated, and reaches step 9 where `check-state.py` cannot exit 0 on a
   checkout with no `.harness/harness.json`. Nothing catches it: T-11's verify is all absence-of-Track-B
   greps plus the two hooks strings; it never greps `dev-ops`, `harness.json` or `team-config`.
 - **Row 6 (PARTIAL).** Because T-10 moves `:245-283` verbatim, that same `:279-282` sentence lands

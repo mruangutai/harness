@@ -8,7 +8,7 @@ notes/docs. Restricting to the named code surface (`.claude/skills/harness/bin/`
 their test files, `.harness/harness.json`, `.harness/factory/fleet.yaml`) gives 13 files /
 +1070/-333, not the dispatch's "19 files, +1394/-437". Widening to every touched file under
 `.claude/skills/harness/bin/` plus `harness.json`/`fleet.yaml`/`templates/harness.json` gives 22
-files / +1413/-458 — still off by 3 files. I read the named list plus `check-state.sh` (FLAG-ONLY
+files / +1413/-458 — still off by 3 files. I read the named list plus `check-state.py` (FLAG-ONLY
 per dispatch) and could not locate a filter that lands exactly on 19/+1394/-437. Not blocking —
 HEAD itself matched — but the count is unverified as stated.
 
@@ -73,7 +73,7 @@ Read T-06's `verify:` in `plan.yaml` (lines 1001-1038) before evaluating `.harne
 and is absent `INV-26 is vacuous`, `station writes are not attempted`, `Three keys` — matches all
 seven required substrings. Proposed no change to it.
 
-## `check-state.sh` (FLAG-ONLY, DEC-174 carve-out)
+## `check-state.py` (FLAG-ONLY, DEC-174 carve-out)
 
 No simplification finding. The new `INV-26 BEGINS`/`ENDS` markers and the `_fc26` import-guard are
 exactly the mechanism, not narration, and the dispatch already flags the marker-fragility risk

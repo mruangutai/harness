@@ -33,7 +33,7 @@ adds the test cases that grade it. The c1 receipt is left exactly as it was writ
   assertion on its own property.
 
 **Not touched:** `.claude/skills/harness/bin/worktree_terminal.py` (T-01's, read-only here),
-`check-state.sh`, `test-check-state.py`, `post-merge-sweep.py`, `run-unit-tests.py`,
+`check-state.py`, `test-check-state.py`, `post-merge-sweep.py`, `run-unit-tests.py`,
 `.harness/harness.json`, `plan.yaml`, `BRIEF.md`. Cases (a)-(h) and their red proofs are unmodified.
 
 ## No defect found in classify_all

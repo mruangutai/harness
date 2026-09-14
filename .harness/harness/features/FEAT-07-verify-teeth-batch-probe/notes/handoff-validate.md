@@ -15,7 +15,7 @@ against all 18 criteria at `98ed3e7`.
 
 - All ten tasks committed across ten commits `0a34989`..`98ed3e7`; every mirrored issue #48-#57
   closed — `git log --oneline main..HEAD` and `gh-sync.py close-task` output — verified-at 98ed3e7
-- `run-unit-tests.py` exit 0, `check-docs.sh` exit 0 over 186 files, `check-expertise.sh` OK on all
+- `run-unit-tests.py` exit 0, `check-docs.sh` exit 0 over 186 files, `check-expertise.py` OK on all
   11 files — I ran all three, not cited — verified-at 98ed3e7
 - Blocking `qa_gate` PASSES, `matrix_ok: true`; `review` PASS after its one med finding was fixed —
   `runs/validate-validator/digest.md` — verified-at 70b0ed3

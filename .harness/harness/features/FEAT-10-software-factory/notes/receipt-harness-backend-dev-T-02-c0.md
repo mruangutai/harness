@@ -86,7 +86,7 @@ Also ran the real CLI against the real fleet: `python3
 `board` and `repos` keys, nothing on stderr, exit 0.
 
 ## Not touched
-`check-state.sh`, `test-check-state.py` (DEC-174 carve-out, T-08 withheld) — did not read-to-edit
+`check-state.py`, `test-check-state.py` (DEC-174 carve-out, T-08 withheld) — did not read-to-edit
 or write either. `factory_gh.py` — not imported; T-02 never needed GitHub access (R-01).
 No `git add`/`git commit`. No live `gh`/`git` call — every path in the test is a tempdir fixture
 or (for the real-fleet CLI smoke check above) a read-only `--show` against the existing,

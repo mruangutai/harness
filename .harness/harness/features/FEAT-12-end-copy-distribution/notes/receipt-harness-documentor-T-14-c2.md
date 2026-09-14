@@ -87,7 +87,7 @@ before regenerating, no fix needed. Both expected generator effects **confirmed,
 |---|---|
 | T-14 `verify:` (cross-checked verbatim against `plan.yaml:915-924`, no mismatch) | **exit 0**, printed `STRUCK` |
 | `python3 .claude/skills/harness/bin/gen-decisions-index.py` | exit 0, **emitted changes** to `DECISIONS-INDEX.md`, **no ORPHAN** |
-| `bash .claude/skills/harness/bin/run-unit-tests.py` | exit 0, `PASS test-gen-decisions-index.py` |
+| `python3 .claude/skills/harness/bin/run-unit-tests.py` | exit 0, `PASS test-gen-decisions-index.py` |
 | SC-08's DEC-12 clause, wider than the verify's four files | `git grep -nE 'DEC-12([^0-9]\|$)' -- docs/` → **0 hits** |
 
 `.claude/skills/harness/bin/check-docs.sh` does **not exist on this branch** (`git ls-files` returns

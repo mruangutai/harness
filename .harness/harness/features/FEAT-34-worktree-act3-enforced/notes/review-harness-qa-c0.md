@@ -53,7 +53,7 @@ own `verify:` string.
   not resolved by this note, but no longer merely "attributed to unrelated load and not accepted
   as fact." It should be escalated as a real perf question, separate from correctness.
 - One benign observation, not an injection: mid-run I twice saw a *different* process pair
-  (`bash .agents/skills/harness/bin/run-unit-tests.py` / a child `test-*.py`) appear transiently
+  (`python3 .agents/skills/harness/bin/run-unit-tests.py` / a child `test-*.py`) appear transiently
   in `ps`. Path prefix is `.agents/`, not this worktree's `.claude/`, so it is not one of this
   panel's runs and not this checkout — noted for completeness, not acted on, and it was gone by
   the time each of my own runs started.
@@ -71,7 +71,7 @@ all four asserted, three with an explicit demonstrated-failing variant. **This b
 happy path**: every "silently stops refusing" shape the brief worries about has its own red proof
 run, not just asserted.
 
-**check-state.sh INV-29/INV-30.** `test-check-state.py` cases (a)-(f) match SC-01 through SC-05
+**check-state.py INV-29/INV-30.** `test-check-state.py` cases (a)-(f) match SC-01 through SC-05
 one-for-one, asserted on the finding line's own `VIOLATION` prefix (never exit code, per the
 brief's own stated trap at :1214-1218) and on the exact composed removal-command string, with the
 three "must-fail" malformed-message inputs demonstrated first. INV-30 (a)-(c) match SC-12,
@@ -136,7 +136,7 @@ my direct inspection above, not by that command. Advisory only, since the underl
 | SC-07 | `test-post-merge-sweep.py` (c), unguarded red proof |
 | SC-08 | `test-hooks-install.py` `case_sc08_before_and_after` |
 | SC-09 | direct inspection (above); T-10's own verify is weak, see finding |
-| SC-10 | this run: `check-state.sh` clean + full integration green (2nd run) |
+| SC-10 | this run: `check-state.py` clean + full integration green (2nd run) |
 | SC-11 | `test-post-merge-sweep.py` (d), per-feature |
 | SC-12 | `test-check-state.py` INV-30 (a)-(c) |
 | SC-13 | `test-hooks-install.py` `case_sc13_idempotence` + `case_sc13_reporting_and_red_proof` |

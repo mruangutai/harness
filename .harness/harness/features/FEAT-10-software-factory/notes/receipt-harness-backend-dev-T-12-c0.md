@@ -38,7 +38,7 @@ Result: **pass** (both the grep and `[ "$s" -eq 0 ]` succeeded; `$?` of the whol
 - `UNIT_SCRIPTS` (line 58 of `run-unit-tests.py`) is byte-identical before and after my edit —
   confirmed by re-reading the line post-edit against the pre-edit `Read` output.
 
-No new red anywhere; nothing in `check-state.sh` / `test-check-state.py` / `validate-digest.py`
+No new red anywhere; nothing in `check-state.py` / `test-check-state.py` / `validate-digest.py`
 was touched.
 
 **`--kind all` (union path, run twice for stability):** exit 0 both times, 24/24 `PASS test-*.py`

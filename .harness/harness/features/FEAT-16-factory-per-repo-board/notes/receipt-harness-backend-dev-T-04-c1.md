@@ -45,7 +45,7 @@ RED: the fixture is unloadable by the old direct reads, not a vacuous pass. Then
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched.
-- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh` not touched.
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` not touched.
 - Two-argument `factory_config.station(fleet, key)` left exactly as defined — not touched.
 - `factory_config.py`, `factory_claim.py`, `factory_decompose.py` not touched.
 

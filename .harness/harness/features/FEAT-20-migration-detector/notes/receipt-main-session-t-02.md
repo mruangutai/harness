@@ -1,17 +1,17 @@
 # Receipt — T-02, main-session-direct — 2026-08-14
 
-DEC-174 carve-out named in CLAUDE.md: check-state.sh edited by hand, tests co-changed in
+DEC-174 carve-out named in CLAUDE.md: check-state.py edited by hand, tests co-changed in
 the same diff, both suites run explicitly.
 
 ## What landed
 
-- INV-27 in check-state.sh, composed from layout_migration's STRUCTURED result (import of
+- INV-27 in check-state.py, composed from layout_migration's STRUCTURED result (import of
   the two exposed functions; no subprocess, no CLI re-parsing). Failed import and a raising
   scan are both CANNOT RUN violations, INV-25's precedent. Every finding ends with the
   remedy clause. NOT APPLICABLE and clean append nothing.
 - test-check-state.py case_x, five cases: x.1 mixed (tag + remedy asserted at THIS call
   site), x.2 cannot-verify, x.3 applicable-clean asserting ABSENCE of INV-27 specifically,
-  x.4 no-marker, x.5 unimportable module -> CANNOT RUN (run via a copied check-state.sh in
+  x.4 no-marker, x.5 unimportable module -> CANNOT RUN (run via a copied check-state.py in
   a bin dir holding only harness_yaml, because the script prepends its own dir to
   PYTHONPATH and a shadow dir cannot outrank the real module).
 - test-layout-migration.py case 18: exit-code contract 0/1/2 and scan() prints nothing.

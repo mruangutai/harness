@@ -16,7 +16,7 @@ exact inputs the main session needs, in the shape the record wants them.
 - Every other verb leaves the approval bytes byte-identical; `apply` exits 8 on a proposal whose
   approval mapping differs; `amend` refuses `approval` as unamendable (`plan-merge.py:1449-1451`).
 - So there is **no tool route that writes `approval.rulings` at all**, for the main session or
-  anyone else — while `check-state.sh` INV-17/INV-32 reads the key (`check-state.sh:488-506`) and
+  anyone else — while `check-state.py` INV-17/INV-32 reads the key (`check-state.py:488-506`) and
   `templates/plan.yaml:53-56` documents its shape and says the main session may add it.
 
 That is a harness gap, not a FEAT-54 defect: an invariant grades a key no verb can produce. It is
@@ -50,7 +50,7 @@ record, not unblock the signature.
   `tempfile.TemporaryDirectory` (clean-corpus and byte/mtime no-mutation assertions on fixture notes
   only), and its trailing paragraph now states that no case in the file touches the real tree.
   `BRIEF.md` SC-04 keeps its claim word-for-word and moves to `verify: inspection` — a recorded
-  review-time `check-state.sh` run at `review_sha`, whose evidence home is pinned to the reviewer's
+  review-time `check-state.py` run at `review_sha`, whose evidence home is pinned to the reviewer's
   own `notes/review-<reviewer>-*.md`.
 - **Accept PF-91832661** → `plan.yaml` T-09's intent and its inline `verify:` assertion both specify
   `"exclude": ".claude/worktrees/**"`, the value `omp_session_accessor` carries and all 8 existing

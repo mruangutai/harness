@@ -10,7 +10,7 @@ neither deletion appears in any diff. That is precisely why the removal is writt
 
 **`runs/2026-09-05-02-validator`** — the T-04 tree-audit run's first lead digest. `validate-digest.py
 lead` returns `BLOCKED (contract violation) — no artifact: path`, which is the violation
-`check-state.sh` reported. The validator lead's own digest for the successor run records what
+`check-state.py` reported. The validator lead's own digest for the successor run records what
 happened: the first write omitted `artifact:`, `check-domain.py` correctly refused to overwrite a
 recorded digest, and the corrected record took its own directory. The canonical record is
 `runs/2026-09-05-03-validator`, which validates clean and IS recorded in `feature.json`. The run's
@@ -29,7 +29,7 @@ evidence is in the tree.
 
 ## The checker blind spot this exposed, which matters more than the orphans
 
-Through this feature the orchestrator ran `check-state.sh` from the **main checkout** and read
+Through this feature the orchestrator ran `check-state.py` from the **main checkout** and read
 exit 0 as clean — four times, including immediately before declaring the ship gate green. That
 reading was **vacuous**. This feature's directory exists only inside the worktree, so the checker
 run from the main checkout never discovered it and had nothing to report. The gate passed because
@@ -37,7 +37,7 @@ its discovery found nothing, which is indistinguishable from passing on the meri
 alone.
 
 Run from inside the worktree, the same checker exits 1 and names the violation above. The main
-session's canonical run found it; the orchestrator's did not. **A `check-state.sh` result is only
+session's canonical run found it; the orchestrator's did not. **A `check-state.py` result is only
 evidence about a feature whose directory the invocation can actually see** — for a feature living
 in a worktree that means running it from the worktree.
 

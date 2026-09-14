@@ -22,7 +22,7 @@ review panel, then pm's goal-check on all 14 SCs.
 - Q-CHECKCOUNT is CLOSED and benign: 78 static `check(` sites versus 76 executed, and the two unexecuted are lines 668-669 inside case J's `INCONCLUSIVE` branch, dead precisely because the mutation applied — `sys.settrace` line trace — verified-at b2f7c73
 - cycles_used is 4 of 10; runs 9 of 20 and runs are INFORMATIONAL only (INV-22, `harness.json` `_max_total_runs_rationale`) — `feature.json` — verified-at b2f7c73
 - Three of ten requirements are exclusively main-session-direct — REQ-04 (T-15), REQ-09 (T-14), REQ-10 (T-10, T-14) — so the goal-check CANNOT pass until the operator's six tasks land — `plan.yaml` `traces:` — verified-at b2f7c73
-- Two board cards read Building while their issues are closed and the plan says done (T-01 #642, T-02 #643); `gh-sync close-task` re-run twice did not move them — `check-state.sh` INV-26 — verified-at b2f7c73
+- Two board cards read Building while their issues are closed and the plan says done (T-01 #642, T-02 #643); `gh-sync close-task` re-run twice did not move them — `check-state.py` INV-26 — verified-at b2f7c73
 - The `bash-write-guard.py` heredoc hazard on the record is FALSE: a read-only `python3` heredoc containing `>` and `>=` runs clean; the real defect is `sed -i` with a shell-VARIABLE target refused as out-of-domain — direct test, twice — verified-at b2f7c73
 - 14 SCs exist, SC-01..SC-11 and SC-13..SC-15 — there is NO SC-12 — `BRIEF.md` grep — verified-at b2f7c73
 - Q-HOOKCTX (hook stderr reaching the model as context) remains the operator's to settle and gates SC-13's design — `STATE.md` — UNVERIFIED

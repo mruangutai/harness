@@ -64,23 +64,23 @@ signed plan — it is what the plan already specifies; the deviation is in execu
 ## Primary question — is "factory_config.py is its only reader" true?
 
 Settled: **it is false under the strict "opens/parses the file" reading**, and the plan's own
-directed wording used that reading. `check-state.sh:761` (`fleet_p = os.path.join(H, "factory",
+directed wording used that reading. `check-state.py:761` (`fleet_p = os.path.join(H, "factory",
 "fleet.yaml")`) and `:768` (`fleet = harness_yaml.load_file(fleet_p)`) independently parse
 `fleet.yaml` for its `INV-24` invariant — never through `factory_config.load_fleet()`. Confirmed
-pre-existing and **unchanged by this diff** (`git diff 278de74..d543809 -- .../check-state.sh` is
-empty), so this is not a regression this feature introduced, and `check-state.sh` is one of the
+pre-existing and **unchanged by this diff** (`git diff 278de74..d543809 -- .../check-state.py` is
+empty), so this is not a regression this feature introduced, and `check-state.py` is one of the
 four DEC-174 files this feature may not touch — the remedy is the prose, not the script.
 
 What this means for each surface, checked against code rather than against other prose:
 - **`docs/harness/SPEC.md` §3.3** — new text (confirmed via diff, the whole section is added by
   this diff). Its literal sentence is scoped: *"Every **factory tool** ... never parses
-  `fleet.yaml` itself."* `check-state.sh` is not framed anywhere as one of "the factory tools," so
+  `fleet.yaml` itself."* `check-state.py` is not framed anywhere as one of "the factory tools," so
   this specific sentence survives a narrow reading — but the citation naming
   `factory_workspace.py:113`, `factory_land.py:46`, `factory_decompose.py` is incomplete:
   `factory_claim.py:202` is a confirmed fourth `factory_config.load_fleet()` call site, absent from
   the citation (all four line numbers verified directly against the sha).
 - **`factory_config.py:1`'s own docstring**, *"the only reader of `.harness/factory/fleet.yaml`
-  (SC-08)"* — unqualified, no "factory tool" scoping, and false given `check-state.sh`. Confirmed
+  (SC-08)"* — unqualified, no "factory tool" scoping, and false given `check-state.py`. Confirmed
   byte-identical between `278de74` and `d543809` — pre-existing, not written or touched by this
   feature, and its `(SC-08)` citation names neither this feature's `SC-08` (DEC-12/DEC-113 strike)
   nor anything resolvable from this diff — pre-existing and out of this feature's scope to fix, not
@@ -103,7 +103,7 @@ Reading used to settle T-12's directed intent ("factory_config.py is its only re
 opens/parses the file. Under that reading the phrase as delivered in `SPEC.md` (scoped to "factory
 tool") is defensible; the unscoped form in `factory_config.py`'s pre-existing docstring is not, and
 neither is the plan's own directed phrasing taken literally. This is a decision question with a
-recommendation (qualify `SPEC.md`'s framing to name `check-state.sh`'s independent `INV-24` read, or
+recommendation (qualify `SPEC.md`'s framing to name `check-state.py`'s independent `INV-24` read, or
 soften `factory_config.py`'s docstring claim in a future feature), not a must_fix — the remedy would
 touch either DEC-174-protected territory or contradict the signed plan's directed wording.
 

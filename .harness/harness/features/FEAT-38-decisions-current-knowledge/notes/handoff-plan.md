@@ -22,7 +22,7 @@ in plan order T-27 → T-24 → T-25 / T-28, with T-29 after T-24.
 - Both approval fragments are byte-untouched across all three replan commits — `git diff -U0`
   over both files showed no changed line inside either block — verified-at 6be3de5 by me.
 - The three held `verify:` corrections are in the plan: T-10's exclusion-list replacement, T-15's
-  `check-expertise.sh "$E"`, and T-19's column-0 anchoring — verified-at 6be3de5 by me against
+  `check-expertise.py "$E"`, and T-19's column-0 anchoring — verified-at 6be3de5 by me against
   `notes/research-verify-block-defects.md`. **T-19's is not the signed spelling.** It reads
   `grep -qE '^(KIND-DRIFT|MISCONFIGURED):'` — the anchoring extended to the second detector —
   and T-19's own `intent:` discloses that in full. Read it before assuming the signed text landed.
@@ -36,7 +36,7 @@ in plan order T-27 → T-24 → T-25 / T-28, with T-29 after T-24.
   which removes all eleven — verified-at 6be3de5 by me.
 - `review_sha` still reads `48bbe7e`. It is STALE — it pins the superseded validate phase.
   Re-pin before any validator run (INV-6). UNVERIFIED for any purpose beyond its own history.
-- `check-state.sh` exits 1 here, on nothing this amendment caused: three gitignored digests from
+- `check-state.py` exits 1 here, on nothing this amendment caused: three gitignored digests from
   superseded runs carry no `VERDICT`/`DIGEST`/`artifact` at all and cannot be repaired without
   inventing another agent's verdict, and INV-26 reports 23 cards at Review whose tasks read
   `done` — verified-at 6be3de5 by me.

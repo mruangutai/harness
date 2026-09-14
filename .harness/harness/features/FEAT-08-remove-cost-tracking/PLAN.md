@@ -4,7 +4,7 @@
 
 Every line number below was re-read at **`ae2443d`** (`git rev-parse --short HEAD`), the same SHA the
 dispatch cites. Re-verified unchanged: `run-unit-tests.py:6` and its drift detector `:9-24`;
-`check-state.sh:248`, `:258-271`, `:302`, `:337-350` (`cost` at `:344`), `:357`, `:361`, `:369-373`,
+`check-state.py:248`, `:258-271`, `:302`, `:337-350` (`cost` at `:344`), `:357`, `:361`, `:369-373`,
 `:401`; `validate-digest.py:171-180` (`cost_usd` in `SCHEMAS["orchestrator"]` at `:177`) and `:661`;
 `.harness/harness.json:136`, `:137`, `:232-240`; `templates/harness.json:138`, `:139`, `:234-242`;
 `DECISIONS-INDEX.md:168`; `render-brief.py:11`. Re-measured: 67 of 67 run `state.yaml` carry `cost:`;
@@ -28,7 +28,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
 
 | Surface | Lane | Authority |
 |---|---|---|
-| `check-state.sh`, `validate-digest.py` and their tests | **main-session-direct** (DEC-174 carve-out) | `CLAUDE.md` — overrides the grants below |
+| `check-state.py`, `validate-digest.py` and their tests | **main-session-direct** (DEC-174 carve-out) | `CLAUDE.md` — overrides the grants below |
 | `cost-report.py`, `test-cost-report.py`, `run-unit-tests.py` | `harness-backend-dev` / `harness-dev-ops` | `team-config.yaml:155`, `:197` — both are `{ path: .claude/skills/harness/bin/**, upsert: true }` |
 | `.harness/harness.json` | `harness-dev-ops` | `team-config.yaml:196` — `{ path: .harness/harness.json, upsert: true }`, in the `harness-dev-ops` domain block opened at `:189`. **Not** `:155`/`:197`, which are `bin/**` and do not reach it |
 | `.claude/skills/harness/templates/harness.json` | **main-session-direct** (declared step, D-10) | granted to **nobody**. `grep -n templates .harness/team-config.yaml` returns no line, and the only two `.claude/…` grants in the file are `:155` and `:197`, both `bin/**`. No glob in the file covers `templates/` |
@@ -62,17 +62,17 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
   transition window and no literal is needed. Trade-off: an orchestrator running from a stale
   cached rule surface will keep emitting a field nobody reads, silently — accepted, because the
   alternative is rejecting it loudly for a value it was told to produce.
-- D-02: **`check-state.sh` is loosened in S1, before the config strip (T-04) and before the meter
+- D-02: **`check-state.py` is loosened in S1, before the config strip (T-04) and before the meter
   deletion (T-03) — and THREE checks come out, not one.** The dispatch names INV-11 at `:369-373`.
   Re-reading the file found a second, unnamed hazard of the same shape: `:258-259` is
   `bad.append("harness.json has no cost_model.rates — runs cannot be costed…")`, a **hard violation**,
   not a warning. Deleting the `cost_model` block from `.harness/harness.json` (T-04) while that check
-  lives makes the repo a check-state violation immediately, and `check-state.sh` gates `/harness`
+  lives makes the repo a check-state violation immediately, and `check-state.py` gates `/harness`
   entry. The third is `:261-271`, the `verified_on` staleness `warn.append`, which reads the same
   deleted block. All three come out in T-02, ahead of both. Trade-off: T-02 leaves a short window in
   which nothing enforces that a completed run was metered — harmless, because the whole point is that
   nothing should.
-- D-03: **`cost` STAYS in `check-state.sh`'s `CHECKPOINT_KEYS` (`:344`) — allowed, never required.**
+- D-03: **`cost` STAYS in `check-state.py`'s `CHECKPOINT_KEYS` (`:344`) — allowed, never required.**
   Forced by the ruling that historical figures are left in place, not chosen. Re-measured at
   `ae2443d`: all 67 run `state.yaml` files carry a `cost:` block, and `:401` flags any top-level key
   not in that set, so removing the entry converts 67 historical runs into 67 violations in one edit.
@@ -211,17 +211,17 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     `bin/` — the whole-suite clause is mandatory, per SC-11).
 
 - T-02: Remove INV-11, the `cost_model.rates` violation and the rate-staleness warning from
-  `check-state.sh`; keep `cost` whitelisted
+  `check-state.py`; keep `cost` whitelisted
   segment: S1
-  execution_mode: main-session-direct — reason: DEC-174 carve-out. `check-state.sh` is named in
+  execution_mode: main-session-direct — reason: DEC-174 carve-out. `check-state.py` is named in
     CLAUDE.md's carve-out list; `test-check-state.py` rides with it under D-09.
   change_type: logic
   depends_on: none
   traces: REQ-02, REQ-06, D-02, D-03
-  files: `.claude/skills/harness/bin/check-state.sh`,
+  files: `.claude/skills/harness/bin/check-state.py`,
     `.claude/skills/harness/bin/test-check-state.py`
   intent: >
-    Per-line disposition in `check-state.sh` — REMOVE:
+    Per-line disposition in `check-state.py` — REMOVE:
     (a) `:369-373` — the INV-11 rule itself (`if complete and "cost" not in sdoc:` and its
         `bad.append`, including the "run bin/cost-report.py --yaml and record it" message) and the
         two-line comment above it. The `complete = ...` assignment at `:367` is used by nothing else
@@ -264,10 +264,10 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     zero (D-03's whitelist retention) — one case pinning both directions.
   verify: >
     `python3 .claude/skills/harness/bin/test-check-state.py` exits 0; AND
-    `.claude/skills/harness/bin/check-state.sh` exits 0 with zero violations against the repo as it
+    `.claude/skills/harness/bin/check-state.py` exits 0 with zero violations against the repo as it
     stands (67 historical `state.yaml` with `cost:` blocks still present — this is SC-03's command);
-    AND `grep -n 'INV-11' .claude/skills/harness/bin/check-state.sh` returns nothing; AND
-    `grep -n 'CHECKPOINT_KEYS' -A 12 .claude/skills/harness/bin/check-state.sh | grep -c '"cost"'`
+    AND `grep -n 'INV-11' .claude/skills/harness/bin/check-state.py` returns nothing; AND
+    `grep -n 'CHECKPOINT_KEYS' -A 12 .claude/skills/harness/bin/check-state.py | grep -c '"cost"'`
     returns 1; AND the WHOLE unit suite `run-unit-tests.py` exits 0 (touches `bin/`, SC-11).
 
 - T-03: Delete the meter and its test, and drop it from the unit-suite script list — in one change
@@ -340,7 +340,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     `grep -c max_total_cycles .harness/harness.json
     .claude/skills/harness/templates/harness.json` prints `<path>:2` for BOTH files (the key and its
     rationale) — again two `path:count` lines; AND
-    `.claude/skills/harness/bin/check-state.sh` exits 0 — this is the command that
+    `.claude/skills/harness/bin/check-state.py` exits 0 — this is the command that
     fails if T-02 did not land first (D-02); AND the WHOLE unit suite
     `.claude/skills/harness/bin/run-unit-tests.py` exits 0 (this task touches both `harness.json`
     files, so the whole-suite clause is mandatory per SC-11 — `test-upgrade-config.py` and
@@ -388,7 +388,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     `grep -c max_total_cycles .harness/harness.json
     .claude/skills/harness/templates/harness.json` prints `<path>:2` for BOTH files (the key and its
     rationale) — again two `path:count` lines; AND
-    `.claude/skills/harness/bin/check-state.sh` exits 0 — this is the command that
+    `.claude/skills/harness/bin/check-state.py` exits 0 — this is the command that
     fails if T-02 did not land first (D-02); AND the WHOLE unit suite
     `.claude/skills/harness/bin/run-unit-tests.py` exits 0 (this task touches both `harness.json`
     files, so the whole-suite clause is mandatory per SC-11 — `test-upgrade-config.py` and
@@ -562,7 +562,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     ['.claude/skills/harness/teams/build.yaml','.claude/skills/harness/teams/review.yaml']]"` exits 0;
     AND `python3 .claude/skills/harness/bin/test-team-catalog.py` exits 0 — the test that reads these
     files; AND the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0; AND
-    `.claude/skills/harness/bin/check-state.sh` exits 0.
+    `.claude/skills/harness/bin/check-state.py` exits 0.
     **The whole-suite clause is reasoned, not boilerplate.** `test-harness-yaml-corpus.py` scans the
     LIVE shipped teams tree, not a fixture: `:111-112` sets
     `TEAMS_ROOT = .claude/skills/harness/teams` and `ROOTS = [".harness", TEAMS_ROOT]`, `scan_roots`
@@ -587,7 +587,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
         (FEAT-06: 9 of 10 tasks; FEAT-07: 8 of 10, finishing at $702.82 against a $550
         orchestrator-computed budget), feeding a budget DEC-134 already made non-blocking;
     (2) **that DEC-148's context watchdog is knowingly DROPPED with the file** — not preserved as a
-        standalone script and not folded into `check-state.sh` — **with its reason**: its
+        standalone script and not folded into `check-state.py` — **with its reason**: its
         behavioural consequence is already hard-coded by DEC-159, which makes one-phase-per-
         orchestrator mandatory regardless of any measurement, so the diagnostic no longer decides
         anything. This clause exists so a future scan does not re-propose the watchdog, and it is
@@ -596,7 +596,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
         feature, so DEC-148 is only PARTIALLY superseded here;
     (4) that historical `cost_usd`/`max_cost_usd` in shipped `feature.yaml` and every `cost:` block in
         a run `state.yaml` are deliberately LEFT IN PLACE as the only surviving record, and that
-        `cost` therefore stays in `check-state.sh`'s `CHECKPOINT_KEYS` — allowed, never required
+        `cost` therefore stays in `check-state.py`'s `CHECKPOINT_KEYS` — allowed, never required
         (D-03), naming the 67-of-67 measurement so the entry is self-justifying;
     (5) that nothing replaces the briefing's cost line (D-06), and that the perf review's row 10
         (count and budget RUNS) is the remaining lever and is filed to the backlog rather than built
@@ -671,7 +671,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
       inside cycle territory and nothing about the counters may move**: the counter-ownership table
       at `:1568-1571` (whose `cycles_used`/`max_total_cycles` row cites DEC-157) and the
       domain-hook paragraph at `:1573-1575` stay verbatim. Two checks were run before choosing this
-      wording — SC-05's literal text scopes its `git diff` clause to `check-state.sh` and `SKILL.md`,
+      wording — SC-05's literal text scopes its `git diff` clause to `check-state.py` and `SKILL.md`,
       naming SPEC nowhere, and the line carries none of `cycles_used`, `max_cycles`,
       `max_total_cycles` or `DEC-157`, so T-10's existing unchanged-count clause is unaffected in
       both directions. Dropping `DEC-116` here is safe: its live no-`Bash` content survives in SPEC
@@ -791,7 +791,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
   verify: >
     `grep -n -i cost .harness/README.md` returns nothing; AND
     `grep -c max_total_cycles .harness/README.md` is unchanged from its pre-edit value; AND
-    `.claude/skills/harness/bin/check-state.sh` exits 0; AND
+    `.claude/skills/harness/bin/check-state.py` exits 0; AND
     `.claude/skills/harness/bin/check-docs.sh` exits 0.
 
 ## Unit-test coverage audit — every task, re-derived not assumed
@@ -815,14 +815,14 @@ already invoked its test.
 | T-09 `DECISIONS*.md` | `test-gen-decisions-index.py` `:23-24` | named test + whole suite — already present |
 | T-10 `SPEC.md` | `test-team-catalog.py` `:45`, checks (7) `:167` and (9) `:219`; `test-validate-digest.py` `TEMPLATES` `:24-25` | **whole suite — ADDED** |
 | T-11 `BUILD.md` | **none** — `grep -l 'BUILD.md' bin/test-*.py` returns nothing | `check-docs.sh` |
-| T-12 `.harness/README.md` | **none** — the one hit, `test-harness-yaml.py:84`, is the literal grant glob `.harness/README.md` read out of `team-config.yaml`, not a read of the README's content | `check-state.sh` + `check-docs.sh` |
+| T-12 `.harness/README.md` | **none** — the one hit, `test-harness-yaml.py:84`, is the literal grant glob `.harness/README.md` read out of `team-config.yaml`, not a read of the README's content | `check-state.py` + `check-docs.sh` |
 
 Two negatives worth asserting rather than assuming. `test-harness-yaml-corpus.py` scans `.harness`
 for YAML only, so neither `.harness/harness.json` (T-04) nor `.harness/README.md` (T-12) enters it.
 And `test-check-state.py:4` states it runs against fixture trees with `CLAUDE_PROJECT_DIR` pointed at
 each, "never against the real repo state" — so T-04's config edit reaches it only through the shape
 its fixtures assert, which is why T-04 keeps both the whole-suite clause and the live
-`check-state.sh` run.
+`check-state.py` run.
 
 ## Verify receipts — what each task must record
 
@@ -980,7 +980,7 @@ Replacement requirement for the follow-up edit:
 >     **reword its comment at `:769` so it does not carry the literal spelling**: "no money field at
 >     all" rather than "no `cost_usd` at all". The rest of that comment (it is the DETECTOR; it was
 >     REJECTED at `ae2443d`) stays. **This is the repo's existing house style, applied to a second
->     site:** `check-state.sh:331-334` says "Named without its quoted spelling because this task's
+>     site:** `check-state.py:331-334` says "Named without its quoted spelling because this task's
 >     verify: counts that spelling", and `validate-digest.py`'s orchestrator schema comment says
 >     "Named without its literal spelling on purpose".
 > Anchors verified at `5ce3b13`; `bin/` is clean against `5ce3b13`
@@ -999,25 +999,25 @@ instead.
 
 #### Amendment to T-02 — the INV-11 prose must be reworded
 
-T-02's approved intent covers `check-state.sh` thoroughly and the `test-check-state.py` fixtures, but
+T-02's approved intent covers `check-state.py` thoroughly and the `test-check-state.py` fixtures, but
 **never mentions the two prose sites**. Replacement requirement for the follow-up edit:
 
 > In `test-check-state.py`, reword both sites so **neither names the dead invariant**, keeping the
 > explanation of why `case_k` exists. Verified at `5ce3b13`:
 > - **`:205`** — `invariant AFTER it — INV-11/13/15/16/18/21 and INV-10 — with no "could not run"`.
->   Drop `11` from the list. `check-state.sh` **already did exactly this**: its parallel comment at
+>   Drop `11` from the list. `check-state.py` **already did exactly this**: its parallel comment at
 >   `:288` now reads `aborting INV-13/15/16/18/21 and INV-10`. Match it.
 > - **`:326`** — `INV-11 used to make exactly this a violation ("run is complete but has no cost:
 >   block")`. Describe what the removed completed-run check did **without naming it** — e.g. "a
 >   removed check (DEC-178) used to make exactly this a violation: a run marked complete with no
->   `cost:` block." `check-state.sh:331-334` is the house style for this, describing the historical
+>   `cost:` block." `check-state.py:331-334` is the house style for this, describing the historical
 >   reason for `cost` in `CHECKPOINT_KEYS` without naming the invariant.
 > `grep -n 'INV-11' .claude/skills/harness/bin/test-check-state.py` must then return nothing, and
 > `run-unit-tests.py` must exit 0.
 
 #### The falsifier — why this loop is closed
 
-**T-02's `verify:` clauses check `check-state.sh`, not `test-check-state.py`, so nothing in T-02
+**T-02's `verify:` clauses check `check-state.py`, not `test-check-state.py`, so nothing in T-02
 catches the prose rewording.** That is the unfalsifiable-site failure A-3 named, recurring. **The
 amended SC-01's four-file set IS the falsifier for both follow-up edits:** at `5ce3b13` the sweep
 returns 6 files, and `test-check-state.py` and `test-validate-digest.py` are the 2 outside the

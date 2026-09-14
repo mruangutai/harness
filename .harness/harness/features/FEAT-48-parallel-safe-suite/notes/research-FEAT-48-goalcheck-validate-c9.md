@@ -125,7 +125,7 @@ in resets an approved plan.
 - **Record hygiene, for the main session:** `BRIEF.md`'s `## Approval` block is byte-identical across
   `b86ce66a`, `e64e863e` and `993ac997`, so the SC-03 amendment `993ac997` landed carries no distinct
   re-signature act in the file. Only the operator's hand can date it.
-- Unrelated FEAT-51 `check-state.sh` findings are pre-existing and outside this feature; not graded.
+- Unrelated FEAT-51 `check-state.py` findings are pre-existing and outside this feature; not graded.
 
 ## Pointers
 

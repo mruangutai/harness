@@ -49,7 +49,7 @@ lanes:
     - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - the state gate
     - surface: .claude/skills/harness/bin/harness_boundary.py
@@ -66,7 +66,7 @@ lanes:
       reason: co-changes with the guard it asserts against, in the same diff a human reads
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
-      reason: co-changes with check-state.sh, in the same diff a human reads
+      reason: co-changes with check-state.py, in the same diff a human reads
     - surface: .harness/features/FEAT-17-guard-boundaries/notes/**
       lane: main-session-direct
       reason: >-
@@ -109,7 +109,7 @@ decisions:
     dec: none
   - id: D-04
     choice: >-
-      check-state.sh gains INV-25, which reports an out-of-place linked worktree as a FAILURE rather
+      check-state.py gains INV-25, which reports an out-of-place linked worktree as a FAILURE rather
       than a warning.
     because: >-
       The guards now refuse writes in that tree, so the environment really is broken; a warning line
@@ -743,21 +743,21 @@ tasks:
         --porcelain; git worktree list; git commit -m x.
       The ordinary-git allows are not decoration - they are what bounds the risk of the broad rule.
   - id: T-05
-    title: Add INV-25 to check-state.sh reporting an out-of-place worktree at entry
+    title: Add INV-25 to check-state.py reporting an out-of-place worktree at entry
     traces: [REQ-07]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh is the fourth gate script named in CLAUDE.md
+    execution_reason: DEC-174 carve-out - check-state.py is the fourth gate script named in CLAUDE.md
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
     intent: |
       An environment that already contains an out-of-place worktree must say so rather than run half
-      governed. Add INV-25 to .claude/skills/harness/bin/check-state.sh. The highest invariant in the
+      governed. Add INV-25 to .claude/skills/harness/bin/check-state.py. The highest invariant in the
       file today is INV-24, at the DEC-186 block; number the new one INV-25 and follow the file's
       existing shape for appending to the failure list.
 
@@ -811,7 +811,7 @@ tasks:
       In .claude/skills/harness/bin/test-check-state.py add a case that builds its fixtures with git
       directly - the test process is not the Bash tool route, so it may create these shapes - and
       runs them through the file's existing run(tmp) helper, which sets CLAUDE_PROJECT_DIR to the
-      directory it is given and runs check-state.sh with that directory as cwd. If this lands as a
+      directory it is given and runs check-state.py with that directory as cwd. If this lands as a
       new case function rather than an extension of an existing one, REGISTER it in main() alongside
       the other cases in the same task; an unregistered case never runs and passes vacuously. Build
       three temporary repositories, each with git init, one file and one commit:
@@ -826,7 +826,7 @@ tasks:
           is legitimate, so it must stay silent and cannot satisfy or break either half of the
           wording assertion below.
       EVERY DIRECTORY USED AS A RUN ROOT GETS THE FILE'S EXISTING make_fixture SCAFFOLD - repo A,
-      repo B, and repo C's own-root worktree at <tmpdir-outside-C>/own. check-state.sh exits 1 with
+      repo B, and repo C's own-root worktree at <tmpdir-outside-C>/own. check-state.py exits 1 with
       no .harness/ - project not onboarded before any invariant runs, so a bare worktree root would
       exit non-zero while printing no INV-25 line at all, and the assertions below could never be
       satisfied by correct code.

@@ -42,8 +42,7 @@ line changes per entry.
 
 ### 2a. Which changed units does the green suite bind?
 
-Ran the live suite in place (worktree = pin for every path checked): `bash
-.claude/skills/harness/bin/run-unit-tests.py`, `RC=0`. Counted in Python against the actual
+Ran the live suite in place (worktree = pin for every path checked): `python3 .claude/skills/harness/bin/run-unit-tests.py`, `RC=0`. Counted in Python against the actual
 `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` literals (not a bare `PASS ` regex — that overcounts: one
 script, `test-inflight-registry.py`, prints an internal case line `PASS
 case_floor_inflight_registry.py` that itself matches the naive per-script marker regex, inflating a

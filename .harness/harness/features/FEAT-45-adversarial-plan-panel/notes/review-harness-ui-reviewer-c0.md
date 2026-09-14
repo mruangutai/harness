@@ -29,7 +29,7 @@ the operator interface here):
 - `.claude/skills/harness/teams/plan-panel.yaml` — the two validator-squad reader prompts (operator
   never reads this directly, but its prompt text is what a reader's `summary`/`why` will echo into
   the digest the operator DOES read).
-- `.claude/skills/harness/bin/check-state.sh` INV-32 (new, 66 lines) — the actual printed CLI text
+- `.claude/skills/harness/bin/check-state.py` INV-32 (new, 66 lines) — the actual printed CLI text
   (`VIOLATION`/`note` lines) an operator sees at every `/harness` step-0 gate run.
 - Both `harness-validator-lead.md` copies (`.omp/` canonical, `.claude/` generated) — agent
   instruction prose, not primary operator surface, checked for wording that would leak into what
@@ -57,15 +57,15 @@ but never state that *resolving* means a build task sets the finding's `disposit
 nor explain the stale-override renaming mechanic in the doctrine prose itself.
 
 Partial improvement over the Mode A baseline, worth recording: the runtime message now self-explains
-where it fires. `check-state.sh:203-206` (`INV-32 ... STALE OVERRIDE {fid}: a reworded finding gets a
+where it fires. `check-state.py:203-206` (`INV-32 ... STALE OVERRIDE {fid}: a reworded finding gets a
 NEW content-hash id, so the old ruling stopped applying and the operator is asked again`) closes the
 specific "operator doesn't know WHY the id changed" gap Mode A flagged — this text exceeds what T-07's
 spec required. The plain non-stale withhold message
-(`check-state.sh:229-231`, `finding {fid} is {severity} and remains open without an operator
+(`check-state.py:229-231`, `finding {fid} is {severity} and remains open without an operator
 overrule`) still states only the fact, not the remedy.
 
 Concrete scenario: an operator who reads only `harness-plan.md` and `SKILL.md` (the doctrine, not the
-templates or check-state.sh source) before their first signature knows a `high` finding blocks them
+templates or check-state.py source) before their first signature knows a `high` finding blocks them
 and that overruling writes `approval.rulings`, but not that "resolved" requires a task, or where
 `disposition` lives. Non-blocking: no REQ/SC promises this text, Mode A already accepted the gap as
 mitigated by the orchestrating LLM's in-conversation explanation, and `approval.rulings` — the
@@ -83,7 +83,7 @@ padding." This directly closes the pass/fail-undefined gap. No residual finding.
 
 Severity vocabulary (`info|low|med|high|critical` plus sentinel `unrated`) is byte-identical across
 `templates/plan.yaml`, `teams/plan-panel.yaml`, `SKILL.md`, `harness-spec-driven/SKILL.md`,
-`check-state.sh`, both `harness-validator-lead.md` copies, and `DECISIONS.md` DEC-206/207 — grepped
+`check-state.py`, both `harness-validator-lead.md` copies, and `DECISIONS.md` DEC-206/207 — grepped
 for synonym drift (`medium`, `severe`, `urgent`, `blocker`, `priority`) across every touched doctrine
 file; the two `medium` hits are both `thinking-level: medium` frontmatter, unrelated to severity.
 `awaiting_user` reuses the harness's pre-existing orchestrator status enum
@@ -95,7 +95,7 @@ grepped and confirmed) — not a formatting defect.
 
 Not applicable in the WCAG-contrast/colour-only-meaning sense: every touched surface is plain
 text/YAML/markdown/shell stdout. Grepped all six operator-facing files for ANSI escape sequences and
-emoji — zero hits; `check-state.sh` distinguishes severity by the words `VIOLATION` and `note`, never
+emoji — zero hits; `check-state.py` distinguishes severity by the words `VIOLATION` and `note`, never
 by colour. No markdown tables appear inside any new diff hunk (existing tables in `SKILL.md`/
 `harness-spec-driven/SKILL.md` are untouched by this diff), so no table/plain-text-reader survival
 risk was introduced. This is a source-level judgment; there is no rendered surface for a human to

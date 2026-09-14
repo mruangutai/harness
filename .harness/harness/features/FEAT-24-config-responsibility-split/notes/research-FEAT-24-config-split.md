@@ -44,12 +44,12 @@ named in the dispatch, classified:
   values, not a board read. Not a reader.
 
 Loud-loader surfaces (`load_board` / `derive_station` consumers): `gh-sync.py:139,185`,
-`board-station.py:132`, `check-state.sh:1131,1151,1180`.
+`board-station.py:132`, `check-state.py:1131,1151,1180`.
 
 ## The station-name literals in code, and what they must become
 
 - `gh_board.derive_station` returns `"Building"` (`:115`) and `"Review"` (`:117`).
-- `check-state.sh` INV-26 `_EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}`
+- `check-state.py` INV-26 `_EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}`
   — three more literals, and two of them (`Done`, `Backlog`) are stations the fleet schema's
   three-key set does not cover.
 - `factory_decompose.py:399` resolves `"ready"` through `board_station` already — the model to copy.

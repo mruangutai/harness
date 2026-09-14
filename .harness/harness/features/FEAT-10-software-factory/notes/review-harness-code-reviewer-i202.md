@@ -13,15 +13,14 @@ executed.** Severity high. One additional non-blocking finding (med) on Expertis
 
 - `git grep -n 'check-docs' 835b297 -- .github/` → **zero hits.** `.github/workflows/tests.yml`
   calls only `run-unit-tests.py --kind integration`; its two comment mentions of a checker
-  (lines 4, 69) name `check-state.sh`, not `check-docs.sh` — verified directly, correcting an
+  (lines 4, 69) name `check-state.py`, not `check-docs.sh` — verified directly, correcting an
   earlier misreading on my part.
 - `run-unit-tests.py` and `deploy.sh` at the SHA — no `check-docs` reference.
 - Whole-tree `git grep -n 'check-docs' 835b297`, triaged: every hit is inside a strike record
   (`DECISIONS.md`, `DECISIONS-INDEX.md`), an Expertise file (§2 below), or `.harness/features/**`
   historical artifacts. None is a live invocation.
-- Ran `bash .claude/skills/harness/bin/check-state.sh` and `bash
-  .claude/skills/harness/bin/run-unit-tests.py` in a detached worktree pinned at `835b297`:
-  `check-state.sh` exits 0, zero `INV-10` mentions, only informational notes belonging to unrelated
+- Ran `python3 .claude/skills/harness/bin/check-state.py` and `python3 .claude/skills/harness/bin/run-unit-tests.py` in a detached worktree pinned at `835b297`:
+  `check-state.py` exits 0, zero `INV-10` mentions, only informational notes belonging to unrelated
   in-flight features (FEAT-11/12, out of scope). `run-unit-tests.py` — every test file `PASS`,
   97/97 on the integration-suite tail, no `test-check-docs.py` remnant.
 - `python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff -
@@ -72,7 +71,7 @@ spawn by the `SubagentStart` hook — live instruction, not historical prose, an
 features exclusion in my dispatch. Two files, three lines:
 
 - `.harness/expertise/harness-dev-ops.md:9` (G-01): *"check-docs.sh runs only as a subprocess of
-  check-state.sh (INV-10, check-state.sh:174), and that call is guarded by
+  check-state.py (INV-10, check-state.py:174), and that call is guarded by
   `os.access(cd, os.X_OK)` — if check-docs.sh loses its exec bit, INV-10 silently passes instead of
   failing."* Both the invocation and the invariant number are gone; this now describes a
   vulnerability in a mechanism that no longer runs.
@@ -103,10 +102,10 @@ rather than ruling on the operator's behalf.
   *at the time*. Historical, correctly left.
 - `docs/harness/org.html:345` — "updated 2026-08-06 (through DEC-181)" is a generation-date marker,
   not a live-authority citation. Not a finding.
-- `check-state.sh:460` and `test-check-state.py:211` — the M-01 postmortem docstring/comment,
+- `check-state.py:460` and `test-check-state.py:211` — the M-01 postmortem docstring/comment,
   narrating a specific past incident that once aborted `INV-10` among others. Accurate as history
   (INV-10 existed at the time); low-value staleness only, not worth blocking on.
-- `check-state.sh:856-860` — the INV-10 retirement comment is accurate, including "Do NOT reuse
+- `check-state.py:856-860` — the INV-10 retirement comment is accurate, including "Do NOT reuse
   INV-10."
 - `harness/SKILL.md:220` / `templates/codebase-INDEX.md:10` — `stale: <FEAT>` / `stale: FEAT-NN` is
   DEC-137's codebase-map section-staleness attribute (consumed by `render-map.py`/documentor
@@ -127,7 +126,7 @@ rather than ruling on the operator's behalf.
 - `check-domain.py:779-780` — `out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80
   (DEC-181)."))`. Verified at the SHA: correctly cites DEC-181's surviving budget half. **Confirmed
   correct, not flagged**, per the dispatch's own instruction.
-- `check-state.sh:523` — `INV-23 CLAUDE.md is {len} lines — budget is 80 (DEC-181)` — a second,
+- `check-state.py:523` — `INV-23 CLAUDE.md is {len} lines — budget is 80 (DEC-181)` — a second,
   independent enforcement of the same preserved half. Also correct.
 - `docs/harness/SPEC.md:45` — explicitly reframes: "The ruling came from DEC-104, since struck on
   other grounds under DEC-188; this half of it was never what was contradicted." Correct.

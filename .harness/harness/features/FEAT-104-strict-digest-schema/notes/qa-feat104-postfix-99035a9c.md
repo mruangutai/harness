@@ -7,12 +7,12 @@
 `168f875fba8d70c68694f7def4b9c10c3296ebd7` ("fix(feat-104): close downgrade and
 declaration-route gaps"), a **sibling** of `99035a9c` — both are children of `16887ff0`,
 neither is an ancestor of the other (`git merge-base --is-ancestor` both directions: NO).
-`git diff 99035a9c 168f875f --stat` shows `168f875f` **reverts the F2 fix**: `check-state.sh`'s
+`git diff 99035a9c 168f875f --stat` shows `168f875f` **reverts the F2 fix**: `check-state.py`'s
 persona-switch block (`_version`/`_persona` computed from `schema_version`) is deleted and
 replaced with a hardcoded `_vd_mod.validate("lead", _dtext)`, and `test-check-state.py`'s two
 `_digest_cases` (the F2 regression tests) are deleted outright, along with the `_step_cases`/
 `_report` refactor structure. **`validate-digest.py`'s F3 fix (the file-token wording) is
-unaffected** — that hunk is identical at both commits; only `check-state.sh` + its test changed.
+unaffected** — that hunk is identical at both commits; only `check-state.py` + its test changed.
 
 I raised this to `Feat104Revalidate.Simplify104` and `Feat104Revalidate.Qa104Gate` before
 proceeding. Simplify104 confirmed by return message: its squad authored **no commit** this run
@@ -73,8 +73,8 @@ note and not affected by this fix cycle (T-05 files are untouched between `6126a
 
 | kind | required? | runner state | command | exit | result |
 |---|---|---|---|---|---|
-| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **satisfied** — 36 files, 4 `^FAIL ` lines, all `test-factory-claim-mutation.py`'s own mutation-proof output (§4) |
-| integration | qa-added (not floor) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **satisfied** — 70 files, 0 `^FAIL ` lines; F1/F2/F3 cases all pass (§5) |
+| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **satisfied** — 36 files, 4 `^FAIL ` lines, all `test-factory-claim-mutation.py`'s own mutation-proof output (§4) |
+| integration | qa-added (not floor) | active | `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **satisfied** — 70 files, 0 `^FAIL ` lines; F1/F2/F3 cases all pass (§5) |
 | functional | no | excluded (DEC-187) | — | — | **not_applicable** — repo has no service-API third bucket; unit/integration already split the suite, and this diff adds nothing under `tests/functional/` |
 | component | no | unresolved | — | — | **not_applicable** — not named by `logic`/`docs`/`scaffolding`; diff adds/changes no `*.spec.tsx`/`*.stories.tsx` |
 | ui | no | unresolved | — | — | **not_applicable** — not named by matrix; diff touches no `tests/e2e/**`/`*.e2e.spec.ts`, no interaction flow |
@@ -90,7 +90,7 @@ note and not affected by this fix cycle (T-05 files are untouched between `6126a
 
 ## 4. Complete canonical suite (worktree pinned to `99035a9c`)
 
-`env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py` (no `--kind`
+`env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py` (no `--kind`
 filter), from the worktree root:
 - Exit status captured to a variable: `FULL_EXIT=0`.
 - `106 files`, `pool: 8 workers`, wall time `75.54s` (runner's own report).
@@ -120,7 +120,7 @@ worktree's actual tip). `env -u HARNESS_AGENT_TYPE python3 tests/integration/tes
 → exit 0, `5/5 T-07 undeclared step key cases passed`, `ALL PASSED`. Both new `_digest_cases`
 pass: `completed lead digest is closed against its raw persona` and `historical version-1 lead
 digest remains readable`; both `_step_cases` remnants (3 of them) also pass. Read
-`check-state.sh:1587-1598`: `_persona = _host if (int, non-bool, >=2) else "lead"`, then
+`check-state.py:1587-1598`: `_persona = _host if (int, non-bool, >=2) else "lead"`, then
 `_vd_mod.validate(_persona, _dtext)`.
 
 **F3 — CLOSED.** `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-digest.py` →
@@ -185,13 +185,13 @@ No gap found in either T-06's or T-07's or T-04's new/changed cases.
 - **SC-12** (`verify: inspection`) and **SC-13** (`verify: uat`) — **out of scope for this gate**,
   not evaluated.
 
-## 8. Regression sweep on check-state.sh's own consumers (main checkout corpus)
+## 8. Regression sweep on check-state.py's own consumers (main checkout corpus)
 
-Running the *worktree's* fixed `check-state.sh` directly resolves its root from its own on-disk
+Running the *worktree's* fixed `check-state.py` directly resolves its root from its own on-disk
 location (`harness_boundary.resolve_root`, FEAT-42 T-12) — measured: it resolves to the worktree
 itself, not the main checkout, so it cannot sweep the main checkout's real run corpus without
 being copied there (which DEC-174 forbids). Running the **main checkout's own** (pre-fix, un-
-merged) `check-state.sh` doesn't test the fix at all. So I built a read-only scratch comparison
+merged) `check-state.py` doesn't test the fix at all. So I built a read-only scratch comparison
 (`/tmp/qa104-sweep/sweep_compare.py`, outside the repo, no file written to any checkout) that
 replicates the sweep's exact persona-selection logic against the main checkout's real corpus,
 using the worktree's fixed `validate-digest.py` as the validator:
@@ -215,7 +215,7 @@ using the worktree's fixed `validate-digest.py` as the validator:
 - **No new digest-contract violation.** Not a BLOCKING finding — the fix is a no-op on the real
   historical corpus by construction (D-06), confirmed by measurement rather than assumed from the
   decision text.
-- Five INV-29 standing-worktree violations observed separately (`check-state.sh` run from the
+- Five INV-29 standing-worktree violations observed separately (`check-state.py` run from the
   main checkout, unrelated invariant) — `BUG-1480-handoff-note-checkout-root`,
   `BUG-201-depends-on-integrity`, `BUG-440-digest-verdict-reconciliation`,
   `FEAT-55-issue-types-created-work`, and one unresolvable-path worktree

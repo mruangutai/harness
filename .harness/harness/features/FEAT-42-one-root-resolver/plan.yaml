@@ -26,7 +26,7 @@ lanes:
     - surface: .claude/skills/harness/bin/validate-digest.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
     - surface: .claude/skills/harness/bin/check-plan-routes.py
@@ -269,9 +269,9 @@ tasks:
       for t in test-harness-boundary.py test-wayfind.py; do
         grep -q "$t" $B/run-unit-tests.py || { echo "$t unregistered"; exit 1; }
       done
-      bash $B/run-unit-tests.py --check-kinds || exit 1
-      ( cd /tmp && bash "$OLDPWD/$B/run-unit-tests.py" --kind unit > /tmp/f42-t03-away.txt 2>&1 )
-      bash $B/run-unit-tests.py --kind unit > /tmp/f42-t03-here.txt 2>&1
+      python3 $B/run-unit-tests.py --check-kinds || exit 1
+      ( cd /tmp && python3 "$OLDPWD/$B/run-unit-tests.py" --kind unit > /tmp/f42-t03-away.txt 2>&1 )
+      python3 $B/run-unit-tests.py --kind unit > /tmp/f42-t03-here.txt 2>&1
       A=$(grep -cE '^(PASS|FAIL)' /tmp/f42-t03-away.txt)
       H=$(grep -cE '^(PASS|FAIL)' /tmp/f42-t03-here.txt)
       # grep -c writes 0 on no match, so equal counts alone are satisfied by a suite that
@@ -329,7 +329,7 @@ tasks:
       B=.claude/skills/harness/bin
       grep -rn "harness_root" $B/ && { echo "harness_root survives"; exit 1; }
       grep -q "HARNESS_PROJECT_DIR" $B/factory_config.py && { echo "chain survives"; exit 1; }
-      bash $B/run-unit-tests.py --kind all || exit 1
+      python3 $B/run-unit-tests.py --kind all || exit 1
       echo T-04-OK
     intent: |
       DELETE the function harness_root() at .claude/skills/harness/bin/factory_config.py:44-58. It
@@ -419,7 +419,7 @@ tasks:
       grep -v "$X" /tmp/f42-t05-after.txt > /tmp/f42-t05-after-cmp.txt
       grep -q "^PASS $X" /tmp/f42-t05-after.txt || { echo "$X does not pass against the live tree"; exit 1; }
       diff /tmp/f42-t05-before-cmp.txt /tmp/f42-t05-after-cmp.txt || { echo "harness_yaml change moved the gate"; exit 1; }
-      bash $B/run-unit-tests.py --kind all || exit 1
+      python3 $B/run-unit-tests.py --kind all || exit 1
       echo T-05-OK
     intent: |
       Three independent chain sites, all resolving to the same replacement.
@@ -436,7 +436,7 @@ tasks:
       happened to be standing in. Let the exception surface with its message rather than catching it
       to preserve today's exit code.
 
-      harness_yaml.require_or_die() is reached by check-plan-routes.py, check-state.sh, gh-sync.py
+      harness_yaml.require_or_die() is reached by check-plan-routes.py, check-state.py, gh-sync.py
       and upgrade-config.py. check-plan-routes.py is a gate under DEC-174 am.4, so this task carries
       am.4's library proof: the verify drives the gate's OWN test suite twice through the
       CHECK_PLAN_ROUTES_BIN seam at test-check-plan-routes.py:18 — once against the check-plan-routes
@@ -577,7 +577,7 @@ tasks:
       Do three things and nothing else.
 
       FIRST, `run()` sets HARNESS_PROJECT_DIR alongside the host-owned name. Both, not one:
-      check-state.sh still reads the host name at this point in the plan, and T-12 has not run.
+      check-state.py still reads the host name at this point in the plan, and T-12 has not run.
 
       SECOND, cases (e) and (f) write MARKER instead of the SPEC.md probe, and take the path
       from `harness_boundary.MARKER` rather than spelling it again - a fixture that hard-codes
@@ -605,7 +605,7 @@ tasks:
       row deletion breaks loudly there rather than quietly here.
 
       DO NOT touch x.1, x.3, x.4, or any INV-29 case other than (e), (f.7) and (f.8). DO NOT
-      change check-state.sh; its cutover is T-12 and it still reads the host-owned name today.
+      change check-state.py; its cutover is T-12 and it still reads the host-owned name today.
 
   - id: T-07
     title: Add the zero-occurrence invariant for the env chain, with a mutation proof that it can fail
@@ -910,21 +910,21 @@ tasks:
       compares two different trees.
 
   - id: T-12
-    title: Cut check-state.sh over to the resolver, with the identical-violation-set proof
+    title: Cut check-state.py over to the resolver, with the identical-violation-set proof
     traces: [REQ-01, REQ-02, REQ-09]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 names check-state.sh in the enforcement layer
+    execution_reason: DEC-174 am.4 names check-state.py in the enforcement layer
     depends_on: [T-03, T-05]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
       - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      G=check-state.sh
+      G=check-state.py
       grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
       for M in /tmp/f42-old /tmp/f42-new; do
         rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
@@ -958,7 +958,7 @@ tasks:
       bash $B/$G; test $? -le 1 || { echo "state checker crashed rather than reporting"; exit 1; }
       echo T-12-OK
     intent: |
-      One chain site: .claude/skills/harness/bin/check-state.sh:22, the module-level assignment
+      One chain site: .claude/skills/harness/bin/check-state.py:22, the module-level assignment
       root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". This is the ninth resolver, and
       the AST census could not see it because it is a shell assignment rather than a function.
 
@@ -998,7 +998,7 @@ tasks:
       refusal into "no harness root could be resolved", which names the symptom, not the cause.
 
       A NINTH TEST FILE, VISIBLE ONLY IN THE FULL SUITE. test-layout-migration.py drives the
-      REAL check-state.sh against a fixture to prove its INV-27 block and layout_migration.render()
+      REAL check-state.py against a fixture to prove its INV-27 block and layout_migration.render()
       name the same reader set. With one name set the gate resolved to the LIVE checkout,
       reported nothing about the fixture, and seven parity comparisons saw an EMPTY gate side
       and called it a mismatch. Its verify runs only the targeted suites, so nothing in this
@@ -1465,7 +1465,7 @@ tasks:
                .claude/agents/harness-validator-lead.md; do
         grep -q "HARNESS-FEATURE" "$f" || { echo "$f does not state the required field"; exit 1; }
       done
-      bash .claude/skills/harness/bin/check-state.sh; test $? -le 1 || exit 1
+      python3 .claude/skills/harness/bin/check-state.py; test $? -le 1 || exit 1
       python3 .claude/skills/harness/bin/test-orchestrator-playbook.py || exit 1
       echo T-19-OK
     intent: |
@@ -1516,8 +1516,8 @@ tasks:
       test "$HITS" = "0" || { echo "HARNESS_PROJECT_DIR still set outside bin/ in $HITS place(s)"; git ls-files -z -- '*.ts' '*.js' '*.json' | xargs -0 grep -n 'HARNESS_PROJECT_DIR' 2>/dev/null | grep -v '/bin/'; exit 1; }
       grep -q 'spawnSync(join(cwd, BIN, script)' "$F" || { echo "the policy-script spawn no longer resolves through join(cwd, BIN, script)"; exit 1; }
       grep -q 'process.env' "$F" || { echo "the child no longer inherits the host environment at all - too much was removed"; exit 1; }
-      bash .claude/skills/harness/bin/check-domain.py --resolve .omp/extensions/harness-hooks.ts > /dev/null 2>&1
-      bash .claude/skills/harness/bin/check-state.sh; test $? -le 1 || exit 1
+      python3 .claude/skills/harness/bin/check-domain.py --resolve .omp/extensions/harness-hooks.ts > /dev/null 2>&1
+      python3 .claude/skills/harness/bin/check-state.py; test $? -le 1 || exit 1
       echo T-20-OK
     intent: |
       In .omp/extensions/harness-hooks.ts, the runPolicy helper at line 142 spawns every OMP-hosted

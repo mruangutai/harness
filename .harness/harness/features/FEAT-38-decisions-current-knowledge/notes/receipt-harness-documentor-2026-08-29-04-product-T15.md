@@ -4,7 +4,7 @@
 replaced: it no longer teaches where to place an appended correction inside a decision's section, it
 now mandates rewriting the falsified entry in place while keeping the disproved claim as one undated,
 unattributed clause. Every substantive clause of T-15's `verify:` passes. **The `verify:` block as
-written in `plan.yaml` cannot pass**: its last gate invokes `check-expertise.sh` with no argument,
+written in `plan.yaml` cannot pass**: its last gate invokes `check-expertise.py` with no argument,
 which is a usage error (exit 2) by the script's own contract, so the block exits 1 regardless of
 file content. Observed exit status of the block run verbatim: **1**. This is a plan defect, not a
 content failure — raised as Q1.
@@ -29,8 +29,8 @@ Run from inside the worktree; `git rev-parse --show-toplevel` resolved to the wo
 | `grep -qi 'amendment'` on the file | exit 1 — token absent file-wide, so `&& exit 1` does not fire |
 | `grep -qE '^- P-01: WHEN '` | exit 0, matches line 4 |
 | `grep -qE '^- P-02: '` | exit 0, matches line 8 |
-| `check-expertise.sh` **with no argument** (as the plan writes it) | exit 2, prints `usage:` → block exits 1 |
-| `check-expertise.sh "$E"` (the check the clause intended) | exit 0, `OK .harness/harness/expertise/harness-documentor.md` |
+| `check-expertise.py` **with no argument** (as the plan writes it) | exit 2, prints `usage:` → block exits 1 |
+| `check-expertise.py "$E"` (the check the clause intended) | exit 0, `OK .harness/harness/expertise/harness-documentor.md` |
 | whole `verify:` block, verbatim | **exit 1** (cause: the argumentless invocation above) |
 
 Checker non-vacuity: `python3 .claude/skills/harness/bin/test-check-expertise.py` → 22/22 pass,

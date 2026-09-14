@@ -3,41 +3,41 @@
 **Run-state `steps[]` shape question — answered:** SPLIT. The 22 step keys, the `evidence`
 property-name pattern and the `evidence` value-type union are each declared ONCE, in
 `run-state-schema.json:19-58`, and both `check-domain.py:1618-1629` (write time) and
-`check-state.sh:1490-1499` (read time) load that JSON file and derive `_declared`/`_declared_step_keys`
+`check-state.py:1490-1499` (read time) load that JSON file and derive `_declared`/`_declared_step_keys`
 from `_step_schema["properties"]` at runtime — no parallel key list for the steps sub-schema. Good.
 BUT the **top-level document key set** (`schema_version`…`digest`, 24 keys) is a THIRD case: it lives
 in the schema's own top-level `properties` (`run-state-schema.json:8-74`) *and* is separately
 hand-copied as `ALLOWED` in `check-domain.py:1537-1540` *and* again as `CHECKPOINT_KEYS` in
-`check-state.sh:1397-1411` — neither reads the schema for this part. All three agree today (verified
+`check-state.py:1397-1411` — neither reads the schema for this part. All three agree today (verified
 by diff of the sets). This part of the top-level shape is pre-existing (untouched by this diff), so
 it's reported as background risk, not a T-06/T-07 defect. A genuine, in-diff duplication is finding 1
 below: the two step-key rejection MESSAGES already disagree in wording.
 
 ### Findings
 
-1. **`check-domain.py:1654-1660` vs `check-state.sh:1524-1530`** — the write-time and at-rest
+1. **`check-domain.py:1654-1660` vs `check-state.py:1524-1530`** — the write-time and at-rest
    "undeclared step key or evidence shape" rejection messages are two independently hand-written
    strings, both new in this diff (T-06/T-07). **Cost:** they have already drifted — the write-time
    message spells out the `evidence` recovery format ("a per-dispatch fact goes under `evidence` with
    a lowercase identifier key and a scalar or scalar-array value"); the at-rest message drops that
    guidance entirely ("put per-dispatch facts under evidence"). An agent who trips this at write time
-   gets the fuller guidance; the same violation found later by `check-state.sh` gets a terser one that
+   gets the fuller guidance; the same violation found later by `check-state.py` gets a terser one that
    omits the identifier-key/scalar-array detail. The next wording change (e.g. a new evidence
    constraint) has to be applied in both places, and this file pair already shows the "one nobody
    remembers goes stale" failure has already happened once. **Alternative:** both scripts already
-   import shared sibling modules from the same `bin/` directory at runtime (`check-state.sh` imports
+   import shared sibling modules from the same `bin/` directory at runtime (`check-state.py` imports
    `factory_config` specifically to avoid this exact class of drift, per its own comment at
-   `check-state.sh:78-80`, citing FEAT-41's "six-key mapping and a validator disagree"). Add one
+   `check-state.py:78-80`, citing FEAT-41's "six-key mapping and a validator disagree"). Add one
    function — e.g. `run_state_schema.step_key_violation_message(offending, step_id=None)` in a new or
    existing shared module both heredocs already put on `sys.path` — and call it from both sites
    instead of composing the string twice. **worth-doing: yes** — small, mechanical, and closes a
    drift that has already happened once inside this same feature's own diff.
 
 2. **Top-level run-state key set triplicated** (`run-state-schema.json:8-74` /
-   `check-domain.py:1537-1540` `ALLOWED` / `check-state.sh:1397-1411` `CHECKPOINT_KEYS`) — three
+   `check-domain.py:1537-1540` `ALLOWED` / `check-state.py:1397-1411` `CHECKPOINT_KEYS`) — three
    independent spellings of the same 24-key top-level set, none derived from either of the other two.
    They agree today (diffed all three sets: identical). **Cost:** the exact drift class FEAT-41
-   already names in `check-state.sh:78-80` as the reason `factory_config` exists — a future top-level
+   already names in `check-state.py:78-80` as the reason `factory_config` exists — a future top-level
    key addition (e.g. a new pin field) edited into the schema and one enforcement script but not the
    third silently either rejects a legal checkpoint or accepts an undeclared one, and nothing here
    flags the disagreement because each site treats its own literal as truth. **Alternative:** the

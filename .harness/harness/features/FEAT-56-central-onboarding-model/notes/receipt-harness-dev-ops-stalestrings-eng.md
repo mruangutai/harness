@@ -9,20 +9,20 @@ string's, run in this follow-up dispatch. The Q1 I raised on the prior pass (sib
 occurrence in `_handoff_done_when_baseline_note`) is now fixed and closed, per lead
 authorization confirming it is the last live occurrence in the tree.
 
-## 1. check-state.sh (comment block, lines 373–381 pre-edit)
+## 1. check-state.py (comment block, lines 373–381 pre-edit)
 
-Before (`check-state.sh:373-374`, verified at HEAD via Read):
+Before (`check-state.py:373-374`, verified at HEAD via Read):
 > `# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). This file is`
 > `# COPIED INTO EVERY ONBOARDED PROJECT by /harness-init, so a hardcoded date would export`
 
-After (`check-state.sh:373-374`, post-edit):
+After (`check-state.py:373-374`, post-edit):
 > `# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). One`
 > `# control-plane clone runs this script against MANY product repositories, each`
 > `# carrying its own `.harness/harness.json`, read from that repository's own default`
 > `# branch, so a hardcoded date would still export one repository's history as another's`
 
 Conclusion (the 2026-08-31 consequence sentence and the upgrade-config.py
-additive-merge sentence, `check-state.sh:376-380`) kept verbatim, only the false premise
+additive-merge sentence, `check-state.py:376-380`) kept verbatim, only the false premise
 sentence was rewritten. Block still spans `# WHY AN ERA GUARD EXISTS AT ALL` (line 364)
 through `_era_cfg = read(...)` (now line 384, unchanged), `#`-prefix and line-width style
 preserved (all new lines ≤ 86 chars incl. `# `).
@@ -31,7 +31,7 @@ preserved (all new lines ≤ 86 chars incl. `# `).
 
 Before (verified via Read at line 4):
 > "...null means this project has no pre-panel era, so every approved plan is graded —
-> the right value for a project onboarded after FEAT-45. **check-state.sh is copied into
+> the right value for a project onboarded after FEAT-45. **check-state.py is copied into
 > every onboarded project, so this MUST be per-project**: a hardcoded date would export
 > one repository's history as another's gate (BUG-1071 panel finding F2)."
 
@@ -49,7 +49,7 @@ Conclusion ("this MUST be per-project" / the hardcoded-date consequence) and the
 ## 3. .harness/harness.json `_handoff_done_when_baseline_note` (line 6) — Q1, now fixed
 
 Before (verified via Read at line 6, tail sentence):
-> "It is per-project because check-state.sh is copied into every onboarded project; a
+> "It is per-project because check-state.py is copied into every onboarded project; a
 > global list would export this repository's history as another's policy."
 
 After (line 6, tail sentence):
@@ -58,7 +58,7 @@ After (line 6, tail sentence):
 > repository whose history it describes; a global list would export this repository's
 > history as another's policy."
 
-Same false premise as the two fixed in the prior pass (check-state.sh is copied into
+Same false premise as the two fixed in the prior pass (check-state.py is copied into
 every onboarded project — it is not; it lives and runs only in the control-plane
 clone). Conclusion ("a global list would export this repository's history as another's
 policy") kept verbatim; only the reason clause was rewritten. Rest of the note (frozen
@@ -74,9 +74,9 @@ scope by design.
 ## Acceptance checks
 
 1. **JSON validity:** `env -u HARNESS_AGENT_TYPE python3 -c "import json;json.load(open('.harness/harness.json'))"` → exit 0.
-2. **Bash syntax:** `env -u HARNESS_AGENT_TYPE bash -n .claude/skills/harness/bin/check-state.sh` → exit 0.
-3. **Behavioral parity (before/after check-state.sh):**
-   - Baseline captured by swapping in `git show HEAD:...check-state.sh` in place (not via
+2. **Bash syntax:** `env -u HARNESS_AGENT_TYPE python3 -m py_compile .claude/skills/harness/bin/check-state.py` → exit 0.
+3. **Behavioral parity (before/after check-state.py):**
+   - Baseline captured by swapping in `git show HEAD:...check-state.py` in place (not via
      `/tmp` copy — a bare `/tmp` copy breaks `harness_boundary` module resolution
      alongside the script, which is a false negative, not a real baseline; caught this
      and redid it correctly), ran it, then restored my edited file.
@@ -87,7 +87,7 @@ scope by design.
 4. **Unit tests:** `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py --kind unit` → **exit 0**. Exactly 4 `^FAIL ` lines, all from
    `tests/unit/test-factory-claim-mutation.py` (BUG-1290 5a/5b/5b/5c) — the documented
    by-design failures. No FAIL lines from any other file.
-5. **git status --porcelain:** shows only `.claude/skills/harness/bin/check-state.sh`,
+5. **git status --porcelain:** shows only `.claude/skills/harness/bin/check-state.py`,
    `.harness/harness.json` (mine), `.claude/skills/harness/templates/harness.json`
    (main session's concurrent work, untouched by me), plus concurrent peer artifacts
    (`observations/harness-pm.md`, `notes/research-FEAT-56-goalcheck-ship-c0.md`,
@@ -102,8 +102,8 @@ scope by design.
    → `['_handoff_done_when_baseline_note', '_panel_era_start_note']`, exactly the two
    authorized keys, nothing else. `handoff_done_when_baseline` array membership
    unchanged (confirmed by this same key-diff: it does not appear).
-8. **check-state.sh parity vs. prior dispatch:** `env -u HARNESS_AGENT_TYPE
-   .claude/skills/harness/bin/check-state.sh` → exit `1`, `wc -l` **1349** — identical
+8. **check-state.py parity vs. prior dispatch:** `env -u HARNESS_AGENT_TYPE
+   .claude/skills/harness/bin/check-state.py` → exit `1`, `wc -l` **1349** — identical
    to the prior dispatch's recorded values (exit 1, 1349 lines). Discovery volume
    unchanged; not a FAIL.
 9. **Unit tests (re-run):** `env -u HARNESS_AGENT_TYPE
@@ -111,7 +111,7 @@ scope by design.
    `^FAIL ` lines from `test-factory-claim-mutation.py` (BUG-1290 5a/5b/5b/5c), no
    other-file FAILs.
 10. **git status --porcelain (re-run):** `.harness/harness.json` (mine, string 3 now
-    included), `check-state.sh`, `templates/harness.json` (main session's), this
+    included), `check-state.py`, `templates/harness.json` (main session's), this
     receipt, and the same concurrent peer artifacts as before
     (`observations/harness-pm.md`, `notes/research-FEAT-56-goalcheck-ship-c0.md`,
     `notes/uat-FEAT-56.md`) — none authored by me. No commit made.

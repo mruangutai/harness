@@ -151,7 +151,7 @@ T-03 [REQ-08], T-04 [REQ-08]; every REQ-01..09 is traced. Orphans: `[]` both dir
 a sha256 comparison, an id sequence, or a named RED demonstration. Violators: `none`.
 
 **B-5. Verifiability.** Confirmed on disk: `tests/integration/test-expertise-merge.py`,
-`tests/integration/test-gen-decisions-index.py`, `.claude/skills/harness/bin/check-expertise.sh`,
+`tests/integration/test-gen-decisions-index.py`, `.claude/skills/harness/bin/check-expertise.py`,
 `.claude/skills/harness/bin/gen-decisions-index.py`, `.claude/skills/harness-distill/SKILL.md` all
 exist; `tests/unit/test-expertise-ops.py` does not and is created by T-01, which is correct. All four
 verify blocks are targeted single-suite or grep invocations, no project-wide suite. Gaps: `none`.

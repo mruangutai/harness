@@ -64,7 +64,7 @@ task, every active task traces at least one REQ, and no task cites a REQ that do
 
 ## Gate state at signature
 
-- `check-state.sh` reports exactly **two** FEAT-104 violations. One is the signature gate itself
+- `check-state.py` reports exactly **two** FEAT-104 violations. One is the signature gate itself
   ("BRIEF.md is NOT approved"), which is the gate working.
 - The other is the INV-26 false positive: its not-started skip requires `all(status == "ready")`,
   so T-02's `abandoned` value alone makes it demand `gh-sync.py open` — a command the mirror

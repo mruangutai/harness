@@ -63,7 +63,7 @@ unset). The governed run passing IS the criterion; a workaround here would have 
 Ran the full `integration` kind's standing command with `HARNESS_AGENT_TYPE=harness-orchestrator`
 set ambient for the whole runner (not just the one file):
 ```
-$ HARNESS_AGENT_TYPE=harness-orchestrator bash .agents/skills/harness/bin/run-unit-tests.py --kind integration
+$ HARNESS_AGENT_TYPE=harness-orchestrator python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration
 EXIT=0   FAIL-line count=0
 ```
 **No other test file reddens** under the governed ambient identity, at this pin. Independently

@@ -101,7 +101,7 @@ filing it, since self-scoping bounds this review to the diff.
 **Deletion regression check (P-04) — ran the actual suite, did not trust the receipt's GREEN
 claim.** `factory_decompose.py` deletes `_item_repo` and the old `_find_existing_item_id` body.
 `grep -rn "_item_repo\b" .claude/skills/harness/bin/` returns zero hits (fully removed, no dead
-reference). Ran `bash .claude/skills/harness/bin/run-unit-tests.py --kind unit` myself
+reference). Ran `python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit` myself
 (read-only, no `gh` calls): all ten suites PASS, including `test-factory-claim.py`,
 `test-factory-land.py`, `test-factory-decompose.py`, `test-factory-gh.py`. No fail-open left by
 the deletion.
@@ -114,7 +114,7 @@ named.
 
 ## DEC-174 carve-out
 
-No touch to `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, or `check-state.sh` in
+No touch to `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, or `check-state.py` in
 this diff.
 
 ```yaml

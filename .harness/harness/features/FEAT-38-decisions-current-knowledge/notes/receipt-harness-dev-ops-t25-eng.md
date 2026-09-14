@@ -20,7 +20,7 @@ $ python3 - <<'PY'
 PY
 detect entries: 29
 
-$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 EXIT_CODE=0
 ```

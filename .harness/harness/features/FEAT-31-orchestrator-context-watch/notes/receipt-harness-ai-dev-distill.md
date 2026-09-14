@@ -65,7 +65,7 @@ Diffed worktree `.harness/expertise/harness-ai-dev.md` and `.harness/harness/exp
 against the main checkout's copies before applying: both identical (`diff` exit 0 on both). No
 staleness; safe to apply.
 
-## check-expertise.sh result (verbatim, whole directory)
+## check-expertise.py result (verbatim, whole directory)
 
 ```
 OK   .harness/expertise/harness-ai-dev.md

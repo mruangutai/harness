@@ -14,7 +14,7 @@ zero enforcing assertion anywhere in the plan — including the detector itself.
 - This feature is shell/Python gate code plus a directory rename — no markup, no CSS, no rendered
   surface. Scoping out on that basis alone would be correct, per the dispatch's own framing.
 - The dispatch names one adjacent in-remit surface: operator-facing diagnostic text emitted by
-  `branch-create-gate.py` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.sh`
+  `branch-create-gate.py` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.py`
   (T-05). Audited all three against the plan's actual verify blocks and the real files at HEAD, then
   swept T-02/T-03 (`team-config.yaml`, `check-domain.py`) for the same gap class since they are the
   other two reader-migration tasks in the same coupled cluster.
@@ -66,7 +66,7 @@ neither does the detector's own row for this file.**
 
 ## Checked clean
 
-- **T-05 (`check-state.sh`)**: no equivalent gap. Its finding messages (e.g. `INV-17`, `INV-26`
+- **T-05 (`check-state.py`)**: no equivalent gap. Its finding messages (e.g. `INV-17`, `INV-26`
   lines) build path text from variables (`feat`, `rel`) derived from the same join sites the task
   migrates, not from separately hardcoded literals. Direct grep of the file for
   `.harness/features` outside the join calls found exactly one hit, a comment at line 51, never

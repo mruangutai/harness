@@ -32,7 +32,7 @@ Ran a Python scan (not shell grep) over `.claude/skills/harness/bin/`:
   `test-check-decision-anchors.py` were not touched.
 
 ## Verify
-- `bash .claude/skills/harness/bin/run-unit-tests.py`: exit status `0`.
+- `python3 .claude/skills/harness/bin/run-unit-tests.py`: exit status `0`.
 - FAIL-line count, counted in Python
   (`sum(1 for l in lines if l.startswith("FAIL "))`): `0`.
 - Registered vs. ran: `UNIT_SCRIPTS` (27) + `INTEGRATION_SCRIPTS` (28) = 55

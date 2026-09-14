@@ -24,7 +24,7 @@ means nothing to see here."
 | integration exit 0, 14 PASS / 0 FAIL | full `--kind integration`: exit 0, 46 files, **1240 `PASS`/1787 `ok` lines, 0 FAIL** (whole-bucket total, not what "14" describes); `tests/integration/test-run-unit-tests-layout.py` alone (the file this diff actually touches): **exit 0, 14 `PASS`, 0 FAIL** — orchestrator's "14" is this file's count, not the bucket's. Both true; worth the correction so a later reader doesn't take "14" as the whole integration suite. | ✅ (scoped correctly) |
 | `--check-layout` exit 0 | exit 0 | ✅ |
 | tree-audit TOTAL 85 OUTSIDE 9 VIOLATIONS 0 | read `notes/qa-tree-audit.md` BLUF verbatim: TOTAL 85, OUTSIDE 9, VIOLATIONS 0 at `4b343d80` — did not re-run tree-audit myself (author-nothing dispatch, note is the pinned record); consistent with a clean `--check-layout` | ✅ (accepted on record, corroborated by check-layout) |
-| `check-state.sh` exit 0, no note for this feature | exit 0; scanned full output — every emitted `note` line names a *different* feature (FEAT-29, BUG-1128, FEAT-15, FEAT-20, FEAT-02, FEAT-05, FEAT-43, INV-28/BUG-1081); none names BUG-1286 | ✅ |
+| `check-state.py` exit 0, no note for this feature | exit 0; scanned full output — every emitted `note` line names a *different* feature (FEAT-29, BUG-1128, FEAT-15, FEAT-20, FEAT-02, FEAT-05, FEAT-43, INV-28/BUG-1081); none names BUG-1286 | ✅ |
 
 ## Which of the 12 new helpers a test can actually redden
 All 12 (`_unit_integration_findings`, `_runner_selection_findings`, `_bin_planted(_findings)`,

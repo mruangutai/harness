@@ -1,7 +1,7 @@
 # BUG-1507 — panel record: the goalcheck reader row
 
 **The record was incomplete, not the work.** `plan.yaml`'s `panel.readers` listed two rows
-(`should-not-exist`, `scope`) while `check-state.sh:534` expects the reader set
+(`should-not-exist`, `scope`) while `check-state.py:534` expects the reader set
 `{should-not-exist, scope, goalcheck}`. The goal-check reader did run. One row closes INV-32.
 
 ## Evidence the row is `ran`, not `skipped`
@@ -12,7 +12,7 @@
   `notes/research-BUG-1507-planfix-c1.md`.
 - both runs are recorded in `feature.json` `runs:` and in `STATE.md`'s log.
 
-A `skipped` row would additionally require `persona` and `reason` (`check-state.sh:540-547`); this
+A `skipped` row would additionally require `persona` and `reason` (`check-state.py:540-547`); this
 row is `{ reader: goalcheck, status: ran }` — two keys, nothing else.
 
 ## What was written
@@ -55,11 +55,11 @@ and unstaged; nothing staged, no commit.
 
 ## Confirmation
 
-`check-state.sh` at this tree reports BUG-1507's INV-32 only as four `note` lines (one per resolved
+`check-state.py` at this tree reports BUG-1507's INV-32 only as four `note` lines (one per resolved
 finding). No `fail` line names BUG-1507 or INV-32.
 
 ## Open
 
-- `check-state.sh` notes a separate, pre-existing item on this feature: run dir
+- `check-state.py` notes a separate, pre-existing item on this feature: run dir
   `2026-09-08-panelrow-product` exists on disk but `feature.json` does not record it. Out of scope
   here — flagged for the orchestrator's reconciliation.

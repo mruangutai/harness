@@ -128,7 +128,7 @@ Exit status: `0` (55 of 55 satisfies `-ge 22` — see the honesty section below
 for why this line is vacuous for this task's work, exactly as flagged in
 the dispatch).
 
-### Line 3: `bash .claude/skills/harness/bin/run-unit-tests.py --kind unit`
+### Line 3: `python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Full output is long (1041 lines, many unrelated unit scripts); the lines
 that matter:

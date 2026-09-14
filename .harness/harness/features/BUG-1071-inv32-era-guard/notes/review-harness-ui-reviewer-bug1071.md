@@ -7,13 +7,13 @@
   `review_sha`. No design contract exists for this bug, consistent with it being a gate-script
   fix rather than a UI feature.
 - Rendered-surface file count in the diff: **0**. The diff touches exactly two files,
-  `.claude/skills/harness/bin/check-state.sh` and `.claude/skills/harness/bin/test-check-state.py`
+  `.claude/skills/harness/bin/check-state.py` and `.claude/skills/harness/bin/test-check-state.py`
   — a shell/Python gate script and its Python test suite. No `.html`, `.css`, `.scss`, `.tsx`,
   `.jsx`, `.vue`, `.svelte`, `.less`, template, or markup file appears anywhere in the 139-line
   diff (`git diff --stat 75daa3bb bf12a96b`).
 - Operator-facing output: the diff adds two new `warn.append(...)` calls inside the INV-32 era
-  guard (`check-state.sh` lines ~198-214), each printed at runtime with the `note` label (per
-  `check-state.sh:1906`, `for m in warn: print(f"  note       {m}")` — the internal list is named
+  guard (`check-state.py` lines ~198-214), each printed at runtime with the `note` label (per
+  `check-state.py:1906`, `for m in warn: print(f"  note       {m}")` — the internal list is named
   `warn` but the printed category is `note`, matching the file's existing non-blocking-item
   convention, e.g. INV-17's exemption note and INV-22's budget note use the same label).
 
@@ -44,8 +44,8 @@ house convention this role's Expertise (G-13) exists to check for, and the new n
 of it: an operator reading it must independently discover that the fix is adding an
 `approval.date: YYYY-MM-DD` key to the plan's `approval:` block in `plan.yaml` — a fact stated
 only in the surrounding code comments, never in the message itself. Concrete scenario: an operator
-scanning 32 `check-state.sh` notes at once sees this one, wants to close it, and has nothing in
-the string itself to act on. Non-blocking because `check-state.sh` exits 0 regardless (verified:
+scanning 32 `check-state.py` notes at once sees this one, wants to close it, and has nothing in
+the string itself to act on. Non-blocking because `check-state.py` exits 0 regardless (verified:
 `exit=0` with this note present) — this is a clarity gap, not a functional one.
 
 **F2 — no finding.** The pre-era note is fine as written:

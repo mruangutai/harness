@@ -34,7 +34,7 @@ end of the pipe (expected shell behavior with `grep -q`, not a test failure) —
 own reported exit status is `CHAIN_EXIT=0`.
 
 ## Verify — unit suite
-Command run: `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py`
+Command run: `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py`
 (the task's literal `tests/run-unit-tests.py` does not exist in this checkout; the real
 script lives at `.claude/skills/harness/bin/run-unit-tests.py`, confirmed by repo grep).
 

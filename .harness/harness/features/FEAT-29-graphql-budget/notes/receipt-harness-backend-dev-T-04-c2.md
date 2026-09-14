@@ -122,5 +122,5 @@ Tail: `19/19 cases passed.` / `PASS test-inject-expertise.py`. `task_verify: pas
 ## No live `gh` call
 
 All runs drove `factory_gh.subprocess.run` through the recorder fake, per the hard constraint.
-No `gh` binary invoked, `check-state.sh` not run, `gh_cost_log.py`/`test-gh-cost-log.py` not
+No `gh` binary invoked, `check-state.py` not run, `gh_cost_log.py`/`test-gh-cost-log.py` not
 created.

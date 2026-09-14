@@ -300,7 +300,7 @@ every base claim in the table holds — and the paragraph now names all four pat
 
 Nothing outside the three items changed. The LEAVE list, D-07's shape, the seven collation criteria
 and both `## Approval` blocks are untouched. No gate script was run — `check-docs.sh`,
-`check-state.sh`, `check-domain.py` and `run-unit-tests.py` are all withheld by dispatch; every
+`check-state.py`, `check-domain.py` and `run-unit-tests.py` are all withheld by dispatch; every
 command above is `grep`, `awk` or `git status`. Nothing was written under `runs/`.
 
 **My own return block was piped through the validator, as the dispatch mandates** — the one piece of

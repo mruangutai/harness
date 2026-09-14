@@ -35,7 +35,7 @@ SC-10 was rewritten to say exactly that:
 | file | its named assertion |
 |---|---|
 | `gh_board.py` | T-04 literal-absence grep + positive control |
-| `check-state.sh` | T-05 INV-26 slice greps + positive control |
+| `check-state.py` | T-05 INV-26 slice greps + positive control |
 | `gh-sync.py` | T-04 `an unusable board config is a loud failure, not a skipped station write` |
 | `board-station.py` | T-04 two named cases |
 | `factory_config.py` | T-02's named `product_config`/`board_for` cases |
@@ -133,7 +133,7 @@ OK T-01 granted to harness-backend-dev, harness-dev-ops
 OK T-02 granted to harness-backend-dev, harness-dev-ops
 OK T-03 granted to harness-backend-dev, harness-dev-ops
 OK T-04 granted to harness-backend-dev, harness-dev-ops
-DEVIATION T-05 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-05 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 OK T-06 granted to harness-dev-ops
 OK T-07: declared main-session-direct (.harness/factory/fleet.yaml ungranted)
 OK T-08: declared main-session-direct (.claude/skills/harness/templates/harness.json ungranted)

@@ -1,6 +1,6 @@
 # T-22 record — INV-26 widened, and its own verify proves nothing
 
-Executed by the operator's hand under DEC-174. `check-state.sh` and `test-check-state.py` are
+Executed by the operator's hand under DEC-174. `check-state.py` and `test-check-state.py` are
 named in the enforcement layer; no squad touched either.
 
 ## The change
@@ -11,11 +11,11 @@ feature's own `feature.json` status is `Review`**. Outside that status the expec
 unchanged and stays exactly the done station.
 
 Located by symbol, not by the plan's line numbers, which had moved: `_EXPECT` is at
-`check-state.sh:1275`, not `:1234`. FEAT-26's INV-28 is already present and was not touched.
+`check-state.py:1275`, not `:1234`. FEAT-26's INV-28 is already present and was not touched.
 
 ## THE VERIFY IS A GREEN ASSERTION THAT CANNOT GO RED. READ THIS BEFORE TRUSTING IT.
 
-T-22's verify is `! check-state.sh | grep -E "INV-26 .*should read"`.
+T-22's verify is `! check-state.py | grep -E "INV-26 .*should read"`.
 
 It passed **before** the change and after it. There were no INV-26 station findings to remove,
 because FEAT-33's own `feature.json` status is `Ready`, so the widening does not apply to this
@@ -70,7 +70,7 @@ not measuring the change, they are guarding it.
 Its wording: *"the same feature at status Done with the same card is still a VIOLATION"*.
 
 At status `Done` the **terminal exemption** `continue`s before the per-task comparison is ever
-reached — `check-state.sh:1295`, and existing case v.3 asserts exactly that silence. So **no
+reached — `check-state.py:1295`, and existing case v.3 asserts exactly that silence. So **no
 fixture at status Done can produce an INV-26 station finding at all**, and a case written to the
 plan's words would have been green while testing nothing.
 

@@ -30,7 +30,7 @@ seen as a bare `(`/`[`/`)`/`]` token). `.sh` sources keep the prior draft's brac
 joiner (`_logical_lines_shell`) **unchanged**.
 
 **Why `.sh` is scoped out of tokenize, not exempted from scanning:** bin/ holds real POSIX
-shell (`branch-create-gate.py`, `check-expertise.sh`, `dispatch-guard.py`,
+shell (`branch-create-gate.py`, `check-expertise.py`, `dispatch-guard.py`,
 `inject-expertise.py`, `run-unit-tests.py`) alongside bash-shebanged files that are
 Python inside a heredoc (`check-domain.py`). Measured directly: feeding all 11 `*.sh`
 files in `bin/` through Python's tokenizer, **5 of 11 raise `tokenize.TokenError`** on

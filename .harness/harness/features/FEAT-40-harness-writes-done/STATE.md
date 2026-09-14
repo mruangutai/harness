@@ -4,7 +4,7 @@
 
 - feature: FEAT-40-harness-writes-done
 - run: PLAN PHASE COMPLETE AND FINISHED. Every operator ruling is folded in. The plan is 11 tasks,
-  13 decisions, REQ-01..REQ-12 all traced, and the only remaining check-state.sh violation is the
+  13 decisions, REQ-01..REQ-12 all traced, and the only remaining check-state.py violation is the
   unsigned BRIEF. Awaiting the operator's signature. cycles_used 6/10, 7 runs vs informational
   bound 20.
 - squad: none
@@ -34,7 +34,7 @@
 ## Open Questions
 
 - BLOCKING, MAIN SESSION — BRIEF.md's `## Approval` is unsigned and is the sole remaining
-  check-state.sh violation. plan.yaml's `approval.status` is `pending` and correct: the task bodies
+  check-state.py violation. plan.yaml's `approval.status` is `pending` and correct: the task bodies
   changed again this run. No agent may write either.
 - NON-BLOCKING, OPERATOR — the sweep's BOUNDARY, not its result. The class was swept only over
   `.claude/skills/harness/bin/` and `hooks/`. `references/`, `docs/` and `.claude/commands/` were

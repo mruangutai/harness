@@ -37,4 +37,4 @@ own framing.
 - Outcomes: 0/10 before → 0/10 after
 - Open: 0/5 before → 0/5 after
 
-`check-expertise.sh` reports OK on `.harness/expertise/harness-data-engineer.md`.
+`check-expertise.py` reports OK on `.harness/expertise/harness-data-engineer.md`.

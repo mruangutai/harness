@@ -37,7 +37,7 @@ fire; the diff touches no `frontend`/`ai_behavior` surface.
 |---|---|---|---|---|---|
 | unit | matrix (both tasks) | `python3 tests/unit/test-harness-boundary.py` (also covered by the sweep's `--kind unit` bucket) | 0 | 56 named `PASS` cases, `ALL PASS` | **satisfied** |
 | integration | qa-added (diff-warranted, not matrix-mandatory) | `python3 tests/integration/test-dispatch-guard.py` (also covered by the sweep's `--kind integration` bucket) | 0 | 69 of 69 cases passed | **satisfied** |
-| full sweep (both kinds, whole repo) | cross-check | `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py` | 0 | 5403 lines, `8 workers, 80 files` | **satisfied**, matches the two prior independent measurements at this pin exactly |
+| full sweep (both kinds, whole repo) | cross-check | `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py` | 0 | 5403 lines, `8 workers, 80 files` | **satisfied**, matches the two prior independent measurements at this pin exactly |
 
 Both target test files are confirmed inside the sweep's own log:
 `test-harness-boundary.py (exit 0, 0.12s)` and `test-dispatch-guard.py (exit 0, 4.67s)`.

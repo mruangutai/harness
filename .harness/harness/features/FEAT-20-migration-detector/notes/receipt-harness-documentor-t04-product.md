@@ -32,7 +32,7 @@ Nothing else was touched. The other dirty paths in `git status` predate this spa
   `scan()` at :187.
 - A reader matching neither form is CANNOT_VERIFY, exit 2 — :203-205, `exit_code` :222-233.
 - **"Both call sites treat it as a violation" is verified on both:** INV-27 appends to `bad` for
-  every CANNOT_VERIFY cause (`check-state.sh:1302-1318`), and the CI `Layout gate` step ends
+  every CANNOT_VERIFY cause (`check-state.py:1302-1318`), and the CI `Layout gate` step ends
   `exit "$rc"` (`.github/workflows/tests.yml:185-233`).
 - Clean requires a non-empty reader set — the `no-rows` branch at :197-199 and the comment at
   :213-216.

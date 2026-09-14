@@ -43,10 +43,10 @@ T-08, the qa re-run, the panel, the goal-check and the docs sweep are five. One 
 
 - Amendment 4 (`DECISIONS.md:4983`) declares the category — hooks, validators, gate **scripts** —
   governing, and the list recording: `check-domain.py`, `bash-write-guard.py`,
-  `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.py` and each
+  `validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py` and each
   one's test. `harness.json` is data, not a script.
 - No enforcement-layer script reads `test_kinds.eval.cmd`. `run-unit-tests.py:108` reads
-  `test_kinds.integration.detect` only; `check-state.sh`'s sole mention of `test_kinds` is the
+  `test_kinds.integration.detect` only; `check-state.py`'s sole mention of `test_kinds` is the
   comment at line 479. The consumer of `eval.cmd` is the qa **persona's** matrix.
 - The residual worry is am.4's cutover rule — "the cutover that makes a gate use it is
   main-session-direct". It does not bite here: no gate script changes at all, and no script's

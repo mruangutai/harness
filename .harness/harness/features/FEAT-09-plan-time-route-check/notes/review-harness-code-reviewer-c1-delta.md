@@ -89,5 +89,5 @@ misdescribe the mechanism itself, only slightly oversells the reason for avoidin
 
 Gates checked and independently re-run in the worktree (not read from the claim): `run-unit-tests.py`
 → 32/32 PASS lines across all 13 scripts including `test-check-domain.py`'s 10/10 `--resolve` cases;
-`check-docs.sh` → exit 0; `check-state.sh` → exit 0; `gen-decisions-index.py --check` → exit 0. All
+`check-docs.sh` → exit 0; `check-state.py` → exit 0; `gen-decisions-index.py --check` → exit 0. All
 four match the evidence handed to me.

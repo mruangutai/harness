@@ -803,5 +803,5 @@ no `FAIL <script>` line appears anywhere in the output above.
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched.
-- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh` not touched.
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` not touched.
 - Top-level board remains OPTIONAL, never rejected (that is T-08's).

@@ -8,7 +8,7 @@ verbatim, and every probed SC binds a named test that can be shown to redden by 
 - `HEAD` = `de4b76a0` on `feat/FEAT-27-expertise-repository-tier`, one bookkeeping commit ahead
   of `2117a46` (`git log`: `de4b76a` → bookkeeping → `2117a46` [t-03] → `6edb911` [t-02]).
 - `git diff --stat 2117a46 -- inject-expertise.py test-inject-expertise.py run-unit-tests.py
-  check-expertise.sh test-check-expertise.py` is **empty**. The graded surface's working copy
+  check-expertise.py test-check-expertise.py` is **empty**. The graded surface's working copy
   equals the pinned commit. Proceeded.
 
 ## Matrix compliance
@@ -18,7 +18,7 @@ verbatim, and every probed SC binds a named test that can be shown to redden by 
 | T-02 | logic | `unit` | `run-unit-tests.py --kind unit` | 0 | 137 PASS / 0 FAIL, `PASS test-inject-expertise.py` named |
 | T-03 | cross_module | `unit`, `integration` | `run-unit-tests.py --kind integration` | 0 | 90 PASS / 0 FAIL, `PASS test-check-expertise.py` named |
 
-T-03's `verify:` also runs `check-expertise.sh .harness/expertise/` live: exit 0, `ADVISORY` lines
+T-03's `verify:` also runs `check-expertise.py .harness/expertise/` live: exit 0, `ADVISORY` lines
 present (29 of them, e.g. `harness-backend-dev.md:63: G-03 names '.claude/'`). Both tasks' `verify:`
 blocks match the dispatch's carried-verbatim text exactly — no mismatch.
 
@@ -143,7 +143,7 @@ anticipated.
 ## Scratchpad baseline fidelity
 
 Every conclusion above rests on the scratchpad copies behaving identically to the repo originals.
-Diffed all four against the real files: `inject-expertise.py` is byte-identical; `check-expertise.sh`,
+Diffed all four against the real files: `inject-expertise.py` is byte-identical; `check-expertise.py`,
 `test-inject-expertise.py` and `test-check-expertise.py` differ **only in comments/docstrings**
 (module docstrings and per-case `# ---` banners omitted from the retyped copies) — zero logic
 diff. Confirmed by `diff` after the fact, not assumed.

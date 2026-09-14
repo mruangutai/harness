@@ -95,8 +95,8 @@ decisions:
       only the operator can consent, so it is SC-06 with verify uat and no task at all.
     dec: DEC-179
   - id: D-05
-    choice: The repo-to-board pairing assertion lives in test-no-distribution.py, not check-state.sh.
-    because: check-state.sh is a DEC-174 carve-out file AND is granted to the same two agents, so
+    choice: The repo-to-board pairing assertion lives in test-no-distribution.py, not check-state.py.
+    because: check-state.py is a DEC-174 carve-out file AND is granted to the same two agents, so
       declaring a task on it main-session-direct emits a permanent DEVIATION line in a required CI
       check and the task cannot be done by the team at all. test-no-distribution.py already asserts
       fleet membership under DEC-174 am.1 and runs in UNIT_SCRIPTS, so SC-05 gets real unit evidence.
@@ -104,7 +104,7 @@ decisions:
   - id: D-06
     choice: No task changes any of the four DEC-174 carve-out scripts, and none needs to.
     because: re-measured at a29ad06, which is HEAD - check-domain.py reads only workspace_root and repos[].name from
-      the loaded fleet and never reads board, and check-state.sh INV-24 reads the fleet with
+      the loaded fleet and never reads board, and check-state.py INV-24 reads the fleet with
       harness_yaml.load_file rather than load_fleet and reads only repos[].name. Only
       test-check-domain.py's good_repos fixture has to change, and that is a fixture, not a gate.
     dec: DEC-174

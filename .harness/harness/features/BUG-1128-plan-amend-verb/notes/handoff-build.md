@@ -24,7 +24,7 @@ The diff is two files, +510/-0: `plan-merge.py` (+206) and `test-plan-merge.py` 
   `T-23.verify`; the `T-23` block starts at `verify: |` and captures zero sibling keys; an
   absent id refuses by name.
 - claim - the gate's one violation is not this feature's - verified-at 58742037 - source:
-  `check-state.sh` reports exactly one, `INV-26` on `BUG-1081-code-grade-enforcement`, another
+  `check-state.py` reports exactly one, `INV-26` on `BUG-1081-code-grade-enforcement`, another
   session's feature.
 
 ## Dead ends

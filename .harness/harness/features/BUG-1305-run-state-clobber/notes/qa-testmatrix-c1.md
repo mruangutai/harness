@@ -11,7 +11,7 @@ hold at measurement time; `git status --porcelain` is otherwise clean, see below
 Diff: 42 files, +5216/-179 (`git diff --stat origin/main...HEAD`). Live (non-abandoned) tasks
 and their plan-declared `change_type`: T-01 `logic`, T-03 `logic` → `always: [unit]`. T-02,
 T-05, T-06, T-09 `bugfix` → `when: unit if touches_runtime_code` fires (all four rewrite
-`check-domain.py`/`check-state.sh`/`bash-write-guard.py`/`harness_boundary.py`/
+`check-domain.py`/`check-state.py`/`bash-write-guard.py`/`harness_boundary.py`/
 `validate-digest.py`); `fix_confined_to_tests_and_contract_docs` does NOT fire (production
 shell/py is touched, not tests-only), so `integration` is not matrix-obligated for `bugfix`
 by that clause; `__bug_class__` is a repo-known unresolvable placeholder (no bug-class entry

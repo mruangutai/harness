@@ -203,7 +203,7 @@ Create `.claude/skills/harness/bin/gen-decisions-index.py`, executable, `python3
 
 Reads `docs/harness/DECISIONS.md`, writes `docs/harness/DECISIONS-INDEX.md` in place. Flags: no args
 = write in place; `--stdout` = write to stdout, touch nothing. **(A-5) `--check` is dropped** — it had
-no caller and no test, and giving it one (a `check-state.sh` INV) is a task this feature did not scope.
+no caller and no test, and giving it one (a `check-state.py` INV) is a task this feature did not scope.
 SC-05's `generator && git diff --exit-code` is the same assertion with a real caller.
 
 Parsing:
@@ -578,7 +578,7 @@ Every entry below is landed in the artifact text at the sites named; this table 
 | **A-2** | **Accepted and landed, not deferred.** BRIEF SC-09 + T-09 | SC-09's absence half replaced with the widened pair; the drafting constraint (authority path only in a negated construction) is written into **T-09's task text**, since the doer cannot see the SC. |
 | **A-3** | **Accepted.** T-02 tags bullet | Score is `sum(body_lower.count(sub))`, selection is `sorted(tags, key=lambda t: (-score[t], t))[:4]`, emitted in that order. The title line is explicitly part of the body. |
 | **A-4** | **Accepted.** BRIEF SC-08 | The plant is pinned: the phrase `all 15 agents` <!-- ok-stale --> (declared at `DECISIONS.md:2479`, owned by `## DEC-120` at `:2473`) into `docs/harness/SPEC.md`, on a line carrying none of the six narration keywords. Reviewer cites the landing `file:line` and both exit codes. `check-docs.sh --audit` (`:97-122`) cited beside it as the cheaper standing liveness check. |
-| **A-5** | **Accepted in all three parts.** T-02 flags, T-01 test 5, D-02 + T-06 | `--check` **dropped** — no caller, and giving it a `check-state.sh` INV consumer is a task this feature did not scope; SC-05 is the same assertion with a real caller. Test 5's failure message names its remedy verbatim. Keying amendments by captured number is adopted; DEC-138's tags absorbing DEC-137's amendment text is recorded as inherent and not fought. |
+| **A-5** | **Accepted in all three parts.** T-02 flags, T-01 test 5, D-02 + T-06 | `--check` **dropped** — no caller, and giving it a `check-state.py` INV consumer is a task this feature did not scope; SC-05 is the same assertion with a real caller. Test 5's failure message names its remedy verbatim. Keying amendments by captured number is adopted; DEC-138's tags absorbing DEC-137's amendment text is recorded as inherent and not fought. |
 
 Nothing on the LEAVE LIST was re-opened: D-01, D-04, D-06's four boundaries, T-01's runner description,
 T-09/T-10's `owner: main-session`, and the SC-06/SC-08 pairing stand as approved-for-review. No

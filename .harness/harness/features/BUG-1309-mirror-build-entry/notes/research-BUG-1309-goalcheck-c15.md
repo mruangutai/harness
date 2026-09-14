@@ -85,7 +85,7 @@ Total probe: 54 of 55 checks pass (`grep -cE '^(ok|FAIL)'` → 55); the single F
 Delta since the c14 pin is two code/test files only
 (`git diff --stat c8b23e03 e374c9a2 -- .claude tests .omp` → `merge-gate.py`,
 `tests/integration/test-merge-gate.py`), so the c14 discrimination results for SC-03 (`gh-sync.py`)
-and SC-07 (`check-state.sh`) stand unchanged — neither file nor its bed moved.
+and SC-07 (`check-state.py`) stand unchanged — neither file nor its bed moved.
 
 | SC | verify: | Verdict | Evidence |
 |---|---|---|---|

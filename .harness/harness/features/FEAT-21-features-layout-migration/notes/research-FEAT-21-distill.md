@@ -3,7 +3,7 @@
 **Six entries land, four by displacement; five candidates rejected with reasons. All six are CRAFT
 — no repository-layer file was created.** Craft file `.harness/expertise/harness-pm.md`:
 Patterns 15→15, Gotchas 15→15, Outcomes 0→2, Open 0→0. File 109 lines of the 150 budget.
-`check-expertise.sh` over `.harness/expertise/` exits 0.
+`check-expertise.py` over `.harness/expertise/` exits 0.
 
 ## Ops (the receipt)
 

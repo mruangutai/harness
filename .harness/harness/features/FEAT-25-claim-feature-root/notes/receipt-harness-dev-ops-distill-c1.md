@@ -48,6 +48,6 @@
 ## Checker
 
 ```
-.claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-dev-ops.md
+.claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-dev-ops.md
 OK   .harness/expertise/harness-dev-ops.md
 ```

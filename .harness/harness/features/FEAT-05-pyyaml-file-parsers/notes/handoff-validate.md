@@ -51,7 +51,7 @@
 - **Hooks:** `check-domain.py`, `bash-write-guard.py` — one shared domain walk (D-03), so
   they cannot drift. Both merged to a single interpreter launch: 80.6→43.5ms and
   64.6→45.0ms, faster than before the feature while doing more.
-- **Readers:** `check-state.sh` (closes #11), `gh-sync.py`, `upgrade-config.py`.
+- **Readers:** `check-state.py` (closes #11), `gh-sync.py`, `upgrade-config.py`.
 - **Gate:** `test-harness-yaml-corpus.py` — walks every `.harness/**/*.yaml` using
   `harness_yaml.load_file`, not `safe_load`; its negative fixtures are load-bearing.
 - **UAT:** `uat-bootstrap-escape-expiry.md`, PASSED by the user, and the goal-check

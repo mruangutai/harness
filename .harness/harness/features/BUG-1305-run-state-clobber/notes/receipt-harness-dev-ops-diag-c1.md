@@ -13,7 +13,7 @@ symptom. **Named alternative I cannot rule out:** the `_no_parser` fail-open (`c
 — a bootstrap/no-PyYAML session skips the identity check entirely. Evidence cannot discriminate
 between the two; naming both per dispatch instruction, not resolving in my own favour.
 
-**Detection: prevention-only, no detection today.** `check-state.sh`'s INV-15/16 sweep validates a
+**Detection: prevention-only, no detection today.** `check-state.py`'s INV-15/16 sweep validates a
 state.yaml's *own* shape (whitelisted keys, digest existence) but asserts nothing about whether its
 `run_id`/content actually belongs to the run that currently occupies the directory. A clobber that
 already happened is invisible to every existing invariant.
@@ -27,9 +27,9 @@ proposed write against… PRIOR content") is the one the runtime agrees with. **
 digest is better explained by the durable-digest check's own documented fail-open** than by this
 guard: `validate-digest.py:check_artifact_file` (`:1496-1500`) validates a lead's *written file* from
 the SubagentStop hook, but explicitly fails open — logs and returns 0 — whenever it "cannot be
-located or read" (worktree/cwd drift), naming `check-state.sh` INV-15 as "the deterministic backstop
+located or read" (worktree/cwd drift), naming `check-state.py` INV-15 as "the deterministic backstop
 that runs from repo root and cannot be fooled" (`validate-digest.py:1538-1541`). That backstop is
-never wired to any hook (`.claude/settings.json` registers no automatic caller for `check-state.sh`;
+never wired to any hook (`.claude/settings.json` registers no automatic caller for `check-state.py`;
 repo Expertise G-01 already records this as manual-only). Sampling (below) shows the artifact-less
 digest population is dominated by **format non-compliance** (never wrote the line at all), not by
 truncated/refused repair attempts — so the specific B-11 record is *consistent with* the fail-open
@@ -48,7 +48,7 @@ this cannot be confirmed directly.
 | 4 | `Bash` (redirect, `python3 -c`, `tee`, `mv`, `cp`) | **Refused, unconditionally, any checkout** | `bash-write-guard.py:744-767` (`_run_artifact_guard`), matched *before* the DEC-153 worktree carve-out (`:781-786`) via `_worktree_stripped` (`:729-741`) |
 | 5 | Write/Edit from **inside a worktree path** | **Not defeated** — `check-domain.py`'s `_norm` (`:1063-1090`) resolves the path through `harness_boundary.checkout_relative`, stripping the worktree prefix before matching `RE_STATE_YAML`; this is the FEAT-30 T-04 fix, whose own comment (`:1066-1084`) documents the prior bug (a two-level worktree layout matched nothing) as already closed | `check-domain.py:1063-1090`, `harness_boundary.py:114+` |
 | 6 | Payload with **no `agent_type`** | **Still refused** — the domain (who-may-write) phase is skipped (`_domain_phase = _governed and not _post`, `:328`), but the shape/identity phase is **not** gated on `_governed` by explicit design: `"the shape phase runs for EVERY writer including the main session, because the no-agent_type carve-out is the _governed FLAG and not an exit"` | `check-domain.py:1360-1364` |
-| 7 | Session with **no PyYAML importable** | **Allowed (fail-open), by deliberate documented tradeoff** — `if _no_parser: return out` (bare early return, no identity check performed) | `check-domain.py:1454-1476`, esp. the `1471` comment explaining the tradeoff (earlier detection given up, not correctness — `check-state.sh` catches the shape violation at next entry, but **not** a clobber, since no invariant checks clobber post-hoc) |
+| 7 | Session with **no PyYAML importable** | **Allowed (fail-open), by deliberate documented tradeoff** — `if _no_parser: return out` (bare early return, no identity check performed) | `check-domain.py:1454-1476`, esp. the `1471` comment explaining the tradeoff (earlier detection given up, not correctness — `check-state.py` catches the shape violation at next entry, but **not** a clobber, since no invariant checks clobber post-hoc) |
 | 8 | **Slug reuse** with a genuinely different run whose `run_id` string happens to equal the prior's | **Allowed as upsert** — the only identity check is `str(prior_run_id) != str(new_run_id)` (`:1567`); no check binds `run_id` to anything besides itself (not to a timestamp, PID, or session token). The playbook's `<purpose>-<squad>` naming rule (`SKILL.md:272-274`) is explicitly **not** unique per cycle. **This is the leading Mode-A candidate.** |
 
 **Probe corroborating routes 1/2 (digest.md, same code path as state.yaml's Write/PRE and Edit
@@ -56,7 +56,7 @@ reconstruction):** built a synthetic root under `$TMPDIR` (`.agents/skills/harne
 `check-domain.py`+`harness_boundary.py`+`harness_yaml.py`, `.harness/team-config.yaml` copied
 verbatim from the worktree for a parseable manifest — read-only copy, not a repo write) with a
 `.harness/synthproj/features/ZZ-PROBE/runs/probe-run-1-validator/digest.md` prior. Three PreToolUse
-payloads run against `bash check-domain.py`:
+payloads run against `python3 check-domain.py`:
 - `Write` with content not extending the prior → `exit=2`, `"run digest already holds a recorded
   digest; this Write would replace rather than extend it."`
 - `Edit` (`old_string="VERDICT: PASS"`, `new_string="VERDICT: PASS\nartifact: notes/original.md"` —
@@ -110,8 +110,8 @@ directory outside `$TMPDIR` was touched.
    `.claude/settings.json:69-78` for matcher `harness-.*`), whose `check_artifact_file` function
    explicitly **fails open, loudly** when the file "cannot be located or read: a hook whose cwd
    drifts (worktrees, unset CLAUDE_PROJECT_DIR) must not block a legitimate lead on our own
-   resolution bug" (`validate-digest.py:1496-1500`), and names `check-state.sh` INV-15 as the
-   backstop. **`check-state.sh` is registered nowhere in `.claude/settings.json`** — it is
+   resolution bug" (`validate-digest.py:1496-1500`), and names `check-state.py` INV-15 as the
+   backstop. **`check-state.py` is registered nowhere in `.claude/settings.json`** — it is
    manual-only (repo Expertise `harness-dev-ops` G-01 already records this).
 
 ---
@@ -123,12 +123,12 @@ directory outside `$TMPDIR` was touched.
   trusting the author-chosen slug. Surface: `check-domain.py`'s seed-time convention + whatever seeds
   `state.yaml` first (harness-team skill). Discriminator: `run_id` uniqueness becomes structural, not
   author-discipline. Could be wrong: existing tooling that reads/reports `run_id` as the human-legible
-  slug (digests, `check-state.sh` messages) would need updating everywhere it is treated as
+  slug (digests, `check-state.py` messages) would need updating everywhere it is treated as
   display text. Regression-testable without the real hook: yes — unit-test `run_id` generation in
   isolation.
-- *Add post-hoc clobber detection to `check-state.sh`* — e.g. hash the first-write state or track a
+- *Add post-hoc clobber detection to `check-state.py`* — e.g. hash the first-write state or track a
   monotonic write counter separately from `run_id`, and flag a directory whose current content
-  disagrees with its own history. Surface: new INV in `check-state.sh`. Discriminator: needs a
+  disagrees with its own history. Surface: new INV in `check-state.py`. Discriminator: needs a
   side-channel record outside `state.yaml` itself (the clobbered file is definitionally silent about
   its own history). Could be wrong: the side-channel itself becomes another file to keep consistent,
   another spot to be forgotten. Regression-testable without the real hook: yes, pure file-fixture unit
@@ -140,9 +140,9 @@ directory outside `$TMPDIR` was touched.
   signal may be available from the host at all, making this option currently unimplementable.
 
 **Mode B:**
-- *Wire `check-state.sh` (or its INV-15 check alone) into a hook* — e.g. `SubagentStop` for leads, or
+- *Wire `check-state.py` (or its INV-15 check alone) into a hook* — e.g. `SubagentStop` for leads, or
   a periodic/`/harness`-entry trigger. Surface: `.claude/settings.json` + extracting INV-15 into a
-  standalone callable (it already loads `validate-digest` as a module, `check-state.sh:1406-1421`).
+  standalone callable (it already loads `validate-digest` as a module, `check-state.py:1406-1421`).
   Discriminator: none needed — it already "cannot be fooled" per its own docstring. Could be wrong:
   cost — INV-15 currently amortizes one Python interpreter over the *whole* run corpus at each
   invocation; running it per-SubagentStop reintroduces the per-spawn cost this file's own comment
@@ -173,7 +173,7 @@ directory outside `$TMPDIR` was touched.
 | `state.yaml` Edit reconstructing a mismatched `run_id` (not just Write) | `check-domain.py` PreToolUse Edit | **Deny**, same message class as Write | `tests/integration/test-check-domain.py` |
 | Digest Edit that is a pure append inserting a missing `artifact:` line at file end | `check-domain.py` PreToolUse Edit | **Allow** (already true today — a regression guard, not a new behavior) | `tests/integration/test-check-domain.py` |
 | Lead return whose `artifact:` path cannot be resolved (simulated worktree/cwd drift) reaching `check_artifact_file` | `validate-digest.py --hook`, unresolvable path | **Exit 0, fail-open, with the stderr note naming INV-15 as backstop** (documents existing behavior as a regression guard) | `tests/unit/test-validate-digest.py` (module-level function, no hook end-to-end needed) |
-| `check-state.sh` INV-15 given a run dir whose digest lacks `artifact:` | direct script run against fixture `.harness` tree | **Reports the violation** (already true — proves the backstop itself, independent of wiring) | `tests/integration/test-check-state.py` (per this repo's directory-decides-which-script-executes convention; a fixture `.harness` tree plus a full script invocation is integration-shaped, not unit) |
+| `check-state.py` INV-15 given a run dir whose digest lacks `artifact:` | direct script run against fixture `.harness` tree | **Reports the violation** (already true — proves the backstop itself, independent of wiring) | `tests/integration/test-check-state.py` (per this repo's directory-decides-which-script-executes convention; a fixture `.harness` tree plus a full script invocation is integration-shaped, not unit) |
 
 All four are unit-or-integration by the existing directory split; none requires writing a test file
 here (dispatch is diagnosis-only).

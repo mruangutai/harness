@@ -13,7 +13,7 @@ transcribed. Nothing outside `panel:` changed. Not committed, not staged.
 | `scope` | `harness-code-reviewer` | validator digest, cycle 0 |
 | `goalcheck` | `harness-pm` | `notes/research-BUG-240-workspace-hard-reset-guard-goalcheck-plan-c0.md` |
 
-INV-32 (`check-state.sh:534-553`) indexes `item.get("reader")` and demands all three with status
+INV-32 (`check-state.py:534-553`) indexes `item.get("reader")` and demands all three with status
 `ran`/`skipped`; the previous `step:`-keyed pair read as *two* unrecorded readers plus a missing
 third — three REFUSAL-class lines the instant the operator signs. It grades approved plans only, so
 nothing fired while `approval.status: pending`.

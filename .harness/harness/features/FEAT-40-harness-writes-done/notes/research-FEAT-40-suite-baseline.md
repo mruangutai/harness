@@ -40,7 +40,7 @@ Both my `--kind all` run and the main session's `--kind integration` run were st
 earlier "20 PASS and SIX FAIL" is the same 26 scripts and stops at the same place — it was not
 truncated by a reader, the run had not got further. `T-11` step 1 exists to settle this.
 
-It is not a hang: `check-state.sh` children were still being forked at roughly one every 5–10
+It is not a hang: `check-state.py` children were still being forked at roughly one every 5–10
 seconds after 40 minutes (`ps` on pids 52814 and 24690), with system load ~1.9. `test-check-state.py`
 simply forks the whole state checker many times and each fork scans the repository. Run it alone.
 

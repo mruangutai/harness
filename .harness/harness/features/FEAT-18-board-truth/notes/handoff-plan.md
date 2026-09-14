@@ -16,7 +16,7 @@ T-01+T-02, T-04 on T-02+T-03, T-06 on T-03.
 
 - `check-plan-routes.py`: `0 violation(s) across 8 plan(s)`, exit 0 — re-run by me AFTER the revision,
   not taken from a digest — verified-at rev
-- `check-state.sh` exits 1 with EXACTLY ONE violation, `FEAT-18/BRIEF.md is NOT approved`. That is the
+- `check-state.py` exits 1 with EXACTLY ONE violation, `FEAT-18/BRIEF.md is NOT approved`. That is the
   designed terminal state of a plan mission — **do not "fix" it**; signature clears it — verified-at rev
 - Holds at **8 REQ, 6 tasks, 8 decisions**; D-08 and SC-08 remain as entries with strike records
   (DEC-188 shape) so citations land — counted by me — verified-at rev
@@ -27,7 +27,7 @@ T-01+T-02, T-04 on T-02+T-03, T-06 on T-03.
 - T-04 alone names a DEC-174 carve-out in `files:` and is declared `main-session-direct`; the route
   check's `DEVIATION … but declared` is the more-restrictive direction, not a violation — at 2ccd7f0
 - T-02's `gh_board.py` is `main-session-direct` **by content, not name**: `--resolve` grants it, but
-  `check-state.sh` imports it and INV-26's verdict comes from its return value — verified-at 2ccd7f0
+  `check-state.py` imports it and INV-26's verdict comes from its return value — verified-at 2ccd7f0
 - `gh-sync.py`'s `gh()` calls `skip()` → `sys.exit(0)`, so "loud on stderr and the run continues" is
   impossible through it; T-03's `intent:` forbids routing station writes there — D-02 — at 2ccd7f0
 - The old four board keys were **pinned node ids**, why a wrong id was silent; D-05's three resolve by name — `branch-create-gate.py:105-108` — verified-at 2ccd7f0

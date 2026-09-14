@@ -209,7 +209,7 @@ codebase map and a third for whatever comes next.
 pm owns the mechanism and must state the rule that decides which layer an observation belongs to —
 without it, every writer guesses and the layers blend back into one. `inject-expertise.py`
 (a `SubagentStart` hook, registered in `.claude/settings.json`) is what injects the file today and is
-therefore where resolution happens. `check-expertise.sh` takes a file or a directory and will need
+therefore where resolution happens. `check-expertise.py` takes a file or a directory and will need
 to walk the new shape.
 
 **A migration constraint, not an implementation detail:** ten expertise files exist today under

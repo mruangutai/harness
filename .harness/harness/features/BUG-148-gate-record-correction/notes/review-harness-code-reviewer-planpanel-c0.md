@@ -81,7 +81,7 @@ asked for." **severity: med.**
 
 ## Lane and shape (item 4): confirmed honest, no defect
 
-`bash .agents/skills/harness/bin/check-domain.py --resolve
+`python3 .agents/skills/harness/bin/check-domain.py --resolve
 .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md` → `harness-orchestrator`, exactly
 matching D-02's claim. `check-domain.py`'s own comment (`:255-257`) confirms `harness-orchestrator` is
 a bare top-level key carrying its own `domain:` grant, governed like any other agent since DEC-120 —

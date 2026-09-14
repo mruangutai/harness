@@ -19,7 +19,7 @@ amendment, if one is written, says the question was **not reached** in am.4 and 
 ## Correction 2. DEC-174's own evidence paragraph lists it among the gates
 
 `DECISIONS.md:4662`, inside DEC-174's opening evidence: *"Every gate was green —
-`run-unit-tests.py`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` — while:"*
+`run-unit-tests.py`, `check-docs.sh`, `check-state.py`, `gen-decisions-index.py --check` — while:"*
 and then the three failures self-hosting missed.
 
 So the entry that creates the carve-out names this script as one of the gates whose greenness proved

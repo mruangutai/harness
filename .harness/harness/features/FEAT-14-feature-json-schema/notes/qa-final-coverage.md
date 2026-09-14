@@ -15,19 +15,19 @@ Status: DRAFT (Phase 1 blind derivation, written before opening plan/hand-downs/
 - SC-09: unit — `gh-sync.py`, `factory_claim.py`, `factory_decompose.py`, `check-plan-routes.py` existing suites pass + one new case per tool (4 total) reading a `feature.json` fixture.
 - SC-10: inspection — not this gate's evidence class (`not-provable-by-this-gate`).
 - SC-11: inspection — not this gate's evidence class (`not-provable-by-this-gate`).
-- SC-12: unit — `templates/feature.json` exists and validates against schema; `check-state.sh` INV-18 message and `harness/SKILL.md:23` both name it by filename.
+- SC-12: unit — `templates/feature.json` exists and validates against schema; `check-state.py` INV-18 message and `harness/SKILL.md:23` both name it by filename.
 - SC-13: integration — sweep for `feature.yaml` references, exactly two carve-outs (DECISIONS* records, test-harness-yaml-corpus.py docstring pinned to an exact occurrence count).
 - SC-14: integration — 3 new DECISIONS.md entries (jsonschema dependency, closed key set, phase/status collapse); DECISIONS-INDEX.md byte-for-byte match against `gen-decisions-index.py --stdout`.
 - SC-15: uat — out of gate scope (`not-provable-by-this-gate`).
 - SC-16: integration — checker-unavailable + otherwise-valid payload -> exit 2 (never exit 1), message names the real target path (never a temp file), sweep emits the unavailability message once, not per file.
 - SC-17: unit — check-plan-routes.py skips only on `status: Done`, `shipped`/`abandoned` literals absent, migrated-corpus count == 10 (0 is a failure, asserted non-zero), six board values + lowercase `done` each individually asserted for skip-or-check.
-- SC-18: integration — 7-case INV-17 matrix: (1) Review missing handoff-build fires named; (2) Done missing handoff-validate (non-exempt) fires; (3) FEAT-01/02 Done zero notes exempt -> no violation; (4) Plan status no notes -> no violation; (a) Done, all tasks main-session-direct, no notes -> no violation + exemption note naming suppressed stems; (b) squad-built Done missing handoff-validate.md still raises; (c) Done with no `execution_mode` key raises, and empty/absent `tasks:` raises (no vacuous pass over empty list). Plus: check-state.sh executable code (comments stripped) contains no `PHASE_ORDER`, no `phase`-key read, no case-sensitive `handoff-<Capitalized>.md` path construction.
+- SC-18: integration — 7-case INV-17 matrix: (1) Review missing handoff-build fires named; (2) Done missing handoff-validate (non-exempt) fires; (3) FEAT-01/02 Done zero notes exempt -> no violation; (4) Plan status no notes -> no violation; (a) Done, all tasks main-session-direct, no notes -> no violation + exemption note naming suppressed stems; (b) squad-built Done missing handoff-validate.md still raises; (c) Done with no `execution_mode` key raises, and empty/absent `tasks:` raises (no vacuous pass over empty list). Plus: check-state.py executable code (comments stripped) contains no `PHASE_ORDER`, no `phase`-key read, no case-sensitive `handoff-<Capitalized>.md` path construction.
 
 ## Named traps from BRIEF §Verification gaps (to re-check at HEAD, not just cite)
 
 1. New unit test files must be registered in `run-unit-tests.py`'s `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS` — the integration kind's `detect` globs only match `test-check-state.py` / `test-factory-integration.py`, so misregistration makes the file invisible to the matrix.
 2. The required CI job (`tests.yml`'s `integration` job) must itself run `--kind unit` (T-03) or SC-01/02/03/06/07/09/12/17 (all unit-evidence) have no mechanical runner on the branch-protected context.
-3. `check-state.sh` is expected red between T-06 and T-08 by construction (glob names `feature.json` while corpus still `feature.yaml`) — accepted, not a live concern at HEAD.
+3. `check-state.py` is expected red between T-06 and T-08 by construction (glob names `feature.json` while corpus still `feature.yaml`) — accepted, not a live concern at HEAD.
 
 ## functional / component / ui / eval / typecheck
 
@@ -48,7 +48,7 @@ plan-signing commit, so this is the correct range (not `3abaedd..HEAD`, which wo
 |---|---|
 | `run-unit-tests.py --kind unit` | rc 0, 12 scripts, 36/36 cases in `test-validate-feature-json.py` PASS |
 | `run-unit-tests.py --kind integration` | rc 0, 12 scripts (incl. `test-check-domain.py`, `test-check-state.py` 58 `ok`/0 `FAIL`) |
-| `check-state.sh` | rc 0, **zero** VIOLATION lines, one INV-17 exemption note naming FEAT-15 |
+| `check-state.py` | rc 0, **zero** VIOLATION lines, one INV-17 exemption note naming FEAT-15 |
 | `check-plan-routes.py` | `0 violation(s) across 10 plan(s)`, rc 0 |
 | `gen-decisions-index.py --stdout` vs `DECISIONS-INDEX.md` | byte-for-byte, `diff` exit 0 |
 | `git status --porcelain` before any probe | **empty** |
@@ -129,7 +129,7 @@ sweep **went red**, naming the file and count. Restored via worktree removal.
 
 ### SC-08 — the discrepancy, resolved
 
-BRIEF line 421: "It is NOT 'exits 0' — it exits 1 today." At HEAD: `check-state.sh` exits **0**,
+BRIEF line 421: "It is NOT 'exits 0' — it exits 1 today." At HEAD: `check-state.py` exits **0**,
 **zero** VIOLATION lines. `notes/baseline-check-state.txt` is genuinely **0 bytes** (confirmed:
 `wc -c` = 0), matching the dispatch's flag, not an error.
 
@@ -137,14 +137,14 @@ BRIEF line 421: "It is NOT 'exits 0' — it exits 1 today." At HEAD: `check-stat
 written earlier in planning, before other concurrent work (or this feature's own T-04 precondition
 wait) cleared whatever pre-existing violations BRIEF's author had in view. The file is not evidence
 of a broken capture step — T-04's step 0 genuinely captured zero VIOLATION lines at the moment it
-ran, and `check-state.sh` still reports zero at HEAD. **SC-08's real bar — "the count may only fall,
+ran, and `check-state.py` still reports zero at HEAD. **SC-08's real bar — "the count may only fall,
 never rise" — is satisfied: 0 → 0.** Recommend BRIEF's line 421 be corrected in a future documentor
 pass; it is not a live defect, but it is a specific claim that is checkably wrong today.
 
 INV-18/21/22/23/INV-24(factory) fixtures in `test-check-state.py` (58 `ok`, 0 `FAIL`) — read
 directly, not inferred: real tempfile fixtures per invariant, not vacuous ones (e.g. INV-24 has 14
 distinct cases including null-repo, null-issue, self-collision, no-fleet-file). INV-17's plan-keyed
-exemption on FEAT-15 fires live: `check-state.sh`'s own stdout at HEAD carries the exemption note
+exemption on FEAT-15 fires live: `check-state.py`'s own stdout at HEAD carries the exemption note
 naming FEAT-15 and the three suppressed stems.
 
 ### SC-18 — seven-case matrix, verified against actual assertions (not labels, per P-01)
@@ -224,11 +224,11 @@ No task is `ai_behavior`, `frontend`, `api`, `bugfix`, `feature`, or `scaffoldin
 | SC-05 | integration | **proves TODAY, but not as standing coverage** | live POST-sweep invocation above, exit 2, key named. Same gap as SC-04 — no regression test |
 | SC-06 | unit | **proves** | fixture-level (shipped/lowercase-done/pr-string-none all rejected) + my own per-file corpus sweep, all 17 files clean against the migration table |
 | SC-07 | unit | **proves** | `cli_jsonschema_unavailable_exit_exactly_3`/`_not_0_or_1`/`_stderr_names_required` all green in the unit suite |
-| SC-08 | integration | **proves**, with the BRIEF-line-421 correction above | `check-state.sh` re-run, 0 violations, baseline 0 bytes, count did not rise; INV-18/21/22/23/24 fixtures real and green; INV-17 exemption note confirmed live for FEAT-15 |
+| SC-08 | integration | **proves**, with the BRIEF-line-421 correction above | `check-state.py` re-run, 0 violations, baseline 0 bytes, count did not rise; INV-18/21/22/23/24 fixtures real and green; INV-17 exemption note confirmed live for FEAT-15 |
 | SC-09 | unit | **proves** | grepped all four tools' test files directly: `test-gh-sync.py` (`write_feature_json`/`read_feature_json` helpers, used across its suite), `test-factory-claim.py:244-268` (an explicit eleven-key `feature.json` fixture read end to end by `issue_number`), `test-factory-decompose.py:219-288` (`make_feature` builds and reads `feature.json`), `test-check-plan-routes.py:839-916` (multiple `feature.json` fixture cases incl. the eight-required-key template case) — all four carry real new-format fixture coverage, all green in `--kind unit`/`--kind integration` |
 | SC-10 | inspection | not-provable-by-this-gate | operator spot-check, out of QA's evidence class |
 | SC-11 | inspection | not-provable-by-this-gate | schema-source inspection, out of QA's evidence class |
-| SC-12 | unit | **proves** | `templates/feature.json` exists, validates clean via `feature_schema.problems_for_file`; both instruction points (`harness/SKILL.md:24`, and `check-state.sh`'s INV-18 remediation message — confirmed by grep) name it by filename |
+| SC-12 | unit | **proves** | `templates/feature.json` exists, validates clean via `feature_schema.problems_for_file`; both instruction points (`harness/SKILL.md:24`, and `check-state.py`'s INV-18 remediation message — confirmed by grep) name it by filename |
 | SC-13 | integration | **proves** | replicated T-08's sweep read-only at HEAD (OK), then live mutation in a disposable worktree turned it red, restored. BRIEF's "exactly two carve-outs" is stale vs the plan's actual (sanctioned) five-file/prefix scheme — noted, not a defect |
 | SC-14 | integration | **proves the structural half; disproves the prose half** | byte-for-byte match confirmed at HEAD; live mutation shows the check is blind to ruling-prose corruption — the exact incident this run investigates. See finding above |
 | SC-15 | uat | not-provable-by-this-gate | operator read, out of QA's evidence class |

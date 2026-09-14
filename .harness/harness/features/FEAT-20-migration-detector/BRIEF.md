@@ -6,7 +6,7 @@ before anything moves.
 ## Problem
 
 Nothing in the tree can tell a half-migrated layout from a healthy one, and the two mechanisms that
-look like they would are the two that go quiet. `check-state.sh` discovers features with fixed-depth
+look like they would are the two that go quiet. `check-state.py` discovers features with fixed-depth
 globs — `glob(join(H, "features", "*", …))`, 15 sites at `88b1182` — so inserting a repository
 segment makes every one match nothing, every invariant evaluate over an empty set, and the gate that
 `/harness` entry runs report a healthy tree. `check-domain.py`'s four shape regexes and its
@@ -58,7 +58,7 @@ Two surfaces, judged independently:
 **FEATURES** — disk evidence is `.harness/features/*/feature.json` (legacy) against
 `.harness/*/features/*/feature.json` (migrated). Coupled readers are exactly unit 3's atomic
 cluster: `team-config.yaml`'s write grants, `check-domain.py`'s `SWEEP_GLOBS` and its four shape
-regexes, `check-plan-routes.py`'s discovery join, and `check-state.sh`'s discovery globs.
+regexes, `check-plan-routes.py`'s discovery join, and `check-state.py`'s discovery globs.
 
 **DOCS** — disk evidence is `docs/harness/SPEC.md` against `.harness/*/docs/SPEC.md`. Coupled
 readers are exactly unit 4's atomic trio: `factory_config._PROBE`,
@@ -74,15 +74,15 @@ which map #336 explicitly permits: unit 4 has no ordering tie to unit 3.
 
 ### D-02 — The detector is gate code, so building it is main-session-direct
 
-`check-state.sh` computes an invariant verdict from the detector's return value. FEAT-18 ruled the
+`check-state.py` computes an invariant verdict from the detector's return value. FEAT-18 ruled the
 same shape for `gh_board.py` — granted to `harness-backend-dev` and `harness-dev-ops` by
 `--resolve`, and still main-session-direct as a DEC-174 carve-out by content, on FEAT-17's
 `harness_boundary.py` precedent. This feature follows it: the module, its unit test,
-`check-state.sh`, `test-check-state.py` and the runner registration are all main-session-direct.
+`check-state.py`, `test-check-state.py` and the runner registration are all main-session-direct.
 
 The cost, stated rather than argued away: two of the four tasks, and five of the eight files this
 feature touches, are built by hand rather than dispatched. The alternative — invoking the detector only from CI to keep a team lane — was rejected
-because session entry is the higher-value call site, and `check-state.sh` going quiet is the
+because session entry is the higher-value call site, and `check-state.py` going quiet is the
 defect this feature exists to prevent.
 
 The one team task is the CI step in `.github/workflows/tests.yml`, which `--resolve` grants to
@@ -113,7 +113,7 @@ opposite remedies, and without the form they are the same line of output.
 
 **Each legacy pattern is the weakest fragment every stale site necessarily contains**, audited
 against the real file before the row is written — not the shape of the commonest site. This is not
-a style note. The first draft of this plan specified `check-state.sh`'s legacy form with a trailing
+a style note. The first draft of this plan specified `check-state.py`'s legacy form with a trailing
 wildcard segment; two of that file's fifteen discovery sites carry none
 (`os.listdir(os.path.join(H, "features"))` and `os.path.join(H, "features", _f, "feature.json")`),
 so a unit-3 pass that updated the thirteen and missed those two would have left the file matching
@@ -130,13 +130,13 @@ comment and in the decision entry, so units 3 through 7 read it before they lean
 
 ### D-04 — Applicability is decided by one positive control, before any surface is judged
 
-Every coupled reader lives in the harness control plane. `check-state.sh` also runs at session entry
+Every coupled reader lives in the harness control plane. `check-state.py` also runs at session entry
 inside onboarded product repositories, and `test-check-state.py`'s existing fixtures are bare
 `.harness/` skeletons — neither has any reader file at all. Judged by D-03 alone both would exit 2,
 so a healthy product repo and every existing test case would redden the moment this lands.
 
 So: the detector first asks whether the scanned root is a harness control-plane checkout, by the
-presence of `.claude/skills/harness/bin/check-state.sh`. If it is not, the whole scan is reported as
+presence of `.claude/skills/harness/bin/check-state.py`. If it is not, the whole scan is reported as
 not applicable, the examined counts are zero, and the exit is 0.
 
 **What bounds that branch is a unit case, not the CI step, and the difference is worth your
@@ -179,7 +179,7 @@ from reaching that branch unnoticed.
 - SC-07: On a fixture where a coupled reader file carries neither form, the detector exits 2 and
   says which file it could not judge. Exit 2 is distinct from both 0 and 1 in the same test.
   verify: automated      evidence: unit
-- SC-08: `check-state.sh` reports a violation on a tree the detector reddens and on a tree the
+- SC-08: `check-state.py` reports a violation on a tree the detector reddens and on a tree the
   detector cannot judge, and reports nothing on a clean one — proven against fixtures, not against
   the live tree alone.
   verify: automated      evidence: integration
@@ -193,7 +193,7 @@ from reaching that branch unnoticed.
   test writes into the repository tree.
   verify: inspection
 - SC-12: On a fixture holding no harness control-plane marker, the detector exits 0, says the scan
-  was not applicable, and reports zero examined counts; and `check-state.sh` reports no INV-27
+  was not applicable, and reports zero examined counts; and `check-state.py` reports no INV-27
   finding for it. Paired in the same suite with a case that scans the real repository root and
   asserts non-zero counts, so this branch cannot go silent inside harness without reddening the
   unit suite.
@@ -207,7 +207,7 @@ from reaching that branch unnoticed.
   reader needing to be finished and one needing to be reverted are distinguishable — proven on both
   directions in the same suite, not on one.
   verify: automated      evidence: unit
-- SC-15: `check-state.sh`'s INV-27 finding carries the same form alongside each reader path it
+- SC-15: `check-state.py`'s INV-27 finding carries the same form alongside each reader path it
   names, and ends with an action the reader can take.
   verify: automated      evidence: integration
 
@@ -222,7 +222,7 @@ its detect list. No SC rests on `component`, `ui`, `eval` or `typecheck`, all of
 
 - Detector only. No file moves, no layout change, no config split (units 3–7, later features).
 - Every step touching `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or
-  `check-state.sh` is declared `main-session-direct` and never dispatched (DEC-174).
+  `check-state.py` is declared `main-session-direct` and never dispatched (DEC-174).
 - Fixtures are sandboxed temporary trees, built and torn down by the test. Fixture creation is not
   a layout change and must not be read as one.
 - The check asserts which FORMS appear per reader file. It never asserts a site count and never

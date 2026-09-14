@@ -153,7 +153,7 @@ receipt was written to disk (see note above) rather than trusted from the earlie
 
 ## Scope respected
 
-- No edit to `check-state.sh`, `check-docs.sh`, `bash-write-guard.py`, `validate-digest.py`,
+- No edit to `check-state.py`, `check-docs.sh`, `bash-write-guard.py`, `validate-digest.py`,
   `check-domain.py`.
 - No edit to any SC-13 / SC-18 / SC-19 assertion in `test-factory-claim.py`,
   `test-factory-config.py`, or `test-factory-integration.py` — only additions.

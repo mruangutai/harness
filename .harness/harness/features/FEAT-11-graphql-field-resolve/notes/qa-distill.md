@@ -89,4 +89,4 @@ No displacement — Patterns was 9/15, now 10/15; nothing else changed.
 | Outcomes | 2 | 2 |
 | Open | 0 | 0 |
 
-`check-expertise.sh .harness/expertise/harness-qa.md` — OK.
+`check-expertise.py .harness/expertise/harness-qa.md` — OK.

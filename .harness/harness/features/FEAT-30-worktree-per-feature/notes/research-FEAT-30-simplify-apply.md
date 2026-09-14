@@ -55,9 +55,9 @@ whole file to pass, so it is caught inside the task, by the operator, before lan
 ## Also applied
 
 - **A-2** — T-06 gains case 8, a drift detector asserting `expertise-merge.py`'s four caps equal the
-  `CAPS` mapping in `check-expertise.sh` (line 39, a file T-06 does not modify), the remedy
+  `CAPS` mapping in `check-expertise.py` (line 39, a file T-06 does not modify), the remedy
   `DECISIONS.md:5219-5225` recorded. `files:` unchanged.
-- **Q8, answered** — D-08's choice is now the suite baseline alone, with the `check-state.sh` clause
+- **Q8, answered** — D-08's choice is now the suite baseline alone, with the `check-state.py` clause
   relabelled as an operator-run ship-time sanity check, explicitly not part of SC-09 and owned by no
   task. No verify invented. The count-form reasoning is kept: it is the lesson, not the assertion.
   The suite half now also carries its re-observation at HEAD (269 PASS, 0 FAIL, exit 0).

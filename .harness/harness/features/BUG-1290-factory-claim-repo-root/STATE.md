@@ -25,7 +25,7 @@ code-reviewer, security-reviewer, ui-reviewer) plus the orchestrator's own file;
 digest counts sum higher than 35 because the ui reviewer's repository `O-01` was added and then
 dropped inside the same run. Every op went through `expertise-merge.py`; no file was written whole,
 so no DEC-125 wipe. Sections already at cap took entries only by displacement, and candidates with
-nothing weaker to displace died — the healthy outcome, not `expertise_full`. `check-expertise.sh`
+nothing weaker to displace died — the healthy outcome, not `expertise_full`. `check-expertise.py`
 exits 0 over both `.harness/expertise/` and `.harness/harness/expertise/`; the three surviving
 ADVISORY lines are pre-existing issue-340 layer flags on entries nobody touched this run.
 
@@ -51,7 +51,7 @@ was keyed on `step:`, which INV-32 does not read, so both validator-segment read
 never having run — both are now keyed `reader:`; the product-segment `goalcheck` reader was never
 transcribed and is now recorded from its surviving artifact
 (`notes/research-BUG-1290-factory-claim-repo-root-goalcheck-plan-c1.md`); and `notes/handoff-build.md`
-and `notes/handoff-validate.md` were reconstructed and labelled as such. Measured: `check-state.sh`
+and `notes/handoff-validate.md` were reconstructed and labelled as such. Measured: `check-state.py`
 reports 15 violations on `main` and 10 on the branch, the difference being exactly these five rows
 and nothing else. No verdict, severity, disposition, finding id, finding text, code, test, brief,
 task or approval was changed.

@@ -28,9 +28,9 @@ remote primitive, station resolution lives in the module, not bolted onto caller
 
 No other altitude defects found. Station resolution and remote-config reading are both placed in the
 modules that own the data (`factory_config.validate_board` as the one shared validator; `gh_board.py`
-delegates to it; `check-state.sh`'s INV-26 carve-out in T-05 reads station names through
+delegates to it; `check-state.py`'s INV-26 carve-out in T-05 reads station names through
 `derive_station(plan_doc, board)` rather than re-deriving them) — capability sits at the right depth
-throughout, not bolted onto callers (`check-state.sh`, `gh-sync.py`, `board-station.py`).
+throughout, not bolted onto callers (`check-state.py`, `gh-sync.py`, `board-station.py`).
 
 ## Not re-derived (per dispatch)
 

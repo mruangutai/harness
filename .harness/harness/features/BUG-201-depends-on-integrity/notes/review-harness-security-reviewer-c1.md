@@ -31,7 +31,7 @@ Census of the 3 named production files + 6 test files, all in scope for a look:
   `_projected_for`'s or `_status_plan_doc`'s return value beyond the station-map dict itself;
   none forward the exception text anywhere.
 - CI (`.github/workflows/tests.yml`) never invokes `factory_claim.py` or `gh-sync.py` — only
-  `check-plan-routes.py`, `check-instruction-paths.py`, `layout_migration.py`, `check-state.sh`.
+  `check-plan-routes.py`, `check-instruction-paths.py`, `layout_migration.py`, `check-state.py`.
   So none of this diagnostic text reaches an Actions log line or a `::error::` annotation that
   another automation greps.
 

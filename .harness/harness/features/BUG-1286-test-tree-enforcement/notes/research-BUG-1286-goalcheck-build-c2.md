@@ -51,7 +51,7 @@ exit 0; tree-audit `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`; `check-decision-anchors.py
 records (`suite_layout.tracked_paths` bar 4, `test-suite-layout._literal_key_present` bar 3), no
 grade-1. Full `--kind integration`: 46 files, 0 FAIL, exit 0.
 
-- **`check-state.sh` exits 1, not 0** (reproduced twice, ~75s each). Exactly one `VIOLATION`, over
+- **`check-state.py` exits 1, not 0** (reproduced twice, ~75s each). Exactly one `VIOLATION`, over
   `…/runs/2026-09-05-02-validator/digest.md` — a **gitignored** (`.gitignore:7`) run artifact from
   an earlier validator run today, absent from `bb3a31ed`'s tree and from `git status`. No SC covers
   it and no BUG-1286 deliverable is implicated, but the reported exit 0 is not what disk says.

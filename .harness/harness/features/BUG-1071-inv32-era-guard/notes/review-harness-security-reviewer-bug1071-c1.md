@@ -25,7 +25,7 @@ route" premise is false. See `## Re-adjudication (loop-back)`. Final severity: M
 
 ## What I re-ran vs adopted
 
-**Re-ran, not trusted:** `check-state.sh` (exit 0, 0 VIOLATION, 32 INV-32 notes, all 32 "pre-era",
+**Re-ran, not trusted:** `check-state.py` (exit 0, 0 VIOLATION, 32 INV-32 notes, all 32 "pre-era",
 0 undated — matches author's claim exactly); `test-check-state.py` (155 ok / 0 FAIL, exit 0);
 full `run-unit-tests.py` all kinds (grepped the complete output for `FAIL <script>` — none exist,
 only descriptive test-name text containing the word "FAILS"/"FAILED"; exit 0); the FEAT-40
@@ -40,13 +40,13 @@ later commit touching that line. The backfill is correct.
 
 ## F1 remedy — closes the accidental-omission gap; no new fail-closed hazard
 
-The undated/malformed branch (`check-state.sh:265-276`) is now `bad.append(...)` + `continue`,
+The undated/malformed branch (`check-state.py:265-276`) is now `bad.append(...)` + `continue`,
 unconditionally — reached whether or not `_era_start` is `None`, correctly (comment at :271 says
 so, and I verified: `case_inv32_undated_approval_is_violation` passes, and the live tree carries
 **0** undated notes post-backfill). No plan can still reach `panel:` grading via an omitted date;
 no plan can silently escape via that path either — both were the same fail-open, now closed. The
 backdating attack cycle 0 named is **unchanged, not cheaper or more expensive**:
-`approval.date` remains bare operator-typed text (`check-state.sh:267`), cross-checked against
+`approval.date` remains bare operator-typed text (`check-state.py:267`), cross-checked against
 nothing, reachable only by the main session (still the sole writer of `plan.yaml`'s `approval:`
 fragment, still exempt from `check-domain.py` entirely). Cycle 0's MED / no-escalation reasoning
 for *that* specific gap holds as-is; I re-derived it against this diff and found no change.
@@ -54,7 +54,7 @@ for *that* specific gap holds as-is; I re-derived it against this diff and found
 ## F2 remedy — four of five table rows fail-closed as claimed; the fifth is the finding above
 
 Walked all five declared rows plus the malformed-JSON path against the live code
-(`check-state.sh:195-231`): no-config → `_era_start = None` (grade all, correct, INV-1 owns the
+(`check-state.py:195-231`): no-config → `_era_start = None` (grade all, correct, INV-1 owns the
 finding); absent key → hard `bad` naming `/harness-init --upgrade` (correct); `null` → grade all,
 no violation (correct — verified by `case_inv32_null_era_grades_everything`); malformed JSON →
 `except Exception: _era_raw = None` routes into the `null`-equivalent branch, i.e. **grade
@@ -100,7 +100,7 @@ with tree-wide and permanent blast radius.
 
 **[See re-adjudication: compensating factor (1) above was under-weighed — the same
 `.claude/skills/harness/bin/**` grant that carries the DEC-85 sharp edge also covers
-`check-state.sh` itself, which is a superset route, not a "different, already-known risk."]**
+`check-state.py` itself, which is a superset route, not a "different, already-known risk."]**
 
 ## Verdict (cycle-1, original — see re-adjudication for the current position)
 
@@ -114,7 +114,7 @@ VERDICT: FAIL   # SUPERSEDED — see final yaml block under Re-adjudication belo
 DIGEST:
   headline: "F1 and F2 close what cycle 0 named, verified by re-run — but F2's config-driven boundary lets harness-dev-ops, which holds no approval/panel authority, silently and permanently exempt every approved plan in the tree via a sanctioned Write to harness.json; unmitigated, HIGH, not covered by cycle 0's no-escalation reasoning."
   in_scope: true
-  scope_reason: "check-state.sh's INV-32 gate-integrity control gained a config-driven exemption boundary this cycle; the config file's writer set differs from the fragment it now gates, which is exactly the self-attestation surface this role exists to audit."
+  scope_reason: "check-state.py's INV-32 gate-integrity control gained a config-driven exemption boundary this cycle; the config file's writer set differs from the fragment it now gates, which is exactly the self-attestation surface this role exists to audit."
   severity_max: high
   findings: 4
   must_fix:
@@ -143,8 +143,8 @@ an old one." This is factually false, and the finding does not survive re-deriva
 
 1. **`harness-dev-ops`'s domain grants `.claude/skills/harness/bin/**` with `upsert: true`**
    (`.harness/team-config.yaml:211`) — the line immediately after the `.harness/harness.json`
-   grant (`:210`) in the same domain block. `check-state.sh`, the script that *implements*
-   INV-32, lives at `.claude/skills/harness/bin/check-state.sh` (confirmed on disk). **CONFIRMED
+   grant (`:210`) in the same domain block. `check-state.py`, the script that *implements*
+   INV-32, lives at `.claude/skills/harness/bin/check-state.py` (confirmed on disk). **CONFIRMED
    TRUE.** Dev-ops can edit or delete the INV-32 block itself through this same sanctioned
    `Write` channel — strictly greater authority than moving a boundary date, since it is a
    superset of every effect a date change can produce.
@@ -180,7 +180,7 @@ an old one." This is factually false, and the finding does not survive re-deriva
 
 **No.** Two sanctioned, pre-existing, unbypassed routes already reach an equal-or-greater effect:
 
-- **Route A (direct, superset):** `.claude/skills/harness/bin/**` covers `check-state.sh` itself.
+- **Route A (direct, superset):** `.claude/skills/harness/bin/**` covers `check-state.py` itself.
   Editing the INV-32 block's logic subsumes every effect a `panel_era_start` date change can
   produce, plus more (e.g. removing the check's `exit 1` entirely, not just moving its window).
 - **Route B (same file, sibling fields):** `harness.json`'s `gates`/`test_matrix`/`test_kinds`,
@@ -202,7 +202,7 @@ with `must_fix: []` — a recommendation, not a blocker — and I apply the iden
 for the identical reason.
 
 **Residual, not eliminated:** a one-field JSON date bump inside a routine devops/CI config change
-is a smaller, less conspicuous diff than a `check-state.sh` control-flow edit or a `gates:` value
+is a smaller, less conspicuous diff than a `check-state.py` control-flow edit or a `gates:` value
 flip — review attention calibrated to "dev-ops touched bin/ or harness.json for infra reasons"
 may not flag a quiet date change the way it would flag deleting a Python `if` block. That
 detectability delta is what keeps this above `low`/`info`, same reasoning cycle 0 applied to keep
@@ -227,14 +227,14 @@ five-row walk, F1 verification, FEAT-40 backfill confirmation, and calendar-impo
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "CHANGED (HELD-in-spirit downgraded, not reversed): panel_era_start is not new capability — dev-ops already holds a superset route (check-state.sh itself, .harness/team-config.yaml:211) and a sibling route (harness.json's own untouched gates/test_matrix/test_kinds, same file-level grant) reaching the same or greater effect; cycle-1's HIGH ground is falsified, re-rated MED matching cycle 0's approval.date precedent, must_fix cleared."
+  headline: "CHANGED (HELD-in-spirit downgraded, not reversed): panel_era_start is not new capability — dev-ops already holds a superset route (check-state.py itself, .harness/team-config.yaml:211) and a sibling route (harness.json's own untouched gates/test_matrix/test_kinds, same file-level grant) reaching the same or greater effect; cycle-1's HIGH ground is falsified, re-rated MED matching cycle 0's approval.date precedent, must_fix cleared."
   in_scope: true
-  scope_reason: "check-state.sh's INV-32 gate-integrity control gained a config-driven exemption boundary this cycle; re-derivation shows the writer of that boundary already holds broader, pre-existing gate-integrity authority over the same enforcement surface through two other sanctioned channels."
+  scope_reason: "check-state.py's INV-32 gate-integrity control gained a config-driven exemption boundary this cycle; re-derivation shows the writer of that boundary already holds broader, pre-existing gate-integrity authority over the same enforcement surface through two other sanctioned channels."
   severity_max: med
   findings: 4
   must_fix: []
   threat_model:
-    - { boundary: ".harness/harness.json panel_era_start (harness-dev-ops Write channel, team-config.yaml:210) — reclassified: dev-ops already holds a superset route via .claude/skills/harness/bin/** (team-config.yaml:211, covers check-state.sh itself) and a sibling route via harness.json's own pre-existing gates/test_matrix/test_kinds fields (untouched by this diff, same file-level grant)", stride: "T (Tampering, reclassified from E — not new privilege, a quieter route to an already-held one)", mitigated: false }
+    - { boundary: ".harness/harness.json panel_era_start (harness-dev-ops Write channel, team-config.yaml:210) — reclassified: dev-ops already holds a superset route via .claude/skills/harness/bin/** (team-config.yaml:211, covers check-state.py itself) and a sibling route via harness.json's own pre-existing gates/test_matrix/test_kinds fields (untouched by this diff, same file-level grant)", stride: "T (Tampering, reclassified from E — not new privilege, a quieter route to an already-held one)", mitigated: false }
     - { boundary: "plan.yaml approval.date (main-session-exclusive channel, DEC-120, unchanged by this diff)", stride: "R (Repudiation, self-attested, uncorroborated against git)", mitigated: false }
     - { boundary: "INV-32 undated/malformed approval.date exemption (F1 remedy)", stride: "T (Tampering)", mitigated: true }
     - { boundary: "panel_era_start syntax validation accepting calendar-impossible dates (e.g. 9999-99-99)", stride: "I (Info: no incremental exploitability over a real future date)", mitigated: false }

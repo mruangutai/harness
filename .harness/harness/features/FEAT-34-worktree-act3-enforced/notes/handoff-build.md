@@ -14,14 +14,14 @@ commits, pin `review_sha`, `gh-sync.py status <dir> Review`, panel, goal-check, 
 
 - qa gate FAILed, matrix_ok false, and is CORRECT: the plan is incomplete, the squad work is not
   at fault — runs/2026-08-24-01-validator/digest.md — verified-at 4c7b650
-- `INV-30` occurs 0 times in check-state.sh (`INV-29` 9x): REQ-12 is UNBUILT, not untested; SC-12
+- `INV-30` occurs 0 times in check-state.py (`INV-29` 9x): REQ-12 is UNBUILT, not untested; SC-12
   has nothing to evidence — grep by me — verified-at 4c7b650
 - `INV-29`/`INV-30` occur 0 times in test-check-state.py: SC-01..SC-05 have no gate-level
   evidence. Predicate tested, GATE not — grep by me — verified-at 4c7b650
 - NO CYCLE spent on the qa FAIL, deliberately; cycles_used stays 6. DEC-157 = rework only, and
   T-07/T-08/T-09 were never executed — first-pass forward work — verified-at 4c7b650
 - Suites measured by me: sweep 47, hooks-install 29, worktree-terminal 34, each exit 0;
-  check-state.sh exit 0; run-unit-tests.py exit 0, zero ^FAIL — verified-at 4c7b650
+  check-state.py exit 0; run-unit-tests.py exit 0, zero ^FAIL — verified-at 4c7b650
 - REQ-07's repository scope was left OPEN BY THE BRIEF: BRIEF.md:237-239 — "REQ-07 through REQ-09
   are written to be satisfied by either." REQ-07 (:73-74) has no repo quantifier — verified-at 4c7b650
 - `classify`->`classify_all` at post-merge-sweep.py:234 is a NO-OP THAT LOOKS GREEN: no served
@@ -36,7 +36,7 @@ commits, pin `review_sha`, `gh-sync.py status <dir> Review`, panel, goal-check, 
 
 - Do NOT route M4 to eng — the code change is a measured no-op; follow-up is TEST-ONLY and only if
   D-11 signs — verified-at 4c7b650
-- Do NOT edit check-state.sh / test-check-state.py from a squad — DEC-174 am.4; the three tasks
+- Do NOT edit check-state.py / test-check-state.py from a squad — DEC-174 am.4; the three tasks
   are main-session-direct by `execution_mode` — verified-at 4c7b650
 - Do NOT pin `review_sha` before the operator commits — HEAD lacks the work, so a pin grades
   nothing (P-02/P-07); the trap was live all phase — verified-at 4c7b650

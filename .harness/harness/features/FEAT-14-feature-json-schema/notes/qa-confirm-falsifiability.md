@@ -81,7 +81,7 @@ Both corroborated as reported.
 |---|---|---|
 | `run-unit-tests.py` (default `--kind all`) | **0** — last line `PASS test-factory-integration.py`, all suites green | Partial — it runs `test-gh-sync.py` and `test-check-domain.py` in-place at HEAD, so it confirms the fixes don't regress anything else, but it is the same green already interrogated by mutation above — it does not, by itself, prove either HIGH's new assertion discriminates (that needed the worktree mutants) |
 | `validate-digest.py` over the feature's 19 run digests (persona `lead` — the files derive from `-eng`/`-product`/`-validator` suffixes, all map to `lead`) | **0** for all 19 | Not load-bearing for either HIGH — digest schema conformance, orthogonal to the fix |
-| `check-state.sh` | **0** (all findings are `note`-level, none `FAIL`) | Not load-bearing for either HIGH — general corpus hygiene, one `note` names an orphaned `confirm-validator` run dir on this feature but that's bookkeeping, not the fix |
+| `check-state.py` | **0** (all findings are `note`-level, none `FAIL`) | Not load-bearing for either HIGH — general corpus hygiene, one `note` names an orphaned `confirm-validator` run dir on this feature but that's bookkeeping, not the fix |
 | `check-plan-routes.py` | **0**, `0 violation(s) across 10 plan(s)` | Not load-bearing for either HIGH — grant/route drift across all plans, unrelated to the schema/gh-sync fixes |
 
 ## Tree state

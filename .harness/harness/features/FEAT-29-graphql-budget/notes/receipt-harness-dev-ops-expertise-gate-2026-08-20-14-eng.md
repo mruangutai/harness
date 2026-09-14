@@ -4,7 +4,7 @@
 
 Command run verbatim:
 ```
-.claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+.claude/skills/harness/bin/check-expertise.py .harness/expertise/
 ```
 
 Exact output:

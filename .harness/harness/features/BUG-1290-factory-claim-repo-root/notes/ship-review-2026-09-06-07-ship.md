@@ -84,7 +84,7 @@ But you asked for B-3 rather than shipping with it, so if you want B-16 closed t
 
 ## The record's own gates — three violations I found and did not create
 
-I ran `check-state.sh` before writing this. It exits non-zero. Two of its findings were mine and I
+I ran `check-state.py` before writing this. It exits non-zero. Two of its findings were mine and I
 fixed them: a stray scratch worktree one of my QA dispatches left behind, and two fixture task ids
 in `STATE.md` that the invariant reads as references to plan tasks that do not exist. Both are
 gone; I re-ran the check to confirm.
@@ -175,7 +175,7 @@ I did not re-read them individually. If you want a phase re-derived from primary
 which.
 
 Every number in the "what actually changed" table, the empty production diff, the T-01 verify
-status on both trees, the B-16 one-line-deletion result, and every `check-state.sh` finding above
+status on both trees, the B-16 one-line-deletion result, and every `check-state.py` finding above
 are **my own measurements**, not any agent's. Everything else is attributed.
 
 ---
@@ -205,7 +205,7 @@ had it fixed.** Rows B-16 onward are new since yesterday.
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-23 | bug | **The plan-panel record is incomplete and `check-state.sh` INV-32 is red on it.** The invariant expects readers `scope`, `should-not-exist` and `goalcheck` recorded; it reports all three unrecorded, and the plan's `panel:` block carries two steps and no `goalcheck`. `plan.yaml` is byte-identical to the previous pin, so this predates this cycle. Only the product manager may write `panel:`. |
+| B-23 | bug | **The plan-panel record is incomplete and `check-state.py` INV-32 is red on it.** The invariant expects readers `scope`, `should-not-exist` and `goalcheck` recorded; it reports all three unrecorded, and the plan's `panel:` block carries two steps and no `goalcheck`. `plan.yaml` is byte-identical to the previous pin, so this predates this cycle. Only the product manager may write `panel:`. |
 | B-24 | chore | **No `notes/handoff-build.md` exists** — the build seam was crossed without one. Flagged by the invariant. Deliberately not fabricated after the fact. |
 | B-25 | chore | **Run bookkeeping fails its own contracts.** Every run's `state.yaml` carries keys the checkpoint schema forbids (`run_uid` from this cycle's leads; prose keys from yesterday's), and five run digests fail the lead digest contract. Systemic lead behaviour, both cycles. |
 

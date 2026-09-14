@@ -65,7 +65,7 @@ not flagged (matches Expertise O-2: adjacent-looking checks that each guard a di
 not redundant just because they resemble each other).
 
 **bin/ comment sweep (point 4): clean.** All seven touched scripts
-(`check-domain.py`, `check-instruction-paths.py`, `check-state.sh`, `gh-sync.py`,
+(`check-domain.py`, `check-instruction-paths.py`, `check-state.py`, `gh-sync.py`,
 `layout_migration.py`, `post-merge-sweep.py`, `upgrade-config.py`) rewrite operator-facing
 messages/comments to state the present central-model fact (e.g. "this control-plane clone", "a
 copy or worktree of the control plane carries every reader file") — none narrates the change

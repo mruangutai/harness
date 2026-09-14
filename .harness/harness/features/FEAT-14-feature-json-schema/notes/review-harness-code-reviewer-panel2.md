@@ -188,7 +188,7 @@ fixture (a syntax-broken `feature_schema.py` on `PYTHONPATH`) to discriminate �
 
 ## Q2 — the sixth vacuous check (not found beyond Q1; three surfaces probed, all sound)
 
-- **T-12 / INV-17 rebuild** (`check-state.sh`, `git show 3abaedd:...check-state.sh:433-593`): sound.
+- **T-12 / INV-17 rebuild** (`check-state.py`, `git show 3abaedd:...check-state.py:433-593`): sound.
   `STATUS_ORDER`/`SEAM_NOTES` replace `PHASE_ORDER` exactly per D-12 (lowercase stem literals, not
   derived from status values — the case-insensitive-filesystem trap D-12 names is avoided).
   `_handoff_exempt()` fails closed on every read/parse error (`except Exception as e: return "",

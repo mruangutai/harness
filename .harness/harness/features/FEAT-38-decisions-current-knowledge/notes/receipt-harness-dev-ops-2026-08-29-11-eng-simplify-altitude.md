@@ -71,7 +71,7 @@ only re-runs `test-check-decision-claims.py` and `test-check-decision-anchors.py
 those exercise their checker exclusively against **synthetic fixtures written to a tempdir**
 (explicit in both files' module docstrings) — never against the live
 `.harness/harness/docs/DECISIONS.md`. No script in `UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS`,
-`check-state.sh`, or `.github/workflows/tests.yml` invokes either checker with no `--file` (i.e.
+`check-state.py`, or `.github/workflows/tests.yml` invokes either checker with no `--file` (i.e.
 against the real document) as part of any automated gate. Contrast with the generator's own test
 suite one file over: `test-gen-decisions-index.py` copies the **real** `DECISIONS.md` into its
 tempdir fixtures (`shutil.copy(REAL_DECISIONS, …)`, lines 159/782/804) and directly opens

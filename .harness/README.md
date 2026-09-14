@@ -87,7 +87,7 @@ A repository is not onboarded when it is absent from `.harness/factory/fleet.yam
 unconfigured, run `harness-init` first; a `schema_version` gap calls for `harness-init --upgrade`.
 An empty `features/` directory is a normal state, not a sign of missing onboarding.
 
-Run `.agents/skills/harness/bin/check-state.sh` any time; it checks invariants that fail silently,
+Run `.agents/skills/harness/bin/check-state.py` any time; it checks invariants that fail silently,
 including required lifecycle integration, approvals, and tasks missing `change_type`.
 
 > **Schemas are authored in `.claude/skills/harness/templates/`** and exposed to OMP through

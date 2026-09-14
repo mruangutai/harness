@@ -8,7 +8,7 @@ terminal message is in scope per dispatch instruction; it passes with one `info`
 `git diff --stat 772790be5..2964cddb` (merge-base of `main` → pinned sha) — full feature diff, 19 files,
 +1693/-7:
 
-- `.claude/skills/harness/bin/check-state.sh` (+24/-… code)
+- `.claude/skills/harness/bin/check-state.py` (+24/-… code)
 - `tests/integration/test-check-state.py` (+90/-…)
 - 4 `feature.json` records (BUG-440's own + `FEAT-07`, `FEAT-22`, `FEAT-25` — the historical corrections)
 - Harness process scaffolding: `BRIEF.md`, `STATE.md`, `plan.yaml`, `observations/harness-pm.md`,
@@ -21,7 +21,7 @@ ship-review-plan-BUG-440.md — the markdown is the record; do not edit this fil
 bin/render-brief.py."` This is a generated ship-review report (project Expertise P-02/repo Expertise
 P-02), not authored product UI — excluded per standing convention for this repository.
 
-The narrower dispatch-cited scope (`check-state.sh`, `test-check-state.py`, four `feature.json` records)
+The narrower dispatch-cited scope (`check-state.py`, `test-check-state.py`, four `feature.json` records)
 is pure Python/bash/JSON — no markup, no stylesheet, no template.
 
 ## DESIGN.md
@@ -31,8 +31,8 @@ Checked directly: `.harness/harness/features/BUG-440-digest-verdict-reconciliati
 
 ## Adjacent operator-facing surface (in scope per dispatch, despite no-UI decline)
 
-`check-state.sh:1531-1557`, message text at `:1552-1557` (verified identical between the worktree file
-and `git show 2964cddb:.claude/skills/harness/bin/check-state.sh`, i.e. not stale):
+`check-state.py:1531-1557`, message text at `:1552-1557` (verified identical between the worktree file
+and `git show 2964cddb:.claude/skills/harness/bin/check-state.py`, i.e. not stale):
 
 ```
 INV-37: {feature} run {run_id}: digest verdict {digest_verdict!r} in {digest_path} differs from

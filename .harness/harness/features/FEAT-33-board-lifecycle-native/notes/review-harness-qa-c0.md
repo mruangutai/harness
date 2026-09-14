@@ -1,7 +1,7 @@
 # Review (qa seat, gate-only) — FEAT-33 board-lifecycle-native — c0
 
 **VERDICT: FAIL.** Independent re-derivation confirms the qa segment's task counts and its 46/46
-suite numbers exactly. But SC-10's own verify — `check-state.sh` exits 0 — does not hold when I run
+suite numbers exactly. But SC-10's own verify — `check-state.py` exits 0 — does not hold when I run
 it right now: exit 1, 2 VIOLATIONs, one of which names **this feature itself**. That contradicts
 both SC-10 and the segment's own report, which claims "exits 0" in the same sentence as "exactly 1
 VIOLATION" (self-contradictory on the script's own logic: `sys.exit(1 if bad else 0)`).
@@ -36,7 +36,7 @@ feature×8` (=27) is confirmed wrong: it double-matched `change_type:` inside ta
 - `test-board-lifecycle.py` alone: 99 `PASS` lines, exit 0, and it is registered in
   `run-unit-tests.py`'s `UNIT_SCRIPTS` (confirmed by the fact it ran at all under `--kind unit`).
 
-## `check-state.sh` — the live discrepancy
+## `check-state.py` — the live discrepancy
 
 Ran it myself, twice, just now:
 
@@ -56,7 +56,7 @@ what put `feature.json` at `Review` — but nothing in that same step wrote the 
 handoff note DEC-159 requires. This is a real, reproducible INV-17 finding against **this feature's
 own live state**, not a hypothetical.
 
-**This directly falsifies SC-10 as measured right now**: SC-10's own verify text is "`check-state.sh`
+**This directly falsifies SC-10 as measured right now**: SC-10's own verify text is "`check-state.py`
 exits 0 on the harness checkout after the migration," and it does not. It also means the qa segment's
 report is internally inconsistent — it asserts "exits 0" and "exactly 1 VIOLATION" in the same
 sentence, which the script's own `sys.exit(1 if bad else 0)` makes impossible; either the state
@@ -110,6 +110,6 @@ by design** — `uat`, operator-run — which is correct and not a gate issue he
 - `matrix_ok: true`
 - Suite (`--kind all`): pass, 46/46, 801 PASS / 0 FAIL, exit 0 — independently reproduced
 - `coverage_gaps`: none newly found beyond SC-19's disclosed drift
-- **SC-10 is NOT met as measured right now** — `check-state.sh` exits 1, naming this feature's own
+- **SC-10 is NOT met as measured right now** — `check-state.py` exits 1, naming this feature's own
   missing `notes/handoff-build.md`. That is a live blocking finding, not a coverage gap, and it
   returns to the orchestrator/build-lead, not to qa.

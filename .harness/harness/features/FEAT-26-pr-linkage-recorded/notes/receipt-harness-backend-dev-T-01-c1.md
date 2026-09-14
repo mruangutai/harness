@@ -90,5 +90,5 @@ itself printed `ALL PASS` including all five new cases.
 ## Scope discipline
 
 Touched only the two files named in the task (`feature-schema.json`,
-`test-validate-feature-json.py`). Did not touch `gh-sync.py`, `check-state.sh`, any
+`test-validate-feature-json.py`). Did not touch `gh-sync.py`, `check-state.py`, any
 `feature.json`, `harness.json`, or any file under the DEC-174 carve-out.

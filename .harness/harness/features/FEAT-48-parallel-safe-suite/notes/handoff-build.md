@@ -12,7 +12,7 @@ Run the independent validate phase against `review_sha: b86ce66a`. Validate ever
 - The isolated pre-fix control observed 4,968 broken reads without changing live `feature_schema.py`; the post-fix live poll observed zero.
 - `test-suite-independence.py` discovers 63 tests and reports zero live-tree mutations. Its pinned `ea6f51f` red proof finds all ten historical sites.
 - `test-run-pool.py`, `run-unit-tests.py --check-kinds`, and the decision-index generator all pass.
-- `check-state.sh` reports only unrelated FEAT-51 lifecycle violations plus expected board lag before Review was written. FEAT-48's six board mismatches were then cleared by `gh-sync.py status ... review`.
+- `check-state.py` reports only unrelated FEAT-51 lifecycle violations plus expected board lag before Review was written. FEAT-48's six board mismatches were then cleared by `gh-sync.py status ... review`.
 - Build implementation commit and pinned review SHA: `b86ce66a`.
 
 ## Dead ends

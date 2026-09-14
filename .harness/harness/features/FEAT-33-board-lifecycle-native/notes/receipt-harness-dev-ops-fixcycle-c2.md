@@ -70,7 +70,7 @@ case (I). Verified by running it: exit 0, 0 FAIL, all four (J) assertions ok.
 
 ## Suite
 
-`bash .claude/skills/harness/bin/run-unit-tests.py --kind all`, exit code captured with
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all`, exit code captured with
 `echo "EXIT:$?"` appended to the log (never through a pipe — zsh does not carry PIPESTATUS):
 
 | | baseline (HEAD, measured here) | after |

@@ -29,11 +29,11 @@
   `feature_json_write` refused dropping the now-undeclared `status` key because THIS checkout's
   schema still requires it (MergeRefusal 11). The worktree's own gh-sync.py ran clean. Rule of
   thumb: pick the tool copy whose checkout matches the target dir, not the newest one.
-- 2026-09-01: check-state.sh gave me rc=0 with no FEAT-50 row, then rc=1 with an INV-33 row minutes
+- 2026-09-01: check-state.py gave me rc=0 with no FEAT-50 row, then rc=1 with an INV-33 row minutes
   later on an unmoved main. I acted on the first reading and put it in a briefing that was posted to
   GitHub before I re-measured. A gate reading that CLEARS a criterion is the one to run twice.
 - 2026-09-01: INV-33 fires on an HONEST pin when a LATER feature's migration rewrites the plan the
-  pin covers. check-state.sh:588 makes it silent on a terminal station, so shipping closes it — but
+  pin covers. check-state.py:588 makes it silent on a terminal station, so shipping closes it — but
   a feature parked in `review` under a landing migration goes red for a reason nobody on it caused.
 - 2026-09-01: the two write routes disagreed on the identical target — check-domain.py hook mode
   refused a governed write to the main checkout's FEAT-50 record at exit 2, while

@@ -1043,7 +1043,7 @@ asked on the first pass. Re-derived here against the fold: `grep -rn "suite: fai
 over `docs/`, `.claude/agents/`, `.claude/skills/` and `.harness/` returns no printed worked example
 carrying `VERDICT: PASS`, so unlike the `task_verify` change the fold invalidates no example
 as-printed — there is no second T-04. Also ruled out: `.claude/skills/harness/SKILL.md`,
-`docs/harness/BUILD.md`, `bin/check-state.sh`, `bin/test-gh-sync.py`, `templates/harness.json`,
+`docs/harness/BUILD.md`, `bin/check-state.py`, `bin/test-gh-sync.py`, `templates/harness.json`,
 `templates/PLAN.md`, `harness-spec-driven/SKILL.md` and `agents/harness-pm.md` (matched only on
 `change_type:`/`applied:`, never on a dev digest field — `grep -n "suite:\|tests_added\|blocked_on"`
 over the first three returns nothing). `docs/harness/DECISIONS.md` is history and is not rewritten.
@@ -1186,6 +1186,6 @@ leaving to be inferred:
 `.harness/features/FEAT-06-team-layer-inv6/PLAN.md`. Checked, because a line-oriented extractor would
 truncate them: `gh-sync.py`'s `parse_tasks` (`:151-167`) reads task fields with a
 single-line regex, but it only reads `change_type`, `traces` and `absorbs` — all single-line here —
-and passes `body` through whole. `check-state.sh` INV-4 (`:90-101`) does a substring test for
+and passes `body` through whole. `check-state.py` INV-4 (`:90-101`) does a substring test for
 `change_type:` over the whole task body. Neither touches `verify:` or `intent:`. The lead reads
 `PLAN.md` as text.

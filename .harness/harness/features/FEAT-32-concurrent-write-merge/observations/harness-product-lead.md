@@ -15,7 +15,7 @@
   claim about unfinished code.
 - 2026-08-22: `grep 'dirty tree|halts the next'` over `bin/` hits only four files
   (`feature-worktree.py`, `bash-write-guard.py`, `test-bash-write-guard.py`, `merge-gitignore.py`)
-  and NOT `check-state.sh`. The "dirty tree halts the next team run" phrase is repeated in
+  and NOT `check-state.py`. The "dirty tree halts the next team run" phrase is repeated in
   `.gitignore` comments and T-11's intent as if it named one enforcer; it may name none centrally.
 - 2026-08-22: `Glob **/*.lock` over the whole worktree returns nothing, so a blanket `*.lock`
   rule cannot untrack an existing file today — the hazard the `gh-cost-*.jsonl` comment

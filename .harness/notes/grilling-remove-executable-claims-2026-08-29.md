@@ -72,7 +72,7 @@ remaining script that builds a command line from document or config text.
   command can check records that command and its expected…") and SC-09 ("The claim checker runs every
   claim marker…"), plus `plan.yaml` D-10, T-03, T-18, T-19, T-20, T-21. `plan.yaml` currently reads
   `approval.status: approved`, so re-approval is required.
-- **`check-state.sh` exits 1 at the worktree** with four violations: FEAT-38 status `Review` with
+- **`check-state.py` exits 1 at the worktree** with four violations: FEAT-38 status `Review` with
   `notes/handoff-build.md` missing (DEC-159), and three `runs/**` digests failing the lead digest
   contract (DEC-156). The digests are gitignored and die with the worktree; the handoff gap is a real
   record hole from the blocked ship.

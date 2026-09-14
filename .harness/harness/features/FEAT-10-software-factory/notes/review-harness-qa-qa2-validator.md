@@ -15,7 +15,7 @@ overwritten, not touched).
 ## Diff assessed
 
 Working tree vs `review_sha` f9488a2 (HEAD; the diff is entirely uncommitted/untracked, confirmed
-via `git status --porcelain`). Same as the first run, plus T-08's landed change: `check-state.sh`
+via `git status --porcelain`). Same as the first run, plus T-08's landed change: `check-state.py`
 (INV-24) and `test-check-state.py`, both `M` in `git status`.
 
 ## Classification (derived from the diff myself, not adopted from the first run's artifact)
@@ -25,7 +25,7 @@ I independently re-derived the same 11 logical groups the first run named and co
 `factory_decompose.py`/`factory_claim.py`/`factory_land.py` = `cross_module` (compose
 `factory_config`+`factory_gh`+`factory_cli`+`harness_yaml`); `factory_cli.py`/`factory_config.py`
 = `logic`; `run-unit-tests.py` = `scaffolding`; `.harness/harness.json` = `config`;
-`docs/harness/DECISIONS*.md` = `docs`. Added for this run: `check-state.sh` (T-08, INV-24) =
+`docs/harness/DECISIONS*.md` = `docs`. Added for this run: `check-state.py` (T-08, INV-24) =
 `logic` — `unit` always, no new kind requirement it wasn't already binding.
 
 `_matrix_provenance` at `harness.json:79-101` — verified myself against

@@ -68,7 +68,7 @@ Blast radius, `status` flipped to `active` one kind at a time: `component` 3 unc
 Gate re-runs from the worktree root: `plan.yaml` loads, `status: plan`, `approval: {status: pending}`
 with no `rulings`; `panel:` sha256 `d7a0cadc…f77b6e` identical before and after; T-02/T-03/T-04 task
 hashes identical, only T-01 and T-05 changed; `check-plan-routes.py` → `0 violation(s)`, all five
-tasks carry all eleven keys; `check-state.sh` → no `INV-35` line and no violation for this feature
+tasks carry all eleven keys; `check-state.py` → no `INV-35` line and no violation for this feature
 other than the expected unsigned BRIEF.
 
 ## Open question — an adjacent pin I did NOT touch

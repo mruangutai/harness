@@ -7,7 +7,7 @@ reviewed: 37a8a66..340e18a (18 commits, pinned)
 imports `harness_yaml` — every real invocation of `--check`/`--upgrade` crashes with `NameError`,
 reproduced live against this repo; the required regression test for this exact script
 (`test-upgrade-config.py`, 3 tests, T-04) was never created, so `run-unit-tests.py` is green with
-nothing capable of catching it. Separately, `check-state.sh` converts only 3 of the census's 10
+nothing capable of catching it. Separately, `check-state.py` converts only 3 of the census's 10
 designated CONVERT sites — 7 hand-rolled YAML regex reads (`phase:`, `status:`, `cost:`, `host:`,
 the `github:` block) ship unconverted, contradicting REQ-01 and SC-03's own answer key, and one of
 them (`status:`/`host:`) is on a **violation-level** invariant a quoted scalar can silently defeat.
@@ -50,7 +50,7 @@ Traced each group by `git log --oneline 37a8a66..340e18a -- <paths>`:
 No hand (`[harness:human]`) commits in range: `git log 37a8a66..340e18a --format='%H %s' | grep -in
 'harness:human'` → no output.
 
-### SC-03 — NOT MET (check-state.sh); MET (the other five files)
+### SC-03 — NOT MET (check-state.py); MET (the other five files)
 
 Re-ran `grep -nE 're\.(search|findall|match|finditer|sub|split|compile)'` at `340e18a` over all six
 files and diffed row-by-row against `PLAN.md`'s `## Regex census`.
@@ -59,12 +59,12 @@ files and diffed row-by-row against `PLAN.md`'s `## Regex census`.
 the census exactly** (7, 5, 6, 2, 0 STAY calls respectively; every CONVERT call gone). I mapped each
 found line to its census bucket by content, not just count, for all five.
 
-**check-state.sh — mismatch.** Found **14** regex calls at final state, not the 7 the census
-promises: `check-state.sh:51,52,55,81,83,94` (markdown, correctly stayed) + `:333` (CHECKPOINT_KEYS,
+**check-state.py — mismatch.** Found **14** regex calls at final state, not the 7 the census
+promises: `check-state.py:51,52,55,81,83,94` (markdown, correctly stayed) + `:333` (CHECKPOINT_KEYS,
 correctly stayed, BRIEF-exempt) = 7 legitimate survivors, **plus** `:268` (`phase:`), `:324`
 (`status: complete`), `:328` (`cost:`), `:347` (`host:`), `:425,429,430` (the `github:` block) — the
 exact 7 sites the census's own CONVERT column names for this file (old `:237 293 297 316 394 398
-399`). `git diff 37a8a66..340e18a -- check-state.sh` shows these blocks are **byte-identical to
+399`). `git diff 37a8a66..340e18a -- check-state.py` shows these blocks are **byte-identical to
 baseline** — the whole file's only real change is the `val()`/`runs:` region (issue #11, REQ-02,
 correctly fixed) plus the `harness_yaml` import/PYTHONPATH header. INV-11, INV-15, INV-16, INV-17,
 INV-21 still hand-parse `state.yaml`/`feature.yaml` with regex. Detail in finding #2.
@@ -87,14 +87,14 @@ closes as not-a-defect.
 ### Other criteria
 
 - **SC-01 MET** — code reads `doc.get("runs")` from a real parse; `test_run_with_trailing_comment_on_id_is_read` present.
-- **SC-02 MET** — ran `check-state.sh` myself: exit 0, zero violations, only INV-8 pruned-dir notes (plus one new INV-12 note about an unrecorded FEAT-05 run dir, unrelated to this feature's SCs).
+- **SC-02 MET** — ran `check-state.py` myself: exit 0, zero violations, only INV-8 pruned-dir notes (plus one new INV-12 note about an unrecorded FEAT-05 run dir, unrelated to this feature's SCs).
 - **SC-05 / SC-06 MET** — ran the suites myself; the paired allow+block assertions exist and pass for both hooks.
 - **SC-07 MET** — `ls requirements.txt pyproject.toml package.json` → 3× "No such file"; `grep -ciw six` → 0; "seven prerequisites" and `import yaml` present in `harness-init/SKILL.md`.
 - **SC-08 MET (unit level)** — `harness_yaml.py:307-319`, `require_or_bootstrap`'s grant path writes a `json.dumps`-built `systemMessage` to stdout, once, only on the "marker absent" branch (verified: the "present, identity matches" branch returns at line 273, before this code). No competing stdout writer anywhere in `check-domain.py` or `bash-write-guard.py` (grepped). UAT (hand-run) originally caught D-14b failing, then confirmed fixed; I independently re-derived the fix's shape from source, not from the disposition note's say-so.
 - **SC-09 MET** — UAT (`uat-bootstrap-escape-expiry.md`) ran U-05 against three genuinely distinct transcript UUIDs; block on session mismatch confirmed.
 - **SC-10 NOT MET** — see finding #4 below.
 - **SC-12 MET, mechanically, but arithmetic exposes the gap** — `run-unit-tests.py` exits 0, 11 suites, all pass, at-or-above the 9-file baseline. But the plan itself commits to **three** `SCRIPTS` additions across this feature: T-02's `test-harness-yaml.py`, T-04's `test-upgrade-config.py`, and SC-14's `test-harness-yaml-corpus.py` — 9 + 3 = 12 expected, and `run-unit-tests.py:6`'s `SCRIPTS` array has **11**. The missing entry is `test-upgrade-config.py`, and it names itself: this is the exact test that would have caught finding #1.
-- **SC-13 MET, by direct execution, not by re-diffing the receipt file** — `check-state.sh`'s own run against this repo produces the same violation-free result described as baseline; I did not byte-diff `receipt-baseline-run-inventory.md` against a freshly generated post-change listing.
+- **SC-13 MET, by direct execution, not by re-diffing the receipt file** — `check-state.py`'s own run against this repo produces the same violation-free result described as baseline; I did not byte-diff `receipt-baseline-run-inventory.md` against a freshly generated post-change listing.
 - **SC-14 MET** — `test-harness-yaml-corpus.py` is in the `SCRIPTS` array and passed 8/8, including the four named negative fixtures (team-config.yaml space-`#`, FEAT-04/05 `: ` in prose, FEAT-03 backtick, duplicate key).
 
 ## Findings, ranked
@@ -119,12 +119,12 @@ created and never added to `run-unit-tests.py`'s `SCRIPTS` array — the arithme
 names the gap directly. REQ-06 explicitly says the conversion must not "trade a silent fail-open for
 a new crash"; this is that crash, and it is not even silent.
 
-### 2. [HIGH] SC-03/REQ-01 violated in `check-state.sh` — must_fix
+### 2. [HIGH] SC-03/REQ-01 violated in `check-state.py` — must_fix
 
 Seven census-designated CONVERT sites still hand-parse YAML with regex, unchanged from `37a8a66`.
 Two concrete failure scenarios, one on a **violation**, one on a **warn**:
 
-- **`check-state.sh:324`** — `re.search(r"^status:\s*complete", txt, re.M)` — and **`:347`** —
+- **`check-state.py:324`** — `re.search(r"^status:\s*complete", txt, re.M)` — and **`:347`** —
   `re.search(r"^host:\s*(\S+)", txt, re.M)`. A legally-quoted scalar, `status: "complete"` or
   `host: "harness-eng-lead"`, is not what these patterns expect: the first fails to match (no
   literal `complete` immediately after the colon-whitespace), and the second captures the literal
@@ -134,12 +134,12 @@ Two concrete failure scenarios, one on a **violation**, one on a **warn**:
   contract) both **silently stop firing** for that run — exit 0, no message. This is the BRIEF's own
   Problem-statement failure mode, verbatim, on a **violation-level** invariant, in the file whose
   whole job was closing this class everywhere.
-- **`check-state.sh:425`** — `re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", txt, re.M | re.S)` requires
+- **`check-state.py:425`** — `re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", txt, re.M | re.S)` requires
   the `github:` key line to hold nothing but trailing whitespace. A `github:  # tracking IDs`
   comment on that line (legal YAML, the exact defect class REQ-01/REQ-02 exist to close) makes the
   match fail, and INV-21 (warn-level) silently never fires for that feature.
 
-`git diff 37a8a66..340e18a -- check-state.sh` confirms these blocks are byte-identical to baseline —
+`git diff 37a8a66..340e18a -- check-state.py` confirms these blocks are byte-identical to baseline —
 not a partial rewrite that missed an edge case, but the pre-change code, untouched.
 
 ### 3. [MED] T-06 Part C never landed; a required comment stayed false
@@ -206,8 +206,8 @@ mandated, which is worth a durable record.
   stripped (bare date stays `str`), int/bool resolvers preserved.
 - D-13's `read:` tightening and D-08's `str()`-coercion of every `manifest_domains` glob: read at
   source (`harness_yaml.py:129-142`), matches the decision text.
-- `run-unit-tests.py` and `check-state.sh` re-run by me directly (not cited from a prior run):
-  11/11 suites PASS, `check-state.sh` exit 0.
+- `run-unit-tests.py` and `check-state.py` re-run by me directly (not cited from a prior run):
+  11/11 suites PASS, `check-state.py` exit 0.
 - Reverse trace of every file in the diff stat not otherwise covered by the six-script sweep (agents,
   skills, docs, `team-config.yaml`, two other features' `feature.yaml`) — see Stage 1 section above.
   No domain widening, no undisclosed FEAT-05 scope creep; one adjacent-decision commit (`225cc98`,

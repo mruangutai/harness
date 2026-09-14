@@ -71,12 +71,12 @@ the same file.
 |---|---|---|---|---|
 | T-01 | `.harness/team-config.yaml` | `config` | `[]` | nothing required; only T-01's inline one-shot `verify:` |
 | T-02 | `inject-expertise.py`, `test-inject-expertise.py`, `run-unit-tests.py` | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit) |
-| T-03 | `check-expertise.sh`, `test-check-expertise.py` | `cross_module` | `[unit, integration]` | `PASS test-check-expertise.py` runs under **integration** only — see below |
+| T-03 | `check-expertise.py`, `test-check-expertise.py` | `cross_module` | `[unit, integration]` | `PASS test-check-expertise.py` runs under **integration** only — see below |
 | T-07 | `test-inject-expertise.py` (case13) | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit), case13 present, `os.symlink` present |
 | T-04/05/06 | SPEC.md, README.md, expertise files, SKILL.md | `docs` | `[]` | nothing required |
 
 T-03 flags `cross_module` (`always: [unit, integration]`) but its own `files:` list and `verify:`
-block only exercise `--kind integration` — `check-expertise.sh`/`test-check-expertise.py` produce
+block only exercise `--kind integration` — `check-expertise.py`/`test-check-expertise.py` produce
 no unit-kind artifact of their own. This is not a new finding (it was true at `252fa72` too,
 unchanged by this delta) and the prior gate accepted it; flagging for completeness since the
 dispatch asked for the obligation to be re-derived independently, not taken from the mapping as

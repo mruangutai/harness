@@ -23,7 +23,7 @@ comment/prose-only edit with zero runtime effect. `findings: []`.
   glob string with the deleted test's literal path removed (T-25's counterpart to T-24). A
   detect-glob shrinking by one entry is not a cost.
 
-- **`board_lifecycle.py` / `check-domain.py` / `check-state.sh`** — all diffs in range are
+- **`board_lifecycle.py` / `check-domain.py` / `check-state.py`** — all diffs in range are
   docstring/comment DEC-renumbering only (`DEC-186`→`DEC-203`, `DEC-192`→`DEC-203`, `DEC-171
   am.1`→`DEC-171`). Verified via `git diff --stat` (2, 10, and 2 lines respectively) and full
   `git diff` read — no executable line touched in any of the three. `check-domain.py` (a
@@ -54,8 +54,8 @@ finding to make either way.
 wc -l .harness/harness/docs/DECISIONS.md          # 6272
 time python3 .agents/skills/harness/bin/gen-decisions-index.py --stdout > /dev/null
 git diff --stat <range> -- .github/workflows/tests.yml .harness/harness.json
-git diff --stat <range> -- .claude/skills/harness/bin/check-state.sh .claude/skills/harness/bin/check-domain.py
-git diff <range> -- .claude/skills/harness/bin/board_lifecycle.py .claude/skills/harness/bin/check-domain.py .github/workflows/tests.yml .harness/harness.json .claude/skills/harness/bin/check-state.sh
+git diff --stat <range> -- .claude/skills/harness/bin/check-state.py .claude/skills/harness/bin/check-domain.py
+git diff <range> -- .claude/skills/harness/bin/board_lifecycle.py .claude/skills/harness/bin/check-domain.py .github/workflows/tests.yml .harness/harness.json .claude/skills/harness/bin/check-state.py
 ```
 
 No source file edited, no generator write path run, no full unit suite run.

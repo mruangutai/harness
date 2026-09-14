@@ -58,4 +58,4 @@ Automated criteria: SC-01/02 `tests/integration/test-check-domain.py:4033-4058`;
 
 ## Separate external condition and adequacy limit
 
-SC-04's repository-root `check-state.sh` inspection remains blocked by the unrelated FEAT-51 `status is 'done' but notes/handoff-validate.md is missing` condition established in prior evidence. Per dispatch it was neither rerun nor repaired and is not a matrix failure. This c2 gate establishes deterministic repair behavior and code grade only; it does not provide the credentialled comprehension measurement, SC-04 root-corpus inspection, UAT, full review, or project-wide validation.
+SC-04's repository-root `check-state.py` inspection remains blocked by the unrelated FEAT-51 `status is 'done' but notes/handoff-validate.md is missing` condition established in prior evidence. Per dispatch it was neither rerun nor repaired and is not a matrix failure. This c2 gate establishes deterministic repair behavior and code grade only; it does not provide the credentialled comprehension measurement, SC-04 root-corpus inspection, UAT, full review, or project-wide validation.

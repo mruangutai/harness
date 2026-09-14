@@ -237,7 +237,7 @@ would make the gate non-deterministic and manufacture spurious findings unrelate
 
 ## DEC-174 / scope
 
-No edits to `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-state.sh`.
+No edits to `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-state.py`.
 Case 2's scan reads all four (they are tracked files under the sweep) and found no distribution
 tokens in them — nothing to report against the DEC-174 boundary.
 

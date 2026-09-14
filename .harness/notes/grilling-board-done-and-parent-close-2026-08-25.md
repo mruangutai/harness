@@ -46,7 +46,7 @@ hand again.
 
 - How the gate recognises abandon's own call without creating a marker anyone can set by hand. An
   environment variable is the shape; whether that is sufficient is not settled.
-- Whether `check-state.sh` gains an invariant for a tracked card that is closed but not at `Done` —
+- Whether `check-state.py` gains an invariant for a tracked card that is closed but not at `Done` —
   the leak the gate cannot see, such as a close made in the GitHub web interface.
 - What `ship` does when a card's board write fails partway through a batch. Today's station writes
   are best-effort per card (DEC-146); whether a terminal Done write may be best-effort is untested.

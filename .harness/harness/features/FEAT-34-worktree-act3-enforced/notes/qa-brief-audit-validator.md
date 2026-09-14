@@ -13,7 +13,7 @@ the one finding that should hold up signature. Everything else is advisory.
   exactly the way `harness-verification-rules`' own audit-test-first clause already
   requires. Not gradable by `cmd`, but not a fixture problem either. **OK.**
 
-- **SC-02, load-bearing.** Re-derived the HAZARD: `check-state.sh:22` is
+- **SC-02, load-bearing.** Re-derived the HAZARD: `check-state.py:22` is
   `root="${CLAUDE_PROJECT_DIR:-$(pwd)}"` at HEAD (`3ed95a4`), confirmed verbatim — the
   script reads `feature.json` from whatever `root` is, never from a resolved default
   branch. `feature-worktree.py:287` does `git rev-parse f"{default_branch}:{rel}"` —
@@ -86,7 +86,7 @@ the one finding that should hold up signature. Everything else is advisory.
   rather than leaving it inspection-only forever.
 
 - **SC-10** — "read with `git show <review_sha>:<path>`" describes the *review method*
-  the grader uses, not a behavior change to `check-state.sh` itself; self-consistent
+  the grader uses, not a behavior change to `check-state.py` itself; self-consistent
   with the standard `review_sha`-pinning idiom used elsewhere in this repo. One
   interaction worth naming: SC-10's "full `integration` kind passes" is an aggregate
   signal. If SC-06/07/08's new test files are added but NOT registered in both
@@ -98,7 +98,7 @@ the one finding that should hold up signature. Everything else is advisory.
 
 ## Line-citation re-derivation (all resolved at HEAD `3ed95a4`)
 
-`check-state.sh:22` (`root=...`), `:1076` (`git worktree list --porcelain`), `:1086-1094`
+`check-state.py:22` (`root=...`), `:1076` (`git worktree list --porcelain`), `:1086-1094`
 (record walk), `:1132`/`:1148` (no-removal-guidance comment / removal-guidance line) —
 all resolve to the cited content. `feature-worktree.py:287` (`rev-parse
 {default_branch}:{rel}`) resolves. `run-unit-tests.py:18` (`INTEGRATION_SCRIPTS`) and

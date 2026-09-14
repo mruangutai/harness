@@ -1,11 +1,11 @@
-# Gate report — check-state.sh vs baseline (FEAT-05-build s7)
+# Gate report — check-state.py vs baseline (FEAT-05-build s7)
 
 **Verdict: gate is green against baseline.** No defect found. Measurement only, nothing changed.
 
 ## Invocation (verbatim)
 
 ```
-CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh; echo $?
+CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.py; echo $?
 ```
 
 ## Result
@@ -39,7 +39,7 @@ measurement time is expected and correct — not a defect.
 
 ## Confirmation of the one delta
 
-`check-state.sh` at this commit still uses the regex-based parser for this check (not converted in
+`check-state.py` at this commit still uses the regex-based parser for this check (not converted in
 this run), so the invalid `team-config.yaml:18` YAML does not affect it — confirmed: exit 0,
 0 violations, as predicted.
 

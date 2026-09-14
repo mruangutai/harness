@@ -12,7 +12,7 @@ trust that framing; I checked it:
 - `git diff 168f875f 71040f1c --stat` → 11 files, all under the feature's own `notes/`,
   `observations/`, `STATE.md`, `feature.json` — zero enforcement/test/schema files touched.
 - md5 of every file this audit depends on, pin (`git show 168f875f:<path> | md5`) vs. current
-  working tree (`md5 -q <path>`): `check-domain.py`, `check-state.sh`, `validate-digest.py`,
+  working tree (`md5 -q <path>`): `check-domain.py`, `check-state.py`, `validate-digest.py`,
   `run-state-schema.json`, `test-validate-digest.py`, `test-check-domain.py`, `test-check-state.py`
   — **all SAME**.
 
@@ -48,7 +48,7 @@ T-03/T-09 = `docs`; T-10 = `scaffolding`.
 
 **Advisory, independently re-derived (not merely carried forward):** T-05 touches
 `run-state-schema.json` — a JSON schema file two gate scripts (`check-domain.py`,
-`check-state.sh`) read to enforce shape — and is declared `change_type: logic`. DEC-212's
+`check-state.py`) read to enforce shape — and is declared `change_type: logic`. DEC-212's
 `touches_config_shape` predicate text ("a key's container type, required-ness, or structural
 nesting in a config a gate script reads") describes this file almost exactly; had T-05 been typed
 `config`, its own matrix row (`config.when: touches_config_shape → integration`) would make
@@ -77,11 +77,11 @@ separately (§5).
   message to name only the symbols and drop the file token — the prior SC-08 gap exactly — reddens
   this specific check. Not vacuous.
 - **`run-state-schema.json` guards, both gates**:
-  - `check-domain.py:1618-1667` (write-time) and `check-state.sh:1486-1535` (at-rest sweep) both
+  - `check-domain.py:1618-1667` (write-time) and `check-state.py:1486-1535` (at-rest sweep) both
     load the schema fresh, build a `jsonschema.Draft202012Validator`, and **wrap the whole block in
     `try/except Exception`**. Read both `except` branches directly: both **append a denial/failure
     message and treat the write as bad** (`out.append(...); return out` in check-domain.py;
-    `bad.append(...)` in check-state.sh) — this is **fail-closed**, not fail-open, so a
+    `bad.append(...)` in check-state.py) — this is **fail-closed**, not fail-open, so a
     schema-file-corruption or `jsonschema`-import failure blocks rather than silently passing.
   - `test-check-domain.py:_declared_shape_case` (`tests/integration/test-check-domain.py:114-124`)
     compares the schema file's own key set (`json.load(run-state-schema.json)`) against `DECLARED`,
@@ -112,10 +112,10 @@ Ran both test files myself, in the worktree, against the pin-identical tree (§1
 
 Traced the actual enforcement topology myself rather than accepting the evidence note's claim:
 
-- `grep -c '\.validate('` across `check-domain.py` and `check-state.sh`: **zero** calls in
+- `grep -c '\.validate('` across `check-domain.py` and `check-state.py`: **zero** calls in
   `check-domain.py` — Write/Edit-tool payloads are never passed through `validate-digest.py`'s
   digest schema at all; that gate governs `state.yaml` shape only, not digest content.
-- `check-state.sh:1590` — the **at-rest sweep** — calls `_vd_mod.validate("lead", _dtext)`
+- `check-state.py:1590` — the **at-rest sweep** — calls `_vd_mod.validate("lead", _dtext)`
   unconditionally. This is where F2's raw-persona hole lives, and it is a **historical-scan of
   existing files on disk**, not a gate on a new write.
 - `validate-digest.py:1990-1993` — the **SubagentStop hook**, the actual return-time gate for every
@@ -125,7 +125,7 @@ Traced the actual enforcement topology myself rather than accepting the evidence
 
 **Conclusion: no coverage hole for a NEW return.** Every new return is validated under its true raw
 persona at the stop-hook, unaffected by F2's decline. The generic-`lead` exemption the decline
-preserves is reachable **only** through `check-state.sh`'s at-rest sweep over already-written files
+preserves is reachable **only** through `check-state.py`'s at-rest sweep over already-written files
 — exactly REQ-08/SC-12's scope ("historical run digests... remain readable... enforcement binds NEW
 returns and NEW writes only"). No test in this diff passes *because of* the declined behavior (no
 test exercises this path at all — confirmed by reading `test-check-state.py` in full: zero
@@ -140,7 +140,7 @@ a live defect, and not a hole a new return can fall into today.
 | id | severity | scenario | gates? |
 |---|---|---|---|
 | F-QA-1 | low | T-05 (`run-state-schema.json`) is typed `change_type: logic` but its own file plausibly meets DEC-212's `touches_config_shape` predicate under the `config` row; misclassification would make `integration` an obligated floor line instead of qa-added. Concrete scenario: a future task editing `run-state-schema.json` under `change_type: logic` again would not mechanically obligate `integration`, relying on qa's judgement rather than the matrix to add it. | non-gating (integration coverage exists and passes regardless; §3) |
-| F-QA-2 (= evidence note's coverage gap, independently confirmed) | med | `check-state.sh:1590`'s `validate("lead", …)` exemption for the at-rest sweep has zero test coverage able to report RED. Concrete scenario: a future edit narrowing or removing `validate-digest.py`'s `raw_persona != "lead"` guard, or changing `check-state.sh` to pass a run's real host persona, would silently break `2026-09-09-02-qa-gate-validator/digest.md` and every future lead digest shaped like it, with no standing test catching the regression. | non-gating (declined-with-evidence per operator ruling, REQ-08/SC-12 compliant as designed; this is a residual regression-protection gap on a deliberate choice, not a defect) |
+| F-QA-2 (= evidence note's coverage gap, independently confirmed) | med | `check-state.py:1590`'s `validate("lead", …)` exemption for the at-rest sweep has zero test coverage able to report RED. Concrete scenario: a future edit narrowing or removing `validate-digest.py`'s `raw_persona != "lead"` guard, or changing `check-state.py` to pass a run's real host persona, would silently break `2026-09-09-02-qa-gate-validator/digest.md` and every future lead digest shaped like it, with no standing test catching the regression. | non-gating (declined-with-evidence per operator ruling, REQ-08/SC-12 compliant as designed; this is a residual regression-protection gap on a deliberate choice, not a defect) |
 
 `severity_max`: **med** (F-QA-2).
 
@@ -152,8 +152,8 @@ DIGEST:
   headline: "matrix_ok=true, ADOPTED from same-pin evidence (provenance independently verified by md5 across 168f875f vs. current HEAD 71040f1c — bookkeeping-only delta); logic.always=[unit] is the whole floor, satisfied, integration is qa-added and satisfied (re-ran both myself: 12/12 T-06, 34/34+55/55+10/10 T-04/T-01/T-08); F1 and F3 witnesses independently confirmed by direct execution and by reading the discriminating assertion code; run-state-schema.json guards traced and shown fail-closed with a non-tautological DECLARED cross-check (reasoned, not mutation-proven — DEC-174 forbids mutation in this dispatch); F2 decline independently re-traced through the stop-hook (validates with the REAL raw persona for every new return) and confirmed to leave no coverage hole for new returns, only a residual non-gating regression-protection gap on the at-rest sweep's deliberate historical-compat exemption."
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
     - { kind: functional, state: not_applicable, cmd: none }
     - { kind: component, state: not_applicable, cmd: none }
     - { kind: ui, state: not_applicable, cmd: none }
@@ -164,7 +164,7 @@ DIGEST:
     - { kind: issue_types_live, state: not_applicable, cmd: none }
   findings:
     - { id: F-QA-1, severity: low, gates: false, scenario: "T-05 (run-state-schema.json) typed change_type: logic though it plausibly meets DEC-212's touches_config_shape (config row); a future task like it would not be mechanically obligated to add integration by the matrix itself." }
-    - { id: F-QA-2, severity: med, gates: false, scenario: "check-state.sh:1590's validate('lead', ...) at-rest exemption has zero test able to report RED; a future narrowing of the raw_persona != 'lead' guard, or a change passing the real host persona, would silently break 2026-09-09-02-qa-gate-validator/digest.md and similar lead digests with no standing test catching it. Declined-with-evidence per operator ruling; non-gating." }
+    - { id: F-QA-2, severity: med, gates: false, scenario: "check-state.py:1590's validate('lead', ...) at-rest exemption has zero test able to report RED; a future narrowing of the raw_persona != 'lead' guard, or a change passing the real host persona, would silently break 2026-09-09-02-qa-gate-validator/digest.md and similar lead digests with no standing test catching it. Declined-with-evidence per operator ruling; non-gating." }
   severity_max: med
   open_questions: []
   files_touched: []

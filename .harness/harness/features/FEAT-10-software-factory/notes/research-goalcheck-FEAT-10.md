@@ -20,7 +20,7 @@ integration`, 2 `verify: inspection` (lines 213 and 231; a third grep hit at lin
 
 ## The four unmet
 
-- **SC-06 — unmet, and not finessable.** Its evidence is `check-state.sh` INV-24. `grep -rn INV-24
+- **SC-06 — unmet, and not finessable.** Its evidence is `check-state.py` INV-24. `grep -rn INV-24
   .claude/skills/harness/bin/` returns nothing (exit 1). T-08 is withheld from every squad; only the
   main session can land it. Not waived, not substituted.
 - **SC-19 — three clauses unbound in the forked journey (Case F,

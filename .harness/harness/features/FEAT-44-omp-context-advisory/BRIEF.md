@@ -223,7 +223,7 @@ keeps the wake it was addressed to from being dropped.
   threshold calibration, and fixing the wording-assertion test class beyond
   `test-orchestrator-playbook.py` case 4.
 - Not to be rebuilt (#923 §5): the handoff note contract, `check-domain.py`'s `RE_HANDOFF` shape
-  gate, `check-state.sh` INV-17 seam enforcement, and the successor protocol all already exist and
+  gate, `check-state.py` INV-17 seam enforcement, and the successor protocol all already exist and
   are host-neutral. Only the measurement source changes. And no independent verifier is to be
   written: the new reader performs no arithmetic, so there is nothing to second-guess.
 

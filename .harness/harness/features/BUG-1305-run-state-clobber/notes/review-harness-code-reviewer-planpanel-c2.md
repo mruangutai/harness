@@ -53,7 +53,7 @@ alone (Q1 above), so write-time prevention degrades only where the prior is ALSO
 rewrite `.run-identity.json` after any of the plan's own disclosed residual routes fires (first-write
 race D-13/F-08, forgery, a bootstrap-grant session DEC-171, or an ungoverned NotebookEdit route T-11
 is still measuring) and the clobber becomes not merely "undetected" (already accepted) but
-**undetectable and its forensic trail erased**, with `check-state.sh` reporting nothing, forever. The
+**undetectable and its forensic trail erased**, with `check-state.py` reporting nothing, forever. The
 Goal states "if one ever is [replaced], the harness says so on its own" — that promise does not hold
 against a route requiring no more privilege than the write it is meant to catch.
 
@@ -116,7 +116,7 @@ pm's disposition, just confirming it holds on the merits.
 ## T-12/SC-12 dates the load-bearing assumption once, does not close it (LOW/MED — operator can rule
 at signature, already substantially disclosed)
 
-`check-state.sh:840-941` (INV-9) verified to check only that `.claude/settings.json`'s PostToolUse
+`check-state.py:840-941` (INV-9) verified to check only that `.claude/settings.json`'s PostToolUse
 matcher is a syntactically valid registered regex — registration, not delivery. SC-12/T-12 record one
 live Write's outcome, once, at signature time. Nothing in the plan re-verifies delivery afterward. A
 later silent host regression (version upgrade, settings drift not caught by INV-9's regex-validity
@@ -135,7 +135,7 @@ digest.)
   correctly `traces: []`; `depends_on` graph (T-01←[]; T-02,T-03←[T-01]; T-09,T-12←[T-02];
   T-06←[T-02,T-09]; T-08←[T-02,T-03,T-05,T-06,T-09]) is a valid DAG, no cycles.
 - Spot-checked `verify:` blocks for T-01/T-02/T-03/T-05/T-06/T-07/T-09 against source anchors
-  (`check-domain.py:1508,1526,1529,1530,1567-1574,1905-1923,1930`; `check-state.sh:840-941,1390,1426`;
+  (`check-domain.py:1508,1526,1529,1530,1567-1574,1905-1923,1930`; `check-state.py:840-941,1390,1426`;
   `SKILL.md:272-274` does contain the literal string `task-or-purpose` T-07's negative grep targets)
   — all anchors verified accurate at `c369fb1f`, all commands are syntactically executable as written.
 - Re-derived every arity claim send-back-1 corrected against its own recount; found no further

@@ -11,7 +11,7 @@ consistent) in §1 and §4.
 
 ## 1. INV-34 remediation text — the one item most likely to be a finding, and it is
 
-`check-state.sh:1141-1147` (source at `64f42ef8`), triggered live via `harness_yaml.load_plan()`
+`check-state.py:1141-1147` (source at `64f42ef8`), triggered live via `harness_yaml.load_plan()`
 and by reading the emitted `bad.append(...)` string directly:
 
 > `INV-34: <dir> has no plan.yaml, so it has nowhere to record its station — feature.json cannot
@@ -28,7 +28,7 @@ re-confirmed this).
 **What is missing, and it is the WHEN, exactly what the dispatch flagged**: the message is
 unconditional. It never distinguishes the two causes INV-34 can have — (a) a directory that
 legitimately never had a tracked plan (predates the format, or a bug opened with none — the case
-the source comment at `check-state.sh:1130-1136` reasons about, arguing against *inventing tasks*),
+the source comment at `check-state.py:1130-1136` reasons about, arguing against *inventing tasks*),
 versus (b) a directory whose `plan.yaml` **existed with real tasks and was deleted** (exactly the
 BUG-1030 incident the same comment block cites: `T-07 deleted status: Review from BUG-1030 ...
 Twelve directories were backfilled with station-only plans`). In case (b), writing a station-only
@@ -49,7 +49,7 @@ agent) to act on the instruction, and it is advisory text, not an automated writ
 positively teaches an operation with a real, plausible failure mode with no safeguard offered, and
 that is squarely what a UI-text review exists to catch. Concrete scenario: `rm
 .harness/harness/features/BUG-XXXX/plan.yaml` (whether by accident or a bad Bash command) while
-that plan carried real in-flight tasks; `check-state.sh` fires INV-34; the reader follows the
+that plan carried real in-flight tasks; `check-state.py` fires INV-34; the reader follows the
 message verbatim, running `plan-merge.py apply` with `tasks: []` / `station_only: true`; the
 directory now passes every gate and the feature's real task history is unrecoverable from
 `plan.yaml` going forward (recoverable only if the reader independently thinks to check `git log`,

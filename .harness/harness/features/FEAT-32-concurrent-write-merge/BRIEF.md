@@ -217,7 +217,7 @@ file class it owns.
 
 FEAT-31 is claimed disjoint. Checked at `feat/FEAT-31-orchestrator-context-watch` tip `7299669`:
 its ten tasks touch `context-watch.py`, `test-context-watch.py`, `test-context-watch-cli.py`,
-`upgrade-config.py`, `test-upgrade-config.py`, `check-state.sh`, `test-check-state.py`,
+`upgrade-config.py`, `test-upgrade-config.py`, `check-state.py`, `test-check-state.py`,
 `.claude/skills/harness/templates/harness.json`, plus `run-unit-tests.py`, `.harness/harness.json`,
 `DECISIONS.md` and `DECISIONS-INDEX.md`. **Logically disjoint: true** — no file whose behaviour
 this feature changes appears there. **Textually disjoint: false** — the last four are shared

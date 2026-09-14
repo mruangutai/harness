@@ -5,7 +5,7 @@
 ## Verdict: PASS — real security-adjacent surface reviewed, no findings
 
 This diff does have surface worth a real look (it modifies the data-trust
-boundary check in `check-state.sh`, the YAML loader constant, and the corpus
+boundary check in `check-state.py`, the YAML loader constant, and the corpus
 scanner's root set), so `in_scope: true`. Having reviewed those surfaces and
 found nothing exploitable, the correct severity is `info` (reviewed, clean) —
 not `n/a` (nothing here to judge at all). `n/a` is reserved for a diff with no
@@ -26,7 +26,7 @@ access to is not an escalation. That reasoning is why severity lands at
 
 I checked the four areas the dispatch specifically named:
 
-1. **`check-state.sh:156`** — the new `_sha = (val("review_sha") or "").strip().lower()`
+1. **`check-state.py:156`** — the new `_sha = (val("review_sha") or "").strip().lower()`
    and `_sha in harness_yaml.PLACEHOLDER_UNSET` are pure Python string comparisons.
    `val()` stringifies a YAML scalar; nothing from `feature.yaml` is interpolated
    into the heredoc as *code* — it flows in only as data compared against string
@@ -102,12 +102,12 @@ VERDICT: PASS
 DIGEST:
   headline: "FEAT-06 diff (635ef14..9f87c48) touches real security-adjacent surface (INV-6 pin check, YAML-loader constant, corpus scanner roots) — reviewed all four dispatch-named areas plus a full-diff secret/PII sweep, found nothing exploitable."
   in_scope: true
-  scope_reason: "Dispatch named four plausible surfaces (check-state.sh Python-in-shell, harness_yaml loader, widened yaml-corpus scan, new test-team-catalog.py); all four checked directly and confirmed to be string-data comparisons / SafeLoader-unchanged / hardcoded-root os.walk / read-only, none reachable by an untrusted actor beyond the trust tier that already authored the input. Plus an unfiltered secret/PII sweep of the whole diff, including the new .txt log capture and daily log."
+  scope_reason: "Dispatch named four plausible surfaces (check-state.py Python-in-shell, harness_yaml loader, widened yaml-corpus scan, new test-team-catalog.py); all four checked directly and confirmed to be string-data comparisons / SafeLoader-unchanged / hardcoded-root os.walk / read-only, none reachable by an untrusted actor beyond the trust tier that already authored the input. Plus an unfiltered secret/PII sweep of the whole diff, including the new .txt log capture and daily log."
   severity_max: info
   findings: 0
   must_fix: []
   threat_model:
-    - { boundary: "check-state.sh Python heredoc over .harness/**/feature.yaml", stride: T, mitigated: true }
+    - { boundary: "check-state.py Python heredoc over .harness/**/feature.yaml", stride: T, mitigated: true }
     - { boundary: "harness_yaml.load_file (SafeLoader) over widened .claude/skills/harness/teams glob", stride: T, mitigated: true }
     - { boundary: "test fixtures writing throwaway tempfile roots", stride: T, mitigated: true }
   open_questions: []

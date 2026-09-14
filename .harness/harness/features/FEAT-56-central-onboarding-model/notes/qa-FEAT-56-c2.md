@@ -129,13 +129,13 @@ to re-pin.
 ## 6. Discovery-volume regression check (base `4b5dbb23` vs HEAD)
 
 Base copies obtained via a disposable `git worktree add --detach .claude/worktrees/harness/qa-base-4b5dbb23 4b5dbb23`
-(removed after use — `git worktree remove`, no `--force`, tree was clean) because `check-state.sh` and
+(removed after use — `git worktree remove`, no `--force`, tree was clean) because `check-state.py` and
 `check-plan-routes.py` both resolve their root from their own script location, so a bare `git show`
 extract to `/tmp` cannot discover this project's tree.
 
 | script | base (4b5dbb23) | HEAD | drop? |
 |---|---|---|---|
-| `check-state.sh` | 190 `INV-`-prefixed note lines, 1333 total lines, exit 1 | 210 `INV-`-prefixed note lines, 1377 total lines, exit 1 | **no** — increase, driven by this feature's own board/review-sha bookkeeping notes (INV-26/INV-33), not a loss of discovery |
+| `check-state.py` | 190 `INV-`-prefixed note lines, 1333 total lines, exit 1 | 210 `INV-`-prefixed note lines, 1377 total lines, exit 1 | **no** — increase, driven by this feature's own board/review-sha bookkeeping notes (INV-26/INV-33), not a loss of discovery |
 | `check-instruction-paths.py` | `scanned 62 file(s)` | `scanned 62 file(s)` | no change |
 | `check-decision-anchors.py` | `examined 33 anchor(s)` | `examined 34 anchor(s)` | **no** — +1 (DEC-83 amendment) |
 | `check-omp-port.py` | `OMP port surface: ok` (no numeric subject count printed by this script; existence-only comparison) | `OMP port surface: ok` | no printed volume metric to compare; both exit 0 |

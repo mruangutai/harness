@@ -24,7 +24,7 @@ mutation-proof reproduction) is clean.
   (`product_config_report`, `_check_product_configs`, `--check-product-configs`/`--repo` flags),
   plus new `tests/unit/test-fleet-product-config.py`. Agrees.
 - **T-02** `bugfix` (declared) — diff-confirmed message/comment-only: read every hunk across all
-  six files (`check-domain.py:381-386`, `check-instruction-paths.py:12-16`, `check-state.sh:108,
+  six files (`check-domain.py:381-386`, `check-instruction-paths.py:12-16`, `check-state.py:108,
   286,404-407,2433-2434`, `upgrade-config.py:1-4,188-189,231-234`, `gh-sync.py:254-256`,
   `layout_migration.py:118-124`) — every changed line is an f-string/print/comment; zero exit
   codes, globs, or control-flow tokens touched. Claim holds.
@@ -113,7 +113,7 @@ Ran each base (`git show 4b5dbb23:<path>`, written into a disposable worktree, n
 in-place) against **this same worktree's state** via `HARNESS_PROJECT_DIR=<FEAT-56 worktree>`
 (honored by `harness_boundary.resolve_root` because this worktree carries `.harness/team-config.yaml`),
 compared to the HEAD version run directly here:
-- `check-state.sh`: HEAD 1358 lines total output / 1358 `note|bad|VIOLATION|INV-` lines, exit 1
+- `check-state.py`: HEAD 1358 lines total output / 1358 `note|bad|VIOLATION|INV-` lines, exit 1
   (pre-existing worktree-hygiene violations unrelated to this diff). Base run against the
   identical worktree state: same 1358 note/bad/violation lines, exit 1. **No volume change.**
 - `check-instruction-paths.py`: HEAD `scanned 62 file(s), 0 violation(s)` exit 0. Base (same

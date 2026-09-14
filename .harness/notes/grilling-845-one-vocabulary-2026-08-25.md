@@ -94,14 +94,14 @@ Two remaining items are pm's work at plan time, not user decisions:
 - **NO CODE CREATES `feature.json`.** `harness/SKILL.md:22` tells the orchestrator to copy
   the template; `gh-sync.py:692` refuses when absent and prints that instruction back.
 - `feature.json.status` has four code readers: `check-plan-routes.py:418`,
-  `check-state.sh:1425`/`:1500`, `board_lifecycle.py:503`, `gh-sync.py:243`.
+  `check-state.py:1425`/`:1500`, `board_lifecycle.py:503`, `gh-sync.py:243`.
 - **The `ship` Done write is NEVER COMMITTED.** `main` at HEAD reads `Review` for FEAT-40,
   the main working tree reads `Review`, the worktree copy reads `Done`. A grep of the flow
   for `git add` / `git commit` after `ship` returns zero hits.
 - `post-merge-sweep.py` is NOT the cause. Line 163 resolves the feature dir to the main
   checkout on purpose, citing FEAT-35's `Review / pr:null` divergence. FEAT-40 broke
   because `ship` was hand-run with the worktree's path.
-- Nothing enforces `plan.yaml`'s approval reset. `check-state.sh:134-139` only reads
+- Nothing enforces `plan.yaml`'s approval reset. `check-state.py:134-139` only reads
   `approval.status` and warns on `pending`; no hash of the signed bytes is recorded.
 - `check-domain.py` cannot see a script write to `plan.yaml`. Its grant fires on
   `PreToolUse Write|Edit`, which `gh-sync.py`'s `open()` never traverses, and `plan.yaml`

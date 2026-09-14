@@ -16,11 +16,11 @@ approval:
     matched the ruling set with gates green. The main session verified 8 conditions at the pin
     before signing: plan.yaml byte-identical to 15394e5, 13 tasks with T-13 absent, zero
     plan-write references, SEAM_NOTES present in T-07, T-15 on the documentor lane, budget
-    9/24 and 45, check-plan-routes.py 0 violations, check-state.sh traceback-free with only
+    9/24 and 45, check-plan-routes.py 0 violations, check-state.py traceback-free with only
     the unapproved-BRIEF violation outstanding.
   rulings: >-
     Panel rulings A1-A5 applied. Budget raised 10 -> 24 cycles and 20 -> 45 runs under DEC-157.
-    T-01 reverted after it took check-state.sh down; five shape-changing tasks (T-01, T-02, T-04,
+    T-01 reverted after it took check-state.py down; five shape-changing tasks (T-01, T-02, T-04,
     T-06, T-07) now carry consumer-exercising verifies per #1033, and T-01+T-02 are enforced as
     one atomic shape change.
   revision_record: >-
@@ -46,7 +46,7 @@ lanes:
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: DEC-174 carve-out - hooks, validators and gate scripts are changed directly, and every module here is imported by check-state.sh or check-domain.py
+      reason: DEC-174 carve-out - hooks, validators and gate scripts are changed directly, and every module here is imported by check-state.py or check-domain.py
     - surface: .claude/settings.json
       lane: main-session-direct
       reason: resolves to NOBODY and registers the PreToolUse hooks this feature adds
@@ -93,7 +93,7 @@ decisions:
     dec: none
   - id: D-04
     choice: harness.json declares the stations as an ORDERED list of six lowercase names, not a mapping
-    because: under the mandate the key and the name are the same word, and the order is read - check-state.sh STATUS_ORDER drives the seam-note table
+    because: under the mandate the key and the name are the same word, and the order is read - check-state.py STATUS_ORDER drives the seam-note table
     dec: none
   - id: D-05
     choice: abandoned is a terminal marker declared once in code as factory_config.TERMINAL_MARKER, not a seventh entry in harness.json
@@ -120,8 +120,8 @@ decisions:
     because: the uncommitted write is the live INV-26 violation, and pushing from a post-merge hook would move a remote branch nobody asked it to move
     dec: none
   - id: D-11
-    choice: INV-26's compare side is routed through gh_board.project and T-06 is widened to cover check-state.sh, rather than patching check-state.sh's pending literals in place. The lookup miss stops being silent - an unmappable station becomes a loud failure naming the feature, the task and the value. AND project carries NO exception - a task at the ready station projects to the READY column, so plan.yaml and the board agree exactly, with nothing derived, mapped or translated between them.
-    because: a task reading ready in plan.yaml while its card sits at Backlog is the two-words-two-meanings defect this feature exists to delete, so the exception is removed and the one-time board pass is accepted as work rather than avoided. THE COST WAS MEASURED, NOT INHERITED, at 8f8a6a3 against live board 3 on 2026-08-25 - the command is recorded in notes/research-FEAT-41-rulings-cycle5.md and reproduced by T-10's verify. The board figures below are a dated reading of an EXTERNAL system that the rebase onto the OMP main cannot have changed, and they were NOT re-measured at 0d4845b because reaching board 3 needs an authenticated run; T-10's verify is what re-measures them at build time. 656 cards sit on board 3 for this repository, 211 of them the task sub-issues that plan.yaml places. ZERO of those 211 sit at Backlog today, so the exception protects nothing that exists. Comparing every recorded task card's projected station against its live column three ways - with the exception, 16 cards mismatch; without the exception, the SAME 16 mismatch, only their destination changes from Backlog to Ready; without the exception AND with the record repair T-04 now carries, ZERO mismatch. So removing the exception moves no card. All 16 belong to FEAT-12 and FEAT-13, two shipped features whose closed cards sit at Done while their plan.yaml still reads pending, and that stale record - not this ruling - is what would otherwise drag 16 closed cards backwards. T-04 repairs it and T-10 proves the board clean. The second half of this decision, unchanged - check-state.sh circa 1500-1502 at 0d4845b, which was 1475-1477 at ee66ae2, reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.sh circa 1362-1369 at 0d4845b, which was 1337-1349 at ee66ae2, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision. PROVENANCE RECORDED 2026-08-30, AND IT WAS MISSING UNTIL THEN - this decision REVERSES a line the grilling settled, at .harness/notes/grilling-845-one-vocabulary-2026-08-25.md:46 - "Backlog does not participate in the sync." Under the no-exception rule above a task at the backlog station projects to the Backlog column, and therefore DOES participate. The reversal is deliberate and is the right call - a carve-out is exactly the two-words-two-meanings shape this feature exists to delete - but it was made silently, and a decision that overturns the intake it grew from has to say so, or a reader who goes back to the grilling finds a settled line with nothing marking it overtaken
+    choice: INV-26's compare side is routed through gh_board.project and T-06 is widened to cover check-state.py, rather than patching check-state.py's pending literals in place. The lookup miss stops being silent - an unmappable station becomes a loud failure naming the feature, the task and the value. AND project carries NO exception - a task at the ready station projects to the READY column, so plan.yaml and the board agree exactly, with nothing derived, mapped or translated between them.
+    because: a task reading ready in plan.yaml while its card sits at Backlog is the two-words-two-meanings defect this feature exists to delete, so the exception is removed and the one-time board pass is accepted as work rather than avoided. THE COST WAS MEASURED, NOT INHERITED, at 8f8a6a3 against live board 3 on 2026-08-25 - the command is recorded in notes/research-FEAT-41-rulings-cycle5.md and reproduced by T-10's verify. The board figures below are a dated reading of an EXTERNAL system that the rebase onto the OMP main cannot have changed, and they were NOT re-measured at 0d4845b because reaching board 3 needs an authenticated run; T-10's verify is what re-measures them at build time. 656 cards sit on board 3 for this repository, 211 of them the task sub-issues that plan.yaml places. ZERO of those 211 sit at Backlog today, so the exception protects nothing that exists. Comparing every recorded task card's projected station against its live column three ways - with the exception, 16 cards mismatch; without the exception, the SAME 16 mismatch, only their destination changes from Backlog to Ready; without the exception AND with the record repair T-04 now carries, ZERO mismatch. So removing the exception moves no card. All 16 belong to FEAT-12 and FEAT-13, two shipped features whose closed cards sit at Done while their plan.yaml still reads pending, and that stale record - not this ruling - is what would otherwise drag 16 closed cards backwards. T-04 repairs it and T-10 proves the board clean. The second half of this decision, unchanged - check-state.py circa 1500-1502 at 0d4845b, which was 1475-1477 at ee66ae2, reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.py circa 1362-1369 at 0d4845b, which was 1337-1349 at ee66ae2, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision. PROVENANCE RECORDED 2026-08-30, AND IT WAS MISSING UNTIL THEN - this decision REVERSES a line the grilling settled, at .harness/notes/grilling-845-one-vocabulary-2026-08-25.md:46 - "Backlog does not participate in the sync." Under the no-exception rule above a task at the backlog station projects to the Backlog column, and therefore DOES participate. The reversal is deliberate and is the right call - a carve-out is exactly the two-words-two-meanings shape this feature exists to delete - but it was made silently, and a decision that overturns the intake it grew from has to say so, or a reader who goes back to the grilling finds a settled line with nothing marking it overtaken
     dec: none
   - id: D-12
     choice: the design-contract gate RE-FIRES at build if implementation introduces a user-facing surface. The plan-phase scope-out holds only for the plan as approved; any task that lands a UI-shaped file, a rendered surface or operator-facing output stops and routes that surface through the design contract before it merges
@@ -168,7 +168,7 @@ decisions:
       ruling recorded as a new decision id is the only route that does not forge or overwrite a
       signature. The INV-17 consequence stands as it is - the blanket exemption requires all fifteen
       tasks main-session-direct, fourteen are, so the exemption does NOT apply and the feature owes a
-      handoff note. That note exists at notes/handoff-build.md and check-state.sh exits 0 with zero
+      handoff note. That note exists at notes/handoff-build.md and check-state.py exits 0 with zero
       violations, so nothing is repaired by this record and nothing is hidden by it either.
     because: >-
       The signature's pre_approved clause names eight conditions the operator's pre-approval was
@@ -267,7 +267,7 @@ tasks:
       python3 .claude/skills/harness/bin/test-factory-config.py
       grep -rn --exclude-dir=__pycache__ "_STATION_KEYS" .claude/skills/harness/bin/ ; test $? -eq 1
       python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board,board_lifecycle;b=gh_board.load_board('.');assert b is not None,'no board declared';print('_declared_stations ->',board_lifecycle._declared_stations(b))"
-      .claude/skills/harness/bin/check-state.sh > /tmp/feat41-t01.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t01.out ; test $? -eq 1
+      .claude/skills/harness/bin/check-state.py > /tmp/feat41-t01.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t01.out ; test $? -eq 1
     intent: |
       Make harness.json the one place the station vocabulary is declared, and mandate its content.
 
@@ -277,7 +277,7 @@ tasks:
       turning github.board.stations from a MAPPING of six keys into an ordered LIST breaks every
       consumer that subscripts it by name. board_lifecycle._declared_stations
       (board_lifecycle.py:441) raises "TypeError: list indices must be integers, not str",
-      check-state.sh tracebacks out of its INV-26 board block and exits 1, and gh-sync.py reaches
+      check-state.py tracebacks out of its INV-26 board block and exits 1, and gh-sync.py reaches
       the same path through audit_findings. Reverted at 33e716c; history intact. THE VERIFY COULD
       NOT SEE ANY OF IT, because it exercised factory_config in ISOLATION and grepped for an
       identifier's absence - a config SHAPE change with no cross-module consumer test. That class
@@ -289,7 +289,7 @@ tasks:
       ENFORCES that rather than asking for it: the consumer smoke CANNOT pass on T-01 alone,
       because T-02 is what repoints the consumers. AUDITED AT HEAD ON 2026-08-30 so the coupling
       is a measured list and not a warning - EIGHT non-test modules read board["stations"] as a
-      mapping: board_lifecycle.py (:441, :525, :812, :823), check-state.sh (:1428), gh-sync.py
+      mapping: board_lifecycle.py (:441, :525, :812, :823), check-state.py (:1428), gh-sync.py
       (ten sites), gh_board.py (:116, :118), factory_claim.py (:273, :307, :424),
       factory_decompose.py (:328), factory_land.py (:95), and factory_config.py's own
       board_station (:315). EVERY ONE is named in some surviving task's files - the audit found
@@ -346,7 +346,7 @@ tasks:
     traces: [REQ-02]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: gh_board.py is imported by check-state.sh's INV-26, the validator that gates this run
+    execution_reason: gh_board.py is imported by check-state.py's INV-26, the validator that gates this run
     depends_on: [T-01]
     status: done
     files:
@@ -357,7 +357,7 @@ tasks:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/factory_land.py
       - .claude/skills/harness/bin/factory_decompose.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-gh-board.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
       - .claude/skills/harness/bin/test-board-station.py
@@ -372,7 +372,7 @@ tasks:
       python3 .claude/skills/harness/bin/test-factory-land.py
       python3 .claude/skills/harness/bin/test-check-state.py
       python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board,board_lifecycle;b=gh_board.load_board('.');assert b is not None,'no board declared';print('_declared_stations ->',board_lifecycle._declared_stations(b))"
-      .claude/skills/harness/bin/check-state.sh > /tmp/feat41-t02.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t02.out ; test $? -eq 1
+      .claude/skills/harness/bin/check-state.py > /tmp/feat41-t02.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t02.out ; test $? -eq 1
     intent: |
       Make gh_board.py the single case boundary, and lowercase every other site.
 
@@ -389,7 +389,7 @@ tasks:
         indexing board["stations"]. Keep the rule unchanged: building when any task is building,
         review when there is at least one task and every task is done, otherwise None. The board
         parameter is then DEAD - its only two uses are the two indexings just removed - so drop it
-        from the signature and from both call sites, which are check-state.sh's INV-26 and
+        from the signature and from both call sites, which are check-state.py's INV-26 and
         board_lifecycle. Leaving a parameter the body never reads contradicts the docstring's own
         claim that plan.yaml is the sole input.
       - The absent-status default at gh_board.py:113 and the docstring sentence at :97 both say
@@ -411,7 +411,7 @@ tasks:
         board_stations, which are lowercase - compare lowercase, delete the value_to_key
         inversion at :823 (a lowercase station IS its own key).
       - gh-sync.py:844, 850, 941, 949, 998, 1231 become the lowercase literals.
-      - check-state.sh circa 1428 _st26 becomes the six lowercase names, and every INV-26
+      - check-state.py circa 1428 _st26 becomes the six lowercase names, and every INV-26
         comparison is then lowercase on both sides because board_stations lowercased the board's
         answer. T-06 later DELETES _st26 and _EXPECT outright under D-11; this task only
         lowercases them, so the tree is green at each step. Do not anticipate T-06 here.
@@ -492,14 +492,14 @@ tasks:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/test-check-plan-routes.py
       - .claude/skills/harness/bin/harness_yaml.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
       - .agents/skills/harness/templates/plan.yaml
     verify: |
       python3 .claude/skills/harness/bin/test-check-plan-routes.py
       python3 .claude/skills/harness/bin/test-check-state.py
       python3 .claude/skills/harness/bin/check-plan-routes.py
-      .claude/skills/harness/bin/check-state.sh > /tmp/feat41-t04.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t04.out ; test $? -eq 1
+      .claude/skills/harness/bin/check-state.py > /tmp/feat41-t04.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t04.out ; test $? -eq 1
       python3 -c "import glob,re;bad=[(p,i+1) for p in sorted(glob.glob('.harness/harness/features/*/plan.yaml')) for i,l in enumerate(open(p)) if re.match(r'^    status: pending\s*$',l)];assert not bad,bad"
       python3 -c "import glob,json,os,yaml;f=lambda p:(json.load(open(p)).get('status') or '').lower() if os.path.exists(p) else '';bad=[(p,t.get('id')) for p in glob.glob('.harness/harness/features/*/plan.yaml') for t in (yaml.safe_load(open(p)).get('tasks') or []) if t.get('status')=='ready' and f(os.path.join(os.path.dirname(p),'feature.json')) in ('done','abandoned')];assert not bad,bad"
     intent: |
@@ -531,7 +531,7 @@ tasks:
       a one-line comment saying it is the feature's station and is written only by the tool, and
       replace the paragraph telling an author to edit the file with one naming the verbs.
 
-      ALSO IN THIS TASK, because this task is what makes the word dead: check-state.sh's INV-26
+      ALSO IN THIS TASK, because this task is what makes the word dead: check-state.py's INV-26
       compare side still keys on pending. EVERY LINE NUMBER IN THIS PARAGRAPH IS RE-DERIVED AT
       0d4845b AND IS ORIENTATION ONLY - the identifier or the literal is the address, and T-02
       lands in this same file before this task. Circa 1428-1430 _EXPECT maps building, done and pending;
@@ -544,7 +544,7 @@ tasks:
       pending literals, circa 1462, 1496 and 1500, where an absent task status defaults to
       pending: the default becomes ready. THREE, NOT FOUR - the earlier reading of four counted
       1438 at ee66ae2, and that line carries no pending literal; re-counted at 0d4845b,
-      grep -n '"pending"' check-state.sh returns FIVE lines, of which one is the _EXPECT definition
+      grep -n '"pending"' check-state.py returns FIVE lines, of which one is the _EXPECT definition
       itself and one is the guard below, leaving three defaults. If your own grep returns a
       different number, dispose of every line it reports rather than the three named here.
       The guard circa 1465, not any(_s != "pending"), INVERTS
@@ -652,13 +652,13 @@ tasks:
     traces: [REQ-04]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh is a gate script and gh_board.py is the module its INV-26 imports; widened to check-state.sh under D-11, and the lane is unchanged because both files already sit under the .claude/skills/harness/bin surface the lanes block resolves to main-session-direct
+    execution_reason: DEC-174 carve-out - check-state.py is a gate script and gh_board.py is the module its INV-26 imports; widened to check-state.py under D-11, and the lane is unchanged because both files already sit under the .claude/skills/harness/bin surface the lanes block resolves to main-session-direct
     depends_on: [T-02, T-04]
     status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/gh-sync.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-gh-board.py
       - .claude/skills/harness/bin/test-gh-sync.py
       - .claude/skills/harness/bin/test-check-state.py
@@ -667,9 +667,9 @@ tasks:
       python3 .claude/skills/harness/bin/test-check-state.py
       python3 .claude/skills/harness/bin/test-gh-sync.py
       test "$(grep -rn "gh_board.set_station(" .claude/skills/harness/bin/*.py | grep -v "/test-" | wc -l | tr -d ' ')" = "4"
-      grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.sh ; test $? -eq 1
+      grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.py ; test $? -eq 1
       python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board,board_lifecycle;b=gh_board.load_board('.');assert b is not None,'no board declared';print('_declared_stations ->',board_lifecycle._declared_stations(b))"
-      .claude/skills/harness/bin/check-state.sh > /tmp/feat41-t06.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t06.out ; test $? -eq 1
+      .claude/skills/harness/bin/check-state.py > /tmp/feat41-t06.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t06.out ; test $? -eq 1
     intent: |
       Collapse the station POLICY - which card goes where, and when - into one function, so that
       plan.yaml is the only input to the answer.
@@ -688,7 +688,7 @@ tasks:
         no translation and no documented carve-out: the word in plan.yaml and the column on the
         board are the same word with the same meaning, which is the whole point of the feature.
         State in the docstring that the function derives nothing - it selects. The old
-        ready-to-backlog exception, carried from check-state.sh's _EXPECT comment on the grounds
+        ready-to-backlog exception, carried from check-state.py's _EXPECT comment on the grounds
         that gh-sync open lands every sub-issue in backlog, is DELETED by D-11, and the one-time
         board pass that settles the consequence is T-10's, ordered and verified there;
       - the parent's rule is TERMINAL FIRST, and this ordering is load-bearing. When the feature's
@@ -716,16 +716,16 @@ tasks:
         DIFFERENT outcomes and must not share a code path.
       It performs no I/O and calls no gh binary; it is pure and unit-testable.
 
-      D-11 - THE COMPARE SIDE MOVES HERE TOO, and this is the point of the task. In check-state.sh:
+      D-11 - THE COMPARE SIDE MOVES HERE TOO, and this is the point of the task. In check-state.py:
       - THE DELETION IS ADDRESSED BY NAME, NOT BY LINE SPAN. After this task neither the
-        identifier _st26 nor the identifier _EXPECT may appear ANYWHERE in check-state.sh -
+        identifier _st26 nor the identifier _EXPECT may appear ANYWHERE in check-state.py -
         definitions, uses AND COMMENTS alike. The last verify line asserts exactly that, so the
         verify IS the address; every line number in this task is non-binding orientation,
         RE-DERIVED at 0d4845b after the rebase onto the OMP main, and must be re-derived when you execute because sibling tasks edit
         this file too. A span-shaped instruction is what this plan has already got wrong three
         times: a live occurrence sits outside the span and the task reds while correctly done.
         THE COUNT, so the address stays falsifiable: RE-MEASURED at 0d4845b and UNCHANGED by the rebase,
-        grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.sh returns SIX lines -
+        grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.py returns SIX lines -
         _st26 on four of them, _EXPECT on three, one line carrying both. If your own grep returns
         a different number, a site has been added or moved: dispose of every line it reports, not
         only the four dispositions below.
@@ -848,13 +848,13 @@ tasks:
     traces: [REQ-06]
     change_type: cross_module
     execution_mode: main-session-direct
-    execution_reason: feature-schema.json is enforced on check-domain.py's write path and read by check-state.sh
+    execution_reason: feature-schema.json is enforced on check-domain.py's write path and read by check-state.py
     depends_on: [T-04, T-06]
     status: done
     files:
       - .claude/skills/harness/bin/feature-schema.json
       - .claude/skills/harness/bin/feature_schema.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/gh-sync.py
@@ -882,7 +882,7 @@ tasks:
       python3 -c "import json;d=json.load(open('.claude/skills/harness/bin/feature-schema.json'));assert len(d['properties'])==10 and len(d['required'])==7 and 'status' not in d['properties'],(len(d['properties']),len(d['required']))"
       python3 -c 'import pathlib,re,sys; pat=re.compile("[\x22\x27](Backlog|Plan|Ready|Building|Review|Done)[\x22\x27]"); h=[(p,i) for p in sorted(pathlib.Path(".claude/skills/harness/bin").iterdir()) if p.suffix in (".py",".sh") and not p.name.startswith("test-") for i,l in enumerate(p.read_text(errors="ignore").splitlines(),1) if pat.search(l)]; print("SC-02: %d quoted station literal(s) in non-test source" % len(h)); [print("  %s:%d" % (p,i)) for p,i in h]; sys.exit(1 if h else 0)'
       python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board,board_lifecycle;b=gh_board.load_board('.');assert b is not None,'no board declared';print('_declared_stations ->',board_lifecycle._declared_stations(b))"
-      .claude/skills/harness/bin/check-state.sh > /tmp/feat41-t07.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t07.out ; test $? -eq 1
+      .claude/skills/harness/bin/check-state.py > /tmp/feat41-t07.out 2>&1 ; grep -q "Traceback" /tmp/feat41-t07.out ; test $? -eq 1
       python3 .claude/skills/harness/bin/check-plan-routes.py
 
     intent: |
@@ -897,7 +897,7 @@ tasks:
       migration below relies on. Update the template
       .agents/skills/harness/templates/feature.json the same way.
 
-      A-03, and it is not optional: check-state.sh circa 532-535 carries a comment justifying its
+      A-03, and it is not optional: check-state.py circa 532-535 carries a comment justifying its
       silent skip of a status outside STATUS_ORDER on the grounds that status is schema-required
       with a closed value set, already denied at write time. This task deletes that key from the
       schema and so removes the compensating control the comment cites. Rewrite the comment
@@ -915,16 +915,16 @@ tasks:
 
       RE-DERIVE EVERY LINE NUMBER BELOW BEFORE EDITING. Each was RE-DERIVED at 0d4845b and is
       navigation only - the identifier named beside it is the address. T-02, T-04 and T-06 all
-      land before this task and all three edit check-state.sh, check-plan-routes.py,
+      land before this task and all three edit check-state.py, check-plan-routes.py,
       board_lifecycle.py and gh-sync.py ABOVE these anchors: T-04 deletes check-plan-routes.py's
       LEGAL_TASK_STATUSES and its comment paragraph, which sit above _is_shipped, and T-06 deletes
-      _st26 and _EXPECT from check-state.sh, which sit above INV-30's gate. The one span here that
+      _st26 and _EXPECT from check-state.py, which sit above INV-30's gate. The one span here that
       is a deletion address rather than navigation is the _STATUS_TO_STATION_KEY table: find it by
       name and delete its own extent, whatever lines it occupies by then.
 
       SEAM_NOTES REKEYS IN THE SAME EDIT AS STATUS_ORDER. This is a DEFECT IN AN EARLIER DRAFT
       OF THIS TASK being repaired, not a refinement being added, and it was found by prosecuting
-      the signed plan rather than by building it. check-state.sh defines STATUS_ORDER at :538 and
+      the signed plan rather than by building it. check-state.py defines STATUS_ORDER at :538 and
       SEAM_NOTES immediately beneath it at :539-552, keyed with the SAME capitalised words, and
       indexes it as a BARE DICT SUBSCRIPT - SEAM_NOTES[_status] at :636, re-derived at HEAD on
       2026-08-30 from the :637 recorded a day earlier. READ THE CONTROL FLOW BEFORE TOUCHING
@@ -934,15 +934,15 @@ tasks:
       bare subscript has no default. The result is not a silent skip, it is a KeyError in the
       project's own state gate - for EVERY well-formed feature, measured at 40 of 40 feature
       directories at HEAD, not merely those past Plan. The two structures are one vocabulary: they
-      move together in one edit, or check-state.sh crashes the moment this task lands. This is the
+      move together in one edit, or check-state.py crashes the moment this task lands. This is the
       #1033 class again, caught in the plan this time instead of in the tree.
 
       THE AUDIT THAT FINDING FORCED, AND ITS RESULT, recorded so nobody re-runs it. Every
       capitalised-key structure in this task's file set that is INDEXED OFF A STATION VALUE was
       enumerated at HEAD with two greps - one for a station name in dict-key position, one for a
       subscript or .get() whose key is a status-or-station variable. There are exactly THREE and
-      there is no fourth: STATUS_ORDER (check-state.sh:538 - a list used as a SET at :631, never
-      indexed); SEAM_NOTES (check-state.sh:539-552, bare-subscripted at :636); and
+      there is no fourth: STATUS_ORDER (check-state.py:538 - a list used as a SET at :631, never
+      indexed); SEAM_NOTES (check-state.py:539-552, bare-subscripted at :636); and
       _STATUS_TO_STATION_KEY (board_lifecycle.py:448-451, .get(status) at :507), which this task
       already DELETES below as an identity map. The first two are rekeyed here. TWO NEAR-MISSES
       WERE EXAMINED AND ARE CORRECTLY OUT OF SCOPE, named so the audit is falsifiable rather than
@@ -955,7 +955,7 @@ tasks:
       Repoint each reader to the sibling plan.yaml's top-level status, reading it with
       harness_yaml.load_file and treating an absent or unparseable plan as an absent station,
       which is what each site already does for an absent feature.json:
-      - check-state.sh:138 (the abandoned skip); STATUS_ORDER, whose DEFINITION is at :538 and
+      - check-state.py:138 (the abandoned skip); STATUS_ORDER, whose DEFINITION is at :538 and
         whose use is at :629 - both change, and it becomes the six lowercase names read from
         factory_config plus factory_config.TERMINAL_MARKER; :1073 (INV-28's Done gate); :1450
         (INV-26's terminal exemption) and :1525-1526 (its Review widening), both of which T-06 has
@@ -995,7 +995,7 @@ tasks:
       readers gains a case, in its own test, DEMONSTRATED FAILING BEFORE THE REPOINTING, that
       builds a feature directory carrying NO feature.json status and a sibling plan.yaml whose
       top-level status is a lowercase station, and asserts the reader returns the station:
-      check-state.sh:113 and its Done gates through test-check-state.py; _is_shipped through
+      check-state.py:113 and its Done gates through test-check-state.py; _is_shipped through
       test-check-plan-routes.py; board_lifecycle.py:504 and :988 through test-board-lifecycle.py;
       gh-sync.py _feature_status and its set-feature-station writer through test-gh-sync.py;
       worktree_terminal.py:271 through test-worktree-terminal.py. An un-repointed reader reads no
@@ -1184,7 +1184,7 @@ tasks:
     traces: [REQ-07]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: the assertion is a run of check-state.sh, the validator that gates this run
+    execution_reason: the assertion is a run of check-state.py, the validator that gates this run
     depends_on: [T-06, T-07]
     status: done
     files:
@@ -1202,7 +1202,7 @@ tasks:
       and issue 842. FEAT-40 HAS SINCE SHIPPED TO main, and the violation closed itself by
       merging. Measured at 0d4845b in this worktree: FEAT-40's feature.json reads status Done, so
       INV-26's terminal exemption skips it; check-plan-routes.py reports it among the 39 of 40
-      feature dirs skipped as shipped; and a full run of check-state.sh emits ZERO INV-26 lines,
+      feature dirs skipped as shipped; and a full run of check-state.py emits ZERO INV-26 lines,
       its one and only violation being this feature's own unapproved BRIEF. The write itself is
       not lost - T-07's migration, which this task already depends on, walks every feature.json
       carrying a status and calls set-feature-station on the sibling plan.yaml, and FEAT-40's
@@ -1210,7 +1210,7 @@ tasks:
       This task therefore owns no repair, names FEAT-40's plan.yaml in no file list, and asserts
       nothing about that file's commit state. SC-09 in BRIEF.md was re-based on the same reading.
       WHAT SURVIVES AS AN OBLIGATION: still RUN
-      .claude/skills/harness/bin/check-state.sh
+      .claude/skills/harness/bin/check-state.py
       after T-07's migration and this task's changes, and paste the INV-26 result into the task
       receipt. It reads zero INV-26 lines at 0d4845b, so this is a REGRESSION BOUND on the
       migration and the board pass, not a defect to close - a new INV-26 line here means the
@@ -1231,7 +1231,7 @@ tasks:
 
       Defect one - the terminal write is never committed. cmd_ship records the feature's terminal
       station as its last statement and leaves it uncommitted, so main reads Review while the
-      board reads Done. That was the INV-26 violation check-state.sh reported before FEAT-40
+      board reads Done. That was the INV-26 violation check-state.py reported before FEAT-40
       merged; the violation is gone at 0d4845b but the defect that produced it is not. After the
       station write succeeds, stage that one file and commit it in the checkout the feature dir
       belongs to, with the message "FEAT-NN: station done at ship" and nothing else in the commit.
@@ -1264,7 +1264,7 @@ tasks:
       derived between them. Run the pass ONCE, after T-07's migration and before this
       task's last verify line:
       - for every plan.yaml under .harness/harness/features/, build rec the way T-06 specifies and
-        call gh_board.project once, exactly as check-state.sh's INV-26 now does. Use the shipped
+        call gh_board.project once, exactly as check-state.py's INV-26 now does. Use the shipped
         functions; do not re-implement the placement rule here;
       - compare each placed card against gh_board.board_stations and write ONLY the differences,
         through gh_board.set_station. Print one line per write naming the issue, the column it
@@ -1295,7 +1295,7 @@ tasks:
       than asserting over it, and the gap itself is carried as proposed backlog row PB-03 in
       BRIEF.md, which the main session opens as an issue at ship acceptance. It is a parent card
       rather than a task sub-issue, so it is outside the set INV-26's per-task compare walks. If a
-      run of check-state.sh nonetheless reports that absent parent card as a violation, STOP and
+      run of check-state.py nonetheless reports that absent parent card as a violation, STOP and
       report it - do not add the card to buy the gate green. If your own measurement differs
       anywhere, STOP and report the number rather than writing the difference to the board.
 
@@ -1369,11 +1369,11 @@ tasks:
     traces: [REQ-07]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-state.sh and test-check-state.py are gate scripts under the DEC-174 carve-out
+    execution_reason: check-state.py and test-check-state.py are gate scripts under the DEC-174 carve-out
     depends_on: [T-07, T-11]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py > /tmp/feat41-t14.out 2>&1 ; rc=$? ; cat /tmp/feat41-t14.out ; test $rc -eq 0
@@ -1383,14 +1383,14 @@ tasks:
       grep -q "ok - case (inv32.d) a pin with no plan file at that path is silent" /tmp/feat41-t14.out
     intent: |
       Closes issue #867. INV-6 detects an ABSENT or placeholder review_sha; nothing detects a STALE
-      one. Add that detection as INV-32 in check-state.sh, and three fixtures in
+      one. Add that detection as INV-32 in check-state.py, and three fixtures in
       test-check-state.py.
 
       WHY IT MATTERS. An absent pin is honest: it says nobody reviewed this. A stale pin makes a
       claim - this text was reviewed at this commit - and once the text has moved that claim is
       false while looking byte-identical to a true one. Measured live on FEAT-41 itself:
       feature.json read review_sha e5afc19 while plan.yaml had been committed at c056f49, 54
-      insertions and 9 deletions later, and a run of check-state.sh reported no GAP-7 and no INV-6
+      insertions and 9 deletions later, and a run of check-state.py reported no GAP-7 and no INV-6
       line for FEAT-41.
 
       RE-MEASURED AT HEAD ON 2026-08-30, AND THE SIGNED READING IS CORRECTED RATHER THAN
@@ -1413,7 +1413,7 @@ tasks:
       at station done. Q6 named only FEAT-27; the other three were hidden by the very validator-run
       precondition dropped below, so dropping it widens the stale-pin set from one shipped feature
       to four. THE TERMINAL SCOPE IS THEREFORE LOAD-BEARING FOR FOUR SHIPPED FEATURES: without it
-      check-state.sh goes red on four of them the moment this task lands.
+      check-state.py goes red on four of them the moment this task lands.
       PIN RESOLVES BUT THE PLAN PATH IS ABSENT IN IT 19 - a state this task did not cover before
       2026-08-30 and that no fixture pinned; it has its own paragraph and its own case below.
       PIN DOES NOT RESOLVE 4, NO PLAN FILE ON DISK 1, ALREADY CURRENT 11. The seven sum to 40.
@@ -1426,13 +1426,13 @@ tasks:
       number would put two fail-open surfaces behind one grep-able string. Six existing cases
       (e, h, i, j and their siblings) assert on INV-6's exact text; a distinct number leaves them
       untouched and makes each invariant separately searchable. INV-32 is free: RE-CHECKED at
-      0d4845b, the highest invariant in check-state.sh is INV-31, INV-32 appears nowhere in the
+      0d4845b, the highest invariant in check-state.py is INV-31, INV-32 appears nowhere in the
       file, and no unbuilt feature claims it. Use grep -oE 'INV-[0-9]+' to re-check this - BSD
       grep silently ignores the \+ form and returns an empty list that reads exactly like "no
       invariants at all".
 
       WHERE IT GOES, AND IT SURVIVED THE REBASE INTACT. Inside the existing per-feature loop over
-      glob.glob(... "feature.json") in check-state.sh, in or immediately after the INV-6 block.
+      glob.glob(... "feature.json") in check-state.py, in or immediately after the INV-6 block.
       RE-DERIVED at 0d4845b: the loop opens at :202 and its glob is now two levels deep,
       os.path.join(H, "*", "features", "*", "feature.json"); val() is defined at :227; runs is
       built at :237-244; and the INV-6 block occupies :246-253. It sat at circa :221-229 at
@@ -1450,7 +1450,7 @@ tasks:
       resolve the feature's plan file - plan.yaml if present, else PLAN.md; compute its path
       RELATIVE TO THE GIT TOP LEVEL, from git -C root rev-parse --show-toplevel, never relative to
       root. THE REASON FOR THAT CHANGED WITH THE REBASE AND THE INSTRUCTION DID NOT: root is no
-      longer CLAUDE_PROJECT_DIR. Since FEAT-42 T-12, check-state.sh:38 resolves root through
+      longer CLAUDE_PROJECT_DIR. Since FEAT-42 T-12, check-state.py:38 resolves root through
       harness_boundary.resolve_root(_selfdir) and refuses with exit 2 rather than guessing. That
       root is the HARNESS root, which still need not be the repository top level - a worktree
       checkout is the everyday case - so the instruction stands and only its justification is
@@ -1522,13 +1522,13 @@ tasks:
       it, ending with the INV-32 token so it is grep-able.
 
       THE TESTS, AND THE FAILING STATE FIRST. Before writing the check, add all three cases and run
-      them against the unmodified check-state.sh: case (inv32.a) MUST fail and cases (inv32.b) and
+      them against the unmodified check-state.py: case (inv32.a) MUST fail and cases (inv32.b) and
       (inv32.c) MUST pass. Record that RED result in the receipt. A case (inv32.a) that is green
       before the change is measuring nothing, and this feature has already spent two cycles on
       verifies that could not fail. The overridable CHECK_STATE_BIN env var at the top of
       test-check-state.py is how to point the suite at a reverted copy.
       SAY WHAT (inv32.c) DOES AND DOES NOT PROVE, in the receipt, in the same voice: against the
-      unmodified check-state.sh it passes VACUOUSLY, because nothing emits INV-32 yet, so its green
+      unmodified check-state.py it passes VACUOUSLY, because nothing emits INV-32 yet, so its green
       on that run is worth nothing. Its DISCRIMINATING run is against an implementation that
       already reports (inv32.a) but carries no terminal scope, where it must be RED - build that
       intermediate state deliberately and record that red, or the receipt records a meaningless
@@ -1538,7 +1538,7 @@ tasks:
       user.email and user.name config - because a hand-built .git pointer produces no rev-parse
       top level and all three cases would pass vacuously. Every run root also gets the standard
       .harness/harness.json plus .harness/harness/features/FEAT-TEST/feature.json carrying a
-      validator run, or check-state.sh exits early with project not onboarded and prints no
+      validator run, or check-state.py exits early with project not onboarded and prints no
       invariant lines at all. Run each through the existing run(tmp) helper.
 
       case (inv32.a) - THE REPORT. Commit plan.yaml with content X; commit again with content Y;
@@ -1562,9 +1562,9 @@ tasks:
       for character. Wire all three into main()'s aggregate the way the sibling groups are wired,
       so a failure changes the process exit code.
 
-      WHY THIS TASK IS LAST, AND WHY IT DEPENDS ON T-07 AND T-11. check-state.sh is opened by
+      WHY THIS TASK IS LAST, AND WHY IT DEPENDS ON T-07 AND T-11. check-state.py is opened by
       T-02, T-04, T-06 and T-07; test-check-state.py by T-02, T-04, T-06, T-07 and T-11, which
-      DELETES a unit from it. T-07 is the last task to touch check-state.sh and T-11 the last to
+      DELETES a unit from it. T-07 is the last task to touch check-state.py and T-11 the last to
       touch its test, so depends_on: [T-07, T-11] places T-14 after every task that opens either
       file and collides with none of them. Address every edit BY CONTENT, never by line number:
       five sibling tasks rewrite these two files before this one runs.
@@ -1654,7 +1654,7 @@ tasks:
     traces: [REQ-01]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: repairs fixtures for check-state.sh and gh-sync.py, both enforcement-path
+    execution_reason: repairs fixtures for check-state.py and gh-sync.py, both enforcement-path
       files under DEC-174
     depends_on: [T-06]
     status: done
@@ -1780,7 +1780,7 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/harness_yaml.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-harness-yaml.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: >-

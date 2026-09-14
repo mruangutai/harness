@@ -29,7 +29,7 @@ lanes:
     - surface: .claude/skills/harness/bin/gh_issues.py
       lane: main-session-direct
       reason: same act as gh-sync.py, one commit, operator route ruling on issue 842
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out, the state checker is a validator the harness must not change through itself
     - surface: .claude/skills/harness/bin/gh-close-gate.py
@@ -105,7 +105,7 @@ decisions:
     because: the new Bash gate refuses a typed gh issue close but is structurally blind to a Python subprocess (gh-sync.py:147), so it would never have stopped close-task; keeping the subcommand leaves a harness-blessed route to the exact state this feature exists to prevent, an issue CLOSED with its card not at the done station. Operator ruling on Q8, 2026-08-25. The cost, accepted, is that the deliberate single-issue close is gone with no replacement, and abandon, which reports and asks first, is the one narrow exception
     dec: DEC-203
   - id: D-13
-    choice: board_lifecycle.py's audit runs once per feature, inside ship, and nowhere else - not per commit, not per station write, and not in check-state.sh
+    choice: board_lifecycle.py's audit runs once per feature, inside ship, and nowhere else - not per commit, not per station write, and not in check-state.py
     because: ship already reads GitHub for the open-child check, so the audit's four calls (board_lifecycle.py:831) are a small increment on a read already happening; a station-change trigger was rejected because the leak happens when the harness is NOT writing a station, so it would catch nothing sooner at several times the cost. Operator ruling on Q6, 2026-08-25. The cost, accepted, is that a card closed outside the harness can sit wrong for the whole build and is only caught at ship, which is where the open-child decision is made
     dec: DEC-203
 
@@ -890,23 +890,23 @@ tasks:
     traces: [REQ-09]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — check-state.sh is the harness's own state validator and its test is the gate's test; neither may be changed through the enforcement path being changed
+    execution_reason: DEC-174 carve-out — check-state.py is the harness's own state validator and its test is the gate's test; neither may be changed through the enforcement path being changed
     depends_on: [T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
-      grep -q "INV-31" .claude/skills/harness/bin/check-state.sh
-      out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1)
+      grep -q "INV-31" .claude/skills/harness/bin/check-state.py
+      out=$(python3 .claude/skills/harness/bin/check-state.py 2>&1)
       printf '%s' "$out" | grep -Eq 'all state invariants hold\.|VIOLATION|note  '
       ! printf '%s' "$out" | grep -q Traceback
       ! printf '%s' "$out" | grep -q "INV-31"
     intent: |
-      Add INV-31 to .claude/skills/harness/bin/check-state.sh. INV-30 is the highest number in use
+      Add INV-31 to .claude/skills/harness/bin/check-state.py. INV-30 is the highest number in use
       at cc84b29; take 31 and do not reuse a retired number.
 
       WHY IT EXISTS, and record this in the invariant's own header comment: the setup step lives in
@@ -926,19 +926,19 @@ tasks:
       The two findings differ in SUBJECT, not only in a variable tail — one is about a config
       value, the other about a file — because they are two different failures: a misconfigured
       clone, and a damaged checkout. Each is one line beginning "INV-31: ", follows the file's
-      measured grammar (INV-NN: <subject> <what is wrong> — <consequence>, check-state.sh:1258-1262),
+      measured grammar (INV-NN: <subject> <what is wrong> — <consequence>, check-state.py:1258-1262),
       and carries its own fix. The pinned shapes, from DESIGN.md Contract 5:
         INV-31: core.hooksPath is <unset | "<value found>">, not .claude/skills/harness/hooks — no
         harness hook runs on this clone. Fix: git config core.hooksPath .claude/skills/harness/hooks
         INV-31: .claude/skills/harness/hooks/post-merge is <missing | not executable (mode <m>)> —
         the hook path resolves but the merge sweep cannot run. Fix: restore it | chmod +x it
       Both append to `bad`, never `warn`. INV-28 is a warn on the stated reason that the mirror is
-      never a gate (check-state.sh:1018-1020); INV-31 is not a mirror fact — it is whether the machine
+      never a gate (check-state.py:1018-1020); INV-31 is not a mirror fact — it is whether the machine
       runs the hook that runs ship, and after this feature the sweep is ship's only caller, so a
       clone without it silently stops closing tickets.
 
       WHERE IT RUNS. Follow the file's existing convention for an invariant that reads git config:
-      it must run against the checkout check-state.sh is invoked in, and it must not fail the run
+      it must run against the checkout check-state.py is invoked in, and it must not fail the run
       when git itself is unavailable — an unreadable git config is CANNOT RUN, reported as its own
       line, exactly as INV-25, INV-26 and INV-29 already handle an import failure. A CANNOT RUN is a
       violation, not a pass.
@@ -947,13 +947,13 @@ tasks:
       the done station. board_lifecycle.py's audit already reports exactly that as its STATION
       finding class, and a second detector for one fact is two rules that will drift. What was
       missing there is a runner, not a detector, and the operator has now placed that runner
-      inside ship, once per feature (T-04 step 7c, D-13) — deliberately NOT inside check-state.sh,
+      inside ship, once per feature (T-04 step 7c, D-13) — deliberately NOT inside check-state.py,
       where the audit's four network calls would fall on every run of the state checker. The two
       notes are consistent rather than contradictory: the detector is now scheduled, and it is
       scheduled somewhere other than here. Do not add it here.
 
-      CORRECT THE TWO FALSIFIED Item-closed COMMENTS IN check-state.sh, in this same task. This
-      task is their only legal home: under the DEC-174 carve-out check-state.sh may be changed only
+      CORRECT THE TWO FALSIFIED Item-closed COMMENTS IN check-state.py, in this same task. This
+      task is their only legal home: under the DEC-174 carve-out check-state.py may be changed only
       through the main-session route, and this is the sole task in the plan carrying that file.
       Both sites are comment-only. No assertion in test-check-state.py and no clause of this task's
       verify reads either one. Re-derive both anchors before editing.
@@ -961,14 +961,14 @@ tasks:
       one of their thirteen cards sits at Review. Closing an issue does not move its card to the
       done station on this board. After this feature, ship writes the done station itself (D-01),
       so a card that is at Done is there because ship put it there.
-        (a) check-state.sh:1416, INV-26's TERMINAL EXEMPTION. At 4571bda it justifies the exemption
+        (a) check-state.py:1416, INV-26's TERMINAL EXEMPTION. At 4571bda it justifies the exemption
             by saying the ship closes the parent and GitHub's Item-closed workflow lands it in
             Done. Restate the reason: ship writes the parent's card to the done station and records
             the terminal status, while the plan-derived station would still say Review — so without
             this exemption every shipped feature is a permanent false violation. Keep the
             case-sensitivity note that follows it as it stands. Roughly two lines. THE EXEMPTION'S
             CONDITION IS UNCHANGED: it still keys on feature.json status being Done or Abandoned.
-        (b) check-state.sh:1479, D-24's JUSTIFICATION COMMENT. This one is a REWRITE, not a
+        (b) check-state.py:1479, D-24's JUSTIFICATION COMMENT. This one is a REWRITE, not a
             relabel — roughly five to eight lines. At 4571bda it argues that under D-23 a done
             task's sub-issue is deliberately left OPEN so it can hold its column through the Review
             phase, because GitHub's native Item closed workflow would otherwise land a closed
@@ -991,7 +991,7 @@ tasks:
         only, and every existing INV-26 assertion in test-check-state.py must still pass unchanged.
 
       THE VERIFY'S THIRD CLAUSE ASSERTS THE RUN COMPLETED before it asserts INV-31 is absent, and
-      must not be simplified back to a pipe into grep. check-state.sh's embedded python exits 1
+      must not be simplified back to a pipe into grep. check-state.py's embedded python exits 1
       both when it finds violations and when it dies on a traceback, so the exit code cannot tell
       the two apart; a pipe into grep would take grep's status and green on a run that never
       reached INV-31 at all. The terminal report block — one of "all state invariants hold.", a
@@ -1112,7 +1112,7 @@ tasks:
 
       C. .claude/skills/harness-init/SKILL.md, the core.hooksPath section. Add one sentence after
          step 3 naming INV-31 as the invariant that reports an uninstalled hook on every
-         check-state.sh run, so a clone that skipped this step is caught rather than silently
+         check-state.py run, so a clone that skipped this step is caught rather than silently
          losing its merge sweep. Do not change the three steps themselves — they are the fix
          instruction the invariant points at.
 

@@ -35,7 +35,7 @@ now.
   segment, `dest_for` writes two — verified-at 49c528a
 - CLI works against the REAL repo: `list --repo harness` returns the FEAT-31 tree, exit 0, legacy
   one-segment included, main checkout excluded — verified-at 49c528a
-- `check-state.sh`: 9 violations, **none FEAT-30** — verified-at 49c528a
+- `check-state.py`: 9 violations, **none FEAT-30** — verified-at 49c528a
 
 ## Dead ends
 

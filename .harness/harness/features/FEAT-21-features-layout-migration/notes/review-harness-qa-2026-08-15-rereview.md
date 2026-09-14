@@ -12,16 +12,16 @@ Ground-pin: `HEAD 4a98cc4d8310939971f0e523d0689f4d309a22c9`, branch
 (`d033b9d`, `b1d3925`, `4a98cc4`) plus close-out bookkeeping, which is the rest; consistent with
 the prior panel's own correction of an undercounted range (`review-harness-qa-2026-08-14-panel.md`
 Job 2). Read-only on the working tree throughout: `git status --porcelain` on every probed
-production file (`check-state.sh`, `gh-sync.py`, `layout_migration.py`, `tests.yml`) is empty.
+production file (`check-state.py`, `gh-sync.py`, `layout_migration.py`, `tests.yml`) is empty.
 All mutation/fixture work ran on `cp -R` copies or `Write`-created fixtures under
 `/private/tmp/.../scratchpad/`, never in place.
 
 ## JOB 1 — must-fix delivery, proven behaviorally
 
-**(a) Staged fixture violation, ran the REAL `check-state.sh`, asserted the label resolves.**
+**(a) Staged fixture violation, ran the REAL `check-state.py`, asserted the label resolves.**
 Fixture: `<scratch>/job1/fixture/.harness/harness.json` +
 `.harness/harness/features/FEAT-XX-fixture/BRIEF.md` with no `## Approval` section.
-`CLAUDE_PROJECT_DIR=<scratch>/job1/fixture bash check-state.sh` emits:
+`CLAUDE_PROJECT_DIR=<scratch>/job1/fixture python3 check-state.py` emits:
 
 ```
 VIOLATION  .harness/harness/features/FEAT-XX-fixture/BRIEF.md has no '## Approval' section — cannot tell if the goal is signed.
@@ -32,11 +32,11 @@ The label opens.
 
 **(b) KEYS stayed bare — confirmed by source read and by live measurement.** `briefs`, `plans`,
 `plan_docs`, `states` are all keyed by `os.path.basename(os.path.dirname(p))` — bare basenames,
-unqualified (`check-state.sh:64-86`). Ran the real population logic against this repo's own
+unqualified (`check-state.py:64-86`). Ran the real population logic against this repo's own
 `.harness/` at HEAD: **12 features have a `plan.yaml`, `plan_docs.get(_feat)` returns a `dict`
 for all 12 (hits=12, misses=0 among those 12), never `None`.** The 9 features with no
 `plan.yaml` correctly miss (they're on `PLAN.md` or have neither) — that miss is the documented
-`continue` branch, not a bug. `INV-26`'s station-mirror comparison at `check-state.sh:1160-1162`
+`continue` branch, not a bug. `INV-26`'s station-mirror comparison at `check-state.py:1160-1162`
 derives `_feat` the identical way (`os.path.basename(_fp)` over the same glob shape), so the
 lookup **is reached** with real data whenever a plan.yaml exists — not vacuously skipped for
 every feature as D-08's hazard describes for the un-fixed shape.
@@ -45,7 +45,7 @@ every feature as D-08's hazard describes for the un-fixed shape.
 (`fpath("NOT-A-REAL-FEAT", "BRIEF.md")` → `.harness/?/features/NOT-A-REAL-FEAT/BRIEF.md`). What
 an operator would see: a literal `?` segment that does not resolve to any real file — worse than
 the pre-fix bare label in one sense (it *looks* qualified but is a dead path). **Structural
-observation, not a regression:** every top-level feature-discovery glob in `check-state.sh` — 15
+observation, not a regression:** every top-level feature-discovery glob in `check-state.py` — 15
 call sites, grepped exhaustively (`grep -c 'glob.glob(...)'` on the file returns 16 total; the
 16th, `line 309`, globs `runs/*` under a feature dir already found by one of the 15, not an
 independent discovery path) — uses the shape `.harness/*/features/*`. So **every** `feat`/`_feat`
@@ -60,7 +60,7 @@ isn't already covered by B-1/B-3 (nothing stages a legacy-only tree either).
 Scratch copies of `.claude/skills/harness/bin/` at `<scratch>/job2/bin-copy` (mutated) and
 `<scratch>/job2/bin-clean` (unmutated control), both `cp -R` from the tracked tree at `4a98cc4`.
 
-**Mutation applied:** `check-state.sh`'s MIXED branch, dropped the blamed-reader clause:
+**Mutation applied:** `check-state.py`'s MIXED branch, dropped the blamed-reader clause:
 ```
 -  bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
 -             f"readers {_lmod.blame_text(_srep)}. {_lrem}")
@@ -124,7 +124,7 @@ Both are true at HEAD, not just asserted in the comment.
 - `layout_migration.py .` → exit 0: `features: CLEAN — evidence migrated`, `docs: CLEAN —
   evidence legacy`, **`examined 21 feature dir(s), 1 doc root(s), 7 reader file(s)`** — non-zero
   on all three, a real sweep, not an empty one exiting 0 by vacuity.
-- `check-state.sh` → exit 0, **zero `VIOLATION` lines**, ~40 `note`-severity lines spanning at
+- `check-state.py` → exit 0, **zero `VIOLATION` lines**, ~40 `note`-severity lines spanning at
   least 10 distinct `FEAT-*` directories (`FEAT-02`, `FEAT-05`, `FEAT-06`, `FEAT-08`, `FEAT-09`,
   `FEAT-13`, `FEAT-14`, `FEAT-15`, `FEAT-19`, `FEAT-20`, `FEAT-21`) — several of them carrying the
   segment-qualified `.harness/harness/features/FEAT-NN/...` label shape from D-08, each resolving
@@ -136,17 +136,17 @@ Nothing in this range regressed any sanctioned survivor (`harness-init/SKILL.md`
 the four historical `check-plan-routes.py` comments, `FEAT-99-x`, unit-9 files, `docs/**`), the
 branch-gate segment literal, the segment-level readability guard, the walk-up manifest choice, or
 the two-segment fixtures. Confirmed by re-grepping the same surfaces touched by this range's
-commits (`check-state.sh`, `gh-sync.py`, `tests.yml`) — no new hits outside the already-ruled set.
+commits (`check-state.py`, `gh-sync.py`, `tests.yml`) — no new hits outside the already-ruled set.
 
 ## SC evidence
 
 - **SC-10** — `test-layout-migration.py` case 20 parity, mutation-proven both directions: gate-side
-  (prior panel, `check-state.sh`'s MIXED clause) and render-side (prior panel,
+  (prior panel, `check-state.py`'s MIXED clause) and render-side (prior panel,
   `layout_migration.render()`); **gate-side re-proven independently here** at `4a98cc4` with the
   exact mutation named in this dispatch (RED on mutated copy, GREEN on clean copy).
-- **D-08** — bare keys: `check-state.sh:64-86` (source) + live `plan_docs.get(_feat)` measurement
+- **D-08** — bare keys: `check-state.py:64-86` (source) + live `plan_docs.get(_feat)` measurement
   above (12/12 hits, 0 misses among plan.yaml-bearing features). Qualified labels:
-  `check-state.sh` fixture run above, `test -e` on the extracted path token.
+  `check-state.py` fixture run above, `test -e` on the extracted path token.
 - **T-10 walk-up** — `gh-sync.py:740-753`, all three depth/onboarding cases run behaviorally
   above, real binary, no mocking.
 - **`tests.yml` re-measurement** — both `git ls-files` and `git check-ignore` commands re-run
@@ -164,7 +164,7 @@ dispatch's to close.
 ## New findings
 
 - **Advisory, not blocking.** `fpath`'s fallback (`.harness/?/features/<FEAT>/...`) is reachable
-  only by direct call today — every discovery glob in `check-state.sh` already requires the
+  only by direct call today — every discovery glob in `check-state.py` already requires the
   migrated shape, so a legacy-only project produces empty discovery rather than a `?`-labelled
   finding. Worth folding into B-1/B-3's "nothing stages a non-migrated tree" framing rather than
   filing as its own row.

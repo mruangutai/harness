@@ -188,7 +188,7 @@ discriminating test; nothing the matrix requires for `bugfix`/`docs` is missing 
 - The reviewer's `low` finding (`_SEVERITY_LINE_RE` breaks on an inline comment appended to the
   `severity_max:` line itself) was read, not independently reproduced by me — cheap to add but out of
   this delta's mutation set as dispatched (regex seam already covered a different break mode).
-- The canonical project-wide suite and `check-state.sh` — explicitly the orchestrator's job after this
+- The canonical project-wide suite and `check-state.py` — explicitly the orchestrator's job after this
   cycle, not run here.
 - `sync-agent-adapters.py --check` and `code-grade.py --base 7ccfae8d --head 6752597` — already run
   and reported by the sibling code-reviewer this cycle; not re-run here per the dispatch's

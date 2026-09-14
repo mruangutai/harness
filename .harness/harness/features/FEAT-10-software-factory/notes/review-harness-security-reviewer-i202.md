@@ -8,9 +8,9 @@ not resolve on its own; noting this so the next reader isn't confused). Review s
 ## Q1 — Gate integrity / fail-open
 
 **bin/ scripts.** `git grep -n 'check-docs' 835b297 -- .claude/skills/harness/bin/` returns one
-hit: `check-state.sh:856`, inside a comment explaining the removal ("INV-10 IS GONE, AND THE
+hit: `check-state.py:856`, inside a comment explaining the removal ("INV-10 IS GONE, AND THE
 NUMBER IS RETIRED WITH IT..."). No code, no `[ -x check-docs.sh ] && run`, no `|| true`, no loop
-entry. Read directly at the SHA (`check-state.sh:840-870`): the INV-10 block that used to invoke
+entry. Read directly at the SHA (`check-state.py:840-870`): the INV-10 block that used to invoke
 `check-docs.sh` is deleted outright, not wrapped in a guard.
 
 `run-unit-tests.py` and `deploy.sh` at 835b297: no match for `check-docs` in either (checked via

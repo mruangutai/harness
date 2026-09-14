@@ -230,7 +230,7 @@ D-10 requires kaya's own PR (T-09) to merge before T-07 removes the board from `
 per that same note the fleet.yaml edit landed ahead of `test-no-distribution.py`'s own fixture
 update — the two are out of the order D-10 states.
 
-I did not edit `test-no-distribution.py`, `fleet.yaml`, or `check-state.sh`, per the dispatch's
+I did not edit `test-no-distribution.py`, `fleet.yaml`, or `check-state.py`, per the dispatch's
 DO NOT TOUCH list. This failure predates my session: `fleet.yaml` and `d177bab` were both on the
 branch before I started, and `test-no-distribution.py` imports none of the six modules or test
 files I touched (`grep -n "^import\|^from"` shows only `os`, `re`, `subprocess`, `sys` — it reads

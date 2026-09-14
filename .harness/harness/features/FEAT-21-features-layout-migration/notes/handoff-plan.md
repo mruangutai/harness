@@ -23,7 +23,7 @@ T-09 lands and verifies. Expect FEAT-20's T-01/T-02 hand-off shape.
   ls-files '.harness/features/*/PLAN.md' '.harness/features/*/plan.yaml'` returns 19 at HEAD, 8 at
   eafc8ad — I ran both — verified-at 62fef85. `git check-ignore -v .harness/features` still exits 1
 - Detector and INV-27 are GREEN at base, all-legacy: `layout_migration.py` exits 0 with both
-  surfaces `CLEAN — evidence legacy` over 20 feature dirs, `check-state.sh` exits 0 with no INV-27
+  surfaces `CLEAN — evidence legacy` over 20 feature dirs, `check-state.py` exits 0 with no INV-27
   line — I ran both — verified-at 62fef85
 - `harness` is ALREADY a declared segment, so NO fleet.yaml edit belongs in this feature —
   `layout_migration.py:144-161` derives it from `harness.json` `github.repo`, independently of

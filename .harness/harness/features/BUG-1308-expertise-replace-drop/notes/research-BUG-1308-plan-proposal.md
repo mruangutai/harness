@@ -33,7 +33,7 @@ decisions:
       Replace and drop ship as a second subcommand, ops, taking the distill contract's op objects as
       JSON; apply --entries and compute_union are not touched.
     because: >-
-      The entries stream is the markdown format check-expertise.sh also parses, so a verb inside it
+      The entries stream is the markdown format check-expertise.py also parses, so a verb inside it
       changes a format two tools read; the contract's ops are already structured data in the DIGEST.
     dec: none
   - id: D-02
@@ -245,10 +245,10 @@ tasks:
       case11 REPLACE AT CAPACITY. Patterns with 15 entries P-01 through P-15. One op replacing P-07.
         Assert exit 0; REPLACED P-07 in stdout; the written file still parses to 15 Patterns entries;
         the 7th entry line carries the new text; and
-        bash .claude/skills/harness/bin/check-expertise.sh on the written file exits 0.
+        python3 .claude/skills/harness/bin/check-expertise.py on the written file exits 0.
       case12 REMOVAL. Gotchas with G-01 through G-05. One drop of G-03. Assert exit 0; DROPPED G-03
         in stdout; the string "- G-03:" absent from the file; G-01, G-02, G-04 and G-05 all still
-        present; and check-expertise.sh on the written file exits 0.
+        present; and check-expertise.py on the written file exits 0.
       case13 MISSING TARGET. One replace naming P-99. Assert exit 10; the combined stdout and stderr
         carries MISSING TARGET, the id and the section token; the file's sha256 is unchanged; and a
         following add-only run_apply still exits 0.
@@ -345,7 +345,7 @@ tasks:
          distill contract's op objects as JSON, keyed on section plus entry id, every op resolved
          against one base snapshot under the shared lock, with merge left an authoring concept
          rewritten as replace plus drop. Over: a directive verb inside the apply --entries markdown
-         stream. Because: that stream is the format check-expertise.sh also parses, so a verb inside
+         stream. Because: that stream is the format check-expertise.py also parses, so a verb inside
          it changes a format two tools read, while the contract's ops are already structured data in
          the DIGEST. Tradeoff accepted: two payload formats for one file class, and an author must
          convert a YAML DIGEST op to JSON. Reference DEC-66, DEC-95 and DEC-145.

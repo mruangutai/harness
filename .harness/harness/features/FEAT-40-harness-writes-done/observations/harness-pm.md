@@ -6,7 +6,7 @@
   an existing id with different values, so folding review findings into shipped tasks has to be done
   with direct edits; the merge tool only helps for NEW D-NN/T-NN. Used it for D-10/D-11 only.
 - 2026-08-25: FEAT-40's plan.yaml was written without the template's `approval:` skeleton, and
-  check-state.sh reports that as a VIOLATION ("has no approval: block — cannot tell if the goal is
+  check-state.py reports that as a VIOLATION ("has no approval: block — cannot tell if the goal is
   signed"), distinct from the "approval is pending" note the other live plans get. pm cannot fix it:
   the mapping is the main session's and plan-merge refuses to write it. Instantiating from the
   template rather than composing the file by hand is what prevents this.
@@ -21,5 +21,5 @@
   had ZERO matches at cc84b29, so the task part that only ADDS to that file passed unconditionally.
   The intent said "all three strings are present in these files" — true of the set, false per file.
 - 2026-08-25: test-check-state.py takes tens of minutes when more than one copy runs in the same tree;
-  each fork of check-state.sh scans the whole repo. Never run two suites concurrently in one worktree.
+  each fork of check-state.py scans the whole repo. Never run two suites concurrently in one worktree.
 - 2026-08-25 (FEAT-40): a dispatch enumerated three sites for a numeral defect; the set was four, and the miss was in plan.yaml's approval-gated decisions: block (D-07). Enumerated sites are a hypothesis about where a defect class lives. Grep the class across both artifacts before returning, and report the hit list with a disposition per hit.

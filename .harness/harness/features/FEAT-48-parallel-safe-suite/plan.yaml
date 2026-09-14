@@ -452,7 +452,7 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-check-state.py is the test of check-state.sh, a gate script CI runs
+      DEC-174 carve-out. test-check-state.py is the test of check-state.py, a gate script CI runs
       as a required step; test-feature-worktree.py is edited in the same change because the
       invariant T-03 adds cannot land green while any site in either file remains.
     depends_on: [T-01]

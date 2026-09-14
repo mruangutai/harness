@@ -69,21 +69,21 @@ BEFORE (tail of the paragraph, `:6990-6992`):
 
 AFTER (`:6990-6997`) — same text, then:
 
-> … is what names it — a check that is OPERATOR-RUN, with no standing invariant behind it. `check-state.sh` never reads a member's config from its remote, and its only network calls record nothing when the network is unavailable, because an offline environment must never become a red gate (`check-state.sh:2270-2273`). So nothing grades a fleet member's remote config on every run, and a member whose `harness.json` is deleted after onboarding stays invisible until the next build against it.
+> … is what names it — a check that is OPERATOR-RUN, with no standing invariant behind it. `check-state.py` never reads a member's config from its remote, and its only network calls record nothing when the network is unavailable, because an offline environment must never become a red gate (`check-state.py:2270-2273`). So nothing grades a fleet member's remote config on every run, and a member whose `harness.json` is deleted after onboarding stays invisible until the next build against it.
 
 **The dispatch's claim was verified and deliberately narrowed.** The dispatch asked me to state that
-`check-state.sh` "deliberately makes no network call". **That is false as written** and I did not
-assert it: `check-state.sh` makes `gh` calls in INV-26 and INV-30 (`check-state.sh:2062-2080`,
+`check-state.py` "deliberately makes no network call". **That is false as written** and I did not
+assert it: `check-state.py` makes `gh` calls in INV-26 and INV-30 (`check-state.py:2062-2080`,
 `:2291-2327`). What is true, and what the entry now says, is the narrower pair of facts that
 actually carry the finding:
 
-- **No remote-config read at all.** Grepped `check-state.sh` for
+- **No remote-config read at all.** Grepped `check-state.py` for
   `product_config|check-product-configs|fleet` — every hit is INV-24/INV-29 reading the local
   `fleet.yaml` file (`:1622-1651`, `:1884-1945`). Nothing anywhere in the script reads a member's
   `harness.json` from a remote.
-- **No network result can ever raise a violation.** `check-state.sh:2270-2273`: "Everything else —
+- **No network result can ever raise a violation.** `check-state.py:2270-2273`: "Everything else —
   `gh` absent, unauthenticated, the network unreachable, a milestone that 404s — records NOTHING.
-  `check-state.sh` runs before every commit, and an offline environment must never become a red
+  `check-state.py` runs before every commit, and an offline environment must never become a red
   gate." Same posture at `:2076-2077` and `:2451-2453`.
 
 So the conclusion the finding needs — no every-run invariant can grade a fleet member's remote
@@ -128,7 +128,7 @@ recomputed that row's tag set:
 > - DEC-220 @6985 [plan,deploy,domain,expertise] refs: DEC-113 DEC-129 DEC-174 DEC-182 :: The central onboarding model: …
 ```
 
-`state` entered and `expertise` left because the new sentences name `check-state.sh` and no longer
+`state` entered and `expertise` left because the new sentences name `check-state.py` and no longer
 tip the expertise tag. Fixed the sanctioned way — `gen-decisions-index.py` with no flags (exit 0),
 never by hand. **This is the fourth written file: `.harness/harness/docs/DECISIONS-INDEX.md`.** The
 `@6985` anchor and the hand-written ruling right of ` :: ` are byte-identical; the one-line diff is

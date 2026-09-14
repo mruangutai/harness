@@ -18,7 +18,7 @@ authored beyond this note and a disposable git worktree (below) needed for the r
 | unit suite | `run-unit-tests.py --kind unit` | exit 0, **0 `FAIL` lines** across the full log; 417 `PASS <script>` lines (one per script, not per case — G-04) | 977→986 PASS/0 FAIL | ⚠️ no-fail confirmed; the specific 977→986 case-total is **not independently reproducible** from this script's own output convention (mixed `N of N`/`N/N`/bare-`ok` per-script formats, no cross-script aggregator) — same limitation c0 hit and declined to total. Treat the failure-count half of the claim (0 FAIL) as verified; the case-total half as unverified, not contradicted |
 | integration suite | `run-unit-tests.py --kind integration` | exit 0, **569 `PASS` lines, 0 `FAIL` lines** | not named by fixer, but required by the `cross_module` floor | ✅ — matrix requirement satisfied independently of the fixer's claim list |
 | `check-omp-port.py` | direct | `OMP port surface: ok`, exit 0 | "ok" | ✅ |
-| `check-state.sh` | direct | exit 0, all `note`-level, unrelated to this diff (same pre-existing housekeeping items c0 saw) | exit 0 | ✅ |
+| `check-state.py` | direct | exit 0, all `note`-level, unrelated to this diff (same pre-existing housekeeping items c0 saw) | exit 0 | ✅ |
 
 ## The audit that matters — red-then-green, independently executed
 

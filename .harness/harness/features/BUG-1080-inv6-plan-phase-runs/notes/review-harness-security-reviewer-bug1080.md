@@ -71,11 +71,11 @@ transcription gap that already exists for `verdict`, `squad`, `id`, and `agent` 
 kind, newly consequential because this is the first `runs[]` field whose *value* (not just its
 presence) silences a fail-closed gate.
 
-## 3. Schema enum vs. check-state.sh's runtime read — confirmed to disagree, but only by a bypass
+## 3. Schema enum vs. check-state.py's runtime read — confirmed to disagree, but only by a bypass
 
 Schema: `"code_grade": {"type": "string", "enum": ["n_a"]}` — exact string match.
-`check-state.sh`: `str(entry.get("code_grade", "")).strip().lower() != "n_a"` — case/whitespace
-tolerant. **Measured live** (ran `check-state.sh` against synthetic fixtures): `"N_A"`,
+`check-state.py`: `str(entry.get("code_grade", "")).strip().lower() != "n_a"` — case/whitespace
+tolerant. **Measured live** (ran `check-state.py` against synthetic fixtures): `"N_A"`,
 `" n_a "`, and `"\"N_A\""` (raw text) all suppress the pin-required message exactly like `"n_a"`.
 
 Write paths checked for whether a non-conforming value can land at all:
@@ -91,22 +91,22 @@ Write paths checked for whether a non-conforming value can land at all:
   lands on disk. PostToolUse `check-domain.py --post` then detects the schema violation and
   prints it (exit 2) — **detection, not prevention**, by the file's own documented design
   ("Detection, not prevention: an Edit payload carries no whole-file content and arbitrary shell
-  cannot be predicted", `check-domain.py:900-910`). If `check-state.sh`'s own sweep (a separate,
+  cannot be predicted", `check-domain.py:900-910`). If `check-state.py`'s own sweep (a separate,
   unrelated invocation) runs before anyone acts on that stderr, the non-conforming value already
   silences INV-6.
 
 Severity: **low**, not medium — it requires deliberately bypassing the sanctioned CLI/tool route,
 and the same actor already has a schema-unconstrained, zero-effort route to the identical outcome
 (forge `review_sha` to any string; there's no enum on it at all). Recorded as checked-and-clear
-for `must_fix` purposes; worth a hardening note (`check-state.sh` could match the schema's exact
+for `must_fix` purposes; worth a hardening note (`check-state.py` could match the schema's exact
 string instead of `.strip().lower()`) but not gating.
 
 ## 4. Blast radius / GAP-7 reproduction — confirmed reproducible via the mismatch in §2, not via §1/§3 alone
 
-GAP-7 (`check-state.sh:459-460`, `test-check-state.py:3340-3342`) is a reviewer diffing a moving
+GAP-7 (`check-state.py:459-460`, `test-check-state.py:3340-3342`) is a reviewer diffing a moving
 HEAD because `review_sha` was never pinned before they ran. A **falsely-labelled** `code_grade:
 n_a` on a run that in truth graded real code reproduces this exactly: `code_reviewing_runs`
-excludes it (`check-state.sh:437-441`), INV-6 stays silent, and nothing else in this diff's own
+excludes it (`check-state.py:437-441`), INV-6 stays silent, and nothing else in this diff's own
 code re-derives whether the label was true. The only thing that WOULD have caught a genuine
 reviewer trying to submit that false claim is `validate-digest.py`'s SEC-01 (§2) — which binds a
 digest's `code_grade: n_a` to an actual empty/no-Python diff or a genuine pending plan — but that
@@ -129,7 +129,7 @@ operation. This narrows real-world exposure further but does not close the write
 
 ## Standard sweep
 
-Secrets/injection: diff touches only `check-state.sh` (embedded Python heredoc, string ops on
+Secrets/injection: diff touches only `check-state.py` (embedded Python heredoc, string ops on
 parsed YAML values, no shelling out of untrusted content), `feature-schema.json` (data), and
 `test-check-state.py` (fixtures). No credential-shaped strings, no new subprocess/shell call
 sites. Nothing to report.

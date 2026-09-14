@@ -22,7 +22,7 @@ approval:
 # invariants: [29, 30]
 # 29 is this brief's own signed claim. 30 is the milestone invariant added by the #806
 # amendment, derived at 9165162 on both halves of the rule check-plan-routes.py enforces:
-# absent from check-state.sh, and unclaimed by every signed-but-unbuilt plan. Not inferred
+# absent from check-state.py, and unclaimed by every signed-but-unbuilt plan. Not inferred
 # from the gate script's highest, which is 28 and has BUILT since this brief was signed.
 invariants: [29, 30]
 
@@ -55,9 +55,9 @@ lanes:
       lane: team
       agent: harness-dev-ops
       reason: check-domain.py --resolve at 9165162 prints harness-dev-ops
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
-      reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. The tool disagrees and the decision governs - check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane
+      reason: DEC-174 amendment 4 names check-state.py in the enforcement enumeration. The tool disagrees and the decision governs - check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops
@@ -90,7 +90,7 @@ decisions:
     because: post-merge receives only the squash flag as its argument and never the merged ref, so identifying the triggering feature means inferring it - and a single git pull can land several merges at once, which is exactly the shape the ten batch-closed milestones measured. Sweeping all makes the hook compute the same predicate as INV-29 WITHIN one checkout. D-10 later gave INV-29 a cross-repository entry point (classify_all) that the sweep does not call, so the two agree on which worktrees of this checkout are eligible and differ on which repositories are in view - see D-11. The accepted cost is that a pull can remove a checkout the operator was not thinking about; REQ-08's self-exclusion guard is what keeps that from being destructive to the running session.
     dec: none
   - id: D-02
-    choice: The hook and the invariants share one predicate module, worktree_terminal.py, written by the squad; the edit that makes check-state.sh call it is a separate main-session-direct task.
+    choice: The hook and the invariants share one predicate module, worktree_terminal.py, written by the squad; the edit that makes check-state.py call it is a separate main-session-direct task.
     because: DEC-174 amendment 4's working rule for a library a gate imports - a squad may write the library, the cutover that makes the gate use it is main-session-direct, proven by showing the violation set is identical before and after. One predicate is also what makes the brief's hook-versus-invariant split honest - two implementations could drift and each would look correct alone.
     dec: DEC-174
   - id: D-03
@@ -103,11 +103,11 @@ decisions:
     dec: none
   - id: D-05
     choice: INV-30 keys on the recorded milestone being open on GitHub, and records nothing when gh or the network is unavailable.
-    because: keying on status would ask the status to corroborate itself. The offline posture is INV-26's, established at check-state.sh:1205 - an offline or unconfigured environment must never become a red gate, since check-state.sh runs before every commit. The cost is that INV-30 is silent offline, recorded as a verification gap in the amendment rather than argued away.
+    because: keying on status would ask the status to corroborate itself. The offline posture is INV-26's, established at check-state.py:1205 - an offline or unconfigured environment must never become a red gate, since check-state.py runs before every commit. The cost is that INV-30 is silent offline, recorded as a verification gap in the amendment rather than argued away.
     dec: none
   - id: D-06
     choice: The milestone invariant is INV-30.
-    because: derived at 9165162 on both halves of the rule check-plan-routes.py enforces, never from the gate script's highest number. INV-28 has BUILT into check-state.sh since this brief was signed, at :1044, :1068 and :1080, which falsifies the brief's original premise that the script held neither 28 nor 29. INV-29 is claimed by this feature's own signed brief. grep -rn INV-30 over .harness/ and .claude/ returns zero occurrences, so 30 is absent from the gate script AND unclaimed by every signed-but-unbuilt plan.
+    because: derived at 9165162 on both halves of the rule check-plan-routes.py enforces, never from the gate script's highest number. INV-28 has BUILT into check-state.py since this brief was signed, at :1044, :1068 and :1080, which falsifies the brief's original premise that the script held neither 28 nor 29. INV-29 is claimed by this feature's own signed brief. grep -rn INV-30 over .harness/ and .claude/ returns zero occurrences, so 30 is absent from the gate script AND unclaimed by every signed-but-unbuilt plan.
     dec: none
 
   - id: D-07
@@ -120,15 +120,15 @@ decisions:
     dec: DEC-179
   - id: D-09
     choice: check-plan-routes.py prints DEVIATION on exactly four tasks - T-06, T-07, T-08 and T-09 - and all four deviations are correct and must stay. Nobody resolves them by moving a task to team.
-    because: measured from the worktree root at 9165162, the checker reports 0 violations and those four DEVIATION lines, all on the two files .claude/skills/harness/bin/check-state.sh and .claude/skills/harness/bin/test-check-state.py. DEC-174 amendment 4 names check-state.sh in the enforcement enumeration and extends it to the test file of each enumerated gate, on the ground that a gate's test is the only thing proving the gate discriminates. A domain grant is not a lane - check-domain.py --resolve prints harness-backend-dev and harness-dev-ops for both files, which is what makes the checker call it a deviation, and the decision overrides the grant. Recorded here because a DEVIATION line reads like an unfinished item and the cheapest way to make it disappear is the wrong one.
+    because: measured from the worktree root at 9165162, the checker reports 0 violations and those four DEVIATION lines, all on the two files .claude/skills/harness/bin/check-state.py and .claude/skills/harness/bin/test-check-state.py. DEC-174 amendment 4 names check-state.py in the enforcement enumeration and extends it to the test file of each enumerated gate, on the ground that a gate's test is the only thing proving the gate discriminates. A domain grant is not a lane - check-domain.py --resolve prints harness-backend-dev and harness-dev-ops for both files, which is what makes the checker call it a deviation, and the decision overrides the grant. Recorded here because a DEVIATION line reads like an unfinished item and the cheapest way to make it disappear is the wrong one.
     dec: DEC-174
 
   - id: D-10
     choice: >-
       REQ-04's cross-repository enumeration lives in worktree_terminal.py as a SECOND entry
-      point, classify_all(root), not in check-state.sh. classify_all returns classify(root)
+      point, classify_all(root), not in check-state.py. classify_all returns classify(root)
       for the harness checkout plus classify(owner_root) for every repository declared in
-      fleet.yaml, resolved through factory_config.workspace_path. check-state.sh's INV-29
+      fleet.yaml, resolved through factory_config.workspace_path. check-state.py's INV-29
       and post-merge-sweep.py both keep calling one module. The failure posture is three-way
       and settles REQ-04's no-exception clause - fleet.yaml failing to load is a blocking
       violation, a declared repository whose checkout directory does not exist produces no
@@ -142,10 +142,10 @@ decisions:
       checkout can never report. test-worktree-terminal.py:382 calls classify(repo2) directly
       on the second repository's own root, so the 19 green cases prove the per-repo predicate
       and prove nothing about one caller covering both, which is what SC-04 and T-07 case (e)
-      grade from ONE check-state.sh run.
-      THE COST ON BOTH SIDES. Putting the enumeration in check-state.sh costs nothing in
+      grade from ONE check-state.py run.
+      THE COST ON BOTH SIDES. Putting the enumeration in check-state.py costs nothing in
       rework because T-06 is still pending, and that is exactly why it is the wrong lane -
-      check-state.sh is main-session-direct and DEC-174-enumerated, so the logic would land
+      check-state.py is main-session-direct and DEC-174-enumerated, so the logic would land
       where the only grader is test-check-state.py, which must stand up a fleet.yaml, a
       second real git repository and a full gate run for every branch of the posture. That is
       the slowest fixture in the suite and no library-level test can reach the logic at all.
@@ -162,7 +162,7 @@ decisions:
       fact lives on GitHub, off this machine, so requiring it would turn a pre-commit gate
       into an availability dependency. Every fact INV-29 needs is local and decidable, so
       there is no availability dependency to accept and INV-26's posture does not transfer.
-      fleet.yaml failing to load follows INV-25's import posture at check-state.sh:1109 for
+      fleet.yaml failing to load follows INV-25's import posture at check-state.py:1109 for
       INV-25's stated reason - the file is tracked, so it being unloadable is a defect in the
       tree and never a property of the environment, and a silent failure collapses the
       enumeration to the harness alone, which is precisely the harness-only implementation
@@ -177,12 +177,12 @@ decisions:
       9165162 - fleet.yaml declares mruangutai/kaya-ai and mruangutai/harness-factory-smoke,
       the kaya-ai checkout exists with zero linked worktrees, and no
       harness-factory-smoke checkout exists at all, so treating an absent checkout as a
-      violation would make check-state.sh red on this machine today for a kept fixture
+      violation would make check-state.py red on this machine today for a kept fixture
       repository nobody provisioned.
       A declared repository whose checkout EXISTS but cannot be enumerated is the unknown
       case and is blocking, by REQ-06's own signed rule applied one level up - absence of the
       directory is the exempting fact, failure of the lookup is not. It reuses the existing
-      unresolved klass rather than adding one, so check-state.sh needs no new branch.
+      unresolved klass rather than adding one, so check-state.py needs no new branch.
     dec: DEC-174
   - id: D-11
     choice: >-
@@ -223,7 +223,7 @@ tasks:
       python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin'); import worktree_terminal as w; assert sorted(w.CLASSES)==['exempt_absent','terminal','unresolved'], w.CLASSES; assert callable(w.classify) and callable(w.classify_all), 'classify_all is missing - D-10'; print('OK', sorted(w.CLASSES))"
     intent: |
       Create .claude/skills/harness/bin/worktree_terminal.py, a library with no side
-      effects and no argv handling. It is imported by check-state.sh's INV-29 and by
+      effects and no argv handling. It is imported by check-state.py's INV-29 and by
       post-merge-sweep.py; nothing else may duplicate this logic.
 
       Export CLASSES = ("terminal", "exempt_absent", "unresolved") and one function:
@@ -238,7 +238,7 @@ tasks:
       Algorithm:
       1. Enumerate worktrees with subprocess ["git","worktree","list","--porcelain"] run
          with cwd=root, timeout 10. Parse blank-line-separated records; "worktree <path>"
-         opens each. Reuse the exact parsing shape check-state.sh already uses at :1117
+         opens each. Reuse the exact parsing shape check-state.py already uses at :1117
          through :1135 - do not invent a second parser. Skip the record whose path is root
          itself (that is the main checkout, not a linked worktree).
       2. For each worktree, determine its repository segment and feature id from its path
@@ -249,7 +249,7 @@ tasks:
       4. Read the LANDED copy of that feature's feature.json with
          git rev-parse <default_branch>:<rel> then git cat-file, exactly as
          feature-worktree.py:287 does. NEVER read the working tree's copy - that is the
-         deadlock case the brief's SC-02 grades, and check-state.sh's own root variable
+         deadlock case the brief's SC-02 grades, and check-state.py's own root variable
          reads the working tree by default.
       5. Classify:
          - The feature directory is genuinely ABSENT from the default branch, proven by a
@@ -282,7 +282,7 @@ tasks:
       cwd=root, and feature-worktree.py's dest_for joins WORKTREES_SEGMENT only to a resolved
       owner_root, so a served repository's worktrees live inside a DIFFERENT git repository
       that a git worktree list in the harness checkout can never report. classify_all is the
-      only function check-state.sh's INV-29 calls.
+      only function check-state.py's INV-29 calls.
 
       classify_all(root) returns classify(root) for the harness checkout, plus classify of
       each declared repository's own owner_root, one combined list sorted by path:
@@ -300,7 +300,7 @@ tasks:
          this is one rule applied identically to every declared repo rather than the
          per-repository exception REQ-04 forbids. Measured at 9165162: fleet.yaml declares
          mruangutai/harness-factory-smoke and no checkout for it exists, so any other
-         posture makes check-state.sh red on this machine today.
+         posture makes check-state.py red on this machine today.
       d. Otherwise call classify(owner_root). If the git worktree list inside classify could
          not be run or returned non-zero - not a git repository, unreadable, git errored -
          classify_all emits ONE repository-level record for it: klass "unresolved", path =
@@ -314,7 +314,7 @@ tasks:
       e. Records from a repository whose feature_id is None and whose path is that
          repository's own owner_root are the repository-level records; every other record
          keeps the six-key shape unchanged.
-      classify_all takes root because check-state.sh's root is the checkout actually being
+      classify_all takes root because check-state.py's root is the checkout actually being
       graded, which may itself be a worktree. Never substitute factory_config.harness_root()
       for it - the CWD trap this module already documents at _repo_arg_for_segment applies.
 
@@ -407,7 +407,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/post-merge-sweep.py
     verify: |
-      bash -n .claude/skills/harness/bin/post-merge-sweep.py && bash .claude/skills/harness/bin/post-merge-sweep.py --dry-run
+      python3 -m py_compile .claude/skills/harness/bin/post-merge-sweep.py && python3 .claude/skills/harness/bin/post-merge-sweep.py --dry-run
     intent: |
       Create .claude/skills/harness/bin/post-merge-sweep.py, executable, the entire body of
       the post-merge git hook. The tracked hook file itself is a shim that execs this
@@ -431,7 +431,7 @@ tasks:
         inside it, SKIP it and print one line saying the sweep declined because it is
         running inside that worktree. git worktree remove exits 0 from inside the tree it
         deletes, so an unguarded sweep deletes its own working directory mid-run - the same
-        mechanical fact check-state.sh:1173 already carries a comment about.
+        mechanical fact check-state.py:1173 already carries a comment about.
       - ORDER, D-04, per record: FIRST run
         python3 .claude/skills/harness/bin/gh-sync.py ship <feature dir on the default branch>
         to record the terminal status and close the milestone through their single writer.
@@ -513,7 +513,7 @@ tasks:
       - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       set -e
-      bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
       for f in test-worktree-terminal.py test-post-merge-sweep.py; do
         grep -qF "\"$f\"" .claude/skills/harness/bin/run-unit-tests.py || { echo "NOT REGISTERED in INTEGRATION_SCRIPTS: $f"; exit 1; }
         grep -qF ".claude/skills/harness/bin/$f" .harness/harness.json || { echo "NOT REGISTERED in test_kinds.integration.detect: $f"; exit 1; }
@@ -552,25 +552,25 @@ tasks:
       is why they are in the verify and not decoration.
 
   - id: T-06
-    title: Cut check-state.sh over to worktree_terminal and add INV-29
+    title: Cut check-state.py over to worktree_terminal and add INV-29
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration, and its library rule puts the cutover that makes a gate use a module on this lane. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    execution_reason: DEC-174 amendment 4 names check-state.py in the enforcement enumeration, and its library rule puts the cutover that makes a gate use a module on this lane. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
-      bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep -c "INV-29 CANNOT RUN"
+      python3 .claude/skills/harness/bin/check-state.py 2>&1 | grep -c "INV-29 CANNOT RUN"
     intent: |
-      Add INV-29 to check-state.sh, next to INV-25 whose worktree enumeration it replaces
+      Add INV-29 to check-state.py, next to INV-25 whose worktree enumeration it replaces
       rather than duplicates.
 
       Import worktree_terminal and call classify_all(root) - NEVER classify(root). Per D-10
       classify alone covers ONE repository, so INV-29 built on it would satisfy every other
       criterion and fail SC-04 and T-07 case (e), which grade an INV-29 line for a SECOND
-      repository produced by ONE check-state.sh run. Follow INV-25's import posture at
+      repository produced by ONE check-state.py run. Follow INV-25's import posture at
       :1109 and INV-26's at :1203: the import FAILING is itself a violation, because the
       module ships with this repository, so being unimportable is a defect in the tree and
       never a property of the environment. Emit
@@ -596,7 +596,7 @@ tasks:
         dangerous. It is still a BLOCKING violation, for D-10's reason: the enumeration
         failed there, so a terminal worktree could be standing and unreported.
 
-      Read the comment at check-state.sh:1173 before writing any of this. It deliberately
+      Read the comment at check-state.py:1173 before writing any of this. It deliberately
       withholds removal guidance when the session is rooted in the tree, for the same
       mechanical reason: git worktree remove exits 0 from inside the tree it deletes.
       INV-29 follows that precedent - when root is inside the record's worktree, print the
@@ -643,7 +643,7 @@ tasks:
           assertions, one per clause: that the tree is dirty, and that remove will decline
           until the changes are dealt with. Not one combined substring.
       (e) a second repository with a real git repo, its own Done feature and its own real
-          worktree -> an INV-29 line for it, from ONE check-state.sh run. A harness-only
+          worktree -> an INV-29 line for it, from ONE check-state.py run. A harness-only
           implementation fails this.
           THE FIXTURE SHAPE IS FLEET-RESOLVED, per D-10, and it is not a directory placed
           under the harness checkout's own WORKTREES_SEGMENT - no such second repository can
@@ -666,17 +666,17 @@ tasks:
       short-named AND genuinely absent from main, so it cannot discriminate those cases.
 
   - id: T-08
-    title: Add INV-30 to check-state.sh, keyed on the open milestone
+    title: Add INV-30 to check-state.py, keyed on the open milestone
     traces: [REQ-12]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    execution_reason: DEC-174 amendment 4 names check-state.py in the enforcement enumeration. check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-06]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
-      bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep -c "INV-30 CANNOT RUN"
+      python3 .claude/skills/harness/bin/check-state.py 2>&1 | grep -c "INV-30 CANNOT RUN"
     intent: |
       Add INV-30: a feature whose feature.json status is Done while its recorded
       github.milestone is still OPEN on GitHub is reported.
@@ -691,9 +691,9 @@ tasks:
       github.milestone is null. For the rest, read each milestone's state from GitHub.
 
       OFFLINE POSTURE, and it is INV-26's, not a new one. Copy the pattern at
-      check-state.sh:1203 through :1210 exactly: the IMPORT failing is a violation, because
+      check-state.py:1203 through :1210 exactly: the IMPORT failing is a violation, because
       the module ships with this repository; everything else - gh absent, unauthenticated,
-      network unreachable, a milestone that 404s - records NOTHING. check-state.sh runs
+      network unreachable, a milestone that 404s - records NOTHING. check-state.py runs
       before every commit and an offline environment must never become a red gate. Emit
       "INV-30 CANNOT RUN: ..." only on the import failure.
 

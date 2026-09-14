@@ -10,7 +10,7 @@ Before reading implementation, BRIEF/plan required: unit coverage of block shape
 
 ## Matrix
 
-Diff-inferred types are `logic`, `cross_module`, `config` with `touches_config_shape`, `docs`, and `scaffolding`. Logic and cross-module changes require unit; cross-module and the new config container consumed by `check-state.sh` require integration. Docs/scaffolding add no kind. Commands were run from the assigned worktree with `HARNESS_AGENT_TYPE` unset:
+Diff-inferred types are `logic`, `cross_module`, `config` with `touches_config_shape`, `docs`, and `scaffolding`. Logic and cross-module changes require unit; cross-module and the new config container consumed by `check-state.py` require integration. Docs/scaffolding add no kind. Commands were run from the assigned worktree with `HARNESS_AGENT_TYPE` unset:
 
 | Kind | State | Command | Exit | Discovery |
 |---|---|---|---:|---:|
@@ -25,11 +25,11 @@ The manual probe is absent from `test_matrix`; per the dispatch and SC-09 it was
 - SC-01: `tests/integration/test-check-domain.py:4030-4032` (missing refusal plus valid allow).
 - SC-02: `tests/integration/test-check-domain.py:4033-4043` (five separately named malformed shapes).
 - SC-03: `tests/integration/test-check-domain.py:4044-4057` (resolving/unresolvable pair for each authority type).
-- SC-04: **FAIL** — exact root command `bash .claude/skills/harness/bin/check-state.sh` exited **1**. Its first line was `VIOLATION FEAT-51-claude-code-lifecycle-safety: status is 'done' but notes/handoff-validate.md is missing`. A separate exact-output search found **zero** lines naming `Done when`.
+- SC-04: **FAIL** — exact root command `python3 .claude/skills/harness/bin/check-state.py` exited **1**. Its first line was `VIOLATION FEAT-51-claude-code-lifecycle-safety: status is 'done' but notes/handoff-validate.md is missing`. A separate exact-output search found **zero** lines naming `Done when`.
 - SC-05: `tests/integration/test-check-domain.py:4077-4081` (60 allowed, 61 refused with cap message).
 - SC-06: `tests/integration/test-check-domain.py:4063-4076` (edited missing section refused; compliant edit allowed), plus `tests/integration/test-check-state.py:2188-2197` for baseline/present-shape behavior.
-- SC-07: **PASS inspection at review SHA.** `git show` source has the write-gate import/call only at `.claude/skills/harness/bin/check-domain.py:1562,1567` with `resolve=True`, and the state-gate import/call only at `.claude/skills/harness/bin/check-state.sh:54,1251` with `resolve=False`. Full gate-source search found no second Done-when body parser or target reader.
-- SC-08: **PASS inspection at review SHA.** Presence controls: template `.claude/skills/harness/templates/HANDOFF.md:4,37-40`; playbook `.claude/skills/harness/SKILL.md:311-315`; decision record `.harness/harness/docs/DECISIONS.md:3699-3713,6698-6701`; write gate `.claude/skills/harness/bin/check-domain.py:1547-1558`; state gate `.claude/skills/harness/bin/check-state.sh:1069-1070,1213-1214`. Searches for current four-section claims found none. The surviving `check-state.sh:1199` and `:1218` mentions are the two SC-08 historical exemptions; `DECISIONS.md:3765` likewise describes the historical first live four-section handoff rather than current contract.
+- SC-07: **PASS inspection at review SHA.** `git show` source has the write-gate import/call only at `.claude/skills/harness/bin/check-domain.py:1562,1567` with `resolve=True`, and the state-gate import/call only at `.claude/skills/harness/bin/check-state.py:54,1251` with `resolve=False`. Full gate-source search found no second Done-when body parser or target reader.
+- SC-08: **PASS inspection at review SHA.** Presence controls: template `.claude/skills/harness/templates/HANDOFF.md:4,37-40`; playbook `.claude/skills/harness/SKILL.md:311-315`; decision record `.harness/harness/docs/DECISIONS.md:3699-3713,6698-6701`; write gate `.claude/skills/harness/bin/check-domain.py:1547-1558`; state gate `.claude/skills/harness/bin/check-state.py:1069-1070,1213-1214`. Searches for current four-section claims found none. The surviving `check-state.py:1199` and `:1218` mentions are the two SC-08 historical exemptions; `DECISIONS.md:3765` likewise describes the historical first live four-section handoff rather than current contract.
 - SC-09: **PASS automated** — `tests/integration/test-run-unit-tests-kinds.py:21-40,69-98`, executed inside the 44-file green integration kind. The real probe was not run.
 - SC-10: **PENDING OPERATOR UAT** — not met by this review.
 - SC-11: **PASS inspection.** `git merge-base main e75767df...` returned `0ec44965...`. The primary `comm -12` printed nothing. The positive `comm -23` printed exactly two non-empty paths: FEAT-54 `handoff-build.md` and `handoff-plan.md`. The added-only arm printed the same two paths; `diff` between the sorted sets exited 0 with no output.
@@ -43,9 +43,9 @@ The manual probe is absent from `test_matrix`; per the dispatch and SC-09 it was
 ### F-QA-01 — SC-04 review-time state gate is red
 
 - **Severity:** high
-- **Concrete failure scenario:** entering Harness at the pinned commit runs `check-state.sh`, receives exit 1, and blocks orchestration before this feature can be treated as state-clean. SC-04 is therefore false even though the new Done-when-specific corpus portion emits no line.
+- **Concrete failure scenario:** entering Harness at the pinned commit runs `check-state.py`, receives exit 1, and blocks orchestration before this feature can be treated as state-clean. SC-04 is therefore false even though the new Done-when-specific corpus portion emits no line.
 - **Evidence:** exact required command above; first output line names missing `.harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-validate.md`; SC-04 contract at `BRIEF.md:89-101` requires exit 0.
-- **Owner lane:** **Main direct corpus/state reconciliation**. If the remedy changes `.claude/skills/harness/bin/check-state.sh`, `handoff_done_when.py`, gate tests, or `run-unit-tests.py`, it is **Main direct mutation under DEC-174**.
+- **Owner lane:** **Main direct corpus/state reconciliation**. If the remedy changes `.claude/skills/harness/bin/check-state.py`, `handoff_done_when.py`, gate tests, or `run-unit-tests.py`, it is **Main direct mutation under DEC-174**.
 
 ## Test-first audit
 

@@ -249,7 +249,7 @@ feature uses, and the operator's challenge to that framing is why they now read 
   `.harness/x.md`, so domain globs would miss and every in-worktree write would be refused. That is
   REQ-08 and SC-02c: one segment in one regex, in the enforcement layer, main-session-direct.
 - **Nested product state does NOT collide with harness's own discovery**, which was the main risk
-  and is checked rather than assumed. `check-state.sh:38` sets `H = <root>/.harness` and discovery
+  and is checked rather than assumed. `check-state.py:38` sets `H = <root>/.harness` and discovery
   globs `H/*/features/*`. A worktree under `.claude/` carries its own repository's `.harness/`, which
   sits outside that glob. Harness will not read a served repo's features as its own.
 - **DEC-143 already strips the worktree prefix** before matching domain globs, so an agent inside

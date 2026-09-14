@@ -8,13 +8,13 @@ sign this.**
 ## 1. DEC-174 text (`.harness/harness/docs/DECISIONS.md:4655`, index row `DECISIONS-INDEX.md:192`)
 
 Original table names the category **"hooks, validators, gate scripts"** with examples
-`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh` — all four police
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py` — all four police
 an agent's *live actions* mid-run (write domain, bash guard, digest shape, state invariants).
 
 **am.4 (2026-08-19, one day before this dispatch), quoted exactly:**
 > "The category governs. The parenthetical is examples, and it is now stale."
 > "So the enforcement layer is: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
-> `check-state.sh`, `check-plan-routes.py`, and the test file of each. A script that becomes a
+> `check-state.py`, `check-plan-routes.py`, and the test file of each. A script that becomes a
 > gate joins the list on the day it becomes one, and this entry is amended when that happens —
 > the category decides, the list records."
 
@@ -54,7 +54,7 @@ omission, not an oversight.
 
 ## 3. `.harness/harness.json` `test_kinds` characterised
 
-- Read by `upgrade-config.py` (config-merge tool, project always wins) and by `check-state.sh:843`
+- Read by `upgrade-config.py` (config-merge tool, project always wins) and by `check-state.py:843`
   for **INV-20, warn-level only** — flags a `cmd: null` kind against a codebase surface map, never
   blocks. No PreToolUse/SubagentStop hook reads it. It is config in the DEC-100 sense
   (`test_matrix` maps `config` → `[]`, TDD-exempt) — the field this task edits is exactly that

@@ -4,11 +4,11 @@ VERDICT: **PASS** (notes only, nothing blocking)
 
 ## Stage 1 — spec compliance (informal spec: issue #613, no BRIEF/plan in this direct-flow PR)
 
-Issue #613 asked for: a near-budget ADVISORY in `check-expertise.sh`, threshold ≈10% of the tier
+Issue #613 asked for: a near-budget ADVISORY in `check-expertise.py`, threshold ≈10% of the tier
 budget, message shape `ADVISORY … N lines of a M-line budget; the next entry must displace, not
 append`. The diff delivers exactly this — no more, no less:
 
-- `check-expertise.sh`: `NEAR_BUDGET_FRACTION = 10` + the threshold check, both tiers.
+- `check-expertise.py`: `NEAR_BUDGET_FRACTION = 10` + the threshold check, both tiers.
 - `test-check-expertise.py`: 9 new cases (`case7:` block).
 - `SPEC.md`: one paragraph documenting it, placed right after the existing token-advisory
   paragraph, same "ADVISORY (never blocking)" phrasing.
@@ -29,7 +29,7 @@ NEAR_BUDGET_FRACTION` gives 135 for craft (150-line budget, 15 lines headroom) a
 line_budget` is a closed interval capped at `line_budget`; the hard-failure check is `len(lines) >
 line_budget` (strict). These ranges are structurally disjoint — over-budget can never also be
 near-budget — so double-reporting is impossible by construction, not just by test luck. Ran
-`check-expertise.sh` on a synthetic 151-line craft file: `over budget` fires, no `ADVISORY`. Ran it
+`check-expertise.py` on a synthetic 151-line craft file: `over budget` fires, no `ADVISORY`. Ran it
 on an exact-150-line file: `ADVISORY` fires (`0 of headroom`), no over-budget problem — the
 exact-budget boundary is correctly folded into the advisory, not missed.
 
@@ -58,7 +58,7 @@ numbering confusing.
 
 **`code_grade`** — ran `code-grade.py --base <merge-base bde73ad3> --head HEAD`: `PASSING: 0`,
 exit 0. The only changed `.py` file (`test-check-expertise.py`) only edits inside an existing
-function (`run_extra`); no new or worsened gated function. `check-expertise.sh`'s embedded Python
+function (`run_extra`); no new or worsened gated function. `check-expertise.py`'s embedded Python
 (a heredoc inside a `.sh` file) is outside `code-grade.py`'s scope entirely — expected, not a
 defect of this PR.
 

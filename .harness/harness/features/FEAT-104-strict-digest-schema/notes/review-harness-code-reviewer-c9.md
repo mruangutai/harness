@@ -22,7 +22,7 @@ unrelated FEAT-56 status-field commit rides inside this diff range.
 - **REQ-03** (evidence container) — MET. `run-state-schema.json:36-44` declares `evidence` as an
   object with `propertyNames` pattern `^[a-z][a-z0-9_]*$` and values restricted to scalar or
   scalar-array via `oneOf`; enforced by the same `jsonschema.Draft202012Validator` in both
-  `check-domain.py` and `check-state.sh`, so a nested dict inside an evidence array value is caught
+  `check-domain.py` and `check-state.py`, so a nested dict inside an evidence array value is caught
   by the JSON-Schema errors even though the file's own ad-hoc `isinstance(_value, dict)` check only
   catches a top-level dict value.
 - **REQ-04** (legitimate-use fixed to documented blocks, not observed traffic) — MET. `PASSTHROUGH`
@@ -57,7 +57,7 @@ instead of blocking:
   it appends to `out`, and `out` non-empty means `sys.exit(2)` at the caller (`:2378-2382`). A
   missing/broken `jsonschema` import or a malformed `run-state-schema.json` denies the write rather
   than silently skipping the check.
-- `check-state.sh`'s equivalent (`:1531-1535`) likewise appends to `bad`, the violation list — a
+- `check-state.py`'s equivalent (`:1531-1535`) likewise appends to `bad`, the violation list — a
   broken schema file becomes a reported INV-16 finding, not a silent pass.
 - The schema_version downgrade guard (`check-domain.py:1755-1774`) sits under the unconditional
   `if absolute_path is not None:` block, **not** under `_post` — so it runs on the blocking
@@ -104,8 +104,8 @@ this is a genuine re-check of the message text, not an inherited assumption. Ran
 
 ## F2 — raw-persona at-rest sweep — CORRECTLY DECLINED, with a named residual (non-gating)
 
-Traced the actual code path `check-state.sh`'s INV-15 sweep exercises: `_vd_mod.validate("lead",
-_dtext)` at `check-state.sh:1594` — the literal string `"lead"`, never `_host` (the real raw
+Traced the actual code path `check-state.py`'s INV-15 sweep exercises: `_vd_mod.validate("lead",
+_dtext)` at `check-state.py:1594` — the literal string `"lead"`, never `_host` (the real raw
 persona, which IS available on `sdoc.get("host")` but is deliberately discarded for this purpose).
 `validate-digest.py` special-cases exactly this generic persona in two places added by T-01/T-04:
 `optional_fields["adequacy_notes"] = list` when `raw_persona == "lead"` (`:1250-1252`), and the
@@ -120,12 +120,12 @@ feature can reach, not merely by argument. This exemption is itself tested
 `adequacy_notes` is rejected, while the SAME text validated as the generic `"lead"` persona stays
 accepted — both directions asserted in one case, so the carve-out is pinned rather than accidental.
 **Declining F2 is correct.** Residual, non-gating: nothing prevents a future edit to
-`check-state.sh`'s INV-15 block from passing `_host` instead of the literal `"lead"` — the data to do
+`check-state.py`'s INV-15 block from passing `_host` instead of the literal `"lead"` — the data to do
 so (`_host = str(sdoc.get("host", "")).strip()`) sits four lines above the call already. That edit
 would immediately re-open exactly the hole F2 named, and no test in this diff would catch it (the
 existing `_t01_adequacy_failures` case tests `validate()` directly with the literal string, not
-`check-state.sh`'s call site). Not a finding against this diff; worth a repository Expertise gotcha
-for the next reviewer of `check-state.sh`.
+`check-state.py`'s call site). Not a finding against this diff; worth a repository Expertise gotcha
+for the next reviewer of `check-state.py`.
 
 ## Cross-feature edit — `.harness/harness/features/FEAT-56-central-onboarding-model/plan.yaml` (+1/-1)
 
@@ -172,7 +172,7 @@ functions, 0 FAIL, 0 grade-2, 0 grade-1** — every changed/new Python function 
 | id | severity | gates | scenario |
 |---|---|---|---|
 | F-104C9-01 | low | no | `abff2a84` (FEAT-56 status flip) rides as this branch's own root commit inside `origin/main..168f875f`, untracked by any FEAT-104 REQ/D and outside DEC-174's SC-13 scope. No functional harm today (single benign field, no code path reads it in a way this feature touches), but it establishes a pattern where an unrelated feature's status transition ships inside another feature's reviewed diff, invisible to that feature's own signed acceptance criteria. |
-| F-104C9-02 | info | no | `check-state.sh`'s INV-15 sweep discards the real raw persona (`_host`, already computed) and passes the literal string `"lead"` to `validate()` — correct today (it's exactly what keeps 356 historical digests readable per REQ-08), but a future edit substituting `_host` for the literal would silently re-open F2's rejected historical digests with no test in this diff to catch it. |
+| F-104C9-02 | info | no | `check-state.py`'s INV-15 sweep discards the real raw persona (`_host`, already computed) and passes the literal string `"lead"` to `validate()` — correct today (it's exactly what keeps 356 historical digests readable per REQ-08), but a future edit substituting `_host` for the literal would silently re-open F2's rejected historical digests with no test in this diff to catch it. |
 
 Neither gates. `severity_max: low`.
 

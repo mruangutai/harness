@@ -148,7 +148,7 @@ test-factory-gh.py`. `task_verify: pass`.
 ## No live `gh` call
 
 All runs drove `factory_gh.subprocess.run` through the recorder fake, per the hard constraint. No
-`gh` binary invoked, `check-state.sh` not run, `gh_cost_log.py`/`test-gh-cost-log.py` not created.
+`gh` binary invoked, `check-state.py` not run, `gh_cost_log.py`/`test-gh-cost-log.py` not created.
 
 ## Assertion integrity
 

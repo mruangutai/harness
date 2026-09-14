@@ -15,15 +15,15 @@ Weakening the contract would require unwinding a signed decision to match a tool
 - `require_expertise_destination` (`expertise-merge.py:153-192`) already gates the `--file` class at
   exit 9. A second subcommand reuses it unchanged.
 - Exit codes in use: 0, 6 lock, 7 CONFLICT, 8 CAP EXCEEDED, 9 destination, 2 argparse. 10, 11, 12 free.
-- `CAPS` is spelled once (`:37`) and cross-checked against `check-expertise.sh` as text by case 8 of
+- `CAPS` is spelled once (`:37`) and cross-checked against `check-expertise.py` as text by case 8 of
   `tests/integration/test-expertise-merge.py`. Nothing may add a third copy.
-- `check-expertise.sh` enforces the four section names and the per-section counts only — no id
-  contiguity — so a drop leaving a numbering gap is legal to the checker (`check-expertise.sh:42,161`).
+- `check-expertise.py` enforces the four section names and the per-section counts only — no id
+  contiguity — so a drop leaving a numbering gap is legal to the checker (`check-expertise.py:42,161`).
 
 ## Why a second subcommand, not a directive inside the entries stream
 
 The `--entries` stream is Expertise markdown parsed by `ENTRY_RE = ^- ([A-Za-z]{1,3}-\d+): (.*)$`,
-which is the same shape `check-expertise.sh` parses. Putting a verb inside a line of that stream
+which is the same shape `check-expertise.py` parses. Putting a verb inside a line of that stream
 changes a format two tools read and one of them is the format checker. The distill contract's ops are
 already structured data in the DIGEST, so JSON ops are the same vocabulary in the medium it already
 has. `apply` is then provably untouched, which is what REQ-07 asks for.

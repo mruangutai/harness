@@ -20,7 +20,7 @@ every anchor below describes the diff that was actually asked for. (I also check
   = **28** at `14994b3`, and **28** at `ada8e99` (16 + 12, counted the same way from
   `git show ada8e99:.../run-unit-tests.py`). No script deregistered.
 
-**3. `check-state.sh` at the pin, FEAT-24-scoped**: zero `VIOLATION` lines anywhere in the run
+**3. `check-state.py` at the pin, FEAT-24-scoped**: zero `VIOLATION` lines anywhere in the run
 (`grep -c VIOLATION` → 0 for the whole repo, not just FEAT-24), exit 0. Every FEAT-24-tagged line
 in the output is `note` severity (stale run-dir references for pruned run folders — informational,
 not gating). Matches the commit-message claim ("the feature reaches zero violations of its own").
@@ -175,7 +175,7 @@ feature's accepted cost — noted for the record, not gating.
 ## Stage 2 — code quality
 
 Nothing rises to a code-quality finding beyond what's captured above. The fail-open hunt (the
-`check-state.sh` INV-26 try/except, `board-station.py`/`gh-sync.py`'s new exit-2 paths,
+`check-state.py` INV-26 try/except, `board-station.py`/`gh-sync.py`'s new exit-2 paths,
 `gh_board.load_board`'s explicit-null branch) all resolved as designed: every unusable-declaration
 branch raises or reports a violation rather than silently completing; the one branch that returns
 `None` silently (`load_board` on an absent `github` block) is the already-dispositioned residual —

@@ -55,4 +55,4 @@ feature). SC-01 passes on the operator-accepted reading in D-18.
 - .harness/harness/features/FEAT-41-one-station-vocabulary/BRIEF.md
 - .harness/logs/2026-08-31.md
 - .claude/skills/harness/bin/check-domain.py
-- .claude/skills/harness/bin/check-state.sh
+- .claude/skills/harness/bin/check-state.py

@@ -154,7 +154,7 @@ members then contradicted.
 **9 commits this session. The production diff is 20 files, 4,361 insertions, 54 deletions** — all
 Python, shell, JSON and markdown, zero UI surface, which is why no ui-reviewer ran.
 
-`check-state.sh` is down to **one** violation, FEAT-26's unapproved BRIEF — a different flow. **Nothing
+`check-state.py` is down to **one** violation, FEAT-26's unapproved BRIEF — a different flow. **Nothing
 in FEAT-31 violates**, where two board-card violations stood at session start.
 
 ## Close-out: what the memory pass actually found

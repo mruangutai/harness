@@ -26,7 +26,7 @@ whole diff below is mine.
 ## Verbatim diff (`git diff -- <D> | grep -E '^[-+]' | grep -v '^[-+][-+][-+]'`)
 
 ```
--<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh :: CRAFT_LINE_BUDGET = 150 -->
+-<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.py :: CRAFT_LINE_BUDGET = 150 -->
 -
 -<!-- claim: grep -F "\"max_total_cycles\": 10" .harness/harness.json :: "max_total_cycles": 10 -->
 -

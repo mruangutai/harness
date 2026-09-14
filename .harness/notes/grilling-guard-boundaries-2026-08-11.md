@@ -57,7 +57,7 @@ created in the first place.
 - Whether the creation refusal keys on `git worktree add` specifically, or on any command whose
   effect is a checkout outside the two locations. The narrow version is easy to route around; the
   broad version risks refusing ordinary git.
-- Whether `check-state.sh` should also report a pre-existing sibling worktree at entry, so an
+- Whether `check-state.py` should also report a pre-existing sibling worktree at entry, so an
   environment that already has one is not silently half-governed.
 - What happens to a sibling worktree that exists **today**. Refusing writes into it strands
   in-flight work rather than migrating it.

@@ -1,6 +1,6 @@
 # Design pass — FEAT-17 guard boundaries — 2026-08-11
 
-**Ruling: no prototype, no `DESIGN.md`. The stderr and `check-state.sh` verdict text is NOT a design
+**Ruling: no prototype, no `DESIGN.md`. The stderr and `check-state.py` verdict text is NOT a design
 surface I own.** Three advisory notes on the refusal wording follow; none block.
 
 ## 1. The user-facing surface, precisely
@@ -16,7 +16,7 @@ Three surfaces a human can read exist, and I ruled on each rather than on the fe
 |---|---|---|
 | Write-route refusal stderr | T-02 verdict; `check-domain.py` | not mine |
 | Bash-route refusal stderr | T-03, T-04 verdicts; `bash-write-guard.py` | not mine |
-| `check-state.sh` INV-25 line at session entry | T-05 | not mine — and it is the most human-read of the three, which is why I name it: the dispatch did not |
+| `check-state.py` INV-25 line at session entry | T-05 | not mine — and it is the most human-read of the three, which is why I name it: the dispatch did not |
 
 ## 2. Why that text is not my contract — stated so it can be argued with
 

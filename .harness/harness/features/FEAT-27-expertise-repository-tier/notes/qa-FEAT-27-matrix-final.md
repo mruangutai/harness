@@ -40,7 +40,7 @@ two files swept.
 | SC-04 | bound (mutation, carried) | `test-check-expertise.py` `run_extra` case1 + case2's 9 non-FEAT token classes; file unchanged since `2117a46` (`git diff --stat` empty) |
 | SC-05 | bound (mutation, carried) | `run_extra` case6 (abspath) |
 | SC-06 | bound (mutation, carried, both clauses) | case3 (no-repo-tier) + case5b (bad agent_type) |
-| SC-07 | bound by an executing assertion | T-04's `verify:`, re-run by me: `check-expertise.sh .harness/expertise/` → 15 `OK` lines (+6 non-blocking `ADVISORY`s, expected per D-03); `check-expertise.sh .harness/harness/expertise/` → 6 `OK` lines. Each file named individually, matching SC-07's own wording exactly |
+| SC-07 | bound by an executing assertion | T-04's `verify:`, re-run by me: `check-expertise.py .harness/expertise/` → 15 `OK` lines (+6 non-blocking `ADVISORY`s, expected per D-03); `check-expertise.py .harness/harness/expertise/` → 6 `OK` lines. Each file named individually, matching SC-07's own wording exactly |
 | SC-08 | rests on inspection (by design) | T-05's `verify:` (`DOCS-OK`) + T-06's `verify:` (`SKILLS-OK`), both re-run by me; plus my own `grep -nE 'expertise/<repo>|\*\*/expertise'` over all four named files — zero matches. Establishes the two admissible forms are present and the forbidden third form is absent in all four; does not establish every *other* prose sentence in the four files is accurate, which inspection by construction cannot |
 | SC-09 | bound (mutation, carried) | case7a |
 | SC-10 | bound (mutation, carried) | case1 |
@@ -87,7 +87,7 @@ direct reproduction, not by re-reading the claim. Method validated.
    mutation-tested this directly last round; not re-run this round per the dispatch's citation
    instruction).
 2. `test-check-expertise.py` case2's `FEAT-\d+` sub-case — confirmed structurally, this round, by
-   reading `check-expertise.sh:45`: `FEATURE_TOKEN_RE = re.compile(r"\bFEAT-\d+\b|\bT-\d+\b|#\d+\b")`
+   reading `check-expertise.py:45`: `FEATURE_TOKEN_RE = re.compile(r"\bFEAT-\d+\b|\bT-\d+\b|#\d+\b")`
    independently catches `FEAT-12` as a hard violation regardless of whether `REPO_TOKEN_RE`'s
    `FEAT-\d+` sub-pattern ever fires — checked that none of the other 9 token classes (`DEC-\d+`,
    `INV-\d+`, `.harness/`, `.claude/`, `check-*.sh`, `factory_*.py`, `gh-sync`, `harness.json`,
@@ -165,7 +165,7 @@ outside every currently-defined SC's text, same ruling as the prior round.
 No source or test file was written or edited. All mutation probes ran on scratchpad copies at
 `/private/tmp/claude-501/.../scratchpad/probes2/`, built via the `Write` tool (the `bash-write-guard`
 denies `cp`/redirect into scratchpad from Bash — logged as an observation). Nothing committed or
-staged. `check-expertise.sh` was run read-only over both tiers as part of re-running T-04's `verify:`
+staged. `check-expertise.py` was run read-only over both tiers as part of re-running T-04's `verify:`
 — the six craft `ADVISORY` lines it prints are D-03's adjudicated-craft entries working as designed,
 not a violation.
 
@@ -319,7 +319,7 @@ defense-in-depth, not miscoverage, and does not belong in the census as scoped.
 1. case12's four hostile `agent_type` values — vacuous (carried from prior rounds, mutation-tested
    directly at `2117a46`, unchanged since).
 2. `test-check-expertise.py` case2's `FEAT-\d+` sub-case — vacuous; `FEATURE_TOKEN_RE` independently
-   catches the violation regardless of `REPO_TOKEN_RE`'s overlapping sub-pattern (`check-expertise.sh:45`).
+   catches the violation regardless of `REPO_TOKEN_RE`'s overlapping sub-pattern (`check-expertise.py:45`).
 3. case2's segment-ordering assertion (`test-inject-expertise.py:123`) — **new this round (N-2)**:
    cannot fail against removal of `inject-expertise.py:82-92`'s manual sort, because the fixture's two
    segment names are already in bash glob/collation order.

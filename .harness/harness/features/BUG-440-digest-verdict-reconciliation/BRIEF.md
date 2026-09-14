@@ -4,9 +4,9 @@
 
 A lead-hosted run can finish, write a durable `digest.md` saying `VERDICT: FAIL`, and have
 `feature.json` `runs[].verdict` record `PASS` — and nothing notices. The class was found by hand at
-FEAT-22's ship briefing, after 17 runs were reconciled manually (issue #440). `check-state.sh`
+FEAT-22's ship briefing, after 17 runs were reconciled manually (issue #440). `check-state.py`
 INV-15 already opens every completed lead digest and checks its *shape*
-(`.claude/skills/harness/bin/check-state.sh:1516-1535`), so the two values sit one line apart from
+(`.claude/skills/harness/bin/check-state.py:1516-1535`), so the two values sit one line apart from
 each other and are never compared. Measured on the control-plane root's run tree on 2026-09-06 with
 HEAD at `772790be52774eafe2971f9c44400e18b2d54275` — run directories are untracked, so the tree is
 per-checkout and the sha pins only the code that read it: **308** completed lead-hosted runs carry a
@@ -20,7 +20,7 @@ the operator's read of "did this feature pass" — treats `feature.json` as trut
 ## Goal
 
 The state gate stops trusting the summary. For a completed lead-hosted run whose durable digest is
-structurally valid, `check-state.sh` compares the digest's final verdict to the verdict recorded for
+structurally valid, `check-state.py` compares the digest's final verdict to the verdict recorded for
 that run in `feature.json` and **refuses the tree when they disagree**, naming both records so a
 human can see which one is wrong. Nothing is repaired automatically and no other run keeps or loses
 a finding it has today.
@@ -65,7 +65,7 @@ a finding it has today.
   after the check runs, asserted by comparing a content hash of each file taken on both sides of the
   invocation.
   verify: automated      evidence: integration
-- SC-05: The new test case is demonstrated to **fail** against the pre-change `check-state.sh`: the
+- SC-05: The new test case is demonstrated to **fail** against the pre-change `check-state.py`: the
   build records the invocation and the verbatim failing output in
   `.harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md`, read
   at the pinned sha with
@@ -92,9 +92,9 @@ a finding it has today.
   supplies the tail-anchored semantics and the legal token set; `validate("lead", ...)` already
   rejects a digest with no `VERDICT:` line or an illegal token, so a structurally valid digest always
   yields one parseable, legal verdict and no unparseable branch is owed.
-- **Blocks:** DEC-174 — `check-state.sh` is the state gate and cannot vouch for its own change, so
+- **Blocks:** DEC-174 — `check-state.py` is the state gate and cannot vouch for its own change, so
   its implementation and its own tests are main-session-direct, not team work. The `feature.json`
-  `runs:` parse at `check-state.sh:643-652` is pinned as a 3-tuple because INV-7 and INV-22 unpack
+  `runs:` parse at `check-state.py:643-652` is pinned as a 3-tuple because INV-7 and INV-22 unpack
   exactly three; this feature must not widen it.
 - **Out of scope, chosen at grilling:** retroactive repair of historical records; any change to
   cycle accounting, the `feature.json` schema, or digest-return semantics.

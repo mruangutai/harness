@@ -43,7 +43,7 @@ list names `.agents/skills/…` addresses a symlink and will not match a `git ls
 | Path | Owner |
 |---|---|
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md`, `BUILD.md`, `SPEC.md` | `harness-documentor` |
-| `.claude/skills/harness/bin/gen-decisions-index.py`, `test-gen-decisions-index.py`, `check-state.sh`, `validate-digest.py` | `harness-backend-dev harness-dev-ops` |
+| `.claude/skills/harness/bin/gen-decisions-index.py`, `test-gen-decisions-index.py`, `check-state.py`, `validate-digest.py` | `harness-backend-dev harness-dev-ops` |
 | `.harness/expertise/harness-documentor.md` | `harness-documentor` |
 | `.claude/skills/harness/SKILL.md` | **NOBODY** |
 | `.claude/skills/harness-team/SKILL.md` | **NOBODY** |

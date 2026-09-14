@@ -4,7 +4,7 @@
 
 Close F-01 in `notes/ship-review-2026-09-04-ship.md`: add `git config core.hooksPath
 .claude/skills/harness/hooks` to the `Repository-state gate` step in `.github/workflows/tests.yml`,
-before it runs `check-state.sh`. Main-session-direct — DEC-174 and this feature's own B-5
+before it runs `check-state.py`. Main-session-direct — DEC-174 and this feature's own B-5
 precedent. Then push, wait for `integration` green, merge PR #1285, pull `main`, and from the MAIN
 checkout run `gh-sync.py record-pr <feature-dir>` (idempotent, `pr` already 1285) and `gh-sync.py
 ship <feature-dir> --body-file notes/ship-review-2026-09-04-ship.md`, which lands milestone 43,
@@ -34,7 +34,7 @@ parent #1262 and sub-issues #1263–#1274 at the done station. Station stays `re
   no override — `gh api repos/mruangutai/harness/branches/main/protection` — verified-at 91495a60.
 - Re-running CI unchanged — the failure is deterministic, not flaky; INV-31 is false on every
   runner — verified-at 91495a60.
-- Fixing it in `check-state.sh` instead — a CI branch inside the checker edits the DEC-174 tree and
+- Fixing it in `check-state.py` instead — a CI branch inside the checker edits the DEC-174 tree and
   its test, to weaken a checker where a workflow line suffices — source: DEC-174, harness.json
   lanes.
 - Running `gh-sync.py ship` or `record-pr` from this worktree — refused at exit 1 before any write,

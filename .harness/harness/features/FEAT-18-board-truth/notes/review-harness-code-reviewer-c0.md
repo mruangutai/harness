@@ -10,7 +10,7 @@ tasks that individually did what they were told.
 
 ## The finding
 
-**`gh_board.derive_station` returning `None` for an illegal task status silences `check-state.sh`
+**`gh_board.derive_station` returning `None` for an illegal task status silences `check-state.py`
 INV-26 for the WHOLE feature, not just the bad task — exactly the shape D-07 forbids on the
 board side, now present on the plan side.**
 
@@ -18,12 +18,12 @@ D-07's own reasoning (`plan.yaml:225-232`) states the principle: "a lookup keyed
 runtime-discovered value that misses makes both sides of a comparison empty... so the absent-key
 branch has to exist and has to be loud." That principle is honored for a **card-side** miss
 (`gh_board.read_station` → `"not on the board"`/`"no station set"` → `CANNOT VERIFY` violation,
-`check-state.sh:1171-1178`). It is **not** honored for a **plan-side** miss: an illegal task
+`check-state.py:1171-1178`). It is **not** honored for a **plan-side** miss: an illegal task
 status (e.g. `Building`, capital B — the board's own spelling, and T-01's own comment calls this
 "the typo a person will actually make", `check-plan-routes.py:334-336`) makes
 `gh_board.derive_station` fall through both `any(... == "building")` and
-`all(... == "done")` and return `None` (`gh_board.py:114-118`). `check-state.sh` then does
-`if _derived is None: continue` (`check-state.sh:1143-1146`) — **the entire feature is skipped,
+`all(... == "done")` and return `None` (`gh_board.py:114-118`). `check-state.py` then does
+`if _derived is None: continue` (`check-state.py:1143-1146`) — **the entire feature is skipped,
 silently, with zero violation recorded**, not merely the mistyped task.
 
 **Empirically verified**, not just read: extracted `gh_board.py` at the pinned SHA (`git show
@@ -41,30 +41,30 @@ plan {T-01: done, T-02: "building"} -> derive_station -> Building
    gets `None`, and no-ops the parent write. The parent card goes stale and INV-26 — the detector
    built specifically to catch a stale parent — reports nothing for that feature at all, because
    `_derived is None` short-circuits every per-task and per-parent check in the same loop
-   iteration (`check-state.sh:1143-1146`).
+   iteration (`check-state.py:1143-1146`).
 2. **Lesser sibling, same shape:** an illegal status on a *non-driving* task (one that doesn't
    flip the feature-level derivation) is separately swallowed by `_want = _EXPECT.get(...)` →
-   `None` → `continue` (`check-state.sh:1168-1170`) — that one task's own comparison is silently
+   `None` → `continue` (`check-state.py:1168-1170`) — that one task's own comparison is silently
    skipped even when the rest of the feature is still checked.
 
 **Why this is realistic, not a contrived edge:** the status writer is the orchestrator, an LLM
 performing "~15 bookkeeping duties per cycle with nothing validating any of them" by
-`check-state.sh`'s own header (`check-state.sh:4-8`) — case-sensitivity slips are a plausible LLM
+`check-state.py`'s own header (`check-state.py:4-8`) — case-sensitivity slips are a plausible LLM
 failure mode, not a hypothetical one. The edit channel is demonstrated in this very artifact:
 `plan.yaml`'s approval block records two mid-build hand amendments to this exact plan
 (`plan.yaml:8-19`). And the window is real: no hook re-runs `check-plan-routes.py`'s
 `LEGAL_TASK_STATUSES` enum after signature — confirmed by reading `.claude/settings.json`'s
 `PreToolUse` hooks (`check-domain.py`, `branch-create-gate.py`, `bash-write-guard.py`,
-`dispatch-guard.py` only) and `check-state.sh`'s own invariant list (INV-3/4/5 validate schema
+`dispatch-guard.py` only) and `check-state.py`'s own invariant list (INV-3/4/5 validate schema
 shape, never status legality). A typo introduced mid-build is invisible to INV-26 for the rest of
 that build — the same silent-window shape FEAT-14's own failure occupied, which is this feature's
 stated reason to exist.
 
 **Carve-out — operator escalation, not a fix cycle.** Both natural remediation sites —
-`check-state.sh` (validate status legality before trusting `derive_station`'s `None`, or report a
+`check-state.py` (validate status legality before trusting `derive_station`'s `None`, or report a
 distinct "cannot derive — illegal status" violation) and/or `gh_board.py` (have `derive_station`
 distinguish "legally mixed, no verdict" from "illegal input, cannot verify") — are DEC-174
-carve-out surfaces. Per CLAUDE.md, changes to `check-state.sh` are never made through a team run
+carve-out surfaces. Per CLAUDE.md, changes to `check-state.py` are never made through a team run
 whose gates are the thing being changed. Naming the surfaces is as far as this review goes;
 remediation design is the operator's call.
 
@@ -85,7 +85,7 @@ remediation design is the operator's call.
     `test-gh-sync.py:1149-1185`'s two-fixture pair (item-edit fails vs. `gh` absent) — both halves
     assert on distinct evidence (stderr content + the following call still happening, vs. a single
     SKIP line and zero calls). Genuine, not vacuous.
-  - `check-state.sh` INV-26's own quiet branches (no `github` block, `load_board` → `None`, `gh
+  - `check-state.py` INV-26's own quiet branches (no `github` block, `load_board` → `None`, `gh
     auth status` fails, truncated/failed board read) all correctly wrap the per-feature loop in
     `if _stations is not None:` and record nothing — matches D-07's environmental-precondition
     half. **Empty-but-successful board read** (`_stations == {}`) is NOT the same as a failed
@@ -115,7 +115,7 @@ remediation design is the operator's call.
   underscore-prefixed comment-key idiom already used throughout this exact file (`github._note`
   pre-exists the diff, `_test_kinds_note`, every kind's `_reason`); not a real config key, not a
   finding.
-- **`isinstance(_parent, int)` guard** (`check-state.sh:1187`): `feature-schema.json` types
+- **`isinstance(_parent, int)` guard** (`check-state.py:1187`): `feature-schema.json` types
   `github.parent` as `["integer", "null"]` in both the DEC-191-closed feature schema locations —
   schema-guaranteed, not a fail-open gap.
 

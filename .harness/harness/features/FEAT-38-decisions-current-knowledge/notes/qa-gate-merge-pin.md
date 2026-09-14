@@ -9,7 +9,7 @@ Shipping diff `24af8d4..eb7e751` is the full FEAT-38 branch content (24af8d4 is 
 which never contained FEAT-38). Change types present: `logic`/`cross_module` (new
 `check-decision-anchors.py` + its test `test-check-decision-anchors.py`, both landing together —
 satisfies test-first pairing per P-05; changes to `gen-decisions-index.py`, `check-domain.py`,
-`check-state.sh`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`, `board_lifecycle.py`,
+`check-state.py`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`, `board_lifecycle.py`,
 `factory_decompose.py`, `check-plan-routes.py`, `upgrade-config.py`, `validate-digest.py`,
 `run-unit-tests.py`), `config` (`harness.json`, `fleet.yaml`, `.gitignore`, `tests.yml` — matrix
 requires nothing), `docs` (SPEC/BUILD/DECISIONS/SKILL files — matrix requires nothing). No `api`,
@@ -18,7 +18,7 @@ only (both `active`, non-null cmd). Added no kind beyond the floor — nothing i
 `matrix_ok: true`, `must_fix: []`.
 
 ## Full suite (step 2)
-`bash .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat38-suite.log 2>&1; echo EXIT=$?`
+`python3 .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat38-suite.log 2>&1; echo EXIT=$?`
 → **EXIT=0**, captured immediately, not piped. Python count over the file: **0 lines begin `FAIL `**.
 
 ## `--check-kinds` (step 3)

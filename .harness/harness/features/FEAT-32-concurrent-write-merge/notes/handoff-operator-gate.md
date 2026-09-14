@@ -11,7 +11,7 @@
 (2) T-13 to product-lead → documentor (needs the signed #551 count **and** T-08/T-09 done), then
 T-17; (3) qa gate as a validator segment, (4) simplify, (5) pin `review_sha`, (6) review panel,
 (7) pm goal-check, (8) close-out. **Pin `review_sha` BEFORE recording any `squad: validator` run** —
-INV-6 (`check-state.sh:221-228`) fires on that combination, not on time.
+INV-6 (`check-state.py:221-228`) fires on that combination, not on time.
 
 ## Trust
 

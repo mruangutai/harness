@@ -11,12 +11,12 @@ this feature cost", and nothing else answers it either.
 ## Settled
 
 - **DEC-148's context watchdog → DROPPED with the file.** Not preserved as a standalone script and
-  not folded into `check-state.sh`. The new decision must record the drop and its reason so a future
+  not folded into `check-state.py`. The new decision must record the drop and its reason so a future
   scan does not re-suggest it.
 - **Historical `cost_usd` / `max_cost_usd` in shipped `feature.yaml` → LEFT IN PLACE** as the only
-  surviving record of what features cost. `check-state.sh` must stop *requiring* them; nothing erases
+  surviving record of what features cost. `check-state.py` must stop *requiring* them; nothing erases
   what is written.
-- **`cost` stays in `check-state.sh`'s `CHECKPOINT_KEYS` — allowed, never required.** This is forced
+- **`cost` stays in `check-state.py`'s `CHECKPOINT_KEYS` — allowed, never required.** This is forced
   by the ruling above, not a separate preference: see the measurement in `## Facts`.
 - **Route → plan and build it as a feature**, same shape as FEAT-07. Full BRIEF/PLAN/signature, the
   gates, and a goal-check. Not direct edits.
@@ -51,10 +51,10 @@ All at `ae2443d`.
 - **`cost-report.py` is 439 lines; `test-cost-report.py` is 94.** `run-unit-tests.py:6` lists the
   test in `SCRIPTS`, and the script has a drift detector that fails when a `test-*.py` exists outside
   that list — so **both must be deleted together**, or the runner breaks.
-- **INV-11 sites in `check-state.sh`:** the rule at `:369-373` ("run is complete but has no cost:
+- **INV-11 sites in `check-state.py`:** the rule at `:369-373` ("run is complete but has no cost:
   block"), plus aborting references at `:248`, `:302`, `:357`, `:361`.
 - **THE MEASUREMENT THAT FORCES THE WHITELIST DECISION: all 67 run `state.yaml` files on disk carry a
-  `cost:` block — 67 of 67.** `check-state.sh:401` reports any top-level key not in `CHECKPOINT_KEYS`
+  `cost:` block — 67 of 67.** `check-state.py:401` reports any top-level key not in `CHECKPOINT_KEYS`
   (`:340-350`, where `cost` sits at `:344`). Removing `cost` from that set would turn **every
   historical run into a violation**. It stays.
 - **DEC-148 made TWO changes and only one is being deleted.** Its watchdog
@@ -73,14 +73,14 @@ All at `ae2443d`.
 - **`render-brief.py` contains a single `cost` reference.** The `cost` hits in
   `templates/BRIEF.md`, `templates/PLAN.md` and `templates/codebase-INDEX.md` are prose about
   tradeoffs and context expense, not the budget line — do not edit those.
-- **`check-state.sh` and `validate-digest.py` are inside the DEC-174 carve-out**, so their edits are
+- **`check-state.py` and `validate-digest.py` are inside the DEC-174 carve-out**, so their edits are
   direct, tests run explicitly, a human reading the diff. `cost-report.py`, `test-cost-report.py`,
   `run-unit-tests.py` and `harness.json` are granted to `harness-backend-dev`
   (`team-config.yaml:155`) and `harness-dev-ops` (`:197`); `docs/**` to `harness-documentor`
   (`:116`). `.claude/skills/harness/SKILL.md`, `.claude/skills/harness-team/SKILL.md`,
   `.claude/agents/*.md` and `teams/*.yaml` are granted to nobody — declared main-session steps.
 - **Gates green at `ae2443d`:** `run-unit-tests.py` exit 0, `check-docs.sh` exit 0,
-  `check-state.sh` zero violations.
+  `check-state.py` zero violations.
 - **The strongest evidence for the removal is FEAT-07 itself:** it finished at $702.82 against a
   $550 budget produced by the orchestrator's own arithmetic, and the meter could not see the eight
   of ten tasks that ran at depth 0 in the main session. FEAT-06 records the same understatement in

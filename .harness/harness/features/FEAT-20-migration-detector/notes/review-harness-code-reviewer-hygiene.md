@@ -3,21 +3,21 @@
 **BLUF: FAIL.** Two must-fix findings, both evidenced against the pinned bytes: (1) the DEC-194
 narrowing rewrites the ORIGINAL decision entry in place, violating this same file's own header rule
 ("APPEND-ONLY. Never rewrite... an existing entry"), the same day amendment 1 followed that rule
-correctly. (2) `render()` and check-state.sh's INV-27 — the two call sites #379 claims can "never
+correctly. (2) `render()` and check-state.py's INV-27 — the two call sites #379 claims can "never
 name different readers for the same tree" — actually diverge on the `undeclared-segment` cause when a
 coupled reader also disagrees: `render()` calls `blame()` unconditionally for every CANNOT_VERIFY
-cause; check-state.sh's `_cv_wording` table only calls `blame()` for `unreadable`/`neither`. Probe
+cause; check-state.py's `_cv_wording` table only calls `blame()` for `unreadable`/`neither`. Probe
 below reproduces it. Everything else checked out clean; several candidates considered and rejected
 (list at bottom).
 
 No `[harness:human]` commits in `3c75aa6..a714bd0` (single commit, author Mike Ruangutai). Working
 tree matches the pinned SHA for every reviewed path (git-show equality spot-checked for
-layout_migration.py, check-state.sh diffs); no dirty-tree reads needed.
+layout_migration.py, check-state.py diffs); no dirty-tree reads needed.
 
 ## A. #379 one blame policy — mostly clean, one real gap
 
-- Repo-wide sweep of `check-state.sh` for residual per-form filtering (`readers`, `_tagged`, `f ==`,
-  `blame`) found exactly the two composed call sites at `check-state.sh:1301,1304,1325`, both routed
+- Repo-wide sweep of `check-state.py` for residual per-form filtering (`readers`, `_tagged`, `f ==`,
+  `blame`) found exactly the two composed call sites at `check-state.py:1301,1304,1325`, both routed
   through `_lmod.blame(_srep)`. No leftover local filter anywhere else in the file.
 - Same sweep of `layout_migration.py`: `render()` (`:319`) is the only other consumer; `scan()`'s own
   `f == "unreadable"/"neither"/"both"` comparisons (`:239,242,248-249`) are verdict classification,
@@ -27,7 +27,7 @@ layout_migration.py, check-state.sh diffs); no dirty-tree reads needed.
   `blame()` itself is side-effect free. Not a finding.
 - **Real gap — call-site divergence on `undeclared-segment`.** `layout_migration.py:318-320`:
   `if rep.verdict in (MIXED, CANNOT_VERIFY): for p, f in blame(rep): ...` — this fires for **every**
-  CANNOT_VERIFY cause. `check-state.sh:1295-1312`'s `_cv_wording` table calls `blame()` only inside
+  CANNOT_VERIFY cause. `check-state.py:1295-1312`'s `_cv_wording` table calls `blame()` only inside
   the `"unreadable"` and `"neither"` lambdas; `"undeclared-segment"` (`:1307-1311`) prints only
   `_srep.detail` (the evidence paths), never a reader. Since `undeclared-segment` is decided in
   `scan()` (`layout_migration.py:235`) *before* the unreadable/neither/no-evidence checks, a tree can
@@ -40,7 +40,7 @@ layout_migration.py, check-state.sh diffs); no dirty-tree reads needed.
   ```
   On such a tree, CI's Layout gate (`.github/workflows/tests.yml:190` runs `layout_migration.py`
   directly → `main()` → `render()`) prints the reader `r1 [migrated]` on the finding line;
-  check-state.sh's INV-27 (session entry) does not. That is exactly the residual #379 says is closed
+  check-state.py's INV-27 (session entry) does not. That is exactly the residual #379 says is closed
   — it isn't, for this one cause. Severity high: falsifies the ticket's own claim with a realistic,
   reproducible combination (legacy evidence + one premature reader + one undeclared-segment file).
 
@@ -90,9 +90,9 @@ return shape. No behavioral difference.
   `undeclared-segment`, `unreadable`, `neither`, `no-evidence`, plus the `MIXED` verdict (not a
   "cause" but also reader-bearing via `blame()`). Classification against the amended sentence:
   `{no-evidence, no-rows, undeclared-segment}` = reader-less as claimed; `{unreadable, neither}` +
-  `MIXED` = reader-bearing, and each still emits path+`[form]` in `check-state.sh` — **when `render()`
+  `MIXED` = reader-bearing, and each still emits path+`[form]` in `check-state.py` — **when `render()`
   is not the call site in play**. Per finding A above, `render()` breaks this classification for
-  `undeclared-segment`, so the amended sentence is correct for check-state.sh's wording but **false**
+  `undeclared-segment`, so the amended sentence is correct for check-state.py's wording but **false**
   for `render()`'s. The narrowing itself (which causes are reader-less in principle) is the right
   set; the code doesn't uniformly implement it.
 - `docs/harness/DECISIONS-INDEX.md:212`'s DEC-194 row (`am.1`, ruling text about the neither-form
@@ -165,7 +165,7 @@ it: the fix isn't "delete one dead function," it's "delete the entire re-pasted 
 5. `layout_fixtures.py`'s paren-balance docstring claim as an unenforced assertion — rejected as
    stated (it's independently true by AST check) but noted as currently non-load-bearing for case_20
    specifically, since no PREDICATES substring exists in the file yet.
-6. The broadened `unreadable`/`neither` wording in check-state.sh's `_cv_wording` (now calling
+6. The broadened `unreadable`/`neither` wording in check-state.py's `_cv_wording` (now calling
    `blame()` instead of the narrower old `_tagged()`) as a scope-creep widening — rejected, this is
    the intended unification per #379, and for these two causes `blame()`'s output is a strict superset
    match to the old `_tagged(_form)` single-form output only when exactly one reader carries that

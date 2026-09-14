@@ -3,7 +3,7 @@
 **Measured at `fd8728c`, which is HEAD.** The dispatch's pin `91884f9` is its parent;
 `git diff --name-status 91884f9 fd8728c` = `feature.json` alone, no source. Every source verdict
 below therefore holds at both. Suite at HEAD: `run-unit-tests.py --kind all` rc=0, **0 FAIL**,
-1582 ok/PASS. `check-state.sh` rc=1, 4 VIOLATION lines, **0 naming FEAT-24** (the four are the
+1582 ok/PASS. `check-state.py` rc=1, 4 VIOLATION lines, **0 naming FEAT-24** (the four are the
 paused FEAT-25/26/27 dirs).
 
 ## BLUF
@@ -49,8 +49,8 @@ One mutant per key, each reverted to the literal it would have been:
 | ready | `factory_decompose.py:399` | `"Ready"` | 3 cases, incl. `(2) both stations set to the fleet's ready option` |
 | building | `gh_board.py:112` | `"Building"` | `derive_station returns the declared building station` |
 | review | `gh_board.py:114` | `"Review"` | `derive_station returns the declared review station` |
-| done | `check-state.sh:1184` | `"Done"` | `INV-26 expects the declared station for status: done` |
-| backlog | `check-state.sh:1185` | `"Backlog"` | `INV-26 expects the declared station for status: backlog` |
+| done | `check-state.py:1184` | `"Done"` | `INV-26 expects the declared station for status: done` |
+| backlog | `check-state.py:1185` | `"Backlog"` | `INV-26 expects the declared station for status: backlog` |
 
 Discriminating because the fixtures differ from the literals: `Promoted`, `Col-B`, `Col-R`,
 `Shipped`, `Icebox`.
@@ -146,7 +146,7 @@ E is right on the merits, not just on budget. Three independent parts of the sig
 scope `load_board`'s domain to board declarations, and the broad reading makes SC-05 demand a change
 that breaks REQ-09. The panel additionally verified that all three file-level silent shapes are
 guarded ahead at every caller (`board-station.py:114-133`, `gh-sync.py:135-151`,
-`check-state.sh:1138-1147`), so nothing is reachable-broken either way.
+`check-state.py:1138-1147`), so nothing is reachable-broken either way.
 
 **A is the option that makes the sentence true and the product worse.** B does not close 1c at all —
 A, B and C shapes stay silent — so it should not be priced as the fix. C is the honest fallback if
@@ -210,7 +210,7 @@ consumer**, the one thing SC-07's "no two consumers sharing one" forbids.
   `check-plan-routes.py`, `branch-create-gate.py`, each with its own positive control
   (`grep -qE '^(def |#!/)'`), all matching zero moved keys. T-04 GREEN, my run. (Regression guard
   only — the BRIEF's own gap note already says so.)
-- **Readers 7/8:** `gh_board.py` ✓ and `check-state.sh` ✓ (literal-absence + positive controls,
+- **Readers 7/8:** `gh_board.py` ✓ and `check-state.py` ✓ (literal-absence + positive controls,
   T-04/T-05 GREEN); `gh-sync.py` ✓ and `board-station.py` ✓ (named behavioural cases in T-04's
   verify); `factory_config.py` ✓ (the eight `board_for raises...` cases, which only pass after the
   migration); `factory_decompose.py` ✓ and `factory_claim.py` ✓ — both mutation-proven by me
@@ -236,7 +236,7 @@ present-**and**-absent. Clause A ("declares **only** schema, `repos[].name`,
 **SC-03 — met, with a named instrument blind spot.** T-04 and T-05 both GREEN at HEAD, my runs.
 `derive_station`'s body contains none of the five names (my re-derivation). The INV-26 slice contains
 no `"Building"`/`"Review"`/`"Backlog"`/`"Ready"`. It **does** contain `"Done"` once, at
-`check-state.sh:1204` — a *feature-status* literal (`_fj.get("status")`), not a station name, and
+`check-state.py:1204` — a *feature-status* literal (`_fj.get("status")`), not a station name, and
 T-05's grep deliberately omits `Done` from its alternation for exactly that token collision,
 compensating with a narrower `_EXPECT[^=]*=` grep. Both positive controls present and passing.
 **Blind spot:** a genuine station literal `"Done"` reintroduced anywhere in the INV-26 block outside

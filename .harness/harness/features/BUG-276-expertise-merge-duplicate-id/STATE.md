@@ -78,7 +78,7 @@ code-reviewer's finding that all six assertions bind observable behaviour rather
 
 DEAD ENDS for validate, all signed, none re-raised: D-07 (the `parse_expertise`/`render` silent drop
 stays unfixed — separate defect), D-09 (no exit-11 row in `harness-distill/SKILL.md`; lane NOBODY),
-D-04 (`check-expertise.sh` untouched), D-05 (no codes 10 or 12 in the docstring — adding them FAILS
+D-04 (`check-expertise.py` untouched), D-05 (no codes 10 or 12 in the docstring — adding them FAILS
 SC-06), and `case27b` stays.
 WORKING SET: `tests/integration/test-expertise-merge.py` (`:1310-1371`),
 `notes/review-harness-code-reviewer-c1.md`, `notes/receipt-harness-backend-dev-t02-fix-grade1.md`,

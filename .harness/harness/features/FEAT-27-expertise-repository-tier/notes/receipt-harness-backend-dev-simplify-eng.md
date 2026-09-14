@@ -19,12 +19,12 @@ title=...)` differs from `valid(title=...)` only in taking the Patterns entry te
 parameter instead of hardcoding `"WHEN a thing happens DO the other thing."`.
 
 **Concrete cost:** If the canonical Expertise skeleton changes — a fifth section, a cap
-wording change, a different Patterns-entry prefix — `check-expertise.sh`'s own title/section
+wording change, a different Patterns-entry prefix — `check-expertise.py`'s own title/section
 rules would need both builders edited in lockstep to keep testing real files. The two are
 maintained by different code (T-01's original 8 cases vs. T-03's later 6), so the second
 builder going stale while the first is updated (or vice versa) is invisible: both still
 compile, both still produce *some* value the checker accepts, and the suite stays green
-while half of it is validating a shape `check-expertise.sh` no longer requires.
+while half of it is validating a shape `check-expertise.py` no longer requires.
 
 **Alternative (one line, dispatchable):** Delete `valid()`; replace its 8 call sites with
 `body_with_entry("WHEN a thing happens DO the other thing.")`, keeping `body_with_entry`'s
@@ -38,13 +38,13 @@ proving the merge didn't drop coverage either builder was carrying alone.
 
 ## Other surfaces checked, nothing found
 
-- `inject-expertise.py`'s repository-tier segment extraction/sort and `check-expertise.sh`'s
+- `inject-expertise.py`'s repository-tier segment extraction/sort and `check-expertise.py`'s
   `CRAFT_TIER_RE`/`REPO_TIER_RE` classification are purpose-built, small regexes; nothing in
   `harness_boundary.py` or a sibling script exports an equivalent tier classifier — its
   `glob_to_re`/`matches`/`classify` machinery answers a different question (manifest
   permission, not injection tier) and matching it against team-config globs would be a much
   larger surface for the same 6-line job.
-- `REPO_TOKEN_RE` in `check-expertise.sh` restates `FEAT-\d+` (already covered by the
+- `REPO_TOKEN_RE` in `check-expertise.py` restates `FEAT-\d+` (already covered by the
   existing `FEATURE_TOKEN_RE`), but the two serve different outcomes (blocking vs.
   advisory) on the same token — not treated as a finding; the two-language 40/150 budget
   pair (shell + Python) is explicitly settled by the dispatch as acceptable duplication.

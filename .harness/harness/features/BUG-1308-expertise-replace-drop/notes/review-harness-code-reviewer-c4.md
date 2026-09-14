@@ -70,13 +70,13 @@ asked for anything absent from this shape.
   expertise.sh` still exits 0. No divergence.
 - **(c) Unicode digits**: Python's `\d` (no `re.ASCII`) matches Unicode `Nd`. `target="P-١"` (U+0661)
   and `"P-１"` (U+FF11) **both pass** the grammar check. Added live via the CLI: round-trips exactly
-  through `parse_expertise` (`('P-١', ...)` intact) **and** `check-expertise.sh` exits 0 OK on the
+  through `parse_expertise` (`('P-١', ...)` intact) **and** `check-expertise.py` exits 0 OK on the
   result — because the checker's own `ENTRY_RE` uses the same `\d`, so the two tools agree; no cap
   bypass, no parser-invisible data, no duplicate id. **Low/advisory** (see Findings) — this is a
   visual-confusability concern (`P-01` vs `P-١` are distinct-but-similar), not a gate defeat.
 - **(d) valid target colliding with an id in a DIFFERENT section**: `add target="P-01"
   section="Gotchas"` while Patterns already holds `P-01` → exits **0**, producing `P-01` in both
-  sections; `check-expertise.sh` still exits 0. This is *exactly* the already-known, already-
+  sections; `check-expertise.py` still exits 0. This is *exactly* the already-known, already-
   backlogged gap ("no shipped gate binds Expertise id uniqueness across sections") — confirmed by
   execution, not escalated; severity unchanged from what was already known.
 
@@ -141,7 +141,7 @@ worktree untouched)
   (all 26 cases, including case18's real 2.03s lock-hold and case25/26's VL-06 exploits).
 - `python3 tests/integration/test-gen-decisions-index.py` @ pin: 14/14 ok, exit 0.
 - In this worktree (HEAD `ac6c9c5b` = `b70d57b4` + a feature.json pin-bump only, diff-confirmed):
-  `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit`: **0
+  `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit`: **0
   `^FAIL `**, 28 files. `--kind integration`: **0 `^FAIL `**, 46 files, 86.86s. (The unit-kind file
   count differing from earlier cycles' reported 74 is the already-known, already-accepted
   caller-dependent discovery-count variance — not re-raised.)
@@ -151,7 +151,7 @@ worktree untouched)
 
 - **[low, chore]** Non-ASCII decimal digits (`\d`'s Unicode-aware default) are accepted in a
   `target`'s numeric position and round-trip consistently through both `expertise-merge.py` and
-  `check-expertise.sh` — not a gate defeat, but a homoglyph id (`P-01` vs `P-١`) is a real, if
+  `check-expertise.py` — not a gate defeat, but a homoglyph id (`P-01` vs `P-١`) is a real, if
   unlikely, source of human confusion during manual reconciliation. Advisory only; no consumer
   observed to rely on ASCII-only ids today.
 - No must_fix. All six VL items and all nine REQs hold under fresh execution at the pin.

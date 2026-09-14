@@ -128,10 +128,10 @@ both gave it: exit code still correctly fails, the value itself is correctly nam
 "which plan" identity is missing in a batch run. Not new, not regressed, no action needed this
 cycle — carrying it forward as still-open rather than re-filing it.
 
-### 6. check-state.sh INV-33 line — CONFIRMED GOOD content; one LOW convention gap
+### 6. check-state.py INV-33 line — CONFIRMED GOOD content; one LOW convention gap
 
 Built a real two-commit git fixture (`plan.yaml` v1 committed, `feature.json.review_sha` pinned
-to that commit, `plan.yaml` v2 committed with an added task) and ran the real `check-state.sh`
+to that commit, `plan.yaml` v2 committed with an added task) and ran the real `check-state.py`
 against it:
 
 ```
@@ -141,10 +141,10 @@ is no longer there (INV-33).
 ```
 
 Names the feature, the pinned sha, the file, and the last commit that touched it —
-`check-state.sh:556-558`. **No task id or value, and that is correct, not a gap**: INV-33 is
+`check-state.py:556-558`. **No task id or value, and that is correct, not a gap**: INV-33 is
 FEATURE-scoped (about the review_sha pin), not task-scoped, so there is no task/value to name.
 Do not conflate this with INV-26 (task-scoped: feature, task id, issue #, and the plan-vs-board
-value, confirmed present at `check-state.sh:1849-1885` and matching BRIEF.md's SC-13 wording
+value, confirmed present at `check-state.py:1849-1885` and matching BRIEF.md's SC-13 wording
 exactly, which at this pin correctly cites INV-26, not INV-33 — the conflation my own cycle-1
 artifact flagged does **not** recur here).
 
@@ -159,7 +159,7 @@ Worth a one-line style fix, not a gate.
 
 ### 7. BUG-1055 / SC-08 surface — nothing operator-facing says it, confirmed by grep
 
-Grepped `check-state.sh`, `check-plan-routes.py`, `check-domain.py` for `1079` and `BUG-1071`:
+Grepped `check-state.py`, `check-plan-routes.py`, `check-domain.py` for `1079` and `BUG-1071`:
 zero hits for `1079` anywhere; `BUG-1071` appears only in code **comments** for the unrelated
 INV-32 era guard, never in a printed string. Separately confirmed `BUG-1071-inv32-era-guard`'s
 `feature.json` really does carry `"status": "Review"` with no `plan.yaml` beside it — exactly the
@@ -201,12 +201,12 @@ DIGEST:
   states_unspecified: []
   contract_violations:
     - { path: ".claude/skills/harness/bin/check-domain.py:1570-1575,1127", actual: "POST-mode vocabulary VIOLATION header names _show(target) — the literal symlink path as typed — even when _rel (used for matching) resolved through the link to plan.yaml; test-check-domain.py:2762-2769's own assertion only checks the violated value, never the reported path, so this exact regression shape is untested", specified: "H-01's own PRE fix (check-domain.py:1518-1521) states the standard: a denial/violation naming only the innocent path 'reads as a malfunction' and must name where the write actually landed" }
-    - { path: ".claude/skills/harness/bin/check-state.sh:556-558", actual: "INV-33's message puts its invariant number in a parenthesized suffix, '...(INV-33).'", specified: "every other numbered invariant in this file (20+ call sites: INV-9,15,24,25,26,27,29,30,31,32) opens the message with 'INV-NN: ' as a prefix" }
+    - { path: ".claude/skills/harness/bin/check-state.py:556-558", actual: "INV-33's message puts its invariant number in a parenthesized suffix, '...(INV-33).'", specified: "every other numbered invariant in this file (20+ call sites: INV-9,15,24,25,26,27,29,30,31,32) opens the message with 'INV-NN: ' as a prefix" }
     - { path: ".claude/skills/harness/bin/check-plan-routes.py:385-387", actual: "two independently-fixtured failing plans (different features, different tasks) render byte-identical VIOLATION lines with no path or feature id — re-measured live, unchanged since cycle 0", specified: "carried forward as F-13, low/non-blocking, per cycle 0 and cycle 1's own disposition; not touched by this cycle's fix commits" }
   a11y: ["not applicable — every surface reviewed is stderr/stdout CLI text, no colour-only encoding, no rendered theme"]
   open_questions:
     - { id: Q1, question: "Should check-domain.py:1575's POST-mode display use the resolved candidate (mirroring H-01's PRE _via clause) instead of _show(target), and should test-check-domain.py:2766-2769 assert on the reported path the way its PRE sibling (case r9) does?", blocking: false }
-    - { id: Q2, question: "check-state.sh's INV-33 line is the only numbered invariant using a suffix '(INV-NN)' marker instead of this file's universal 'INV-NN: ' prefix convention — worth a one-line normalization, or intentional because INV-33's sentence reads better with the number at the end?", blocking: false }
+    - { id: Q2, question: "check-state.py's INV-33 line is the only numbered invariant using a suffix '(INV-NN)' marker instead of this file's universal 'INV-NN: ' prefix convention — worth a one-line normalization, or intentional because INV-33's sentence reads better with the number at the end?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-41-one-station-vocabulary/notes/review-harness-ui-reviewer-c2.md

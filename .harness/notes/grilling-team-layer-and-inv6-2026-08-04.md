@@ -53,7 +53,7 @@ Issues **#8**, **#9** and **#16** close as a consequence.
 All at `61d5d44`, `main`, four gates green.
 
 - **#16 REPRODUCED.** Fixture with `review_sha: none` + one `squad: validator` run → zero INV-6
-  violations from `check-state.sh`. The defect is live, at `check-state.sh:156`.
+  violations from `check-state.py`. The defect is live, at `check-state.py:156`.
 - **#8 and #9 are ONE original finding, split into two tickets.** FEAT-03's ship review,
   `notes/ship-review-2026-07-31-16.md:198`, records them together as **B-7**: *"No `build` team
   definition exists… And the `review` team omits the QA step… I added the step by hand. Both reach

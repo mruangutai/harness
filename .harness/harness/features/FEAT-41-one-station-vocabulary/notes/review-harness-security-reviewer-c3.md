@@ -37,7 +37,7 @@ Payload: `python3 plan-merge.py$(printf " ")sign-approval --file plan.yaml`.
 **H-2. A NUL byte in `tool_input.file_path` crashes check-domain.py's entire PreToolUse body —
 exit 1, which the script's own header states is non-blocking (DEC-100) — disabling every
 invariant it enforces for that call, not only the plan-route denial.**
-Reproduced with the real script (`bash .claude/skills/harness/bin/check-domain.py` fed the payload
+Reproduced with the real script (`python3 .claude/skills/harness/bin/check-domain.py` fed the payload
 on stdin, `agent_type: backend-dev`, `tool_name: Write`):
 ```
 file_path = "bin/foo\u0000bar"                    -> exit 1, ValueError: lstat: embedded null character in path
@@ -60,7 +60,7 @@ that can shape any field of `tool_input` has a demonstrated, trivial way to make
 
 **H-3. The T-19 task-less exemption plus `plan-merge.py apply`'s open-to-every-agent, unvalidated
 create-new-file path let an agent put a feature on the board with an active station and zero
-approval trail, invisible to every check-state.sh invariant.**
+approval trail, invisible to every check-state.py invariant.**
 `apply` (`plan-merge.py:412`, "step 3") writes a nonexistent `--file` target **whole** from the
 proposal, refusing only if the proposal itself carries an `approval:` key — it never calls
 `_legal_stations`/`_refuse_illegal_station`, so the station value it writes is not validated
@@ -73,10 +73,10 @@ proposal = "feature: FEAT-ROGUE-x\nstatus: build\ntasks: []\n"
 python3 plan-merge.py apply --file .../FEAT-ROGUE-x/plan.yaml --proposal -
 -> rc 0, file created verbatim, status: build, no approval: block, no BRIEF.md anywhere
 ```
-Traced `check-state.sh`'s invariants against this shape (read, not independently executed — the
+Traced `check-state.py`'s invariants against this shape (read, not independently executed — the
 script resolves its root from its own installed location via `harness_boundary`, so it cannot be
 pointed at an isolated scratch tree without touching the live repo):
-- `briefs` (`check-state.sh:122`) is built only from *existing* `BRIEF.md` globs — a feature with
+- `briefs` (`check-state.py:122`) is built only from *existing* `BRIEF.md` globs — a feature with
   none is simply absent from the dict, so the INV-1/2 "not approved" check (`:176-179`, iterating
   `briefs.items()`) never sees it.
 - `plan_docs[feat]["tasks"]` is `[]` → the T-19 exemption (`:200`, `if not doc["tasks"]: continue`)

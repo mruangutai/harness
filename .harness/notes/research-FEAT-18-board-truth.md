@@ -30,7 +30,7 @@ start-of-task move) is derivable and is recorded as D-04, not raised as a questi
    `git checkout -b`, `git switch -c|--create`, `git worktree add -b` and `git branch <name>`. A
    `gh issue develop` + `git fetch` + `git checkout <existing-branch>` flow matches none of them and
    passes silently. Recorded as D-08 rather than fixed.
-7. **`check-state.sh` shells out to `git` (INV-25) but never to `gh`.** INV-26 is the first `gh` call
+7. **`check-state.py` shells out to `git` (INV-25) but never to `gh`.** INV-26 is the first `gh` call
    at session entry. INV-25's two precedents transfer: tool-absent records nothing (`:966-970`),
    module-unimportable is a VIOLATION naming the file to restore (`:981`).
 8. **`check-domain.py --resolve` at `2ccd7f0`** — full results are in `plan.yaml`'s `lanes:`.
@@ -59,5 +59,5 @@ reading DEC-138's "never a gate" will route the station write through `gh()` and
   and the template gains `board: null` so `upgrade-config.py`'s additive merge propagates it. The
   operator sees it at signature (open_question Q1).
 - Every automated criterion in this feature runs against a FAKE `gh` binary (`GH_SYNC_GH`, and the
-  same pattern introduced for `check-state.sh`). Nothing proves the live API contract. Stated in
+  same pattern introduced for `check-state.py`). Nothing proves the live API contract. Stated in
   BRIEF `## Verification gaps`.

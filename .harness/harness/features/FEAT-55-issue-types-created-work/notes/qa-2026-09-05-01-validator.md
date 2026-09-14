@@ -57,8 +57,8 @@ file). One driver, two kind invocations.
 
 | invocation | rc | `^FAIL ` count | verdict |
 |---|---|---|---|
-| `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** | satisfied |
-| `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | **1** | **2** | FAIL — both FAILs are one named test: `test-anchor-directions.py` |
+| `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** | satisfied |
+| `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` | **1** | **2** | FAIL — both FAILs are one named test: `test-anchor-directions.py` |
 
 The unit run's log (`/tmp/qa-unit.log`, 1270 lines) shows nine `N/N checks passed` self-test
 tallies (33, 64, 244, 30, 120, 112, 16, 15, 39, 10) and 318 `^PASS ` script lines — read for

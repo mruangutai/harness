@@ -56,7 +56,7 @@ record the contradiction under `BRIEF.md ## Verification gaps`.
   19/19, no cell missing; T-07's unit cell is not-applicable per D-12.
 - **The SC amendment you ruled on:** both criteria kept their teeth. The unevidenceable "must be
   shown red before the fix landed" became "is DISCRIMINATING at `review_sha`" — and pm then *ran*
-  both: the pre-change `gh-sync.py` fails all five SC-03 cases, the pre-change `check-state.sh`
+  both: the pre-change `gh-sync.py` fails all five SC-03 cases, the pre-change `check-state.py`
   fails the SC-07 violation case.
 - **Cycles:** 12 of 14. Neither of today's two runs sent anything back, so neither cost a cycle.
 - **Runs: 37 against a 20-run budget (INV-22, informational).** My read: the count is honest, not

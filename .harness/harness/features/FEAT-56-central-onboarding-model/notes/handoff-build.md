@@ -33,7 +33,7 @@ ship goal-check over all ten SCs, then SC-09's operator UAT, then the briefing.
   `.omp/agents/**`, `.claude/agents/**` or `.harness/factory/fleet.yaml` to a squad: all resolve
   NOBODY — `check-domain.py --resolve` per path — verified-at 4b5dbb23
 - Do not act on INV-29's standing-worktree violations: every one names another feature's checkout,
-  none is FEAT-56's — `check-state.sh` output — verified-at 6f34e289
+  none is FEAT-56's — `check-state.py` output — verified-at 6f34e289
 
 ## Working set
 

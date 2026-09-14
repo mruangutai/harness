@@ -3,7 +3,7 @@
 ## BLUF
 
 The c4 amendment holds up under adversarial spot-check. Every anchor I independently re-measured
-(check-domain.py/check-state.sh line citations, `suite_layout.py`'s two globs, `code_grade.py`'s
+(check-domain.py/check-state.py line citations, `suite_layout.py`'s two globs, `code_grade.py`'s
 `_is_test_path`, `test-suite-layout.py:101-102/:105`, `omp_session_accessor.exclude`, the
 `^PASS planted` line) matches the goal-check's table exactly. D-04's and D-06's restated `because`
 clauses are TRUE at the cited sources — no newer unfounded rationale. `depends_on` forms a valid
@@ -20,7 +20,7 @@ Recommend PASS with one med finding to carry forward as an implementer warning, 
 | `tests/integration/test-run-unit-tests-kinds.py` (T-12) | No | "Create … a NEW file" ✔ | Confirmed absent via glob. `harness_boundary.resolve_root` reads `HARNESS_PROJECT_DIR` only when the override carries `.harness/team-config.yaml` (`harness_boundary.py:66-84`) — the exact mechanism `test-run-unit-tests-layout.py`'s `tree()`/`run()` already use successfully, so T-12(c)'s fixture-root technique is proven, not novel. |
 | `.claude/skills/harness/bin/handoff_done_when.py`, `tests/unit/test-handoff-done-when.py` (T-01/T-02) | No | "Create" ✔ | Confirmed absent via glob. |
 | `check-domain.py` prose sites (T-04) | Exists | "extend" ✔ | Grepped `[Ff]our` across the whole file: exactly 2 live contract claims outside the required-list message — DEC-159 comment (:1547-1548) and the 60-line cap message's item enumeration (:1552-1553, no literal "four" but 4 items). A THIRD site, the missing-required-section message (:1557-1559, literal "the four sections are the contract"), is separately covered by T-04's *first* bullet ("update that message's wording from 'the four sections' to 'the five sections'"). All three real sites are covered across the two bullet groups — initially looked like a gap, resolved on close reading. Not a finding. |
-| `check-state.sh` `HANDOFF_HEADINGS` (T-07) | Exists | "extend" ✔ | Confirmed exactly two readers: `:1199` (`miss = [h for h in HANDOFF_HEADINGS if h not in hl]`) and `:1219` (`if _l not in HANDOFF_HEADINGS:`), matching the intent's claim of "read twice." SC-08's two exempt narrative sites ("Measured at cf51dce…All 74 carry the four headings…" and "…nothing under any of them passed") confirmed present at :1185-1188 and :1203 — past-measurement prose, correctly outside T-07's rename scope. |
+| `check-state.py` `HANDOFF_HEADINGS` (T-07) | Exists | "extend" ✔ | Confirmed exactly two readers: `:1199` (`miss = [h for h in HANDOFF_HEADINGS if h not in hl]`) and `:1219` (`if _l not in HANDOFF_HEADINGS:`), matching the intent's claim of "read twice." SC-08's two exempt narrative sites ("Measured at cf51dce…All 74 carry the four headings…" and "…nothing under any of them passed") confirmed present at :1185-1188 and :1203 — past-measurement prose, correctly outside T-07's rename scope. |
 
 ## Obligation 3 — per-mechanism citations (all requested, spot-checked)
 
@@ -31,7 +31,7 @@ Recommend PASS with one med finding to carry forward as an implementer warning, 
 | two suite globs | `run-unit-tests.py:25-27` | Yes, exact — the `case "$KIND" in` unit/integration/all branches |
 | `test-suite-layout.py:101-102` / `:105` | — | Yes, exact — `:101-102` loop pins BOTH unit and integration `detect` byte-for-byte to `templates/harness.json`; `:105` forbids an active kind's `detect` naming `tests/manual` |
 | `code_grade.py:458-472` / `:488` | `_is_test_path`, bar-3 claim | Yes, exact — file is `code_grade.py` (underscore), not `code-grade.py` (hyphen, a separate CLI file) — dispatch's spelling is correct, worth noting the two coexist |
-| `check-state.sh:1059/:1199/:1219` | `HANDOFF_HEADINGS` | Yes, exact, exactly two readers confirmed |
+| `check-state.py:1059/:1199/:1219` | `HANDOFF_HEADINGS` | Yes, exact, exactly two readers confirmed |
 | `check-domain.py` `RE_HANDOFF` + two prose sites | `:1096,1546-1547,1552-1553` | Yes, all confirmed |
 | `test_kinds.omp_session_accessor` + `exclude` | `.harness/harness.json:277-282` | Yes — `exclude: ".claude/worktrees/**"` exact match to what T-09 sets for `handoff_comprehension` |
 | `^PASS planted` line | `test-run-unit-tests-layout.py` | Yes — `check("planted", ...)` prints `"PASS" if condition else "FAIL", name, ...` → literal `PASS planted ` |
@@ -42,7 +42,7 @@ Traced T-01's and T-07's verify scripts by hand against current source (not just
 goal-check's rc numbers): T-01's `grep -q handoff_done_when` (underscore) cannot match the
 interpreter's "No such file" message, which only names the hyphenated filename — so the verify is
 RED today for a reason *unrelated* to the module, and only turns green once the test exists and its
-own ImportError names the module. T-07's `grep -qi 'done when' check-state.sh` conjunct is RED
+own ImportError names the module. T-07's `grep -qi 'done when' check-state.py` conjunct is RED
 independent of the suite (confirmed zero matches at HEAD). Both match the goal-check's conclusions;
 no disagreement found. T-12(c)'s fixture is buildable from `test-run-unit-tests-layout.py`'s `tree()`
 pattern (confirmed above) and its three cases are reachable and discriminating as specified.

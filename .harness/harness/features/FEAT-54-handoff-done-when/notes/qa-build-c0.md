@@ -31,13 +31,13 @@ Phase 2 delta: unit and integration tests exist and run the changed code. Covera
 - T-01/T-02 direct unit command: exit 0, all 32 named cases passed.
 - T-03/T-04 direct write-gate integration command: exit 0; all FEAT-54 handoff cases passed, including 60/61 whole-file boundaries and the 60-line/25-line-Trust no-per-section-cap case.
 - T-05 literal verify: exit 0, `ok 141`; baseline is present, unique, every path exists, and none carries `## Done when`.
-- T-06/T-07 literal GREEN/live-corpus clause: integration test exit 0; source positive control found `done when`; live `check-state.sh` returned 1 for unrelated state notes and emitted no `Done when` line (`ok rc=1`).
+- T-06/T-07 literal GREEN/live-corpus clause: integration test exit 0; source positive control found `done when`; live `check-state.py` returned 1 for unrelated state notes and emitted no `Done when` line (`ok rc=1`).
 - T-08 literal verify: exit 0; template carries `## Done when`, `Scope:`, `Authority:`, playbook says five sections, and neither file says four sections.
 - T-09 literal verify: exit 0; both dry runs named the two arms and planned two unexecuted calls, the audit hook reported `ok: dry run made no model call`, config registration passed, and layout check passed.
 - T-10: durable receipt `notes/receipt-harness-documentor-t10.md:10` records the exact plan verify at the landed task and exit 0, including byte-identical decision-index regeneration. It was not rerun because its generator writes the governed documentation and this QA dispatch forbids edits.
 - T-11 literal verify: exit 0, `ok 2 notes compliant`; both notes are non-baselined, within 60 lines, shaped correctly, and their authorities resolve at write-time semantics.
 - T-12 literal verify: exit 0, `ok`; registration-mutant test and planted-layout positive control both passed.
-- SC-07 inspection: `check-domain.py:1562,1567` and `check-state.sh:54,1251` are the two imports/calls into the single `handoff_done_when` implementation; neither gate contains another `Scope:`/`Authority:` parser.
+- SC-07 inspection: `check-domain.py:1562,1567` and `check-state.py:54,1251` are the two imports/calls into the single `handoff_done_when` implementation; neither gate contains another `Scope:`/`Authority:` parser.
 - SC-08 inspection: no live `four sections`, `four fixed`, old cap enumeration, or `HANDOFF_HEADINGS` match remains in the specified template, playbook, decision record, or gate scripts.
 - SC-11 inspection: primary historical-note intersection empty; positive control contains exactly `handoff-build.md` and `handoff-plan.md`, equal to the added-note set.
 

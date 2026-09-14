@@ -101,8 +101,8 @@ system would notice the same corrupt record, by name:
 
 | Consumer | Detects `[]`-shaped `feature.json`? | How |
 |---|---|---|
-| `check-state.sh` INV-6/7/8/12 loop (`:604-627`) | **Yes** | `harness_yaml.load_file` succeeds (valid YAML), then an explicit `isinstance(doc, dict)` check at `:625` reports `"...is not a YAML mapping."` |
-| `check-state.sh` INV-17 handoff-shape loop (`:1153-1158`) | No (but irrelevant) | Reads `harness_yaml.load_file(fy) or {}` with no isinstance check, but the loaded value (`_doc`) is never referenced again in that loop — station comes from `plan.yaml`, not this document — so this is not a real detection gap, just an unused read |
+| `check-state.py` INV-6/7/8/12 loop (`:604-627`) | **Yes** | `harness_yaml.load_file` succeeds (valid YAML), then an explicit `isinstance(doc, dict)` check at `:625` reports `"...is not a YAML mapping."` |
+| `check-state.py` INV-17 handoff-shape loop (`:1153-1158`) | No (but irrelevant) | Reads `harness_yaml.load_file(fy) or {}` with no isinstance check, but the loaded value (`_doc`) is never referenced again in that loop — station comes from `plan.yaml`, not this document — so this is not a real detection gap, just an unused read |
 | `validate-feature-json.py` (schema `"type": "object"`) | **Yes** | jsonschema rejects a list against an object-typed schema; sweeps *every* `feature.json` on disk with no arguments, wired as its own dedicated step in `.github/workflows/tests.yml:101` — but that is a scheduled/CI check, not synchronous with the merge |
 | `gh-sync.py`'s `load_recorded` (`:518-548`) | **Yes, loudly** | Explicitly documented 4th state: a non-mapping document is treated as the ERROR case, `raise SystemExit`, never as "nothing recorded" |
 | `post-merge-sweep.py`'s per-record handler (`:213-218`) | **Partially** | `except (OSError, json.JSONDecodeError)` does NOT catch a valid-JSON-wrong-type read; `feature_doc.get(...)` then raises `AttributeError` — but the caller's per-record loop (`:279-283`) wraps `_handle_record` in a blanket `except Exception`, prints `"post-merge-sweep: ERROR handling {path}: {e}"`, and moves on. The record is reported (generically, not by a targeted message) and — critically — the worktree is NOT removed on this path, which is the safe direction |
@@ -110,11 +110,11 @@ system would notice the same corrupt record, by name:
 
 **Not "nobody notices" — but nobody notices *synchronously, at merge time*.** By design (DEC-174:
 validators are main-session-direct, never auto-run by the harness), a corrupt record sitting on disk
-is invisible until an operator next runs `check-state.sh`, `gh-sync.py`, or the CI schema sweep
+is invisible until an operator next runs `check-state.py`, `gh-sync.py`, or the CI schema sweep
 against it. Between the corrupting write and that next run, only `merge-gate.py`'s own posture
 (now: silently skip if unrelated, deny naming the feature if matched) governs what a merge attempt
 sees. Not re-raising BUG-1080's already-dispositioned, separately-tracked backlog item (Q3 in that
-feature's QA notes) about `check-state.sh`'s YAML-tolerant parser accepting some strictly-invalid
+feature's QA notes) about `check-state.py`'s YAML-tolerant parser accepting some strictly-invalid
 JSON shapes that `validate-feature-json.py` would reject — different failure shape (comments/
 unquoted scalars vs. wrong JSON type), already recorded elsewhere.
 

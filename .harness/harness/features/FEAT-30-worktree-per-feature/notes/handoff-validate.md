@@ -33,7 +33,7 @@ the other fifteen files. Six cycles remain of thirteen. Briefing:
 - Two-level layout has **zero live instances**; the only live tree is one-segment FEAT-31 and governance
   inside it matches root both directions — `git worktree list`, `--resolve` — verified-at cafa28a
 - Mirror unsynced, 11 INV-26 rows; `close-task` is **denied to agents** by the permission classifier as
-  outward-facing — `check-state.sh` — verified-at cafa28a
+  outward-facing — `check-state.py` — verified-at cafa28a
 - `remove` has no cwd guard and no test for one — `cmd_remove` GATE 1-3 — verified-at cafa28a
 
 ## Dead ends
@@ -45,7 +45,7 @@ the other fifteen files. Six cycles remain of thirteen. Briefing:
   738 further case results print as `ok ` — verified-at cafa28a
 - Do NOT attribute the contradictory signed intent to T-05 — it is **T-04's** (`plan.yaml:736-739` vs
   `:861-863`) — source: review panel
-- Do NOT narrow `expertise-merge.py`'s `ENTRY_RE` to match `check-expertise.sh`: narrowing makes the line
+- Do NOT narrow `expertise-merge.py`'s `ENTRY_RE` to match `check-expertise.py`: narrowing makes the line
   fail the regex so `parse_expertise` drops it silently. Validate instead — source: review panel
 - Do NOT touch `.claude/worktrees/FEAT-31`, FEAT-26 or FEAT-28, and do NOT put a `phase:` key in
   `feature.json` — the shape gate denies it — verified-at cafa28a

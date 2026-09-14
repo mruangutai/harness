@@ -19,6 +19,6 @@
   the second literal-verify-blind instance in the same file in the same task.
 - 2026-08-19 (T-05 continuation): the sweep found a fourth, in a different section entirely
   (§15.5, cost): "Expertise caps are *entry counts*, not token counts, and entries have no length
-  limit." `bin/check-expertise.sh:40,41,143-145` implements a 150/40 line budget and a 50-word
+  limit." `bin/check-expertise.py:40,41,143-145` implements a 150/40 line budget and a 50-word
   per-entry cap. Budget claims cluster far from the section that owns the budget — grep the
   concept's vocabulary (cap, budget, limit) across the whole file, not the owning section.

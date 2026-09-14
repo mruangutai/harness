@@ -1,7 +1,7 @@
 # Code Review — FEAT-41-one-station-vocabulary — c0
 
 Both stages run unconditionally per dispatch. Baseline reproduced: unit exit 0, integration exit
-0 (194s), `check-state.sh` exit 0 with 0 `VIOLATION` lines. `code-grade.py` run against the pin
+0 (194s), `check-state.py` exit 0 with 0 `VIOLATION` lines. `code-grade.py` run against the pin
 (never HEAD): 9 gated HIGH records, 5 gated grade-2 (MED) records → `code_grade: fail`.
 
 ## MUST_FIX (blocks ship)
@@ -145,7 +145,7 @@ alone as closing it. Non-blocking on its own.
   confirmed on disk) — all mechanically checked, all honoured.
 - SC-01/SC-02/SC-04/SC-08 reproduced directly (grep + Python checks): 0 capitalised literals
   outside tests, 0 `feature.json` status keys, exactly 4 non-test `gh_board.set_station(` sites.
-- Baseline suites reproduced at the pin: unit exit 0, integration exit 0 (194s), `check-state.sh`
+- Baseline suites reproduced at the pin: unit exit 0, integration exit 0 (194s), `check-state.py`
   exit 0 / 0 `VIOLATION` lines — matches the claimed measurement, no disagreement.
 
 ## Not examined

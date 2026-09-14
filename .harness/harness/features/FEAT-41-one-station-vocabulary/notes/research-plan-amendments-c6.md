@@ -56,7 +56,7 @@ skip; the expected-red sentence says the gap does NOT close here and is carried 
 `verify:` splits projected names into `compared` and `skipped`, asserts non-empty on both `placed`
 and `compared` so it cannot pass by having read nothing, and prints the skipped list.
 
-Open, honestly unverified: whether `check-state.sh` INV-26 flags issue 223 after T-06 routes the
+Open, honestly unverified: whether `check-state.py` INV-26 flags issue 223 after T-06 routes the
 compare through `project`. 223 is a parent card, not a task sub-issue, and INV-26's per-task compare
 walks recorded sub-issues — so it should be outside the set. T-10's text now says STOP and report if
 a run reports it, rather than adding the card to buy the gate green.

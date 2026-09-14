@@ -4,7 +4,7 @@
 `d5dbb9dab31853eaa65823aaec752724ce98bc91`; the code under review is byte-identical to the original
 pin `ac8dd671`) with zero gating findings. All ten success criteria are met, the qa test-matrix hard
 gate passes, the four-seat review panel returned PASS with `must_fix: []` and `severity_max: low`,
-and `check-state.sh` now exits 0 with **zero violations tree-wide**. Nothing is merged, PR'd or
+and `check-state.py` now exits 0 with **zero violations tree-wide**. Nothing is merged, PR'd or
 shipped; that decision is yours.
 
 **The thing that makes this verdict worth trusting** is not that the suites are green — they were
@@ -82,7 +82,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed here dies 
 | ID | Nature | Row |
 |---|---|---|
 | B-1 | bug | `sole_implementations()` handles the same two hazards T-04 just fixed by **silently skipping** them — a tracked-then-deleted `.py` drops out of the sole-implementation sweep with no signal. After this feature the one file holds two opposite policies for one hazard class. Ruled out of scope here; it is a genuine fail-open of B-6's own class |
-| B-2 | chore | A lead can write a digest with no contract block and never learn: the eng lead stated in `runs/2026-09-05-1-eng/digest.md` that the structured DIGEST "is in the DIGEST returned to the orchestrator", so it deliberately omitted it from the file. Nothing at write time contradicted that, and only `check-state.sh` caught it later. Repaired here by appending (a Write that REPLACES a recorded digest is refused; one that EXTENDS it is allowed), but the doctrine gap that produced it is untouched |
+| B-2 | chore | A lead can write a digest with no contract block and never learn: the eng lead stated in `runs/2026-09-05-1-eng/digest.md` that the structured DIGEST "is in the DIGEST returned to the orchestrator", so it deliberately omitted it from the file. Nothing at write time contradicted that, and only `check-state.py` caught it later. Repaired here by appending (a Write that REPLACES a recorded digest is refused; one that EXTENDS it is allowed), but the doctrine gap that produced it is untouched |
 | B-3 | bug | `plan-merge.py apply` cannot write `panel.readers` — `UNION_KEYS` is `(tasks, decisions)` only, so `panel` falls to whole-value equality and exits 7 CONFLICT. The working verb is `set-panel`. Any instruction that mandates `apply` for a panel edit is unsatisfiable |
 | B-4 | bug | Handoff authority pointers `brief-sc:` and `plan-task:` cannot resolve for a feature living in a worktree: `handoff_done_when.py` derives the feature dir and reads it against the **main checkout** root, where the feature directory does not exist. Only `approval:` and `finding:`, which carry an explicit path, work from a worktree |
 | B-5 | bug | A subagent job exits 1 with `Subagent called yield with null data` while emitting a complete, conformant fenced return whose artifact is present and correct on disk. Observed twice in this feature (pm in `5-product`, code-reviewer in `6-validator`). Routing on job status alone would discard valid PASSes |
@@ -102,5 +102,5 @@ Everything below is **yours or the main session's** — no squad can perform any
    note so the briefing posts on #1311.
 3. **File the unstruck backlog rows** above as issues, mapping each `nature` onto `bug`, `chore` or
    `enhancement` and prefixing every title with its row id.
-4. **Let the `post-merge` hook remove this worktree.** Do not remove it from inside; `check-state.sh`
+4. **Let the `post-merge` hook remove this worktree.** Do not remove it from inside; `check-state.py`
    INV-29 refuses while a worktree stands for a feature that reached a terminal state.

@@ -13,7 +13,7 @@ below reflects the must-fix.
 
 D-01's `choice` clause: *"block shape and pointer resolution are checked whenever the section is
 present, whoever wrote it"* (plan.yaml:104). D-10, added later in the same file, rules the opposite
-for the identical pass: INV-17 (`check-state.sh`, `resolve=False`) does "block shape and pointer
+for the identical pass: INV-17 (`check-state.py`, `resolve=False`) does "block shape and pointer
 GRAMMAR only... and never opens a target" (plan.yaml D-10 choice). T-07 explicitly cites D-01 as its
 governing decision ("so it also enforces the Done when contract, per D-01", plan.yaml:524) while its
 own instructions correctly implement D-10's resolve=False semantics — the *task* is right, the
@@ -53,7 +53,7 @@ SC-08's already-accepted inspection shape.
 
 The exemption test (name a past sha/feature id AND report what was observed) is not perfectly
 mechanical in the abstract, but SC-08 pre-names its two current exempt sites by content
-(`check-state.sh` FEAT-31 migration comment, INV-17 empty-body narrative — both verified present,
+(`check-state.py` FEAT-31 migration comment, INV-17 empty-body narrative — both verified present,
 both explicitly naming a commit sha or "FEAT-31 T-10"). That bounds today's ambiguity to sites T-04
 and T-07 might newly write, and both of those tasks write normative present-tense prose ("must state
 FIVE fixed sections"), not measurement narrative, so the two classes stay visually distinct in

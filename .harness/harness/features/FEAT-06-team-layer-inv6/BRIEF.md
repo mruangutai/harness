@@ -39,7 +39,7 @@ feature was re-scoped.
    `review.yaml` and `gate-probe.yaml` at `635ef14`. Every build run to date was dispatched with a
    step list composed at dispatch time — FEAT-03's three build runs (`…-09-eng` T-01, `…-10-eng`
    T-02..T-07, `…-11-product` T-08) all carry `team:` unset or `none`. Issue **#9**.
-5. **INV-6 passes on an unpinned feature.** `check-state.sh:156` guards a validator run with
+5. **INV-6 passes on an unpinned feature.** `check-state.py:156` guards a validator run with
    `not val("review_sha")`, and `val()` (`:136-141`) returns `str(v)` — so the literal string
    `none` is truthy and only an **absent** key trips the invariant. Live on a real feature: this
    feature's own `feature.yaml` carries `review_sha: none` today, and FEAT-05's did for its whole
@@ -91,7 +91,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   7-of-8, and `build.yaml` is not widened to reach qa.** Both were the wrong repair.
 - **DEC-174 carve-out, extended.** The harness plans its own work but does not *execute* changes to
   its own enforcement layer. CLAUDE.md names `check-domain.py`, `bash-write-guard.py`,
-  `validate-digest.py`, `check-state.sh`, `check-docs.sh`. The mission extends it to
+  `validate-digest.py`, `check-state.py`, `check-docs.sh`. The mission extends it to
   `bin/test-harness-yaml-corpus.py`; pm extended it further (D-05) to `bin/test-check-state.py`,
   `bin/run-unit-tests.py` and the new `bin/test-team-catalog.py` — **the user KEPT that extension**
   (Q5). Not re-litigated.
@@ -120,17 +120,17 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
 ## Success Criteria
 
 - SC-01: A `feature.yaml` fixture carrying `review_sha: none` plus one `squad: validator` run makes
-  `check-state.sh` report an INV-6 violation; the same fixture with a real 7-hex SHA reports none;
+  `check-state.py` report an INV-6 violation; the same fixture with a real 7-hex SHA reports none;
   and a **third** fixture with `review_sha: none` and **no validator run** also reports none — the
   precondition conjunct survives the rewrite. All three fixtures are asserted present, so a rewrite
   that never writes the red case cannot pass silently.
   verify: automated        evidence: unit
 - SC-02: The placeholder vocabulary `("none", "null", "n/a")` appears as exactly **one** literal
-  definition under `.claude/skills/harness/bin/`; both `check-state.sh` and `validate-digest.py`
+  definition under `.claude/skills/harness/bin/`; both `check-state.py` and `validate-digest.py`
   read it from that definition. Asserted by a registered unit test, not by a hand-run grep — a
   source reading is inspection, not automated evidence (P-03).
   verify: automated        evidence: unit
-- SC-03: A reviewer confirms that `check-state.sh` run over the repo's real `.harness/` tree
+- SC-03: A reviewer confirms that `check-state.py` run over the repo's real `.harness/` tree
   reports the **same violation set** after the fix as before it — no invariant other than INV-6
   changes, **and INV-6 itself fires on no existing feature**. Stated as the whole violation set on
   purpose: "unchanged except INV-6" would be satisfied while the fix turned a green gate red
@@ -142,7 +142,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   precondition is still unmet and nothing goes red. *(The earlier wording of this SC said the
   `runs:` list was empty; that was true when written and is false now. The conclusion is unchanged;
   the premise is corrected here rather than left standing.)* **`verify:` is `inspection`, not
-  `automated`, because no runner can produce it**: `test-check-state.py` runs `check-state.sh`
+  `automated`, because no runner can produce it**: `test-check-state.py` runs `check-state.py`
   against `tempfile.TemporaryDirectory()` roots (`:160-167`) and cannot do a whole-repo before/after
   diff. See Verification gaps.
   verify: inspection
@@ -228,7 +228,7 @@ Read from `.harness/harness.json` `test_kinds`: **`unit` is the only kind with a
 `ui`, `eval` and `typecheck` all carry `cmd: null`. No SC above rests on a null kind.
 
 - **The whole-repo state-check diff has no runner.** SC-03 is `inspection` for that reason, not by
-  preference: `test-check-state.py` only runs `check-state.sh` against throwaway temp roots
+  preference: `test-check-state.py` only runs `check-state.py` against throwaway temp roots
   (`:160-167`) and `run-unit-tests.py` runs only the scripts listed at `:6`. **What is therefore
   NOT proven by a test: that the INV-6 rewrite leaves every other invariant's verdict unchanged on
   the real tree.** It is carried by a human-read before/after diff captured ahead of T-01.

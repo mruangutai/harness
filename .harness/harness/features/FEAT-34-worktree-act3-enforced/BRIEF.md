@@ -5,7 +5,7 @@
      INV-28 and builds first, measured 2026-08-23.
      AMENDED 2026-08-24 (issue #806, RE-SIGNED same day): the list gains 30, the milestone
      invariant. Derived at 9165162, not inferred from the gate script's highest: INV-28 has
-     since BUILT into check-state.sh (:1044, :1068, :1080) so the brief's original premise
+     since BUILT into check-state.py (:1044, :1068, :1080) so the brief's original premise
      that the script holds neither 28 nor 29 is stale; INV-29 is claimed by this brief; and
      `grep -rn 'INV-30' .harness/ .claude/` returns zero occurrences, so 30 is free on both
      halves of the rule check-plan-routes.py enforces. -->
@@ -37,7 +37,7 @@ carry no statement of the rule they are bound by.
 ## Goal
 
 A worktree cannot outlive its feature. When a FEAT-NN flow reaches `Done` on the default branch,
-its checkout is removed automatically as the merge lands locally, and `check-state.sh` refuses
+its checkout is removed automatically as the merge lands locally, and `check-state.py` refuses
 outright if one is still standing. Two mechanisms, kept distinct on purpose: the hook closes the
 window, the invariant proves it closed. **The hook does not replace the invariant** — the hook
 lives in a clone's own hooks path, so in any clone where it is missing, was never installed by the
@@ -52,7 +52,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 ## Requirements
 
 - REQ-01: A worktree whose feature reads `status: Done` on the **default branch** makes
-  `check-state.sh` REFUSE — a blocking finding at exit 2, not a note and not a
+  `check-state.py` REFUSE — a blocking finding at exit 2, not a note and not a
   violation-and-continue.
 - REQ-02: The refusal names the worktree directory it actually found, and the exact command that
   removes it.
@@ -83,7 +83,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 
 **What SUPPLIES this feature (already built — do not strike, do not rebuild):**
 
-- **INV-25's worktree enumeration.** `check-state.sh:1076` runs
+- **INV-25's worktree enumeration.** `check-state.py:1076` runs
   `["git", "worktree", "list", "--porcelain"]` and walks the records at `:1086-1094`. A sibling
   invariant reuses that loop; this is not new plumbing. *(Re-verified at `3ed95a4`.)*
 - **INV-25's removal-guidance precedent.** `:1148` prints `git worktree remove <path>`, and
@@ -109,8 +109,8 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 
 - **DEC-174 amendment 4 — the enforcement-layer carve-out, and it bites hard here.** The
   enumeration is `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
-  **`check-state.sh`**, `check-plan-routes.py`, `dispatch-guard.py`, **and the test file of each**.
-  This feature changes `check-state.sh` and `test-check-state.py`, so **the plan round must lane
+  **`check-state.py`**, `check-plan-routes.py`, `dispatch-guard.py`, **and the test file of each**.
+  This feature changes `check-state.py` and `test-check-state.py`, so **the plan round must lane
   those tasks `execution_mode: main-session-direct`** (with DEC-179's resolution) rather than
   discovering it mid-run. The amendment's own working rule applies to any helper: a module a gate
   imports is not itself a gate — a squad may write the library, but **the cutover that makes the
@@ -119,7 +119,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 - **The new invariant is INV-29, not INV-28.** The number is not inferred from the highest in the
   gate script — INV-20 is taken and INV-10 is retired and unreusable, and that exact false premise
   reached FEAT-26's dispatch and is recorded as its Q5. Measured 2026-08-23 at `3ed95a4`: the
-  free-number check has two halves, and the second one moved this feature. `check-state.sh`
+  free-number check has two halves, and the second one moved this feature. `check-state.py`
   contains zero occurrences of either `INV-28` or `INV-29`, but
   `.harness/harness/features/FEAT-26-pr-linkage-recorded/plan.yaml` uses `INV-28` sixteen times
   (its T-05 adds it), FEAT-26 is signed and already in ship, and the operator ruled 2026-08-23 that
@@ -128,7 +128,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 - **`.git/hooks/` is not version controlled**, and linked worktrees **share the main repository's
   hooks directory**. Those two facts are what make REQ-07 through REQ-09 a feature rather than a
   line of config.
-- **The blocking cost is accepted, not open.** `check-state.sh` runs before every commit, so an
+- **The blocking cost is accepted, not open.** `check-state.py` runs before every commit, so an
   orphaned FEAT-31 worktree stops a commit on FEAT-33. The pain lands on whoever is working, not
   on whoever left the checkout. The operator chose blocking with that stated.
 - **`integration`'s `detect` is almost entirely an explicit file enumeration.** Measured at
@@ -156,7 +156,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 ## Success Criteria
 
 - SC-01: With a fixture whose default-branch `feature.json` reads `Done` and whose worktree is
-  present, `check-state.sh` emits an `INV-29` finding at blocking severity; with the same fixture
+  present, `check-state.py` emits an `INV-29` finding at blocking severity; with the same fixture
   at `Review`, no `INV-29` finding appears. **Severity is asserted on the finding line's own
   prefix, never on the run's exit code** — `test-check-state.py:1214-1218` records as a
   measurement that these fixtures are red for other reasons, so `code != 0` passes whether or not
@@ -214,7 +214,7 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
   states that removing a worktree is not that agent's act — asserted per agent, never by a
   file-global count. Fifteen of sixteen fail this today at `3ed95a4`, which is its red proof.
   verify: inspection
-- SC-10: `bash .claude/skills/harness/bin/check-state.sh` reports no violation attributable to
+- SC-10: `python3 .claude/skills/harness/bin/check-state.py` reports no violation attributable to
   this feature's own artifacts, and the full `integration` kind passes, at the pinned `review_sha`
   read with `git show <review_sha>:<path>` rather than from the working tree.
   verify: automated        evidence: integration
@@ -274,7 +274,7 @@ The batch close is a hand repair performed after the measurement; the harm it re
 
 **The ruling — the same two-mechanism architecture this brief already argues.** One post-merge hook
 does both jobs in the order the state requires: **record the terminal status, then remove the checkout
-that status makes obsolete.** And `check-state.sh` gains an invariant refusing a `Done` feature whose
+that status makes obsolete.** And `check-state.py` gains an invariant refusing a `Done` feature whose
 milestone is open. The brief's own words for the worktree half carry over unchanged: *the hook closes
 the window, the invariant proves it closed.*
 
@@ -317,7 +317,7 @@ existing answer to look up, and it is recorded as a `D-NN` in `plan.yaml`, not a
   terminal state, that feature's terminal status and its milestone closure are recorded without
   anyone running a command.
 - REQ-12: A feature whose recorded status is `Done` while its recorded milestone is still open is
-  reported by `check-state.sh`. The **milestone** is the fact keyed on, because it has exactly one
+  reported by `check-state.py`. The **milestone** is the fact keyed on, because it has exactly one
   writer; the status does not corroborate itself.
 - REQ-13: The setup step that points a clone at the tracked hooks directory can be run repeatedly
   with the same result, and when it finds `core.hooksPath` already set to a value it did not write,
@@ -333,7 +333,7 @@ existing answer to look up, and it is recorded as a `D-NN` in `plan.yaml`, not a
 - SC-12: Three clauses, each asserted separately. A fixture whose `Done` feature has an open recorded
   milestone produces an `INV-30` finding; the same fixture with that milestone closed produces none;
   and with GitHub unreachable the run produces neither an `INV-30` finding nor an error, matching
-  INV-26's established offline posture at `check-state.sh:1205`. An implementation that keys on
+  INV-26's established offline posture at `check-state.py:1205`. An implementation that keys on
   `status` alone fails clause two, since the status is `Done` in both.
   verify: automated        evidence: integration
 - SC-13: Three clauses, each asserted separately. In a fresh clone fixture the setup step run twice
@@ -356,7 +356,7 @@ existing answer to look up, and it is recorded as a `D-NN` in `plan.yaml`, not a
   pointing `core.hooksPath` at `/Users/molchairuangutai/GitHub/harness/.git/hooks` — is ever
   repointed is an act the operator performs, carried by INV-29's refusal and by one UAT observation
   at ship. It is deliberately not an SC, because a fixture can fake it and this one cannot be faked.
-- **INV-30 is silent offline by construction.** Its fact lives on GitHub, and `check-state.sh` runs
+- **INV-30 is silent offline by construction.** Its fact lives on GitHub, and `check-state.py` runs
   before every commit, so it follows INV-26 and records nothing when the network or `gh` is
   unavailable. A clone that never reaches GitHub is outside its reach — the same shape, and the same
   accepted cost, as the local-default-branch reading in `## Goal`.

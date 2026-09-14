@@ -1,7 +1,7 @@
 # Observations — harness-code-reviewer — FEAT-27-expertise-repository-tier
 
 - 2026-08-19 (c0, reviewing `b4659cd..9b929de`): found a cross-tool segment-validation gap not in
-  the qa-final-validator's six-item census. `check-expertise.sh`'s `REPO_TIER_RE` classifies any
+  the qa-final-validator's six-item census. `check-expertise.py`'s `REPO_TIER_RE` classifies any
   `.harness/<segment>/expertise/<name>.md` as repo-tier and applies the 40-line budget with `OK` on
   a well-formed file — `[^/]+`, no character restriction on `<segment>`. `inject-expertise.py`'s
   segment filter (`case "$segment" in ''|*[!a-z0-9-]*) continue ;; esac`) silently drops any

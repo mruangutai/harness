@@ -151,7 +151,7 @@ signature briefing; B-13 onward are new from build and validation.
 | B-7 | bug | `check-domain.py` denies `harness-pm` a `Write` at `notes/plan-proposal-*.yaml`, so the sanctioned tool is refused for the one write route `plan.yaml` has — and `python3` reaches it anyway. |
 | B-8 | bug | `bash-write-guard.py` reads a `>=` inside Python source as a redirect and refuses the command. |
 | B-9 | bug | `check-plan-routes.py` never reads `lanes.rows`, so a surface missing from that block is ungated. |
-| B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run; only `check-state.sh` catches it later. |
+| B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run; only `check-state.py` catches it later. |
 | B-11 | chore | `panel.findings`' `reader` enum has no word for a lead's fan-in finding. |
 | B-12 | chore | INV-29 red on `.claude/worktrees/harness/BUG-1129-validate-handoff-sweep` — another effort's dirty terminal worktree. Untouched by me. |
 | **B-13** | **bug** | **The only blocking gate is unsatisfiable pre-merge for any `team-config.yaml` route change.** Six `test-check-plan-routes.py` cases run fixture plans against the LIVE checkout, so a branch that legitimately adds a route reddens them until merge. Move those cases onto an isolated fixture root. §4. |

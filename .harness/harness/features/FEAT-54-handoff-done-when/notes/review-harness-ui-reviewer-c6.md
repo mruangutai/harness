@@ -4,7 +4,7 @@
 
 **PASS.** At pinned `review_sha = dd55b3570c6a20f5ca1da016d6959752bd0ffc74`, the four text surfaces
 in this role's remit — `handoff_done_when.py`'s refusal messages, `check-domain.py`'s write-gate
-wrapper text, `check-state.sh`'s persisted-report text, and `templates/HANDOFF.md` — are **byte-identical**
+wrapper text, `check-state.py`'s persisted-report text, and `templates/HANDOFF.md` — are **byte-identical**
 to the bytes c5's ui-reviewer already audited and passed clean (`git diff 4690f724..dd55b357` over
 those four paths returns 0 lines). No new gating UI/message defect exists at this pin. F-04 (literal
 SC-04 exit code) is out of this lens per this dispatch's explicit instruction — QA's lane, not
@@ -18,7 +18,7 @@ controls) is carried forward unchanged and remains security's advisory, non-gati
 
 1. **Byte-identity census (measured, not predicted).** `git diff 4690f724 dd55b357 -- \
    .claude/skills/harness/templates/HANDOFF.md .claude/skills/harness/bin/check-domain.py \
-   .claude/skills/harness/bin/check-state.sh .claude/skills/harness/bin/handoff_done_when.py`
+   .claude/skills/harness/bin/check-state.py .claude/skills/harness/bin/handoff_done_when.py`
    returns **0 lines**. c5's pin (`4690f724`) is the SHA c5's ui-reviewer audited exhaustively and
    passed with no gating UI defect (`notes/review-harness-ui-reviewer-c5.md`). Since none of the
    four message-emitting/template files changed between c5's pin and this one, that clean result
@@ -35,7 +35,7 @@ controls) is carried forward unchanged and remains security's advisory, non-gati
    names the missing headings and points to `templates/HANDOFF.md`; both wrap
    `handoff_done_when.problems(..., resolve=True)` and fail closed on import/exec failure with an
    explicit "REFUSING the write" message.
-4. **Direct read of `check-state.sh:1195-1264`** at the pin: identical to what c5 cited
+4. **Direct read of `check-state.py:1195-1264`** at the pin: identical to what c5 cited
    (`1211-1264`) — the persisted report calls `handoff_done_when.problems(..., resolve=False)` (a
    grammar check only, per SC-15's contract that the corpus scan never re-resolves targets), and
    composes a single `bad.append(...)` line per note naming the feature, the note filename, and every

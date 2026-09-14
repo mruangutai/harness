@@ -65,7 +65,7 @@ Exit status: `0`
 **Line 2** — `test "$(python3 .claude/skills/harness/bin/test-context-watch-cli.py | grep -cE '^[0-9]+ of [0-9]+ cases passed$')" = "1"`
 `grep -c` output: `1`. Exit status: `0`
 
-**Line 3** — `bash .claude/skills/harness/bin/run-unit-tests.py --kind integration`
+**Line 3** — `python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration`
 Full output is long (69 test files' worth); confirmed via grep:
 - `PASS test-context-watch-cli.py` present (last line of the run).
 - `MISCONFIGURED` count in output: `0`.
@@ -73,7 +73,7 @@ Exit status: `0`
 
 ## RED proof I ran before registering
 
-Before the `run-unit-tests.py` append, ran `bash run-unit-tests.py --kind integration` and got:
+Before the `run-unit-tests.py` append, ran `python3 run-unit-tests.py --kind integration` and got:
 `MISCONFIGURED: .claude/skills/harness/bin/test-context-watch-cli.py is not in run-unit-tests.py's
 explicit script list`, exit 2 — confirming the drift detector fires as the intent describes, and
 that my one-line append is what turns it green.

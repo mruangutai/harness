@@ -149,12 +149,12 @@ yet exist (T-12).
 
 ## Bounds observed
 
-- Did not touch `.claude/skills/harness/bin/check-state.sh` or
+- Did not touch `.claude/skills/harness/bin/check-state.py` or
   `.claude/skills/harness/bin/test-check-state.py` (DEC-174 carve-out; T-10 only names the
   file in the `detect` glob).
 - Did not touch `.claude/skills/harness/bin/run-unit-tests.py` (T-11's file).
 - Only file written: `.harness/harness.json`, plus this receipt.
-- Pre-existing `check-state.sh` VIOLATIONs (FEAT-04/FEAT-07) were not touched or repaired.
+- Pre-existing `check-state.py` VIOLATIONs (FEAT-04/FEAT-07) were not touched or repaired.
 
 ## Verdict
 

@@ -25,7 +25,7 @@ to have happened):
   (`:296-298`) is deleted as T-10's.
 
 `intent` states why removal breaks the cut: surviving step 5 `:163-164` demands "the real path from
-dev-ops's report", and surviving step 9 `:188-193` demands `check-state.sh` exit 0, unreachable on a
+dev-ops's report", and surviving step 9 `:188-193` demands `check-state.py` exit 0, unreachable on a
 checkout with no instantiated `.harness/harness.json`.
 
 **One existing assertion contradicted a KEEP and was narrowed:** `! grep -qE 'steps? [4-9]'` →

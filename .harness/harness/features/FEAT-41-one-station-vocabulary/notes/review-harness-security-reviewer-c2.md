@@ -202,7 +202,7 @@ I did not re-derive every one of the ~88 individually this cycle — see §5, un
   way cycle 1 confirmed the base symlink case. Given the settled base case (Write follows a
   symlink) and the measured OS-level write-through, I rate this reachable but flag the gap.
 - **Full line-by-line audit of `gh-sync.py` (545 lines changed), `board_lifecycle.py` (118),
-  `worktree_terminal.py` (302), `check-plan-routes.py` (152), `check-state.sh` (348)** beyond the
+  `worktree_terminal.py` (302), `check-plan-routes.py` (152), `check-state.py` (348)** beyond the
   injection/secrets/shell-metacharacter sweep in §4. Time-boxed toward the two named gates, which
   the dispatch marks as the point. No `subprocess` call in any of these uses `shell=True`; all
   use list-form argv (confirmed by grep, not by reading every call site).

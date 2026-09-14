@@ -38,7 +38,7 @@ inequality/length checks. All passed.
 ## Unit runner overall result (separate run, not tail-read)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/t09-unit.out 2>&1; st=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/t09-unit.out 2>&1; st=$?
 $ grep -c '^FAIL ' /tmp/t09-unit.out
 0
 $ echo "exit=$st"
@@ -169,7 +169,7 @@ verify_exit=0
 ### Unit runner overall, counted (final)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/t09-unit-c1.out 2>&1; st=$?
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/t09-unit-c1.out 2>&1; st=$?
 $ grep -c '^FAIL ' /tmp/t09-unit-c1.out
 0
 $ echo "exit=$st"

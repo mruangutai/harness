@@ -19,7 +19,7 @@ handoffs — both are stale by construction and produce a confound in opposite d
 - SC-15's GATE half is automated and passing with a mutant red proof; only the BEHAVIOUR half defers — verified-at d4b3180
 - `--check-kinds` exits 0: the script arrays and `test_kinds.integration.detect` agree — verified-at d4b3180
 - 21 residual findings are filed as #677 through #697, so nothing uncovered is carried in the branch — verified-at d4b3180
-- INV-17 fired on THIS feature's own status write and demanded this file — the invariant is load-bearing on its author — `check-state.sh` — verified-at ee608d2
+- INV-17 fired on THIS feature's own status write and demanded this file — the invariant is load-bearing on its author — `check-state.py` — verified-at ee608d2
 - Whether FEAT-32's seam actually produces a gradeable `## Next` — UNVERIFIED
 
 ## Dead ends
@@ -33,6 +33,6 @@ handoffs — both are stale by construction and produce a confound in opposite d
 
 - `.claude/skills/harness/bin/context-watch.py` — the instrument; the two-line threshold seam is the red-proof target
 - `.claude/skills/harness/bin/context-watch-hook.py` — the `PostToolUse` cutover; advises, never refuses
-- `.claude/skills/harness/bin/check-state.sh` — INV-17's handoff shape pass, four headings, 60-line cap, no empty section
+- `.claude/skills/harness/bin/check-state.py` — INV-17's handoff shape pass, four headings, 60-line cap, no empty section
 - `.claude/skills/harness/bin/feature_schema.py` — the `runs[].agent` rule and its GENERATED exempt map
 - `.harness/harness/features/FEAT-31-orchestrator-context-watch/notes/uat-and-signature-2026-08-22.md` — why SC-15 defers

@@ -11,7 +11,7 @@ dispatcher's claim.
 `790023f0..984bd26b` per file:
 - **`check-domain.py`** — MOVED, `+26/-8` (MEASURED `git diff --stat`). The only code file that
   changed. Audited in full below.
-- **`check-state.sh`** — byte-identical (`git diff --stat 790023f0..984bd26b -- check-state.sh`
+- **`check-state.py`** — byte-identical (`git diff --stat 790023f0..984bd26b -- check-state.py`
   returns nothing). CF-1's site is unchanged.
 - **`validate-digest.py`**, **`run-state-schema.json`** — byte-identical, same measurement. The c10
   finding that these two are unmoved is CONFIRMED still true at this pin, re-measured, not carried
@@ -68,7 +68,7 @@ just "a future sibling keyword." Recorded as info; not a present finding.
 
 ## CF-1 — re-derived at 984bd26b: CARRIED UNCHANGED, med
 
-`check-state.sh:1524-1526` still interpolates `sdoc.get('run_id', '<unknown>')` and `_step_id` as
+`check-state.py:1524-1526` still interpolates `sdoc.get('run_id', '<unknown>')` and `_step_id` as
 bare strings (no `!r`) into the INV-16 audit line. File is byte-identical to `790023f0` (MEASURED,
 empty diff) — same offset, same code. Threat unchanged: an actor using the DEC-85 Bash-write route to
 place a `state.yaml` with `run_id`/step `id` carrying ANSI/terminal control bytes gets that string
@@ -81,7 +81,7 @@ hide itself. Disposition: **carried, non-blocking** (already Q1 in STATE.md unde
 `bash-write-guard.py` is not in this diff's 18-file set; the bypass is unaffected in either
 direction. It remains CF-1's sole precondition and, separately, the reason the new write-time
 `schema_version`/step-schema checks in `check-domain.py` bind only `Write`/`Edit` — a Bash-authored
-`state.yaml` still reaches disk unchecked at write time, caught only by `check-state.sh`'s at-rest
+`state.yaml` still reaches disk unchecked at write time, caught only by `check-state.py`'s at-rest
 INV-16 sweep (same topology as c9/c10; not widened or narrowed by `984bd26b`).
 
 ## Q14 / Q15 — my lens
@@ -102,7 +102,7 @@ INV-16 sweep (same topology as c9/c10; not widened or narrowed by `984bd26b`).
 | schema-error → denial-message routing (`_missing_required`/`_offending` split) | Tampering (fail-open write) | true — refuted by trace + schema census, this pin |
 | `missing key(s)` message vs. schema-file-only content | Information disclosure | true — no user-document path reaches it |
 | `except Exception` diagnostic vs. document content | Information disclosure | true — no content-carrying exception path found |
-| Bash-authored state.yaml vs. check-state.sh INV-16 report echo (CF-1) | Spoofing | false, gated behind the pre-existing DEC-85 precondition — unchanged |
+| Bash-authored state.yaml vs. check-state.py INV-16 report echo (CF-1) | Spoofing | false, gated behind the pre-existing DEC-85 precondition — unchanged |
 | DEC-85 Bash-write bypass vs. new write-time step schema | Tampering | false, precondition-absent for the ordinary path; unchanged reachability |
 
 ```yaml
@@ -121,7 +121,7 @@ DIGEST:
     - { boundary: "CF-1: Bash-authored state.yaml vs INV-16 echo", stride: "S", mitigated: false }
     - { boundary: "DEC-85 bypass vs new write-time step schema", stride: "T", mitigated: false }
   open_questions:
-    - { id: Q1, question: "CF-1 one-line !r} fix on check-state.sh:1525-1526 — route to next main-session touch (DEC-174 carve-out), non-blocking.", blocking: false }
+    - { id: Q1, question: "CF-1 one-line !r} fix on check-state.py:1525-1526 — route to next main-session touch (DEC-174 carve-out), non-blocking.", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/notes/review-harness-security-reviewer-c11.md

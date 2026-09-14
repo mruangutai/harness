@@ -6,7 +6,7 @@
 
 Mode B source audit at pinned `review_sha` `53e1745462b75e1c54967b43e2f4fbdfc7037e23` against `0ec44965a961d19177de871c3bb1f02b701e646b`. `HEAD` resolved to the pinned SHA, and `git diff --quiet <review_sha> -- <all 16 named paths>` exited 0, so the inspected named-set bytes match the immutable object.
 
-I inspected every named file before scoping: `.claude/skills/harness/SKILL.md`; `bin/check-domain.py`; `bin/check-state.sh`; `bin/handoff_done_when.py`; `templates/HANDOFF.md`; `.harness/harness.json`; `DECISIONS-INDEX.md`; the applicable DEC-159/214 text in `DECISIONS.md`; `notes/handoff-plan.md`; `notes/handoff-build.md`; `test-check-domain.py`; `test-check-state.py`; `test-run-unit-tests-kinds.py`; `probe-handoff-comprehension.py`; `test-handoff-done-when.py`; and `test-probe-handoff-comprehension.py`. I also read the BRIEF, plan task clauses, the c1 Scope-order ruling, all c0 reviewer findings, and the c0 validator digest.
+I inspected every named file before scoping: `.claude/skills/harness/SKILL.md`; `bin/check-domain.py`; `bin/check-state.py`; `bin/handoff_done_when.py`; `templates/HANDOFF.md`; `.harness/harness.json`; `DECISIONS-INDEX.md`; the applicable DEC-159/214 text in `DECISIONS.md`; `notes/handoff-plan.md`; `notes/handoff-build.md`; `test-check-domain.py`; `test-check-state.py`; `test-run-unit-tests-kinds.py`; `probe-handoff-comprehension.py`; `test-handoff-done-when.py`; and `test-probe-handoff-comprehension.py`. I also read the BRIEF, plan task clauses, the c1 Scope-order ruling, all c0 reviewer findings, and the c0 validator digest.
 
 The complete 78-path base-to-review diff has no CSS/SCSS/TSX/JSX/Vue/Svelte/Less file. Its sole HTML path is a generated ship-review reading view whose footer says the paired markdown is the record and the HTML must be regenerated, not edited (`notes/ship-review-2026-09-02-t05t09-eng.html`). No feature `DESIGN.md` or prototype exists. The named CLI, hook refusal, template, and handoff prose are nevertheless author-facing surfaces, so this review is in scope under the dispatch.
 
@@ -34,7 +34,7 @@ The complete 78-path base-to-review diff has no CSS/SCSS/TSX/JSX/Vue/Svelte/Less
 
 **Failure scenario.** An operator reaches review and runs the exact BRIEF-prescribed root command expecting the review-time clean-state evidence. It exits 1, so the operator cannot truthfully record the required clean exit or treat SC-04 as satisfied; doing so would turn an unrelated repository violation into a silent waiver.
 
-**Actual.** From the repository root, `bash .claude/skills/harness/bin/check-state.sh` exited 1. Its captured output had zero case-insensitive `Done when` matches, but did report FEAT-51's missing validate handoff and five c2 digest-contract violations.
+**Actual.** From the repository root, `python3 .claude/skills/harness/bin/check-state.py` exited 1. Its captured output had zero case-insensitive `Done when` matches, but did report FEAT-51's missing validate handoff and five c2 digest-contract violations.
 
 **Specified.** BRIEF SC-04 requires the literal root check and preservation of its actual exit; the c0 validator already ruled that exit 1 remains a failure even when no line names `Done when` (`runs/2026-09-02-review-c0-validator/digest.md`).
 
@@ -60,7 +60,7 @@ DIGEST:
   must_fix:
     - "F-04: reconcile repository state/bookkeeping so the literal root SC-04 command exits 0; this review recorded exit 1 without waiving FEAT-51 or substituting a fixture."
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-state.sh", actual: "literal root command exit 1; zero Done-when output matches", specified: "BRIEF SC-04 clean review-time root check" }
+    - { path: ".claude/skills/harness/bin/check-state.py", actual: "literal root command exit 1; zero Done-when output matches", specified: "BRIEF SC-04 clean review-time root check" }
   a11y: []
   open_questions: []
   files_touched: [.harness/harness/features/FEAT-54-handoff-done-when/notes/review-harness-ui-reviewer-c2.md]

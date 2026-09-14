@@ -53,9 +53,9 @@ T-01/T-02 (module), though T-08 writes its prose into the template.
   :315). Notes written at build seams before T-04 lands escape the write gate; after T-07 they are
   non-baselined and carry no section, so INV-17 reports them and T-07's own verify
   (`! grep -qi 'done when'`, plan.yaml:371) fails for a planning reason no code fix addresses.
-- **F-03 (medium) SC-08 contradicts T-07.** SC-08 requires `check-state.sh`'s handoff heading constants to
+- **F-03 (medium) SC-08 contradicts T-07.** SC-08 requires `check-state.py`'s handoff heading constants to
   state five (BRIEF.md:100-103); T-07 orders `HANDOFF_HEADINGS` left untouched with a separate constant
-  (plan.yaml:386-387). That constant is a four-item list at `check-state.sh:1059` and is still read at
+  (plan.yaml:386-387). That constant is a four-item list at `check-state.py:1059` and is still read at
   :1199 and :1219. As written the criterion is unmeetable-by-design; narrow it or change T-07.
 - **F-04 (medium) SC-09 names a kind that cannot carry it.** `evidence: unit` (BRIEF.md:108), but the
   probe-registration check lives in `run-unit-tests.py` itself (:76-83) and its test file

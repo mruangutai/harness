@@ -21,7 +21,7 @@ to enter it rather than discovering it halfway through a migration.
 | Cycles | **1 of 10** — zero send-backs this build; the one cycle was the plan phase's architecture-review fix |
 | Runs | 7 of 20 |
 | Full unit suite | green at the branch tip, zero FAIL lines |
-| `check-state.sh` | FEAT-24 down to its one expected violation, the unpinned `review_sha` |
+| `check-state.py` | FEAT-24 down to its one expected violation, the unpinned `review_sha` |
 
 ## What blocks it, in one paragraph
 
@@ -80,7 +80,7 @@ module the write guard itself imports.
 
 ## Also yours, and not FEAT-24's
 
-Four paused feature directories account for six of `check-state.sh`'s seven violations:
+Four paused feature directories account for six of `check-state.py`'s seven violations:
 `FEAT-25-claim-feature-root` and `FEAT-25-expertise-repository-tier` both claim FEAT-25, alongside
 `FEAT-27-expertise-repository-tier`; one has `runs/` but no `feature.json`. I have not touched any
 of them. Two of them look like a split-brain awaiting your reconciliation.

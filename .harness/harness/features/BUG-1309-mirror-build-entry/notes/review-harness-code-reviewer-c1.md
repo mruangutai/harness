@@ -35,7 +35,7 @@ a neighboring one. Ran `tests/integration/test-merge-gate.py` directly: **16/16 
 
 **Asymmetry checked at all four sites, intact and matches the signed text (D-08, DEC-220,
 BRIEF SC-06) exactly, word for word:**
-- `check-state.sh:2002` — `if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or …: continue` — membership alone.
+- `check-state.py:2002` — `if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or …: continue` — membership alone.
 - `gh-sync.py:1361` refuse-gate — membership alone (`entry is None and feature_id not in …`); the
   `recovery-required` arm (`:1375`→`_build_entry_recovery_notice:1380`) never refuses regardless of
   era, and its own era check (`:1380`) is membership alone within that value-filtered call.

@@ -14,7 +14,7 @@ surface a regression this feature introduced.
 
 ## Measurements
 
-1. Full suite, `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py --kind
+1. Full suite, `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py --kind
    integration`: **exit 0**, `pool: 8 workers, 46 files` (`/tmp/integration_full.log`), **zero**
    `^FAIL ` lines anywhere in the 3336-line raw capture. `test-plan-merge.py`: `exit 0, 10.15s`.
    (Caution for future measurement: the bash-tool's own captured/artifact echo of this same
@@ -22,7 +22,7 @@ surface a regression this feature introduced.
    file — redirect to a real file and read that, don't trust the tool-returned capture for a
    suite this size.)
 
-2. Same full suite, `HARNESS_AGENT_TYPE=harness-code-reviewer bash …/run-unit-tests.py --kind
+2. Same full suite, `HARNESS_AGENT_TYPE=harness-code-reviewer python3 …/run-unit-tests.py --kind
    integration`: **exit 1**, **15** `^FAIL ` lines (`/tmp/integration_agenttype.log`), all
    attributed to `test-plan-merge.py` (13 case-level `FAIL` lines over sign-approval mechanics,
    plus the file's own summary line printed **twice** — `run_pool.py`'s per-result emit has a

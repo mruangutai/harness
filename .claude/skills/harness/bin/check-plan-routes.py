@@ -64,28 +64,41 @@ LEGAL_MAIN_SESSION_TOKEN = "main-session-direct"
 LEGAL_TOKENS = "team, main-session-direct"  # D-07
 
 
+def _resolver_invocation(root, manifest_root):
+    if os.path.realpath(root) == os.path.realpath(manifest_root):
+        return CHECK_DOMAIN, None
+    owner_check_domain = os.path.join(
+        manifest_root, ".claude", "skills", "harness", "bin",
+        "check-domain.py")
+    if os.path.isfile(owner_check_domain):
+        return owner_check_domain, None
+    env = os.environ.copy()
+    env["HARNESS_PROJECT_DIR"] = manifest_root
+    return CHECK_DOMAIN, env
+
+
+def _agents_from_output(output):
+    lines = (line.strip() for line in output.splitlines())
+    return sorted({
+        line for line in lines
+        if line and line != "NOBODY" and not re.match(r"^SHARED ", line)
+    })
+
+
 def resolve_agents(path, root, manifest_root):
     """Return agents from the same resolver script the live hook invokes."""
-    check_domain = CHECK_DOMAIN
-    if os.path.realpath(root) != os.path.realpath(manifest_root):
-        check_domain = os.path.join(
-            manifest_root, ".claude", "skills", "harness", "bin", "check-domain.py")
+    check_domain, env = _resolver_invocation(root, manifest_root)
     proc = subprocess.run(
         [check_domain, "--resolve", path],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
+        env=env,
     )
     if proc.returncode == 2:
         sys.stderr.write(proc.stderr)
         sys.exit(2)
-    agents = []
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if not line or line == "NOBODY" or re.match(r"^SHARED ", line):
-            continue
-        agents.append(line)
-    return sorted(set(agents))
+    return _agents_from_output(proc.stdout)
 
 
 def _owner_root(root):

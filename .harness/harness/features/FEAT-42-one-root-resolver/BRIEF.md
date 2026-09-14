@@ -112,7 +112,7 @@ printed remedy that does not destroy another feature's work.
 - SC-04: The seven removed resolver definitions — `factory_config.harness_root`, `wayfind.root`,
   `context-watch._repo_root_from_script`, `dispatch-guard._root_from`,
   `post-merge-sweep._resolve_repo_root`, and the two inline chains at `harness_yaml.py:449` and
-  `check-state.sh:22` — appear nowhere in executable code under `.claude/skills/harness/bin/`.
+  `check-state.py:22` — appear nowhere in executable code under `.claude/skills/harness/bin/`.
   `worktree_owner` and `_resolve_main_checkout_root` still exist and answer their own questions.
   verify: automated      evidence: unit
 - SC-05: A governed write still succeeds and a denied write still fails after the `factory_config`
@@ -176,7 +176,7 @@ printed remedy that does not destroy another feature's work.
 ## Constraints
 
 - **DEC-174 amendment 4 BLOCKS execution** on `check-domain.py`, `bash-write-guard.py`,
-  `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.py` and the test file
+  `validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py` and the test file
   of each. Those are main-session-direct. Its library rule also governs here: a squad may write
   `harness_boundary.py`, and the cutover that makes a gate use it is main-session-direct, proven by an
   identical violation set before and after.

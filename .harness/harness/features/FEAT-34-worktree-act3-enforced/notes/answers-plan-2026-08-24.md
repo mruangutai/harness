@@ -4,7 +4,7 @@ One consolidated set (DEC-176). Nothing else is open.
 
 ## Q5 — THE HOOK IS NOT ENFORCEMENT LAYER. THE INVARIANT IS.
 
-**Ruling: the `post-merge` hook is `team`. `check-state.sh`'s invariant and its test are
+**Ruling: the `post-merge` hook is `team`. `check-state.py`'s invariant and its test are
 `main-session-direct`.**
 
 **The reason is DEC-174's own stated test**, in the table at `DECISIONS.md:4709`: *"the artifact
@@ -58,7 +58,7 @@ both additions, one re-signature.
 
 ## Q3 — NOT A DEADLOCK. A BACKLOG ROW.
 
-Your reproduction stands: `check-state.sh` VIOLATES on a missing `approval:` block and no agent may
+Your reproduction stands: `check-state.py` VIOLATES on a missing `approval:` block and no agent may
 write one. But `.claude/skills/harness/templates/plan.yaml:30-35` already ships that block at
 `status: pending`, and FEAT-19's plan carries exactly it. **The create path is to instantiate from the
 template**, which this file did not. A procedural miss with a clean route.

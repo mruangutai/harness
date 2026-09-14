@@ -30,7 +30,7 @@ purpose is to make the guards depth-agnostic precisely because the depth changed
 
 `CLAUDE.md` is explicit: a decision the tree flatly contradicts is **STRUCK, never marked** (DEC-188)
 — and *"there is no propagation checker — nothing detects a falsified statement left standing, so the
-striking has to actually happen."* No test asserts DECISIONS.md against the tree. `check-state.sh`
+striking has to actually happen."* No test asserts DECISIONS.md against the tree. `check-state.py`
 does not read it. So this survives indefinitely unless someone acts.
 
 It also has reach: **D-02 and D-03 of this very plan cite DEC-193**, and DEC-189 references it. A

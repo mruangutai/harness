@@ -43,7 +43,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer, a registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer, the state gate
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -138,7 +138,7 @@ decisions:
       and the 60-line cap, while SEAM_NOTES keeps governing which notes are REQUIRED. The
       shape check moves out of the SEAM_NOTES loop so a required note is reported once.
     because: The criterion as written is already true by silence and cannot go red.
-      check-state.sh:593 is the only place a handoff path is constructed and it only builds
+      check-state.py:593 is the only place a handoff path is constructed and it only builds
       paths for stems in SEAM_NOTES[status], so notes/handoff-anything-else.md is never
       opened, never demanded and never rejected. Verified separately that check-domain.py
       already shape-gates any stem at write, RE_HANDOFF at check-domain.py:665 matching
@@ -161,7 +161,7 @@ decisions:
     choice: Every must-go-red proof uses a named mutation seam rather than an exit status.
       For Python, the test loads context-watch.py through importlib.util.spec_from_file_location
       and rebinds one named module attribute, asserting first that the rebind changed the
-      value the function returns. For check-state.sh, the test copies the script and
+      value the function returns. For check-state.py, the test copies the script and
       harness_yaml.py into a temp bin directory, deletes the one line carrying a named
       literal, asserts the literal is present in the original and absent in the copy, and runs
       the copy through the existing CHECK_STATE_BIN environment override.
@@ -360,7 +360,7 @@ tasks:
       load-bearing, so no caller may re-implement the comparison.
 
       nearest_seam(row) -> str. Read the feature's .harness/harness/features/<feature>/feature.json
-      status and map it through the same station vocabulary check-state.sh uses: Plan and
+      status and map it through the same station vocabulary check-state.py uses: Plan and
       Ready return "plan", Building returns "build", Review returns "validate", Done and
       Abandoned and Backlog return "none". When the feature is unknown or its feature.json is
       absent or unreadable, return the literal string
@@ -698,7 +698,7 @@ tasks:
       - .claude/settings.json
     verify: |
       python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];e=[x for x in h if x['matcher']=='Task|Agent'];assert len(e)==1,h;c=[k['command'] for k in e[0]['hooks']];assert any('dispatch-guard.py' in x for x in c),c;assert any('context-watch.py --hook' in x for x in c),c;print('registered alongside dispatch-guard')"
-      .claude/skills/harness/bin/check-state.sh
+      .claude/skills/harness/bin/check-state.py
     intent: |
       In .claude/settings.json, add one hook command to the EXISTING PreToolUse entry whose
       matcher is exactly "Task|Agent" -- the entry that already registers dispatch-guard.py.
@@ -718,7 +718,7 @@ tasks:
       SubagentStop blocks, do not reorder the existing PreToolUse entries, and do not add
       anything to merge-settings.py -- D-14 rules that the hook does not propagate to product
       checkouts, and merge-settings.py --check only asserts its own specs are present, never
-      that no extra hook exists. After the edit, check-state.sh INV-9 must still pass: it
+      that no extra hook exists. After the edit, check-state.py INV-9 must still pass: it
       asserts specific hooks are registered and does not object to an additional one.
 
   - id: T-10
@@ -726,20 +726,20 @@ tasks:
     traces: [REQ-09]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 names check-state.sh enforcement layer and INV-17's seam table
+    execution_reason: DEC-174 names check-state.py enforcement layer and INV-17's seam table
       lives in it, so the harness plans this cutover and the operator's hands execute it. A
       DEVIATION line from check-plan-routes.py is expected, because the path is granted to
       harness-backend-dev and harness-dev-ops.
     depends_on: []
     status: pending
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
-      grep -c 'handoff-\*\.md' .claude/skills/harness/bin/check-state.sh
-      .claude/skills/harness/bin/check-state.sh
+      grep -c 'handoff-\*\.md' .claude/skills/harness/bin/check-state.py
+      .claude/skills/harness/bin/check-state.py
     intent: |
-      In .claude/skills/harness/bin/check-state.sh, restructure INV-17 (currently lines
+      In .claude/skills/harness/bin/check-state.py, restructure INV-17 (currently lines
       462-628) so that the SHAPE check runs over every handoff note found and the SEAM_NOTES
       table keeps deciding which notes are REQUIRED. Two separate questions, today conflated.
 
@@ -840,7 +840,7 @@ tasks:
     verify: |
       grep -c 'handoff-mid-' .claude/skills/harness/SKILL.md
       grep -c 'orchestrator_context_tokens' .claude/skills/harness/SKILL.md
-      .claude/skills/harness/bin/check-state.sh
+      .claude/skills/harness/bin/check-state.py
     intent: |
       In .claude/skills/harness/SKILL.md, extend the seam section around lines 320-338 so an
       orchestrator that receives the context warning knows exactly what to do. Edit in place;

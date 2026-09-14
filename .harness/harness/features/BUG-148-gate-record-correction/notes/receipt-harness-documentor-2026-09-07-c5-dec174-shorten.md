@@ -10,7 +10,7 @@ nothing committed.
 
 ```
 **The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.py`, `check-docs.sh` and
-`check-state.sh` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
+`check-state.py` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
 all: `--check` was never a supported mode. Before argv validation landed at `ffbdbfa1` (2026-08-05),
 an unrecognized argument fell through to the WRITE path, so that exit 0 was a regeneration of
 `DECISIONS-INDEX.md` that overwrites exactly the drift a check would have reported; it could not

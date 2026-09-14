@@ -181,15 +181,15 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   refusal, same fixture: a write to `<root>/src/main.py` exits 2 despite the `src/**` grant, so the
   allow is not an allow-all.
   verify: automated      evidence: integration
-- SC-08: `check-state.sh` reports a pre-existing out-of-place worktree, fails on it, and never tells
+- SC-08: `check-state.py` reports a pre-existing out-of-place worktree, fails on it, and never tells
   a session to delete its own cwd. Fixture: `test-check-state.py` creates three temp repositories
   with `git init` and one commit each, run through the file's existing `run(tmp)` helper (which sets
-  `CLAUDE_PROJECT_DIR` to the directory given and runs `check-state.sh` there) — repo A with a
+  `CLAUDE_PROJECT_DIR` to the directory given and runs `check-state.py` there) — repo A with a
   worktree under `.claude/worktrees/wt`, repo B with a worktree at a sibling path outside it, repo C
   with two `git worktree add` entries — a sibling worktree that IS the run's own root and its only
   out-of-place entry, plus a legitimate one under the MAIN checkout's `.claude/worktrees/legit`.
   Every directory used as a run root carries the file's existing `make_fixture` scaffold, without
-  which `check-state.sh` exits 1 as not-onboarded before any invariant runs.
+  which `check-state.py` exits 1 as not-onboarded before any invariant runs.
   Forbidden: repo B's run prints an `INV-25` line naming the sibling path and exits non-zero, and
   repo C's run prints an `INV-25` line naming its own root path and exits non-zero — the severity is
   the same in both branches. Paired allow, same fixture: repo A prints no `INV-25` line.
@@ -292,7 +292,7 @@ SC-10 is what proves it.
 
 ## Constraints
 
-- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and `check-state.sh` are DEC-174
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and `check-state.py` are DEC-174
   carve-out files. Every task touching any of them, and the new shared module the rule moves into,
   is `main-session-direct`: ordinary edits, tests run explicitly, a human reading the diff.
 - Ruling: an out-of-place worktree is a mistake, not a supported shape. It is REFUSED, never

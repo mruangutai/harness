@@ -10,7 +10,7 @@ dispatch verbatim. No divergence found.
 ```
 python3 -c "import json,sys;d=json.load(open('.harness/harness.json'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
 ! grep -q cli_min_version .harness/harness.json &&
-test "$(bash .claude/skills/harness/bin/check-state.sh | grep -c 'INV-')" -gt 0
+test "$(python3 .claude/skills/harness/bin/check-state.py | grep -c 'INV-')" -gt 0
 ```
 
 Result: exit code 1 (RED, as expected — the `json.load` clause failed because the key was
@@ -32,7 +32,7 @@ EXIT CODE: 0
 
 GREEN. All three clauses passed: `json.load` confirmed the key absent from the parsed
 mapping, the grep found no literal `cli_min_version` string anywhere in the file, and
-`check-state.sh` ran to completion and emitted at least one `INV-` line (no team-config
+`check-state.py` ran to completion and emitted at least one `INV-` line (no team-config
 parse complaint observed — T-19 was not touching `.harness/team-config.yaml` at the moment
 this ran).
 

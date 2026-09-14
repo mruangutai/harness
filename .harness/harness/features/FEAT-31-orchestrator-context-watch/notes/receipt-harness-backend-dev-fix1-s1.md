@@ -44,7 +44,7 @@ $ python3 .claude/skills/harness/bin/test-context-watch.py
 ... 76 of 76 cases passed
 $ python3 .claude/skills/harness/bin/test-context-watch.py | tail -1 | grep -qE '^[0-9]+ of [0-9]+ cases passed$'
 (matches)
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ... PASS test-context-watch.py
 (exit 0, zero MISCONFIGURED)
 ```
@@ -56,7 +56,7 @@ $ python3 .claude/skills/harness/bin/test-context-watch-cli.py
 ... 10 of 10 cases passed
 $ test "$(python3 .claude/skills/harness/bin/test-context-watch-cli.py | grep -cE '^[0-9]+ of [0-9]+ cases passed$')" = "1"
 (matches)
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
 ... PASS test-context-watch-cli.py
 (exit 0, zero MISCONFIGURED)
 ```
@@ -88,7 +88,7 @@ $ test "$(... | grep -c 'Traceback')" = "0" → match
 $ ... | grep -qi 'no such agent\|not found' → match ("projects directory not found")
 $ ls .claude/skills/harness/bin/test-verify-context-watch-live.py 2>/dev/null; test $? -ne 0
 (ls exits 1 — file does not exist — matches)
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
 (exit 0, zero MISCONFIGURED — the file's name keeps it out of the drift detector)
 ```
 `task_verify: pass`
@@ -125,8 +125,8 @@ entries=669. No disagreement to report honestly — tool and recomputation genui
 
 **4.**
 ```
-bash .claude/skills/harness/bin/run-unit-tests.py --kind unit    → exit 0, 0 MISCONFIGURED
-bash .claude/skills/harness/bin/run-unit-tests.py --kind integration → exit 0, 0 MISCONFIGURED
+python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit    → exit 0, 0 MISCONFIGURED
+python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration → exit 0, 0 MISCONFIGURED
 ```
 
 ## New assertions and their red-proof counts

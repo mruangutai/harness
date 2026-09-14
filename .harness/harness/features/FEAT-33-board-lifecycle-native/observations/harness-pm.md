@@ -12,7 +12,7 @@
   `default_branch`, never a checkout. Together those two make a one-key config change a cross-repo
   ordering problem. Neither the dispatch's decision floor nor the grilling artifact named either. I
   found them only because I traced what "declare `plan`" would actually execute against.
-- 2026-08-22: `check-domain.py --resolve` grants `check-state.sh` to `harness-dev-ops` while DEC-174
+- 2026-08-22: `check-domain.py --resolve` grants `check-state.py` to `harness-dev-ops` while DEC-174
   forbids dispatching a change to it. The two answers disagree and only prose reconciles them. Raised
   as a non-blocking open_question rather than worked around.
 - 2026-08-22: `--resolve` returned `harness-orchestrator` for a generic `features/<FEAT>/notes/*.md`
@@ -43,7 +43,7 @@
   Validate after every `decisions:` edit, not once at the end.
 - 2026-08-23: FEAT-33 rulings round. A binding operator ruling (stop closing sub-issues at commit)
   collided with an invariant the plan is forbidden to edit (INV-26 maps task status done to the done
-  column, check-state.sh:1234). Neither the arch review nor the four-angle simplify pass saw it,
+  column, check-state.py:1234). Neither the arch review nor the four-angle simplify pass saw it,
   because both graded the plan before the ruling. Lesson for me: when a ruling changes WHEN a
   ticket closes, grep the gates for what they assert about that ticket's state before applying it.
 - 2026-08-23: two count claims in the plan were stale and nobody re-counted them — integration.detect
@@ -65,7 +65,7 @@
 - 2026-08-23: "feature X merged" is two different facts. FEAT-26's plan SIGNATURE merged to main
   while all eight of its tasks were still pending, and a prior round's BRIEF recorded that as the
   feature having merged. Check feature.json status AND the task statuses before writing "merged".
-- 2026-08-23: FEAT-33 goal-check. Two SCs failed on their own SENTENCE, not on the work: SC-01 asserted a one-run conjunction the signed plan explicitly splits across two runs (provision exits 3 before the field branch), and SC-20 asserted a status-Done fixture that check-state.sh's terminal exemption makes unconstructible. Both were signed with the plan that contradicts them - the swap test does not catch this; only re-reading each SC against the task intent that implements it does.
+- 2026-08-23: FEAT-33 goal-check. Two SCs failed on their own SENTENCE, not on the work: SC-01 asserted a one-run conjunction the signed plan explicitly splits across two runs (provision exits 3 before the field branch), and SC-20 asserted a status-Done fixture that check-state.py's terminal exemption makes unconstructible. Both were signed with the plan that contradicts them - the swap test does not catch this; only re-reading each SC against the task intent that implements it does.
 - 2026-08-23: a before/after capture pair can be BOTH identical and cited as proof of 'differs by nothing except X' - check-state-before/after-T-22.txt are byte-identical with zero INV-26 lines, so the removal half was never demonstrated live. When an SC says 'differs by nothing except', require the capture to show the except-set non-empty.
 - 2026-08-23: SC-15 graded on 'git show <review_sha>:path' passed only in the working tree - the fix landed uncommitted in fix cycle c1, so the criterion's own command fails against the pin. A content-at-sha criterion needs the sha re-pinned after every fix cycle, or it grades a tree nobody ships.
 - 2026-08-23: FEAT-33 - plan-merge.py cannot record a strike on an EXISTING task or decision: an id whose value differs from the base raises exit 7 CONFLICT (plan-merge.py:262-275), so an in-place amendment of a signed task is Edit-tool work by construction. Convention found for a struck record: FEAT-18 plan.yaml D-08 (a struck: sibling key, original choice: kept), and inside FEAT-33 itself T-18 verify (an in-field CORRECTED comment). No precedent existed for striking a clause of a task intent; I used a struck: list of clause/in_force/replaced_by/falsified_by/evidence entries plus [STRUCK ...] markers left beside the original wording.
@@ -80,7 +80,7 @@
 - 2026-08-23 (FEAT-33): a coordinator handed me 'board 3 reached 0 findings' as settled fact; the capture reads 2 finding(s). Re-derive a figure a dispatch supplies even when it is offered as already-verified evidence, and especially when it is the premise for deciding a clause is falsified.
 - 2026-08-23 (FEAT-33): I corrected a false sentence by inserting two false ones. Cause 1: two capture files whose names differed by one word (migration-harness-audit-after.txt vs -after-2-accepted.txt) and I picked by which name sounded more specific, never checking which was current. When two artifacts could answer one question, check git log on both and read the one the later commit wrote - do not read the name.
 - 2026-08-23 (FEAT-33): cause 2 of the same failure - I generalised 'board 3's reconcile moved no cards' into 'reconcile does not move cards'. My own cited evidence (zero STATION findings on that board) was the disproof: absence of a class on one input says nothing about the tool. Before writing a claim about a TOOL, read the tool's own dispatch table; _ALWAYS_FIXABLE_KINDS settled it in one grep.
-- 2026-08-23 (FEAT-33): an equality assertion on a transient defect count reddens when the defect is FIXED. T-11's verify pins check-state.sh's VIOLATION count to = 1, justified by another feature's unsigned BRIEF; that BRIEF landed and the count is now 0, so a done task's verify fails because things improved. Assert absence of the specific violation, never equality on a total.
+- 2026-08-23 (FEAT-33): an equality assertion on a transient defect count reddens when the defect is FIXED. T-11's verify pins check-state.py's VIOLATION count to = 1, justified by another feature's unsigned BRIEF; that BRIEF landed and the count is now 0, so a done task's verify fails because things improved. Assert absence of the specific violation, never equality on a total.
 - 2026-08-23 (FEAT-33): the seventh falsified statement was a verify: block, not prose - found only by reading plan.yaml end to end after grep coverage had been declared insufficient. A stale verify on a status: done task is worse than stale prose: it reddens a gate and nothing attributes it to the ruling that superseded it.
 - 2026-08-23 (FEAT-33): repointing a verify from a LIVE mutable board to a COMMITTED capture is what made it stable, and reading the capture through 'git show HEAD:' rather than the working tree is what kept it honest - an uncommitted or deleted capture now reddens instead of passing. Two clauses: the immutable archived capture proves the detection capability, the live capture proves the delivered outcome.
 - 2026-08-23 (FEAT-33): after fixing a verify, prove it can redden before claiming it is fixed. Three mutants, each exit 1: swap the two capture paths in each direction, and swap the absence-grep pattern for one that IS present. The third is the load-bearing one - it proves the pipeline runs at all, so 'test -z' is not passing vacuously on an empty capture.

@@ -3,7 +3,7 @@
 ## Destination
 
 **A worktree cannot outlive its feature.** When a FEAT-NN flow reaches `Done` on the default branch,
-a post-merge hook removes its checkout automatically, and `check-state.sh` REFUSES if anything is
+a post-merge hook removes its checkout automatically, and `check-state.py` REFUSES if anything is
 still standing. Two mechanisms: one closes the window, one proves it closed.
 
 ## Settled
@@ -11,7 +11,7 @@ still standing. Two mechanisms: one closes the window, one proves it closed.
 - **How loud?** → **BLOCKING, exit 2.** Not a violation-and-continue, not a note. The operator
   confirmed the term first: "feature" means a FEAT-NN flow, the thing with a directory under
   `.harness/<repo>/features/` and a `feature.json` whose `status` reads `Done`.
-- **The cost was named and accepted:** `check-state.sh` runs before every commit, so an orphaned
+- **The cost was named and accepted:** `check-state.py` runs before every commit, so an orphaned
   FEAT-31 worktree stops a commit on FEAT-33. The pain lands on whoever is working, not on whoever
   left the checkout. The operator chose blocking with that stated.
 - **A worktree whose feature directory is absent from the default branch** — an abandoned or
@@ -57,7 +57,7 @@ still standing. Two mechanisms: one closes the window, one proves it closed.
 
 ## Facts I verified (so pm does not re-derive them)
 
-- **INV-25 already enumerates worktrees.** `check-state.sh:1076` runs
+- **INV-25 already enumerates worktrees.** `check-state.py:1076` runs
   `git worktree list --porcelain` and walks the records at `:1083-1090`. A sibling invariant reuses
   that loop; this is not new plumbing. Measured at `3ed95a4`.
 - **INV-25 already prints removal guidance** (`:1148`), and `:1132` carries a deliberate comment
@@ -72,7 +72,7 @@ still standing. Two mechanisms: one closes the window, one proves it closed.
 - **`remove`'s refusal codes, from `feature-worktree.py`:** dirty tree → exit 4 with `WOULD DISCARD`
   lines; unlanded tracked artifact → exit 5 with `MISSING`/`DIFFERS` lines; ambiguous short id →
   exit 5 naming every candidate. There is no force flag and there must not be one.
-- **HAZARD — `check-state.sh:22` sets `root="${CLAUDE_PROJECT_DIR:-$(pwd)}"` and reads `feature.json`
+- **HAZARD — `check-state.py:22` sets `root="${CLAUDE_PROJECT_DIR:-$(pwd)}"` and reads `feature.json`
   from the WORKING TREE, not from the default branch.** The main checkout is frequently on a `chore/`
   branch — it was for most of 2026-08-23 — so "status on the default branch" is NOT what a plain file
   read returns. The invariant must resolve the default branch's copy explicitly, and a test must
@@ -82,7 +82,7 @@ still standing. Two mechanisms: one closes the window, one proves it closed.
   orchestrator's, because `git worktree remove` exits 0 when run from INSIDE the tree it deletes, so
   an agent following that instruction deletes its own working directory mid-run. This binds every
   agent dispatched into the worktree, leads and members alike. The main session is the only tier
-  structurally outside it. `check-state.sh:1132` carries the same warning for the same reason.
+  structurally outside it. `check-state.py:1132` carries the same warning for the same reason.
 - **`post-merge` FIRES ON BOTH MERGE SHAPES.** Measured 2026-08-23 in a throwaway repository, not
   recalled: a fast-forward merge fired it with `$1 = 0` and `git merge --squash` plus commit fired it
   with `$1 = 1`. It does NOT fire on commit, checkout or fetch. In practice it fires on the `git pull`

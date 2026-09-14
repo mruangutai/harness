@@ -39,7 +39,7 @@ honestly ("On OMP every Edit payload is path-only, so every Edit of these govern
 that refusal and must use Write" — the c4 F-02 advisory is cured), and the three cited case names
 resolve and assert what is claimed (see leg 3). All six permitted-write pairs present at the pin
 and none asserted non-zero: legacy update `test-check-domain.py:5161`; resumed owner `:5155` and
-both recovering-owner cases `:5157`, `:5159`; digest append repair `:3891`; `check-state.sh`
+both recovering-owner cases `:5157`, `:5159`; digest append repair `:3891`; `check-state.py`
 legacy/owned silence `test-check-state.py:4560-4612` (clean tree `clean_code == 0`, `:4609`);
 validate-digest `located compliant digest passes` / `unresolvable artifact lookup still fails open`
 (`test-validate-digest.py:1973`, `:1984`); witness-guard siblings `test-check-domain.py:4970`,

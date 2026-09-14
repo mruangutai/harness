@@ -13,7 +13,7 @@ instead. Panel ranks 1-6 all applied, none declined.**
 |---|---|---|
 | Mint | `check-domain.py` POST, `elif target:` at :1930-1950 | effective uid = landed doc's `run_uid`, else witness's, else `mint_uid()`; `inject_uid()` appends one `run_uid:` line by TEXT (no YAML round-trip); `record_seed()` writes the witness with the same value, in the same call |
 | Refuse | `check-domain.py` PRE, inside `if prior_state:` at :1530-1574, after the #1124 run_id compare | `uid_conflict(prior_doc, doc)` — prior carries a uid and incoming carries a different one, or none → deny. Write **and** Edit (Edit content is reconstructed at :1905-1923) |
-| Detect | `check-state.sh` per-run-dir loop at :1426 | witness uid vs checkpoint uid disagreeing → violation. Witness absent, or either side carrying no uid → silent |
+| Detect | `check-state.py` per-run-dir loop at :1426 | witness uid vs checkpoint uid disagreeing → violation. Witness absent, or either side carrying no uid → silent |
 
 Minting has no other possible host, and the plan says so (D-12): a PRE hook cannot alter a payload,
 leads hold no shell, and **no program in the tree writes a run `state.yaml`** (grepped across

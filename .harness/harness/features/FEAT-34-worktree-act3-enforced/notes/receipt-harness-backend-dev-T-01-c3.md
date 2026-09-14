@@ -19,11 +19,11 @@ dispatch verbatim, no mismatch.
 os.path.realpath(root)`. When `root` is itself a linked worktree — the harness's normal running
 posture — the main checkout's own porcelain entry never equals `root`, so it was never skipped:
 it fell through `_split_owner_segment_id` (its path is not under `WORKTREES_SEGMENT`) and landed
-as `klass="unresolved", feature_id=None`. That was INV-29's sole remaining `check-state.sh`
+as `klass="unresolved", feature_id=None`. That was INV-29's sole remaining `check-state.py`
 violation.
 
 ## The fix
-Per `check-state.sh:1138-1143` / INV-25's precedent (verbatim: "The first porcelain entry is
+Per `check-state.py:1138-1143` / INV-25's precedent (verbatim: "The first porcelain entry is
 always the main checkout, even when the command runs from inside a linked worktree, and a
 repository with no linked worktrees returns itself — so the derivation is total"), `classify`
 now derives the main checkout from **porcelain order**, not from a comparison to `root`:
@@ -74,7 +74,7 @@ main checkout, since there index 0 == root, byte-identical to the old behaviour)
 3. A repository with no linked worktrees yields no records and does not error — case (n).
 4. Both `classify_all` call sites confirmed:
    - `worktree_terminal.py:298`, `classify(root)` inside `classify_all` — `root` here is
-     check-state.sh's own root, which MAY be a linked worktree; this is the only call site whose
+     check-state.py's own root, which MAY be a linked worktree; this is the only call site whose
      behaviour changes, and case (m)/(i) exercise it through `classify_all(probe_root)`.
    - `worktree_terminal.py:330`, `classify(owner_root)` inside the per-fleet-repo loop —
      `owner_root` is always a main checkout (`factory_config.workspace_path`, never a linked
@@ -99,7 +99,7 @@ consumes the changed interface; unaffected, since its `root` there is resolved a
 `post-merge-sweep.py`'s own `_resolve_repo_root()` (a workaround for this same defect — see
 residual finding below).
 
-### `.claude/skills/harness/bin/check-state.sh`
+### `.claude/skills/harness/bin/check-state.py`
 Exit 0. No `INV-29`, `VIOLATION`, or blocking-violation lines in the output — zero violations,
 the target. Remaining output is all `note`-severity (unrelated pruned-run and STATE.md-format
 notes on other features), not violations.
@@ -132,6 +132,6 @@ comment are out of scope for this task and were not touched.
 - `.claude/skills/harness/bin/worktree_terminal.py` — the one-hunk fix in `classify`, plus the
   corrected block comment. No other function touched.
 
-No other files written. `test-worktree-terminal.py`, `check-state.sh`, `post-merge-sweep.py`,
+No other files written. `test-worktree-terminal.py`, `check-state.py`, `post-merge-sweep.py`,
 `plan.yaml`, `BRIEF.md`, `feature.json`, `STATE.md` were read only, never edited. Tree left dirty;
 no `git add`, `commit`, `worktree remove`, or `gh` command was run.

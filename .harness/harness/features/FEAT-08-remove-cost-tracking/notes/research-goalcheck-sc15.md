@@ -60,7 +60,7 @@ Separately: A-4 §1 cites the SPEC marker at `:2129`; it is at **`:2126`**.
 
 ### SC-05 — the literal failure, so nobody routes a fix at correct code
 
-`git diff ae2443d..HEAD -- check-state.sh SKILL.md | grep -E '^[-+].*cycles_used'` returns:
+`git diff ae2443d..HEAD -- check-state.py SKILL.md | grep -E '^[-+].*cycles_used'` returns:
 
 ```
 -    "cycles_used", "cost",
@@ -70,7 +70,7 @@ Separately: A-4 §1 cites the SPEC marker at `:2129`; it is at **`:2126`**.
 A changed line mentioning `cycles_used`. **Intent is satisfied**: `max_total_cycles` and
 `_max_total_cycles_rationale` are present and byte-identical in both configs
 (`.harness/harness.json:137-138`, `templates/harness.json:139-140`), and the change only split
-`"cost"` onto its own line under a four-line HISTORICAL-ONLY comment (`check-state.sh:331-335`) —
+`"cost"` onto its own line under a four-line HISTORICAL-ONLY comment (`check-state.py:331-335`) —
 whose own text says it avoids the quoted spelling *because a `verify:` counts that spelling*.
 **Red on wording, not on delivery.**
 

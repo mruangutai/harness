@@ -48,7 +48,7 @@ Absent-target attempt (non-empty, realistic `old_string`, so the empty-string ca
 blamed for the result):
 ```
 $ PAYLOAD='{"hook_event_name":"PreToolUse","tool_name":"Edit","tool_input":{"file_path":".harness/feat1/features/BUG-9999/runs/run1/.run-identity.json","old_string":"placeholder","new_string":"{\"run_uid\":\"FORGED\"}"}}'
-$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" bash "$PROJ/.claude/skills/harness/bin/check-domain.py")
+$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" python3 "$PROJ/.claude/skills/harness/bin/check-domain.py")
 → (no output)
 EXIT=0
 ```
@@ -57,7 +57,7 @@ CONTROL (same shape, witness file pre-exists with real content, `old_string` mat
 ```
 $ printf '{"run_uid":"REAL-UID-1"}' > "$PROJ/.harness/feat1/features/BUG-9999/runs/run1/.run-identity.json"
 $ PAYLOAD='{...,"tool_input":{"file_path":"...\/.run-identity.json","old_string":"REAL-UID-1","new_string":"FORGED-UID"}}'
-$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" bash "$PROJ/.claude/skills/harness/bin/check-domain.py")
+$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" python3 "$PROJ/.claude/skills/harness/bin/check-domain.py")
 → check-domain: BLOCKED — .../.run-identity.json: this path is the run's write-once identity
   witness, recorded at the run's first landed checkpoint. ...
 EXIT=2

@@ -60,7 +60,7 @@ rewritten at all.
 ## Out of scope, seen but not touched
 
 - Run by me at this checkout, not quoted from the dispatch: `check-plan-routes.py` prints
-  `35 violation(s) across 16 plan(s)`, `exit=1`. `check-state.sh` exits 1 with 15 `VIOLATION` lines,
+  `35 violation(s) across 16 plan(s)`, `exit=1`. `check-state.py` exits 1 with 15 `VIOLATION` lines,
   every one of them `has runs/ but no feature.json`. Both close at T-08. Observed, not chased.
 - The regenerated index still carries `feature.yaml` in historical rows. By design (rule 15, R-01).
   Not cleaned.

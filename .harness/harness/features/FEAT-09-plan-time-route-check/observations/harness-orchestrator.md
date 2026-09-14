@@ -17,7 +17,7 @@
   key — here `harness-orchestrator` depth 1 and `orchestrator` depth 0. Reporting the delta as an
   upper bound with the contamination named beat inventing an attribution.
 
-- 2026-08-05: `check-state.sh` INV-5 scans STATE.md for any `\bT-\d+\b` and compares against THIS
+- 2026-08-05: `check-state.py` INV-5 scans STATE.md for any `\bT-\d+\b` and compares against THIS
   feature's PLAN task ids. Writing "FEAT-08 T-05" in an open question produced a real VIOLATION on
   a factually correct sentence. Refer to a peer feature's tasks by description, never by id.
 
@@ -79,7 +79,7 @@
 
 - 2026-08-05 (parked): THE 200-LINE `feature.yaml` CAP IS NOT MECHANICALLY ENFORCED HERE. A
   205-line write succeeded; none of the six registered hooks implements a state-file shape gate and
-  `check-state.sh` has no such check. Prior expertise says these caps are PreToolUse BLOCKs, which
+  `check-state.py` has no such check. Prior expertise says these caps are PreToolUse BLOCKs, which
   is wrong for this tree and would have led me to trust the tool instead of counting. Count the
   lines yourself after every state write.
 

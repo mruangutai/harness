@@ -21,7 +21,7 @@
   line in `docs/invalid-states-audit.html` — outside `bin/` deliberately, so only the widened
   scan root can see it. The mutant is asserted on disk before the suite runs and the failure
   must name that file.
-- `check-state.sh` and `check-plan-routes.py` both report zero violations.
+- `check-state.py` and `check-plan-routes.py` both report zero violations.
 
 ## Dead ends
 

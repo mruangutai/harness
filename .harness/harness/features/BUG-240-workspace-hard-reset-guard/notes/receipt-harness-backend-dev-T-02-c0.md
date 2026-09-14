@@ -99,7 +99,7 @@ ok    BUG-240 no bypass: the parser rejects --force
 ```
 `rc=0` (`$?` captured immediately after the run).
 
-### `bash .agents/skills/harness/bin/run-unit-tests.py --kind unit`
+### `python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Captured exit status into a shell variable immediately, per instructions — not read from the
 runner's own trailing tally line. `rc=0`. `grep -c '^FAIL '` over the full captured output: `0`

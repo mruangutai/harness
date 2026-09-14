@@ -31,7 +31,7 @@ the re-derived 58/38/19 arithmetic, DEC-174 modes, both `## Approval` / `approva
   `eng-lead G-02` (2 lines), `pm P-01`, `qa G-05` — six token lines. 28 tracked expertise `.md`
   files; `git log -S UNIT_SCRIPTS` puts all three newly-found entries' current text at `e798b08`
   (FEAT-45's own post-merge distillation on this branch's base ref).
-- **T-07's sweep, eight tree shapes** (synthetic repo, real `check-expertise.sh` copy, base ref
+- **T-07's sweep, eight tree shapes** (synthetic repo, real `check-expertise.py` copy, base ref
   planted as `refs/remotes/origin/main`): unrepaired → 1; all five repaired → **0**; only the old
   two → 1; ids renumbered → 1; neither directory named → 1; glob matches nothing → 1 (`files 0`,
   floor, explicit message not a traceback); positive control empty → 1; **a sixth file appears,
@@ -53,7 +53,7 @@ Probe harnesses were ephemeral (`/tmp/feat47-sweep/`, not shipped). To reproduce
 
 |Block|What reddens it|A tree where it passes|Action vs inaction|
 |---|---|---|---|
-|T-07|any token line under either glob, a dropped pre-image id, a vanished file, a repair naming neither directory, `check-expertise.sh`, a glob under its floor, an empty control|yes — the repaired synthetic tree, exit 0|yes — exit 1 today, on all five files|
+|T-07|any token line under either glob, a dropped pre-image id, a vanished file, a repair naming neither directory, `check-expertise.py`, a glob under its floor, an empty control|yes — the repaired synthetic tree, exit 0|yes — exit 1 today, on all five files|
 |T-06|no entry with the title fragment, a missing mandated token, a stub body, a reused number|yes — faithful `DEC-208`, exit 0|yes — exit 1 today, where the old grep was already true|
 
 ## If a sixth Expertise file appears

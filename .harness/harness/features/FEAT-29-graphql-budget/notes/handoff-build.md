@@ -32,7 +32,7 @@ SCs, then dispatch **ship-refresh and distillation as TWO dispatches in ONE mess
 - Do NOT re-dispatch over a run whose `state.yaml` lacks `completed_at`, and do NOT assert a negative
   ("X left no receipt") in a brief — both caused duplicated work here —
   `observations/harness-orchestrator.md` — verified-at e7104ca
-- Do not edit `check-state.sh`, `test-check-state.py`, `CLAUDE.md`, `.harness/notes/**`,
+- Do not edit `check-state.py`, `test-check-state.py`, `CLAUDE.md`, `.harness/notes/**`,
   `.harness/logs/**` — carve-out or `NOBODY` — verified-at 3fbfd0a
 - Do not re-open the matrix integration question or SC-05's OFF clause — both ruled, and the second
   rested on a false premise refuted at `test-gh-cost-log.py:251-259` — verified-at c472a02

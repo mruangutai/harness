@@ -3,7 +3,7 @@
 **BLUF. Nine of nine REQs are met and fourteen of fifteen live criteria are met at the pin. One
 criterion is `unmet` and it is a PROOF gap, not a delivery gap: SC-08 requires the declaration route
 to be named "by file and symbol … asserted as a substring" at BOTH seams; the digest seam is emitted
-and asserted, the step seam is emitted (`check-domain.py:1655-1658`, `check-state.sh:1527-1529`) and
+and asserted, the step seam is emitted (`check-domain.py:1655-1658`, `check-state.py:1527-1529`) and
 asserted nowhere.** SC-12 was executed here — exit 0 over 728 manifested artifacts, and the
 discrimination case reddened, naming the altered path. SC-13 stays `pending-operator` and gates ship.
 SC-14 is `struck`. Everything graded at `git show 168f875f:<path>`; the two commits above the pin are
@@ -34,7 +34,7 @@ feature bookkeeping and were not read for content.
 | SC-05 | automated/integration | met | per item, all four groups: **16/16** documented fields (17 rows, `in_scope` twice) each accept+reject asserted `:2962-2976` × `:2918-2933`; **5/5** PASSTHROUGH rows × 3 assertions each `:2955-2959` × `:2889-2902`; `adequacy_notes` its own 3 assertions `:2905-2915`; **22/22** step keys (21 + `evidence`) individually present in the accepted payload `test-check-domain.py:36-63` and pinned by exact set equality against the schema `:114-124` |
 | SC-06 | automated/integration | met | vendored fixture `tests/integration/fixtures/pre-t04-validate-digest.py.fixture` (non-`.py` suffix, no git, no commit id). Content control located `:3193-3204`: contains `DOCUMENTED_OPTIONAL` (verified 2 occurrences at the pin) and does NOT contain `undeclared digest key` (verified 0) — either failing is a red case, not a skip. Discrimination is real: `:3218-3222` requires prior exit 0 AND current exit 2 with the message, over 3 payloads `:3265-3274` |
 | SC-07 | automated/integration | met | `:3130-3136` — exactly one undeclared-key message for three rogue keys (`len(errors) != 1` fails), all three names required `:3138-3146` |
-| SC-08 | automated/integration | **unmet (PROOF)** | digest seam asserted `:3138-3146` (`validate-digest.py` + `PASSTHROUGH`/`DOCUMENTED_OPTIONAL`/`SCHEMAS`). Step seam: the text DOES name the route (`check-domain.py:1655-1658`, `check-state.sh:1527-1529` — `run-state-schema.json` + `evidence`) but **no test asserts it**: the only occurrence of `run-state-schema` under `tests/` is the `open()` at `test-check-domain.py:117`; the refusal cases assert only `undeclared step key` and the key name (`:85-87`, `:105-110`), and `test-check-state.py:51-54` asserts run/step/key only. See Gaps |
+| SC-08 | automated/integration | **unmet (PROOF)** | digest seam asserted `:3138-3146` (`validate-digest.py` + `PASSTHROUGH`/`DOCUMENTED_OPTIONAL`/`SCHEMAS`). Step seam: the text DOES name the route (`check-domain.py:1655-1658`, `check-state.py:1527-1529` — `run-state-schema.json` + `evidence`) but **no test asserts it**: the only occurrence of `run-state-schema` under `tests/` is the `open()` at `test-check-domain.py:117`; the refusal cases assert only `undeclared step key` and the key name (`:85-87`, `:105-110`), and `test-check-state.py:51-54` asserts run/step/key only. See Gaps |
 | SC-09 | automated/integration | met | bypass asserted `:3160-3166` (exit 0 with `stop_hook_active` on SC-07's three-key return). Discrimination located: the guard is `validate-digest.py:1828-1829`, ahead of every `validate()` call, and the key check lives inside `validate()` at `:1407`; placing the check before the guard makes `:3164` red. **Anchor note:** the BRIEF cites `:1744`, which at the pin is docstring text inside `check_qa_matrix_claim` — the guard moved (it is `:1807` in the pre-change fixture). Graded on substance |
 | SC-10 | automated/integration | met | `SCHEMAS["lead"]` requires `adequacy_notes` `validate-digest.py:209`; documented `harness-team/SKILL.md:264`; `run_documented_contract_cases` `:519-538` with the omitted-field discrimination group at `:529-532` |
 | SC-11 | automated/integration | met | both directions, separate fixtures `test-check-domain.py:76-88` (version-1 undeclared key accepted; version-2 refused and named) |
@@ -69,8 +69,8 @@ BRIEF says no automated gate substitutes. Two concrete things for the operator's
 
 1. **CF-4** — the raw Python `None` reaching the `schema_version` downgrade message in the
    omitted-on-update edge case (`check-domain.py`, downgrade branch near `:1608`).
-2. **CF-1** — unescaped `run_id` / step-id interpolation in `check-state.sh`'s INV-16 at-rest message
-   (`check-state.sh:1525-1526`).
+2. **CF-1** — unescaped `run_id` / step-id interpolation in `check-state.py`'s INV-16 at-rest message
+   (`check-state.py:1525-1526`).
 
 ## Gaps
 

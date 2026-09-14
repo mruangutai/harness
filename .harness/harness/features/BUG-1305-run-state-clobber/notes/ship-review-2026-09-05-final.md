@@ -67,7 +67,7 @@ later round independently confirmed closed.
 
 ## Cleanup you own
 
-Four scratch worktrees survive and `check-state.sh` INV-29 will notice them. Removal is never a
+Four scratch worktrees survive and `check-state.py` INV-29 will notice them. Removal is never a
 subagent's act:
 
 `qa-c2-c369` (`c369fb1f`), `qa-c2-dc0` (`dc0e0313`), `qa-c2-e77` (`e77b30ca`), `qa-c2-mutate`
@@ -85,7 +85,7 @@ collation across seventeen cycles. Strike rows by ID.
 | B-2 | chore | Regression note `:9` names the removed complexity-allowlist row as `validate_digest.py:main`; the row actually removed is `("validate-digest.py", "check_artifact_file")`. Substance true, identifier false. |
 | B-3 | chore | The note's unit-suite figure was measured at `dee707e9`, before three files changed — it is not a pin measurement, while the integration line is. Non-gating under the criterion as signed. |
 | B-4 | chore | The reconstruction-`None` disclosure quotes its message verbatim but names only the permit cases; the message itself is pinned at `test-check-domain.py:3839` and `:4860-4864` and could be cited. |
-| B-5 | chore | `check-state.sh` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
+| B-5 | chore | `check-state.py` keeps a shadow copy of `uid_conflict`'s own guard and has already drifted on a whitespace `run_uid`. SIMPLIFY's one recommended apply, deliberately not applied. |
 | B-6 | chore | `harness_boundary.py` imports `MARKER_NAME` eagerly: +6.45 ms on every governed write, measured over a 60-invocation A/B. |
 | B-7 | chore | POST effective-uid selection lives in a shell heredoc with no importable function and no unit test. |
 | B-8 | chore | `check-domain.py:1240` still reads like the false PRE-only comment REQ-06 removed. True as written — its subject is the POST-sweep exclusion — and it will mislead the next reader anyway. |
@@ -94,7 +94,7 @@ collation across seventeen cycles. Strike rows by ID.
 | B-11 | bug | Harness: members emitted complete, well-formed returns that the host recorded as `failed (exit 1) — yield with null data`. |
 | B-12 | bug | Harness: a pre-plan `harness-code-reviewer` cannot yield at all — `validate-digest.py` demands a binding that cannot exist before a plan is drafted. |
 | B-13 | chore | Harness: no `plan-merge.py` verb reaches the `lanes:` block. |
-| B-14 | chore | Harness: `check-state.sh` INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval. |
+| B-14 | chore | Harness: `check-state.py` INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval. |
 | B-15 | enhancement | Define "exhausts" for `max_total_cycles` (BUG-1286's B-12). Undefined again here; it cost an Advisor round-trip. |
 | B-16 | chore | `tests/integration/test-check-domain.py` lets `CHECK_DOMAIN_BIN` swap the guard binary under test. It is what made this feature's mutation probes possible; an env-swappable guard under test still deserves an owner's eyes. |
 

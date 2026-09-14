@@ -44,7 +44,7 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
   there, so that suite must run in the task that edits the file.
 - REQ-08: The repository's own layout gate stays green once `factory_claim.py` stops carrying a
   `.harness`/`features` join (`layout_migration.READER_TABLE:92-94` reads that file today; a reader
-  matching neither form makes the whole `features` surface `CANNOT_VERIFY`, which `check-state.sh`
+  matching neither form makes the whole `features` surface `CANNOT_VERIFY`, which `check-state.py`
   INV-27 reports as a failure at `:2363-2367`). The chosen shape is a MOVE of that reader row onto
   `factory_config.py`, the module that carries the join after the change; the `features` surface
   keeps five reader rows.

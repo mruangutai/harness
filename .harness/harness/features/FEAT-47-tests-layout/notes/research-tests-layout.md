@@ -61,7 +61,7 @@ same criterion, not by the `UNIT_SCRIPTS` entry FEAT-45 gave them:
 | test-factory-decompose.py | `os.fork` x2, concurrent writers of one file |
 | test-feature-json-merge.py | `python3 feature-json-merge.py` x5, plus `os.fork` |
 | test-inject-expertise.py | `inject-expertise.py` x17 |
-| test-layout-migration.py | `check-state.sh` x6 |
+| test-layout-migration.py | `check-state.py` x6 |
 | test-sync-agent-adapters.py | `python3 sync-agent-adapters.py` x4 |
 | test-validate-feature-json.py | `validate-feature-json.py` x6 |
 | test-panel-findings.py | `python3 panel_findings.py id --reader … --summary …` — the real CLI, asserting its exit-code contract (2 on an empty reader, 2 on a whitespace-only summary). The pure-function half is loaded in-process via `importlib`, but the CLI cases are not, so the file is integration on the whole |

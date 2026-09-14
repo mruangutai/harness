@@ -46,7 +46,7 @@ adopted a Q-A default that is overrulable in one read).
 - Folding A-2 into T-10. Rejected in D-20: a fold makes a failed refactor indistinguishable from
   a failed empty-body check — verified-at 7299669
 - Deriving handoff stems from status values, or touching `SEAM_NOTES`. A-2 forbids both; the
-  comment near `check-state.sh:495` records that deriving goes dark on Linux CI — verified-at 7299669
+  comment near `check-state.py:495` records that deriving goes dark on Linux CI — verified-at 7299669
 - A `test-*.py` name for SC-01's live half. The detector loops `"$BIN_DIR"/test-*.py`, and the
   skip-loudly variant is a green required step that verified nothing — `tests.yml:78,84` —
   verified-at 7299669

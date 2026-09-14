@@ -31,7 +31,7 @@ from.
 - Do not treat the six could-not-fail assertions as `must_fix` — every one sits outside every SC's text, and pm already ruled that class neither a delivery gap nor a blocker — `notes/research-FEAT-27-e1-coverage-gaps.md` — verified-at 252fa72
 - Do not edit `DECISIONS.md` or `DECISIONS-INDEX.md` to strike DEC-27 — both carry another flow's uncommitted DEC-174 amendment and editing them collides with live work — `git status --porcelain` — verified-at 252fa72
 - Do not commit Expertise output to this branch — it falls outside every task's `files:` list except T-04's migration, and repeats FEAT-25's B-18 — source: operator instruction at dispatch
-- Do not run `check-state.sh` as a progress poll — INV-26 reads every board card at ~500 GraphQL points per invocation — source: operator, FEAT-29's measurement
+- Do not run `check-state.py` as a progress poll — INV-26 reads every board card at ~500 GraphQL points per invocation — source: operator, FEAT-29's measurement
 
 ## Working set
 

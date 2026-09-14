@@ -51,13 +51,13 @@ wording, is a re-plan and changes no shipped code. Q1, blocking.
 ### Ruling 2 — the universal in the approved plan is false, but no SC turns on it. RECOMMEND narrowing both places.
 
 `plan.yaml`'s decision prose and `docs/harness/DECISIONS.md` DEC-194 both assert "**Every finding**
-names the reader path with the form it matched." False as written: `check-state.sh:1313-1318` emits
+names the reader path with the form it matched." False as written: `check-state.py:1313-1318` emits
 the `no-evidence` and `no-rows` causes with **no reader path** — correctly, because those two causes
 have no reader to name — and `layout_migration.py:render()` (lines 256-259) does the same.
 
 **No SC is unmet by this.** SC-14 reads "each reader **it names** carries the form it matched" and
 SC-15 reads "the same form alongside **each reader path it names**" — both conditional on a reader
-being named, and both hold at every branch that names one (`render()` lines 260-267; `check-state.sh`
+being named, and both hold at every branch that names one (`render()` lines 260-267; `check-state.py`
 MIXED at 1298-1301, `unreadable` at 1303-1307, `neither` at 1308-1312). BRIEF's own D-03 is already
 correct too: "**Every named reader** carries the form it matched."
 
@@ -88,13 +88,13 @@ converts both named mutations into reddening tests and merges with qa's existing
 
 ## REQ coverage — all 8 traceable to shipped code
 
-- REQ-01 → `layout_migration.py:209-211` (MIXED) + `render()` 260-267; `check-state.sh:1298-1301`.
+- REQ-01 → `layout_migration.py:209-211` (MIXED) + `render()` 260-267; `check-state.py:1298-1301`.
 - REQ-02 → live run on the real root exits 0, CLEAN both surfaces; unit case 15.
 - REQ-03 → unit case 6.
 - REQ-04 → unit cases 7, 8.
-- REQ-05 → `exit_code()` 222-233 (2 outranks 1); `check-state.sh:1302-1318`; unit cases 9-13, 16;
+- REQ-05 → `exit_code()` 222-233 (2 outranks 1); `check-state.py:1302-1318`; unit cases 9-13, 16;
   integration `(x.2)`, `(x.5)`.
-- REQ-06 → `check-state.sh` INV-27 at session entry; `.github/workflows/tests.yml:185-232` in job
+- REQ-06 → `check-state.py` INV-27 at session entry; `.github/workflows/tests.yml:185-232` in job
   `integration` (the only job in the file, and the required check per DEC-183).
 - REQ-07 → 20 `tempfile.TemporaryDirectory` fixtures in `test-layout-migration.py`, red and green.
 - REQ-08 → `layout_migration.py:182-183` marker branch; unit cases 14, 15; integration `(x.4)`.
@@ -114,10 +114,10 @@ converts both named mutations into reddening tests and merges with qa's existing
 | SC-09 | inspection | met | `.github/workflows/tests.yml:190` runs the detector; `:232` `exit "$rc"` propagates exit 1 and 2; `:203-206` fails the step on a missing `layout:` summary; `:209-212` fails on a missing `examined` line. Step is in job `integration`, the only job in the file (`:32`) |
 | SC-10 | inspection | **unmet** | `git diff --name-only 88b1182..434307a` = 27 paths: 8 in the closed set, **19 under `.harness/`**, 0 renames. Shipped surface and "nothing moves" both clean; the sentence as written is not. See Ruling 1 |
 | SC-11 | inspection | met | 20 `tempfile.TemporaryDirectory` fixtures in `test-layout-migration.py`; the only real-tree touch is case 1's read-only `scan(REPO_ROOT)`. I bracketed `git status --porcelain` around a full re-run of **both** suites: `diff` exit 0, byte-identical, twice |
-| SC-12 | automated/unit | met | case 14 `ok` twice — pinned `NOT APPLICABLE: no harness control-plane marker at ` literal, and all 6 trailer numbers `== {0}`; case 15 `ok` — same fixture plus the marker gives CLEAN with non-zero counts, so 14 passes on the marker, not on an empty scan. `check-state.sh` silence proven by integration `(x.4)` |
+| SC-12 | automated/unit | met | case 14 `ok` twice — pinned `NOT APPLICABLE: no harness control-plane marker at ` literal, and all 6 trailer numbers `== {0}`; case 15 `ok` — same fixture plus the marker gives CLEAN with non-zero counts, so 14 passes on the marker, not on an empty scan. `check-state.py` silence proven by integration `(x.4)` |
 | SC-13 | automated/unit | met | case 16 `ok` — docs rows dropped → `code == 2`, `no reader rows for this surface`, and a `docs` line still printed; plus case 1's `X+Y+Z == 2` for the summary-accounting clause on the real repository |
 | SC-14 | automated/unit | met | case 3 `ok` (`[legacy]` on migrated evidence — FINISH) and case 5b `ok` (`[migrated]` on legacy evidence — REVERT). Both directions, same suite. Conditional wording holds at `render()` 260-267 |
-| SC-15 | automated/integration | met | `(x.1)` `ok` — the INV-27 line names `gen-decisions-index.py`, carries `[migrated]`, and ends with the remedy (`atomic commit`, `check-state.sh:1289-1290`) |
+| SC-15 | automated/integration | met | `(x.1)` `ok` — the INV-27 line names `gen-decisions-index.py`, carries `[migrated]`, and ends with the remedy (`atomic commit`, `check-state.py:1289-1290`) |
 
 ## Open questions
 

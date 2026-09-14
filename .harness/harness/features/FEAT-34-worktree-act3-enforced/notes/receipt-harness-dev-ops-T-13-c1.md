@@ -8,7 +8,7 @@ in both `.harness/harness.json` `test_kinds.integration.detect` and `run-unit-te
 `INTEGRATION_SCRIPTS` (T-05's precedent honoured — both, not one). Both named RED PROOFS (case
 (d) and case (e)) were run and demonstrably fail for the reason the plan names, not an incidental
 one. `test-post-merge-sweep.py` and `test-worktree-terminal.py` are unmodified and stay green.
-`check-state.sh` is exit 0 / zero VIOLATION lines. `run-unit-tests.py` reports **no KIND-DRIFT and
+`check-state.py` is exit 0 / zero VIOLATION lines. `run-unit-tests.py` reports **no KIND-DRIFT and
 no MISCONFIGURED** — but the full suite's exit code is 1, from one PRE-EXISTING failure in
 `test-validate-digest.py` unrelated to any of my three files (open_question below, non-blocking
 for this task).
@@ -169,7 +169,7 @@ non-blocking for this task: `test-hooks-install.py` itself passes in full, and t
 loud-failure modes this task's registration could have caused (KIND-DRIFT, MISCONFIGURED) are
 both absent.
 
-**`.claude/skills/harness/bin/check-state.sh`** — exit code `0`. `grep -c "VIOLATION"` on the raw
+**`.claude/skills/harness/bin/check-state.py`** — exit code `0`. `grep -c "VIOLATION"` on the raw
 output: `0`.
 
 ## SC-13 clause coverage — explicit, per the dispatch's own requirement

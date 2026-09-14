@@ -22,7 +22,7 @@ right checkout — the harm was the write. Cite REQ-11 first.
 
 REQ-05 (`:64-66`) has two scoping problems and either one is fatal to citing it here.
 
-1. **Its subject is "the refusal"** — `check-state.sh` / INV-29. The hook is REQ-07/REQ-11's
+1. **Its subject is "the refusal"** — `check-state.py` / INV-29. The hook is REQ-07/REQ-11's
    territory, and the brief keeps the two mechanisms deliberately distinct ("the hook closes the
    window, the invariant proves it closed", `:41-42`).
 2. **Its predicate is a branch, not a root.** REQ-05 says which *branch's* copy of `feature.json`

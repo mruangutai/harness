@@ -79,7 +79,7 @@ free-text sequences.
    This mattered: had the quoting touched any `id:`/`squad:`/`verdict:` row, the SC-13 baseline would
    have been silently stale.
 
-3. **`check-state.sh` is unchanged against its own baseline.** exit **0**, **0** violations, **40**
+3. **`check-state.py` is unchanged against its own baseline.** exit **0**, **0** violations, **40**
    notes. The recorded baseline is 39; the 40th is an INV-8 note naming `runs/2026-08-03-04-eng/`,
    this run's own directory, which is orchestrator bookkeeping and not conversion drift. The other 39
    were confirmed unchanged in membership.
@@ -109,7 +109,7 @@ either write hook is touched**.
 ## The plan gap this exposes — for pm, not for a builder
 
 No PLAN task makes the repo's YAML parseable, and **no decision covers what a converted reader does
-with an unparseable file.** That is now a live question rather than a hypothetical: `check-state.sh` is
+with an unparseable file.** That is now a live question rather than a hypothetical: `check-state.py` is
 about to become the thing that refuses to open on unparseable state, and `check-domain.py` is about to
 become the thing that refuses a write.
 

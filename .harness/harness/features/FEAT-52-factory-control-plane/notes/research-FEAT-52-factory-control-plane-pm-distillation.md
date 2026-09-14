@@ -29,4 +29,4 @@ None.
 - Merge attempt: craft `P-07` replacement proposal, refused exit 7 (same-id conflict); no file changed.
 - Changed expertise paths: none.
 - Changed artifact path: `.harness/harness/features/FEAT-52-factory-control-plane/notes/research-FEAT-52-factory-control-plane-pm-distillation.md`.
-- `check-expertise.sh` was intentionally not run, per close-distillation constraint.
+- `check-expertise.py` was intentionally not run, per close-distillation constraint.

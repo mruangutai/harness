@@ -8,11 +8,11 @@ diverged in what "strict" means at the boundary. One real finding.
 ### Findings
 
 1. **`check-domain.py:1594-1597` (creation floor) vs `check-domain.py:1760-1764` (new downgrade
-   guard) vs `check-state.sh:1590-1595` (new persona selector)** — three independently hand-written
+   guard) vs `check-state.py:1590-1595` (new persona selector)** — three independently hand-written
    copies of "is this an int, not a bool, and >= 2" in one file pair, two of them new in this fix:
    - `check-domain.py:1594-1597`: `isinstance(_version, int) and not isinstance(_version, bool) and _version >= 2`
    - `check-domain.py:1760-1764` (`_prior_is_strict`): `isinstance(_prior_version, int) and not isinstance(_prior_version, bool) and _prior_version >= 2`
-   - `check-state.sh:1590-1595` (`_persona` ternary): `isinstance(_version, int) and not isinstance(_version, bool) and _version >= 2`
+   - `check-state.py:1590-1595` (`_persona` ternary): `isinstance(_version, int) and not isinstance(_version, bool) and _version >= 2`
    I read all three: **semantically identical today**, not divergent, but each is composed fresh
    against a different local variable name (`_version`/`_prior_version`/`_version`) rather than
    calling one predicate. **Cost:** the predicate already needed a companion in this same diff —
@@ -44,7 +44,7 @@ doesn't cover this rule.
 
 ### `.agents/` mirrors — not a fourth spelling, verified
 
-`check-domain.py`, `check-state.sh`, `validate-digest.py`, and `run-state-schema.json` under
+`check-domain.py`, `check-state.py`, `validate-digest.py`, and `run-state-schema.json` under
 `.agents/skills/harness/bin/` share the **same inode** as their `.claude/skills/harness/bin/`
 counterparts (confirmed via `stat -f %i` on this worktree, all four pairs identical). They are
 hardlinks, not independent files — editing one edits both by construction, so there is no sync

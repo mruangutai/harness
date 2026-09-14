@@ -111,7 +111,7 @@ test files `PASS`, 0 `FAIL`.
 
 ## Hard constraints honored
 
-`check-state.sh` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
+`check-state.py` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
 unchanged (`repo, feature, parent, parent_origin, issues, edges_drawn, edges_skipped`). No
 `factory["stations"]` key invented. No fifth disposition. `sort_dispositions` untouched. Nothing
 committed or staged.
@@ -215,7 +215,7 @@ introduced.
 
 ### Hard constraints honored, cycle 1
 
-`check-state.sh` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
+`check-state.py` untouched. `factory_claim.py` read-only, never edited. Step 8's payload keys
 unchanged. No `factory["stations"]` key invented. No fifth disposition. Nothing committed or
 staged.
 

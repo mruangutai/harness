@@ -15,7 +15,7 @@ redundant**: `harness-wayfinding` and `harness-grilling` were last written on Ju
 rewrote them on 2026-08-09 in `c5597be`. The global text lacked the one-door-per-job framing for ten
 days and nobody noticed until someone diffed it. `kaya-ai` still carries the same frozen fork —
 55 skill files and 8 command files tracked on `master`, 16 untracked agent files, and a further
-153 skill files tracked on three of its feature branches — and `check-state.sh`,
+153 skill files tracked on three of its feature branches — and `check-state.py`,
 `validate-digest.py` and every other gate run in kaya run **from that copy, not from here**. A gate
 that is a stale fork of the real gate is worse than no gate: it reports green about rules that no
 longer exist.
@@ -161,7 +161,7 @@ what the factory clones.
 - Out of scope: `factory_gh.py` and `.harness/features/FEAT-11-graphql-field-resolve/`, which are
   being planned concurrently against issue #211.
 - Untouchable under DEC-174: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
-  `check-state.sh` — **four, not five.** `check-docs.sh` was the fifth; it no longer exists.
+  `check-state.py` — **four, not five.** `check-docs.sh` was the fifth; it no longer exists.
   Issue #202 deleted it under DEC-188 and its absence from the tree is confirmed at `687fd3e`.
   It is not recreated by this feature. All four survivors were grepped for `deploy` and `registry`
   at `c1d1617` and every hit is incidental prose, so no enforcement-file edit is implied by this
@@ -227,14 +227,14 @@ what the factory clones.
   this feature is waiting on #202.**
 - **The propagation checker is gone, and the plan is written around that.** At `c1d1617` the
   mechanism was a `<!-- stale: ... -->` marker declared in the invalidated decision, enforced by
-  `check-docs.sh` as `check-state.sh`'s INV-10. Issue #202 landed during this planning run:
+  `check-docs.sh` as `check-state.py`'s INV-10. Issue #202 landed during this planning run:
   `check-docs.sh` is **deleted, committed at `835b297`** (`[harness:human] #202: the propagation
   checker is struck, not deprecated`), and its absence is re-confirmed at `687fd3e`. It is not
   staged and not pending a possible revert. **DEC-188 is the standing rule** and states it in the
   record's own words: a decision the tree flatly contradicts is **struck from the record and
   removed from every gate** — not marked stale, not amended, not left standing with a marker
   beside it. DEC-188 also records what was already done under it: `check-docs.sh` deleted, the
-  INV-10 block out of `check-state.sh`, and the 66 stale-wording markers and 14 escape comments
+  INV-10 block out of `check-state.py`, and the 66 stale-wording markers and 14 escape comments
   gone from the live docs. `DEC-103`, `DEC-104`, `DEC-83` and `DEC-181` were each deleted
   outright. Nothing in this feature runs a propagation checker and nothing substitutes for one.
   This feature therefore strikes rather

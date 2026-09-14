@@ -68,7 +68,7 @@ No candidate for `drop`.
 | Outcomes | 1 | 1 |
 | Open | 0 | 0 |
 
-`check-expertise.sh .harness/expertise/harness-ui-reviewer.md` → `OK` (one prior failure on word
+`check-expertise.py .harness/expertise/harness-ui-reviewer.md` → `OK` (one prior failure on word
 count for the first P-02 draft, 52 words; trimmed to 43 and re-checked clean).
 
 ---
@@ -151,5 +151,5 @@ Re-walked all Patterns/Outcomes against the three notes: no contradiction to any
 | Outcomes | 1 | 1 |
 | Open | 0 | 0 |
 
-`check-expertise.sh .harness/expertise/harness-ui-reviewer.md` → `OK`, single run, no word-count
+`check-expertise.py .harness/expertise/harness-ui-reviewer.md` → `OK`, single run, no word-count
 violations on P-07/P-08/G-01.

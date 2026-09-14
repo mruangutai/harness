@@ -16,7 +16,7 @@ same-or-higher-trust actor already holding the capability a theoretical exploit 
 In scope per the dispatch: 15 new factory modules/tests, `run-unit-tests.py`, `harness.json`,
 `DECISIONS.md`/`DECISIONS-INDEX.md`, and `fleet.yaml` as read-only context. Confirmed the
 untracked files via `git status --porcelain` — `git diff HEAD` alone would have shown nothing for
-them. T-08 (`check-state.sh`, `test-check-state.py`) and all other held dirt were not opened.
+them. T-08 (`check-state.py`, `test-check-state.py`) and all other held dirt were not opened.
 
 ## What was checked and the result
 

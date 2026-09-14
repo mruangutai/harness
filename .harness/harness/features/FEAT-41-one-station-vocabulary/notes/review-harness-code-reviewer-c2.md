@@ -349,9 +349,9 @@ sufficient to catch the specific regression named in the Dead End.
 
 ### INV-33 vs FEAT-45's INV-32 — no cross-match, unchanged from cycle 1
 
-`check-state.sh:264` (`# INV-32 BEGIN (FEAT-45 T-07)`) through roughly `:390`, and `:488`
+`check-state.py:264` (`# INV-32 BEGIN (FEAT-45 T-07)`) through roughly `:390`, and `:488`
 (`# INV-33: a pin that is STALE...`) through `:558` — disjoint, non-overlapping line ranges,
-re-confirmed by grep at this pin. Not touched by cycle-2's fix commits (neither `check-state.sh`
+re-confirmed by grep at this pin. Not touched by cycle-2's fix commits (neither `check-state.py`
 nor `test-check-state.py` appear in `707b547`/`5dc5374`/`542e888`/`39477a5`'s diffs). No sign of
 a shared fixture path or message collision. Cycle 1's finding stands, unchanged.
 
@@ -459,7 +459,7 @@ final disposition).
   pass on each other's fixture output) — I re-confirmed the blocks are disjoint by line range but
   did not attempt the cross-mutation myself; QA's cycle-2 note (`notes/qa-FEAT-41-c2.md:§10`)
   names this as still open too.
-- The full `check-state.sh`/`test-check-state.py` suite run — QA's exclusive lane; I read the
+- The full `check-state.py`/`test-check-state.py` suite run — QA's exclusive lane; I read the
   specific INV-32/33 sites rather than executing anything.
 - `worktree_terminal.py`'s `_hook_feature_dir`/`inflight_registry` mechanism (origin/main code,
   D-16's own framing scopes this to security).

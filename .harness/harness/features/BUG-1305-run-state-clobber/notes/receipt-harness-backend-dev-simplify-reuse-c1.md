@@ -58,7 +58,7 @@ finding" so the ranking isn't padded.
 - **RE_RUN_IDENTITY / marker path**: single authority. `harness_boundary.py:43-46` defines the
   regex once from `run_identity.MARKER_NAME`; `check-domain.py:1186-1191`, `:1318`, `:2045` and
   `bash-write-guard.py:793` all import `harness_boundary.RE_RUN_IDENTITY` rather than
-  re-deriving it, and `check-state.sh:53,1482` calls `run_identity.marker_path`/`read_marker`
+  re-deriving it, and `check-state.py:53,1482` calls `run_identity.marker_path`/`read_marker`
   directly rather than re-spelling the filename. No second spelling found.
 - **`mint_uid` (`uuid.uuid4().hex`)**: `inflight_registry.py:91,461` mints `claim_id` the same
   stdlib call inline. Not a duplicate worth extracting — it's a one-line stdlib call with nothing

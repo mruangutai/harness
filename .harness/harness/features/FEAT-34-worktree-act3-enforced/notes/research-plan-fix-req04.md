@@ -17,10 +17,10 @@ Re-derived, not relayed:
   invisible to a `git worktree list` in the harness checkout.
 - `test-worktree-terminal.py:382` calls `w.classify(repo2)` — directly on the second repository's
   own root. Ran it: **19/19 PASS**. Those 19 prove the per-repo predicate and prove nothing about
-  one caller covering both, which is what SC-04 and T-07 (e) grade from ONE `check-state.sh` run.
+  one caller covering both, which is what SC-04 and T-07 (e) grade from ONE `check-state.py` run.
 
 **Where it lives: `worktree_terminal.py`, as `classify_all(root)`.** Cost priced both ways, in
-D-10's `because:`. Short form: `check-state.sh` costs no rework (T-06 pending) but permanently
+D-10's `because:`. Short form: `check-state.py` costs no rework (T-06 pending) but permanently
 strands the logic on the lane whose only grader is `test-check-state.py` — a fleet fixture plus a
 second real git repo plus a full gate run per posture branch — and splits the predicate D-02 says
 must be one. `worktree_terminal.py` costs real rework (T-01/T-02 are `status: building` and green
@@ -33,14 +33,14 @@ dependency. Every fact INV-29 needs is local and decidable, so that trade does n
 
 | Case | Posture | Ground |
 |---|---|---|
-| `fleet.yaml` fails to load | **blocking violation** | INV-25's import posture (`check-state.sh:1109`) — the file is tracked, so unloadable is a tree defect. DEC-193 am.1 already ruled a malformed `fleet.yaml` **fails closed** on the Bash write route |
+| `fleet.yaml` fails to load | **blocking violation** | INV-25's import posture (`check-state.py:1109`) — the file is tracked, so unloadable is a tree defect. DEC-193 am.1 already ruled a malformed `fleet.yaml` **fails closed** on the Bash write route |
 | declared repo, checkout **absent** | **no record** | Decidable, not unknown: a directory that does not exist holds no worktrees. One rule for every repo — not the per-repository exception REQ-04 forbids |
 | declared repo, checkout **present but unenumerable** | **blocking violation**, one repository-level `unresolved` record | REQ-06's own signed rule one level up: absence exempts, lookup failure does not |
 
 The absent-checkout row is load-bearing, not convenient. Measured: `fleet.yaml` declares
 `mruangutai/kaya-ai` (checkout present, zero linked worktrees) and
 `mruangutai/harness-factory-smoke` (**no checkout at all**). Any other posture makes
-`check-state.sh` red on this machine today for a kept fixture nobody provisioned.
+`check-state.py` red on this machine today for a kept fixture nobody provisioned.
 
 ## Defect 2 — T-01's zero-prefix-match contradiction. Confirmed. **The wrong line was the trailing one.**
 
@@ -92,7 +92,7 @@ The third row is why the greps are in the verify and not decoration.
 
 Checks after editing: `plan.yaml` `safe_load`s; 13 tasks, 10 decisions; `approval:` byte-preserved
 by `plan-merge.py`; `check-plan-routes.py` → **0 violations**, the same four D-09 DEVIATIONs;
-`check-state.sh` → exit 0, no violation attributable to these edits.
+`check-state.py` → exit 0, no violation attributable to these edits.
 
 ## Open questions
 

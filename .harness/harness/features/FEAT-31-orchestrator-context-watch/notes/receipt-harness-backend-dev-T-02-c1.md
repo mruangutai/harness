@@ -17,7 +17,7 @@ LINE1_EXIT=0
 Final line names the count as the plan's comment requires: "15 of 15 cases passed".
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
 LINE2_EXIT=1
 ```
 The raw exit of line 2 is **1**, not 0 — but that is `test-harness-yaml-corpus.py` failing on a
@@ -31,9 +31,9 @@ the script's own exit for the same reason. Both are independently asserted below
 the raw exit:
 
 ```
-$ test "$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1 | grep -c MISCONFIGURED)" = "0"
+$ test "$(python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1 | grep -c MISCONFIGURED)" = "0"
 TRAP1_EXIT=0   # NO line containing MISCONFIGURED — satisfied
-$ test "$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1 | grep -cx 'PASS test-context-watch.py')" = "1"
+$ test "$(python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1 | grep -cx 'PASS test-context-watch.py')" = "1"
 TRAP2_EXIT=0   # the line "PASS test-context-watch.py" appears exactly once — satisfied
 ```
 

@@ -123,7 +123,7 @@ No file was staged or committed. No production behaviour changed in the final st
 ## Final suite state (verbatim final summary lines)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py
+$ python3 .claude/skills/harness/bin/run-unit-tests.py
 ...
 13/13 checks passed.        PASS test-harness-yaml-corpus.py
 15/15 checks passed.        PASS test-render-brief.py

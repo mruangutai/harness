@@ -2,7 +2,7 @@
 
 ## Scope
 
-Assessed the task-declared source, test, config, and docs changes from `b7956fc4` through current HEAD plus working-tree changes: `.claude/skills/harness/bin/{handoff_done_when.py,check-domain.py,check-state.sh,run-unit-tests.py}`, `.claude/skills/harness/{SKILL.md,templates/HANDOFF.md}`, `.harness/harness.json`, `.harness/harness/docs/{DECISIONS.md,DECISIONS-INDEX.md}`, `tests/unit/test-handoff-done-when.py`, `tests/integration/{test-check-domain.py,test-check-state.py,test-run-unit-tests-kinds.py}`, and `tests/manual/probe-handoff-comprehension.py`. Also assessed active FEAT-54 handoff notes `notes/handoff-plan.md` and `notes/handoff-build.md`. Excluded orchestration ledgers, run state, and QA evidence. Settled contract, baseline, resolution split, probe status/routing, and absence of a per-section cap were not reconsidered.
+Assessed the task-declared source, test, config, and docs changes from `b7956fc4` through current HEAD plus working-tree changes: `.claude/skills/harness/bin/{handoff_done_when.py,check-domain.py,check-state.py,run-unit-tests.py}`, `.claude/skills/harness/{SKILL.md,templates/HANDOFF.md}`, `.harness/harness.json`, `.harness/harness/docs/{DECISIONS.md,DECISIONS-INDEX.md}`, `tests/unit/test-handoff-done-when.py`, `tests/integration/{test-check-domain.py,test-check-state.py,test-run-unit-tests-kinds.py}`, and `tests/manual/probe-handoff-comprehension.py`. Also assessed active FEAT-54 handoff notes `notes/handoff-plan.md` and `notes/handoff-build.md`. Excluded orchestration ledgers, run state, and QA evidence. Settled contract, baseline, resolution split, probe status/routing, and absence of a per-section cap were not reconsidered.
 
 ## Findings
 

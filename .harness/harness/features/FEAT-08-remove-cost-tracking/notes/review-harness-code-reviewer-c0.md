@@ -13,7 +13,7 @@ and unrelated dirty files (`perf-review-agent-workflow-2026-08-04.md`, `2026-08-
 in a path I reviewed. No `[harness:human]` commits in range. **The tree I reviewed is the pinned
 bytes**, confirmed by re-reading source files via `git show 942505e:<path>` throughout, not the
 working tree, except where I first proved the two trees identical (`git diff 942505e HEAD -- <path>`
-exit 0) before running live commands (`check-state.sh`, `run-unit-tests.py`, `check-docs.sh`,
+exit 0) before running live commands (`check-state.py`, `run-unit-tests.py`, `check-docs.sh`,
 `gen-decisions-index.py --stdout`).
 
 ## Verdict: PASS
@@ -31,7 +31,7 @@ files were untouched.
 **Mechanically re-verified, not relayed** (all commands run by me against the pinned tree or a tree
 proven identical to it):
 - SC-01: `grep -rln --exclude-dir=worktrees -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11 .claude/ docs/ .harness/harness.json .harness/team-config.yaml .harness/README.md` → exactly `DECISIONS.md`, `BUILD.md`, `DECISIONS-INDEX.md`, `SPEC.md`. Matches A-4's amended four-survivor set exactly.
-- SC-03/SC-11: `check-state.sh` exits 0 (zero `bad`, only pre-existing unrelated `note` lines); `run-unit-tests.py` exits 0, twelve `PASS` lines (thirteen minus the deleted `test-cost-report.py`), drift detector satisfied not bypassed.
+- SC-03/SC-11: `check-state.py` exits 0 (zero `bad`, only pre-existing unrelated `note` lines); `run-unit-tests.py` exits 0, twelve `PASS` lines (thirteen minus the deleted `test-cost-report.py`), drift detector satisfied not bypassed.
 - SC-04: confirmed by reading `validate-digest.py`'s `SCHEMAS["orchestrator"]` — `cost_usd` gone, five required fields.
 - SC-05/SC-07: `grep -c max_total_cycles` → `:2` for both configs (byte-identical, untouched per D-10); `grep -c -e cost_model -e per_feature_usd -e per_run_usd -e warn_at_fraction -e _budgets_note` → `:0` for both.
 - SC-08/SC-09: `gen-decisions-index.py --stdout | diff - DECISIONS-INDEX.md` exits 0 (hand-written DEC-148 ruling prose survives regeneration); `grep -c 'RULING PENDING'` → 0; DEC-178 entry (**`docs/harness/DECISIONS.md:4881`**, `grep -n '^## DEC-178'`) present once, contains all six required elements (reason, watchdog dropped + why, DEC-148 partial supersession, historical figures kept + 67-measurement, briefing line not replaced + backlog, `cost_usd` removed not aliased) and **no** `**Supersedes DEC-148**` line (D-05 compliance, confirmed by grep).
@@ -57,10 +57,10 @@ open question below.
 ## Stage 2 — code quality
 
 No correctness bugs, no fail-open, no dangling references found in the DEC-174 carve-out surfaces
-(`check-state.sh`, `validate-digest.py`, both tests) or anywhere else in the diff.
+(`check-state.py`, `validate-digest.py`, both tests) or anywhere else in the diff.
 
 **Fail-open hunt, specific traces:**
-- `check-state.sh`'s three INV-11-adjacent removals (rule, `cost_model.rates` hard violation, staleness warning) are clean deletions with no residual branch that could silently accept something it shouldn't — the removed `bad.append`/`warn.append` calls have no surviving caller. The `complete = ...` variable T-02's intent flagged as conditionally-removable was correctly **kept**, because it is genuinely still consumed by INV-15 at `check-state.sh:395` — verified by grepping every `complete` use in the file, not assumed.
+- `check-state.py`'s three INV-11-adjacent removals (rule, `cost_model.rates` hard violation, staleness warning) are clean deletions with no residual branch that could silently accept something it shouldn't — the removed `bad.append`/`warn.append` calls have no surviving caller. The `complete = ...` variable T-02's intent flagged as conditionally-removable was correctly **kept**, because it is genuinely still consumed by INV-15 at `check-state.py:395` — verified by grepping every `complete` use in the file, not assumed.
 - The `cfg`/`cj` parse block T-02 flagged as conditionally-removable was correctly **kept whole**: `cj` has four other live consumers (`test_kinds`, `github.sync`, `gh-config` checks at `:447`, `:448`, `:468`, `:502`, `:503`) — verified by grep, matching the new comment's claim.
 - `CHECKPOINT_KEYS` still whitelists `"cost"` (D-03), correctly commented as historical-only; a `state.yaml` with or without a `cost:` block both pass (`test-check-state.py` `case_k`, both directions asserted, both re-run green by me).
 - No script anywhere in `bin/` still reads `max_cost_usd`, `per_run_usd`, `per_feature_usd`, `cost_model`, or `warn_at_fraction` (`git grep` returns nothing) — no orphaned consumer, no silent default reactivating a deleted budget.
@@ -72,7 +72,7 @@ Three comments self-justify by pointing at an ephemeral verification event rathe
 record. Found and quoted directly, not relayed — and the dispatch's framing of where they live was
 wrong, corrected below:
 
-1. `.claude/skills/harness/bin/check-state.sh:334` — "Named without its quoted spelling because
+1. `.claude/skills/harness/bin/check-state.py:334` — "Named without its quoted spelling because
    this task's `verify:` counts that spelling."
 2. `.claude/skills/harness/bin/validate-digest.py:178-179` — "Named without its literal spelling on
    purpose — this task's `verify:` asserts that spelling appears nowhere in this file."
@@ -80,7 +80,7 @@ wrong, corrected below:
    because SC-01's sweep asserts that spelling appears in no file outside the four it enumerates."
 
 **Correction to the dispatch:** these are not "two in the test suite plus one you already found."
-One lives in `check-state.sh` and one in `validate-digest.py` — both **production** code, not
+One lives in `check-state.py` and one in `validate-digest.py` — both **production** code, not
 tests — and one in `test-validate-digest.py`. `test-check-state.py`'s two reworded INV-11 sites use
 a **different**, non-self-referential phrasing ("the removed completed-run invariant made exactly
 this a violation") and do not exhibit this pattern at all. Verified by grepping all four files for
@@ -110,7 +110,7 @@ with a `DEC-178` pointer if this file is touched again.
 
 Restricted to files this diff actually touches (git-grepped each individually at `942505e`), the
 plain word "cost" appears only in already-vetted, in-scope-and-correct locations: `SKILL.md`'s three
-protected context-expense lines, `harness-team/SKILL.md`'s protected English uses, `check-state.sh`'s
+protected context-expense lines, `harness-team/SKILL.md`'s protected English uses, `check-state.py`'s
 three legitimate uses (the whitelist comment, an unrelated "costs nothing" idiom, an unrelated
 duplication-audit note), `test-check-state.py`'s `case_k` fixture text (all legitimately about the
 `cost:` key it tests), and `BUILD.md`/`DECISIONS-INDEX.md`/`SPEC.md`'s historical/marked prose —

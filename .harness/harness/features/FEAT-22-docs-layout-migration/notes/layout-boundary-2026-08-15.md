@@ -16,7 +16,7 @@ layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
 exit: 0
 ```
 
-### check-state.sh
+### check-state.py
 ```
   note       .harness/harness/features/FEAT-19-central-product-config/plan.yaml approval is pending — awaiting the user.
   note       .harness/harness/features/FEAT-08-remove-cost-tracking/PLAN.md approval is pending — awaiting the user.
@@ -172,7 +172,7 @@ layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
 exit: 0
 ```
 
-### check-state.sh
+### check-state.py
 ```
   note       .harness/harness/features/FEAT-19-central-product-config/plan.yaml approval is pending — awaiting the user.
   note       .harness/harness/features/FEAT-08-remove-cost-tracking/PLAN.md approval is pending — awaiting the user.
@@ -230,7 +230,7 @@ RECONCILIATION
    returns 5: BUILD.md, DECISIONS-INDEX.md, DECISIONS.md, SPEC.md, org.html.
 3. Did check-state's note count move for any reason other than this feature?
    No. 42 note lines at this capture vs 42 in the PRE-MOVE capture — unchanged.
-   Command: bash .claude/skills/harness/bin/check-state.sh | grep -c '^  note'.
+   Command: python3 .claude/skills/harness/bin/check-state.py | grep -c '^  note'.
 Close-out commit: 5faa832449529554361c23bd3efebb14ca2e7d1c
 
 ## CORRECTION — the SC-10 fix, appended 2026-08-16

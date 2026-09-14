@@ -531,7 +531,7 @@ tasks:
       reads in full - a module a gate imports is not itself a gate; a squad may write the library;
       and the CUTOVER that makes a gate use it is main-session-direct, proven by showing the gate's
       violation set is identical before and after. The carve-out itself binds validate-digest.py,
-      check-domain.py, bash-write-guard.py, check-state.sh, check-plan-routes.py, dispatch-guard.py
+      check-domain.py, bash-write-guard.py, check-state.py, check-plan-routes.py, dispatch-guard.py
       and the test file of each.
 
       READ AT THE SENTENCE, THAT GRANT IS UNCONDITIONAL AND THE PREVIOUS DRAFT OF THIS TASK WAS

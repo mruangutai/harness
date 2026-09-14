@@ -50,7 +50,7 @@ eng-lead's Q2 is right about it.
 
 - `check-plan-routes.py` → **0 violation(s) across 1 plan(s)**, exit 0. The DEVIATION lines are the
   pre-existing advisory main-session-direct rows, unchanged by this edit.
-- `check-state.sh` → exit 1, and exactly **one** VIOLATION line in the whole run:
+- `check-state.py` → exit 1, and exactly **one** VIOLATION line in the whole run:
   `FEAT-40…/BRIEF.md is NOT approved`. No other violation, FEAT-40 or otherwise.
 - `harness_yaml.load_plan` → parses; 11 tasks, 13 decisions; **0 untraced REQs** and 0 traces
   pointing at a REQ the brief does not carry.
@@ -96,6 +96,6 @@ widened fourth — the correct pre-change statement).
 
 ### Gates, re-run after the edits
 - `check-plan-routes.py` → 0 violation(s) across 1 plan(s), exit 0.
-- `check-state.sh` → one VIOLATION in the whole run: FEAT-40 BRIEF.md is NOT approved.
+- `check-state.py` → one VIOLATION in the whole run: FEAT-40 BRIEF.md is NOT approved.
 - `harness_yaml.load_plan` → parses; 11 tasks, 13 decisions, `approval.status: pending`; 0 untraced
   REQs and 0 traces pointing at a REQ the brief does not carry.

@@ -170,11 +170,11 @@ INV-31: .claude/skills/harness/hooks/post-merge is <missing | not executable (mo
 ```
 
 Both follow the file's measured grammar (`INV-NN: <subject> <what is wrong> — <consequence>`,
-`check-state.sh:1260`), and the unreadable-git-config case follows its `CANNOT RUN` form
-(`check-state.sh:1084, :1191, :1346`).
+`check-state.py:1260`), and the unreadable-git-config case follows its `CANNOT RUN` form
+(`check-state.py:1084, :1191, :1346`).
 
 **Both go to `bad`, not `warn`** (contract, and reversible). `INV-28` is `warn` on the stated
-reason that "the mirror is never a gate" (`check-state.sh:1020`). INV-31 is not a mirror fact: it
+reason that "the mirror is never a gate" (`check-state.py:1020`). INV-31 is not a mirror fact: it
 is whether the machine runs the hook that runs `ship`. After this feature the sweep is the only
 caller of `ship`, so a clone without it silently stops closing tickets — the exact silence this
 feature exists to end.

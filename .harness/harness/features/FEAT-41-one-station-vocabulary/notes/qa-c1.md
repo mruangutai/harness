@@ -25,11 +25,11 @@ rather than accepting that note, and ran two live mutation probes it did not.
 | SC-06 | PASS | automated | `test-check-domain.py` T-09 5/6 cases green (post-sweep illegal-value report) |
 | SC-07 | PASS | automated | `test-plan-sign-gate.py` — token-scan + text-fallback (`RAW_SIGN`) both covered with negative controls (see §2) |
 | SC-08 | **FAIL literally / intent-satisfied** | automated | `grep -rl '"status"' .harness/harness/features/*/feature.json` → **1 hit**: `BUG-1071-inv32-era-guard/feature.json` (`"status": "Review"`). Confirmed BUG-1071 has **no `plan.yaml`** (dir contents: `feature.json`, `notes`, `review_sha` only) — this is exactly the disclosed, deliberately-unmigrated case the dispatch named. Two readings: **literal text ("no feature.json... carries a status key")** — FALSE, one counterexample. **Narrowed reading ("no feature.json belonging to a migrated/plan.yaml-bearing feature")** — TRUE, 30 of 31 feature dirs comply and the eleven former readers are confirmed off `plan.yaml`. Both readings reported; not softened into a pass |
-| SC-09 | PASS | inspection | `git show fc08375:.../FEAT-40.../plan.yaml` carries top-level `status: done`; ran `check-state.sh` — 0 `INV-26` lines for any feature. Inspection performed: read the file at the pin directly and the invariant's live output, not accepted from prose |
+| SC-09 | PASS | inspection | `git show fc08375:.../FEAT-40.../plan.yaml` carries top-level `status: done`; ran `check-state.py` — 0 `INV-26` lines for any feature. Inspection performed: read the file at the pin directly and the invariant's live output, not accepted from prose |
 | SC-10 | PASS | automated | `test-gh-sync.py` F-01 + T-10 cases green (worktree-refusal, commit-clean-against-`HEAD`) |
 | SC-11 | n/a here, PASS per dispatch's given state | automated | not re-run per dispatch instruction; given 505/816, exit 0 both |
 | SC-12 | PASS (struck) | inspection | struck with T-13 exactly as pre-authorized, no coverage lost per D-01 |
-| SC-13 | PASS | automated | `grep -n "_EXPECT" check-state.sh` → 0 hits; INV-26 fixture cases green, no `if _want is None: continue` skip survives (confirmed absent at source) |
+| SC-13 | PASS | automated | `grep -n "_EXPECT" check-state.py` → 0 hits; INV-26 fixture cases green, no `if _want is None: continue` skip survives (confirmed absent at source) |
 | SC-14 | PASS | automated | `grep -c "FEAT-41-one-station-vocabulary" DECISIONS.md` → **3**, matching DEC-182/DEC-191/DEC-203 amendment sites; read the DEC-191 amendment text directly — "seven required and three optional... UNCHANGED... amendment and not a strike," confirming the clause still stands rather than being struck |
 
 DEC-174 ratifications and records checked, not re-opened: D-15 (T-15 lane deviation ratified) and
@@ -174,7 +174,7 @@ DIGEST:
     - { id: SC-06, test: "test-check-domain.py T-09 5/6 (post-sweep illegal-value report)" }
     - { id: SC-07, test: "test-plan-sign-gate.py — token-scan + RAW_SIGN text fallback, both with negative controls" }
     - { id: SC-08, test: "grep -rl status .../feature.json — 1 hit (BUG-1071), literal FAIL / intent PASS, both readings reported" }
-    - { id: SC-09, test: "git show fc08375:.../FEAT-40.../plan.yaml + check-state.sh full run — 0 INV-26 lines" }
+    - { id: SC-09, test: "git show fc08375:.../FEAT-40.../plan.yaml + check-state.py full run — 0 INV-26 lines" }
     - { id: SC-13, test: "grep _EXPECT — 0 hits; test-check-state.py INV-26 fixture cases green" }
     - { id: SC-14, test: "grep -c FEAT-41-one-station-vocabulary DECISIONS.md — 3, all three amendments read at source, none struck" }
   open_questions:

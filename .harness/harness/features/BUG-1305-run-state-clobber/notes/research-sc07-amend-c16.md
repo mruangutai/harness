@@ -55,7 +55,7 @@ holds:**` opening clauses, `verify: inspection` and SC-08 are unchanged. No hunk
   the legacy directory — prior and incoming both carrying no `run_uid` — still accepting an
   equal-run_id update; the resumed owner, carrying its own checkpoint's `run_uid` from a different
   session, still exiting 0, together with BOTH recovering-owner cases of SC-01(d) exiting 0; the
-  lead's own-run digest append repair still exiting 0; `check-state.sh` exiting 0 over a fixture
+  lead's own-run digest append repair still exiting 0; `check-state.py` exiting 0 over a fixture
   tree of legacy run directories that carry checkpoints and no witness at all; and the fifth pair,
   T-05's new fail-closed `return 2` in `validate-digest.py`, still exiting 0 over a run directory
   whose `digest.md` exists and is compliant and over the no-root-resolves case that fails open; and
@@ -64,7 +64,7 @@ holds:**` opening clauses, `verify: inspection` and SC-08 are unchanged. No hunk
   at exit 0, and leaving a Bash write to an unrelated ordinary file in that directory unaffected,
   so the denial is scoped to the one filename rather than to the directory.
   The note also records
-  `check-state.sh`'s exit code and findings over this repository's own `.harness` tree, and states
+  `check-state.py`'s exit code and findings over this repository's own `.harness` tree, and states
   the two newly refused write classes this feature knowingly introduces — an owner that rewrites
   its checkpoint and drops `run_uid`; and an Edit of a governed `state.yaml`, `digest.md`, or
   handoff note whose complete candidate cannot be reconstructed from the tool payload (unmatched
@@ -72,7 +72,7 @@ holds:**` opening clauses, `verify: inspection` and SC-08 are unchanged. No hunk
   the Advisor at cycle 13 in service of SC-01(a)) — each with the test that pins its message.
   **It FAILS if any of these holds:** an assertion present at `c369fb1f` is absent or weakened at the
   review sha and is not enumerated under the first heading; any one of the six permitted-write cases
-  is absent from the suite at the review sha or is asserted to exit non-zero; `check-state.sh`
+  is absent from the suite at the review sha or is asserted to exit non-zero; `check-state.py`
   reports a run directory whose checkpoint and witness agree, or reports any directory carrying no
   witness; either heading is
   absent; the `## Suite results` heading is absent, or records a non-zero exit or any FAIL line for

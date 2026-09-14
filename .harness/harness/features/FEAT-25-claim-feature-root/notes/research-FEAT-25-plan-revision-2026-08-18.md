@@ -40,7 +40,7 @@ Dispatch and digest agree on the destination; they disagreed only on the label.
 - **R-2** landed. D-02 now names the wildcard shape, cites the three exact siblings
   (`check-plan-routes.py:540`, `validate-feature-json.py:41`, `layout_migration.py:172` — all three
   re-read by me), and rejects it on **"no single path to name"**, which holds under either R-4
-  option. `check-state.sh` deliberately omitted: DEC-174 carve-out, weaker precedent, padding.
+  option. `check-state.py` deliberately omitted: DEC-174 carve-out, weaker precedent, padding.
 - **R-3** landed. T-02 intent item 1 rewritten as one text: extract `_plan(feature)` holding the
   memo, the join, the `load_plan` call and the `try/except YamlParseError` that `task()` carries
   inline today; `task()` and `plan_loaded()` both reach the file only through it; duplicating the

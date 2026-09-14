@@ -15,9 +15,9 @@ member can apply it — it goes to the lead's docket as an open question, not a 
 3. `warn_for_agent`'s tail-read of the transcript jsonl (`_last_measured_usage`): reads from
    EOF in 64KB chunks and stops at the first qualifying line by design (docstring states the
    full-scan/peak tradeoff explicitly) — this is the deliberate efficient path, not waste.
-4. `check-state.sh`'s new INV-17 handoff-shape glob (74 `notes/handoff-*.md` files read in
+4. `check-state.py`'s new INV-17 handoff-shape glob (74 `notes/handoff-*.md` files read in
    full): this is a manual/pre-commit boundary check, not a hook in `.claude/settings.json`
-   — confirmed by grep, `check-state.sh` is absent from the hooks block. A boundary-step full
+   — confirmed by grep, `check-state.py` is absent from the hooks block. A boundary-step full
    read is not waste per the skill's own carve-out. Not a finding.
 5. `run-unit-tests.py`'s new kind-drift cross-check subprocess (one `python3 -` heredoc per
    suite invocation, before any test runs): one process spawn per suite run, not per tool

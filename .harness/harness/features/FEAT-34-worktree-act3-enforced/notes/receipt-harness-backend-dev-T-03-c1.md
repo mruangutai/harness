@@ -34,7 +34,7 @@ they're handed, and `classify` skips porcelain index 0 rather than keying on `ro
 
 Command:
 ```
-bash -n .claude/skills/harness/bin/post-merge-sweep.py && bash .claude/skills/harness/bin/post-merge-sweep.py --dry-run
+python3 -m py_compile .claude/skills/harness/bin/post-merge-sweep.py && python3 .claude/skills/harness/bin/post-merge-sweep.py --dry-run
 ```
 
 Output:
@@ -65,4 +65,4 @@ Cross-checked verbatim against `plan.yaml` T-03's `verify:` block — identical 
 
 Only this file and `.claude/skills/harness/bin/test-post-merge-sweep.py` were touched
 (`git diff --stat` confirms — exactly these two paths). No edit to `plan.yaml`, `feature.json`,
-`STATE.md`, `check-state.sh`, or `test-check-state.py`. No commit made.
+`STATE.md`, `check-state.py`, or `test-check-state.py`. No commit made.

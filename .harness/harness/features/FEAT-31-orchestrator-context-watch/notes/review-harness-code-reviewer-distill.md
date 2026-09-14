@@ -56,5 +56,5 @@ tool. Raised as `open_questions` below — this is a harness defect, not mine to
 | repo | Gotchas | 3/15 | 4/15 (+G-04) |
 | repo | all other sections | 0 | 0 |
 
-`check-expertise.sh` clean on both files after apply (exit 0). Craft file 45/150 lines, repo file
+`check-expertise.py` clean on both files after apply (exit 0). Craft file 45/150 lines, repo file
 9/40 lines — both well under budget.

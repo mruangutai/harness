@@ -29,8 +29,8 @@ Patterns swept: `real (repo|tree|project|corpus)`, `actual project root`, `proje
 |---|---|
 | **T-06 case (g)** — real root scan + mtime/byte audit, permanent `INTEGRATION_SCRIPTS` case | **VIOLATES the rule — replaced** (see below) |
 | **T-06 tail paragraph** — "Case (g) reads the real tree read-only" | **VIOLATES — rewritten** to assert no case reads the real tree |
-| **T-07 `verify:`** — runs `bash check-state.sh` over the real repo | **clean.** A task-time verify, run once at build; not a permanent suite case, and it compares no mtime or bytes |
-| **T-07 intent, expected end state** — "check-state.sh over this repository reports no line mentioning Done when, with all 141 baselined notes unmodified" | **clean.** Prose describing that same task-time verify. The untouched-corpus half is carried by SC-11 (`inspection`, a git-diff comparison), not by any byte/mtime comparison in a test |
+| **T-07 `verify:`** — runs `python3 check-state.py` over the real repo | **clean.** A task-time verify, run once at build; not a permanent suite case, and it compares no mtime or bytes |
+| **T-07 intent, expected end state** — "check-state.py over this repository reports no line mentioning Done when, with all 141 baselined notes unmodified" | **clean.** Prose describing that same task-time verify. The untouched-corpus half is carried by SC-11 (`inspection`, a git-diff comparison), not by any byte/mtime comparison in a test |
 | **T-11 `verify:`** — reads this feature's own notes on the real tree | **clean.** Task-time sweep proof; no gate run over the corpus, no mtime/byte comparison, and it is inherently scoped to notes this build wrote |
 | **T-12 `verify:`** — `test-run-unit-tests-kinds.py` | **clean.** Reads config and script arrays only |
 | **T-01 / T-03 cases** | **clean.** Every fixture is built under `<tmp>/.harness/harness/features/FEAT-90-fixture/`; no real-tree read |
@@ -48,7 +48,7 @@ Patterns swept: `real (repo|tree|project|corpus)`, `actual project root`, `proje
 > tempfile.TemporaryDirectory holding TWO compliant notes — one whose repo-relative path IS in that
 > fixture's harness.json handoff_done_when_baseline and one that is NOT, each carrying a well formed,
 > fully resolving "## Done when" block — record every fixture note's bytes and mtime, run
-> check-state.sh against that fixture root, and assert BOTH that no reported line mentions "Done
+> check-state.py against that fixture root, and assert BOTH that no reported line mentions "Done
 > when" AND that each fixture note is byte-identical and mtime-identical afterwards. … The real
 > corpus at review_sha is carried by SC-04 as a recorded review-time run, not by this permanent suite;
 
@@ -89,7 +89,7 @@ clause byte-identical including the trailing
 
 **SC-04, `BRIEF.md:89-99`** — the claim's three lines are byte-identical; only the method changed:
 > Verified at REVIEW TIME, not by a permanent suite case: at `review_sha`, from the repository root,
-> the reviewer runs `bash .claude/skills/harness/bin/check-state.sh` and records in the review record
+> the reviewer runs `python3 .claude/skills/harness/bin/check-state.py` and records in the review record
 > its exit status and that no reported line names `Done when`. Falsified by any such line, including
 > one naming a note this feature wrote. … the deterministic half of the claim — a clean corpus and no
 > note mutated by the scan — is T-06 case (g) over a fixture corpus.

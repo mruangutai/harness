@@ -29,7 +29,7 @@ recorded string will fail. Not `reviewed content` in the sense this dispatch sco
 
 ## Cycle-0 must_fix corroboration — all three CLOSED
 
-**M1 (high, fail-open) — CLOSED.** `git show c745d3a:.claude/skills/harness/bin/check-state.sh`
+**M1 (high, fail-open) — CLOSED.** `git show c745d3a:.claude/skills/harness/bin/check-state.py`
 lines 211-214:
 ```
 severity = str(item.get("severity", "")).strip().lower()
@@ -55,7 +55,7 @@ code, out, _ = _inv32_run(_inv32_plan(finding=findings))
 ok = code == 1 and all(finding["id"] in out for finding in findings)
 ```
 All three directions in one fixture, each asserted by requiring its own id to appear in the gate's
-output (the loop in check-state.sh processes every finding, so a fix that only fixed one direction
+output (the loop in check-state.py processes every finding, so a fix that only fixed one direction
 would still be caught since all three ids must appear). Wired into `main()`'s overall gate
 (`ok_i32_severity = case_inv32_unrated_severity_fails_closed()`, added to the big `and` chain).
 Ran live at the pin: `python3 .claude/skills/harness/bin/test-check-state.py` → exit 0, output lines
@@ -146,11 +146,11 @@ disposition clears the gate independent of severity) — not a new escape, not t
 ## Carried forward from cycle 0 — re-confirmed at the new pin, none re-derived
 
 - **M4** (med) — `panel_findings.py:31-33`'s `digest[:8]` truncation: file absent from `c745d3a`'s
-  diff (`git show c745d3a --stat` touches only `check-state.sh` and `test-check-state.py`); read the
+  diff (`git show c745d3a --stat` touches only `check-state.py` and `test-check-state.py`); read the
   file in full at the pin, byte-unchanged. Still open.
 - **M5** (med) — `test-plan-panel.py:161-181`'s unbound SC-03 direction: file absent from `c745d3a`'s
   diff. Still open, unchanged.
-- **M6** (low) — `check-state.sh:216-228`'s `expected_readers = {"should-not-exist", "scope",
+- **M6** (low) — `check-state.py:216-228`'s `expected_readers = {"should-not-exist", "scope",
   "goalcheck"}` block: read it at the pin, identical to cycle 0's citation, sits immediately after
   the fixed severity block but outside the two changed lines. Unchanged.
 - **M7** (low, UI domain) — the withhold message's text did shift incidentally:

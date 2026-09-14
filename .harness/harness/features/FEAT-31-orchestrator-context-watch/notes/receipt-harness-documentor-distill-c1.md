@@ -15,7 +15,7 @@ not in Expertise. The repository-tier file was not touched.
 
 The line count fell because `expertise-merge.py` re-renders each entry as one physical line rather
 than the hard-wrapped form previously in the file. All 34 pre-existing entry ids are present
-alongside the 3 new ones (37 total, verified by id enumeration); `check-expertise.sh
+alongside the 3 new ones (37 total, verified by id enumeration); `check-expertise.py
 .harness/expertise/` exits 0 with no advisory against this file.
 
 ## Accepted — 3 (observation-log 2, lead-relay 1)

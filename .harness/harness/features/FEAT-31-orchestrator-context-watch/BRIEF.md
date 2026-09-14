@@ -210,7 +210,7 @@ loop, growing past every threshold, with the next seam far ahead.
 None material to this feature. **Five** kinds carry `cmd: null` in `.harness/harness.json`
 `test_kinds` — `functional`, `component`, `ui`, `eval` and `typecheck` — and no criterion above rests
 on any of them. This feature
-touches a Python script under `.claude/skills/harness/bin/`, a `budgets` key, `check-state.sh`, and a
+touches a Python script under `.claude/skills/harness/bin/`, a `budgets` key, `check-state.py`, and a
 decision entry; `unit` and `integration` both have real runners and cover all of it. This section says
 so explicitly because DEC-163 makes a null kind a soft skip: an SC resting on one can never be met and
 never fails loudly, so the absence of that case is worth stating rather than leaving inferred.
@@ -228,10 +228,10 @@ never fails loudly, so the absence of that case is worth stating rather than lea
   depend on only the three universal keys and must treat every other as optional. How it behaves when
   the file defeats it is REQ-07, not a constraint.
 
-- **DEC-174** (am.1-am.4) — `check-state.sh` is named enforcement layer, and the list is
+- **DEC-174** (am.1-am.4) — `check-state.py` is named enforcement layer, and the list is
   non-exhaustive. The harness plans this feature but does not execute the change. **The relay half
   widens this reach considerably:** SC-07 changes `check-domain.py`'s write route, SC-13 needs a hook
-  registration in `settings.json`, and SC-14 changes INV-17's seam table in `check-state.sh`. That is
+  registration in `settings.json`, and SC-14 changes INV-17's seam table in `check-state.py`. That is
   three enforcement-layer surfaces, all main-session-direct, all declared as such at plan time under
   DEC-179. A squad may write the modules those gates call; every cutover is the operator's hands. This
   is the single largest cost of the relay scope and it is not negotiable under DEC-174.
@@ -251,7 +251,7 @@ never fails loudly, so the absence of that case is worth stating rather than lea
 
 - **DEC-159 is the basis of this feature, by the operator's ruling of 2026-08-20** — the per-phase
   seam, `notes/handoff-<phase>.md`, the four required sections and the 60-line cap, and INV-17 at
-  `check-state.sh:462` which already enforces them. REQ-04 extends this mechanism; it does not invent
+  `check-state.py:462` which already enforces them. REQ-04 extends this mechanism; it does not invent
   one. The feature restores the measurement DEC-159 assumed and corrects the one clause that claims
   the measurement still exists.
 - **DEC-191** — `feature.json`'s closed key set, eleven keys, `additionalProperties: false`. `runs` is

@@ -119,7 +119,7 @@ untouched by this feature. Flagging for the backlog, not this verdict.
   form in `bin/*.sh` carries `-P`.
 - `-P` does not disable `PYTHONPATH` — confirmed empirically alongside a decoy module: `-P` only
   removes the auto-prepended unsafe entry (cwd / script dir / `''`), `PYTHONPATH` entries still
-  resolve at their normal position. This is why `check-state.sh:48`'s `PYTHONPATH=... python3 -P`
+  resolve at their normal position. This is why `check-state.py:48`'s `PYTHONPATH=... python3 -P`
   co-occurrence is correct, not a reintroduction.
 - No `sys.path.insert`, `os.environ[...] =`, or nested `subprocess`-launched `python3` in any
   production (non-test) file under `bin/` reintroduces a cwd-derived path; every `sys.path.insert`

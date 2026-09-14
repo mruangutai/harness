@@ -87,16 +87,16 @@ Claude Code directly demonstrated:
 All commands passed:
 
 ```bash
-bash .agents/skills/harness/bin/run-unit-tests.py
+python3 .agents/skills/harness/bin/run-unit-tests.py
 python3 .agents/skills/harness/bin/check-omp-port.py
-bash .agents/skills/harness/bin/check-state.sh
+python3 .agents/skills/harness/bin/check-state.py
 python3 -m compileall -q .agents/skills/harness/bin
 bun test ./.agents/skills/harness/bin/omp-hooks.test.ts
 bun build .omp/extensions/harness-hooks.ts --target bun --outfile /tmp/harness-hooks.js
 git diff --check HEAD
 ```
 
-`check-state.sh` exited 0 with the repository's pre-existing informational notes.
+`check-state.py` exited 0 with the repository's pre-existing informational notes.
 
 ## Comparison with the pre-port baseline
 

@@ -89,7 +89,7 @@ Decisions and rules that BLOCK, bound or forbid:
 
 - DEC-174 governs execution: every hook, validator and gate script, and the test file of each, is
   planned through the harness and never executed through it. `validate-digest.py`,
-  `check-domain.py`, `check-state.sh` and their tests are therefore main-session-direct, and
+  `check-domain.py`, `check-state.py` and their tests are therefore main-session-direct, and
   `--resolve` GRANTING them to `harness-backend-dev`/`harness-dev-ops` does not override that.
 - DEC-191 closes `feature.json` with `additionalProperties: false`. Adding a `worktree` key would
   be a schema change; this feature does not add one and derives the checkout from git instead.
@@ -158,7 +158,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   `harness-backend-dev, harness-dev-ops` for `.claude/skills/harness/bin/check-domain.py`.
   verify: automated        evidence: integration
   command: `python3 .claude/skills/harness/bin/test-check-domain.py` and
-  `bash .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/check-domain.py | grep -q 'harness-backend-dev'`
+  `python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/check-domain.py | grep -q 'harness-backend-dev'`
 - SC-08: FEAT-45's INV-32 fail-closed fix is untouched. `test-check-state.py` carries ONE INV-32
   case, `case_inv32` (`test-check-state.py:3091`), and it still passes. Its checks cover the
   missing-panel, high-severity-open, stale-override, missing-reader and mutant-red directions
@@ -180,7 +180,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   verify: automated        evidence: integration
   command, once per kind with `unit` then `integration` and its own baseline:
   `out=$(.claude/skills/harness/bin/run-unit-tests.py --kind unit); rc=$?; test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -q '^FAIL ' && test "$(printf '%s\n' "$out" | wc -l)" -ge 1463`
-- SC-11: `bash .claude/skills/harness/bin/check-state.sh` exits 0, AND no violation row names
+- SC-11: `python3 .claude/skills/harness/bin/check-state.py` exits 0, AND no violation row names
   `FEAT-50` — in particular no `INV-32` row, which is what binds FEAT-50's own approval to carry
   a complete `panel:` result. BOTH clauses bind. The exit-0 clause is the operator's stated
   intent constraint 4 restored as written, after the ruling of 2026-08-31
@@ -221,7 +221,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   absent there by construction, and present in this worktree until their authors re-emit.
   verify: automated        evidence: integration
   command, the positive control first so an errored or aborted run cannot pass as a clean one. The
-  control keys on the reporting block's OWN unconditional output (`check-state.sh:1868-1871`):
+  control keys on the reporting block's OWN unconditional output (`check-state.py:1868-1871`):
   every run that reaches that block prints at least one `VIOLATION ` row, one `note ` row, or the
   literal `all state invariants hold.` line. It deliberately does NOT key on an `INV-` substring —
   `INV-` appearing on a `note` row is a property of TODAY'S corpus, not of the gate, and the
@@ -230,11 +230,11 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   when they decline to pin a count or a decision number. The empty output an errored or aborted run
   leaves matches none of the three alternatives and fails the control, which is the case the
   control exists for. The FEAT-50 clause is anchored on the `  VIOLATION ` row prefix rather than
-  grepping the whole output, because `check-state.sh:1868-1869` prefixes the two row kinds
+  grepping the whole output, because `check-state.py:1868-1869` prefixes the two row kinds
   distinctly and a `warn` row is by design not a violation — INV-21, INV-22 and INV-28 all emit
   feature-named `note` rows on a perfectly healthy feature, so an unprefixed grep would grade
   something this criterion does not claim and could go red over a benign note:
-  `out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1); rc=$?; printf '%s\n' "$out" | grep -qE '^  (VIOLATION |note |all state invariants hold\.)' && test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -qE '^  VIOLATION .*FEAT-50'`
+  `out=$(python3 .claude/skills/harness/bin/check-state.py 2>&1); rc=$?; printf '%s\n' "$out" | grep -qE '^  (VIOLATION |note |all state invariants hold\.)' && test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -qE '^  VIOLATION .*FEAT-50'`
 - SC-12: The operator's INV-32 ruling is on the record, as the ruling actually taken. Graded by
   reading ONE place and nothing else: an `## Operator ruling — INV-32` section in
   `.harness/harness/features/FEAT-50-run-artifact-integrity/notes/answers-2026-08-31-plan.md`,
@@ -244,12 +244,12 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   absent, and NOT met if it has been restated in the (a)/(b)/(c) shape this brief originally
   offered — the operator took none of those three, and recording a fourth option as one of them
   falsifies the record (PRINCIPLES rule 15).
-  It is deliberately NOT graded on `plan.yaml`'s `approval.rulings`: `check-state.sh:189-204`
+  It is deliberately NOT graded on `plan.yaml`'s `approval.rulings`: `check-state.py:189-204`
   validates every entry there against `panel.findings` and demands a `finding` id present in that
   list plus a non-empty `who` and a `YYYY-MM-DD` `date`, so an INV-32 entry written there emits
   two `INV-32` VIOLATION rows naming FEAT-50 and falsifies SC-11. SC-11 and SC-12 are satisfiable
-  together precisely because of that split: the ruling lands in a notes file `check-state.sh`
-  never reads, and `approval.rulings` is left ABSENT, which `check-state.sh:189` reads as the
+  together precisely because of that split: the ruling lands in a notes file `check-state.py`
+  never reads, and `approval.rulings` is left ABSENT, which `check-state.py:189` reads as the
   empty list and iterates zero times. That reasoning is doubly right now that NO overrule was
   taken at all — the operator directed both open `high` findings be FIXED, not overruled — so
   `approval.rulings` has nothing it could legitimately hold.
@@ -351,14 +351,14 @@ Every criterion names its own evidence command. No criterion rests on "the suite
 ## Verification gaps
 
 - `INV-32` is an EXTERNALLY OWNED BLOCKER on this feature, not a red it grades around. Measured
-  at `75daa3b` and again on 2026-08-31: `check-state.sh` exits 1 with 32 `INV-32` VIOLATION rows
+  at `75daa3b` and again on 2026-08-31: `check-state.py` exits 1 with 32 `INV-32` VIOLATION rows
   — "plan is approved with no complete panel result recorded" — one per plan approved before
   FEAT-45 shipped the panel, FEAT-45's own plan included. SC-11 now grades the exit code
   DIRECTLY and unweakened, so this feature does NOT route around the red: it BLOCKS on it. The
   remedy is being applied in another session, outside this branch (D-09, and the ruling section
   below), so no task here can clear it, SC-11 is ungradeable until that fix lands on the default
   branch, and this plan is unsignable and its build unstartable until then. What is therefore
-  NOT proven by anything in this feature is that `check-state.sh` exits 0; what carries it is
+  NOT proven by anything in this feature is that `check-state.py` exits 0; what carries it is
   the external fix, and the gate on this plan's signature.
 - `component`, `ui`, `eval` and `typecheck` all carry `cmd: null` in `.harness/harness.json`
   `test_kinds`, and `functional` is `excluded` under DEC-187. No criterion above rests on any of
@@ -406,7 +406,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   omission. INV-32 asks an APPROVED plan for a complete panel result, and that key is transcribed
   out of band by pm from the validator lead's digest after the panel segment runs
   (`harness-spec-driven`), which is why no task in this plan produces it. Before approval INV-32
-  does not apply to this plan at all (`check-state.sh:176-179`), so SC-11 becomes gradeable only
+  does not apply to this plan at all (`check-state.py:176-179`), so SC-11 becomes gradeable only
   once the signature and the transcribed panel both exist — and a reader six months on should read
   the absence of a task as the panel segment's ownership, not as a forgotten dependency.
 
@@ -416,7 +416,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
 `.harness/harness/features/FEAT-50-run-artifact-integrity/notes/answers-2026-08-31-plan.md`,
 section `## Operator ruling — INV-32`, as `choice: d`: INV-32 is being fixed in another session;
 hold FEAT-50's signature and build until that fix lands; do not alter INV-32 here, and do not
-weaken the exact `check-state.sh` exit-0 success criterion.
+weaken the exact `check-state.py` exit-0 success criterion.
 
 That is a FOURTH option — none of the three this brief previously offered — and it is recorded
 as `d` rather than folded into the nearest of them, because recording it as one of them would
@@ -425,15 +425,15 @@ falsify what was ruled (PRINCIPLES rule 15).
 **What it settles.**
 
 - **FEAT-50 plans NO INV-32 work.** No `approval.date` scoping, no 32-plan `panel:` backfill.
-  `check-state.sh` is edited by no task in `plan.yaml`; its lane row stays declared-but-unedited
+  `check-state.py` is edited by no task in `plan.yaml`; its lane row stays declared-but-unedited
   because SC-08 and SC-11 read it. D-09 records this and D-08 no longer defers it.
 - **The exit-0 criterion is restored, not weakened.** SC-11 requires
-  `bash .claude/skills/harness/bin/check-state.sh` to exit 0, which is the operator's stated
+  `python3 .claude/skills/harness/bin/check-state.py` to exit 0, which is the operator's stated
   intent constraint 4 as written, with the "no violation row names FEAT-50" clause kept
   alongside it.
 - **Signature and build are BLOCKED on an external event.** THIS PLAN IS COMPLETE BUT NOT
   SIGNABLE, AND ITS BUILD MUST NOT START, until the external INV-32 fix has landed on the default
-  branch and `check-state.sh` exits 0 with FEAT-50's feature directory present. That is a stated
+  branch and `check-state.py` exits 0 with FEAT-50's feature directory present. That is a stated
   external blocker rather than an unresolved plan defect, and it is the only thing standing
   between this plan and signature.
 - **2026-08-31: the operator reported the external INV-32 fix MERGED into `main`**, so D-09's
@@ -445,10 +445,10 @@ falsify what was ruled (PRINCIPLES rule 15).
 `plan.yaml`'s `approval.rulings` key is ABSENT and must stay absent. It exists to record an
 OVERRULE of a panel finding and nothing else, and no overrule was taken: the operator directed
 that both open `high` findings be FIXED, which the amended plan does. Writing the INV-32 ruling
-there instead would be actively harmful — `check-state.sh:189-204` validates every entry against
+there instead would be actively harmful — `check-state.py:189-204` validates every entry against
 `panel.findings` and demands a `finding` id present in that list plus a non-empty `who` and a
 `YYYY-MM-DD` `date`, so an `{id: INV-32, ...}` entry emits two `INV-32` VIOLATION rows naming
-FEAT-50 and makes the signature itself the act that falsifies SC-11. `check-state.sh:189` reads
+FEAT-50 and makes the signature itself the act that falsifies SC-11. `check-state.py:189` reads
 the absent key as the empty list and iterates zero times. SC-12 is graded by reading the
 answers-note section and nothing else, which is what makes SC-11 and SC-12 satisfiable together.
 

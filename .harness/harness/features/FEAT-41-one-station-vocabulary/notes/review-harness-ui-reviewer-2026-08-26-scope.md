@@ -14,7 +14,7 @@ the predecessor panel's false claim came from reading a file another agent held 
   build** if any task lands "a UI-shaped file, a rendered surface or operator-facing output" — the
   plan authors already built in the re-trigger this role would otherwise have to demand.
 - Read all 13 tasks (T-01–T-13) in full: `harness.json` station declaration, `gh_board.py`
-  case-boundary refactor, `plan-merge.py` verb additions, `check-plan-routes.py`/`check-state.sh`
+  case-boundary refactor, `plan-merge.py` verb additions, `check-plan-routes.py`/`check-state.py`
   vocabulary migration, `feature-schema.json` key deletion, a new PreToolUse hook
   (`plan-sign-gate.py`), `check-domain.py` shape-gate denial, `gh-sync.py` ship fixes, a stale-test
   deletion, and a `DECISIONS.md`/`SPEC.md` documentation task (T-12, executed by

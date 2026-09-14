@@ -60,7 +60,7 @@ against a stray file edit inside one checkout, recoverable via git; now it is on
 holding up cross-worktree containment (SC-01/SC-01b) for concurrently-running, cross-repository
 features — a HEAD move mid-run corrupts every other agent standing in that checkout for the
 duration of the window, which is harder to characterize after the fact than a file diff. I found
-**no equivalent "post-run tree audit"** for HEAD position specifically (`check-state.sh` has none;
+**no equivalent "post-run tree audit"** for HEAD position specifically (`check-state.py` has none;
 the only audit of this shape on record is the one-shot, manual DEC-153 bypass audit, not a running
 gate) — so the detective control that makes the writes-side residual tolerable does not clearly
 extend here. Residual risk is from a **cooperative-but-frustrated agent** reaching for a wrapped
@@ -88,14 +88,14 @@ frames the accepted risk as "a stray edit inside a disposable checkout" — this
 landing outside it, which the decision does not appear to have considered.
 
 ## F4 — LOW — squad-appliable (`expertise-merge.py`)
-`expertise-merge.py:37`'s `ENTRY_RE` (`[A-Za-z]{1,3}-\d+`) is looser than `check-expertise.sh:44`'s
-(`[A-Z]{1,3}-\d+`). Traced the actual consequence rather than assuming: `check-expertise.sh` does
+`expertise-merge.py:37`'s `ENTRY_RE` (`[A-Za-z]{1,3}-\d+`) is looser than `check-expertise.py:44`'s
+(`[A-Z]{1,3}-\d+`). Traced the actual consequence rather than assuming: `check-expertise.py` does
 **not** silently fold a lowercase-id line into the previous entry — it explicitly flags it ("entry
 lacks the '- XX-NN: ' id prefix") and still counts it toward the section cap, so its own gate stays
 fail-closed. The practical defect is narrower than a bypass: `expertise-merge.py` can successfully
-merge and write a lowercase-id entry that `check-expertise.sh` will then report FAIL on the very
+merge and write a lowercase-id entry that `check-expertise.py` will then report FAIL on the very
 next run — a correctness/consistency wart between two copies of the same shape rule, not a silent
-gate defeat. Fix: import or mirror `check-expertise.sh`'s regex exactly, the same discipline this
+gate defeat. Fix: import or mirror `check-expertise.py`'s regex exactly, the same discipline this
 file already applies to the `CAPS` dict (its own docstring names the CAPS-agreement test as
 deliberate; the id regex was not given the same treatment).
 
@@ -117,7 +117,7 @@ deliberate; the id regex was not given the same treatment).
 
 ## Out of scope, not re-raised
 Issue #626; FEAT-26/28/31; the two already-known `test_kinds` glob/runner mismatches;
-`check-state.sh`'s FEAT-30 INV-26 rows; the qa gate.
+`check-state.py`'s FEAT-30 INV-26 rows; the qa gate.
 
 ## Open questions
 - Q1 (non-blocking): should `expertise-merge.py` accept an `--agent` identity and self-validate

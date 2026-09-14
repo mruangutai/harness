@@ -17,7 +17,7 @@ open yet.
 `gh-sync.py ship` and then removes this checkout — fires only if `done` is already landed. FEAT-50
 and FEAT-51 each paid a second closeout PR (#1111, #1158) for landing it afterwards. Landing it
 inside this PR collapses the ship to one merge. The station on a branch is invisible to
-`check-state.sh` in the main checkout, so nothing reads a premature `done` in the meantime. If the
+`check-state.py` in the main checkout, so nothing reads a premature `done` in the meantime. If the
 PR is not merged, revert with one command:
 `plan-merge.py set-feature-station --file <plan.yaml> --station review`.
 

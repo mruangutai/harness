@@ -67,7 +67,7 @@ and still runs both verify commands before ship, so coverage is genuinely delive
 T-02's own gate. Order is right; the gate does not need reshaping.
 
 **5. Duplicate-key loosening — CLEAN, and stronger than "nothing depends on it."** Grepped the tree
-for `DuplicateKeyError` consumers: `bash-write-guard.py`, `check-domain.py`, `check-state.sh` all
+for `DuplicateKeyError` consumers: `bash-write-guard.py`, `check-domain.py`, `check-state.py` all
 catch it for *manifest*/*rulebook* YAML files, never for `feature.json`. More directly:
 `feature_json_write.py:71` — the one locked, schema-validated write authority for `feature.json`
 that both `gh-sync.py` and `factory_decompose.py`'s own `write_factory` already go through — parses

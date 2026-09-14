@@ -47,4 +47,4 @@ T-07.
 
 Only `.claude/skills/harness/bin/deploy.sh` was touched, per the declared-files list. No other
 file was edited, staged, committed, or pushed. No carve-out file
-(`check-domain.py`/`bash-write-guard.py`/`validate-digest.py`/`check-state.sh`) was touched.
+(`check-domain.py`/`bash-write-guard.py`/`validate-digest.py`/`check-state.py`) was touched.

@@ -376,7 +376,7 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-expertise.sh
+      - .claude/skills/harness/bin/check-expertise.py
       - .claude/skills/harness/bin/test-check-expertise.py
     verify: |
       set -u
@@ -384,14 +384,14 @@ tasks:
       echo "$out"
       echo "$out" | grep -q '^PASS test-check-expertise.py$' || exit 1
       echo "$out" | grep -q '^FAIL ' && exit 1
-      live=$(.claude/skills/harness/bin/check-expertise.sh .harness/expertise/ 2>&1)
+      live=$(.claude/skills/harness/bin/check-expertise.py .harness/expertise/ 2>&1)
       rc=$?
       echo "$live"
       [ "$rc" = 0 ] || { echo "live craft dir no longer exits 0"; exit 1; }
       echo "$live" | grep -q '^ADVISORY ' || { echo "no advisory line on the live craft dir"; exit 1; }
       exit 0
     intent: |
-      Two changes to .claude/skills/harness/bin/check-expertise.sh, plus the cases that prove them.
+      Two changes to .claude/skills/harness/bin/check-expertise.py, plus the cases that prove them.
 
       CHANGE 1 — the line budget becomes per tier. The Python body currently has
       LINE_BUDGET = 150 applied to every file. Replace it with a per-path budget: a file whose path
@@ -403,7 +403,7 @@ tasks:
 
       Classify on os.path.abspath(path), never on the argument as typed. This matters and is not a
       tidiness point: this task's own intent says the checker is invoked by hand, and
-      cd .harness/harness/expertise && check-expertise.sh harness-qa.md matches neither form as
+      cd .harness/harness/expertise && check-expertise.py harness-qa.md matches neither form as
       typed, so it would keep 150 and print OK over a 41-line file that is over budget — the new
       budget silently unenforced by the only gate that enforces it. abspath resolves that
       invocation to the repository form. It is compatible with cases 4 and 5 below, which build
@@ -493,7 +493,7 @@ tasks:
       python3 - <<'PY'
       import sys, os
       O=".harness/expertise/%s.md"; N=".harness/harness/expertise/%s.md"
-      ROWS=[("m","harness-backend-dev","fake-gh test harness"),("m","harness-dev-ops","Nothing invokes check-state.sh automatically"),
+      ROWS=[("m","harness-backend-dev","fake-gh test harness"),("m","harness-dev-ops","Nothing invokes check-state.py automatically"),
        ("m","harness-dev-ops","merged additively into"),("m","harness-documentor","amended decision's own section"),
        ("m","harness-documentor","DO append at end-of-file and regenerate"),("m","harness-documentor","removed the superseded-pattern marker"),
        ("m","harness-documentor","sweep every live surface by hand"),("m","harness-documentor","length budgets are asserted only in"),
@@ -515,8 +515,8 @@ tasks:
       print("MIGRATION-OK" if not bad else "MIGRATION-FAILED"); sys.exit(bad)
       PY
       rc=$?
-      .claude/skills/harness/bin/check-expertise.sh .harness/expertise/ || rc=1
-      .claude/skills/harness/bin/check-expertise.sh .harness/harness/expertise/ || rc=1
+      .claude/skills/harness/bin/check-expertise.py .harness/expertise/ || rc=1
+      .claude/skills/harness/bin/check-expertise.py .harness/harness/expertise/ || rc=1
       exit $rc
     intent: |
       Create .harness/harness/expertise/ and move eleven entries into it from six craft files. The
@@ -547,7 +547,7 @@ tasks:
         - the entry containing "fake-gh test harness"
 
       harness-dev-ops — Gotchas:
-        - the entry containing "Nothing invokes check-state.sh automatically"
+        - the entry containing "Nothing invokes check-state.py automatically"
         - the entry containing "merged additively into"
 
       harness-documentor — Patterns:
@@ -574,7 +574,7 @@ tasks:
       "Rate hook crashes as fail-open" entry.
 
       DO NOT RENUMBER the craft files. Removing an entry leaves a numbering gap in its section and
-      that is correct: check-expertise.sh requires the id prefix, not contiguity, and DEC-66 makes
+      that is correct: check-expertise.py requires the id prefix, not contiguity, and DEC-66 makes
       the ids stable references that other entries and notes cite.
 
       This task's verify was probed in both directions at plan time before it shipped, so its green
@@ -647,12 +647,12 @@ tasks:
       for both, that agent and its own file alone; and that BOTH are injected at every spawn by the
       SubagentStart hook and neither is ever read by the agent itself.
 
-      .harness/harness/docs/SPEC.md line 806 at ada8e99 says check-expertise.sh enforces the format
+      .harness/harness/docs/SPEC.md line 806 at ada8e99 says check-expertise.py enforces the format
       mechanically and that the injection hook hard-truncates. Extend that passage so it states: the
       two tiers and their two paths; the two budgets, 150 for craft and 40 for repository, enforced
-      both at authoring time by check-expertise.sh and as a truncation backstop in the hook; that the
+      both at authoring time by check-expertise.py and as a truncation backstop in the hook; that the
       hook injects global craft, then project craft, then every repository tier present; and
-      that check-expertise.sh reports craft entries naming a repository-specific token as ADVISORY
+      that check-expertise.py reports craft entries naming a repository-specific token as ADVISORY
       only, never as a violation.
 
       The precedence rule must be stated in SPEC with the same words the hook emits, and must not be
@@ -672,7 +672,7 @@ tasks:
       40-line. In README use the table's existing relative convention, expertise/<agent>.md and
       <repo>/expertise/<agent>.md. Do not write **/expertise or expertise/<repo> in either file.
 
-      Do not restate the token list; point at check-expertise.sh for it. Do not add a decision record
+      Do not restate the token list; point at check-expertise.py for it. Do not add a decision record
       — this task documents what exists, and the decisions live in the plan and in DECISIONS.md if
       the operator promotes them.
 
@@ -729,13 +729,13 @@ tasks:
 
       Do NOT write it as the two bare arguments .harness/expertise/ .harness/*/expertise/. In a
       project with no repository tier the glob passes through as a literal star, the checker treats
-      it as a missing path and exits 2 (check-expertise.sh:26-27) — correct in this repository after
+      it as a missing path and exits 2 (check-expertise.py:26-27) — correct in this repository after
       T-04, broken as shipped guidance for every other project this skill runs in. Write instead the
       literal command block
 
-        .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+        .claude/skills/harness/bin/check-expertise.py .harness/expertise/
         for d in .harness/*/expertise/; do
-          [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.sh "$d"
+          [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.py "$d"
         done
 
       in both step 1 and step 4, and say in one clause why the second path is audited at all: the

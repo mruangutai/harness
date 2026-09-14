@@ -15,4 +15,4 @@ This note was transcribed after the fact by the main-session executor from comma
 ## T-06 → T-07
 
 - RED — the literal T-06 capture/exit/grep verify exited 0, proving `python3 tests/integration/test-check-state.py` itself exited nonzero and its captured output contained `done when`. A scoped outcome run showed the intended RED cases failing: non-baselined missing section, baselined malformed block, malformed shape, invalid grammar, and absent baseline key. The specified pre-green cases passed.
-- GREEN — after updating `check-state.sh` and correcting the test's renamed-constant reader, `python3 tests/integration/test-check-state.py` exited 0. The literal T-07 verification then ran the live state checker, observed `rc=1` from unrelated repository findings, observed no output line containing `Done when`, and printed `ok rc=1`.
+- GREEN — after updating `check-state.py` and correcting the test's renamed-constant reader, `python3 tests/integration/test-check-state.py` exited 0. The literal T-07 verification then ran the live state checker, observed `rc=1` from unrelated repository findings, observed no output line containing `Done when`, and printed `ok rc=1`.

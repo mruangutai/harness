@@ -20,12 +20,12 @@
   `.harness/logs/2026-08-09.md` is still dirty: its twelve added lines are the main session's own
   record — the bf8f191 measurements, #203 and #204 — and I cannot verify those claims, so signing
   them into my commit would be the wrong trade. It is the operator's to commit.
-  `check-state.sh` and `test-check-state.py` were never opened for edit and are in no commit.
+  `check-state.py` and `test-check-state.py` were never opened for edit and are in no commit.
 
 - **THREE GATES RE-MEASURED BY ME AT THE SETTLED TREE, BEFORE THE COMMIT, NOT INHERITED.**
   `run-unit-tests.py` exit 0 — **22 test files PASS, 0 FAIL** (the 22 is FILE-level; a bare
   `grep -c "^PASS"` returns 85 by counting sub-case lines). `check-docs.sh` exit 0 — 62 patterns
-  across 317 files. `check-state.sh` exit 0 — **zero violations**, only notes, including the
+  across 317 files. `check-state.py` exit 0 — **zero violations**, only notes, including the
   expected INV-22. Both checkers were re-run AFTER the last write, not before it.
 
 - **ADVANCING THE PHASE TO `ship` EXPOSED A REAL GAP, AND I CLOSED IT RATHER THAN REVERTING.**
@@ -84,4 +84,4 @@
   `8bbb246`). `bf8f191` and `b86565b` both carry trailers, so the gap is historical.
 - HARNESS QUESTION, demonstrated twice on this feature: should a review panel — or any segment —
   run against a working checkout another process can move under it? panel2 hit it as a moving HEAD,
-  a1fix-eng hit it as `check-state.sh` changing mid-run. A worktree at the pin is free both times.
+  a1fix-eng hit it as `check-state.py` changing mid-run. A worktree at the pin is free both times.

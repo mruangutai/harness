@@ -8,7 +8,7 @@ pin `a1a67956a5844c67ce098e9580ee6692a92f9a30`).
 **V-02 STILL BOUND. V-03 STILL BOUND.** The cycle-3 restructure (splitting the case into
 `_bug440_mixed_case`/`_bug440_blocking_case`/`_bug440_clean_case` + a `_bug440_validator()` helper,
 `test-check-state.py:4618-4726`) did not unbind either mutant, and each still reddens through the
-*same specific sub-check* cycle-2 identified. `check-state.sh` and `notes/redproof-BUG-440.md` are
+*same specific sub-check* cycle-2 identified. `check-state.py` and `notes/redproof-BUG-440.md` are
 byte-identical across the c2→c3 pins (0-line diffs) — the fix is confirmed test-only, as claimed.
 V-04/V-05/V-07/V-08 and the SC-05 note-staleness finding are unchanged and carried forward by name;
 V-06 stays RESOLVED. SC-06 is unchanged: exit 0, 217 lines, 0 `FAIL` lines — identical to cycle-2.
@@ -20,7 +20,7 @@ V-06 stays RESOLVED. SC-06 is unchanged: exit 0, 217 lines, 0 `FAIL` lines — i
 - Working-tree `tests/integration/test-check-state.py` is byte-identical to the pinned blob
   (`git diff HEAD -- tests/integration/test-check-state.py` → 0 lines).
 - `git diff a1a67956..442e0d24 --stat`: only `tests/integration/test-check-state.py | 63
-  +++++++++++++++++++++++------------` (41 insertions, 22 deletions). `check-state.sh` and
+  +++++++++++++++++++++++------------` (41 insertions, 22 deletions). `check-state.py` and
   `notes/redproof-BUG-440.md` are both 0-line diffs across the same two pins — confirmed
   byte-identical, not assumed.
 - `git status --porcelain` before and after probing: identical — only pre-existing
@@ -59,10 +59,10 @@ print line, so the total line count did not move.
 
 ## Per-SC re-resolution
 
-Unchanged since check-state.sh is byte-identical: **SC-02, SC-03, SC-04, SC-07** carry forward by
+Unchanged since check-state.py is byte-identical: **SC-02, SC-03, SC-04, SC-07** carry forward by
 name at cycle-2's evidence (isolated all-agree fixture exit 0/no INV-37; five SC-03 legs each
 independently pinned including by m3/m5 above; before/after sha256 unchanged=True; tail-anchor
-regex/`_dtext` reuse/zero literal verdict tokens in the new region, all in check-state.sh, untouched).
+regex/`_dtext` reuse/zero literal verdict tokens in the new region, all in check-state.py, untouched).
 **SC-01**: satisfied with the standing V-04 order-blindness gap (unremediated, not in must_fix,
 untouched region — carried by name, not re-derived). **SC-05**: satisfied on substance (RED still
 reproduces), with the standing low-severity note-staleness finding carried by name — no new
@@ -73,7 +73,7 @@ which the c3 diff didn't touch. **SC-06**: satisfied, re-measured this cycle (ab
 
 `change_type: bugfix` (plan.yaml, T-01, unchanged). `test_matrix.bugfix`: `unit if
 touches_runtime_code` — false for the c2→c3 delta alone (test-file-only), but the *feature's* whole
-diff includes T-01's original check-state.sh change, so `unit` was already obligated and satisfied at
+diff includes T-01's original check-state.py change, so `unit` was already obligated and satisfied at
 cycle 1/2 by that task's own verify — no re-derivation owed this cycle. `integration if
 fix_confined_to_tests_and_contract_docs` — same reasoning as cycle-2: evaluated against the whole
 feature diff (which is not test-confined at T-01), so this leg stays inert; `integration` is
@@ -82,10 +82,10 @@ independently required regardless because `tests/integration/test-check-state.py
 `run-unit-tests.py --kind integration`'s own `SCRIPTS=(tests/integration/test-*.py)` (confirmed by
 reading the script, not inferred from the glob alone). `match_bug_class` stays inert (repository
 Expertise G-08 — no taxonomy entry resolves for any diff yet). **matrix_ok: true.** The restructure
-did not change how many changed units are gate-bound: the same one script (`check-state.sh`, 0-diff)
+did not change how many changed units are gate-bound: the same one script (`check-state.py`, 0-diff)
 and the same one test file are both already inside the required-kind buckets; nothing new escaped.
 
 ## Carried-forward findings (not re-litigated)
 
-V-04 (med, OPEN, SC-01 order-blindness), V-05/V-07/V-08 (low/info, OPEN, check-state.sh-anchored),
+V-04 (med, OPEN, SC-01 order-blindness), V-05/V-07/V-08 (low/info, OPEN, check-state.py-anchored),
 V-06 (RESOLVED c2), SC-05 note-staleness (low, OPEN). None plausibly moved by a test-file-only diff.

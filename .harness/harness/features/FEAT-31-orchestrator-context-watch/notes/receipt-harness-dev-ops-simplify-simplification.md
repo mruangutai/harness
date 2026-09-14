@@ -16,7 +16,7 @@ DEC-198 entry.
   rather than present-fact ones. Checked against `plan.yaml` and `DECISIONS-INDEX.md`: every cited id
   resolves to a real, still-live decision or task, and each comment states a present constraint
   ("keep it deep and narrow (D-24)") rather than a changelog entry. This matches the codebase's
-  existing citation convention elsewhere (`DECISIONS.md`, `check-state.sh`). Not a finding.
+  existing citation convention elsewhere (`DECISIONS.md`, `check-state.py`). Not a finding.
 - **The two-line `at_or_above_threshold = False; at_or_above_threshold = ...` seams** in `format_rows`
   and `warn_for_agent` — explicitly named as deliberate mutant anchors in the dispatch. Skipped.
 - **Duplicated directory-walk logic** between `discover_orchestrator_rows` and

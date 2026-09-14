@@ -198,7 +198,7 @@ invoked from the wrong directory), `check-plan-routes.py` prints
 checked nothing. This is not a spec violation (D-01/verify never specify a non-empty
 default-glob requirement) and I did not change behaviour to address it, but it is a
 fail-open shape worth having on record for whoever wires this into pm's PLAN-write
-step or a future `check-state.sh` invariant (D-01's open question).
+step or a future `check-state.py` invariant (D-01's open question).
 
 ## Files touched
 

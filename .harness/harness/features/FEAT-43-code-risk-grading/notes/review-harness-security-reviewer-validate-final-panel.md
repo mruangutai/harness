@@ -10,7 +10,7 @@ Pin: `94383e671e51f95d142f3220f97c8e453721d516`. Range:
 **Who / what / gain.** Any agent (or a compromised/careless one) filling the
 `harness-code-reviewer` DIGEST controls the `reviewed:` field itself. `validate-digest.py`
 never cross-checks that field against `feature.json`'s `review_sha` — the value the rest of the
-system (`check-state.sh` INV-6) treats as the actual pin. A reviewer that reports a same-commit,
+system (`check-state.py` INV-6) treats as the actual pin. A reviewer that reports a same-commit,
 zero-diff `reviewed:` range gets `code_grade: n_a` accepted unconditionally, regardless of how
 much real Python changed in the feature. The gain: bypass the project's only code-risk gate on
 a merge that would otherwise fail it (this feature's own diff currently fails it — see the
@@ -22,9 +22,9 @@ dispatch's own reproduction: 21/98 below bar).
   --name-only` between whatever two revisions that string names (line 566).
 - `validate-digest.py:541-546` `resolve_reviewed_commit` and the `reviewed_python_change`
   call at `:764-771` are the *entire* mechanism gating `n_a`. Nowhere in this file, in
-  `check-state.sh` (verified: `grep reviewed\b` → no matches), or in `check-domain.py`
+  `check-state.py` (verified: `grep reviewed\b` → no matches), or in `check-domain.py`
   (same, no matches) is `reviewed:` ever compared to `feature.json`'s `review_sha`. They are
-  two disconnected fields; `review_sha`'s own INV-6 (`check-state.sh:245-252`) only asserts
+  two disconnected fields; `review_sha`'s own INV-6 (`check-state.py:245-252`) only asserts
   it is *non-placeholder*, never that it equals what a reviewer actually diffed.
 - Consequence at `validate-digest.py:766-771`: `code_grade == "n_a"` is accepted whenever
   `reviewed_python_change` returns `False` for *whatever range the digest names* — there is no

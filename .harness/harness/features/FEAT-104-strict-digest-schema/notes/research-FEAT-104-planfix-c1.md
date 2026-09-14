@@ -184,7 +184,7 @@ rather than on this feature's behaviour, and SC-15 tests the floor directly inst
 
 **F7 (low) closed too:** T-07's `verify:` greped its own suite's output for `schema_version`, which a
 case merely *named* for the version satisfies. It now greps for `undeclared step key` in both the output
-and `check-state.sh` — the same vocabulary T-06's refusal uses, 0 occurrences today.
+and `check-state.py` — the same vocabulary T-06's refusal uses, 0 occurrences today.
 **F10 closed:** T-01 cites `harness-team/SKILL.md:237-258`; the drifted `238-249` is gone.
 
 ## Traceability, both directions, after the edits

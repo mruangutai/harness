@@ -116,7 +116,7 @@ their environment, which is plausibly what the ui-reviewer noticed and mis-attri
 - `validate-digest.py:597,621` already anticipates it by name — it resolves root through
   `payload.cwd` → env → `os.getcwd()`, with a comment reading "drifts (worktrees, unset
   `CLAUDE_PROJECT_DIR`) must not block a legitimate return".
-- `check-domain.py`, `bash-write-guard.py` and `check-state.sh` all self-locate via
+- `check-domain.py`, `bash-write-guard.py` and `check-state.py` all self-locate via
   `_derived`/`_selfdir` from `BASH_SOURCE`, so an unset variable falls back to the script's own
   repo.
 

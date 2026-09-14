@@ -101,7 +101,7 @@ All at `7ebfc9e` (`origin/main`, PR #922 merged) unless noted.
   breach it.
 - **The hook cannot fire under OMP.** `.omp/config.yml:1-3` disables the Claude provider, and
   `check-omp-port.py:61-62` enforces that as a port invariant.
-- **Nothing blocks deletion.** Zero `context-watch` matches in `check-state.sh`; INV-9's hook
+- **Nothing blocks deletion.** Zero `context-watch` matches in `check-state.py`; INV-9's hook
   enumeration (`:316-424`) names inject-expertise and check-domain only. No invariant asserts these
   files exist.
 - **#923 undercounts the delete list by one file, and it is the one nothing would have caught.**

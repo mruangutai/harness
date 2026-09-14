@@ -3,13 +3,13 @@
 - 2026-08-19: `bash-write-guard.py` denies `cp`/`sed -i` on ANY path under the scratchpad
   (`check-domain.py --resolve` answers `NOBODY` there) — not just repo paths. Mutation-probe
   copies must go through the `Write` tool, never `Bash cp`, even in scratchpad. Cost me one
-  self-inflicted bug: I wrote a mutated `check-expertise.sh` copy under the baseline's filename
+  self-inflicted bug: I wrote a mutated `check-expertise.py` copy under the baseline's filename
   by re-using a mutation draft as the "baseline" — caught only because the T-03 abspath probe
   (case6) failed against what I *thought* was the unmutated baseline. Lesson: run the baseline
   probe FIRST, unconditionally, before touching any mutant file, and diff the baseline copy
   against the real file's content (not just its md5/existence) before trusting it as control.
 - 2026-08-19: `run_cmd([CHECK, ...], cwd=some_tempdir)` in a probe harness needs `CHECK` to be an
-  **absolute** path — `./check-expertise.sh` resolves against the harness's own cwd at spawn
+  **absolute** path — `./check-expertise.py` resolves against the harness's own cwd at spawn
   time, not the subprocess's `cwd=` override, so a relative `CHECK_EXPERTISE_BIN` silently
   breaks exactly the bare-path-invocation case (case6) it's supposed to prove.
 - 2026-08-19: FEAT-27 T-02's case12 (hostile `agent_type` values against the

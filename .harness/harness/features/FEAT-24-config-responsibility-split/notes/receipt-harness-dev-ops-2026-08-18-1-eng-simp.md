@@ -11,7 +11,7 @@ not assert the replacement sentence is actually present.
 
 J1: nine of the ten `verify:` blocks can genuinely fail; T-06's `_note` clause cannot fail on one
 concrete input (see below). T-05's claimed positive control (`plan.yaml:697`, not :677 as the
-dispatch approximated) does control — verified against the current `check-state.sh` INV-26 block,
+dispatch approximated) does control — verified against the current `check-state.py` INV-26 block,
 which has no pre-existing `INV-26 BEGINS`/`ENDS` markers, so an unmarked or mis-marked block reds via
 an empty slice failing the `derive_station` grep.
 

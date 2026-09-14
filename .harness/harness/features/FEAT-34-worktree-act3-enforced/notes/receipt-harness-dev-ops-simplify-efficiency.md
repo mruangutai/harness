@@ -1,15 +1,15 @@
 # EFFICIENCY angle — FEAT-34 four-angle quality pass
 
 FLAG-ONLY. No edits applied, no git mutation performed. Two findings, both real network-I/O
-waste in `check-state.sh`'s INV-30 (T-08, unreviewed `main-session-direct`), weighted first per
+waste in `check-state.py`'s INV-30 (T-08, unreviewed `main-session-direct`), weighted first per
 dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.py` (T-03) are measured clean.
 
 ## Method
 
-- Baseline: extracted pre-diff `check-state.sh` at `9165162` via `git show`, ran it with
+- Baseline: extracted pre-diff `check-state.py` at `9165162` via `git show`, ran it with
   `PYTHONPATH=<bin>` (dirname-based sys.path resolution breaks when copied elsewhere) —
   `time PYTHONPATH="$BIN" bash check-state-base.sh` → **11.414s** wall clock, exit 0.
-- Post-diff, same repo state: `time bash .claude/skills/harness/bin/check-state.sh` → three
+- Post-diff, same repo state: `time python3 .claude/skills/harness/bin/check-state.py` → three
   runs: **14.935s, 11.315s, 12.177s**, all exit 0. Variance tracks network jitter from the two
   new `gh` calls (below), not the script itself.
 - `time gh auth status` → **0.304s** (real network round trip, logged-in session).
@@ -27,20 +27,20 @@ dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.py` (T-03) ar
   terminal records in this tree (no gh calls on this path — dry-run and no terminal worktrees).
 - This repo's own `github.sync` is `true` and `github.repo` is set (`.harness/harness.json`),
   so INV-30's network path is the live path here, not a hypothetical.
-- `gh_bin` / `gh auth status` cross-check: grepped `check-state.sh` for `_gh_bin`/`subprocess.run`
+- `gh_bin` / `gh auth status` cross-check: grepped `check-state.py` for `_gh_bin`/`subprocess.run`
   — INV-26 (pre-existing, not part of this diff) already runs its own `gh auth status` at
-  check-state.sh:1397, gated the same way (`github.sync` + `github.repo` + a declared board,
+  check-state.py:1397, gated the same way (`github.sync` + `github.repo` + a declared board,
   which this repo has).
 
 ## Finding 1 — INV-30 re-runs `gh auth status`, duplicating INV-26's own call in the same script run
 
-`.claude/skills/harness/bin/check-state.sh:1602-1605` (INV-30) duplicates the identical
-`gh auth status` call INV-26 already makes at `check-state.sh:1397`, in the same script
+`.claude/skills/harness/bin/check-state.py:1602-1605` (INV-30) duplicates the identical
+`gh auth status` call INV-26 already makes at `check-state.py:1397`, in the same script
 invocation, under the same gating condition (`github.sync: true`, `github.repo` set — both
 true in this repo). Neither block reads the other's result.
 
 **Cost, measured:** `gh auth status` costs 0.304s per call (see Method). Both INV-26 and INV-30
-run it unconditionally on every `check-state.sh` invocation in this repo (INV-26 gated on a
+run it unconditionally on every `check-state.py` invocation in this repo (INV-26 gated on a
 declared board, which this repo has at `harness.json`'s `github.board`; INV-30 gated on
 `github.sync` + `github.repo`, both true). That is ~0.6s of network round trip spent proving
 the same fact twice, on a gate the CLAUDE.md convention says to run before every commit.
@@ -56,7 +56,7 @@ call: backlog row after ship
 ## Finding 2 — INV-30's two timeouts (15s + 60s) stack a 75s worst-case stall onto a
 pre-commit / session-entry gate, on top of INV-26's pre-existing 15s
 
-`.claude/skills/harness/bin/check-state.sh:1602-1622` sets `timeout=15` on the `gh auth status`
+`.claude/skills/harness/bin/check-state.py:1602-1622` sets `timeout=15` on the `gh auth status`
 call and `timeout=60` on the `gh api --paginate milestones` call. Both fire unconditionally
 (subject to Finding 1's gating) on a script the project convention runs "before every commit"
 and (per this pass's dispatch) at every session entry.
@@ -166,8 +166,8 @@ DIGEST:
   test_kinds_written: []
   suite_note: "ran run-unit-tests.py --kind integration once (SOLE Q8 permit, held alone, per addendum): real 287.16s / user 82.82s / sys 41.85s, exit 0, all 25 INTEGRATION_SCRIPTS PASS including the 3 new files. --kind unit not run — UNIT_SCRIPTS/INTEGRATION_SCRIPTS confirmed disjoint by direct set comparison, so a separate unit run cannot re-execute any of the 3 new files and was not needed to answer the addendum's question"
   measurements:
-    - "check-state.sh baseline (pre-diff, 9165162): 11.414s wall clock"
-    - "check-state.sh post-diff (513c4a4): 14.935s / 11.315s / 12.177s across 3 runs"
+    - "check-state.py baseline (pre-diff, 9165162): 11.414s wall clock"
+    - "check-state.py post-diff (513c4a4): 14.935s / 11.315s / 12.177s across 3 runs"
     - "gh auth status: 0.304s"
     - "gh api --paginate milestones: 0.475s"
     - "gh auth status under simulated slow network (unroutable proxy, 3s test timeout): blocked full 3.003s, confirmed no fast-fail"
@@ -176,13 +176,13 @@ DIGEST:
     - "run-unit-tests.py --kind integration (addendum, full 25-script run, all 46 UNIT+INTEGRATION scripts confirmed disjoint by set comparison): real 287.16s / user 82.82s / sys 41.85s, exit 0"
 findings:
   - id: F1
-    file: .claude/skills/harness/bin/check-state.sh
+    file: .claude/skills/harness/bin/check-state.py
     lines: "1602-1605 (INV-30) vs 1397 (INV-26)"
     severity: low
     call: backlog row after ship
     summary: INV-30 re-runs gh auth status, identical to INV-26's own call in the same invocation
   - id: F2
-    file: .claude/skills/harness/bin/check-state.sh
+    file: .claude/skills/harness/bin/check-state.py
     lines: "1602-1622"
     severity: med
     call: fix cycle before ship

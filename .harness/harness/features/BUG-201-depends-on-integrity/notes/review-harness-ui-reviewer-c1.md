@@ -46,7 +46,7 @@ once again inside `str(exc)`, which already begins "failed to parse YAML in `<pa
 a schema/referential error, not a parse error). This reads verbose and mildly misleading
 ("failed to parse YAML" for a file that DID parse). I checked whether this is new: it is not.
 The identical shape — `f"{path} … : {e}"` wrapping a `str(exc)` that already embeds the path —
-is the established, unchanged convention at `check-plan-routes.py:370`, `check-state.sh:145`,
+is the established, unchanged convention at `check-plan-routes.py:370`, `check-state.py:145`,
 `upgrade-config.py:247,254`, and the sibling `refuse()` shape at `gh-sync.py:364-367`, all of
 which predate this diff. Per Expertise P-11/G-11-class precedent, an unchanged pre-existing
 convention that a new call site correctly follows is a non-gating note, not a defect to file

@@ -25,11 +25,11 @@ Ran it verbatim: **exit 0.** `run-unit-tests.py --kind integration` emitted
 
 **It holds.** The convention is failure, not report.
 
-- `check-state.sh:890` — the unlisted-repo branch calls `bad.append(...)`, the same list every other
+- `check-state.py:890` — the unlisted-repo branch calls `bad.append(...)`, the same list every other
   violation check uses. No new exit code.
-- `check-state.sh:952` — `for m in bad:  print(f"  VIOLATION  {m}")` (the `warn` list prints
+- `check-state.py:952` — `for m in bad:  print(f"  VIOLATION  {m}")` (the `warn` list prints
   `note` instead, at 953).
-- `check-state.sh:956` — `sys.exit(1 if bad else 0)`
+- `check-state.py:956` — `sys.exit(1 if bad else 0)`
 
 That heredoc is the script's last command, so its status is the script's status. `bad` is
 initialized once at `:93` and is never reassigned, cleared, filtered or indexed before `:956` — a

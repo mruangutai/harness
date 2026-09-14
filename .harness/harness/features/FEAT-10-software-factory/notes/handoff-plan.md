@@ -16,7 +16,7 @@ starts at the DAG roots — T-01, T-03, T-09, T-10, T-11 (`plan.yaml depends_on`
 - Zero `SC-07` references remain in BRIEF.md, plan.yaml or DESIGN.md — grepped by me
 - No task `id`, `depends_on`, `files` or `verify` changed in ANY revision — verified-at 914b6fd
 - Gates: `load_plan`, `check-plan-routes.py`, `check-docs.sh` all exit 0 — re-run by me
-- `check-state.sh` shows FEAT-10's only violation as the unapproved BRIEF; four others belong to
+- `check-state.py` shows FEAT-10's only violation as the unapproved BRIEF; four others belong to
   FEAT-04/FEAT-07 and predate this feature — verified-at 914b6fd
 - T-01 and T-08 are the only `main-session-direct` tasks (DEC-179; DEC-174 carve-out)
 - Re-POSTing an existing `blocked_by` edge returns 422 "Target issue has already been taken"; a

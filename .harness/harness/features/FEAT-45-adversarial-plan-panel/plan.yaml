@@ -73,7 +73,7 @@ lanes:
     - surface: .claude/agents/**
       lane: main-session-direct
       reason: generated compatibility output of .omp/agents, equally unowned
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out, it is the registered state gate this change extends
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -187,7 +187,7 @@ decisions:
     dec: DEC-120
   - id: D-08
     choice: >-
-      The machine check is INV-32, a new invariant inside check-state.sh, not a new script.
+      The machine check is INV-32, a new invariant inside check-state.py, not a new script.
     because: >-
       It reads the same plan.yaml mapping INV-3 already loads and needs no new gate class.
       INV-32 is the lowest number no live invariant and no unbuilt plan claims.
@@ -223,7 +223,7 @@ decisions:
       SC-04's failing-first obligation is discharged by a MARKER-ANCHORED MUTANT, never by a
       relative commit ref. T-07 brackets INV-32 with two column-zero comment lines,
       "INV-32 BEGIN (FEAT-45 T-07)" and "INV-32 END (FEAT-45 T-07)", and T-08's inv32-red case
-      writes a copy of check-state.sh with that region removed, beside the original, and
+      writes a copy of check-state.py with that region removed, beside the original, and
       asserts the copy reports NOTHING about INV-32 over the same fixture the real gate
       reports it on.
     because: >-
@@ -387,7 +387,7 @@ tasks:
       python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import harness_yaml as y;d=y.load_file('.claude/skills/harness/teams/plan-panel.yaml');s={x['id']:x for x in d['steps']};assert d['lead']=='validator-lead',d['lead'];assert set(s)=={'should-not-exist','scope'},set(s);assert s['should-not-exist']['outputs']==[];assert s['should-not-exist']['persona'] not in [f[:-3] for f in __import__('os').listdir('.omp/agents')];assert s['scope']['persona']=='code-reviewer';print('OK')" \
         && grep -q 'then: escalate' .claude/skills/harness/teams/plan-panel.yaml \
         && test 0 -eq "$(grep -c 'then: halt' .claude/skills/harness/teams/plan-panel.yaml)" \
-        && bash .claude/skills/harness/bin/check-domain.py --resolve \
+        && python3 .claude/skills/harness/bin/check-domain.py --resolve \
              .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/review-harness-code-reviewer-planpanel-c0.md \
            | grep -q harness-code-reviewer \
         && grep -q 'fable-advisor' .claude/skills/harness/teams/plan-panel.yaml \
@@ -504,7 +504,7 @@ tasks:
         && grep -q 'plan-panel' .claude/skills/harness/SKILL.md \
         && grep -q 'research-<FEAT>-goalcheck-plan-c<cycle>.md' .claude/skills/harness/SKILL.md \
         && grep -q 'DEC-176' .claude/skills/harness/SKILL.md \
-        && bash .claude/skills/harness/bin/check-domain.py --resolve \
+        && python3 .claude/skills/harness/bin/check-domain.py --resolve \
              .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/research-FEAT-45-goalcheck-plan-c0.md \
            | grep -q harness-pm \
         && python3 .claude/skills/harness/bin/test-orchestrator-playbook.py \
@@ -663,7 +663,7 @@ tasks:
       an approval.rulings list, each entry carrying finding (a PF- id present in
       panel.findings), ruling (overrule), who (the operator), date (YYYY-MM-DD) and reason
       (one clause). State that a rulings entry naming an id absent from panel.findings is
-      REFUSED by check-state.sh as a stale override, and that this is deliberate: a reworded
+      REFUSED by check-state.py as a stale override, and that this is deliberate: a reworded
       finding gets a NEW id, so the old ruling stops applying and the operator is asked again.
       Do NOT add a rulings entry with content to the template -- name the shape, leave the
       value absent.
@@ -800,32 +800,32 @@ tasks:
       violation, so it does not trip the step's on_fail loop_back -- that loop is for a reader
       whose RETURN was bad, never for one that never started -- and it does not by itself raise
       severity_max. It reaches the operator as a recorded fact at the signature: pm transcribes
-      it into panel.readers and check-state.sh INV-32 reports on it.
+      it into panel.readers and check-state.py INV-32 reports on it.
 
       State what you do NOT do here: you do not write plan.yaml. Your digest is the record;
       pm transcribes it into plan.yaml's panel key, and the operator's ruling is the main
       session's write to approval.rulings.
 
   - id: T-07
-    title: Add INV-32, the plan-panel signature gate, to check-state.sh
+    title: Add INV-32, the plan-panel signature gate, to check-state.py
     traces: [REQ-06, REQ-08, REQ-10, REQ-13, REQ-14]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out, check-state.sh is the registered state gate this change extends
+      DEC-174 carve-out, check-state.py is the registered state gate this change extends
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
-      bash .claude/skills/harness/bin/check-state.sh; test $? -ne 2 \
-        && grep -q 'INV-32' .claude/skills/harness/bin/check-state.sh \
-        && grep -q 'INV-32 BEGIN (FEAT-45 T-07)' .claude/skills/harness/bin/check-state.sh \
-        && grep -q 'INV-32 END (FEAT-45 T-07)' .claude/skills/harness/bin/check-state.sh \
-        && grep -q 'never ran' .claude/skills/harness/bin/check-state.sh \
+      python3 .claude/skills/harness/bin/check-state.py; test $? -ne 2 \
+        && grep -q 'INV-32' .claude/skills/harness/bin/check-state.py \
+        && grep -q 'INV-32 BEGIN (FEAT-45 T-07)' .claude/skills/harness/bin/check-state.py \
+        && grep -q 'INV-32 END (FEAT-45 T-07)' .claude/skills/harness/bin/check-state.py \
+        && grep -q 'never ran' .claude/skills/harness/bin/check-state.py \
         && python3 -c "import sys,importlib.util;s=importlib.util.spec_from_file_location('m','.claude/skills/harness/bin/check-plan-routes.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);n=m.live_invariant_numbers('.');assert n is not None and 32 in n, sorted(n or []);print('OK')"
     intent: |
-      Add ONE invariant, numbered INV-32, to .claude/skills/harness/bin/check-state.sh. Place
+      Add ONE invariant, numbered INV-32, to .claude/skills/harness/bin/check-state.py. Place
       it as its OWN top-level pass immediately after the existing plan.yaml block that reads
       approval.status (the INV-3/4/5-on-plan.yaml loop), and reuse that loop's already-loaded
       plan_docs mapping rather than re-reading any file. Follow the file's own convention:
@@ -920,7 +920,7 @@ tasks:
       Add NINE cases to .claude/skills/harness/bin/test-check-state.py, using the fixture
       helpers that file already has -- read them first and reuse them; do not build a second
       fixture mechanism. Each case builds a temp .harness tree carrying one approved
-      plan.yaml, runs check-state.sh against it, and asserts on the OUTPUT TEXT, not only the
+      plan.yaml, runs check-state.py against it, and asserts on the OUTPUT TEXT, not only the
       exit code. Capture output by command substitution or subprocess capture, never by
       piping to head or tail: a pipe reports the pipe's status, not the gate's.
 
@@ -933,7 +933,7 @@ tasks:
       carries its marker comments. Read case (t14-red) in this same file first and follow it
       exactly; it is this file's own idiom for this proof. Locate the region T-07 bracketed
       between the literal lines "# INV-32 BEGIN (FEAT-45 T-07)" and
-      "# INV-32 END (FEAT-45 T-07)", write a copy of check-state.sh with that region removed
+      "# INV-32 END (FEAT-45 T-07)", write a copy of check-state.py with that region removed
       to a dot-prefixed mutant path IN SCRIPT'S OWN DIRECTORY -- never into the fixture
       tmpdir, because the script imports harness_yaml and harness_boundary from its own
       directory, so a copy elsewhere exits non-zero on import and the case would pass while
@@ -1012,7 +1012,7 @@ tasks:
       - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-panel-findings.py \
-        && OUT="$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit)" \
+        && OUT="$(python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit)" \
         && printf '%s\n' "$OUT" | grep -q 'test-panel-findings.py' \
         && A="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary 'T-04 traces REQ-99, which does not exist')" \
         && B="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary '  t-04   TRACES   req-99, which does not exist  ')" \
@@ -1022,7 +1022,7 @@ tasks:
         && test "$A" != "$C"
     intent: |
       Create .claude/skills/harness/bin/panel_findings.py -- the ONE place a panel finding's
-      identity is computed, so the validator lead, pm and check-state.sh cannot disagree about
+      identity is computed, so the validator lead, pm and check-state.py cannot disagree about
       what a finding is called. python3 stdlib only, no third-party import.
 
       The identity, exactly. Normalize the summary by lowercasing it, replacing every run of
@@ -1035,7 +1035,7 @@ tasks:
       assigned per run, so a re-run renumbers and an overrule recorded against finding 2
       silently starts covering whatever is second next time. A content hash keeps an unchanged
       finding's id stable across runs, so an overrule survives a re-run, and gives a REWORDED
-      finding a NEW id, so the old ruling stops applying and check-state.sh reports it as a
+      finding a NEW id, so the old ruling stops applying and check-state.py reports it as a
       stale override. That failure direction is deliberate and it is closed, not open.
 
       Expose:
@@ -1140,7 +1140,7 @@ tasks:
       - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-plan-panel.py \
-        && OUT="$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit)" \
+        && OUT="$(python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit)" \
         && printf '%s\n' "$OUT" | grep -q 'test-plan-panel.py' \
         && python3 - <<'EOF'
       t = open('.claude/skills/harness/bin/test-plan-panel.py', encoding='utf-8').read()

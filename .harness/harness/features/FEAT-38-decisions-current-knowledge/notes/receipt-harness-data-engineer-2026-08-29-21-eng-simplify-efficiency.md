@@ -5,7 +5,7 @@ Read-only. No writes to `plan.yaml` or `BRIEF.md`. No full unit suite (`--kind a
 ## Measured wall-clocks (verbatim)
 
 ```
-$ time bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
+$ time python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
 ... (222 PASS lines, exit 0)
 real    2m37.699s
 user    1m28.796s
@@ -14,7 +14,7 @@ EXIT:0
 ```
 
 ```
-$ time bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+$ time python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 real    0m0.201s
 user    0m0.126s
@@ -71,7 +71,7 @@ real    0m0.037s
 | T-20 | `git cat-file -e` x2, `git ls-files --error-unmatch` x2 | milliseconds each, negligible |
 | T-21 | `git show 48bbe7e:D \| grep -c`, `grep -q` x1, `gen-decisions-index.py --stdout >/dev/null` | ~0.05–0.1s, negligible |
 | T-24 | `grep` x2 on run-unit-tests.py + `bash "$R" --kind integration` + 2 greps on captured output | **157.7s** (measured) — see Finding EFF-01 |
-| T-25 | `python3 - <<'PY'` json.load of harness.json + `bash run-unit-tests.py --check-kinds` | ~0.04s + 0.2s = ~0.24s. Already the cheap pattern. |
+| T-25 | `python3 - <<'PY'` json.load of harness.json + `python3 run-unit-tests.py --check-kinds` | ~0.04s + 0.2s = ~0.24s. Already the cheap pattern. |
 | T-26 | `git ls-files --error-unmatch` x2, `test -e` x2, `test -f`, one unscoped `git grep -l` sweep | sub-second; the sweep is a single grep over the tree, not timed separately (not in scope list) but structurally one call, not repeated |
 | T-27 | `git show 48bbe7e:D \| grep -c`, 2 more greps on D, loop of 6 `grep -qE` for headings | sub-second, all single-pass greps on one file |
 | T-28 | `sed -n` extraction, 5 greps on the extracted block, `gen-decisions-index.py --stdout \| diff` | **~0.05s** measured for the generator; sed/grep/diff on a single small file — negligible |

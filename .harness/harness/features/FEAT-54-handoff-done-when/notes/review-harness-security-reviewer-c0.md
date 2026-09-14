@@ -51,11 +51,11 @@ There is also a deterministic validation bypass. A pointer such as `Authority: a
 
 ## Shared-set and pinned-diff inspection evidence
 
-Every required shared path was opened before scoping: `.claude/skills/harness/SKILL.md`; `bin/check-domain.py`; `bin/check-state.sh`; `bin/handoff_done_when.py`; `templates/HANDOFF.md`; `.harness/harness.json`; `DECISIONS-INDEX.md`; the applicable complete DEC-159/160/171/174/179/180/182/214 entries in `DECISIONS.md`; both FEAT-54 handoffs; all five named unit/integration/manual tests; and the complete approved `BRIEF.md` and `plan.yaml`. Large pre-existing gate/test files were inspected through the full pinned hunks plus their caller, normalization, exit, and aggregation paths. The rendered HTML output was opened separately. The whole changed feature corpus was scanned for credential signatures and trust-boundary terms.
+Every required shared path was opened before scoping: `.claude/skills/harness/SKILL.md`; `bin/check-domain.py`; `bin/check-state.py`; `bin/handoff_done_when.py`; `templates/HANDOFF.md`; `.harness/harness.json`; `DECISIONS-INDEX.md`; the applicable complete DEC-159/160/171/174/179/180/182/214 entries in `DECISIONS.md`; both FEAT-54 handoffs; all five named unit/integration/manual tests; and the complete approved `BRIEF.md` and `plan.yaml`. Large pre-existing gate/test files were inspected through the full pinned hunks plus their caller, normalization, exit, and aggregation paths. The rendered HTML output was opened separately. The whole changed feature corpus was scanned for credential signatures and trust-boundary terms.
 
 Per-file diff census below uses: **E** enforcement/runtime, **I** interpreted output, **T** test, **S** signed/spec/decision/config, **H** handoff input, **R** execution/history record. Every path in the 60-file pinned diff is accounted for.
 
-- **E:** `.claude/skills/harness/bin/check-domain.py`; `.claude/skills/harness/bin/check-state.sh`; `.claude/skills/harness/bin/handoff_done_when.py`; `tests/manual/probe-handoff-comprehension.py`.
+- **E:** `.claude/skills/harness/bin/check-domain.py`; `.claude/skills/harness/bin/check-state.py`; `.claude/skills/harness/bin/handoff_done_when.py`; `tests/manual/probe-handoff-comprehension.py`.
 - **S:** `.claude/skills/harness/SKILL.md`; `.claude/skills/harness/templates/HANDOFF.md`; `.harness/harness.json`; `.harness/harness/docs/DECISIONS-INDEX.md`; `.harness/harness/docs/DECISIONS.md`; `.harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md`; `.harness/harness/features/FEAT-54-handoff-done-when/plan.yaml`; `.harness/notes/grilling-handoff-done-when-2026-09-02.md`.
 - **H:** `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-build.md`; `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-plan.md`.
 - **T:** `tests/integration/test-check-domain.py`; `tests/integration/test-check-state.py`; `tests/integration/test-run-unit-tests-kinds.py`; `tests/unit/test-handoff-done-when.py`.
@@ -64,8 +64,8 @@ Per-file diff census below uses: **E** enforcement/runtime, **I** interpreted ou
 
 ## Success-criterion inspection notes
 
-- **SC-07:** the pinned gates call one implementation: `check-domain.py:1562-1567` with `resolve=True`, and `check-state.sh:54,1244-1251` with `resolve=False`; neither gate implements a second body parser or target resolver.
-- **SC-08:** no current-contract “four sections” claim remains in the named live surfaces. The two matches at `check-state.sh:1199,1218` are the BRIEF's explicitly exempt past-measurement/incident record.
+- **SC-07:** the pinned gates call one implementation: `check-domain.py:1562-1567` with `resolve=True`, and `check-state.py:54,1244-1251` with `resolve=False`; neither gate implements a second body parser or target resolver.
+- **SC-08:** no current-contract “four sections” claim remains in the named live surfaces. The two matches at `check-state.py:1199,1218` are the BRIEF's explicitly exempt past-measurement/incident record.
 - **SC-11:** `git diff --name-status b7956fc4..e75767d -- '.harness/harness/features/*/notes/handoff-*.md'` reports only the two FEAT-54 handoff additions, so no pre-base handoff is modified and the positive control is non-empty.
 - **SC-04:** not executed in this security panel because the dispatch expressly prohibited validation commands; no met claim is made here.
 - **SC-10:** **pending operator UAT** and cannot be marked met by this review.

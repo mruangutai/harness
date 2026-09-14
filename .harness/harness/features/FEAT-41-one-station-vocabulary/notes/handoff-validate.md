@@ -48,5 +48,5 @@ below is checkable against those, and nothing is reconstructed from memory.
 ## Working set
 
 - `.harness/harness/features/FEAT-41-one-station-vocabulary/notes/` — 4 cycle-3 member artifacts, two of them recovered from the main checkout where they had been misfiled (FEAT-50 #1057, instances seven and eight)
-- `.claude/skills/harness/bin/` — `factory_config.py`, `gh_board.py`, `plan-merge.py`, `check-domain.py`, `check-state.sh`, `harness_yaml.py`, `plan-sign-gate.py`
+- `.claude/skills/harness/bin/` — `factory_config.py`, `gh_board.py`, `plan-merge.py`, `check-domain.py`, `check-state.py`, `harness_yaml.py`, `plan-sign-gate.py`
 - `.harness/harness/docs/DECISIONS.md` — three clauses amended by T-15; D-01..D-18 in `plan.yaml`

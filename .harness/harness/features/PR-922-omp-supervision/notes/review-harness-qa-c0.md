@@ -17,7 +17,7 @@ from the clean worktree at the pinned SHA.
 | Full integration suite (superset incl. the two above, run via the standing harness) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | pass | exit 0, 27/27 registered scripts pass, incl. `88/88` and `42/42` inline | "passed" | ✅ — 3rd attempt; see note |
 | Adapter drift check | `python3 .agents/skills/harness/bin/sync-agent-adapters.py --check` | pass | exit 0, silent (no drift) | "passed" | ✅ |
 | OMP port check | `python3 .claude/skills/harness/bin/check-omp-port.py` + `test-check-omp-port.py` | pass | `OMP port surface: ok`; 17/17 and 18/18 cases | "passed" | ✅ |
-| Canonical state checker | `.claude/skills/harness/bin/check-state.sh` | pass | exit 0, output is all `note`-level pre-existing housekeeping items (unrelated STATE.md/glossary findings, none touching this diff) | "passed" | ✅ |
+| Canonical state checker | `.claude/skills/harness/bin/check-state.py` | pass | exit 0, output is all `note`-level pre-existing housekeeping items (unrelated STATE.md/glossary findings, none touching this diff) | "passed" | ✅ |
 
 **Note on the integration suite:** standalone invocation is genuinely slow in this sandbox
 (`test-check-domain.py` alone ran 2–5 min); two earlier attempts were killed by an outer `timeout`

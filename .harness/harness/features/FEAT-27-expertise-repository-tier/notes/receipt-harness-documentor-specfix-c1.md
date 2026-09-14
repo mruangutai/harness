@@ -6,7 +6,7 @@
 ## The named defect — §5.6, third bullet
 
 `inject-expertise.py` applies `cap_body "$glob" 150` and `cap_body "$proj" 150` — the global and
-project caps are equal, and `check-expertise.sh` classifies both as the **craft** tier with one
+project caps are equal, and `check-expertise.py` classifies both as the **craft** tier with one
 150-line budget. The prose claimed the global cap was the tighter one, twelve lines below its own
 table reading `150 | 150 | 40`.
 
@@ -14,7 +14,7 @@ table reading `150 | 150 | 40`.
   about a codebase, and they load on every spawn in every repo — so the global cap is tighter than
   the project one."
 - **After:** "**Global and project share one budget, because both are craft.** They hold heuristics
-  about *how to work*, never facts about a codebase, so `bin/check-expertise.sh` classifies both as
+  about *how to work*, never facts about a codebase, so `bin/check-expertise.py` classifies both as
   the craft tier and gives each 150 lines. Only the repository tier is tighter, at 40 lines — it is
   the one that carries codebase facts, and the one that multiplies: every repository segment
   present adds another block to the same spawn."
@@ -26,7 +26,7 @@ it is what the hook's per-segment emit loop actually does.
 
 | Site | Claim | Disposition |
 |---|---|---|
-| §15.5 cost residue | "Expertise caps are *entry counts*, not token counts, and entries have no length limit" | **Fixed.** `check-expertise.sh` enforces a 150/40 **line** budget and a **50-word** per-entry cap. Rewritten to name all three proxies |
+| §15.5 cost residue | "Expertise caps are *entry counts*, not token counts, and entries have no length limit" | **Fixed.** `check-expertise.py` enforces a 150/40 **line** budget and a **50-word** per-entry cap. Rewritten to name all three proxies |
 | §5 **Location:** line | "Two tiers live there — craft and repository-specific — plus an uncommitted global craft file" | **Left — correct.** Two *committed* tiers; global is named separately and named as craft |
 | §5.2 "one of **two tiers**, told apart by its path" | craft 150 / repository 40 | **Left — correct.** This is the classifier's own two-way split; global and project are both craft, which is exactly why their caps match |
 | §5.2 precedence paragraph | "repository over project over global, by specificity" + segment caveat | **Left — correct**, matches the hook's emitted string byte-for-byte |

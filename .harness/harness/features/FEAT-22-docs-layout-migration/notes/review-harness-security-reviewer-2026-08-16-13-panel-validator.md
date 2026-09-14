@@ -105,7 +105,7 @@ own docs path. `team-config.yaml` is data/config, not one of the four DEC-174 ca
 this remedy is in the operator's or a build agent's hands, not routed to main session.
 
 ## Assessed and dismissed (checked, not skipped)
-- **Fail-open in the guards**: no logic in `check-domain.py` or `check-state.sh` changed — both
+- **Fail-open in the guards**: no logic in `check-domain.py` or `check-state.py` changed — both
   diffs are single-line message-text literal updates (`docs/harness/DECISIONS.md` ->
   `.harness/harness/docs/DECISIONS.md`). Read in full; confirmed no branch, exit code, or
   control-flow touched. Nothing here routes to the operator under DEC-174 — there is no change to
@@ -166,7 +166,7 @@ DIGEST:
     - { boundary: "factory_config._PROBE root resolution", stride: S, mitigated: true }
     - { boundary: "layout_migration._evidence() undeclared-segment classification", stride: T, mitigated: true }
     - { boundary: "SubagentStart Expertise injection (inject-expertise.py)", stride: I, mitigated: true }
-    - { boundary: "check-domain.py / check-state.sh (DEC-174 carve-out)", stride: T, mitigated: true }
+    - { boundary: "check-domain.py / check-state.py (DEC-174 carve-out)", stride: T, mitigated: true }
   open_questions: []
   files_touched: []
   expertise_update: []

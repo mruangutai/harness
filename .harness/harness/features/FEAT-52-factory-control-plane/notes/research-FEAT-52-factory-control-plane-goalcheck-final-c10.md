@@ -94,5 +94,5 @@ inspection and the practical surface is closed upstream by the resolver's loud r
   simplify/review path re-takes criterion grades against the post-simplification tree — the
   falsification is invisible by construction.
 - Q3 (non-blocking, harness owner): nothing gates `DECISIONS-INDEX.md` regeneration in CI or in
-  `check-state.sh`; the only gate is one feature task's own `verify:` clause, so index rot ships
+  `check-state.py`; the only gate is one feature task's own `verify:` clause, so index rot ships
   whenever no live plan happens to carry that clause.

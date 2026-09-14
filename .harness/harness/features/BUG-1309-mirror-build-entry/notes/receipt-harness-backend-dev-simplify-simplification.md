@@ -4,7 +4,7 @@ BLUF: one finding, low-risk, applicable — a byte-identical error string duplic
 across two branches inside `merge-gate.py`'s new `main()`. Everything else read
 (the `gh-sync.py` Build-entry recorder, `_build_entry_preflight`, the two
 `recover-terminal` helpers, `_open_ensure_labels`, `feature_schema.recovery_command_for`,
-the `check-state.sh` INV-37 block, `post-merge-sweep.py`'s retention branch, the four
+the `check-state.py` INV-37 block, `post-merge-sweep.py`'s retention branch, the four
 hook-registration sites) reads as anchored: every conjunct I traced back to a distinct,
 documented reason (`skip()`'s four-clause guard, `_recover_terminal_conflict`'s single
 refusal, `recovery_command_for`'s three fail-safe checks), and every `(T-NN, BUG-1309)`

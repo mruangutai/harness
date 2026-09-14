@@ -6,7 +6,7 @@ Three ops applied to `.harness/expertise/harness-backend-dev.md`: P-13 broadened
 untracked-file case (C1, accept), P-14 replaced with a structural-guarantee-over-conditional-guard
 rule (C2, accept), P-06 replaced with a RED-integrity rule sharpened from C3 (C3, accept in
 narrowed form). No section grew or shrank — Patterns stayed at 15/15 by construction (displacement
-only). `check-expertise.sh` OK, exit 0. `run-unit-tests.py` exit 0, 197 `PASS` lines (script- and
+only). `check-expertise.py` OK, exit 0. `run-unit-tests.py` exit 0, 197 `PASS` lines (script- and
 case-level mixed — some scripts print per-case `PASS <name>` lines, not one line per script), 0
 `FAIL` lines (re-run for `suite:` truthfulness on an Expertise-file-only edit — does not validate
 the edits themselves, only that nothing else broke).
@@ -97,10 +97,10 @@ the edits themselves, only that nothing else broke).
 - **Gotchas:** G-01 through G-09 — unchanged, byte-identical. Not touched this cycle.
 - **Outcomes / Open:** still empty; no candidate this cycle warranted either section.
 
-## `check-expertise.sh` — verbatim
+## `check-expertise.py` — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-backend-dev.md
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-backend-dev.md
 OK   .harness/expertise/harness-backend-dev.md
 EXIT: 0
 ```
@@ -108,7 +108,7 @@ EXIT: 0
 ## `suite:` truthfulness — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py > <scratchpad>/feat23-distill-suite.log 2>&1
+$ python3 .claude/skills/harness/bin/run-unit-tests.py > <scratchpad>/feat23-distill-suite.log 2>&1
 EXIT: 0
 $ grep -c "^PASS" <scratchpad>/feat23-distill-suite.log
 197

@@ -20,7 +20,7 @@ same 6 (two independent methods, one tree — not the `6 == 6` cross-SHA coincid
   `:326`. **`:769` is the trap:** it is the comment on the fixture that SURVIVES and it carries the
   literal `cost_usd`. Deleting the pin alone leaves the file in the sweep and re-creates A-2's
   defect. T-01's amendment therefore requires TWO edits — delete the pin case, and reword `:769` off
-  the literal spelling, which is the repo's existing house style (`check-state.sh:331-334`,
+  the literal spelling, which is the repo's existing house style (`check-state.py:331-334`,
   `validate-digest.py`'s orchestrator schema comment).
 
 Discriminating: **18 at `ae2443d`, 14 of them outside the four-file set** (re-derived, not relayed).
@@ -58,7 +58,7 @@ Q1.
 
 ## Falsifiability closure
 
-T-02's `verify:` clauses check `check-state.sh`, not `test-check-state.py`, so nothing in T-02
+T-02's `verify:` clauses check `check-state.py`, not `test-check-state.py`, so nothing in T-02
 catches the prose rewording. **The amended SC-01 (superset-prohibited, subset-allowed) is the
 falsifier for both follow-up edits.**
 

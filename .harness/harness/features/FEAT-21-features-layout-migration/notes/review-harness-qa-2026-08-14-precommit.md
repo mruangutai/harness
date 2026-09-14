@@ -31,7 +31,7 @@ feature-record file, which is prior-feature narrative, not code that resolves a 
   nothing on disk (same shape as the sanctioned `test-validate-feature-json.py` FEAT-99-x survivor),
   just not itself named on the "already ruled" list. Advisory only — harmless.
 
-`check-state.sh:51`'s comment ("`.harness/features/<FEAT>/{BRIEF,PLAN}.md`") is stale relative to the
+`check-state.py:51`'s comment ("`.harness/features/<FEAT>/{BRIEF,PLAN}.md`") is stale relative to the
 migrated code three lines below it, but T-05's verify only binds the code pattern, not comments, and
 this is the same "narrative, true as written" class T-04's four comments were explicitly exempted
 under — not filing it as a new finding, noting it for completeness.
@@ -41,7 +41,7 @@ own note:
 - P1 `os.path.join(...,"..",...,"..",...)`: all hits are 4-level bin→repo-root climbs (unrelated to
   the features segment; they resolve `REPO_ROOT`, stable regardless of feature layout) — no finding.
 - P2 `os.path.join(X, ".harness", ...)`: `factory_config.harness_root()`'s use, `check-plan-routes.py`'s
-  manifest probe, `check-state.sh`'s 14 migrated joins, `gh-sync.py`'s new walk-up, `validate-feature-json.py`'s
+  manifest probe, `check-state.py`'s 14 migrated joins, `gh-sync.py`'s new walk-up, `validate-feature-json.py`'s
   migrated glob, `layout_migration.py`/`layout_fixtures.py` (the detector itself) — all correct.
 - P3 comma-joined tuples naming `"features"`: **one hit, `factory_claim.py:43`**
   (`FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "features")`) — legacy

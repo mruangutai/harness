@@ -51,7 +51,7 @@ All five re-checked by reading the actual code at `review_sha`, not by trusting 
 ## Stage 2 — operator-facing CLI text pass (the surface this dispatch named in scope)
 
 Read every newly-added `print`/`sys.stderr.write`/`raise SystemExit` line across the six named
-files (`gh-sync.py`, `plan-merge.py`, `plan-sign-gate.py`, `check-domain.py`, `check-state.sh`,
+files (`gh-sync.py`, `plan-merge.py`, `plan-sign-gate.py`, `check-domain.py`, `check-state.py`,
 `check-plan-routes.py`) plus a targeted grep for the F-01 pattern class (raw collection
 interpolated into an f-string) across the whole diff. No second instance of the F-01 class exists
 anywhere in the diff — every newly added message that carries a collection formats it through
@@ -75,7 +75,7 @@ for a task's) state the illegal value and the legal set but name no remedy verb 
 `f"VIOLATION top-level status {feature_station!r} is not one of {_legal} (case sensitive)"`. The
 same defect class, enforced independently in `check-domain.py` (`:1194-1196`,
 `"Set one with plan-merge.py set-task-station or set-feature-station, which validate the value
-before it lands."`) and `check-state.sh` (`"Set it with plan-merge.py set-feature-station, which
+before it lands."`) and `check-state.py` (`"Set it with plan-merge.py set-feature-station, which
 validates the station before it writes."`), does name the remedy in both siblings. This is
 internally consistent with `check-plan-routes.py`'s own pre-existing house style — every other
 `VIOLATION` line in that file (`:222-227`, `:274-276`, `:445-447`) is similarly terse and

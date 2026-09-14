@@ -21,7 +21,7 @@ than re-implementing them. No edits made; BRIEF.md, plan.yaml, and every file un
   line), which T-04's own verify already runs as its first conjunct
   (`python3 tests/integration/test-layout-migration.py`). The same fact is asserted a third way
   by CI itself (`.github/workflows/tests.yml:231-272`, greeping `render()`'s `"layout: N
-  surface(s) clean"` line) and a fourth way by `check-state.sh` INV-27
+  surface(s) clean"` line) and a fourth way by `check-state.py` INV-27
   (`:2315-2367`, reading the module's structured `Result` directly, same as T-04's inline
   probe).
 - concrete cost: four independent spellings of one fact (`scan().surfaces['features'].verdict`,

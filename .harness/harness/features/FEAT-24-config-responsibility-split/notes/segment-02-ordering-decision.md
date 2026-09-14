@@ -107,7 +107,7 @@ to you as segment 01 and depends on nothing; it is now on the critical path for 
   marked `building` at dispatch and never ran, and a status the receipts do not support is a lie to
   my successor. Their board cards were returned to `Backlog` with `board-station.py` — INV-26 caught
   the drift as four real violations before I did, which is the check earning its place.
-- `check-state.sh`: FEAT-24 is back to its one expected violation, the unpinned `review_sha`.
+- `check-state.py`: FEAT-24 is back to its one expected violation, the unpinned `review_sha`.
 - Cycles: **1 of 10, unchanged.** The lead reported zero send-backs; a blocked-before-dispatch task
   is not rework.
 - Runs: 7 of 20.

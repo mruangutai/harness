@@ -17,7 +17,7 @@ working-tree scripts I executed are byte-identical to the pin (HEAD is `1b029f88
 |---|---|---|---|
 | SC-01 | met | automated / integration | All eight halves present in `tests/integration/test-check-domain.py`; my replay `run_bug1305_marker_cases()+run_bug1305_identity_cases()` = 17/17 + 10/10 exit 0, and the same replay against a c369fb1f `check-domain.py` bin = 4/17 + 4/10 with (a) Write+Edit, (b) Write+Edit, (c) Write+Edit and (f)-legacy all red. Detail below. |
 | SC-02 | met | automated / integration | `test-check-state.py::case_bug1305_run_identity_invariant` (`:4560`) — dirty tree exit 1 with exactly 3 INV-36 lines (`runs/X`,`runs/V`,`runs/W`), clean tree exit 0 / no INV-36. Replayed: `RESULT True`. Red-before: `redproof-BUG-1305.md ## SC-02`. |
-| SC-03 | met | inspection | `check-state.sh:1489,1496,1510` — each message carries `{_run_rel}` and the `conflict`/`uid_conflict` reason naming both values; the test asserts `'A'`,`'B'`,`'U1'`,`'U2'`,`cannot be read` present and `non-checkpoint top-level key` **absent** (`test-check-state.py:4599-4601`). |
+| SC-03 | met | inspection | `check-state.py:1489,1496,1510` — each message carries `{_run_rel}` and the `conflict`/`uid_conflict` reason naming both values; the test asserts `'A'`,`'B'`,`'U1'`,`'U2'`,`cannot be read` present and `non-checkpoint top-level key` **absent** (`test-check-state.py:4599-4601`). |
 | SC-04 | met | automated / integration | `_bug1305_relative_artifact_cases` (`test-validate-digest.py:1965`) — non-compliant refused exit 2 naming the run dir; compliant passes exit 0 in the same tree; missing digest exit 2. Replayed 6/6 exit 0. Hands-off path: `.claude/settings.json:75` registers `validate-digest.py --hook` on SubagentStop. |
 | SC-05 | met | automated / integration | `run_bug1305_digest_repair_cases` — `digest Edit append repair remains allowed` exit 0 **and** `cross-run digest replacement remains refused` exit 2, both in my 5/5 replay. The allowance is not "guard removed". |
 | SC-06 | met | inspection | `check-domain.py:1296` now reads "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior before this branch runs" — agreeing with SC-05's observed Write+Edit behaviour. No comment asserts Write-only/PRE-only of that guard. Caveat below. |
@@ -71,7 +71,7 @@ case rename, and a reordering. `## Removed or altered assertions` covers all thr
 
 **Direction two — the six pairs against the suite at the pin.** (1) `legacy checkpoint without uid
 remains allowed` exit 0. (2) `DEC-154 resumed owner …` + both SC-01(d) cases, exit 0. (3) `digest Edit
-append repair remains allowed` exit 0. (4) `check-state.sh` clean tree containing witness-less `Z`,
+append repair remains allowed` exit 0. (4) `check-state.py` clean tree containing witness-less `Z`,
 exit 0. (5) `located compliant digest passes` and `unresolvable artifact lookup still fails open`, both
 exit 0. (6) `state.yaml` Write, `digest.md` Write and the Bash `notes.txt` negative control, all exit
 0. `## Removed or altered assertions`, `## Newly refused writes` and `## Suite results` are all

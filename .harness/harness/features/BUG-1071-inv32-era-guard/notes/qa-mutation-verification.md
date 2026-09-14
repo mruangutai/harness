@@ -8,7 +8,7 @@ All four new assertions are measured, not read, to discriminate. No coverage hol
 | Command | Claimed | Measured |
 |---|---|---|
 | `test-check-state.py` | 151 ok / 0 FAIL / exit 0 | **151 ok / 0 FAIL / exit 0** |
-| `check-state.sh` (real tree) | exit 0 / 0 violations / 32 INV-32 notes (31 pre-era + 1 undated) | **exit 0 / 0 violations / 32 notes (31 pre-era + 1 undated, FEAT-40-harness-writes-done)** |
+| `check-state.py` (real tree) | exit 0 / 0 violations / 32 INV-32 notes (31 pre-era + 1 undated) | **exit 0 / 0 violations / 32 notes (31 pre-era + 1 undated, FEAT-40-harness-writes-done)** |
 
 No discrepancy. The 32-note discovery is non-vacuous: real plan data drove every note.
 
@@ -69,7 +69,7 @@ The author's design choice to assert on the VIOLATION line rather than the exit 
   independently of the `date=None` case. **Minor coverage gap** (info severity): the regex's malformed-but-
   present branch is exercised only by inference from the empty-string case, not directly. Not added
   permanently — it does not close a real hole since the branch condition is provably the same one line for
-  both inputs (confirmed by reading `check-state.sh:201`, not merely asserted).
+  both inputs (confirmed by reading `check-state.py:201`, not merely asserted).
 
 ## 5. The five questions
 
@@ -91,7 +91,7 @@ into a second repository with its own timeline.
 place `approval.date` is required on an approved plan: **none exists.** No second guard forces the field.
 An author who omits `approval.date` from an approved plan's `approval:` block is **never graded by the
 panel, permanently, silently** (a `note`, never a `VIOLATION`) — that is a full, trivial, standing bypass of
-INV-32 with no upstream cost: nothing else in `load_plan` or `check-state.sh` requires the date to exist
+INV-32 with no upstream cost: nothing else in `load_plan` or `check-state.py` requires the date to exist
 before a plan can be marked `approved`. FEAT-40-harness-writes-done is cited by the fix's own comment as a
 live instance of exactly this gap. **This should be escalated**: the warn-and-skip design correctly avoids
 blaming the panel for an unrelated defect, but the absence of *any* companion check that an approved plan's
@@ -121,8 +121,8 @@ true`.
 
 ## Tree state
 
-Left byte-identical to `bf12a96b` — `git diff bf12a96b -- check-state.sh test-check-state.py` is empty,
-`md5sum check-state.sh` unchanged across the session. All mutants were written to and deleted from
+Left byte-identical to `bf12a96b` — `git diff bf12a96b -- check-state.py test-check-state.py` is empty,
+`md5sum check-state.py` unchanged across the session. All mutants were written to and deleted from
 `.claude/skills/harness/bin/.mutant-*.sh` (untracked, git-ignored scratch names), never edited in place. No
 new test cases were added permanently (§4's gap was judged not worth a fifth case, since the branch it would
 cover is provably the same source line as an already-tested one).

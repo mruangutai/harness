@@ -23,7 +23,7 @@ theme-parity against a design contract) has no object to examine this cycle, as 
 
 ## The one surface dispatch named explicitly — operator-facing INV-32 message text
 
-Read at the pin, not inferred (`git show 70fd441:.claude/skills/harness/bin/check-state.sh:170-242`).
+Read at the pin, not inferred (`git show 70fd441:.claude/skills/harness/bin/check-state.py:170-242`).
 
 The restructured gate (closing SC-05) now has three branches per finding:
 
@@ -36,7 +36,7 @@ elif severity not in {"info", "low", "med"}:
     bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains open without an operator overrule.")
 ```
 
-Rendered to the operator (`check-state.sh:1868-1869`): `warn` lines print as `  note       <text>`,
+Rendered to the operator (`check-state.py:1868-1869`): `warn` lines print as `  note       <text>`,
 `bad` lines as `  VIOLATION  <text>`. So the two new lines appear as:
 
 ```
@@ -53,7 +53,7 @@ carries no consequence since both are advisory.
 
 **One non-blocking style note, new text this cycle, not filed as a finding:** the two new lines drop
 the copula present in neighboring `warn` messages in the same file — compare `"approval is pending —
-awaiting the user."` (`check-state.sh:164`) or `"run counting is INACTIVE"` (`:382`) against
+awaiting the user."` (`check-state.py:164`) or `"run counting is INACTIVE"` (`:382`) against
 `"disposition resolved."` / `"disposition overruled."` (no `is`). Grammatically terser than the house
 voice but not ambiguous — recording it as an `info`-severity observation only, not a `must_fix`.
 
@@ -70,7 +70,7 @@ was asked to judge is not miscategorizing a should-be-blocking case as advisory.
 
 ## Withhold message (M7) — re-confirmed unchanged, not re-raised
 
-`check-state.sh:219`'s `bad` message — `"INV-32: {feat} finding {fid} is {severity or 'unrated'} and
+`check-state.py:219`'s `bad` message — `"INV-32: {feat} finding {fid} is {severity or 'unrated'} and
 remains open without an operator overrule."` — is byte-identical to the text c1 cited for the carried
 `M7` (`low`, states the fact, not the remedy). Confirmed by direct read at `70fd441`, not by trusting
 the carry-forward note. No new defect; **not re-raised**.

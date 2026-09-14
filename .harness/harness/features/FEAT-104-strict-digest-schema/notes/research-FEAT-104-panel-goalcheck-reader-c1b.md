@@ -33,7 +33,7 @@ Added, after the existing two (`plan.yaml:695-697`):
 ```
 
 Three keys, no fourth — matching the shape of the other two, and `status: ran` needs no `reason`
-(only `skipped` does, `check-state.sh:548-553`).
+(only `skipped` does, `check-state.py:548-553`).
 
 **Everything before `panel:` is byte-identical** (compared as text, split on the `\npanel:\n`
 boundary). Inside `panel`, all values reload equal — verified key by key: non-panel keys equal,
@@ -64,12 +64,12 @@ is real: `feature.json` run `goalcheck-plan-product`, agent `harness-product-lea
 
 ## INV-32 is fixed but not yet exercised — read this before claiming it green
 
-`check-state.sh` emits **no INV-32 line for FEAT-104 at all**, and that is not proof of a pass:
-the whole INV-32 body is gated on an **approved** plan (`check-state.sh:438-487`). FEAT-104 is
+`check-state.py` emits **no INV-32 line for FEAT-104 at all**, and that is not proof of a pass:
+the whole INV-32 body is gated on an **approved** plan (`check-state.py:438-487`). FEAT-104 is
 `pending`, so it is skipped — which is also why its open `high` finding raises nothing today. The
 invariant starts grading this feature the moment the operator signs.
 
-Proved the branch discriminates by running the reader predicate (`check-state.sh:534-553`,
+Proved the branch discriminates by running the reader predicate (`check-state.py:534-553`,
 transcribed verbatim) against the real file and against a mutant with the entry removed:
 
 - real file → no BAD lines

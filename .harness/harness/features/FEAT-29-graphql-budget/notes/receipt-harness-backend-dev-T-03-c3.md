@@ -92,7 +92,7 @@ Before any work this cycle: 39504 bytes, 168 lines, sha256
 and both final suite runs: identical byte count, line count, and hash. Every new case redirects
 `factory_config.harness_root` to a `tempfile.TemporaryDirectory()` and asserts the redirect took
 effect before trusting it (`redirect()`, matching every existing case in this file). Did not run
-`check-state.sh`. Made no live `gh` call.
+`check-state.py`. Made no live `gh` call.
 
 ## task_verify
 
@@ -129,7 +129,7 @@ Only `test-gh-cost-log.py` (one of T-03's six declared files) was changed —
 byte-identical to their pre-cycle state (all three mutated files' hashes verified above; the
 other two were never touched). `test-gh-sync.py` was read (the importlib mechanism at
 890–891) but not edited, per instruction. No LEAVE LIST file touched, no live `gh` call, no
-`check-state.sh` run.
+`check-state.py` run.
 
 ## Not done / explicitly out of scope
 

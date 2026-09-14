@@ -30,7 +30,7 @@ into `/tmp/bug1309-pin` and `git show <sha>:<path>` — never a plain worktree r
 
 SC-03: *"The refusing assertion must be demonstrated failing against the pre-change copy of the
 script before the fix is accepted."*
-SC-07: *"The violating fixture must be shown passing `check-state.sh` before the invariant lands."*
+SC-07: *"The violating fixture must be shown passing `check-state.py` before the invariant lands."*
 
 Both are claims about **ordering of conduct**, and both declare `verify: automated`. No test can
 observe that a demonstration happened *before* a fix — a green suite proves presence and passing,

@@ -4,7 +4,7 @@
 
 The `goalcheck` reader is now recorded in `plan.yaml` `panel.readers` as the third entry, and the
 INV-32 line `reader goalcheck never ran or was not recorded` is **absent** from
-`check-state.sh` output — grepped for the exact phrase across the whole run, 0 matches (the phrase
+`check-state.py` output — grepped for the exact phrase across the whole run, 0 matches (the phrase
 does not appear for ANY feature now). Nothing else in the panel moved: the textual diff on
 `plan.yaml` is **3 added lines, 0 removed, 0 changed**.
 
@@ -41,7 +41,7 @@ Equality was over loaded values (G-07: `set-panel` re-emits through `safe_dump`,
 even where values do not). Here they did not move at all — the unified diff is a clean 3-line insert
 under `panel.readers`.
 
-## check-state.sh — exit status 1, captured into a variable before any pipe
+## check-state.py — exit status 1, captured into a variable before any pipe
 
 Remaining BUG-285 violations, all expected and NOT touched:
 

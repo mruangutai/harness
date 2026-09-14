@@ -45,7 +45,7 @@ land separately.
   lane, `change_type` and mechanism, and on `plan.yaml` reading `approved` so the step-0 gate passed.
   product-lead had flagged it blocking before T-07 dispatched. Recorded as a judgement I made, not a
   formality that was satisfied.
-- `check-state.sh:149`'s comment names an approval-reset rule that neither `:133-139` nor `:150-154`
+- `check-state.py:149`'s comment names an approval-reset rule that neither `:133-139` nor `:150-154`
   implements — an amended-but-unsigned plan reports green. Under the DEC-174 carve-out, so a human
   fixes it directly.
 - `DEC-27` is falsified on two clauses by this feature's own shipped code and carries no strike

@@ -91,7 +91,7 @@ $ ls .claude/skills/harness/bin/test-verify-context-watch-live.py 2>/dev/null; t
 `ls` reported nothing (file does not exist), its own exit `1`. Exit status of the `test`: `0`
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
+$ python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Full output captured and grepped for `MISCONFIGURED`: zero matches. Tail of output:
 ```

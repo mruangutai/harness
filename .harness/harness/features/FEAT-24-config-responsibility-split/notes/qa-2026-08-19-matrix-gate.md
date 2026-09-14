@@ -3,7 +3,7 @@
 ## VERDICT: FAIL
 
 `T-05` (a DEC-174 carve-out, `status: done` in `plan.yaml`) never got its own required test cases
-written. Its own `verify:` block fails at the first assertion. `SC-03` (check-state.sh half) and
+written. Its own `verify:` block fails at the first assertion. `SC-03` (check-state.py half) and
 `SC-12` have **zero automated evidence** in the tree, despite both being `verify: automated`.
 The full suite is green only because nothing exercises the missing behavior — this is exactly the
 fail-open-nothing-can-see defect class this feature exists to remove.
@@ -32,10 +32,10 @@ exist**:
 - `INV-26 expects the declared station for status: backlog/building/done` — absent, all three
 
 Also absent: the `INV-26 BEGINS` / `INV-26 ENDS` marker comments T-05 item 7 requires
-(`.claude/skills/harness/bin/check-state.sh` — `grep -c "BEGINS\|ENDS"` = 0), so even the verify's own
+(`.claude/skills/harness/bin/check-state.py` — `grep -c "BEGINS\|ENDS"` = 0), so even the verify's own
 positive-control slice can't run.
 
-`check-state.sh`'s **production code** looks correct on inspection (`:1123-1146`): `load_board` is
+`check-state.py`'s **production code** looks correct on inspection (`:1123-1146`): `load_board` is
 wrapped in `try/except FleetError`, appends one `bad` entry naming the invariant, and the block
 continues rather than aborting; `_EXPECT` (`:1180`) is built from the loaded board's `stations`, not
 literals. I did not find a way to prove this behaviour live without perturbing a tracked config file
@@ -47,7 +47,7 @@ were simply never written) and not a "kind" shortfall (`test-check-state.py` run
 `--kind integration`; the specific cases required by `SC-03`/`SC-12` just don't exist inside it).
 
 **`must_fix`**: add the five T-05 cases and the two marker comments to `test-check-state.py` /
-`check-state.sh`. Route to `harness-backend-dev`/main-session-direct per the DEC-174 carve-out that
+`check-state.py`. Route to `harness-backend-dev`/main-session-direct per the DEC-174 carve-out that
 already governs this file. `SC-03` and `SC-12` cannot be marked met until this lands.
 
 Everything else pre-ruled GREEN was re-confirmed live and holds: T-01, T-02, T-04 (I additionally
@@ -78,7 +78,7 @@ feature's defect — noted, not blocking.
 | cross_module | T-02 (`factory_config.py`) | **No** — `test-factory-config.py` matches only `unit` | **Yes** — same `test-factory-integration.py` path exercises `product_config`/`board_for`/`validate_board` |
 | cross_module | T-03 (5 test files) | Mixed — `test-factory-integration.py` and `test-check-domain.py` both run under integration (registration, not detect-glob) | **Yes** — T-03's own verify (pre-ruled GREEN) runs all five suites live |
 | cross_module | T-04 (`gh_board.py`, `gh-sync.py`, `board-station.py`) | `test-gh-sync.py` is named in detect **and** registered | **Yes** — confirmed live, full T-04 verify green |
-| cross_module | T-05 (`check-state.sh`) | `test-check-state.py` is named in detect **and** registered, kind executes it | **No** for the specific new behaviour — see finding above. The kind runs the file; the file lacks the assertions |
+| cross_module | T-05 (`check-state.py`) | `test-check-state.py` is named in detect **and** registered, kind executes it | **No** for the specific new behaviour — see finding above. The kind runs the file; the file lacks the assertions |
 
 So: for T-01 and T-02, (a) is false but (b) is true — real coverage exists, the detect list is just
 stale/incomplete for those two files. That is a config finding, not a kind shortfall — I am not
@@ -182,7 +182,7 @@ by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 |---|---|---|
 | SC-01 | `test-factory-config.py:316` `load_fleet rejects a repos entry carrying a board key` | met (T-02 green) |
 | SC-02 | per-key tally, 2/5 satisfy SC-02's own "fails if reverted to literal" bar: **building** — `test-gh-board.py:` `derive_station returns the declared building station` (board deliberately uses `Col-B`, so a reverted literal reddens it) ✓. **review** — same file, `Col-R` ✓. **ready** — `test-factory-decompose.py:412` `(2) both stations set to the fleet's ready option` asserts `== "Ready"`, but the fixture's own `ready` value is also literally `"Ready"` (`:196,224`), so a hardcoded `"Ready"` fallback would pass this case too — present but non-discriminating ✗ (does not meet SC-02's "fails if reverted" bar; same for `test-factory-land.py`'s review-station case, which uses `"Review"` against a fixture value of `"Review"`). **backlog** and **done** — resolved only inside T-05's missing INV-26 cases; no test exists ✗. **SC-02: 2/5 satisfied, 3/5 not** (`ready` non-discriminating, `backlog`/`done` absent) |
-| SC-03 | `test-gh-board.py` literal-grep (met, T-04 green) + T-05's marker-sliced grep on `check-state.sh` | **unmet for the check-state.sh half** — no positive-control slice exists (markers absent) |
+| SC-03 | `test-gh-board.py` literal-grep (met, T-04 green) + T-05's marker-sliced grep on `check-state.py` | **unmet for the check-state.py half** — no positive-control slice exists (markers absent) |
 | SC-04 | `test-gh-board.py` (8 `load_board` raise cases) + `test-factory-config.py` (8 `board_for` raise cases) | met (both T-02 and T-04 green, 16 cases confirmed) |
 | SC-05 | `test-factory-config.py`/`test-gh-board.py:90` null-board and absent-board cases | met |
 | SC-06 | `test-factory-config.py:526,560` no-checkout + no-fallback cases | met |
@@ -199,7 +199,7 @@ by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 `test-check-state.py` matches `unit`'s detect glob (`.claude/skills/harness/bin/test-*.py`), so
 `matrix_ok` stays `true` on the "nothing detecting" trigger the dispatch defines. But
 `run-unit-tests.py`'s `UNIT_SCRIPTS` array never lists it — it is registered only in
-`INTEGRATION_SCRIPTS` — so `--kind unit` executes nothing over `check-state.sh`. Detected, not
+`INTEGRATION_SCRIPTS` — so `--kind unit` executes nothing over `check-state.py`. Detected, not
 executed (P-14). Not a `matrix_ok` violation under the dispatch's own definition, but worth saying
 out loud rather than leaving silent.
 
@@ -210,9 +210,9 @@ ok-line text verbatim (T-01 through T-10 all list literal strings), which struct
 most of the Phase-1-vs-Phase-2 gap for this feature — a prescriptive plan, not independent
 derivation on my part (O-05). From the BRIEF alone, the tests I'd have expected are exactly what
 the plan pins: one loud raise per malformed board shape at both entry points, one per-station-key
-proof that fails on a reverted literal, and a check-state.sh behavioural test proving INV-26
+proof that fails on a reverted literal, and a check-state.py behavioural test proving INV-26
 reports rather than aborts. **The last of those three is exactly what's missing** — `SC-03`'s
-check-state.sh half and `SC-12` have zero automated evidence, which is the one place Phase 1's
+check-state.py half and `SC-12` have zero automated evidence, which is the one place Phase 1's
 un-primed expectation and the actual tree diverge.
 
 ## Open questions

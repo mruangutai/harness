@@ -82,7 +82,7 @@ Exit status: `0`
 ```
 Exit status: `0` (29 of 29 cases satisfies `-ge 19`)
 
-### Line 3: `bash .claude/skills/harness/bin/run-unit-tests.py --kind unit`
+### Line 3: `python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Full output is long (60.7KB, many unrelated unit scripts); the line that
 matters:

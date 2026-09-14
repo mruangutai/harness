@@ -3,7 +3,7 @@
 **BUG-1304 is ready to ship.** Every gate that can pass has passed at the pinned commit
 `c5869301`: the reviewer panel returns PASS with an empty `must_fix`, all twelve success criteria
 are met, the blocking qa gate passes, the full suite is green with no loss of coverage, and
-`check-state.sh` reports zero violations. Nothing is waiting on a decision and nothing was waived.
+`check-state.py` reports zero violations. Nothing is waiting on a decision and nothing was waived.
 The merge itself is yours — the harness does not merge.
 
 **What it does.** A governed agent given a feature worktree can now only write inside it. If it
@@ -25,7 +25,7 @@ unbound and unaffected.
 | SIMPLIFY | **PASS**, empty | `runs/simplify-eng/digest.md` |
 | UAT | **does not apply** — BRIEF carries zero `verify: uat` criteria | `BRIEF.md` |
 | Full suite at the pin | exit 0, 0 failures, **73 files discovered — the same 73 as before the work began** | orchestrator-measured |
-| `check-state.sh` | exit 0, zero violations | orchestrator-measured |
+| `check-state.py` | exit 0, zero violations | orchestrator-measured |
 
 Two things are worth knowing about the *quality* of that green, because a gate that cannot go red
 is worse than no gate.

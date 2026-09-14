@@ -245,7 +245,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
 
 - DEC-174 — the harness plans its own work but never EXECUTES changes to its own hooks, validators or
   gate scripts, and the list is non-exhaustive. Any REQ-10 or SC-04 machine check that lands in
-  `check-state.sh`, `validate-digest.py` or `check-domain.py` is a `main-session-direct` task, decided
+  `check-state.py`, `validate-digest.py` or `check-domain.py` is a `main-session-direct` task, decided
   at plan time via DEC-179's `check-domain.py --resolve`, never discovered mid-build.
 - Measured by the eng squad (`notes/receipt-harness-dev-ops-arch-eng.md`): the only reader channel
   that mechanically exists is a **spawned non-harness subagent**; `Explore`, `fork`, `general-purpose`

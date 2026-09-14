@@ -35,7 +35,7 @@ p='tests/manual/probe-handoff-comprehension.py'
 assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
 assert k['exclude']=='.claude/worktrees/**', k
 assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'
-print('ok')" && bash .claude/skills/harness/bin/run-unit-tests.py --check-layout
+print('ok')" && python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout
 ```
 
 Exit: `0`

@@ -7,7 +7,7 @@ Range reviewed: `git diff 62fef85..b1d3925` (5 commits: `4b16f47`, `ea937b1`, `5
 ## BLUF
 
 The authorization surface (`team-config.yaml` grants, `check-domain.py` shape regexes/`SWEEP_GLOBS`,
-`check-state.sh` discovery, `check-plan-routes.py`, `validate-feature-json.py`, `.gitignore`) moved
+`check-state.py` discovery, `check-plan-routes.py`, `validate-feature-json.py`, `.gitignore`) moved
 coherently to the `.harness/<repo>/features/` layout. The wildcard-matching mechanism
 (`harness_boundary.glob_to_re`: `*` -> `[^/]*`, never crosses `/`) is **unchanged in this range** and
 was already segment-safe before the migration, so inserting one more wildcard segment did not widen
@@ -44,7 +44,7 @@ where a parse/permission failure now yields allow-not-deny — the DEC-101 fail-
 manifest) is pre-existing and unchanged, and `test-check-domain.py`'s fail-closed cases
 (malformed manifest, non-UTF-8 manifest, malformed `state.yaml`) all still pass.
 
-**3. D-08 label fix, `check-state.sh:55-59` (`_feat_dirs`/`fpath()`).** Read the full mechanical diff
+**3. D-08 label fix, `check-state.py:55-59` (`_feat_dirs`/`fpath()`).** Read the full mechanical diff
 (~30 call sites). `fpath()` only ever receives `feat` values derived from `os.path.basename()` of
 directories the script itself discovered via `glob.glob(.harness/*/features/*)` — never from
 network/session input; the string it emits is the discovered segment + FEAT id, both filesystem
@@ -103,7 +103,7 @@ BLOCKED) was independently measured in the FEAT-21 precommit review and re-confi
   (low, fails closed, DoS-shaped not escalation-shaped).
 - Cross-segment reachability — confirmed no second segment is staged anywhere in this repo; the gap
   is real but untestable here and already recorded.
-- The `check-state.sh` cross-repository feature-dict key collision (bare-basename keys) — confirmed
+- The `check-state.py` cross-repository feature-dict key collision (bare-basename keys) — confirmed
   present, confirmed it cannot fire with one repository, confirmed BRIEF scopes it out to unit 5/8.
 - MF-1 (D-08 label clause) — confirmed fixed and now emits the segment-qualified path (item 3 above).
 
@@ -129,7 +129,7 @@ VERDICT: PASS
 DIGEST:
   headline: "Authorization surface moved coherently to the new layout with no widened or fail-open grant found across the range; the one hardcoded-segment gap (branch-create-gate.py) is already ruled (ADV-2); a filtered diff of all 18 injected instruction files touched in this range shows pure path-string substitutions only, but no technical control would have caught a non-path edit riding the same direct-commit route."
   in_scope: true
-  scope_reason: "Range rewrites the entire write-authorization surface — team-config.yaml grants, check-domain.py shape regexes and SWEEP_GLOBS, check-state.sh discovery/label emission, check-plan-routes.py and validate-feature-json.py discovery, branch-create-gate.py, .gitignore — plus edits injected-prompt content (11 SKILL.md, 3 agent files, harness.md, missions.md, two teams yaml, harness-pm.md Expertise) reaching every governed spawn. Authorization and prompt-injection integrity are this role's surface even though nothing here is user input in the OWASP sense."
+  scope_reason: "Range rewrites the entire write-authorization surface — team-config.yaml grants, check-domain.py shape regexes and SWEEP_GLOBS, check-state.py discovery/label emission, check-plan-routes.py and validate-feature-json.py discovery, branch-create-gate.py, .gitignore — plus edits injected-prompt content (11 SKILL.md, 3 agent files, harness.md, missions.md, two teams yaml, harness-pm.md Expertise) reaching every governed spawn. Authorization and prompt-injection integrity are this role's surface even though nothing here is user input in the OWASP sense."
   severity_max: info
   findings: 0
   must_fix: []

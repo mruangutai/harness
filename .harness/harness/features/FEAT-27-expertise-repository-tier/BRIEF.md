@@ -121,18 +121,18 @@ merged with another, and no atomic landing is required.
   present in its craft file and absent from the repository tier — sixteen entries, checked one at a
   time, thirty-two assertions, never a global grep and never a count.
   verify: inspection
-- SC-04: Given a craft file containing a repository-specific token, `check-expertise.sh` prints an
+- SC-04: Given a craft file containing a repository-specific token, `check-expertise.py` prints an
   advisory line naming the file, the entry id and **the token that triggered it**, and still exits 0.
   Given a file with no such token it prints no advisory line. Both directions asserted.
   verify: automated      evidence: integration
-- SC-05: `check-expertise.sh` reports a 41-line repository-tier file as over budget and does not report
+- SC-05: `check-expertise.py` reports a 41-line repository-tier file as over budget and does not report
   a 41-line craft file, so the 40/150 split is enforced by the path and not by a single constant.
   verify: automated      evidence: integration
 - SC-06: With no repository tier present, and with a payload whose `agent_type` is missing or
   unparseable, the hook exits 0, emits no repository header, and emits no error — the spawn path is
   unchanged for every agent that has not distilled yet.
   verify: automated      evidence: unit
-- SC-07: All fifteen craft files still pass `check-expertise.sh` after the migration, and every
+- SC-07: All fifteen craft files still pass `check-expertise.py` after the migration, and every
   repository-tier file created passes it too — each file named individually in the output, not a
   directory-level exit code alone.
   verify: automated      evidence: integration
@@ -185,17 +185,17 @@ merged with another, and no atomic landing is required.
   dependency — an unquoted `#` in `team-config.yaml` has already taken a resolver down once.
 - **The craft tier's location and semantics are out of scope.** `.harness/expertise/` stays where it
   is, with its 150-line budget, its per-agent grants and its global sibling.
-- **`check-state.sh`, `check-domain.py`, `bash-write-guard.py` and `validate-digest.py` are not
-  edited.** No task touches them, and `check-state.sh` has no expertise invariant to update. The
+- **`check-state.py`, `check-domain.py`, `bash-write-guard.py` and `validate-digest.py` are not
+  edited.** No task touches them, and `check-state.py` has no expertise invariant to update. The
   measurement, stated so it is true as written: `grep -i expertise` over
-  `.claude/skills/harness/bin/check-state.sh` at `ada8e99` returns **exactly two lines**, `:343` and
+  `.claude/skills/harness/bin/check-state.py` at `ada8e99` returns **exactly two lines**, `:343` and
   `:353`, both spelling it **`Expertise`** with a capital E, and both are INV-9 prose about the
   `SubagentStart` registration — the message text of "no `.claude/settings.json`" and "no
   `SubagentStart` hook". Neither asserts an Expertise **path**. A case-sensitive `grep expertise`
   returns zero, which is why an earlier draft of this line read "zero matches"; the conclusion is
   unchanged either way, because nothing in this plan changes the hook's registration or its path.
 - **Entry ids are not renumbered.** Removing an entry from a craft file leaves a gap in its section's
-  numbering. `check-expertise.sh` requires the `XX-NN` prefix, not contiguity, and DEC-66 makes the ids
+  numbering. `check-expertise.py` requires the `XX-NN` prefix, not contiguity, and DEC-66 makes the ids
   stable references.
 - The advisory scan is **advisory**: it must never contribute to a non-zero exit. #340 rejected a
   blocking gate explicitly, because a legitimate craft entry may cite a path.

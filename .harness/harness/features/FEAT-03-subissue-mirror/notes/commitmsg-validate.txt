@@ -15,7 +15,7 @@ validation with the project's one blocking gate never having run. The
 would self-scope out at the cost of a spawn.
 
 Also lands `notes/handoff-build.md`, which the build-to-validate seam
-requires (DEC-159) and whose absence check-state.sh reported as a
+requires (DEC-159) and whose absence check-state.py reported as a
 VIOLATION. The build phase was crossed inside one orchestrator session
 rather than relayed, but the note is what a successor reads, so the
 invariant holds either way.

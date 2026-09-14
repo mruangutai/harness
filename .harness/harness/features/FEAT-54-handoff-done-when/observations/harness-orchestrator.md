@@ -5,7 +5,7 @@
 - 2026-09-02: `git merge-base main HEAD` stopped agreeing with a plan's pinned base SHA after the branch was rebased (returned 0ec44965 where the plan pins b7956fc4). Both were valid; the pin was still an ancestor. Pre-measuring which one the task means, and saying so in the dispatch, stopped a member re-deriving the wrong one.
 - 2026-09-02: running `gh-sync.py open` mid-build to close INV-26's "the mirror never ran" traded one violation for twelve: `open` creates cards at backlog, and the signature-time promotion to `ready` is the main session's row in DEC-138's one-owner table, so the orchestrator cannot close the loop it opened. Reported it up rather than writing another owner's column.
 - 2026-09-04: FEAT-54 ship. The feature's own new CI step (`Repository-state gate`, added
-  post-review as B-5) was red-by-construction on every GitHub runner — `check-state.sh` INV-31 asks
+  post-review as B-5) was red-by-construction on every GitHub runner — `check-state.py` INV-31 asks
   whether THIS MACHINE has `core.hooksPath` installed, and `actions/checkout` never sets it. It had
   never been exercised in CI before the ship PR, because a workflow step only runs when a PR exists.
   Lesson: when a change ADDS a step to the required check, the only proof it can pass is a fresh

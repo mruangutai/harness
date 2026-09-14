@@ -130,7 +130,7 @@ an assertion whose name claims more than it checks. Specifically checked and rul
 - `cycle` → `cycles_used` (DEC-154): not reviewable from this diff — `runs/**` is gitignored
   (**executed**, `git check-ignore -v`), so this rename touches no tracked file and isn't part of
   `base..review_sha`. Read directly at source: the current run's top-level key is `cycles_used: 0`,
-  the whitelisted INV-16 key (**executed**, grepped `check-state.sh`'s `KNOWN` set). Correct as far as
+  the whitelisted INV-16 key (**executed**, grepped `check-state.py`'s `KNOWN` set). Correct as far as
   it's checkable; not a code-review target since it's ephemeral, untracked run state.
 
 **One genuine gap, reported as should_fix rather than a fourth "assertion that lied":** the end-to-end

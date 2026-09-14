@@ -36,21 +36,21 @@ call: backlog row after ship
 
 Three independent copies of the same operation (run `git worktree list --porcelain` with a
 given cwd, split on blank lines, pull the `worktree <path>` line):
-- `.claude/skills/harness/bin/check-state.sh:1117` (INV-25, untouched by this diff)
+- `.claude/skills/harness/bin/check-state.py:1117` (INV-25, untouched by this diff)
 - `.claude/skills/harness/bin/worktree_terminal.py:56-70` (`_worktree_list_raw`/`_worktree_paths`, new, private)
 - `.claude/skills/harness/bin/post-merge-sweep.py:65-97` (`_resolve_main_checkout_root`, new)
 
 The dispatch asked me to check the plan's claim that INV-29 replaces INV-25's enumeration
 rather than duplicating it. **That claim holds for INV-29 itself** — INV-29's own comment
-block at check-state.sh (~line 1191) states plainly "THE ENUMERATION IS NOT REPEATED HERE"
+block at check-state.py (~line 1191) states plainly "THE ENUMERATION IS NOT REPEATED HERE"
 and it is true: INV-29 calls `worktree_terminal.classify_all(root)` and never runs its own
 `git worktree list`. But INV-25, several hundred lines earlier in the same file
-(check-state.sh:1109-1189, entirely outside this diff's `+`/`-` hunks), still runs its own
+(check-state.py:1109-1189, entirely outside this diff's `+`/`-` hunks), still runs its own
 raw enumeration and its own blank-line parse — it was never migrated to call
 `worktree_terminal.classify`/`_worktree_paths`, so the "replaces" framing is true of INV-29's
 relationship to INV-25's *logic*, not of INV-25's own code, which still exists unchanged.
 worktree_terminal.py's own docstring at `_worktree_paths` even says it "reuses the exact
-parsing shape check-state.sh already uses at :1117-:1135 ... rather than a second parser" —
+parsing shape check-state.py already uses at :1117-:1135 ... rather than a second parser" —
 which describes cloning the shape, not eliminating the original.
 
 post-merge-sweep.py's third copy exists because `worktree_terminal.classify()` deliberately
@@ -64,11 +64,11 @@ always the main checkout) is asserted as a load-bearing invariant in comments in
 places, but is implemented three times. A change to git's porcelain format, or a bug in the
 blank-line split (e.g. a path containing a blank line, or `bare`/`detached` records handled
 differently), has to be fixed in three places, and nothing signals when one drifts from the
-other two — check-state.sh's own INV-25 is explicitly named in the brief as "already built,
+other two — check-state.py's own INV-25 is explicitly named in the brief as "already built,
 do not rebuild," so this file is the one most likely to go stale silently.
 
 Alternative: add a public `main_checkout_path(root)` to worktree_terminal.py — a thin wrapper
-around the existing private `_worktree_paths(root)[0]` — and have both check-state.sh's INV-25
+around the existing private `_worktree_paths(root)[0]` — and have both check-state.py's INV-25
 and post-merge-sweep.py's `_resolve_main_checkout_root` call it instead of running their own
 subprocess. That reduces three implementations to one, consistent with D-02's own stated
 purpose ("one predicate the gate and the hook cross, so they can never disagree").
@@ -153,7 +153,7 @@ call: backlog row after ship
 
 ## Not flagged
 
-- `check-state.sh`'s INV-30 imports `gh_board` (`_gb30`) purely as an import-liveness check
+- `check-state.py`'s INV-30 imports `gh_board` (`_gb30`) purely as an import-liveness check
   and never calls anything on it — this mirrors INV-25/INV-29's own established pattern of
   gating on "the module ships with this repo, so failing to import is a tree defect." Not a
   reuse issue; it is the established idiom applied consistently.

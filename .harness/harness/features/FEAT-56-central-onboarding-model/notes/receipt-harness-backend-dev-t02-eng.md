@@ -31,7 +31,7 @@ First failing conjunct (checked individually): `grep -qF 'anchor rule' .claude/s
 1. `check-instruction-paths.py:12-18` — two-line comment above `MAIN_SESSION_ONLY` naming the
    anchor rule as the reason for exclusion (not ownership); `"harness-init"` entry's trailing
    comment now states both the anchor-rule reason and the main-session-only fact in one clause.
-2. `check-state.sh`:
+2. `check-state.py`:
    a. `:111` — no-`.harness/` message now names "this clone" and directs `/harness-init` "in
       the control-plane clone".
    b. `:287` — `.harness/harness.json missing` remedy gains ", in this clone".
@@ -66,7 +66,7 @@ $ bash -c '<all 12 grep conjuncts for the six files, no python3/bash calls>'
 ```
 All 12 conjuncts (present-and-absent pairs across the six files) pass individually and jointly.
 
-`bash .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"` → prints
+`python3 .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"` → prints
 `harness-documentor`, exit 0.
 
 ## Full literal `verify:` (still red, cause external)
@@ -85,8 +85,8 @@ to me. None of the six files this task owns are implicated in either violation l
 
 ## Syntax gates (step 5)
 
-- `bash -n check-state.sh` — OK
-- `bash -n check-domain.py` — OK
+- `python3 -m py_compile check-state.py` — OK
+- `python3 -m py_compile check-domain.py` — OK
 - `python3 -c "import ast; [ast.parse(...) for the four .py files]"` — OK
 
 ## git status --porcelain (step 6)

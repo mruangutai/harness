@@ -100,7 +100,7 @@ enforcement layer, so none costs the operator's own hands.
 
 T-09 point 3 now states that **the main session runs the removal, from outside the tree**, never the
 orchestrator from inside it — symmetric with point 1's attribution of creation, and citing why
-(`check-domain.py:428-431`, `bash-write-guard.py:135-137`, `check-state.sh:1082-1085`, plus T-05 on
+(`check-domain.py:428-431`, `bash-write-guard.py:135-137`, `check-state.py:1082-1085`, plus T-05 on
 the Bash route). It adds that the orchestrator's part of a terminal state is to finish landing and
 report; removal is not its act.
 

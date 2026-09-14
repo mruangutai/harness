@@ -61,7 +61,7 @@ So the qa finding, taken literally, would be a green-looking swap that changes n
 > Sweeping all makes the hook compute the SAME predicate as INV-29, so the hook and the invariant
 > can never disagree about what is eligible.
 
-Since `D-10`, `check-state.sh:1237` calls `classify_all` and `post-merge-sweep.py:234` calls
+Since `D-10`, `check-state.py:1237` calls `classify_all` and `post-merge-sweep.py:234` calls
 `classify`. They **do** disagree, on the repository dimension. The clause was true when signed and
 is now partly falsified by a later signed decision. D-01's other two grounds — post-merge receives
 only the squash flag, and one pull can land several merges — are untouched and still carry the

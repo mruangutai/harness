@@ -115,5 +115,5 @@ All at `3bfedc9`.
   Note for pm: the perf doc's row 5 cites `:17` as retracting the orchestrator's identical
   over-claim; read at `3bfedc9`, `:17` records the DEC-174 user ruling instead. The finding stands;
   only that one citation is loose. Left uncorrected by the user's scoping ruling.
-- **`bin/check-state.sh` exits 0** at `3bfedc9` — the only output is the known `note` class from
+- **`bin/check-state.py` exits 0** at `3bfedc9` — the only output is the known `note` class from
   issue #23 (pruned FEAT-05 run dirs) plus one FEAT-06 pruned run dir.

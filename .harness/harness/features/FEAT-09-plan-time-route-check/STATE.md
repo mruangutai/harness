@@ -30,7 +30,7 @@ all of them `.harness/` bookkeeping and expertise — **zero source**. Re-verifi
 a goal-check citing an unreviewed source commit would rest on an unpinned diff.
 
 **Gates re-run BY ME, not relayed:** unit exit 0 (32 PASS, 0 FAIL, 13 scripts) · docs 0 · state 0 ·
-index drift 0 · all 12 Expertise files pass `check-expertise.sh`. The leads hold no Bash and two
+index drift 0 · all 12 Expertise files pass `check-expertise.py`. The leads hold no Bash and two
 flagged their own Expertise files unverified, so I held every mechanical gate at my tier.
 
 **Squad returns:** eng PASS, validator PASS, product **ESCALATE** — product escalated for SC-08

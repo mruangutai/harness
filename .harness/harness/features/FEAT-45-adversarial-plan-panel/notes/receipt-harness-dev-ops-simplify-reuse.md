@@ -38,7 +38,7 @@ plan.yaml, BRIEF.md and everything under `.claude/` are unmodified (verified bel
 
 ## `verify:` blocks — no hand-rolled re-checks of an existing gate
 
-Read every task's `verify:` against `check-state.sh`, `check-plan-routes.py`, `check-domain.py
+Read every task's `verify:` against `check-state.py`, `check-plan-routes.py`, `check-domain.py
 --resolve`, `run-unit-tests.py`, `gen-decisions-index.py`, `sync-agent-adapters.py`,
 `test-team-catalog.py`. Each verify block calls the existing script it needs rather than
 re-implementing its check:
@@ -47,7 +47,7 @@ re-implementing its check:
 - T-03 also runs the pre-existing `test-orchestrator-playbook.py`.
 - T-06 runs `sync-agent-adapters.py` + `test-sync-agent-adapters.py`, diffs the generated file.
 - T-07 calls `check-plan-routes.py`'s own `live_invariant_numbers()` (confirmed at
-  `check-plan-routes.py:658`) instead of re-scanning `check-state.sh` for invariant numbers by hand.
+  `check-plan-routes.py:658`) instead of re-scanning `check-state.py` for invariant numbers by hand.
 - T-08/T-09/T-10 run the test files they add cases to, plus `run-unit-tests.py --kind unit`.
 
 None of these re-greps what a registered gate already asserts. No finding.

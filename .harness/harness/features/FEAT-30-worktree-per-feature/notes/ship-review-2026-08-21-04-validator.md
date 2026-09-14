@@ -183,7 +183,7 @@ silent data loss, and it is a one-line fix.
 
 ## Two things only you can do
 
-**The mirror is unsynced and I am not permitted to fix it.** `check-state.sh` reports 11 FEAT-30
+**The mirror is unsynced and I am not permitted to fix it.** `check-state.py` reports 11 FEAT-30
 board-drift rows: all ten sub-issues (#616–#625) open against a plan reading `done`, and parent #572
 at `Building` where the plan derives `Review`. `plan.yaml` already carries `done`, so the ordering
 precondition is satisfied and the remedy is ten `gh-sync.py close-task` runs. My attempt was denied by
@@ -214,7 +214,7 @@ Unstruck rows become issues on your ship acceptance; anything not listed here di
 | B-7 | chore | The exit-code-only `verify:` shape appears in 6 of 10 tasks — vacuous in 2, non-vacuous in 2, no standing case in 2. Consider one instrument rather than six rows |
 | B-8 | bug | `remove` has no cwd guard and no test for one: nothing stops it running from inside the tree it deletes, which is the exact hazard that makes removal the main session's act |
 | B-9 | chore | No `worktrees-old` sibling case for the `commonpath` idiom at three sites. The code is correct — I ran the missing case — but a `startswith` refactor would pass |
-| B-10 | chore | `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` ids where `check-expertise.sh:44` accepts `[A-Z]{1,3}`. Latent — `check-expertise.sh` exits 0 on every real file today. **Validate, do not narrow:** narrowing makes the line fail `ENTRY_RE`, so `parse_expertise` skips it silently and the entry is lost earlier and more quietly than today |
+| B-10 | chore | `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` ids where `check-expertise.py:44` accepts `[A-Z]{1,3}`. Latent — `check-expertise.py` exits 0 on every real file today. **Validate, do not narrow:** narrowing makes the line fail `ENTRY_RE`, so `parse_expertise` skips it silently and the entry is lost earlier and more quietly than today |
 | B-11 | chore | `BUILD.md:147`'s unqualified "the hook cannot see writes made via Bash" and its "serialization remains the write-safety mechanism" conclusion predate the Bash guard |
 | B-12 | chore | The suite's headline `PASS`-line counts are not a coherent unit — 738 case results report as `ok` and are omitted. Report one number that means one thing |
 | B-13 | chore | `.harness/README.md` contradicts disk on three counts (`feature.yaml`/`feature.json`, `PLAN.md`/`plan.yaml`, features path). Belongs to the FEAT-21/22 + DEC-182 migration |

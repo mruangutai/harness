@@ -16,7 +16,7 @@ unedited except for its station fields.
 | live `PreToolUse` probe: `Write` to `.claude/skills/harness/bin/.orch-probe.tmp` | `check-domain: BLOCKED — harness-orchestrator may not write …`; permitted globs are feature-directory paths only. The file was never created |
 | `check-domain.py --resolve tests/unit/x.py` | `NOBODY` |
 | `check-domain.py --resolve .harness/team-config.yaml` | `NOBODY` |
-| `check-state.sh` INV-17, unprompted | *"FEAT-47-tests-layout: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed"* |
+| `check-state.py` INV-17, unprompted | *"FEAT-47-tests-layout: exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed"* |
 
 The harness's own state checker classifies this feature as one no squad runs. That is mechanical
 corroboration of the plan's declaration, arrived at independently of it.
@@ -111,7 +111,7 @@ normative, not a NOBODY. Leave the wording as signed.
 - GitHub mirror opened (INV-26): milestone #42, parent #1236, sub-issues #1237-#1243 for T-01..T-07.
 - `runs/2026-08-31-01-validator/digest.md` repaired to the lead contract by its own squad, transcription
   only, prose byte-identical. `validate-digest.py lead` returns `digest ok` on both run digests.
-- `check-state.sh` now reports **zero** FEAT-47 violations. The three that remain in the tree belong to
+- `check-state.py` now reports **zero** FEAT-47 violations. The three that remain in the tree belong to
   FEAT-51 and BUG-1187 and are the main session's (worktree removal, a missing handoff note).
 
 ## What is still the main session's, beyond the build

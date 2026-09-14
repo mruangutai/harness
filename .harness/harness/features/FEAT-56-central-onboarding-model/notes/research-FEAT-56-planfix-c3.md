@@ -11,7 +11,7 @@ and 0 across all 4 live plans). No substance changed: no task intent, no new tas
 The plan phase's first segment ran and produced `notes/research-FEAT-56-goalcheck-plan-c0.md` and
 `runs/2026-09-08-02-plan-goalcheck-product/digest.md` (verdict FAIL, `must_fix` lines `:61-62`).
 Omitting it asserted that a reader which ran was never recorded, so the reader entry plus one finding
-per MISSING row is the honest record. `check-state.sh:534`'s `expected_readers` set needed no change.
+per MISSING row is the honest record. `check-state.py:534`'s `expected_readers` set needed no change.
 
 | id | row | severity | disposition | resolved_by |
 |---|---|---|---|---|
@@ -19,7 +19,7 @@ per MISSING row is the honest record. `check-state.sh:534`'s `expected_readers` 
 | `PF-d94deb76b4cd660a77ea3975421a6067` | goal-check D3 — issue 168's shipped-template parse error is live at `4b5dbb23`, not hypothetical; no drafted task repaired it and T-05 item 3 asserted the false premise that the file loads | `unrated` | resolved | T-05 |
 
 `unrated` is recorded because the goal-check stated no severity for either row; inventing one would
-falsify it. Both are `resolved`, so INV-32 (`check-state.sh:521-533`) only warns and nothing gates.
+falsify it. Both are `resolved`, so INV-32 (`check-state.py:521-533`) only warns and nothing gates.
 
 **Closure verified at source before recording, not assumed.** #203: `decisions[D-06]` ("reconciled IN
 FAVOUR OF REWRITE") plus T-07 item 1's `Over` clause, which puts the reconciliation into the signed
@@ -37,7 +37,7 @@ from — an id computed over an altered summary makes the panel unreconcilable a
 per this persona's transcription rule, reads later as a stale override. Closure information has its own
 fields (`disposition: resolved`, `resolved_by: T-01`); the two-halves closure narrative survives in the
 fix-cycle notes, so nothing was lost by dropping it out of the summary. No `approval.rulings` exist
-(`check-state.sh:514-517`), so the id change invalidates no risk acceptance.
+(`check-state.py:514-517`), so the id change invalidates no risk acceptance.
 
 ## 3. T-02 no longer names a file its own intent forbids
 

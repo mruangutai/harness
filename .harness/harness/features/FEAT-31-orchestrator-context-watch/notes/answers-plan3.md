@@ -36,7 +36,7 @@ about, so a skip must be a named, printed outcome, not an early return.
 ## A-2 — SC-14 second half: APPROVED, option 1. INV-17 globs and shape-checks every handoff note.
 
 The criterion as written cannot go red, and this was verified at HEAD, not inferred:
-`check-state.sh:592-593` builds handoff paths ONLY by looping `SEAM_NOTES[status]`, so a note with
+`check-state.py:592-593` builds handoff paths ONLY by looping `SEAM_NOTES[status]`, so a note with
 any other stem is never opened; and `check-domain.py:706`'s `RE_HANDOFF` already accepts
 `handoff-[a-z0-9-]+\.md`, so writing a mid-phase note is already legal. Nothing to teach a seam
 table, nothing that could fail.
@@ -47,14 +47,14 @@ The approved behaviour, and it SPLITS one question into two that are welded toge
   EVERY file it finds — the four `HANDOFF_HEADINGS`, the 60-line cap, and T-10's new empty-body
   check.
 - `SEAM_NOTES` is UNCHANGED and still answers the separate question of which notes are REQUIRED.
-  Do not derive stems from status values; the comment at `check-state.sh:474` records that
+  Do not derive stems from status values; the comment at `check-state.py:474` records that
   deriving matches on a case-insensitive filesystem and goes dark on Linux CI.
 - A shape failure is a VIOLATION through the existing `bad.append` path at `:618`, not a warning.
   The "warn instead" variant was offered and rejected.
 
 MIGRATION COST IS ZERO, measured, and the plan should not re-derive it blindly — but it MUST
 re-assert it as a task receipt, because the gate's reach is retroactive by construction:
-`check-state.sh` sweeps every feature directory on every run, so these files are read the moment
+`check-state.py` sweeps every feature directory on every run, so these files are read the moment
 the glob lands. Measured at ddeebb5: 71 handoff notes; 3 carry non-seam stems —
 FEAT-09-plan-time-route-check/notes/handoff-ship.md (56 lines), FEAT-22-docs-layout-migration/
 notes/handoff-t09-rotation.md (50), FEAT-24-config-responsibility-split/notes/handoff-ship.md
@@ -67,7 +67,7 @@ Note for whoever writes it: the FEAT-01/FEAT-02 literal exemption and the all-ma
 exemption skip only the MISSING-note branch at `:594`. Once a file exists the shape check at
 `:614` runs regardless. The glob does not change that rule; it widens which files reach it.
 
-This lands in the SAME `check-state.sh` INV-17 block that T-10 already edits, and it is
+This lands in the SAME `check-state.py` INV-17 block that T-10 already edits, and it is
 enforcement-layer work under DEC-174 — so it is `main-session-direct`, like T-10. Fold it into
 T-10 or add a sibling task; say which and why. Its red proof follows T-10's rule: a mutant copy
 located by a marker comment, the mutation ASSERTED APPLIED before anything runs, and a COUNT of
@@ -146,7 +146,7 @@ takes, it must be able to go RED — assert the mismatch is DETECTED, not that a
 non-zero.
 
 **C-3 — A-2 carries a double-report risk the answers file did not name.** One loop at
-`check-state.sh:592` currently BOTH builds the required-note path AND shape-checks it. Adding a
+`check-state.py:592` currently BOTH builds the required-note path AND shape-checks it. Adding a
 glob pass without first moving the shape check out of that loop would report every seam-stem
 failure twice. Resolve it by ordering or by structure, and say which.
 
@@ -163,7 +163,7 @@ non-blank lines. Nothing to migrate, nothing to raise.
 **C-6 — TWO CITATIONS IN THE RULINGS ABOVE ARE CHECKOUT-DEPENDENT, and one is wrong for your
 checkout.** `RE_HANDOFF` is at `check-domain.py:665` in this worktree, not `:706`; `:706` is its
 line in the main checkout, which sits on a different branch. `SEAM_NOTES` is at
-`check-state.sh:495`. Prefer the symbol name over the line number where you can.
+`check-state.py:495`. Prefer the symbol name over the line number where you can.
 
 **C-7 — EVERY COUNT IN A RECEIPT MUST NAME ITS CHECKOUT OR SHA.** The handoff-note corpus is 71
 notes in the main checkout and 69 in this worktree. It reconciles exactly: FEAT-30's three notes,

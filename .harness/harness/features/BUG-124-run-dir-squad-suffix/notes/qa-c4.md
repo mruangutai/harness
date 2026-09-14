@@ -8,7 +8,7 @@ run-artifact, whitelisted, not graded). `git diff --stat 80ce35d1..418a9eb6` con
 is exactly the four declared files (`dispatch-guard.py`, `harness_boundary.py`,
 `tests/integration/test-dispatch-guard.py`, `tests/unit/test-harness-boundary.py`); the full
 feature diff `de97f4a2..418a9eb6` (merge-base to HEAD) additionally shows files from three
-unrelated PRs merged onto this branch before the BUG-124 plan phase started (`check-expertise.sh`,
+unrelated PRs merged onto this branch before the BUG-124 plan phase started (`check-expertise.py`,
 `factory_config.py`, `factory_decompose.py` and their tests) — these predate `8f9e8fe6` (BUG-124's
 own first commit) and are out of scope; predicate evaluation below is against the correct,
 unchanged 4-file eng diff, so cycles 1-3's predicate rulings are not disturbed.
@@ -51,7 +51,7 @@ longer a stated constraint here.
 
 ## 3. Full sweep + discovery volume vs. baseline
 
-`env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py`, run by me, captured
+`env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py`, run by me, captured
 exit status (not tail-read), `^FAIL ` counted by grep, not inferred from the final line:
 
 - **`RUNNER_EXIT=0`**

@@ -175,7 +175,7 @@ style) are noted for completeness; per policy these never gate on their own.
 
 ## Not re-raised (already-known / out of scope per dispatch)
 
-`check-state.sh` VIOLATION lines (FEAT-51/BUG-1033, worktree-only), the 6 `team-config.yaml`
+`check-state.py` VIOLATION lines (FEAT-51/BUG-1033, worktree-only), the 6 `team-config.yaml`
 DEVIATION sub-cases (environmental), the deliberate absence of `HARNESS_FEATURE_TREE_ROOT` from
 `harness-backend-dev.md`'s adapter file, the untracked feature directory, and `STATE.md`'s stale
 status — all per the dispatch's explicit ruled-list.

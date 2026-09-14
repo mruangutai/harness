@@ -34,7 +34,7 @@ Range measured, not quoted: `git rev-list --count 0f12f14..e26e628` = **5**,
   `guide.md` anchor+grantor awk); **1 fails** — see must-not-gate finding below.
 - **Probe 1** (`templates/plan.yaml`): one-line literal substitution in a comment
   (`docs/harness/DECISIONS.md` → `.harness/harness/docs/DECISIONS.md`), nothing else touched. Does
-  not propagate the argumentless `check-expertise.sh` pattern (that pattern lives in this feature's
+  not propagate the argumentless `check-expertise.py` pattern (that pattern lives in this feature's
   own `plan.yaml:927`, not the template, and is a separately-disclosed, already-ruled item — see
   "Already disclosed" below).
 - **Probe 2** (fail-open/vacuous-green across the 17 `bin/` files whose walk/glob root moved):
@@ -46,9 +46,9 @@ Range measured, not quoted: `git rev-list --count 0f12f14..e26e628` = **5**,
   finding, not new. No other walk/glob root in the diff changed without a non-zero-count guard.
 - **Probe 3** (em-dash literal, non-test consumers): grepped `.claude/skills/harness/bin/*.py`,
   `*.sh` excluding `test-*` for `CLEAN — evidence` and `evidence migrated|evidence legacy` →
-  **zero non-test matches**. `check-state.sh`'s INV-27 block reads `layout_migration`'s structured
+  **zero non-test matches**. `check-state.py`'s INV-27 block reads `layout_migration`'s structured
   `.verdict` attribute (`"MIXED"`/`"CANNOT_VERIFY"` strings compared via `==`, not the composed
-  em-dash summary line) — verified at `check-state.sh:1282-1322`. No retyped-hyphen exposure in this
+  em-dash summary line) — verified at `check-state.py:1282-1322`. No retyped-hyphen exposure in this
   diff.
 - **Probe 4** (`test-check-domain.py:789`'s failure mode): the assertion is
   `"harness-documentor" in r_live.stdout.split()`. Traced `check-domain.py --resolve`'s emission
@@ -99,8 +99,8 @@ Range measured, not quoted: `git rev-list --count 0f12f14..e26e628` = **5**,
 
 ## Already disclosed — confirmed, not re-raised as news
 
-- `plan.yaml:927`'s argumentless `check-expertise.sh || exit 1` (T-07's verify): confirmed at
-  source (`check-expertise.sh:18` exits 2 on empty argv) — this is `STATE.md`'s own Q1/Q2, already
+- `plan.yaml:927`'s argumentless `check-expertise.py || exit 1` (T-07's verify): confirmed at
+  source (`check-expertise.py:18` exits 2 on empty argv) — this is `STATE.md`'s own Q1/Q2, already
   the operator's call, does not gate. I did not re-file it.
 - `harness_boundary.py`'s "two of the four" clause (is_control_plane_target docstring, post-simplify
   still says "two" where DEC-189 amendment 1 says "one"): on the ACCEPTED RESIDUALS list, not
@@ -137,7 +137,7 @@ pure append — no other DECISIONS.md content touched).
 Findings 1–2 above are the only quality issues found, both low/med, both comment-only, both
 introduced by the post-signature simplify pass rather than the plan tasks themselves. Everything
 else read as consistent with existing codebase convention (structured-attribute checks over string
-literals in `check-state.sh`, positive controls paired with widened absence sweeps, exact-count
+literals in `check-state.py`, positive controls paired with widened absence sweeps, exact-count
 survivor tables over exclusion lists).
 
 ## Probe hygiene

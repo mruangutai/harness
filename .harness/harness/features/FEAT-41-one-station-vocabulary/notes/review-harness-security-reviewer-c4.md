@@ -168,7 +168,7 @@ because an audit afterward cannot distinguish "the guard allowed this" from "the
 
 This is the hardest item the handoff flagged ("WHAT TO CHECK HARDEST NEXT"), and it is open.
 
-`check-state.sh`'s INV-34 exemption is `if doc.get("station_only") is True: continue` —
+`check-state.py`'s INV-34 exemption is `if doc.get("station_only") is True: continue` —
 **unconditional on the marker alone**, no longer gated on `tasks` being empty (that was the
 pre-MF-3 shape). `harness_yaml.load_plan` only *requires* the marker when `tasks` is empty; it
 places **no restriction the other way** — a document with real, non-empty `tasks:` **and**
@@ -180,7 +180,7 @@ WIDEN SILENTLY: a plan WITH tasks is still held to both, asserted by case (inv34
 combination that matters.
 
 **Proved live**, importing `test-check-state.py`'s own fixture builders (no reimplementation, same
-harness) and running the real `check-state.sh`:
+harness) and running the real `check-state.py`:
 
 - **Forged**: `tasks:` = one real task (`_I34_TASK`), **no `approval:` block**, `STATE.md`
   references `T-99` (absent from the plan), **`station_only: true` added**. Result: exit 1, **zero**
@@ -204,17 +204,17 @@ to every layer this feature built: not denied pre-hoc (Bash isn't routed through
 (SC-06 doesn't look at this field), and — this is what makes it worse than the already-disclosed
 "can't attribute a legal write" residual in the BRIEF — it doesn't just forge a value, it **durably
 disables two integrity checks** (approval-signed, STATE.md-consistent) for that feature on every
-future `check-state.sh` run, until someone notices and removes the line by hand. This is a new
+future `check-state.py` run, until someone notices and removes the line by hand. This is a new
 mechanism, introduced by MF-3's own fix (the tasks-emptiness gate it replaced didn't have this
 shape), not a re-discovery of HIGH-1/H-01/H-02.
 
 ## must_fix
 
-1. **`check-state.sh:210-212`** — the INV-34 `station_only` exemption is unconditional on the
+1. **`check-state.py:210-212`** — the INV-34 `station_only` exemption is unconditional on the
    marker and must also require `not doc["tasks"]` (or equivalently: reject `station_only: true`
    on a task-bearing plan at `harness_yaml.load_plan` load time, `harness_yaml.py:326-352`) — a
    task-bearing plan with a forged `station_only: true` silently loses both its approval-signed
-   check and its STATE.md-dangling-task check. Proven live with a real `check-state.sh` run and a
+   check and its STATE.md-dangling-task check. Proven live with a real `check-state.py` run and a
    byte-identical negative control (**HIGH**).
 2. **`harness_boundary.py:288` `select_base()`'s `inside()` check (`:352-374`)** — `real()`'s
    unresolvable-input fallback (`os.path.abspath` only) is compared against a fully-resolved
@@ -243,10 +243,10 @@ DIGEST:
   severity_max: high
   findings: 3
   must_fix:
-    - "check-state.sh:210-212 (harness_yaml.py:326-352) — station_only:true is accepted, and check-state.sh's INV-34 exemption fires, on a plan with real non-empty tasks: the marker is not restricted to the empty-tasks case it was designed for. Live-proven: forged fixture silences both the approval-block check and the STATE.md-dangling-task check; byte-identical negative control (marker removed) fires both correctly. HIGH."
+    - "check-state.py:210-212 (harness_yaml.py:326-352) — station_only:true is accepted, and check-state.py's INV-34 exemption fires, on a plan with real non-empty tasks: the marker is not restricted to the empty-tasks case it was designed for. Live-proven: forged fixture silences both the approval-block check and the STATE.md-dangling-task check; byte-identical negative control (marker removed) fires both correctly. HIGH."
     - "harness_boundary.py select_base()'s inside() check (:352-374), reached via classify() from bash-write-guard.py — real()'s unresolvable-input fallback (abspath only, no symlink resolution) is compared against a fully-resolved root/workspace, so an unresolvable Bash-write target inside the harness base spuriously classifies not_a_domain_question and bash-write-guard.py silently permits it (exit 0, no stderr) on any checkout reached through a symlink. check-domain.py is saved only by its separate, plan.yaml-scoped _plan_route layer; bash-write-guard.py has no equivalent. Live-proven on this machine's /tmp topology; not reproducible on the live worktree's own (non-symlinked) root today. HIGH."
   threat_model:
-    - { boundary: "check-state.sh INV-34 approval/STATE.md invariants -> Bash write forging station_only:true", stride: "T", mitigated: false }
+    - { boundary: "check-state.py INV-34 approval/STATE.md invariants -> Bash write forging station_only:true", stride: "T", mitigated: false }
     - { boundary: "PreToolUse Bash -> bash-write-guard.py domain check via harness_boundary.classify/select_base, unresolvable-path case", stride: "E", mitigated: false, precondition: "checkout reached through any symlink component; not present on this repo's live root today" }
     - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.py real()/_resolved_rel NUL-byte crash (MF-2/MF-5)", stride: "D", mitigated: true }
     - { boundary: "PreToolUse Bash -> plan-sign-gate.py sign-approval refusal (SC-07)", stride: "S", mitigated: true }

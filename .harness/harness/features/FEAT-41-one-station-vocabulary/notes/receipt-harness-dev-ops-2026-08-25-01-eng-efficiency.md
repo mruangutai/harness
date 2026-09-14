@@ -64,7 +64,7 @@ a deliberate boundary run — not flaggable.
   38 feature dirs — but that is a correctness question for the flag's spelling, not an efficiency
   finding, and outside this angle.)
 - **No repeated-read-across-tasks pattern found.** Files touched by multiple sequential tasks
-  (`gh-sync.py` in T-02/T-06/T-07/T-10/T-13, `check-state.sh` in T-02/T-07) are edited, not
+  (`gh-sync.py` in T-02/T-06/T-07/T-10/T-13, `check-state.py` in T-02/T-07) are edited, not
   merely read, and each task's edit depends on the prior task's already-landed content — there is
   no idle re-read one pass could have avoided.
 

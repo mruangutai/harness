@@ -4,7 +4,7 @@ BLUF: all three claimed sites are real at HEAD `86ea3ad`, but all three are comm
 prose, never an executable condition or an error string a test asserts on. No test in
 `test-check-state.py` or `test-gh-sync.py` matches the literal strings `DEC-192`, `Item-closed`,
 or `deliberately left OPEN` — the matching assertions in those files test *behavior* (accept sets,
-status-string case sensitivity), which none of the three fixes touch. `check-state.sh` is
+status-string case sensitivity), which none of the three fixes touch. `check-state.py` is
 DEC-174-carved main-session-direct in this feature, so T-08 is the *only* task in `plan.yaml`
 allowed to write it at all — folding sites 2 and 3 into T-08 is not optional, it's the only legal
 vehicle. Site 1 belongs to T-04 (cmd_status/cmd_ship live together in gh-sync.py, and D-01 is the
@@ -32,7 +32,7 @@ not station-write semantics — worse fit.
 
 (d) ~2-3 lines (reword the Done clause to reflect D-01/D-07, swap DEC-192 → DEC-203 once T-03 lands).
 
-## Site 2 — check-state.sh:1416-1419 ("THE TERMINAL EXEMPTION")
+## Site 2 — check-state.py:1416-1419 ("THE TERMINAL EXEMPTION")
 
 Real, verbatim:
 > `            # THE TERMINAL EXEMPTION. The ship closes the parent, GitHub's Item-closed`
@@ -45,18 +45,18 @@ Real, verbatim:
 `test-check-state.py` — matches at 1610/1662/2729 are comments/docstrings testing behavior, not
 this string).
 
-(c) T-08 is the *only* task with `check-state.sh` in `files:` in this feature (DEC-174 carve-out —
+(c) T-08 is the *only* task with `check-state.py` in `files:` in this feature (DEC-174 carve-out —
 main-session-direct only). T-08's `verify:` checks `INV-31` presence/absence and a clean full run
 (`all state invariants hold.|VIOLATION|note`, no `Traceback`, no `INV-31` string on second call) —
 none of that greps INV-26's prose, so folding this in is safe against T-08's own verify. But T-08's
 stated `intent:` is narrowly "add INV-31"; touching INV-26 prose is adjacent scope in the same
 file, not what T-08 was written to cover — worth a one-line note in T-08's dispatch rather than
-silent scope creep, since check-state.sh's DEC-174 carve-out means no other task can absorb it.
+silent scope creep, since check-state.py's DEC-174 carve-out means no other task can absorb it.
 
 (d) ~2 lines (swap "ship closes the parent... GitHub's Item-closed workflow lands it in Done" for
 "ship writes Done directly"; DEC-192 → DEC-203).
 
-## Site 3 — check-state.sh:1479-1486 (D-24 comment)
+## Site 3 — check-state.py:1479-1486 (D-24 comment)
 
 Real, verbatim (renumbered from claimed 1479 — content is unchanged, header comment starts at 1479):
 > `                # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under D-23`
@@ -89,6 +89,6 @@ decision id.
 ## Open question for the plan owner
 
 None of the three needs a *new* task — T-04 and T-08 are the correct, already-scoped homes, and
-T-08 is the *only* legal one for the check-state.sh sites under the DEC-174 carve-out already in
+T-08 is the *only* legal one for the check-state.py sites under the DEC-174 carve-out already in
 this plan. Whether to land these three comment fixes as explicit dispatch line-items inside T-04
 and T-08 (so they're not silently dropped when those tasks execute) is a plan-owner call, not mine.

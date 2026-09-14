@@ -72,7 +72,7 @@ A fixture.
 
 ## Success criteria
 
-- SC-01: `bash .claude/skills/harness/bin/check-state.py` exits 0.
+- SC-01: `python3 .claude/skills/harness/bin/check-state.py` exits 0.
 
 ## Approval
 
@@ -372,18 +372,18 @@ def case_inv41():
     MSG = "repository-wide state is a merge-time check, not a feature criterion (SC-16)"
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.py` exits 0."))
+        "`python3 .claude/skills/harness/bin/check-state.py` exits 0."))
     v = _violations(out, "INV-41")
     results.append(("(41.a) an unscoped check-state.py invocation is a VIOLATION naming the SC",
                     len(v) == 1 and "SC-02" in v[0] and MSG in v[0], out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.py --feature FEAT-TEST` exits 0."))
+        "`python3 .claude/skills/harness/bin/check-state.py --feature FEAT-TEST` exits 0."))
     results.append(("(41.b) `--feature` scopes it — silent",
                     not _lines(out, "INV-41"), out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.py` reports no row naming "
+        "`python3 .claude/skills/harness/bin/check-state.py` reports no row naming "
         ".harness/harness/features/FEAT-TEST."))
     results.append(("(41.c) the feature directory path scopes it — silent",
                     not _lines(out, "INV-41"), out[:400]))
@@ -409,7 +409,7 @@ def case_inv41():
                     len(_violations(out, "INV-41")) == 1, out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.py` has no VIOLATION row naming FEAT-TEST."))
+        "`python3 .claude/skills/harness/bin/check-state.py` has no VIOLATION row naming FEAT-TEST."))
     results.append(("(41.h) the feature id in the SC text scopes it — silent",
                     not _lines(out, "INV-41"), out[:400]))
     return results

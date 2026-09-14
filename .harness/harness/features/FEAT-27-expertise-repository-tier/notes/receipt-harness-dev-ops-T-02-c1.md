@@ -12,7 +12,7 @@ cases against b4659cd (not the caller's expected four/five), tree diff clean.
 2. `run-unit-tests.py --kind unit` → exit 0, **16/16** script-level PASS (`grep -c
    '^PASS test-'`), no `^FAIL `. `--kind integration` → exit 0, **12/12** script-level PASS, no
    `^FAIL `. No drift-detector exit 2. No pre-existing suite failure.
-3. `check-expertise.sh .harness/expertise/` → exit 0, all 15 files `OK`, no `^ADVISORY ` line.
+3. `check-expertise.py .harness/expertise/` → exit 0, all 15 files `OK`, no `^ADVISORY ` line.
 4. `git status --porcelain` snapshot: 3 modified (`STATE.md`, `feature.json`, `plan.yaml` under
    FEAT-27), 4 untracked (`FEAT-26-pr-linkage-recorded/`, two FEAT-27 notes files, one
    observations file) — all pre-existing, none of mine, none touched.

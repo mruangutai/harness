@@ -5,7 +5,7 @@ the authorization (`Q13-cycle-29-substring-gate.md`) demanded — each of the th
 reverts is caught, alone, by the named guard case, and the vacuity the guard exists to close is
 reproduced against real (not synthetic) sweep output. The `re.search` strengthening a peer code
 reviewer proposed as a `should_fix` is verified independently, on both claimed halves, and costs
-nothing at full-suite level. Four of five regate measurements CONFIRM exactly; **`check-state.sh`
+nothing at full-suite level. Four of five regate measurements CONFIRM exactly; **`check-state.py`
 CONTRADICTS** (exit 1, not 0) — one `VIOLATION` in a run `state.yaml` written by a live sibling
 process, unrelated to this diff. Tree byte-identical to the pin; HEAD unmoved.
 
@@ -121,7 +121,7 @@ on it stayed empty throughout — verified before and after).
 | 2 | Five focused FEAT-43 suites | `python3 test-code-grade.py` / `test-code-grade-cli.py` / `test-gate-policy.py` / `test-check-plan-routes.py` / `test-validate-digest.py` (run individually, `.claude/skills/harness/bin`) | **0** each | `PASS test-code-grade`; `PASS test-code-grade-cli`; `ok` lines through gate-policy; `ALL PASS` (check-plan-routes); `18/18 ... ALL PASSED.` (validate-digest) | **CONFIRMS** all five exit 0 |
 | 3 | Engine self-grade | `python3 code-grade.py code_grade.py --json` | **0** | parsed JSON: `len(records) == 53`, `sum(grade<4) == 0`, `ungraded == []` | **CONFIRMS** 53 functions, 0 below grade 4 |
 | 4 | Range gate `6d6d1ce..HEAD` | `python3 code-grade.py --base 6d6d1ce --head HEAD --json` | **0** | `len(records) == 206`; blocking (`grade < bar and grade != 2`) `== 0`; `grade == 2` count `== 12`; `ungraded == []` | **CONFIRMS** 206 gated, 0 blocking |
-| 5 | `check-state.sh` | `bash .claude/skills/harness/bin/check-state.sh` | **1** | 580 `note` lines, **one** `VIOLATION`: `.../runs/2026-08-30-05-validate-delta-c29-validator/state.yaml: non-checkpoint top-level key(s) ['cycle', 'derived_base', 'panel_scope', 'pin', 'prior_pin']` (DEC-154 — `state.yaml` carries only identifiers/enums/counters/paths/sequence markers, not run narrative) | **CONTRADICTS** the exit-0 claim |
+| 5 | `check-state.py` | `python3 .claude/skills/harness/bin/check-state.py` | **1** | 580 `note` lines, **one** `VIOLATION`: `.../runs/2026-08-30-05-validate-delta-c29-validator/state.yaml: non-checkpoint top-level key(s) ['cycle', 'derived_base', 'panel_scope', 'pin', 'prior_pin']` (DEC-154 — `state.yaml` carries only identifiers/enums/counters/paths/sequence markers, not run narrative) | **CONTRADICTS** the exit-0 claim |
 
 **On item 5:** the violating file lives under `runs/2026-08-30-05-validate-delta-c29-validator/`, a
 run directory this task never touched and does not own — the roster shows a sibling
@@ -162,7 +162,7 @@ main checkout was left touched by the mutation/restore cycles or the regate.
 - Did not re-litigate the code reviewer's second `should_fix` (adding this file/function to
   `test-code-grade.py`'s `SELF_GRADED_FILES` tracking) — out of scope for a mutation-test/regate pass;
   it is a coverage-registration decision, not something my runs can confirm or contradict.
-- Did not investigate or attempt to fix the `check-state.sh` `VIOLATION` — it belongs to a live
+- Did not investigate or attempt to fix the `check-state.py` `VIOLATION` — it belongs to a live
   sibling's run state, not to this diff, and touching another agent's in-flight run directory was
   never in scope here.
 - Did not run any project-wide formatter, linter, or `--kind integration`/`--kind all` sweep — outside
@@ -171,7 +171,7 @@ main checkout was left touched by the mutation/restore cycles or the regate.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: All three callsite mutations are individually caught by the named AST guard (restored and verified clean each time); the vacuity is reproduced against real sweep stderr, not synthetic; the re.search strengthening is verified independently on both claimed halves and costs nothing at full-suite level. Four of five regate measurements CONFIRM exactly (--kind unit exit 0/0 failures, five focused suites all exit 0, self-grade 53/0-below-4, range gate 206 gated/0 blocking); check-state.sh CONTRADICTS (exit 1, one VIOLATION in a run state.yaml owned by a currently-running sibling agent, unrelated to this diff).
+  headline: All three callsite mutations are individually caught by the named AST guard (restored and verified clean each time); the vacuity is reproduced against real sweep stderr, not synthetic; the re.search strengthening is verified independently on both claimed halves and costs nothing at full-suite level. Four of five regate measurements CONFIRM exactly (--kind unit exit 0/0 failures, five focused suites all exit 0, self-grade 53/0-below-4, range gate 206 gated/0 blocking); check-state.py CONTRADICTS (exit 1, one VIOLATION in a run state.yaml owned by a currently-running sibling agent, unrelated to this diff).
   suite: pass
   matrix_ok: true
   severity_max: info
@@ -180,9 +180,9 @@ DIGEST:
   sc_evidence: []
   must_fix: []
   should_fix:
-    - "check-state.sh exits 1 (one VIOLATION: runs/2026-08-30-05-validate-delta-c29-validator/state.yaml carries non-checkpoint narrative keys per DEC-154) — not caused by this diff, but the orchestrator's regate claim of 'exit 0' does not hold at the moment this ran; likely a live sibling checkpoint write in flight. severity: info as far as this diff is concerned; worth a rerun of check-state.sh once that sibling settles before treating the state gate as green."
+    - "check-state.py exits 1 (one VIOLATION: runs/2026-08-30-05-validate-delta-c29-validator/state.yaml carries non-checkpoint narrative keys per DEC-154) — not caused by this diff, but the orchestrator's regate claim of 'exit 0' does not hold at the moment this ran; likely a live sibling checkpoint write in flight. severity: info as far as this diff is concerned; worth a rerun of check-state.py once that sibling settles before treating the state gate as green."
   open_questions:
-    - { id: Q1, question: "check-state.sh's single VIOLATION targets a run directory (runs/2026-08-30-05-validate-delta-c29-validator) owned by a currently-running sibling (Feat43RemediationToDecision.Feat43DeltaC29). Should the orchestrator re-run check-state.sh after that sibling's checkpoint settles, to confirm the state gate is genuinely clean before ship?", blocking: false }
+    - { id: Q1, question: "check-state.py's single VIOLATION targets a run directory (runs/2026-08-30-05-validate-delta-c29-validator) owned by a currently-running sibling (Feat43RemediationToDecision.Feat43DeltaC29). Should the orchestrator re-run check-state.py after that sibling's checkpoint settles, to confirm the state gate is genuinely clean before ship?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-43-code-risk-grading/notes/qa-delta-c29.md

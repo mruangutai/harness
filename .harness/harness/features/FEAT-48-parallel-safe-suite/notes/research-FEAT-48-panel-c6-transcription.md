@@ -86,7 +86,7 @@ panel keys: ['cycle', 'findings', 'history', 'last_run', 'readers', 'reviewed_at
 approval.status: pending
 ```
 
-INV-32 (`check-state.sh:455-527`) is satisfiable by inspection: `last_run` non-empty, `findings`
+INV-32 (`check-state.py:455-527`) is satisfiable by inspection: `last_run` non-empty, `findings`
 a list, all three reader ids present with `status: ran`, every finding carrying
 `id`/`severity`/`disposition`, and **no severity outside `{info, low, med}`** — so no
 open-and-un-overruled finding becomes a hard violation when `approval.status` flips.

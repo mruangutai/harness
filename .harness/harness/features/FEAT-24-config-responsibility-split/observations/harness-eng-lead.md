@@ -88,7 +88,7 @@
   enumerating the callers flipped my disposition. `gh_board.load_board` returns None when the
   `github` block is absent while its own docstring says that case raises. That reads as a live
   silent-failure hole until you grep: all three callers pre-filter the block first
-  (`gh-sync.py:151`, `board-station.py:140`, and `check-state.sh:1147` behind the
+  (`gh-sync.py:151`, `board-station.py:140`, and `check-state.py:1147` behind the
   `isinstance(_g26, dict) and sync is True and repo` guard at `:1138-1140`). So it is a falsified
   docstring, not a hole — the difference between a forced fix cycle and a routed docstring question.
   Enumerate call sites before rating any "this fails silently" finding.

@@ -24,9 +24,9 @@ never fires. **Required set: `unit`, `integration`. No more, no less. `matrix_ok
 
 | Command | Exit | PASS | FAIL | Notes |
 |---|---|---|---|---|
-| `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 341 | 0 | 27 files, `pool: 8 workers, 27 files, 2.16s wall` |
+| `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 341 | 0 | 27 files, `pool: 8 workers, 27 files, 2.16s wall` |
 | `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-run-unit-tests-layout.py` | 0 | 14 | 0 | direct run of the diff-added file |
-| `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py --check-layout` | 0 | — | — | silent/clean |
+| `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout` | 0 | — | — | silent/clean |
 | `env -u HARNESS_AGENT_TYPE python3 tests/manual/suite-census.py tree-audit` | 0 | — | — | `TOTAL 85 OUTSIDE 9 VIOLATIONS 0` |
 | `grep ... DECISIONS.md && grep ... DECISIONS-INDEX.md && gen-decisions-index.py --stdout \| diff - ... && check-decision-anchors.py` (T-05 verify, verbatim from `plan.yaml:1047`) | 0 | — | — | `examined 30 anchor(s), 0 failed` |
 

@@ -7,7 +7,7 @@ kept for replay); nothing in the tracked worktree was touched, confirmed by the 
 blocking every redirect attempt against it. The whole feature diff was scoped
 (`git diff 6ad7233f 894adc0f -- <the 10 named files>`): merge-gate.py/.sh are wholly new within this
 feature (did not exist at the feature's merge-base with `origin/main`); gh-sync.py/+359,
-feature_schema.py/+99, check-state.sh/+41, post-merge-sweep.py/+24, settings.json/+4,
+feature_schema.py/+99, check-state.py/+41, post-merge-sweep.py/+24, settings.json/+4,
 settings.snippet.json/+4, harness-hooks.ts/+1, feature-schema.json/+5.
 
 ## Item 1 — branch-collision misattribution (glob.glob first-match on two valid dict records)
@@ -140,7 +140,7 @@ so this fails open on **routine, non-adversarial usage**, not only deliberate ev
 
 **Read, in full or targeted grep, and confirmed:** `gh-sync.py` (full, 2330 lines — read the header
 docstring and every `subprocess.run`/`gh(`/`gh_try(` call site via grep), `feature_schema.py` (full),
-`check-state.sh` (grepped), `post-merge-sweep.py` (grepped), `.claude/settings.json` (grepped),
+`check-state.py` (grepped), `post-merge-sweep.py` (grepped), `.claude/settings.json` (grepped),
 `.claude/skills/harness/templates/settings.snippet.json` (grepped), `.omp/extensions/harness-hooks.ts`
 (grepped). No `shell=True`, no `os.system`, no string-built shell command anywhere in this set — every
 `subprocess.run` call is list-argv (`[GH] + args`, `["git", "-C", ...] + args`), which is immune to

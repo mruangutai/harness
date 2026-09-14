@@ -86,7 +86,7 @@ and the same for `T-06`, both `AMENDED tasks:T-0N.verify` / `APPLIED …/plan.ya
 change.** Nothing else a reader graded was touched.
 
 **V-1 (`med`, `should-not-exist`) — REQ-04's second-half proof bound four of six consumers.**
-`PF-e9eff4`'s own text enumerated four consumers and the c1 repair bound three; `check-state.sh:140`
+`PF-e9eff4`'s own text enumerated four consumers and the c1 repair bound three; `check-state.py:140`
 was a fourth unbound consumer neither had named. Three edits:
 
 1. `BRIEF.md` SC-07 now names six integration suites, adding
@@ -101,7 +101,7 @@ was a fourth unbound consumer neither had named. Three edits:
 
 **The consumer set is CLOSED at six files** — `grep load_plan` over
 `.claude/skills/harness/bin/` at HEAD, re-run by me, not adopted: `check-plan-routes.py:366`,
-`check-state.sh:140`, `factory_claim.py:107`, `factory_decompose.py:471`, `gh-sync.py:357`/`:1154`/
+`check-state.py:140`, `factory_claim.py:107`, `factory_decompose.py:471`, `gh-sync.py:357`/`:1154`/
 `:1264` call `harness_yaml.load_plan`; `plan-merge.py` reaches the same rule through
 `validate_plan_doc` directly and never calls `load_plan` (its two `load_plan` mentions, `:465` and
 `:499`, are comments). `harness_yaml.py:295` is the definition. `.agents/` has no consumer;

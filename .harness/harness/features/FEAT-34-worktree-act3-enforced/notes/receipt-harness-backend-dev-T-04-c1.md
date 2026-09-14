@@ -150,7 +150,7 @@ Cross-checked verbatim against `plan.yaml` T-04's `verify:` block — identical 
 - `.claude/skills/harness/bin/run-unit-tests.py --check-kinds` — output
   `check-kinds: the script arrays and test_kinds.integration.detect agree.`, exit `0`. No
   KIND-DRIFT, no MISCONFIGURED.
-- `.claude/skills/harness/bin/check-state.sh` — exit `0`. Output contains only `note`-severity
+- `.claude/skills/harness/bin/check-state.py` — exit `0`. Output contains only `note`-severity
   lines (pre-existing, unrelated to this dispatch — stale run references, STATE.md budget/section
   notes on other features); `grep -iE "violation"` over the full captured output, excluding `note`
   lines, returned zero matches. Zero violations.

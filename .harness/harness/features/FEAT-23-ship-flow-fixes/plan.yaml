@@ -154,7 +154,7 @@ tasks:
          top-level status key to the exact string Done.
       2. cmd_abandon, after it has closed the sub-issues, the milestone and the parent, sets
          feature.json's top-level status key to the exact string Abandoned.
-      3. Both spellings are exact and case-sensitive. INV-26's terminal exemption in check-state.sh
+      3. Both spellings are exact and case-sensitive. INV-26's terminal exemption in check-state.py
          and the parent rule at gh-sync.py:172 both compare against Done and Abandoned literally,
          and DEC-192 makes that case sensitivity deliberate. Do not lowercase, alias or translate.
       4. Neither write happens on a path that exits early — and the way to guarantee that is

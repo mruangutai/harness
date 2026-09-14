@@ -27,8 +27,8 @@ build phase never discovers routing again.
 ## Not yet specified
 
 - Whether the checker is a new script, a mode of an existing one, or an invariant inside
-  `check-state.sh`. It depends on when it must fire — at PLAN write, at the approval gate, or on
-  every `check-state.sh` sweep — and that timing question is not yet sharp.
+  `check-state.py`. It depends on when it must fire — at PLAN write, at the approval gate, or on
+  every `check-state.py` sweep — and that timing question is not yet sharp.
 - What a task with a glob in `files:` (`docs/**`) should resolve to when the glob spans two agents'
   domains. Nobody has hit it; the shape of the answer cannot be stated.
 - Whether the `## Lanes` table stays a human-readable artifact once the check is mechanical, or
@@ -67,7 +67,7 @@ All at `ae2443d`.
   read there.
 - **THE COLLISION CHECK THAT PUT #20 IN THIS SLOT.** FEAT-08 (#58) touches `harness/SKILL.md`,
   `harness-team/SKILL.md`, `harness-orchestrator.md`, `teams/*.yaml`, `harness.json`,
-  `check-state.sh`, `validate-digest.py`, `cost-report.py` and `docs/**`. #20 touches
+  `check-state.py`, `validate-digest.py`, `cost-report.py` and `docs/**`. #20 touches
   `check-domain.py`, `templates/PLAN.md`, `harness-spec-driven/SKILL.md`, `harness-pm.md` and a new
   checker. **The intersection is empty.** Rows 8/9/10 do NOT have this property — row 8's first
   required rider is *"move the ORCHESTRATOR-ONLY `cost-report.py` paragraph or INV-11's metering
@@ -78,4 +78,4 @@ All at `ae2443d`.
   `harness-init/SKILL.md`. FEAT-04 T-09/T-10 and FEAT-03 Q13 are the same wall. It cost a real
   ESCALATE at FEAT-04 run 10, $16, with the lead attributing it to its own dispatch error.
 - **Gates green at `ae2443d`:** `run-unit-tests.py` exit 0, `check-docs.sh` exit 0,
-  `check-state.sh` zero violations.
+  `check-state.py` zero violations.

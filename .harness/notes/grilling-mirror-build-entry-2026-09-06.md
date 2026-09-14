@@ -28,4 +28,4 @@ For both `FEAT-*` and `BUG-*` flows, Build entry records an unambiguous mirror o
 - FEAT-55’s build handoff said mirror work “belongs at the validate seam”; its validate→ship handoff invoked `ship` but omitted `open`; STATE.md recorded that `open` never ran.
 - DEC-138 states `plan approved → create` and that GitHub is a mirror, never a gate (`.harness/harness/docs/DECISIONS.md:2948-2952`).
 - The ambiguous phrase `mission ship, right after the approval gate passes` originated in the initial GitHub-mirror implementation at `ab4d2fdc`, then persisted through the reference extraction.
-- `check-state.sh:2099-2126` skips mirror validation for terminal features and for all-status-absent plans; FEAT-55 had no task `status` lines, and `plan-merge.py set-task-station` only splices an existing task-status line.
+- `check-state.py:2099-2126` skips mirror validation for terminal features and for all-status-absent plans; FEAT-55 had no task `status` lines, and `plan-merge.py set-task-station` only splices an existing task-status line.

@@ -11,7 +11,7 @@ Validation is COMPLETE and PASSES at the pinned `review_sha`. The four-seat pane
 `severity_max: low`; the qa test-matrix hard gate passes; the goal-check grades all ten success
 criteria met. Every one of the five B-rows was mutation-proven to discriminate the defect it names,
 in a disposable probe worktree, so the two DEC-174 files stayed byte-identical to the pin throughout
-validation. `check-state.sh` now exits 0 with zero violations tree-wide. The feature is ready for the
+validation. `check-state.py` now exits 0 with zero violations tree-wide. The feature is ready for the
 operator's ship decision; the briefing is `notes/ship-review-2026-09-05-validate.md`. Nothing here is
 merged, shipped or PR'd.
 

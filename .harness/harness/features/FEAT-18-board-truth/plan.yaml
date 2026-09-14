@@ -45,18 +45,18 @@ lanes:
       lane: main-session-direct
       reason: >-
         New module. check-domain.py --resolve at 2ccd7f0 answers harness-backend-dev and
-        harness-dev-ops, the same pair the four carve-out files answer, but check-state.sh
+        harness-dev-ops, the same pair the four carve-out files answer, but check-state.py
         imports it and INV-26 computes its verdict from its return value, so it is a
         DEC-174 carve-out BY CONTENT on FEAT-17's harness_boundary.py precedent.
     - surface: .claude/skills/harness/bin/test-gh-board.py
       lane: main-session-direct
       reason: co-changes with the module a gate verdict is computed from, in the same diff a human reads
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - the state gate
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
-      reason: co-changes with check-state.sh, in the same diff a human reads
+      reason: co-changes with check-state.py, in the same diff a human reads
     - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: >-
@@ -202,7 +202,7 @@ decisions:
     choice: >-
       One new module, .claude/skills/harness/bin/gh_board.py, holds the board config read, the
       station derivation and the board read and write, and it is the only implementation of each.
-      gh-sync.py writes through it and check-state.sh INV-26 reads through it. The board read is
+      gh-sync.py writes through it and check-state.py INV-26 reads through it. The board read is
       ONE project item-list call per session returning every card's column, matched to issue
       numbers offline, never one query per issue.
     because: >-
@@ -331,7 +331,7 @@ tasks:
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out by content - check-state.sh imports this module and INV-26 computes its
+      DEC-174 carve-out by content - check-state.py imports this module and INV-26 computes its
       verdict from its return value, the same ground FEAT-17 placed harness_boundary.py on.
     depends_on: []
     status: done
@@ -543,15 +543,15 @@ tasks:
         - a feature whose harness.json carries no github.board runs open and close-task unchanged,
           exits 0, and makes no item-edit call.
   - id: T-04
-    title: Add INV-26 to check-state.sh comparing every live feature's plan against its cards
+    title: Add INV-26 to check-state.py comparing every live feature's plan against its cards
     traces: [REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh is the fourth gate script named in CLAUDE.md
+    execution_reason: DEC-174 carve-out - check-state.py is the fourth gate script named in CLAUDE.md
     depends_on: [T-02, T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
@@ -560,7 +560,7 @@ tasks:
       stderr, and the operator accepted that stderr inside a subagent run is not something they
       read - so a board that drifted is caught here or it is not caught at all.
 
-      Add INV-26 to .claude/skills/harness/bin/check-state.sh. The highest invariant in the file
+      Add INV-26 to .claude/skills/harness/bin/check-state.py. The highest invariant in the file
       today is INV-25; number the new one INV-26 and follow the file's existing shape for appending
       to the bad list. It runs once, at session entry, after INV-25.
 
@@ -578,7 +578,7 @@ tasks:
       the repository - being unimportable is a defect in the tree, not a property of the
       environment. Follow the wording shape INV-25 uses for harness_boundary.py.
 
-      THE GH BINARY MUST BE OVERRIDABLE OR THIS CANNOT BE TESTED. check-state.sh has no gh call
+      THE GH BINARY MUST BE OVERRIDABLE OR THIS CANNOT BE TESTED. check-state.py has no gh call
       today. Resolve the binary once, from the environment variable FACTORY_GH if set, else gh -
       the same variable factory_gh already honours, so one fake serves the module and the
       invariant. Do not invent a third variable name.
@@ -626,7 +626,7 @@ tasks:
       THE NON-VACUITY PAIR IS THE POINT OF THIS TASK AND BOTH HALVES SHIP TOGETHER:
         - THE MIS-COLUMNED FIXTURE. A feature whose plan.yaml records T-01 as done, whose
           feature.json records an issue number for T-01 and a parent, and whose fake board page
-          puts that issue's card in Backlog. check-state.sh must report a violation whose text
+          puts that issue's card in Backlog. check-state.py must report a violation whose text
           names the feature, T-01, done and Backlog.
         - THE CORRECTED TWIN. The SAME fixture with exactly one byte changed - that one card's
           status in the fake page reading Done instead of Backlog, and the parent's reading Review
@@ -640,7 +640,7 @@ tasks:
           violation.
         - a feature whose recorded issue number is absent from the board page is a CANNOT VERIFY
           violation, not a clean pass.
-        - with FACTORY_GH pointing at a binary that does not exist, check-state.sh records no
+        - with FACTORY_GH pointing at a binary that does not exist, check-state.py records no
           INV-26 finding and its exit status is whatever the rest of the file decides - INV-26
           contributes nothing.
   - id: T-05
@@ -664,7 +664,7 @@ tasks:
       # divergence would have gone unrecorded. Added so the signed artifact matches the tree.
       - .claude/skills/harness/bin/test-branch-create-gate.py
     verify: |
-      ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
+      ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
     intent: |
       One place moves cards, and after T-03 that place is gh-sync.py. Remove the other one.
 

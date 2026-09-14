@@ -52,7 +52,7 @@ repository segment to inject.
   agent-name-validation helpers — none found). The comment correctly scopes it as interpolation
   hygiene only, not an authorization filter, and it guards exactly the value it protects. Right
   altitude for a single call site with no shared consumer.
-- **Advisory token scan (`check-expertise.sh`, CHANGE 2).** Shape matches the already-settled
+- **Advisory token scan (`check-expertise.py`, CHANGE 2).** Shape matches the already-settled
   two-enforcement-points-for-one-budget-pair pattern: authoring-time lint on top of, not instead
   of, the distillation judgement call — and it is explicitly non-blocking, which is the correct
   restraint given the feature's own measurement (`harness-distill/SKILL.md:52-53`: 11 of 16

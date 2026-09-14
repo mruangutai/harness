@@ -70,8 +70,8 @@ own framing — not flagged.
   the pagination loop already settled under B-13 (not re-litigated). No new efficiency finding.
 - `gh-sync.py`'s `gh()` wrapper: same `measured()` wrap site pattern as `factory_gh.run_gh`,
   same cost profile — no separate finding.
-- `test-factory-gh.py`, `test-gh-board.py`, `test-check-state.py`, `check-state.sh`: read for
-  hot-path additions; none found. `test-check-state.py`/`check-state.sh` are flag-only by the
+- `test-factory-gh.py`, `test-gh-board.py`, `test-check-state.py`, `check-state.py`: read for
+  hot-path additions; none found. `test-check-state.py`/`check-state.py` are flag-only by the
   dispatch's own boundary and carried nothing to flag regardless.
 
 No findings to route.

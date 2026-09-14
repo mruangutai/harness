@@ -14,7 +14,7 @@ diff graded: bee6234..4b98191 (union)
   discriminator (unrelated failure does NOT produce it)
 - integration: gh-sync.py's gh wrapper — same cost-log wiring, since T-03's intent explicitly
   names gh-sync.py:114 as a second wrap site
-- integration/inspection: check-state.sh INV-26 identical violation set + positive control
+- integration/inspection: check-state.py INV-26 identical violation set + positive control
 
 All but one of these materialized in the diff. The gap: **no test anywhere exercises gh-sync.py's
 cost-log wiring.**
@@ -95,7 +95,7 @@ test-factory-gh.py, test-gh-board.py, test-gh-cost-log.py.
 
 Union of tasks' declared `files:` (code portion): factory_gh.py, test-factory-gh.py, gh_board.py,
 test-gh-board.py, gh_cost_log.py, test-gh-cost-log.py, gh-sync.py, run-unit-tests.py,
-check-state.sh.
+check-state.py.
 
 **Divergence: `test-check-state.py` is changed in the diff (21 lines — the INV-26 fixture now
 answers both `gh project item-list` and `gh api graphql` shapes, commit `00bc623`) but is not

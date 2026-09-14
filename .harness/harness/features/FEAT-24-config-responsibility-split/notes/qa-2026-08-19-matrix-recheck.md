@@ -37,7 +37,7 @@ T-05 GREEN
 FINAL_RC=0
 ```
 
-Marker counts on `check-state.sh`, independent of the verify's own slice:
+Marker counts on `check-state.py`, independent of the verify's own slice:
 - `grep -c "INV-26 BEGINS"` = **1**
 - `grep -c "INV-26 ENDS"` = **1**
 
@@ -63,12 +63,12 @@ mismatch — noting the mismatch as a minor finding, not a defect.
 ## Task C — mutation proof, `revert only done`
 
 Ran in a disposable worktree (`git worktree add /Users/molchairuangutai/GitHub/harness/.claude/worktrees/qa-feat24-recheck 0fa6315`,
-removed after) per DEC-153 — `check-domain.py` denies `harness-qa` writes to `check-state.sh` even
+removed after) per DEC-153 — `check-domain.py` denies `harness-qa` writes to `check-state.py` even
 inside a worktree unless the path is given as an absolute path under `.claude/worktrees/`; a
 worktree-relative argv string resolves against `CLAUDE_PROJECT_DIR` and gets treated as a main-
 checkout write (learned live, not previously documented).
 
-**Mutation applied and confirmed via diff** — `check-state.sh:1184`,
+**Mutation applied and confirmed via diff** — `check-state.py:1184`,
 `"done": _st26["done"]` → `"done": "Done"`.
 
 Result:
@@ -213,7 +213,7 @@ is `matrix_ok: false`.
 | SC | test | status |
 |---|---|---|
 | SC-02 | see Task D table | **unmet, 4/5** — `ready` has no discriminating test at its real call site, mutation-proven (matches the dispatch's own prediction; corrects my first-pass 5/5) |
-| SC-03 | `test-gh-board.py` literal-grep + T-05's marker-sliced grep on `check-state.sh` (Task A, `T-05 GREEN`) | **met, both halves** (was unmet for check-state.sh half; now closed) |
+| SC-03 | `test-gh-board.py` literal-grep + T-05's marker-sliced grep on `check-state.py` (Task A, `T-05 GREEN`) | **met, both halves** (was unmet for check-state.py half; now closed) |
 | SC-12 | T-05's `INV-26 reports a violation...` / `INV-26 completes the gate...` cases | **met** (was unmet; now closed, confirmed live) |
 | all others | unchanged from prior artifact (`qa-2026-08-19-matrix-gate.md`) | met, not re-run this pass — no code changed under them |
 

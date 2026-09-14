@@ -80,7 +80,7 @@ meanings stay visually distinct rather than re-creating the confusion this featu
 remove.
 
 ## 5. Severity vs. consequence
-Checked every new/changed `check-state.sh` finding for `bad` (VIOLATION) vs `warn` (note)
+Checked every new/changed `check-state.py` finding for `bad` (VIOLATION) vs `warn` (note)
 placement: INV-32 (stale pin — a false claim), the new plan.yaml station-outside-vocabulary loud
 check (A-03, replacing a silent skip), and the SEAM_NOTES/STATUS_ORDER drift self-check (would
 otherwise KeyError) are all correctly VIOLATION-level — each represents a real, silent-failure-

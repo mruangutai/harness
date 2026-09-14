@@ -13,7 +13,7 @@ one candidate rejected. Checker green.
 ## Checker output (verbatim)
 
 ```
-$ bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/harness-data-engineer.md
+$ python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/harness-data-engineer.md
 OK   .harness/expertise/harness-data-engineer.md
 EXIT:0
 ```
@@ -75,7 +75,7 @@ correction).
 ## `suite:` truthfulness — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.py > <scratchpad>/feat23-de-suite.log 2>&1
+$ python3 .claude/skills/harness/bin/run-unit-tests.py > <scratchpad>/feat23-de-suite.log 2>&1
 EXIT: 0
 $ grep -c "^PASS" <scratchpad>/feat23-de-suite.log
 197

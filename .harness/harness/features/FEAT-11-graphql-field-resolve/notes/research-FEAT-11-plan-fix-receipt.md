@@ -193,4 +193,4 @@ The bullet beginning "**The organization path is never exercised against a real 
 
 No edit to `DESIGN.md`, the grilling artifact, `feature.yaml`, or any DEC-174 file. Q1, Q2 and the
 SC-08 advisory (A-1) were not acted on and are not re-raised. No decision, REQ, SC or task added.
-`check-docs.sh` / `check-state.sh` not run — `feature.yaml` `gate_status` records both as the lead's.
+`check-docs.sh` / `check-state.py` not run — `feature.yaml` `gate_status` records both as the lead's.

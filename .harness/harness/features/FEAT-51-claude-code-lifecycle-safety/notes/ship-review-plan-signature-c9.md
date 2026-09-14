@@ -3,7 +3,7 @@
 **The plan is ready to sign, and one thing has to be fixed before you can physically sign it.**
 Every gating panel finding is closed at source and independently verified. But `plan.yaml` cannot
 acquire an `approval:` mapping by any route that exists today, so the signature has nowhere to land
-and `check-state.sh` reports it as a VIOLATION. That repair is yours — it is main-session-direct
+and `check-state.py` reports it as a VIOLATION. That repair is yours — it is main-session-direct
 under DEC-174 — and it is about fifteen lines.
 
 Three things need your decision. They are §1, §2 and §3. Everything else in this document is the
@@ -216,9 +216,9 @@ verification pass checked all 26. The other 19 target files are byte-identical b
 | B-7 | bug | `check-domain.py` denies `harness-pm` a `Write` at `notes/plan-proposal-*.yaml` (its grant is `research-*.md` and `uat-*.md`), so the sanctioned tool is refused for the one write route `plan.yaml` has — and `python3` reaches it anyway, which the guard does not intercept. |
 | B-8 | bug | `bash-write-guard.py` reads a `>=` inside Python source as a redirect and refuses the command, naming a target absent from it. Cost four retries in one run. |
 | B-9 | bug | `check-plan-routes.py` never reads `lanes.rows`, so a surface missing from that block is ungated. Four missing rows survived two cycles until measured by hand. |
-| B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run, and only `check-state.sh` catches it later. `runs/plan-fix-c2-product/digest.md` had shipped without one; repaired. |
+| B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run, and only `check-state.py` catches it later. `runs/plan-fix-c2-product/digest.md` had shipped without one; repaired. |
 | B-11 | chore | `panel.findings`' `reader` enum has no word for a lead's fan-in finding. Recorded as `validator-lead`, which is truthful; nothing breaks, but the template comment is out of step. |
-| B-12 | chore | `check-state.sh` INV-29 is red on a standing worktree that is not FEAT-51's: `.claude/worktrees/harness/BUG-1129-validate-handoff-sweep`, terminal on the default branch and dirty, so `remove` declines until its changes are committed or discarded. Pre-existing and unrelated; it is the only violation left that is not the two signature gates. |
+| B-12 | chore | `check-state.py` INV-29 is red on a standing worktree that is not FEAT-51's: `.claude/worktrees/harness/BUG-1129-validate-handoff-sweep`, terminal on the default branch and dirty, so `remove` declines until its changes are committed or discarded. Pre-existing and unrelated; it is the only violation left that is not the two signature gates. |
 
 ---
 

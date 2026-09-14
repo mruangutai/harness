@@ -21,7 +21,7 @@ what the plan already covers.
 ```
 .claude/skills/harness/bin/bash-write-guard.py
 .claude/skills/harness/bin/check-domain.py
-.claude/skills/harness/bin/check-state.sh
+.claude/skills/harness/bin/check-state.py
 .claude/skills/harness/bin/harness_boundary.py
 .claude/skills/harness/bin/test-bash-write-guard.py
 .claude/skills/harness/bin/test-check-domain.py
@@ -46,10 +46,10 @@ question, not a finding (low confidence it's this feature's).
 
 ## Ranked findings
 
-### FINDING 1 — HIGH. `check-state.sh`'s INV-25 silently disables itself, and untested, exactly
+### FINDING 1 — HIGH. `check-state.py`'s INV-25 silently disables itself, and untested, exactly
 where REQ-07's promise matters most
 
-`check-state.sh:967-971` (at c6a28bd):
+`check-state.py:967-971` (at c6a28bd):
 ```python
 try:
     import harness_boundary as _hb
@@ -57,9 +57,9 @@ try:
 except Exception:
     _wt_seg = None
 ```
-Every check under INV-25 is gated at `check-state.sh:973`, `if _wt_seg:`. If the import fails,
+Every check under INV-25 is gated at `check-state.py:973`, `if _wt_seg:`. If the import fails,
 `_wt_seg` is `None` and the **entire INV-25 block is skipped — no `bad.append`, no `warn.append`,
-nothing printed.** Final exit is `sys.exit(1 if bad else 0)` (`check-state.sh:1079`): a run with an
+nothing printed.** Final exit is `sys.exit(1 if bad else 0)` (`check-state.py:1079`): a run with an
 existing out-of-place worktree, but a broken/missing `harness_boundary.py`, prints
 `"all state invariants hold."` and **exits 0.**
 
@@ -70,20 +70,20 @@ crash, it is a silent, deliberate `except Exception: pass`-shaped absorb with ze
 plainly: "An environment that already contains an out-of-place worktree reports it at session entry
 **rather than running half-governed**." A broken `harness_boundary.py` is exactly "half-governed" —
 by D-06/SC-10 it *also* takes both write guards down (they exit 2 loudly) — and in that same
-environment, `check-state.sh` reports clean.
+environment, `check-state.py` reports clean.
 
 **Concrete scenario.** `harness_boundary.py` is deleted, syntax-broken, or unreachable via PYTHONPATH
 (the same state SC-10 tests for the two guards). A pre-existing sibling worktree sits outside
-`.claude/worktrees/`. An operator or orchestrator runs `check-state.sh` at session entry, gets "all
+`.claude/worktrees/`. An operator or orchestrator runs `check-state.py` at session entry, gets "all
 state invariants hold," and proceeds believing the environment is clean while the write guards are
 simultaneously blocking every governed write with "module could not be imported." The one gate that
 should have surfaced *why* — an out-of-place worktree is present — says nothing.
 
 **Confirmed zero test coverage.** `test-check-state.py`'s `case_u` (SC-08's fixture) calls `run()`,
-which invokes the *real* `check-state.sh` against the real `bin/` directory — `harness_boundary.py`
+which invokes the *real* `check-state.py` against the real `bin/` directory — `harness_boundary.py`
 is always importable in every SC-08 case. SC-10's isolated-copy-missing-the-module fixture (BRIEF:
 "an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.py` and `harness_yaml.py` but
-NOT `harness_boundary.py`") does not include `check-state.sh` at all. No test in this feature's SC
+NOT `harness_boundary.py`") does not include `check-state.py` at all. No test in this feature's SC
 list exercises this path.
 
 **This gates.** Realistic input (a broken shared module — the exact state this feature's own D-06
@@ -176,7 +176,7 @@ tried the specific candidates the dispatch named:
   paths are mutually exclusive within one invocation, so no double-import race).
 - `ValueError` from `os.path.commonpath`/`os.path.relpath` mixing incompatible paths — every
   `commonpath` call in `harness_boundary.py` is already wrapped in `except ValueError` (`:186`,
-  `:401`, and `check-state.sh:1013`); the unwrapped `relpath` calls in `classify()` only ever compare
+  `:401`, and `check-state.py:1013`); the unwrapped `relpath` calls in `classify()` only ever compare
   two `real()`-resolved absolute POSIX paths, which cannot raise `ValueError` for a drive mismatch on
   this platform.
 - `RecursionError`/infinite loop in `worktree_owner`'s upward directory walk — the loop has an explicit

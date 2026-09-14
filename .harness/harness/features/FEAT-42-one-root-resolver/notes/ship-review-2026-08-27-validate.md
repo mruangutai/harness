@@ -99,7 +99,7 @@ found it.
 | QA gate (the project's only blocking gate) | PASS. Suite exit 0, 3139 case verdicts, zero failures |
 | #556 closed | Same command from repo root and from `bin/` gives a byte-identical verdict set; 203 lines each side, one differing line — the `#556` case going FAIL → `ok` |
 | No DEC-174 lane breach in squad-tagged work | The one TEAM-tagged commit (`98bd4b3`) touches no enforcement file |
-| Tree state | Zero **source** files dirty at the pinned sha; HEAD is the pin. `check-state.sh` was exit 0 / zero violations until the goal-check digest landed and is now exit 1 on that one bookkeeping violation — see "One red gate" below |
+| Tree state | Zero **source** files dirty at the pinned sha; HEAD is the pin. `check-state.py` was exit 0 / zero violations until the goal-check digest landed and is now exit 1 on that one bookkeeping violation — see "One red gate" below |
 
 ## Where the record is weaker than it looks
 
@@ -152,7 +152,7 @@ silently.**
 | B-12 | Path-shape authorisation cannot see WHICH checkout, so a write lands in the wrong tree unrefused | bug |
 | B-13 | Dispatched run-dir slugs a persona cannot write — third recurrence; fix the slug derivation | bug |
 | B-14 | `dispatch-guard.py:105` and `harness-zero-micro-management/SKILL.md:30` hardcode this feature id as the copy-paste exemplar; a lead copying it is admitted and silently routed to the wrong checkout | bug |
-| B-25 | The lead digest contract cannot represent an honest send-back: a lead that records cycle 1 FAIL and cycle 2 PASS is forced to a team FAIL, so `check-state.sh` is RED on the goal-check digest at this sha | bug |
+| B-25 | The lead digest contract cannot represent an honest send-back: a lead that records cycle 1 FAIL and cycle 2 PASS is forced to a team FAIL, so `check-state.py` is RED on the goal-check digest at this sha | bug |
 | B-15 | `e51b814` mixes team-lane tags with enforcement-file edits; add a commit-tag-vs-files-touched check | chore |
 | B-16 | `STATE.md`'s "1040 verdict lines" does not reconcile with the measured 3139 | chore |
 | B-17 | Eng digest Q6 (standalone failures) does not reproduce at `9d12e3a`; confirm closed rather than masked | chore |
@@ -180,7 +180,7 @@ silently.**
 
 ## One red gate, and why I did not clear it
 
-`check-state.sh` exits 1 at this sha on exactly one violation, and it is bookkeeping, not a
+`check-state.py` exits 1 at this sha on exactly one violation, and it is bookkeeping, not a
 deliverable: `runs/2026-08-27-3-goalcheck-product/digest.md` "does not satisfy the lead digest
 contract". The reason is `validate-digest.py`'s rule that a team verdict must equal its worst member
 verdict. The goal-check lead honestly recorded **both** cycles — `goal-check-c1` FAIL, `goal-check-c2`

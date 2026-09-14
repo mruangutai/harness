@@ -33,7 +33,7 @@ call sites are untouched.
 
 ## Verification
 
-`bash -n .claude/skills/harness/bin/dispatch-guard.py` → `BASH_SYNTAX_OK` (script parses; the
+`python3 -m py_compile .claude/skills/harness/bin/dispatch-guard.py` → `BASH_SYNTAX_OK` (script parses; the
 python3 heredoc region's semantic indentation is valid).
 
 ```
@@ -55,7 +55,7 @@ readers (not written by this dispatch) and this dispatch's own receipt is the fi
 
 Suite run:
 ```
-env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py
+env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py
 ```
 `suite_exit: 0`
 `fail_lines: 0` (count of `^FAIL ` lines in captured stdout+stderr)

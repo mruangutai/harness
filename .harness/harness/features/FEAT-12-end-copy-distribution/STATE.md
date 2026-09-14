@@ -25,7 +25,7 @@ names T-11 but omits T-08, and T-08 does block it.
 
 One send-back this session, so the cycle count is five of ten. Product-lead sent documentor back
 for writing into README.md a claim its own research had just disproved — that `factory_config.py`
-is the fleet declaration's only reader. It is not: `check-state.sh` reads that file directly.
+is the fleet declaration's only reader. It is not: `check-state.py` reads that file directly.
 
 ## Open Questions
 

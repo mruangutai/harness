@@ -8,7 +8,7 @@
 - status: awaiting-user
 - station: plan — SIGNED, and the build cannot be orchestrator-hosted. Both approvals landed on
   2026-09-01 (plan.yaml:3-6 `approved`/mruangutai, BRIEF.md:221-225 `approved`), which cleared the
-  one FEAT-52 VIOLATION the previous seq carried; check-state.sh now reports ZERO for this feature
+  one FEAT-52 VIOLATION the previous seq carried; check-state.py now reports ZERO for this feature
   and its remaining VIOLATIONs are all FEAT-51/BUG-1187, pre-existing and out of scope.
   The build mission then hit a hard authority boundary: **14 of the 15 tasks carry
   `execution_mode: main-session-direct`** — T-01..T-12, T-14, T-15 — and only T-13 is `team`

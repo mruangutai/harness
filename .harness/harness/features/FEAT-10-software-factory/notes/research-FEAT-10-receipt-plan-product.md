@@ -3,7 +3,7 @@
 BLUF: BRIEF.md and plan.yaml are written and both end `pending`. **Cycle 2 (send-back): eleven
 tasks, nine decisions, eleven success criteria** — DESIGN.md C-3's CLI contract is now implemented
 by a task, and Q3 is ruled. Every gate that can pass with an unsigned brief passes;
-`check-state.sh` exits 1 on exactly one violation, the missing signature, which only the user can
+`check-state.py` exits 1 on exactly one violation, the missing signature, which only the user can
 clear. Cycle-1 observations were taken at `914b6fd`; cycle-2 re-verification is in §9 below and
 was run after every edit.
 
@@ -11,10 +11,10 @@ Filename note: the dispatch asked for `notes/receipt-harness-pm-plan-product.md`
 `check-domain.py` BLOCKED that write — harness-pm's grants under `notes/` are
 `research-*.md` and `uat-*.md` only. Written here instead rather than worked around.
 
-## 1. check-state.sh
+## 1. check-state.py
 
 ```
-$ bash .claude/skills/harness/bin/check-state.sh
+$ python3 .claude/skills/harness/bin/check-state.py
 check-state EXIT:1
   VIOLATION  FEAT-10-software-factory/BRIEF.md is NOT approved — halt that flow and surface to the user.
 ```
@@ -55,7 +55,7 @@ check-plan-routes EXIT:0
 ```
 
 One informational line, expected and correct:
-`DEVIATION T-08 check-state.sh, test-check-state.py granted to harness-backend-dev, harness-dev-ops
+`DEVIATION T-08 check-state.py, test-check-state.py granted to harness-backend-dev, harness-dev-ops
 but declared main-session-direct` — that is the DEC-174 carve-out being taken deliberately.
 
 ## 5. Every task verify:, run in this tree
@@ -118,10 +118,10 @@ nothing in the plan depends on the answer.
 ## 7. Routing resolved by running the guard, not by reading the config
 
 ```
-$ bash .claude/skills/harness/bin/check-domain.py --resolve <path>
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve <path>
 .claude/skills/harness/bin/factory_gh.py      -> harness-backend-dev, harness-dev-ops
 .claude/skills/harness/bin/run-unit-tests.py  -> harness-backend-dev, harness-dev-ops
-.claude/skills/harness/bin/check-state.sh     -> harness-backend-dev, harness-dev-ops
+.claude/skills/harness/bin/check-state.py     -> harness-backend-dev, harness-dev-ops
 .harness/factory/fleet.yaml                   -> NOBODY
 docs/harness/DECISIONS.md                     -> harness-documentor
 docs/harness/DECISIONS-INDEX.md               -> harness-documentor
@@ -225,7 +225,7 @@ integration detect= tests/integration/**              cmd= run-unit-tests.py --k
 ### Re-verification after the cycle-2 edits
 
 ```
-$ bash .claude/skills/harness/bin/check-state.sh                       EXIT:1
+$ python3 .claude/skills/harness/bin/check-state.py                       EXIT:1
   VIOLATION  FEAT-10-software-factory/BRIEF.md is NOT approved — halt that flow and surface to the user.
   (the ONLY violation; every other line is a note, unchanged from cycle 1)
 

@@ -8,7 +8,7 @@ no code paths touched. `feature.json:6` `review_sha: "b1d3925"` matches this rev
 **VERDICT: PASS.** No must_fix. One non-gating spec_violation (scope_creep), two low/info
 quality notes, one open process question (Q-E, already on the board).
 
-## Priority 1 — D-08 label fix, both halves (`check-state.sh:55-59` + 17 call sites)
+## Priority 1 — D-08 label fix, both halves (`check-state.py:55-59` + 17 call sites)
 
 **Built correctly. MF-1 is genuinely fixed.**
 
@@ -68,7 +68,7 @@ quality notes, one open process question (Q-E, already on the board).
 - Not literally "purely additive" in line terms: 61 insertions / 64 deletions — a rewrite of
   case 20, not an append. It **deletes** the two hand-mirrored helpers (`_ci_text`,
   `_inv27_text`) and their five `SurfaceReport`-constructed parity checks, replacing them with
-  `_parity_tree`/`_parity`, which run the **real** `check-state.sh` via `subprocess` against a
+  `_parity_tree`/`_parity`, which run the **real** `check-state.py` via `subprocess` against a
   built fixture tree and compare its `INV-27` lines to `layout_migration.scan()`+`render()`
   over the same tree — a genuine strengthening (no second mirror exists in the file after this
   commit, confirmed by reading the diff in full).

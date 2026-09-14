@@ -141,7 +141,7 @@ are otherwise accurate to the code they describe.
 
 ## What this review did NOT cover
 
-The six closed defects from earlier cycles; the canonical/project-wide test suite; `check-state.sh`;
+The six closed defects from earlier cycles; the canonical/project-wide test suite; `check-state.py`;
 SC-11's UAT; the eleven non-source bookkeeping files in the full commit range (`STATE.md`,
 `feature.json`, `answers/`, `notes/*-c25.md`, `observations/harness-backend-dev.md`) beyond confirming
 they are not application source; whether `notes/uat-sc11-c21.md`'s `review_sha` line has been

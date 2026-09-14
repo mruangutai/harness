@@ -56,8 +56,8 @@ kickoff call site instead of a case-sensitive literal), and add **no** derivatio
 
 Consequences, both measured:
 - Adding `plan` to `.harness/harness.json` **without** widening `_STATION_KEYS` makes `load_board`
-  raise `FleetError`. `check-state.sh`'s INV-26 catches that and appends
-  `INV-26 CANNOT RUN: ... the board declaration is unusable` (`check-state.sh:1146-1155`) — loud, red,
+  raise `FleetError`. `check-state.py`'s INV-26 catches that and appends
+  `INV-26 CANNOT RUN: ... the board declaration is unusable` (`check-state.py:1146-1155`) — loud, red,
   correct. Not silent. So the two edits must land in ONE task.
 - `factory_config.product_config` reads a served repo's `.harness/harness.json` **from the REMOTE at
   `default_branch`, never from a checkout** (`factory_config.py:253-278`). Verified: `board_for(fleet,
@@ -69,8 +69,8 @@ Consequences, both measured:
   broken: nothing calls it unless the operator runs a `factory_*` command against kaya-ai, and the
   failure names `github.board.stations` and the next step.
 
-`check-state.sh` itself needs **no** edit: its `_EXPECT` indexes only `stations["building"]`,
-`["done"]`, `["backlog"]` (`check-state.sh:1183-1185`), so a sixth key is inert there.
+`check-state.py` itself needs **no** edit: its `_EXPECT` indexes only `stations["building"]`,
+`["done"]`, `["backlog"]` (`check-state.py:1183-1185`), so a sixth key is inert there.
 
 ## Native closing — what is actually missing
 
@@ -99,7 +99,7 @@ Consequences, both measured:
 | `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json` | **NOBODY** |
 | `.harness/harness/features/FEAT-33-*/notes/<name>.md` | `harness-orchestrator` (not a task executor) |
 
-Note the disagreement worth knowing: `--resolve` grants `check-state.sh` to `harness-dev-ops`, while
+Note the disagreement worth knowing: `--resolve` grants `check-state.py` to `harness-dev-ops`, while
 DEC-174 forbids **executing** changes to it through the harness. The carve-out wins. This plan avoids
 the question by not editing it.
 

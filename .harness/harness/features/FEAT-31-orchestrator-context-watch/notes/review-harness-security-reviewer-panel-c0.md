@@ -29,7 +29,7 @@ fail-open boundary named in the dispatch):
   injection surface.
 
 Scoped OUT, with reason:
-- `.claude/skills/harness/bin/check-state.sh` (INV-17 handoff-shape check) — reads/greps files
+- `.claude/skills/harness/bin/check-state.py` (INV-17 handoff-shape check) — reads/greps files
   under `.harness/*/features/*/notes/handoff-*.md`, which are the harness's own agent-authored
   artifacts, not externally-untrusted input; no shell interpolation of file content, only
   `os.path.basename`/`read()` in an embedded Python heredoc. No path or injection surface.

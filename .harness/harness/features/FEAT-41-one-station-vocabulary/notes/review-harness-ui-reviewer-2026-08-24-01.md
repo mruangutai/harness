@@ -19,7 +19,7 @@ section 6, not invented by this feature (BRIEF: "DEC-203 ... SUPPLIES the six va
 pins them as "one ordered lowercase list" declared once in `harness.json` — a naming/ordering
 decision, but one already made upstream of this plan, not one this feature is free to design.
 What this feature does is enforce that every consumer (`gh-sync.py`, `check-plan-routes.py`,
-`feature-schema.json`, `check-state.sh`, `board_lifecycle.py`) reads that one vocabulary instead
+`feature-schema.json`, `check-state.py`, `board_lifecycle.py`) reads that one vocabulary instead
 of drifting copies — a single-source-of-truth/correctness refactor, verified by SC-01–SC-13
 (grep counts, exit codes, INV-26 behavior), not a visual/interaction contract. The "orphaned
 station a card can land in and never leave" risk the dispatch raises is real but is exactly what

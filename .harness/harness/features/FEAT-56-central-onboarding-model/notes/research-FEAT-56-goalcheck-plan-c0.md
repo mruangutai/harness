@@ -20,7 +20,7 @@ or `plan.yaml`. Graded against issue body at `gh issue view 206`, plan/BRIEF at 
 | S5 | Step 5 seed the domain manifest — **Re-homes** | T-01 step 5 NARROWS to the control plane only; product gets none (#495 unbuilt) | PARTIAL |
 | S6 | Steps 6-7 BRIEF then approval gate — **Re-homes** | T-01 steps 6, 7 → `features_root()` central tree; product `github` block in the product's own harness.json | DELIVERED |
 | S7 | Step 8 map the codebase (INV-14/19/20) — **Re-homes** | Tier retired 2026-08-24 (`BUILD.md:208`); BRIEF Non-goals; HEAD's step 8 is the design pass (T-01 step 8) | STRUCK (row void) |
-| S8 | Step 9 verify + restart warning — **Dead with 1 and 2** | NARROWED: T-01 step 9 keeps `check-state.sh`/`merge-settings --check` for this clone, adds the fleet check | DELIVERED (narrow) |
+| S8 | Step 9 verify + restart warning — **Dead with 1 and 2** | NARROWED: T-01 step 9 keeps `check-state.py`/`merge-settings --check` for this clone, adds the fleet check | DELIVERED (narrow) |
 | C1 | "Three steps die, six change where they write" | Zero die (1, 2, 9 all survive); four of six change destination; audit `:23,:24,:27,:31` | STRUCK (falsified) |
 | C2 | "The skill does not shrink to add the repo to `fleet.yaml`" | T-01 keeps all nine steps, `--upgrade`, red flags; fleet registration is one sub-step (2c) | DELIVERED |
 | W1 | Replace-item 1: add repo to `factory/fleet.yaml` (`name`, `default_branch`), extensible later | T-01 step 2c; `lanes` row main-session-direct for fleet.yaml | DELIVERED |
@@ -82,8 +82,8 @@ assertion the report cannot make cheaply: it would have to know the product's re
 carried by T-01 step 2a and by no gate.*
 
 **4. The eight-prerequisite narrowing — all three grounds hold at HEAD, and T-01 is specific enough.**
-`check-state.sh:844` (INV-9, platform prerequisites, DEC-100) grades this clone's settings entries;
-`check-state.sh:2431-2440` (INV-31) states in terms *"The setup step lives in
+`check-state.py:844` (INV-9, platform prerequisites, DEC-100) grades this clone's settings entries;
+`check-state.py:2431-2440` (INV-31) states in terms *"The setup step lives in
 `.claude/skills/harness-init/SKILL.md`, and an already-onboarded clone NEVER RE-RUNS IT"*;
 `tests/integration/test-hooks-install.py:265` `case_commands_verbatim_in_skill` asserts three literal
 command strings out of `SKILL_MD` (`:53`). T-01 says "KEEP, NARROWED (do not delete it)", names the

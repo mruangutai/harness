@@ -65,7 +65,7 @@ editing near it: it is only checked for count (`>= 9`) and C-3 format (contains 
 free to change without touching that assertion.
 
 Grepped for the old ok-line label before touching it: `"(8b) the next_step mentions
-repos[].board"` appears nowhere in `plan.yaml` or `check-state.sh` — only in
+repos[].board"` appears nowhere in `plan.yaml` or `check-state.py` — only in
 `test-factory-config.py` itself, which this fix edits directly.
 
 ### The edit — one hunk, `factory_config.py:162-167`
@@ -152,7 +152,7 @@ matches**. Occurrences of the bare word `FAIL` elsewhere are ok-line labels desc
 ## Message-prose grep, beyond the ok-line-label grep
 
 Also grepped for the deleted `:165` message PROSE (not just the ok-line label) across
-`*.py *.sh *.yaml *.md *.json`, to catch a `verify:` block or a `check-state.sh` presence-grep
+`*.py *.sh *.yaml *.md *.json`, to catch a `verify:` block or a `check-state.py` presence-grep
 that a green unit-test run would not surface:
 
 ```
@@ -164,7 +164,7 @@ per-repository now" — that does not claim `repos[].board` as the destination, 
 fix); `FEAT-16-factory-per-repo-board/plan.yaml:675-676` and its own receipt (a different,
 CLOSED feature's frozen historical record of the ORIGINAL implementation — not a live gate for
 FEAT-24); `notes/review-harness-ui-reviewer-c0.md` (an untracked review artifact quoting the old
-message, not mine, not a gate). None is a `verify:` block or `check-state.sh` line. No gate
+message, not mine, not a gate). None is a `verify:` block or `check-state.py` line. No gate
 consumer of the deleted prose found.
 
 ## Design note on `:165`'s wording

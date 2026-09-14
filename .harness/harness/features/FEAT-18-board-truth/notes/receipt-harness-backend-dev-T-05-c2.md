@@ -121,7 +121,7 @@ ok    form 2 (issue number) parses: 'gh' not installed deny names issue #123
 ## T-05's signed `verify:` — re-run after the re-applied deletion
 
 ```
-$ ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
+$ ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
 $ echo "verify exit: $?"
 verify exit: 0
 ```

@@ -26,7 +26,7 @@ goal-check, then ship-refresh and distillation, then the briefing.
   without; 4 are the amended expected set and 2 are exactly what the batch edits — verified-at c14ed96
 - Every remaining SPEC and BUILD hit carries the `DEC-178` marker, so SC-14 holds and those two files
   survive for the reason SC-14 itself states — verified-at c14ed96
-- Gates green: `run-unit-tests.py` 0 (**twelve** scripts now), `check-docs.sh` 0, `check-state.sh` 0
+- Gates green: `run-unit-tests.py` 0 (**twelve** scripts now), `check-docs.sh` 0, `check-state.py` 0
   with zero violations — all three re-run by me — verified-at c14ed96
 - **$370.53 is the last measurable figure**, taken at `3503d1d` immediately before T-03 deleted
   `cost-report.py`. Everything after is unmeasurable BY DESIGN — verified-at 3503d1d
@@ -35,7 +35,7 @@ goal-check, then ship-refresh and distillation, then the briefing.
 
 ## Dead ends
 
-- Do NOT re-root `check-state.sh` via `CLAUDE_PROJECT_DIR` to make SC-03 pass — that is the
+- Do NOT re-root `check-state.py` via `CLAUDE_PROJECT_DIR` to make SC-03 pass — that is the
   re-baselining the user forbade — source: user ruling
 - Do NOT delete the `(cost-report.py removed — DEC-178)` markers in SPEC/BUILD to "finish the job".
   T-10/T-11 mandate them and SC-14 blesses them; SC-01 was the criterion that was wrong — `BRIEF.md` A-4

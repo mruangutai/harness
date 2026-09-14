@@ -25,11 +25,11 @@ so any second line fails it), and the basename test. One trailing \xff on a vali
 identical target from BLOCKED to ALLOWED. That is #103's own failure direction reinstalled inside
 #103's fix, and no test builds a malformed pointer.
 
-F-B [MED] check-state.sh:967-971 — the FOURTH import route, and it is worse than the exit-1
+F-B [MED] check-state.py:967-971 — the FOURTH import route, and it is worse than the exit-1
 hypothesis. Verified at source: `except Exception: _wt_seg = None` then `if _wt_seg:` skips every
 INV-25 branch with no bad and no warn, so a session holding a pre-existing out-of-place worktree
 prints "all state invariants hold" and exits 0. SC-08's fixture always has the module and SC-10's
-module-absent fixture excludes check-state.sh, so coverage is zero.
+module-absent fixture excludes check-state.py, so coverage is zero.
 
 F-C [MED, record] D-07 and DEC-193 assert in approved prose that product paths keep exactly today's
 Bash-route behaviour. Executed before/after shows three cells changed with a MALFORMED

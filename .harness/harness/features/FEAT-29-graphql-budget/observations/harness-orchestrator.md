@@ -1,8 +1,8 @@
 # Observations — harness-orchestrator — FEAT-29-graphql-budget
 
-- 2026-08-19: `check-state.sh` runs at ZERO GraphQL cost with `FACTORY_GH` pointed at a
+- 2026-08-19: `check-state.py` runs at ZERO GraphQL cost with `FACTORY_GH` pointed at a
   non-existent binary. INV-26 gates its board read on `gh auth status` succeeding
-  (`check-state.sh:1158-1165`) and records nothing when it does not, so every other invariant still
+  (`check-state.py:1158-1165`) and records nothing when it does not, so every other invariant still
   runs. Measured: `graphql.used` 3753 before and 3753 after a full run. That turned the mandated
   pre-commit gate from a 507-point spend into a free one on a feature whose whole budget was 1,327
   points. It is not a substitute for the real run — INV-26's board claim goes unchecked — but for a
@@ -33,7 +33,7 @@
   its stdout — the operator's positive control later showed they DO land, in `Backlog`.
 
 - 2026-08-19: INV-26 skips a feature entirely while every task reads `pending`
-  (`check-state.sh:1218-1221`). A baseline/after comparison of gate output that straddles the first
+  (`check-state.py:1218-1221`). A baseline/after comparison of gate output that straddles the first
   status write is therefore comparing two different INV-26 regimes, not two states of one gate —
   the before/after must both be taken on the same side of that line.
 

@@ -9,7 +9,7 @@ nothing committed, HEAD still `0a120c6`.
 
 | DEC | command | expected | why it is settleable |
 |---|---|---|---|
-| 145 | `grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh` | `CRAFT_LINE_BUDGET = 150` | entry states a numeric budget enforced by a named script; the constant is the enforcement |
+| 145 | `grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.py` | `CRAFT_LINE_BUDGET = 150` | entry states a numeric budget enforced by a named script; the constant is the enforcement |
 | 157 | `grep -F "\"max_total_cycles\": 10" .harness/harness.json` | `"max_total_cycles": 10` | entry states the default *lives in harness.json with value 10* — a literal in a config file |
 | 181 | `grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.py` | `budget is 80 (DEC-181)` | MANDATORY 1. Claims the **enforcement message**, not a line number, so it survives the gate moving inside the file or the file moving |
 | 181 | `grep -c -m 81 -e "" CLAUDE.md` | `12` | MANDATORY 2. `CLAUDE.md` is within budget. See the caveat below |

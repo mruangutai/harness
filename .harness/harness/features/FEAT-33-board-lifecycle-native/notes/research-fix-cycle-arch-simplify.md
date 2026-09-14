@@ -55,7 +55,7 @@ S1 (`grep -qi`, plain `grep -q` — also closes L7) · S2 (reconcile's exit code
 REASON, LABEL; audit keeps all five, so SC-09 is untouched) · S3 (`gh-sync.py:626-627`'s literal
 `"Building"` → `board["stations"]["building"]`, with a fixture whose building station is *not*
 "Building") · S4 (T-11 now owns SC-10's negative clause as a real `git diff --name-only` over the
-five enforcement paths, plus `check-state.sh`) · S5 (T-02 runs `check-state.sh` before **and**
+five enforcement paths, plus `check-state.py`) · S5 (T-02 runs `check-state.py` before **and**
 after and asserts the finding **set** identical, not both exit 0 — DEC-174 am.4's own idiom; also
 discharges SC-10's orphaned half) · S6 (`--kind all` on T-07/T-08 with the reason stated) ·
 S7/L5 (`.harness/harness.json` dropped from T-04's `files:`) · S8 (T-01's abandon path = a revert PR
@@ -111,7 +111,7 @@ types.
 `safe_load` clean · every `verify:` a literal `|` block, zero folded `>` scalars · every task carries
 `files`/`verify`/`traces`/`change_type`/`execution_mode`/`depends_on` · DAG acyclic, all `depends_on`
 resolve · `check-plan-routes.py` **exit 0, 0 violations** (the two T-11/T-12 DEVIATIONs are the
-pre-existing declared ones) · `check-state.sh` reports only the expected
+pre-existing declared ones) · `check-state.py` reports only the expected
 `BRIEF.md is NOT approved` and `plan.yaml approval is pending`, plus an orphaned run dir
 `2026-08-22-02-product` that `feature.json` does not record — **the orchestrator's to reconcile, not
 mine.**

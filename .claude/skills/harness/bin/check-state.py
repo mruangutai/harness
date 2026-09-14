@@ -23,31 +23,42 @@ THE BOOTSTRAP IS PRESERVED EXACTLY, and it is the part worth reading before edit
     spawned by the body inherit both, and several resolve paths relative to the
     working directory. They are reproduced verbatim.
 """
+import contextlib as _contextlib
+import io as _io
 import os as _os
+import subprocess as _subprocess
 import sys as _sys
 
 _selfdir = _os.path.dirname(_os.path.abspath(__file__))
 _sys.path.insert(0, _selfdir)
 
-try:
-    import harness_boundary as _hb
-    _root, _why = _hb.resolve_root(_selfdir), ""
-except Exception as _exc:                      # noqa: BLE001 - reported, never swallowed
-    _root, _why = "", str(_exc)
 
+_ROOT_PROBE = (
+    "import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; "
+    "print(harness_boundary.resolve_root(sys.argv[1]))"
+)
+
+
+def _resolve_root():
+    captured = _io.StringIO()
+    try:
+        with _contextlib.redirect_stderr(captured):
+            import harness_boundary as _hb
+            return _hb.resolve_root(_selfdir), captured.getvalue()
+    except Exception:
+        probe = _subprocess.run(
+            [_sys.executable, "-I", "-c", _ROOT_PROBE, _selfdir],
+            capture_output=True, text=True)
+        return "", probe.stderr
+
+
+_root, _root_stderr = _resolve_root()
 if not _root or not _os.path.isdir(_root):
-    # ORDER MATCHES THE SHELL VERSION: the refusal names the tool and the directory
-    # first, the cause follows. The wrapper achieved that by echoing its own line and
-    # then `cat`-ing the stderr of a `python3 -I -c` helper, so the cause arrived as a
-    # full traceback from a subprocess that no longer exists. It is reported as its
-    # message instead. Reconstructing a fake traceback for byte-identity would be
-    # dishonest about where the failure happened; dropping the cause entirely would
-    # lose the only diagnostic this path has.
     print(f"check-state.py: no harness root could be resolved from {_selfdir}"
-          " \u2014 refusing to run.", file=_sys.stderr)
-    if _why:
-        print(f"check-state.py: {_why}", file=_sys.stderr)
+          " — refusing to run.", file=_sys.stderr)
+    _sys.stderr.write(_root_stderr)
     raise SystemExit(2)
+_sys.stderr.write(_root_stderr)
 
 _os.environ["PYTHONPATH"] = (
     _selfdir + (_os.pathsep + _os.environ["PYTHONPATH"] if _os.environ.get("PYTHONPATH") else "")

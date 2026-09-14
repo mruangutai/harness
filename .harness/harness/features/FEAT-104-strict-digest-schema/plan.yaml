@@ -16,7 +16,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 carve-out, registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out, registered gate script
     - surface: .claude/skills/harness/bin/run-state-schema.json
@@ -71,7 +71,7 @@ decisions:
     because: DEC-208 records the passthrough as deliberate, so the single shot must be sufficient rather than closed
     dec: DEC-208
   - id: D-08
-    choice: The step key set lives in one JSON schema file read by both gates, not duplicated in check-domain.py and check-state.sh
+    choice: The step key set lives in one JSON schema file read by both gates, not duplicated in check-domain.py and check-state.py
     because: feature-schema.json is the DEC-191 precedent and two copies of a key set drift
     dec: DEC-191
   - id: D-09
@@ -421,7 +421,7 @@ tasks:
       are not. Nested objects are refused, and a value that must be READ rather than MATCHED is
       still in the wrong file under DEC-154.
       Top level: schema_version must be an integer, and enforcement in T-06 and T-07 applies only
-      when it is 2 or more. Do not otherwise change the top-level key set, check-state.sh's
+      when it is 2 or more. Do not otherwise change the top-level key set, check-state.py's
       CHECKPOINT_KEYS (line 1394) stays the top-level authority.
       In .claude/skills/harness-team/SKILL.md, where the seed is described (around line 54), state
       that a new run seeds schema_version 2 with that literal spelling, list the 22 step keys, and
@@ -494,20 +494,20 @@ tasks:
     traces: [REQ-02, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, check-state.sh is a registered gate script
+    execution_reason: DEC-174 carve-out, check-state.py is a registered gate script
     depends_on: [T-05]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - tests/integration/test-check-state.py
     verify: |
       cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema
       out=$(python3 tests/integration/test-check-state.py) || exit 1
       printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
       printf '%s\n' "$out" | grep -q 'undeclared step key' || exit 1
-      grep -q 'undeclared step key' .claude/skills/harness/bin/check-state.sh || exit 1
+      grep -q 'undeclared step key' .claude/skills/harness/bin/check-state.py || exit 1
     intent: |
-      check-state.sh reports top-level keys outside CHECKPOINT_KEYS (defined line 1394, reported
+      check-state.py reports top-level keys outside CHECKPOINT_KEYS (defined line 1394, reported
       around line 1473). Add the step-level equivalent, reading the same
       .claude/skills/harness/bin/run-state-schema.json as T-06 so the key set exists once.
       The sweep runs the step check ONLY on files whose schema_version is 2 or more. All 356 run
@@ -610,7 +610,7 @@ tasks:
       mechanically in BOTH directions, .omp/agents being the source of record because .claude/agents
       is generated; adequacy_notes is required of every lead, closing issue 37; a run state steps
       entry has a closed 22-key shape plus a governed free-form evidence container, enforced on
-      check-domain.py's write payload path and reported by check-state.sh, gated on schema_version 2,
+      check-domain.py's write payload path and reported by check-state.py, gated on schema_version 2,
       and the creation of a run state.yaml below that version is refused so no new run can opt out,
       while the 356 historical runs at version 1 stay legal and unrewritten; and the stop_hook_active
       passthrough stays open, which is why the message must be one-shot sufficient.

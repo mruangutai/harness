@@ -60,10 +60,10 @@ mutation A's first result, not isolated independently.
 |---|---|---|
 | `grep -n 'docs/harness' .harness/expertise/harness-backend-dev.md` | **1** | no match — clean |
 | `grep -n 'docs/harness' .harness/expertise/harness-documentor.md` | **1** | no match — clean |
-| `bash check-expertise.sh <both files, with args>` | **0** | `OK` on both |
-| `bash check-expertise.sh` (argumentless, as `plan.yaml:927` literally invokes it) | **2** | `usage: check-expertise.sh <file-or-dir> ...` |
+| `python3 check-expertise.py <both files, with args>` | **0** | `OK` on both |
+| `python3 check-expertise.py` (argumentless, as `plan.yaml:927` literally invokes it) | **2** | `usage: check-expertise.py <file-or-dir> ...` |
 
-Confirms the dispatch's source reading exactly: `check-expertise.sh` with no argv exits 2, always,
+Confirms the dispatch's source reading exactly: `check-expertise.py` with no argv exits 2, always,
 regardless of tree state. **T-07's substance holds** — both files are genuinely clean and the
 check, run with its intended arguments, is genuinely green. The plan-text defect (`plan.yaml:927`
 omits the two file arguments) is **cosmetic**: the task's outcome is real and verified independently
@@ -116,7 +116,7 @@ the carve-out routing.
 ## Probe hygiene
 
 All J1/J3 mutations ran via in-memory `exec` or against scratch-directory copies
-(`/private/tmp/claude-501/.../scratchpad/probe-root/`). `check-expertise.sh` (J2) and
+(`/private/tmp/claude-501/.../scratchpad/probe-root/`). `check-expertise.py` (J2) and
 `check-domain.py` (J3 control run) were executed, never edited. `git status --porcelain` at the end
 of this run shows no change to any source, test, or carve-out file — the only new file is this
 note and its paired observations entry, both inside qa's own domain.

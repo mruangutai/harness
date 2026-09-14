@@ -7,7 +7,7 @@ the widening is not the kind of thing `project()` answers. Nothing was re-planne
 
 ## R-01 — confirmed at source, remedy (a)
 
-`grep -n "_st26" .claude/skills/harness/bin/check-state.sh` at `ee66ae2` returns exactly four lines:
+`grep -n "_st26" .claude/skills/harness/bin/check-state.py` at `ee66ae2` returns exactly four lines:
 `1403` (definition), `1404`, `1405` (`_EXPECT`), `1501`. Line `1501` is
 `_accept |= {_st26["review"], _st26["building"]}` and is the only use outside the definition; it sits
 outside the `1495-1500` span T-06 described as unchanged. The reviewer's finding is correct.
@@ -31,7 +31,7 @@ reasons, both recorded in the plan text so the executor can re-derive them:
    stations are acceptable while the feature sits at Review — not a placement rule.
 
 **Importing from `factory_config` was considered and declined.** `_fc26` is already in scope
-(`check-state.sh:1336-1349`), but `station_names` returns the six as an ordered tuple; selecting
+(`check-state.py:1336-1349`), but `station_names` returns the six as an ordered tuple; selecting
 `review` and `building` out of it still spells both words, adding an indirection that checks nothing.
 
 **Third address named.** T-06's deletion bullet now names `1403-1405` *and* `1501`, with the
@@ -54,7 +54,7 @@ grep -rnE "[\"'](Backlog|Plan|Ready|Building|Review|Done)[\"']" \
   .claude/skills/harness/bin/*.py .claude/skills/harness/bin/*.sh | grep -v "/test-"
 ```
 
-**27 lines across 5 files** — `check-state.sh` 11, `gh-sync.py` 9, `board_lifecycle.py` 3,
+**27 lines across 5 files** — `check-state.py` 11, `gh-sync.py` 9, `board_lifecycle.py` 3,
 `check-plan-routes.py` 3, `worktree_terminal.py` 1. Sums to 27.
 
 Both prior figures were hand-carried: the total (26) and the split (13/7) were each wrong, and F-06's
@@ -79,13 +79,13 @@ the 298 s is accepted, not permanent. No GitHub issue was opened.
 
 ## Open questions
 
-- **Q3 (not mine to fix).** `check-state.sh` reports run dir `2026-08-25-03-product` on disk but not
+- **Q3 (not mine to fix).** `check-state.py` reports run dir `2026-08-25-03-product` on disk but not
   recorded in `feature.json`. `feature.json` is outside my writable domain; the orchestrator must
   reconcile it.
 
 ## State at handoff
 
-`check-state.sh` exit 1, with three FEAT-41-relevant violations, all pre-existing and none introduced
+`check-state.py` exit 1, with three FEAT-41-relevant violations, all pre-existing and none introduced
 here: BRIEF not approved (correct — I never sign), `review_sha` not pinned (orchestrator's), and the
 live INV-26 FEAT-40 violation that T-10 exists to close.
 
@@ -93,7 +93,7 @@ live INV-26 FEAT-40 violation that T-10 exists to close.
 
 # Cycle 2 addendum — the fourth address (`:1432`), and the shape closed by name
 
-**Conclusion.** Both halves done. `check-state.sh:1432` is now a **rewrite**, not a deletion, and
+**Conclusion.** Both halves done. `check-state.py:1432` is now a **rewrite**, not a deletion, and
 T-06's deletion is stated **by name** for both identifiers with line numbers demoted to non-binding
 orientation. `test-check-state.py:1655/:1669` need nothing: both sit **inside** T-11's deletion
 extent. Task counts unchanged (13 / 12 `main-session-direct` / 1 `team`); both approvals still
@@ -101,7 +101,7 @@ extent. Task counts unchanged (13 / 12 `main-session-direct` / 1 `team`); both a
 
 ## The occurrence count, measured at `ee66ae2` in this worktree
 
-`grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.sh` → **6 lines**:
+`grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.py` → **6 lines**:
 `_st26` on 4 (1403, 1404, 1405, 1501), `_EXPECT` on 3 (1404, 1432, 1475), line 1404 carrying both.
 The reviewer's enumeration is exact. `:1432` was addressed by nothing.
 
@@ -123,7 +123,7 @@ per-task mapping.
 ## The by-name form — adopted, and why it ends the shape
 
 T-06's first D-11 bullet is rewritten: after the task, **neither identifier may appear anywhere in
-`check-state.sh` — definitions, uses and comments alike**, which is precisely what the last verify
+`check-state.py` — definitions, uses and comments alike**, which is precisely what the last verify
 line already asserts. The verify is therefore the address; the four line spans are demoted to
 orientation and the executor is told to re-derive them. The measured count 6 is written into the
 intent with the instruction: if your own grep returns a different number, dispose of every line it

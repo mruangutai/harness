@@ -1656,10 +1656,10 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.py
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.py --kind all \
-        && bash .claude/skills/harness/bin/check-state.sh
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind all \
+        && python3 .claude/skills/harness/bin/check-state.py
     intent: |
       THIS TASK EDITS NOTHING. Its files list names the two runners it executes, not files
       it modifies. Its deliverable is the two exit codes and the run output, attached to the
@@ -1675,12 +1675,12 @@ tasks:
       checker, and both are named in the issue's own success definition.
 
       RUN, IN THIS ORDER, FROM THE REPOSITORY ROOT, AND BOTH MUST EXIT 0:
-        bash .claude/skills/harness/bin/run-unit-tests.py --kind all
-        bash .claude/skills/harness/bin/check-state.sh
+        python3 .claude/skills/harness/bin/run-unit-tests.py --kind all
+        python3 .claude/skills/harness/bin/check-state.py
       The runner's own usage line records the accepted argument set
       (run-unit-tests.py:23); "--kind all" selects tests/unit/test-*.py plus
       tests/integration/test-*.py, which is every suite in the repository, and the runner
-      exits 2 on a layout violation before it runs anything. check-state.sh takes no
+      exits 2 on a layout violation before it runs anything. check-state.py takes no
       arguments and resolves its own root; 0 means every invariant holds, 1 means
       violations printed, 2 means it could not resolve a root. This is deliberately the
       slowest verify in the plan and it is expected to exceed a minute.

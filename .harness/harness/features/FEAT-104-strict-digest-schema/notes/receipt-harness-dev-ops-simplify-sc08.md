@@ -44,7 +44,7 @@ cost.** Empty findings is the expected and accurate outcome for this angle.
 
 ## Carried forward, not re-raised
 
-Standing Q7 (predicate-spelling residual across `check-domain.py`/`check-state.sh`) — out of scope
+Standing Q7 (predicate-spelling residual across `check-domain.py`/`check-state.py`) — out of scope
 for this delta, already open and accepted.
 
 ## Verification

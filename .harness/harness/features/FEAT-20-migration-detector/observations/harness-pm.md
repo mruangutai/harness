@@ -1,4 +1,4 @@
-- 2026-08-14: FEAT-20 cycle 2. My legacy pattern for check-state.sh was "the join of H then
+- 2026-08-14: FEAT-20 cycle 2. My legacy pattern for check-state.py was "the join of H then
   features then *", read off the commonest site. 15 of 15 discovery sites match
   `os.path.join(H, "features"`; only 13 carry the trailing `"*"` — :95 (os.listdir) and :97
   (feature.json) do not. A detector shipped on the wildcard-shaped pattern would have reported

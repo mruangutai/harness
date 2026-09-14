@@ -120,7 +120,7 @@ decisions:
       DEC-188 is the governing rule and it says so directly: a decision the tree flatly contradicts
       is struck from the record and removed from every gate, not marked stale, not amended, not left
       standing with a marker beside it. DEC-188 also records what was already carried out under it -
-      bin/check-docs.sh deleted, the INV-10 block out of check-state.sh, and the 66 stale-wording
+      bin/check-docs.sh deleted, the INV-10 block out of check-state.py, and the 66 stale-wording
       markers and 14 escape comments gone from the live docs - so a marker task would write into a
       mechanism that no longer exists. Confirmed at 687fd3e of this repository: check-docs.sh is
       absent from the tree.
@@ -638,7 +638,7 @@ tasks:
         root must be a full checkout of this repository, which a bare skills tree is not.
 
       Do not create or delete files in this task. Do not touch check-domain.py, bash-write-guard.py,
-      validate-digest.py or check-state.sh - DEC-174 puts all four outside a team run. There is no
+      validate-digest.py or check-state.py - DEC-174 puts all four outside a team run. There is no
       fifth: check-docs.sh was deleted under issue 202 and DEC-188, it is absent from the tree at
       687fd3e, and it must not be recreated.
 
@@ -927,7 +927,7 @@ tasks:
     intent: |
       Two decisions are falsified by this feature. Record that the way the operator now records it:
       by STRIKING the falsified ruling from the record, not by marking it. The stale-marker
-      mechanism and its checker were removed while this feature was being planned - check-state.sh
+      mechanism and its checker were removed while this feature was being planned - check-state.py
       around line 856 states the replacement rule in full, and DEC-103, DEC-104, DEC-83 and DEC-181
       were each deleted outright rather than annotated. Follow that precedent exactly.
 

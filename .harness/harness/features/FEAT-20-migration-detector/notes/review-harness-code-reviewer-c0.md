@@ -26,10 +26,10 @@ pinned by number in three documents). No violation found:
 - `test-layout-migration.py`: all 16 plan-mandated cases present, unrenumbered, plus case 17
   (D-04/enum-table Q3) and case 18 (exit-code contract for T-02), both correctly appended rather than
   inserted. Fixtures are `tempfile.TemporaryDirectory`-scoped throughout (SC-11).
-- `check-state.sh` INV-27 (`check-state.sh:1256-1319`): imports the two exposed functions, never
+- `check-state.py` INV-27 (`check-state.py:1256-1319`): imports the two exposed functions, never
   shells out to the CLI (confirmed — no `subprocess`/`Popen` reference to `layout_migration.py`
-  anywhere in the block); failed import is `bad.append`ed (`check-state.sh:1267-1271`), never a silent
-  skip; the scan-time exception is separately caught and also appended (`check-state.sh:1273-1278`).
+  anywhere in the block); failed import is `bad.append`ed (`check-state.py:1267-1271`), never a silent
+  skip; the scan-time exception is separately caught and also appended (`check-state.py:1273-1278`).
 - `test-check-state.py` case_x (x.1)-(x.5): covers exactly the five fixtures T-02 mandates (reddens,
   cannot-judge, applicable-clean asserting INV-27 *absence*, no-marker, unimportable).
 - `.github/workflows/tests.yml` Layout gate (`:185-233`): copies the Plan-route gate's full pattern —
@@ -87,7 +87,7 @@ opposite: a count regression here would ship green today (the harness tree is st
 `len(migrated)` is always 0 in practice and the bug is inert) and would first manifest as a **CI
 false-FAIL** — `tests.yml:219-230`'s zero-count branch would misfire "discovery did not run" on a
 tree that is genuinely, correctly CLEAN, once the real repository's evidence shifts from legacy to
-migrated. Session entry (`check-state.sh`) is unaffected either way — INV-27 never reads the counts.
+migrated. Session entry (`check-state.py`) is unaffected either way — INV-27 never reads the counts.
 The exposure window is precisely units 3 through 7 of map #336, the sequence this detector exists to
 protect, and it stays latent until exactly the moment case 1 runs against a migrated real root.
 
@@ -122,7 +122,7 @@ docs/harness/DECISIONS.md, ref: D-03`. No behavior is affected — this is prose
 
 ### F3 (low) — blame-selection logic is duplicated, not shared, across the two call sites
 
-`layout_migration.py:render()` (`:250-256`) and `check-state.sh`'s INV-27 block (`:1291-1295`) each
+`layout_migration.py:render()` (`:250-256`) and `check-state.py`'s INV-27 block (`:1291-1295`) each
 independently recompute "which readers are responsible for a MIXED verdict" from the same
 `SurfaceReport.readers` list, via near-identical but hand-copied list comprehensions (confirmed
 extensionally equal today: for a MIXED surface, `neither`/`unreadable` readers can never appear

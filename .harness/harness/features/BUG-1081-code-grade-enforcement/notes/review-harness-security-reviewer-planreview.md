@@ -74,7 +74,7 @@ fixture — is asserted through the literal `--hook` JSON-stdin path with the ex
 mutation evidence." `DECISIONS.md` and `DECISIONS-INDEX.md` have no entry for `code_grade`/`code-grade`
 grading logic or `FEAT-43`, and `test-code-grade.py` / `test-code-grade-cli.py` contain no reference to
 mutation testing. Mutation testing *is* an established, recorded practice in this repo for
-enforcement-adjacent logic (`DECISIONS.md:4764-4768`: "six mutants were run against `check-state.sh`
+enforcement-adjacent logic (`DECISIONS.md:4764-4768`: "six mutants were run against `check-state.py`
 and six against `check-domain.py`," with the one survivor named and justified) — so the vocabulary is
 real, but no matching record exists for the grading module this feature is about to make authoritative.
 

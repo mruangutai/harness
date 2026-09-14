@@ -33,7 +33,7 @@ which is also what the board's auto-close workflow writes.
 ## Why this replaces the plan rather than amending it
 
 The plan carries `phase` AND `status` as separate schema keys, pins `phase` to
-`check-state.sh:437`'s `PHASE_ORDER = ["plan", "build", "validate", "ship"]`, and adds a test
+`check-state.py:437`'s `PHASE_ORDER = ["plan", "build", "validate", "ship"]`, and adds a test
 asserting the two stay equal as sets. **That test now has nothing to pin, and `PHASE_ORDER` becomes
 dead.** The schema is a different schema and the migration is a different migration.
 
@@ -100,7 +100,7 @@ Measured 2026-08-11.
 
 - **SC-07's prose says "exits non-zero" where its own test asserts exit EXACTLY 3.** The mechanical
   assertion is correct so nothing ships wrong; tighten the wording.
-- `check-state.sh`'s `PHASE_ORDER` becomes dead with `phase`. Remove it, or say why it survives.
+- `check-state.py`'s `PHASE_ORDER` becomes dead with `phase`. Remove it, or say why it survives.
 
 ---
 
@@ -171,7 +171,7 @@ that measured "0 violations at `Plan`" was measuring the stale value being conve
 correctness.
 
 **This generalises and will recur.** Every DEC-174 carve-out feature — anything touching
-`check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-state.sh` — is built
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-state.py` — is built
 main-session-direct and produces no handoff notes. FEAT-15 is the first. **FEAT-17 is already
 planned as main-session-direct and will be the second.**
 

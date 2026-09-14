@@ -64,7 +64,7 @@ doesn't have to re-derive it.
 
 REQ-04 cross-check: DEC-174's ruling paragraph ("A change to the enforcement layer is made
 **directly**…"), its carve-out table, and the naming of the three genuinely-green gates
-(`run-unit-tests.py`, `check-docs.sh`, `check-state.sh`) are unchanged at the pin versus base —
+(`run-unit-tests.py`, `check-docs.sh`, `check-state.py`) are unchanged at the pin versus base —
 confirmed by direct comparison of the full DEC-174 region text, not the hunk alone.
 
 ## Stage 2 — prose quality on a governing record

@@ -80,16 +80,16 @@ severity: info · backlog row after ship · **leave**
   what a fused shim+body would hide); the body owns process orchestration (ship-then-remove,
   self-exclusion, dry-run) that is genuinely per-hook, not shared; the predicate owns
   classification only. Not a pass-through chain.
-- **`core.hooksPath` as an init *procedure* step, not a gated check.** `check-state.sh` (the
+- **`core.hooksPath` as an init *procedure* step, not a gated check.** `check-state.py` (the
   pre-commit gate) has zero references to `hooksPath` or `hooks/post-merge` — confirmed by grep.
   This is a real residual: nothing detects a clone that skipped T-12's manual step or had
   `core.hooksPath` reset later, other than INV-29 catching the *downstream symptom* (a worktree
   still standing) well after the fact, and that symptom-level backstop is explicitly named in
   `harness/SKILL.md:439-442` — "the hook removes the checkout when the merge lands, and
-  `check-state.sh`'s INV-29 REFUSES while a worktree is still standing." So the residual is
+  `check-state.py`'s INV-29 REFUSES while a worktree is still standing." So the residual is
   accepted **with** a compensating control named, just not a control that diagnoses the actual
   cause. Judged not worth a fold-in: adding a `git config --get core.hooksPath` check to
-  `check-state.sh` trades a one-line diagnostic convenience against widening a pre-commit gate's
+  `check-state.py` trades a one-line diagnostic convenience against widening a pre-commit gate's
   scope into git-config auditing, and the existing backstop (INV-29) already makes the failure
   loud rather than silent, which is what the angle's "compensating control named" test asks for.
   Recorded here as a candidate backlog row, not raised as a finding: severity too low to earn

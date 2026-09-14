@@ -49,7 +49,7 @@ right depth or is a briefing-row, not an apply.
 - **File/line:** `.claude/skills/harness/bin/feature_schema.py:324-338`.
 - **Deletion test:** delete `recovery_command_for` and the branching logic (plan status, any-task-done)
   reappears at all three call sites that read it — `gh-sync.py:1362`, `merge-gate.py:143`,
-  `check-state.sh:2011` — so it is earning its keep, not a pass-through.
+  `check-state.py:2011` — so it is earning its keep, not a pass-through.
   Two-or-more real adapters already exist (three call sites), so the seam is real, not
   hypothetical.
 - **Judgment:** `feature_schema.py` already owns the sibling fact (`BUILD_ENTRY_ERA_EXEMPT`) and

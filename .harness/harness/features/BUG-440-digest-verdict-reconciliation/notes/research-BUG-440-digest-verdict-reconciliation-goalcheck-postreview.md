@@ -13,7 +13,7 @@ in the last section.
 
 `git rev-parse HEAD` = `442e0d24b25b92b1223eb18b7d16b3a0ff5b3280`. `git status --porcelain` shows
 only `feature.json`/`plan.yaml` modified and peer `notes/*-c[123].md` untracked. md5 of the working
-tree `check-state.sh` and `test-check-state.py` each equal `git show <pin>:<path>` — the working
+tree `check-state.py` and `test-check-state.py` each equal `git show <pin>:<path>` — the working
 tree **is** the pinned blob for both graded files, so line anchors below are valid at the pin.
 
 ## Per-SC grading
@@ -26,7 +26,7 @@ tree **is** the pinned blob for both graded files, so line anchors below are val
 |SC-04|automated|**MET**|The fixture hashes on **both** sides: `before` at `:4660`, `run(tmp)` at `:4661`, `after` at `:4662`, compared at `:4663`, over `feature.json` plus every `digest.md` collected at `:4657-4659`. The result is bound as the `unchanged` conjunct at `:4694`, not discarded|
 |SC-05|inspection|**MET**|`git show <pin>:.harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md` exits 0. The note exists at the sha, pins the pre-change source `772790be5277`, records the invocation (fenced `sh` block) and the verbatim failing output (`FAIL - BUG-440 INV-37 reconciles digest verdicts without mutation`, `mixed=False`), and closes `RESULT: RED`. No pass is recorded|
 |SC-06|automated|**MET**|`python3 tests/integration/test-check-state.py` from the worktree root: **exit 0, 217 output lines, 0 lines beginning `FAIL`**, and `grep -n FAIL` over the whole output returns nothing (checked, per the runner-accounting gotcha). 73.3s wall. Judged on the literal wording; the 216→217 delta versus the `772790be` baseline is the one added `ok - BUG-440 …` case line at output line 215 — expected, not a failure|
-|SC-07|inspection|**MET**|Four independent checks, all at the pin: **(i)** regexes byte-identical — `grep -o 'r"[^"]*"'` over `check-state.sh:1546,1548` and `validate-digest.py:1155,1160` `diff`s empty; both files carry `r"^\s*VERDICT:"` and `r"^\s*VERDICT:\s*(\S+)"`. `validate-digest.py:1155` is the `anchors = list(...)` line and `:1160` the `m = re.search(...)` line, so the cited span is accurate. **(ii)** comment at `check-state.sh:1545`: `# Keep validate-digest.py:1155-1160's tail-anchor semantics byte-for-byte.` **(iii)** reuse: the region operates on `_dtext`, read once by INV-15 at `:1532`; no `open(` anywhere in `1536-1560`. **(iv)** `grep -cE "PASS\|FAIL\|BLOCKED\|ESCALATE"` over `1536-1560` = **0**|
+|SC-07|inspection|**MET**|Four independent checks, all at the pin: **(i)** regexes byte-identical — `grep -o 'r"[^"]*"'` over `check-state.py:1546,1548` and `validate-digest.py:1155,1160` `diff`s empty; both files carry `r"^\s*VERDICT:"` and `r"^\s*VERDICT:\s*(\S+)"`. `validate-digest.py:1155` is the `anchors = list(...)` line and `:1160` the `m = re.search(...)` line, so the cited span is accurate. **(ii)** comment at `check-state.py:1545`: `# Keep validate-digest.py:1155-1160's tail-anchor semantics byte-for-byte.` **(iii)** reuse: the region operates on `_dtext`, read once by INV-15 at `:1532`; no `open(` anywhere in `1536-1560`. **(iv)** `grep -cE "PASS\|FAIL\|BLOCKED\|ESCALATE"` over `1536-1560` = **0**|
 
 ## The V-04 ruling — it does not defeat SC-01
 
@@ -37,7 +37,7 @@ verdict is which, so an order-blind check satisfies its literal text.
 
 The gap is nonetheless real and worth the operator's eye: the run-id token is the single character
 `M`, and `FAIL`/`PASS` are checked only for presence — transposing the two `!r` fields in the INV-37
-message at `check-state.sh:1550-1553` would ship green. The code reviewer's c3 addendum
+message at `check-state.py:1550-1553` would ship green. The code reviewer's c3 addendum
 (`notes/review-harness-code-reviewer-c3.md:58-68`) adds that c3 dropped c2's `"runs/M"` line filter,
 leaving the six-token check as the only tie to run M. This is a criterion-authoring weakness, not a
 code defect: a stronger SC-01 would have demanded the assertion distinguish the two verdict fields.

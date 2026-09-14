@@ -47,7 +47,7 @@ proposed entry.
 
 File: 27 lines of 150-line budget (was 25).
 
-## check-expertise.sh output (final, verbatim)
+## check-expertise.py output (final, verbatim)
 
 ```
 OK   .harness/expertise/harness-dev-ops.md

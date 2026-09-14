@@ -17,7 +17,7 @@ secret-exposure, or shell-interpolation defect found elsewhere in the diff.
 ## Scope
 
 In scope: `.claude/skills/harness/bin/{run_identity.py (new), check-domain.py, bash-write-guard.py,
-check-state.sh, harness_boundary.py, validate-digest.py}`. `.claude/skills/harness-team/SKILL.md` and
+check-state.py, harness_boundary.py, validate-digest.py}`. `.claude/skills/harness-team/SKILL.md` and
 the touched test files carry no security surface (doctrine text / test fixtures) — read, not audited
 further. Confirmed the file set with `git diff --name-status origin/main...dc0e0313`; no file present
 in the diff falls outside the dispatch's named list.
@@ -26,7 +26,7 @@ in the diff falls outside the dispatch's named list.
 
 All file content read via `git show dc0e0313:<path>`, never the working tree. Behavioral claims below
 were **executed**, not inferred: `.claude/skills/harness/bin/{bash-write-guard.py,check-domain.py,
-harness_boundary.py,run_identity.py,check-state.sh,validate-digest.py}` in this worktree are
+harness_boundary.py,run_identity.py,check-state.py,validate-digest.py}` in this worktree are
 byte-identical to the pinned blobs (`diff <(git show dc0e0313:<path>) <path>`, all six empty) — that
 was verified before any test execution, so running the working copy is running the pinned commit.
 I fed crafted PreToolUse payloads to `bash-write-guard.py` on stdin; the script only parses the
@@ -65,7 +65,7 @@ orchestrator already carries for `.harness/*/features/**`) issues `rm -rf` or `m
 directory under the same feature* — plausible as routine "clean up an old run" tidying, or as a
 confused/prompt-injected agent — and destroys or relocates another run's `state.yaml`, `digest.md`
 **and** the witness that REQ-02's whole detection design depends on, in one call, with no stderr, no
-exit-2, and nothing left for `check-state.sh`'s new INV-36 to report (the directory is gone; INV-36
+exit-2, and nothing left for `check-state.py`'s new INV-36 to report (the directory is gone; INV-36
 only judges directories that still exist). This is the exact Mode-A harm BUG-1305 was opened for —
 one run's durable record destroyed by another write — reached by a route neither REQ-01/REQ-02 nor
 SC-13's four named cases (Bash write-to-name, Bash removal-by-name, Write, Edit) considered, because

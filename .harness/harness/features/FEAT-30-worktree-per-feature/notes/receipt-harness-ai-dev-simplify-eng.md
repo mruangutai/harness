@@ -48,9 +48,9 @@ stated once each" as license to copy identical prose into all three.
   creation; compensating control named explicitly — `dest_for()` is the single destination
   constructor and "makes an illegal destination unrepresentable," so the door's blind spot has
   no reachable exploit path. **Leave.**
-- D-08 (plan.yaml:139-161): accepts that the check-state.sh half of SC-09's baseline only
+- D-08 (plan.yaml:139-161): accepts that the check-state.py half of SC-09's baseline only
   catches VIOLATION lines whose text contains `FEAT-30` — verified against
-  `check-state.sh:1366` (`for m in bad: print(f"  VIOLATION  {m}")`) that violation text is
+  `check-state.py:1366` (`for m in bad: print(f"  VIOLATION  {m}")`) that violation text is
   free-form and not guaranteed to name a feature id, so a code regression could in principle
   surface as an untagged VIOLATION. The compensating control is present but implicit rather
   than named as such: the suite half ("run-unit-tests.py --kind unit and --kind integration ...

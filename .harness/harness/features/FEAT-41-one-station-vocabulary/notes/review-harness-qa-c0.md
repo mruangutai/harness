@@ -12,7 +12,7 @@ the areas the build itself flagged thin (worktree-deletion fallback, plan-write 
 |---|---|---|
 | `run-unit-tests.py --kind unit` | exit 0, 493 PASS, 0 FAIL | **matches**: exit 0, 493 PASS, 0 FAIL |
 | `run-unit-tests.py --kind integration` | exit 0, 797 PASS, 0 FAIL | **disagrees**: exit 1, 1 FAIL script (`test-bash-write-guard.py`), reproduced 2/2 full-suite runs |
-| `check-state.sh` | exit 0, 0 VIOLATION, 0 tracebacks | **matches**: exit 0, 0 VIOLATION, 0 tracebacks (only pre-existing INV-23 notes for FEAT-05/FEAT-43, correctly out of scope) |
+| `check-state.py` | exit 0, 0 VIOLATION, 0 tracebacks | **matches**: exit 0, 0 VIOLATION, 0 tracebacks (only pre-existing INV-23 notes for FEAT-05/FEAT-43, correctly out of scope) |
 
 **F-1 (blocks ship as measured, HIGH, but not attributable to this diff).**
 `test-bash-write-guard.py`'s `"ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes
@@ -101,7 +101,7 @@ required kind carries a null `cmd`.
   `case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation` proves the parsed form
   correctly stops flagging what the old byte comparison over-reported. No gap.
 - **SC-09 / INV-26.** Confirmed directly: `git show 7c02ea4:...FEAT-40.../plan.yaml` carries
-  top-level `status: done`; `check-state.sh`'s full run emits zero `INV-26` lines for any feature.
+  top-level `status: done`; `check-state.py`'s full run emits zero `INV-26` lines for any feature.
 - **SC-01..SC-04, SC-14 — ran each criterion's own stated command verbatim:**
   - SC-01: no code in `.claude/skills/harness/bin` (or anywhere outside `__pycache__`/feature
     history docs) defines `_STATION_KEYS`. **Caveat (info, not blocking):** the literal wording
@@ -144,7 +144,7 @@ DIGEST:
     - { id: SC-06, test: ".claude/skills/harness/bin/test-check-domain.py run_t09 cases T-09 5/6" }
     - { id: SC-07, test: ".claude/skills/harness/bin/test-plan-sign-gate.py" }
     - { id: SC-08, test: ".claude/skills/harness/bin/test-factory-integration.py, test-check-plan-routes.py (both PASS; not independently re-derived reader-count this pass)" }
-    - { id: SC-09, test: "git show 7c02ea4:.../FEAT-40.../plan.yaml + check-state.sh full run — 0 INV-26 lines, verified directly" }
+    - { id: SC-09, test: "git show 7c02ea4:.../FEAT-40.../plan.yaml + check-state.py full run — 0 INV-26 lines, verified directly" }
     - { id: SC-10, test: ".claude/skills/harness/bin/test-gh-sync.py (PASS; not independently re-derived this pass)" }
     - { id: SC-11, test: "run-unit-tests.py both kinds + check-plan-routes.py — MEASURED FALSE: integration exits 1 (F-1)" }
     - { id: SC-13, test: ".claude/skills/harness/bin/test-check-state.py case_24/case_25 series (PASS; not independently re-derived this pass)" }

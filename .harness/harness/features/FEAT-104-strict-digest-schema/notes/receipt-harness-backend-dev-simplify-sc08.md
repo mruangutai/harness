@@ -50,7 +50,7 @@ exists to catch. Recommend keeping it as an accepted, named backlog residual rat
 
 ## Standing carry-forward
 Q7 predicate-spelling residual (3 complete + 2 partial spellings of the strict-schema-version check
-across `check-domain.py`/`check-state.sh`) is already known and accepted — not re-raised here.
+across `check-domain.py`/`check-state.py`) is already known and accepted — not re-raised here.
 
 ## Verification
 Read-only run of `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py` was not

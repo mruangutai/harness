@@ -28,7 +28,7 @@ half-migrated.
 
 | Gate | Result |
 |---|---|
-| `check-state.sh` | exit 0 |
+| `check-state.py` | exit 0 |
 | `check-plan-routes.py` | `0 violation(s) across 8 plan(s)` |
 | `run-unit-tests.py --kind unit` | 75 PASS, 0 FAIL |
 | `run-unit-tests.py --kind integration` | 80 PASS, 0 FAIL |

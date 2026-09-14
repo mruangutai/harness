@@ -22,7 +22,7 @@ briefing's section 2, the fix routes back through a lead, not through an edit he
 - The fail-open is ONE site in ONE file, not four in two: test-check-state.py keeps
   `allok = allok and ok` outside the guard and holds zero `fails += 1` — my own read; correction
   appended to the panel digest — verified-at 8d7b273
-- Expertise: check-expertise.sh exit 0 on all 15 files, per-section counts held, no wipe — my own
+- Expertise: check-expertise.py exit 0 on all 15 files, per-section counts held, no wipe — my own
   run after applying the write-less tier's ops — verified-at 8d7b273
 - cycles_used 4 of 10, runs 14 of 20, both under — feature.json — verified-at 8d7b273
 

@@ -14,7 +14,7 @@ The cause is one line and the fix is one line. Both are measured below, not infe
 ## F-01 — the blocker: FEAT-54's own CI gate step fails on every clone GitHub makes
 
 The `Repository-state gate` step (added post-review as B-5, main-session-direct) runs
-`check-state.sh` and exits on its status. On a CI checkout that checker reports exactly one
+`check-state.py` and exits on its status. On a CI checkout that checker reports exactly one
 violation:
 
 ```
@@ -30,7 +30,7 @@ and it is not a pre-existing condition: PR #1275 merged four steps ago without t
 **Measured, two arms, in a fresh `git clone` of the branch at `91495a60` (`/tmp/feat54-ci-probe`,
 CI's own conditions):**
 
-| Arm | `core.hooksPath` | `check-state.sh` | Violations |
+| Arm | `core.hooksPath` | `check-state.py` | Violations |
 |---|---|---|---|
 | 1 — as CI runs it | unset | **exit 1** | 1 — INV-31, and nothing else |
 | 2 — remedy applied | `.claude/skills/harness/hooks` | **exit 0** | 0, over 877 rows |

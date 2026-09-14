@@ -133,13 +133,13 @@ Both MEASURED directly by me this cycle, not adopted from c10.
   my grading this cycle.
 - **F1/F2/F3** — **carried as previously disposed**: F1/F3 stay CLOSED (closed by execution at
   c10, nothing in this cycle reopens them). F2's DECLINED disposition **stands** — I confirm
-  `check-state.sh` is not in the `790023f0..984bd26b` delta (2 files only, neither is
-  `check-state.sh`), so the topology F2 was declined against is unchanged.
+  `check-state.py` is not in the `790023f0..984bd26b` delta (2 files only, neither is
+  `check-state.py`), so the topology F2 was declined against is unchanged.
 - **Standing residual — "schema guards argued fail-closed, not mutation-proven"** — **partially
   strengthened, not closed**. For the specific step-schema guard in `check-domain.py` touched
   this cycle, I directly measured three live discriminating cases (missing-required, undeclared,
   and my own Q14 declared-type probe) against the real binary — genuine execution evidence, not a
-  self-report. I did **not** extend this to `validate-digest.py`'s or `check-state.sh`'s guards
+  self-report. I did **not** extend this to `validate-digest.py`'s or `check-state.py`'s guards
   this cycle (both untouched by the c11 delta), so the residual **carries** for those two files
   unchanged.
 
@@ -167,9 +167,9 @@ DIGEST:
     - { id: Q9, area: code, severity: unrated-by-me, status: carried-unchanged, note: "validate-digest.py untouched this cycle" }
     - { id: CF-2, area: contested, severity: med, status: carried-unchanged, note: "subject file outside the 2-file c11 delta" }
     - { id: F1, area: code, severity: n/a, status: closed, note: "closed by execution at c10" }
-    - { id: F2, area: code, severity: n/a, status: declined-stands, note: "check-state.sh topology confirmed unchanged this cycle" }
+    - { id: F2, area: code, severity: n/a, status: declined-stands, note: "check-state.py topology confirmed unchanged this cycle" }
     - { id: F3, area: code, severity: n/a, status: closed, note: "closed by execution at c10" }
-    - { id: "residual: schema guards fail-closed, not mutation-proven", area: code, severity: info, status: carried-partial, note: "strengthened for check-domain.py's step guard (3 live probes this cycle); still unproven for validate-digest.py and check-state.sh guards, both untouched this cycle" }
+    - { id: "residual: schema guards fail-closed, not mutation-proven", area: code, severity: info, status: carried-partial, note: "strengthened for check-domain.py's step guard (3 live probes this cycle); still unproven for validate-digest.py and check-state.py guards, both untouched this cycle" }
   severity_max: med
   open_questions: []
   files_touched: []

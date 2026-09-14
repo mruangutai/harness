@@ -94,7 +94,7 @@ stop, and claiming more would overclaim one observation.
   keep 10.0s, so the registry's LOCKED branch is now materially easier to reach than when this was
   written.
 - Q6 **NOT blocking, backlog.** `RUNS_AGENT_EXEMPT` was hand-fixed for two features; the suite
-  asserts the map's MECHANISM, never its COVERAGE. Pre-existing and NOT mine: `check-state.sh`'s one
+  asserts the map's MECHANISM, never its COVERAGE. Pre-existing and NOT mine: `check-state.py`'s one
   violation is FEAT-26's unapproved BRIEF, still the only violation as of this session.
 - Q7 **NOT blocking, ANSWERED.** No `DECISIONS-INDEX.md` row governs what re-opens a signature. pm:
   it deserves an entry as FOLLOW-UP, not folded into T-13.

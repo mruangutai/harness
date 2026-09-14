@@ -28,7 +28,7 @@ after the pin. Working tree clean; nothing written outside this note.
 | SC-03c validator-lead digest | met | read | not a declared step output; run-scoped by run id per `SKILL.md:110-111` ("a new run directory") |
 | SC-03d **superseded record survives a re-run** | **unmet-unproven** | grepped both new test files for `supersed\|overwrit\|survives` | no match. Only the token-presence proxy exists |
 | SC-04 | met | `_inv32_run` over three fixtures + the D-13 marker mutant applied to the refusing fixture | open `high` → `VIOLATION INV-32: ... remains open without an operator overrule`; resolved → no INV-32 line; overruled → no INV-32 line. Mutant (INV-32 region cut between `# INV-32 BEGIN (FEAT-45 T-07)` / `END`): real gate `INV-32 present = True`, mutant `False`, no traceback |
-| SC-05 attribution/date half | met | fixtures with `who: ""` and with `date` absent | both give `VIOLATION INV-32: ... ruling for PF-bbbbbbbb is unattributed or has an invalid date.` (`check-state.sh` INV-32 line 26) |
+| SC-05 attribution/date half | met | fixtures with `who: ""` and with `date` absent | both give `VIOLATION INV-32: ... ruling for PF-bbbbbbbb is unattributed or has an invalid date.` (`check-state.py` INV-32 line 26) |
 | SC-05 **"names which is which"** | **unmet-behaviour** | fixture: two `high` findings, `PF-aaaaaaaa` resolved + `PF-bbbbbbbb` overruled | check-state prints **zero** lines mentioning `FEAT-INV32` or `PF-`. Both dispositions read identically (silence) — the criterion's stated falsifier |
 | SC-06 | met | `test-plan-panel.py` case 5 + `git ls-tree c745d3a:.omp/agents` / `:.claude/agents` | 16 and 16. Content checked: `git diff --name-status <base> c745d3a -- .omp/agents .claude/agents` shows only `M harness-validator-lead.md` — no add, no delete, membership unchanged |
 | SC-07 | met | `_inv32_basic_checks[0]`, re-run directly | `panel_marker=False` → rc 1, `INV-32: FEAT-INV32 plan is approved with no complete panel result recorded.` |
@@ -55,7 +55,7 @@ after the pin. Working tree clean; nothing written outside this note.
 
 ## The two open rows
 
-- **SC-05 — `unmet-behaviour`, engineering lane.** `check-state.sh`'s INV-32 region emits nothing for
+- **SC-05 — `unmet-behaviour`, engineering lane.** `check-state.py`'s INV-32 region emits nothing for
   a resolved finding and nothing for an overruled one, so its output cannot tell them apart. The
   *record* does distinguish them (`disposition: resolved` + `resolved_by` versus an
   `approval.rulings` entry carrying `who`/`date`), so **REQ-08 is delivered** — it is the criterion's

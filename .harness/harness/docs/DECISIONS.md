@@ -1284,7 +1284,7 @@ building answers a question nobody is asking.
 2. **Instrumentation becomes mandatory, not optional.** You cannot monitor what you do not log. Cost
    logging was item 4 on the deferred list; as the post-build signal it is now a **build requirement**,
    and it must exist before the first real `kaya-ai` run rather than after.
-3. **The entire deferred fix list comes back into scope** — `check-state.sh`, the DIGEST validator,
+3. **The entire deferred fix list comes back into scope** — `check-state.py`, the DIGEST validator,
    expertise governance, touchpoint batching, the five lost GAPs. They were deferred *pending the org
    decision*; the decision is made, so they are now the work that makes the org function.
 4. **The risk the pilot gate was hedging is accepted knowingly:** 15 agent definitions get written against a
@@ -1391,7 +1391,7 @@ just written.
 |---|---|---|
 | `inject-expertise.py` | `SubagentStart` hook — injects an agent's Expertise as `additionalContext` | Emits correct JSON for a harness agent; **emits nothing** for non-harness agents; always exits 0 so it can never block a spawn |
 | `check-domain.py` | `PreToolUse` guardrail — blocks out-of-domain writes with `exit 2` | 5/5 cases: in-domain allowed · out-of-domain blocked · own Expertise allowed (DEC-87) · shared path allowed **with a warning** · second agent's domain allowed |
-| `check-state.sh` | Deterministic orchestrator-invariant checker, 9 invariants | Run against this repo: correctly found the two real gaps (no BRIEF, no settings.json), and the settings violation cleared once `settings.json` was written |
+| `check-state.py` | Deterministic orchestrator-invariant checker, 9 invariants | Run against this repo: correctly found the two real gaps (no BRIEF, no settings.json), and the settings violation cleared once `settings.json` was written |
 | `validate-digest.py` | Normative DIGEST schema validator | Catches `VERDICT: PASSED`, `severity_max: medium`, `matrix_ok: "mostly"`, `must-fix` vs `must_fix`, and `open_questions` as a count |
 
 **Design choices worth recording:**
@@ -1400,7 +1400,7 @@ just written.
   that has not run `/harness-init` would be worse than not enforcing. It also fails open on an unparseable
   payload — a hook that blocks on its own parse failure breaks every write the moment the payload shape
   changes.
-- **`check-state.sh` exits 1, not 2.** It gates the *orchestrator*, not a tool call; the exit-2 rule
+- **`check-state.py` exits 1, not 2.** It gates the *orchestrator*, not a tool call; the exit-2 rule
   applies only to `PreToolUse` hooks.
 - **`validate-digest.py` refuses to pass an unknown persona.** Silently accepting an unrecognized agent's
   return would defeat the point.
@@ -1712,7 +1712,7 @@ at all**, with nothing to report it — fail-open and silent, the failure class 
 
 1. **The §0a template now shows all three**, with a note that `PreToolUse` carries no agent-name matcher
    deliberately — one global registration serves all 15 and the script dispatches on `agent_type`.
-2. **`check-state.sh` INV-9 now verifies it**, so an omission is caught at every `/harness` entry rather
+2. **`check-state.py` INV-9 now verifies it**, so an omission is caught at every `/harness` entry rather
    than discovered when an agent writes somewhere it should not. Verified by deleting the entry and
    confirming the violation fires.
 
@@ -1742,9 +1742,9 @@ under `.claude/skills/harness/templates/`, and three deterministic merge scripts
 
 The task-12 spec said two incompatible things: artifact #4 said init **never marks the brief approved**,
 while interview step 3 said the goal is signed before anything runs and the first Done-when required
-`check-state.sh` to pass.
+`check-state.py` to pass.
 
-Run against a fixture, `check-state.sh` exits **1** on a pending brief (`BRIEF.md is NOT approved — halt`)
+Run against a fixture, `check-state.py` exits **1** on a pending brief (`BRIEF.md is NOT approved — halt`)
 and **0** on an approved one. So the two lines could not both hold, and the pending reading would have
 shipped an onboarding step that leaves every project halted.
 
@@ -2770,7 +2770,7 @@ loop, the routing table for lead returns, both budgets with the exhaustion seque
 round-trip's middle leg, and the §10.3 briefing procedure.
 
 **Three doors, relay protocol central.** `/harness` carries the whole main-session protocol —
-gate on `check-state.sh`, approvals, background spawn, the status-routed relay table, `logs/`
+gate on `check-state.py`, approvals, background spawn, the status-routed relay table, `logs/`
 appends. `/harness-plan` and `/harness-ship` are thin: read `/harness`, apply a mission and a
 terminus (one PLAN+prototype approval; the CEO briefing). Same 2+-agents-share-one-copy rule as
 DEC-126. `/harness-debug` deliberately does not exist — debugging is on-demand, not a stage.
@@ -3267,7 +3267,7 @@ out-of-band. `expertise_update: []` is the normal DIGEST on every other run.
 
 **Format is now mechanical, not advisory:** entries are WHEN/DO rules or durable repo facts, ≤50
 words, no FEAT/T/issue tokens, no nested bullets or instance lists; four canonical sections only;
-150-line file budget. `bin/check-expertise.sh` enforces it (exit 1 with per-violation report), and
+150-line file budget. `bin/check-expertise.py` enforces it (exit 1 with per-violation report), and
 `inject-expertise.py` hard-truncates at 150 lines with a loud in-context warning, so one bloated
 file can never again silently tax every spawn. `merge` is redefined: the result may be no longer
 than the longer input — appending an instance is `add` wearing a costume.
@@ -3519,7 +3519,7 @@ citations, and assessment reasoning go in `digest.md`; the step entry records on
 they justify. Test: a value that must be read rather than matched is in the wrong file.
 
 Mechanized at DEC-156 (leads kept padding — the FEAT-02 audit found ad-hoc prose keys in all
-15 run checkpoints): check-state.sh INV-16 now whitelists top-level state.yaml keys and rejects
+15 run checkpoints): check-state.py INV-16 now whitelists top-level state.yaml keys and rejects
 duplicates.
 
 ## DEC-155 — Members run on their pinned model; a lead override is an escalation, not a parameter
@@ -3576,10 +3576,10 @@ Same answer as DEC-122 — prose guarding a contract is unenforceable, a script 
   resolved from the hook's vantage (worktrees, cwd drift), it passes through LOUDLY and the sweep
   below catches it — fail-open-with-signal, per the hook's own precedent, because blocking on our
   resolution bug would wedge legitimate leads.
-- **check-state.sh INV-15:** for every run with `status: complete` and a lead host, `digest.md`
+- **check-state.py INV-15:** for every run with `status: complete` and a lead host, `digest.md`
   must exist and pass `validate-digest.py lead` — the deterministic backstop that runs from repo
   root and cannot be fooled by cwd.
-- **check-state.sh INV-16 (mechanizes DEC-154):** run state.yaml top-level keys must come from
+- **check-state.py INV-16 (mechanizes DEC-154):** run state.yaml top-level keys must come from
   the checkpoint whitelist (seed fields + loop fields + pins), and no key may repeat. Prose keys
   (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection with their routing:
   digest.md.
@@ -3634,7 +3634,7 @@ the floor. Revisit if run records gain a `rework_of:` marker.
 **Runs are counted too, informationally — INV-22.** Counting rework alone leaves a feature's length
 unmeasured, and that gap is not theoretical: with first-pass runs contributing zero, FEAT-03 ran
 **19 times against a 6-cycle count** and tripped nothing, and cost — the other long-feature signal —
-no longer exists (DEC-178). `check-state.sh` INV-22 notes `len(runs)` against
+no longer exists (DEC-178). `check-state.py` INV-22 notes `len(runs)` against
 `budgets.max_total_runs` (default 20, from a measured range of 1-19 across nine features).
 **Informational, never a gate** — the exit code is identical over and under, and a fixture asserts
 that. A high run count is not a defect: a long feature is fine when each run is efficient, resolves
@@ -3771,7 +3771,7 @@ nothing may ever require it, or a crash becomes unrecoverable.
 **Enforcement, the digest pattern (DEC-156) pointed at a new artifact:** the DEC-150 write-time
 shape gate demands all five sections and the 60-line whole-file cap, and validates the `## Done
 when` block's shape, pointer grammar, and target resolution while the author is still alive to fix
-it. `check-state.sh` INV-17 demands all five sections except from the frozen baseline of notes that
+it. `check-state.py` INV-17 demands all five sections except from the frozen baseline of notes that
 predate this contract; whenever the fifth section is present, INV-17 checks its shape and pointer
 grammar but never re-resolves a target.
 
@@ -3817,7 +3817,7 @@ heaviest premise, dead ends with pointers, a validated `## Next`. Three findings
    run violated INV-16 within hours (`lead_checks:`, top-level `note:`) — the entry-time sweep
    reports but demonstrably does not deter. check-domain.py now denies a run state.yaml Write
    carrying non-whitelisted or duplicate top-level keys, same pattern as feature.yaml/STATE.md/
-   handoffs. The whitelist is deliberately duplicated in check-state.sh (INV-16) and
+   handoffs. The whitelist is deliberately duplicated in check-state.py (INV-16) and
    check-domain.py, cross-referenced by comment — two scripts, no shared import, files-only.
 3. **INV-18: run dirs without feature.yaml.** FEAT-03's whole plan phase ran before feature.yaml
    existed, during which INV-8/12/17 had nothing to key on — a feature can complete a phase
@@ -3869,7 +3869,7 @@ invisible consequence.
 null runner matters exactly when its surface view is more than a self-scoped-out stub (a CLI with
 no `ui` runner is fine; a web app with none is not). Three surfacings, one per audience:
 
-- **check-state.sh INV-20** (warn-level, INV-14's level — flows still run): a null kind whose
+- **check-state.py INV-20** (warn-level, INV-14's level — flows still run): a null kind whose
   mapped surface exceeds a stub is reported at every `/harness` entry, naming the kind, the view,
   and both remedies. Verified: fires on exactly kaya's three, silent on the two with runners.
 - **BRIEF `## Verification gaps`** (`harness-brief`): pm may never rest an SC on a null kind — that
@@ -4182,7 +4182,7 @@ the scanner dropped an entire run from `runs` on a legal trailing `# comment`. E
 DEC-101 stands; only the dependency clause is reversed. The wider files-only constraint in CLAUDE.md
 also stands — no CLI, no build step, no template generator.
 
-**What forced it.** Issue #11: `check-state.sh`'s run parser is a three-line regex,
+**What forced it.** Issue #11: `check-state.py`'s run parser is a three-line regex,
 `id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)`. Because `\s*\n` admits only whitespace
 after the `id:` and `squad:` captures, a trailing `# comment` — legal YAML, and the house style on
 45 lines of `FEAT-03-subissue-mirror/feature.yaml` — makes the match fail and drops the **entire
@@ -4193,7 +4193,7 @@ one author who hit it wrote the warning into the data file instead of fixing the
 beside FEAT-03's `squad:` line, which went away with the YAML file itself under DEC-191.
 
 **Why the line scanner was always going to lose.** This defect shape is documented repeatedly in-tree,
-and #11 is not its first appearance. `check-state.sh:105-107` names two priors in its own comment —
+and #11 is not its first appearance. `check-state.py:105-107` names two priors in its own comment —
 the digest parser (DEC-123) and INV-4 (DEC-129), both single-format bugs — alongside DEC-101's own
 INV-12 false positive the first time a real orchestrator wrote block-form YAML. Separately,
 `validate-digest.py:247-272` documents **five** hand-patches of the same class, one of which (F4) is
@@ -4233,7 +4233,7 @@ inside the tool, and it expires by construction rather than by anyone rememberin
 
 **Two hazards for the implementer, both real:**
 
-- **`safe_load` returns typed values; the regex returned strings.** `check-state.sh:120` is
+- **`safe_load` returns typed values; the regex returned strings.** `check-state.py:120` is
   `cu.isdigit()` on `cycles_used` — an `int` under `safe_load`, and `.isdigit()` on an `int` raises.
   Every consumer of a parsed value must be walked for str-assumptions.
 - **A bare date-shaped scalar becomes a `datetime.date`.** Run ids like `2026-07-31-01-product` carry
@@ -4348,7 +4348,7 @@ be using harness to build harness."* Substantially accepted, with the boundary d
 full claim.
 
 **The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.py`, `check-docs.sh` and
-`check-state.sh` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
+`check-state.py` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
 all: `--check` was never a supported mode. Before argv validation landed at `ffbdbfa1` (2026-08-05),
 an unrecognized argument fell through to the WRITE path, so that exit 0 was a regeneration of
 `DECISIONS-INDEX.md` that overwrites exactly the drift a check would have reported; it could not
@@ -4375,7 +4375,7 @@ while its own manifest is unparseable is not checking itself.
 |---|---|---|
 | grilling, BRIEF, PLAN, review panel, goal-check | **yes, keep it** | none of it depends on the code being changed; FEAT-05's grilling and plan were good work and caused none of the day's trouble |
 | agent roles, digests, expertise | yes | drift risk, not circularity |
-| **hooks, validators, gate scripts** (`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh`) | **NO** | the artifact under change is the artifact doing the checking |
+| **hooks, validators, gate scripts** (`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py`) | **NO** | the artifact under change is the artifact doing the checking |
 
 Everything painful on 2026-08-03 sits in the third row: which copy of `check-domain.py` a hook fires,
 whether DEC-173 governs any agent, whether 13 edited agent templates are even live, and a fail-closed
@@ -4406,7 +4406,7 @@ work. The user considered stopping self-hosting entirely and chose the carve-out
 stays available and is a stage question, not a correctness one.
 
 **The enforcement layer, enumerated:** `check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.py`, **and the test
+`validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py`, **and the test
 file of each.** The category in the table above governs and the list only records it — a script joins
 on the day it becomes a gate, and this entry is updated when that happens.
 `check-plan-routes.py` is a gate because DEC-183 made it a step of the required `integration` CI job;
@@ -4629,7 +4629,7 @@ per-model rate table to re-verify. It goes: the meter, the `cost_model` and `bud
 INV-11, the digest field, and every rule surface that told an agent to produce a number.
 
 **The DEC-148 context watchdog is knowingly DROPPED with the file it lived in** — not preserved as a
-standalone script, not folded into `check-state.sh`, not deferred. Its reason: the watchdog's only
+standalone script, not folded into `check-state.py`, not deferred. Its reason: the watchdog's only
 behavioural consequence was to argue for ending an orchestrator's run at a phase boundary, and DEC-159
 now makes one-phase-per-orchestrator mandatory regardless of any measurement. The diagnostic no longer
 decides anything, so keeping it would cost maintenance to produce advice already hard-coded. This
@@ -4643,7 +4643,7 @@ correction lands as a rewrite of DEC-148's hand-written ruling in `DECISIONS-IND
 **Historical figures are LEFT IN PLACE as the only surviving record.** `cost_usd`/`max_cost_usd` in
 already-shipped `feature.yaml` files and the `cost:` block in every run `state.yaml` are not scrubbed:
 deleting them would rewrite what was measured. The mechanical consequence is that `cost` stays in
-`check-state.sh`'s `CHECKPOINT_KEYS` — allowed, never required. Measured: all 67 run `state.yaml` files
+`check-state.py`'s `CHECKPOINT_KEYS` — allowed, never required. Measured: all 67 run `state.yaml` files
 in this repo carry the block, and the checker flags any top-level key not in that set, so removing the
 entry would convert 67 historical runs into 67 violations in a single edit. The entry looks dead after
 this feature and is not; a comment beside it says so.
@@ -4828,7 +4828,7 @@ with five more, both predating the gate. Making those halt `/harness` entry woul
 backstop into an unrelated cleanup that has to land first. The write-time gate is the one with teeth.
 
 **The duplication this creates now has a drift detector, because it doubled.** Before this change one
-number — the handoff cap of 60 — appeared in both `check-domain.py` and `check-state.sh`. Now 200, 120,
+number — the handoff cap of 60 — appeared in both `check-domain.py` and `check-state.py`. Now 200, 120,
 20 and 60 do, alongside the checkpoint vocabulary and the four handoff headings. The mechanisms stay
 separate by D-02 (one measures a payload, the other a file); what is not deliberate is the two drifting
 apart in silence, where one blocks at 201 and the other warns at 251 and no reader can tell which is
@@ -4846,10 +4846,10 @@ with the code is how a reader concludes an entry is spurious and deletes it.
 
 
 
-**Carve-out compliance.** `check-domain.py`, `check-state.sh` and their tests are DEC-174 files: this
+**Carve-out compliance.** `check-domain.py`, `check-state.py` and their tests are DEC-174 files: this
 landed as direct main-session edits with tests run explicitly and a human reading the diff, never
 through a team run whose gates are the thing being changed. Six mutants were run against
-`check-state.sh` and six against `check-domain.py`; five of the latter were caught and the sixth —
+`check-state.py` and six against `check-domain.py`; five of the latter were caught and the sixth —
 removing the `--post` argv blanking — was **not**, which is recorded in the code as the line being
 defensive rather than load-bearing instead of being papered over with a test that cannot detect it.
 
@@ -4895,7 +4895,7 @@ pattern is anchored `^CLAUDE\.md$` and this tree has exactly one.
 
 INV-23 sweeps it from disk at `/harness` entry as the backstop, at warn level, exactly as for the four
 state files. That makes `CLAUDE.md`'s budget the **fourth** number duplicated across `check-domain.py`
-and `check-state.sh`, so it joins `test-check-state.py` case (o) — the drift detector — in the same
+and `check-state.py`, so it joins `test-check-state.py` case (o) — the drift detector — in the same
 commit that duplicates it, rather than in a later one nobody writes.
 
 
@@ -4904,7 +4904,7 @@ commit that duplicates it, rather than in a later one nobody writes.
 ## DEC-182 — The plan is `plan.yaml`, real YAML loaded with `safe_load`, and nothing in it is prose for a human
 
 `PLAN.md` was markdown that LOOKED like YAML. No parser could use a YAML library, so three
-scripts hand-rolled regexes against it — `check-plan-routes.py`, `check-state.sh` (INV-3/4/5),
+scripts hand-rolled regexes against it — `check-plan-routes.py`, `check-state.py` (INV-3/4/5),
 `gh-sync.py` — plus the team runner via `teams/build.yaml`. Each invented its own rule for what a
 value may contain, and nothing reconciled them.
 
@@ -4977,7 +4977,7 @@ budget's clothes. `intent:` is excluded from the count because it is READ. Enfor
 that conflation was mine and the user caught it. `feature.yaml` 200/20 and `CLAUDE.md` 80 are
 budgets; `state.yaml`'s 23-key whitelist is a VOCABULARY with no cap at all; `STATE.md` and the
 handoff note are both. A `plan.yaml` check there would be a PARSE check, a third thing — and
-`check-plan-routes.py` already refuses a malformed plan BEFORE signature, with `check-state.sh`
+`check-plan-routes.py` already refuses a malformed plan BEFORE signature, with `check-state.py`
 refusing it again at entry. A third enforcement point bought nothing and cost two entries in two
 pattern lists that had already drifted once during this very change.
 
@@ -4999,7 +4999,7 @@ Existing issues are not rewritten, so the corpus is mixed.
 **The venue is CI, and the step goes INSIDE the `integration` job.** Branch protection requires
 exactly that one context, and it is the job's ID — the job carries no `name:` key. A job of its own
 would emit a context nobody requires, which is the defect being closed rather than a fix for it, and
-adding a `name:` renames the context and blocks every PR forever. `check-state.sh` was rejected on
+adding a `name:` renames the context and blocks every PR forever. `check-state.py` was rejected on
 WHO MAY WRITE IT, not on merit: it is a DEC-174 carve-out, so an invariant there forces a
 main-session-direct edit for every future adjustment. Both venues together was refused — DEC-182
 turned down a third enforcement point one PR earlier.
@@ -5165,7 +5165,7 @@ already runs. There is no honest `functional.cmd` here, so the requirement is re
 `status: excluded`.
 
 **The kind is retained, not deleted, and that is load-bearing.** Three DEC-163 surfacings trigger on
-the key existing with a null `cmd`: INV-20 in `check-state.sh`, pm's `## Verification gaps` block,
+the key existing with a null `cmd`: INV-20 in `check-state.py`, pm's `## Verification gaps` block,
 and the init interview's null-kind loop. Deleting a kind silences all three — it goes past the soft
 skip DEC-36 forbids, to no record at all. `upgrade-config.py`'s additive merge also re-adds a deleted
 key wholesale from the template, stale placeholder reason included, while a narrowed `always` list
@@ -5195,7 +5195,7 @@ gate**. Not marked stale. Not amended. Not left standing with a marker beside it
 
 The propagation checker and the invariant that enforced it are struck, and DEC-181 keeps only its
 budget rule: the half that put `CLAUDE.md` into the checker's scan roots went with the checker.
-`bin/check-docs.sh` is deleted, the INV-10 block is out of `check-state.sh`, and the 66
+`bin/check-docs.sh` is deleted, the INV-10 block is out of `check-state.py`, and the 66
 stale-wording markers and 14 escape comments are gone from the live docs.
 
 **What forced it was the mechanism's own failure mode.** A change contradicted a passage in DEC-165.
@@ -5362,7 +5362,7 @@ to it was inventing the format afresh.
 write-payload path, which is already the place every write to this file passes through, plus the
 required integration job in CI so that a write made outside a hooked session is still caught before
 merge. Two alternatives were declined, one clause each: **`bash-write-guard`** sees a command line,
-not a payload, so it cannot validate content; **a `check-state.sh` sweep** runs after the fact, and
+not a payload, so it cannot validate content; **a `check-state.py` sweep** runs after the fact, and
 an invalid file that already landed has already been read by something.
 
 **The rejected alternative a future scan will re-suggest: a typed `notes` array.** Declined. A
@@ -5442,7 +5442,7 @@ three divergences between the two write routes survive deliberately:
 **`check-domain.py --resolve` answers from inside an out-of-place worktree even though the hook now
 refuses writes there.** The resolver exits before session governance is computed and writes nothing,
 so refusing there would make the planning tool unusable from the very tree an operator must stand in
-to diagnose the problem. `check-state.sh`'s INV-25 reports such a tree at session entry as a FAILURE
+to diagnose the problem. `check-state.py`'s INV-25 reports such a tree at session entry as a FAILURE
 rather than a warning, and that is the loud signal instead.
 
 **The evidence, and the wording matters because half of the original evidence was overtaken.**
@@ -5483,7 +5483,7 @@ closed here.
 
 **Failure is judged per coupled surface, never tree-wide.** Two surfaces exist. FEATURES, whose
 coupled readers are `team-config.yaml`'s write grants, `check-domain.py`'s `SWEEP_GLOBS` and shape
-regexes, `check-plan-routes.py`'s discovery join and `check-state.sh`'s discovery globs. DOCS, whose
+regexes, `check-plan-routes.py`'s discovery join and `check-state.py`'s discovery globs. DOCS, whose
 coupled readers are `factory_config`'s probe, `harness_boundary`'s control-plane entry and
 `gen-decisions-index`'s docs directory. The two surfaces carry no ordering tie between them, so a tree
 with one migrated and the other not is a sanctioned state and passes.
@@ -5499,7 +5499,7 @@ its verdict.
 names a reader whose form-set is defective (both, neither, unreadable) or whose form disagrees with a
 single evidence shape, and every reader when a MIXED surface has no such individual; a named reader
 carries the form it matched, because finishing a reader and reverting one are opposite remedies and
-must not arrive as the same line. Both call sites — `render()` for CI and `check-state.sh`'s INV-27 at
+must not arrive as the same line. Both call sites — `render()` for CI and `check-state.py`'s INV-27 at
 session entry — render that list WHOLE, on every verdict that is not clean, with no per-cause or
 per-form filtering at either site. Filtering is what produced two divergences in one day, so the rule
 is stated as an absence: there is no second place where naming is decided. Not every finding names a
@@ -5513,7 +5513,7 @@ and labelling causes reader-less is the thinking that invites per-cause filterin
 form agreement, never per-site completeness: it answers whether a file speaks one layout language and
 the same one its evidence speaks, not whether every site inside it was updated. A legacy pattern is
 therefore written as the weakest fragment every stale site necessarily contains, audited against the
-real file rather than inferred from the commonest site. An earlier draft specified `check-state.sh`'s
+real file rather than inferred from the commonest site. An earlier draft specified `check-state.py`'s
 legacy form with a trailing wildcard and would have missed the two discovery sites that carry none,
 reporting a clean tree with two dead call sites.
 
@@ -5549,7 +5549,7 @@ falsifies all of them at once. Detection was preferred to an unenforced obligati
 **Applicability is declared by `.harness/factory/fleet.yaml`, never by the checker's own path.** The
 fleet declaration is the one file only the control plane carries — products are declared IN it, never
 holders OF it — so applicability and segment authority come from the same fact. Keying applicability
-to a marker at `check-state.sh`'s own path is wrong by construction, and was measured so:
+to a marker at `check-state.py`'s own path is wrong by construction, and was measured so:
 `harness-init` installs the whole `bin/` — marker included — into product repositories, so every
 onboarded product became "applicable", held layout evidence of neither shape, and reported CANNOT
 VERIFY at exit 1 forever, which onboarding's own exit-0 requirement cannot survive.
@@ -6473,7 +6473,7 @@ the one plan run and its findings are applied there, not routed to the signature
 that survives — the code-reviewer's plan-target binding, `reviewed: plan:<path>` with
 `code_grade: n_a`, accepted only while the plan is pending with no pinned `review_sha`.
 
-**DEC-207's number is retired, not reused.** `validate-digest.py`, `check-state.sh` INV-6,
+**DEC-207's number is retired, not reused.** `validate-digest.py`, `check-state.py` INV-6,
 `feature-schema.json` and their tests cite it for that binding, and DEC-209 and DEC-216 cite it here.
 
 ## DEC-208 — A run's own record is enforced, not expected: an empty return is refused, a feature artifact is bound to its worktree on both governed write routes, a recorded digest cannot be replaced, and a lead's digest is resolved in the checkout the lead runs in
@@ -6726,14 +6726,14 @@ about 36.7 seconds. These observations explain the policy but do not replace its
 widening `config`'s `always` to unconditionally require `integration` (over-broad — a config VALUE
 edit, e.g. bumping a budget number, has no consumer blast radius and gains nothing from a forced
 integration run); inventing new test infrastructure (unnecessary — `test-check-state.py` already
-forks the real `check-state.sh` against a real `.harness/harness.json` fixture, and
+forks the real `check-state.py` against a real `.harness/harness.json` fixture, and
 `test-factory-integration.py` already forks `board_lifecycle.py` against a real board built from
 `factory_config`; both are already members of `test_kinds.integration.detect` and already run under
 `--kind integration`).
 **Because:** measured live during FEAT-41's build (2026-08-30, issue #1033) — `github.board.stations`
 changed from a six-key mapping to an ordered list, one JSON value in one module. The task's own
 `verify:` (a unit-kind test exercising the validator in isolation) passed 112/112 and the task shipped
-committed green while `board_lifecycle.py`, `gh-sync.py` and `check-state.sh`'s own INV-26 block threw
+committed green while `board_lifecycle.py`, `gh-sync.py` and `check-state.py`'s own INV-26 block threw
 a `TypeError` against the changed shape — **the project's own state gate was down** for roughly twenty
 minutes in one worktree. The matrix's `cross_module` floor exists for exactly this blast radius but
 nothing bound a config-schema change to it: the change read as unit-scoped because nothing said
@@ -7016,7 +7016,7 @@ MISSING TARGET`, `11 AMBIGUOUS TARGET`, `12 MALFORMED OPS`. Origin:
 **Over:** a directive verb carried inside the `apply --entries` markdown stream — a `DROP P-04` line
 or a replace marker on an entry — which would have kept one subcommand and one payload format.
 
-**Because:** that stream is not merely this tool's input. `check-expertise.sh` parses the same
+**Because:** that stream is not merely this tool's input. `check-expertise.py` parses the same
 Expertise entry format, so a verb inside it changes a format **two** tools read, and a literal entry
 whose text happened to look like the directive would be silently obeyed. The op objects are already
 structured data in the DIGEST, so `ops` transports what the contract already produces instead of
@@ -7047,8 +7047,8 @@ was never opened is recovered by `gh-sync.py recover-terminal <feat> --yes`, whi
 milestone and the parent and source issues only — never historical task sub-issues — and records
 `recovered-terminal` (`gh-sync.py:1277-1323`). While GitHub is unavailable that recovery stays
 non-terminal and `post-merge-sweep.py` keeps the worktree (`post-merge-sweep.py:222-231`).
-`check-state.sh` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
-terminal and its task statuses are absent (`check-state.sh:1983-2018`). One frozen set,
+`check-state.py` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
+terminal and its task statuses are absent (`check-state.py:1983-2018`). One frozen set,
 `feature_schema.BUILD_ENTRY_ERA_EXEMPT`, bounds INV-37 and both refusals to the post-receipt era.
 
 **Over:** making the mirror a gate on GitHub itself — DEC-138 forbids it, and every refusal here
@@ -7072,9 +7072,9 @@ at `<control-plane>/.harness/<segment>/`. Nothing else is installed into a produ
 `.harness/products/` is created nowhere. The three are ordered: registration comes **after** the
 config lands, because the failure of the reverse order has no symptom but an unattributed
 `FleetError`, and `factory_config.py --check-product-configs` is what names it — a check that is
-OPERATOR-RUN, with no standing invariant behind it. `check-state.sh` never reads a member's config
+OPERATOR-RUN, with no standing invariant behind it. `check-state.py` never reads a member's config
 from its remote, and its only network calls record nothing when the network is unavailable, because
-an offline environment must never become a red gate (`check-state.sh:2270-2273`). So nothing grades
+an offline environment must never become a red gate (`check-state.py:2270-2273`). So nothing grades
 a fleet member's remote config on every run, and a member whose `harness.json` is deleted after
 onboarding stays invisible until the next build against it.
 
@@ -7163,7 +7163,7 @@ rely on it; required, its absence is a rejected return rather than silence.
 **Run state is closed on the same terms.** A `steps[]` entry has a closed 22-key shape, of which
 `evidence` is a governed free-form container — lower-case identifier keys, scalar or scalar-array
 values — carrying matchable per-dispatch facts that do not belong in the step vocabulary. The shape
-is enforced on `check-domain.py`'s write payload path and reported at rest by `check-state.sh`, both
+is enforced on `check-domain.py`'s write payload path and reported at rest by `check-state.py`, both
 gated on `schema_version` 2. Creation of a run `state.yaml` below version 2 is refused, so no new run
 can opt out, while the 356 historical version-1 runs stay legal and unrewritten and updates to them
 keep working.
@@ -7456,7 +7456,7 @@ one to three sentences per perspective that has something to say — `operator`,
 plan exit and once at validate exit, never per cycle. A handoff's `## Done when` cites at least one
 `brief-perspective:PATH#<name>` authority, which resolves to that perspective's line. INV-38 refuses
 a new by-perspective BRIEF with a perspective no SC discharges or an SC with no perspective; INV-41
-refuses an SC whose text invokes `check-state.sh` or `check-domain.py` with no feature-scoped
+refuses an SC whose text invokes `check-state.py` or `check-domain.py` with no feature-scoped
 argument. Pre-existing BRIEFs are not graded. Origin: FEAT-59 SC-09, SC-10, SC-11, SC-12, SC-16.
 
 **Over:** three statements — `## Goal` prose, `REQ-NN`, and SCs — with REQ coverage computed through
@@ -7465,7 +7465,7 @@ argument. Pre-existing BRIEFs are not graded. Origin: FEAT-59 SC-09, SC-10, SC-1
 **Because:** three statements of done disagree, and each disagreement was a cycle. Five of BUG-285's
 eight re-cycles were about document form, and its goal-check ran five times against a plan the fix
 never followed. Three of FEAT-54's six review cycles FAILed on SC-04, a repository-wide
-`check-state.sh` assertion red on other features' debris — a criterion no feature can discharge. A
+`check-state.py` assertion red on other features' debris — a criterion no feature can discharge. A
 perspective is what a REQ was reaching for: the reader for whom the feature is done, in that reader's
 voice, which a goal-check can grade and a handoff can point at. A REQ was an implementation-neutral
 restatement of the SCs, and its coverage was computed from the same `traces:` the SCs now carry.
@@ -7508,4 +7508,4 @@ symbol renamed after plan exit; the builder's re-resolution is the second and la
 
 **Record:** refs DEC-177, DEC-179, DEC-205, DEC-228, DEC-229.
 
-**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on kaya FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.sh exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.
+**The field-citation evidence beside the path evidence (moved from `harness-spec-driven` under FEAT-60).** Two failure shapes, both measured on kaya FEAT-03 where four citations were stale before the build began: `feature.json:41` was cited four times for `parent: none`, the orchestrator rewrote that file every run, and line 41 became `squad: eng`; and "check-state.py exits 1" went stale the moment the user signed the approval — the signature itself changed the answer, so a claim is written as `observed exit 1 at <sha>, BRIEF pending` so a later reader can tell drift from falsification. A bare number is unfalsifiable and therefore unverifiable. Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim survives while the pointer dies, and both are `verify:` inputs, so a rotted anchor sends a doer to the wrong place with a correct instruction.

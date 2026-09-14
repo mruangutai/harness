@@ -12,7 +12,7 @@ ten tasks delivered across ten commits `0a34989`..`98ed3e7`, every mirrored issu
 Nothing pushed, no PR — both are the user's.
 
 GATES: blocking `qa_gate` PASS (`matrix_ok: true`); `review` PASS after its one med finding was
-fixed; `unit` and `check-docs` green; `check-expertise.sh` OK on all eleven files. `uat` has no
+fixed; `unit` and `check-docs` green; `check-expertise.py` OK on all eleven files. `uat` has no
 criterion. `security`, `ui` and `ship_refresh` are recorded SKIPS with reasons, not runs.
 
 GOAL CHECK: 17 met, 1 carved out. SC-12's receipt half was unmeetable by any agent in the org —

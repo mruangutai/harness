@@ -38,7 +38,7 @@ key. Source: `notes/handoff-plan.md`, citing `runs/2026-09-02-c4-validator/diges
 **Build** — all twelve tasks T-01 through T-12 recorded `done`. The QA matrix passed at build exit;
 SIMPLIFY ran all four angles and applied one cleanup, deliberately leaving two alternatives
 unapplied as advisory. The deliverable is `handoff_done_when.py` (288 lines) plus its wiring into
-`check-domain.py` and `check-state.sh`, the `HANDOFF.md` template, and a manual comprehension probe
+`check-domain.py` and `check-state.py`, the `HANDOFF.md` template, and a manual comprehension probe
 held out of the normal suites. Source: `notes/handoff-build.md`, `runs/2026-09-02-02-eng/digest.md`.
 
 **Validate** — six panel cycles, c0 through c6. The last two are the ones that matter. c5 returned

@@ -17,7 +17,7 @@ Two things measured during planning that the BRIEF and the eng consult did not h
 2. **The census the BRIEF rests on was taken with a pattern that omits `re.sub`.** Re-run whole
    (`re.(search|findall|match|finditer|sub|split|compile)`) the six files hold **50** regex calls, of
    which **23 convert and 27 stay**. `## Regex census` is the reviewer's answer key for SC-03; SC-03's
-   parenthetical ("the only regex calls remaining in `check-state.sh` are the two out-of-scope
+   parenthetical ("the only regex calls remaining in `check-state.py` are the two out-of-scope
    non-YAML ones") undercounts by five and is raised as Q2.
 3. **SC-13 was checked, and it holds.** SC-13 ("identical run set") and SC-01 ("the conversion recovers
    dropped runs") would conflict outright if any run in this tree were already being dropped. Run
@@ -45,7 +45,7 @@ the dispatch's citations lands on the right paragraph:
 | D-07 | **D-03** | `manifest_domains()` extraction |
 | D-08 | **D-13** | the `read:` tightening |
 | — | **D-04**, **D-05** | new here: writers stay line-based; the regex census |
-| E4 / Q3 | **D-06** | no bootstrap escape for `check-state.sh` |
+| E4 / Q3 | **D-06** | no bootstrap escape for `check-state.py` |
 | E1 / Q4 | **D-07** | the two-line install command |
 
 - **D-01: the `.harness/.pyyaml-bootstrap` ignore rule lands in BOTH
@@ -82,7 +82,7 @@ the dispatch's citations lands on the right paragraph:
      no keys. That must **deny with a parse-error message**. This is a **new blocking outcome, not a
      regression** — recorded here so a reviewer does not read it as one.
   *Trade-off accepted:* `check-domain.py:280` says `KEEP IN SYNC with CHECKPOINT_KEYS in
-  check-state.sh`. After this decision the two twins diverge by **mechanism** (raising loader vs. regex
+  check-state.py`. After this decision the two twins diverge by **mechanism** (raising loader vs. regex
   scan) while the key *vocabulary* stays in sync. The comment must be updated to say exactly that, or
   the next reader syncs them back and re-opens the fail-open.
 
@@ -115,7 +115,7 @@ the dispatch's citations lands on the right paragraph:
 
 - **D-05: `## Regex census` below is the answer key SC-03's reviewer cites against, and SC-03's
   parenthetical is a measured undercount.** SC-03 states the only regex calls remaining in
-  `check-state.sh` are two. Measured at `37a8a66`, `check-state.sh` holds **17** regex calls, of which
+  `check-state.py` are two. Measured at `37a8a66`, `check-state.py` holds **17** regex calls, of which
   **7** legitimately survive: six parse **markdown** (`:46 :47 :50` read `## Approval` in `PLAN.md`;
   `:76 :78` read `T-NN` in `PLAN.md`; `:89` reads `T-NN` in `STATE.md`) and one is the BRIEF-exempted
   `CHECKPOINT_KEYS` scan. Converting markdown parsing to a YAML parser is not a coherent instruction, so
@@ -123,12 +123,12 @@ the dispatch's citations lands on the right paragraph:
   `file:line` and classifies it" — is what this plan is built to satisfy. **Raised as Q2** as a BRIEF
   amendment for the user, not silently reinterpreted.
   Anchor drift worth naming, since two upstream artifacts repeat it: the BRIEF and the eng dispatch both
-  cite `CHECKPOINT_KEYS` at `:279`. Measured, the set is declared at `check-state.sh:277-288`, its regex
+  cite `CHECKPOINT_KEYS` at `:279`. Measured, the set is declared at `check-state.py:277-288`, its regex
   scan is at `:302`, its duplicate check at `:303` and its unknown-key check at `:308`. Cite the
   measured anchors.
 
-- **D-06: `check-state.sh` gets NO bootstrap escape. Ruled: no.** (E4 / eng Q3, settled here as the
-  BRIEF's deferred item required.) `check-state.sh:11-12` documents that it gates the **orchestrator**
+- **D-06: `check-state.py` gets NO bootstrap escape. Ruled: no.** (E4 / eng Q3, settled here as the
+  BRIEF's deferred item required.) `check-state.py:11-12` documents that it gates the **orchestrator**
   and exits 1, not a PreToolUse hook — so refusing to open the `/harness` door blocks no recovery. The
   repair is one printed `pip` command in a shell, which needs no harness. The two hooks need the escape
   because they gate the **writes**, and writes are what a repair inside the tool requires.
@@ -171,7 +171,7 @@ the dispatch's citations lands on the right paragraph:
   an identifier, or a dict key. The bool/int/float resolvers are NOT stripped; the timestamp resolver
   IS.** `safe_load` returns typed values where the regex returned strings, and there are **three**
   hazard classes, not the two the BRIEF names:
-  1. **int** — `check-state.sh:120` calls `cu.isdigit()` on `cycles_used`, which becomes an `int` and
+  1. **int** — `check-state.py:120` calls `cu.isdigit()` on `cycles_used`, which becomes an `int` and
      raises `AttributeError`. Verified at source.
   2. **date** — a bare date-shaped scalar becomes `datetime.date` (dev-ops probe 5b). Run ids like
      `2026-07-31-01-product` carry trailing text and stay `str`; a bare `2026-07-31` would not.
@@ -185,7 +185,7 @@ the dispatch's citations lands on the right paragraph:
   at N consumers. The `str()` rule is defence in depth for the consumer who forgets. *Trade-off:* a
   downstream caller that actually wants a `datetime` must parse it itself. Nothing in this repo does.
 
-- **D-09: `check-state.sh:113`'s `review_sha: none` fail-open is DEFERRED, not fixed here, and is filed
+- **D-09: `check-state.py:113`'s `review_sha: none` fail-open is DEFERRED, not fixed here, and is filed
   as a GitHub issue in the same pass.** `:113` tests `not val("review_sha")`, but `feature.yaml` holds
   the literal string `review_sha: none` (verified, `FEAT-05/feature.yaml:6`), and PyYAML's null resolver
   matches `~`, `null`, `Null`, `NULL` and empty — **not** lowercase `none`. So it is a truthy string
@@ -198,7 +198,7 @@ the dispatch's citations lands on the right paragraph:
   would fire **zero** new violations — it is cheap, and that is *not* the reason to defer.
   **The load-bearing reason is evidence integrity.** SC-02 and SC-13 exist to prove the conversion
   changed *nothing* behaviourally — same exit code, same violation set, same run inventory. A
-  deliberate semantic change inside `check-state.sh` in the same ship makes those two criteria unable
+  deliberate semantic change inside `check-state.py` in the same ship makes those two criteria unable
   to distinguish "the conversion was faithful" from "the conversion broke something and the semantic
   fix masked it". Second reason: no REQ covers it, so fixing it is scope the user did not sign. Third:
   `FEAT-05`'s own validator run lands *during this feature's build*, and a newly-firing INV-6 at that
@@ -254,7 +254,7 @@ and confirms each row at final state.
 
 | File | CONVERT (YAML reads) | STAY, and why |
 |---|---|---|
-| `check-state.sh` | `98` `108` `109` `237` `293` `297` `316` `394` `398` `399` — **10** | `46 47 50` markdown `## Approval` in PLAN.md · `76 78` markdown `T-NN` in PLAN.md · `89` markdown `T-NN` in STATE.md (BRIEF-exempt) · `302` the `CHECKPOINT_KEYS` scan (BRIEF-exempt; set at `277-288`, dup at `303`, unknown at `308`) — **7** |
+| `check-state.py` | `98` `108` `109` `237` `293` `297` `316` `394` `398` `399` — **10** | `46 47 50` markdown `## Approval` in PLAN.md · `76 78` markdown `T-NN` in PLAN.md · `89` markdown `T-NN` in STATE.md (BRIEF-exempt) · `302` the `CHECKPOINT_KEYS` scan (BRIEF-exempt; set at `277-288`, dup at `303`, unknown at `308`) — **7** |
 | `check-domain.py` | `112` `119` → `manifest_domains()` (D-03) · `285` → raising loader, **detector at `287` survives** (D-02) — **3** | `157 248` worktree path rewrite · `182` `glob_to_re` compile (D-11) · `263 275 300 321` rel-path routing — **7** |
 | `bash-write-guard.py` | `252` `257` → `manifest_domains()` (D-03) — **2** | `112` heredoc scan · `185` redirect scan · `278` `glob_to_re` compile (D-11) · `298 306` path routing — **5** |
 | `gh-sync.py` | `181` `184` `186` `188` `190` `193` — `load_recorded()` reads `feature.yaml`'s `github:` block — **6** | `128 135 153 157 159` markdown BRIEF/PLAN parsing · `200` `save_recorded` **writer** (D-04) — **6** |
@@ -280,14 +280,14 @@ before this task and every agent write on the build machine takes the bootstrap 
 **blocks — including the write that would fix it.** BRIEF:63-65 states this as a hard constraint.
 
 1. Run D-07's first line; if it reports `externally-managed-environment`, run the second.
-2. Re-measure the `check-state.sh` baseline. **The BRIEF's SC-02 baseline is stale:** run today,
-   `check-state.sh` exits **1** with one VIOLATION (`FEAT-05-pyyaml-file-parsers/BRIEF.md has no
+2. Re-measure the `check-state.py` baseline. **The BRIEF's SC-02 baseline is stale:** run today,
+   `check-state.py` exits **1** with one VIOLATION (`FEAT-05-pyyaml-file-parsers/BRIEF.md has no
    '## Approval' section`) plus 42 INV-8 notes — the grilling's "exit 0, zero violations" predates this
    feature's own BRIEF and PLAN. The BRIEF violation clears when the main session signs (the PLAN adds
    a second until then), and the two FEAT-05 orphaned-run-dir notes clear when the orchestrator records
    runs 02 and 03. Record the **post-approval** exit code and violation count in `feature.yaml` under
    `baseline:` as `baseline_exit:` and `baseline_violations:`.
-3. **Write the pre-change run inventory to a file.** `check-state.sh` prints no run listing, so SC-13's
+3. **Write the pre-change run inventory to a file.** `check-state.py` prints no run listing, so SC-13's
    "reviewer cites both listings" has nothing to cite unless one is produced deliberately. Run exactly
    this, redirected to
    `.harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-baseline-run-inventory.md`:
@@ -395,7 +395,7 @@ Public interface, exactly these six names:
   any entry whose `read` key resolves truthy (D-13); `shared` = paths under the `shared:` section.
   Behaviour must equal the pre-change `collect()` for every agent in this repo's manifest — T-02 test 5
   is that proof. **Every returned glob is `str()`-coerced** (D-08).
-- `require_or_die()` — for `check-state.sh` and the plain `.py` scripts. If `yaml` imported, unlink the
+- `require_or_die()` — for `check-state.py` and the plain `.py` scripts. If `yaml` imported, unlink the
   bootstrap marker if it exists and return. If not, print the missing-PyYAML message and
   `INSTALL_COMMAND` to stderr and exit non-zero. **No bootstrap escape** (D-06).
 - `require_or_bootstrap(root)` — for the two hooks. If `yaml` imported, unlink the marker if present
@@ -519,7 +519,7 @@ verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py;
 markdown lines `128 135 153 157 159` and nothing in the `176-196` range (6 hits in that range at
 `37a8a66` — discriminating).
 
-### T-07 — convert `check-state.sh`, closing issue #11
+### T-07 — convert `check-state.py`, closing issue #11
 
 - owner: harness-backend-dev
 - change_type: logic
@@ -527,7 +527,7 @@ markdown lines `128 135 153 157 159` and nothing in the `176-196` range (6 hits 
 - depends_on: T-03
 - absorbs: #11
 
-`.claude/skills/harness/bin/check-state.sh` is a bash wrapper around one Python heredoc (`:17`). It is
+`.claude/skills/harness/bin/check-state.py` is a bash wrapper around one Python heredoc (`:17`). It is
 the **only** in-scope script lacking a `_selfdir`: it derives everything from `root` (`:14-15`), which
 can be wrong. Give it a `_selfdir` computed from `BASH_SOURCE` exactly as `check-domain.py:60-61` and
 `bash-write-guard.py:38-39` do, and prepend it to `PYTHONPATH` on the existing `python3` invocation:
@@ -559,12 +559,12 @@ Extend `.claude/skills/harness/bin/test-check-state.py` with three tests:
    **identical fixture** drops the run under the pre-change regex, inlined in the test as a literal, so
    the test shows the defect and the fix side by side (SC-01).
 2. `test_cycles_used_as_int_does_not_raise` — `cycles_used: 3` parses to `int` and INV-7 evaluates
-   without an `AttributeError` from `.isdigit()` (SC-10, `check-state.sh:120`).
+   without an `AttributeError` from `.isdigit()` (SC-10, `check-state.py:120`).
 3. `test_date_shaped_run_id_stays_str` — a run whose `id:` is the bare scalar `2026-07-31` joins to its
    run directory as `"2026-07-31"`, not a `datetime.date` (SC-10, D-08).
 
 verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
-`PASS test-check-state.py`; then `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh;
+`PASS test-check-state.py`; then `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.py;
 echo $?` → the exit code and violation count recorded at T-01 step 2, unchanged (SC-02); then produce
 the **post-change** run inventory — the same per-feature `id / squad / verdict` listing, emitted from
 the converted parser — and `diff` it against
@@ -586,7 +586,7 @@ a parsed value; this task is that walk, and it runs after the four non-hook conv
 the hooks.
 
 Walk **every** consumer of a value returned by `harness_yaml.load_file` / `load_str` /
-`manifest_domains` across the three converted non-hook scripts: `check-state.sh`, `gh-sync.py`,
+`manifest_domains` across the three converted non-hook scripts: `check-state.py`, `gh-sync.py`,
 `upgrade-config.py`. (`cost-report.py` converts nothing — D-04 — so it has no parsed consumers.)
 **The two hooks are NOT in this task's scope and are not deferred to a reminder inside it:** they do not
 exist in converted form yet, and their sweep is **T-17**, which runs after T-15 and extends this same
@@ -598,7 +598,7 @@ is explicit that the int/bool/float resolvers are **not** stripped, because thos
 want ints.
 
 Three named regressions must each be shown handled, by `file:line`:
-- `check-state.sh:120` — `.isdigit()` on `cycles_used`, which is now an `int`.
+- `check-state.py:120` — `.isdigit()` on `cycles_used`, which is now an `int`.
 - a run `id` that is a bare date-shaped scalar, joined into a directory path.
 - an all-digit abbreviated commit SHA in `review_sha`/`pinned_sha`/`base_sha`/`head_sha`/`tip_sha`,
   which YAML 1.1 resolves to `int` and which is then compared or printed as a string.
@@ -935,8 +935,8 @@ Write `.harness/features/FEAT-05-pyyaml-file-parsers/notes/uat-bootstrap-escape-
 Mark the script `status: ready`. **Do not mark it passed** — only the user runs it, and SC-09 stays
 `not_met` until they do.
 
-Then file the D-09 follow-up: `gh issue create` titled "check-state.sh:113 — `review_sha: none` is a
-truthy string, so INV-6 passes on an unpinned feature", body citing `check-state.sh:113` and
+Then file the D-09 follow-up: `gh issue create` titled "check-state.py:113 — `review_sha: none` is a
+truthy string, so INV-6 passes on an unpinned feature", body citing `check-state.py:113` and
 `FEAT-05/feature.yaml:6`, and recording that FEAT-05 deferred it deliberately to keep SC-02/SC-13 able
 to prove the conversion faithful.
 
@@ -1120,7 +1120,7 @@ note: |
   An agent that finds itself blocked on one of those paths must ESCALATE, never work around it
   (`harness-digest-dev`'s boundary rule).
 
-  D-06 stands: `check-state.sh` gets no bootstrap escape, deliberately, with the consequence
+  D-06 stands: `check-state.py` gets no bootstrap escape, deliberately, with the consequence
   written into the plan.
 
   Q4 is UNRESOLVED and is accepted as such: session identity inside a `PreToolUse` hook

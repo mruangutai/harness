@@ -125,7 +125,7 @@ never silence, matching SC-02. So `check-plan-routes.py`'s bare-invocation behav
 narrower issue than REQ-05 as scoped by the SCs, already disclosed by the builder as `feature.yaml
 q6_argvless_glob` and correctly marked non-blocking today (not reachable via the one documented
 invocation, `harness-spec-driven/SKILL.md:39`, which always passes an explicit path) — becomes blocking
-only if a future feature promotes this to an argv-less `check-state.sh` invariant. I agree with that
+only if a future feature promotes this to an argv-less `check-state.py` invariant. I agree with that
 call; not raising as a new finding, only confirming the measurement independently since it was asked
 for by name.
 

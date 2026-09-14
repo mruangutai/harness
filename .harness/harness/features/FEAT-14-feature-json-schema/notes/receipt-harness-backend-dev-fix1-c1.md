@@ -109,7 +109,7 @@ Each row is its own named assertion above, not a count — the first-sync path
 | `run-unit-tests.py` (default `--kind all`, both kinds) | `0` — all 25 suites `PASS`, including `test-gh-sync.py` |
 | `test-gh-sync.py` standalone | `0` — `ALL PASSED` |
 | `validate-feature-json.py` | `0` |
-| `check-state.sh` | `0` — output is entirely pre-existing `note` lines (34), none new |
+| `check-state.py` | `0` — output is entirely pre-existing `note` lines (34), none new |
 | `check-plan-routes.py` | `0` — `0 violation(s) across 10 plan(s)` (verbatim tail line) |
 
 ## B-14 — grep evidence, no refactor performed

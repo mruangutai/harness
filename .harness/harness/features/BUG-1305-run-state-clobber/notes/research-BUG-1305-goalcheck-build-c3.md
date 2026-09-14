@@ -17,7 +17,7 @@ one edit from current.
 | SC | verdict | method | what settles it at `5ed929bd` |
 |---|---|---|---|
 | SC-01 | **met** | automated / integration | 21/21 marker + 10/10 identity green at pin; 5/21 and 4/10 red at `c369fb1f`. Detail below. |
-| SC-02 | met | automated / integration | `test-check-state.py:4560` — dirty tree exit 1 with exactly 3 INV-36 lines (`runs/X` seed, `runs/V` uid, `runs/W` unreadable), agreeing `Y` unreported; clean tree exit 0. My replay: `RESULT True`. `check-state.sh` byte-unchanged in the delta. |
+| SC-02 | met | automated / integration | `test-check-state.py:4560` — dirty tree exit 1 with exactly 3 INV-36 lines (`runs/X` seed, `runs/V` uid, `runs/W` unreadable), agreeing `Y` unreported; clean tree exit 0. My replay: `RESULT True`. `check-state.py` byte-unchanged in the delta. |
 | SC-03 | met | inspection | Same case, `:4596-4598`: asserts `runs/X`,`runs/V`,`runs/W`, `'A'`,`'B'`,`'U1'`,`'U2'`, `cannot be read` present **and** `non-checkpoint top-level key` absent — the malformed/clobbered distinction the criterion names. |
 | SC-04 | met | automated / integration | `run_bug1305_artifact_resolution_cases` 6/6 at pin: non-compliant refused naming the run dir, compliant passes in the same tree. Hands-off path = `validate-digest.py --hook` on SubagentStop. |
 | SC-05 | met | automated / integration | 5/5 at pin: `digest Edit append repair remains allowed` exit 0 **and** `cross-run digest replacement remains refused` exit 2. Not "guard removed". |
@@ -60,7 +60,7 @@ case by case — and the dispatch's premise that every permit case is Write-rout
 `digest Edit append repair remains allowed` (`:3888-3892`), is the **Edit** route, the one case
 genuinely exposed to the new fail-closed branch. It exits 0. Pairs 1, 2, 6 are Write
 (`_bug1305_identity_write:5037`, `_bug1124_state_fire:3471`, `_bug1305_digest_write:3873`); pairs 4
-and 5 are `check-state.sh` / `validate-digest.py`, both byte-unchanged in the delta. **No signed
+and 5 are `check-state.py` / `validate-digest.py`, both byte-unchanged in the delta. **No signed
 permit case moved from permitted to refused.**
 
 The *note* is stale, two ways, and SC-07 grades the note:

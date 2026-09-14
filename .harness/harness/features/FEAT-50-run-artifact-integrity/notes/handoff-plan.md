@@ -14,11 +14,11 @@ last, which depends on all eleven others.
 ## Trust
 
 - No `high`/`critical`/unrated finding survives; eleven `open` at `severity_max: med` — I
-  recomputed the gating set against `check-state.sh:218-219` — verified-at 5d12e68
+  recomputed the gating set against `check-state.py:218-219` — verified-at 5d12e68
 - All ELEVEN `PF-` ids recompute exactly from `panel_findings.finding_id(reader, summary)`,
   which is also the proof the five carried cycle-0 summaries are verbatim — verified-at 5d12e68
 - `panel.readers` carries `should-not-exist`, `scope` AND `goalcheck`, each `ran`;
-  `check-state.sh:220-233` VIOLATES on a missing one — verified-at 5d12e68
+  `check-state.py:220-233` VIOLATES on a missing one — verified-at 5d12e68
 - `approval.status: pending`, `rulings` ABSENT; nothing under `.claude/skills/` modified
   this phase — `git status --porcelain` — verified-at 5d12e68
 - `check-plan-routes.py` exits 0, `0 violation(s) across 1 plan(s)`, 9 DEVIATION lines all
@@ -44,7 +44,7 @@ last, which depends on all eleven others.
 - Do not re-open INV-32 options (a)/(b)/(c) — a fourth option was taken and the fix landed
   externally — notes/answers-2026-08-31-plan.md `## Operator ruling — INV-32` — verified-at 5d12e68
 - Do not write `approval.rulings` — no overrule was taken; an entry is validated against
-  `panel.findings` and emits two INV-32 rows naming FEAT-50 — check-state.sh:189-204 — verified-at 5d12e68
+  `panel.findings` and emits two INV-32 rows naming FEAT-50 — check-state.py:189-204 — verified-at 5d12e68
 - Do not rewrite the three non-conforming lead digests; a third party editing another
   agent's record falsifies it — PRINCIPLES rule 15 — verified-at 5d12e68
 - Do not reword any finding `summary:` — it is the content-hash input — panel_findings.py — verified-at 5d12e68

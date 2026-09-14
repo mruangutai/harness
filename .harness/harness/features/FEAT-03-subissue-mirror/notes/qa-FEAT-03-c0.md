@@ -77,7 +77,7 @@ none of the 7 unit-evidence SCs needs them. No `ai_behavior` task exists; no eva
 - **SC-09**: no `sub_issues_summary` reference anywhere in `gh-sync.py`/`test-gh-sync.py`/`wayfind.py`;
   `test-gh-sync.py` fakes `gh` exclusively via `GH_SYNC_GH` env override, no real `gh` invocation.
 - **SC-11**: `check-docs.sh` exit 0 ("no stale statements found", 45 patterns / 73 files);
-  `amendment 7` present in DECISIONS.md (count 1). `check-state.sh` exits 1 in this repo (see coverage
+  `amendment 7` present in DECISIONS.md (count 1). `check-state.py` exits 1 in this repo (see coverage
   gap note below) but carries **no `INV-10` line** and **no `INV-21` line** (sync false here) — matches
   T-08's/T-07's stated contract, which is the specific-invariant + unchanged-exit-code check, not a
   bare exit-0 assertion.
@@ -122,7 +122,7 @@ confirmed present and correct by direct check above, none changed my verdict.
    source and test edits land in the same per-run commit (`2897b09`, `ae728e8`, `e68ba00`), so there is
    no commit-level evidence of which was written first. Not a violation — a limitation of the commit
    granularity chosen for this build — but noted since `harness-verification-rules` asks for the audit.
-3. **`check-state.sh` exits 1 here for a reason that changed since the plan's baseline receipt.**
+3. **`check-state.py` exits 1 here for a reason that changed since the plan's baseline receipt.**
    PLAN's `observed @f929d44` baseline was `BRIEF.md is NOT approved` + an orphaned run dir. Today's
    exit 1 is a **different** VIOLATION (`phase is 'validate' but notes/handoff-build.md is missing`)
    plus a note about an orphaned `2026-07-31-12-validator` run dir. The exit **code** is unchanged (1),
@@ -134,7 +134,7 @@ confirmed present and correct by direct check above, none changed my verdict.
 ## Open questions
 
 - Q1 (non-blocking): `wayfind.py`'s new dependency on `gh_issues.py` is untested — see coverage gap 1.
-- Q2 (non-blocking, informational): `check-state.sh`'s exit-1 baseline moved to a new VIOLATION
+- Q2 (non-blocking, informational): `check-state.py`'s exit-1 baseline moved to a new VIOLATION
   (missing `notes/handoff-build.md`) unrelated to FEAT-03 — worth the orchestrator's attention before
   the validate→ship handoff, not a gate on this feature.
 

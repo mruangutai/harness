@@ -78,7 +78,7 @@ carry it), not be silently absorbed here.
 | test-check-domain.py | 0 | 8 sub-suites, all green (12/12, 27/27, 20/20, 10/10, 30/30, 16/16, 38/38, 28/28, 11/11) |
 | test-gen-decisions-index.py | 0 | 14/14 |
 
-`bash .agents/skills/harness/bin/run-unit-tests.py` (env cleared of `HARNESS_AGENT_TYPE` per repo
+`python3 .agents/skills/harness/bin/run-unit-tests.py` (env cleared of `HARNESS_AGENT_TYPE` per repo
 Gotcha G-07 — without that unset, `test-plan-merge.py` fails 11 checks unrelated to this diff):
 **exit 1**, 60 scripts declared (31 `UNIT_SCRIPTS` + 29 `INTEGRATION_SCRIPTS`), 1 file failed —
 `test-check-plan-routes.py` (6 sub-cases: `case_04_all_granted_exits_0`,
@@ -110,7 +110,7 @@ pass (including `test-inject-expertise.py` and `test-check-instruction-paths.py`
    severity or finding is added, removed or re-rated here" — consistent with the appended block
    transcribing, not altering, the existing ruling (`ESCALATE`, `severity_max: med`).
 
-## E. State sweep (`check-state.sh`, worktree root, exit 1)
+## E. State sweep (`check-state.py`, worktree root, exit 1)
 
 **Zero VIOLATION lines mention FEAT-52.** The three VIOLATION lines present, verbatim:
 

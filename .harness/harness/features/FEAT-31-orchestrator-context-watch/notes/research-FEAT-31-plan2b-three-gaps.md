@@ -50,7 +50,7 @@ Adding a task here would have duplicated T-04. **Two notes for the operator, not
 ## GAP 2 — real. Delivered as T-10, and SC-15 is SPLIT (D-16).
 
 **The finding that makes it automatable.** INV-17's shape check tests only heading PRESENCE:
-`check-state.sh:509` is `HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]`
+`check-state.py:509` is `HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]`
 and `:614` is `miss = [h for h in HANDOFF_HEADINGS if h not in hl]`. So **a handoff with all four
 headings and nothing under `## Next` passes the gate today.** That is precisely the mutation SC-15
 names, and it is currently invisible. The assertion therefore goes red before the change — a real
@@ -62,7 +62,7 @@ one, and D-12 forbids reading `~/.claude/projects` because CI is ubuntu-latest. 
 operator alongside SC-10, recorded as **D-16**, mirroring D-12's established pattern in this plan.
 
 **Why D-16 and not a `uat:` block, contrary to my dispatch:** there is no `uat:` key in
-`templates/plan.yaml`, in any of the 4 live plans, or in `check-state.sh`. Writing one would put a
+`templates/plan.yaml`, in any of the 4 live plans, or in `check-state.py`. Writing one would put a
 narrowed criterion in a key **no validator reads** — invisible at exactly the gate that should catch
 it. D-12 is how this plan already records a no-task UAT routing.
 
@@ -129,7 +129,7 @@ examined 30 feature dir(s); 26 skipped as shipped
 FEAT-31's own block is all `OK` for T-01..T-09 plus, for my addition:
 
 ```
-DEVIATION T-10 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
+DEVIATION T-10 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/test-check-state.py granted to harness-backend-dev, harness-dev-ops but declared main-session-direct
 ```
 
 That DEVIATION is the expected DEC-174 shape and T-10's `execution_reason` predicts it. **The

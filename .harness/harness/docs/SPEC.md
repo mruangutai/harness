@@ -842,16 +842,16 @@ tiers**, told apart by its path:
 - **repository** — `.harness/<repo>/expertise/<agent>.md`, one directory per repository segment:
   true of that repository and nowhere else. A **40-line** budget.
 
-`bin/check-expertise.sh` enforces the format and the tier's budget at authoring time, classifying
+`bin/check-expertise.py` enforces the format and the tier's budget at authoring time, classifying
 the tier from the resolved absolute path, and the injection hook re-applies the same 150-line and
 40-line caps as a truncation backstop — loudly, naming the budget it applied, so a bloated file
 cannot silently tax every spawn.
 
-Craft entries naming a repository-specific token are reported by `bin/check-expertise.sh` as
+Craft entries naming a repository-specific token are reported by `bin/check-expertise.py` as
 **ADVISORY only** — never a violation, never a change to its exit code. The token set lives in that
 script; it is not restated here.
 
-`bin/check-expertise.sh` also reports an **ADVISORY** (never blocking) once a file is within 10%
+`bin/check-expertise.py` also reports an **ADVISORY** (never blocking) once a file is within 10%
 of its own tier's budget — the only signal that fires while there is still headroom to displace an
 entry rather than overflow into the truncation backstop above (issue #613).
 
@@ -942,7 +942,7 @@ because both checks run before any write (`cmd_apply`, `:164-226`):
 | The lock is not acquired within 10s | `LOCKED: could not acquire <path>` (`acquire_lock`, `:140-153`) | **6** |
 
 A refusal is the signal to reconcile by hand — nothing is applied partially. Both refusals, the union,
-the atomic write and a cap-drift detector that reads `check-expertise.sh`'s own caps as text are
+the atomic write and a cap-drift detector that reads `check-expertise.py`'s own caps as text are
 covered at `test-expertise-merge.py:70-250`.
 
 **Replace and drop are a second subcommand, `ops`** (DEC-219). `apply --entries` stays add-only and
@@ -997,7 +997,7 @@ update rather than lose it.
 **The standing step is feature-close distillation** (DEC-145), run by the orchestrator in mission
 ship, after the SCs pass and before the briefing: each lead is dispatched once to distill its
 members' observation logs into Expertise ops — cross-incident rules, feature IDs stripped, verified
-with `bin/check-expertise.sh`; the orchestrator then distills the leads' logs (and its own) the
+with `bin/check-expertise.py`; the orchestrator then distills the leads' logs (and its own) the
 same way. Observation logs stay under the feature dir, archived with the run, never injected. This
 is the only point in a flow where project Expertise changes.
 
@@ -1074,7 +1074,7 @@ All are injected at task start and written by the agent that owns them (§5.2).
   states it, and for the caveat that a repository block may belong to a repository the agent was not
   dispatched against.
 - **Global and project share one budget, because both are craft.** They hold heuristics about *how
-  to work*, never facts about a codebase, so `bin/check-expertise.sh` classifies both as the craft
+  to work*, never facts about a codebase, so `bin/check-expertise.py` classifies both as the craft
   tier and gives each 150 lines. Only the repository tier is tighter, at 40 lines — it is the one
   that carries codebase facts, and the one that multiplies: every repository segment present adds
   another block to the same spawn.
@@ -1507,7 +1507,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
 >
 > The setting must be present. At the platform default of 3 this org happens to fit, but the default has
 > changed three times (DEC-83) and a silent shift to 2 would make the members layer unreachable.
-> `check-state.sh` INV-9 asserts the value, and omitting `Agent` from member `tools:` is retained as
+> `check-state.py` INV-9 asserts the value, and omitting `Agent` from member `tools:` is retained as
 > redundant-but-explicit belt-and-suspenders.
 
 - **orchestrator** (layer 1, spawned — one per in-flight feature, DEC-120): delegates a *whole team*
@@ -1763,7 +1763,7 @@ things, and **they have different owners** (DEC-119):
 | Counter | Lives in | Owned and written by | Bounds |
 |---|---|---|---|
 | step `cycles` | run `state.yaml` | **the lead** | retries of one step, within one run |
-| `len(runs)` / `max_total_runs` | `feature.json` | **the orchestrator** | TOTAL runs, informational only (issue #79). Cycles count rework, so nothing counted runs — FEAT-03 ran 19 against a 6-cycle count and tripped nothing, and DEC-178 deleted cost, the other long-feature signal. `check-state.sh` INV-22 NOTES a crossing and never gates: a long feature is fine when each run is efficient, resolves issues and advances the SCs. The count is a FLOOR — main-session-direct segments are not runs |
+| `len(runs)` / `max_total_runs` | `feature.json` | **the orchestrator** | TOTAL runs, informational only (issue #79). Cycles count rework, so nothing counted runs — FEAT-03 ran 19 against a 6-cycle count and tripped nothing, and DEC-178 deleted cost, the other long-feature signal. `check-state.py` INV-22 NOTES a crossing and never gates: a long feature is fine when each run is efficient, resolves issues and advances the SCs. The count is a FLOOR — main-session-direct segments are not runs |
 | `cycles_used` / `max_total_cycles` | `feature.json` | **the orchestrator** | REWORK across every run of the feature — FAILs routed back, unmet-SC re-dispatches, lead-reported send-backs. A clean first-pass run contributes zero (DEC-157) |
 
 The split follows the file ownership that already exists (§11.3/§11.4) and is enforced by the domain
@@ -1881,7 +1881,7 @@ the outcomes you committed to — passing green while missing the point.
 tasks. There is no `## Goal` prose and no `REQ-NN` layer between them. **Coverage is computed, never
 tracked**: an SC is covered when at least one task `traces:` to it, and that task's `traces:` is what
 the `scope` reader checks at plan time — an orphan SC, or a trace to an SC that does not exist, is a
-plan finding, not a build discovery. `check-state.sh` INV-38 refuses a BRIEF with a perspective no SC
+plan finding, not a build discovery. `check-state.py` INV-38 refuses a BRIEF with a perspective no SC
 discharges, or an SC tagged with no perspective.
 
 ```yaml
@@ -2003,7 +2003,7 @@ no panel and no goal-check run. `plan`: the `plan` team runs first (§13). `/har
 
 **`judgements[]` is the ledger of every autonomous judgement** (DEC-230): `{at, by, kind, decision,
 reason}`, `kind` one of `mission | finding_kind | regate | continue | succession`, `reason` one line.
-`check-state.sh` INV-40 refuses a `mission` with no `mission` entry, a FAIL run followed by another
+`check-state.py` INV-40 refuses a `mission` with no `mission` entry, a FAIL run followed by another
 run with no `regate` entry, and a handoff with runs after it and no `succession` entry. You audit
 the ledger after the fact and overrule from the return; the overrule rate is the trust KPI.
 
@@ -2033,7 +2033,7 @@ accepted costs of having exactly one vocabulary, and both are stated here becaus
 future reader will look for them.
 
 **The cycle budget has teeth (DEC-157), and so does the rework ruling (DEC-226).** `max_total_cycles`
-bounds *retries* and is **hard**: `check-state.sh` INV-39 refuses `cycles_used > max_total_cycles`,
+bounds *retries* and is **hard**: `check-state.py` INV-39 refuses `cycles_used > max_total_cycles`,
 and exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode with no
 natural end. It counts **rework only** — a first-pass run is bounded by the plan's task list and adds
 nothing (DEC-157); the default (10) lives in harness.json `budgets.max_total_cycles`, and a per-feature
@@ -2115,8 +2115,8 @@ round, without asking you. Unmet SC + exhausted budget → `BLOCKED` → your ca
 **Every SC names the perspective it discharges and declares its verification method when it is
 authored** (DEC-231). `pm` writes the SC into `BRIEF.md` under `## Success criteria`, tagged with one
 of the perspectives declared in `## Done when — by perspective`, with a `verify:` field the same way
-tasks carry `verify:`. `check-state.sh` INV-38 refuses a BRIEF with a perspective no SC discharges or
-an SC with no perspective; INV-41 refuses an SC whose `verify:` invokes `check-state.sh` or
+tasks carry `verify:`. `check-state.py` INV-38 refuses a BRIEF with a perspective no SC discharges or
+an SC with no perspective; INV-41 refuses an SC whose `verify:` invokes `check-state.py` or
 `check-domain.py` with no feature-scoped argument, because repository-wide state is a merge-time
 check, not a feature criterion. An SC with no method is not verifiable and blocks the goal-check.
 
@@ -2564,7 +2564,7 @@ Recorded as known-absent rather than left to be discovered:
 
 - **No dollar budget exists anywhere, and no token budget stops anything.** Expertise is bounded by
   proxies, not tokens: a per-file line budget (150 craft, 40 repository), a per-section entry count,
-  and a 50-word cap per entry, all enforced by `bin/check-expertise.sh`. Every other "budget" in this
+  and a 50-word cap per entry, all enforced by `bin/check-expertise.py`. Every other "budget" in this
   document is a retry counter or an advisory threshold.
 - Every spawn loads the **full CLAUDE.md hierarchy** (measured: ~19KB ≈ 5k tokens) plus all preloaded
   rule content plus injected Expertise plus `BRIEF`/`PLAN`/`STATE`, before doing any work.

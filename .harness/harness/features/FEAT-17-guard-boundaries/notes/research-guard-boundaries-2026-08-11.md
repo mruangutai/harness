@@ -4,7 +4,7 @@ BLUF: all four open items from the grilling are decided on evidence; none needs 
 The shared rule is extracted into `.claude/skills/harness/bin/harness_boundary.py`, imported lazily
 by both guards; the out-of-place-worktree predicate reads the checkout's own `.git` pointer file (no
 `git` subprocess, no `git worktree list`); the creation refusal covers `git worktree add|move` broadly
-and refuses on an undeterminable destination; `check-state.sh` gains INV-25; the two siblings alive
+and refuses on an undeterminable destination; `check-state.py` gains INV-25; the two siblings alive
 today are tagged, then pruned.
 
 Measured at `a29ad06` in `/Users/molchairuangutai/GitHub/harness` unless stated.
@@ -58,12 +58,12 @@ Three mechanics the intent must carry, all verified against `bash-write-guard.py
   `root` would read `git worktree add .claude/worktrees/FEAT-99` from an unrelated cwd as legitimate.
   Refuse and say why. The paired allow uses an absolute path under `.claude/worktrees/`.
 
-## D-c — yes, `check-state.sh` reports it, as INV-25
+## D-c — yes, `check-state.py` reports it, as INV-25
 
-`check-state.sh` is the fourth DEC-174 carve-out (M-4), so the task is `main-session-direct`. The
-cost objection that killed `git worktree list` for the guards does not apply: `check-state.sh` runs
+`check-state.py` is the fourth DEC-174 carve-out (M-4), so the task is `main-session-direct`. The
+cost objection that killed `git worktree list` for the guards does not apply: `check-state.py` runs
 once per session entry, not once per governed write. Highest live INV is INV-24
-(`check-state.sh:742`, DEC-186), so the new one is INV-25.
+(`check-state.py:742`, DEC-186), so the new one is INV-25.
 
 ## D-d — the predicate, and why it is not the declined `git worktree list`
 
@@ -106,7 +106,7 @@ the worktree makes it unreachable and gc-eligible. So the task TAGS it before re
 | `.claude/skills/harness/bin/harness_boundary.py` (NEW) | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/bash-write-guard.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
-| `.claude/skills/harness/bin/check-state.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
+| `.claude/skills/harness/bin/check-state.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-bash-write-guard.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-check-state.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |

@@ -47,13 +47,13 @@ worktree HEAD `a44eb57` differs from the pin only in `feature.json`, confirmed v
 slices (`[:8]`, `[3:11]`, `cut -c`, `substr`), id-shape regexes (`PF-[0-9a-f]{8}` and kin), and
 any fixture/doc/template carrying an 8-hex `PF-` example. Repo-wide `grep` for `PF-` (not
 diff-scoped) across the whole worktree, plus targeted greps for slice/length idioms in every
-functional file the full contribution touches (`check-state.sh`, `validate-digest.py`,
+functional file the full contribution touches (`check-state.py`, `validate-digest.py`,
 `sync-agent-adapters.py`, `test-check-state.py`, `test-harness-yaml-corpus.py`,
 `test-validate-digest.py`, both `harness-validator-lead.md` copies, `harness-spec-driven/SKILL.md`,
 `harness-team/SKILL.md`, `harness/SKILL.md`, `teams/plan-panel.yaml`, `templates/plan.yaml`,
 `DECISIONS.md`, `DECISIONS-INDEX.md`, `SPEC.md`).
 
-**Zero functionally binding hits.** `check-state.sh`'s INV-32 treats the `id` field as an
+**Zero functionally binding hits.** `check-state.py`'s INV-32 treats the `id` field as an
 **opaque string** throughout (`str(item.get("id","")).strip()`, membership tests against a set) —
 confirmed by reading the INV-32 block (`:174-242`): no length check, no regex, no slice anywhere
 in it. `test-check-state.py`'s INV-32 fixtures (`PF-deadbeef`, `PF-cafebabe`, `PF-unrated`, etc.)
@@ -101,7 +101,7 @@ part of the 3-file functional delta).
 
 ## T-09 record-inconsistency verdict: BACKLOG, not gating
 
-**Reasoning.** `check-state.sh` (read in full for `verify` handling) never executes or replays a
+**Reasoning.** `check-state.py` (read in full for `verify` handling) never executes or replays a
 task's `verify:` shell text — its ~1800 python lines are static analysis over `plan.yaml`'s
 structure and cross-file greps; the only place `verify` appears is a corpus test asserting the
 YAML field exists and is a string (`test-harness-yaml.py:637`), never that it's *true*.
@@ -120,7 +120,7 @@ risk today. **Graded BACKLOG**: worth a cheap follow-up sweep of `plan.yaml:473,
 and `templates/plan.yaml:56` to keep the plan self-consistent with D-05, not a `must_fix` that
 should block this final cycle over unexecuted prose with the panel's own last cycle available.
 
-One forward-looking note, not a finding: if a future `check-state.sh`/qa-gate revision ever adds
+One forward-looking note, not a finding: if a future `check-state.py`/qa-gate revision ever adds
 "replay a done task's `verify:` clause" (plausible given this feature's own theme — making plans
 honest), T-09's clause is a landmine that will immediately misfire. Recording this so the backlog
 sweep, whenever it happens, catches the clause too and not just the prose.

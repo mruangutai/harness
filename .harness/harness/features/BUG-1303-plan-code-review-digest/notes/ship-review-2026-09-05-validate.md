@@ -61,7 +61,7 @@ build-phase digests are represented through the two handoff notes rather than re
     `must_fix: []`, `severity_max: med`. The security and ui lenses were deliberately not re-run
     (recorded as carried forward with reasons, never presented as having run).
   - A final cycle went on nothing but bookkeeping: two of the squad's own run digests failed the
-    lead digest contract on shape, which held `check-state.sh` red on an otherwise finished feature.
+    lead digest contract on shape, which held `check-state.py` red on an otherwise finished feature.
     Both now validate. It cost a full cycle — see B-12.
 
 ## Goal-check — 8 of 8 met
@@ -73,7 +73,7 @@ the feature's whole surface is a test suite and three documents.
 
 **Gates, all run by me at the pin:** digest-validator suite exit 0, zero `FAIL` lines, `ALL PASSED` ·
 `test-config-shape-matrix.py` 19/19 · `run-unit-tests.py --kind integration` exit 0 over 46 files ·
-index regeneration byte-identical · `check-state.sh` exit 0 with zero violations · working tree clean.
+index regeneration byte-identical · `check-state.py` exit 0 with zero violations · working tree clean.
 
 **Budgets.** 6 rework cycles of 8. **19 runs of a budget of 20** — informational only, and worth a
 sentence: the count is high because the plan panel ran three cycles and the validate phase ran a
@@ -110,7 +110,7 @@ Unstruck rows become issues on ship acceptance. Anything not listed here dies si
 | B-9 | enhancement | `_reviewer_plan_mode_results` short-circuits on a derivation error and prints one FAIL line where eight assertions exist — it still gates, but a broken derivation under-reports |
 | B-10 | enhancement | SC-02's two discrimination directions share a single report line; both are separately asserted, so this is diagnosability, not ever-greenness |
 | B-11 | chore | `harness-qa`'s repository Expertise still says the bugfix floor "stays at unit alone" — false since DEC-217. Fix at the next distillation |
-| B-12 | bug | The run-digest guard refuses in-place replacement, so correcting one contract token in a digest spawned two extra run directories — each of which `check-state.sh` then graded — and the correction had to be appended BELOW the block it supersedes. Either permit a same-run correction that preserves every recorded verdict, or exempt superseded digests from the invariant |
+| B-12 | bug | The run-digest guard refuses in-place replacement, so correcting one contract token in a digest spawned two extra run directories — each of which `check-state.py` then graded — and the correction had to be appended BELOW the block it supersedes. Either permit a same-run correction that preserves every recorded verdict, or exempt superseded digests from the invariant |
 | B-13 | enhancement | A scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot for it — `members[].status: skipped` is reserved for the optional advisor — so the honest record lives in an ad-hoc `not_rerun:` key the validator ignores rather than validates. Make it first-class |
 
 ## One thing I could not verify

@@ -5,7 +5,7 @@
 Nothing on this feature. It merged as PR #899 at 2026-08-27T20:35:44Z; #870 and #556 are closed.
 Eight residual findings are filed as #891–#898 and are ordinary backlog, not follow-up work owed
 here. The two that matter most if anyone picks them up: #898 (the lead digest contract cannot
-represent an honest send-back, so recording a corrected mistake reds `check-state.sh`) and #897
+represent an honest send-back, so recording a corrected mistake reds `check-state.py`) and #897
 (this feature's own id is hardcoded as the copy-paste exemplar in `dispatch-guard.py:105` and
 `harness-zero-micro-management/SKILL.md:30`, so a lead copying the remedy is admitted and routed
 to the wrong checkout).

@@ -85,7 +85,7 @@ measurement-equivalent (both mutants ARE asserted red) and would not gate on its
   `case_workflow_gate` to `tests/unit/`? See the two routes above.
 - **Q2 (non-blocking, harness owner)** — third cycle running in which a criterion's `evidence:` kind
   was falsified by where its carrier lives. Nothing in the plan or qa path cross-checks a declared
-  kind against the carrier's directory, so it is found only at goal-check. A `check-state.sh`
+  kind against the carrier's directory, so it is found only at goal-check. A `check-state.py`
   invariant over BRIEF `evidence:` versus carrier path would close it.
 - **Q3 (non-blocking, harness owner)** — carried from c11/c12: a rebase or a later commit can falsify
   criteria already graded met, and nothing re-takes grades after history moves.

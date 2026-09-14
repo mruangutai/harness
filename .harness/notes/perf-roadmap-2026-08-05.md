@@ -43,7 +43,7 @@ once FEAT-08 deletes both. The rider becomes a deletion instead of a relocation.
 - **#82** give a held orchestrator read-only work. Tiny, no evidence section in the review, no
   batch of its own; it rides with B because both touch the orchestrator playbook.
 
-**#79 touches `check-state.sh` — DEC-174 carve-out.** Direct execution, tests run explicitly, a
+**#79 touches `check-state.py` — DEC-174 carve-out.** Direct execution, tests run explicitly, a
 human reads the diff.
 
 ### C — the validation and close-out tier · #7, #21, #80

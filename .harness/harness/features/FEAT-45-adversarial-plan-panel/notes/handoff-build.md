@@ -36,9 +36,9 @@ ruling — and it does NOT contain any build work. Pinning it is validate's firs
   `plan-panel.yaml`, both `harness-validator-lead.md` copies, `SKILL.md`, `harness-plan.md`,
   `templates/plan.yaml` and `harness-spec-driven/SKILL.md` all resolve to NOBODY under
   `check-domain.py`; no squad can apply there and a fix cycle would be futile — verified-at 9d26350
-- Do NOT route a `check-state.sh` or `test-check-state.py` fix to a lead. DEC-174 enumerates both and
+- Do NOT route a `check-state.py` or `test-check-state.py` fix to a lead. DEC-174 enumerates both and
   bars EXECUTING enforcement-layer changes through a team run — `DECISIONS.md:4326` — verified-at 9d26350
-- Do NOT read `check-state.sh` green as a precondition for anything. INV-26 is structurally red for
+- Do NOT read `check-state.py` green as a precondition for anything. INV-26 is structurally red for
   this feature all through Building and the cause is the mirror's own writers, not the plan; see the
   orchestrator's returned open questions — verified-at 9d26350
 - Do NOT use `plan-merge.py` to CHANGE a task `status:` — it is ADD-ONLY and exits 7 on a differing

@@ -122,7 +122,7 @@ plan on disk is reported at the start of the next session rather than discovered
 - **Read-back is bounded** (DEC-186): reading a card's station is the second of that decision's
   three closed purposes, and nothing read back is written into `BRIEF.md`, `plan.yaml` or any
   approval block.
-- **`check-state.sh` is a DEC-174 carve-out.** The session-entry check is not built through a team
+- **`check-state.py` is a DEC-174 carve-out.** The session-entry check is not built through a team
   run whose gates are the thing being changed.
 - Changes to the orchestrator's own procedure land in `.claude/skills/harness/SKILL.md`, which no
   agent domain grants — a declared main-session step (DEC-179).

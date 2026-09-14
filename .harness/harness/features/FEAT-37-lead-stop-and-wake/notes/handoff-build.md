@@ -24,9 +24,9 @@ resolve to documentor, NOT eng), then **T-06 to the same**, then the qa segment,
   (all close at T-06). `--self-check` and `--check-kinds` exit 0 — verified-at e73d545
 - The two `inflight_registry.py_339` bound failures are CLOSED by T-04; either returning is a
   regression, not expected red — verified-at e73d545
-- `check-state.sh` exits 1 on two INV-26 violations I CANNOT clear: T-01 and T-04 cards read
+- `check-state.py` exits 1 on two INV-26 violations I CANNOT clear: T-01 and T-04 cards read
   Building while the plan says done. INV-26 widens only at feature.json status `Review`
-  (`check-state.sh:1522`), and the ONLY writer of the done station is `cmd_ship`
+  (`check-state.py:1522`), and the ONLY writer of the done station is `cmd_ship`
   (`gh-sync.py:1257`), a main-session subcommand — verified-at e73d545
 - After the strike, T-02 is the ONLY main-session-direct task, though `lanes:` still lists two
   NOBODY surfaces — the second belonged to the struck task — verified-at e73d545

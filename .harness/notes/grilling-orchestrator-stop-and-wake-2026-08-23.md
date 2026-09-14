@@ -96,5 +96,5 @@ by the 600s watchdog and no invented holding activity in its transcript.
 - Docs (`code.claude.com/docs/en/sub-agents.md`) state that completion notifications do NOT reach
   a parent subagent. **Our three probes contradict that.** Treat the doc as stale here and the
   measurement as authority.
-- `check-state.sh` reports ONE violation, unrelated to this feature:
+- `check-state.py` reports ONE violation, unrelated to this feature:
   `FEAT-34-worktree-act3-enforced/BRIEF.md` is not approved.

@@ -52,7 +52,7 @@ conjunct (verified against `gh-sync.py:186-192`).
 returns recover-terminal") is *indirectly* exercised by `test-check-state.py`'s first INV-37 check
 (`fixture(tmp, "FEAT-9001-fixture-non-era")` defaults `station="done"`, and the subprocess assertion
 requires `"recover-terminal" in line`) — but that's a different observable layer (a printed message
-through `check-state.sh`'s own branch at `check-state.sh:2011-2018`, not `recovery_command_for`'s raw
+through `check-state.py`'s own branch at `check-state.py:2011-2018`, not `recovery_command_for`'s raw
 return), so I would not call it as clean-cut a duplicate as BE-01/05/07. Worth a second look, not
 worth blocking on.
 

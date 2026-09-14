@@ -36,7 +36,7 @@ Phase 2 not landing.
 Exit: 0. Both `:2` — the surviving key held byte-identical in both files (template was never
 touched, so trivially still `:2`; `.harness/harness.json` confirmed post-edit).
 
-**4. `.claude/skills/harness/bin/check-state.sh`**
+**4. `.claude/skills/harness/bin/check-state.py`**
 Exit: 0. Only pre-existing orphaned-run `note`-level lines (unrelated FEAT-05/06/08 run-dir
 housekeeping), no `bad`/violation output. Confirms T-02's removal of the `cost_model.rates` hard
 check landed before this edit (D-02) — the repo does not fail check-state after stripping

@@ -41,7 +41,7 @@ capacity exits 0 / `REPLACED P-07` / 15 entries / P-07 still 7th; a drop exits 0
 | SC-05 | **met** | automated / integration | integration | case15 ×3: non-zero exit; sha256 equals pre-invocation; following add-only apply exit 0 |
 | SC-06 | **met** | automated / integration | integration | exit 0; case16 re-asserts exit 7 CONFLICT and exit 8 CAP EXCEEDED; `git diff origin/main -- .claude/skills/harness/bin/expertise-merge.py \| grep -c '^-[^-]'` = **0** (pure addition) |
 | SC-07 | **met** | automated / unit | `python3 tests/unit/test-expertise-ops.py` | exit 0; u10 feeds the same replacement to `compute_union`: "returns non-empty conflicts" + "merged Patterns still carries OLD text at index 6" |
-| SC-08 | **met** | automated / integration | integration | `check-expertise.sh` exit 0 on the replace-produced file (case11), the drop-produced file (case12) and case19 |
+| SC-08 | **met** | automated / integration | integration | `check-expertise.py` exit 0 on the replace-produced file (case11), the drop-produced file (case12) and case19 |
 | SC-09 | **met** | automated / integration | integration | case17 ×11 — anchor matches once; real SKILL.md clean; copies (a)/(b) redden FIRST direction only, (c) SECOND only |
 | SC-10 | **met** | automated / integration | `git show 5942e34e:.harness/harness/docs/DECISIONS-INDEX.md` + `python3 tests/integration/test-gen-decisions-index.py` | `DEC-219` row at `:219`; phrase `replace and drop through the ops subcommand` count = **1**; generator test exit 0 |
 | SC-11 | **met** | automated / integration | integration | case18 ×5: **2.04s** hold, neither child exited; both exit 0 after release; census = original 8 + P-09 + P-10; P-07 carries child B's marker |

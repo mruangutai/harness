@@ -76,7 +76,7 @@ updated both:
 2. **No recorded parent** — `github.parent` absent or not an `int` → exempt (INV-21's finding,
    not this one).
 3. **`factory.issues` populated, `github.issues` empty** — this feature's cards live on the
-   product's board (the same carve-out check-state.sh's INV-26 makes for the factory lane).
+   product's board (the same carve-out check-state.py's INV-26 makes for the factory lane).
 
 Test case for exemption 3 deliberately sets a MISMATCHING station fixture (`Backlog` where a
 non-exempt comparison would expect `Building`) so a leaky exemption implementation would

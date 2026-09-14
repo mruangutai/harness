@@ -41,7 +41,7 @@ Ran the verify's steps with the mktemp path substituted as a literal string inst
 
 ## The eight cap numbers (DEC-145)
 
-`check-expertise.sh:39` and `expertise-merge.py:32` both define
+`check-expertise.py:39` and `expertise-merge.py:32` both define
 `CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}` — identical, byte for byte.
 case8's four agreement assertions all PASS.
 

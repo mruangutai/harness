@@ -34,7 +34,7 @@ reads the *same* code path: it names the exact value to carry forward and where 
 message correctly serves two different readers (foreign writer / owner who dropped the field) with
 distinct, sequenced instructions. No finding.
 
-**SC-03 detection wording** (`check-state.sh` INV-36, lines ~1493-1514): both the field-disagreement
+**SC-03 detection wording** (`check-state.py` INV-36, lines ~1493-1514): both the field-disagreement
 and `run_uid`-disagreement branches emit `"INV-36: {rel}: the checkpoint occupying this run
 directory records an identity that disagrees with the identity recorded when the directory was
 first written: {reason}. The checkpoint the witness describes is the record that was lost; the
@@ -53,7 +53,7 @@ with no remedy, unlike their SC-13 sibling which does:
 - `check-domain.py:1641-1643` (PRE, Write/Edit route, `MarkerUnreadable` on the *prior's* witness):
   `"this run directory's recorded identity cannot be read, so a Write that could silently replace
   another run checkpoint is refused."`
-- `check-state.sh:1487-1491` (INV-36 detection, same exception): `"INV-36: {rel}: its recorded run
+- `check-state.py:1487-1491` (INV-36 detection, same exception): `"INV-36: {rel}: its recorded run
   identity cannot be read, so whether the checkpoint occupying this directory belongs to it cannot
   be determined."`
 
@@ -64,7 +64,7 @@ guards."* The two MarkerUnreadable messages above give an operator no such point
 either message knows a write was refused or an invariant is undecidable, but not that the file in
 question is `.run-identity.json`, nor that hand-repair (outside the guards) is the expected recovery
 path. **Concrete scenario:** an operator sees `INV-36: runs/2026-09-05-02-lead: its recorded run
-identity cannot be read...` in a `check-state.sh` sweep with dozens of other findings, and — with
+identity cannot be read...` in a `check-state.py` sweep with dozens of other findings, and — with
 no filename and no remedy — has no way to distinguish "go read `.run-identity.json`'s permissions/
 encoding" from "this run is now permanently unrecoverable." **Remedy:** name the file
 (`.run-identity.json`) and add the same "repaired outside the guards" pointer the SC-13 message

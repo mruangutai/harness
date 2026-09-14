@@ -4,7 +4,7 @@
 anchor nit, and both cycle-0 `high` findings CLOSED on verified evidence.** Traceability is exact
 (REQ-01..09 union, no orphan, no phantom trace), `depends_on` is acyclic and its one asymmetry is
 harmless, and every anchor I re-measured at 5d12e68 — some 20+ line citations across
-`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh`,
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.py`,
 `feature-worktree.py`, `test-validate-digest.py`, `run-unit-tests.py` — was accurate to the byte
 except one. This is an unusually well-grounded amendment.
 
@@ -100,7 +100,7 @@ that finding's shape, but the disposition call belongs to that reader.
   concurrent-write hazard an edge would prevent that isn't already prevented by there being only
   one actor. The T-04→T-03 edge is extra caution, not evidence the other pairs are an oversight.
 - **Route-completeness of `lanes:`.** Every task `files:` entry has a matching `lanes:` row (12 of
-  12); the two extra rows (`check-state.sh`, `test-check-state.py`) are declared-but-unedited with
+  12); the two extra rows (`check-state.py`, `test-check-state.py`) are declared-but-unedited with
   a stated reason (SC-08/SC-11 read them) — not orphans.
   `resolved_at: 75daa3b` with the two `bash-write-guard.py` rows separately dated `5d12e68` is
   honest disclosure, not a stale pin — I re-ran `--resolve` on both files at HEAD and got the
@@ -117,7 +117,7 @@ that finding's shape, but the disposition call belongs to that reader.
   `:1514` and passes it to `_hook_feature_dir` at exactly `:1598-1599`, both PRE-existing, both
   unrelated to check-domain.py's PreToolUse route. The two decisions govern different hooks on
   different routes; they do not disagree.
-- **SC-11's positive control and five-row enumeration.** Ran `check-state.sh` live: 37 VIOLATION
+- **SC-11's positive control and five-row enumeration.** Ran `check-state.py` live: 37 VIOLATION
   rows, exactly 5 name FEAT-50, and they are exactly the five SC-11 lists (BRIEF not approved,
   `review_sha` unpinned, three DEC-156 digest contract failures). Confirmed `.gitignore:7`
   excludes `runs/**`, so rows 3-5 are structurally absent at the landing checkout regardless of
@@ -139,7 +139,7 @@ that finding's shape, but the disposition call belongs to that reader.
 `check-domain.py` :833, :835-841, :843-848, :872, :980-1047 (RE_STATE_YAML/SHAPE_PATTERNS),
 :1367-1370, :1376-1381, :1505, :1546; `bash-write-guard.py` :703, :706, :714, :744, :747, :758-761;
 `validate-digest.py` :1343-1357 (`_root_or_none`), :1359-1372 (`_hook_feature_dir`), :1514,
-:1598-1599; `check-state.sh` :176-179, :1868-1871; `test-validate-digest.py` :730, :735-739,
+:1598-1599; `check-state.py` :176-179, :1868-1871; `test-validate-digest.py` :730, :735-739,
 :750-769; `feature-worktree.py` ~234-248.
 
 ## Open questions

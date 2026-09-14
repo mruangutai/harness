@@ -53,7 +53,7 @@ Three things this build leaves open, all filed:
 - `factory_gh.py` — six primitives; `project_single_select_extend` REPLACES an option set.
 - `gh-sync.py` — T-07's fail-open guard, T-08's `--reason completed` and `abandoned` label,
   T-13's `status` subcommand, T-16's title format.
-- `check-state.sh` — INV-26 widened, bounded on `feature.json` status `Review` (T-22, carve-out).
+- `check-state.py` — INV-26 widened, bounded on `feature.json` status `Review` (T-22, carve-out).
 - `factory_config.py` `_STATION_KEYS` at six; `SKILL.md`, `commands/harness-plan.md`,
   `harness-init/SKILL.md`, `templates/harness.json`.
 - `DECISIONS.md` — DEC-196 am.3 and am.4.

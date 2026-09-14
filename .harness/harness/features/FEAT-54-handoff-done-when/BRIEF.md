@@ -64,7 +64,7 @@ Decisions that bind, by number:
 - DEC-159 SUPPLIES the contract being amended (four sections, write-time shape gate, INV-17 corpus
   scan) and DEC-160 SUPPLIES the 60-line cap. This feature extends the first and keeps the second.
 - DEC-174 BLOCKS squad execution on the gate scripts and their tests: `check-domain.py`,
-  `check-state.sh`, `test-check-domain.py`, `test-check-state.py`, `run-unit-tests.py` and any module
+  `check-state.py`, `test-check-domain.py`, `test-check-state.py`, `run-unit-tests.py` and any module
   those gates import are main-session-direct, whatever the domain resolver grants.
 - DEC-179 BLOCKS a second matcher: pointer resolution has one implementation, reached by both gates.
 - DEC-163 BLOCKS resting a criterion on a test kind whose `cmd` is null.
@@ -90,7 +90,7 @@ Decisions that bind, by number:
   violation — including over every handoff note this feature itself wrote, which is a NEW note and
   therefore carries `## Done when` like any other, and is not added to the frozen baseline.
   Verified at REVIEW TIME, not by a permanent suite case: at `review_sha`, from the repository
-  root, the reviewer runs `bash .claude/skills/harness/bin/check-state.sh` and records its exit
+  root, the reviewer runs `python3 .claude/skills/harness/bin/check-state.py` and records its exit
   status, and that no reported line names `Done when`, in their own per-feature review note
   `.harness/harness/features/FEAT-54-handoff-done-when/notes/review-<reviewer>-*.md` — the
   deterministic place a later reader audits for whether this was executed. Falsified by any
@@ -108,21 +108,21 @@ Decisions that bind, by number:
   verify: automated        evidence: integration
 - SC-07: Block parsing and pointer resolution have ONE implementation. Read at `review_sha`
   (`git show <review_sha>:<path>`): `check-domain.py` imports `handoff_done_when` at one cited
-  file:line and `check-state.sh` imports it at one cited file:line, and NEITHER gate carries a
+  file:line and `check-state.py` imports it at one cited file:line, and NEITHER gate carries a
   second block parser or a second pointer resolver of its own — no other parsing of the
   `## Done when` body and no other reading of a pointer target appears in either file.
   verify: inspection
 - SC-08: Read at `review_sha` (`git show <review_sha>:<path>`), no assertion about the CURRENT
   contract survives as four sections in `.claude/skills/harness/templates/HANDOFF.md`,
   `.claude/skills/harness/SKILL.md`, the DEC record, or ANYWHERE in `check-domain.py` or
-  `check-state.sh` — required-section lists, heading constants, normative comments AND user-facing
+  `check-state.py` — required-section lists, heading constants, normative comments AND user-facing
   refusal or cap messages alike; each states five and names `## Done when`.
   EXEMPT, and to be left byte-identical: a comment that reports a PAST MEASUREMENT or a past
   incident rather than the live contract, identified mechanically by BOTH naming a specific past
   commit sha or a past feature id AND reporting what was observed at that point — a count taken
   then, or the behaviour of the code as it stood then. PRINCIPLES rule 15 forbids rewriting the
   record, so such a line is not a defect and no task orders it edited. The
-  two known exempt sites, named by content because line numbers move, both in `check-state.sh`:
+  two known exempt sites, named by content because line numbers move, both in `check-state.py`:
   the FEAT-31 74-note migration measurement ("Measured at cf51dce ... All 74 carry the four
   headings and are within the cap") and the INV-17 empty-body-check narrative (FEAT-31 T-10, "a
   note carrying all four headings and nothing under any of them passed").

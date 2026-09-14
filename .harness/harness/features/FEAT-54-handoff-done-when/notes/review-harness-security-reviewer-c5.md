@@ -39,7 +39,7 @@ Alternate-branch audit: both measurement arms call `measure_arm() -> ask()`; req
 
 ## Literal SC-04 evidence
 
-From the repository root, the literal command `bash .claude/skills/harness/bin/check-state.sh` exited **1** and emitted **0 lines naming `Done when`**. The only `VIOLATION` was unrelated to handoff validation: INV-29 reported the concurrent `BUG-1157-approval-overrule` worktree because its landed `feature.json` was absent. Per SC-04's stated falsifier (a reported handoff/Done-when line) and the assignment's unrelated-path non-goal, SC-04 is clean for FEAT-54; the unrelated live-worktree condition is recorded rather than misreported as exit 0.
+From the repository root, the literal command `python3 .claude/skills/harness/bin/check-state.py` exited **1** and emitted **0 lines naming `Done when`**. The only `VIOLATION` was unrelated to handoff validation: INV-29 reported the concurrent `BUG-1157-approval-overrule` worktree because its landed `feature.json` was absent. Per SC-04's stated falsifier (a reported handoff/Done-when line) and the assignment's unrelated-path non-goal, SC-04 is clean for FEAT-54; the unrelated live-worktree condition is recorded rather than misreported as exit 0.
 
 ## OWASP / STRIDE assessment
 
@@ -59,7 +59,7 @@ From the repository root, the literal command `bash .claude/skills/harness/bin/c
 5. `.claude/skills/harness/bin/check-domain.py` — hook payload, path matching, Edit reconstruction, `resolve=True`, exit-2 refusal.
 6. `.harness/harness.json` — frozen baseline, locally-run probe registration, `advisory_unless_high` policy.
 7. `tests/integration/test-check-state.py` — persisted grammar, all-line absent-target assertions, and real=0/mutant=1 proof; FEAT-54 group 18/18 passed.
-8. `.claude/skills/harness/bin/check-state.sh` — corpus/baseline boundary, `resolve=False`, module failure reporting.
+8. `.claude/skills/harness/bin/check-state.py` — corpus/baseline boundary, `resolve=False`, module failure reporting.
 9. `.claude/skills/harness/templates/HANDOFF.md` — author-facing untrusted-input and authority contract.
 10. `.claude/skills/harness/SKILL.md` — five-section orchestration instruction; no command construction added.
 11. `tests/manual/probe-handoff-comprehension.py` — admitted file, model prompt/argv, provider output and terminal boundaries; SEC-F-08 survivor and SEC-F-10 closure site.

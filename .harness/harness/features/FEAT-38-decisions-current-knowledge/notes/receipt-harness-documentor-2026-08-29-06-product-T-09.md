@@ -38,7 +38,7 @@ STATE.md 120 (`check-domain.py:1343`).
 
 The code's own comment at `check-domain.py:1303` states the same corrected list —
 "expertise 150, feature.json 300, handoff 60, STATE.md 120" — so the entry and the code now agree
-verbatim. "No propagation checker" confirmed at `check-domain.py:523`, `check-state.sh:1786`,
+verbatim. "No propagation checker" confirmed at `check-domain.py:523`, `check-state.py:1786`,
 `gen-decisions-index.py:285`. "All four routes" confirmed at `check-domain.py:1333`.
 
 ## Stale prose found and deliberately NOT edited (out of my bounds)

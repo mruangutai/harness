@@ -3,7 +3,7 @@
 ## Destination
 
 A claim of the `only`/`never`/`all`/`no` shape in `BRIEF.md` or `plan.yaml` carries the runnable
-command that proves it, and `check-state.sh` fails when one does not. The rule buys **one shape of
+command that proves it, and `check-state.py` fails when one does not. The rule buys **one shape of
 falsehood, not truth** — that limit is accepted, not overlooked.
 
 ## Settled
@@ -23,9 +23,9 @@ falsehood, not truth** — that limit is accepted, not overlooked.
   review notes are OUT for now — see `## Out of scope`.
 - **What a citation is** → a runnable command in backticks. Not a `file:line`, which cannot be
   re-run and goes stale silently when lines move.
-- **Where it is enforced** → a new invariant in `check-state.sh`, alongside the other 26, so one
+- **Where it is enforced** → a new invariant in `check-state.py`, alongside the other 26, so one
   place reports everything.
-- **The carve-out cost was named before the choice, and taken anyway** → `check-state.sh` is a
+- **The carve-out cost was named before the choice, and taken anyway** → `check-state.py` is a
   DEC-174 carve-out. This invariant is main-session-direct: ordinary edits, tests run explicitly, a
   human reading the diff. It can never be dispatched to a team run, because the gates such a run
   would pass are the thing being changed.
@@ -78,20 +78,20 @@ falsehood, not truth** — that limit is accepted, not overlooked.
    the member "refused" — that account is wrong and the digest is the one to trust.**
 3. **The original falsehood is still in the tree.** `factory_config.py:1` reads "the only reader of
    `.harness/factory/fleet.yaml` (SC-08)". `git grep -ln "fleet.yaml"` over
-   `.claude/skills/harness/bin` returns six non-test readers, including `check-state.sh`,
+   `.claude/skills/harness/bin` returns six non-test readers, including `check-state.py`,
    `factory_decompose.py`, `factory_land.py`, `factory_workspace.py` and `harness_boundary.py`.
    FEAT-12's code reviewer flagged this exact docstring. `README.md` was fixed and the docstring was
    not.
 4. **The one generation precedent is unenforced.** `gen-decisions-index.py` writes all of
    `DECISIONS-INDEX.md` in place, with no markers and no partial regions. `git grep -ln
    "gen-decisions-index"` over `.claude` and `.harness/harness.json` finds only the script, its own
-   test, and the test runner. No `check-state.sh` invariant, no `harness.json` entry. The index can
+   test, and the test runner. No `check-state.py` invariant, no `harness.json` entry. The index can
    drift while every gate stays green — the unclosed residue of issue #148.
 5. **`check-docs.sh` is deleted, not disabled.** Commit `835b297`, struck under DEC-188 with DEC-103
    and DEC-104; INV-10's number is retired. There is nothing to build on and nothing to restore.
 6. **The last invariant number in use is INV-26**, added by FEAT-18. A new one takes INV-27.
 7. **`.harness/codebase/glossary.md` does not exist**, so "the tree" — used throughout `CLAUDE.md`
-   and `DECISIONS.md` — has no definition anywhere in the project. `check-state.sh` INV-19 exists to
+   and `DECISIONS.md` — has no definition anywhere in the project. `check-state.py` INV-19 exists to
    require a glossary once a codebase is mapped.
 
 ## Note on how this grilling went

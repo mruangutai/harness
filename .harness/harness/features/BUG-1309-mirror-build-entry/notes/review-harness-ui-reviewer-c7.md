@@ -83,7 +83,7 @@ itself. Carried forward, not re-opened as a fresh gate.
 `start-task` when `entry == "recovery-required"` and the feature is not era-exempt) is a static
 string with no call to `feature_schema.recovery_command_for` — unlike every sibling site in this
 same feature (the era branch three lines above it, `_build_entry_preflight`'s own `refuse()`
-branches, `merge-gate.py`'s deny, `check-state.sh`'s INV-37):
+branches, `merge-gate.py`'s deny, `check-state.py`'s INV-37):
 
 ```
 print(f"gh-sync: build entry is recovery-required for {realpath(feat_dir)}; "
@@ -137,9 +137,9 @@ ambiguous — but a real grep-fragility nit, not gating. `harness-code-reviewer`
 carries the same-shape finding for the DEC-138 stderr string ("owes no build-entry receipt" wrongly
 worded at the compliant-record call site) as `[low]`, consistent with this reading.
 
-## gh-sync.py / check-state.sh / post-merge-sweep.py — operator text the diff changes
+## gh-sync.py / check-state.py / post-merge-sweep.py — operator text the diff changes
 
-- `check-state.sh` INV-37 (new at this pin, confirmed absent at `894adc0f^`): both branches call
+- `check-state.py` INV-37 (new at this pin, confirmed absent at `894adc0f^`): both branches call
   `feature_schema.recovery_command_for(_fp37)` and name `gh-sync.py open <path>` or `gh-sync.py
   recover-terminal <path> --yes` correctly discriminated. No live gap found by source read.
 - `post-merge-sweep.py`'s retention SKIP message (`:222-232`) hardcodes `recover-terminal ... --yes`

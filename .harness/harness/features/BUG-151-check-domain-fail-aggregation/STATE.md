@@ -91,7 +91,7 @@ Log:
   checkout root, so `brief-sc:` and `plan-task:` authorities can never resolve; only path-carrying
   `finding:`/`approval:` pointers work. The plan-phase handoff hit the same wall and worked around it
   silently.
-- Harness defect, non-blocking: teams/plan-panel.yaml declares two readers, but check-state.sh
+- Harness defect, non-blocking: teams/plan-panel.yaml declares two readers, but check-state.py
   INV-32 expects three, including `goalcheck`. Every plan panel run under the current team file has
   the same gap.
 - Harness defect, non-blocking, CORROBORATED TWICE: the bash write-guard blocks a static `cp` or `>`

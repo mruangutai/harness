@@ -2,7 +2,7 @@
 
 **BLUF: FAIL.** All three FEAT-46 targets round-trip byte-identical (identity replace, then a
 real non-identity replace touching exactly the named field). All author evidence claims
-reproduce exactly (244/0, run-unit-tests.py 0 FAIL, check-state.sh's one violation is INV-29 on
+reproduce exactly (244/0, run-unit-tests.py 0 FAIL, check-state.py's one violation is INV-29 on
 BUG-1129, not this feature's). Cycle 1's decisive gap — `_verify_amend`'s value comparison, the
 keystone that demotes wrong-field writes to refusals — is **now pinned**: `case_amend_v3_identity_check_is_live`
 fails when the comparison is mutated out. But my own, independently-derived mutation table finds
@@ -47,7 +47,7 @@ own staged targets, byte-identical.**
 |---|---|---|
 | `test-plan-merge.py` | 244 PASS / 0 FAIL | **matches** — exit 0, 244 PASS lines, 0 FAIL lines |
 | `run-unit-tests.py` (full) | exit 0, 0 FAIL lines | **matches** — exit 0, `grep -c '^FAIL'` → 0 across 3829 lines |
-| `check-state.sh` | exactly one violation, `INV-29` on `BUG-1129-validate-handoff-sweep` | **matches, first run** — `VIOLATION INV-29` naming `BUG-1129-validate-handoff-sweep` exactly, nothing else. I created no scratch worktree this cycle (mutation testing used a `PLAN_MERGE_BIN`-env-var copy under `/tmp`, per cycle 2's precedent and the dispatch's own instruction not to touch git worktrees), so there is no self-caused pollution to disclose or re-run past |
+| `check-state.py` | exactly one violation, `INV-29` on `BUG-1129-validate-handoff-sweep` | **matches, first run** — `VIOLATION INV-29` naming `BUG-1129-validate-handoff-sweep` exactly, nothing else. I created no scratch worktree this cycle (mutation testing used a `PLAN_MERGE_BIN`-env-var copy under `/tmp`, per cycle 2's precedent and the dispatch's own instruction not to touch git worktrees), so there is no self-caused pollution to disclose or re-run past |
 
 ## Job 3 — vacuity audit of every `case_amend_*`
 

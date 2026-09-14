@@ -20,7 +20,7 @@ qualify. pm's goal-check grades **8 of 8 criteria met** at the new pin
 digests that failed the lead digest contract on shape alone; both now read `digest ok`. Gates at
 `e2c800f1`, all orchestrator-run: digest-validator suite exit 0 / zero `^FAIL ` / `ALL PASSED`;
 `test-config-shape-matrix.py` 19/19; `--kind integration` exit 0 over 46 files; index regeneration
-byte-identical; `check-state.sh` exit 0 with zero violations. Panel `severity_max` is `med` with
+byte-identical; `check-state.py` exit 0 with zero violations. Panel `severity_max` is `med` with
 `must_fix: []` — under `gates.review: advisory_unless_high` nothing gates. F-01, the build phase's
 blocking matrix-floor question, is **RESOLVED** by DEC-217, the delegated-Advisor ruling the main
 session implemented at `e014ede3`. cycles_used 6 of 8; 19 runs of a budget of 20 — informational, and
@@ -56,7 +56,7 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
   agent's own artifact. Both harness-qa (c4) and harness-backend-dev (MF-2) hit it. A lead routing on
   tool status or on the preview would have discarded correct work or shipped a red gate.
 - Harness defect, the costliest of this phase: the run-digest guard refuses in-place REPLACEMENT, so
-  correcting a contract token in a digest cost two extra run directories, and `check-state.sh` then
+  correcting a contract token in a digest cost two extra run directories, and `check-state.py` then
   graded each of them. The correction finally had to be APPENDED below the block it supersedes.
   Related: a scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot
   for it — `members[].status: skipped` is reserved for the optional advisor — so the honest record

@@ -107,19 +107,19 @@ mandate, cited by name in both call sites' comments (`check-domain.py:147-150`,
 the DEC-150/154 state.yaml shape gate: a `RecursionError` from PyYAML's composer on a deeply
 literally-nested YAML value (verified separately, ~250-300 nested flow collections is enough to
 exceed Python's default recursion limit) crashes the same way — but there the blast radius is
-narrower (one file the writing agent already owns, and `check-state.sh:332-344`'s independent
+narrower (one file the writing agent already owns, and `check-state.py:332-344`'s independent
 regex-based INV-16 sweep still catches the resulting malformed content on its next run, so it
 is not a permanent bypass the way the manifest case is).
 
 **Mitigating factor found and worth stating:** the safe pattern already exists in this same
-diff — `check-state.sh:111-119` wraps the identical `harness_yaml.load_file` call in a broad
+diff — `check-state.py:111-119` wraps the identical `harness_yaml.load_file` call in a broad
 `except Exception as e:` and reports a per-feature violation instead of crashing. It just was
 not applied to `harness_yaml.py`'s own `load_str`/`load_file`, nor to the two hook call sites
 that most need it.
 
 **Suggested fix (not applied, read-only):** widen `load_str`'s except clause — e.g.
 `except Exception as e: raise YamlParseError(where, e) from e` — and move `load_file`'s
-`f.read()` inside the same try, mirroring `check-state.sh`'s own pattern, so any read or parse
+`f.read()` inside the same try, mirroring `check-state.py`'s own pattern, so any read or parse
 failure becomes the already-wired fail-closed path at both call sites, not just
 `yaml.YAMLError` subclasses.
 
@@ -200,7 +200,7 @@ DIGEST:
       ungoverned until the manifest is fixed. Verified live against both hook binaries with a
       one-bad-byte manifest and a directory-as-manifest fixture, targeting a path outside the
       test agent's domain in both cases -- both writes would have proceeded. Widen the except
-      clause (mirror check-state.sh:111-119's own `except Exception as e:` pattern, already
+      clause (mirror check-state.py:111-119's own `except Exception as e:` pattern, already
       present elsewhere in this codebase) and move load_file's read inside the try, so any
       read-or-parse failure becomes the already-wired fail-closed YamlParseError path.
   threat_model:
@@ -211,7 +211,7 @@ DIGEST:
     - { boundary: "PyYAML-absent escape window -- domain enforcement fully off in check-domain.py, no reviewer carve-out unlike bash-write-guard.py", stride: E, mitigated: false }
     - { boundary: "PreToolUse hook stdout (systemMessage JSON, D-14b) -- host's allow/block interpretation channel", stride: T, mitigated: true }
   open_questions:
-    - { id: Q1, question: "Should harness_yaml.load_str/load_file catch Exception broadly (matching check-state.sh's own pattern) and move the file read inside the try, so a UnicodeDecodeError/IsADirectoryError/RecursionError all become YamlParseError at both hook call sites instead of crashing the hook open?", blocking: true }
+    - { id: Q1, question: "Should harness_yaml.load_str/load_file catch Exception broadly (matching check-state.py's own pattern) and move the file read inside the try, so a UnicodeDecodeError/IsADirectoryError/RecursionError all become YamlParseError at both hook call sites instead of crashing the hook open?", blocking: true }
     - { id: Q2, question: "Should check-domain.py gain a REVIEWERS carve-out symmetric to bash-write-guard.py's, so a reviewer stays read-only even during an active bootstrap-escape window?", blocking: false }
   files_touched: []
   expertise_update: []

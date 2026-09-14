@@ -2,7 +2,7 @@
 
 ## BLUF
 FAIL. The suite is green (all 27 registered test files pass, `run-unit-tests.py --kind all`
-exit 0; `check-state.sh` exit 0, no INV-27 line — the real repo tree is unmigrated so both
+exit 0; `check-state.py` exit 0, no INV-27 line — the real repo tree is unmigrated so both
 surfaces are CLEAN) but the green is a false signal: `test-check-state.py` contains **17
 duplicated top-level `def`s** spanning a whole shadowed block, lines 528–1661, re-pasted
 verbatim at 1662–2899. 16 of the 17 pairs are byte-identical (confirmed by SHA-256 over each
@@ -31,9 +31,9 @@ delete INV-27 test coverage outright, not fix it.
   both `PASS` — the drift detector (registration check) at the top of `run-unit-tests.py` also
   passed, so no stray `test-*.py` is unregistered.
 - `test-check-plan-routes.py` is part of the `all` run above (case_01–case_25j2 all `ok`/`PASS`).
-- Live gate entry point: `git ls-files '*check-state.sh'` and `find . -name check-state.sh` both
-  return exactly one file, `.claude/skills/harness/bin/check-state.sh` — there is no separate
-  `bin/check-state.sh` wrapper; CLAUDE.md's Conventions reference to `bin/check-state.sh` is
+- Live gate entry point: `git ls-files '*check-state.py'` and `find . -name check-state.py` both
+  return exactly one file, `.claude/skills/harness/bin/check-state.py` — there is no separate
+  `bin/check-state.py` wrapper; CLAUDE.md's Conventions reference to `bin/check-state.py` is
   shorthand for this same path, not a second entry point. Invoked via `CLAUDE_PROJECT_DIR`. Run
   against the real repo: **exit 0**, zero `INV-27` lines. The real tree carries the fleet marker
   (`.harness/factory/fleet.yaml` exists) so D-04 applicability is true, but no coupled reader has
@@ -66,8 +66,8 @@ unchanged at `a714bd0` vs `3c75aa6`. Consolidation, where it landed (everywhere 
 `case_x`), is faithful.
 
 ## 4. #379 falsification probe — result: CONFIRMED, and stronger than empirical
-At `a714bd0`, `check-state.sh`'s INV-27 block calls `_lmod.blame(_srep)` directly
-(`check-state.sh:1301,1304,1325`) — the identical function `render()` calls
+At `a714bd0`, `check-state.py`'s INV-27 block calls `_lmod.blame(_srep)` directly
+(`check-state.py:1301,1304,1325`) — the identical function `render()` calls
 (`layout_migration.py:319`). Structurally the two call sites cannot diverge; there is one
 function, not two policies kept in sync by discipline.
 
@@ -79,7 +79,7 @@ verdict never coexists with such a reader. I built the nearest real-divergence c
 reader `[unreadable]` (`check-domain.py` absent), cause `unreadable`.
 - **3c75aa6** (reproduced from source, `old_layout_migration.py` in scratch): `render()` names
   both readers — `team-config.yaml [both]; check-domain.py [unreadable]`. Reproducing
-  `check-state.sh`'s old `_cv_wording`/`_tagged('unreadable')` clause names **only**
+  `check-state.py`'s old `_cv_wording`/`_tagged('unreadable')` clause names **only**
   `check-domain.py [unreadable]` — the `[both]` reader is silently dropped from the
   session-entry wording that old code actually rendered. **Diverges**, as issue #379 claimed.
 - **a714bd0**: both call sites (`blame()` directly) return

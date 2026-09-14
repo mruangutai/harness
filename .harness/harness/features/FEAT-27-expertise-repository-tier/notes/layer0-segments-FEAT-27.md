@@ -83,7 +83,7 @@ PY
 2. **T-04: do not reword any entry, in either direction.** The eleven are moved verbatim including
    continuation lines. A reworded entry cannot be checked against the anchors the verify uses, and
    rewording is a distillation act this plan does not authorise. Likewise **do not renumber the craft
-   files** — a numbering gap is correct, `check-expertise.sh` requires the id prefix and not
+   files** — a numbering gap is correct, `check-expertise.py` requires the id prefix and not
    contiguity, and DEC-66 makes the ids stable references.
 
 3. **T-06's `374`-entry figure is a historical measurement and is correct as written.** The tree now

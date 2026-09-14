@@ -35,7 +35,7 @@ gates, expertise, feature state) is measured clear.
 FEAT-21's plan.yaml (`:115-123`) documents it as an intentional multi-repository-segment mechanism
 ("Grants, globs and regexes take a WILDCARD repository segment… never a hardcoded harness segment…
 team-config.yaml is one global file (issue 346), so a hardcoded segment grows a line per repository").
-`check-domain.py`/`check-plan-routes.py`/`check-state.sh` all anchor that segment with `[^/]+`
+`check-domain.py`/`check-plan-routes.py`/`check-state.py` all anchor that segment with `[^/]+`
 (single-segment, matching `matches()`'s behavior) — so the docs grant inherits an *already-signed*
 risk shape rather than introducing a new one. The precedent carries no narrowing D-01 omits.
 

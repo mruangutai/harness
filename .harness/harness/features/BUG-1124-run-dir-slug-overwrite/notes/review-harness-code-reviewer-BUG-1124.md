@@ -19,7 +19,7 @@ of `shape_problems` plus its tests. Every requirement in the PR description is m
   `# Issue #1124` comment and the following `# T-17 / D-08` comment and confirms the same
   write goes from denied (exit 2) to allowed (exit 0) with the guard removed — genuinely
   exercises the new code, not a returncode coincidence.
-- No scope creep: nothing touches `check-state.sh` (the sibling vocabulary sweep) or any
+- No scope creep: nothing touches `check-state.py` (the sibling vocabulary sweep) or any
   other guard; that is correctly out of scope since #1124 is specifically about the
   write-time collision guard #1058 already patterns.
 

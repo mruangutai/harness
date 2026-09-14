@@ -60,9 +60,9 @@ working-tree and `--ref HEAD` mode, printing the three excused lines. Six discri
 
 T-07's own verify was run for real: **red** on the current tree, naming all three offending lines
 (`harness-eng-lead.md:9,10`, `harness-code-reviewer.md:7`); **green** on a repaired pair of files
-built in `/tmp/feat47-t07/`, with `check-expertise.sh` also `OK` on both.
+built in `/tmp/feat47-t07/`, with `check-expertise.py` also `OK` on both.
 
-**A cap discovered while doing that, now written into T-07:** `check-expertise.sh` caps a single
+**A cap discovered while doing that, now written into T-07:** `check-expertise.py` caps a single
 entry at **50 words**, not just the file at 40 lines. A first draft of the G-04 replacement came in
 at 51 and failed with `G-04 is 51 words — cap is 50; a rule, not a story`.
 

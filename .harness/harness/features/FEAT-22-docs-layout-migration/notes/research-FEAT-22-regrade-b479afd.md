@@ -20,7 +20,7 @@ Scope: SC-02, SC-06, SC-07, SC-08, SC-09, SC-10, SC-12 only. SC-01/03/04/05/11 u
 | SC-12 | met | inspection | `DECISIONS.md:5948` / `:5950` — am.1 states the new spelling `.harness/*/docs/**` |
 
 Corroborating: `layout_migration.py` exit **0** (captured directly, not through a pipe);
-`check-state.sh` exit 0.
+`check-state.py` exit 0.
 
 ## SC-10 — re-derived, class by class, not by arithmetic
 

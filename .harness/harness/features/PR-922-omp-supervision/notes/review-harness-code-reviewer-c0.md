@@ -29,7 +29,7 @@ is undeclared scope that also breaks silently.
 | OMP hook tests: 20 passed | **reproduced** — `bun test ./.claude/skills/harness/bin/omp-hooks.test.ts` → 20 pass, 0 fail |
 | inflight registry checks: 88 passed | **reproduced** — `python3 test-inflight-registry.py` → 88/88 |
 | dispatch guard checks: 42 passed | **reproduced** — `python3 test-dispatch-guard.py` → 42/42 |
-| full unit suite, adapter drift, OMP port check, canonical state checker passed | **reproduced** — `run-unit-tests.py` exits 0 (all scripts including the three above PASS); `sync-agent-adapters.py --check` exits 0; `check-omp-port.py` prints `ok`; `check-state.sh` exits 0 (only advisory `note` lines, no `VIOLATION`) |
+| full unit suite, adapter drift, OMP port check, canonical state checker passed | **reproduced** — `run-unit-tests.py` exits 0 (all scripts including the three above PASS); `sync-agent-adapters.py --check` exits 0; `check-omp-port.py` prints `ok`; `check-state.py` exits 0 (only advisory `note` lines, no `VIOLATION`) |
 | Deferred ship evidence (GitHub Building→Review→Done→auto-close) | out of scope by the PR's own framing — not graded |
 
 ### must_fix
@@ -98,7 +98,7 @@ mechanism rather than porting it.
 ("`-I` IS LOAD-BEARING, NOT TIDINESS (#556)...") both introduce this heading but the actual
 invocation on the next lines (`bash-write-guard.py:42`, `check-domain.py:103`) uses neither flag —
 it's `python3 -c 'import sys; sys.path.pop(0); exec(...)'`, the same manual-bootstrap technique
-`check-state.sh` uses (and correctly labels without a flag name). Confirmed against baseline: both
+`check-state.py` uses (and correctly labels without a flag name). Confirmed against baseline: both
 files used real `-P` before this diff (`git show <base>:<path>`); the flag was dropped in favor of
 the bootstrap but the heading text wasn't updated in either file. This is exactly the defect class
 (#556: a governed hook's import path silently drifting) that these comments exist to prevent a

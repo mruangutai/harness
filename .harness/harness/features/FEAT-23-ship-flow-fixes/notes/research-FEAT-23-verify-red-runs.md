@@ -200,7 +200,7 @@ Every literal `files:` path was delegated to `check-domain.py --resolve` (DEC-17
 
 `NOBODY` becomes a declared `main-session-direct` task, never a mid-run rejected write.
 **`gh-sync.py` is not one of the DEC-174 four** (`check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `check-state.sh`), so T-01 is an ordinary team task.
+`validate-digest.py`, `check-state.py`), so T-01 is an ordinary team task.
 
 ## The write-path probe that settles D-01 (issue #417's discriminating check 2)
 
@@ -228,7 +228,7 @@ inferred (G-02):
 ## Issue #417's discriminating check 3, answered
 
 **Nothing anywhere sets `"Abandoned"`.** `grep -rn "Abandoned"` across `.claude/` returns only
-*readers* — the schema enum, `check-plan-routes.py:408` `FINISHED_STATUSES`, `check-state.sh:113`,
+*readers* — the schema enum, `check-plan-routes.py:408` `FINISHED_STATUSES`, `check-state.py:113`,
 `:494`, `:507`, `:1177`, `gh-sync.py:172`, and one test fixture. `cmd_abandon`'s docstring claims
 `feature.json` is untouched, and it is telling the truth. So abandon carries the identical gap and is
 **ruled in scope**: same file, same one-line shape, and INV-26 exempts both statuses. Ruling it out

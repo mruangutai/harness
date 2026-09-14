@@ -73,7 +73,7 @@
   a successor reading disk sees eight tasks stuck at `building` with nothing explaining why.
 
 - 2026-08-14: The most valuable thing I did all feature was notice what the plan's own verify chain
-  could NOT detect. Mid-cluster, check-state.sh exited 0 while emitting zero notes and
+  could NOT detect. Mid-cluster, check-state.py exited 0 while emitting zero notes and
   check-plan-routes reported `examined 0`; T-09's verify greps only for the absence of an INV-27 line
   and tests exit 0, and it invokes the route checker with an explicit path, which never calls
   discover_plans(). Both gates would have shipped blind and green. The check that caught it was

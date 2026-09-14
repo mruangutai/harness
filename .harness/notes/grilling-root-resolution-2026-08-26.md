@@ -108,13 +108,13 @@ Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.py`,
 `inject-expertise.py`, `validate-digest.py`.
 
 Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`,
-`check-state.sh`, `factory_config.py`, `gen-decisions-index.py`, `harness_yaml.py`,
+`check-state.py`, `factory_config.py`, `gen-decisions-index.py`, `harness_yaml.py`,
 `inflight_registry.py`, `run-unit-tests.py`, `validate-feature-json.py`, `wayfind.py`.
 
 ### One function is deliverable — none of these is really bash
 
 Every `.sh` site already runs `python3`, and **four already import a shared harness module**:
-`bash-write-guard.py`, `check-domain.py`, `check-state.sh`, `post-merge-sweep.py`. The precedent
+`bash-write-guard.py`, `check-domain.py`, `check-state.py`, `post-merge-sweep.py`. The precedent
 for a shared import exists; it was simply not used for this.
 
 ### The problem has already been hit and patched privately

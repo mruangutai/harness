@@ -2,7 +2,7 @@
 
 BLUF: the new monotonicity check cannot live in `run-state-schema.json` (JSON Schema
 validates one document in isolation and has no cross-document comparison primitive) so
-`check-domain.py` is a defensible home for it as written — `leave`. The `check-state.sh`
+`check-domain.py` is a defensible home for it as written — `leave`. The `check-state.py`
 persona selector is a bare 6-line inline conditional at its one call site with no second
 copy anywhere — `leave`. S2 (F4, the duplicated step-schema loader) is unchanged by this
 fix and stands exactly as accepted-for-fold-in in the prior pass.
@@ -27,7 +27,7 @@ fix and stands exactly as accepted-for-fold-in in the prior pass.
   "the schema should own it" is not achievable as stated; the rule can only live in code
   that already holds both documents, and `check-domain.py`'s write-time gate is the one
   caller in this pair that does.
-- Is it stated once? Yes for this specific rule — `check-state.sh`'s sweep (the other
+- Is it stated once? Yes for this specific rule — `check-state.py`'s sweep (the other
   enforcement point in the pair) does not re-derive or duplicate the downgrade check; it
   only reads `schema_version` to pick a validation persona (F2 below), a different
   question. Grepping the diff and the surrounding files turns up exactly one
@@ -35,9 +35,9 @@ fix and stands exactly as accepted-for-fold-in in the prior pass.
 - worth-doing: no — the capability is at the only place that can hold it, stated once.
 - recommendation: **leave**
 
-## F2 (re-check) — `check-state.sh` persona selector: version-dispatch at the one sweep call site
+## F2 (re-check) — `check-state.py` persona selector: version-dispatch at the one sweep call site
 
-- file/line: `.claude/skills/harness/bin/check-state.sh:1590-1598` (`_version` /
+- file/line: `.claude/skills/harness/bin/check-state.py:1590-1598` (`_version` /
   `_persona` ternary immediately before `_vd_mod.validate(_persona, _dtext)`), the only
   caller of `validate()` for a completed lead digest in this file.
 - Is this a special case bolted onto shared infrastructure, or the sweep's own business?
@@ -56,12 +56,12 @@ fix and stands exactly as accepted-for-fold-in in the prior pass.
 ## S2 (carry-forward, not re-derived) — does the fix change F4's disposition?
 
 Unchanged, worse if anything but not by this fix's own doing: `check-domain.py:1619-1629`
-and `check-state.sh:1490-1499` (loader boilerplate location per the prior receipt) are
+and `check-state.py:1490-1499` (loader boilerplate location per the prior receipt) are
 untouched by this delta — confirmed via `git show 99035a9c:.claude/skills/harness/bin/check-domain.py`
 at the same line range, byte-identical to before. The fix *adds* three more schema-version
 type-checks (`isinstance(..., int) and not isinstance(..., bool)`) repeated a third time
 in `check-domain.py` (twice already existed for the version-floor check) and a fourth
-time in `check-state.sh`'s new persona selector — the same three-line idiom now appears
+time in `check-state.py`'s new persona selector — the same three-line idiom now appears
 four times across the two files with no shared predicate. This does not reopen F4 as a
 new finding (it is the same mechanism, not a new one), but it is worth noting in the
 carry-forward: the fold-in F4 already recommended would, if done, be the natural home for

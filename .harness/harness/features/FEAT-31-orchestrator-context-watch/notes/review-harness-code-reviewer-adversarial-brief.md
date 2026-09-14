@@ -11,7 +11,7 @@ conflicts with SC-02 on real production data). Everything else is fixable in pla
 keys — `id`, `squad`, `verdict` (confirmed by reading the file). No field records which
 orchestrator/session/agent executed a run. The Problem section itself says cycles and runs "are
 the only counters left, and neither is a proxy for context" (i.e. neither proves an orchestrator
-was carried past a seam). So SC-07 — "check-state.sh reports a feature whose runs show an
+was carried past a seam). So SC-07 — "check-state.py reports a feature whose runs show an
 orchestrator carried across a phase seam" — names a signal (`runs`) that structurally cannot carry
 the fact being tested, without a schema change nowhere disclosed as a needed decision (DEC-191
 closes the top-level 11 keys; the `runs[]` sub-schema is separately closed and untouched by any
@@ -89,10 +89,10 @@ Exact matches (command output cited):
 - `log_retention_days: 30` — confirmed, `harness.json:163`.
 - feature-schema.json: 11 top-level properties, `additionalProperties: false`, 8 required, no
   `phase` key, `status` enum present — all confirmed.
-- INV-17 at `check-state.sh:462` — confirmed exact line.
+- INV-17 at `check-state.py:462` — confirmed exact line.
 - DEC-159's sentence "the watchdog remains the post-hoc audit" — confirmed verbatim,
   `DECISIONS.md` (DEC-159 block).
-- DEC-174 am.1–am.4 names `check-state.sh` in the enforcement-layer list and am.4 (2026-08-19)
+- DEC-174 am.1–am.4 names `check-state.py` in the enforcement-layer list and am.4 (2026-08-19)
   makes the enumeration non-exhaustive — confirmed.
 - `cost-report.py:338` — confirmed via `git show <parent-of-deletion-commit>` — the line is
   `cpt_threshold = int(budgets.get("context_per_turn_tokens") or 200_000)`. Nuance: this line

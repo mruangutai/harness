@@ -6,7 +6,7 @@
 **7 ops applied: 4 replaces, 1 merge, 2 adds. No entry lost content without an op naming it.**
 Sections before: Patterns 15/15, Gotchas 15/15, Outcomes 4/10, Open 0/5.
 After: Patterns 15/15, Gotchas 15/15, Outcomes **6**/10, Open 0/5. File 116 -> 124 lines.
-`check-expertise.sh` exit 0, output verbatim: `OK   .harness/expertise/harness-pm.md`.
+`check-expertise.py` exit 0, output verbatim: `OK   .harness/expertise/harness-pm.md`.
 
 Open stays 0/5 deliberately — the one live scope question is feature state and belongs in the
 DIGEST's `open_questions`, not in durable memory.

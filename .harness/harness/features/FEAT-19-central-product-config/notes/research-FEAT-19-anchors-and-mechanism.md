@@ -67,7 +67,7 @@ so the row above is the new baseline with its command, not an attempt to reprodu
 
 **Four of this feature's surfaces are granted to NOBODY**, so they are declared main-session
 steps under DEC-179 — an ungranted surface is legitimate, not a task that silently fails.
-`check-state.sh` resolves to backend-dev/dev-ops but is one of DEC-174's four and is
+`check-state.py` resolves to backend-dev/dev-ops but is one of DEC-174's four and is
 main-session-direct for a different reason. The two reasons are kept distinct in the plan.
 
 ## The per-product path — settled by evidence, not preference
@@ -121,7 +121,7 @@ Each gets its own success criterion.
 - `.harness/harness.json` has 16 top-level keys; `github` is `{sync, repo, board{owner, number,
   station_field}}` and its own `_note` already says the placement is temporary and that #206 moves it.
 - `harness-init/SKILL.md` is 286 lines with nine numbered steps.
-- Nothing in `check-state.sh` enumerates `.harness/`'s children, so adding `products/` trips no
+- Nothing in `check-state.py` enumerates `.harness/`'s children, so adding `products/` trips no
   inventory invariant. `dirty_tree_whitelist` is `.harness/**`, which already covers it.
 - `run-unit-tests.py` keeps explicit `UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays with a drift
   detector over their union: a new test file unregistered there fails the whole run.

@@ -141,7 +141,7 @@ Unmodified, `gh-sync.py` unmodified (reverted after the failed rewiring attempt 
 Exit 0, `ALL PASSED`. This is the ORIGINAL, untouched behaviour — not evidence the rewiring
 works, evidence the revert was clean.
 
-### `bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds` and `--kind unit`
+### `python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds` and `--kind unit`
 
 ```
 check-kinds: the script arrays and test_kinds.integration.detect agree.

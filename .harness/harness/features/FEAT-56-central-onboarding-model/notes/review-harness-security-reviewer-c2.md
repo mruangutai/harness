@@ -90,7 +90,7 @@ Read both files in full at `9768681c`, plus their new test (`tests/integration/t
   verification-completeness question with no trust boundary or exploit behind it; out of scope
   for this role, not declined for lack of looking.)
 
-## Surface 4 — T-02 message-only edits: `gh-sync.py`, `check-state.sh`, `check-domain.py`, `upgrade-config.py`, `layout_migration.py`
+## Surface 4 — T-02 message-only edits: `gh-sync.py`, `check-state.py`, `check-domain.py`, `upgrade-config.py`, `layout_migration.py`
 Diffed every hunk at `-U6`/`-U8`/`-U16` context against `4b5dbb23` and read every changed line.
 - All five files: **every changed line is inside a `print(...)`/`.append(...)` string literal or a
   `#`-comment/docstring.** No `if`/`elif`/`else`/`sys.exit`/`return`/`raise` line touched anywhere

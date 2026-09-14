@@ -16,7 +16,7 @@ of items 1–7; all seven addressed below. Items 2, 5, 6, 7 check out clean.
 | `test-plan-merge.py` | 218 PASS / 0 FAIL | **matches** — exit 0, 218 PASS, 0 FAIL |
 | `run-unit-tests.py --kind unit` | exit 0, 0 FAIL | **exit 0, 517 PASS, 0 FAIL — but `test-plan-merge.py` is not a member of `UNIT_SCRIPTS` and never ran** (see Matrix below) |
 | `run-unit-tests.py --kind integration` | (not separately claimed) | exit 0, 850 PASS, 0 FAIL, `test-plan-merge.py` present |
-| `check-state.sh`: exactly one violation, `INV-26` on `BUG-1081` | — | **exit 0, zero `violation`-severity lines at all** (script's own legend: "Exit 0 = all invariants hold"). All 737 printed lines are `note`-level, informational; zero `INV-26` hits. This is repo-wide state that moves independently of this diff (other sessions landed commits since the build's 58742037 measurement) — not attributable to this diff, but the specific count/id the author cited does not reproduce now |
+| `check-state.py`: exactly one violation, `INV-26` on `BUG-1081` | — | **exit 0, zero `violation`-severity lines at all** (script's own legend: "Exit 0 = all invariants hold"). All 737 printed lines are `note`-level, informational; zero `INV-26` hits. This is repo-wide state that moves independently of this diff (other sessions landed commits since the build's 58742037 measurement) — not attributable to this diff, but the specific count/id the author cited does not reproduce now |
 | red-first: 204 PASS / 9 failing before the verb existed | — | **cannot be established from the record.** `git log --oneline -- test-plan-merge.py` shows the entire BUG-1128 diff (both files) landed in **one commit**, `fe5c5b57`. No earlier commit in this range shows a pre-verb red state. The claim rests on the author's own narrative, not on anything the repository records |
 
 ## Matrix — `unit` is the real gap here
@@ -170,7 +170,7 @@ docstring's own account of why a hand-rolled quoting rule was rejected). Checked
 depends on the pre-amend form: `check-plan-routes.py`'s `BUDGETED_FIELDS` line-count gate
 (`DEC-182`, 30 lines/task) counts `len(value.splitlines())` on the **parsed** string, not on raw
 file text, so the extra blank lines the folded style inserts do **not** inflate the budget.
-Nothing else in this repo reads `plan.yaml` by raw regex per DEC-182 (`check-state.sh`'s old
+Nothing else in this repo reads `plan.yaml` by raw regex per DEC-182 (`check-state.py`'s old
 regex readers were removed by that decision). **Cosmetic only — a human diffing the PR will see a
 noisier hunk than the logical change warrants, but no gate is fooled.** No case in the suite
 asserts anything about emitted form either way — a real but non-blocking adequacy gap.

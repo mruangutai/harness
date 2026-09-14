@@ -8,7 +8,7 @@ Pin: `d78f393a7d5addc1cbd2f31628aed18c54983b9a`. Scope: `git diff main...d78f393
 
 The plan's original tasks (T-01..T-12) are `logic`/`config`/`docs`, floor = `unit` only. But
 this fix cycle's actual diff (validate-digest.py + its integration suite, run-unit-tests.py,
-check-state.sh, `.omp/extensions/harness-hooks.ts`) crosses Python/Bash/TS module boundaries
+check-state.py, `.omp/extensions/harness-hooks.ts`) crosses Python/Bash/TS module boundaries
 and its own regression tests (`check_hook_feature_dir`, `check_skipped_member_errors`,
 `_check_plan_feature_binding`) live in `test-validate-digest.py`, which `run-unit-tests.py`
 registers under **integration**, not unit. I therefore ran BOTH kinds — unit alone would have
@@ -82,7 +82,7 @@ undeterminable, only one whose recorded and actual branches genuinely disagree. 
 
 M4 (32-bit truncated finding id, med/security — asserted not demonstrated), M6 (goalcheck
 transcription ambiguity, low), M7 (withhold message states fact not remedy, low), and the
-`check-state.sh` attribution-check missing-`continue` (low) — did not re-derive; `check-state.sh`
+`check-state.py` attribution-check missing-`continue` (low) — did not re-derive; `check-state.py`
 did change at this pin (INV-32 disposition refactor, `70fd441`) but that hunk is unrelated to
 the earlier low finding's line range and I did not re-verify it.
 

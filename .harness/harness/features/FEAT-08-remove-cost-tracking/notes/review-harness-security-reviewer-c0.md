@@ -6,7 +6,7 @@ which touches this feature's paths).
 
 ## Scope
 
-In scope: this diff removes an *invariant* from `check-state.sh` (INV-11: completed runs must carry
+In scope: this diff removes an *invariant* from `check-state.py` (INV-11: completed runs must carry
 a `cost:` block) and a *required schema field* (`cost_usd`) from `validate-digest.py`'s orchestrator
 schema. Both are guards other agents' returns route on, so a loosened guard is a trust-boundary
 question (STRIDE: Tampering) even though the feature is a deletion, not new input handling. That is
@@ -19,7 +19,7 @@ value here — `info` is.
 
 ## What I checked, and result
 
-1. **`check-state.sh` INV-11 removal** (`.claude/skills/harness/bin/check-state.sh`) — the check that
+1. **`check-state.py` INV-11 removal** (`.claude/skills/harness/bin/check-state.py`) — the check that
    rejected a `status: complete` run with no `cost:` block is gone. This is a business-logic
    completeness check, not an authorization or input-validation gate — nothing an attacker controls
    changes state. `cost` stays in `CHECKPOINT_KEYS` for backward parse-compatibility with 67
@@ -27,7 +27,7 @@ value here — `info` is.
    spelling already legal before the change, never a new shape. Not a finding.
    - Checked for a fail-open regression from the deletion specifically: the deleted hunk contained
      `import datetime`, used only by the removed staleness check. Grepped the pin
-     (`git show 942505e:.claude/skills/harness/bin/check-state.sh | grep -n datetime`) — zero
+     (`git show 942505e:.claude/skills/harness/bin/check-state.py | grep -n datetime`) — zero
      remaining references anywhere in the file. Then went beyond the grep and **ran** the fixture
      suite rather than trusting static inspection alone (the panel's own T-10 lesson — a defect that
      reading missed was found only by running): `python3 .claude/skills/harness/bin/test-check-state.py`
@@ -61,7 +61,7 @@ value here — `info` is.
    read transcript JSONL for cost attribution; it is fully deleted. Swept
    `.claude/skills/harness/bin/` at the pin for `transcript`/`.jsonl`: only `harness_yaml.py`
    (unmodified by this diff — session/transcript-path resolution for an unrelated bootstrap purpose)
-   and one unrelated comment in `check-state.sh` remain. Nothing left reachable that derives cost
+   and one unrelated comment in `check-state.py` remain. Nothing left reachable that derives cost
    data from transcripts.
 
 5. **Deserialization / YAML loader.** `harness_yaml.py` is not in this diff's file list

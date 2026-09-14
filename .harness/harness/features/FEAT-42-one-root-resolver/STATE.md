@@ -39,7 +39,7 @@ VERIFIED BY ME at 9d12e3a, independent of any squad:
 - `harness-hooks.ts` finding re-derived line by line before it entered the briefing.
 - `"IGNORING it"` occurs exactly once tree-wide — the tautology confirmed.
 - No production file under `bin/` reads `CLAUDE_PROJECT_DIR`; `python3 -P` on 19 launches / 10 files.
-- `check-state.sh` exit 0, 0 violations.
+- `check-state.py` exit 0, 0 violations.
 
 ## Open Questions
 

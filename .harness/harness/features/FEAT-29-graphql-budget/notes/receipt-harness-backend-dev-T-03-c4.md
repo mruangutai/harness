@@ -103,6 +103,6 @@ Other working-tree modifications present (`plan.yaml`, `feature.json`, `CLAUDE.m
 
 ## Scope discipline
 
-Did not touch `check-state.sh`, `test-check-state.py`, `test-gh-sync.py`, `.harness/notes/**`, or
-`.harness/logs/**`. Made no live `gh` call. Did not run `check-state.sh`. Did not act on B-1, B-2,
+Did not touch `check-state.py`, `test-check-state.py`, `test-gh-sync.py`, `.harness/notes/**`, or
+`.harness/logs/**`. Made no live `gh` call. Did not run `check-state.py`. Did not act on B-1, B-2,
 B-3, or the `hasNextPage`/null-`endCursor` item at `factory_gh.py:359-363`.

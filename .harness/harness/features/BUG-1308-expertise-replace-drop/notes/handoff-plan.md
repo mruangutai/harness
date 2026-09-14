@@ -12,7 +12,7 @@ build entry is T-01 (`plan.yaml` T-01, `depends_on: []`, the only dependency-fre
 ## Trust
 
 - No open high or critical panel finding: 14 findings, 13 `resolved`, 1 `open` (PF-12c69147, low) — `plan.yaml` `panel.findings` — verified-at 8a0b568, loaded and tallied by me
-- INV-32 passes both halves: all three readers `ran`, and no open finding carries a severity outside info/low/med — I re-ran the invariant's own logic from `check-state.sh:519-547` against this plan — verified-at 8a0b568
+- INV-32 passes both halves: all three readers `ran`, and no open finding carries a severity outside info/low/med — I re-ran the invariant's own logic from `check-state.py:519-547` against this plan — verified-at 8a0b568
 - Approval is `pending` with no `rulings` in BOTH artifacts — `plan.yaml` `approval`, `BRIEF.md:154-156` — verified-at 8a0b568
 - The operator's four rulings are implemented, not merely claimed: `section` required on every op (D-02, D-03 reduced to two conditions, D-05), stable-identity application with the invariant "no index resolved against the base snapshot is ever used to address the mutated list" (`plan.yaml` T-01 Step D), D-10's merge rewrite intact, contention forced by the test taking the production lock — verified-at 8a0b568, quoted from disk
 - `lanes.resolved_at` is `c369fb1` and every lane row reproduces from `check-domain.py --resolve` — I ran the resolver on all five surfaces — verified-at 8a0b568

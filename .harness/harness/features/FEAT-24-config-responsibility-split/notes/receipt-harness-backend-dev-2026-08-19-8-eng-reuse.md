@@ -66,7 +66,7 @@ call sites with different constraints (settled by D-03, not re-litigated here) â
 
 Ran: `test-factory-gh.py` (165/165 ok), `test-factory-config.py` (79/79 ok), `test-gh-board.py`
 (all pass, no FAIL lines) â€” each run standalone via `python3 <file>`. Also ran the full
-`bash .claude/skills/harness/bin/run-unit-tests.py --kind all`: rc=0, zero `FAIL` lines
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all`: rc=0, zero `FAIL` lines
 (includes `test-factory-integration.py`, 106/106 checks passed).
 
 ```yaml

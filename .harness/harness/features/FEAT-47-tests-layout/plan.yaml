@@ -1306,7 +1306,7 @@ tasks:
       mute = [p for p in sorted(pre) if p in files and not re.search(r"tests/(unit|integration)", txt(p))]
       ctl = git("grep", "-l", "-e", TOK[0], "-e", TOK[1], "-e", TOK[2], "--",
                 ".harness/harness/features/", ck=False).split()
-      fmt = (subprocess.run(["bash", ".claude/skills/harness/bin/check-expertise.sh",
+      fmt = (subprocess.run(["bash", ".claude/skills/harness/bin/check-expertise.py",
                              *sorted(pre)]).returncode if pre and not gone else 9)
       print("base", base, "files", len(files), "repaired", sorted(pre), "live", live, "lost", lost,
             "gone", gone, "not-restated", mute, "control", len(ctl), "fmt", fmt)
@@ -1363,10 +1363,10 @@ tasks:
       its id, keep the WHEN/DO shape, restate the insight over the directory-is-the-kind mechanism.
 
       THE BINDING BUDGET IS PER ENTRY, NOT PER FILE, and it was measured while writing this task
-      rather than assumed: check-expertise.sh caps a single entry at 50 WORDS and reports
+      rather than assumed: check-expertise.py caps a single entry at 50 WORDS and reports
       "G-04 is 51 words — cap is 50; a rule, not a story" at exit 1. A first draft of the G-04
       replacement, written to read naturally, came in at 51 and failed. Write each replacement,
-      then run check-expertise.sh on every file you touched before anything else — the 40-line
+      then run check-expertise.py on every file you touched before anything else — the 40-line
       repository-tier file budget is the cap that will NOT fire here and is not the one to aim at.
 
       Do NOT reach for expertise-merge.py here. It computes a UNION and reports the same id
@@ -1378,7 +1378,7 @@ tasks:
       together with the ENTRY ID each token sat under. It then requires zero token lines anywhere
       under either glob; every pre-image id still present, so a repair cannot become a deletion or
       a renumbering; each repaired file naming tests/unit or tests/integration, so it cannot become
-      a silent removal; check-expertise.sh clean over exactly the derived set; at least 28 files
+      a silent removal; check-expertise.py clean over exactly the derived set; at least 28 files
       discovered and at least 5 carrying a token at the base ref, so a broken glob cannot report a
       clean sweep; and D-16's positive control over .harness/harness/features/ non-empty, so a
       search that has stopped working cannot either. Both floors were measured at 1c9c384, where

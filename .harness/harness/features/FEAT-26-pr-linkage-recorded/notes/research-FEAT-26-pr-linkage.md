@@ -114,7 +114,7 @@ issues. That is the operator's call, raised as an open question rather than plan
 | `.claude/skills/harness/bin/gh-sync.py` | harness-backend-dev, harness-dev-ops | team |
 | `.claude/skills/harness/bin/feature-schema.json` | harness-backend-dev, harness-dev-ops | team |
 | `.claude/skills/harness/bin/test-*.py` (the three touched) | harness-backend-dev, harness-dev-ops | team |
-| `.claude/skills/harness/bin/check-state.sh` | harness-backend-dev, harness-dev-ops | **main-session-direct** (DEC-174 carve-out) |
+| `.claude/skills/harness/bin/check-state.py` | harness-backend-dev, harness-dev-ops | **main-session-direct** (DEC-174 carve-out) |
 | `.claude/skills/harness/templates/plan.yaml` | NOBODY | main-session-direct |
 | `.claude/skills/harness/SKILL.md` | NOBODY | main-session-direct |
 | a feature's `feature.json` | harness-orchestrator | main-session-direct (no team lane holds it) |
@@ -129,8 +129,8 @@ Runners: `unit` and `integration` are both active in `.harness/harness.json` `te
 needed**, so the drift detector at `run-unit-tests.py:41-42` cannot be tripped. No surface this
 feature touches is covered by a `cmd: null` kind, so the BRIEF records no verification gap.
 
-Highest existing invariant in `check-state.sh` is **INV-27**, so the new one is **INV-28**. INV-21's
-block (`check-state.sh:858-891`) is its shape model: per-feature glob loop, parse-guard that reports
+Highest existing invariant in `check-state.py` is **INV-27**, so the new one is **INV-28**. INV-21's
+block (`check-state.py:858-891`) is its shape model: per-feature glob loop, parse-guard that reports
 rather than `continue`s silently, warn level because the GitHub mirror never gates.
 
 Next free decision number is **DEC-197**.

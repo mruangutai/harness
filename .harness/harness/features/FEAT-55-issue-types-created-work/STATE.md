@@ -67,7 +67,7 @@ worked around, and one non-gating ratification.
   carry no `status:` key and `set-task-station` only SPLICES an existing line (Q5). I did NOT work
   around it: writing plan content outside `plan-merge.py` is what D-04 forbids. Never a gate.
 - Q17 (NEW; the concrete instance of the unrepairable-digest defect) — FIVE FEAT-55 run digests fail
-  the lead contract and `check-state.sh` reports each as a VIOLATION: `2026-09-04-03-product`,
+  the lead contract and `check-state.py` reports each as a VIOLATION: `2026-09-04-03-product`,
   `2026-09-04-11-validator`, `2026-09-05-c5-validator`, `2026-09-05-26-validator` (all pre-existing,
   plan phase) and `2026-09-05-30-validator` — the review panel's own run, whose lead emitted a valid
   fenced contract in its RETURN and wrote a file without one. That file's prose record is complete

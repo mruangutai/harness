@@ -3,7 +3,7 @@
 ## Next
 
 **The qa gate FAILED and the remaining fix is the operator's, by hand.** T-05's verify cannot reach
-green for two reasons, both in DEC-174 carve-out files: `check-state.sh` has no `INV-26 BEGINS`/
+green for two reasons, both in DEC-174 carve-out files: `check-state.py` has no `INV-26 BEGINS`/
 `ENDS` markers so the verify's slice is EMPTY, and `test-check-state.py` emits none of the five
 required ok-lines, two of which (`backlog`, `building` per-key) have no case at all. Exact
 instructions: `notes/segment-03-t05-verify.md`. When it returns green: re-check the matrix, then the
@@ -14,13 +14,13 @@ the review panel, then pm's goal-check on all 13 SCs through `harness-product-le
 
 - All ten tasks `done` and committed; every sub-issue closed; parent derived to `Review`;
   `review_sha` pinned at `b0604c3` — `plan.yaml`, `feature.json` — verified-at 2e60cc2
-- FEAT-24's own `check-state.sh` violations are **zero** — verified-at 2e60cc2
+- FEAT-24's own `check-state.py` violations are **zero** — verified-at 2e60cc2
 - Full suite: zero `FAIL` lines — `run-unit-tests.py --kind all` — verified-at 2e60cc2
 - I re-ran T-01, T-02, T-08, T-09, T-10's `verify:` myself; all GREEN. **T-05's FAILS** at its first
   assertion — verified-at 2e60cc2
 - **SC-06 met and checked LIVE:** `board_for` returns kaya's board from `master` with a checkout
   present on disk, which also proves the no-fallback rule — verified-at 2e60cc2
-- `INV-26 BEGINS` and `INV-26 ENDS` each occur **0 times** in `check-state.sh`; the five ok-lines
+- `INV-26 BEGINS` and `INV-26 ENDS` each occur **0 times** in `check-state.py`; the five ok-lines
   T-05's verify greps occur **0 times** in `test-check-state.py` — verified-at 2e60cc2
 - v.13/v.14/v.15 DO exist and pass, so "the tests were never written" is false; they are named
   differently and two per-key cases are absent — verified-at 2e60cc2
@@ -34,7 +34,7 @@ the review panel, then pm's goal-check on all 13 SCs through `harness-product-le
 - Do not trust a green suite as evidence an integration works — it was green through two live
   defects; call the real thing — source: this session, two fix cycles
 - Do not re-run T-01 through T-10; all are committed and independently verified — source: this session
-- Do not edit `check-state.sh`, `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
+- Do not edit `check-state.py`, `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
   `test-check-state.py` from a team run — source: DEC-174 carve-out, T-05 main-session-direct
 - Do not stage with `git add -A`, `git add .` or `git add .harness`; explicit pathspecs, and confirm
   `git status --short` before every commit — source: #433, live foreign reconciliation

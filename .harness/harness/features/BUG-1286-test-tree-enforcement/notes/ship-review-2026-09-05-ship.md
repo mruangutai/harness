@@ -34,7 +34,7 @@ rather than accepting any agent's report:
 - unit suite exit 0, **341 PASS / 0 FAIL**, 27 files — 316 before this feature, so +25 real checks
 - integration exit 0, **14 PASS / 0 FAIL**
 - `--check-layout` exit 0; tree-audit `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`; decision anchors 30/0 failed
-- `check-state.sh` exits 0 with no violation and no note for this feature
+- `check-state.py` exits 0 with no violation and no note for this feature
 
 **The plan phase's stated honest limit is closed.** Every green/red result on record at signature
 time was a hand-simulation of the specification against reader-written reimplementations — three
@@ -80,7 +80,7 @@ against my own interest.
 
 Whether 10 of 10 *stops* a feature is genuinely undefined. The playbook says stop "on crossing";
 step 7 scopes exhaustion to the fix loop; and there is **no mechanical check on `max_total_cycles`
-anywhere** — `check-state.sh` only enforces INV-7. Per your standing direction I put it to
+anywhere** — `check-state.py` only enforces INV-7. Per your standing direction I put it to
 `fable-advisor` rather than to you. It ruled: the send-back does count, and forward first-pass work
 continues while the branch stops at the first genuine rework demand. I followed that, which is why
 validation ran at all instead of stopping three segments earlier. **A one-line decision defining

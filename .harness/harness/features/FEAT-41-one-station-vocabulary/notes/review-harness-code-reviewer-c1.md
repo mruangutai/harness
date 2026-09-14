@@ -60,7 +60,7 @@ already substantively disclosed elsewhere in the record. Zero high+.
    is empty (0 lines) — byte-identical, confirmed directly, not narrative. `plan.yaml:1707`
    T-18's `status: abandoned` (not `done`) — read at source.
 
-6. **T-14 → INV-33, no shadowing — correct.** `check-state.sh:264-387` is `# INV-32 BEGIN/END
+6. **T-14 → INV-33, no shadowing — correct.** `check-state.py:264-387` is `# INV-32 BEGIN/END
    (FEAT-45 T-07)`; `:488-558` is a separate, non-overlapping `# INV-33` block (FEAT-41 T-14).
    `test-check-state.py` carries disjoint helpers (`_inv32_*` vs `_inv33_*`/`case_inv33a/b/c`)
    with no shared fixture path between them. No duplicate id, no shadowing.
@@ -122,7 +122,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
   `None`/is omitted from the mapping, never guessed. `read_station`'s own docstring names
   exactly the "silence reads as proof" failure mode this feature exists to close, and its
   three-way `(station, reason)` return avoids it. No fail-open found here.
-- `check-state.sh` INV-26 (:1884): confirmed the `_want is None` branch is now `bad.append(...)`
+- `check-state.py` INV-26 (:1884): confirmed the `_want is None` branch is now `bad.append(...)`
   (loud violation), not the old `continue` — matches SC-13's requirement, read at the site.
 - `check-plan-routes.py` `_is_shipped` (:525): explicitly documented and structured to fail
   toward "examine" rather than "skip" on any unreadable/ambiguous input; the function's own
@@ -149,7 +149,7 @@ Path note per dispatch: the "lib/" layout doesn't exist at this pin — `gh_boar
 - `worktree_terminal.py`'s `_hook_feature_dir`/`inflight_registry` mechanism itself — it lives
   in `origin/main`, confirmed byte-identical to this feature's copy, so it is out of this diff's
   code-quality scope; security reviewer's lens per D-16's own framing.
-- Full `check-state.sh`/`test-check-state.py` run — per this cycle's suite-serialization
+- Full `check-state.py`/`test-check-state.py` run — per this cycle's suite-serialization
   constraint, qa owns it exclusively; I read the specific INV-32/33 sites rather than executing
   the suite.
 

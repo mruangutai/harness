@@ -47,7 +47,7 @@ retyped. No harness file modified.
 3. 6 findings / 6 distinct ids; `{med:1, low:1, info:3, none:1}`; dispositions `['open']`;
    `resolved_by` substring absent from the whole file; the two `closes at signature` entries are the
    med and the low.
-4. `check-state.sh` → **0 lines matching INV-35**; exactly **one** `VIOLATION` line in the entire
+4. `check-state.py` → **0 lines matching INV-35**; exactly **one** `VIOLATION` line in the entire
    output, the expected `BRIEF.md is NOT approved`. Everything else for this feature is a `note`
    (pending approval; four orphaned run dirs, pre-existing).
 5. `check-plan-routes.py <plan.yaml>` → `0 violation(s) across 1 plan(s)`, exit 0; all five tasks

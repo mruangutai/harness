@@ -91,7 +91,7 @@ tasks:
       builds its scan list from os.listdir, so a tuple entry whose directory does not exist yet is a
       no-op. The reverse order is not: the moment .claude/skills/harness-add-repo/SKILL.md exists
       without this entry, the anchor rule scans it, and check-instruction-paths.py, which
-      check-state.sh runs at every door and before every commit, reddens on a tree that is otherwise
+      check-state.py runs at every door and before every commit, reddens on a tree that is otherwise
       correct. Do not wait for T-10.
 
       Edit the tuple only. Put the entry after "harness-init" and before "harness-grilling", with a
@@ -164,7 +164,7 @@ tasks:
       which is a FRESH CHECKOUT's preflight and is also provider-specific. Write a registration
       preflight, each item with its stop-or-continue consequence:
       - this control plane is configured: .harness/harness.json exists here and
-        python3 .claude/skills/harness/bin/check-state.sh runs without reporting an unconfigured
+        python3 .claude/skills/harness/bin/check-state.py runs without reporting an unconfigured
         clone. If it is unconfigured, STOP and route to harness-init: registration into an
         unconfigured control plane produces artifacts nothing reads.
       - the templates directory is readable from here, the same test harness-init makes.

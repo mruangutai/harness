@@ -38,7 +38,7 @@ nine fresh CLI invocations.
 - `scope` / `harness-code-reviewer` / `ran` (digest :12, :70)
 - `goalcheck` / `harness-pm` / `ran`, with a `note:` recording that it ran in a separate product
   segment outside this team's two panel steps and its findings were applied in the plan-fix cycles
-  rather than transcribed here. Lead decision: `check-state.sh:533` grades all three readers at
+  rather than transcribed here. Lead decision: `check-state.py:533` grades all three readers at
   signature, and a goal-check genuinely ran (`notes/research-…-goalcheck-plan-c1.md`, `-c2.md`, the
   c3 sc06-grader-closure note). The note is what keeps the record honest about which segment.
 

@@ -5,7 +5,7 @@ Scope: `git -C .claude/worktrees/harness/FEAT-45-adversarial-plan-panel diff 1d3
 ## Examined
 
 - `panel_findings.py` (identity: `normalize_summary`, `finding_id`, CLI `id` subcommand)
-- `check-state.sh`'s INV-32 branch (lines ~174-238)
+- `check-state.py`'s INV-32 branch (lines ~174-238)
 - `test-panel-findings.py` (all 6 cases + CLI harness)
 - `test-plan-panel.py` (all 8 numbered assertion groups)
 - `test-check-state.py`'s INV-32 addition (`_inv32_plan`, `_inv32_run`, `case_inv32`, incl. the
@@ -55,11 +55,11 @@ Scope: `git -C .claude/worktrees/harness/FEAT-45-adversarial-plan-panel diff 1d3
 computed." Grepped the whole worktree for a second sha256/hashing of a finding summary and for a
 second `\s+`-collapse/`.lower()`/`.strip()` normalization:
 
-- `check-state.sh`'s INV-32 branch never recomputes an id — it only reads `item.get("id")` and
+- `check-state.py`'s INV-32 branch never recomputes an id — it only reads `item.get("id")` and
   `ruling.get("finding")` as opaque strings and compares them against the recorded finding-id set.
   No re-implementation.
 - `test-check-state.py`'s `_inv32_plan`/`case_inv32` fixtures use a literal `fid = "PF-deadbeef"`
-  string, never re-derived from `finding_id()` — but since `check-state.sh` treats ids as opaque,
+  string, never re-derived from `finding_id()` — but since `check-state.py` treats ids as opaque,
   this is a fixture value, not a second identity rule, and does not qualify as reuse drift.
 - `harness-spec-driven/SKILL.md` and both `harness-validator-lead.md` copies explicitly delegate
   id computation to the CLI ("Compute every id with `python3 …/panel_findings.py id --reader <r>

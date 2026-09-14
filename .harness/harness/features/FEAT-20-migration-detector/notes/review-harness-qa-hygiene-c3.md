@@ -21,14 +21,14 @@ after, because they only check tag presence (`"[legacy]" in line`). Import-time 
 
 ## 2. Session-entry undeclared-segment wording — CHANGED, confirmed harmless
 
-`check-state.sh`'s (now-deleted) `_cv_wording` used `"evidence under an UNDECLARED segment: "`;
+`check-state.py`'s (now-deleted) `_cv_wording` used `"evidence under an UNDECLARED segment: "`;
 the unified `cause_text()` (`layout_migration.py:296`) uses render()'s pre-existing lowercase
 `"evidence under undeclared segment: "`. **The session-entry string changed at d15daa3.**
 
 - No test asserts the capitalized form. `test-layout-migration.py:322` labels its check "an
   UNDECLARED segment" in the *comment/check-name string* only — the actual assertion at line 323
   (`"undeclared segment" in out and "archive" in out`) is lowercase and was already testing
-  render()'s CLI output, not check-state.sh's session entry, at 6296149 too. Grepped repo-wide for
+  render()'s CLI output, not check-state.py's session entry, at 6296149 too. Grepped repo-wide for
   `UNDECLARED`: only that one comment string exists; no CI grep, no doc quotes the capitalized form.
 - `DEC-194` amendment 1 (`docs/harness/DECISIONS.md:5898-5913`) describes the cause by its **key**
   `undeclared-segment`, never quotes the rendered sentence in either case — not stale.
@@ -74,7 +74,7 @@ when non-empty; INV-27's CANNOT_VERIFY session-entry line similarly moved from `
 | `run-unit-tests.py --kind unit` | 0 |
 | `run-unit-tests.py --kind integration` | 0 (includes `test-check-domain.py`,
   `test-validate-digest.py`, `test-check-expertise.py` meta-gates) |
-| `check-state.sh` live against the real repo | 0 (notes only, no INV-27 findings — real tree is
+| `check-state.py` live against the real repo | 0 (notes only, no INV-27 findings — real tree is
   clean/migrated so INV-27 never fires; consistent with expectation) |
 
 ## 6. Mutation re-proof (worktree `.claude/worktrees/qa-c3-probe` @ d15daa3, per DEC-153)
@@ -89,7 +89,7 @@ the derived-fixtures rewrite.
 ## Test matrix
 
 `matrix_ok: true` for this delta — it is a same-behavior internal refactor (dedup + derivation), the
-plan's own T-0x already required unit+integration coverage of `layout_migration`/`check-state.sh`,
+plan's own T-0x already required unit+integration coverage of `layout_migration`/`check-state.py`,
 and both kinds ran green with no reduction in test count or removed assertions (`test-check-state.py`
 and `test-layout-migration.py` diffs are var-renames/consolidations only, no deleted checks).
 

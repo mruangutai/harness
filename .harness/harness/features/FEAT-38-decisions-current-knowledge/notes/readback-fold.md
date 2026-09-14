@@ -57,7 +57,7 @@ BELIEF — The outside-repository Bash pass-through remains, narrowed rather tha
 FALSIFICATION — The malformed-fleet exception remains measured: “absent 0, valid 0, malformed 0 before and **2** now.”
 
 ## DEC-194
-BELIEF — The rejected applicability rule remains named: keying applicability to `check-state.sh`’s own path “is wrong by construction.”
+BELIEF — The rejected applicability rule remains named: keying applicability to `check-state.py`’s own path “is wrong by construction.”
 FALSIFICATION — The observed consequence remains: init installed that marker in every product, so every product became applicable, held neither layout, and reported `CANNOT VERIFY` forever.
 
 ## DEC-181

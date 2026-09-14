@@ -131,7 +131,7 @@ Touched only my three assigned files:
 `.claude/skills/harness/bin/board_lifecycle.py`,
 `.claude/skills/harness/bin/test-board-lifecycle.py`,
 `.claude/skills/harness/bin/test-factory-integration.py`.
-Did not touch `gh-sync.py`, `DECISIONS.md`/`DECISIONS-INDEX.md`, `check-state.sh`,
+Did not touch `gh-sync.py`, `DECISIONS.md`/`DECISIONS-INDEX.md`, `check-state.py`,
 `test-check-state.py`, `test-gh-sync.py`, or `plan.yaml` — those carry sibling tasks (T-16,
 T-19, main session) already in progress in this worktree; their presence in `git status` is
 not mine. No approval or `plan.yaml` field was touched. No commit was made.

@@ -20,7 +20,7 @@ shipped or bookkeeping file. This note is the whole of the change.
 
 - `git diff --name-only 88b1182..434307a` — 27 paths. The 8 outside `.harness/` are
   `layout_migration.py`, `test-layout-migration.py`, `test-check-state.py`,
-  `check-state.sh`, `.github/workflows/tests.yml`, `run-unit-tests.py`, `DECISIONS.md`,
+  `check-state.py`, `.github/workflows/tests.yml`, `run-unit-tests.py`, `DECISIONS.md`,
   `DECISIONS-INDEX.md` — a one-for-one match with the criterion's closed set.
 - `git diff --diff-filter=R 88b1182..434307a` — empty. "Nothing moves" holds outright.
 - `layout_migration.py` on the live tree — `features: CLEAN — evidence legacy`,

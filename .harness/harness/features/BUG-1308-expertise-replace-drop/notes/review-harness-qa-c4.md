@@ -58,11 +58,11 @@ note below.
 | SC-05 | MET | integration | `case15: atomic failure exits non-zero` / sha256 equal to pre-invocation / following apply still exits 0 — PASS |
 | SC-06 | MET | integration | `case16: add-only exits 0 / ADDED,PRESERVED,APPLIED tokens / same-id-different-text still exit 7 / over-cap still exit 8` — PASS |
 | SC-07 | MET | unit | `u10: compute_union returns non-empty conflicts` + `merged Patterns still carries OLD text at index 6` — PASS, run directly (not inferred) |
-| SC-08 | MET | integration | `case11`/`case12`: `check-expertise.sh still accepts the written file` — both PASS |
+| SC-08 | MET | integration | `case11`/`case12`: `check-expertise.py still accepts the written file` — both PASS |
 | SC-09 | MET | integration | `case17`: real SKILL.md returns no failures; three drifted copies each redden the SPECIFIC direction the SC names and stay green on the other — all 9 sub-checks PASS |
 | SC-10 | MET | integration + direct read | `DECISIONS-INDEX.md:219` carries the exact literal `replace and drop through the ops subcommand`; `test-gen-decisions-index.py` exit 0 |
 | SC-11 | MET | integration | `case18`: `neither child exits during the 2.0s hold window … (2.01s observed)` — production lock (`harness_merge.acquire`) taken by the test itself, no bypass; both children exit 0 after release; census exact; P-07 carries replacement text — all PASS |
-| SC-12 | MET | unit (u11 + reversal, u12) + integration (case19) | `case19`: exits 0, `DROPPED P-01`/`REPLACED P-05`, id sequence exactly `P-02..P-05`, marker only on P-05, `check-expertise.sh` still accepts — all PASS; u11/u12 present and green in unit run |
+| SC-12 | MET | unit (u11 + reversal, u12) + integration (case19) | `case19`: exits 0, `DROPPED P-01`/`REPLACED P-05`, id sequence exactly `P-02..P-05`, marker only on P-05, `check-expertise.py` still accepts — all PASS; u11/u12 present and green in unit run |
 
 All 12 criteria are MET by a named, executed case whose assertion matches its text — none inferred.
 

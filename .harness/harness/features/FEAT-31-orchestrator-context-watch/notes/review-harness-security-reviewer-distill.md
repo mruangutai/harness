@@ -35,7 +35,7 @@ exist in the tool enforcing it), not a workaround to record in Expertise, so it 
 
 ## Verification
 
-`check-expertise.sh .harness/expertise/` — `OK` for `harness-security-reviewer.md`, one
+`check-expertise.py .harness/expertise/` — `OK` for `harness-security-reviewer.md`, one
 pre-existing advisory (`G-01` names `DEC-100`, unrelated to this run's edits). Line count 147 → 43
 after apply (the tool's render is one physical line per entry, not the wrapped multi-line style
 the pre-existing file had — well inside the 150-line craft budget either way).

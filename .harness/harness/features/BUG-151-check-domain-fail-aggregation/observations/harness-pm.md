@@ -12,5 +12,5 @@
   value file risks rewording a finding summary and minting a new content-hash PF- id. Built the
   value file by loading the live panel, appending the one reader entry and re-dumping it — every
   other value preserved by construction. Also: the reader-entry schema has no artifact/note-path
-  field (plan-merge.py:1011 _load_panel_value; check-state.sh:534-555), so the segment's artifact
+  field (plan-merge.py:1011 _load_panel_value; check-state.py:534-555), so the segment's artifact
   path belongs in the notes artifact, not the panel entry.

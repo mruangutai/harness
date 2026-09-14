@@ -191,7 +191,7 @@ the time of writing; the live list is authoritative if the two disagree.
 | 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
 | 2 | settings.json prerequisites + `inject-expertise.py` | **done** (DEC-101) |
 | 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out (cost-report.py removed — DEC-178) |
-| 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
+| 4 | `bin/check-state.py` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
 | 5 | DIGEST schema validator | **done** (DEC-101) |
 | 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
@@ -220,7 +220,7 @@ All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimat
 
 | Metric | Baseline (old rules) | Target signal (new rules) | How to measure |
 |---|---|---|---|
-| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.sh .harness/expertise/` |
+| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.py .harness/expertise/` |
 | Expertise corpus size | 1,422 lines / 23,145 words at peak; worst file 383 lines | ≤150 lines/file by physics; corpus roughly flat per feature | `wc -lw .harness/expertise/*.md` |
 | Per-spawn injection tax | worst file ~7k tokens, uncapped, growing | ≤150 lines hard-capped, truncation warning never seen | grep the warning string in spawn contexts |
 | Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` (cost-report.py removed — DEC-178) |
@@ -442,7 +442,7 @@ repository, which is what keeps the first half dumb and safe.
 **4. `.harness/features/<FEAT>/BRIEF.md`** — a **draft**, then the user's approval written into it.
 
 > **Corrected 2026-07-26.** An earlier version of this line said "init never marks it approved," which
-> contradicts interview step 3 below *and* the first Done-when: `check-state.sh` reports
+> contradicts interview step 3 below *and* the first Done-when: `check-state.py` reports
 > `BRIEF.md is NOT approved — halt` on a pending brief, so an init that leaves one has not onboarded
 > the project (verified against a fixture: exit 1 pending, exit 0 approved). The real rule is that init
 > never **self**-approves. It asks with `AskUserQuestion` and writes what the user answered.
@@ -507,7 +507,7 @@ The fixture was built to be adversarial: a pre-existing `.claude/settings.json` 
 own hooks on three events plus `permissions` and an `env` key, an existing `.gitignore` (one of whose
 entries the harness snippet also contains), and a split `web/` + `api/` source layout.
 
-- ✅ **`bin/check-state.sh` passes in a freshly-initialised project** (all settings entries, INV-9).
+- ✅ **`bin/check-state.py` passes in a freshly-initialised project** (all settings entries, INV-9).
   Exit 0. It exits **1** first on a pending brief — which is what forced the approval question above.
 - ✅ **A spawned harness agent is blocked from an out-of-domain write in that project.** `exit 2`, the
   full permitted-paths message reached the agent, and the file was absent from disk. The in-domain write
@@ -602,7 +602,7 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
    **DEC-227 records the measurement that replaced it**: per-run `started_at`/`ended_at`/`tokens` in
    `feature.json`, summed into every orchestrator return and one advisory line — a signal, never a
    gate.
-2. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
+2. `bin/check-state.py` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE).
 3. A **DIGEST schema validator** (~40 lines) routing drift into the existing
@@ -690,7 +690,7 @@ data required.
 These fixes are real and all three reviews want them — but each touches sections that may be deleted
 outright, so doing them now risks polishing text that will not survive:
 
-1. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
+1. `bin/check-state.py` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE). Scope depends on how many duties the orchestrator still has.
 2. A **DIGEST schema validator** (~40 lines) routing drift into the existing

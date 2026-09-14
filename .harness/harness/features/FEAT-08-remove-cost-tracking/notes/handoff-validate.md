@@ -23,7 +23,7 @@ Then: `gh-sync.py ship` on acceptance, `/harness-deploy` **before** the queued p
   all missed. MF-2 and MF-3 FIXED; MF-1 open — verified-at `8958840`
 - **13 of 15 SCs met. SC-15 was a REAL failure, was fixed, and pm re-graded it — I never marked it
   met myself** — verified-at the sc15-product digest
-- Twelve Expertise files, ALL `check-expertise.sh` clean, re-run by me because no lead holds `Bash`
+- Twelve Expertise files, ALL `check-expertise.py` clean, re-run by me because no lead holds `Bash`
   — verified-at this session's tip
 - Gates: unit 0 (12 scripts), docs 0, state 0 zero violations — all re-run by me — verified-at
   `8958840`
@@ -37,7 +37,7 @@ Then: `gh-sync.py ship` on acceptance, `/harness-deploy` **before** the queued p
 
 ## Dead ends
 
-- Do NOT re-root `check-state.sh` via `CLAUDE_PROJECT_DIR` to make SC-03 pass — the re-baselining
+- Do NOT re-root `check-state.py` via `CLAUDE_PROJECT_DIR` to make SC-03 pass — the re-baselining
   the user forbade — source: user ruling
 - Do NOT add a replacement fixture for the deleted unknown-key pin. Ruled "add nothing"; filed as
   issue #104 — source: user ruling

@@ -54,7 +54,7 @@ For each of the 34 modified tracked harness files, compared against this reposit
   success for all six:
   `.claude/commands/harness.md`, `.claude/skills/harness-handoff/SKILL.md`,
   `.claude/skills/harness-wayfinding/SKILL.md`, `.claude/skills/harness/SKILL.md`,
-  `.claude/skills/harness/bin/check-state.sh`, `.claude/skills/harness/bin/check-docs.sh`.
+  `.claude/skills/harness/bin/check-state.py`, `.claude/skills/harness/bin/check-docs.sh`.
 
 So the drift is reproducible from this repository in full. `check-docs.sh` is additionally a file
 this repo deleted under #202, so kaya's copy is a stale copy of a struck script.

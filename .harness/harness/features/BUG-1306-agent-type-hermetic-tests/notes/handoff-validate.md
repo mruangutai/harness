@@ -2,7 +2,7 @@
 
 ## Next
 
-Ship is the operator's gate, not a squad's: no fix cycle is owed, and `check-state.sh` now exits
+Ship is the operator's gate, not a squad's: no fix cycle is owed, and `check-state.py` now exits
 0 with ZERO violations repo-wide. Put the two non-blocking operator questions in front of the
 user — pm Q1 (BRIEF SC-04 / plan D-02 cite the raw `Popen` sites as "near lines 305/309"; at the
 pin they are 315/319, both files approval-gated) and pm Q2 (EMERGENT: no standing gate exercises
@@ -13,14 +13,14 @@ the ship briefing, all advisory, none gating: B-1 the SC-04/D-02 anchor drift (c
 governed-identity CI leg (enhancement), B-3 the security note's internal miscitation (chore),
 B-4 the standing `plan.yaml` finding PF-15e50cd4137f8309fac4057506bd40a5 — SC-05 gates which
 FILES changed, not which LINES (bug, open for FUTURE edits, discharged for this one), B-5
-`handoff_done_when.py` FINDING_RE requiring numeric finding ids (bug), B-6 `check-state.sh`
+`handoff_done_when.py` FINDING_RE requiring numeric finding ids (bug), B-6 `check-state.py`
 INV-35 being line-based (bug — worked around here by rewording, not fixed in the checker).
 
 ## Trust
 
 - The pin is now `6b2ef992` and the executable payload is UNCHANGED across every pin this feature has had: tests/integration/test-plan-merge.py is the same blob object `8fde5efc9c05eac9f3f312dd6191b45c89ad2f23` at 7e38d0ae, 536afda3, da05ea28, 6b2ef992 and e2bf649c, and `git diff --name-only da05ea28 e2bf649c -- tests bin .claude .agents '*.py' '*.sh'` is empty — verified-at 6b2ef992
 - The owner's INV-35 remediation changed exactly ONE panel string and nothing else: finding PF-15e50cd…'s `consequence` now reads `issue 1103` instead of `#1103`; all six finding ids, `approval: approved`, `status: review` and T-01 `done` are intact, re-loaded with yaml.safe_load — .harness/harness/features/BUG-1306-agent-type-hermetic-tests/plan.yaml — verified-at 6b2ef992
-- `check-state.sh` exits 0 with zero violations repo-wide; INV-35, INV-33 and INV-26 are all green — run from this worktree, which is the only checkout whose working tree holds the feature dir — verified-at 6b2ef992
+- `check-state.py` exits 0 with zero violations repo-wide; INV-35, INV-33 and INV-26 are all green — run from this worktree, which is the only checkout whose working tree holds the feature dir — verified-at 6b2ef992
 - All five criteria are met and were re-measured by pm, then SC-01/02/03/05 re-measured again at THIS pin: governed run exit 0 / 0 FAIL with both SC-02 literals present, clean run exit 0 / 0 FAIL, and the merge-base diff names 23 paths — the one test file plus 22 lifecycle artifacts, no `bin/` path, no second test file — notes/research-BUG-1306-goalcheck-validate-c0.md — verified-at 6b2ef992
 - The panel is PASS with `must_fix` empty, severity_max `info`, `code_grade: pass`; all four reviewers reached their own verdict and ui declined on a measured census, not a prediction — notes/review-harness-code-reviewer-c0.md, notes/review-harness-qa-c0.md, notes/review-harness-security-reviewer-c0.md, notes/review-harness-ui-reviewer-c0.md — verified-at da05ea28, whose code blob is identical to this pin
 - The suite CAN report red: the pinned source with its one pop line replaced by `pass`, under `HARNESS_AGENT_TYPE=harness-orchestrator`, exits 1 with 14 FAIL lines — the BRIEF's pre-fix shape. Compiled in memory under the original `__file__`; no repo file written — verified-at da05ea28, same blob as this pin

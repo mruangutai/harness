@@ -33,7 +33,7 @@ so direct tasks cannot all be run before the one dispatch.
 - **D-01: the placeholder vocabulary gets one home — a module-level constant in
   `bin/harness_yaml.py` — and both consumers import it.**
   Rationale: the user's constraint is "reuse the existing vocabulary, do not invent a second one",
-  and the two consumers sit on opposite sides of a bash/python boundary. `check-state.sh` already
+  and the two consumers sit on opposite sides of a bash/python boundary. `check-state.py` already
   runs `PYTHONPATH="$_selfdir…" python3 - <<'PY'` at `:24` and `import harness_yaml` at `:27`, so
   the import mechanism FEAT-05 established is already wired. `validate-digest.py` is import-safe
   (`if __name__ == "__main__":` at `:728`) and sits in the same directory; `settings.json:56`
@@ -112,7 +112,7 @@ so direct tasks cannot all be run before the one dispatch.
 
 - **D-05: the DEC-174 carve-out is extended to `bin/test-check-state.py`, `bin/run-unit-tests.py`
   and the new `bin/test-team-catalog.py`. THE USER KEPT THIS (Q5) — not re-litigated.**
-  Rationale accepted by the user: a test *for* `check-state.sh` is part of what makes that gate
+  Rationale accepted by the user: a test *for* `check-state.py` is part of what makes that gate
   green, and the carve-out exists because green gates cannot vouch for the code that produces them
   — verbatim the 2026-08-03 failure. Cost accepted: more of the build sits in main-session context
   with no lead assessing it.
@@ -264,19 +264,19 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
 ## Tasks
 
 - T-01: Close INV-6's truthy hole and give the placeholder vocabulary one home
-  execution_mode: main-session-direct — reason: carve-out (`check-state.sh` and
+  execution_mode: main-session-direct — reason: carve-out (`check-state.py` and
     `validate-digest.py` are both named in CLAUDE.md; `test-check-state.py` and `harness_yaml.py`
     by D-05, which the user kept)
   depends_on: none
   files:
     - .claude/skills/harness/bin/test-check-state.py
     - .claude/skills/harness/bin/harness_yaml.py
-    - .claude/skills/harness/bin/check-state.sh
+    - .claude/skills/harness/bin/check-state.py
     - .claude/skills/harness/bin/validate-digest.py
     - .harness/features/FEAT-06-team-layer-inv6/notes/before-check-state-635ef14.txt
   intent: >
     Step 0 (PRECONDITION for SC-03, and it must happen FIRST — an after-only run cannot assert
-    sameness). Run `.claude/skills/harness/bin/check-state.sh` over the real repo tree at the
+    sameness). Run `.claude/skills/harness/bin/check-state.py` over the real repo tree at the
     current HEAD and capture its complete stdout+stderr verbatim to
     `.harness/features/FEAT-06-team-layer-inv6/notes/before-check-state-635ef14.txt`, with the exact
     invocation and the `git rev-parse HEAD` output as the first two lines of the file. After Step 3,
@@ -299,7 +299,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     `PLACEHOLDER_UNSET = ("none", "null", "n/a")` with a one-line comment naming it as the single
     definition of "this field is declining to answer" (DEC-121). Place it near the other
     module-level constants (e.g. beside `INSTALL_COMMAND` at `:293`).
-    Step 3. In `check-state.sh`, replace the INV-6 condition at `:156`. It currently reads
+    Step 3. In `check-state.py`, replace the INV-6 condition at `:156`. It currently reads
     `if any(sq == "validator" for _, sq, _ in runs) and not val("review_sha"):`. It must become
     equivalent to: compute `_sha = (val("review_sha") or "").strip().lower()`, then fire when a
     validator run exists AND (`_sha == ""` OR `_sha in harness_yaml.PLACEHOLDER_UNSET`). **Keep the
@@ -322,7 +322,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     sites are coupled: embed the literal in `test-team-catalog.py` and this conjunct silently goes
     from true to false after it was signed off — a verify that passes and then goes stale, this
     feature's own charter defect. AND
-    `grep -c 'PLACEHOLDER_UNSET' .claude/skills/harness/bin/check-state.sh
+    `grep -c 'PLACEHOLDER_UNSET' .claude/skills/harness/bin/check-state.py
     .claude/skills/harness/bin/validate-digest.py` returns 1 for each, AND — the assertion that
     makes the deliverable itself non-optional (EMF-5) —
     `grep -c 'review_sha: none' .claude/skills/harness/bin/test-check-state.py` returns `>= 2` and
@@ -624,7 +624,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     (5) `.claude/skills/harness/SKILL.md` contains a line matching both `build` and `DEC-118`
     — SC-09, a PRESENCE assertion (D-04);
     (6) the literal `"none", "null", "n/a"` occurs exactly **once** across
-    `.claude/skills/harness/bin/*.py` and `*.sh`, and both `check-state.sh` and
+    `.claude/skills/harness/bin/*.py` and `*.sh`, and both `check-state.py` and
     `validate-digest.py` contain the token `PLACEHOLDER_UNSET` — SC-02 (P-03).
     **The search needle must be CONSTRUCTED, never embedded (AMF-6).** This checker lives in the
     directory it scans, so a plain string literal of the needle takes the count 1 → 2 the moment
@@ -928,7 +928,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
   must pin `review_sha` before recording a validator run. Intended behaviour, not a collision.
 - **Q7 (non-blocking) — T-07 carries `change_type: logic`**, live in `harness.json` `test_matrix`
   (`logic.always: [unit]`) but missing from `validate-digest.py:85`'s per-persona change-type
-  vocabulary — issue #10, out of scope. `check-state.sh:99` only checks presence, so INV-4 is
+  vocabulary — issue #10, out of scope. `check-state.py:99` only checks presence, so INV-4 is
   satisfied and the qa gate resolves to `unit`. T-07 is `main-session-direct` and returns no digest,
   so the exposure is nil for this feature. Flagged so nobody re-diagnoses it mid-build.
 - **Q11 (non-blocking, known and filed — NOT re-derived) — issue #19: no agent ever runs a PLAN

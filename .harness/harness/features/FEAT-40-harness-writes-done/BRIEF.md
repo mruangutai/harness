@@ -96,7 +96,7 @@ it, once per feature. And no harness command in the mirror closes an issue direc
   The `gh api` `state=closed` denial returns the identical text. A Bash call running
   `gh-sync.py abandon` is not denied. Every assertion fails against the tree without the gate.
   verify: automated      evidence: integration
-- SC-08: `check-state.sh` reports a violation naming `core.hooksPath` when it does not resolve to
+- SC-08: `check-state.py` reports a violation naming `core.hooksPath` when it does not resolve to
   `.claude/skills/harness/hooks`, and a second, distinct violation when `post-merge` in that
   directory is missing or not executable. It is clean when both hold. All three states are exercised
   by fixtures.
@@ -190,10 +190,10 @@ a card that silently misses `Done` with its only signal one line inside the outp
 - It does not remove the `absorbs:` machinery from `gh-sync.py`, `plan.yaml` or the suite. The rule
   is already struck in the docs (#840, merged as `cc84b29`); the code removal is its own change with
   its own tests. Operator-ruled.
-- It does not add a `check-state.sh` invariant for a card that is CLOSED but not at `Done`.
+- It does not add a `check-state.py` invariant for a card that is CLOSED but not at `Done`.
   `board_lifecycle.py` already detects exactly that, as its STATION finding class
   (`board_lifecycle.py:_audit_findings`, class 2 of six). What was missing was not a detector but a
-  runner — nothing scheduled `audit`. A second detector in `check-state.sh` would be two rules for
+  runner — nothing scheduled `audit`. A second detector in `check-state.py` would be two rules for
   one fact, and wiring `audit` into the pre-commit gate would cost four network calls on every run.
   **This is the same defect as the gate's limited reach, seen from the other side**: the Bash gate
   cannot see a close typed in a terminal or made in the web UI, and the one thing that catches such
@@ -239,7 +239,7 @@ a card that silently misses `Done` with its only signal one line inside the outp
 **These BLOCK:**
 
 - DEC-174 — the harness may PLAN its own enforcement-layer work but must not EXECUTE it through the
-  enforcement path being changed (`DECISIONS.md:4808`). `check-state.sh`, the new Bash gate and
+  enforcement path being changed (`DECISIONS.md:4808`). `check-state.py`, the new Bash gate and
   `.claude/settings.json` are enforcement layer.
 - DEC-164 — the grilling artifact is step zero and its facts are a floor, not a ceiling.
 - The operator's route ruling: the main session executes every task directly.

@@ -2,7 +2,7 @@
 
 **BLUF: PASS.** Both CHANGE 1 (per-tier line budget, classified on `os.path.abspath`) and
 CHANGE 2 (advisory-only repository-token scan, CRAFT-tier only) are implemented in
-`.claude/skills/harness/bin/check-expertise.sh`. All 6 new case groups (22 individual
+`.claude/skills/harness/bin/check-expertise.py`. All 6 new case groups (22 individual
 assertions) added to `.claude/skills/harness/bin/test-check-expertise.py`. Verify passed
 verbatim, exit 0.
 
@@ -14,7 +14,7 @@ out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1)
 echo "$out"
 echo "$out" | grep -q '^PASS test-check-expertise.py$' || exit 1
 echo "$out" | grep -q '^FAIL ' && exit 1
-live=$(.claude/skills/harness/bin/check-expertise.sh .harness/expertise/ 2>&1)
+live=$(.claude/skills/harness/bin/check-expertise.py .harness/expertise/ 2>&1)
 rc=$?
 echo "$live"
 [ "$rc" = 0 ] || { echo "live craft dir no longer exits 0"; exit 1; }
@@ -31,11 +31,11 @@ candidate; rule on it (issue 340)`).
 
 ## STEP 1 — baseline
 
-1. `git show b4659cd:...check-expertise.sh | diff - <working>` → **empty**, no drift.
+1. `git show b4659cd:...check-expertise.py | diff - <working>` → **empty**, no drift.
 2. `run-unit-tests.py --kind integration` pre-change: exit 0, 106/106 checks in
    test-factory-integration.py, and every `PASS <name>` line present incl.
    `PASS test-check-expertise.py`; **zero `^FAIL ` lines**.
-3. `check-expertise.sh .harness/expertise/` pre-change: exit 0, all 15 files `OK`, **no**
+3. `check-expertise.py .harness/expertise/` pre-change: exit 0, all 15 files `OK`, **no**
    `^ADVISORY ` line (scan didn't exist yet).
 4. `git status --porcelain` baseline: T-02's dirt only (`inject-expertise.py`,
    `run-unit-tests.py` modified; `test-inject-expertise.py` untracked) plus unrelated
@@ -44,12 +44,12 @@ candidate; rule on it (issue 340)`).
 
 ## STEP 2 — the work
 
-- `check-expertise.sh:36-64` — `CRAFT_LINE_BUDGET=150`, `REPO_LINE_BUDGET=40`,
+- `check-expertise.py:36-64` — `CRAFT_LINE_BUDGET=150`, `REPO_LINE_BUDGET=40`,
   `CRAFT_TIER_RE`/`REPO_TIER_RE`, `classify_tier()` on `os.path.abspath(path)`.
-- `check-expertise.sh:74-75` — over-budget message now names the applied budget.
-- `check-expertise.sh:146-153` — advisory scan, CRAFT-tier only, `REPO_TOKEN_RE` verbatim
+- `check-expertise.py:74-75` — over-budget message now names the applied budget.
+- `check-expertise.py:146-153` — advisory scan, CRAFT-tier only, `REPO_TOKEN_RE` verbatim
   from issue 340's token set, appended to a separate `advisories` list — never `problems`.
-- `check-expertise.sh:155-163` — advisories print after the `OK`/`FAIL` line, for both
+- `check-expertise.py:155-163` — advisories print after the `OK`/`FAIL` line, for both
   outcomes (not special-cased on pass/fail, per intent's "must not be special-cased" for
   the FEAT-\d+ dual-hit case).
 - `test-check-expertise.py:87-235` — new `run_extra()` harness (own tempdir/subprocess
@@ -90,7 +90,7 @@ Overall: 9/22 extra cases passed pre-change, 13 failed. Split against the pre-de
   `PASS test-check-expertise.py` (32/32: 10 base + 22 extra, all `ok`).
 - Verify command: exit 0 as reported above.
 - `git status --porcelain` after minus baseline: exactly
-  `.claude/skills/harness/bin/check-expertise.sh` and
+  `.claude/skills/harness/bin/check-expertise.py` and
   `.claude/skills/harness/bin/test-check-expertise.py` newly modified by me. Everything else
   unchanged from baseline (T-02's dirt, other in-flight feature dirs). **Confirmed: nothing
   under `.harness/expertise/` or `.harness/harness/expertise/` was created, edited, or

@@ -3,7 +3,7 @@
 - 2026-07-31 (T-08): two handed-down anchors drifted from the tree. PLAN's D-01 and my dispatch both
   cite `feature.yaml:41` for `parent: none`; it is actually `:73` (`:41` is a run-dir cost comment).
   Cited `:73` in DEC-138 am.7.
-- 2026-07-31 (T-08): baseline flipped since `f929d44`. `check-state.sh` now exits **0** (only a `note`
+- 2026-07-31 (T-08): baseline flipped since `f929d44`. `check-state.py` now exits **0** (only a `note`
   about the orphaned run dir `2026-07-31-11-product`), where PLAN:649 / BRIEF:174-177 record exit 1
   (BRIEF-not-approved, since signed). `check-docs.sh` summary is "45 superseded pattern(s) across 72
   file(s)", not PLAN:644's 45/69. Measuring the baseline pre-edit rather than echoing the plan is what

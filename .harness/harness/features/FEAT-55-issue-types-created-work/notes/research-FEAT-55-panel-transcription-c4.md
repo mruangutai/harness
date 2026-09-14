@@ -59,7 +59,7 @@ has no hard BAD to raise and no operator risk acceptance is needed.
 ## The readers block — a malformed record corrected
 
 The cycle-3 record keyed its entries `step:` and carried only two of them.
-`check-state.sh` INV-32 (`bin/check-state.sh:533-546`) builds `by_reader` from the **`reader:`**
+`check-state.py` INV-32 (`bin/check-state.py:533-546`) builds `by_reader` from the **`reader:`**
 key and requires all three of `should-not-exist`, `scope`, `goalcheck` with `status` in
 `{ran, skipped}` — so the old shape would have emitted three BAD entries ("never ran or was not
 recorded") the moment the plan was signed. The block now matches the signed FEAT-52 precedent

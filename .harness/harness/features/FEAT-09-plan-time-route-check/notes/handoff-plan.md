@@ -19,14 +19,14 @@ eng-lead (`PLAN.md:168-234`), then T-03/T-04 main-session direct.
 - `check-domain.py --resolve` with stdin closed exits 0 printing nothing today (fail-OPEN); that
   is why D-02 makes `NOBODY` a literal token — `check-domain.py:26` `payload=$(cat)` — UNVERIFIED
   end-to-end by me; pm reports confirming it. Re-run before acting on T-01.
-- Unit suite is 13/13 and `check-docs.sh`/`check-state.sh` are green — grilling artifact
+- Unit suite is 13/13 and `check-docs.sh`/`check-state.py` are green — grilling artifact
   `## Facts` — verified-at ae2443d
 - Cost 56.27 is a by_agent delta against FEAT-08's plan block, contaminated by the concurrent
   flow at depth 0 and 1 — `feature.yaml` `baseline.cost_note` — verified-at ae2443d
 
 ## Dead ends
 
-- `check-state.sh` as the checker's home — FEAT-08 owns that file; D-01 chose a pm-invoked
+- `check-state.py` as the checker's home — FEAT-08 owns that file; D-01 chose a pm-invoked
   script for this reason alone — `feature.yaml` `pending`, Q3 — source: mission ruling
 - A second path matcher of any kind, including `str.startswith` — `PLAN.md` SC-08, REQ-04 —
   source: mandate point 3, DEC-126

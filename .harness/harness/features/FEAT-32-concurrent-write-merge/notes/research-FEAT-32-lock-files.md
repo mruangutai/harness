@@ -39,7 +39,7 @@ untracked lock trips GATE 2 and an ignored one does not. A `.gitignore` line is 
 
 **Partial collapse of the folklore:** the other two dirty-tree halts exempt exactly these paths.
 `harness-review/SKILL.md:38` stops only on "changes outside `.harness/**`", and SPEC.md:2364 defines
-the §8.6 whitelist as "`.harness/**` plus any path you have staged". `check-state.sh` contains no
+the §8.6 whitelist as "`.harness/**` plus any path you have staged". `check-state.py` contains no
 dirty-tree check at all (grep -i dirty: no match). So the consequence is narrower than "the next team
 run deadlocks": **ship-time worktree teardown refuses, with no force flag**, plus the standing risk
 that a `git add -A` commits local flock state.
