@@ -72,7 +72,7 @@ all exit 0. `test-gen-decisions-index.py` **exit 1**, one FAIL. `run-unit-tests.
 
 ## REQ coverage
 
-REQ-01 → T-03/T-14 (`inject-expertise.sh` control-plane block; proven). REQ-02 → T-04..T-08, T-10,
+REQ-01 → T-03/T-14 (`inject-expertise.py` control-plane block; proven). REQ-02 → T-04..T-08, T-10,
 T-11 — the five canonical sites are correctly anchored at HEAD (`test-anchor-directions.py` 7/7 by
 hand), but its family-5 half is still the one SC-06 cannot prove. REQ-03 → SC-07. REQ-04 → T-02,
 T-12 (checker + enforced `integration` step; the checker's own suite is currently outside every

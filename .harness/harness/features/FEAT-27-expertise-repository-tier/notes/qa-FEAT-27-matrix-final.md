@@ -93,7 +93,7 @@ direct reproduction, not by re-reading the claim. Method validated.
    `INV-\d+`, `.harness/`, `.claude/`, `check-*.sh`, `factory_*.py`, `gh-sync`, `harness.json`,
    `team-config`) overlaps `FEATURE_TOKEN_RE`'s pattern, so only the `FEAT-12` case is vacuous — a
    per-assertion finding, not a generalisation across the loop's 10 sub-cases.
-3. `inject-expertise.sh`'s `[ -r ]` documented half (non-matching glob) — established last round,
+3. `inject-expertise.py`'s `[ -r ]` documented half (non-matching glob) — established last round,
    script byte-identical this round (confirmed).
 4. case11's `"Traceback" not in stderr` — confirmed vacuous under the T-07 guard-removal mutant by
    direct reproduction this round (§ above), not by re-reading the claim.
@@ -113,7 +113,7 @@ part of this feature) and every other test file in the tree — bounded per the 
 ## 5. T-07's specific question: what does case13 actually pin?
 
 Reproduced the eng squad's claim myself on a scratchpad copy (`Write`-tool copy of
-`inject-expertise.sh`, confirmed byte-identical to the real file by `diff` before mutating; mutant
+`inject-expertise.py`, confirmed byte-identical to the real file by `diff` before mutating; mutant
 built by removing exactly the line `[ -r "$f" ] || continue`, confirmed by `diff` — one line, no
 more).
 
@@ -132,7 +132,7 @@ stderr-empty) — I did not repeat it, I reproduced it.
 **Does case13 pin the guard's UNSPECIFIED duty (exists-and-unreadable) rather than the documented
 half (non-matching glob)?** Yes. The fixture's `.harness/kaya/expertise/harness-qa.md` is a real
 dangling symlink — bash's glob **matches** it by name (it exists as a directory entry), so this is
-not the non-matching-glob case the segment filter at `inject-expertise.sh:75-77` already covers
+not the non-matching-glob case the segment filter at `inject-expertise.py:75-77` already covers
 independently. `[ -r ]` here is doing the only guarding: following the symlink to a target that does
 not exist, which `-r` correctly reports false for.
 
@@ -183,7 +183,7 @@ gap sits beside it.
 ## N-1 — CONFIRMED. Global tier reachable by no case in the suite.
 
 `fresh_home()` (`test-inject-expertise.py:57-58`) returns an empty tempdir; grepped the whole file for
-any `write(os.path.join(home` — zero hits. So `inject-expertise.sh:98-101`'s glob-tier branch
+any `write(os.path.join(home` — zero hits. So `inject-expertise.py:98-101`'s glob-tier branch
 (header, `cap_body "$glob" 150`) is dead code as far as this suite is concerned.
 
 **Measured:** mutated `:100`'s budget `150 → 77` (one line, diffed clean against the real file
@@ -197,7 +197,7 @@ remedy is a new case writing under `home`, not a stronger existing check.
 
 ## N-2 — CONFIRMED. case2's ordering assertion (`:123`) cannot fail against removal of the manual sort.
 
-`inject-expertise.sh:82-92`'s explicit re-sort is provably redundant for case2's fixture: bash glob
+`inject-expertise.py:82-92`'s explicit re-sort is provably redundant for case2's fixture: bash glob
 expansion already returns `.harness/*/expertise/harness-qa.md` matches in collation order — verified
 directly (not inferred) by globbing a scratch `kaya`+`harness` pair, independent of the hook: glob
 returned `harness` before `kaya` with no sort involved.
@@ -321,7 +321,7 @@ defense-in-depth, not miscoverage, and does not belong in the census as scoped.
 2. `test-check-expertise.py` case2's `FEAT-\d+` sub-case — vacuous; `FEATURE_TOKEN_RE` independently
    catches the violation regardless of `REPO_TOKEN_RE`'s overlapping sub-pattern (`check-expertise.sh:45`).
 3. case2's segment-ordering assertion (`test-inject-expertise.py:123`) — **new this round (N-2)**:
-   cannot fail against removal of `inject-expertise.sh:82-92`'s manual sort, because the fixture's two
+   cannot fail against removal of `inject-expertise.py:82-92`'s manual sort, because the fixture's two
    segment names are already in bash glob/collation order.
 4. case9a's ordering clause (`test-inject-expertise.py:233`) — **new this round (N-3)**: degenerates
    vacuously (`all()` over `[]`) when all three Expertise headers are absent; scoped to the ordering
@@ -329,9 +329,9 @@ defense-in-depth, not miscoverage, and does not belong in the census as scoped.
    removal.
 
 **(b) shipped code that no assertion reaches at all:**
-5. `inject-expertise.sh:98-101`'s `[ -r ]`-guarded documented half (non-matching glob) — carried,
+5. `inject-expertise.py:98-101`'s `[ -r ]`-guarded documented half (non-matching glob) — carried,
    unchanged since prior rounds.
-6. `inject-expertise.sh:98-101`'s glob-tier branch as a whole (header text, `cap_body "$glob" 150`) —
+6. `inject-expertise.py:98-101`'s glob-tier branch as a whole (header text, `cap_body "$glob" 150`) —
    **new this round (N-1)**: unreachable because no test ever writes under `home`.
 
 **Removed from the census:** case11's `"Traceback" not in stderr` (former item 4) — refuted; it

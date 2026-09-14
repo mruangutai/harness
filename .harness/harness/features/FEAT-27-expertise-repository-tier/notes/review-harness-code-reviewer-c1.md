@@ -8,7 +8,7 @@ stays empty.
 ## C-1 — HOME-unset unbound-variable exit — CONFIRMED, severity: low
 
 Ran it: `echo '{"agent_type":"harness-qa"}' | env -u HOME CLAUDE_PROJECT_DIR="$PWD" bash
-inject-expertise.sh` → `inject-expertise.sh: line 33: HOME: unbound variable`, exit 1. Prediction
+inject-expertise.py` → `inject-expertise.py: line 33: HOME: unbound variable`, exit 1. Prediction
 holds exactly: the hook violates its own "always exit 0" contract under `set -u` with `$HOME` unset.
 
 Enumeration (not taken from the prediction): every other bare `$var` reference in the script
@@ -17,7 +17,7 @@ Enumeration (not taken from the prediction): every other bare `$var` reference i
 defaulted. `$HOME` at `:33` is the **only** bare, undefaulted external variable. Confirmed by full
 grep of every `$name` occurrence, not spot-checked.
 
-**Inherited, not new to this diff.** `git show b4659cd:.claude/skills/harness/bin/inject-expertise.sh`
+**Inherited, not new to this diff.** `git show b4659cd:.claude/skills/harness/bin/inject-expertise.py`
 line 29 (pre-diff numbering) is byte-identical: `glob="$HOME/.harness/expertise/$agent.md"`, and
 `set -uo pipefail` at line 10 is unchanged too. This diff touched everything around it (the segment
 filter above, the repo-tier loop below) but never this line.
@@ -39,7 +39,7 @@ reimplemented) with `budget=40`: output is `head -n 40` → lines 1–40 only, l
 no-final-newline file) — same shape, same silent drop. Prediction confirmed exactly, at both budget
 sites this diff's parameterization now shares.
 
-**Diff-touched, not a fresh introduction.** `git diff b4659cd..9b929de -- inject-expertise.sh` shows
+**Diff-touched, not a fresh introduction.** `git diff b4659cd..9b929de -- inject-expertise.py` shows
 the `wc -l`/`head -n` comparison itself is verbatim-preserved from the old unparameterized
 `cap_body() { head -n 150 "$1"; if [ "$(wc -l < "$1")" -gt 150 ]; ... }` — the bug shape is inherited.
 What this diff does is **reuse** that exact defective comparison at a second, much tighter budget (40
@@ -128,7 +128,7 @@ confirmed at `:169`) — a caller checking only the exit code cannot tell "found
   `for d in .harness/*/expertise/; do check-expertise.sh "$d"; done` loop (confirmed via
   `git diff -- harness-curate/SKILL.md`, both steps 1 and 4), and this **same diff's** T-07/SC-11
   establish, with their own fixture (`test-inject-expertise.py` case13) and their own guard
-  (`inject-expertise.sh`'s `[ -r "$f" ] || continue`), that a dangling symlink under
+  (`inject-expertise.py`'s `[ -r "$f" ] || continue`), that a dangling symlink under
   `.harness/<segment>/expertise/` is ordinary, anticipated state — not a hypothetical. The diff that
   taught one tool to expect dangling links never taught the other tool sharing the same directory.
 

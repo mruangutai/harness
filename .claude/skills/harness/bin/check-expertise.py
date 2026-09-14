@@ -113,14 +113,14 @@ for path in sys.argv[1:]:
         problems.append(f"{len(lines)} lines — over the {line_budget}-line budget (the spawn hook truncates the rest)")
 
     # Issue #613: the ONLY signal above is a hard failure once the file is ALREADY over
-    # budget — the first warning arrived after inject-expertise.sh had already truncated
+    # budget — the first warning arrived after inject-expertise.py had already truncated
     # the tail from every spawn. A file caught here, three lines under 150, still has
     # room to DISPLACE an entry before the next distillation pushes it over; that
     # headroom is exactly what this advisory exists to spend while it still exists.
     # NEAR_BUDGET_FRACTION mirrors CRAFT_LINE_BUDGET/REPO_LINE_BUDGET as fixed data
     # (never re-derived per call) so "near" means the same thing everywhere this
     # script runs. Applies to BOTH tiers — a repo-tier file is truncated by the exact
-    # same mechanism (inject-expertise.sh caps both), so its headroom is just as real.
+    # same mechanism (inject-expertise.py caps both), so its headroom is just as real.
     near_budget_threshold = line_budget - line_budget // NEAR_BUDGET_FRACTION
     if near_budget_threshold <= len(lines) <= line_budget:
         advisories.append(

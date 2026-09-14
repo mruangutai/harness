@@ -44,7 +44,7 @@ import sys
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
-        "script": "inject-expertise.sh",
+        "script": "inject-expertise.py",
         "matcher": "harness-.*",
         "why": "Expertise injection. Absent -> every agent starts with no Expertise "
                "and nothing is raised.",

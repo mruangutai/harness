@@ -689,6 +689,166 @@ def run_unit_tests_corpus(scratch):
     ]
 
 
+def _write_expertise_fixture(path, body):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(body)
+
+
+def _expertise_root(scratch, name, config="agents: {}\n"):
+    root = os.path.join(scratch, name)
+    _write_expertise_fixture(
+        os.path.join(root, ".harness", "team-config.yaml"), config)
+    return root
+
+
+def _write_instruction_checker(root):
+    checker = os.path.join(
+        root, ".claude", "skills", "harness", "bin",
+        "check-instruction-paths.py")
+    _write_expertise_fixture(
+        checker,
+        "#!/usr/bin/env python3\n"
+        "import os\n"
+        "mode = os.environ.get('CHECKER_MODE', 'clean')\n"
+        "if mode == 'clean':\n"
+        "    print('scanned 4 file(s), 0 violation(s)')\n"
+        "    raise SystemExit(0)\n"
+        "if mode == 'drift':\n"
+        "    for n in range(1, 8):\n"
+        "        print(f'VIOLATION .omp/agents/harness-qa.md:{n}: bad')\n"
+        "    raise SystemExit(1)\n"
+        "print('checker unavailable')\n"
+        "raise SystemExit(3)\n")
+
+
+def _tiered_expertise_root(scratch, agent):
+    root = _expertise_root(scratch, "expertise-tiers")
+    _write_expertise_fixture(
+        os.path.join(root, ".harness", "expertise", f"{agent}.md"),
+        "PROJECT BODY\n")
+    for segment, body in (
+            ("zeta", "ZETA BODY\n"), ("alpha", "ALPHA BODY\n"),
+            ("Not-Valid", "MUST NOT APPEAR\n")):
+        _write_expertise_fixture(
+            os.path.join(root, ".harness", segment, "expertise", f"{agent}.md"),
+            body)
+    dangling = os.path.join(
+        root, ".harness", "broken", "expertise", f"{agent}.md")
+    os.makedirs(os.path.dirname(dangling))
+    os.symlink(os.path.join(scratch, "missing-expertise.md"), dangling)
+    return root
+
+
+def _capped_expertise_root(scratch, agent):
+    root = _expertise_root(scratch, "expertise-caps")
+    bodies = (
+        ("", "".join(f"craft line {number}\n" for number in range(1, 152))),
+        ("repo", "".join(f"repo line {number}\n" for number in range(1, 42))),
+        ("nonewline", "\n".join(
+            f"partial line {number}" for number in range(1, 42))),
+    )
+    for segment, body in bodies:
+        middle = [segment] if segment else []
+        _write_expertise_fixture(
+            os.path.join(
+                root, ".harness", *middle, "expertise", f"{agent}.md"),
+            body)
+    return root
+
+
+def _expertise_fixtures(scratch, agent):
+    home = os.path.join(scratch, "home")
+    os.makedirs(home)
+    _write_expertise_fixture(
+        os.path.join(home, ".harness", "expertise", f"{agent}.md"),
+        "GLOBAL BODY\n")
+    empty = _expertise_root(scratch, "expertise-empty")
+    tiers = _tiered_expertise_root(scratch, agent)
+    caps = _capped_expertise_root(scratch, agent)
+    malformed = _expertise_root(
+        scratch, "expertise-malformed", 'broken: "unterminated\n\tbad\n')
+    _write_expertise_fixture(
+        os.path.join(malformed, ".harness", "expertise", f"{agent}.md"),
+        "MALFORMED CONFIG STILL INJECTS\n")
+    checker = _expertise_root(scratch, "expertise-checker")
+    _write_instruction_checker(checker)
+    return home, empty, tiers, caps, malformed, checker
+
+
+def _expertise_payload_cases(env, empty):
+    return [
+        {"label": "malformed payload is ignored", "stdin": "{not json",
+         "env": env(empty)},
+        {"label": "missing agent type is ignored", "stdin": "{}",
+         "env": env(empty)},
+        {"label": "non-harness agent is ignored",
+         "stdin": json.dumps({"agent_type": "custom-agent"}),
+         "env": env(empty)},
+        {"label": "unsafe harness agent is ignored",
+         "stdin": json.dumps({"agent_type": "harness-qa/../../etc"}),
+         "env": env(empty)},
+    ]
+
+
+def _expertise_content_cases(payload, env, empty, tiers, caps, malformed):
+    return [
+        {"label": "empty expertise emits control plane",
+         "stdin": payload, "env": env(empty)},
+        {"label": "all tiers preserve order and segment filtering",
+         "stdin": payload, "env": env(tiers)},
+        {"label": "tier caps preserve truncation behavior",
+         "stdin": payload, "env": env(caps)},
+        {"label": "malformed team config remains unread",
+         "stdin": payload, "env": env(malformed)},
+    ]
+
+
+def _expertise_checker_cases(payload, env, checker):
+    return [
+        {"label": "instruction checker clean branch",
+         "stdin": payload, "env": env(checker, CHECKER_MODE="clean")},
+        {"label": "instruction checker drift branch caps locations",
+         "stdin": payload, "env": env(checker, CHECKER_MODE="drift")},
+        {"label": "instruction checker failure stays unknown",
+         "stdin": payload, "env": env(checker, CHECKER_MODE="failed")},
+    ]
+
+
+def _expertise_boundary_cases(payload, env, empty, tiers, home, project_override,
+                               scratch):
+    return [
+        {"label": "stray arguments remain ignored",
+         "argv": ["unexpected"], "stdin": payload, "env": env(empty)},
+        {"label": "cwd-independent injection",
+         "stdin": payload, "cwd": scratch, "env": env(tiers)},
+        {"label": "unconfigured isolated copy remains non-blocking",
+         "stdin": payload, "isolate": True,
+         "env": {project_override: None, "HOME": home}},
+    ]
+
+
+def inject_expertise_corpus(scratch):
+    """Payload, tier, cap, checker, cwd and root cases for the spawn hook."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+    agent = "harness-qa"
+    payload = json.dumps({"agent_type": agent})
+    fixtures = _expertise_fixtures(scratch, agent)
+    home, empty, tiers, caps, malformed, checker = fixtures
+
+    def env(root, **extra):
+        return {project_override: root, "HOME": home, **extra}
+
+    return (
+        _expertise_payload_cases(env, empty)
+        + _expertise_content_cases(
+            payload, env, empty, tiers, caps, malformed)
+        + _expertise_checker_cases(payload, env, checker)
+        + _expertise_boundary_cases(
+            payload, env, empty, tiers, home, project_override, scratch)
+    )
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -781,6 +941,8 @@ def corpus(tool, scratch, impl):
         return run_unit_tests_corpus(scratch)
     if tool == "post-merge-sweep":
         return post_merge_sweep_corpus(scratch)
+    if tool == "inject-expertise":
+        return inject_expertise_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 

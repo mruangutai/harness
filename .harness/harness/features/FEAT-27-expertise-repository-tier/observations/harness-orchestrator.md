@@ -1,6 +1,6 @@
 # Observations — harness-orchestrator — FEAT-27-expertise-repository-tier
 
-- 2026-08-19: Pre-change baseline of `inject-expertise.sh`, captured at `253287f` BEFORE T-02 edits
+- 2026-08-19: Pre-change baseline of `inject-expertise.py`, captured at `253287f` BEFORE T-02 edits
   it, because T-02 changes what the hook DISCOVERS and after that the exit code stops being evidence
   (P-09). Per agent, `context_lines` from `hookSpecificOutput.additionalContext`:
   `harness-qa` 134, `harness-orchestrator` 149, `harness-dev-ops` 35, `harness-frontend-dev` 0,

@@ -42,7 +42,7 @@ Under the central model its subject is either this clone or a product repo; #206
 | fleet declaration | `<cp>/.harness/factory/fleet.yaml`: `repos[].name`, `default_branch`, `workspace_root` only; a board at ANY level is rejected by `load_fleet` (`fleet.yaml:1-19`, `factory_config.py:159`) | central |
 | `team-config` policy | `<cp>/.harness/team-config.yaml` **only** — `check-domain.py:189` and `:331` join `harness_boundary.resolve_root(...)` with it; product paths are classified by `select_base` with control-plane globs filtered out (`harness_boundary.py:376-386`) | central |
 | features tree | `<cp>/.harness/<segment>/features` — `factory_config.features_root` (`:402-408`); `<cp>/.harness/harness/features` is that tree for harness itself | central |
-| expertise | `<cp>/.harness/expertise/<agent>.md` (craft) + `<cp>/.harness/<segment>/expertise/<agent>.md` (repo tier), globbed by `inject-expertise.sh:64,103-156` | central |
+| expertise | `<cp>/.harness/expertise/<agent>.md` (craft) + `<cp>/.harness/<segment>/expertise/<agent>.md` (repo tier), globbed by `inject-expertise.py:64,103-156` | central |
 | codebase map | **nowhere — the tier does not exist.** `BUILD.md:208`; no reader in `bin/` (grepped); `<cp>/.harness/harness/codebase/` absent; #498 DC-7 | n/a |
 
 `factory_workspace.py` writes **no** `.harness/` artifact into a checkout — it only prepares the

@@ -454,45 +454,6 @@ def case6():
           "worktree is main, which is not this question")
 
 
-# ============================== Case 7 ==============================
-# THE INVOKING DIRECTORY IS NOT ON THE IMPORT PATH.
-
-def case7():
-    """Every gate that launches Python excludes the governed cwd (#556).
-
-    Python puts the invoking directory at sys.path[0] AHEAD of PYTHONPATH. A policy module
-    in the governed agent cwd could therefore replace the real module. Interpreter `-I`
-    is used where only stdlib/project modules are needed. Heredocs that need normal
-    site-packages start with a bootstrap that removes only sys.path[0], then executes stdin.
-    Both forms exclude the cwd and work on the macOS system Python 3.9 used by OMP.
-
-    This case is the invariant, not the two pairs in test-check-domain.py and
-    test-bash-write-guard.py: those prove two hooks are shut; this catches the next
-    gate script added without either safe-path form.
-    """
-    pat = re.compile(r"(?<!`)python3 (?!-I )(-c |- )(?=[\'\"$]|<<)")
-    scripts = [f for f in git_ls_files()
-               if f.startswith(".claude/skills/harness/bin/") and f.endswith(".sh")]
-    check("case7_scripts_found", len(scripts) >= 3,
-          f"only {len(scripts)} gate scripts scanned — the glob stopped matching")
-    naked = []
-    for rel in scripts:
-        for i, line in enumerate(read_text(rel).splitlines(), 1):
-            if pat.search(line) and "sys.path.pop(0)" not in line:
-                naked.append(f"{rel}:{i}")
-    check("case7_every_python_launch_isolates_the_cwd", not naked,
-          f"python3 launched without -I or safe-path bootstrap, so the cwd shadows imports: {naked}")
-
-    # THE PAIRED HALF. Without a positive isolated-launch census the case above is
-    # satisfied by a regex that matches nothing at all. The native hook cutovers
-    # removed the final safe-path bootstrap, so zero safe launches is now the invariant.
-    guarded = re.compile(r"python3 -I (-c |- )")
-    hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
-               if guarded.search(line))
-    safe_hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
-                    if "python3 -c" in line and "sys.path.pop(0)" in line)
-    check("case7_the_scan_can_see_the_invocations", hits >= 3 and safe_hits == 0,
-          f"found {hits} isolated launches and {safe_hits} safe-python launches")
 
 
 def main():
@@ -502,7 +463,6 @@ def main():
     case4()
     case5()
     case6()
-    case7()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

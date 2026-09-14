@@ -70,7 +70,7 @@ the same file.
 | Task | Files | `change_type` | matrix `always` | Satisfied by |
 |---|---|---|---|---|
 | T-01 | `.harness/team-config.yaml` | `config` | `[]` | nothing required; only T-01's inline one-shot `verify:` |
-| T-02 | `inject-expertise.sh`, `test-inject-expertise.py`, `run-unit-tests.py` | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit) |
+| T-02 | `inject-expertise.py`, `test-inject-expertise.py`, `run-unit-tests.py` | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit) |
 | T-03 | `check-expertise.sh`, `test-check-expertise.py` | `cross_module` | `[unit, integration]` | `PASS test-check-expertise.py` runs under **integration** only — see below |
 | T-07 | `test-inject-expertise.py` (case13) | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit), case13 present, `os.symlink` present |
 | T-04/05/06 | SPEC.md, README.md, expertise files, SKILL.md | `docs` | `[]` | nothing required |

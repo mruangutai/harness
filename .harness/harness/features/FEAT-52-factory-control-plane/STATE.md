@@ -64,6 +64,6 @@
   changed and unchanged files alike. Any gate proving BRIEF/plan integrity by clean diff on this
   tree is a FALSE GREEN.
 - Q7 (record imprecision, deliberately unfixed): PF-4ea5b566's recorded summary says "no literal
-  exit statement anywhere"; `inject-expertise.sh` has three (`exit 0` at :28, :49, :137). The
+  exit statement anywhere"; `inject-expertise.py` has three (`exit 0` at :28, :49, :137). The
   operative claim survives. Correcting the text would change its content-hash id and invalidate
   any ruling on it, so it is flagged, not edited.

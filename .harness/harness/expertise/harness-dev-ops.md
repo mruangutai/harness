@@ -1,6 +1,6 @@
 # Expertise — harness-dev-ops
 ## Patterns (max 15)
-- P-01: WHEN editing `inject-expertise.sh`'s emit order DO keep tier precedence stated as an explicit line in the output, never implied by emission order alone — craft, project, then sorted repository blocks are emitted in a fixed sequence, but that sequence is presentation only.
+- P-01: WHEN editing `inject-expertise.py`'s emit order DO keep tier precedence stated as an explicit line in the output, never implied by emission order alone — craft, project, then sorted repository blocks are emitted in a fixed sequence, but that sequence is presentation only.
 - P-02: WHEN citing which files count as test-shaped in this repo DO point to suite_layout.py's NAME_PATTERNS/SOURCE_EXTENSIONS constants rather than restating the pattern/extension list in prose — the constants are the only place the vocabulary can change, and prose restatements go stale silently.
 ## Gotchas (max 15)
 - G-01: Nothing invokes check-state.sh automatically — it is manual-only, so a green session is not evidence it ran. (This gotcha used to also cover check-docs.sh's exec-bit fail-open; that script and INV-10 were struck under DEC-188.)

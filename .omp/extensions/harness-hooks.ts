@@ -754,7 +754,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     setFeature(detectedFeature, ctx);
     if (!currentAgent || expertiseInjected) return;
 
-    const result = policyRunner(ctx.cwd, "inject-expertise.sh", [], {
+    const result = policyRunner(ctx.cwd, "inject-expertise.py", [], {
       ...basePayload(currentAgent, "SubagentStart", ctx.cwd),
     });
     if (result.blocked || !result.stdout.trim()) return;
@@ -774,7 +774,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         },
       };
     } catch {
-      throw new Error("inject-expertise.sh returned invalid JSON");
+      throw new Error("inject-expertise.py returned invalid JSON");
     }
   });
 

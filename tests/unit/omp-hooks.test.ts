@@ -151,7 +151,15 @@ describe("OMP task lifecycle adapter", () => {
       payload: Record<string, unknown>,
     ) => {
       calls.push({ script, args, payload });
-      if (script === "inject-expertise.sh") return { blocked: false, stdout: "" };
+      if (script === "inject-expertise.py") return {
+        blocked: false,
+        stdout: JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: "SubagentStart",
+            additionalContext: "injected expertise",
+          },
+        }),
+      };
       if (script === "dispatch-guard.py") {
         const task = (payload.tool_input as Record<string, unknown>).task;
         if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
@@ -214,6 +222,19 @@ describe("OMP task lifecycle adapter", () => {
       },
     }, ctx);
   }
+
+  test("injects context through the native Python hook", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = {
+      cwd: "/repo",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
+    const result = await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
+    }, ctx);
+    expect(calls.some((call) => call.script === "inject-expertise.py")).toBe(true);
+    expect(result?.message?.content).toBe("injected expertise");
+  });
 
   test("normalizes batch and flat task calls", () => {
     expect(normalizeTaskDispatches({

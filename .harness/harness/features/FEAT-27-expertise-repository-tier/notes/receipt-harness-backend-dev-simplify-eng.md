@@ -38,7 +38,7 @@ proving the merge didn't drop coverage either builder was carrying alone.
 
 ## Other surfaces checked, nothing found
 
-- `inject-expertise.sh`'s repository-tier segment extraction/sort and `check-expertise.sh`'s
+- `inject-expertise.py`'s repository-tier segment extraction/sort and `check-expertise.sh`'s
   `CRAFT_TIER_RE`/`REPO_TIER_RE` classification are purpose-built, small regexes; nothing in
   `harness_boundary.py` or a sibling script exports an equivalent tier classifier — its
   `glob_to_re`/`matches`/`classify` machinery answers a different question (manifest

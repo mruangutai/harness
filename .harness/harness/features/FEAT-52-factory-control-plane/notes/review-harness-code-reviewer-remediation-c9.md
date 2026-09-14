@@ -112,7 +112,7 @@ case never asserts the file:line detail the criterion names.
 
 `test-inject-expertise.py:218 case4d` asserts `"HARNESS_PATH_DRIFT: none"` in the clean run and
 `"HARNESS_PATH_DRIFT: 1 unanchored path(s)"` in the drifted run, but never asserts the
-`  <file>:<line>` line that `inject-expertise.sh`'s `control_plane_block()` derives via
+`  <file>:<line>` line that `inject-expertise.py`'s `control_plane_block()` derives via
 `sed -n 's/^VIOLATION \([^:]*:[0-9]*\):.*/  \1/p'` (lines ~81-83). SC-12's text: *"the SAME file with
 one relative `.harness/` span yields the count line naming that file AND that line number."* I
 traced the sed regex by hand against the fixture's `VIOLATION .omp/agents/harness-qa.md:1: ...` line

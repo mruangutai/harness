@@ -81,7 +81,7 @@ All 15 exit 0. **No signed verify clause is red.**
 - `--list-scope` at the pin: **62** entries (non-empty), each of S1-S5 confirmed present
   individually by exact string match (§3 table header).
 - SC-02 positive control: committed, in `case14` — `grep`-equivalent Python scan of the shipped
-  `inject-expertise.sh` finds **zero** `^[ \t]*exit [1-9]` matches, and the same pattern against a
+  `inject-expertise.py` finds **zero** `^[ \t]*exit [1-9]` matches, and the same pattern against a
   one-line `exit 2` fixture matches **exactly one** — confirmed passing (`PASS case14`).
 
 (Note: `mktemp -d` on this host resolves under `/var/folders/...`, which `bash-write-guard`

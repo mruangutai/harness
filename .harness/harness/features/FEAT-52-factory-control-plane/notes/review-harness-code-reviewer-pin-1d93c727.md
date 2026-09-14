@@ -62,7 +62,7 @@ fabricating results):
   FEAT-declaration check passes through on its own failure. Verified `linked_worktrees()` degrades
   to `[]` on a non-git directory rather than raising, so the common no-worktree path never hits that
   fallback.
-- `inject-expertise.sh`'s only unguarded array expansion (`"${sorted_idx[@]}"`) iterates an array
+- `inject-expertise.py`'s only unguarded array expansion (`"${sorted_idx[@]}"`) iterates an array
   explicitly initialized to `()`, which is safe under `set -u` in the bash versions in use (the
   classic "unbound array" gotcha applies to a never-assigned array, not one initialized empty) — no
   reachable path found that would violate the never-exits-nonzero contract SC-02 requires.

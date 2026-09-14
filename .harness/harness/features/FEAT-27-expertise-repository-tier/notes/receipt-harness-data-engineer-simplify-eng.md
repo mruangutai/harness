@@ -1,6 +1,6 @@
 # Receipt — harness-data-engineer — simplify angle — FEAT-27
 
-**BLUF:** Two findings, both real, neither touches an assertion. (1) `inject-expertise.sh` carries
+**BLUF:** Two findings, both real, neither touches an assertion. (1) `inject-expertise.py` carries
 a manual sort step that duplicates ordering bash's own glob expansion already guarantees — confirmed
 empirically, not just by reading. (2) `check-expertise.sh` has a dead comment reference to a
 "CHANGE 1" label that doesn't exist in the file. Both are surgical, low-risk deletions/text fixes.
@@ -8,7 +8,7 @@ No finding here weakens or removes a test assertion.
 
 ## Finding 1 — redundant sort duplicates glob's own ordering
 
-**File · lines:** `.claude/skills/harness/bin/inject-expertise.sh:82-90`
+**File · lines:** `.claude/skills/harness/bin/inject-expertise.py:82-90`
 
 ```bash
 sorted_idx=()
@@ -42,7 +42,7 @@ runs at all.
 
 **Alternative:** Delete the `sorted_idx` block (lines 82-90) and the loop below that consumes it;
 iterate `repo_segments`/`repo_files` directly in glob order, since that order is already the sorted
-one. One-line instruction: "drop the manual index-sort in `inject-expertise.sh` and iterate the
+one. One-line instruction: "drop the manual index-sort in `inject-expertise.py` and iterate the
 glob-populated arrays directly."
 
 **What would prove it safe:** Delete the block, iterate in glob order, and re-run
@@ -83,7 +83,7 @@ confirming no comment points at a heading that isn't in the file.
 
 ## Not flagged (checked, judged fine)
 
-- `inject-expertise.sh`'s emit group (glob loop → segment filter → sort → emit block with the
+- `inject-expertise.py`'s emit group (glob loop → segment filter → sort → emit block with the
   precedence line and per-tier `cap_body` calls): still reads as one linear pipeline — gather,
   classify, present — despite five features landing together. No restructuring proposed.
 - `check-expertise.sh`'s tier classification (`classify_tier`) and the advisory token scan (lines

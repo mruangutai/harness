@@ -9,7 +9,7 @@ as designed, not waste this diff introduced or could cheaply avoid. No apply-wor
 
 ## Measurements
 
-**Hot path — `inject-expertise.sh`, real hook payload (`{"agent_type":"harness-dev-ops"}`),
+**Hot path — `inject-expertise.py`, real hook payload (`{"agent_type":"harness-dev-ops"}`),
 `CLAUDE_PROJECT_DIR` set, 20 invocations each:**
 
 | Version | user+sys / 20 runs | ms/run |
@@ -37,9 +37,9 @@ injected in a single call (confirmed via the emitted JSON's header list), on top
 as it was. Neither of the two mechanisms the brief asked me to check narrows N:
 - The agent-name regex (`^harness-[a-z0-9-]+$`) validates the *interpolated agent string*, not the
   number of directories scanned — its own adjacent comment says exactly this
-  (`inject-expertise.sh:22-26`).
+  (`inject-expertise.py:22-26`).
 - The segment charset filter (`case "$segment" in ''|*[!a-z0-9-]*) continue ;; esac`,
-  `inject-expertise.sh:73-77`) rejects malformed segment *names*; it does not cap how many
+  `inject-expertise.py:73-77`) rejects malformed segment *names*; it does not cap how many
   well-formed segments can exist.
 
 So the shipped bound is genuinely N×40 where N = "first-level `.harness/*/` dirs holding
@@ -48,7 +48,7 @@ So the shipped bound is genuinely N×40 where N = "first-level `.harness/*/` dir
 to ~580 lines injected per spawn if every first-level dir acquired a file for one agent. This is not
 new waste from this diff's mechanics; it is the repository-tier feature working as designed. Capping
 N is a `.harness/team-config.yaml` / directory-layout governance question, not something
-`inject-expertise.sh` can or should decide unilaterally — noted for the record, not flagged as a
+`inject-expertise.py` can or should decide unilaterally — noted for the record, not flagged as a
 defect.
 
 **Unit-suite registration — `run-unit-tests.py`:**

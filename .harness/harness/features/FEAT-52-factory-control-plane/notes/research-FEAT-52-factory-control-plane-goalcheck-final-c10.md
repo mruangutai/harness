@@ -56,7 +56,7 @@ Suites run by me at the pin (tracked tree clean, `HARNESS_AGENT_TYPE` unset):
 
 ## REQ coverage
 
-REQ-01 -> T-03/T-14 (`inject-expertise.sh` control-plane block). REQ-02 -> T-04..T-08, T-10, T-11
+REQ-01 -> T-03/T-14 (`inject-expertise.py` control-plane block). REQ-02 -> T-04..T-08, T-10, T-11
 (the five canonical sites re-anchored; whole-scope checker clean) — **its family-5 half is the one
 whose proof SC-06 lost.** REQ-03 -> SC-07 evidence (no grant widened). REQ-04 -> T-02, T-12
 (`check-instruction-paths.py` + the enforced `integration` step). REQ-05 -> `case4c`. REQ-06 ->

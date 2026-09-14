@@ -30,7 +30,7 @@ Three stale statements the task did not name, all in SPEC and all one-tier:
 
 ## Grounded in the code, not the plan
 
-- Order, sorting, labels and the precedence sentence: `.claude/skills/harness/bin/inject-expertise.sh`
+- Order, sorting, labels and the precedence sentence: `.claude/skills/harness/bin/inject-expertise.py`
   (global block, project block, then repository blocks sorted by segment; the precedence line is
   emitted **only when at least one repository block exists** — SPEC says so, rather than claiming it
   is always present).

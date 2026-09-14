@@ -126,7 +126,7 @@ nothing more.)
   harness-backend-dev.md`) described in `harness-distill` is not in my `team-config.yaml` write
   domain — `check-domain.py` denies it. Two separate issues bundled here: (a) the manifest may need
   a per-agent repository-tier entry if that tier is meant to be used, and (b) even if writable,
-  `inject-expertise.sh` only reads `$root/.harness/expertise/$agent.md` (project) and
+  `inject-expertise.py` only reads `$root/.harness/expertise/$agent.md` (project) and
   `$HOME/.harness/expertise/$agent.md` (global) — it has no third read path for
   `.harness/harness/expertise/`, so a file there would never reach a spawn regardless of who writes
   it. Net effect on this run: P-14's original argv[1:3]-vs-argv[0:2] convention for gh-sync's fake

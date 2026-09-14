@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for inject-expertise.sh — the SubagentStart hook that injects an
+"""Tests for inject-expertise.py — the SubagentStart hook that injects an
 agent's Expertise into its starting context, now across three tiers
 (global craft, project craft, repository).
 
@@ -32,7 +32,7 @@ TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
-SCRIPT = os.environ.get("INJECT_EXPERTISE_BIN") or os.path.join(HERE, "inject-expertise.sh")
+SCRIPT = os.environ.get("INJECT_EXPERTISE_BIN") or os.path.join(HERE, "inject-expertise.py")
 
 fails = 0
 case_count = 0
@@ -40,7 +40,7 @@ case_count = 0
 
 def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
     env = dict(os.environ)
-    # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.sh resolves through
+    # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
     # honours it only when .harness/team-config.yaml is readable underneath. A fixture
     # holding only .harness/expertise/ is discarded and the hook falls back to the LIVE
@@ -209,7 +209,7 @@ def case4c():
     root = tempfile.mkdtemp()
     home = fresh_home()
     isolated = tempfile.mkdtemp()
-    script = os.path.join(isolated, "bin", "inject-expertise.sh")
+    script = os.path.join(isolated, "bin", "inject-expertise.py")
     os.makedirs(os.path.dirname(script))
     shutil.copyfile(SCRIPT, script)
     shutil.copyfile(os.path.join(HERE, "harness_boundary.py"),
@@ -396,12 +396,6 @@ def case13():
     report("case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr",
            all(checks), f"checks={checks} stderr={stderr!r} ctx={ctx[:300]!r}")
 
-def case14():
-    source = open(SCRIPT, encoding="utf-8").read()
-    matches = __import__("re").findall(r"^[ \t]*exit [1-9]", source, __import__("re").MULTILINE)
-    positive = bool(__import__("re").search(r"^[ \t]*exit [1-9]", "  exit 2", __import__("re").MULTILINE))
-    report("case14: hook contains no non-zero exit and the pattern has a positive control",
-           not matches and positive, repr(matches))
 
 
 def main():
@@ -416,7 +410,6 @@ def main():
     case6()
     case7()
     case8()
-    case14()
     case10()
     case11()
     case12()

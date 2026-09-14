@@ -60,7 +60,7 @@ same criterion, not by the `UNIT_SCRIPTS` entry FEAT-45 gave them:
 | test-check-omp-port.py | `python3 check-omp-port.py` x8 |
 | test-factory-decompose.py | `os.fork` x2, concurrent writers of one file |
 | test-feature-json-merge.py | `python3 feature-json-merge.py` x5, plus `os.fork` |
-| test-inject-expertise.py | `inject-expertise.sh` x17 |
+| test-inject-expertise.py | `inject-expertise.py` x17 |
 | test-layout-migration.py | `check-state.sh` x6 |
 | test-sync-agent-adapters.py | `python3 sync-agent-adapters.py` x4 |
 | test-validate-feature-json.py | `validate-feature-json.py` x6 |

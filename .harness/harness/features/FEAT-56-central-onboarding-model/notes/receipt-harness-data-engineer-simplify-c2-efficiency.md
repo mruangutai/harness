@@ -7,7 +7,7 @@ invocation than at `4b5dbb23`. Details and numbers below.
 
 | Script | Class | Evidence |
 |---|---|---|
-| `check-instruction-paths.py` | **HOT** — every subagent spawn | `.claude/settings.json:6-16` wires `inject-expertise.sh` to `SubagentStart`, matcher `harness-.*`; `inject-expertise.sh:68` calls `check-instruction-paths.py` |
+| `check-instruction-paths.py` | **HOT** — every subagent spawn | `.claude/settings.json:6-16` wires `inject-expertise.py` to `SubagentStart`, matcher `harness-.*`; `inject-expertise.py:68` calls `check-instruction-paths.py` |
 | `check-omp-port.py` | **session-entry**, not hot | Called only from `check-state.sh:972-977`; `check-state.sh` is invoked once per door by `.claude/commands/harness.md:12` ("Run `check-state.sh`"), which `harness-plan.md`/`harness-ship.md`/`harness-grilling.md` all route through |
 | `sync-command-adapters.py` | session-entry (via `check-omp-port.py --check`) + manual `--apply` (dev-invoked, one-shot) | subprocess call added at `check-omp-port.py:172-180`; no other caller found |
 | `factory_config.py`'s new `product_config_report()`/`product_config()` | **one-shot**, CLI-only | Only reachable via `factory_config.py --check-product-configs` (`factory_config.py:448-479`) and `factory_decompose.py:377` (manual decompose tool). The diff's own comment at `factory_config.py:486-489` states this was deliberately kept OUT of `check-state.sh`'s per-door path. `check-domain.py` (the true hot gate, wired to every `Write`/`Edit`) imports `factory_config` for `MANDATED_STATIONS`/`TERMINAL_MARKER` only — unchanged by this diff. |

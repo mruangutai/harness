@@ -1389,7 +1389,7 @@ just written.
 
 | Script | Purpose | Verified |
 |---|---|---|
-| `inject-expertise.sh` | `SubagentStart` hook — injects an agent's Expertise as `additionalContext` | Emits correct JSON for a harness agent; **emits nothing** for non-harness agents; always exits 0 so it can never block a spawn |
+| `inject-expertise.py` | `SubagentStart` hook — injects an agent's Expertise as `additionalContext` | Emits correct JSON for a harness agent; **emits nothing** for non-harness agents; always exits 0 so it can never block a spawn |
 | `check-domain.py` | `PreToolUse` guardrail — blocks out-of-domain writes with `exit 2` | 5/5 cases: in-domain allowed · out-of-domain blocked · own Expertise allowed (DEC-87) · shared path allowed **with a warning** · second agent's domain allowed |
 | `check-state.sh` | Deterministic orchestrator-invariant checker, 9 invariants | Run against this repo: correctly found the two real gaps (no BRIEF, no settings.json), and the settings violation cleared once `settings.json` was written |
 | `validate-digest.py` | Normative DIGEST schema validator | Catches `VERDICT: PASSED`, `severity_max: medium`, `matrix_ok: "mostly"`, `must-fix` vs `must_fix`, and `open_questions` as a count |
@@ -1546,7 +1546,7 @@ to search its own context:
 > `CANARY_IN_CONTEXT: YES` — *"- P-01: CANARY-7f3a9b — this line exists only to prove Expertise
 > injection fires."*
 
-So `SubagentStart` → `inject-expertise.sh` → `additionalContext` works end to end for a **real harness
+So `SubagentStart` → `inject-expertise.py` → `additionalContext` works end to end for a **real harness
 agent**, and `${CLAUDE_PROJECT_DIR}` **does** interpolate in `settings.json` hooks. DEC-64 confirmed in
 production rather than by probe.
 
@@ -2527,7 +2527,7 @@ load-bearing rather than stylistic. Harden the parser.
 ## DEC-125 — Nobody was told to create the Expertise file, so nobody ever did
 
 13 of 15 `.harness/expertise/<agent>.md` files did not exist. BUILD task 8 had recorded the symptom
-— "`inject-expertise.sh` injects nothing on almost every spawn" — as an Expertise *governance* gap.
+— "`inject-expertise.py` injects nothing on almost every spawn" — as an Expertise *governance* gap.
 It is not. It is one missing sentence.
 
 **The loop was closed:** the file is absent → the hook injects nothing and raises nothing (correct,
@@ -3250,7 +3250,7 @@ Field report from the kaya-ai two-feature run: Expertise files bloated to 1,371 
 across 13 files (pm 6,796 words, product-lead 5,191, validator-lead 3,092). The entry-count caps
 held — the growth was *inside* entries (one 1,073-word bullet; another with ten inlined incidents
 labelled (a)–(j)) and in invented, uncapped section names ("Recurring failure modes", "Assessing
-members"). Since `inject-expertise.sh` cats the whole file into every spawn, every dispatch paid
+members"). Since `inject-expertise.py` cats the whole file into every spawn, every dispatch paid
 the tax, compounding per cycle.
 
 Three root causes, all verified: injection was whole-file and uncapped; the §5.4 curation loop was
@@ -3268,7 +3268,7 @@ out-of-band. `expertise_update: []` is the normal DIGEST on every other run.
 **Format is now mechanical, not advisory:** entries are WHEN/DO rules or durable repo facts, ≤50
 words, no FEAT/T/issue tokens, no nested bullets or instance lists; four canonical sections only;
 150-line file budget. `bin/check-expertise.sh` enforces it (exit 1 with per-violation report), and
-`inject-expertise.sh` hard-truncates at 150 lines with a loud in-context warning, so one bloated
+`inject-expertise.py` hard-truncates at 150 lines with a loud in-context warning, so one bloated
 file can never again silently tax every spawn. `merge` is redefined: the result may be no longer
 than the longer input — appending an instance is `add` wearing a costume.
 
@@ -6800,7 +6800,7 @@ cross-check, because that recreates the two-readers failure one level lower.
 **Chose:** TWO placeholders, because one value cannot serve both directions. The control-plane
 placeholder `<HARNESS_CONTROL_PLANE_ROOT>` is injected into every harness agent's preamble by the
 `SubagentStart` hook as the line `HARNESS_CONTROL_PLANE_ROOT: <absolute path>`
-(`.claude/skills/harness/bin/inject-expertise.sh`), and prefixes every READ of a Harness-owned
+(`.claude/skills/harness/bin/inject-expertise.py`), and prefixes every READ of a Harness-owned
 skill, rule, reference, decision or config. The feature-tree placeholder
 `<HARNESS_FEATURE_TREE_ROOT>` is NOT injected, and prefixes every WRITE into a feature directory.
 Origin: `FEAT-52-factory-control-plane`.
@@ -6823,7 +6823,7 @@ control plane is reported as a violation in its own right — not merely as an u
 directory, and until the factory that directory was always the harness checkout, so nothing ever had
 to distinguish where the work is from where the control plane is. Two anchors rather than one
 because measured at `e8e1b78be3379d4a669aa7e28aef8f76eb942471`, `settings.json` registers the MAIN
-checkout's copy of `inject-expertise.sh` and `harness_boundary.resolve_root` is
+checkout's copy of `inject-expertise.py` and `harness_boundary.resolve_root` is
 script-directory-relative, so the injected root is the main checkout even for an agent standing in a
 feature worktree — anchoring writes there sends a Harness self-development agent's receipt and
 observations off the reviewed branch, while leaving them relative sends a factory worker's into a
@@ -6837,7 +6837,7 @@ produced are why the check is mechanical rather than advisory: a denied write is
 is silent and dangerous, and a missing skill read has no signal at all.
 
 **Two alternatives were considered and refused, recorded because a future scan will re-suggest
-both.** Injecting a SECOND resolved value from `inject-expertise.sh` was refused because the hook
+both.** Injecting a SECOND resolved value from `inject-expertise.py` was refused because the hook
 cannot identify the spawning agent's feature: `dispatch-guard.py:77-79` records that
 `tool_input.prompt` exists only on the dispatch payload and reaches no other hook, and DEC-64 fixes
 the `SubagentStart` payload's contract at `agent_type`, so the hook would have to scan the inflight

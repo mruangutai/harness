@@ -44,7 +44,7 @@ printed remedy that does not destroy another feature's work.
   executable site **anywhere in the repository** outside that resolver's own module carries the
   environment fallback chain, sets its variable, or does its own directory arithmetic. This is every
   occurrence, not a chosen subset: measured at sha 3952814 over tracked non-test source files, the
-  chain occurs **21 times across 17 files**. One of them (`inject-expertise.sh:31`) is a
+  chain occurs **21 times across 17 files**. One of them (`inject-expertise.py:31`) is a
   `SubagentStart` hook falling back to `$(pwd)`; one of them (`.omp/extensions/harness-hooks.ts:144`)
   is the host adapter INJECTING the variable into every policy script it spawns, and it is the only
   occurrence outside `.claude/skills/harness/bin/`.

@@ -159,7 +159,7 @@ this session — see below) rather than resting on the structural argument alone
 
 `git diff` on `.claude/settings.json` shows exactly one hook command removed:
 `context-watch-hook.py` from the `PostToolUse` `Write|Edit|Bash` matcher's hook array. Every other
-registration is byte-identical pre/post: `SubagentStart` → `inject-expertise.sh`; `PreToolUse`
+registration is byte-identical pre/post: `SubagentStart` → `inject-expertise.py`; `PreToolUse`
 `Write|Edit` → `check-domain.py`; `PreToolUse` `Bash` → `branch-create-gate.py`,
 `bash-write-guard.py`, `gh-close-gate.py`; `PreToolUse` `Task|Agent` → `dispatch-guard.py`;
 `PostToolUse` `Write|Edit|Bash` → `check-domain.py --post` (**retained, same array, same

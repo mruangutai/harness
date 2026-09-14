@@ -7,7 +7,7 @@ verbatim, and every probed SC binds a named test that can be shown to redden by 
 
 - `HEAD` = `de4b76a0` on `feat/FEAT-27-expertise-repository-tier`, one bookkeeping commit ahead
   of `2117a46` (`git log`: `de4b76a` → bookkeeping → `2117a46` [t-03] → `6edb911` [t-02]).
-- `git diff --stat 2117a46 -- inject-expertise.sh test-inject-expertise.py run-unit-tests.py
+- `git diff --stat 2117a46 -- inject-expertise.py test-inject-expertise.py run-unit-tests.py
   check-expertise.sh test-check-expertise.py` is **empty**. The graded surface's working copy
   equals the pinned commit. Proceeded.
 
@@ -143,7 +143,7 @@ anticipated.
 ## Scratchpad baseline fidelity
 
 Every conclusion above rests on the scratchpad copies behaving identically to the repo originals.
-Diffed all four against the real files: `inject-expertise.sh` is byte-identical; `check-expertise.sh`,
+Diffed all four against the real files: `inject-expertise.py` is byte-identical; `check-expertise.sh`,
 `test-inject-expertise.py` and `test-check-expertise.py` differ **only in comments/docstrings**
 (module docstrings and per-case `# ---` banners omitted from the retyped copies) — zero logic
 diff. Confirmed by `diff` after the fact, not assumed.

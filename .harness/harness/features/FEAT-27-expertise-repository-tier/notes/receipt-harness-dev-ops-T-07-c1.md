@@ -1,7 +1,7 @@
 # Receipt — harness-dev-ops — T-07 — cycle 1
 
 ## Task
-Pin `inject-expertise.sh`'s unreadable-file guard (`[ -r "$f" ] || continue`, line 69 at HEAD —
+Pin `inject-expertise.py`'s unreadable-file guard (`[ -r "$f" ] || continue`, line 69 at HEAD —
 the intent's cited line 68 has drifted by one) with a new `case13` in
 `.claude/skills/harness/bin/test-inject-expertise.py`. Only that file was written.
 
@@ -30,12 +30,12 @@ clean stderr`. Full suite: `19/19 cases passed.` Exit 0.
 
 Mutant construction (never touches the real script — copy first):
 ```
-cp .claude/skills/harness/bin/inject-expertise.sh <scratch>/inject-expertise-mutant.sh
+cp .claude/skills/harness/bin/inject-expertise.py <scratch>/inject-expertise-mutant.sh
 sed -i '' '/\[ -r "\$f" \] || continue/d' <scratch>/inject-expertise-mutant.sh
 ```
 Diff check (must be exactly one removed line):
 ```
-$ diff .claude/skills/harness/bin/inject-expertise.sh <scratch>/inject-expertise-mutant.sh
+$ diff .claude/skills/harness/bin/inject-expertise.py <scratch>/inject-expertise-mutant.sh
 69d68
 <   [ -r "$f" ] || continue
 $ diff ... | grep -c '^<'
@@ -64,10 +64,10 @@ Mutant copy deleted after the run (`rm -f <scratch>/inject-expertise-mutant.sh`)
 committed.
 
 ## Observation C — restore verification
-`.claude/skills/harness/bin/inject-expertise.sh` was never edited (only a copy in the scratch
+`.claude/skills/harness/bin/inject-expertise.py` was never edited (only a copy in the scratch
 directory was mutated). Confirmed with:
 ```
-$ git diff -- .claude/skills/harness/bin/inject-expertise.sh
+$ git diff -- .claude/skills/harness/bin/inject-expertise.py
 ```
 Output: empty. Exit 0.
 
@@ -101,4 +101,4 @@ each emit multiple sub-reports). After: 13 `def caseN()` functions, 19 total cas
 - `.claude/skills/harness/bin/test-inject-expertise.py` (added `case13()`, added to `main()`
   call list after `case12()`; cases 1-12 untouched, not renumbered)
 
-`.claude/skills/harness/bin/inject-expertise.sh` — untouched, verified via empty `git diff`.
+`.claude/skills/harness/bin/inject-expertise.py` — untouched, verified via empty `git diff`.

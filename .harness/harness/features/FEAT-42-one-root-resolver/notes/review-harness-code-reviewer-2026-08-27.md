@@ -32,7 +32,7 @@ against what each one actually needs:
   unresolvable root independently — the "one fail-closed branch" claim is not a whole-feature
   claim and shouldn't be read as one); `validate-digest.py`'s `_root_or_none()` (`:791-802`)
   is `strict=False` + blanket `except Exception: return None`, explicitly a side-errand
-  fail-open backstopped by `check-state.sh` INV-15; `inject-expertise.sh` uses `strict=True`
+  fail-open backstopped by `check-state.sh` INV-15; `inject-expertise.py` uses `strict=True`
   (the default) but wraps the call so an unresolved root prints to stderr and **exits 0**,
   deliberately overriding T-16's own plan text — the override cites `DECISIONS.md:1503`,
   which I opened and confirms: "always exits 0 so it can never block a spawn." Legitimate,
@@ -40,7 +40,7 @@ against what each one actually needs:
   `root_from_script` (zero filesystem check, never raises) — matches the deleted functions'
   exact behaviour per T-08/T-09 intent, confirmed by reading both.
 - Net effect vs. pre-feature: every fail-open here is either unchanged (DEC-101) or **strictly
-  safer** than before (inject-expertise.sh previously silently injected the *wrong checkout's*
+  safer** than before (inject-expertise.py previously silently injected the *wrong checkout's*
   Expertise via a pwd fallback; now it injects nothing and says so on stderr).
 
 **Three stale comments (item 3) — all confirmed, and SC-01 structurally cannot catch any of
@@ -152,7 +152,7 @@ files) — noted for `harness-security-reviewer`, not assessed here.
 3. SC-10's red-receipt criterion accepts an `AttributeError`-only red as equivalent to a
    behaviourally discriminating one; 3 of 4 T-01 functions got the weaker kind — **low-med**,
    chore, GREEN assertions are real so no live gap today.
-4. `inject-expertise.sh`'s stderr-discard on resolver failure loses the discard-notice detail
+4. `inject-expertise.py`'s stderr-discard on resolver failure loses the discard-notice detail
    that `check-state.sh`/`branch-create-gate.py` preserve — **low**, minor consistency,
    acceptable given the hook's own "always exit 0, never block" contract.
 

@@ -42,7 +42,7 @@ displaced and no section was at cap.
   the next reader to re-derive it and read the equality as a bug.
 - **G-04 (repository).** In this repo, `SPEC.md` states intent and drifts; the scripts under
   `.claude/skills/harness/bin/` are the authority when they disagree. Grounded in four SPEC claims
-  falsified by `check-expertise.sh` and `inject-expertise.sh` during this feature.
+  falsified by `check-expertise.sh` and `inject-expertise.py` during this feature.
 
 ## Rejections
 

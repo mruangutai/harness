@@ -105,7 +105,7 @@ worktree copy: /Users/.../worktrees/harness/FEAT-37-lead-stop-and-wake
 
 Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.py`,
 `check-domain.py`, `context-watch-hook.py`, `dispatch-guard.py`, `gh-close-gate.py`,
-`inject-expertise.sh`, `validate-digest.py`.
+`inject-expertise.py`, `validate-digest.py`.
 
 Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`,
 `check-state.sh`, `factory_config.py`, `gen-decisions-index.py`, `harness_yaml.py`,
@@ -133,7 +133,7 @@ the other fifteen got no benefit.** That is the copy/paste the operator ruled ag
 - **`.claude/settings.json` CAN set environment variables session-wide, and already does** —
   `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` enforces the four-tier org. But the value is fixed
   at session start, so it cannot vary per agent.
-- **`inject-expertise.sh` can inject `additionalContext`** into every `harness-*` spawn. That is
+- **`inject-expertise.py` can inject `additionalContext`** into every `harness-*` spawn. That is
   machine-generated prose, not a mechanism.
 - **`dispatch-guard.py` receives `tool_input`** — the dispatch prompt itself — and blocks with
   `sys.exit(2)`. It is exempt for the main session (`:38`).
@@ -165,7 +165,7 @@ the calling agent stands, even though the hook process itself runs the main chec
 | `branch-create-gate.py` | no |
 | `check-domain.py` | no |
 | `gh-close-gate.py` | no |
-| `inject-expertise.sh` | no |
+| `inject-expertise.py` | no |
 
 **Two sites solved the shared problem privately and rolled their own walk.** That is the same
 shape as `check-domain.py`'s `linked_worktrees` patch: a real answer, unshared.
@@ -337,7 +337,7 @@ operation**, passed to the same function.
   route works: *"The named-target route already handled this via `_norm`; the sweep did not."*
 - `bash-write-guard.py` — the paths it already parses out of the command.
 - `validate-digest.py` — the digest path.
-- The four with NO target — `check-domain.py --post` (a blind sweep), `inject-expertise.sh`,
+- The four with NO target — `check-domain.py --post` (a blind sweep), `inject-expertise.py`,
   `branch-create-gate.py`, `gh-close-gate.py` — pass `__file__` and take `owner_root`.
 
 **Measured that this is safe for the target-less four:** expertise files are byte-identical across

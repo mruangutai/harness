@@ -8,9 +8,9 @@ security-reviewer or ui-reviewer artifact exists anywhere in the feature dir bef
 
 ## 1. The regex/segment-filter claim — verified TRUE, not over- or understated
 
-`inject-expertise.sh:27` (`^harness-[a-z0-9-]+$`) rejects every character that traversal or
+`inject-expertise.py:27` (`^harness-[a-z0-9-]+$`) rejects every character that traversal or
 injection needs: `/`, `.`, `*`, `;`, `` ` ``, `$`, space, quotes are all outside `[a-z0-9-]`. Traced
-every use of `$agent` (grep, 5 sites, `inject-expertise.sh:27,32,33,68`) — all quoted, none reach
+every use of `$agent` (grep, 5 sites, `inject-expertise.py:27,32,33,68`) — all quoted, none reach
 `eval`/subprocess. **Path traversal and glob/command injection via `$agent` are closed**, not by
 convention but by the character class being mathematically incompatible with the needed
 metacharacters. Confirmed against `test-inject-expertise.py` case12's four hostile values
@@ -27,7 +27,7 @@ stray such as `.harness/backup/expertise/harness-qa.md` from being injected into
 I verified this independently before reading D-01 (same conclusion, same file). **The claim is
 accurate as stated — neither overstated nor understated.** This is an authorization question, not a
 character-hygiene question, and the two are correctly kept separate in the comments at
-`inject-expertise.sh:22-26`.
+`inject-expertise.py:22-26`.
 
 ## 2. Ordering — validation runs before any path is built. No bug.
 
@@ -54,7 +54,7 @@ so the new file class doesn't meaningfully widen that specific sharp edge.)
 ## 4. Context poisoning / cross-repository bleed — real, tested, and already a signed decision (D-01)
 
 Because a lower-trust agent cannot write a higher-trust agent's Expertise file (§3), there is no
-new **cross-agent** poisoning path. There is a real **cross-repository** one: `inject-expertise.sh`
+new **cross-agent** poisoning path. There is a real **cross-repository** one: `inject-expertise.py`
 globs `.harness/*/expertise/<agent>.md` and injects **every** matching segment on **every** spawn,
 with no way to know which repository the spawn is for (`SPEC.md` says this explicitly). Proven live
 by `test-inject-expertise.py` case2: two segments ("harness" and "kaya") both fire simultaneously
@@ -94,7 +94,7 @@ as a finding.
 
 ## 6. Data exposure via stdout/stderr — none beyond intended consumer
 
-`inject-expertise.sh` emits only the querying agent's own craft + its own repository-tier files +
+`inject-expertise.py` emits only the querying agent's own craft + its own repository-tier files +
 the codebase index — the injected consumer is exactly the spawned agent (by design). No path,
 secret, or unrelated-agent content in its output. `check-expertise.sh`'s new advisory lines
 (`:150-156`) print only the path already supplied as an argv by the caller and a token already

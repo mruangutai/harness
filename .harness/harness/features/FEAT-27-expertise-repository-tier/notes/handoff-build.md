@@ -22,7 +22,7 @@ from.
 - Both suites are green: `--kind unit` exit 0 / 137 PASS, `--kind integration` exit 0 / 90 PASS, zero `FAIL` lines — I ran both myself with exit status captured in a variable — verified-at 252fa72
 - SIMPLIFY ran as four independent read-only angles and applied NOTHING, so the tree is unchanged by it and the pin is not invalidated — `runs/simplify-eng/digest.md` — verified-at 252fa72
 - Six assertions in this repo cannot redden, and one handed-down seventh was refuted on evidence — `runs/qa-final-validator/digest.md` `adequacy_notes` — verified-at 252fa72
-- T-07's `case13` is mutation-proven: 18/19 against a guard-removed copy, `case13` the sole FAIL, and `inject-expertise.sh` byte-identical afterwards — I checked the restore with `git diff` — verified-at 252fa72
+- T-07's `case13` is mutation-proven: 18/19 against a guard-removed copy, `case13` the sole FAIL, and `inject-expertise.py` byte-identical afterwards — I checked the restore with `git diff` — verified-at 252fa72
 - `plan.yaml`'s approval block predates T-07 joining the task set; the artifact cannot evidence its own amendment — `plan.yaml` `approval:` — UNVERIFIED, operator only
 
 ## Dead ends

@@ -24,7 +24,7 @@ The eight, from `plan.yaml` T-03 (line 311, `intent:` enumeration at 344-352):
 | PreToolUse | Bash | `.claude/skills/harness/bin/bash-write-guard.py` |
 | PreToolUse | Write \| Edit | `.claude/skills/harness/bin/check-domain.py` |
 | PreToolUse | Task \| Agent | `.claude/skills/harness/bin/dispatch-guard.py` |
-| SubagentStart | `harness-.*` | `.claude/skills/harness/bin/inject-expertise.sh` |
+| SubagentStart | `harness-.*` | `.claude/skills/harness/bin/inject-expertise.py` |
 | SubagentStop | `harness-.*` | `.claude/skills/harness/bin/validate-digest.py --hook` |
 | PostToolUse | Write \| Edit \| Bash | `.claude/skills/harness/bin/check-domain.py --post` |
 
@@ -101,7 +101,7 @@ files under `.claude/`" is enough. The job does not matter; the spawn does.
 - **Failure looks like:** an error naming `.claude/skills/harness/bin/dispatch-guard.py` at the moment
   of the spawn (PreToolUse on `Task|Agent`). If the subagent's own Bash or Write calls error, the
   paths are step 1's and step 2's.
-- **What this step cannot see:** `inject-expertise.sh` and `validate-digest.py --hook`. Their matcher
+- **What this step cannot see:** `inject-expertise.py` and `validate-digest.py --hook`. Their matcher
   is `harness-.*` and there is no such agent in this checkout. Step 5 covers them.
 
 ## Step 5 — read `settings.json` directly (covers the two matchers no spawn can reach)
@@ -128,7 +128,7 @@ reinvented, so a pass here means the same thing the build claimed.
 
 - **Expected:** `ok 4 hooks remain`, exit 0.
 - **Failure looks like:** `AssertionError: a harness skill path survives in settings.json` — that is a
-  surviving `inject-expertise.sh` or `validate-digest.py --hook` (or any of the other six), and it is
+  surviving `inject-expertise.py` or `validate-digest.py --hook` (or any of the other six), and it is
   the *only* way you will see those two. Or
   `AssertionError: a non-harness hook was lost: <name>` — the unwiring over-reached and took one of
   kaya's own four hooks with it, which is a different failure and equally a not-met.

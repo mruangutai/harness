@@ -40,7 +40,7 @@ diff's own comment says this. The live risk is entirely in the `team-config.yaml
 
 **Blast-radius check — is a stray file under the ungranted-but-reachable segments read by
 anything:**
-- `inject-expertise.sh` (SubagentStart injector) reads `$root/.harness/expertise/$agent.md`
+- `inject-expertise.py` (SubagentStart injector) reads `$root/.harness/expertise/$agent.md`
   by **exact filename**, never a glob into subdirectories — a file at
   `.harness/expertise/docs/harness-eng-lead.md` is never picked up. Read-verified.
 - `factory_config._PROBE = os.path.join(".harness","harness","docs","SPEC.md")` is a **fixed
@@ -127,7 +127,7 @@ this remedy is in the operator's or a build agent's hands, not routed to main se
   `test-no-distribution.py`, a regex *variable name* matching deploy-related literal strings
   (`harness-deploy`, `deploy.sh`, `harness-registry`, `registry.json`), pre-existing test logic,
   not a credential.
-- **Expertise-file poisoning**: `inject-expertise.sh` reads by exact filename only (see above) —
+- **Expertise-file poisoning**: `inject-expertise.py` reads by exact filename only (see above) —
   the two touched Expertise files (`harness-backend-dev.md`, `harness-documentor.md`) carry only
   literal path-string updates inside existing prose, no new content, no secrets.
 - **`org.html`**: 100%-similarity rename (0 diff lines against the pre-move file), no `<script>`
@@ -165,7 +165,7 @@ DIGEST:
     - { boundary: "harness_boundary.HARNESS_CONTROL_PLANE list -> is_control_plane_target", stride: T, mitigated: true }
     - { boundary: "factory_config._PROBE root resolution", stride: S, mitigated: true }
     - { boundary: "layout_migration._evidence() undeclared-segment classification", stride: T, mitigated: true }
-    - { boundary: "SubagentStart Expertise injection (inject-expertise.sh)", stride: I, mitigated: true }
+    - { boundary: "SubagentStart Expertise injection (inject-expertise.py)", stride: I, mitigated: true }
     - { boundary: "check-domain.py / check-state.sh (DEC-174 carve-out)", stride: T, mitigated: true }
   open_questions: []
   files_touched: []

@@ -117,7 +117,7 @@ def case_no_duplicate_write():
         settings = {
             "env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
             "hooks": {
-                "SubagentStart": [entry("harness-.*", "x/inject-expertise.sh")],
+                "SubagentStart": [entry("harness-.*", "x/inject-expertise.py")],
                 "SubagentStop": [entry("harness-.*", "x/validate-digest.py --hook")],
                 "PreToolUse": [
                     entry("Write|Edit", "x/check-domain.py"),

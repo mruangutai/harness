@@ -57,7 +57,7 @@ distilling agent, or a careless one that skips SKILL.md's instructed (not enforc
 step — smuggles arbitrary extra "governing" bullets, or reclassifies existing ones into a section whose
 rules they did not originate from, into a file injected verbatim into every future spawn of that agent
 as instructions. `check-expertise.sh` (same `splitlines()` parser) *would* catch this on inspection —
-but nothing in `expertise-merge.py` or `inject-expertise.sh` calls it; it is honor-system, run only if
+but nothing in `expertise-merge.py` or `inject-expertise.py` calls it; it is honor-system, run only if
 the same agent that just forged the file chooses to run it and to honor a `FAIL`.
 
 **Fix shape (not prescribed, but the gate is what's missing):** `_reject_multiline` must refuse the
@@ -76,7 +76,7 @@ still matches — accepted — because it ends in a legal-looking tail; likewise
 `cmd_ops` calls the identical, already-existing `require_expertise_destination` the `apply` path has
 called since FEAT-30/27; the gap (documented by the function's own docstring as deliberately partial —
 it checks WHERE, never WHO) is not new and not introduced by `ops`. Matches the already-signed D-01
-risk (repository Expertise entry P-03: `inject-expertise.sh` globs any `.harness/<segment>/expertise/`
+risk (repository Expertise entry P-03: `inject-expertise.py` globs any `.harness/<segment>/expertise/`
 with no per-repo isolation). Not this cycle's defect; noted so a later reviewer doesn't re-raise it.
 
 ## Finding SEC-03 (info, backlog, chore) — JSON-decode-error byte-identity is asserted only by code reading, not by a test

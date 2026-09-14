@@ -41,7 +41,7 @@ what "missing" does depends on the CLI version (below).
     "SubagentStart": [
       { "matcher": "harness-.*",
         "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] }
     ],
     "PreToolUse": [
       { "matcher": "Write|Edit",
@@ -189,7 +189,7 @@ the time of writing; the live list is authoritative if the two disagree.
 | # | Task | Status |
 |---|---|---|
 | 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
-| 2 | settings.json prerequisites + `inject-expertise.sh` | **done** (DEC-101) |
+| 2 | settings.json prerequisites + `inject-expertise.py` | **done** (DEC-101) |
 | 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out (cost-report.py removed — DEC-178) |
 | 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
 | 5 | DIGEST schema validator | **done** (DEC-101) |
@@ -417,7 +417,7 @@ repository, which is what keeps the first half dumb and safe.
   "hooks": {
     "SubagentStart": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] } ],
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] } ],
     "PreToolUse": [ { "matcher": "Write|Edit",
       "hooks": [{ "type": "command",
         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] } ],
@@ -808,7 +808,7 @@ and the four that do exist must be converted from bare `.md` files into skills. 
 is **renamed to `expertise`** (DEC-80).
 
 **Net-new scripts** (`bin/`): `check-domain.py` (domain enforcement, stdin JSON + `exit 2`) and
-`inject-expertise.sh` (the `SubagentStart` hook).
+`inject-expertise.py` (the `SubagentStart` hook).
 
 **Net-new artifacts:** `.harness/expertise/<agent>.md` per agent with stable entry IDs (SPEC §5.2),
 `.harness/features/<FEAT>/notes/uat.md`, `.harness/notes/prototypes/<FEAT>/`.
@@ -967,7 +967,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |
-| `.claude/skills/harness/bin/inject-expertise.sh` | **new** — `SubagentStart` hook that injects an agent's Expertise |
+| `.claude/skills/harness/bin/inject-expertise.py` | **new** — `SubagentStart` hook that injects an agent's Expertise |
 | `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` + `PreToolUse` + `SubagentStop` | **new** — **all four required**, none on by default, and each degrades silently if absent (§ Step 0a; DEC-111, DEC-122) |
 | `.claude/agents/harness-{code,security}-reviewer.md` | rewrite — de-GSD'd + three-part return (`ceo-reviewer` and `eng-reviewer` are **deleted**) |
 | `.claude/skills/harness/rules/*.md` | rewrite — retarget injection prose to personas |

@@ -5,7 +5,7 @@
 
 ## The named defect — §5.6, third bullet
 
-`inject-expertise.sh` applies `cap_body "$glob" 150` and `cap_body "$proj" 150` — the global and
+`inject-expertise.py` applies `cap_body "$glob" 150` and `cap_body "$proj" 150` — the global and
 project caps are equal, and `check-expertise.sh` classifies both as the **craft** tier with one
 150-line budget. The prose claimed the global cap was the tighter one, twelve lines below its own
 table reading `150 | 150 | 40`.

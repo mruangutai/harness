@@ -11,7 +11,7 @@ under measurement rather than assumption.
 harness (`templates/settings.snippet.json`), so it executes on every harness subagent's stop and
 parses **LLM-generated text the agent controls**. That is untrusted input crossing into a gate. The
 hook registration itself predates this range (only the `_comment` line changed), and
-`inject-expertise.sh` / `check-domain.py` are untouched in range — out of scope.
+`inject-expertise.py` / `check-domain.py` are untouched in range — out of scope.
 
 ## Finding 1 — `low` — enum fields crash the validator, which then silently passes the return
 

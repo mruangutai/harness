@@ -37,7 +37,7 @@ candidate; rule on it (issue 340)`).
    `PASS test-check-expertise.py`; **zero `^FAIL ` lines**.
 3. `check-expertise.sh .harness/expertise/` pre-change: exit 0, all 15 files `OK`, **no**
    `^ADVISORY ` line (scan didn't exist yet).
-4. `git status --porcelain` baseline: T-02's dirt only (`inject-expertise.sh`,
+4. `git status --porcelain` baseline: T-02's dirt only (`inject-expertise.py`,
    `run-unit-tests.py` modified; `test-inject-expertise.py` untracked) plus unrelated
    FEAT-24/25/26 dirs and FEAT-27 STATE/feature.json/plan.yaml/notes/observations churn from
    other in-flight sessions. Not mine, left untouched.

@@ -21,7 +21,7 @@ outside `bin/` and `.github/`, and is exactly where a `PreToolUse`/`PostToolUse`
 at a deleted file would fail open per G-01/DEC-100 — non-2 exit is non-blocking, no stderr).
 `git grep -n 'check-docs' 835b297 -- .claude/settings.json .claude/settings.local.json` — no
 match. Full read of `git show 835b297:.claude/settings.json`: five hook registrations
-(`inject-expertise.sh`, `check-domain.py` ×2, `branch-create-gate.py`, `bash-write-guard.py`,
+(`inject-expertise.py`, `check-domain.py` ×2, `branch-create-gate.py`, `bash-write-guard.py`,
 `dispatch-guard.py`, `validate-digest.py`) — none reference `check-docs.sh`.
 
 **Non-.md hits repo-wide.** Full `git grep -n 'check-docs' 835b297` (63KB) filtered to non-`.md`

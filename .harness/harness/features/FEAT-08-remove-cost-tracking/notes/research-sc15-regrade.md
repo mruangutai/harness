@@ -14,7 +14,7 @@ cycles, context, wall-clock) is a deliberate survivor and is not graded.
 ## Surfaces swept
 
 1. **All 12 files under `.harness/expertise/`** — the set injected per-owner by the `SubagentStart`
-   hook (`.claude/skills/harness/bin/inject-expertise.sh:49-51`).
+   hook (`.claude/skills/harness/bin/inject-expertise.py:49-51`).
 2. `.claude/agents/` (all agent definitions)
 3. `.claude/skills/` — repo copy only, `.claude/worktrees/` excluded (FEAT-09, concurrent)
 4. `.harness/team-config.yaml` — **zero hits on any token**

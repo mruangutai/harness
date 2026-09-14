@@ -140,7 +140,7 @@ to close.
 SC-12 all have code that appears correct on manual inspection but no committed test proving it.
 
 Manually verified at the pin (not committed anywhere): the UNRESOLVED branch of
-`inject-expertise.sh` does emit `HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED` and the exact
+`inject-expertise.py` does emit `HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED` and the exact
 `VERDICT: BLOCKED` sentence, exit 0 — confirmed by invoking the script via process substitution
 from a rootless cwd. The `HARNESS_PATH_DRIFT` mechanism and the CI wiring both read correctly on
 inspection (`check-instruction-paths.py`'s `scope()`/`main()` derive `--list-scope` and the scanned

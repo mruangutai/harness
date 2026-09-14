@@ -20,7 +20,7 @@ approval:
         is a no-op as root and git does not preserve mode. The main session relayed that adoption
         and added one constraint of its own: the new case must target the guard's UNSPECIFIED duty,
         present-but-unreadable, because the guard-removal mutant survived all 18 existing cases —
-        the segment filter at inject-expertise.sh:75-77 independently rejects an unexpanded glob,
+        the segment filter at inject-expertise.py:75-77 independently rejects an unexpanded glob,
         so a test covering only that redundant half would be another assertion that cannot fail.
       why_recorded_here: >-
         The orchestrator raised this as blocking Q1: a flat `approved` with one date cannot evidence
@@ -58,7 +58,7 @@ lanes:
 decisions:
   - id: D-01
     choice: >-
-      inject-expertise.sh injects EVERY repository tier it finds by globbing
+      inject-expertise.py injects EVERY repository tier it finds by globbing
       .harness/*/expertise/<agent>.md, each under its own header naming the path segment, rather
       than selecting one repository from the spawn payload.
     because: >-
@@ -191,7 +191,7 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/inject-expertise.sh
+      - .claude/skills/harness/bin/inject-expertise.py
       - .claude/skills/harness/bin/test-inject-expertise.py
       - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
@@ -202,9 +202,9 @@ tasks:
       echo "$out" | grep -q '^FAIL ' && exit 1
       exit 0
     intent: |
-      Give inject-expertise.sh a third read path and build the test it has never had.
+      Give inject-expertise.py a third read path and build the test it has never had.
 
-      PART 1 — the hook, .claude/skills/harness/bin/inject-expertise.sh.
+      PART 1 — the hook, .claude/skills/harness/bin/inject-expertise.py.
 
       Today it reads exactly two files (lines 27-29 at ada8e99): $HOME/.harness/expertise/$agent.md
       emitted under the header "## Your Expertise — cross-project craft (global tier)", and
@@ -764,12 +764,12 @@ tasks:
       exit 0
     intent: |
       Add ONE new case, case13, to .claude/skills/harness/bin/test-inject-expertise.py, and prove it
-      reddens against a mutant. Change no other file. Do not edit inject-expertise.sh: the guard this
+      reddens against a mutant. Change no other file. Do not edit inject-expertise.py: the guard this
       case pins is already shipped and correct at line 68 of that script, and this task exists only
       because nothing detects its removal.
 
       WHY, precisely — read this before writing anything, because it determines what the case may
-      assert. inject-expertise.sh:67-68 reads
+      assert. inject-expertise.py:67-68 reads
 
         for f in "$root"/.harness/*/expertise/"$agent.md"; do
           [ -r "$f" ] || continue
@@ -814,7 +814,7 @@ tasks:
       THE PROOF, which is the acceptance and not an optional extra. The test file already honours
       the INJECT_EXPERTISE_BIN environment variable (line 26), so mutate a COPY, never the real
       script:
-        - copy inject-expertise.sh to a temp path, delete the single line [ -r "$f" ] || continue
+        - copy inject-expertise.py to a temp path, delete the single line [ -r "$f" ] || continue
           from the copy, and confirm the deletion actually applied — the copy must differ from the
           original by exactly that one line; assert it, do not eyeball it;
         - run INJECT_EXPERTISE_BIN=<mutant copy> python3 .claude/skills/harness/bin/test-inject-expertise.py;

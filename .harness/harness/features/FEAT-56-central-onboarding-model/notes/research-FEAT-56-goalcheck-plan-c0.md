@@ -27,7 +27,7 @@ or `plan.yaml`. Graded against issue body at `gh issue view 206`, plan/BRIEF at 
 | W2 | Replace-item 2: create `.harness/products/<name>/` + that product's harness.json | STRUCK by plan-phase advisor ruling (`runs/2026-09-08-01-plan-advisor-validator/digest.md:3-18`), D-01, BRIEF Constraints | STRUCK |
 | W3 | Replace-item 3: run interview + `dev-ops` detection against a checkout, **writing centrally** | T-01 steps 3, 4: written in the checkout, then landed on the product's default branch (DEC-174 — a central copy is read by nothing) | PARTIAL (central write struck for harness.json) |
 | W4 | Replace-item 4: map the product's codebase into a per-product location | Tier retired; `.harness/<segment>/codebase/` has no resolver (digest `:70`) | STRUCK |
-| C3 | "Overturns FEAT-10's *no product level in `.harness/`*; the 473-ref/152-file costs are now the work" | Already discharged: `.harness/<segment>/` exists and three resolvers commit to it (`factory_config.features_root`, `layout_migration` READER_TABLE, `inject-expertise.sh:108`) | DELIVERED (pre-existing) |
+| C3 | "Overturns FEAT-10's *no product level in `.harness/`*; the 473-ref/152-file costs are now the work" | Already discharged: `.harness/<segment>/` exists and three resolvers commit to it (`factory_config.features_root`, `layout_migration` READER_TABLE, `inject-expertise.py:108`) | DELIVERED (pre-existing) |
 | C4 | DEC-187 conflict: one harness.json describing this repo; a product "inherits this exclusion silently" | Structurally prevented by T-01 step 2a (template ships every `cmd: null` and a `test_matrix` that keeps `functional`; the control plane's excludes it) + T-07 new DEC entry | PARTIAL (no gate asserts it) |
 | D1 | #205 — factory writes to `workspace_root` ungoverned | Premise closed: #205 closed in favour of #103, #103 closed, product checkouts governed (digest `:53-55`) | STRUCK |
 | D2 | #203 — "these two issues disagree; reconcile before either is picked up" | **Nothing.** Zero matches for `203` in `BRIEF.md` or `plan.yaml`; reconciliation exists only in a run digest | **MISSING** |
@@ -66,7 +66,7 @@ that line 28 is repaired (quote the two `## Approval` scalars) with `yaml.safe_l
 Interview (T-01 step 3), `test_kinds` detection (step 4, both destinations named), domain description
 (step 5, control plane only, with the `glob_to_re` reason), BRIEF (step 6 → `features_root()`),
 approval + mirror/board (step 7 → the product's own harness.json), design pass (step 8 → central
-`DESIGN.md`), plus `<segment>/expertise/` (step 2e) — which *is* read: `inject-expertise.sh:108` globs
+`DESIGN.md`), plus `<segment>/expertise/` (step 2e) — which *is* read: `inject-expertise.py:108` globs
 `.harness/*/expertise/`, so the advisor's open Q3 premise (`:64` flat tier only) is stale.
 *Disposition: no MISSING destination; step 5's narrowing and step 3's stale "step 7" pointer are the
 only defects, both PARTIAL.*

@@ -67,7 +67,7 @@ python3 -c "import yaml;d=yaml.safe_load(open('.harness/harness/features/FEAT-52
 |---|---|---|---|
 | T-01 | `logic` → unit | REQ-06 | `inflight_registry.py` gains a `feature-root --feature FEAT-NN-slug` verb; the discriminating case asserts the printed path DIFFERS from the owner root |
 | T-02 | `logic` → unit | REQ-04, REQ-06 | new `check-instruction-paths.py`; **three** violation classes sharing ONE `^\.harness/([^/]+/)?features/` predicate; empty scope is exit 2, never 0 |
-| T-03 | `logic` → unit | REQ-01, REQ-04, REQ-05 | `inject-expertise.sh` emits the control-plane block unconditionally and a `HARNESS_PATH_DRIFT` line; **exit stays 0 on every branch** (D-04) |
+| T-03 | `logic` → unit | REQ-01, REQ-04, REQ-05 | `inject-expertise.py` emits the control-plane block unconditionally and a `HARNESS_PATH_DRIFT` line; **exit stays 0 on every branch** (D-04) |
 | T-04 | `docs` | REQ-02, REQ-06 | anchor families F1–F4 across `.omp/agents/**` and four squad skills, then `sync-agent-adapters.py --apply` |
 | T-05 | `docs` | REQ-02, REQ-03 | the fifth family — the systematic-debugging read a product clone cannot satisfy: anchor it AND state the read is permitted |
 | T-06 | `docs` | REQ-02, REQ-06 | twelve remaining factory-reachable skills, by direction. Do **not** touch harness-init/grilling/wayfinding |

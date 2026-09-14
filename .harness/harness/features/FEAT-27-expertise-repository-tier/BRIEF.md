@@ -8,7 +8,7 @@ Decision authority #340. All measurements in this brief were taken at `ada8e99`.
 The two-layer Expertise model is written down and half-built. `harness-distill/SKILL.md:43-46` tells
 every agent that repository-specific knowledge lives at `.harness/<repo>/expertise/<agent>.md` with a
 40-line budget, and that both layers ride every spawn. Neither half is true.
-`inject-expertise.sh:27-29` has exactly two read paths and neither is that one (#484), and
+`inject-expertise.py:27-29` has exactly two read paths and neither is that one (#484), and
 `check-domain.py --resolve` answers **NOBODY** for every agent's repository-tier path, so no agent can
 write the file the skill tells it to write (#372). During FEAT-21 one distillation entry was returned
 unwritten for exactly this reason. The result is a rule that sixteen agents are taught, obey, and
@@ -64,7 +64,7 @@ would buy a smaller diff at the cost of the only check that proves the split hap
 ## The three halves are coupled by ordering, not by atomicity
 
 The tier has three moving parts — the **grant** (T-01, `team-config.yaml`), the **hook's read path**
-(T-02, `inject-expertise.sh`) and the **physical entries** (T-04). Asked whether they must land
+(T-02, `inject-expertise.py`) and the **physical entries** (T-04). Asked whether they must land
 together, the answer is no: one strict order and one genuine independence, and neither leaves a
 user-visible dead end at any point in between.
 
@@ -74,7 +74,7 @@ write to a path resolving to nobody. So T-04 cannot create a single repository-t
 has landed. This is forced by the enforcement layer, not chosen: it is why `T-04` carries
 `depends_on: [T-01]`, and why the ordering could not be relaxed even if it were convenient.
 
-**The hook's read path is independent of both, in either direction.** `inject-expertise.sh` finds
+**The hook's read path is independent of both, in either direction.** `inject-expertise.py` finds
 the tier by globbing `.harness/*/expertise/<agent>.md`, and a glob over a directory that does not
 exist matches nothing, so the pre-move hook is a no-op rather than an error — T-02's own case 3
 asserts exactly that: no repository tier on disk, exit 0, no repository header emitted. The converse
@@ -138,7 +138,7 @@ merged with another, and no atomic landing is required.
   verify: automated      evidence: integration
 - SC-08: `.harness/README.md`, `.harness/harness/docs/SPEC.md`,
   `.claude/skills/harness-distill/SKILL.md` and `.claude/skills/harness-curate/SKILL.md` name the same
-  two Expertise paths that `inject-expertise.sh` reads and `team-config.yaml` grants — all four named,
+  two Expertise paths that `inject-expertise.py` reads and `team-config.yaml` grants — all four named,
   checked one file at a time. Two renderings of the repository path are admissible and both are
   correct where they appear: the placeholder `.harness/<repo>/expertise/` in prose, and the literal
   glob `.harness/*/expertise/` where the text is a command the reader runs or a grant the guard
@@ -159,7 +159,7 @@ merged with another, and no atomic landing is required.
   `.harness/kaya/expertise/harness-qa.md`, created at test time — the hook exits 0, emits no header
   and no path fragment for that segment, writes nothing to stderr, and still emits the readable
   `harness` tier in full. The case is proven able to fail: run against a copy of
-  `inject-expertise.sh` with its `[ -r "$f" ] || continue` guard deleted, it must report FAIL.
+  `inject-expertise.py` with its `[ -r "$f" ] || continue` guard deleted, it must report FAIL.
   A case that stays green under that mutation is not shipped — the criterion is then `not_met` and
   the recorded proof attempt is the evidence.
   verify: automated      evidence: unit
@@ -180,7 +180,7 @@ merged with another, and no atomic landing is required.
 - **No touch, two orchestrators are live:** `fleet.yaml`, `.harness/harness.json`, `gh_board.py`,
   `load_board`, `factory_claim.py`, and everything under `.harness/harness/features/FEAT-24-*/`.
   Reading them is fine; this plan changes none of them.
-- **The hook must never block a spawn.** `inject-expertise.sh` fires on every `SubagentStart`, nested
+- **The hook must never block a spawn.** `inject-expertise.py` fires on every `SubagentStart`, nested
   ones included (DEC-100). It must keep exiting 0 on every path, and it must not acquire a YAML parse
   dependency — an unquoted `#` in `team-config.yaml` has already taken a resolver down once.
 - **The craft tier's location and semantics are out of scope.** `.harness/expertise/` stays where it

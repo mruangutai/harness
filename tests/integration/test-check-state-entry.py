@@ -74,7 +74,7 @@ def case_d():
         os.makedirs(cl, exist_ok=True)
         base = {"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                 "hooks": {
-                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                     "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                     "PostToolUse": [{"hooks": [{"command": "x/check-domain.py --post"}]}],
                     "PreToolUse": [
@@ -231,7 +231,7 @@ def case_m():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
@@ -263,7 +263,7 @@ def case_m2():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write",
                                             "hooks": [{"command": "x/check-domain.py --post"}]}],
@@ -304,7 +304,7 @@ def case_m3():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [
                                # decoy: right matcher, and it mentions check-domain only in
@@ -356,7 +356,7 @@ def case_t():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write|Edit|Bash(",
                                             "hooks": [{"command": "x/check-domain.py --post"}]}],

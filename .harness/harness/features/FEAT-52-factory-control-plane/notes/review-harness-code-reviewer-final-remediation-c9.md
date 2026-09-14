@@ -47,7 +47,7 @@ One real, non-blocking gap carried forward and one new one found:
 - **Carried (MED, non-blocking, unaddressed since remediation-c9's F3):** SC-12's RED case
   (`test-inject-expertise.py:239 case4d`) still asserts only the `HARNESS_PATH_DRIFT: 1 unanchored
   path(s)` count line, never the `<file>:<line>` detail line
-  (`inject-expertise.sh`'s `sed -n 's/^VIOLATION \([^:]*:[0-9]*\):.*/  \1/p'` output) that SC-12
+  (`inject-expertise.py`'s `sed -n 's/^VIOLATION \([^:]*:[0-9]*\):.*/  \1/p'` output) that SC-12
   also names. Confirmed unchanged: this diff touches no lines in `test-inject-expertise.py` at all
   (absent from the 8-file `git diff --stat ff4ca877..49df4bee`). Not re-escalating past MED — same
   reasoning as remediation-c9: the extraction is traced correct by hand, only the regression-catch

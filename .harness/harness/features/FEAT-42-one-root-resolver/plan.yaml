@@ -41,7 +41,7 @@ lanes:
     - surface: .claude/skills/harness/bin/gh-close-gate.py
       lane: main-session-direct
       reason: a registered PreToolUse hook that refuses; DEC-174 am.4 says the category decides and the list records
-    - surface: .claude/skills/harness/bin/inject-expertise.sh
+    - surface: .claude/skills/harness/bin/inject-expertise.py
       lane: main-session-direct
       reason: a registered SubagentStart hook; every agent in this build is spawned through it
     - surface: .claude/skills/harness/bin/context-watch.py
@@ -79,7 +79,7 @@ decisions:
     dec: none
   - id: D-05
     choice: Scope is all 20 occurrences of the environment chain across 16 files, not the 7 definitions of the original migration map.
-    because: inject-expertise.sh line 31 falls back to pwd and is a SubagentStart hook, the exact failure that blocked the previous run.
+    because: inject-expertise.py line 31 falls back to pwd and is a SubagentStart hook, the exact failure that blocked the previous run.
     dec: none
   - id: D-06
     choice: The claim registry stays PER-CHECKOUT; only its input changes, from accidental payload cwd to the feature the dispatch declares.
@@ -1199,7 +1199,7 @@ tasks:
       harness.json, so the fixture now carries the marker and omits only harness.json.
 
   - id: T-16
-    title: Cut inject-expertise.sh off the pwd fallback that blocked the previous planning run
+    title: Cut inject-expertise.py off the pwd fallback that blocked the previous planning run
     traces: [REQ-01, REQ-02, REQ-09]
     change_type: logic
     execution_mode: main-session-direct
@@ -1207,12 +1207,12 @@ tasks:
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/inject-expertise.sh
+      - .claude/skills/harness/bin/inject-expertise.py
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      G=inject-expertise.sh
+      G=inject-expertise.py
       grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
       for M in /tmp/f42-old /tmp/f42-new; do
         rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
@@ -1237,7 +1237,7 @@ tasks:
       diff /tmp/f42-t16-away.txt /tmp/f42-t16-here.txt || { echo "injection still depends on cwd"; exit 1; }
       echo T-16-OK
     intent: |
-      One chain site: .claude/skills/harness/bin/inject-expertise.sh:31,
+      One chain site: .claude/skills/harness/bin/inject-expertise.py:31,
       root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". Replace it with a short python3
       invocation that imports harness_boundary from the script's own bin directory and prints
       resolve_root of it; exit 2 naming the failure rather than falling back.
@@ -1537,7 +1537,7 @@ tasks:
       and .json files excluding /bin/ returns exactly this one line at sha 3952814; every other
       match in the tree is prose. After T-10, T-11, T-14, T-16 and T-17 each of the five scripts
       this helper invokes - check-domain.py, bash-write-guard.py, branch-create-gate.py,
-      inject-expertise.sh and validate-digest.py - derives its own root from its own file location
+      inject-expertise.py and validate-digest.py - derives its own root from its own file location
       under D-4. Handing it one is therefore redundant. Worse, the value handed over is the host
       process working directory, and under D-2 and D-3 a feature worktree carries
       .harness/team-config.yaml, so a wrong-but-plausible cwd probes VALID and is honoured in

@@ -10,7 +10,7 @@ source_issues: [356]
 lanes:
   resolved_at: e8e1b78be3379d4a669aa7e28aef8f76eb942471
   rows:
-    - surface: .claude/skills/harness/bin/inject-expertise.sh
+    - surface: .claude/skills/harness/bin/inject-expertise.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a registered SubagentStart hook and its test file
     - surface: .claude/skills/harness/bin/check-instruction-paths.py
@@ -37,7 +37,7 @@ lanes:
 
 decisions:
   - id: D-01
-    choice: "The Harness control-plane root reaches an agent as one line of the preamble that inject-expertise.sh injects through hookSpecificOutput.additionalContext, and it is the only value this feature injects."
+    choice: "The Harness control-plane root reaches an agent as one line of the preamble that inject-expertise.py injects through hookSpecificOutput.additionalContext, and it is the only value this feature injects."
     because: "It is the only registered SubagentStart hook, it already resolves the root from its own directory via harness_boundary.resolve_root, and DEC-100 measured that SubagentStart fires for nested spawns."
     rejected:
       - "An environment variable: CLAUDE_PROJECT_DIR is session-scoped and was measured UNSET in an agent tool shell, so an agent cannot anchor its own paths with it."
@@ -55,7 +55,7 @@ decisions:
     rejected: []
     dec: DEC-183
   - id: D-04
-    choice: "The spawn-time assertion lives inside inject-expertise.sh but signals through the injected text and stderr, never through the exit code, which stays 0 on every branch."
+    choice: "The spawn-time assertion lives inside inject-expertise.py but signals through the injected text and stderr, never through the exit code, which stays 0 on every branch."
     because: "DECISIONS.md line 1503 and the script's own header fix its contract at always exits 0 so it can never block a spawn, and all seventeen existing cases assert exit 0, so the refusal happens one tier up at the agent, which is told to return VERDICT BLOCKED when the block says UNRESOLVED."
     rejected:
       - "Exiting non-zero on an unresolved root or on drift: it contradicts a signed contract and would let a hook block a spawn."
@@ -67,14 +67,14 @@ decisions:
       - "Widening a domain in team-config.yaml: it would widen WRITE permission as a side effect of fixing a resolution defect."
     dec: none
   - id: D-06
-    choice: "Instruction paths carry TWO anchors: HARNESS_CONTROL_PLANE_ROOT, injected by inject-expertise.sh, prefixes every READ of a Harness-owned skill, rule, reference, decision or config, and HARNESS_FEATURE_TREE_ROOT, never injected, prefixes every WRITE into a feature directory and resolves to the checkout that HOLDS that feature's directory as inflight_registry.feature_root returns worktree_for_feature(owner_root, feature) or owner_root."
-    because: "One value cannot serve both directions - measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json registers the MAIN checkout copy of inject-expertise.sh and harness_boundary.resolve_root is script-directory-relative, so the injected root is the main checkout whatever the agent's cwd and the FEAT-52 feature directory does not exist there at all, which sends a write anchored to it off the reviewed branch and invisible at review_sha, while leaving the write relative sends a factory worker's records into a disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against."
+    choice: "Instruction paths carry TWO anchors: HARNESS_CONTROL_PLANE_ROOT, injected by inject-expertise.py, prefixes every READ of a Harness-owned skill, rule, reference, decision or config, and HARNESS_FEATURE_TREE_ROOT, never injected, prefixes every WRITE into a feature directory and resolves to the checkout that HOLDS that feature's directory as inflight_registry.feature_root returns worktree_for_feature(owner_root, feature) or owner_root."
+    because: "One value cannot serve both directions - measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json registers the MAIN checkout copy of inject-expertise.py and harness_boundary.resolve_root is script-directory-relative, so the injected root is the main checkout whatever the agent's cwd and the FEAT-52 feature directory does not exist there at all, which sends a write anchored to it off the reviewed branch and invisible at review_sha, while leaving the write relative sends a factory worker's records into a disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against."
     rejected:
-      - "Injecting a SECOND resolved value from inject-expertise.sh: the hook cannot identify the spawning agent's feature, because dispatch-guard.py:76-80 records that tool_input.prompt exists only on the dispatch payload and DEC-64 fixes the SubagentStart payload's contract at agent_type, so it would have to scan the inflight registry of the control plane and of every linked worktree for a claim keyed on persona alone - ambiguous whenever two spawns of one non-single-flight persona run on different features at once - plus an unmeasured dependency on PreToolUse:Task firing before SubagentStart."
+      - "Injecting a SECOND resolved value from inject-expertise.py: the hook cannot identify the spawning agent's feature, because dispatch-guard.py:76-80 records that tool_input.prompt exists only on the dispatch payload and DEC-64 fixes the SubagentStart payload's contract at agent_type, so it would have to scan the inflight registry of the control plane and of every linked worktree for a claim keyed on persona alone - ambiguous whenever two spawns of one non-single-flight persona run on different features at once - plus an unmeasured dependency on PreToolUse:Task firing before SubagentStart."
       - "Anchoring writes to the control-plane root: the feature tree is the one description true both for a Harness self-development run, where it is the feature worktree, and for a factory run, where the resolver collapses to the control plane because the product feature has no Harness worktree."
     dec: DEC-204
   - id: D-07
-    choice: "The spawn-time assertion asserts the PATH CONTRACT rather than merely that a root resolved: inject-expertise.sh invokes check-instruction-paths.py over the four instruction files every harness agent receives - its own .omp/agents/<agent_type>.md and the three always-preloaded skills harness-handoff, harness-expertise and harness-principles - and reports the finding count plus up to five file:line pointers as a HARNESS_PATH_DRIFT line in the injected block, at exit 0 on every branch."
+    choice: "The spawn-time assertion asserts the PATH CONTRACT rather than merely that a root resolved: inject-expertise.py invokes check-instruction-paths.py over the four instruction files every harness agent receives - its own .omp/agents/<agent_type>.md and the three always-preloaded skills harness-handoff, harness-expertise and harness-principles - and reports the finding count plus up to five file:line pointers as a HARNESS_PATH_DRIFT line in the injected block, at exit 0 on every branch."
     because: "Root resolution cannot go red when a new relative path is introduced, which is the entire failure class a second mechanism is wanted against, and the hook already knows agent_type so that instruction set is knowable at spawn with no payload field the SubagentStart contract does not promise; the accepted cost is one extra subprocess per spawn on top of the interpreter-startup floor the hook already pays."
     rejected:
       - "Exiting non-zero on drift: it contradicts DECISIONS.md:1503 and the seventeen existing exit-0 cases, so the refusal stays the agent's."
@@ -304,16 +304,16 @@ tasks:
     traces: [REQ-01, REQ-04, REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and its test file is enforcement layer
+    execution_reason: DEC-174 carve-out, inject-expertise.py is a registered SubagentStart hook and its test file is enforcement layer
     depends_on: [T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/inject-expertise.sh
+      - .claude/skills/harness/bin/inject-expertise.py
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
       python3 .agents/skills/harness/bin/test-inject-expertise.py
     intent: |
-      inject-expertise.sh resolves the harness root today (variable `root`, from
+      inject-expertise.py resolves the harness root today (variable `root`, from
       harness_boundary.resolve_root against the script's own bin directory) and uses it only to
       locate Expertise files. Carry that value to the AGENT, and assert the path contract while you
       are there.
@@ -980,7 +980,7 @@ tasks:
         - the defect: a relative path in prose resolves against the AGENT's working directory, and
           until the factory that was always the harness checkout;
         - why two anchors: measured at sha e8e1b78be3379d4a669aa7e28aef8f76eb942471, settings.json
-          registers the MAIN checkout's copy of inject-expertise.sh and
+          registers the MAIN checkout's copy of inject-expertise.py and
           harness_boundary.resolve_root is script-directory-relative, so the injected root is the
           main checkout even for an agent standing in a feature worktree - anchoring writes there
           sends a Harness self-development agent's receipt and observations off the reviewed branch,
@@ -995,7 +995,7 @@ tasks:
           and dangerous, and a missing skill read has no signal at all.
 
       Record the REJECTED alternatives and why, because a future scan will re-suggest both:
-        - injecting a SECOND resolved value from inject-expertise.sh. The hook cannot identify the
+        - injecting a SECOND resolved value from inject-expertise.py. The hook cannot identify the
           spawning agent's feature - dispatch-guard.py:76-80 records that tool_input.prompt exists
           only on the dispatch payload and reaches no other hook, and DEC-64 fixes the
           SubagentStart payload's contract at agent_type - so it would have to scan the inflight
@@ -1023,7 +1023,7 @@ tasks:
     traces: [REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and test-inject-expertise.py is its test file
+    execution_reason: DEC-174 carve-out, inject-expertise.py is a registered SubagentStart hook and test-inject-expertise.py is its test file
     depends_on: [T-03]
     status: done
     files:
@@ -1032,7 +1032,7 @@ tasks:
       python3 .agents/skills/harness/bin/test-inject-expertise.py
     intent: |
       Add ONE case to test-inject-expertise.py that proves, by TEXT SCAN, that the shipped
-      inject-expertise.sh contains no literal non-zero exit statement. This is the second clause of
+      inject-expertise.py contains no literal non-zero exit statement. This is the second clause of
       SC-02, and D-04 is the ruling it defends: the hook signals through injected text and stderr,
       never through the exit code, because DECISIONS.md:1503 fixes its contract at always exits 0
       so it can never block a spawn.
@@ -1049,7 +1049,7 @@ tasks:
 
       2. THE FILE, and the count. Scan the SHIPPED script, resolved from the repository the test
          itself lives in: the sibling of the test file's own directory, i.e.
-         Path(__file__).resolve().parent / "inject-expertise.sh". Never a copy, never a fixture,
+         Path(__file__).resolve().parent / "inject-expertise.py". Never a copy, never a fixture,
          never a path built from the process working directory. Assert the number of matching
          lines equals ZERO, as an integer count compared to 0 - not as a truthiness check on the
          output string, and not as "the output is empty". Distinguish an ERROR from an ABSENCE:
@@ -1068,7 +1068,7 @@ tasks:
 
       4. WHAT THIS CASE MUST NOT DO. It must not execute the hook: this is a text scan of the
          script's source, not a behavioural run, and running it proves nothing about branches that
-         did not fire. It must not edit inject-expertise.sh. And it must not register the test file
+         did not fire. It must not edit inject-expertise.py. And it must not register the test file
          anywhere new - test-inject-expertise.py is already registered in run-unit-tests.py and
          already named in harness.json's test_kinds detect, so adding it again trips the KIND-DRIFT
          cross-check. Keep every existing case in the file passing.
@@ -1257,7 +1257,7 @@ panel:
   - id: PF-4ea5b56692f0684ae2a69722b19bc74f
     severity: med
     reader: should-not-exist
-    summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.sh is
+    summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.py is
       set -uo pipefail, so a set -u abort exits 1 with no literal exit statement anywhere
     disposition: open
   - id: PF-da16f6e14bec89a768041c4146c87873

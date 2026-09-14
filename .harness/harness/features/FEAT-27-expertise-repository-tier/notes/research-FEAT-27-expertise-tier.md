@@ -51,7 +51,7 @@ security-reviewer 1 — sums to 11. Well under the 40-line repository budget per
 
 ## Measured facts (all at `ada8e99`)
 
-- `inject-expertise.sh:27-29` — exactly two read paths, project and global. `cap_body` hardcodes 150.
+- `inject-expertise.py:27-29` — exactly two read paths, project and global. `cap_body` hardcodes 150.
 - `check-expertise.sh` — 128 lines; `LINE_BUDGET = 150` unconditional; no path-flag scan (#412 stands).
 - `check-state.sh` has **zero** `expertise` matches — no invariant covers either tier, so no DEC-174
   carve-out script needs editing for this unit.
@@ -67,7 +67,7 @@ security-reviewer 1 — sums to 11. Well under the 40-line repository budget per
 
 | Path | Resolver output |
 |---|---|
-| `.claude/skills/harness/bin/inject-expertise.sh` | harness-backend-dev, harness-dev-ops |
+| `.claude/skills/harness/bin/inject-expertise.py` | harness-backend-dev, harness-dev-ops |
 | `.claude/skills/harness/bin/check-expertise.sh` | harness-backend-dev, harness-dev-ops |
 | `.claude/skills/harness/bin/test-inject-expertise.py` | harness-backend-dev, harness-dev-ops |
 | `.claude/skills/harness/bin/test-check-expertise.py` | harness-backend-dev, harness-dev-ops |

@@ -14,7 +14,7 @@ append`. The diff delivers exactly this — no more, no less:
   paragraph, same "ADVISORY (never blocking)" phrasing.
 
 No scope creep, no missing piece. Extending the advisory to the repo tier (issue's examples were
-all craft-tier) is a documented, correct generalization — `inject-expertise.sh` truncates both
+all craft-tier) is a documented, correct generalization — `inject-expertise.py` truncates both
 tiers by the same mechanism, so the headroom signal is equally real for repo files. Not a spec
 violation.
 

@@ -10,7 +10,7 @@ survive. `yaml.safe_load` loads the plan and `check-plan-routes.py` reports 0 vi
   `notes`. **`.harness/codebase/` does not exist** — the send-back listed it among the existing
   first-level directories. MF-2 is unaffected: the glob is still over `.harness/*/`, so N counts
   every first-level directory that acquires an `expertise/` subdirectory, and `.harness/codebase/`
-  is a directory the hook *would* read if it were created (`inject-expertise.sh` already points
+  is a directory the hook *would* read if it were created (`inject-expertise.py` already points
   `$index` at `.harness/codebase/INDEX.md`). D-01 now states N = 1 today, growing by one per
   repository, with the measured five-directory tree named.
 - `grep -i expertise .claude/skills/harness/bin/check-state.sh` returns exactly two lines, `:343`
@@ -18,7 +18,7 @@ survive. `yaml.safe_load` loads the plan and `check-plan-routes.py` reports 0 vi
   Case-sensitive `grep expertise` returns zero. BRIEF's constraint bullet now says both; the
   conclusion (no carve-out script is edited) is unchanged.
 - `grep -rn 'authoritative on conflict'` over `.claude/skills/`, `.claude/agents/`, `SPEC.md` and
-  `README.md`: **one hit**, `inject-expertise.sh:64`. So T-02 removing it is the whole removal —
+  `README.md`: **one hit**, `inject-expertise.py:64`. So T-02 removing it is the whole removal —
   no other surface carries the phrase, and T-05's new negative greps against `SPEC.md` cannot
   redden pre-existing text.
 - `.harness/expertise/` holds 15 files; `harness-frontend-dev.md` is absent. MF-3(b)'s live state

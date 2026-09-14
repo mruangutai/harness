@@ -32,7 +32,7 @@ appended verbatim, unguarded): `target: "P-99: injected via TARGET\n## Gotchas (
 renders identically.
 
 **Consequence.** Craft-tier Expertise is injected verbatim into *every future spawn* of that
-persona (SPEC §5, `inject-expertise.sh`). A cap-bypassing injection is a durable,
+persona (SPEC §5, `inject-expertise.py`). A cap-bypassing injection is a durable,
 unauthenticated write of fabricated "Patterns"/"Gotchas" text into a file every later run of that
 role trusts as its own memory — content a compromised or careless distillation step could plant
 via `entry`/`target` text summarizing untrusted upstream content (a malicious PR description, a

@@ -6,7 +6,7 @@
   registering it as a decision. The guard, not my judgement, is what caught it.
 
 - 2026-08-19: T-02's twelve test cases assert the absence of "authoritative on conflict" and
-  "most specific" in the hook's EMITTED OUTPUT only. A comment inside inject-expertise.sh
+  "most specific" in the hook's EMITTED OUTPUT only. A comment inside inject-expertise.py
   retaining either phrase passes all twelve. I grepped the script directly on return: 0 hits
   for "authoritative on conflict" and 0 for "carries more weight"; one hit at :106 for "most
   specific", inside a comment, using the rationale intent 1b explicitly PERMITS ("the most
@@ -16,7 +16,7 @@
 
 - 2026-08-19: the precedence line's "emit exactly once" property is not pinned by the shape of
   the test alone. Case 1 asserts two substrings; case 2 counts one of them once. Both stay true
-  if the line is split across two printf calls. I read inject-expertise.sh:110 to confirm it is
+  if the line is split across two printf calls. I read inject-expertise.py:110 to confirm it is
   a single printf outside the per-segment loop. Substring assertions cannot see line structure.
 
 - 2026-08-19: spent both in-flight waits on reads rather than polling, and both paid. The
@@ -75,7 +75,7 @@
 
 - 2026-08-19: on T-07 I verified the mutant's discriminating power from source BEFORE the member
   returned, and it changed what I would accept. `kaya` is a plain lowercase token, so the segment
-  filter at inject-expertise.sh:75-77 does NOT reject it — which is precisely why a dangling
+  filter at inject-expertise.py:75-77 does NOT reject it — which is precisely why a dangling
   symlink reddens where an unexpanded glob word cannot. Two independent assertions fail under the
   mutant: the "kaya" header printed at :114, and stderr, which takes three writes (head, wc, and
   the empty `$( )` making `[ "" -gt 40 ]` a bash integer error at :57-58). Deriving WHY a case can

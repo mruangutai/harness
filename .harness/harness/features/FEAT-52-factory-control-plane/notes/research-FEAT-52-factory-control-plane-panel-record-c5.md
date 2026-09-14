@@ -82,7 +82,7 @@ findings:
 - id: PF-4ea5b56692f0684ae2a69722b19bc74f
   severity: med
   reader: should-not-exist
-  summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.sh is set -uo pipefail, so a
+  summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.py is set -uo pipefail, so a
     set -u abort exits 1 with no literal exit statement anywhere
   disposition: open
 - id: PF-da16f6e14bec89a768041c4146c87873

@@ -53,7 +53,7 @@ spawn hook) against this feature's findings. No entry was falsified or made stal
 - G-01 through G-06 — none concern cost-measurement methodology or flag-only filing; no overlap
   to re-measure.
 Also checked the repository-tier file (`.harness/harness/expertise/harness-data-engineer.md`,
-1 gotcha about `inject-expertise.sh` sort ordering) — unrelated to this feature's surface
+1 gotcha about `inject-expertise.py` sort ordering) — unrelated to this feature's surface
 (`.claude/settings.json`, `context-watch-hook.py`), not touched.
 
 ## Worktree staleness guard

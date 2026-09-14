@@ -170,7 +170,7 @@ asserts ZERO matches, and asserts the same pattern matches a one-line `exit 2` f
 carrier. `T-06:527` is the anchor-sweep's own positive control and is unrelated; `T-03` carries the
 unresolved-branch cases but not this grep. Added as `T-14`, `traces: [REQ-05]`, `depends_on: [T-03]`,
 `files:` the test file only, `main-session-direct` per the same DEC-174 carve-out `lanes:` already
-records for `inject-expertise.sh`. `T-12` is NOT amended to depend on it: `T-12` wires and runs the
+records for `inject-expertise.py`. `T-12` is NOT amended to depend on it: `T-12` wires and runs the
 instruction-path lint, its verify never runs `test-inject-expertise.py`, and it does not depend on
 `T-03` either — so `T-14` is outside its ordering, and `apply` exits 7 on any amendment regardless.
 
