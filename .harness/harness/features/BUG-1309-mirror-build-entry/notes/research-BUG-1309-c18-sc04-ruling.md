@@ -117,7 +117,7 @@ were measured against the integration fixture's branch `feature/test`. The UAT f
 `feature/uat-scratch` (`feature.json`, and every other UAT step). `feature/test` owns nothing in the
 UAT fixture, so a Step 3b line using it would ALLOW and the operator would read a correct gate as a
 failure. Every added invocation therefore substitutes `feature/uat-scratch`, in the same
-`printf … | HARNESS_PROJECT_DIR=$UAT_ROOT bash …/merge-gate.sh` shape as the existing three. That
+`printf … | HARNESS_PROJECT_DIR=$UAT_ROOT …/merge-gate.py` shape as the existing three. That
 substitution is the sole difference between the measured strings and the Step 3b lines.
 
 ## Non-modification

@@ -118,7 +118,7 @@ HOOK_SPECS = [
     },
     {
         "event": "PreToolUse",
-        "script": "merge-gate.sh",
+        "script": "merge-gate.py",
         "matcher": "Bash",
         "why": "Mirror build-entry merge gate (DEC-138). Absent -> a merge lands while a "
                "build-entry receipt is still owed, silently.",

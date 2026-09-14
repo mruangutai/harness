@@ -17,7 +17,7 @@ authorship line — treated as in-scope, unreviewed prior to this cycle, per con
 
 **(a) Internal error → deny, executed.** Fixture: `FEAT-9001-fixture-non-era`, `build_entry`
 absent (owes a receipt), `plan.yaml` overwritten to 0 bytes. `git merge feature/test` via the real
-`merge-gate.sh`:
+`merge-gate.py`:
 ```
 exit code: 0
 decision: deny
@@ -45,7 +45,7 @@ receipt-owed reason (`could not verify` does NOT leak into that reason) — matc
 receipt-owed refusal both survive side by side.
 
 **No collapse of the two postures.** They remain opposite answers to different questions, both
-demonstrated by direct execution against the shipped `merge-gate.sh`, not inferred from the tests.
+demonstrated by direct execution against the shipped `merge-gate.py`, not inferred from the tests.
 
 **Regression-test validity, executed against the parent.** Ran the exact parent (`0f8ec4bd^`)
 `merge-gate.py` against both new fixtures (0-byte `plan.yaml`; `feature.json` as `[]`). Both crash
@@ -145,7 +145,7 @@ grade-1, no production grade-3-below-bar. `code_grade: grade_2`.
 independently reproduced.
 
 Delta-only quality: the diff is a mechanical `try:`/`except Exception: deny(...)` wrap plus two new
-test cases exercising the shipped CLI end-to-end (subprocess through `merge-gate.sh`, not a mocked
+test cases exercising the shipped CLI end-to-end (subprocess through `merge-gate.py`, not a mocked
 internals call) — the interface under test is the real one, not reached past. No dead branches, no
 duplication, no comment/code drift introduced. Both new assertions are discriminating (proven above
 against the parent, not merely plausible).

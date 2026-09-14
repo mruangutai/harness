@@ -7038,7 +7038,7 @@ approval — and never at Ship, which keeps post-merge terminal finalization onl
 records `feature.json` `github.build_entry` as `opened`, `recovery-required` or `not-applicable`,
 and ABSENCE is the fifth state, meaning no Build entry completed. `gh-sync.py start-task` refuses on
 absence and proceeds on `recovery-required`, which instead gates the merge through the registered
-PreToolUse Bash gate `merge-gate.sh` (`.claude/settings.json:48`). A partial remote write and a
+PreToolUse Bash gate `merge-gate.py` (`.claude/settings.json:48`). A partial remote write and a
 caller or contract error record nothing (`gh-sync.py:289`), so both leave the receipt absent and
 block Build.
 

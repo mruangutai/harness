@@ -36,7 +36,7 @@ Both non-zero discovery, both green. `matrix_ok: true`.
   — **0 objects discovered as violations**, and 0 non-exempt candidates existed to check in the first
   place. `check-state.sh` itself exits 1 (pre-existing, unrelated INV-17/INV-23/INV-28 notes on other
   features — none is INV-37; confirmed by grep, 0 hits).
-- **`merge-gate.sh`**: ran live (`git merge feat/BUG-1309-mirror-build-entry`) from inside this exact
+- **`merge-gate.py`**: ran live (`git merge feat/BUG-1309-mirror-build-entry`) from inside this exact
   worktree — genuine non-fixture invocation. Result: `allowed... predates the build-entry receipt`,
   correctly resolving this feature by branch and reading it as era-exempt, exit 0. Same corpus fact as
   above: all 75 live features are era-exempt, so **no live "deny" is currently reachable** — the deny
@@ -123,7 +123,7 @@ sound, not independently reproduced end-to-end.
    and merge-gate's real "deny"/"fires" paths have zero live discovery today — proven only by
    synthetic fixtures. Deliberate per D-08 and already disclosed in BRIEF.md's own "Verification
    gaps"; recorded here as a fact I measured directly (corpus scan + a live, non-fixture
-   `merge-gate.sh` invocation against this feature's own branch), not a new gap.
+   `merge-gate.py` invocation against this feature's own branch), not a new gap.
 
 Neither finding gates the matrix; both are advisory.
 

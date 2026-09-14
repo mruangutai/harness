@@ -17,7 +17,7 @@ Reserved surface (DEC-174): `merge-gate.py` and its bed are main-session-direct.
 
 Fixture throughout, identical to c14 and to the bed's own `fixture()`: non-era feature
 `FEAT-9001-fixture-non-era`, `github.build_entry` ABSENT, `sync: true`, `repo` pinned → the
-criterion requires DENY for every form. Driven end-to-end through the real `merge-gate.sh` hook.
+criterion requires DENY for every form. Driven end-to-end through the real `merge-gate.py` hook.
 
 | # | Form | c14 | c15 |
 |---|---|---|---|
@@ -136,13 +136,13 @@ Step 3b, verbatim as the operator types it:
 python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT recovery-required
 
 printf '{"tool_input":{"command":"git merge --no-ff feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git merge --squash feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git merge -m message feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 ```
 
 Expected: THREE `deny` JSON lines, each naming `FEAT-9001-uat-scratch` and

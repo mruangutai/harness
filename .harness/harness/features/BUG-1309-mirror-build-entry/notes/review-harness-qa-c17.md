@@ -51,7 +51,7 @@ pinned test file) and each drives its own `check()` call — not a shared aggreg
 ## 3. Falsification — 39 probe forms against an owing fixture
 
 Fixture: `FEAT-9001-fixture-non-era`, `github.sync: true`, `github.repo: "acme/widgets"`, branch
-`feature/test`, no `build_entry` (owing). Harness: `.claude/skills/harness/bin/merge-gate.sh`
+`feature/test`, no `build_entry` (owing). Harness: `.claude/skills/harness/bin/merge-gate.py`
 invoked exactly as the standing test does (stdin JSON, `HARNESS_PROJECT_DIR` env). Script:
 `local://` n/a — throwaway at `/tmp/probe_merge_gate.py` (author-nothing constraint: this is a
 disposable QA probe, not a repo artifact; nothing was written into the tree).

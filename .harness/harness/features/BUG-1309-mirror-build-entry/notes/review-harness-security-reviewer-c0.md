@@ -29,7 +29,7 @@ feature's own BRIEF title) is controlled only by whoever already has write acces
 directory — the same actor invoking the CLI. No escalation (P-02). Assessed and dismissed,
 info-level, pre-existing.
 
-### 2. `merge-gate.py` / `merge-gate.sh` — two findings, see below.
+### 2. `merge-gate.py` / `merge-gate.py` — two findings, see below.
 
 ### 3. Data exposure — CLEAN
 Grepped the full changed surface (`gh-sync.py`, `merge-gate.py`, `feature_schema.py`,
@@ -71,9 +71,9 @@ not era-exempt, payload `{"tool_input":{"command":"gh pr merge 42"}}`):
 EXIT: 1
 Traceback ... FileNotFoundError: [Errno 2] No such file or directory: '/nonexistent/gh'
 ```
-`merge-gate.sh` `exec`s the python process directly, so this exit code is the hook's own exit
+`merge-gate.py` `exec`s the python process directly, so this exit code is the hook's own exit
 code. Per this repo's own documented hook convention (DECISIONS.md "exit 2 blocks
-(DEC-100/DEC-122)"; `.claude/settings.json:48` registers `merge-gate.sh` as the PreToolUse Bash
+(DEC-100/DEC-122)"; `.claude/settings.json:48` registers `merge-gate.py` as the PreToolUse Bash
 hook), **only exit 2 denies** — exit 1 is silently non-blocking, identical in effect to a clean
 allow, with nothing but an unlabeled Python traceback on stderr (no `merge-gate: ...` line the
 operator would recognize as "the gate failed to run").

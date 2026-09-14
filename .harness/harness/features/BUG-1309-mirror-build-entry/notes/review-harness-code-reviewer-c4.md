@@ -3,7 +3,7 @@
 ## BLUF
 
 **PASS.** The cycle-3 MED (an unrelated feature's malformed `feature.json` denying a merge that
-matches no feature at all) is fixed and verified by execution against the shipped `merge-gate.sh`.
+matches no feature at all) is fixed and verified by execution against the shipped `merge-gate.py`.
 One NEW MED, not gating: the fix narrowed the outer `except Exception` against exactly the failure
 mode cycle 3 found (a bad record read inside `feature_for`'s own loop) but did not narrow the
 try's SCOPE — it still wraps `head_branch()`'s environmental resolution, which runs *before* any
@@ -23,7 +23,7 @@ in the test file). No REQ/D touched by this remediation is left unimplemented; n
 pin's job is closing cycle 3's F1 (an innocent-bystander deny that misattributes "this feature");
 judged against that job below.
 
-### 1. The three-posture reconstruction — ONE fixture, all three states, driven through the shipped `merge-gate.sh`
+### 1. The three-posture reconstruction — ONE fixture, all three states, driven through the shipped `merge-gate.py`
 
 Fixture (`/tmp/bug1309-triple-*`), one `.harness/harness.json` (`sync: true`, `repo: acme/widgets`),
 git HEAD on `feature/healthy`, three feature directories:
@@ -66,7 +66,7 @@ feature, posture #2's exact scenario), same broken `gh` (`GH_BIN=/nonexistent/gh
 restricted to a directory holding only `python3` and `dirname` — no `git`:
 ```
 $ echo '{"tool_input":{"command":"gh pr merge 7"}}' | HARNESS_PROJECT_DIR=$ROOT GH_BIN=/nonexistent/gh \
-    PATH=/tmp/no-git-bin bash merge-gate.sh
+    PATH=/tmp/no-git-bin ./merge-gate.py
 exit=0
 stdout: {"hookSpecificOutput":{...,"permissionDecision":"deny","permissionDecisionReason":
   "merge-gate: could not evaluate this feature's Build-entry receipt, so this merge is denied.

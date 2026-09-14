@@ -32,8 +32,8 @@ My read matches the lead's on `.claude/settings.json` and adds the two the lead 
 | `.omp/extensions/harness-hooks.ts` `firstBlock([...])` | gh-close, branch-create, bash-write-guard, plan-sign — **a third, different order** | the **fifth** element |
 
 The rewritten instruction names, per site, the literal predecessor (`plan-sign-gate.sh` in all
-three, as it happens) and the literal successor (**none** — merge-gate.sh is last), and states the
-constraint the neighbours only encode: **merge-gate.sh runs last, after `bash-write-guard.py`.**
+three, as it happens) and the literal successor (**none** — merge-gate.py is last), and states the
+constraint the neighbours only encode: **merge-gate.py runs last, after `bash-write-guard.py`.**
 `bash-write-guard.py` is the only registered gate whose subject can also match a merge command
 line (it scans the whole line for redirects/`tee`/`cp`/`mv`/`rm`), so `gh pr merge 7 > log` is
 refused by both; the write-guard's reason must win, because the redirect is refused whatever the
@@ -48,7 +48,7 @@ path no index is read at all: the failure mode there is **absence, not order**, 
 says so rather than inventing a consequence. The instruction also tells the doer to satisfy the
 constraint, not the names, if a reshuffle has already moved them, and turns
 `tests/unit/omp-hooks.test.ts`'s ordering assertion into the machine-checkable form
-(`indexOf("merge-gate.sh")` greater than `indexOf("bash-write-guard.py")` and
+(`indexOf("merge-gate.py")` greater than `indexOf("bash-write-guard.py")` and
 `indexOf("plan-sign-gate.sh")` — a relation, never a literal index).
 
 ## Fix 2 — SCOPE-01: one declared case, and the clause is real
@@ -139,6 +139,6 @@ EXIT=0
 written.** `harness-init` installs hooks through `merge-settings.py`'s hard-coded `HOOK_SPECS`
 (seven entries), not by copying the snippet; a script absent from `HOOK_SPECS` is never installed
 into a target project however the snippet reads. `plan-sign-gate.sh` is already in exactly that
-position — in the snippet, absent from `HOOK_SPECS` — so `merge-gate.sh` would inherit a
+position — in the snippet, absent from `HOOK_SPECS` — so `merge-gate.py` would inherit a
 **pre-existing** inconsistency rather than create a new one. Out of this dispatch's scope (it would
 add `merge-settings.py` to T-05's `files:`), so T-05 is unchanged and this is raised as Q1.

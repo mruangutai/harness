@@ -353,6 +353,86 @@ def branch_create_gate_corpus(scratch):
     ]
 
 
+def merge_gate_corpus(scratch):
+    """Representative merge parsing, receipt, root and isolation cases."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+
+    def make_root(name, *, entry=None, repo="acme/widgets", sync=True,
+                  feature="FEAT-9001-fixture-non-era"):
+        root = os.path.join(scratch, name)
+        harness = os.path.join(root, ".harness")
+        os.makedirs(harness, exist_ok=True)
+        with open(os.path.join(harness, "team-config.yaml"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("agents: {}\n")
+        with open(os.path.join(harness, "harness.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump({"github": {"sync": sync, "repo": repo}}, fh)
+        feat_dir = os.path.join(
+            harness, "harness", "features", feature)
+        os.makedirs(feat_dir)
+        github = {} if entry is None else {"build_entry": entry}
+        with open(os.path.join(feat_dir, "feature.json"), "w",
+                  encoding="utf-8") as fh:
+            json.dump({"feature_id": feature, "branch": "feature/test",
+                       "github": github}, fh)
+        with open(os.path.join(feat_dir, "plan.yaml"), "w",
+                  encoding="utf-8") as fh:
+            fh.write("status: plan\ntasks: []\n")
+        return root
+
+    recovery = make_root("merge-recovery", entry="recovery-required")
+    absent = make_root("merge-absent")
+    opened = make_root("merge-opened", entry="opened")
+    disabled = make_root("merge-disabled", sync=False)
+    unpinned = make_root("merge-unpinned", repo=None)
+    era = make_root(
+        "merge-era", feature="BUG-1030-stale-anchor-write-hazard")
+    shadow = os.path.join(scratch, "shadow")
+    os.makedirs(shadow)
+    with open(os.path.join(shadow, "harness_boundary.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write("raise RuntimeError('PYTHONPATH shadow imported')\n")
+
+    def payload(command):
+        return json.dumps({"tool_name": "Bash",
+                           "tool_input": {"command": command}})
+
+    def env(root, **extra):
+        return {project_override: root, **extra}
+
+    merge = payload("git merge feature/test")
+    return [
+        {"label": "malformed hook payload", "stdin": "{not json",
+         "env": env(recovery)},
+        {"label": "non-merge command passes through",
+         "stdin": payload("git status --short"), "env": env(recovery)},
+        {"label": "recovery-required receipt denies",
+         "stdin": merge, "env": env(recovery)},
+        {"label": "absent receipt denies", "stdin": merge,
+         "env": env(absent)},
+        {"label": "opened receipt allows", "stdin": merge,
+         "env": env(opened)},
+        {"label": "sync false allows", "stdin": merge,
+         "env": env(disabled)},
+        {"label": "unpinned repository denies", "stdin": merge,
+         "env": env(unpinned)},
+        {"label": "era-exempt feature allows with notice", "stdin": merge,
+         "env": env(era)},
+        {"label": "nested merge command denies",
+         "stdin": payload("bash -c 'git merge feature/test'"),
+         "env": env(recovery)},
+        {"label": "stray argv remains ignored", "argv": ["unexpected"],
+         "stdin": merge, "env": env(recovery)},
+        {"label": "cwd-independent denial ignores module shadow",
+         "stdin": merge, "cwd": scratch,
+         "env": env(recovery, PYTHONPATH=shadow)},
+        {"label": "unconfigured isolated copy refuses", "stdin": merge,
+         "isolate": True,
+         "env": {project_override: None, "PYTHONPATH": shadow}},
+    ]
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -435,6 +515,8 @@ def corpus(tool, scratch, impl):
         return dispatch_guard_corpus(scratch)
     if tool == "branch-create-gate":
         return branch_create_gate_corpus(scratch)
+    if tool == "merge-gate":
+        return merge_gate_corpus(scratch)
     if tool == "post-merge-sweep":
         return post_merge_sweep_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")

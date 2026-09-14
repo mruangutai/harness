@@ -31,9 +31,9 @@ test-omp-hooks all pass, all touch runtime code adjacent to the delta's domain).
 ## Adequacy Q1 — do the three added cases discriminate?
 **Yes, proven full-pipeline, not just at the parser function.** Built a disposable copy of
 `.claude/skills/harness/bin/` at `/tmp/old-parser-bin/` with `merge-gate.py` replaced by
-`git show da6da610:.claude/skills/harness/bin/merge-gate.py`, wrapper (`merge-gate.sh`) untouched.
+`git show da6da610:.claude/skills/harness/bin/merge-gate.py`, wrapper (`merge-gate.py`) untouched.
 Ran the real fixture (non-era feature, `build_entry` absent → must DENY) through both
-`merge-gate.sh` copies for all three added commands:
+`merge-gate.py` copies for all three added commands:
 
 | command | NEW (e374c9a2) | OLD (da6da610) |
 |---|---|---|

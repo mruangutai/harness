@@ -1,5 +1,63 @@
 #!/usr/bin/env python3
-"""PreToolUse guard for merges while a Build-entry mirror receipt is owed."""
+"""PreToolUse guard for merges while a Build-entry mirror receipt is owed.
+
+Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude
+Code's compatibility registration lives in `.claude/settings.json`.
+
+WAS A .sh WRAPPER (issue #1674). This native entry point preserves the wrapper's
+isolated root resolution, refusal behavior and hook stream contracts while
+removing its extra interpreter launch.
+"""
+import contextlib as _bootstrap_contextlib
+import io as _bootstrap_io
+import os as _bootstrap_os
+import site as _bootstrap_site
+import sys as _bootstrap_sys
+
+_bootstrap_bin = _bootstrap_os.path.dirname(
+    _bootstrap_os.path.abspath(__file__))
+_bootstrap_original_path = list(_bootstrap_sys.path)
+_bootstrap_pythonpath = {
+    _bootstrap_os.path.realpath(entry)
+    for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(
+        _bootstrap_os.pathsep)
+    if entry
+}
+_bootstrap_user_sites = _bootstrap_site.getusersitepackages()
+if isinstance(_bootstrap_user_sites, str):
+    _bootstrap_user_sites = [_bootstrap_user_sites]
+_bootstrap_unsafe = _bootstrap_pythonpath | {
+    _bootstrap_os.path.realpath(_bootstrap_bin),
+    _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
+    *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
+}
+_bootstrap_sys.path[:] = [
+    entry for entry in _bootstrap_sys.path
+    if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
+]
+
+
+def _resolve_root():
+    """Resolve through the trusted sibling with isolated import semantics."""
+    try:
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        with _bootstrap_contextlib.redirect_stderr(_bootstrap_io.StringIO()):
+            import harness_boundary
+            return harness_boundary.resolve_root(_bootstrap_bin)
+    except Exception:
+        return ""
+
+
+ROOT = _resolve_root()
+if not ROOT or not _bootstrap_os.path.isdir(ROOT):
+    print(
+        f"merge-gate.py: no harness root could be resolved from "
+        f"{_bootstrap_bin} — refusing to run",
+        file=_bootstrap_sys.stderr,
+    )
+    raise SystemExit(2)
+_bootstrap_sys.path[:] = _bootstrap_original_path
+
 import glob
 import json
 import os
@@ -8,8 +66,6 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-
-ROOT = sys.argv[1]
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
 
 
@@ -149,49 +205,81 @@ def repo_pinned(repo):
     return isinstance(repo, str) and "/" in repo and bool(repo)
 
 
-# GRADE-2 REASON: this is the gate's orchestration boundary; helpers own parsing,
-# resolution and rendering, while this function preserves the policy's ordered exits.
-def main():
+def _read_request():
+    """Read configuration and the hook payload, preserving silent parse failure."""
     try:
         with open(os.path.join(ROOT, ".harness", "harness.json")) as f:
             github = json.load(f).get("github") or {}
         command = (json.load(sys.stdin).get("tool_input") or {}).get("command") or ""
     except Exception:
+        return None
+    return github, command
+
+
+def _print_unverified(branch, failure):
+    """Explain an allowed merge whose GitHub head could not be resolved."""
+    if failure:
+        print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
+
+
+def _enforce_receipt(feature_schema, github, branch, failure,
+                     feat_dir, document):
+    """Apply the receipt policy for one unambiguous feature owner."""
+    feat = os.path.basename(feat_dir)
+    entry = (document.get("github") or {}).get("build_entry")
+    if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
         return
-    if not github.get("sync") or not merge_ref(command):
+    if entry in {"opened", "not-applicable", "recovered-terminal"}:
+        _print_unverified(branch, failure)
         return
-    feat = "this feature"
+    value = entry or "absent"
+    if not repo_pinned(github.get("repo")):
+        deny(f"merge-gate: {feat} records github.build_entry={value}, and this project has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
+        return
+    command_name = feature_schema.recovery_command_for(feat_dir)
+    command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
+    deny(f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue. Run: {command_line}")
+
+
+def _handle_owners(feature_schema, github, branch, failure, owners):
+    """Resolve zero, duplicate and single-owner merge outcomes."""
+    if not owners:
+        _print_unverified(branch, failure)
+        return
+    if len(owners) > 1:
+        names = ", ".join(sorted(os.path.basename(path) for path, _ in owners))
+        deny(f'merge-gate: {branch} is claimed by more than one feature record ({names}), so this merge cannot be attributed to one feature. Correct the duplicated top-level "branch" field in those feature.json records before merging; no receipt command clears this.')
+        return
+    feat_dir, document = owners[0]
+    feat = os.path.basename(feat_dir)
     try:
-        import feature_schema
-        branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
-        owners = feature_for(branch)
-        if not owners:
-            if failure:
-                print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
-            return
-        if len(owners) > 1:
-            names = ", ".join(sorted(os.path.basename(path) for path, _ in owners))
-            deny(f'merge-gate: {branch} is claimed by more than one feature record ({names}), so this merge cannot be attributed to one feature. Correct the duplicated top-level "branch" field in those feature.json records before merging; no receipt command clears this.')
-            return
-        feat_dir, document = owners[0]
-        feat = os.path.basename(feat_dir)
-        entry = (document.get("github") or {}).get("build_entry")
-        if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-            print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
-            return
-        if entry in {"opened", "not-applicable", "recovered-terminal"}:
-            if failure:
-                print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
-            return
-        value = entry or "absent"
-        if not repo_pinned(github.get("repo")):
-            deny(f"merge-gate: {feat} records github.build_entry={value}, and this project has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
-            return
-        command_name = feature_schema.recovery_command_for(feat_dir)
-        command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
-        deny(f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue. Run: {command_line}")
+        _enforce_receipt(
+            feature_schema, github, branch, failure, feat_dir, document)
     except Exception:
         deny(f"merge-gate: could not evaluate {feat}'s Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
+
+
+def _evaluate_merge(command, github):
+    """Resolve the merge owner and route its receipt outcome."""
+    import feature_schema
+    branch, failure = head_branch(
+        command, os.getcwd(), github.get("repo") or "")
+    _handle_owners(
+        feature_schema, github, branch, failure, feature_for(branch))
+
+
+def main():
+    request = _read_request()
+    if request is None:
+        return
+    github, command = request
+    if not github.get("sync") or not merge_ref(command):
+        return
+    try:
+        _evaluate_merge(command, github)
+    except Exception:
+        deny(f"merge-gate: could not evaluate this feature's Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
 
 
 if __name__ == "__main__":

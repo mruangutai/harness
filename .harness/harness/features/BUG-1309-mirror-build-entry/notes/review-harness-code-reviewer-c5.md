@@ -18,7 +18,7 @@ order, `feature_for` has no other caller, no sibling gate shares this code, the 
 unreachable without at least one malformed record, and `test-merge-gate.py` (19/19) plus code-grade
 (clean apart from four pre-reasoned grade-2 functions) are both green.
 
-## 1. Four states, one fixture (`/tmp` fixture, `merge-gate.sh` end to end)
+## 1. Four states, one fixture (`/tmp` fixture, `merge-gate.py` end to end)
 
 All four held **simultaneously** in one temp root (features `FEAT-A-healthy`,
 `FEAT-B-unrelated-malformed`, `FEAT-C-owing`, `FEAT-E-owes-nothing`, then `FEAT-D-selfbad` added

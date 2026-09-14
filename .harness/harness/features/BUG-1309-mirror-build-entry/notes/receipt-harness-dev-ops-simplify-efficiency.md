@@ -3,16 +3,16 @@
 BLUF: one real finding. `merge-gate.py` imports the full `feature_schema` module — which
 unconditionally imports third-party `jsonschema` at its top — for two schema-free symbols
 (`BUILD_ENTRY_ERA_EXEMPT`, `recovery_command_for`). That import alone costs ~50ms and is now
-paid on **every Bash tool call in the repo**, not just merges, because `merge-gate.sh` is a
+paid on **every Bash tool call in the repo**, not just merges, because `merge-gate.py` is a
 registered PreToolUse gate on every Bash invocation. Everything else I measured is negligible
 or is an accepted one-shot cost. Zero other findings.
 
 ## Measurements taken
 
-1. **`merge-gate.sh` end-to-end, non-matching command** (`ls -la /tmp`, warm cache, averaged
+1. **`merge-gate.py` end-to-end, non-matching command** (`ls -la /tmp`, warm cache, averaged
    over 10 runs via a tight loop): **~121ms/call**. Breaks down as:
    - `python3 -I -c '...harness_boundary.resolve_root...'` (the root-resolution subprocess
-     `merge-gate.sh:5` spawns before exec'ing the gate): **~20ms**.
+     `merge-gate.py:5` spawns before exec'ing the gate): **~20ms**.
    - `merge-gate.py` itself (stdin read, `harness.json` read, `merge_ref` tokenize — no glob,
      no `gh` subprocess on the non-matching path since `github.sync` is enabled but the
      command isn't a merge): **~60-70ms**.
@@ -21,7 +21,7 @@ or is an accepted one-shot cost. Zero other findings.
      forced unavailable drops from ~60ms to ~10ms). Bare `python3 -c 'pass'` startup is ~10ms,
      so `jsonschema` is essentially the entire non-baseline cost.
    - `merge-gate.py:11 import feature_schema` is new in this diff (`merge-gate.py` and
-     `merge-gate.sh` are both wholly new files); the `jsonschema` import inside
+     `merge-gate.py` are both wholly new files); the `jsonschema` import inside
      `feature_schema.py` is pre-existing, unchanged by this diff. The diff is what newly
      routes that pre-existing cost onto the hot path of every Bash call.
    - Neither symbol `merge-gate.py` uses touches `jsonschema` — `BUILD_ENTRY_ERA_EXEMPT` is a

@@ -76,7 +76,7 @@ carried; none gates this review.
 ## Q1 — SC-04(a) re-derivation
 Standing suite: `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-merge-gate.py` -> 27/27
 `ok`, `ALL PASSED` — confirms orchestrator's claim exactly. Independently re-drove 13/13 deny-forms
-and 6/6 allow-bounds from the panel's list through the real `merge-gate.sh` hook via a fresh fixture
+and 6/6 allow-bounds from the panel's list through the real `merge-gate.py` hook via a fresh fixture
 harness (not the suite's own code) — all matched. Also reconfirmed the duplicate-claim deny still
 fires with an option-bearing form (`--no-ff`) and the gh-unavailable-with-owed-receipt path still
 denies. **But** SC-04(a) as written ("every realistic operator merge form is denied") is not fully

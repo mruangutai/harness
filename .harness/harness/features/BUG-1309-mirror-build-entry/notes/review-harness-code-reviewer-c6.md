@@ -14,7 +14,7 @@ for this narrow repair.
 
 ## Stage 2 — code quality
 
-### Enumeration (one fixture, `/tmp/mg_enum.py` + `/tmp/mg_enum2.py`, driven through `merge-gate.sh`
+### Enumeration (one fixture, `/tmp/mg_enum.py` + `/tmp/mg_enum2.py`, driven through `merge-gate.py`
 exactly as the PreToolUse contract feeds it — hook JSON on stdin, `HARNESS_PROJECT_DIR` env,
 `GH_BIN` for the gh seam)
 

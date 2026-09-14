@@ -81,7 +81,7 @@ superseded rather than rewriting it — correct under PRINCIPLES rule 15. No ope
 
 - **Action:** run UAT Step 3 (`notes/uat-BUG-1309-mirror-build-entry.md:150-177`) in the worktree —
   `python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT recovery-required`, then
-  `printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh`
+  `printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py`
   (Steps 1-2 first, `:32-148`).
 - **PASS condition, quoted `:175-177`:** "**PASS** if the message names the feature, says what is
   wrong, and gives you a command you could run without opening any source file. **FAIL** if you would

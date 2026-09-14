@@ -34,7 +34,7 @@ because the second changes the block the first must sit inside.
 `main()`'s `try/except Exception: return` covers only the harness.json read and the stdin parse
 (`merge-gate.py:115-121`). `gh_head` (`:76`) invokes `os.environ.get("GH_BIN", "gh")` through
 `subprocess.run` with no guard, so an unresolvable or non-executable `GH_BIN`/`gh` raises
-`FileNotFoundError`/`PermissionError` out of `main()`. `merge-gate.sh` `exec`s the script, so the
+`FileNotFoundError`/`PermissionError` out of `main()`. `merge-gate.py` `exec`s the script, so the
 hook exits 1 with a traceback — and exit 1 is non-blocking for PreToolUse, where only exit 2
 denies. Failure scenario, demonstrated by the reviewer running it: `GH_BIN=/nonexistent/gh`,
 `gh pr merge 42`, non-era feature with `build_entry` absent → exit 1, no denial JSON, merge
@@ -110,7 +110,7 @@ and spec-contemplated.
    test, and both would survive the suite unchanged.
 2. Neither high was reachable through the qa gate's own evidence, so `matrix_ok: true` and
    `severity_max: high` are consistent, not contradictory. Do not read the passing gate as clearance.
-3. No reviewer exercised `merge-gate.sh` end to end inside a real PreToolUse hook invocation; M1's
+3. No reviewer exercised `merge-gate.py` end to end inside a real PreToolUse hook invocation; M1's
    exit-1-is-non-blocking step rests on the documented hook convention plus the reviewer's direct
    execution of the Python, not on an observed hook allowing a merge.
 4. `ui` and `security` self-scoping was measured, not predicted — ui gave a file census, security

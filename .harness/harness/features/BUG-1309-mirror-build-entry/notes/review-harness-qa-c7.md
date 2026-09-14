@@ -44,7 +44,7 @@ gh-resolution `failure` is truthy, **both branches print the identical f-string*
 
 ```
 echo '{"tool_input": {"command": "gh pr merge 7"}}' \
-  | HARNESS_PROJECT_DIR=/tmp/qa_repro GH_BIN=/nonexistent/gh bash merge-gate.sh
+  | HARNESS_PROJECT_DIR=/tmp/qa_repro GH_BIN=/nonexistent/gh ./merge-gate.py
 ```
 exit 0, stdout empty (allow, no deny emitted), **stderr verbatim**:
 ```

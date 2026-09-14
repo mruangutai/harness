@@ -77,7 +77,7 @@ therefore valid at this pin unchanged; SC-04 is re-derived at the pin.
 | SC-01 | automated/integration | **met** | my run, `/tmp/b1309/pin` exit 0: `T-02 open records opened`, `T-02 sync false records not-applicable`, `T-02 unpinned repo records nothing`, `T-02 first-call failure records recovery-required`, `T-02 second open stays opened`, `T-02 opened never downgrades` — all `ok` |
 | SC-02 | automated/integration | **met** | same run: `ok T-02 partial remote write records nothing`, `ok T-02 contract error records nothing` |
 | SC-03 | automated/integration | **met** (amended text) | five `T-04` cases `ok` at the pin; the amended discrimination clause executed — §2, red 20 FAIL / green 0 FAIL |
-| SC-04 | automated/integration | **met** | qa c7 at this pin: `test-merge-gate.py` **19/19 ok, exit 0**, integration kind 50 files exit 0 (`notes/review-harness-qa-c7.md:10,26-27`). Plus my own four direct observations through `merge-gate.sh` at the pin's code: deny naming `open` (recovery-required/building), deny naming `recover-terminal --yes` (absent/done), allow silent exit 0 after `opened`, allow silent exit 0 after `recovered-terminal`. Remedy is derived, not hardcoded: `merge-gate.py:152` calls `feature_schema.recovery_command_for` |
+| SC-04 | automated/integration | **met** | qa c7 at this pin: `test-merge-gate.py` **19/19 ok, exit 0**, integration kind 50 files exit 0 (`notes/review-harness-qa-c7.md:10,26-27`). Plus my own four direct observations through `merge-gate.py` at the pin's code: deny naming `open` (recovery-required/building), deny naming `recover-terminal --yes` (absent/done), allow silent exit 0 after `opened`, allow silent exit 0 after `recovered-terminal`. Remedy is derived, not hardcoded: `merge-gate.py:152` calls `feature_schema.recovery_command_for` |
 | SC-05 | automated/integration | **met** | `ok T-03 recover-terminal creates milestone and parent only`, `ok T-03 FEAT-55 shape adopts and creates nothing`, `ok T-03 second run is idempotent`; and I observed `build_entry = recovered-terminal \| task issues = {}` with only `milestone #7` + `parent #41` created |
 | SC-06 | automated/integration | **met** | `post-merge-sweep.py` and `test-post-merge-sweep.py` are **unchanged** in `d80a7b12..894adc0f`, so the named cases `T-07 era-exempt recovery-required keeps the worktree` / `T-07 era-exempt absent build_entry is swept` (61 PASS / 0 FAIL, `notes/research-…-goalcheck-delivery.md:23`) hold at this pin; re-confirmed green by qa c7's integration run (50 files, exit 0). **I did not re-run it** — outside my two permitted files |
 | SC-07 | automated/integration | **met** (amended text) | nine `T-06` cases `ok` at the pin incl. `T-06 INV-37 fires at a done station with no task statuses` (fixture: station `done`, no task `status` key, sync true, repo pinned) and the four silent cases; amended discrimination clause executed — §2, red 1 FAIL |
@@ -93,7 +93,7 @@ Only the operator can grade it; recording it met or unmet would falsify the reco
 
 **Accuracy against the pinned code — I executed all eight steps (step 9 cleanup skipped, `rm -rf`
 is guard-denied for me). Zero drifted steps.** Step 1: 83 lines, "near 80" ✓. Step 2:
-`git show 894adc0f:.claude/settings.json` names `merge-gate.sh:48` ✓. Step 3: deny reads
+`git show 894adc0f:.claude/settings.json` names `merge-gate.py:48` ✓. Step 3: deny reads
 `records github.build_entry=recovery-required … denied until python3 …gh-sync.py open
 /private/tmp/…` — matches the note's stated text incl. its `/private/tmp` macOS caveat ✓. Step 4:
 usage line carries both `open` and `recover-terminal` ✓ (it prints prefixed `gh-sync: ERROR —
@@ -117,7 +117,7 @@ PANEL-3 concerns `gh-sync.py:1387-1389`, the non-era arm of `_build_entry_recove
 reached **only from `_build_entry_preflight` → `cmd_start_task`** (`gh-sync.py:1452`). Step by step,
 the code path each exercises:
 
-- Steps 3, 6, 7, 8 — `merge-gate.sh` → `merge-gate.py`. Its remedy string is derived at
+- Steps 3, 6, 7, 8 — `merge-gate.py` → `merge-gate.py`. Its remedy string is derived at
   `merge-gate.py:152-153` from `feature_schema.recovery_command_for`, so it cannot disagree with
   that function by construction; measured, it named `open` for recovery-required/building (step 3)
   and `recover-terminal --yes` for absent/done (step 7).

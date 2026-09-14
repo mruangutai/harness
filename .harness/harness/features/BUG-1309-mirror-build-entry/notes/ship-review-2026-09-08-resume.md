@@ -70,7 +70,7 @@ record the contradiction under `BRIEF.md ## Verification gaps`.
 Six review cycles established "is this new?" against the **pin's parent commit** and therefore
 reported F-01 and F-03 as pre-existing carry-forwards, out of scope. The panel lead ordered the
 measurement against the true merge-base instead, and I re-ran it myself: `merge-gate.py` and
-`merge-gate.sh` **do not exist** at `6ad7233f` and arrive at `4338ee44`, inside this feature's own
+`merge-gate.py` **do not exist** at `6ad7233f` and arrive at `4338ee44`, inside this feature's own
 range. They are this feature's code. That single measurement is what promoted two advisories into
 gating findings.
 

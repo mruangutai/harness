@@ -73,7 +73,7 @@ concentrated on `merge-gate.py`. I found nothing new there either.
     sequence names it as step 1 (`SKILL.md:141`). Grepped both files for "ship"-as-mirror-trigger
     wording: none found.
   - Hook registration (`settings.json`, `settings.snippet.json`, `merge-settings.py`,
-    `.omp/extensions/harness-hooks.ts`): `merge-gate.sh` is registered once in each surface,
+    `.omp/extensions/harness-hooks.ts`): `merge-gate.py` is registered once in each surface,
     consistent with the other three. The `should-not-exist` reader's plan-time position finding
     (PF-f1684…) is recorded resolved by T-05 and is a placement question, not a behavioral one —
     not re-litigated here.

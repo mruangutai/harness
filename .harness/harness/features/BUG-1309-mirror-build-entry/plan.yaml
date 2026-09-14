@@ -44,7 +44,7 @@ lanes:
     - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - the post-merge hook driver decides whether evidence of a failed ship is destroyed
-    - surface: .claude/skills/harness/bin/merge-gate.sh and merge-gate.py
+    - surface: .claude/skills/harness/bin/merge-gate.py and merge-gate.py
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - a new registered PreToolUse Bash gate script
     - surface: .claude/settings.json
@@ -100,7 +100,7 @@ decisions:
     because: start-task is the one chokepoint every team and main-session task passes through at build time, and skip exits 0, which is exactly the signal post-merge-sweep.py already documents as unsafe to read as success.
     dec: DEC-174
   - id: D-07
-    choice: The merge refusal is a new registered PreToolUse Bash gate, merge-gate.sh plus merge-gate.py, modelled on gh-close-gate; it decides on the LOCAL feature.json receipt alone and FAILS OPEN on a GitHub read failure - when the head branch cannot be resolved through gh it falls back to the local current branch, denies only if that resolves to a feature owing a receipt, and otherwise allows the merge at exit 0 with one stderr line saying it could not verify and why.
+    choice: The merge refusal is a new registered PreToolUse Bash gate, merge-gate.py plus merge-gate.py, modelled on gh-close-gate; it decides on the LOCAL feature.json receipt alone and FAILS OPEN on a GitHub read failure - when the head branch cannot be resolved through gh it falls back to the local current branch, denies only if that resolves to a feature owing a receipt, and otherwise allows the merge at exit 0 with one stderr line saying it could not verify and why.
     because: GitHub is a mirror, never a gate - gh absent or unauthenticated means the flow succeeds and reports the sync skipped (DEC-138, DECISIONS.md:2948-2952) - and the stated intent puts changing the user-gated merge policy out of scope. Denying on a failed read would deny every gh pr merge in the repo during an outage, including for a feature recorded opened and for a PR matching no harness feature at all. A gate that cannot verify still says so, on stderr, which is the honest half of the posture branch-create-gate.py takes over a LOCAL fact; the deny half cannot be carried over onto a remote one. Extending gh-close-gate.sh instead was rejected because its name would then lie about its subject.
     dec: DEC-174
   - id: D-08
@@ -418,7 +418,7 @@ panel:
   - id: PF-1aa3b36ca9f98cdaf25b30f16e72069f
     severity: med
     reader: should-not-exist
-    summary: T-05 builds merge-gate.sh/.py as a FIFTH standalone per-Bash-call gate
+    summary: T-05 builds merge-gate.py/.py as a FIFTH standalone per-Bash-call gate
       process when the existing tokenizing gate could host the rule; the only recorded
       reason not to consolidate is a file name, and the per-call cost was never shown
       to the operator
@@ -1064,7 +1064,7 @@ tasks:
         0 for a task id absent from github.issues when build_entry is "opened".
 
   - id: T-05
-    title: Add merge-gate.sh, the PreToolUse Bash gate that refuses a merge while recovery is owed
+    title: Add merge-gate.py, the PreToolUse Bash gate that refuses a merge while recovery is owed
     traces: [REQ-07]
     change_type: feature
     execution_mode: main-session-direct
@@ -1074,7 +1074,7 @@ tasks:
     - T-06
     status: done
     files:
-    - .claude/skills/harness/bin/merge-gate.sh
+    - .claude/skills/harness/bin/merge-gate.py
     - .claude/skills/harness/bin/merge-gate.py
     - .claude/settings.json
     - .claude/skills/harness/templates/settings.snippet.json
@@ -1099,7 +1099,7 @@ tasks:
       owed. Model it on gh-close-gate.sh plus gh-close-gate.py, which is the working precedent
       for this exact shape, and copy their structure rather than inventing one.
 
-      merge-gate.sh: resolve the harness root from the script's own directory through
+      merge-gate.py: resolve the harness root from the script's own directory through
       harness_boundary.resolve_root, refuse to run with exit 2 and a named message if no root
       resolves, then exec python3 "$(dirname "$0")/merge-gate.py" "$root". One interpreter
       start, exactly as gh-close-gate.sh documents.
@@ -1309,7 +1309,7 @@ tasks:
       REGISTER IT IN FOUR PLACES, or it does not run. THE FOUR ARRAYS ARE IN FOUR DIFFERENT
       ORDERS, so register by NAMED NEIGHBOUR plus the constraint below, never by an ordinal: an
       ordinal is satisfied by a reshuffled array that breaks the intent.
-      THE CONSTRAINT: merge-gate.sh runs LAST among the Bash gates in every one of the four
+      THE CONSTRAINT: merge-gate.py runs LAST among the Bash gates in every one of the four
       arrays - after bash-write-guard.py in particular. bash-write-guard.py is the only registered
       gate whose subject can also match a merge command line: it reads the whole line textually for
       redirects, tee, cp, mv and rm, so "gh pr merge 7 --squash > /tmp/merge.log" is refused by BOTH
@@ -1332,18 +1332,18 @@ tasks:
         bash-write-guard.py, gh-close-gate.sh, plan-sign-gate.sh - so the new hook is the FIFTH
         entry, not the fourth, and no index is both after gh-close-gate.sh and before
         bash-write-guard.py. Literal predecessor: the plan-sign-gate.sh entry. Literal successor:
-        NONE - merge-gate.sh is the final entry of that array;
+        NONE - merge-gate.py is the final entry of that array;
       - .claude/skills/harness/templates/settings.snippet.json, the same event and the same "Bash"
         matcher. THIS FILE'S ARRAY IS NOT settings.json's: it holds THREE entries -
         branch-create-gate.py, bash-write-guard.py, plan-sign-gate.sh - and carries NO
         gh-close-gate.sh entry at all, so "the same position" names nothing here. Literal
-        predecessor: the plan-sign-gate.sh entry. Literal successor: NONE - merge-gate.sh is the
+        predecessor: the plan-sign-gate.sh entry. Literal successor: NONE - merge-gate.py is the
         fourth and final entry;
       - .omp/extensions/harness-hooks.ts, the firstBlock([...]) array of policyRunner calls inside
         the toolName === "bash" branch. ITS ORDER IS DIFFERENT AGAIN: gh-close-gate.sh,
         branch-create-gate.py, bash-write-guard.py, plan-sign-gate.sh. Literal predecessor: the
         policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload) element. Literal successor: NONE -
-        merge-gate.sh is the fifth and final element. BUG-1132 records what omitting this file
+        merge-gate.py is the fifth and final element. BUG-1132 records what omitting this file
         costs: plan-sign-gate.sh was wired for native Claude Code and never ported here, so under
         OMP its enforcement did not exist at all.
       - .claude/skills/harness/bin/merge-settings.py, the HOOK_SPECS list - THE SITE THAT MAKES THIS
@@ -1358,12 +1358,12 @@ tasks:
         LITERALLY this element - four keys, and NO "args" key, because this gate takes none:
           {
               "event": "PreToolUse",
-              "script": "merge-gate.sh",
+              "script": "merge-gate.py",
               "matcher": "Bash",
               "why": "Mirror build-entry merge gate (DEC-138). Absent -> a merge lands while a "
                      "build-entry receipt is still owed, silently.",
           },
-        Last place is THE SAME ordering constraint stated above and not a second rule: merge-gate.sh
+        Last place is THE SAME ordering constraint stated above and not a second rule: merge-gate.py
         must run after bash-write-guard.py so the write-guard's reason wins the overlapping refusal.
         The element sitting last in HOOK_SPECS today, dispatch-guard.py, carries matcher "Task|Agent"
         and is NOT a Bash gate, so appending AFTER it satisfies the constraint rather than violating it.
@@ -1435,7 +1435,7 @@ tasks:
           since the deny must read as grounded in the local record.
       - tests/unit/omp-hooks.test.ts: extend the existing gate-ordering assertion - the one that
         today asserts gh-close-gate.sh before branch-create-gate.py before bash-write-guard.py -
-        with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.sh")
+        with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.py")
         is greater than -1, greater than scripts.indexOf("bash-write-guard.py"), and greater than
         scripts.indexOf("plan-sign-gate.sh"). Assert the RELATION, never a literal index, so a
         later reshuffle that keeps the constraint stays green and one that breaks it reddens.
@@ -1892,7 +1892,7 @@ tasks:
       gh-sync.py open and records feature.json github.build_entry as opened, recovery-required
       or not-applicable, with ABSENCE meaning no Build entry completed. Build refuses at
       gh-sync.py start-task when it is absent and proceeds on recovery-required, which instead
-      gates the merge through the registered PreToolUse Bash gate merge-gate.sh. A partial
+      gates the merge through the registered PreToolUse Bash gate merge-gate.py. A partial
       remote write and a caller or contract error record nothing, so both block Build. An
       already-merged sync-enabled feature whose mirror was never opened is recovered by
       gh-sync.py recover-terminal --yes, which creates the milestone and the parent and source

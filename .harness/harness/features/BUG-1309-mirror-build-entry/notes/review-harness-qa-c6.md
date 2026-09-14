@@ -9,7 +9,7 @@ One pre-existing (not new at this pin) wording defect found by hand: the DEC-138
 misleading, not decision-wrong, when the local record is HELD during a remote-read failure.
 
 ## 1. Matrix re-run
-`merge-gate.py`/`merge-gate.sh` is task T-05, `change_type: feature` (plan.yaml:873). Floor from
+`merge-gate.py`/`merge-gate.py` is task T-05, `change_type: feature` (plan.yaml:873). Floor from
 `.harness/harness.json:191-195` (`feature.always`): `unit`, `integration`.
 
 | kind | cmd | exit | discovered |
@@ -70,7 +70,7 @@ unrelated malformed record`, whose fixture no longer makes the retargeted record
 the *own-record-is-malformed* pair genuinely dropped out of the suite when the fixture was
 repurposed. Also unbound: REMOTE=fail × RECEIPT=held (only REMOTE=fail × RECEIPT=owed is tested).
 
-Constructed by hand against `merge-gate.sh` via `HARNESS_PROJECT_DIR` (same harness the suite
+Constructed by hand against `merge-gate.py` via `HARNESS_PROJECT_DIR` (same harness the suite
 uses), disposable fixtures under `/tmp` (script not committed):
 
 | Constructed pair | Observed | Verdict |

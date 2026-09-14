@@ -13,7 +13,7 @@
   against.
 - The two `.ts` files: `tests/unit/omp-hooks.test.ts` (test) and `.omp/extensions/harness-hooks.ts`
   (hook registration). Diffed the latter directly — the entire BUG-1309 delta there is one line
-  adding `merge-gate.sh` to the `PreToolUse` policy chain; no string/text/rendering change.
+  adding `merge-gate.py` to the `PreToolUse` policy chain; no string/text/rendering change.
 - Grepped the two touched doctrine docs (`github-mirror.md`, `SKILL.md`) for spacing/colour/contrast/
   theme language — no hits (the one regex hit was a false positive on issue number `#671`, not a
   hex colour). The 52 `.md` files are process artifacts (receipts, research notes, BRIEF/STATE,

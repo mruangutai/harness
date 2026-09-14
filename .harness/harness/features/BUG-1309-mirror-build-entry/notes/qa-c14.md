@@ -29,7 +29,7 @@ one new assertion is confirmed non-discriminating by mutation.
 
 ## Critical finding — F-02 confirmed fail-open (must_fix, severity: critical)
 
-Reproduced end-to-end through the real `PreToolUse` hook (`merge-gate.sh` → `merge-gate.py`), not
+Reproduced end-to-end through the real `PreToolUse` hook (`merge-gate.py` → `merge-gate.py`), not
 just `merge_ref`, in a fresh fixture with `github.build_entry = "recovery-required"`:
 
 ```
@@ -57,10 +57,10 @@ via the `takes_value`/dash-skip loop — but that loop's protection stops the in
 ## Discrimination audit (new cases only, reddened against `de04d841` pre-change source)
 
 Mechanism: pre-change scripts recovered via `git -C <worktree> show de04d841:<path>` into
-`/tmp/bug1309-prechange-bin/{merge-gate.py,merge-gate.sh,feature_schema.py,harness_boundary.py}`.
+`/tmp/bug1309-prechange-bin/{merge-gate.py,merge-gate.py,feature_schema.py,harness_boundary.py}`.
 Both scripts take `ROOT` as `sys.argv[1]` directly, so each case was invoked as
 `python3 <script> <root>` with a real stdin JSON `tool_input.command` payload, bypassing
-`merge-gate.sh`'s boundary-resolution shell wrapper entirely (harness-independent, reproducible).
+`merge-gate.py`'s boundary-resolution shell wrapper entirely (harness-independent, reproducible).
 Driver: `/tmp/bug1309-probe-discrim.py`.
 
 | Case | PRE (de04d841) | POST (ac2bc0bb) | Reddens? |

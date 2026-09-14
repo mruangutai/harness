@@ -24,7 +24,7 @@ not contradictory.
 ## This repo's actual user-facing surface: CLI/stderr text (per Expertise P-01/P-03)
 
 This feature's operator-visible surface is terminal output from `gh-sync.py`, `merge-gate.py`,
-`merge-gate.sh`, `post-merge-sweep.py`. Cycle 0 (`review-harness-ui-reviewer-c0.md`) already ran
+`merge-gate.py`, `post-merge-sweep.py`. Cycle 0 (`review-harness-ui-reviewer-c0.md`) already ran
 this audit exhaustively — traced every new refusal/notice message this feature adds, table of 7
 sites, found one **LOW** finding (**UI-1**): `gh-sync.py`'s `_build_entry_recovery_notice`,
 non-exempt branch, omits the feature-dir path adjacent to the `gh-sync.py open` remedy command it

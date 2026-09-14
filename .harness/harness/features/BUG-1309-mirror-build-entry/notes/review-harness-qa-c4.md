@@ -68,7 +68,7 @@ reconstruction — can hold both at once.
 invisible while the current feature is independently hitting an internal error, or while it is
 independently gh-outage-allowed. I reconstructed both pairs by hand in a throwaway `/tmp` fixture
 (not committed, not in the tracked tree) reusing the suite's own `fixture()`/`gate()` shapes
-against `merge-gate.sh`:
+against `merge-gate.py`:
 
 - (a)+(c): matched `FEAT-9001` with an empty `plan.yaml` *and* an unrelated malformed
   `FEAT-9002-unrelated-malformed/feature.json=[]` present → denied, reason still names

@@ -8,7 +8,7 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-GATE = os.path.join(BIN, "merge-gate.sh")
+GATE = os.path.join(BIN, "merge-gate.py")
 fails = 0
 
 
@@ -45,7 +45,7 @@ def gate(command, root, gh=None):
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     if gh:
         env["GH_BIN"] = gh
-    result = subprocess.run(["bash", GATE], input=json.dumps({"tool_input": {"command": command}}),
+    result = subprocess.run([GATE], input=json.dumps({"tool_input": {"command": command}}),
                             text=True, capture_output=True, cwd=root, env=env)
     decision = None
     reason = ""

@@ -31,7 +31,7 @@ below per the dispatch's explicit instruction to treat it as in-remit.
 ## The deny copy, on the three questions asked
 
 Literal string, confirmed two ways — read at `merge-gate.py:139`, and reproduced verbatim by
-executing `merge-gate.sh` against a fixture (`t-selfbad`-equivalent: one feature.json = `[]`,
+executing `merge-gate.py` against a fixture (`t-selfbad`-equivalent: one feature.json = `[]`,
 branch under merge matches nothing):
 
 > `merge-gate: could not evaluate a feature's Build-entry receipt, so this merge is denied. Repair the malformed feature record and re-run the merge.`
@@ -82,7 +82,7 @@ record has any relationship to `branch`. It is read back only in the fallthrough
 (`return None, None, unusable`) — i.e. exactly when no record for *this* branch was found. A
 healthy match for a *different* branch never clears it.
 
-**Reproduced by execution** (script run against the pinned `merge-gate.sh`, in-worktree,
+**Reproduced by execution** (script run against the pinned `merge-gate.py`, in-worktree,
 throwaway, not committed): fixture with `FEAT-9001-fixture-non-era` (branch `feature/test`,
 healthy) plus an unrelated `FEAT-9999-unrelated/feature.json` = `[]`. Ran
 `git merge feature/nonexistent-branch` (matches no feature.json at all):
