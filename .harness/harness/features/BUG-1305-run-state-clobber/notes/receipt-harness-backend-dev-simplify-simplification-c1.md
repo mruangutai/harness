@@ -86,7 +86,7 @@ files (reuse/efficiency angles).
   and are shorter than what they replaced. No dead references: I re-verified the `#1058`
   comment's "fires on Write and Edit" claim against the Edit-route dispatch at
   `check-domain.py` ~2042–2048, which does include `RE_RUN_IDENTITY`/`RE_RUN_DIGEST` — accurate.
-- `bash-write-guard.sh`'s `_run_artifact_guard` docstring was shortened and stays accurate
+- `bash-write-guard.py`'s `_run_artifact_guard` docstring was shortened and stays accurate
   (verified the `RE_RUN_IDENTITY` check precedes the digest/state check, matching "stays
   ahead of the DEC-153 worktree carve-out").
 - No redundant conjuncts found in the new POST-mint block (`check-domain.py` ~1568–1592) or

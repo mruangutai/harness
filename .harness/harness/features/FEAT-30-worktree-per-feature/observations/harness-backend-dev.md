@@ -1,6 +1,6 @@
 # Observations — harness-backend-dev — FEAT-30
 
-- 2026-08-20: T-06 cycle 2 (send-back). `bash-write-guard.sh` denies `cp -R src "$T/bin"` when `$T`
+- 2026-08-20: T-06 cycle 2 (send-back). `bash-write-guard.py` denies `cp -R src "$T/bin"` when `$T`
   is a bash variable holding a mktemp path outside the repo — its static parser never expands `$T`,
   treats the literal string `$T/bin` as a repo-relative path, and denies it as "outside your
   domain" even though the real runtime target is legitimately outside every domain. A prior spawn

@@ -41,7 +41,7 @@ shell state to leak through. This is a structural guarantee from the ordering, n
 empirical absence — my nested-invocation probe (export in one `check-domain.py` exec, then a second
 exec in the same parent shell) corroborates it but the ordering argument is what actually establishes
 it. Also independently confirmed no other file in the repo reads `HARNESS_RESOLVE_PATH`
-(`grep -rn HARNESS_RESOLVE_PATH`) — the sibling `bash-write-guard.sh` does not consume it.
+(`grep -rn HARNESS_RESOLVE_PATH`) — the sibling `bash-write-guard.py` does not consume it.
 
 **Q3 — do (i)/(j) guard the thing that broke, or only its current spelling? (the mode-3 question)**
 The two cases use different *values* (a real path, and the empty string) — for the predicate

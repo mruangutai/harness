@@ -147,7 +147,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
 - **Harness is not in `fleet.yaml`** (#355), and `test-no-distribution.py
   case3_absence_harness_is_not_a_fleet_member` keeps passing.
 - **DEC-174 carve-out.** Any task touching `check-state.sh`, `check-domain.py`,
-  `bash-write-guard.sh` or `validate-digest.py` is executed by hand by the operator.
+  `bash-write-guard.py` or `validate-digest.py` is executed by hand by the operator.
 - **DEC-189/DEC-193.** No agent seat can be granted a path under a product checkout's `.harness/`;
   the checkout at `workspace_root/<product>` is nonetheless a sanctioned write location.
 - Out of scope: `harness-init`'s rewrite (#206), product boards, `factory_claim.py`'s claim

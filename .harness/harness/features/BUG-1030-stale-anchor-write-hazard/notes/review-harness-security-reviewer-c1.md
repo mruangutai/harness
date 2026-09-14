@@ -64,7 +64,7 @@ artifact: .harness/harness/features/BUG-1030-stale-anchor-write-hazard/notes/rev
 Short cycle on `83282dea..fbaa7fec` only (review_sha `fbaa7fec`, base `6d6d1cea`; HEAD `e024599`
 adds only the pin record — confirmed by `git log`, **executed**). Read-only per DEC-174; every
 mutation below ran against pure-Python scratch copies under `/tmp`, built and torn down with
-`open()`/`shutil.rmtree` (no shell `cp`/`mv`/`tee`, which `bash-write-guard.sh` correctly blocked
+`open()`/`shutil.rmtree` (no shell `cp`/`mv`/`tee`, which `bash-write-guard.py` correctly blocked
 on a first attempt — reported to myself in this note, not evaded). `git status --porcelain` in
 the worktree is clean of my writes now; a first `write` attempt landed in the OUTER
 (`main`-branch) checkout's untracked `.harness/harness/features/BUG-1030-stale-anchor-write-

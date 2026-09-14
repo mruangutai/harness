@@ -1181,7 +1181,7 @@ tasks:
         && printf '%s\n' "$ARCH" | grep -q 'parent #47 reads None' \
         && printf '%s\n' "$LIVE" | tail -1 | grep -q '0 finding(s)' \
         && test "$(printf '%s\n' "$LIVE" | grep -c '^board_lifecycle: STATUS:')" = 0 \
-        && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" \
+        && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/bash-write-guard.py .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" \
         && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION' | grep FEAT-33)" \
         && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION')" \
         && echo OK
@@ -1212,7 +1212,7 @@ tasks:
 
       7. THIS TASK OWNS SC-10's NEGATIVE CLAUSE, which no other task instruments. SC-10 asserts
          that nothing already weakened AND that no edit reached check-domain.py,
-         bash-write-guard.sh, validate-digest.py or check-plan-routes.py. THE LIST IS FOUR FILES,
+         bash-write-guard.py, validate-digest.py or check-plan-routes.py. THE LIST IS FOUR FILES,
          NOT FIVE: check-state.sh left it under D-24, because D-23's ruling makes INV-26 fire on
          every done task with a deliberately-open sub-issue, and T-22 is the operator's own
          cutover that fixes it. Everything else in the enforcement layer stays untouched. A
@@ -1982,7 +1982,7 @@ tasks:
       ACCEPTED; the same feature at status Done with the same card is still a VIOLATION; a done task
       whose card reads the backlog station is a VIOLATION at either status.
 
-      DO NOT touch any other invariant, do not touch check-domain.py, bash-write-guard.sh,
+      DO NOT touch any other invariant, do not touch check-domain.py, bash-write-guard.py,
       validate-digest.py or check-plan-routes.py - SC-10's four-file list still binds - and do not
       take the cheap route of giving the task a status INV-26 does not map, which would skip the
       comparison silently instead of widening it honestly.

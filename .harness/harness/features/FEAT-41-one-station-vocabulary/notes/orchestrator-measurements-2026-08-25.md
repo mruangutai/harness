@@ -123,7 +123,7 @@ Read: the plan's lane block is internally consistent with the guard's own resolu
 the guard rather than by argument. This does NOT verify the lanes are RIGHT — DEC-174 is a
 judgement the operator signs — only that nothing in the plan claims a lane the guard would refuse.
 
-Incidental: this section was first written with an ASCII arrow, and bash-write-guard.sh read the
+Incidental: this section was first written with an ASCII arrow, and bash-write-guard.py read the
 arrow inside the heredoc BODY as a shell redirect and denied the write ("redirect targets EXIT").
 A false positive on heredoc content. Reworded rather than worked around.
 

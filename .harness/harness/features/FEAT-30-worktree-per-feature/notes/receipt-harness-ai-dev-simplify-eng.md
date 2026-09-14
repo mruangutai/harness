@@ -44,7 +44,7 @@ stated once each" as license to copy identical prose into all three.
 - D-04 (plan.yaml:88-97): accepts main-session HEAD moves being unguarded; compensating control
   named explicitly — worktree isolation means a main-session branch change can no longer move
   the HEAD the orchestrator commits against. **Leave.**
-- D-07 (plan.yaml:123-138): accepts bash-write-guard.sh staying fleet-unaware for worktree
+- D-07 (plan.yaml:123-138): accepts bash-write-guard.py staying fleet-unaware for worktree
   creation; compensating control named explicitly — `dest_for()` is the single destination
   constructor and "makes an illegal destination unrepresentable," so the door's blind spot has
   no reachable exploit path. **Leave.**

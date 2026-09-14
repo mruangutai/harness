@@ -97,7 +97,7 @@ second requirement no task can serve.
   feature.
   verify: automated      evidence: integration
 - SC-10: The feature's diff changes none of the four DEC-174 carve-out scripts. Mechanically:
-  `git diff --name-only a29ad06..HEAD` intersected with `check-domain.py`, `bash-write-guard.sh`,
+  `git diff --name-only a29ad06..HEAD` intersected with `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py` and `check-state.sh` (all under `.claude/skills/harness/bin/`) is empty.
   Base `a29ad06` is HEAD at plan time, at which `git status --porcelain` reports all four clean —
   so a non-empty intersection is this feature's doing and nobody else's.
@@ -327,7 +327,7 @@ one-session bootstrap escape here would be the exact circularity smell DEC-174 n
   `factory_claim` against it; read `Status` back off board 2 and confirm `Building`.
   Clean up by deleting `refs/heads/factory/issue-N`, removing the `factory:claimed` label and closing
   the issue.
-- **DEC-174 carve-out.** No task changes `check-domain.py`, `bash-write-guard.sh`,
+- **DEC-174 carve-out.** No task changes `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py` or `check-state.sh`. Measured: none needs to.
 - **`harness.json`'s `github.repo` is out of scope.** It still names `mruangutai/harness` for the
   issue mirror; that is a different mechanism from the station board.

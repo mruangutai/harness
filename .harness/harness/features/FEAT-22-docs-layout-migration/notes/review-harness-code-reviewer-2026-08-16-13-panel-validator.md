@@ -142,7 +142,7 @@ survivor tables over exclusion lists).
 
 ## Probe hygiene
 
-Read-only throughout. One blocked write attempt (a `bash-write-guard.sh` redirect denial) when I
+Read-only throughout. One blocked write attempt (a `bash-write-guard.py` redirect denial) when I
 tried to capture `gen-decisions-index.py --stdout` to a scratch file — corrected to pipe directly
 into `diff` with no intermediate file. `git status --porcelain | grep -v '^??'` is empty at
 finish — only pre-existing untracked feature-directory notes remain, none of them touched by me.

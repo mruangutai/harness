@@ -224,7 +224,7 @@ decisions:
     choice: >-
       Each merge CLI carries its own exit-9 destination refusal, decided on os.path.realpath, and
       THREE ISSUES ARE EXPLICITLY OUT OF SCOPE AND NO TASK MAY ABSORB THEM: #627,
-      bash-write-guard.sh's allow-by-omission default; #560, nothing serialises Expertise writes
+      bash-write-guard.py's allow-by-omission default; #560, nothing serialises Expertise writes
       against an open distillation run; and #605, nothing serialises two leads' members against one
       checkout. #560 and #605 are named out because the claim registry built here IS the mechanism
       both would need, so a build agent will be tempted to add a persona to SINGLE_FLIGHT_AGENTS and
@@ -234,7 +234,7 @@ decisions:
       under .harness and one nested under a repository segment — because DEC-194 judges a partial
       layout migration per coupled surface.
     because: >-
-      bash-write-guard.sh is allow-by-omission, so a python3 invocation reaches neither the
+      bash-write-guard.py is allow-by-omission, so a python3 invocation reaches neither the
       read-only denial at its agent-in-REVIEWERS branch nor the domain walk over its findings list -
       cite those by symbol, because the line anchors used in earlier rounds had all drifted by
       c32f332 - and the tool's own destination check is
@@ -520,7 +520,7 @@ tasks:
 
       Write a module docstring that states, in the tool's own voice: this core has NO identity
       source, so it can check WHERE a write lands and never WHO asked for it; and it is reachable
-      from a read-only persona because bash-write-guard.sh is allow-by-omission, which is issue #627
+      from a read-only persona because bash-write-guard.py is allow-by-omission, which is issue #627
       and is not fixed here.
 
       FILE 2 - .claude/skills/harness/bin/test-harness-merge.py, house shape - a check(name, ok,
@@ -2211,7 +2211,7 @@ tasks:
       j = src.index("\n## DEC-175", i)
       body = src[i:j]
       assert "dispatch-guard.sh" in body, "amendment 4 still omits dispatch-guard.sh"
-      for f in ("check-domain.py", "bash-write-guard.sh", "validate-digest.py",
+      for f in ("check-domain.py", "bash-write-guard.py", "validate-digest.py",
                 "check-state.sh", "check-plan-routes.py"):
           assert f in body, "amendment 4 lost %s from its enumeration" % f
       flat = " ".join(body.split())
@@ -2228,7 +2228,7 @@ tasks:
 
       WHY, measured at 62f861c. DEC-174 amendment 4's heading is at DECISIONS.md:4836 and its
       enumeration sentence is at :4859-4860: "So the enforcement layer is: check-domain.py,
-      bash-write-guard.sh, validate-digest.py, check-state.sh, check-plan-routes.py, and the test file
+      bash-write-guard.py, validate-digest.py, check-state.sh, check-plan-routes.py, and the test file
       of each." dispatch-guard.sh is demonstrably a gate - it refused this feature's own orchestrator
       dispatch over a model: parameter during run 2026-08-21-1-product - and the enumeration omits it.
       Amendment 4 already settles what that means: at :4860-4862 it says a script that becomes a gate

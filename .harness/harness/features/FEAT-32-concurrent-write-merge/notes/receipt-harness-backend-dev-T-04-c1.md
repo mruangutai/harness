@@ -28,7 +28,7 @@ calls, never let a bare raise silently truncate the suite).
 
 ## `task_verify` — the plan's `verify:` block, run verbatim except the one declared substitution
 
-Ran with `bash-write-guard.sh`'s allowed substitution: replaced the literal `cp -R
+Ran with `bash-write-guard.py`'s allowed substitution: replaced the literal `cp -R
 .claude/skills/harness/bin "$T/bin"` line with `python3 -c "shutil.copytree(...)"` into the same
 mktemp location, per the dispatch's pre-ruled substitution. No other line changed.
 

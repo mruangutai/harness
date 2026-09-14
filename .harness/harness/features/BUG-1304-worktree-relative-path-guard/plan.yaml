@@ -232,7 +232,7 @@ panel:
 
       and both verifies count its call sites. The Bash route''s fail-opens are silent
 
-      (bash-write-guard.sh:78-80, :267-269), so the positive control is named there
+      (bash-write-guard.py:78-80, :267-269), so the positive control is named there
       as the
 
       load-bearing half; T-05 reuses the run-artifact refusal for it.
@@ -436,7 +436,7 @@ lanes:
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: "DEC-174 carve-out: check-domain.py, bash-write-guard.sh, harness_boundary.py, inflight_registry.py and dispatch-guard.sh are registered gate scripts, so the harness plans them and the main session executes them."
+      reason: "DEC-174 carve-out: check-domain.py, bash-write-guard.py, harness_boundary.py, inflight_registry.py and dispatch-guard.sh are registered gate scripts, so the harness plans them and the main session executes them."
     - surface: tests/unit/**
       lane: main-session-direct
       reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
@@ -605,7 +605,7 @@ decisions:
       inside the writer's own healthy worktree — described the ordering the plan carried BEFORE the fourth
       binding ruling and no longer describes the plan; it is corrected here rather than left for a reader
       to reconcile.
-      THE bash-write-guard.sh:684-694 COMPARISON NOW HOLDS IN SCOPE AS WELL AS DIRECTION. That manifest
+      THE bash-write-guard.py:684-694 COMPARISON NOW HOLDS IN SCOPE AS WELL AS DIRECTION. That manifest
       refusal is bounded to the write whose own manifest cannot be read; under the selected remedy this
       refusal is likewise bounded by the write itself — its own resolved destination decides whether the
       unreadable root can matter to it. The gap panel cycle 2 named, that no criterion and no task case
@@ -1159,14 +1159,14 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out: bash-write-guard.sh is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
+    execution_reason: "DEC-174 carve-out: bash-write-guard.py is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
     depends_on: [T-02]
     status: done
     files:
     - tests/integration/test-bash-write-guard.py
-    - tests/integration/fixtures/prior-bash-write-guard.sh.fixture
+    - tests/integration/fixtures/prior-bash-write-guard.py.fixture
     verify: |
-      test -f tests/integration/fixtures/prior-bash-write-guard.sh.fixture \
+      test -f tests/integration/fixtures/prior-bash-write-guard.py.fixture \
         && grep -q 'def run_bug1304_claim_set' tests/integration/test-bash-write-guard.py \
         && grep -q 'fails += run_bug1304_claim_set()' tests/integration/test-bash-write-guard.py \
         && grep -q 'def bug1304_pre_change_guard' tests/integration/test-bash-write-guard.py \
@@ -1176,20 +1176,20 @@ tasks:
         && test "$n" -ge 12 \
         && { python3 tests/integration/test-bash-write-guard.py; test $? -eq 1; }
     intent: |
-      Write these tests BEFORE T-06 touches bash-write-guard.sh. The suite must exit 1 when
-      you are done: the DEC-153 carve-out at bash-write-guard.sh:794 still allows every
+      Write these tests BEFORE T-06 touches bash-write-guard.py. The suite must exit 1 when
+      you are done: the DEC-153 carve-out at bash-write-guard.py:794 still allows every
       worktree-shaped write and the main-checkout cases are not yet claim-bound, so the
       refusal cases below still exit 0 against the live guard.
 
       DISCRIMINATION IS IN-TEST, NOT TRANSIENT (SC-06). A red suite that goes green when T-06
       lands leaves nothing at review_sha showing these assertions can fail, so each refusal case
       below must ALSO fire the identical payload at a FROZEN PRE-CHANGE COPY of
-      bash-write-guard.sh and assert exit 0 there. Build it once, hermetically, following the
+      bash-write-guard.py and assert exit 0 there. Build it once, hermetically, following the
       vendored-revision precedent at tests/integration/test-validate-digest.py:30-33 — CI checks
       out at depth 1, so a `git show` against a historical sha is unreachable there and would
       make the proof unrunnable in CI:
-        - add tests/integration/fixtures/prior-bash-write-guard.sh.fixture as a byte copy of
-          .claude/skills/harness/bin/bash-write-guard.sh taken while you write this task, i.e.
+        - add tests/integration/fixtures/prior-bash-write-guard.py.fixture as a byte copy of
+          .claude/skills/harness/bin/bash-write-guard.py taken while you write this task, i.e.
           before T-06 edits it. That directory and the prior-<name>.fixture spelling are the
           existing convention (tests/integration/fixtures/prior-validate-digest.py.fixture and its
           three siblings); the .fixture suffix keeps the copy out of every script-discovery and
@@ -1197,7 +1197,7 @@ tasks:
           finding. Record its provenance sha in a comment at the top of run_bug1304_claim_set;
         - add one helper, named exactly bug1304_pre_change_guard, that materialises a runnable
           pre-change guard: call the suite's existing isolated_bin(dest) to copy the live bin
-          tree into a temp root, overwrite the copied bash-write-guard.sh with the fixture's
+          tree into a temp root, overwrite the copied bash-write-guard.py with the fixture's
           bytes, chmod it 0o755, and return that path. The guard resolves its own libraries from
           BASH_SOURCE, so the copy imports the copied tree, which is the shape the
           DISPATCH_GUARD_BIN override already relies on (tests/integration/test-dispatch-guard.py:32-35);
@@ -1277,7 +1277,7 @@ tasks:
 
       THE PRE-CHANGE CALL MUST PROVE THE FROZEN GUARD RAN (SC-06, panel finding L-04). An exit 0
       out of a fail-open branch is NOT an unrefused write. On this route the fail-opens are
-      SILENT: bash-write-guard.sh exits 0 on an unparseable payload (:78-80) and on a missing
+      SILENT: bash-write-guard.py exits 0 on an unparseable payload (:78-80) and on a missing
       manifest (:267-269) without printing anything, so a stderr-marker check alone cannot see
       them and the positive control below is the load-bearing half here. Add ONE helper, named
       exactly bug1304_assert_pre_change_allows, and call it from EVERY refusal case in place of a
@@ -1328,22 +1328,22 @@ tasks:
       dropping any single pre-change call makes the count eleven and the verify fails.
 
   - id: T-06
-    title: Narrow the DEC-153 blanket worktree allow to the assigned worktree in bash-write-guard.sh
+    title: Narrow the DEC-153 blanket worktree allow to the assigned worktree in bash-write-guard.py
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out: bash-write-guard.sh is a registered PreToolUse gate script (DEC-179)."
+    execution_reason: "DEC-174 carve-out: bash-write-guard.py is a registered PreToolUse gate script (DEC-179)."
     depends_on: [T-02, T-05]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
     verify: |
       python3 tests/integration/test-bash-write-guard.py
     intent: |
       This route NARROWS an existing blanket allow; it is a DIFFERENT edit from T-04's, which
       extends a binding. Do not treat the two as one shared change.
 
-      Today the per-finding DEC-153 carve-out at bash-write-guard.sh:794 continues on any rel
+      Today the per-finding DEC-153 carve-out at bash-write-guard.py:794 continues on any rel
       matching the leading .claude/worktrees/ segment, so a governed agent may write into ANY
       worktree, not only its own. Narrow it: the continue applies only when the destination
       lies inside a member of S, the claim set from
@@ -1356,14 +1356,14 @@ tasks:
       outside every member, print harness_boundary.claim_set_refusal(...) and exit 2.
 
       Add the same claim-set check for MAIN-CHECKOUT destinations on this route, beside the
-      existing feature_checkout_guard calls (bash-write-guard.sh:841 and :845), with exactly
+      existing feature_checkout_guard calls (bash-write-guard.py:841 and :845), with exactly
       the behaviour T-04 specifies for the Write route: harness- personas only, empty S
       returns, destination inside a member allows, otherwise exit 2 with the same message
       from the same seam function. Both routes must refuse identically (REQ-04): one
       predicate, one message builder, no route-local reimplementation.
 
       IN-REPO DESTINATIONS ONLY, AND THIS CLAUSE IS LOAD-BEARING. The branch at
-      bash-write-guard.sh:840 that the feature_checkout_guard calls sit under fires on the
+      bash-write-guard.py:840 that the feature_checkout_guard calls sit under fires on the
       verdict allow AND on not_a_domain_question, and not_a_domain_question is exactly the
       /tmp pass-through that SC-04 case 4 and T-05 case 14 require to keep exiting 0. Gate the
       new claim-set check so it runs ONLY for destinations that resolve inside a checkout the
@@ -1373,7 +1373,7 @@ tasks:
 
       ORDERING IS BEHAVIOUR and must not change. The run-artifact guard stays AHEAD of the
       DEC-153 carve-out, for the reason its own docstring gives at
-      bash-write-guard.sh:753-760, and both continues still run ahead of classify.
+      bash-write-guard.py:753-760, and both continues still run ahead of classify.
 
       The control-plane Expertise CLI stays allowed because it is not an extractable write
       finding, which is a property of the finding extractor and must NOT be re-stated as a
@@ -1666,7 +1666,7 @@ tasks:
       build digest.
 
       WHY IT IS A TASK AND NOT A CLOSEOUT HABIT. This change mutates two registered
-      PreToolUse gates (check-domain.py, bash-write-guard.sh) and two shared libraries
+      PreToolUse gates (check-domain.py, bash-write-guard.py) and two shared libraries
       (harness_boundary.py, inflight_registry.py). A gate's blast radius is EVERY governed
       write in the repository, and a shared-library change breaks callers that no guard
       suite imports — the two guard suites T-03 and T-05 build, plus the registry suite T-01

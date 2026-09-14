@@ -78,7 +78,7 @@ hide itself. Disposition: **carried, non-blocking** (already Q1 in STATE.md unde
 
 ## DEC-85 Bash-write bypass — standing, unchanged reachability
 
-`bash-write-guard.sh` is not in this diff's 18-file set; the bypass is unaffected in either
+`bash-write-guard.py` is not in this diff's 18-file set; the bypass is unaffected in either
 direction. It remains CF-1's sole precondition and, separately, the reason the new write-time
 `schema_version`/step-schema checks in `check-domain.py` bind only `Write`/`Edit` — a Bash-authored
 `state.yaml` still reaches disk unchecked at write time, caught only by `check-state.sh`'s at-rest

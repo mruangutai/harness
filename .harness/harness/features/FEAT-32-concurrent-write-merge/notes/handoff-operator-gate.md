@@ -28,7 +28,7 @@ INV-6 (`check-state.sh:221-228`) fires on that combination, not on time.
 - **Do NOT re-verify the six done tasks.** All six verifies were run at final bytes; a mid-flight verify I took earlier WAS superseded when its test file changed a minute later, so only post-return runs count — this run, 02fe848
 - **Do NOT append `test-validate-digest.py` or `test-check-domain.py` to `test_kinds.integration.detect`.** T-10's intent says they are absent; they were already PRESENT at HEAD. All seven are present with count 1 each. I ratified the five-not-seven deviation — verified-at 02fe848
 - **Do NOT touch SC-14's 221 figure**, the #551 count without a signature, `.gitignore`, or `harness_yaml.py`'s falsified sentence — all four need the operator or are carried — this run
-- **Do NOT attempt `git merge main`.** `merge` is in `HEAD_MOVERS`, `bash-write-guard.sh:144`; refused for every governed agent. It is the main session's act — verified-at working tree
+- **Do NOT attempt `git merge main`.** `merge` is in `HEAD_MOVERS`, `bash-write-guard.py:144`; refused for every governed agent. It is the main session's act — verified-at working tree
 - **Do NOT trust a digest or `state.yaml` read before its run's notification.** Both are working state; this feature has already produced two false STATE.md entries that way — this run
 
 ## Working set

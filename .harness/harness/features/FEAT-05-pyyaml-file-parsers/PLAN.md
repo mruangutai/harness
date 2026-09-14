@@ -88,9 +88,9 @@ the dispatch's citations lands on the right paragraph:
 
 - **D-03: the manifest domain walk moves into the shared module as
   `manifest_domains(manifest_path, agent) -> (mine, shared)`, and BOTH call sites are converted to use
-  it.** Verified duplicated: `check-domain.py:105-126` (`collect()`) and `bash-write-guard.sh:248-263`
+  it.** Verified duplicated: `check-domain.py:105-126` (`collect()`) and `bash-write-guard.py:248-263`
   are the same logic, and this conversion would otherwise rewrite that line-scan as a dict walk **by
-  hand, in both files**. Divergence here is security-relevant, not cosmetic: `bash-write-guard.sh`
+  hand, in both files**. Divergence here is security-relevant, not cosmetic: `bash-write-guard.py`
   exists because an agent already routed around `check-domain.py` (DEC-151), so the two hooks
   disagreeing about what a domain *is* re-opens that hole. *Trade-off accepted:* the two hooks gain a
   hard dependency on a third file; if `harness_yaml.py` is deleted or unreadable both hooks fail closed,
@@ -217,11 +217,11 @@ the dispatch's citations lands on the right paragraph:
   is what keeps this feature from shipping a ~30% latency regression on the hottest path in the tree.
   **Separate task, same owner, immediately after** — separate so a reviewer can check behaviour
   equivalence without a restructure confounding the diff on the most safety-critical script in the
-  tree; immediately after so the regression never ships. `bash-write-guard.sh` gets the same 2-to-1
+  tree; immediately after so the regression never ships. `bash-write-guard.py` gets the same 2-to-1
   merge at lower priority (~17ms).
 
 - **D-11: `glob_to_re` and `matches` stay duplicated. They do not change in this conversion.** Verified
-  duplicated (`check-domain.py:160-196` == `bash-write-guard.sh:265-287`, including the `re.compile`
+  duplicated (`check-domain.py:160-196` == `bash-write-guard.py:265-287`, including the `re.compile`
   at `:182` / `:278`). Sharing them is a separate refactor on the two most safety-critical scripts in
   the tree, it is not required by any REQ here, and widening the diff makes the D-03 change harder to
   review. Stated as scope discipline so a builder does not take the shared module as licence.
@@ -235,7 +235,7 @@ the dispatch's citations lands on the right paragraph:
 
 - **D-13: the `read:` tightening is a fix that will read like a regression, and it ships anyway.** The
   domain walk's read-only filter is today `"read: true" not in s` — a substring test on the raw line
-  (`check-domain.py:122`, `bash-write-guard.sh:260`). A manifest written `read: yes`, `read: True` or
+  (`check-domain.py:122`, `bash-write-guard.py:260`). A manifest written `read: yes`, `read: True` or
   `read:true` does not match it, so the path lands in `mine` and the agent may write a read-only path:
   a live fail-open. After `safe_load` all three resolve to `True` and the path is correctly excluded,
   so the conversion **newly blocks** writes that pass today. Measured in this repo: all 16 `read:`
@@ -256,7 +256,7 @@ and confirms each row at final state.
 |---|---|---|
 | `check-state.sh` | `98` `108` `109` `237` `293` `297` `316` `394` `398` `399` — **10** | `46 47 50` markdown `## Approval` in PLAN.md · `76 78` markdown `T-NN` in PLAN.md · `89` markdown `T-NN` in STATE.md (BRIEF-exempt) · `302` the `CHECKPOINT_KEYS` scan (BRIEF-exempt; set at `277-288`, dup at `303`, unknown at `308`) — **7** |
 | `check-domain.py` | `112` `119` → `manifest_domains()` (D-03) · `285` → raising loader, **detector at `287` survives** (D-02) — **3** | `157 248` worktree path rewrite · `182` `glob_to_re` compile (D-11) · `263 275 300 321` rel-path routing — **7** |
-| `bash-write-guard.sh` | `252` `257` → `manifest_domains()` (D-03) — **2** | `112` heredoc scan · `185` redirect scan · `278` `glob_to_re` compile (D-11) · `298 306` path routing — **5** |
+| `bash-write-guard.py` | `252` `257` → `manifest_domains()` (D-03) — **2** | `112` heredoc scan · `185` redirect scan · `278` `glob_to_re` compile (D-11) · `298 306` path routing — **5** |
 | `gh-sync.py` | `181` `184` `186` `188` `190` `193` — `load_recorded()` reads `feature.yaml`'s `github:` block — **6** | `128 135 153 157 159` markdown BRIEF/PLAN parsing · `200` `save_recorded` **writer** (D-04) — **6** |
 | `cost-report.py` | **0** — it reads no YAML (D-04) | `112` path-munge `re.sub` · `189` `^cost:` in-place **writer** (D-04) — **2** |
 | `upgrade-config.py` | `91` `yaml_names` · `98` `yaml_version`, both read `team-config.yaml` — **2** | none — **0** |
@@ -422,7 +422,7 @@ lifecycle:
 | present, identity **does not match** | **block** (SC-09). Expiry is **by construction**: a new session's id can never match a recorded one |
 | marker write **fails** (read-only checkout) | **block**. An escape that cannot be bounded is not granted |
 
-**Honest limit, recorded not hidden:** `harness-dev-ops` is exempt from `bash-write-guard.sh` entirely
+**Honest limit, recorded not hidden:** `harness-dev-ops` is exempt from `bash-write-guard.py` entirely
 (`:33`), so it can delete the marker and re-trigger the escape. The escape expires by construction on
 the honest path; a deliberate deletion sits inside the trust boundary DEC-85 already accepts.
 
@@ -530,7 +530,7 @@ markdown lines `128 135 153 157 159` and nothing in the `176-196` range (6 hits 
 `.claude/skills/harness/bin/check-state.sh` is a bash wrapper around one Python heredoc (`:17`). It is
 the **only** in-scope script lacking a `_selfdir`: it derives everything from `root` (`:14-15`), which
 can be wrong. Give it a `_selfdir` computed from `BASH_SOURCE` exactly as `check-domain.py:60-61` and
-`bash-write-guard.sh:38-39` do, and prepend it to `PYTHONPATH` on the existing `python3` invocation:
+`bash-write-guard.py:38-39` do, and prepend it to `PYTHONPATH` on the existing `python3` invocation:
 
 ```
 PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$root" <<'PY'
@@ -774,7 +774,7 @@ edit: (a) confirm `python3 -c 'import yaml'` succeeds — T-01 is a hard prerequ
 `.claude/settings.json` names this script by path, so **renaming or moving it silently disables
 enforcement**; (c) if you wedge yourself, the recovery is `git checkout --
 .claude/skills/harness/bin/check-domain.py` run from a **Bash** tool call — `harness-dev-ops` is exempt
-from `bash-write-guard.sh` (`:33`), and `check-domain.py` is a Write/Edit hook, so a `git checkout`
+from `bash-write-guard.py` (`:33`), and `check-domain.py` is a Write/Edit hook, so a `git checkout`
 restores the file without passing through the broken gate. Write that command down before you begin.
 
 Prepend `PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}"` to the **existing** heredoc invocations at
@@ -842,7 +842,7 @@ is a comment that names the interpreter); and a 100-iteration timing of
 the full governed path recorded in the task's DIGEST beside the 80.63ms baseline. **Cost is reported,
 never gated (DEC-134)** — the timing is evidence, not a pass/fail threshold.
 
-### T-14 — convert `bash-write-guard.sh`
+### T-14 — convert `bash-write-guard.py`
 
 - owner: harness-backend-dev
 - change_type: logic
@@ -853,7 +853,7 @@ never gated (DEC-134)** — the timing is evidence, not a pass/fail threshold.
 **RECOVERY NOTE — same wedge, different tool surface.** This hook gates `Bash`-issued writes and exists
 because an agent already routed around `check-domain.py` (DEC-151). If you break it, `harness-dev-ops`
 is exempt from it entirely (`:33`), so a dev-ops-owned `git checkout --
-.claude/skills/harness/bin/bash-write-guard.sh` recovers the file. Write that command down before you
+.claude/skills/harness/bin/bash-write-guard.py` recovers the file. Write that command down before you
 begin. Do **not** land this before T-12 and T-13: converting the anti-bypass hook while the primary
 hook is mid-conversion means a single mistake blocks both write surfaces at once.
 
@@ -880,10 +880,10 @@ fail-closed.
 verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
 `PASS test-bash-write-guard.py`; and
 `grep -nE 're\.(search|findall|match|finditer|sub|split|compile)'
-.claude/skills/harness/bin/bash-write-guard.sh` → exactly 5 hits at `112 185 278 298 306` (7 at
+.claude/skills/harness/bin/bash-write-guard.py` → exactly 5 hits at `112 185 278 298 306` (7 at
 `37a8a66` — discriminating).
 
-### T-15 — merge `bash-write-guard.sh`'s two Python launches into one
+### T-15 — merge `bash-write-guard.py`'s two Python launches into one
 
 - owner: harness-backend-dev
 - change_type: logic
@@ -897,7 +897,7 @@ The same 2-to-1 merge, at lower priority (~17ms). Merge `:24` and `:48` into one
 
 verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
 `PASS test-bash-write-guard.py` (the same unchanged test file is the equivalence proof); and
-``grep -cE "python3 -c '|python3 - .*<<'PY'" .claude/skills/harness/bin/bash-write-guard.sh`` → **1**
+``grep -cE "python3 -c '|python3 - .*<<'PY'" .claude/skills/harness/bin/bash-write-guard.py`` → **1**
 (**2** at `37a8a66` — discriminating; a bare `grep -c 'python3 '` returns 3, because `:98` is a
 docstring line naming the interpreter, and `:145` lists it as a data feeder).
 
@@ -954,13 +954,13 @@ variable rather than relying on `$_`, which is not reliable in a non-interactive
 - absorbs: —
 
 **This task exists because T-08 could not cover the hooks and a parenthetical reminder inside T-08 is
-not a schedule.** T-08 ran before `check-domain.py` and `bash-write-guard.sh` were converted, so their
+not a schedule.** T-08 ran before `check-domain.py` and `bash-write-guard.py` were converted, so their
 parsed-value consumers were not walkable then. They are now. Without this task the two hooks' consumers
 are **never** swept — and they are the two scripts where a typed-value surprise blocks or permits a
 write rather than printing a wrong number.
 
 Run **exactly the T-08 walk**, same rule, over the converted `.claude/skills/harness/bin/check-domain.py`
-and `.claude/skills/harness/bin/bash-write-guard.sh`: every consumer of a value returned by
+and `.claude/skills/harness/bin/bash-write-guard.py`: every consumer of a value returned by
 `harness_yaml.load_str` / `load_file` / `manifest_domains`, classified by use, with
 **`str()` at the consumer for any value used as a path component, an identifier, or a dict key**;
 numeric consumers stay typed (D-08).

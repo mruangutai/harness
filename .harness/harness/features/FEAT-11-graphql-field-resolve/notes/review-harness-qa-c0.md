@@ -111,7 +111,7 @@ no new `check()` calls, no production-code branches added).
 
 ## Enforcement-layer defect encountered — not mine to fix
 
-`bash-write-guard.sh` mis-parsed `cp ... 2>/dev/null` — it treated the redirect target as if it were
+`bash-write-guard.py` mis-parsed `cp ... 2>/dev/null` — it treated the redirect target as if it were
 a `cp` destination and blocked the command as out-of-domain, even though the actual `cp` target was
 inside my own scratchpad. Worked around by dropping the `2>/dev/null` redirects; commands ran clean
 after. Raised as `open_questions` below per the harness-expertise rule (a harness bug belongs there,

@@ -256,7 +256,7 @@ tasks:
       After PARTS 1 to 5 are written and the verify passes, copy the CURRENT content of
       .claude/skills/harness/bin/validate-digest.py - post-PART-2, pre-T-04 - byte for byte into
       tests/integration/fixtures/pre-t04-validate-digest.py.fixture, using the Write tool
-      (bash-write-guard.sh denies a shell copy). The .fixture suffix is load-bearing and is the same
+      (bash-write-guard.py denies a shell copy). The .fixture suffix is load-bearing and is the same
       one the existing prior-validate-digest.py.fixture uses: code_grade._changed_python_files never
       selects a non-.py path, so the vendored bytes are inert data rather than a second copy of the
       validator entering the graded set.
@@ -686,7 +686,7 @@ tasks:
       Write those lines, and nothing else - no header, no blank lines - to
       .harness/harness/features/FEAT-104-strict-digest-schema/notes/run-artifact-manifest-base.txt
       inside the WORKTREE, so the baseline is a tracked file that merges to main and cannot be
-      silently altered. Use the Write tool: bash-write-guard.sh denies a shell redirect.
+      silently altered. Use the Write tool: bash-write-guard.py denies a shell redirect.
       Then demonstrate the comparator discriminates, and record the two exit codes in the run
       state steps evidence container: run the verify command as written and confirm exit 0; then
       copy the manifest to a temp path with one hexdigest character altered, pass that copy as the

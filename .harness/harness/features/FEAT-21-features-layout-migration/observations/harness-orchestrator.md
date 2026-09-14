@@ -57,7 +57,7 @@
   layer that governs the agent executing it, work out WHEN your own access changes before deciding
   the turn cadence, because the plan-before-subcommand rule can become unsatisfiable mid-cluster.
 
-- 2026-08-14: `bash-write-guard.sh` refused a plan `verify:` clause I ran verbatim. The clause
+- 2026-08-14: `bash-write-guard.py` refused a plan `verify:` clause I ran verbatim. The clause
   captures suite output with `>"$u"` where `$u` is a `mktemp` path; the guard cannot resolve shell
   variables and reported the target as the literal `xx`, then blocked it as an out-of-domain write.
   The report was WRONG, not merely conservative — there was no out-of-domain target at all. Any

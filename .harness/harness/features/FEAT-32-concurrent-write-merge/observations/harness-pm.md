@@ -1,6 +1,6 @@
 # Observations — harness-pm — FEAT-32
 
-- 2026-08-21: `bash-write-guard.sh` denies a `sed -i` whose target is a shell VARIABLE — it printed
+- 2026-08-21: `bash-write-guard.py` denies a `sed -i` whose target is a shell VARIABLE — it printed
   "targets $P, outside your domain", i.e. it resolved the literal `$P`. Never pass a write target
   through a variable; either inline the absolute path or use the Edit tool. The Edit tool worked on
   the same file immediately after.
@@ -31,7 +31,7 @@
   The vacuum only appears via the two workarounds the same ruling forbids. Conclusion unchanged,
   premise wrong — re-derive even the measurement a ruling hands you as settled.
 - 2026-08-21: THREE line anchors cited through several planning rounds by three tiers had all drifted
-  by c32f332: `bash-write-guard.sh` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.py`'s
+  by c32f332: `bash-write-guard.py` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.py`'s
   `SHAPE_PATTERNS` is `:727` not `:677`. Converted every one to a symbol reference. The pattern: the
   claim stays true while the pointer dies, so nothing ever fails.
 - 2026-08-21: "record the impossibility" was the wrong frame. The right move was to ask WHICH HARM
@@ -41,7 +41,7 @@
 - 2026-08-21: a plan-wide `verify:` fix that is self-locating beats one that hard-codes a path.
   `cd "$(git rev-parse --show-toplevel)"; export CLAUDE_PROJECT_DIR="$PWD"` at the head of all 13
   blocks is correct in the worktree AND on main; pinning the worktree path would have rotted at merge.
-- 2026-08-21: `bash-write-guard.sh` denied a `cat >> observations/harness-pm.md` heredoc from inside
+- 2026-08-21: `bash-write-guard.py` denied a `cat >> observations/harness-pm.md` heredoc from inside
   the feature directory — it resolves the RELATIVE path against `CLAUDE_PROJECT_DIR`, not the shell's
   cwd, so a legitimate in-domain append reads as out-of-domain. Append to a `notes/` or
   `observations/` file with the Write tool and an absolute path.

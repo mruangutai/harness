@@ -51,7 +51,7 @@
 - **Q3 (backlog).** `harness.json`'s unit detect glob claims `test-check-domain.py`, but
   `run-unit-tests.sh` executes it from `INTEGRATION_SCRIPTS`, so `--kind unit` reports green without
   running a case. Pre-existing; every SC correctly names `evidence: integration`.
-- **Q4 (ticket).** `bash-write-guard.sh` keeps its own outside-repo rule and is out of scope, so a
+- **Q4 (ticket).** `bash-write-guard.py` keeps its own outside-repo rule and is out of scope, so a
   Bash-route write into a product checkout stays ungoverned after this ships.
 - **Q5 (disclosure).** No UAT criterion: an honest UAT needs a real product checkout under
   `workspace_root`, which has never existed. The plan inspects the refusal text instead.

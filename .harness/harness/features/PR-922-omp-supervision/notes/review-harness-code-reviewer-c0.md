@@ -94,9 +94,9 @@ mechanism rather than porting it.
 ### Notes (non-gating)
 
 **4 [low] — stale security-rationale comments now describe a flag that isn't used.**
-`bash-write-guard.sh:34` ("`-P` IS LOAD-BEARING, NOT TIDINESS (#556)...") and `check-domain.py:96`
+`bash-write-guard.py:34` ("`-P` IS LOAD-BEARING, NOT TIDINESS (#556)...") and `check-domain.py:96`
 ("`-I` IS LOAD-BEARING, NOT TIDINESS (#556)...") both introduce this heading but the actual
-invocation on the next lines (`bash-write-guard.sh:42`, `check-domain.py:103`) uses neither flag —
+invocation on the next lines (`bash-write-guard.py:42`, `check-domain.py:103`) uses neither flag —
 it's `python3 -c 'import sys; sys.path.pop(0); exec(...)'`, the same manual-bootstrap technique
 `check-state.sh` uses (and correctly labels without a flag name). Confirmed against baseline: both
 files used real `-P` before this diff (`git show <base>:<path>`); the flag was dropped in favor of

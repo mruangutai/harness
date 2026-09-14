@@ -10,7 +10,7 @@ backed by a targeted replay I ran myself (not merely inherited from the prior no
 
 Live (non-abandoned) tasks and `change_type` from `plan.yaml` at the pin: T-01/T-03 `logic`, T-02/
 T-05/T-06/T-09 `bugfix`, T-08/T-11 `docs`. `bugfix`'s `touches_runtime_code` fires (all four rewrite
-`check-domain.py`/`check-state.sh`/`bash-write-guard.sh`/`harness_boundary.py`/`validate-digest.py`);
+`check-domain.py`/`check-state.sh`/`bash-write-guard.py`/`harness_boundary.py`/`validate-digest.py`);
 `fix_confined_to_tests_and_contract_docs` does not (production files touched); `__bug_class__` is the
 repo's known-unresolvable placeholder (repo Expertise G-08). **Matrix-only floor: `unit`.** I concur
 with the prior note's own addition of `integration` as a floor the diff plainly warrants (every
@@ -85,7 +85,7 @@ or output. **I settled this with a targeted replay** (permitted under this dispa
 disposable detached worktree at pinned commit `c369fb1f`:
 ```
 git worktree add --detach /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/qa-redproof-sc13-c1 c369fb1f
-env -u HARNESS_AGENT_TYPE BASH_WRITE_GUARD_BIN=<that worktree>/.claude/skills/harness/bin/bash-write-guard.sh \
+env -u HARNESS_AGENT_TYPE BASH_WRITE_GUARD_BIN=<that worktree>/.claude/skills/harness/bin/bash-write-guard.py \
   python3 -c '<load test-bash-write-guard.py, call run_bug1106_bash_route()>'
 ```
 Result on the pinned pre-change script: both cases **exit 0** (permitted — red, as required); 6/8

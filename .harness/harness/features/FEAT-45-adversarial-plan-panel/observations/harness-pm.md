@@ -6,7 +6,7 @@
   mapping. I created the file with Write instead. Raised as an open_question; it is a harness defect,
   not a workaround to keep.
 - 2026-08-29 (plan draft): `observations-merge.py … --entries -` cannot be fed by a heredoc —
-  `bash-write-guard.sh` classifies `<<'EOF'` as a redirect and BLOCKS the whole command whatever the
+  `bash-write-guard.py` classifies `<<'EOF'` as a redirect and BLOCKS the whole command whatever the
   target. There is no in-domain temp path to stage entries in either, so on a first append the only
   route is Write on the log itself.
 - 2026-08-29 (plan draft): `.agents/skills` is a SYMLINK to `.claude/skills` in this repo — one inode,

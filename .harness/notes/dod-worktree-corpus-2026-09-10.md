@@ -151,7 +151,7 @@ the thing being probed. A disposable probe carries a faithful full checkout. Wha
 claim is the part that was never about QA: the hook fires whoever creates the worktree, so the
 mechanism does not depend on anyone remembering a rule.
 
-A creation door already exists and stays: `bash-write-guard.sh:512` refuses `git worktree add`
+A creation door already exists and stays: `bash-write-guard.py:512` refuses `git worktree add`
 outside the sanctioned location, and refuses a destination it cannot parse rather than permitting
 it. That guard was added because both hooks were measured exiting 0 on
 `git worktree add --detach ~/GitHub/harness-SIBLING HEAD` at a29ad06. Trust is not the mechanism;

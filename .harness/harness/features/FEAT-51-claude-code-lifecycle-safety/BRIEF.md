@@ -218,7 +218,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   normal run too. That cost is accepted rather than papered over, and it does not exist on OMP.
 - **`quarantine.py discard` is deliberately NOT covered by the quarantine boundary, and SC-12 was
   WITHDRAWN rather than graded.** Panel finding `PF-2b48984b50ff69c5dfdf8afa20c3956b` measured that
-  `bash-write-guard.sh` already permits a plain `rm -rf` of a quarantine directory — it exempts
+  `bash-write-guard.py` already permits a plain `rm -rf` of a quarantine directory — it exempts
   `harness-dev-ops` outright, and on the `shared` verdict D-06's own
   `.harness/*/features/*/quarantine/**` glob produces it prints a notice and continues — so a rule
   covering only `quarantine.py discard` would have recorded a protection the tree does not have.
@@ -231,8 +231,8 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   `PF-c7ab6506f6ffde4765e238519f337887` measured it: with `agent_type: harness-pm` and a session
   holding no claim, `cp /tmp/evil.md <worktree>/.harness/harness/features/FEAT-51-…/BRIEF.md` was
   fired at all three registered `PreToolUse` gates in the main checkout at `0bc57c88` and every one
-  exited **0** — `bash-write-guard.sh`, `plan-sign-gate.sh` and `check-domain.py`. The cause is at
-  source: `bash-write-guard.sh:259-260` exempts `harness-dev-ops` outright and passes any in-domain
+  exited **0** — `bash-write-guard.py`, `plan-sign-gate.sh` and `check-domain.py`. The cause is at
+  source: `bash-write-guard.py:259-260` exempts `harness-dev-ops` outright and passes any in-domain
   write for every other governed agent, `harness-pm`'s `team-config.yaml` domain grants both
   `.harness/*/features/*/BRIEF.md` and `.harness/*/features/*/plan.yaml`, and `check-domain.py` is
   registered for `Write` and `Edit` only. So issue #551's FIRST measured occurrence — a fourteen-task

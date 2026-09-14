@@ -102,7 +102,7 @@ left-hand column of bare template filenames, which are names and not paths.
   construction on any amended plan.
 - **Q2 (non-blocking)** — `harness-pm` has no writable non-`.md` staging path inside a feature
   directory, so a `plan-merge.py` proposal must either go through a bash heredoc or be staged in a
-  `notes/research-*.md` file. The heredoc route is unusable: `bash-write-guard.sh` reads a `>`
+  `notes/research-*.md` file. The heredoc route is unusable: `bash-write-guard.py` reads a `>`
   followed by whitespace anywhere in the command text as a redirect, and the placeholder spellings
   this feature is about (`<HARNESS_CONTROL_PLANE_ROOT> is …`) trip it. A grant for
   `notes/proposal-*.yaml`, or a `--proposal-stdin-file` seam, would remove the workaround.

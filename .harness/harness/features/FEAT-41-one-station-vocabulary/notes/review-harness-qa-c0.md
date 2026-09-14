@@ -18,10 +18,10 @@ the areas the build itself flagged thin (worktree-deletion fallback, plan-write 
 `test-bash-write-guard.py`'s `"ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes
 0 -> 2"` case (source line 524) fails deterministically inside the full `--kind integration` run
 (`bash=0, write=0`, wanted `(2,2)`) but passes 4/4 when run standalone. Neither
-`harness_boundary.py`, `bash-write-guard.sh`, nor `test-bash-write-guard.py` are touched by this
+`harness_boundary.py`, `bash-write-guard.py`, nor `test-bash-write-guard.py` are touched by this
 diff (`git diff --name-only base..review_sha` — confirmed absent); the test file's last edit
 (`66e9a9d`) is an ancestor of `base`, i.e. pre-existing. `check-domain.py`, which this feature
-does touch, is one of the two routes this case exercises, but the untouched `bash-write-guard.sh`
+does touch, is one of the two routes this case exercises, but the untouched `bash-write-guard.py`
 route fails identically, pointing at shared/timing infrastructure (the file's own comment already
 documents a `.pyc`-staleness hazard it tried to work around) rather than at FEAT-41's code. Still:
 **SC-11 literally requires the whole suite green, and it is not, at this pin, as measured twice.**

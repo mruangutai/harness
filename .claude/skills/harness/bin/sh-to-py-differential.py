@@ -105,6 +105,76 @@ shared:
     ]
 
 
+def bash_guard_corpus(scratch):
+    """Representative identity, command, domain, parser and cwd cases."""
+    root = os.path.join(scratch, "bash-root")
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    manifest = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-backend-dev
+        domain:
+          - { path: allowed/**, upsert: true }
+shared:
+  - { path: package.json }
+"""
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w",
+              encoding="utf-8") as fh:
+        fh.write(manifest)
+
+    malformed_root = os.path.join(scratch, "malformed-root")
+    os.makedirs(os.path.join(malformed_root, ".harness"), exist_ok=True)
+    with open(os.path.join(malformed_root, ".harness", "team-config.yaml"), "w",
+              encoding="utf-8") as fh:
+        fh.write("teams: [ {name: broken ## eaten\nnext_key: 1\n")
+
+    allowed = os.path.join(root, "allowed", "note.md")
+    denied = os.path.join(root, "src", "app.py")
+    shared = os.path.join(root, "package.json")
+    project_override = "HARNESS" + "_PROJECT_DIR"
+    root_env = {project_override: root}
+
+    def payload(command, agent="harness-backend-dev"):
+        data = {"tool_name": "Bash", "tool_input": {"command": command}}
+        if agent is not None:
+            data["agent_type"] = agent
+        return json.dumps(data)
+
+    denied_command = f"printf changed > {denied}"
+    return [
+        {"label": "malformed hook payload", "stdin": "{not json", "env": root_env},
+        {"label": "main session is ungoverned", "stdin": payload(denied_command, None),
+         "env": root_env},
+        {"label": "non-harness agent is ungoverned",
+         "stdin": payload(denied_command, "custom-agent"), "env": root_env},
+        {"label": "read-only command has no finding",
+         "stdin": payload(f"cat {denied}"), "env": root_env},
+        {"label": "governed in-domain redirect",
+         "stdin": payload(f"printf changed > {allowed}"), "env": root_env},
+        {"label": "governed out-of-domain redirect",
+         "stdin": payload(denied_command), "env": root_env},
+        {"label": "reviewer write refusal",
+         "stdin": payload(denied_command, "harness-code-reviewer"), "env": root_env},
+        {"label": "shared-path write warning",
+         "stdin": payload(f"printf changed > {shared}"), "env": root_env},
+        {"label": "literal Python open write",
+         "stdin": payload(f"python3 -c 'open({denied!r}, \"w\").write(\"x\")'"),
+         "env": root_env},
+        {"label": "dev-ops write exemption",
+         "stdin": payload(denied_command, "harness-dev-ops"), "env": root_env},
+        {"label": "dev-ops still cannot move HEAD",
+         "stdin": payload("git checkout main", "harness-dev-ops"), "env": root_env},
+        {"label": "malformed manifest refuses",
+         "stdin": payload(f"printf changed > {os.path.join(malformed_root, 'x.txt')}"),
+         "env": {project_override: malformed_root}},
+        {"label": "cwd-independent denial", "stdin": payload(denied_command),
+         "cwd": scratch, "env": root_env},
+        {"label": "unconfigured isolated copy", "stdin": payload(denied_command),
+         "isolate": True, "env": {project_override: None}},
+    ]
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -178,6 +248,8 @@ def corpus(tool, scratch, impl):
         return post_merge_sweep_corpus(scratch)
     if tool == "check-domain":
         return domain_corpus(scratch)
+    if tool == "bash-write-guard":
+        return bash_guard_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 

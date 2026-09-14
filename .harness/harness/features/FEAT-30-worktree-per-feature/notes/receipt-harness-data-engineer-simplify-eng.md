@@ -5,7 +5,7 @@
 ## What was checked
 - Read `plan.yaml` in full (1058 lines): `lanes:`, D-01..D-08, T-01..T-09.
 - Cross-checked every `line NNN` / `lines NNN to NNN` citation in D-02/T-03/T-04/T-05 against
-  `git show eeabc59:<file>` for `harness_boundary.py`, `check-domain.py`, `bash-write-guard.sh`,
+  `git show eeabc59:<file>` for `harness_boundary.py`, `check-domain.py`, `bash-write-guard.py`,
   `test-check-domain.py`, `test-bash-write-guard.py` — all citations landed on the exact code they
   describe (WORKTREE_REL_RE line 37, worktree_owner line 355, resolve-path match line 212, `_norm`
   regex line 644, sweep-glob join line 602, dest legality lines 460-466, prefix-only rule line 545,

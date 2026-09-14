@@ -57,7 +57,7 @@ for `feature, squad, host` (`plan.yaml:171-172`). **Scenario:** a lead's first c
 fires only when a prior exists, and `run_id` is not required by `ALLOWED` at `:1450`). POST records a
 witness with `run_id: null`. The lead's next write, correct and carrying `run_id: A`, hits
 `str(None) != "A"` and is refused on Write and Edit; `record_seed` is write-once so the witness cannot
-be corrected; `bash-write-guard.sh:744-767` refuses a Bash write or `rm` of a run artifact; and T-03
+be corrected; `bash-write-guard.py:744-767` refuses a Bash write or `rm` of a run artifact; and T-03
 then reports the directory to the operator as a clobber. The run directory is permanently unwritable by
 its own owner, by a guard added to stop exactly the opposite thing. T-01's case list names only
 "conflict returns None when the marker recorded None for **a** field the doc now supplies"

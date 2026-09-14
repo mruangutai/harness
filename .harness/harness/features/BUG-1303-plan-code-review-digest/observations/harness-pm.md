@@ -1,6 +1,6 @@
 # Observations - harness-pm
 
-- 2026-09-05: BUG-1303 plan. bash-write-guard.sh parses the whole command line textually, so a
+- 2026-09-05: BUG-1303 plan. bash-write-guard.py parses the whole command line textually, so a
   heredoc feeding plan-merge.py apply --proposal - is refused when the PROPOSAL BODY contains any
   angle bracket: my first attempt died on a process substitution in a verify and on an
   angle-bracketed review_sha placeholder inside an intent, both reported as "redirect targets" with

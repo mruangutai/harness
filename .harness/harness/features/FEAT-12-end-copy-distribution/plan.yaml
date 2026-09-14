@@ -100,7 +100,7 @@ decisions:
       EIGHT of them across FOUR hook events, not three PreToolUse hooks. Measured with json.load in
       kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.sh; PreToolUse Bash
       branch-create-gate.sh a second, duplicate time under a different variable spelling; PreToolUse
-      Bash bash-write-guard.sh; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
+      Bash bash-write-guard.py; PreToolUse Write or Edit check-domain.py; PreToolUse Task or Agent
       dispatch-guard.sh; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
       matcher harness-.* validate-digest.py --hook; PostToolUse Write or Edit or Bash
       check-domain.py --post. All eight go, in this feature rather than as a deferral.
@@ -345,7 +345,7 @@ tasks:
         PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh   (a SECOND,
                                        duplicate entry, spelled ${CLAUDE_PROJECT_DIR} where the
                                        first uses "$CLAUDE_PROJECT_DIR" - both go)
-        PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.sh
+        PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.py
         PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.py
         PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.sh
         SubagentStart  harness-.*      .claude/skills/harness/bin/inject-expertise.sh
@@ -637,7 +637,7 @@ tasks:
         copies the skill directory any more, and the probe stays a docs path because the derived
         root must be a full checkout of this repository, which a bare skills tree is not.
 
-      Do not create or delete files in this task. Do not touch check-domain.py, bash-write-guard.sh,
+      Do not create or delete files in this task. Do not touch check-domain.py, bash-write-guard.py,
       validate-digest.py or check-state.sh - DEC-174 puts all four outside a team run. There is no
       fifth: check-docs.sh was deleted under issue 202 and DEC-188, it is absent from the tree at
       687fd3e, and it must not be recreated.

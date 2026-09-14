@@ -155,7 +155,7 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
   `team-config.yaml` rather than by ASKING it; asking is what produced the correct answer.
   **The refusal is the load-bearing half.** `harness-eng-lead` returned `BLOCKED` rather than
   routing around `check-domain.py`. A silent PASS was available: rewriting the same edit as a
-  `python3 -c` JSON round-trip would have passed `bash-write-guard.sh` unseen and landed the file
+  `python3 -c` JSON round-trip would have passed `bash-write-guard.py` unseen and landed the file
   with no domain check ever firing. It was refused. Record this so a future reader does not read
   the BLOCKED as a failure — it is the gate working, and the alternative was an undetectable
   domain breach.

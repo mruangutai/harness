@@ -397,7 +397,7 @@ tasks:
       (.claude/skills/harness/bin/isolated_bin.py:8-14) to copy the whole bin tree into a temp root so
       sibling imports resolve, then overwrite THAT COPY's check-state.sh with
       `git show 772790be52774eafe2971f9c44400e18b2d54275:.claude/skills/harness/bin/check-state.sh`,
-      captured through python and written with python - bash-write-guard.sh denies shell redirects,
+      captured through python and written with python - bash-write-guard.py denies shell redirects,
       cp and mv. NEVER write the mutant into the live .claude/skills/harness/bin/. Run the new case
       with `CHECK_STATE_BIN` (read at test-check-state.py:22) pointed at the copied script.
 

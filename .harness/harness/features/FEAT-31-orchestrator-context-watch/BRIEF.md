@@ -286,7 +286,7 @@ never fails loudly, so the absence of that case is worth stating rather than lea
 - **`harness_yaml.py:479` is not a defect and must not be "fixed".** `_resolve_identity` returns the
   SESSION identity, which is correct for the bootstrap marker it serves. It was only wrong as
   evidence about agent identity, which is what this brief cited it for.
-- The probe modified `bash-write-guard.sh` and reverted it. `test-bash-write-guard.py` reported
+- The probe modified `bash-write-guard.py` and reverted it. `test-bash-write-guard.py` reported
   `27/27` with the probe in place and again after the revert, and the file is clean in git.
 
 **DISCLOSED, for the operator's call:**

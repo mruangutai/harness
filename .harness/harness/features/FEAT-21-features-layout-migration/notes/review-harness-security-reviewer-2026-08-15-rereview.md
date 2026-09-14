@@ -77,7 +77,7 @@ reviewers, product-lead, eng-lead, validator-lead) is exactly the
 added, no glob widened (e.g. no reviewer gained `.claude/skills/harness/bin/**` or similar),
 no grant removed. Identity-level closure on JOB 2's core claim.
 
-`bash-write-guard.sh` — simulated `HOOK_PAYLOAD` (avoided literal `>` in my own command text
+`bash-write-guard.py` — simulated `HOOK_PAYLOAD` (avoided literal `>` in my own command text
 to stay inside my own read-only guard; built the redirect via `printf '\076'`):
 - `harness-backend-dev` writing `docs/PRINCIPLES.md` (ungranted) → **BLOCKED, exit 2**
   (`redirect targets docs/PRINCIPLES.md, outside your domain`).

@@ -9,7 +9,7 @@ created in the first place.
 
 ## Settled
 
-- **ONE feature, covering #261 and #103 together.** Both land in `bash-write-guard.sh` and
+- **ONE feature, covering #261 and #103 together.** Both land in `bash-write-guard.py` and
   `check-domain.py`, both are DEC-174 carve-out files and therefore `main-session-direct`, and both
   are the same defect class: the guards disagree at their edges. Split across two features, the
   second pass edits functions the first just changed.
@@ -41,7 +41,7 @@ created in the first place.
   2. **Writing** into one is refused with a verdict naming where worktrees belong. Today it is
      exit 0 in silence.
 
-- **`bash-write-guard.sh` learns the SAME rule from the SAME source, not a fourth copy.** It
+- **`bash-write-guard.py` learns the SAME rule from the SAME source, not a fourth copy.** It
   currently holds **zero** references to `fleet`, `workspace_root` or `factory_config`, and carries
   its own separate worktree rule at `:405`. `check-domain.py` already exposes `real()`,
   `resolve_fleet()`, `select_base()`, `is_control_plane_glob()` and `is_control_plane_target()` at
@@ -51,7 +51,7 @@ created in the first place.
 
 ## Not yet specified
 
-- The mechanism by which `bash-write-guard.sh` reaches those functions. `check-domain.py` is a bash
+- The mechanism by which `bash-write-guard.py` reaches those functions. `check-domain.py` is a bash
   file with an embedded Python heredoc, so it cannot simply be imported. Extracting the shared rule
   into an importable module is the obvious answer and is a real refactor of a carve-out file.
 - Whether the creation refusal keys on `git worktree add` specifically, or on any command whose
@@ -83,7 +83,7 @@ Measured 2026-08-11 at `a29ad06`, after FEAT-15 merged.
   `/tmp` and false of a sibling worktree, which is the same repository, the same manifest, the same
   agents.
 - **Creating one is unguarded.** `git worktree add --detach ~/GitHub/harness-SIBLING HEAD` returns
-  exit 0 from `bash-write-guard.sh` and exit 0 from `check-domain.py`.
+  exit 0 from `bash-write-guard.py` and exit 0 from `check-domain.py`.
 - **Writing into one is unguarded**, measured against a real sibling worktree with three payloads,
   each of which exits 2 in the real checkout:
 
@@ -98,7 +98,7 @@ Measured 2026-08-11 at `a29ad06`, after FEAT-15 merged.
   FEAT-09's orchestrator wrote a 205-line `feature.yaml` from a sibling worktree, unblocked, and
   reported the caps as "prose-only, not mechanically enforced": a correct conclusion from inside
   that tree, and wrong.
-- `bash-write-guard.sh` contains **0** occurrences of `fleet`, `workspace_root` or
+- `bash-write-guard.py` contains **0** occurrences of `fleet`, `workspace_root` or
   `factory_config`, and its worktree rule is `re.match(r"^\.claude/worktrees/", rel)` at `:405`.
 - `check-domain.py` exposes `real()`, `resolve_fleet()`, `select_base()`, `is_control_plane_glob()`
   and `is_control_plane_target()` at module scope; the hook path and the `--resolve` path already

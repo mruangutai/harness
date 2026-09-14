@@ -9,7 +9,7 @@ return value. The caller decides whether to print the refusal's lines and exit i
 This core has NO identity source. No agent_type reaches a Bash-invoked CLI and no environment
 variable carries one, so this module can check WHERE a write lands — via require_destination —
 and it can never check WHO asked for it. That is a real gap, not an oversight: it is reachable
-from a read-only persona because bash-write-guard.sh is allow-by-omission (it scans a command
+from a read-only persona because bash-write-guard.py is allow-by-omission (it scans a command
 for a write pattern it recognises and exits 0 when it finds none, before the read-only denial
 and the domain walk ever run). That gap is issue #627 and is not fixed here.
 

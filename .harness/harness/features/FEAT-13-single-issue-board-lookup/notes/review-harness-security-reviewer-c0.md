@@ -114,7 +114,7 @@ named.
 
 ## DEC-174 carve-out
 
-No touch to `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, or `check-state.sh` in
+No touch to `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, or `check-state.sh` in
 this diff.
 
 ```yaml

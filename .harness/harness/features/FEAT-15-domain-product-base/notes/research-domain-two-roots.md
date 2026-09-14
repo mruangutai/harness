@@ -18,7 +18,7 @@ Measured at `06ae963` unless stated.
 >    product-shaped globs.
 > 2. Outside-root becomes a decision, not a silent return, for paths under a known product workspace.
 >    `/tmp` and anything outside both bases keep today's no-verdict behaviour — the reasoning in that
->    comment is sound and `bash-write-guard.sh:211` agrees.
+>    comment is sound and `bash-write-guard.py:211` agrees.
 > 3. Domain entries carry which base they resolve against, so `.harness/**` never accidentally matches
 >    inside a product checkout and `src/**` never accidentally matches inside harness.
 >
@@ -213,6 +213,6 @@ execution_reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 lis
   `test-check-domain.py`, but `run-unit-tests.sh` runs it from `INTEGRATION_SCRIPTS`. Every SC here
   names `evidence: integration`, which is the bucket that actually executes it. The detect/runner
   disagreement is pre-existing and belongs in the backlog.
-- **Q3 (not blocking).** `bash-write-guard.sh` has its own outside-repo rule and is untouched here,
+- **Q3 (not blocking).** `bash-write-guard.py` has its own outside-repo rule and is untouched here,
   so a Bash-route write into a product checkout stays ungoverned after this fix. Out of scope by the
   grilling; worth a ticket.

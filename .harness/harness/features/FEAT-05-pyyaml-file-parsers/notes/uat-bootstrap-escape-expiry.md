@@ -102,7 +102,7 @@ created. Either works; the fake-module route is closer to a machine that genuine
     `:78-79` warns about did not occur.
     The block is SILENT. No install command, no reason, zero bytes of stderr — reproduced
     directly (`exit=2`, stderr 0 bytes) and independently hit live: the agent saw only
-    "PreToolUse:Write hook error: No stderr output". `bash-write-guard.sh` is affected too —
+    "PreToolUse:Write hook error: No stderr output". `bash-write-guard.py` is affected too —
     even `echo hi` was refused with nothing printed. See D-14a below.
     AMEND THE EXPECTATION to "BLOCKED, silently" until D-14a is fixed. A block WITH a message
     would mean some other branch fired and needs a second look.
@@ -158,7 +158,7 @@ consolidation. Highest id in use across BRIEF/PLAN is D-13.)
 - **D-14a (does not block SC-09): the block is silent.** `harness_yaml.py` returns
   `False` without writing to stderr on three branches — `:259` (marker unreadable), `:260`
   (identity mismatch), `:266` (marker write fails). Both callers assume the callee already
-  printed: `check-domain.py:110-112` says so in a comment, `bash-write-guard.sh:75-77` likewise.
+  printed: `check-domain.py:110-112` says so in a comment, `bash-write-guard.py:75-77` likewise.
   That assumption holds only for the no-identity path at `:247-251`. Consequence: a user whose
   grant has expired gets every Write AND every Bash command refused with no explanation and no
   install command — recoverable only by reading the source. Fix: print `INSTALL_COMMAND` on

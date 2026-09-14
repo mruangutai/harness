@@ -21,7 +21,7 @@ failed. `BRIEF.md` was edited directly; `## Approval` untouched.
   section would therefore have published a false claim. SC-12 retired in place in BRIEF; SC-10's
   dangling pointer re-aimed at the new REQ-01 disclosure. T-04's own body said REQ-01 was covered by
   "T-01, T-02, T-09, T-11 and T-12 — every one of them live"; corrected in the same pass.
-- **Rank 2 (high) — guarded, not disclosed.** No task owned `bash-write-guard.sh` or
+- **Rank 2 (high) — guarded, not disclosed.** No task owned `bash-write-guard.py` or
   `harness_boundary.py` (grep of every `files:` list), so both went into **T-02**, the task that makes
   the witness exist. T-02 now adds `RE_RUN_IDENTITY` to `harness_boundary.py` (:42-45), the Bash
   `_run_artifact_guard` (:744-767), and a `SHAPE_PATTERNS` (:1185) route denial in `shape_problems`

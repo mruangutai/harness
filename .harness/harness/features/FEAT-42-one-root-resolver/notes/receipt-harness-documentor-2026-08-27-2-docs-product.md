@@ -158,7 +158,7 @@ distillation dispatch.
 ## DEC-174 amendment 4 — reported, not edited
 
 `.harness/harness/docs/DECISIONS.md:5006-5008` (the "So the enforcement layer is:" sentence, in
-amendment 4 which opens at `:4983`) enumerates: `check-domain.py`, `bash-write-guard.sh`,
+amendment 4 which opens at `:4983`) enumerates: `check-domain.py`, `bash-write-guard.py`,
 `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
 file of each** — 12 files.
 

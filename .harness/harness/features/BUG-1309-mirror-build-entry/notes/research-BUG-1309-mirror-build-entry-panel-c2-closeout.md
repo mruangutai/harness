@@ -24,7 +24,7 @@ and now has an owner, `T-13`. `approval:` is byte-identical. Nothing here gates 
   **sanctions** the extraction shape and only makes the cutover main-session-direct — a price, never
   a bar.
 - **F1, the recurrence count.** True set is **two** (`post-merge-sweep.py:29-293`,
-  `bash-write-guard.sh:42`). `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62` are
+  `bash-write-guard.py:42`). `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62` are
   counter-examples — comment *"THE DECISION LIVES IN A FILE, NOT A HEREDOC"* and `exec` a sibling
   `.py`. Corrected in `notes/…-unit-ruling.md` at the head, the anchor bullet, the Recommendation
   section, the `dec:` paragraph and Q1. One dated correcting bullet appended to
@@ -39,7 +39,7 @@ Decided on the evidence, not on the lead's framing. A standing DEC exemption is 
 that recurs; this one is **receding**. Two of the four candidates have already been converted to
 decision-in-a-file, deliberately, with the mechanical reason written in their own comments (a
 `python3 - <<'PY'` eats the stdin the hook's JSON arrives on), and both survivors are convertible by
-the same move — `bash-write-guard.sh` already proves the payload can travel by env. An entry that
+the same move — `bash-write-guard.py` already proves the payload can travel by env. An entry that
 exempts a shape the repo is retiring would outlive its subject and be cited as licence to skip the
 `unit` floor on any awkward surface, which is what `D-12`'s own "WHAT THIS IS NOT" paragraph guards
 against. So: `D-12` stays **plan-local**, and the generalisable move is the **conversion** of the two
@@ -101,7 +101,7 @@ alteration mints a different id.
 ## Open questions
 
 - **Q1 (non-blocking).** Raise the conversion of the two surviving heredoc-hosted gates
-  (`post-merge-sweep.py`, `bash-write-guard.sh`) as a backlog chore, or accept the shape where it
+  (`post-merge-sweep.py`, `bash-write-guard.py`) as a backlog chore, or accept the shape where it
   stands? Either answer leaves `D-12` intact. The repo-wide DEC-217 sibling is withdrawn.
 - **Q2 (non-blocking, harness defect, second cycle running).** `validate-digest.py` refuses a plan
   reviewer's envelope during a re-panel of an already-approved plan (`review_sha: none`,

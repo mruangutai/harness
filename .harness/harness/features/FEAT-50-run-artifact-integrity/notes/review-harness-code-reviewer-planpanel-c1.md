@@ -4,7 +4,7 @@
 anchor nit, and both cycle-0 `high` findings CLOSED on verified evidence.** Traceability is exact
 (REQ-01..09 union, no orphan, no phantom trace), `depends_on` is acyclic and its one asymmetry is
 harmless, and every anchor I re-measured at 5d12e68 — some 20+ line citations across
-`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`,
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh`,
 `feature-worktree.py`, `test-validate-digest.py`, `run-unit-tests.sh` — was accurate to the byte
 except one. This is an unusually well-grounded amendment.
 
@@ -18,7 +18,7 @@ except one. This is an unusually well-grounded amendment.
 and `shared` branches; `harness_boundary.classify` returns a *third*, structurally earlier outcome
 — `not_a_domain_question` — via its own dedicated `return` at check-domain.py (before `rel =
 _verdict["rel"]` and the `allow` branch), so a write landing on that outcome never reaches T-03's
-check. T-09 narrows `bash-write-guard.sh:747`'s `if verdict["outcome"] in ("allow",
+check. T-09 narrows `bash-write-guard.py:747`'s `if verdict["outcome"] in ("allow",
 "not_a_domain_question"): continue` — a **single** statement covering both outcomes — so, taken
 literally, T-09's check *does* fire on `not_a_domain_question`. The two "route-complete" fixes are
 not actually symmetric in what verdict shapes they intercept, even though D-10 states they use
@@ -70,7 +70,7 @@ independently re-measured and found exact).
 Both `high` findings that were mine (`scope`) are **CLOSED**, on evidence, not on the plan's own
 say-so:
 
-- **`PF-3d9ac1d0…`** (Bash route unbound). CLOSED. Re-confirmed `bash-write-guard.sh:747` reads
+- **`PF-3d9ac1d0…`** (Bash route unbound). CLOSED. Re-confirmed `bash-write-guard.py:747` reads
   exactly as the ruling cites; T-09's intent narrows that continue with a concrete branch
   structure (feature-id-from-path, `worktree_for_feature`, containment via `checkout_relative`,
   message naming both target and worktree), T-10 adds a reachability-proof case
@@ -102,11 +102,11 @@ that finding's shape, but the disposition call belongs to that reader.
 - **Route-completeness of `lanes:`.** Every task `files:` entry has a matching `lanes:` row (12 of
   12); the two extra rows (`check-state.sh`, `test-check-state.py`) are declared-but-unedited with
   a stated reason (SC-08/SC-11 read them) — not orphans.
-  `resolved_at: 75daa3b` with the two `bash-write-guard.sh` rows separately dated `5d12e68` is
+  `resolved_at: 75daa3b` with the two `bash-write-guard.py` rows separately dated `5d12e68` is
   honest disclosure, not a stale pin — I re-ran `--resolve` on both files at HEAD and got the
   cited grant.
 - **A third governed write route.** `.claude/settings.json`'s `PreToolUse` registers exactly
-  `Write|Edit → check-domain.py` and `Bash → bash-write-guard.sh` (plus `Task|Agent →
+  `Write|Edit → check-domain.py` and `Bash → bash-write-guard.py` (plus `Task|Agent →
   dispatch-guard.sh`, not a write route). `check-domain.py` itself already branches on
   `tool_input.get("notebook_path")`, so `NotebookEdit` (matched by the `Edit` pattern) is already
   routed through the SAME `domain_check()` T-03 amends — not a fourth, unbound surface. I found no
@@ -137,7 +137,7 @@ that finding's shape, but the disposition call belongs to that reader.
 ## Anchors re-measured and found exact (not just F2's exception)
 
 `check-domain.py` :833, :835-841, :843-848, :872, :980-1047 (RE_STATE_YAML/SHAPE_PATTERNS),
-:1367-1370, :1376-1381, :1505, :1546; `bash-write-guard.sh` :703, :706, :714, :744, :747, :758-761;
+:1367-1370, :1376-1381, :1505, :1546; `bash-write-guard.py` :703, :706, :714, :744, :747, :758-761;
 `validate-digest.py` :1343-1357 (`_root_or_none`), :1359-1372 (`_hook_feature_dir`), :1514,
 :1598-1599; `check-state.sh` :176-179, :1868-1871; `test-validate-digest.py` :730, :735-739,
 :750-769; `feature-worktree.py` ~234-248.

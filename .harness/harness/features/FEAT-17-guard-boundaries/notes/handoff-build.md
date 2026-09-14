@@ -17,14 +17,14 @@ wrapping it earlier masks the exit codes you would be testing. Re-run both valid
 - F-B is real and is exit 0, not exit 1: `except Exception: _wt_seg = None` then `if _wt_seg:` skips all of INV-25 with no bad and no warn — I read check-state.sh:960-980 at source — verified-at c6a28bd
 - The two post-goal-check SC-07 cases landed and are honest; the Bash one records that TWO rules independently grant it and so discriminates neither alone — I read the diff 2e02cfc..c6a28bd — verified-at c6a28bd
 - F-C's three changed cells rest on the panel's executed before/after with a malformed fleet.yaml — I did NOT re-run that probe — UNVERIFIED by me
-- classify's `shared` outcome is unreachable, making bash-write-guard.sh:571-577 dead — qa's analysis, three separate guards cited — UNVERIFIED by me
+- classify's `shared` outcome is unreachable, making bash-write-guard.py:571-577 dead — qa's analysis, three separate guards cited — UNVERIFIED by me
 - The suite's green status at c6a28bd rests on qa's run; the panel ran no tests and said so — UNVERIFIED by the panel
 
 ## Dead ends
 
 - Do NOT route any of F-A/F-B/F-C to a lead — all are DEC-174 carve-out files plus harness_boundary.py; assessment was dispatchable, changes are not — CLAUDE.md carve-out, verified-at c6a28bd
 - Do NOT file "add a Bash shared-path test" for Q3 — the branch is unreachable, so the test must fail against correct code — qa digest adequacy notes, UNVERIFIED by me
-- Do NOT treat the security reviewer's corrupt-then-write exploit story as live — the lead falsified it: the write to `<sibling>/.git` is itself refused at bash-write-guard.sh:479 — panel digest, UNVERIFIED by me
+- Do NOT treat the security reviewer's corrupt-then-write exploit story as live — the lead falsified it: the write to `<sibling>/.git` is itself refused at bash-write-guard.py:479 — panel digest, UNVERIFIED by me
 - Do NOT read qa's PASS as coverage of this diff by `--kind unit` — that kind ran 12 unrelated scripts; only `integration` touched the changed code — qa digest, verified-at c6a28bd
 
 ## Working set

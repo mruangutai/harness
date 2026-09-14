@@ -11,7 +11,7 @@
   `grep -n '^- DEC-.* am\.'`.
 - 2026-08-02 (T-03): `check-docs.sh` exits 0 with the sentinel-bearing index present — 45 patterns
   across 98 files. Adding `DECISIONS-INDEX.md` and this log did not put it red.
-- 2026-08-02 (T-03): `bash-write-guard.sh` misattributes the target of `rm` in a compound command.
+- 2026-08-02 (T-03): `bash-write-guard.py` misattributes the target of `rm` in a compound command.
   `rm docs/harness/DECISIONS-INDEX.md; python3 <script>` was blocked with "`rm` targets python3,
   outside your domain" — it appears to scan the whole command line for rm arguments rather than the
   single statement. Splitting into two Bash calls worked. Raised upward as an open_question.
@@ -22,7 +22,7 @@
 - 2026-08-02 (T-04): `check-domain.py` blocks `Write` to `/tmp` for this agent (domain is `docs/**`
   plus the observations log), so a throwaway helper script has no legal home — pipe the program to
   `python3 - <<'EOF'` on stdin instead, which creates no file.
-- 2026-08-02 (T-04): `bash-write-guard.sh` reads a Python comparison as a shell redirect —
+- 2026-08-02 (T-04): `bash-write-guard.py` reads a Python comparison as a shell redirect —
   `if n>88:` inside a heredoc was blocked as "`redirect` targets 88:". A read-only verification
   command was refused. Workaround: express bounds as `n in range(1,89)`. Raised as an open_question.
 - 2026-08-02 (T-04): the register trap in the corrections cluster (DEC-81, DEC-83..DEC-87) is that
@@ -81,7 +81,7 @@
   replicate its target glob read-only in `python3 -c` and check the path is in the list plus that your
   target count equals the count the checker printed (100 == 100). That beats a probe edit to a
   finished deliverable, which risks leaving a flagged phrase behind if the run dies mid-restore.
-- 2026-08-02 (T-08): `bash-write-guard.sh` again misattributed a compound command —
+- 2026-08-02 (T-08): `bash-write-guard.py` again misattributed a compound command —
   `... > file && check-docs.sh; echo $?; rm -f file` was blocked as "`rm` targets echo". Same class as
   the T-03 and T-04 observations; the guard scans the whole command line rather than the statement.
 - 2026-08-02 (T-06): the scripted read-modify-write should assert the row's right-hand side equals
@@ -89,7 +89,7 @@
   assertions inside the script, so a mis-keyed id fails loudly instead of silently editing a row
   belonging to another batch.
 - 2026-08-02 (s2, DEC-170): the dispatch's step 4 asked me to `rm
-  .harness/notes/pending-dec-advisor-disclosure.md`; `bash-write-guard.sh` BLOCKED it.
+  .harness/notes/pending-dec-advisor-disclosure.md`; `bash-write-guard.py` BLOCKED it.
   `team-config.yaml:115-123` grants documentor `docs/**`, `README.md`, `.harness/README.md`, two
   `.harness/codebase/` files, its own expertise and its observations log — `.harness/notes/**` is in
   no member's write domain. A staged-note deletion assigned to a docs member is unexecutable by
@@ -133,6 +133,6 @@
   seven markers at `DECISIONS.md:2474-2480`, so a verbose sentence can trip a sibling and break
   "exactly one" while being perfectly true. `The org is all 15 agents.` <!-- ok-stale --> matched one.
 - 2026-08-02 (s2, SC-08): append the plant with `Edit` anchored on the file's unique last lines, not a
-  shell redirect — `bash-write-guard.sh` has misfired on compound/redirect commands four times in this
+  shell redirect — `bash-write-guard.py` has misfired on compound/redirect commands four times in this
   feature — and confirm the target ends in `0a` (`tail -c 1 | xxd`) first, or the appended text joins
   the last line and the landing anchor is wrong.

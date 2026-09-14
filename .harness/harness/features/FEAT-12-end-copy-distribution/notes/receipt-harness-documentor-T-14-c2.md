@@ -56,7 +56,7 @@ Removing `### What the fixture caught that reading did not` deletes two genuinel
 lessons. Per the dispatch's hard constraint they were **not** preserved by moving them anywhere.
 
 - **`printf … | python3 - <<'PY'` silently discards the pipe.** Still alive: enacted in live code at
-  `.claude/skills/harness/bin/check-domain.py:97` and `bash-write-guard.sh:35` (data via argv),
+  `.claude/skills/harness/bin/check-domain.py:97` and `bash-write-guard.py:35` (data via argv),
   covered by a live case at `.claude/skills/harness/bin/test-bash-write-guard.py:60`, and recorded at
   `.harness/features/FEAT-05-pyyaml-file-parsers/observations/harness-backend-dev.md:19`.
 - **`set -u` with `"${empty_array[@]}"` aborts on macOS bash 3.2.** Survives in **git history only**

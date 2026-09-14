@@ -50,7 +50,7 @@ Partition:
   `test-upgrade-config.py`, `test-validate-feature-json.py`. Grepped each for
   `docs/harness`, `harness_boundary`, `is_control_plane`, `classify`, `check-domain`,
   `bash-write-guard`, `check-plan-routes`, `HARNESS_CONTROL_PLANE`: zero hits in 14 of 15.
-  `test-merge-settings.py` hits `check-domain.py`/`bash-write-guard.sh` (lines 33, 58, 66, 68, 76,
+  `test-merge-settings.py` hits `check-domain.py`/`bash-write-guard.py` (lines 33, 58, 66, 68, 76,
   115, 117) but only as string literals in a `hook_present()` detector over `settings.json` JSON —
   it never calls `classify`/`is_control_plane_target`/the hooks themselves, so no assertion's
   verdict is a function of `HARNESS_CONTROL_PLANE`'s contents. Rejected.

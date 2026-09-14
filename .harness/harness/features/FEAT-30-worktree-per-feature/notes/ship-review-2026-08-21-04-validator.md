@@ -29,7 +29,7 @@ relayed claims did not survive that** — listed under *Claims that failed verif
 
 ## The blocker
 
-**F-1 — high, gates.** `bash-write-guard.sh:617-618` does `if not findings: sys.exit(0)`, and that
+**F-1 — high, gates.** `bash-write-guard.py:617-618` does `if not findings: sys.exit(0)`, and that
 runs **before** the reviewer read-only denial at `:628` and before the domain walk at `:640+`. A
 command like `python3 .claude/skills/harness/bin/expertise-merge.py apply --file <any path>` matches
 no write pattern, so `findings` is empty and the guard exits 0 without ever reaching either check.
@@ -237,7 +237,7 @@ Unstruck rows become issues on your ship acceptance; anything not listed here di
    probe, not another reviewer.
 5. **Two routes give two different answers for the same location.** `SPEC.md:2239` argues per-team
    serialization suffices "because the teams are operating on different checkouts", while the carve-out
-   at `bash-write-guard.sh:687` blanket-allows any governed agent to write into any worktree on the Bash
+   at `bash-write-guard.py:687` blanket-allows any governed agent to write into any worktree on the Bash
    route. DEC-143 and DEC-153 answer differently and each route implements one answer. Intended? And is
    it inside #626's scope, or is #626 only about path spellings?
 6. **Is there any *running* post-run audit of HEAD position**, as opposed to the one-shot manual DEC-153
@@ -256,7 +256,7 @@ one of three options you are being asked to choose between. Each of those is che
 **One attribution I had wrong, and the panel caught it.** The internally contradictory signed intent
 is **T-04's** (`plan.yaml:736-739` against `:861-863`), not T-05's — the code reviewer derived that
 independently. The substance stands and resolves in the operator's favour: the carve-out at
-`bash-write-guard.sh:688` runs before `classify` and is blanket and depth-agnostic, so the intent's
+`bash-write-guard.py:688` runs before `classify` and is blanket and depth-agnostic, so the intent's
 refuse-half really was unreachable. And the delivered handling did more than I credited — it relocated
 the refusal half to a reachable site, preserving the paired-case purpose rather than dropping it.
 

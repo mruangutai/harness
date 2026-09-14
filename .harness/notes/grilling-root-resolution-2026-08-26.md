@@ -103,7 +103,7 @@ worktree copy: /Users/.../worktrees/harness/FEAT-37-lead-stop-and-wake
 
 ### The sixteen sites split 7 hooks / 9 scripts
 
-Hooks (always run MAIN's copy): `bash-write-guard.sh`, `branch-create-gate.sh`,
+Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.sh`,
 `check-domain.py`, `context-watch-hook.py`, `dispatch-guard.sh`, `gh-close-gate.sh`,
 `inject-expertise.sh`, `validate-digest.py`.
 
@@ -114,7 +114,7 @@ Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`
 ### One function is deliverable — none of these is really bash
 
 Every `.sh` site already runs `python3`, and **four already import a shared harness module**:
-`bash-write-guard.sh`, `check-domain.py`, `check-state.sh`, `post-merge-sweep.py`. The precedent
+`bash-write-guard.py`, `check-domain.py`, `check-state.sh`, `post-merge-sweep.py`. The precedent
 for a shared import exists; it was simply not used for this.
 
 ### The problem has already been hit and patched privately
@@ -161,7 +161,7 @@ the calling agent stands, even though the hook process itself runs the main chec
 | `dispatch-guard.sh` | **yes** — `:83`, then walks up to `.harness/team-config.yaml` |
 | `validate-digest.py` | **yes** — `:872`, same walk, cwd first |
 | `context-watch-hook.py` | reads `cwd` at `:58`, but passes it to `warn_for_agent` — not root resolution |
-| `bash-write-guard.sh` | no — env chain only |
+| `bash-write-guard.py` | no — env chain only |
 | `branch-create-gate.sh` | no |
 | `check-domain.py` | no |
 | `gh-close-gate.sh` | no |
@@ -173,7 +173,7 @@ shape as `check-domain.py`'s `linked_worktrees` patch: a real answer, unshared.
 ### But payload `cwd` is the wrong input, and #742 already ruled the right one
 
 `cwd` reports where the calling agent *stands*. Nothing *sets* where an agent stands — the Agent
-tool has no `cwd` parameter, `cd` does not persist between Bash calls, and `bash-write-guard.sh`
+tool has no `cwd` parameter, `cd` does not persist between Bash calls, and `bash-write-guard.py`
 refuses it. So `cwd` stays inherited from the spawning session and varies by accident.
 
 **#742 (2026-08-23) carries the ruling**: every governed dispatch opens with a machine-readable
@@ -335,7 +335,7 @@ operation**, passed to the same function.
 
 - `check-domain.py` (Write/Edit) — `tool_input.file_path`. Its own header already says the named
   route works: *"The named-target route already handled this via `_norm`; the sweep did not."*
-- `bash-write-guard.sh` — the paths it already parses out of the command.
+- `bash-write-guard.py` — the paths it already parses out of the command.
 - `validate-digest.py` — the digest path.
 - The four with NO target — `check-domain.py --post` (a blind sweep), `inject-expertise.sh`,
   `branch-create-gate.sh`, `gh-close-gate.sh` — pass `__file__` and take `owner_root`.

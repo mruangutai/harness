@@ -42,7 +42,7 @@ tied. That is what makes all three routes possible.
   `factory_config.py:151-156`, T-02 item 3, `fleet.yaml:26`. The finding holds.
 - Re-ran T-01's and T-08's verify clauses on disk: `T-01 GREEN`, `T-08 GREEN`.
 - Measured what survives the lockout instead of assuming: `git add`/`git commit` do, `Write`/`Edit`
-  do not (`bash-write-guard.sh:375`, `:475`, `:551`). That correction changed my recommendation's
+  do not (`bash-write-guard.py:375`, `:475`, `:551`). That correction changed my recommendation's
   procedure — the first draft would have stranded the run with no state file.
 - Confirmed T-09 had **not** merged when this was written; it has since merged as `692672d` and I re-ran its verify myself against kaya master: GREEN.
 - Re-probed board 2's Status options before you spend a cross-repository pull request on them —

@@ -21,7 +21,7 @@ taken.
 
 **`PF-3d9ac1d0…` (high, Bash route) — CLOSED BY FIX.** `REQ-08` (route-completeness), `D-10`
 (one seam, both surfaces, plus the scope fence), `T-09` (narrow the allow-continue at
-`bash-write-guard.sh:747`), `T-10` (five cases in `test-bash-write-guard.py`), `SC-18`/`SC-19`,
+`bash-write-guard.py:747`), `T-10` (five cases in `test-bash-write-guard.py`), `SC-18`/`SC-19`,
 and two `lanes:` rows. `T-09`'s intent names which `rel` the rule reads (the loop's ROOT-relative
 one at `:706`, not the verdict's BASE-relative one — the file's comment at `:759-762`) and why,
 and fences the `rel.startswith("..")` product-workspace continue at `:744` as load-bearing and out

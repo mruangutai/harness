@@ -115,11 +115,11 @@ Three sites changed, all inline in existing prose:
 **Deliberately left alone, with the check that settled it.** REQ-01/REQ-04/REQ-06 also go dark under
 the bootstrap grant, but on BOTH routes together, so that is a document-level precondition of the
 sanctioned escape rather than a route asymmetry this feature chose. The discriminator, read at
-`a29ad06`: T-03 places the Bash ROOT-side check above `bash-write-guard.sh`'s own `_no_parser` exit
+`a29ad06`: T-03 places the Bash ROOT-side check above `bash-write-guard.py`'s own `_no_parser` exit
 (near line 340) while the TARGET-side `classify` call sits in the findings loop below it — so the
 root-side rule survives the escape on Bash and the target-side rule does not. Scoping those three
 would have re-broadened the document with a qualifier none of them needs. REQ-03 is single-route by
-its own wording. REQ-09's fail-closed import sits at `bash-write-guard.sh:73`, above `_no_parser`,
+its own wording. REQ-09's fail-closed import sits at `bash-write-guard.py:73`, above `_no_parser`,
 and on the Write route is gated on `_run_domain` rather than on the parser, so it is unaffected.
 
 **Flagged, not fixed — needs the operator's call.** `## What the root-side rule deliberately does NOT

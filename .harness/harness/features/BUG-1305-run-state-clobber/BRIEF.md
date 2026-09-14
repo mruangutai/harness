@@ -112,7 +112,7 @@ than freezing a defect into it.
     refusal message names the exact `run_uid:` line to carry forward and where to read it; the harness
     re-injects the field after every governed landing, so the value is always present in the file the
     author reads; and the seed doctrine that tells leads to carry it forward is part of the work.
-  - **Bash — already closed, and not by this feature.** `bash-write-guard.sh`'s `_run_artifact_guard`
+  - **Bash — already closed, and not by this feature.** `bash-write-guard.py`'s `_run_artifact_guard`
     (:744-767 at `c369fb1f`) refuses a Bash write to any run's `state.yaml` in any checkout. Nothing
     here changes it and no criterion re-grades it.
   - **NotebookEdit — measured, not assumed.** It is reached by the registered `Write|Edit` matcher
@@ -214,14 +214,14 @@ than freezing a defect into it.
 
 - **DEC-174 (blocks execution, not planning).** The harness plans changes to its own hooks,
   validators and gate scripts but never executes them. Every task touching `check-domain.py`,
-  `bash-write-guard.sh`, `check-state.sh`, `validate-digest.py` or `.claude/settings.json` — and each
+  `bash-write-guard.py`, `check-state.sh`, `validate-digest.py` or `.claude/settings.json` — and each
   gate's own tests — carries `execution_mode: main-session-direct`.
 - **DEC-179 (supplies the mechanism for the above).** That routing is resolved at plan time by
   `check-plan-routes.py`, so an ungranted surface becomes a *declared* main-session step rather than
   a write rejected mid-build. A `DEVIATION` line on a granted path executed by the main session is
   the expected DEC-174 shape, not a failure.
 - **DEC-171 — the PyYAML-absent fail-open is an operator-ruled tradeoff and is NOT this feature's to
-  reverse.** PyYAML is REQUIRED with no fallback; `check-domain.py` and `bash-write-guard.sh` fail
+  reverse.** PyYAML is REQUIRED with no fallback; `check-domain.py` and `bash-write-guard.py` fail
   CLOSED without it; the bootstrap grant permits writes for that session only and expires by
   construction. The diagnosis names a bootstrap-grant session as a non-discriminable second candidate
   mechanism for Mode A. That candidate is acknowledged and bounded: narrowing or removing the
@@ -316,7 +316,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   asserts a non-zero exit; if (b) or (c) is absent or is not shown red on the pre-change copy; or if
   either half of (f) is absent or asserts only an exit code.
   **Graded on exactly these routes:** Write and Edit. The Bash route is refused wholesale by
-  `bash-write-guard.sh`'s `_run_artifact_guard` (:744-767 at `c369fb1f`) and is not re-graded here;
+  `bash-write-guard.py`'s `_run_artifact_guard` (:744-767 at `c369fb1f`) and is not re-graded here;
   NotebookEdit is graded by SC-11, which measures the route rather than assuming it.
   verify: automated        evidence: integration
 - **SC-02 (Mode A — detection):** Running the harness state checker over a fixture tree containing
@@ -372,7 +372,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   tree of legacy run directories that carry checkpoints and no witness at all; and the fifth pair,
   T-05's new fail-closed `return 2` in `validate-digest.py`, still exiting 0 over a run directory
   whose `digest.md` exists and is compliant and over the no-root-resolves case that fails open; and
-  the sixth pair, the witness guard's route denials in `bash-write-guard.sh` and `check-domain.py`,
+  the sixth pair, the witness guard's route denials in `bash-write-guard.py` and `check-domain.py`,
   still permitting — in the same run directory — a Write of `state.yaml` and a Write of `digest.md`
   at exit 0, and leaving a Bash write to an unrelated ordinary file in that directory unaffected,
   so the denial is scoped to the one filename rather than to the directory.
@@ -457,7 +457,7 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
 - **SC-13 (Mode A — the witness cannot be destroyed by a governed write):** The run directory's
   witness — the sole input REQ-02's detection reads — is refused on EVERY governed write route the
   checkpoint is refused on, and the routes are named rather than assumed: a Bash write to it and a
-  Bash removal of it are denied by `bash-write-guard.sh`'s `_run_artifact_guard`, and a Write and an
+  Bash removal of it are denied by `bash-write-guard.py`'s `_run_artifact_guard`, and a Write and an
   Edit of it are denied by `check-domain.py` before the write lands. Tests in the harness suite
   assert each of those four refusals, assert the path pattern matches the witness and not its
   sibling `state.yaml` or `digest.md`, and assert that a Write of `state.yaml` and a Write of

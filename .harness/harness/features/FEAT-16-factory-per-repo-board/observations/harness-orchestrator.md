@@ -39,7 +39,7 @@
   recording. `check-domain.py --resolve` returns NOBODY for it; feeding the hook a payload for
   `harness-documentor`, `harness-product-lead`, `harness-orchestrator` and `harness-backend-dev`
   against `Write`, `Edit`, `MultiEdit` and `NotebookEdit` returns BLOCKED every time; the
-  `PreToolUse` matcher is `Write|Edit`, so those are the covered tools; and `bash-write-guard.sh` is
+  `PreToolUse` matcher is `Write|Edit`, so those are the covered tools; and `bash-write-guard.py` is
   live enough that it blocked my own probe command for merely CONTAINING a redirect to the path. So
   the decision layer denies every agent × every edit tool, and the write landed anyway. Diagnosing
   further would mean editing a DEC-174 carve-out script, which is exactly what the carve-out

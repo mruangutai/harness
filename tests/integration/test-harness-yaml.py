@@ -542,7 +542,7 @@ def test_require_or_die_survives_a_missing_harness_boundary():
     a raw traceback and exit 1 instead of returning normally — exit 1 is
     NON-BLOCKING, and worse, check-state.py never reached its own later, PROPERLY
     guarded INV-25/INV-27 checks at all. Fail-open, same class as the module-level
-    import T-05 already fixed for bash-write-guard.sh/check-domain.py, one caller
+    import T-05 already fixed for bash-write-guard.py/check-domain.py, one caller
     later."""
     import shutil
 

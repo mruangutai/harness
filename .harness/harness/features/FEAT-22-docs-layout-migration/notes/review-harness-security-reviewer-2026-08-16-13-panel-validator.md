@@ -65,7 +65,7 @@ anything:**
   filename planted in `.harness/{notes,expertise,factory,logs,codebase}/docs/` is inert — nothing
   in this repo reads it.
 
-**Suites run (no redirects — my role is enforced read-only by `bash-write-guard.sh`, which
+**Suites run (no redirects — my role is enforced read-only by `bash-write-guard.py`, which
 correctly blocked a `>` redirect attempt with `harness-security-reviewer is READ-ONLY`; verified
 via `$(...)` capture instead):**
 - `python3 .claude/skills/harness/bin/test-check-domain.py` — 117 `ok`, 0 `FAIL`, exit 0.
@@ -144,7 +144,7 @@ this remedy is in the operator's or a build agent's hands, not routed to main se
 
 ## Probe hygiene
 No working-tree writes. One redirect attempt (`>` into a scratch temp file) was correctly refused
-by `bash-write-guard.sh` for this read-only role — reported as evidence the guard enforces
+by `bash-write-guard.py` for this read-only role — reported as evidence the guard enforces
 read-only on this role, not worked around. All command-substitution (`$(...)`) captures used
 instead. The in-memory `layout_migration` probe monkeypatched `glob.glob` in a Python process and
 touched no file. `git status --porcelain` at the end shows only pre-existing untracked artifacts

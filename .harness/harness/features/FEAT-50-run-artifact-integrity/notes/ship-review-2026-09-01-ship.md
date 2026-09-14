@@ -50,7 +50,7 @@ Four defects in how the harness records and locates a run's own artifacts, close
    exit 0 with a stated reason for absent/null.
 2. **#1057** — a governed agent could write a feature artifact into the **main checkout** while its
    feature had a registered worktree. Now bound on both write routes: the `PreToolUse` Write route
-   (`check-domain.py`) and the Bash route (`bash-write-guard.sh`), each naming the target and the
+   (`check-domain.py`) and the Bash route (`bash-write-guard.py`), each naming the target and the
    checkout the write belonged in.
 3. **#1058** — a `Write` to an existing `runs/<runid>/digest.md` could destroy the recorded digest.
    Now refused unless the payload carries the existing text as a prefix; an unreadable file is
@@ -80,9 +80,9 @@ The rules are on the permanent record as one decision in `.harness/harness/docs/
 
 Three findings gated during the cycle and **all three are closed by fix, not by overrule**:
 
-1. HIGH — `bash-write-guard.sh` skipped `feature_checkout_guard` on the `shared` outcome, so a
+1. HIGH — `bash-write-guard.py` skipped `feature_checkout_guard` on the `shared` outcome, so a
    feature-scoped shared path could be written into the main checkout via `echo hi >` at exit 0
-   while `Write` refused at exit 2. Closed at `bash-write-guard.sh:784-785`, with a scoped mutation
+   while `Write` refused at exit 2. Closed at `bash-write-guard.py:784-785`, with a scoped mutation
    built **outside** the shipped suite proving the line load-bearing.
 2. HIGH ×2 — `code_grade` 1 on `run_feat50_checkout_binding` and `run_feat50_artifact_integrity`.
    Re-graded 11/9/59.6 → 1/0/16.1 and 17/14/85.8 → 1/0/20.0, both grade 4, with case-name sets
@@ -193,8 +193,8 @@ anything not on this table dies silently.**
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-1 | bug | Untested `AmbiguousWorktree` deny sits directly above a blanket `except Exception: return` in both gates (`check-domain.py:733-736`, `bash-write-guard.sh:713-716`). Correct today, but nothing in the suite fails if a future refactor reorders the two `except` clauses — which silently converts a denial into a main-checkout write, issue #1057's exact shape. **Ranked first of the advisories despite being med: its failure mode is a silent loss nobody discovers.** |
-| B-2 | chore | `feature_checkout_guard` is duplicated near-verbatim across `check-domain.py` and `bash-write-guard.sh` instead of returning a verdict from `harness_boundary.py` the way `classify()` does — the drift risk that module's own docstring exists to name. The high finding above added a second *call site*, not a second implementation. |
+| B-1 | bug | Untested `AmbiguousWorktree` deny sits directly above a blanket `except Exception: return` in both gates (`check-domain.py:733-736`, `bash-write-guard.py:713-716`). Correct today, but nothing in the suite fails if a future refactor reorders the two `except` clauses — which silently converts a denial into a main-checkout write, issue #1057's exact shape. **Ranked first of the advisories despite being med: its failure mode is a silent loss nobody discovers.** |
+| B-2 | chore | `feature_checkout_guard` is duplicated near-verbatim across `check-domain.py` and `bash-write-guard.py` instead of returning a verdict from `harness_boundary.py` the way `classify()` does — the drift risk that module's own docstring exists to name. The high finding above added a second *call site*, not a second implementation. |
 | B-3 | bug | `inflight_registry.feature_root`'s "an ambiguity falls back to the owner root and nothing is raised" contract has **no test anywhere**. `feature_root` is never called by name in `test-inflight-registry.py`, before or after the cutover. A refactor narrowing `except Exception` to `except AmbiguousWorktree` would ship green. |
 | B-4 | chore | Pre-existing `run_t14` in `test-check-domain.py` still grades FAIL (cyc 8 / ABC 51). Outside `dca2d3d..HEAD`, so it neither gated this cycle nor was cleared by it. Recorded so the next cycle does not rediscover it as new. |
 | B-5 | bug | `PF-f52c5043…` (med) — `check-domain.py`'s binding sits only in `domain_check()`'s allow/shared branches, while `harness_boundary.classify`'s `not_a_domain_question` outcome returns earlier; the Bash route's narrowed continue covers both. The two "route-complete" fixes are asymmetric in verdict-shape coverage. **Measured inert today**: `HARNESS_PROJECT_DIR` is read in exactly one production file and set by no production code, so a governed agent's root is always the main checkout. Latent, not live. |
@@ -205,7 +205,7 @@ anything not on this table dies silently.**
 | B-10 | chore | `PF-bd841841…` (low) — the locate-by-source-text mutant idiom couples three permanent red-proof cases to the gates' exact source bytes. A later legitimate rewording of any targeted branch reds the integration suite INCONCLUSIVE on a correct tree, and via SC-10 that red would gate unrelated future features. |
 | B-11 | chore | `PF-cec83ae4…` (low) — the decision heading and SC-14 say "three rules" while the landed entry records five rulings, so the index's search surface omits the fourth defect's rule and the Bash-route ruling. |
 | B-12 | chore | `PF-b7646eb9…` + `PF-bf9f5214…` (low/info) — line-anchor drift in D-11, T-11 and BRIEF.md's REQ-01 gap bullet (cited `:1414`, actual `:1413`). Substance correct in each case; only the anchors are off. |
-| B-13 | bug | **Harness defect, outside FEAT-50's scope.** `bash-write-guard.sh` denies `cp`, `sed -i` and redirects, but not `python3 <script> <path>` — a governed agent can write any path through an interpreter. This is how T-01/T-02 were applied before the guard was measured; disclosed at the time and ruled to stand. **Re-measured during this closeout and it matters more than it looked:** the Write route refuses a governed write to the main checkout's FEAT-50 record at exit 2, while the Bash route returns exit 0 for a `python3 gh-sync.py ship <that same dir>` invocation. Two routes, opposite answers, on the identical target. |
+| B-13 | bug | **Harness defect, outside FEAT-50's scope.** `bash-write-guard.py` denies `cp`, `sed -i` and redirects, but not `python3 <script> <path>` — a governed agent can write any path through an interpreter. This is how T-01/T-02 were applied before the guard was measured; disclosed at the time and ruled to stand. **Re-measured during this closeout and it matters more than it looked:** the Write route refuses a governed write to the main checkout's FEAT-50 record at exit 2, while the Bash route returns exit 0 for a `python3 gh-sync.py ship <that same dir>` invocation. Two routes, opposite answers, on the identical target. |
 | B-14 | enhancement | **Harness defect.** `validate-digest.py`'s `code_grade_bound_to_review` check is unconditional for `harness-code-reviewer`, so while `review_sha` dangled the persona could return **no digest shape at all** — a complete, correct PASS review surfaced as `failed (exit 1)`. The gate was right and the escape hatch was missing: a reviewer needs a contract-shaped way to report that the pin itself is the defect. |
 | B-15 | chore | UI advisory (low) — the `digest-unreadable` refusal message names the refusal but not an explicit next step. Edge-case `OSError` path, the write is correctly refused, and the missing text ("investigate why the file can't be read") is inherently open-ended rather than a single prescribable action. |
 | B-16 | chore | BRIEF.md's INV-32 section closes with "The remaining five panel findings — two med, three low — were not ruled on". True of what *you* ruled on, but a reader arriving after the amendment sees eleven findings and may read it as a count of the panel list. One clause. |

@@ -39,7 +39,7 @@ Writable paths are in the manifest: `.github/**`, `Dockerfile`, `<HARNESS_CONTRO
 
 ## You are the sharp edge, and you should know it
 
-Your `Bash` writes are exempt from `bash-write-guard.sh` (DEC-85/151) — **you are trusted by
+Your `Bash` writes are exempt from `bash-write-guard.py` (DEC-85/151) — **you are trusted by
 design**, which is why merge and deploy stay user-gated.
 
 Act accordingly: **destructive and outward-facing operations are not yours to decide.** Never

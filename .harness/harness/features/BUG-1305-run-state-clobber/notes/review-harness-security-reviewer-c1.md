@@ -16,7 +16,7 @@ secret-exposure, or shell-interpolation defect found elsewhere in the diff.
 
 ## Scope
 
-In scope: `.claude/skills/harness/bin/{run_identity.py (new), check-domain.py, bash-write-guard.sh,
+In scope: `.claude/skills/harness/bin/{run_identity.py (new), check-domain.py, bash-write-guard.py,
 check-state.sh, harness_boundary.py, validate-digest.py}`. `.claude/skills/harness-team/SKILL.md` and
 the touched test files carry no security surface (doctrine text / test fixtures) — read, not audited
 further. Confirmed the file set with `git diff --name-status origin/main...dc0e0313`; no file present
@@ -25,18 +25,18 @@ in the diff falls outside the dispatch's named list.
 ## Method
 
 All file content read via `git show dc0e0313:<path>`, never the working tree. Behavioral claims below
-were **executed**, not inferred: `.claude/skills/harness/bin/{bash-write-guard.sh,check-domain.py,
+were **executed**, not inferred: `.claude/skills/harness/bin/{bash-write-guard.py,check-domain.py,
 harness_boundary.py,run_identity.py,check-state.sh,validate-digest.py}` in this worktree are
 byte-identical to the pinned blobs (`diff <(git show dc0e0313:<path>) <path>`, all six empty) — that
 was verified before any test execution, so running the working copy is running the pinned commit.
-I fed crafted PreToolUse payloads to `bash-write-guard.sh` on stdin; the script only parses the
+I fed crafted PreToolUse payloads to `bash-write-guard.py` on stdin; the script only parses the
 payload string and never executes the modeled command, so no repository state was touched.
 
 ## Findings
 
 ### SEC-01 (high) — directory-level Bash rm/mv on a run directory bypasses every witness/checkpoint guard
 
-**Where:** `.claude/skills/harness/bin/bash-write-guard.sh`, the `for name, paths in findings:` loop
+**Where:** `.claude/skills/harness/bin/bash-write-guard.py`, the `for name, paths in findings:` loop
 (:~875) and `_run_artifact_guard` (:784-800 at the pin) — the guard only matches an *exact basename*
 (`RE_RUN_IDENTITY`, `RE_RUN_DIGEST`, `RE_STATE_YAML`, all anchored `...runs/[^/]+/<name>$`). `rm`'s
 own target-extraction (`trailing_files`) and `mv`'s (`trailing_files(args)[-1:]`) report whatever
@@ -91,7 +91,7 @@ two files already had.
 refuse an `rm`/`rmdir`/`mv`-source whose target, once trailing-slash-normalized, is a run directory
 itself (`^\.harness/[^/]+/features/[^/]+/runs/[^/]+/?$`) or any ancestor of one, mirroring the
 existing basename patterns but matching the *directory*, not the file. This is a real code change
-across `bash-write-guard.sh` (new pattern + a "does this path recurse into a run dir" check ahead of
+across `bash-write-guard.py` (new pattern + a "does this path recurse into a run dir" check ahead of
 `classify`) and its test suite (`tests/**/test-bash-write-guard.py`) — not a comment fix, not a
 one-liner, and not something to slip in as a drive-by edit under DEC-174's main-session-direct rule
 without its own task and tests.
@@ -165,7 +165,7 @@ DIGEST:
   scope_reason: "Diff adds security guard scripts (write-once witness, refusal ladders) whose entire purpose is preventing tampering with another run's durable record — squarely Tampering/Repudiation STRIDE surface even with no network exposure."
   severity_max: high
   findings: 1
-  must_fix: ["SEC-01: directory-level Bash rm/mv reaching the run directory bypasses the witness/checkpoint guards entirely (bash-write-guard.sh _run_artifact_guard + harness_boundary.classify); requires a directory-shaped pattern, not a comment fix — ship only with explicit operator acceptance as a named residual, or a follow-up task."]
+  must_fix: ["SEC-01: directory-level Bash rm/mv reaching the run directory bypasses the witness/checkpoint guards entirely (bash-write-guard.py _run_artifact_guard + harness_boundary.classify); requires a directory-shaped pattern, not a comment fix — ship only with explicit operator acceptance as a named residual, or a follow-up task."]
   threat_model:
     - { boundary: "Bash write/removal of .run-identity.json by basename", stride: "T", mitigated: true }
     - { boundary: "Write/Edit of .run-identity.json by basename", stride: "T", mitigated: true }

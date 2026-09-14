@@ -44,7 +44,7 @@ distillation runs earn their place: each produced durable memory and one produce
 defect below. Note that `harness-validator-lead` wrote its distillation digest into
 `runs/2026-08-31-1-validator/`, reusing the validate-phase dir name, so that id now appears twice
 in `runs:` and the digest at that path holds only the distillation record. The dir could not be
-renamed — `runs/*-validator/**` is the validator lead's domain and `bash-write-guard.sh` correctly
+renamed — `runs/*-validator/**` is the validator lead's domain and `bash-write-guard.py` correctly
 denied the orchestrator's `mv`.
 
 `review_sha` bdd5666 is historical now; the merge commit is `d7f31bb`. The three deferred success

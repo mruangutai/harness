@@ -60,7 +60,7 @@ lanes:
       lane: main-session-direct
       reason: DEC-174 carve-out, one of the four named enforcement scripts; the bin/** row above
         resolves it to team, which is wrong, and this feature edits it in T-06
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: DEC-174 carve-out, one of the four named enforcement scripts; listed because the
         bin/** row resolves it to team, not because this feature touches it

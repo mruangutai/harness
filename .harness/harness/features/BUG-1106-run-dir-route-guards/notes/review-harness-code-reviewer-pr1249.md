@@ -15,7 +15,7 @@ well-tested, and traced clean by hand.
 
 ### 1. `_run_artifact_guard` is placed after the DEC-153 worktree carve-out — the new Bash-route protection is inert for any write whose target resolves under `.claude/worktrees/`
 
-`bash-write-guard.sh`'s findings loop (`:754-822`) has an unconditional early `continue` at
+`bash-write-guard.py`'s findings loop (`:754-822`) has an unconditional early `continue` at
 line ~765 for any `rel` matching `^\.claude/worktrees/` — **before** `harness_boundary.classify()`
 is ever called, and therefore before either `feature_checkout_guard` or the new
 `_run_artifact_guard` (called only from the `allow`/`not_a_domain_question` and `shared` branches,

@@ -100,7 +100,7 @@ Settled by the operator 2026-08-20 and stated as three facts so nobody re-derive
   during a live run is refused rather than trusted not to.
 
   The original text was silent on `harness-dev-ops`, and silence resolved to *exempt*:
-  `bash-write-guard.sh:56-57` returns exit 0 for that persona before line 58's `harness-` prefix
+  `bash-write-guard.py:56-57` returns exit 0 for that persona before line 58's `harness-` prefix
   test, so a rule keyed off that prefix provably never reaches it — and T-01, T-02 and T-08 are
   laned to exactly that persona. The scoping is therefore what makes the requirement true of the
   agents most likely to move `HEAD`.

@@ -90,7 +90,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   Validation squad and the orchestrator owns cross-squad sequencing. **No SC apologises for
   7-of-8, and `build.yaml` is not widened to reach qa.** Both were the wrong repair.
 - **DEC-174 carve-out, extended.** The harness plans its own work but does not *execute* changes to
-  its own enforcement layer. CLAUDE.md names `check-domain.py`, `bash-write-guard.sh`,
+  its own enforcement layer. CLAUDE.md names `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py`, `check-state.sh`, `check-docs.sh`. The mission extends it to
   `bin/test-harness-yaml-corpus.py`; pm extended it further (D-05) to `bin/test-check-state.py`,
   `bin/run-unit-tests.sh` and the new `bin/test-team-catalog.py` — **the user KEPT that extension**
@@ -112,7 +112,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   today (`harness-team/SKILL.md:9`).
 - **Out of scope:** #19 (no agent runs a PLAN task's `verify:` — filed, the user has been told, and
   this PLAN's own `verify:` lines are subject to it), #20, #21, #10, #7, #13, #14, #6, and the
-  `bash-write-guard.sh` `FOO=bar python3 -` false positive.
+  `bash-write-guard.py` `FOO=bar python3 -` false positive.
 - Budget **$160** (raised from $120 by the user on 2026-08-04, `notes/answers-replan-product.md`);
   **57–90 of 160** spent — 44.81 measured (18.90 plan-eng + 25.91 replan-product) plus a
   never-measured segment-1 band of 12–45. See `open_questions`.

@@ -12,7 +12,7 @@ file content" was true of case 5 only — case 6 had no trials and reported byte
 
 Built the discriminating mutant per the dispatch: copied `bin/` via
 `python3 -c "shutil.copytree(...)"` (the same `cp`-avoidance substitution accepted in cycle 1 —
-`bash-write-guard.sh` denies a literal `cp` with a variable target) into a tmpdir, then mutated
+`bash-write-guard.py` denies a literal `cp` with a variable target) into a tmpdir, then mutated
 `harness_merge.py`'s `locked_update` BY NAME, replacing the mkstemp-plus-`os.replace` block with a
 direct `open(path, "wb")` write to the target, with `assert m != s` guarding the substitution
 applied (mirrors the task's own `USE_FLOCK` mutation pattern).
@@ -73,7 +73,7 @@ unmutated 4 times (once plus 3 more), 18/18 checks passed every time, no flake.
 
 Ran the block verbatim (same one accepted substitution: `cp -R` → `python3 -c
 "shutil.copytree(...)"`, because the literal `cp` with a `$T` variable target is denied by
-`bash-write-guard.sh` before the shell expands `$T`):
+`bash-write-guard.py` before the shell expands `$T`):
 
 ```
 PASS - case1: transform receives None for missing file

@@ -185,7 +185,7 @@ merged with another, and no atomic landing is required.
   dependency — an unquoted `#` in `team-config.yaml` has already taken a resolver down once.
 - **The craft tier's location and semantics are out of scope.** `.harness/expertise/` stays where it
   is, with its 150-line budget, its per-agent grants and its global sibling.
-- **`check-state.sh`, `check-domain.py`, `bash-write-guard.sh` and `validate-digest.py` are not
+- **`check-state.sh`, `check-domain.py`, `bash-write-guard.py` and `validate-digest.py` are not
   edited.** No task touches them, and `check-state.sh` has no expertise invariant to update. The
   measurement, stated so it is true as written: `grep -i expertise` over
   `.claude/skills/harness/bin/check-state.sh` at `ada8e99` returns **exactly two lines**, `:343` and

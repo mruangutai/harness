@@ -66,7 +66,7 @@ placed worktree write does today changes.
   root is never silently read as "no claims here". That is the identical shape this requirement
   already refuses in an unparsed destination `.git` pointer — a record that exists, claims to carry
   the answer, and cannot be read — and it matches the fail-closed treatment an unparseable manifest
-  already gets on both routes (`bash-write-guard.sh:684-694`). `inflight_registry._parse` treats
+  already gets on both routes (`bash-write-guard.py:684-694`). `inflight_registry._parse` treats
   such a file as empty (`:56-65`) deliberately, for the CLAIM/WRITE path, and that fallback is
   pinned by `case_8_corrupt_registry` (`tests/integration/test-inflight-registry.py:329`); the
   READ/REFUSAL path this bug adds must not inherit it. Chosen fail-closed because the guarded
@@ -151,7 +151,7 @@ placed worktree write does today changes.
   an unrefused write, so every pre-change call must also prove the frozen guard RAN.**
   `check-domain.py` exits 0 after printing on its quarantine-boundary exception (`:1864-1869`,
   `quarantine boundary was not enforced ... passing through`) and on a missing manifest (`:383-386`,
-  `enforcement OFF`); `bash-write-guard.sh` fail-opens SILENTLY at exit 0 on an unparseable payload
+  `enforcement OFF`); `bash-write-guard.py` fail-opens SILENTLY at exit 0 on an unparseable payload
   (`:78-80`) and on a missing manifest (`:267-269`). Each pre-change call therefore asserts both:
   (a) its stderr contains none of the substrings `enforcement OFF`, `was not enforced`,
   `passing through`; and (b) a POSITIVE CONTROL fired at the same frozen guard, in the same

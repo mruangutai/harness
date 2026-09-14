@@ -69,7 +69,7 @@ all) closes both, and I measured both to be sure the fix isn't narrower than it 
 Routes: **Edit — closed** (above). **Write — was already closed pre-fix** (unconditional `targets`
 build in the `else` branch, unaffected by this delta's diff) and I did not need to re-measure it;
 c1's review already proved it live and this delta does not touch that branch.
-**Bash — unaffected, still closed**: `bash-write-guard.sh`'s `_run_artifact_guard`
+**Bash — unaffected, still closed**: `bash-write-guard.py`'s `_run_artifact_guard`
 (`RE_RUN_IDENTITY.match(rel)` → `deny(...)`) is untouched logically in this delta — the diff there
 is comment/message wording only (adds the issue #1376 cross-reference), confirmed by reading the
 full diff hunk; no control-flow line changed.
@@ -106,7 +106,7 @@ follows entry into the `not _post` block).
 ## Q3 — Do the three moved files agree?
 
 **Yes, and more strongly than the sibling `RE_STATE_YAML`/`RE_RUN_DIGEST` patterns do.**
-`bash-write-guard.sh`'s `_run_artifact_guard` reads `harness_boundary.RE_RUN_IDENTITY` directly
+`bash-write-guard.py`'s `_run_artifact_guard` reads `harness_boundary.RE_RUN_IDENTITY` directly
 (no independent respelling); `check-domain.py` imports the SAME object as
 `_shape_boundary.RE_RUN_IDENTITY` (`check-domain.py:1187`, `try: import harness_boundary as
 _shape_boundary; RE_RUN_IDENTITY = _shape_boundary.RE_RUN_IDENTITY`). One compiled regex, two

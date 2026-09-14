@@ -96,7 +96,7 @@ narrates fixing the identical bug class once already for the `harness_yaml` impo
 
 **Limits of my own verification, disclosed.** I did not run the real hook end-to-end against an
 actual broken `feature_schema.py` on `PYTHONPATH` — doing so needs a fixture file, and
-`bash-write-guard.sh` denies every detected write pattern from `harness-code-reviewer`
+`bash-write-guard.py` denies every detected write pattern from `harness-code-reviewer`
 unconditionally (see Probe hygiene, below). My reproduction is the same standard panel2 used:
 independent confirmation of the Python semantics plus static confirmation of the code shape, not
 a live run of the full hook under fault injection.
@@ -209,7 +209,7 @@ already clean at HEAD, left clean — `git status --porcelain` empty before and 
 to any DEC-174 carve-out file — `check-domain.py`, `check-state.sh`, `check-plan-routes.py` and
 their test files were READ and RUN only.
 
-`bash-write-guard.sh` denies every detected write pattern from `harness-code-reviewer`
+`bash-write-guard.py` denies every detected write pattern from `harness-code-reviewer`
 unconditionally (no path analysis, by design), and the Write tool is domain-restricted to two
 paths. This blocked fabricating POST-route (Edit-lands-on-disk, Bash-sweep) fixtures and a
 shadow-`jsonschema.py`/broken-`feature_schema.py` PYTHONPATH fixture (the technique

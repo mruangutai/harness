@@ -224,7 +224,7 @@ closing **the card I edited** removed:
     OK    REAL docs/harness/org.html: tag stack empty, nesting balanced
     sensitivity: PROVEN (broken rejected, real accepted)          exit=0
 
-The broken variant is held **in memory**, not on disk: `bash-write-guard.sh` blocks `cp` and shell
+The broken variant is held **in memory**, not on disk: `bash-write-guard.py` blocks `cp` and shell
 redirect to the scratchpad (outside my domain), so the mutation is applied to the file's bytes after
 reading. Same bytes checked either way.
 
@@ -237,7 +237,7 @@ reading. Same bytes checked either way.
 
 ### Observations
 
-- 2026-08-05 (MF-2): `bash-write-guard.sh` denies `cp` and shell redirect to the SCRATCHPAD, not just
+- 2026-08-05 (MF-2): `bash-write-guard.py` denies `cp` and shell redirect to the SCRATCHPAD, not just
   to repo paths — a fixture for a sensitivity demo cannot be staged with `cp`. Either author it with
   the `Write` tool or, better, mutate the bytes in memory inside the checker so the demo needs no
   file at all.

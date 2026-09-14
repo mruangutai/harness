@@ -11,7 +11,7 @@ Measured at `a29ad06` (grilling, `.harness/notes/grilling-guard-boundaries-2026-
 
 - **#261.** With `src/**` granted to `harness-backend-dev` and the target `<root>/src/main.py`, the
   Write route exits 2 and `echo hi > <root>/src/main.py` exits 0. An agent denied by one hook
-  succeeds by switching tools — the exact evasion `bash-write-guard.sh` was added to stop.
+  succeeds by switching tools — the exact evasion `bash-write-guard.py` was added to stop.
 - **#103, and only one half of it is still live.** A git worktree of this repository sitting outside
   `.claude/worktrees/` is outside the harness root and outside every workspace base, so it falls to
   the branch whose comment reads "not the repo, not deployed, not state" — true of `/tmp`, false of
@@ -151,7 +151,7 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   `<root>/.harness/allowed/x.txt` exits 0 on both.
   verify: automated      evidence: integration
 - SC-06: The rule has exactly one implementation, proved by mutation rather than by grep. Fixture:
-  an isolated `bin/` copy in a tempdir containing `check-domain.py`, `bash-write-guard.sh`,
+  an isolated `bin/` copy in a tempdir containing `check-domain.py`, `bash-write-guard.py`,
   `harness_boundary.py` and `harness_yaml.py`, plus a root manifest and the hand-built pointer files;
   `CLAUDE_PROJECT_DIR` is pinned to `<root>/.claude/worktrees/wt`, which carries its own
   `.harness/team-config.yaml` granting `.harness/allowed/**`, so the mutation is observed through the
@@ -234,7 +234,7 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   worktree is still listed in the after-capture, and `git tag --list` contains the recovery tag for
   the removed worktree's commit `52d8334`, which is not an ancestor of `main`.~~
 - SC-10: An unimportable shared module fails CLOSED rather than turning both guards off. Fixture:
-  an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.sh` and `harness_yaml.py`
+  an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.py` and `harness_yaml.py`
   but NOT `harness_boundary.py`, run against a root whose manifest is PRESENT. Forbidden: a governed
   write exits 2 on both routes, with a verdict naming the missing module. Paired allow, same
   isolated copy with the manifest ABSENT: the DEC-101 fail-open still prints `enforcement OFF` and
@@ -276,7 +276,7 @@ So both governed-path import sites wrap the import and exit 2. Exit 2 is afforda
 lock the repository out of repairing itself: the import site is already gated on `_run_domain`,
 which is `_governed and not _post` (`check-domain.py:432`, `:450`, `:471`, `:493`), so the main
 session never reaches it; `harness-dev-ops` is exempt before the equivalent point on the Bash route
-(`bash-write-guard.sh:54-59`); and all five `bin/` surfaces are `main-session-direct` under DEC-174.
+(`bash-write-guard.py:54-59`); and all five `bin/` surfaces are `main-session-direct` under DEC-174.
 SC-10 is what proves it.
 
 ## Verification gaps
@@ -292,7 +292,7 @@ SC-10 is what proves it.
 
 ## Constraints
 
-- `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` and `check-state.sh` are DEC-174
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and `check-state.sh` are DEC-174
   carve-out files. Every task touching any of them, and the new shared module the rule moves into,
   is `main-session-direct`: ordinary edits, tests run explicitly, a human reading the diff.
 - Ruling: an out-of-place worktree is a mistake, not a supported shape. It is REFUSED, never

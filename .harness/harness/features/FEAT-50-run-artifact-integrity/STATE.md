@@ -57,7 +57,7 @@ landed station from `main`.
 - Q3 (non-blocking, harness defect): the two write routes disagree on the identical target. The
   Write route refuses a governed write to the main checkout's FEAT-50 record at exit 2; the Bash
   route returns exit 0 for `python3 gh-sync.py ship <that same dir>`, because
-  `bash-write-guard.sh` cannot see through an interpreter. Briefing B-13. The refusal was honoured
+  `bash-write-guard.py` cannot see through an interpreter. Briefing B-13. The refusal was honoured
   here rather than routed around.
 - Q4 (non-blocking, harness defect): a merged feature's honest `review_sha` goes stale when a LATER
   feature's migration rewrites its `plan.yaml`. INV-33's terminal-station silence catches it only

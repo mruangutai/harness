@@ -1,6 +1,6 @@
 # Observations — harness-qa — FEAT-27
 
-- 2026-08-19: `bash-write-guard.sh` denies `cp`/`sed -i` on ANY path under the scratchpad
+- 2026-08-19: `bash-write-guard.py` denies `cp`/`sed -i` on ANY path under the scratchpad
   (`check-domain.py --resolve` answers `NOBODY` there) — not just repo paths. Mutation-probe
   copies must go through the `Write` tool, never `Bash cp`, even in scratchpad. Cost me one
   self-inflicted bug: I wrote a mutated `check-expertise.sh` copy under the baseline's filename
@@ -41,7 +41,7 @@
   (specific to uncaught Python exceptions, which this mutant does not produce). A
   `"Traceback" not in stderr` assertion in case13's place would have stayed green under the
   exact mutant it exists to catch.
-- 2026-08-19: `bash-write-guard.sh` blocks Bash-tool file redirects (`>` / `cp`) into the
+- 2026-08-19: `bash-write-guard.py` blocks Bash-tool file redirects (`>` / `cp`) into the
   scratchpad too, not just repo paths — every write for a mutation probe, including throwaway
   scratch copies, has to go through the `Write` tool. Second time this has cost a false start
   this feature; worth a durable pattern if it recurs on a third.

@@ -28,7 +28,7 @@ Traced the write-time guard stack:
   runs for Bash**. Only `harness-orchestrator` holds `.harness/*/features/**` in `team-config.yaml`
   (:36); no other of the 16 personas — including `harness-validator-lead`, whose grant is
   `runs/*-validator/**` only, never `feature.json` itself — has any domain grant on it.
-- `bash-write-guard.sh` (PreToolUse, `Bash`) denies shell redirects/in-place editors
+- `bash-write-guard.py` (PreToolUse, `Bash`) denies shell redirects/in-place editors
   (`sed -i`, `tee`, `>`, `>>`) but does not, and by its own docstring cannot, parse arbitrary
   argv — `python3 .../feature-json-merge.py append-run <path> '<json>'` is an ordinary
   subprocess call with no redirect and passes clean.

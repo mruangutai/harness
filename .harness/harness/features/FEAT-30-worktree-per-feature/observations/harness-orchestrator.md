@@ -15,7 +15,7 @@
 ## Probing guards
 
 - 2026-08-20: probing a guard is vacuous unless the probe carries a GOVERNED `agent_type`.
-  `bash-write-guard.sh` exempts `harness-dev-ops` (DEC-151), so my first three probes all exited 0
+  `bash-write-guard.py` exempts `harness-dev-ops` (DEC-151), so my first three probes all exited 0
   and I nearly read that as "creation is permitted everywhere". Re-run as `harness-backend-dev` and
   `harness-orchestrator`, the served-repo destination exited 2. Same command, same file, opposite
   verdict — the agent_type IS the experiment.
@@ -121,6 +121,6 @@
 
 - 2026-08-20: when a lead reports a contradiction it "could not run the discriminating check" on, look
   for whether the answer is WHO rather than WHAT. Two spawns got opposite results from one command
-  because `bash-write-guard.sh` early-returns for no `agent_type` and for `harness-dev-ops`; I had
+  because `bash-write-guard.py` early-returns for no `agent_type` and for `harness-dev-ops`; I had
   reproduced the denial myself, so four data points settled in one read what the lead could not settle
   at all.

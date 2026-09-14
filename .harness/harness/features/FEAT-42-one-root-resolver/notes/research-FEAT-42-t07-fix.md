@@ -1,7 +1,7 @@
 # T-07 fixed to match the amended SC-01 — FEAT-42 — 2026-08-26
 
 **All three edits are on disk. SC-01 and the dispatch agree, so no BLOCKED on that axis.** One new
-finding, measured, needs the orchestrator: `bash-write-guard.sh` denies T-07's mutation proof — and
+finding, measured, needs the orchestrator: `bash-write-guard.py` denies T-07's mutation proof — and
 denied the version already in the plan, before I touched it.
 
 ## The three edits (`plan.yaml`, T-07 only)
@@ -50,7 +50,7 @@ old `$B/gh-close-gate.sh` target went red under both, so it could not prove the 
 
 ## Open question — the write guard denies this proof, and already denied the old one
 
-Measured against `.claude/skills/harness/bin/bash-write-guard.sh` with
+Measured against `.claude/skills/harness/bin/bash-write-guard.py` with
 `agent_type=harness-backend-dev`, `CLAUDE_PROJECT_DIR` = the main checkout:
 
 | redirect target | verdict |

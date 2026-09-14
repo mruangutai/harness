@@ -75,7 +75,7 @@ trust boundary.**
   `state.yaml` on disk without going through the `Write`/`Edit` hook (the pre-existing, separately-
   accepted **DEC-85** Bash-write bypass, confirmed still standing in `DECISIONS.md` today —
   serialization + `isolation: worktree` is the real write-safety mechanism, the hook is a
-  guardrail, `bash-write-guard.sh` narrows only the casual case) sets `run_id` or a step `id` to a
+  guardrail, `bash-write-guard.py` narrows only the casual case) sets `run_id` or a step `id` to a
   string carrying ANSI/terminal control bytes. At the next `/harness` entry, `check-state.sh`'s
   INV-16 sweep prints that value unescaped into the operator's terminal — the audit line meant to
   flag the schema violation can itself be overwritten or hidden on-screen. Severity **med**: it
@@ -133,7 +133,7 @@ path in both scripts (pre-existing, BASH_SOURCE-anchored, no traversal). The 3 l
   see above.
 - **DEC-85** (Bash-write bypass, standing accepted risk): confirmed still documented in
   `DECISIONS.md` as the accepted trade-off (serialization + `isolation: worktree` is the real
-  write-safety mechanism; `bash-write-guard.sh` narrows the casual case, does not void it).
+  write-safety mechanism; `bash-write-guard.py` narrows the casual case, does not void it).
 
 ## Threat model
 

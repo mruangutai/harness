@@ -30,7 +30,7 @@
   `templates/harness.json:155`, `gen-decisions-index.py:391-396`) at a fraction of a review cycle.
   Cheap enough to be routine before dispatching the next segment, not just at panel time.
 
-- 2026-08-18: `bash-write-guard.sh` resolves the literal text of a `sed -i` target, so
+- 2026-08-18: `bash-write-guard.py` resolves the literal text of a `sed -i` target, so
   `sed -i '' '1194s/.../.../' "$P"` is BLOCKED as "targets $P, outside your domain" even when $P
   expands to a path I own. It does not expand shell variables. Re-issuing the identical command
   with the absolute path spelled out passes. Same family as G-08's quoted-redirect masking.

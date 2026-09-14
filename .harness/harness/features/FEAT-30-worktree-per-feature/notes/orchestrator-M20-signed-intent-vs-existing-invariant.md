@@ -228,7 +228,7 @@ here is the answer with four consistent data points.
    `cp targets $T/bin, outside your domain` — it read the unexpanded `$T/bin` as a repository-relative
    path, which is out of domain. That part of the lead's hypothesis is correct.
 2. But that check is never REACHED by some callers, and that is what explains the contradiction.
-   `bash-write-guard.sh:49-57`, in order:
+   `bash-write-guard.py:49-57`, in order:
 
        agent = d.get("agent_type") or ""
        if not agent:                     sys.exit(0)     # no agent_type at all

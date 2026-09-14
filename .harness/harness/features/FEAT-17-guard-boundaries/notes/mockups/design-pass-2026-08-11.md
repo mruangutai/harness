@@ -15,7 +15,7 @@ Three surfaces a human can read exist, and I ruled on each rather than on the fe
 | Surface | Where | Ruling |
 |---|---|---|
 | Write-route refusal stderr | T-02 verdict; `check-domain.py` | not mine |
-| Bash-route refusal stderr | T-03, T-04 verdicts; `bash-write-guard.sh` | not mine |
+| Bash-route refusal stderr | T-03, T-04 verdicts; `bash-write-guard.py` | not mine |
 | `check-state.sh` INV-25 line at session entry | T-05 | not mine — and it is the most human-read of the three, which is why I name it: the dispatch did not |
 
 ## 2. Why that text is not my contract — stated so it can be argued with

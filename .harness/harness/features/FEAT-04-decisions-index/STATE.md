@@ -55,7 +55,7 @@
   versus `cost: pending_orchestrator` duplicate-key contradiction (INV-16 — suppressed by dispatch
   on runs 13-15, unfixed at source); `.harness/**/*.md` being an undocumented `check-docs.sh` scan
   target, with the pattern printed on two physical lines so escaping one is not enough;
-  `bash-write-guard.sh` misreading heredoc bodies and compound-line operands as redirects; and a
+  `bash-write-guard.py` misreading heredoc bodies and compound-line operands as redirects; and a
   member whose deliverable is a verification receipt having no writable artifact path but its
   observations log.
 - **Calibration, worth pricing rather than repeating** — 3 of 3 panel members re-derived the

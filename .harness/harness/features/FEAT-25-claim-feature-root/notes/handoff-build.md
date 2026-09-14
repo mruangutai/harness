@@ -23,7 +23,7 @@ dispatch the `review` team to harness-validator-lead. All three PLAN tasks are `
 - F-1 is PRE-EXISTING, measured not inferred: `git diff d1ffd7f...HEAD -- test-layout-migration.py`
   is one hunk `@@ -399,6 +399,16 @@` adding case 22; the fail-open report block at :412-419 appears
   only as unchanged context — verified-at 8d7b273
-- `bash-write-guard.sh` does refuse worktrees outside `.claude/worktrees/`; it blocked two of my
+- `bash-write-guard.py` does refuse worktrees outside `.claude/worktrees/`; it blocked two of my
   attempts, including one through a shell variable it cannot resolve. No carve-out defect there —
   runs/2026-08-19-2-qa-validator/digest.md Q1 answered — verified-at 8d7b273
 - cycles_used stays 2: both leads reported ZERO send-backs and I dispatched no rework. The

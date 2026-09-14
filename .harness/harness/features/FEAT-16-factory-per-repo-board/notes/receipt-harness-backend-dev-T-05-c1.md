@@ -850,7 +850,7 @@ memory.
 
 ## HARD BOUNDS respected
 - `.harness/factory/fleet.yaml` not touched.
-- `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` not touched.
+- `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh` not touched.
 - No source module and no other test file changed — the write set is exactly
   `.claude/skills/harness/bin/test-factory-integration.py`. `factory_claim.py`'s mutation was
   applied, verified, and reverted within this session for the RED proof only, confirmed by hash

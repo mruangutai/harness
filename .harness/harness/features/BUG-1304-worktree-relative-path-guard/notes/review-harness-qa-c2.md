@@ -7,7 +7,7 @@ the panel warned against.
 
 ## 1. Change type / matrix
 
-Diff `af5ddd7a..c5869301` touches `bash-write-guard.sh`, `harness_boundary.py`, and three
+Diff `af5ddd7a..c5869301` touches `bash-write-guard.py`, `harness_boundary.py`, and three
 `tests/{integration,unit}/*.py` files. Every live plan task is `change_type: logic`
 (plan.yaml:692,831,944,1106,1160,1333,1503,1542 — one `docs` at :1397, one `scaffolding` at
 :1652, neither touched by this diff). `logic` → `always: [unit]` (harness.json:157-161) — the

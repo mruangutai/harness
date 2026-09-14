@@ -30,7 +30,7 @@ tight: **T-04 = 50, T-08 = 49** (cap 50, `>50` fails).
 | MF-5 | **Addressed.** Receipt renamed `notes/receipt-feature-key-drop.md` (no date; same-line change, free). Never overwritten. Resume semantics pinned so "exactly 14" stays runnable: already-reduced file → skip and count; receipt present but file unreduced → recompute and compare, identical means proceed with the rewrite, different means STOP. |
 | MF-6 | **Addressed.** T-03 adds a `--kind unit` step to the **same** `integration` job (the required context is that job's id; no new job, no `name:` key), and amends `tests.yml`'s now-false comment that the unit kind "would have caught none of the defects". Verify asserts `--kind unit` present and `jobs == ['integration']`. |
 | MF-7 | **Addressed in T-01, costing T-08 nothing.** The validator dispatches by extension: `.json` → `json.load`, else `harness_yaml.load_file`. A YAML-but-not-JSON `.json` file is rejected. T-08's existing `validator exit` check therefore proves JSON validity for all fourteen for free. |
-| MF-8 | **Addressed.** `BRIEF.md` prose corrected to **three** (`check-state.sh`, `check-domain.py`, `validate-digest.py`; `bash-write-guard.sh` untouched) and states the carve-out is not widened — DEC-174 already names four. The disposition table left alone. |
+| MF-8 | **Addressed.** `BRIEF.md` prose corrected to **three** (`check-state.sh`, `check-domain.py`, `validate-digest.py`; `bash-write-guard.py` untouched) and states the carve-out is not widened — DEC-174 already names four. The disposition table left alone. |
 
 ## Reviewer questions
 

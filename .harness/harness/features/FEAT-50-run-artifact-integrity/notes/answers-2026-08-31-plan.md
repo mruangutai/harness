@@ -76,7 +76,7 @@ suite reads green.)
 `check-domain.py --resolve` **grants** the enforcement scripts to
 `harness-backend-dev`/`harness-dev-ops`, so the resolver alone does not route
 them correctly. **DEC-174 governs and overrides the grant**: `check-domain.py`,
-`bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`,
+`bash-write-guard.py`, `validate-digest.py`, `check-state.sh`,
 `check-plan-routes.py`, `dispatch-guard.sh` **and the test file of each** are
 the enforcement layer, planned through the harness but never executed through
 it. The FEAT-45 plan is the precedent: its T-07/T-08 (`check-state.sh` and
@@ -183,7 +183,7 @@ reworded finding takes a new content-hash id and the old id stops applying.
 
 - `PF-3d9ac1d054341cec6611f63aa2ce457a` (high, scope reader). The worktree binding
   reaches `check-domain.py` only. Re-measured at `5d12e68`:
-  `bash-write-guard.sh:747` reads
+  `bash-write-guard.py:747` reads
   `if verdict["outcome"] in ("allow", "not_a_domain_question"): continue`, so a
   governed agent's `cat >` / `perl -pi` at the same main-checkout feature artifact
   is allowed at exit 0 by a route the plan never reaches. **The plan must include

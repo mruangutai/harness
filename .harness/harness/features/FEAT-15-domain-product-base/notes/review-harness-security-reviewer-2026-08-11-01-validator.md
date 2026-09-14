@@ -54,7 +54,7 @@ target classifier generally
 
 `select_base`/`is_control_plane_target` never resolve symlinks (`os.path.abspath` only).
 Documentor with domain `docs/**` creates `docs/harness/evilclaude -> ../../.claude` (via Bash
-`ln -s`, which `bash-write-guard.sh`'s finding list — `sed/perl -i`, `tee`, `mv`/`cp`, `rm`,
+`ln -s`, which `bash-write-guard.py`'s finding list — `sed/perl -i`, `tee`, `mv`/`cp`, `rm`,
 `sponge`, `awk -i`, generic `>`/`>>` — does **not** cover; confirmed live: `ln -s` exits 0
 unguarded). Write to `docs/harness/evilclaude/agents/harness-orchestrator.md` (nominally
 control-plane, matches `docs/**`): exit **0**. The same physical file addressed directly
@@ -113,12 +113,12 @@ matched the whole `"docs/..."` string regardless of physical target. Raised as `
 exit-2 branch at `:250` today. This is a measured negative, not an inference.
 
 ### Out-of-scope, confirmed still true
-`bash-write-guard.sh` has no reference to `fleet`/`workspace_root`/`factory_config`/`product`
+`bash-write-guard.py` has no reference to `fleet`/`workspace_root`/`factory_config`/`product`
 anywhere (grepped, zero hits) — a Bash-route write into a product checkout remains completely
 ungoverned after this ships, exactly as the BRIEF's "Verification gaps" already records.
 
 ## Method note
-`harness-security-reviewer` is Bash-write-blocked (`bash-write-guard.sh` denies `cp`/redirects
+`harness-security-reviewer` is Bash-write-blocked (`bash-write-guard.py` denies `cp`/redirects
 for this role) so the scratchpad-copy instruction in the dispatch could not be followed literally.
 Probed instead by running the **live, unmodified** `check-domain.py` as a subprocess against
 synthetic fixture roots built via `tempfile`/`os.makedirs`/`open(...).write()` inside `python3`

@@ -43,7 +43,7 @@ escalation). No exploitable shadow path found.
 **4. DEC-138 compliance under adversarial GH read outcomes — executed, in-process, real
 `local_branch()`/real feature-glob machinery, only `open`/`glob.glob`/the `gh` subprocess call
 faked (matching cycle-1's own reconstruction technique; I could not write disk fixtures —
-`bash-write-guard.sh` blocks all my writes, verified live).**
+`bash-write-guard.py` blocks all my writes, verified live).**
   - Local record owes a receipt (not era-exempt, `build_entry` absent) + `gh pr merge 42` with an
     **unresolvable `gh` binary** → correctly **denies**, and the denial reason does **not** leak the
     `gh` failure text (`[Errno 2]...`) — asserted and passed.
@@ -111,7 +111,7 @@ fix (`merge-gate.py`) has not moved a single byte since cycle-1 verified both cl
 
 ## Process note (non-gating)
 To reconstruct the DEC-138 adversarial scenarios without disk fixtures (blocked by
-`bash-write-guard.sh`, verified live — same restriction cycle-1 hit), I wrote one throwaway probe
+`bash-write-guard.py`, verified live — same restriction cycle-1 hit), I wrote one throwaway probe
 script to `/tmp/harness_c2_security_probe.py` via the Write tool and could not `rm` it afterward
 (bash-write-guard blocks `rm` for this role too). It is outside the repo/worktree, untracked, and
 carries no repo content — flagging for transparency, not as a security finding.

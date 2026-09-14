@@ -149,7 +149,7 @@ it.
 | B-4 | bug | **`check-plan-routes.py` has no segment-level readability guard.** A `chmod 000` segment directory silently vanishes from the scan; demonstrated live by code-reviewer. |
 | B-5 | chore | **`branch-create-gate.sh` hardcodes the segment.** It should derive it; a bare wildcard is wrong, because feature ids are coined per-BRIEF with no cross-repo uniqueness. |
 | B-6 | chore | **The gh-sync walk-up probes `team-config.yaml` where T-10's intent named `harness.json`.** The choice is right — it matches every other root probe — but no test discriminates, and it deserves a decision record. |
-| B-7 | bug | **`bash-write-guard.sh` blocks quoted redirect targets.** It masks quoted spans, so any `>"$tmp"` blocks, literal or variable. It blocked an **approved** plan `verify:` clause; every one had to be re-run from a script file. |
+| B-7 | bug | **`bash-write-guard.py` blocks quoted redirect targets.** It masks quoted spans, so any `>"$tmp"` blocks, literal or variable. It blocked an **approved** plan `verify:` clause; every one had to be re-run from a script file. |
 | B-8 | enhancement | **Nothing reconciles a landed diff against the plan's declared files.** `.harness/expertise/harness-pm.md` — injected into every pm spawn — was path-corrected inside a cluster commit with no task naming it. Benign this time and verified so; the gap is structural. Raised independently by two reviewers. |
 | B-9 | chore | **The `no-rows` comment points at the wrong file.** It credits `test-check-state.py`'s `case_x`; the real coverage is case 16 of `test-layout-migration.py`. Cosmetic now, misleading on the next edit. |
 | B-10 | chore | **Turn SC-06's manual `--resolve` pair into a standing test case** in `test-check-domain.py`. pm's suggestion. |

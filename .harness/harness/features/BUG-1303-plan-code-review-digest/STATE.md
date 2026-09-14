@@ -75,7 +75,7 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
 - Harness defect, carried from build and re-measured: inside a worktree, `handoff_done_when` authority
   pointers resolve against the MAIN checkout, so `brief-sc:` and `plan-task:` are UNUSABLE from here;
   only `finding:` and `approval:` can be spelled through `.claude/worktrees/`. Also carried:
-  `bash-write-guard.sh` parses the whole command line textually, refusing `plan-merge.py apply
+  `bash-write-guard.py` parses the whole command line textually, refusing `plan-merge.py apply
   --proposal -` when the proposal body contains an angle bracket.
 - Documentation defect, cost one send-back this run: dispatch text templated
   `gen-decisions-index.py --apply`. That flag does not exist — the tool exits 2 and the BARE

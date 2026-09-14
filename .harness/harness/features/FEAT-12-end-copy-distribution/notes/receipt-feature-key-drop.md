@@ -45,7 +45,7 @@ cycles_note: 'EIGHT. Four from the plan phase; one in t12-product where document
   forward step made necessary by a stale playbook premise. Say so if you read that
   differently. The nine layer-0 tasks never appear as runs at all.'
 dec174_check: CLEAR. DEC-12 has 3 inbound references, all under docs/. No remaining
-  task names check-domain.py, bash-write-guard.sh, validate-digest.py or check-state.sh.
+  task names check-domain.py, bash-write-guard.py, validate-digest.py or check-state.sh.
 effort: https://github.com/mruangutai/harness/issues/203
 gate_status:
   github_mirror: gh-sync open ran once; T-07, T-10, T-12 sub-issues closed. Do not

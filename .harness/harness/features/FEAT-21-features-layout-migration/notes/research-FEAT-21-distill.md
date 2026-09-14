@@ -63,7 +63,7 @@ fires for this role.
   with it as an instance.
 - Running each new verify against the unfixed tree — covered by P-01. `--resolve` on a lane row's
   representative path — covered by G-02.
-- `bash-write-guard.sh` blocking a plan's own quoted-redirect `verify:` — **not Expertise.** It is a
+- `bash-write-guard.py` blocking a plan's own quoted-redirect `verify:` — **not Expertise.** It is a
   harness design consequence needing the operator's ruling; a workaround recorded here would outlive
   the ruling. Stays an open question (raised in the SC-10 note's Q2).
 

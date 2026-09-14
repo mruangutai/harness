@@ -80,7 +80,7 @@ Dead ends for the next phase:
   behavioural-equivalence rulings. All closed across cycles 1–4.
 - Do NOT hand T-03 to a squad, and do NOT mark it `done` to satisfy the mirror.
 - Do NOT rewrite `qa-c3.md`. The corrected attribution lives in the 3-eng digest and `qa-c4.md`.
-- Do NOT `cp` a fixture into `/tmp` or a scratch worktree for an A/B — `bash-write-guard.sh` refuses
+- Do NOT `cp` a fixture into `/tmp` or a scratch worktree for an A/B — `bash-write-guard.py` refuses
   it. Pointing `DISPATCH_GUARD_BIN` at the main checkout's pre-change guard is the working route.
 - Do NOT re-pin `review_sha` unless a commit lands that touches a reviewed code path OR changes
   `plan.yaml`. A STATE.md or feature.json commit alone does not move it.

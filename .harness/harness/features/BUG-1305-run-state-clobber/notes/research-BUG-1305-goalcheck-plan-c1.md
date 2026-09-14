@@ -61,7 +61,7 @@ grading SC-07 — one opening plan.yaml, one opening the note — reach opposite
 
 **F-05 · med · SC-01's route set is under-specified against REQ-01's.** REQ-01 says "any write route
 the harness governs"; SC-01 says "both governed tool write routes". Bash is a governed, refusing route
-(`bash-write-guard.sh:745-767`) and NotebookEdit's coverage rests on an unverified host-matcher
+(`bash-write-guard.py:745-767`) and NotebookEdit's coverage rests on an unverified host-matcher
 assumption the diagnosis raised as its own open Q1 (`receipt-...-diag-c1.md:47`, :209-212). A reader
 taking "both" as {Write, Edit} passes SC-01; a reader taking REQ-01's wording fails it.
 

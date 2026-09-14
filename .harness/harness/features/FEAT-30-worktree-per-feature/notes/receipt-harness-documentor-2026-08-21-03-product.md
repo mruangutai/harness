@@ -68,5 +68,5 @@ live outside `.harness/`, and the CLI's audience is the orchestrator, which read
    `.harness/harness/features/`. That is the FEAT-21/22 + DEC-182 migration's residue, not this
    feature's.
 2. `BUILD.md:147-148` says "the hook cannot see writes made via `Bash`". True of `check-domain.py`
-   alone; `settings.json:34-37` (the `bash-write-guard.sh` entry) registers `bash-write-guard.sh` as a `PreToolUse` Bash hook, which is
+   alone; `settings.json:34-37` (the `bash-write-guard.py` entry) registers `bash-write-guard.py` as a `PreToolUse` Bash hook, which is
    where FEAT-30's HEAD-move rule lives. The sentence is a Step-0b historical note, so I left it.

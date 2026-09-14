@@ -3,7 +3,7 @@
 BLUF: D-09's blast-radius count (5) is exact, empirically confirmed by mutation. The
 worktree_owner/linked_worktrees split is real and asymmetric (worktree-side vs owner-side),
 which creates one accepted-cost state D-09 doesn't separately name (deleted `.git` file,
-owner-side intact → swept but silently mis-normalised). T-05 in bash-write-guard.sh is the
+owner-side intact → swept but silently mis-normalised). T-05 in bash-write-guard.py is the
 only place a git-subcommand parser exists; check-domain.py has none despite DEC-84 naming it
 as that rule's intended home. The dev-ops early-return is confirmed by both code and
 measurement. D-02's "fails OPEN" is measured TRUE for `harness_boundary.classify` (exit 1,
@@ -85,8 +85,8 @@ consistent with D-09's own "cannot all hold at once" trilemma, not a refutation 
 
 `.claude/settings.json`: `check-domain.py` is registered for `PreToolUse` matcher `Write|Edit`
 (never `Bash` pre-write) and `PostToolUse` matcher `Write|Edit|Bash` (via `--post`).
-`bash-write-guard.sh` is registered for `PreToolUse` matcher `Bash` only. So **only
-`bash-write-guard.sh` sees a Bash command before it runs**; `check-domain.py` only sees Bash
+`bash-write-guard.py` is registered for `PreToolUse` matcher `Bash` only. So **only
+`bash-write-guard.py` sees a Bash command before it runs**; `check-domain.py` only sees Bash
 post-hoc, and its post-Bash branch (`check-domain.py:1003-1042`) reads no command text at all —
 it globs the filesystem, deliberately ("classifying arbitrary shell... is the prediction
 problem this mode exists to avoid").
@@ -95,21 +95,21 @@ problem this mode exists to avoid").
 `destructive`/`rm -rf`/`--force`/`git push`/`git reset`: zero hits. DEC-84's own text
 (`DECISIONS.md:1075-1076`) says the destructive-operation matcher is "a `Bash` matcher in
 `check-domain.py`... or it does not exist" — and empirically it does not exist there. The one
-and only git-subcommand parser in either script is `bash-write-guard.sh`'s worktree
+and only git-subcommand parser in either script is `bash-write-guard.py`'s worktree
 `add`/`move` walk (lines ~405-427, confirmed by reading), which T-05 plans to extend in place
 (admitting `remove`/`prune`, and separately adding the HEAD-move vocabulary).
 
-Given the routing (only `bash-write-guard.sh` receives Bash pre-write) and the parser's actual
-location (only in `bash-write-guard.sh`), `check-domain.py` could not host a git-subcommand
+Given the routing (only `bash-write-guard.py` receives Bash pre-write) and the parser's actual
+location (only in `bash-write-guard.py`), `check-domain.py` could not host a git-subcommand
 rule on the Bash pre-write route without **either** growing a second parser inside itself
 **or** being newly registered on `PreToolUse: Bash` (a settings change T-05 as scoped does not
 make and does not need). The two scripts do not see the same payload for a Bash call: only
-`bash-write-guard.sh` sees it pre-write; `check-domain.py` sees Bash only post-write, with no
+`bash-write-guard.py` sees it pre-write; `check-domain.py` sees Bash only post-write, with no
 command text exposed to it by design.
 
 ## Q3 — the dev-ops exemption
 
-`bash-write-guard.sh:50-58`:
+`bash-write-guard.py:50-58`:
 ```
 agent = d.get("agent_type") or ""
 if not agent:            # 51 — no agent_type (main session) -> exit 0
@@ -124,7 +124,7 @@ Confirmed: dev-ops returns before any rule below line 58 fires, T-05's planned H
 included, since that rule is necessarily written after this point in the file.
 
 Measured, current (unbuilt) state — `git checkout main` payload, three `agent_type`s, driven
-directly against today's `bash-write-guard.sh`:
+directly against today's `bash-write-guard.py`:
 - `harness-dev-ops` → exit 0
 - `harness-backend-dev` → exit 0
 - `harness-orchestrator` → exit 0

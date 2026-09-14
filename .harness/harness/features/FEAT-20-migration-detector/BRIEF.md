@@ -221,7 +221,7 @@ its detect list. No SC rests on `component`, `ui`, `eval` or `typecheck`, all of
 ## Constraints
 
 - Detector only. No file moves, no layout change, no config split (units 3–7, later features).
-- Every step touching `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or
+- Every step touching `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or
   `check-state.sh` is declared `main-session-direct` and never dispatched (DEC-174).
 - Fixtures are sandboxed temporary trees, built and torn down by the test. Fixture creation is not
   a layout change and must not be read as one.

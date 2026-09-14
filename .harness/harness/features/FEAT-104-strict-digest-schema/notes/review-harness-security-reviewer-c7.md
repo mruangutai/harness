@@ -104,7 +104,7 @@ for the rest of its life, indistinguishable from a legitimate historical version
   grandfather clause: **creating** at version 1 is refused outright by the floor, but **downgrading**
   to version 1 after creation is unrestricted — a strictly more powerful bypass than what creation
   itself allows.
-- **Verified by static read**, not execution: bash-write-guard.sh correctly refused my own attempt to
+- **Verified by static read**, not execution: bash-write-guard.py correctly refused my own attempt to
   exercise this against a temp fixture (I am read-only per this role, working as designed — see
   `open_questions`). The full 82-line/54-line diffs were read in their entirety twice; there is no
   comparison anywhere in either new block against the schema_version already present on disk, and no

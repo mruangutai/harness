@@ -98,9 +98,9 @@ no call site shares, so they are CI-only by construction. Both directions hold, 
   (`test-layout-migration.py`, 61+/64-). SC-12 was graded met at `d033b9d`, before that commit existed,
   and this dispatch does not re-open it — so this is flagged for the operator, not re-graded. Fixing
   SC-10 is what created the collision; the same collision was noted in commit `649b36b`'s subject.
-- **Q2 (non-blocking, design consequence — intended?):** `bash-write-guard.sh` blocked `... >"$u"` from
+- **Q2 (non-blocking, design consequence — intended?):** `bash-write-guard.py` blocked `... >"$u"` from
   T-01's own `verify:` with `redirect targets "xx", outside your domain`. I read the guard rather than
-  guessing: `mask_quoted` (`bash-write-guard.sh:155-179`) blanks the *contents* of every quoted span to
+  guessing: `mask_quoted` (`bash-write-guard.py:155-179`) blanks the *contents* of every quoted span to
   `x`s by design, deliberately keeping the redirect visible so a quoted target still blocks —
   documented as failing safe. So this is **not** a variable-resolution bug; it is the designed
   fail-closed path, and it applies to **any quoted redirect target**, literal or variable. The

@@ -17,7 +17,7 @@ Every substantive task (T-01, T-02, T-03, T-04, T-05, T-06, T-09) carries `chang
 only.** T-07 is `docs` (`always: []`), T-10 is `scaffolding` (`always: []`), T-08 is `abandoned`.
 
 The floor understates what the change needs: two gate scripts (`check-domain.py`,
-`bash-write-guard.sh`) and two shared libraries (`harness_boundary.py`, `inflight_registry.py`) all
+`bash-write-guard.py`) and two shared libraries (`harness_boundary.py`, `inflight_registry.py`) all
 move together, and REQ-04 explicitly requires both write routes to refuse identically — textbook
 `cross_module` shape (`always: [unit, integration]`), not `logic`. This was reviewed and signed
 through three plan-panel cycles (L-01/L-02/F1/F2 all resolved) without anyone flagging the

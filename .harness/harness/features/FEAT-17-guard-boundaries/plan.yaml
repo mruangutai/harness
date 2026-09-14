@@ -46,7 +46,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script
     - surface: .claude/skills/harness/bin/check-state.sh
@@ -130,7 +130,7 @@ decisions:
       Every import of harness_boundary that sits on a path which can produce a verdict is wrapped in
       try/except, prints a BLOCKED line naming the missing module, and exits 2. There are three,
       enumerated rather than described: check-domain.py line 493 under if _run_domain, the
-      check-domain.py --resolve branch before line 357, and bash-write-guard.sh line 73. The
+      check-domain.py --resolve branch before line 357, and bash-write-guard.py line 73. The
       shape-phase import at check-domain.py line 529 is NOT one of them - it keeps its absorbing
       except and takes no dependency on the new module.
     because: >-
@@ -140,7 +140,7 @@ decisions:
       repository out of its own repair: line 493 is gated on _run_domain, which is _governed and not
       _post (lines 432, 450, 471), so the main session never reaches it; --resolve blocks no write,
       so exit 2 there is a loud refusal to answer a query rather than a denied write; and
-      harness-dev-ops returns before line 73 on the Bash route (bash-write-guard.sh lines 54-59).
+      harness-dev-ops returns before line 73 on the Bash route (bash-write-guard.py lines 54-59).
       Line 529 is excluded because it is not gated on _governed and the shape gate needs nothing
       from the module, so failing closed there would block the main session's own writes.
     dec: none
@@ -151,7 +151,7 @@ decisions:
       workspace_root and a product name keep exactly today's Bash-route behaviour and no criterion
       is added for product-base enforcement there.
     because: >-
-      rel at bash-write-guard.sh line 400 is ROOT-relative, so every product path starts with .. and
+      rel at bash-write-guard.py line 400 is ROOT-relative, so every product path starts with .. and
       dropping the continue in favour of classify's own not_a_domain_question would begin enforcing
       product-base domains on the Bash route for the first time. The grilling's Out of scope section
       fences out changing how .claude/worktrees/ or the product workspace are governed, and that
@@ -300,7 +300,7 @@ tasks:
       before domain_check runs, it writes nothing, and refusing there would make the planning tool
       unusable from the tree an operator must inspect.
 
-      Leave bash-write-guard.sh untouched in this task.
+      Leave bash-write-guard.py untouched in this task.
   - id: T-02
     title: Refuse writes into, and sessions rooted in, an out-of-place worktree on the Write route
     traces: [REQ-01, REQ-02, REQ-09]
@@ -458,20 +458,20 @@ tasks:
           enforcement OFF and exits 0. Without that second half the first is satisfied by a guard
           that blocks everything.
   - id: T-03
-    title: Make bash-write-guard.sh decide from the shared module, closing issue 261 and the Bash half of 103
+    title: Make bash-write-guard.py decide from the shared module, closing issue 261 and the Bash half of 103
     traces: [REQ-01, REQ-02, REQ-04, REQ-05, REQ-06, REQ-09]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
+    execution_reason: DEC-174 carve-out - bash-write-guard.py is a registered PreToolUse gate script
     depends_on: [T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
       python3 .claude/skills/harness/bin/test-bash-write-guard.py && python3 .claude/skills/harness/bin/test-check-domain.py
     intent: |
-      Replace the domain decision inside .claude/skills/harness/bin/bash-write-guard.sh with a call
+      Replace the domain decision inside .claude/skills/harness/bin/bash-write-guard.py with a call
       to harness_boundary.classify, so the Bash route and the Write route decide from one
       implementation. This closes issue 261 - measured at a29ad06, with src/** granted to
       harness-backend-dev, a Write to <root>/src/main.py exits 2 while echo hi > <root>/src/main.py
@@ -520,7 +520,7 @@ tasks:
       ROOT-relative today, so the guard's message text changes in the product base. That is correct
       and intended.
 
-      THE ROOT-SIDE CHECK, and where it goes in THIS file. bash-write-guard.sh has no domain_check
+      THE ROOT-SIDE CHECK, and where it goes in THIS file. bash-write-guard.py has no domain_check
       function, so T-02's insertion point does not exist here. Put it immediately after root and
       manifest are derived, and place it by CONTENT anchors rather than by line number: immediately
       after the assignment _no_parser = harness_yaml.yaml is None and its comment block, before the
@@ -574,14 +574,14 @@ tasks:
           CLAUDE_PROJECT_DIR set to the sibling, exits 2 as well - this is what proves the root-side
           check is not sitting behind the no-findings early exit, and after the re-scope it is the
           ONLY case pinning this route's placement.
-        - THE FAIL-CLOSED PAIR (D-06): an isolated copy carrying bash-write-guard.sh and
+        - THE FAIL-CLOSED PAIR (D-06): an isolated copy carrying bash-write-guard.py and
           harness_yaml.py but NOT harness_boundary.py exits 2 with the manifest PRESENT and names
           the missing module, while the existing manifest-absent case in this file's T-14 block
           still exits 0.
 
       THE ONE-IMPLEMENTATION PROOF, by mutation rather than by grep. Add a case that builds an
       isolated bin copy in a tempdir containing four files copied from this bin directory -
-      check-domain.py, bash-write-guard.sh, harness_boundary.py and harness_yaml.py - plus a root
+      check-domain.py, bash-write-guard.py, harness_boundary.py and harness_yaml.py - plus a root
       holding .harness/team-config.yaml, and the hand-built pointer files. Note that the existing
       isolated-copy case copies ONE file; this one needs all four or the guards will not import.
 
@@ -675,11 +675,11 @@ tasks:
     traces: [REQ-03]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
+    execution_reason: DEC-174 carve-out - bash-write-guard.py is a registered PreToolUse gate script
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
       python3 .claude/skills/harness/bin/test-bash-write-guard.py
@@ -688,7 +688,7 @@ tasks:
       git worktree add --detach ~/GitHub/harness-SIBLING HEAD exits 0 from both hooks. Catching the
       mistake after the tree exists is worth less than preventing it.
 
-      Add a scan to .claude/skills/harness/bin/bash-write-guard.sh over the already-computed tokens
+      Add a scan to .claude/skills/harness/bin/bash-write-guard.py over the already-computed tokens
       list, which is the per-segment shlex split of the command. It fires when a segment's command
       basename is git and its first non-flag operand is worktree with the next operand add or move.
       This scan MUST run before the existing early exit if not findings: sys.exit(0) near line 320 -
@@ -711,7 +711,7 @@ tasks:
       <root>/.claude/worktrees/, compared with os.path.commonpath. Refuse otherwise, with a verdict
       naming <root>/.claude/worktrees/ as where worktrees belong.
 
-      Both sides, and it is one or the other rather than a preference. bash-write-guard.sh derives
+      Both sides, and it is one or the other rather than a preference. bash-write-guard.py derives
       root at lines 61-66 with os.access alone and never resolves it, so resolving only the
       destination compares two different spellings of the same tree: on darwin the test fixture is
       mkdtemp, which returns /var/folders/..., while realpath returns /private/var/folders/... -
@@ -724,7 +724,7 @@ tasks:
       Do this with a LOCAL resolved copy of root inside this scan. Do not reassign the module-level
       root or change how lines 61-66 derive it: every other rule in this file compares against the
       unresolved root, and changing that would alter behaviour no criterion here covers. The task
-      stays execution_mode main-session-direct, which it already is - bash-write-guard.sh is a
+      stays execution_mode main-session-direct, which it already is - bash-write-guard.py is a
       DEC-174 carve-out and this is a change to its production code.
 
       Do NOT extend this to git clone or git init. They materialise a different repository, which

@@ -35,7 +35,7 @@ is the fleet declaration's only reader. It is not: `check-state.sh` reads that f
   modifications he signed off on discarding. Read literally the stop fires on the signed-for work
   and T-02 can never run; read as intended it means entries beyond those 34. The cost of guessing
   is a permanent discard on another repository's `master`, so it is his call, not an agent's.
-- Q2 (non-blocking, a HARNESS DEFECT, filed nowhere yet): `bash-write-guard.sh` passes
+- Q2 (non-blocking, a HARNESS DEFECT, filed nowhere yet): `bash-write-guard.py` passes
   `rm -f <out-of-domain-path>` at exit 0 while blocking `rm <same-path>` and `rm -rf <same-dir>` at
   exit 2. `trailing_files` treats `-f` as sed's script-file flag and skips the next token, so the
   target list comes back empty and no deny fires. Measured for `harness-orchestrator`, `harness-pm`

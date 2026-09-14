@@ -37,7 +37,7 @@ it. Your hands still work while every agent's are tied. That is what makes every
 
 **And I am inside the blast radius too.** `harness-orchestrator` is a governed agent, so during the
 window I cannot write `STATE.md`, `feature.json` or a handoff note either. I measured what survives:
-`bash-write-guard.sh:375` records that `git` produces no write findings, and `classify` is only
+`bash-write-guard.py:375` records that `git` produces no write findings, and `classify` is only
 reached per finding (`:551`, after `if not findings: sys.exit(0)` at `:475`) — so **`git add` and
 `git commit` still work while `Write` and `Edit` do not.** That is what makes option A survivable
 rather than a trap for me as well, and it is why A's procedure below front-loads my state writes.

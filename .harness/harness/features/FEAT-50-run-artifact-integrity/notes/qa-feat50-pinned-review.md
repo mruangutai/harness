@@ -7,7 +7,7 @@ review_sha: dca2d3dabc5c1a3c3d7dab19f6d674b5d94ede78 · base: 9f2a0702bda6de929d
 ## Phase 1 (pre-code) expected coverage, derived from BRIEF REQ/SC alone
 - validate-digest.py: empty/whitespace refused+named; absent/null passed-through with stderr note; red-provable.
 - check-domain.py: main-checkout write refused naming checkout, worktree write allowed, no-worktree-registered allowed, short-flow-id prefix refused; digest-clobber prevented pre-Write only; red-provable for both.
-- bash-write-guard.sh: same checkout binding on the Bash route, short-flow-id clause, red-provable.
+- bash-write-guard.py: same checkout binding on the Bash route, short-flow-id clause, red-provable.
 - harness_boundary.worktree_for_feature: exact/prefix/no-match/hyphen-boundary/ambiguous, pre-change-red.
 - inflight_registry.feature_root: cutover to worktree_for_feature, contract-preserving + short-form widening.
 - validate-digest.py DEC-156: lead digest located+shape-checked in the lead's own worktree, root≠checkout fixture, no-feature fallback preserved, red-provable.
@@ -34,7 +34,7 @@ and `functional: excluded` (DEC-187) are correctly out of scope, per the brief's
 
 Every changed production file has a corresponding test change in the pinned diff:
 - `check-domain.py` ↔ `test-check-domain.py` (+149)
-- `bash-write-guard.sh` ↔ `test-bash-write-guard.py` (+94/-Δ)
+- `bash-write-guard.py` ↔ `test-bash-write-guard.py` (+94/-Δ)
 - `validate-digest.py` ↔ `test-validate-digest.py` (+229)
 - `harness_boundary.py` (new) ↔ `test-harness-boundary.py` (new)
 - `inflight_registry.py` (Δ8 lines, `feature_root`) ↔ **no change to its own `test-inflight-registry.py`**,

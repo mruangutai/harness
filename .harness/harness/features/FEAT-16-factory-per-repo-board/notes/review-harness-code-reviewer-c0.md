@@ -101,7 +101,7 @@ Read every task's landed diff against its intent text. No divergence found:
 - **T-10** (docs, target 4 below).
 - **SC-10** (inspection): the diff's own file list settles it — `git diff --stat a7c429c..ec195ec`
   (the 38-file stat captured at the top of this review) contains none of `check-domain.py`,
-  `bash-write-guard.sh`, `validate-digest.py` or `check-state.sh`. Holds.
+  `bash-write-guard.py`, `validate-digest.py` or `check-state.sh`. Holds.
 - **SC-07**: I verified this from `board2-capture.md`'s recorded reading, not by re-running
   `gh project field-list` against the live boards myself — same evidence grade the capture itself
   claims (a T-07 precondition read, not a re-measurement this review performed independently).

@@ -37,7 +37,7 @@ inferred or waived. The earlier exit 1 measured a tree that is not what ships.
 `git status --porcelain` after removal is byte-identical to before — the same five modified
 held-dirt files and three untracked feature directories, nothing added, nothing gone.
 
-This also answers the validator lead's open question about whether `bash-write-guard.sh` refuses
+This also answers the validator lead's open question about whether `bash-write-guard.py` refuses
 worktrees outside `.claude/worktrees/`: **it does.** It blocked two of my attempts before this one,
 including a path in the session scratchpad, and it blocked the form passing the destination through
 a shell variable because it cannot resolve one. The guard is working; there is no carve-out defect

@@ -207,7 +207,7 @@ it.
 
 **`check-domain.py`** — one comment hunk, `"DEC-171 am.1's logic"` → `"DEC-171's logic"`. Verified: the
 FAIL-CLOSED-on-missing-PyYAML rule this comment describes is present in `DEC-171`'s live body
-(`DECISIONS.md:4139-4142`, *"`check-domain.py` and `bash-write-guard.sh` fail CLOSED on a missing
+(`DECISIONS.md:4139-4142`, *"`check-domain.py` and `bash-write-guard.py` fail CLOSED on a missing
 PyYAML"*) — content-accurate. **Looked, nothing to report.**
 
 **`.github/workflows/tests.yml`** — two comment hunks. `"DEC-171 am.1"` → `"DEC-171"` (same PyYAML rule,

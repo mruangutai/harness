@@ -8,12 +8,12 @@ sign this.**
 ## 1. DEC-174 text (`.harness/harness/docs/DECISIONS.md:4655`, index row `DECISIONS-INDEX.md:192`)
 
 Original table names the category **"hooks, validators, gate scripts"** with examples
-`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh` — all four police
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh` — all four police
 an agent's *live actions* mid-run (write domain, bash guard, digest shape, state invariants).
 
 **am.4 (2026-08-19, one day before this dispatch), quoted exactly:**
 > "The category governs. The parenthetical is examples, and it is now stale."
-> "So the enforcement layer is: `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`,
+> "So the enforcement layer is: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
 > `check-state.sh`, `check-plan-routes.py`, and the test file of each. A script that becomes a
 > gate joins the list on the day it becomes one, and this entry is amended when that happens —
 > the category decides, the list records."
@@ -31,7 +31,7 @@ omission, not an oversight.
 
 - **Not a hook.** `.claude/settings.json` lists exactly 7 hook registrations
   (`inject-expertise.sh`, `check-domain.py` PreToolUse+PostToolUse, `branch-create-gate.sh`,
-  `bash-write-guard.sh`, `dispatch-guard.sh`, `validate-digest.py --hook`). `run-unit-tests.sh`
+  `bash-write-guard.py`, `dispatch-guard.sh`, `validate-digest.py --hook`). `run-unit-tests.sh`
   is not among them — confirmed by grep.
 - **Is a required-CI-job step**, same job as `check-plan-routes.py`: `.github/workflows/tests.yml:75-84`
   ("Unit suite" / "Integration suite"), inside job `integration`, the one branch-protection

@@ -56,7 +56,7 @@ half is discharged.** Unit 76 of 76, integration 10 of 10, both exit 0, zero MIS
 
 ## Corrections to things on the record
 
-- **The `bash-write-guard.sh` heredoc hazard is false.** I tested it: a read-only `python3` heredoc
+- **The `bash-write-guard.py` heredoc hazard is false.** I tested it: a read-only `python3` heredoc
   containing `>` and `>=` runs clean. The lead caught this by reading the source rather than
   complying with my brief. The real defect is narrower — `sed -i` with a shell-*variable* target is
   refused as out-of-domain. Two mechanisms, conflated.
@@ -85,7 +85,7 @@ everything that survived.
 | B-3 | `_safe_listdir` swallows `OSError`, so an unreadable *directory* silently drops its subtree; REQ-07 covers sidecars and transcripts, not directories | bug |
 | B-4 | Any `verify:` floor expressed as an absolute case count is vacuous — T-16's `-ge 22` was satisfied at 29 before T-16 wrote a line. Make floors deltas against a measured pre-task count | chore |
 | B-5 | The footer's second full corpus read is ~49% of wall clock (0.80s vs 0.41s). Sub-second today; the fix is to have `_build_row` return its measured sizes | enhancement |
-| B-6 | `bash-write-guard.sh` refuses `sed -i` whose target is a shell variable, even when the expansion is in-domain | bug |
+| B-6 | `bash-write-guard.py` refuses `sed -i` whose target is a shell variable, even when the expansion is in-domain | bug |
 | B-7 | Eight lines of `DECISIONS.md` anchor rot in plan citations — content correct, pointers 8 lines stale; `lanes.resolved_at` also stale | chore |
 | B-8 | `BRIEF.md:247` cites DEC-90 as a live constraint; DEC-90 is STRUCK | chore |
 | B-9 | `BRIEF.md:231-237` says SC-07 changes `check-domain.py`'s write route; the tree contradicts it | chore |

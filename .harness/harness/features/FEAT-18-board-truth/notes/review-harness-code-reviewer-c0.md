@@ -54,7 +54,7 @@ failure mode, not a hypothetical one. The edit channel is demonstrated in this v
 `plan.yaml`'s approval block records two mid-build hand amendments to this exact plan
 (`plan.yaml:8-19`). And the window is real: no hook re-runs `check-plan-routes.py`'s
 `LEGAL_TASK_STATUSES` enum after signature — confirmed by reading `.claude/settings.json`'s
-`PreToolUse` hooks (`check-domain.py`, `branch-create-gate.sh`, `bash-write-guard.sh`,
+`PreToolUse` hooks (`check-domain.py`, `branch-create-gate.sh`, `bash-write-guard.py`,
 `dispatch-guard.sh` only) and `check-state.sh`'s own invariant list (INV-3/4/5 validate schema
 shape, never status legality). A typo introduced mid-build is invisible to INV-26 for the rest of
 that build — the same silent-window shape FEAT-14's own failure occupied, which is this feature's

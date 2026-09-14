@@ -9,7 +9,7 @@
   at the Write hook. The playbook instruction is stale against the schema. Raised as an
   open_question in the return, not fixed here (`.claude/skills/` is not my domain).
 
-- 2026-08-19: `bash-write-guard.sh` blocks heredoc redirects (`cat > path <<EOF`) even for paths
+- 2026-08-19: `bash-write-guard.py` blocks heredoc redirects (`cat > path <<EOF`) even for paths
   INSIDE my domain — the guard reported the target as "xxxxxxxxxxxxxxx" and routed me to the Write
   tool. So instantiating a feature dir is: `mkdir -p` via Bash (allowed), then one Write call per
   file. Batching the whole instantiation into a single heredoc script fails as a unit.

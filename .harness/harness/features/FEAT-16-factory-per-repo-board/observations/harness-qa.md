@@ -8,7 +8,7 @@
   mutant, within reasonable tries, that P6 kills and C1 survives. P6 is still real, non-vacuous
   coverage (proven by Mutant 1) — just not proven "uniquely necessary over C1" as the BRIEF states it.
   Full detail in `notes/qa-c0.md`.
-- 2026-08-12: `bash-write-guard.sh` parses Bash command TEXT, not shell-expanded values — a `cp ...
+- 2026-08-12: `bash-write-guard.py` parses Bash command TEXT, not shell-expanded values — a `cp ...
   $SCRATCH/dir/` destination using a shell variable gets flagged as an in-repo relative path and
   denied, even when the variable expands to an absolute out-of-repo path. Use the literal absolute
   path in the command, not a variable, when copying to scratchpad for mutation testing.

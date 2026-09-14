@@ -5,7 +5,7 @@
   a bare line number into intent would have pointed the builder inside a comment block; I wrote the
   line number PLUS the two literal strings to re-locate by, which is what survives a concurrent edit.
 - 2026-09-09: BUG-285. plan-merge.py apply reads --proposal - from a bash heredoc without tripping
-  bash-write-guard.sh (no redirect target), so a whole bootstrap proposal goes in one call with no
+  bash-write-guard.py (no redirect target), so a whole bootstrap proposal goes in one call with no
   temp file. Confirmed APPLIED, exit 0, on a plan that did not previously exist. The observations
   dir is NOT auto-created: observations-merge.py dies with FileNotFoundError on the .lock path.
 - 2026-09-09: BUG-285. check-plan-routes.py prints "granted to" the FULL resolved agent set, not the

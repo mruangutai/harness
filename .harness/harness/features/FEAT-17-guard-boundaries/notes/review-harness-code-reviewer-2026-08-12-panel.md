@@ -19,7 +19,7 @@ what the plan already covers.
 
 `git diff --name-only main...c6a28bd` (18 files, full list, for the "no UI surface" claim):
 ```
-.claude/skills/harness/bin/bash-write-guard.sh
+.claude/skills/harness/bin/bash-write-guard.py
 .claude/skills/harness/bin/check-domain.py
 .claude/skills/harness/bin/check-state.sh
 .claude/skills/harness/bin/harness_boundary.py
@@ -82,7 +82,7 @@ should have surfaced *why* — an out-of-place worktree is present — says noth
 **Confirmed zero test coverage.** `test-check-state.py`'s `case_u` (SC-08's fixture) calls `run()`,
 which invokes the *real* `check-state.sh` against the real `bin/` directory — `harness_boundary.py`
 is always importable in every SC-08 case. SC-10's isolated-copy-missing-the-module fixture (BRIEF:
-"an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.sh` and `harness_yaml.py` but
+"an isolated `bin/` copy carrying `check-domain.py`, `bash-write-guard.py` and `harness_yaml.py` but
 NOT `harness_boundary.py`") does not include `check-state.sh` at all. No test in this feature's SC
 list exercises this path.
 
@@ -94,8 +94,8 @@ anticipates and tests for on the write-guard side), wrong outcome (the loudest g
 ### FINDING 2 — HIGH. D-07/DEC-193's "product paths keep exactly today's Bash-route behaviour" is
 false for two operand shapes the ruling didn't consider — verified by direct execution, not inference
 
-`bash-write-guard.sh:546` calls `harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")`
-**unconditionally, for every finding**, before the outside-repo `..` filter at `bash-write-guard.sh:565-566`
+`bash-write-guard.py:546` calls `harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")`
+**unconditionally, for every finding**, before the outside-repo `..` filter at `bash-write-guard.py:565-566`
 is ever reached (`if rel.startswith(".."): continue`). `classify()` (`harness_boundary.py:232`) calls
 `resolve_fleet()` **first thing**, unconditionally, at `harness_boundary.py:261`, and `resolve_fleet`
 (defined `:125`) `sys.exit(2)`s internally at `harness_boundary.py:166` if `.harness/factory/fleet.yaml`
@@ -111,8 +111,8 @@ out_of_place_worktree, so paths under workspace_root and a product name keep exa
 Bash-route behaviour."* DEC-193 repeats it: *"its outside-repo pass-through is preserved, narrowed to
 a filter on the verdict rather than removed."* Both are **true only for a genuine product-base path
 when `fleet.yaml` parses.** I verified the following before/after table by direct execution — `main`'s
-`bash-write-guard.sh` had no `harness_boundary` dependency at all and ran the `..` continue before any
-matching (`git show main:.claude/skills/harness/bin/bash-write-guard.sh:406-409`); at `c6a28bd` I
+`bash-write-guard.py` had no `harness_boundary` dependency at all and ran the `..` continue before any
+matching (`git show main:.claude/skills/harness/bin/bash-write-guard.py:406-409`); at `c6a28bd` I
 imported `harness_boundary` directly (working-tree copy, byte-identical to the SHA) against hand-built
 fixtures and called `classify()` with the exact arguments the guard passes:
 
@@ -204,7 +204,7 @@ factually correct at this SHA.
 
 - `check-domain.py:167-176`, `--resolve` branch, import at `:168`, `except Exception` → `sys.exit(2)` at `:176`.
 - `check-domain.py:349-358`, main hook path under `if _run_domain:`, import at `:350`, exit 2 at `:358`.
-- `bash-write-guard.sh:82-90`, import at `:83`, exit 2 at `:90`.
+- `bash-write-guard.py:82-90`, import at `:83`, exit 2 at `:90`.
 
 All three re-derived directly from the SHA (not the plan's stale `:493`/`:357`/`:73` citations, which
 have drifted as the panel dispatch itself warned).
@@ -224,7 +224,7 @@ preserves `52d8334`. All confirmed:
 ### A2 cross-check (secondary; security-reviewer leads) — no additional caller-side finding
 
 All three `worktree_owner()` call sites — `check-domain.py:420` (root-side), the internal call inside
-`classify()` at `harness_boundary.py:271` (target-side, `_wt_owner`), and `bash-write-guard.sh:128`
+`classify()` at `harness_boundary.py:271` (target-side, `_wt_owner`), and `bash-write-guard.py:128`
 (root-side) — treat `None` uniformly as not-a-worktree (`if _wt_owner is not None and not _wt_owner[2]:`
 / `if _root_wt is not None and not _root_wt[2]:`). I found no caller-specific None-handling divergence
 a parser-side reading would miss; this is the same fail-open direction the security reviewer is
@@ -240,7 +240,7 @@ for the specific claims the panel dispatch asked about (D-06, D-07, D-09, SC-08/
 not run the full test suite (out of scope for this role — read-only, no Bash execution of the test
 files themselves beyond direct `harness_boundary` import against hand-built fixtures) and defer overall
 green/red status to qa's own run. No scope creep found in `harness_boundary.py`,
-`check-domain.py`, or `bash-write-guard.sh` beyond what REQ-01..09 and D-01..09 call for.
+`check-domain.py`, or `bash-write-guard.py` beyond what REQ-01..09 and D-01..09 call for.
 `.harness/notes/grilling-central-product-config-2026-08-12.md` sits outside any per-feature `notes/`
 path and I could not trace it to a REQ/D in this feature's plan — flagged as an open question, not a
 finding, since I did not read it in full and it may legitimately belong to FEAT-16's concurrent edit

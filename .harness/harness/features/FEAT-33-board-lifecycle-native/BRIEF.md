@@ -125,7 +125,7 @@ ground, then kaya-ai board 2.
   verify: automated      evidence: unit
 - SC-10: Nothing already guarded is weakened: the full unit and integration suites pass, and
   `check-state.sh` exits 0 on the harness checkout after the migration — with no edit to
-  `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or `check-plan-routes.py` in this
+  `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-plan-routes.py` in this
   feature's diff. **The list is FOUR files, not five.** `check-state.sh` left it because ruling 1
   of 2026-08-23 makes INV-26 fire on every done task whose sub-issue is deliberately still open;
   the one bounded widening that fixes it is SC-20's, performed by the operator's own hand under
@@ -622,7 +622,7 @@ board. That is the one thing it copies from the factory lane.
   enforcement layer, and the only genuinely *caused* write available there — a `PostToolUse`
   `Write|Edit` hook firing a board read — costs a measured 490–506 GraphQL points per fire on board 3
   and would fire on every edit in every session. SC-10's untouched-file list is therefore **four,
-  not five**: `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` and
+  not five**: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
   `check-plan-routes.py` are untouched, and `check-state.sh` carries the single bounded INV-26
   widening ruling 1 forces (SC-20), performed by the operator and by nobody else.
 - **A cross-repo ordering cost, stated rather than discovered.** The one board validator in the tree

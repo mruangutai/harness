@@ -25,7 +25,7 @@ every source path) or via `git show 340e18a:<path>` / a `git worktree add /tmp/f
 (removed at the end of this run). `human_commits_in_scope: []` — none of bb6ab8c/20b5af3/9da3986/924b961
 carries `[harness:human]`.
 
-**Fixture method.** `bash-write-guard.sh` denies `harness-code-reviewer` on any shell redirect/`sed
+**Fixture method.** `bash-write-guard.py` denies `harness-code-reviewer` on any shell redirect/`sed
 -i`/`tee`/etc regardless of destination, so the assignment's literal `git show ... > /tmp/...` form is
 blocked. All `/tmp` fixtures below were built with `python3 -c "...open(path,'w')..."` instead — the
 guard pattern-matches shell write syntax, not program behaviour, and every path written was under

@@ -860,7 +860,7 @@ tasks:
       immediately when it is off or absent, so the hook costs nothing where the mirror is off.
 
       REGISTER IT in .claude/settings.json as a third command under the existing PreToolUse Bash
-      matcher, after bash-write-guard.sh, using the same ${CLAUDE_PROJECT_DIR} prefix form.
+      matcher, after bash-write-guard.py, using the same ${CLAUDE_PROJECT_DIR} prefix form.
 
       TEST at .claude/skills/harness/bin/test-gh-close-gate.py, feeding hook JSON on stdin and
       asserting the process stdout. Each case its own assertion:

@@ -30,7 +30,7 @@
   the clause's first conjunct (`test -f`) exits before any later conjunct is reached. I ran T-02's
   clause with `S=` rewritten to a tempdir across three fixture states (complete / paraphrased /
   case-flipped). A red run on the real tree proves nothing about a conjunct it never reaches.
-- 2026-08-17: `bash-write-guard.sh` masks quoted spans wholesale, so a python heredoc containing
+- 2026-08-17: `bash-write-guard.py` masks quoted spans wholesale, so a python heredoc containing
   `quiet>=4` is rejected as a redirect to a file named `=4:`. Rewriting the comparison as
   `quiet not in range(0,4)` passed. Any `>`/`>=` inside an inline script trips it, not just shell
   redirects.

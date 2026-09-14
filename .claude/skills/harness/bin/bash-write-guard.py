@@ -1,45 +1,36 @@
-#!/usr/bin/env bash
-# PreToolUse Bash hook — close the CASUAL Bash write bypass (DEC-151).
-#
-# Field incident: qa, denied a source edit by check-domain, made the same edit
-# via `perl -pi` from Bash — the domain hook only sees Write/Edit. This guard
-# does not make Bash-write extraction "winnable" in general (DEC-85 stands);
-# it parses COMMON in-place editors, redirections, and literal Python `open`
-# writes, which is what an agent under pressure reaches for. Unparseable commands pass — the
-# guard converts casual bypass into deliberate obfuscation, which the post-run
-# tree audit then catches.
-#
-# Policy:
-#   - reviewers (code/security/ui) — READ-ONLY: any detected write pattern is
-#     denied outright, no path analysis. Their job is findings, never fixes.
-#   - dev-ops — exempt (trusted by design, owns builds/deploy; DEC-85).
-#   - every other harness agent — a detected write whose target path is
-#     extractable and OUTSIDE the agent's domain (per team-config.yaml,
-#     shared paths included) is denied; in-domain and unparseable pass.
-#   - main session and non-harness agents — ungoverned, exit 0.
-set -uo pipefail
+#!/usr/bin/env python3
+"""PreToolUse Bash hook — close the casual shell-write bypass (DEC-151).
 
-payload=$(cat)
+Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
+compatibility registration lives in `.claude/settings.json`. The payload supplies the
+agent identity and Bash command.
 
-# BASH_SOURCE is the one question only bash can answer, which is why any bash remains.
-_self="${BASH_SOURCE[0]:-$0}"
-_selfdir="$(cd "$(dirname "$_self")" && pwd)"
-_derived="$(cd "$_selfdir/../../../.." && pwd)"
+Detected common write shapes are refused for reviewers and checked against every other
+governed agent's domain. Dev-ops retains its write recovery exemption, but all governed
+agents remain unable to move HEAD. Main-session and non-Harness calls remain ungoverned.
 
-# T-15: ONE interpreter launch, not two. Same reasoning as T-13 on the sibling hook —
-# this fires on every Bash tool call, and a Python start-up per launch is the bulk of
-# it. Behaviour is unchanged: the dev-ops exemption, the harness-* prefix filter, the
-# absent-manifest fail-open and every exit-2 message are identical, and the unchanged
-# test suite is the equivalence proof (D-10, REQ-07).
-# `-P` IS LOAD-BEARING, NOT TIDINESS (#556). Python puts the invoking directory at
-# sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
-# harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
-# 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
-# (refused) into exit 0 ("enforcement OFF"). The bootstrap removes only sys.path[0]
-# before the heredoc imports anything, preserving site-packages on Python 3.9.
-# test-no-distribution.py case 7 is the invariant.
-HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$_derived" "$_selfdir" <<'PY'
+WAS A .sh (issue #1674). The 962-line Python body lived in a heredoc behind a shell
+bootstrap. A native script keeps one interpreter launch and makes the body visible to
+Python tooling. The bootstrap below preserves the old stdin, environment, argv and root
+contracts exactly; it does not redesign the enforcement body.
+"""
+import os as _bootstrap_os
+import sys as _bootstrap_sys
+
+_bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+_bootstrap_derived = _bootstrap_os.path.abspath(
+    _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
+
+# Bash command substitution stripped every trailing newline from the old payload.
+_bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
+_bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
+_bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
+_bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
+    _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
+
+# Preserve the synthetic argv shape consumed by the former heredoc body.
+_bootstrap_sys.argv = [
+    _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_selfdir]
 import sys, os, re, json, shlex, ast
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
@@ -1001,4 +992,3 @@ for name, paths in findings:
         deny(f"{agent}: `{name}` targets {verdict['rel']}, outside your domain.")
 
 sys.exit(0)
-PY

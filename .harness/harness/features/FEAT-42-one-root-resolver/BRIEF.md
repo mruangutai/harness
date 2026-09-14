@@ -175,7 +175,7 @@ printed remedy that does not destroy another feature's work.
 
 ## Constraints
 
-- **DEC-174 amendment 4 BLOCKS execution** on `check-domain.py`, `bash-write-guard.sh`,
+- **DEC-174 amendment 4 BLOCKS execution** on `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh` and the test file
   of each. Those are main-session-direct. Its library rule also governs here: a squad may write
   `harness_boundary.py`, and the cutover that makes a gate use it is main-session-direct, proven by an

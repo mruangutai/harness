@@ -83,7 +83,7 @@ Parsed with `json.load`. Every registration whose command points inside the dele
 |---|---|---|
 | `PreToolUse` | `Bash` | `branch-create-gate.sh` |
 | `PreToolUse` | `Bash` | `branch-create-gate.sh` **(a second, duplicate entry — different `$VAR` spelling)** |
-| `PreToolUse` | `Bash` | `bash-write-guard.sh` |
+| `PreToolUse` | `Bash` | `bash-write-guard.py` |
 | `PreToolUse` | `Write\|Edit` | `check-domain.py` |
 | `PreToolUse` | `Task\|Agent` | `dispatch-guard.sh` |
 | `SubagentStart` | `harness-.*` | `inject-expertise.sh` |

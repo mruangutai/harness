@@ -85,7 +85,7 @@
   produces the same empty output as a clean run. LESSON: always print and assert the exit code of
   the measured command, and treat 126/127 as "did not run", never as "found nothing".
 
-- 2026-08-21: `bash-write-guard.sh` blocks a bash `>` redirect into the session scratchpad under
+- 2026-08-21: `bash-write-guard.py` blocks a bash `>` redirect into the session scratchpad under
   `/private/tmp/.../scratchpad` as outside my domain (DEC-151, guardrail evasion). Correct, and
   worth knowing before designing a measurement: an orchestrator's shell measurements must run
   through pipes and command substitution, never through temp files. The rewrite cost one tool call.
@@ -281,7 +281,7 @@
   spaces, so a hardcoded rule there denies 27 legitimate lines and matches zero signatures — the same
   sentence becomes a fact about the corpus that a reader must falsify before touching. Same asymmetry
   as a test versus a comment: evidence resists edits, preference does not. Corollary on cost: at this
-  tier I hold `Write` but no `Edit`, and `bash-write-guard.sh` correctly refuses a `>>` redirect even
+  tier I hold `Write` but no `Edit`, and `bash-write-guard.py` correctly refuses a `>>` redirect even
   into my own domain, so appending four lines to a 23KB observations log is a full-file rewrite. Budget
   for that, or lose the observation — and verify append-only with `git diff --numstat` afterwards
   (0 deletions), because a hand-retyped rewrite is exactly how DEC-125's wipe happens.
@@ -322,7 +322,7 @@
   told "you are behind, this could break X", measure X before planning around it; "behind" and "broken"
   are different claims and the second is usually cheap to test.
 - 2026-08-22 (ship): I cannot perform the merge I was told to perform — `merge` is in `HEAD_MOVERS` at
-  `bash-write-guard.sh:144`, refused for every governed agent. I did NOT test it live, because two
+  `bash-write-guard.py:144`, refused for every governed agent. I did NOT test it live, because two
   agents were mid-write and a HEAD move re-points every file under them; I read the guard's source
   instead, which is the same answer for zero risk. Lesson: when an instruction from above collides with
   a guard, establish the collision by READING the guard, never by running the command and seeing what
@@ -356,7 +356,7 @@
   the `none` case I would have seen "REJECTED" and concluded correctly by luck — the digest was ALSO
   invalid for a missing `branch`, so a bare pass/fail read would have been the mutant-dies-on-import
   trap in its exact classic form. The discriminator has to be the ERROR LINE, never the exit code.
-- 2026-08-22 (ship): `bash-write-guard.sh` parses my command line for write verbs by TOKEN, so a shell
+- 2026-08-22 (ship): `bash-write-guard.py` parses my command line for write verbs by TOKEN, so a shell
   variable or function named `mv` is read as the `mv` command ("`mv` targets BLOCKED, outside your
   domain"), and `>=` inside an embedded python heredoc is read as a redirect to `=`. Both blocks were
   correct refusals of a misparse, not of intent. LESSON: in any Bash call, avoid `mv`/`cp`/`rm` as

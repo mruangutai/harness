@@ -160,7 +160,7 @@ what the factory clones.
   anywhere. Deferred by operator ruling; the central-store migration is separate work.
 - Out of scope: `factory_gh.py` and `.harness/features/FEAT-11-graphql-field-resolve/`, which are
   being planned concurrently against issue #211.
-- Untouchable under DEC-174: `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` and
+- Untouchable under DEC-174: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
   `check-state.sh` — **four, not five.** `check-docs.sh` was the fifth; it no longer exists.
   Issue #202 deleted it under DEC-188 and its absence from the tree is confirmed at `687fd3e`.
   It is not recreated by this feature. All four survivors were grepped for `deploy` and `registry`

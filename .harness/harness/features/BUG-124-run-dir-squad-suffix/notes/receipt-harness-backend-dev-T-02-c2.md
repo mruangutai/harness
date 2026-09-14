@@ -4,7 +4,7 @@
 
 Fixed. The T-02 run-dir derivation block's launch line in `dispatch-guard.sh` is now
 the same-line pop-and-exec bootstrap already used by `check-domain.py` and
-`bash-write-guard.sh`:
+`bash-write-guard.py`:
 
 ```
 if _globs=$(python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$GUARD_BIN_DIR" 2>/dev/null <<'PY'
@@ -24,7 +24,7 @@ branches are untouched — only the launch mechanics moved.
 
 ## Observed counts (all run from worktree root, `env -u HARNESS_AGENT_TYPE`)
 
-- `python3 tests/unit/test-no-distribution.py` → **ALL PASS, exit 0**. `case7_every_python_launch_isolates_the_cwd` green; `case7_the_scan_can_see_the_invocations` green with `safe_hits = 4` (was 3 pre-fix: `check-state.sh`, `bash-write-guard.sh`, `check-domain.py`, now `dispatch-guard.sh` too — counted directly by re-running the scan's own predicate against `.claude/skills/harness/bin/*.sh`).
+- `python3 tests/unit/test-no-distribution.py` → **ALL PASS, exit 0**. `case7_every_python_launch_isolates_the_cwd` green; `case7_the_scan_can_see_the_invocations` green with `safe_hits = 4` (was 3 pre-fix: `check-state.sh`, `bash-write-guard.py`, `check-domain.py`, now `dispatch-guard.sh` too — counted directly by re-running the scan's own predicate against `.claude/skills/harness/bin/*.sh`).
 - `python3 tests/unit/test-harness-boundary.py` → **ALL PASS, exit 0**, 61 `PASS` lines (60+ ✓).
 - `python3 tests/integration/test-dispatch-guard.py` → **69 of 69 cases passed, exit 0**.
 - Plan T-02 `verify:` (cross-checked verbatim against `plan.yaml:324-325`, exact match) → **exit 0** (integration suite 69/69, then the piped grep for `eng-t01` succeeded).

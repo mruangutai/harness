@@ -56,7 +56,7 @@ Confirmed by case4/case5 (`r.stdout`) and case9 (`r.stderr`) all passing unchang
 Ran verbatim, with ONE substitution — the plan's authorised swap of the literal
 `cp -R .claude/skills/harness/bin "$T/bin"` for
 `python3 -c "import shutil, sys; shutil.copytree('.claude/skills/harness/bin', sys.argv[1] + '/bin')" "$T"`
-(same effect, `bash-write-guard.sh` denies `cp` with an unexpanded `$T` target). No other line
+(same effect, `bash-write-guard.py` denies `cp` with an unexpanded `$T` target). No other line
 changed. **Exit code: 0.** All four grep clauses passed (import found; no own
 flock/O_EXCL/os.replace; no lock-file-absence assertion; `case10` present). Full 38/38 case run
 is PASS. The mutant step: `USE_FLOCK = True` → `False` replaced BY NAME in the copied

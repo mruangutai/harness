@@ -112,7 +112,7 @@ an illegal vocabulary word): here even an illegal value sails through silently.
 **Confirmed live, with the actual Write tool, not simulated:**
 ```
 ln -s <target>/plan.yaml alias-link.md          # ordinary Bash; `ln` is absent from
-                                                 # bash-write-guard.sh's KNOWN_DATA_FEEDERS
+                                                 # bash-write-guard.py's KNOWN_DATA_FEEDERS
                                                  # (checked directly), not intercepted
 Write(path=alias-link.md, content=<tampered YAML>)
 ```

@@ -516,7 +516,7 @@ def case_real_keeps_one_namespace_when_unresolvable():
     the fail-open crash, but it returns an UNRESOLVED path -- and when the checkout root is
     reached through a symlink, `real(root)` is fully resolved while `real(target)` is not. The two
     no longer share a prefix, so `select_base`/`inside` classify an in-base target as
-    `not_a_domain_question` and `bash-write-guard.sh` exits 0 with empty stderr.
+    `not_a_domain_question` and `bash-write-guard.py` exits 0 with empty stderr.
 
     MEASURED on a symlinked root before the fix:
         real('/tmp/h3/link')                    -> /private/tmp/h3/actual

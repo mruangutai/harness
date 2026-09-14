@@ -51,7 +51,7 @@ wrong number.
 | # | file:line | value | use | handling |
 |---|---|---|---|---|
 | 17 | `check-domain.py:134` → `:212,:215` | every glob from `manifest_domains` | **regex source** — reaches `re.escape`/`re.compile` | `str()` at the SOURCE, `harness_yaml.py:130,142` |
-| 18 | `bash-write-guard.sh:287` → `:318-319` | same | same, via its own `glob_to_re` | same source coercion |
+| 18 | `bash-write-guard.py:287` → `:318-319` | same | same, via its own `glob_to_re` | same source coercion |
 | 19 | `check-domain.py:306` → `:315-316` | top-level keys of a parsed `state.yaml` | **dict-key comparison** vs `ALLOWED` | `str(k)` on BOTH sides |
 
 **19 consumer sites, all classified.** The count is the complete output of

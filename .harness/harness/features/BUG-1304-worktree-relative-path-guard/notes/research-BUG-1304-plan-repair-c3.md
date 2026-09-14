@@ -33,7 +33,7 @@ for signature with `approval.status: pending`, unchanged and untouched.
   owner-root registry plus every linked worktree's registry while it BUILDS S, and the destination
   is not an argument to it — so while ANY scanned registry is unreadable, EVERY governed write by
   EVERY governed persona on EVERY feature is refused, including writes inside the writer's own
-  healthy assigned worktree. The `bash-write-guard.sh:684-694` comparison is kept **only for the
+  healthy assigned worktree. The `bash-write-guard.py:684-694` comparison is kept **only for the
   direction** of the trade and explicitly disclaimed as a precedent for its scope. Both remedies are
   recorded with neither selected: **(a)** allow a destination inside a member of the PARTIAL S
   (panel's assessment carried: sound under any superset of S) → reorders T-02's predicate, needs a

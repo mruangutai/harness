@@ -40,7 +40,7 @@ does not. No path the factory works on is silently ungoverned.
   exact failure this ticket exists to remove.
 
 - **`/tmp` and anything outside BOTH bases keep today's no-verdict behaviour.** The reasoning at
-  `check-domain.py:398-404` is sound and `bash-write-guard.sh:211` agrees: blocking a scratch file
+  `check-domain.py:398-404` is sound and `bash-write-guard.py:211` agrees: blocking a scratch file
   taught an agent to route around a hook whose own message said outside-repo was not its problem.
   A product checkout is not `/tmp`; a scratch file still is.
 
@@ -62,7 +62,7 @@ does not. No path the factory works on is silently ungoverned.
 - **`factory_workspace`'s missing refusal guard.** Tracked as #240 (P1): different file, different
   failure mode. It must not be folded in here.
 - **Reworking `team-config.yaml`'s schema.** The prefix-inference ruling exists precisely to avoid it.
-- **`bash-write-guard.sh`.** It has its own outside-repo rule and its own carve-out status. Whether it
+- **`bash-write-guard.py`.** It has its own outside-repo rule and its own carve-out status. Whether it
   needs the same treatment is a separate question nobody has asked yet.
 
 ## Facts I verified (so pm does not re-derive them)

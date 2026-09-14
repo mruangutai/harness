@@ -92,7 +92,7 @@ Log — station transitions:
   the MAIN checkout instead of the caller's worktree, so worktree flows — how the harness runs every
   feature — hit false denials, stale reads and false passes. (1) `handoff_done_when.py:359-364` joins
   a worktree-relative `rel_path` to the main root, so `plan-task:`/`brief-sc:` pointers cannot resolve
-  from a worktree. (2) `bash-write-guard.sh` rejected a relative-path `rm` naming the main-checkout
+  from a worktree. (2) `bash-write-guard.py` rejected a relative-path `rm` naming the main-checkout
   target. (3) `notes/handoff-<phase>.md` is unwritable from a worktree pre-merge. (4) Relative
   read/grep tool paths silently returned a STALE 908-line copy of `test-harness-yaml.py` from the main
   checkout with no error, and (5) `check-state.sh` from the main checkout prints NOTHING about a

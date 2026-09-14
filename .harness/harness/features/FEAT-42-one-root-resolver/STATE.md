@@ -46,7 +46,7 @@ VERIFIED BY ME at 9d12e3a, independent of any squad:
 - Q10 (OPEN, non-blocking): `resolve_root` probes with `os.path.isfile`; the deleted
   `check-plan-routes.py` probe used `os.access(..., os.R_OK)`. An unreadable-but-present
   `team-config.yaml` now flips from "not a root" to "is a root". No site is known to reach it.
-- Q15 (OPEN, non-blocking, harness defect): `bash-write-guard.sh` refuses a command whose PROSE
+- Q15 (OPEN, non-blocking, harness defect): `bash-write-guard.py` refuses a command whose PROSE
   body contains an angle-bracket placeholder or an ASCII arrow, parsing it as a redirect. Three
   occurrences on this feature. Needs its own ticket.
 - Q16 (OPEN, non-blocking, harness defect): `gh-sync.py` has `start-task` and no per-task finish

@@ -144,7 +144,7 @@ every CLI this feature adds:
 
 Two consequences, both accepted rather than designed around. First, a merge tool can guarantee
 **no loss** and **no mis-targeted destination**; it cannot guarantee **authorship**. Second, the
-CLI route is reachable at all only because `bash-write-guard.sh` is allow-by-omission (#627): it
+CLI route is reachable at all only because `bash-write-guard.py` is allow-by-omission (#627): it
 finds no write pattern in a `python3 … .py --file …` command and exits 0 at its `if not findings`
 guard, before the `agent in REVIEWERS` read-only denial and before the `for name, paths in findings`
 domain walk. Named by symbol and not by line: the three anchors cited through earlier planning
@@ -195,7 +195,7 @@ file class it owns.
   re-returns the same premature digest a second time ships it, because `stop_hook_active` passes the
   second return through unconditionally. And an orphaned child of an interrupted parent (DEC-131) has
   no parent left to refuse, so neither mechanism reaches it. **#551 narrows; it does not close.**
-- **#627 — `bash-write-guard.sh`'s allow-by-omission default.** Out. Its fix is a change to a named
+- **#627 — `bash-write-guard.py`'s allow-by-omission default.** Out. Its fix is a change to a named
   enforcement-layer gate whose real cost is designing a **rule rather than a list** for extracting
   each tool's destination argument, and it is orthogonal to the merge class: nothing in #627 makes a
   second writer non-destructive, and nothing in this feature makes #627 worse in kind. It does make

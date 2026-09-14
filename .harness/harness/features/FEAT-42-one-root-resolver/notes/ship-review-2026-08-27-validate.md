@@ -50,7 +50,7 @@ const proc = spawnSync(join(cwd, BIN, script), args, { cwd, ... });
 executable is selected by joining it onto a caller-supplied path. I verified this myself rather than
 relaying it: eleven call sites (`:179`, `:186`, `:198`, `:205`, `:212`, `:263`, `:317`, `:318`,
 `:325`, `:357`) covering six distinct gates — `check-domain.py`, `inject-expertise.sh`,
-`branch-create-gate.sh`, `bash-write-guard.sh` and `validate-digest.py`. All of them trace back to
+`branch-create-gate.sh`, `bash-write-guard.py` and `validate-digest.py`. All of them trace back to
 `ctx.cwd`.
 
 **Why this is the feature's own defect and not an unrelated one.** Issue #556, which this branch
@@ -144,8 +144,8 @@ silently.**
 | B-4 | `test-check-plan-routes.py:1133-1136` keeps a live gate exemption alive on a defect that is fixed | bug |
 | B-5 | `validate-digest.py` releases a returning agent's claim before refusing the return; fired twice this run | bug |
 | B-6 | `test-validate-digest.py` is non-hermetic while any dispatch is in flight | bug |
-| B-7 | `bash-write-guard.sh` parses an angle bracket or ASCII arrow in prose as a redirect and refuses | bug |
-| B-8 | `bash-write-guard.sh` denies an agent Bash writes to its own dispatched scratchpad | bug |
+| B-7 | `bash-write-guard.py` parses an angle bracket or ASCII arrow in prose as a redirect and refuses | bug |
+| B-8 | `bash-write-guard.py` denies an agent Bash writes to its own dispatched scratchpad | bug |
 | B-9 | `change_type: test` exists in plans and in no taxonomy that grades it | bug |
 | B-10 | `gh_cost_log.py` reads `FACTORY_GH` not `GH_SYNC_GH`, breaking `test-gh-sync.py`'s offline guarantee | bug |
 | B-11 | `gh-sync.py` has `start-task` and no per-task finish command | bug |

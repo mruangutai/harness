@@ -33,7 +33,7 @@ def case(name, path, want, agent="harness-documentor", tool="Write"):
 
 
 # ---------------- MUST PASS: outside the repo is not a domain question --------
-# bash-write-guard.sh:211 already says so ("outside repo — not this hook's
+# bash-write-guard.py:211 already says so ("outside repo — not this hook's
 # problem"). The Write hook must agree, or the same scratch file is legal via
 # Bash and illegal via Write.
 case("a scratch script in /tmp", "/tmp/backfill_t04.py", 0)

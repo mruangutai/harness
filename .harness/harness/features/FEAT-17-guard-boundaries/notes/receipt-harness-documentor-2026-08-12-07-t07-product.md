@@ -105,7 +105,7 @@ The intent cites `check-domain.py line 676` for the `domain_check` gate. At HEAD
 docstring. The entry states the quoted condition and the mechanism instead of the integer, so the
 claim is true and stays true. Re-verified at HEAD for the entry's other present-tense claims:
 `harness_boundary.classify` and `worktree_owner` exist (`harness_boundary.py:232`, `:359`); the Bash
-route's root-side check is at `bash-write-guard.sh:128`, ahead of its `if _no_parser` exit at `:490`;
+route's root-side check is at `bash-write-guard.py:128`, ahead of its `if _no_parser` exit at `:490`;
 the `--resolve` branch exits at `check-domain.py:255`, before `_governed` is computed at `:271`.
 
 ## Open

@@ -20,7 +20,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: DEC-174 am.4 enforcement layer, and its test file with it
     - surface: .claude/skills/harness/bin/validate-digest.py
@@ -844,20 +844,20 @@ tasks:
       inconclusive red proof reads exactly like a surviving mutant.
 
   - id: T-11
-    title: Cut bash-write-guard.sh over to the resolver, with the identical-violation-set proof
+    title: Cut bash-write-guard.py over to the resolver, with the identical-violation-set proof
     traces: [REQ-01, REQ-02, REQ-09]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 names bash-write-guard.sh in the enforcement layer
+    execution_reason: DEC-174 am.4 names bash-write-guard.py in the enforcement layer
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      G=bash-write-guard.sh
+      G=bash-write-guard.py
       grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
       for M in /tmp/f42-old /tmp/f42-new; do
         rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
@@ -880,7 +880,7 @@ tasks:
       python3 $B/test-bash-write-guard.py || exit 1
       echo T-11-OK
     intent: |
-      Two chain sites in .claude/skills/harness/bin/bash-write-guard.sh. :194 is
+      Two chain sites in .claude/skills/harness/bin/bash-write-guard.py. :194 is
       _proot = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or _derived, inside the isolated-bin
       path. :232 is root = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or "". Replace both with
       harness_boundary.resolve_root(<the bin dir the script derives from its own location>).
@@ -1536,7 +1536,7 @@ tasks:
       .claude/skills/harness/bin/ that sets the variable - a repo-wide grep over tracked .ts, .js
       and .json files excluding /bin/ returns exactly this one line at sha 3952814; every other
       match in the tree is prose. After T-10, T-11, T-14, T-16 and T-17 each of the five scripts
-      this helper invokes - check-domain.py, bash-write-guard.sh, branch-create-gate.sh,
+      this helper invokes - check-domain.py, bash-write-guard.py, branch-create-gate.sh,
       inject-expertise.sh and validate-digest.py - derives its own root from its own file location
       under D-4. Handing it one is therefore redundant. Worse, the value handed over is the host
       process working directory, and under D-2 and D-3 a feature worktree carries

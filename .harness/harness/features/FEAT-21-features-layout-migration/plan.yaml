@@ -55,7 +55,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-bash-write-guard.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops
-      reason: "asserts the live grants through bash-write-guard.sh, itself a DEC-174 carve-out"
+      reason: "asserts the live grants through bash-write-guard.py, itself a DEC-174 carve-out"
     - surface: .claude/skills/harness/bin/test-harness-yaml.py
       lane: main-session-direct
       resolve: harness-backend-dev harness-dev-ops

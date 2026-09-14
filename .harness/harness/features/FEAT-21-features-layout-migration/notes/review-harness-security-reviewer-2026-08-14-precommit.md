@@ -47,9 +47,9 @@ at execution level, not just by reading: `python3 .claude/skills/harness/bin/tes
 → **14/14 pass**, and its fixtures exercise these four routes at the literal new-layout shape
 (`.harness/harness/features/FEAT-X/...`, lines 224/383/1001/1404 of the test file).
 
-## D. `bash-write-guard.sh` and `branch-create-gate.sh`
+## D. `bash-write-guard.py` and `branch-create-gate.sh`
 
-**`bash-write-guard.sh`** (unmodified in this diff — it delegates to `team-config.yaml` via
+**`bash-write-guard.py`** (unmodified in this diff — it delegates to `team-config.yaml` via
 `harness_boundary`/`harness_yaml`, which is why it needed no edit). Exercised live at the new
 layout:
 - ungranted write (reviewer role, any path) → `BLOCKED`, exit 2

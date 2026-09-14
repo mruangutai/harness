@@ -274,7 +274,7 @@ cost nothing and would have converted the whole run to BLOCKED had it come back 
   lack. Without that control the same grep is indistinguishable from cleanliness.
   CONVERGENCE IS NOT PROOF, and I said so in the digest: code-reviewer reached it by reading the
   raise sites, security by an adversarial census, me by the grep plus plan cross-reference — and
-  NONE of us mutation-proved it. Security tried and `bash-write-guard.sh` correctly refused. Three
+  NONE of us mutation-proved it. Security tried and `bash-write-guard.py` correctly refused. Three
   independent searches agreeing raises confidence a lot and is still not a failing mutant.
 
 - 2026-08-19 (run 9): A ONE-SURFACE MEMBER FINDING THAT WAS ACTUALLY FIVE, and the extension is the

@@ -2487,7 +2487,7 @@ work.
 #### HEAD is shared state — moving it is refused for all sixteen agents
 
 A governed agent that tries to move `HEAD` during a live run is refused with a message naming the
-worktree it should have worked in (`bash-write-guard.sh:114-221`). This binds **every one of the 16
+worktree it should have worked in (`bash-write-guard.py:114-221`). This binds **every one of the 16
 governed agents including the orchestrator, and including `harness-dev-ops`**: the rule sits *above*
 dev-ops' write exemption (`:227`), and both halves of that ordering are asserted — dev-ops is refused
 `git checkout main`, and its write exemption is proven still intact (`test-bash-write-guard.py:762-772`).

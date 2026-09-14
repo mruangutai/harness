@@ -33,8 +33,8 @@ My read matches the lead's on `.claude/settings.json` and adds the two the lead 
 
 The rewritten instruction names, per site, the literal predecessor (`plan-sign-gate.sh` in all
 three, as it happens) and the literal successor (**none** — merge-gate.sh is last), and states the
-constraint the neighbours only encode: **merge-gate.sh runs last, after `bash-write-guard.sh`.**
-`bash-write-guard.sh` is the only registered gate whose subject can also match a merge command
+constraint the neighbours only encode: **merge-gate.sh runs last, after `bash-write-guard.py`.**
+`bash-write-guard.py` is the only registered gate whose subject can also match a merge command
 line (it scans the whole line for redirects/`tee`/`cp`/`mv`/`rm`), so `gh pr merge 7 > log` is
 refused by both; the write-guard's reason must win, because the redirect is refused whatever the
 merge verdict while merge-gate's reason names a recovery command that would not make that line
@@ -48,7 +48,7 @@ path no index is read at all: the failure mode there is **absence, not order**, 
 says so rather than inventing a consequence. The instruction also tells the doer to satisfy the
 constraint, not the names, if a reshuffle has already moved them, and turns
 `tests/unit/omp-hooks.test.ts`'s ordering assertion into the machine-checkable form
-(`indexOf("merge-gate.sh")` greater than `indexOf("bash-write-guard.sh")` and
+(`indexOf("merge-gate.sh")` greater than `indexOf("bash-write-guard.py")` and
 `indexOf("plan-sign-gate.sh")` — a relation, never a literal index).
 
 ## Fix 2 — SCOPE-01: one declared case, and the clause is real

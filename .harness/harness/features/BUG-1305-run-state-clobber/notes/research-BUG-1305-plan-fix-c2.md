@@ -25,7 +25,7 @@ reported violation. `check-plan-routes.py` exits 0; `approval.status` stays `pen
 | F-02 | REQ-07 is two-directional. SC-07 direction two names the four permitted-write pairs a grader COMPARES and five FAIL conditions. T-08 intent+verify now produce and grep `## Newly refused writes`. |
 | F-03 | Dissolved by F-01 — no contingent language survives in REQ-01 or SC-01; the residual is stated as fact, not as a branch. T-04's retirement body records the `inconclusive` evidence. |
 | F-04 | New T-10: `run_identity.py --seed <root>` backfill, then marker-absent becomes a reported outcome of T-03's invariant. Graded by new **SC-09** (traces REQ-02, widened). Order is inside one task so no intermediate state fires on history. |
-| F-05 | `_run_artifact_guard (:744-767 at c369fb1f)` in REQ-01 and SC-01. Re-derived: HEAD is `c369fb1f` and the def is at `bash-write-guard.sh:744`. |
+| F-05 | `_run_artifact_guard (:744-767 at c369fb1f)` in REQ-01 and SC-01. Re-derived: HEAD is `c369fb1f` and the def is at `bash-write-guard.py:744`. |
 | F-06 | SC-08 narrowed to "the two documents T-07 changes", and says explicitly that DEC-145's own sentence standing is the design. |
 | F-07 | `T-06.depends_on: [T-02, T-09]`. |
 

@@ -167,7 +167,7 @@ this basis.
    decide whether the task's `verify:` should be corrected to `--kind integration` or `--kind all`
    in a later revision.
 
-2. `bash-write-guard.sh` denied a `>` redirect targeting the session's own designated scratchpad
+2. `bash-write-guard.py` denied a `>` redirect targeting the session's own designated scratchpad
    directory (`/private/tmp/claude-501/.../scratchpad/...`), reporting it as "outside your domain."
    A `tee` redirect to `/tmp/integ_out.txt` succeeded moments later on the same command shape. A
    guard that blocks the harness's own assigned scratchpad is a harness defect, not a domain

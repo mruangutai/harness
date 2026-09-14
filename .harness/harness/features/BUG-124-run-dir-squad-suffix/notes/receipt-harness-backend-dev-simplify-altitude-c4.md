@@ -1,7 +1,7 @@
 # SIMPLIFY — ALTITUDE angle — BUG-124, cycle 4
 
 BLUF: one altitude finding. The rest of the diff is well-placed — the four helpers sit in
-`harness_boundary.py` (the shared library check-domain.py/bash-write-guard.sh/dispatch-guard.sh
+`harness_boundary.py` (the shared library check-domain.py/bash-write-guard.py/dispatch-guard.sh
 already use for exactly this kind of grant-matching primitive), the message assembly stays
 single-sourced in `dispatch-guard.sh`, and none of the four is a special case bolted onto shared
 infrastructure for a single caller.

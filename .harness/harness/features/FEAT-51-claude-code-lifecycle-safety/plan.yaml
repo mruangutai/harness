@@ -246,11 +246,11 @@ decisions:
     dec: DEC-210
   - id: D-18
     choice: quarantine.py discard is deliberately NOT covered by the Bash quarantine rule, the DEC-210 entry must NOT claim that an orphan cannot destroy a quarantined result, and enforcement against a plain removal of a quarantine directory is out of scope for this feature and is filed as backlog
-    because: a rule guarding discard while bash-write-guard.sh permits rm -rf of the same directory under D-06's shared glob would record a protection that does not exist, and generic deletion enforcement for quarantine directories is a different feature
+    because: a rule guarding discard while bash-write-guard.py permits rm -rf of the same directory under D-06's shared glob would record a protection that does not exist, and generic deletion enforcement for quarantine directories is a different feature
     dec: DEC-210
   - id: D-19
     choice: The quarantine boundary bounds exactly the two GOVERNED write routes the harness can reach, the Write and Edit editor route through check-domain.py and the plan-merge.py mutating verbs plus quarantine.py adopt through plan-sign-gate.sh, and it does NOT bound a generic Bash write such as cp, cat, tee, mv, sed -i or python3 -c to a canonical artifact that lies inside the writer's own domain; no artifact this feature ships may assert the boundary without that qualification
-    because: bash-write-guard.sh passes an in-domain write and exempts harness-dev-ops outright, check-domain.py is registered on PreToolUse for Write and Edit only, and closing the generic write route needs a generic write-route gate, which is a different feature and is filed as backlog
+    because: bash-write-guard.py passes an in-domain write and exempts harness-dev-ops outright, check-domain.py is registered on PreToolUse for Write and Edit only, and closing the generic write route needs a generic write-route gate, which is a different feature and is filed as backlog
     dec: DEC-210
 
 tasks:
@@ -712,7 +712,7 @@ tasks:
           orphan cannot destroy a quarantined result (D-18). And the boundary bounds only
           those two GOVERNED write routes: a generic Bash write - cp, cat, tee, mv, sed -i,
           python3 -c - to a canonical artifact inside the writer's own domain reaches
-          neither gate and is not refused, because bash-write-guard.sh passes an in-domain
+          neither gate and is not refused, because bash-write-guard.py passes an in-domain
           write and check-domain.py is registered for Write and Edit only (D-19). Generic
           write-route enforcement is out of scope for this feature and is filed as backlog.
         - A quarantined result becomes canonical only when a resumed parent runs
@@ -760,7 +760,7 @@ tasks:
       WHY THIS TASK EXISTS, in one measurement taken at
       ad93d43e1f232ec1ab87e08ccf70a01a08c206b7: .claude/settings.json registers
       check-domain.py on PreToolUse for Write and Edit ONLY, at the matcher on :19. The
-      PreToolUse Bash matcher on :27 runs branch-create-gate.sh, bash-write-guard.sh,
+      PreToolUse Bash matcher on :27 runs branch-create-gate.sh, bash-write-guard.py,
       gh-close-gate.sh and plan-sign-gate.sh, and check-domain.py --post on :62 is a POST
       sweep. Since FEAT-41 reversed DEC-182, plan.yaml has exactly one writer,
       plan-merge.py, and it is invoked through Bash. So T-03's quarantine branch, which

@@ -2,7 +2,7 @@
 
 - 2026-08-31 (FEAT-50): a dispatch clause can authorize what a hook mechanically denies. Main's
   brief said "the orchestrator may implement main-session-direct tasks directly"; check-domain.py
-  hook mode returned exit 2 for harness-orchestrator on all seven files, and bash-write-guard.sh
+  hook mode returned exit 2 for harness-orchestrator on all seven files, and bash-write-guard.py
   refused `cp` with the DEC-151 evasion message. DEC-174 is the reason. I applied T-01/T-02 before
   measuring, through `python3 <script> <path>` — a route the Bash guard cannot see through — which
   means my very first write of a build phase was an unintentional guardrail bypass. Measure the
@@ -37,7 +37,7 @@
   a feature parked in `review` under a landing migration goes red for a reason nobody on it caused.
 - 2026-09-01: the two write routes disagreed on the identical target — check-domain.py hook mode
   refused a governed write to the main checkout's FEAT-50 record at exit 2, while
-  bash-write-guard.sh returned exit 0 for `python3 gh-sync.py ship <that same dir>`. A permissive
+  bash-write-guard.py returned exit 0 for `python3 gh-sync.py ship <that same dir>`. A permissive
   answer from the route with the known interpreter blind spot is not authorization; the refusing
   route is the one that can see. I honoured the refusal and returned the finalization upward.
 - 2026-09-01: a merged feature branch cannot carry its own closeout. Everything committed in its

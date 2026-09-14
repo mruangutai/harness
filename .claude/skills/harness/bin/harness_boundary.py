@@ -1,7 +1,7 @@
 """The boundary rule — one implementation, read by every guard that needs it.
 
 Extracted from `check-domain.py`'s embedded Python (FEAT-17 T-01). The rule was
-reachable only from inside that heredoc, so `bash-write-guard.sh` could not consult it
+reachable only from inside that heredoc, so `bash-write-guard.py` could not consult it
 and enforced a second, weaker version of the same question — the split issue #261
 reports. A heredoc cannot be imported, so the rule moves here and both guards import it.
 
@@ -34,7 +34,7 @@ from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 WORKTREES_SEGMENT = ".claude/worktrees"
 
 # THE RUN-ARTIFACT PATTERNS, shared between check-domain.py (content or route
-# guards on Write/Edit) and bash-write-guard.sh (route-only refusal on Bash).
+# guards on Write/Edit) and bash-write-guard.py (route-only refusal on Bash).
 # One definition keeps both write surfaces from silently disagreeing.
 RE_RUN_DIGEST = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$",
                             re.IGNORECASE)
@@ -421,7 +421,7 @@ def real(path):
     spelling namespace. A bare abspath is not: when the checkout root is reached through a symlink,
     `real(root)` is fully resolved while an unresolvable target was not, the two shared no prefix,
     and `select_base`/`inside` classified an IN-BASE target as `not_a_domain_question` --
-    bash-write-guard.sh then exited 0 with empty stderr.
+    bash-write-guard.py then exited 0 with empty stderr.
 
     MEASURED before the fix, on a symlinked root:
         real('/tmp/h3/link')                   -> /private/tmp/h3/actual
@@ -632,7 +632,7 @@ def classify(abs_target, root, globs, shared, label):
                     "advertise": [], "shared_advertise": [],
                     "checkout": _wt_owner[0], "root": real(root)}
 
-        # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.sh already said so
+        # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.py already said so
         # ("outside repo — not this hook's problem"), and check-domain did not: a
         # scratch script at /tmp/x.py was legal via Bash and blocked via Write, so an
         # agent learned to route around a hook whose own message said not to. /tmp,

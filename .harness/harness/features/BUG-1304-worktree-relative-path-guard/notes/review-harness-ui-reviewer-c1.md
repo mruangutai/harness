@@ -13,7 +13,7 @@ at the moment a write is blocked. Audited below against REQ-06 and DEC-218.
 
 ## What changed, read at af5ddd7a
 
-Both guards gained `claim_checkout_guard()` (check-domain.py +51/-0, bash-write-guard.sh +43 net),
+Both guards gained `claim_checkout_guard()` (check-domain.py +51/-0, bash-write-guard.py +43 net),
 consuming shared primitives added to `harness_boundary.py` (`inside`, `claim_worktrees`,
 `claim_set_refusal`, +70/-5). Three refusal shapes, identical logic on both routes:
 
@@ -30,7 +30,7 @@ $S$, and name the destination's proper home."*
 
 ### 1. Normal mismatch — default branch
 `harness_boundary.py:294-297` (`claim_set_refusal`), emitted at
-`check-domain.py:806` / `bash-write-guard.sh:762`:
+`check-domain.py:806` / `bash-write-guard.py:762`:
 > `{agent_type} holds worktree claim(s): {held}. Destination {destination} belongs in its proper
 > checkout at {home}; write it from a bound worktree.`
 Names held worktrees (sorted, deduped, absolute — copy-pasteable, not a raw dump), names the attempted
@@ -42,7 +42,7 @@ identical at this layer.
 > `{agent_type} holds worktree claim(s): {held}. Destination {destination} belongs to the
 > control-plane expertise route. Use the sanctioned python3 expertise-merge.py apply command.`
 Names the CLI route exactly as REQ-06 requires, never "write it in your worktree." **PASS** at this
-layer — see Finding 1 for what bash-write-guard.sh's wrapper does to it.
+layer — see Finding 1 for what bash-write-guard.py's wrapper does to it.
 
 ### 3. Unreadable registry
 `harness_boundary.py:279-285`:
@@ -56,7 +56,7 @@ Test-verified: `test-check-domain.py::run_bug1304_claim_set` ("unreadable regist
 file", asserts `unreadable_registry in text`) and the parallel Bash-route case.
 
 ### 4. Ambiguous claim — genuine gap
-`check-domain.py:775-779` / `bash-write-guard.sh:733`:
+`check-domain.py:775-779` / `bash-write-guard.py:733`:
 > `{agent} has an ambiguous worktree claim: feature 'FEAT-X' matches 2 linked worktrees: FEAT, FEAT-X`
 Comprehensible (feature id, count, sorted basenames — not a raw dump). **But `destination` is never
 printed in this branch on either route**, and DEC-218 itself states every refusal should "name the
@@ -67,10 +67,10 @@ presence, so the gap is untested as well as unimplemented.
 **Severity: high** — this is the shape DEC-218 explicitly commits to and both routes silently drop it
 identically (a consistent gap is still a gap against a pinned decision, not a stylistic choice).
 
-## Finding 1 — cross-route inconsistency: bash-write-guard.sh appends contradictory boilerplate
+## Finding 1 — cross-route inconsistency: bash-write-guard.py appends contradictory boilerplate
 
-`bash-write-guard.sh`'s three new `claim_checkout_guard` call sites route every refusal through the
-pre-existing `deny()` (bash-write-guard.sh:647-653), which unconditionally appends:
+`bash-write-guard.py`'s three new `claim_checkout_guard` call sites route every refusal through the
+pre-existing `deny()` (bash-write-guard.py:647-653), which unconditionally appends:
 > `  File changes go through the Write tool, where your domain is enforced. A path the domain hook
 > denied does not become writable by switching tools — that is guardrail evasion (DEC-151). If the
 > file should be yours, raise it as an open_question.`
@@ -105,7 +105,7 @@ literal phrase, not for the presence of the contradictory boilerplate.
 ## Actionability, in the round
 
 - Next step present and unambiguous: **yes** for the default and expertise branches on
-  check-domain.py; **degraded** on bash-write-guard.sh by Finding 1's second line; **absent** for the
+  check-domain.py; **degraded** on bash-write-guard.py by Finding 1's second line; **absent** for the
   ambiguous-claim branch on both routes (Finding, "4" above).
 - Never advises worktree removal: confirmed clean on all six call sites (three shapes × two routes).
 - Theme/contrast/reading-order: not applicable — plain stderr text, no rendered surface.
@@ -115,7 +115,7 @@ literal phrase, not for the presence of the contradictory boilerplate.
 
 FAIL. Two `high` findings against operator-facing text this diff adds: the ambiguous-claim branch
 never names the destination on either route (a DEC-218-committed property, silently dropped), and
-bash-write-guard.sh's `deny()` wrapper appends contradictory next-step guidance to all three new
+bash-write-guard.py's `deny()` wrapper appends contradictory next-step guidance to all three new
 refusal shapes, breaking the same-vocabulary requirement the dispatch called out. Neither is a matter
 of taste; both leave the operator with an ambiguous or actively misleading next action at the exact
 moment their work was blocked.

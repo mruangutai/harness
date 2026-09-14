@@ -40,4 +40,4 @@ and the operator's decision was about *how it lands*, not about what it is.
 - BUG-1290's five record violations, and the BUG-201 rebase — both named by the operator as
   separate, later work.
 - Any broadening of the handoff validator's own rules (grammar, caps, satisfaction semantics).
-- `bash-write-guard.sh`, which asks a different question against the same boundary module.
+- `bash-write-guard.py`, which asks a different question against the same boundary module.

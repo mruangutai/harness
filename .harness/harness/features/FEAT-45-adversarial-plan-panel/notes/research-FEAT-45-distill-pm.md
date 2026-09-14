@@ -52,7 +52,7 @@ must live in the harness bin directory.
 1. **`plan-merge.py` refuses the create path when the proposal carries `approval:` (exit 8).**
    A harness defect, already raised as an open question — a workaround in Expertise outlives the fix.
    The operational half is already repo `G-07`.
-2. **`bash-write-guard.sh` blocks a heredoc feeding `--entries -`, and no in-domain temp path exists.**
+2. **`bash-write-guard.py` blocks a heredoc feeding `--entries -`, and no in-domain temp path exists.**
    Covered by repo `G-01`; the missing-temp-path half is a defect, not a rule.
 3. **"Sweep for the struck CLAIM, not only the struck NAME" (an eighth propagation site the dispatch
    did not list).** Real, and partially held by `P-12` (derive the pattern from the weakest fragment)

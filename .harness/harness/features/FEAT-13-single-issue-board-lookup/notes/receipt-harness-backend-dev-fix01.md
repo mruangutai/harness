@@ -14,7 +14,7 @@ every edit** (not computed by arithmetic) — see the exact commands under each 
 
 Per the dispatch's precedent: copied `.claude/skills/harness/bin/` to a scratchpad
 (`/private/tmp/.../scratchpad/mutbin/`) using **literal absolute paths**, never a shell variable —
-`bash-write-guard.sh` parses Bash-tool `cp` targets textually and does not expand `$VAR`; a variable
+`bash-write-guard.py` parses Bash-tool `cp` targets textually and does not expand `$VAR`; a variable
 target like `$SCRATCH/mutbin` is read as the literal string and denied as "outside your domain"
 even though the real destination is outside the repo entirely. Confirmed empirically (see
 `open_questions` Q1). All mutation runs used `cd <scratchpad>/mutbin && python3 test-*.py` — script-dir-first
@@ -214,7 +214,7 @@ Exactly the four intended test files, no production files, no scratchpad residue
 
 ## open_questions
 
-- Q1 (non-blocking, informational): `bash-write-guard.sh`'s Bash-tool `cp`-target extraction does
+- Q1 (non-blocking, informational): `bash-write-guard.py`'s Bash-tool `cp`-target extraction does
   not expand shell variables — a `cp ... "$SCRATCH/mutbin"` command is parsed as the literal string
   `$SCRATCH/mutbin` and denied as in-repo-but-out-of-domain, even when the actual resolved
   destination is outside the repo (which the guard's own `..`-relpath carve-out would otherwise

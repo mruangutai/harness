@@ -80,7 +80,7 @@ def case_d():
                     "PreToolUse": [
                         {"hooks": [{"command": "x/check-domain.py"}]},
                         {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                        {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                        {"hooks": [{"command": "x/bash-write-guard.py"}]},
                         {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}
         local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
         with open(os.path.join(cl, "settings.json"), "w") as f:
@@ -236,7 +236,7 @@ def case_m():
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
         _code, out = run(tmp)
         ok = "No PostToolUse check-domain hook" in out
@@ -270,7 +270,7 @@ def case_m2():
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
         _code, out = run(tmp)
         # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
@@ -316,7 +316,7 @@ def case_m3():
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
         code, out = run(tmp)
         # The decoy DOES widen coverage on a basename match, which is honest: this fixture
@@ -363,7 +363,7 @@ def case_t():
                            "PreToolUse": [
                                {"hooks": [{"command": "x/check-domain.py"}]},
                                {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
         _code, out = run(tmp)
         ok = out.strip() != "" and "not a valid regular expression" in out

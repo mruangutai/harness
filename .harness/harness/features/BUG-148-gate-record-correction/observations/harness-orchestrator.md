@@ -37,7 +37,7 @@
   only by a surgical shell splice that carries no whole-file content. The write guard's DEC-153 worktree
   carve-out permits it and `check-domain.py` still issued its expected PostToolUse shape report, so the
   write was governed rather than routed around.
-- 2026-09-06 (BUG-148): `bash-write-guard.sh` string-matches `sign-approval` anywhere in a Bash command,
+- 2026-09-06 (BUG-148): `bash-write-guard.py` string-matches `sign-approval` anywhere in a Bash command,
   including inside a `git commit -m` message body, and refuses the whole call. The `&&` chain before it
   never ran either, so a following retry failed on an empty index. Reword the message; do not reach for a
   message file, which is refused separately.

@@ -32,7 +32,7 @@ reimplementing git bookkeeping.
 ## Why REQ-04 and REQ-08 have no team half
 
 The operator's library-then-cutover split was available and was NOT used for these two. Reason: by
-DEC-174 am.4's category, `harness_boundary.py` (the lead's ruling) and `bash-write-guard.sh`,
+DEC-174 am.4's category, `harness_boundary.py` (the lead's ruling) and `bash-write-guard.py`,
 `check-domain.py`, `test-check-domain.py`, `test-bash-write-guard.py` (am.4 by name) are ALL inside the
 carve-out. There is no library left over for a squad to build — inventing a new module beside
 `harness_boundary.py` purely to create a team-laned task would add a second home for one rule, which is

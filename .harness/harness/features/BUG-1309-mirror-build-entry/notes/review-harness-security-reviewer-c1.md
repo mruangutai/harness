@@ -6,7 +6,7 @@
 ## F1 closure — reconstructed scenario, executed
 Cycle-0's F1 demonstrated `GH_BIN=/nonexistent/gh` + a non-era-exempt feature with `github.build_entry`
 absent + `gh pr merge 42` crashing `main()` with an uncaught `FileNotFoundError` (exit 1, no deny
-JSON — silent allow). `bash-write-guard.sh` denies this reviewer any disk write, including in `/tmp`
+JSON — silent allow). `bash-write-guard.py` denies this reviewer any disk write, including in `/tmp`
 (REVIEWERS read-only, no path carve-out — verified live: my own `cat >`/`rm` attempts were blocked).
 So I reconstructed the scenario as a real, unmodified, in-process execution of `merge-gate.py` loaded
 from disk (`importlib.util.spec_from_file_location`), with `open`/`glob.glob` monkeypatched to hand
@@ -20,7 +20,7 @@ mocked; it really invoked `subprocess.run(["/nonexistent/gh", ...])` and really 
   `{"hookSpecificOutput":{...,"permissionDecision":"deny","permissionDecisionReason":"merge-gate: BUG-9999 records github.build_entry=absent..."}}`
   to stdout, no traceback, process falls off the end (exit 0).
 
-**Exit-code correction to the dispatch's framing:** "only exit 2 blocks" is bash-write-guard.sh's
+**Exit-code correction to the dispatch's framing:** "only exit 2 blocks" is bash-write-guard.py's
 convention, not merge-gate.py's. `deny()` (merge-gate.py:~103) never calls `sys.exit`; the hook's own
 test suite asserts the CORRECT deny outcome as `r.returncode == 0 and d == "deny"` (JSON on stdout) —
 see `tests/integration/test-merge-gate.py:65,73,95,100`. This doesn't change the finding: a crash

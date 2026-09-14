@@ -105,7 +105,7 @@ reading the fixture, not assumed. The escape still functions post-move for the r
 **before** `select_base` and before any glob match. Resolution happens once, up front, against the
 fully-resolved real target — this is depth-independent and link-style-independent (relative or
 absolute). The move from a 2-segment to a 3-segment base changes nothing about *when* or *how*
-symlinks are resolved; realpath handles either uniformly. `check-domain.py`/`bash-write-guard.sh` both
+symlinks are resolved; realpath handles either uniformly. `check-domain.py`/`bash-write-guard.py` both
 call the same shared `classify()` (grepped: both import `harness_boundary` and call `.classify(`), so
 this holds for both PreToolUse routes, not just one.
 

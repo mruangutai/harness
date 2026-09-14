@@ -79,7 +79,7 @@ T-03/T-05, since T-02's additions are purely additive to the library surface.
 ## Route asymmetry, doctrine anchors — confirmed accurate, no finding
 
 `check-domain.py:917,922` are exactly the two `feature_checkout_guard(...)` calls (allow/shared
-verdict branches); `bash-write-guard.sh:794` is exactly the DEC-153 `continue`, `:841,:845` are
+verdict branches); `bash-write-guard.py:794` is exactly the DEC-153 `continue`, `:841,:845` are
 exactly the two `feature_checkout_guard(...)` calls sitting under the `:840`
 `verdict["outcome"] in ("allow", "not_a_domain_question")` branch — confirming T-06's "IN-REPO
 DESTINATIONS ONLY" clause is load-bearing exactly where the plan says (Write route returns early on

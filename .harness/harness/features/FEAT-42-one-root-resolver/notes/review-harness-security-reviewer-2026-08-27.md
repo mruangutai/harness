@@ -46,7 +46,7 @@ tracked per-event by the host, not a single session-start constant the way
 influence its own tracked cwd between tool calls (plausible — that is why the field is threaded
 per-event rather than captured once), and can write a file anywhere permitted to it (the same
 precondition the original bug required), it can place its own `check-domain.py` /
-`bash-write-guard.sh` / `validate-digest.py` at `<its-cwd>/.agents/skills/harness/bin/<name>` and
+`bash-write-guard.py` / `validate-digest.py` at `<its-cwd>/.agents/skills/harness/bin/<name>` and
 `runPolicy` will execute THAT file wholesale as the gate — not shadow one imported module, as the
 Python bug did, but substitute the entire enforcement script. DEC-202 makes `.agents/skills` a
 link to the one authored `.claude/skills` tree, but only at the real project root; a decoy

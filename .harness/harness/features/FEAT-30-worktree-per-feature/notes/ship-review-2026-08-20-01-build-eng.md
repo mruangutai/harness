@@ -111,7 +111,7 @@ main checkout. Fixtures cannot give that.
 The lead flagged an unsettled contradiction: `cp -R … "$T/bin"`, the first line of five verify blocks
 including **T-03's, T-04's and T-05's**, was green for one spawn and denied for another. Both halves
 are true. The guard genuinely does not expand `$T` — it printed the literal `$T/bin` when it denied me.
-But `bash-write-guard.sh:49-57` exits early for **no `agent_type`** and for **`harness-dev-ops`**, so
+But `bash-write-guard.py:49-57` exits early for **no `agent_type`** and for **`harness-dev-ops`**, so
 some callers never reach that check. Four consistent data points: T-02's spawn was dev-ops (green),
 T-06's was backend-dev (denied), I am orchestrator (denied), and the operator carries no `agent_type`.
 

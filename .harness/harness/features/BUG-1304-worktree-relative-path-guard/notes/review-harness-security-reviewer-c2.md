@@ -7,12 +7,12 @@ confirmed unchanged, still non-gating.
 ## What I measured
 
 **1. `deny_bare()` changes the MESSAGE only, never the decision.** Read the full diff
-(`bash-write-guard.sh:655-659` new function; three call sites at the ambiguous-claim, unreadable-
+(`bash-write-guard.py:655-659` new function; three call sites at the ambiguous-claim, unreadable-
 registry, and claim-set-refusal branches of `claim_checkout_guard`, previously `deny(...)`, now
 `deny_bare(...)`). Both functions print to stderr and `sys.exit(2)`; `deny_bare` only omits the
 "File changes go through the Write tool" tail. Cross-read `check-domain.py:claim_checkout_guard`
 (`:769-816`, untouched by this diff) — it never had that tail for claim refusals in the first
-place, so this change actually REMOVES a route-local asymmetry (bash-write-guard.sh's old advice to
+place, so this change actually REMOVES a route-local asymmetry (bash-write-guard.py's old advice to
 "switch to the Write tool" was misleading for a claim refusal, since check-domain.py's identical
 predicate would refuse there too). Ran both integration suites live against the pinned code
 (`python3 tests/integration/test-bash-write-guard.py`, `test-check-domain.py`) — 100% PASS, every
@@ -71,7 +71,7 @@ but the underlying test coverage (verified live above) is intact.
 
 | boundary | stride | mitigated |
 |---|---|---|
-| bash-write-guard.sh claim refusal message content (deny → deny_bare) | I (n/a — message-only change) | true — same predicate, same exit 2, verified live |
+| bash-write-guard.py claim refusal message content (deny → deny_bare) | I (n/a — message-only change) | true — same predicate, same exit 2, verified live |
 | harness_boundary.claim_worktrees split (ABC refactor) | T (fail-open regression) | true — no new branch, verified live |
 | malformed v2 claim entry missing `feature` → AttributeError → generic-except passthrough | T | false — pre-existing, unchanged by this diff, MED/advisory, non-gating (re-derived from c1) |
 | refusal string content (claim_set_refusal) | I | true — byte-unchanged from c1's assessed baseline; deny_bare reduces exposure |
@@ -90,12 +90,12 @@ VERDICT: PASS
 DIGEST:
   headline: deny_bare and the claim_worktrees split change message text and code shape only; every refusal decision (exit 2) is unchanged and verified live against both integration suites plus the unit suite - no new fail-open, no new data exposure
   in_scope: true
-  scope_reason: "diff is the authorization boundary itself (bash-write-guard.sh, harness_boundary.py, plus their test suites); reviewed both changed source files fully, ran all three affected test files live at the pinned commit"
+  scope_reason: "diff is the authorization boundary itself (bash-write-guard.py, harness_boundary.py, plus their test suites); reviewed both changed source files fully, ran all three affected test files live at the pinned commit"
   severity_max: med
   findings: 1
   must_fix: []
   threat_model:
-    - { boundary: "bash-write-guard.sh claim refusal message content (deny -> deny_bare)", stride: "I", mitigated: true }
+    - { boundary: "bash-write-guard.py claim refusal message content (deny -> deny_bare)", stride: "I", mitigated: true }
     - { boundary: "harness_boundary.claim_worktrees split (ABC refactor)", stride: "T", mitigated: true }
     - { boundary: "malformed v2 claim entry missing feature -> AttributeError -> generic-except passthrough", stride: "T", mitigated: false }
     - { boundary: "refusal string content (claim_set_refusal)", stride: "I", mitigated: true }

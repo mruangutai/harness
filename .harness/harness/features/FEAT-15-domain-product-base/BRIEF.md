@@ -91,7 +91,7 @@ none of the guard's business.
   committed — the operator does that at signature.
 - **Out of scope:** #240, the `factory_workspace` refusal guard; absolute-path hook registration
   (root cause 3 is dead — the `factory_*` modules spawn no Claude session); reworking
-  `team-config.yaml`'s schema; `bash-write-guard.sh`.
+  `team-config.yaml`'s schema; `bash-write-guard.py`.
 
 ## Success Criteria
 
@@ -195,7 +195,7 @@ none of the guard's business.
   refusal text instead. Standing up a second fleet repository and exercising a live refusal is worth
   a backlog item; it is not a condition of this feature shipping.
 - **Not proven by anything in this feature:** a write into a product checkout made through Bash.
-  `bash-write-guard.sh` keeps its own outside-repo rule and is explicitly out of scope, so that route
+  `bash-write-guard.py` keeps its own outside-repo rule and is explicitly out of scope, so that route
   stays ungoverned after this ships.
 
 ## Open questions

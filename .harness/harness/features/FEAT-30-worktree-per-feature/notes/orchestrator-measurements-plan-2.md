@@ -55,7 +55,7 @@ SC-09 — so the task either preserves the mutation surface or replaces the proo
 
 ## M-11. One site that looks depth-coupled and is not — leave it alone
 
-`bash-write-guard.sh:545` is `re.match(r"^\.claude/worktrees/", rel)`, DEC-153's blanket allow for
+`bash-write-guard.py:545` is `re.match(r"^\.claude/worktrees/", rel)`, DEC-153's blanket allow for
 governed agents on the Bash route. Prefix only, no segment count, so it is already depth-agnostic and
 correct under the two-level layout. A REQ-08 task that "unifies" it into the new relativizer is
 touching a signed carve-out for no behavioural gain.

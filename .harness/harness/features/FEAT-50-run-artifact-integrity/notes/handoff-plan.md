@@ -24,7 +24,7 @@ last, which depends on all eleven others.
 - `check-plan-routes.py` exits 0, `0 violation(s) across 1 plan(s)`, 9 DEVIATION lines all
   DEC-174 carve-outs; `load_plan` gives T-01..T-12, D-01..D-11, 14 lanes — verified-at 5d12e68
 - Both cycle-0 `high` findings are true at source and their fixes land where they must:
-  `bash-write-guard.sh:747` allow-continue (T-09), obsolete case at
+  `bash-write-guard.py:747` allow-continue (T-09), obsolete case at
   `test-validate-digest.py:738-739` (T-02 step 5) — re-measured myself — verified-at 5d12e68
 - The fourth defect's remedy has an in-file precedent: `check_artifact_file` joins to
   `_root_or_none()` (`:1413`) while `_hook_feature_dir` (`:1359-1372`) already resolves the

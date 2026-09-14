@@ -68,7 +68,7 @@ wiring (`test-check-domain.py:4419-4437`); T-07's four presence greps match 0 li
 SC-06 and SC-09 now require every pre-change call to prove the guard RAN: **no** `enforcement OFF`,
 `was not enforced`, `passing through` on stderr, **and** a positive control refused with exit 2 at
 the same frozen guard. T-03 and T-05 specify one helper, `bug1304_assert_pre_change_allows`, that
-every refusal case must call. **The Bash route's fail-opens are silent** (`bash-write-guard.sh:78-80`
+every refusal case must call. **The Bash route's fail-opens are silent** (`bash-write-guard.py:78-80`
 payload, `:267-269` manifest) — a marker check cannot see them, so the positive control is named
 there as the load-bearing half (T-05 reuses the run-artifact refusal). Write route markers measured
 at `check-domain.py:1864-1869` and `:383-386`.

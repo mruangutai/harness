@@ -10,7 +10,7 @@
 - **Issue #16 stays open by design** (D-09): `review_sha: none` is a truthy string, so
   INV-6 passes on an unpinned feature. Deliberately not fixed here — it alters the
   output SC-02/SC-13 compare against.
-- **`bash-write-guard.sh` has a real false positive nobody has ticketed:**
+- **`bash-write-guard.py` has a real false positive nobody has ticketed:**
   `FOO=bar python3 - <<'PY'` and `env python3 - <<'PY'` fail the `KNOWN_DATA_FEEDERS`
   test, so the heredoc body is scanned and a Python `if a > b:` reads as a redirect.
   Found by review pass 3 and correctly scoped out — untouched by this diff.
@@ -48,7 +48,7 @@
 - **Module:** `harness_yaml.py` — the only `try: import yaml` in the tree (D-12).
   `MissingDependency` and `DuplicateKeyError` subclass `YamlParseError`; callers needing
   the specific message catch it FIRST, and that ordering is load-bearing.
-- **Hooks:** `check-domain.py`, `bash-write-guard.sh` — one shared domain walk (D-03), so
+- **Hooks:** `check-domain.py`, `bash-write-guard.py` — one shared domain walk (D-03), so
   they cannot drift. Both merged to a single interpreter launch: 80.6→43.5ms and
   64.6→45.0ms, faster than before the feature while doing more.
 - **Readers:** `check-state.sh` (closes #11), `gh-sync.py`, `upgrade-config.py`.

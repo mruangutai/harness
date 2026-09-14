@@ -447,7 +447,7 @@ EXPERTISE_TAIL = re.compile(
 def require_expertise_destination(file_path):
     """REFUSE a --file that is not an Expertise file. Raises harness_merge.MergeRefusal(9).
 
-    WHY THIS EXISTS, and it is not defence-in-depth for its own sake. `bash-write-guard.sh`
+    WHY THIS EXISTS, and it is not defence-in-depth for its own sake. `bash-write-guard.py`
     is ALLOW-BY-OMISSION: it scans a command for a write PATTERN it recognises — a
     redirect, `sed -i`, `rm`, `cp`, `tee` — and when it finds none it exits 0 at
     `:617`, BEFORE the reviewer read-only denial at `:628` and before the domain walk at

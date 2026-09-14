@@ -34,7 +34,7 @@ assumed rather than observed:
 
 Both remain single shell blocks, both are literal `|` scalars in the file (verified: newlines
 survive the amend, 23 and 25), both far under 60s. The temp-tree writes go through python's
-`open()`, never a shell redirect, so `bash-write-guard.sh` does not deny the verify.
+`open()`, never a shell redirect, so `bash-write-guard.py` does not deny the verify.
 
 ## Evidence the file is intact
 

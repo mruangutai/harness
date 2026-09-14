@@ -148,7 +148,7 @@ The clauses above were drafted, then run against **the task's own `intent:` pros
 `plan.yaml` before this file was finalised:
 
 1. **T-01's clause redirected its output to a file.** `... > /tmp/feat23-t01.log`. The build agent
-   that runs this clause is `harness-backend-dev`, and `bash-write-guard.sh` denies a redirect whose
+   that runs this clause is `harness-backend-dev`, and `bash-write-guard.py` denies a redirect whose
    target is outside the agent's domain — measured on this very session, where the same shape was
    blocked for `harness-pm`. The clause was rewritten to capture into a shell variable with command
    substitution, which the guard does not treat as a write. It also now runs `test-gh-sync.py`
@@ -199,7 +199,7 @@ Every literal `files:` path was delegated to `check-domain.py --resolve` (DEC-17
 | `.harness/harness/docs/DECISIONS-INDEX.md` | `harness-documentor` |
 
 `NOBODY` becomes a declared `main-session-direct` task, never a mid-run rejected write.
-**`gh-sync.py` is not one of the DEC-174 four** (`check-domain.py`, `bash-write-guard.sh`,
+**`gh-sync.py` is not one of the DEC-174 four** (`check-domain.py`, `bash-write-guard.py`,
 `validate-digest.py`, `check-state.sh`), so T-01 is an ordinary team task.
 
 ## The write-path probe that settles D-01 (issue #417's discriminating check 2)
@@ -210,7 +210,7 @@ inferred (G-02):
 - **Schema (DEC-191).** `feature-schema.json` lists `status` among the eight **required** keys, with
   enum `Backlog Plan Ready Building Review Done Abandoned`. Writing `"Done"` is schema-valid; the
   closed key set is untouched because no new key appears.
-- **Write guard (DEC-174 file, read only).** `bash-write-guard.sh:19` states main-session and
+- **Write guard (DEC-174 file, read only).** `bash-write-guard.py:19` states main-session and
   non-harness callers are ungoverned. The guard was fired with the real payload
   `python3 .claude/skills/harness/bin/gh-sync.py ship <feature-dir>` under three callers:
 

@@ -97,7 +97,7 @@ The adversarial panel ran twice, and both times it found the same class of defec
 plan promised that the tree does not have.**
 
 **Cycle 5** found the discard trio. `D-16`/`D-17`/`T-09` guarded `quarantine.py discard` while a
-plain `rm -rf` of the same directory stays permitted — `bash-write-guard.sh:259` exempts
+plain `rm -rf` of the same directory stays permitted — `bash-write-guard.py:259` exempts
 `harness-dev-ops` outright and `:784-790` notices-and-continues on the `shared` verdict D-06's own
 `.harness/*/features/*/quarantine/**` glob produces. You ruled: take the conservative clean scope.
 D-16, D-17, T-09 and SC-12 are gone; **D-18** records the choice and the ground.
@@ -109,12 +109,12 @@ builds. I measured it rather than taking it on report — `agent_type: harness-p
 checkout at `0bc57c88`:
 
 ```
-bash-write-guard.sh   exit 0
+bash-write-guard.py   exit 0
 plan-sign-gate.sh     exit 0
 check-domain.py       exit 0
 ```
 
-`bash-write-guard.sh` passes any in-domain write, and `harness-pm`'s own `team-config.yaml` domain
+`bash-write-guard.py` passes any in-domain write, and `harness-pm`'s own `team-config.yaml` domain
 grants both `BRIEF.md` and `plan.yaml`. `check-domain.py` is registered for `Write|Edit` only.
 `plan-sign-gate.sh`'s new rule matches only `plan-merge.py` and `quarantine.py` basenames.
 
@@ -214,7 +214,7 @@ verification pass checked all 26. The other 19 target files are byte-identical b
 | B-5 | bug | **`harness-code-reviewer` cannot terminally yield on a plan-phase dispatch.** `validate-digest.py` refuses `code_grade: n_a` ("cannot be bound to `review_sha`… an unpinned feature (INV-6) cannot anchor a `code_grade` claim") AND refuses it omitted ("missing `code_grade`"). The two refusals are mutually exclusive, so no return satisfies the gate — while `feature.json` already records `code_grade: n_a` for that same unpinned feature. Raised three consecutive times; cost one reader ~32 minutes and four yield attempts. |
 | B-6 | bug | `plan-merge.py`'s `UNION_KEYS` is `("tasks", "decisions")` only, so `lanes` and `panel` cannot be amended incrementally — any difference is exit 7. Five full remove-then-recreate cycles were needed this phase. **Probably already in flight:** `BUG-1128-plan-amend-verb` sits at station `review` with an `amend` verb built (`plan-merge.py:916-1091`, ten `case_amend_*` tests, `review_sha 58742037`). Strike this row if that lands. It does NOT cover B-2. |
 | B-7 | bug | `check-domain.py` denies `harness-pm` a `Write` at `notes/plan-proposal-*.yaml` (its grant is `research-*.md` and `uat-*.md`), so the sanctioned tool is refused for the one write route `plan.yaml` has — and `python3` reaches it anyway, which the guard does not intercept. |
-| B-8 | bug | `bash-write-guard.sh` reads a `>=` inside Python source as a redirect and refuses the command, naming a target absent from it. Cost four retries in one run. |
+| B-8 | bug | `bash-write-guard.py` reads a `>=` inside Python source as a redirect and refuses the command, naming a target absent from it. Cost four retries in one run. |
 | B-9 | bug | `check-plan-routes.py` never reads `lanes.rows`, so a surface missing from that block is ungated. Four missing rows survived two cycles until measured by hand. |
 | B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run, and only `check-state.sh` catches it later. `runs/plan-fix-c2-product/digest.md` had shipped without one; repaired. |
 | B-11 | chore | `panel.findings`' `reader` enum has no word for a lead's fan-in finding. Recorded as `validator-lead`, which is truthful; nothing breaks, but the template comment is out of step. |

@@ -16,7 +16,7 @@
   this is `med` not `high` — a latent trap for unit 7 (multi-repo), which D-01/D-02 already name as
   the revisit trigger for segment-aware grants, but neither decision's cost accounting covers this
   specific checker/hook mismatch.
-- 2026-08-19 (c0): confirmed a Bash write attempt is blocked by `bash-write-guard.sh` even when
+- 2026-08-19 (c0): confirmed a Bash write attempt is blocked by `bash-write-guard.py` even when
   targeting the session scratchpad outside the repo — the guard denies on tool type (any Bash
   redirect) for a read-only persona, not on path. Verification of executable-logic claims that
   would normally want a throwaway fixture has to be done via inline `python3 -c` / bash `case`

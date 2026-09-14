@@ -565,7 +565,7 @@ def require_or_die():
         # ever reached its guarded `import harness_boundary as _hb` at :1080 to
         # report the INV-25 CANNOT RUN violation that fixture exists to prove.
         # Fail-open, the same class T-05 already fixed one caller earlier for
-        # bash-write-guard.sh/check-domain.py.
+        # bash-write-guard.py/check-domain.py.
         try:
             import harness_boundary
             root = harness_boundary.resolve_root(_BIN_DIR)

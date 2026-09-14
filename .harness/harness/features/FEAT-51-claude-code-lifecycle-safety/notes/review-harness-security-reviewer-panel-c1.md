@@ -31,7 +31,7 @@ Privilege. OWASP: Broken Access Control / path handling.
   no stderr). `quarantine.py` printed `ADOPTED <root>/.harness/harness/features/FEAT-99/feature.json
   FROM <staged>` and the real canonical `feature.json` content changed from `LEGIT` to `PWNED`.
 - Actor: any `harness-*` agent with Bash access (every governed member, lead and the
-  orchestrator — `check-domain.py` only matches `Write|Edit`, `bash-write-guard.sh` only
+  orchestrator — `check-domain.py` only matches `Write|Edit`, `bash-write-guard.py` only
   recognizes `sed -i`/`tee`/`cp`/`mv`/redirects/`python3 -c`, neither fires on
   `python3 quarantine.py adopt`). Damage: silent, unauthenticated overwrite of `feature.json` /
   `STATE.md` / `BRIEF.md` (raw `harness_merge.locked_update` replace, `quarantine.py:130-132`)
@@ -62,7 +62,7 @@ Tampering + Elevation of Privilege (and Denial of Service against the legitimate
 - No hook governs a direct `inflight_registry.py` CLI call: `check-domain.py` matches
   `Write|Edit` only; `plan-sign-gate.py`'s `TOOL`/`ADOPT_TOOL` are `plan-merge.py` and
   `quarantine.py` only (`plan-sign-gate.py:26-29`) — `inflight_registry.py` is absent from both;
-  `bash-write-guard.sh`/`gh-close-gate.sh`/`branch-create-gate.sh` do not mention it (grepped).
+  `bash-write-guard.py`/`gh-close-gate.sh`/`branch-create-gate.sh` do not mention it (grepped).
 - **Reproduced**: agent A (`harness-backend-dev`, session `sess-A-legit`) holds a live claim on
   `FEAT-X` via `claim_with_receipt`. Before any interference, `orphan_write` for an unrelated
   agent B on `FEAT-X` correctly returns `True` (B would be quarantined). Then, with **zero**

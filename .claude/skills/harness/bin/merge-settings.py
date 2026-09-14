@@ -101,7 +101,7 @@ HOOK_SPECS = [
         # Was in the snippet since DEC-151 but missing HERE — the one-way template
         # check never caught it, so deploys silently skipped it.
         "event": "PreToolUse",
-        "script": "bash-write-guard.sh",
+        "script": "bash-write-guard.py",
         "matcher": "Bash",
         "why": "Bash write-bypass guard (DEC-151). Absent -> the common shell write "
                "shapes (sed -i, tee, redirects) bypass domain enforcement silently.",

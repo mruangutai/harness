@@ -84,7 +84,7 @@
   test-check-state.py` -> no hits). A comment naming its own compensating coverage is a claim to grep,
   not a mitigation to accept — even when the comment is honest about the gap existing.
 
-- 2026-08-15 (cycle 2): `bash-write-guard.sh` blocked a plan's own approved `verify:` on `>"$u"`,
+- 2026-08-15 (cycle 2): `bash-write-guard.py` blocked a plan's own approved `verify:` on `>"$u"`,
   reporting target "xx". My first diagnosis — "the variable was not resolved" — was wrong, and I only
   caught it because I greped the guard before filing it. `mask_quoted` (:155-179) blanks the contents
   of EVERY quoted span to `x`s on purpose, so any QUOTED redirect target blocks, literal or variable.

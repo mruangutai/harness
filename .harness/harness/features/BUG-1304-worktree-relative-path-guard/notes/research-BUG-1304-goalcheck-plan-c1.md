@@ -53,7 +53,7 @@ Intent allows "implementation, focused tests, governing decisions/docs, and Harn
 artifacts" (`grilling-...:12`). Every path in the plan:
 
 - implementation — `.claude/skills/harness/bin/harness_boundary.py`, `inflight_registry.py`
-  (`plan.yaml:148-149`), `check-domain.py` (`:256`), `bash-write-guard.sh` (`:369`),
+  (`plan.yaml:148-149`), `check-domain.py` (`:256`), `bash-write-guard.py` (`:369`),
   `dispatch-guard.sh` (`:477`);
 - focused tests — `tests/unit/test-harness-boundary.py`, `tests/integration/test-inflight-registry.py`
   (`plan.yaml:84-85`), `tests/integration/test-check-domain.py` (`:193`),
@@ -96,7 +96,7 @@ the intent's ban on "risk acceptance" (`grilling-...:28`):
 - **Reachability.** Not rare: the advisor measured 3 personas holding ≥2 live claims at the time of
   the probe (advisor note line 15), and D-03 correctly rests on unbuildability rather than on
   rarity — the honest ground survives the frequency.
-- **Direction of change.** Neither residue is a regression. Today `bash-write-guard.sh:794` allows
+- **Direction of change.** Neither residue is a regression. Today `bash-write-guard.py:794` allows
   *every* governed agent to write *every* worktree; the false-allow narrows that to same-persona
   concurrency. The false-refuse fails **closed**, with a REQ-06 message naming the worktrees held —
   an availability cost the agent can act on, not a silent harm.
@@ -166,7 +166,7 @@ construction under every task, T-08 included. Strike T-08 and the gap returns to
    spread over D-01, D-05 and D-08. Either widen D-01's `choice` or re-scope SC-07 to the plan's
    `decisions:` block. Fixable pre-signature; unfixable after, since a change resets approval.
 5. **advisory** — T-06 places the Bash-route claim-set check "beside the existing
-   `feature_checkout_guard` calls" at `bash-write-guard.sh:841` and `:845` (`plan.yaml:385-390`).
+   `feature_checkout_guard` calls" at `bash-write-guard.py:841` and `:845` (`plan.yaml:385-390`).
    The `:840` branch fires on `allow` **and** `not_a_domain_question`, which is the `/tmp`
    pass-through SC-04 case 4 and T-05 case 14 require to stay exit 0. The Write route has no such
    overlap — `not_a_domain_question` returns earlier at `check-domain.py:908`. One clause ("in-repo

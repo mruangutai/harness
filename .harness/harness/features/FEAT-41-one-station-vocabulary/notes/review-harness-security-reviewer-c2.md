@@ -70,10 +70,10 @@ about), fresh `tempfile.mkdtemp()` fixture root per case, decision-only unless n
 | 11 | Edit tool (not Write) through an ordinary 1-hop symlink route | PRE Edit | 2 | 2 | holds |
 
 **Does anything intercept link CREATION at all?** No. `ln`/`ln -s` do not appear anywhere in
-`bash-write-guard.sh`'s command classifier (`sed`/`perl -i`, `tee`, `mv`/`cp`, `rm`, `sponge`,
+`bash-write-guard.py`'s command classifier (`sed`/`perl -i`, `tee`, `mv`/`cp`, `rm`, `sponge`,
 `awk -i`, and a generic `>`/`>>` redirect scan are the entire set) — confirmed both by reading
 the source and, incidentally, by my own session: as `harness-security-reviewer` I am READ-ONLY
-under `bash-write-guard.sh`'s reviewer carve-out, and a Bash command containing `rm` in the same
+under `bash-write-guard.py`'s reviewer carve-out, and a Bash command containing `rm` in the same
 call was correctly denied outright, while an `ln -s`-only command (no `rm`) executed with no
 denial at all. This is consistent with the gate's own documented scope ("truly arbitrary shell
 remains unwinnable and is caught post-hoc, not pre") and is not itself a new finding — it is the
@@ -148,10 +148,10 @@ Reproduced cleanly at this pin, both ways:
 - **Synthetic fixture**: an agent granted domain ONLY over `FEAT-MINE-fixture` ran
   `plan-merge.py set-feature-station --file <FEAT-VICTIM-fixture>/plan.yaml --station done`
   directly — exit 0, no stderr, the victim's station flipped. The identical command, run as a
-  **Bash** tool call through `bash-write-guard.sh` with `agent_type=harness-backend-dev` and
+  **Bash** tool call through `bash-write-guard.py` with `agent_type=harness-backend-dev` and
   **zero** domain grant over the victim feature, also exited 0 with **zero findings** — the
   command isn't merely "in domain," it is **invisible to the domain classifier entirely**,
-  because `bash-write-guard.sh`'s command-pattern scanner has no entry for `plan-merge.py` CLI
+  because `bash-write-guard.py`'s command-pattern scanner has no entry for `plan-merge.py` CLI
   invocations at all (same absent-pattern class as the `ln`/`ln -s` gap in §1).
 - **Real repository history, not hypothetical**: commit `01051eb` ("finish the migration for
   FEAT-45") in THIS feature's own branch used exactly this mechanism —
@@ -254,7 +254,7 @@ DIGEST:
   threat_model:
     - { boundary: "PreToolUse Write/Edit/NotebookEdit -> check-domain.py plan.yaml route denial", stride: "T", mitigated: false }
     - { boundary: "PreToolUse Bash -> plan-sign-gate.py sign-approval refusal", stride: "S", mitigated: false }
-    - { boundary: "PreToolUse Bash -> bash-write-guard.sh domain check on plan-merge.py CLI invocations (set-feature-station/set-task-station)", stride: "E", mitigated: false, precondition: "disclosed and operator-signed in BRIEF.md; not a gap this review adds to must_fix" }
+    - { boundary: "PreToolUse Bash -> bash-write-guard.py domain check on plan-merge.py CLI invocations (set-feature-station/set-task-station)", stride: "E", mitigated: false, precondition: "disclosed and operator-signed in BRIEF.md; not a gap this review adds to must_fix" }
     - { boundary: "PostToolUse Write/Edit sweep and Bash glob sweep -> vocabulary-only net", stride: "T", mitigated: false, precondition: "documented, unchanged residual: catches an illegal station word, never a well-formed forged approval" }
   open_questions:
     - { id: Q1, question: "Should plan-sign-gate.py's docstring framing ('a guardrail, NOT a security boundary') be revisited now that ${IFS} reaches real execution as easily as the already-HIGH -- and backslash-newline cases?", blocking: false }

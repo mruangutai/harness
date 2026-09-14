@@ -28,7 +28,7 @@ now.
 - `plan.yaml`'s T-10 `verify:` is **unrunnable as written** — copies one file, which cannot import
   sibling `harness_boundary`; no `sys.path` manipulation exists. Needs pm's one-line `cp -R` fix —
   verified-at 49c528a
-- **Q2 settled:** the `cp -R "$T/bin"` denial is PERSONA, not syntax — `bash-write-guard.sh:49-57`
+- **Q2 settled:** the `cp -R "$T/bin"` denial is PERSONA, not syntax — `bash-write-guard.py:49-57`
   exits early for no `agent_type` and for `harness-dev-ops`. T-03/T-04/T-05 run literally for the
   operator — verified-at 49c528a
 - Fail-open window until T-04: `harness_boundary.py:37` and `check-domain.py:644` hard-code ONE

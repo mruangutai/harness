@@ -37,7 +37,7 @@ record per P-15.
 ## Q3/Q4 — the finding: the witness is unwritten-guarded on every route (HIGH — must be addressed or
 explicitly disclosed before signature)
 
-`bash-write-guard.sh:762-763` — `_run_artifact_guard` — matches only `harness_boundary.RE_RUN_DIGEST`
+`bash-write-guard.py:762-763` — `_run_artifact_guard` — matches only `harness_boundary.RE_RUN_DIGEST`
 and `RE_STATE_YAML`. `check-domain.py`'s `SHAPE_PATTERNS` (`:1185`) is
 `(RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD, RE_PLAN_YAML)` plus the
 separately-matched `RE_RUN_DIGEST`. **None of these, and no pattern added anywhere in T-01–T-12,
@@ -58,9 +58,9 @@ Goal states "if one ever is [replaced], the harness says so on its own" — that
 against a route requiring no more privilege than the write it is meant to catch.
 
 One nuance the dispatch's own framing got wrong and worth correcting for the record: item 4's premise
-("bash-write-guard.sh:744-767 refuses a Bash write or removal of a run artifact") is not what the code
+("bash-write-guard.py:744-767 refuses a Bash write or removal of a run artifact") is not what the code
 says — it names two specific patterns, neither of which is the marker. T-12's own cleanup instruction
-repeats the same over-broad claim ("bash-write-guard.sh refuses a Bash write or removal of a run
+repeats the same over-broad claim ("bash-write-guard.py refuses a Bash write or removal of a run
 artifact, and the probe directory is one") to justify using `os.remove`/`os.rmdir` instead of shell
 `rm` — accurate for `state.yaml`, not accurate for `.run-identity.json`, though the safer-anyway
 `python3` removal means T-12 itself doesn't misbehave from this.

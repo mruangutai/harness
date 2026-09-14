@@ -77,7 +77,7 @@ and `check-domain.py` fails closed meanwhile, so the symptom was every agent wri
 
 **Eight backlog items** are recorded in the handoff, including one that closes only with a fixture
 that fails pre-change, and two harness defects: a write that landed on a path resolving to `NOBODY`
-and could not be reproduced, and `bash-write-guard.sh` parsing command *text* so a `$VAR` redirect
+and could not be reproduced, and `bash-write-guard.py` parsing command *text* so a `$VAR` redirect
 is denied while the identical literal path is allowed.
 
 ## The mirror

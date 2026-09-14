@@ -18,7 +18,7 @@
   just about CI visibility. Recorded as D-06 in the plan.
 - 2026-08-20: a criterion about a CLI's refusal is only met when every ROUTE to the underlying
   operation is covered. SC-07 held inside feature-worktree.py (T-02) and was open on the Bash route:
-  bash-write-guard.sh:424 tests `_ops[1] not in ("add", "move")`, so `git worktree remove --force`
+  bash-write-guard.py:424 tests `_ops[1] not in ("add", "move")`, so `git worktree remove --force`
   passed at exit 0 while the unforced form was refused by git itself at 128. Lesson for planning: when
   a plan puts a guard in a new tool, grep the EXISTING guard's parser for the same verb set before
   calling the criterion covered.

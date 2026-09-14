@@ -127,7 +127,7 @@ panel:
         T-03 places the worktree-checkout-binding check only inside `domain_check()`'s
         allow/shared branches; `harness_boundary.classify`'s `not_a_domain_question` outcome
         returns earlier and separately, so a write landing there never reaches T-03's check,
-        while T-09 narrows a single `bash-write-guard.sh:747` continue that covers both `allow`
+        while T-09 narrows a single `bash-write-guard.py:747` continue that covers both `allow`
         and `not_a_domain_question` and would fire on it — the two "route-complete"
         checkout-binding fixes are not symmetric in verdict-shape coverage.
       consequence: >-
@@ -290,7 +290,7 @@ lanes:
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops and DEC-174 does
         NOT override it: it is the library's own test, not a gate's. It is a UNIT script in
         run-unit-tests.sh, so cases added here are evidence of kind unit, not integration.
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: >-
         resolved at 5d12e68: the resolver GRANTS this file to harness-backend-dev and
@@ -464,10 +464,10 @@ decisions:
   - id: D-10
     choice: >-
       The checkout binding is enforced on BOTH governed write surfaces: check-domain.py's
-      PreToolUse tool route (T-03) and bash-write-guard.sh's governed Bash write route (T-09),
+      PreToolUse tool route (T-03) and bash-write-guard.py's governed Bash write route (T-09),
       through the SAME harness_boundary.worktree_for_feature seam, with no second derivation of
       the selection. On the Bash route the rule NARROWS the allow-continue at
-      bash-write-guard.sh:747 and never widens: the product-workspace continue above it
+      bash-write-guard.py:747 and never widens: the product-workspace continue above it
       (rel.startswith("..")) is untouched and stays out of scope. This closes the CHECKOUT
       question (REQ-03, REQ-08) ONLY. REQ-04's run-digest preservation rule is NOT extended to
       Bash and stays Write-only; D-06's residual stands unchanged.
@@ -1128,7 +1128,7 @@ tasks:
       oversight.
 
       4. THE CHECKOUT BINDING IS ROUTE-COMPLETE ACROSS BOTH GOVERNED WRITE SURFACES. The same
-      rule as ruling 2 is enforced on bash-write-guard.sh's governed Bash write route, through
+      rule as ruling 2 is enforced on bash-write-guard.py's governed Bash write route, through
       the same harness_boundary.worktree_for_feature seam. State why in one clause: a refusal on
       the tool route alone is a signpost to the shell, and this hook exists precisely because an
       agent routed around the other one (DEC-151), so a divergence between the two surfaces is a
@@ -1261,16 +1261,16 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out, bash-write-guard.sh is the registered PreToolUse Bash write guard
+      DEC-174 carve-out, bash-write-guard.py is the registered PreToolUse Bash write guard
     depends_on: [T-08]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
     verify: |
-      bash -n .claude/skills/harness/bin/bash-write-guard.sh || exit 1
+      bash -n .claude/skills/harness/bin/bash-write-guard.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
-      G = os.path.abspath('.claude/skills/harness/bin/bash-write-guard.sh')
+      G = os.path.abspath('.claude/skills/harness/bin/bash-write-guard.py')
       MAN = ("schema_version: 1\nteams:\n  - name: build\n    members:\n"
              "      - name: harness-documentor\n        domain:\n"
              "          - { path: .harness/*/features/*/BRIEF.md, upsert: true }\n")
@@ -1302,12 +1302,12 @@ tasks:
       EOF
     intent: |
       Close the Bash half of the checkout binding in
-      .claude/skills/harness/bin/bash-write-guard.sh. T-03 binds the tool route only; a governed
+      .claude/skills/harness/bin/bash-write-guard.py. T-03 binds the tool route only; a governed
       agent denied the Write can `cat > `, `perl -pi` or `cp` the SAME main-checkout feature
       artifact and it lands at exit 0. Worse, T-03's refusal message NAMES the worktree, so the
       unbound route is signposted. This task closes it. D-10 governs.
 
-      WHERE. The findings loop at bash-write-guard.sh:703-761 already computes, per extracted
+      WHERE. The findings loop at bash-write-guard.py:703-761 already computes, per extracted
       write target: `ap` (absolute) and `rel` (ROOT-relative). At :747 it reads
 
         if verdict["outcome"] in ("allow", "not_a_domain_question"): continue
@@ -1424,7 +1424,7 @@ tasks:
 
       2. bash-feature-checkout-inside — the identical write aimed at the same feature path INSIDE
       that worktree. Assert exit 0. Be honest in the case's own comment about what this proves:
-      if the worktree sits under .claude/worktrees/ the DEC-153 continue at bash-write-guard.sh
+      if the worktree sits under .claude/worktrees/ the DEC-153 continue at bash-write-guard.py
       :714 returns before classify is ever called, so the exit 0 is not evidence that the new
       binding's allow branch ran — it is evidence that the new check did not disturb DEC-153's
       carve-out, which is what this case actually binds.
@@ -1442,7 +1442,7 @@ tasks:
       directory was FEAT-32-concurrent-write-merge).
 
       5. bash-feature-checkout-red — the reachability proof for case 1, by D-07's idiom. Write a
-      MARKER-FREE copy of bash-write-guard.sh with the feature-checkout binding removed — locate
+      MARKER-FREE copy of bash-write-guard.py with the feature-checkout binding removed — locate
       the region by its own source text, never by a line number and never by any commit ref,
       relative or pinned — to a DOT-PREFIXED path in the script's OWN directory whose name is
       UNIQUE PER PROCESS by including os.getpid(); copy the file mode; remove it in a `finally`

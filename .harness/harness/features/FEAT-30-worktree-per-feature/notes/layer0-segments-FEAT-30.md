@@ -31,7 +31,7 @@ worktree-boundary fixtures against the current directory — see the false-red s
 |---|---|---|---|---|---|
 | 1 | **T-03** | #618 | `bin/test-check-domain.py` | DEC-174 am.4 — test file of a gate script | nothing |
 | 2 | **T-04** | #619 | `bin/harness_boundary.py`, `bin/check-domain.py`, `bin/test-check-domain.py`, `bin/test-bash-write-guard.py` | DEC-174 am.4 — the enforcement layer, and the cutover making a gate use the new mechanism is yours | T-03 |
-| 3 | **T-05** | #620 | `bin/bash-write-guard.sh`, `bin/test-bash-write-guard.py` | DEC-174 am.4 — registered PreToolUse gate script + its test file | T-04 |
+| 3 | **T-05** | #620 | `bin/bash-write-guard.py`, `bin/test-bash-write-guard.py` | DEC-174 am.4 — registered PreToolUse gate script + its test file | T-04 |
 | 4 | **T-07** | #622 | `.claude/skills/harness-distill/SKILL.md` | `--resolve` prints `NOBODY` | T-06 (team lane) |
 | 5 | **T-09** | #624 | `.claude/agents/harness-orchestrator.md`, `.claude/commands/harness.md`, `.claude/skills/harness/SKILL.md` | `--resolve` prints `NOBODY` | T-04, T-05, T-07, T-08 |
 
@@ -132,7 +132,7 @@ run-unit-tests.sh's explicit script list`, it is a registration gap, not a test 
 ## Two operator rulings bind these tasks. Do not re-derive them.
 
 **R-01 governs T-05.** REQ-04's `HEAD` refusal binds **all sixteen** governed agents, `harness-dev-ops`
-included. The HEAD-move matcher is evaluated **before** `bash-write-guard.sh`'s `harness-dev-ops`
+included. The HEAD-move matcher is evaluated **before** `bash-write-guard.py`'s `harness-dev-ops`
 early return at `:56-57`, and that early return **survives unchanged for every WRITE**. The authority
 is `DECISIONS.md:3650` — not the `DECISIONS-INDEX.md:170` summary row, which is what three tiers
 argued from before anyone opened the entry. Accepted cost, recorded: when HEAD is wrong and the guard
@@ -140,7 +140,7 @@ is working, `harness-dev-ops` cannot fix it either; the repair is yours from the
 carries no `agent_type` and which this guard does not bind.
 
 I verified both R-01 anchors live in this tree, because a wrong anchor wastes your hands:
-`bash-write-guard.sh:56-57` is exactly `if agent == "harness-dev-ops": sys.exit(0)`, the early
+`bash-write-guard.py:56-57` is exactly `if agent == "harness-dev-ops": sys.exit(0)`, the early
 return — so **T-05's HEAD matcher must be inserted ABOVE line 56**, and everything at or below it is
 the WRITE path that survives unchanged. `DECISIONS.md:3650-3652` reads "Every other harness agent
 except dev-ops (exempt per DEC-85 - owns builds) gets extractable **target paths** checked against
@@ -199,10 +199,10 @@ One trap, and it IS measured — a predecessor recorded it first-hand in
 `observations/harness-orchestrator.md`: an append was denied because an angle-bracket placeholder in
 prose read as an input redirect, and the denial named a target appearing nowhere in the intent. Their
 conclusion: documentation about git or shell cannot reliably be written through the Bash route; use
-the Write tool. I confirmed the masking half at `bash-write-guard.sh:155-167`, which documents this
+the Write tool. I confirmed the masking half at `bash-write-guard.py:155-167`, which documents this
 exact behaviour and states it fails safe. So: **the Bash write
 guard parses heredoc content as shell and masks quoted spans wholesale** (the masking half I did
-confirm, at `bash-write-guard.sh:155-167`, which documents exactly this and says it fails safe), so a `verify:` containing a heredoc or a quoted redirect
+confirm, at `bash-write-guard.py:155-167`, which documents exactly this and says it fails safe), so a `verify:` containing a heredoc or a quoted redirect
 target may be refused. That is the guard reading the content, not a defect in the verify — re-express
 the invocation as a script file. Do not weaken a `verify:` to get past it.
 

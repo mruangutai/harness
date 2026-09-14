@@ -48,7 +48,7 @@ asserts the converse (`:4803-4805`). Both read the message. No `FAILS if` leg fi
 ## SC-13 — re-derived, including the cycle-11 additions
 
 Refusals: Bash write + Bash removal (`run_bug1106_bash_route`, my replay 8/8 live, **6/8 with both
-witness cases at `exit 0`** against a c369fb1f `bash-write-guard.sh` bin); Write, Edit, and now
+witness cases at `exit 0`** against a c369fb1f `bash-write-guard.py` bin); Write, Edit, and now
 `unmatched Edit` and `Edit creating false witness` of the witness (`_bug1305_marker_file_protection`,
 `:4838`). **Non-vacuity of the two new Edit cases, measured by me:** against a `dc0e0313`
 `check-domain.py` bin, `unmatched Edit of existing witness is refused` and `Edit creating false witness
@@ -120,7 +120,7 @@ message. No leg of the `FAILS if` fires.
   message names the line to carry forward and where it is recorded; POST re-injects the field; the seed
   doctrine is in the tree. Unchanged.
 - **SEC-01 / issue #1376 — directory-level `rm`/`mv`.** Now *narrower in claim, not wider in exposure*:
-  the BRIEF records it as an accepted residual under REQ-02, and `bash-write-guard.sh:788-802` states
+  the BRIEF records it as an accepted residual under REQ-02, and `bash-write-guard.py:788-802` states
   it in both the docstring and the deny message. No guard was weakened to accommodate it.
 - **`unreadable witness fails closed`** (`check-domain.py` fail-closed branch) remains the one refusal
   beyond the disclosed set — narrow (fires only when the prior carries no readable `run_uid` **and** the

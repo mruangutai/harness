@@ -217,7 +217,7 @@ panel:
     resolved_by: T-08
     resolution: 'T-08''s intent now names SIX pairs: the five of the first pass plus
       the witness-guard pair, because this cycle''s rank-2 remedy itself added refusing
-      branches - the Bash write and removal denials in bash-write-guard.sh and the
+      branches - the Bash write and removal denials in bash-write-guard.py and the
       Write/Edit route denial in check-domain.py for .run-identity.json - after the
       count had been fixed at five. Its permitted side is a Write of state.yaml and
       a Write of digest.md in the SAME run directory at exit 0 plus an unaffected
@@ -439,13 +439,13 @@ tasks:
     - REQ-07
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 carve-out - check-domain.py is a registered PreToolUse and PostToolUse gate script, bash-write-guard.sh is the registered Bash write guard, harness_boundary.py is the pattern module both import, and each gate''s own test file rides the same carve-out; --resolve at c369fb1f grants all three surfaces to harness-backend-dev and harness-dev-ops, and the routing is recorded here rather than in lanes: because no plan-merge.py verb reaches the lanes: block'
+    execution_reason: 'DEC-174 carve-out - check-domain.py is a registered PreToolUse and PostToolUse gate script, bash-write-guard.py is the registered Bash write guard, harness_boundary.py is the pattern module both import, and each gate''s own test file rides the same carve-out; --resolve at c369fb1f grants all three surfaces to harness-backend-dev and harness-dev-ops, and the routing is recorded here rather than in lanes: because no plan-merge.py verb reaches the lanes: block'
     depends_on: [T-01]
     status: done
     files:
     - .claude/skills/harness/bin/check-domain.py
     - .claude/skills/harness/bin/check-state.sh
-    - .claude/skills/harness/bin/bash-write-guard.sh
+    - .claude/skills/harness/bin/bash-write-guard.py
     - .claude/skills/harness/bin/harness_boundary.py
     - tests/integration/test-check-domain.py
     - tests/integration/test-check-state.py
@@ -619,7 +619,7 @@ tasks:
 
       4. GUARD THE WITNESS. IT IS A RUN ARTIFACT AND NOTHING GUARDS IT TODAY (plan panel cycle 2,
       rank 2). The witness this task creates is the ONLY input REQ-02 detection reads, and no pattern
-      on any route matches it: bash-write-guard.sh `_run_artifact_guard` (:762-763 at c369fb1f)
+      on any route matches it: bash-write-guard.py `_run_artifact_guard` (:762-763 at c369fb1f)
       matches only harness_boundary.RE_RUN_DIGEST and RE_STATE_YAML (harness_boundary.py:42-45), and
       check-domain.py SHAPE_PATTERNS (:1185) is (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF,
       RE_STATE_MD, RE_CLAUDE_MD, RE_PLAN_YAML). Re-derive all three anchors before editing. Any
@@ -637,7 +637,7 @@ tasks:
            spelling of it. Extend the existing comment above the pair rather than writing a new one:
            one definition, both guards import it, so the two write surfaces cannot silently disagree
            about which paths are protected.
-        b. bash-write-guard.sh `_run_artifact_guard` (:744-767): add RE_RUN_IDENTITY to the match and
+        b. bash-write-guard.py `_run_artifact_guard` (:744-767): add RE_RUN_IDENTITY to the match and
            give the marker its OWN deny message rather than folding it into the digest/state.yaml
            sentence, because the reason differs. The message says WHAT THE FILE IS - the run's
            write-once identity witness, recorded at the run's first landed checkpoint - that it is
@@ -918,7 +918,7 @@ tasks:
       probe. Rewrite the comment to state what the guard does: it fires on the Write route and on the
       Edit route, because Edit content is reconstructed from old_string/new_string against the
       on-disk prior before this branch runs; Bash writes to a run digest are refused outright by
-      bash-write-guard.sh; POST is too late to refuse and is not this branch's route. Do not soften
+      bash-write-guard.py; POST is too late to refuse and is not this branch's route. Do not soften
       it into "may also apply to Edit" - it does apply, and a hedge is the same defect again.
 
       2. REQ-05, the refusal that does not say what is allowed. The denial at the
@@ -1032,7 +1032,7 @@ tasks:
           named because the earlier count of four was a set mismatch rather than an arithmetic slip: the
           pairs enumerate {T-02-seed, T-09, T-06, T-02POST/T-03} and T-05's new refusing branch is in none
           of them.
-        - T-02 witness guard route denials in bash-write-guard.sh and check-domain.py - the refusing
+        - T-02 witness guard route denials in bash-write-guard.py and check-domain.py - the refusing
           branches this cycle's rank-2 remedy added: a Bash write to `.run-identity.json` and a Bash
           removal of it are denied, and a Write and an Edit of it are denied. Permitted side: in the SAME
           run directory, a Write of state.yaml and a Write of digest.md still exit 0, and a Bash write to
@@ -1162,7 +1162,7 @@ tasks:
       Edit route, because check-domain.py reconstructs Edit content for RE_STATE_YAML from
       old_string/new_string against the on-disk prior before the shape phase runs (:1905-1923 at
       c369fb1f) - so an Edit that rewrites or removes the run_uid line arrives here with the
-      reconstructed doc and is judged identically. Bash is refused wholesale by bash-write-guard.sh
+      reconstructed doc and is judged identically. Bash is refused wholesale by bash-write-guard.py
       _run_artifact_guard. POST neither denies nor reaches this code: it mints and records (T-02).
       Give the Edit route its own case; unlike the retired acquisition condition, this one is
       reachable on both.

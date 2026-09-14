@@ -127,7 +127,7 @@ B-39 are carried unchanged from the last briefing.
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-25 | bug | `bash-write-guard.sh` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.py --resolve` grants that same path. Two enforcement surfaces disagree |
+| B-25 | bug | `bash-write-guard.py` cannot expand shell variables and does not track `cd`. It resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"` are denied "outside your domain" while the identical command with a literal absolute path is allowed — and `check-domain.py --resolve` grants that same path. Two enforcement surfaces disagree |
 | B-26 | bug | `/usr/bin/grep` on this machine is `pi-uu-grep 0.2.0`, in which a line-leading `+` matches every line. Four false readings in this feature. Every affected measurement was redone in Python |
 | B-39 | bug | A run-directory slug collision let one lead overwrite another run's `digest.md` and `state.yaml`. `runs/` is gitignored, so the record was unrecoverable. Nothing in the contract stops a lead reusing a slug |
 | B-40 | chore | `DEC-159` still says the handoff shape gate denies a note at >40 lines, while the same entry records the cap raised to ~60 at DEC-160. In the un-amended remainder; found during the fold and reported rather than edited, because re-auditing the remainder was an explicit non-goal |

@@ -77,7 +77,7 @@ FAIL test-plan-merge.py
 
 Ran the task's `verify:` string verbatim, with the one substitution declared and accepted in
 cycle 1 (`cp -R "$S" "$T/bin"` → a `python3 -c "shutil.copytree(...)"` call into the same
-`mktemp -d` location; `bash-write-guard.sh` denies the literal `cp -R` because it resolves `$T`
+`mktemp -d` location; `bash-write-guard.py` denies the literal `cp -R` because it resolves `$T`
 unexpanded as an out-of-domain target). All three RED-PROOF legs correctly failed the mutated
 copy, then the full suite (99 assertions now, cases 1-11) ran clean. Overall exit code: `0`.
 

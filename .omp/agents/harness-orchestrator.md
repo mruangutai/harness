@@ -40,7 +40,7 @@ session cut it before you were spawned; you neither create nor remove it.
   calls anyway.
 - **Every git command uses `git -C <that path>`.** Address the worktree; do not move to it.
 - **You never move HEAD.** Checking out a branch, switching, a hard reset, a rebase, a merge — all
-  refused for every governed agent by `bash-write-guard.sh`, and the refusal names the alternative.
+  refused for every governed agent by `bash-write-guard.py`, and the refusal names the alternative.
   **A denial there is the guard working, not a malfunction**: HEAD is shared state for the duration
   of a run, and moving it re-points every file under every other agent in that checkout.
 

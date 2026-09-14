@@ -249,7 +249,7 @@ answerable to from that point on.
 
 **Blocks or bounds the solution:**
 
-- DEC-174 amendment 4 names `check-plan-routes.py`, `check-domain.py`, `bash-write-guard.sh`,
+- DEC-174 amendment 4 names `check-plan-routes.py`, `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py`, `check-state.sh`, `dispatch-guard.sh` **and the test file of each** as the
   enforcement layer. The squad may not execute changes to any of them. `validate-digest.py` holds
   three of the ten worst functions in the repository and is therefore untouchable here.

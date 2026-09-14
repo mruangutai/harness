@@ -490,7 +490,7 @@ def case7():
                if guarded.search(line))
     safe_hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
                     if "python3 -c" in line and "sys.path.pop(0)" in line)
-    check("case7_the_scan_can_see_the_invocations", hits >= 15 and safe_hits >= 2,
+    check("case7_the_scan_can_see_the_invocations", hits >= 15 and safe_hits >= 1,
           f"found {hits} isolated launches and {safe_hits} safe-python launches")
 
 

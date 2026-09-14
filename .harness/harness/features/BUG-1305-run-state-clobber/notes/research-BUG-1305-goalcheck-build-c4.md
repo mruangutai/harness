@@ -77,7 +77,7 @@ on the record. Both are outside DEC-174's no-edit cycle and outside any cycle th
 ## Criteria not re-checked, one line each
 
 The delta touches exactly two files: `tests/integration/test-check-domain.py` (`314e0227`) and this
-note (`1155f188`). `check-domain.py`, `bash-write-guard.sh`, `check-state.sh`, `validate-digest.py`
+note (`1155f188`). `check-domain.py`, `bash-write-guard.py`, `check-state.sh`, `validate-digest.py`
 and every other test file are byte-unchanged across `5ed929bd..154ff2a0`.
 
 - SC-02, SC-03, SC-09 — rest on `check-state.sh` + `test-check-state.py`, both untouched by the delta.

@@ -1,7 +1,7 @@
 # Probe — what a PreToolUse payload holds inside a subagent
 
 Run 2026-08-20 from the main session. Method: one line appended to
-`bash-write-guard.sh` immediately after `payload=$(cat)`, before any logic, writing the raw
+`bash-write-guard.py` immediately after `payload=$(cat)`, before any logic, writing the raw
 `HOOK_PAYLOAD` to a scratchpad file. A `general-purpose` subagent then ran exactly one Bash
 command (`echo probe-ok`). The line was reverted immediately after capture.
 

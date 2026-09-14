@@ -53,7 +53,7 @@ No criterion is `cannot_verify`: each names the task that will grade it.
 
 **The one residual, and it is a recommendation, not a decision.** D-05's own reason says quarantine
 exists because "quarantining them would destroy the completed analysis the operator wants
-recoverable". Recoverability now rests on nothing enforcing it: `bash-write-guard.sh:259` exempts
+recoverable". Recoverability now rests on nothing enforcing it: `bash-write-guard.py:259` exempts
 `harness-dev-ops` outright, `:504-505` routes `rm` through `classify`, and `:784-790` prints a notice
 and **continues** on the `shared` verdict that D-06's `.harness/*/features/*/quarantine/**` glob
 produces. The ruling records this honestly (D-18, and the BRIEF `## Verification gaps` bullet) rather

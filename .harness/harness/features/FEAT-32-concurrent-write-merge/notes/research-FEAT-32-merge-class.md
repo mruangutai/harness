@@ -55,7 +55,7 @@ is why #551 occurrences 3 and 4 stay open and why the fix refuses the **second d
 
 ## Live during this run: two guard behaviours worth knowing
 
-1. `bash-write-guard.sh` refused `sed -i` against my own `plan.yaml` — the target was passed as an
+1. `bash-write-guard.py` refused `sed -i` against my own `plan.yaml` — the target was passed as an
    unexpanded `$P`, so the guard resolved a literal `$P` and denied it. The `Edit` tool worked. A
    shell variable in a write target is invisible to the guard's resolver.
 2. The same guard allowed `python3 - <<PY` to rewrite that identical file, because the command

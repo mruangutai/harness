@@ -26,7 +26,7 @@ one edit from current.
 | SC-09 | met | automated / integration | Four pins in the one case: `Z` (checkpoint, no witness) and `L` (witness uid, checkpoint none) silent in a clean tree that contains only `Y`,`Z`,`L` (exit 0, no INV-36); `W` unreadable and `X` seed-disagreement both reported. Fifth pin: delta note `:38` records control-plane root exit 0 / 0 INV-36. |
 | SC-10 | met | automated / integration | Four assertions present and green: mints 32-hex uid + matching witness, second POST byte-stable, preserves supplied uid, leaves malformed untouched. Minting **red at `c369fb1f`** in my replay. |
 | SC-11 | met | inspection | `probe-notebookedit-BUG-1305.md:7` `route_reachable: no`, `:40` `guard_fires: n_a`, both column 0, each with verbatim `omp --help` + `Available Tools` output (v18.1.11, `notebook`, no `NotebookEdit`). No `## Reported` owed. |
-| SC-13 | met | automated / integration | 4 route refusals green at pin; **red-proof measured by me**: check-domain side FAILs at `c369fb1f` (witness Write/Edit/unmatched-Edit/false-witness), Bash side **6/8 with both witness cases at exit 0** against a `c369fb1f` `bash-write-guard.sh`. Scoping: `case_run_identity_pattern` 6/6 rejects both siblings; `state.yaml` and `digest.md` Writes exit 0. |
+| SC-13 | met | automated / integration | 4 route refusals green at pin; **red-proof measured by me**: check-domain side FAILs at `c369fb1f` (witness Write/Edit/unmatched-Edit/false-witness), Bash side **6/8 with both witness cases at exit 0** against a `c369fb1f` `bash-write-guard.py`. Scoping: `case_run_identity_pattern` 6/6 rejects both siblings; `state.yaml` and `digest.md` Writes exit 0. |
 
 ## SC-01 — the three required cases, named, located, red/green
 

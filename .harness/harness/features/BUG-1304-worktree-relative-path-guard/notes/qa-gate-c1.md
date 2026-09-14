@@ -37,7 +37,7 @@ prep) → `5a106acd`(test) → `5facdf5e`(test) → `83d17657`(fix) → `fb76221
   `harness_boundary.py` + `inflight_registry.py` (impl-only). **T-01 before T-02: holds.**
 - `5a106acd` touches only the fixture + `tests/integration/test-check-domain.py` (tests-only);
   `5facdf5e` touches only the fixture + `tests/integration/test-bash-write-guard.py`
-  (tests-only). Both precede `fb762215` (impl-only, `bash-write-guard.sh`) and `62e5bf6d`
+  (tests-only). Both precede `fb762215` (impl-only, `bash-write-guard.py`) and `62e5bf6d`
   (impl-only, `check-domain.py`). **T-03/T-05 before T-04/T-06: holds.**
 
 Ordering holds on all four pairs named in the dispatch, by file-touch inspection alone (no

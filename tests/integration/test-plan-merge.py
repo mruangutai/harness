@@ -1169,7 +1169,7 @@ def case_1103_sign_approval_negative_control_absent_is_main_session():
     """NEGATIVE CONTROL for the case above: an ABSENT HARNESS_AGENT_TYPE is the main session,
     the same exemption plan-sign-gate.py's own hook already uses (`if not (payload.get
     ("agent_type") or ""): sys.exit(0)`), and one this whole codebase applies consistently
-    (dispatch-guard.sh, bash-write-guard.sh, check-domain.py, validate-digest.py). Refusing on
+    (dispatch-guard.sh, bash-write-guard.py, check-domain.py, validate-digest.py). Refusing on
     absence here would refuse the main session's own legitimate signature — a stricter check
     that is provably wrong, not merely untested."""
     root, plan = fixture_root()

@@ -98,16 +98,16 @@ Matches `redproof-BUG-1305.md`'s own recorded numbers exactly, independently rep
 **(d) Bash-route witness cases (QA-F2) — independently replayed against the SAME `c369fb1f` pin the
 redproof note cites, not merely re-read:**
 ```
-BASH_WRITE_GUARD_BIN=qa-c2-c369/.../bash-write-guard.sh python3 -c '...run_bug1106_bash_route()...'
+BASH_WRITE_GUARD_BIN=qa-c2-c369/.../bash-write-guard.py python3 -c '...run_bug1106_bash_route()...'
 → FAIL "overwriting the write-once identity witness is refused"  | exit 0
 → FAIL "removing the write-once identity witness is refused"     | exit 0
    (6/8 passed, exit 2)
-BASH_WRITE_GUARD_BIN=qa-c2-e77/.../bash-write-guard.sh  python3 -c '...run_bug1106_bash_route()...'
+BASH_WRITE_GUARD_BIN=qa-c2-e77/.../bash-write-guard.py  python3 -c '...run_bug1106_bash_route()...'
 → ok   "overwriting the write-once identity witness is refused"
 → ok   "removing the write-once identity witness is refused"
    (8/8 passed, exit 0)
 ```
-Bit-for-bit matches the note. `bash-write-guard.sh`'s diff in this delta is comment/message-wording
+Bit-for-bit matches the note. `bash-write-guard.py`'s diff in this delta is comment/message-wording
 only (mentions issue #1376) — confirmed by direct diff, no logic change — so this red/green split is
 entirely attributable to the guard version, and the note's evidence (previously QA-F2's gap) is now
 present, real, and independently reproducible. **QA-F2 CLOSED.**

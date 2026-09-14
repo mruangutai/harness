@@ -10,7 +10,7 @@ sweep, not as its point.
 
 - **Feature 1 — the `.yaml` file parsers.** PyYAML as an init prerequisite, plus conversion of
   `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`, `check-domain.py`,
-  `bash-write-guard.sh`.
+  `bash-write-guard.py`.
 - **Feature 2 — the DIGEST parser.** Fence the three-part return, convert `validate-digest.py`.
 
 **Feature 2 is BLOCKED ON Feature 1 and must not be planned in parallel.** `validate-digest.py`
@@ -59,7 +59,7 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
 - Whether the six converted scripts share one YAML helper module or each import `yaml` directly.
   Recommended a shared `bin/harness_yaml.py` during grilling, but this is architecture — eng-lead
   reviews it, and pm should not have it pre-decided.
-- How `bash-write-guard.sh` and `check-domain.py` detect "same session" for the one-time bypass.
+- How `bash-write-guard.py` and `check-domain.py` detect "same session" for the one-time bypass.
   Sharp enough to state, not yet answered; a marker file under `.harness/` is the obvious shape but
   its lifecycle is unexamined.
 - **Who edits the 13 return templates in Feature 2.** RESOLVED 2026-08-02 — the user assigned it to
@@ -87,13 +87,13 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
 All at `37a8a66`.
 
 - **Six production scripts hand-parse YAML.** `check-state.sh` (17 regex calls), `gh-sync.py` (11),
-  `validate-digest.py` (11), `check-domain.py` (9), `bash-write-guard.sh` (6), `upgrade-config.py`
+  `validate-digest.py` (11), `check-domain.py` (9), `bash-write-guard.py` (6), `upgrade-config.py`
   (2), `cost-report.py` (1). Counted with `grep -cE 're\.(search|findall|match|finditer)'`.
   **Caveat found in FEAT-05 planning:** `cost-report.py` does not PARSE YAML into values — it does a
   targeted line-scan replacement of the `cost:` block (`:189`). Whether it belongs in the sweep is a
   scope judgment, not a given; the BRIEF's REQ-01 named it without that distinction.
 - **The three "shell" scripts are bash wrappers around embedded Python heredocs** —
-  `check-domain.py:35,74,97,235`, `bash-write-guard.sh:24,48`, `check-state.sh:17`. There is no
+  `check-domain.py:35,74,97,235`, `bash-write-guard.py:24,48`, `check-state.sh:17`. There is no
   Python-startup cost to *add*; `check-domain.py` already launches the interpreter three times per
   hook call. Consolidating would likely make it faster.
 - **Measured latency, 100 iterations each:** bare `python3 -c pass` 16.7ms · `python3 -c 'import

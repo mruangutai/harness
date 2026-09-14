@@ -42,7 +42,7 @@ Measured, not assumed. Read the full pre- and post-diff module
   already-trusted local process, a second feature genuinely running concurrently, and correctly
   guessing both names; it is same-user/same-machine (no privilege gain), and the worst outcome
   (two concurrent PM writers) is caught by ordinary `plan.yaml` diff review before merge, same as
-  before this PR. `bash-write-guard.sh` does not block it (it only intercepts *write* patterns —
+  before this PR. `bash-write-guard.py` does not block it (it only intercepts *write* patterns —
   `perl -pi`, `sed -i`, redirections — not an ordinary command invocation, and this is the exact
   command the tool's own refusal message tells an operator to run).
 - **PID-reuse liveness (explicitly asked about).** `_pid_alive()` (`os.kill(pid, 0)`) is the

@@ -177,7 +177,7 @@ The Bash witness refusals were replayed from the current test against the pinned
 Command:
 
 ```text
-BASH_WRITE_GUARD_BIN=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/qa-redproof-sc13-c11/.claude/skills/harness/bin/bash-write-guard.sh python3 -c 'import importlib.util; p="tests/integration/test-bash-write-guard.py"; s=importlib.util.spec_from_file_location("bg", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1106_bash_route())'
+BASH_WRITE_GUARD_BIN=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/qa-redproof-sc13-c11/.claude/skills/harness/bin/bash-write-guard.py python3 -c 'import importlib.util; p="tests/integration/test-bash-write-guard.py"; s=importlib.util.spec_from_file_location("bg", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1106_bash_route())'
 ```
 
 Verbatim discriminating output (the six unaffected passing cases are omitted outside this fence;

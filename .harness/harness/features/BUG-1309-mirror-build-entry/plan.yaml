@@ -408,7 +408,7 @@ panel:
     severity: med
     reader: should-not-exist
     summary: "T-05's settings.json registration position is unsatisfiable: 'fourth\
-      \ entry after gh-close-gate.sh and before bash-write-guard.sh' (plan.yaml:688-689)\
+      \ entry after gh-close-gate.sh and before bash-write-guard.py' (plan.yaml:688-689)\
       \ against a live array of branch-create, bash-write-guard, gh-close, plan-sign\
       \ (.claude/settings.json:32-45) \u2014 it would be a fifth entry and no index\
       \ satisfies both constraints; settings.snippet.json inherits it via 'the same\
@@ -506,7 +506,7 @@ panel:
       \ not be written on that evidence. `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62`\
       \ say *\"THE DECISION LIVES IN A FILE, NOT A HEREDOC\"* and exec `.py` files\
       \ \u2014 counter-examples, not instances. Only `post-merge-sweep.py:29-293`\
-      \ and `bash-write-guard.sh:42` feed Python on stdin."
+      \ and `bash-write-guard.py:42` feed Python on stdin."
     disposition: resolved
     resolved_by: .harness/harness/features/BUG-1309-mirror-build-entry/notes/research-BUG-1309-mirror-build-entry-unit-ruling.md
   - id: PF-14faae5d430e5c49df19e30751ad2784
@@ -1310,7 +1310,7 @@ tasks:
       ORDERS, so register by NAMED NEIGHBOUR plus the constraint below, never by an ordinal: an
       ordinal is satisfied by a reshuffled array that breaks the intent.
       THE CONSTRAINT: merge-gate.sh runs LAST among the Bash gates in every one of the four
-      arrays - after bash-write-guard.sh in particular. bash-write-guard.sh is the only registered
+      arrays - after bash-write-guard.py in particular. bash-write-guard.py is the only registered
       gate whose subject can also match a merge command line: it reads the whole line textually for
       redirects, tee, cp, mv and rm, so "gh pr merge 7 --squash > /tmp/merge.log" is refused by BOTH
       gates. When two gates refuse one command the operator must be shown the write-guard's reason,
@@ -1329,19 +1329,19 @@ tasks:
       diffed against one another.
       - .claude/settings.json, hooks.PreToolUse, the entry whose matcher is "Bash", its hooks array.
         That array today holds FOUR entries in this order: branch-create-gate.sh,
-        bash-write-guard.sh, gh-close-gate.sh, plan-sign-gate.sh - so the new hook is the FIFTH
+        bash-write-guard.py, gh-close-gate.sh, plan-sign-gate.sh - so the new hook is the FIFTH
         entry, not the fourth, and no index is both after gh-close-gate.sh and before
-        bash-write-guard.sh. Literal predecessor: the plan-sign-gate.sh entry. Literal successor:
+        bash-write-guard.py. Literal predecessor: the plan-sign-gate.sh entry. Literal successor:
         NONE - merge-gate.sh is the final entry of that array;
       - .claude/skills/harness/templates/settings.snippet.json, the same event and the same "Bash"
         matcher. THIS FILE'S ARRAY IS NOT settings.json's: it holds THREE entries -
-        branch-create-gate.sh, bash-write-guard.sh, plan-sign-gate.sh - and carries NO
+        branch-create-gate.sh, bash-write-guard.py, plan-sign-gate.sh - and carries NO
         gh-close-gate.sh entry at all, so "the same position" names nothing here. Literal
         predecessor: the plan-sign-gate.sh entry. Literal successor: NONE - merge-gate.sh is the
         fourth and final entry;
       - .omp/extensions/harness-hooks.ts, the firstBlock([...]) array of policyRunner calls inside
         the toolName === "bash" branch. ITS ORDER IS DIFFERENT AGAIN: gh-close-gate.sh,
-        branch-create-gate.sh, bash-write-guard.sh, plan-sign-gate.sh. Literal predecessor: the
+        branch-create-gate.sh, bash-write-guard.py, plan-sign-gate.sh. Literal predecessor: the
         policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload) element. Literal successor: NONE -
         merge-gate.sh is the fifth and final element. BUG-1132 records what omitting this file
         costs: plan-sign-gate.sh was wired for native Claude Code and never ported here, so under
@@ -1354,7 +1354,7 @@ tasks:
         .claude/settings.json. The snippet is a ONE-WAY drift check only - HOOK_SPECS -> template,
         merge-settings.py lines ~232-246 - so an entry present in the snippet but ABSENT from HOOK_SPECS
         installs nowhere and is checked nowhere: the gate would then be live in the harness checkout
-        ALONE. APPEND it as the LAST element of HOOK_SPECS, after the bash-write-guard.sh entry,
+        ALONE. APPEND it as the LAST element of HOOK_SPECS, after the bash-write-guard.py entry,
         LITERALLY this element - four keys, and NO "args" key, because this gate takes none:
           {
               "event": "PreToolUse",
@@ -1364,14 +1364,14 @@ tasks:
                      "build-entry receipt is still owed, silently.",
           },
         Last place is THE SAME ordering constraint stated above and not a second rule: merge-gate.sh
-        must run after bash-write-guard.sh so the write-guard's reason wins the overlapping refusal.
+        must run after bash-write-guard.py so the write-guard's reason wins the overlapping refusal.
         The element sitting last in HOOK_SPECS today, dispatch-guard.sh, carries matcher "Task|Agent"
         and is NOT a Bash gate, so appending AFTER it satisfies the constraint rather than violating it.
-        Register by named neighbour - after the bash-write-guard.sh entry, at the end of the list -
+        Register by named neighbour - after the bash-write-guard.py entry, at the end of the list -
         never by ordinal, the rule this task already carries for the other three sites.
 
       If a reshuffle has already moved these neighbours, satisfy THE CONSTRAINT - last in the array,
-      after bash-write-guard.sh - and not the names.
+      after bash-write-guard.py - and not the names.
 
       OUT OF SCOPE, recorded here as one clause and NOT fixed by this task: gh-close-gate.sh and
       plan-sign-gate.sh carry no HOOK_SPECS entry today, so both are installed in this checkout alone.
@@ -1434,9 +1434,9 @@ tasks:
           recorded value - assert the reason does NOT contain "could not" or the gh failure text,
           since the deny must read as grounded in the local record.
       - tests/unit/omp-hooks.test.ts: extend the existing gate-ordering assertion - the one that
-        today asserts gh-close-gate.sh before branch-create-gate.sh before bash-write-guard.sh -
+        today asserts gh-close-gate.sh before branch-create-gate.sh before bash-write-guard.py -
         with the machine-checkable form of THE CONSTRAINT above: scripts.indexOf("merge-gate.sh")
-        is greater than -1, greater than scripts.indexOf("bash-write-guard.sh"), and greater than
+        is greater than -1, greater than scripts.indexOf("bash-write-guard.py"), and greater than
         scripts.indexOf("plan-sign-gate.sh"). Assert the RELATION, never a literal index, so a
         later reshuffle that keeps the constraint stays green and one that breaks it reddens.
 

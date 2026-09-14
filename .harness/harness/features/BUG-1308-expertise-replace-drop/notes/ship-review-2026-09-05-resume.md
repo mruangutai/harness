@@ -93,7 +93,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed here dies 
 | B-10 | bug | **`handoff-*.md` cannot be written for a worktree-only feature.** `handoff_done_when.py` resolves `feature_dir` against the project root, so `brief-sc:`/`plan-task:` never resolve; `FINDING_RE` wants `F-\d+` while this repo mints hex ids. Confirmed live at this HEAD. |
 | B-11 | bug | `runs/<dir>/state.yaml` is unguarded where `digest.md` is guarded, and nothing stops a write into an occupied run dir. One checkpoint was destroyed twice here. |
 | B-12 | bug | The unit runner's discovery count is caller-dependent (28/29/74 files from one command) and it false-fails `test-plan-merge.py` unless invoked `env -u HARNESS_AGENT_TYPE`. A zero FAIL count does not bound what ran. |
-| B-13 | bug | The run-digest append-only guard refuses a replacing write, so a digest cannot be corrected in place; and `bash-write-guard.sh` misreports a `mktemp -d` redirect target as `"xx"`. |
+| B-13 | bug | The run-digest append-only guard refuses a replacing write, so a digest cannot be corrected in place; and `bash-write-guard.py` misreports a `mktemp -d` redirect target as `"xx"`. |
 
 ## Budget note
 

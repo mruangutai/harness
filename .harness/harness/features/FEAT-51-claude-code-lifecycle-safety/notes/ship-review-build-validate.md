@@ -149,7 +149,7 @@ signature briefing; B-13 onward are new from build and validation.
 | B-5 | bug | `harness-code-reviewer` could not terminally yield on a plan-phase dispatch: `validate-digest.py` refused `code_grade: n_a` and refused it omitted. Did not recur this phase once the pin existed. |
 | B-6 | bug | `plan-merge.py`'s `UNION_KEYS` is `("tasks", "decisions")` only, so `lanes` and `panel` cannot be amended incrementally. Possibly closed by `BUG-1128-plan-amend-verb`. |
 | B-7 | bug | `check-domain.py` denies `harness-pm` a `Write` at `notes/plan-proposal-*.yaml`, so the sanctioned tool is refused for the one write route `plan.yaml` has — and `python3` reaches it anyway. |
-| B-8 | bug | `bash-write-guard.sh` reads a `>=` inside Python source as a redirect and refuses the command. |
+| B-8 | bug | `bash-write-guard.py` reads a `>=` inside Python source as a redirect and refuses the command. |
 | B-9 | bug | `check-plan-routes.py` never reads `lanes.rows`, so a surface missing from that block is ungated. |
 | B-10 | chore | A lead digest missing `artifact:` is written and accepted by its own run; only `check-state.sh` catches it later. |
 | B-11 | chore | `panel.findings`' `reader` enum has no word for a lead's fan-in finding. |

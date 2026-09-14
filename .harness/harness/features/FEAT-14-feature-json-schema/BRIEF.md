@@ -122,10 +122,10 @@ reverses ten features of growth in one pass and makes the next ten impossible.
   FEATURE-SPECIFIC, never wildcard: a new unapproved BRIEF appearing during the wait must read as
   NEW. Message text changes at T-06 (`no feature.yaml` becomes `no feature.json`, and INV-18 gains a
   template name), so both sides are keyed on the stem that survives the rename.
-- **DEC-174 carve-out is live.** `check-state.sh`, `check-domain.py`, `bash-write-guard.sh` and
+- **DEC-174 carve-out is live.** `check-state.sh`, `check-domain.py`, `bash-write-guard.py` and
   `validate-digest.py` are edited directly by the main session, never dispatched. This feature
   touches **three** of the four — `check-state.sh`, `check-domain.py` and `validate-digest.py`, all
-  in T-06; `bash-write-guard.sh` is untouched. Signing this does not widen the carve-out: DEC-174
+  in T-06; `bash-write-guard.py` is untouched. Signing this does not widen the carve-out: DEC-174
   already names all four. What is new is concentration — three enforcement scripts edited in one
   task, in one build.
 - **THE LANDING UNIT IS ONE PULL REQUEST.** Every task lands on one branch and merges as a single
@@ -296,7 +296,7 @@ Three candidates, and "loud failure" means something different in each:
 
 | Where | What "loud" means there | Verdict |
 |---|---|---|
-| `bash-write-guard.sh` (PreToolUse) | the write is denied before it lands | **rejected** — it guards Bash-route writes, not the Write tool the orchestrator actually uses, and DEC-171 am.1's fail-closed shape would put schema logic behind a bootstrap escape |
+| `bash-write-guard.py` (PreToolUse) | the write is denied before it lands | **rejected** — it guards Bash-route writes, not the Write tool the orchestrator actually uses, and DEC-171 am.1's fail-closed shape would put schema logic behind a bootstrap escape |
 | `check-state.sh` | a pre-commit sweep reddens after the bad write is already on disk | **rejected as the primary point** — detection after the fact, and it is fully inside the DEC-174 carve-out |
 | `check-domain.py`'s existing write-payload path + a new `bin/validate-feature-json.py` in the required `integration` CI job | the write is denied at the moment it is attempted, and a bypass is caught red on the PR | **recommended** |
 

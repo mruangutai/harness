@@ -88,7 +88,7 @@ learns otherwise the way B-11 was learned — by noticing a record is gone.
 
 ### F-05 · low · SC-01's excluded-route anchor carries no sha
 
-BRIEF SC-01 and REQ-01 cite `bash-write-guard.sh`'s `_run_artifact_guard (:744-767)` with no
+BRIEF SC-01 and REQ-01 cite `bash-write-guard.py`'s `_run_artifact_guard (:744-767)` with no
 observation sha, while every other pinned claim in the brief carries `c369fb1f`. No task touches that
 file and nothing is graded on the anchor, so the cost is a reader sent to the wrong lines after an
 unrelated edit — not a wrong verdict.

@@ -43,7 +43,7 @@ close a record gap, not to hand work forward.
   into the other — `notes/ship-review-2026-08-12.md`
 - **The worktree-creation scan was never tested against evasion** — `sh -c`, `command git`, an alias,
   `xargs`. It is REQ-03's only mechanism — `notes/ship-review-2026-08-12.md`
-- **`classify`'s `shared` outcome is unreachable**, so the branch handling it in `bash-write-guard.sh`
+- **`classify`'s `shared` outcome is unreachable**, so the branch handling it in `bash-write-guard.py`
   is dead code new in that diff — `notes/ship-review-2026-08-12.md`
 - **One unreproduced gate failure.** `run-unit-tests.sh` exited 1 once and returned 0 on the three
   runs after it. No cause found — `notes/ship-review-2026-08-12.md`

@@ -45,7 +45,7 @@ Issues **#8**, **#9** and **#16** close as a consequence.
 - **#7, #13, #14, #6** — unrelated to the team layer.
 - **Making the runner parse team files.** They are read as prose by a lead agent today, and
   changing that is a design question this feature does not need to answer.
-- **`bash-write-guard.sh`'s `FOO=bar python3 - <<'PY'` false positive** — real, found by a FEAT-05
+- **`bash-write-guard.py`'s `FOO=bar python3 - <<'PY'` false positive** — real, found by a FEAT-05
   review pass, still unticketed. Different surface.
 
 ## Facts I verified (so pm does not re-derive them)

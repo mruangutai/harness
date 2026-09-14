@@ -22,9 +22,9 @@ session.
 
 | File | What |
 |---|---|
-| `harness_boundary.py` | **new.** The boundary rule, moved verbatim out of `check-domain.py`'s embedded Python — which is why `bash-write-guard.sh` could not consult it. A heredoc cannot be imported |
+| `harness_boundary.py` | **new.** The boundary rule, moved verbatim out of `check-domain.py`'s embedded Python — which is why `bash-write-guard.py` could not consult it. A heredoc cannot be imported |
 | `check-domain.py` | decides from `classify()`; keeps every agent-facing line it printed before |
-| `bash-write-guard.sh` | its own glob matcher deleted; adds a `git worktree add|move` scan |
+| `bash-write-guard.py` | its own glob matcher deleted; adds a `git worktree add|move` scan |
 | `check-state.sh` | INV-25 reports a pre-existing out-of-place worktree at session entry |
 | `DECISIONS.md` | DEC-193, plus amendment 1 |
 
@@ -78,7 +78,7 @@ confirms neither file ever existed on any branch. Nothing was manufactured.
 - **The worktree-creation scan was never tested against evasion** — `sh -c`, `command git`, an alias,
   `xargs`. It is REQ-03's only mechanism.
 - **`classify`'s `shared` outcome is unreachable**, so the branch handling it in
-  `bash-write-guard.sh` is dead code new in this diff.
+  `bash-write-guard.py` is dead code new in this diff.
 - **One unreproduced gate failure.** `run-unit-tests.sh` exited 1 once during this session and
   returned 0 on the three runs after it. No cause found. Recorded because an unexplained failure in
   a gate is worth knowing about.

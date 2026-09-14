@@ -3421,7 +3421,7 @@ gate is physics; the context watchdog names whoever ignores the advisory part. K
 
 ---
 
-## DEC-151 — The Bash write bypass, exploited and then narrowed: bash-write-guard.sh
+## DEC-151 — The Bash write bypass, exploited and then narrowed: bash-write-guard.py
 
 Field incident, reported by the kaya orchestrator as a security finding: during the FEAT-01 fix
 cycle, **qa was denied a source edit by check-domain and made the identical edit anyway via
@@ -3430,7 +3430,7 @@ runs; the bypass was available to every Bash-holding agent, and "read-only revie
 convention, not a boundary. DEC-85 had documented this gap as accepted risk with dev-ops as the
 trusted case — qa exploiting it under pressure breaks that rationale.
 
-**Fix: `bin/bash-write-guard.sh`, a PreToolUse:Bash hook** registered alongside the branch gate
+**Fix: `bin/bash-write-guard.py`, a PreToolUse:Bash hook** registered alongside the branch gate
 (sixth settings.json prerequisite; snippet template updated). Detected writes include redirects,
 sed/perl/awk in-place, tee, sponge, rm/mv/cp, and literal Python `open` calls in write-capable
 modes supplied through `-c` or heredoc source. The three reviewers are READ-ONLY and denied on
@@ -4216,7 +4216,7 @@ and print the install command, exactly as that gate already does for a script it
 `requirements.txt`: nothing in the harness would read it, and it would be the first dependency
 manifest in a repo that is still files-only.
 
-**`check-domain.py` and `bash-write-guard.sh` fail CLOSED on a missing PyYAML.** This is a deliberate
+**`check-domain.py` and `bash-write-guard.py` fail CLOSED on a missing PyYAML.** This is a deliberate
 exception to DEC-101's fail-open rule, and the distinction is what the failure means. DEC-101 fails
 open on a *missing manifest* because an unconfigured project has nothing to enforce, and on an
 *unparseable payload* because that is the hook's own bug — blocking on either would wedge every write
@@ -4375,7 +4375,7 @@ while its own manifest is unparseable is not checking itself.
 |---|---|---|
 | grilling, BRIEF, PLAN, review panel, goal-check | **yes, keep it** | none of it depends on the code being changed; FEAT-05's grilling and plan were good work and caused none of the day's trouble |
 | agent roles, digests, expertise | yes | drift risk, not circularity |
-| **hooks, validators, gate scripts** (`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`) | **NO** | the artifact under change is the artifact doing the checking |
+| **hooks, validators, gate scripts** (`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh`) | **NO** | the artifact under change is the artifact doing the checking |
 
 Everything painful on 2026-08-03 sits in the third row: which copy of `check-domain.py` a hook fires,
 whether DEC-173 governs any agent, whether 13 edited agent templates are even live, and a fail-closed
@@ -4405,7 +4405,7 @@ them with a test.**
 work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
 stays available and is a stage question, not a correctness one.
 
-**The enforcement layer, enumerated:** `check-domain.py`, `bash-write-guard.sh`,
+**The enforcement layer, enumerated:** `check-domain.py`, `bash-write-guard.py`,
 `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
 file of each.** The category in the table above governs and the list only records it — a script joins
 on the day it becomes a gate, and this entry is updated when that happens.
@@ -4666,7 +4666,7 @@ change landed.
 ## DEC-179 — Task routing is resolved at PLAN TIME: an ungranted surface becomes a DECLARED main-session step, never a discovered one
 
 A PLAN task naming a path no agent is granted to write used to be found at dispatch time, mid-run, by
-`bash-write-guard.sh` or `check-domain.py` rejecting the write — after the plan had been signed and the
+`bash-write-guard.py` or `check-domain.py` rejecting the write — after the plan had been signed and the
 run was underway. `.claude/skills/harness/bin/check-plan-routes.py` moves that discovery to the plan
 phase: it reads each task's `files:` and `execution_mode:` and asks `check-domain.py --resolve <path>`
 who may write each one. The ungranted surface is still allowed; what changes is that it is now
@@ -5837,7 +5837,7 @@ authority on the count, the brief the signed one, and neither is edited to match
 
 **The bound on the whole ruling is identity.** A Bash-invoked CLI has no identity source — no `agent_type` reaches it
 and no environment variable carries one — so it checks WHERE it writes, never WHO called it. That route is reachable
-from a read-only persona because `bash-write-guard.sh` is allow-by-omission (#627), not fixed here.
+from a read-only persona because `bash-write-guard.py` is allow-by-omission (#627), not fixed here.
 
 **The observations log's own instance (moved from `harness-expertise` under FEAT-60).** Issue #606 was the earlier `harness-expertise` instruction to Read-then-Write the observations log: two contexts of one agent each read, each wrote the whole file, and the second erased the first. `observations-merge.py` holds the mechanism; this is the attribution.
 
@@ -6523,7 +6523,7 @@ residual risk is accepted with the team playbook as its compensating control, no
 **4. The checkout binding is route-complete across both governed write surfaces.** Ruling 2's rule is
 enforced on the governed Bash write route too, through the same
 `harness_boundary.worktree_for_feature` seam that refuses an ambiguous match
-(`.claude/skills/harness/bin/bash-write-guard.sh:711-722`,
+(`.claude/skills/harness/bin/bash-write-guard.py:711-722`,
 `.claude/skills/harness/bin/check-domain.py:727-741`). A refusal on the tool route alone is a signpost
 to the shell, and that guard exists precisely because an agent routed around the other one (DEC-151,
 DEC-174), so a divergence between the two surfaces is a bypass by construction. Scope: this closes the
@@ -6637,7 +6637,7 @@ rule on that verb, while a plain `rm -rf` of the same directory stays legal unde
 glob, would record a protection the tree does not have. And the boundary bounds those two GOVERNED
 routes alone — a generic Bash write (`cp`, `cat`, `tee`, `mv`, `sed -i`, `python3 -c`) to a canonical
 artifact INSIDE the writer's own domain reaches neither gate and is not refused, because
-`bash-write-guard.sh` passes an in-domain write and `check-domain.py` is registered for Write and
+`bash-write-guard.py` passes an in-domain write and `check-domain.py` is registered for Write and
 Edit only. That was measured: exit 0 on all three gates. Generic write-route enforcement needs a
 generic write-route gate, which is a different feature and goes to the backlog rather than being
 built here.

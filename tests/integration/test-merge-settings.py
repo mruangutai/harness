@@ -122,7 +122,7 @@ def case_no_duplicate_write():
                 "PreToolUse": [
                     entry("Write|Edit", "x/check-domain.py"),
                     entry("Bash", "x/branch-create-gate.sh"),
-                    entry("Bash", "x/bash-write-guard.sh"),
+                    entry("Bash", "x/bash-write-guard.py"),
                     entry("Task|Agent", "x/dispatch-guard.sh"),
                 ],
                 # The shape that was duplicated: three entries, one tool each.

@@ -124,7 +124,7 @@ from 12 to 14 adding precisely the two new files, `UNIT_SCRIPTS` untouched, and 
 
 ## Footnote: the heredoc trap hit ME while writing this section
 
-My first attempt to append this text was BLOCKED by `bash-write-guard.sh`, because the prose
+My first attempt to append this text was BLOCKED by `bash-write-guard.py`, because the prose
 contained an ASCII arrow whose `greater-than` character the guard read as a redirect operator; the
 masked span it reported was the digits following it. That is the predecessor's recorded finding
 reproduced first-hand: documentation about git or shell cannot reliably be written through the Bash

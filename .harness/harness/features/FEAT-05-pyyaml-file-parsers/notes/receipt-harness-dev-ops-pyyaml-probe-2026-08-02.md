@@ -53,7 +53,7 @@ self-report `MISSING` once at first run rather than trusting a separate init-tim
 ## Ask 3 — session-identifying material
 
 - `check-domain.py` reads only `agent_type` (:38), `tool_name`+`tool_input` (:74,:240) from the
-  PreToolUse payload; `bash-write-guard.sh` reads only `agent_type` (:27) and the same via
+  PreToolUse payload; `bash-write-guard.py` reads only `agent_type` (:27) and the same via
   `HOOK_PAYLOAD` env (:53). Neither **reads** `session_id`, `transcript_path`, or `cwd` — confirmed
   by grep returning zero payload-key matches for those terms in both files. This says nothing about
   whether the payload *carries* those keys unread — see below.

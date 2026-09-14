@@ -22,7 +22,7 @@ already happened is invisible to every existing invariant.
 **`check-domain.py`'s own inline comment at line 1236-1238 ("intentionally Write/PRE-only… Edit and
 Bash carry no complete incoming payload") is STALE and WRONG**, contradicted by its own runtime at
 lines 1905-1923 (Edit reconstruction for `RE_RUN_DIGEST`/`RE_STATE_YAML`/`RE_HANDOFF`) and confirmed
-by probe below. `bash-write-guard.sh`'s docstring (`:747-748`, "The Write and Edit routes… compare a
+by probe below. `bash-write-guard.py`'s docstring (`:747-748`, "The Write and Edit routes… compare a
 proposed write against… PRIOR content") is the one the runtime agrees with. **The un-repairable
 digest is better explained by the durable-digest check's own documented fail-open** than by this
 guard: `validate-digest.py:check_artifact_file` (`:1496-1500`) validates a lead's *written file* from
@@ -45,7 +45,7 @@ this cannot be confirmed directly.
 | 1 | `Write` | **Refused** on identity mismatch/malformed/missing-run_id prior; allowed as upsert when `run_id`s match | `check-domain.py:1439-1596` (esp. `:1567` compare) |
 | 2 | `Edit` | **Refused**, same identity/shape checks as Write — content is reconstructed from `old_string`/`new_string` against the on-disk prior *before* the identity compare runs | `check-domain.py:1905-1923` reconstructs; `:1439` re-checks the reconstructed `content`. No separate probe run for state.yaml (digest.md probed instead, same code path) |
 | 3 | `NotebookEdit`/`MultiEdit` | **Covered**, not a gap. Settings.json's matcher `"Write\|Edit"` is unanchored; the harness's own tooling models the host's matcher as `re.search` (`merge-settings.py:151-176`, esp. `:176 return bool(rx.search(tool))`) — `re.search("Write\|Edit","NotebookEdit")` matches on the `"Edit"` substring. `check-domain.py` already branches on `notebook_path` (`:357-358`) and treats `NotebookEdit` as a named-target Edit-like route (`:1930-1932`). `MultiEdit` is not a live Claude Code tool in this install (no references found outside `merge-settings.py`'s `_TOOL_NAMES` set) — moot. **I could not independently verify the host's actual matcher algorithm** (it lives in the Claude Code binary, not this repo) — this conclusion rests on the repo's own tested assumption (`test-merge-settings.py`), not a first-party host spec. Flagged as `open_questions` Q1. |
-| 4 | `Bash` (redirect, `python3 -c`, `tee`, `mv`, `cp`) | **Refused, unconditionally, any checkout** | `bash-write-guard.sh:744-767` (`_run_artifact_guard`), matched *before* the DEC-153 worktree carve-out (`:781-786`) via `_worktree_stripped` (`:729-741`) |
+| 4 | `Bash` (redirect, `python3 -c`, `tee`, `mv`, `cp`) | **Refused, unconditionally, any checkout** | `bash-write-guard.py:744-767` (`_run_artifact_guard`), matched *before* the DEC-153 worktree carve-out (`:781-786`) via `_worktree_stripped` (`:729-741`) |
 | 5 | Write/Edit from **inside a worktree path** | **Not defeated** — `check-domain.py`'s `_norm` (`:1063-1090`) resolves the path through `harness_boundary.checkout_relative`, stripping the worktree prefix before matching `RE_STATE_YAML`; this is the FEAT-30 T-04 fix, whose own comment (`:1066-1084`) documents the prior bug (a two-level worktree layout matched nothing) as already closed | `check-domain.py:1063-1090`, `harness_boundary.py:114+` |
 | 6 | Payload with **no `agent_type`** | **Still refused** — the domain (who-may-write) phase is skipped (`_domain_phase = _governed and not _post`, `:328`), but the shape/identity phase is **not** gated on `_governed` by explicit design: `"the shape phase runs for EVERY writer including the main session, because the no-agent_type carve-out is the _governed FLAG and not an exit"` | `check-domain.py:1360-1364` |
 | 7 | Session with **no PyYAML importable** | **Allowed (fail-open), by deliberate documented tradeoff** — `if _no_parser: return out` (bare early return, no identity check performed) | `check-domain.py:1454-1476`, esp. the `1471` comment explaining the tradeoff (earlier detection given up, not correctness — `check-state.sh` catches the shape violation at next entry, but **not** a clobber, since no invariant checks clobber post-hoc) |
@@ -79,11 +79,11 @@ directory outside `$TMPDIR` was touched.
    line **at the end** of the file is therefore an open repair route today; fixing a mistyped
    `VERDICT:` mid-file, or re-ordering/replacing existing lines, is not.
 2. **Comment contradiction, resolved by probe:** `check-domain.py:1236-1238` ("intentionally
-   Write/PRE-only") is **the wrong one** — `bash-write-guard.sh:747-748` ("The Write and Edit routes
+   Write/PRE-only") is **the wrong one** — `bash-write-guard.py:747-748` ("The Write and Edit routes
    in check-domain.py compare…") is what the runtime does, per probe. Repair routes: **Edit** (open,
    append-only), **a new run directory** (open, always — `state.yaml`'s message and the digest
    guard's both say "write this cycle's [record] into a run directory of its own"), **Bash** (closed,
-   unconditionally, `bash-write-guard.sh:744-767`).
+   unconditionally, `bash-write-guard.py:744-767`).
 3. **Split, with counts and method:** re-derived population (method below) = 38 `digest.md` files
    with no `^artifact:` line, out of 598 digest.md files across 612 run directories. Sampled by
    inspecting line count + presence of a `VERDICT:`-shaped block: **0/38 under 10 lines** (no

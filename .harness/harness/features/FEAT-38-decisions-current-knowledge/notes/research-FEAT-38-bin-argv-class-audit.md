@@ -53,7 +53,7 @@ it, outside `bin/`.
 
 ## Per-file verdicts
 
-| bash-write-guard.sh | FIXED-LITERAL-ARGV | line 42 runs python3 -c with a literal bootstrap plus the PY heredoc from its own source; argv[1:3] are $_derived and $_selfdir, both derived from BASH_SOURCE. The agent JSON it parses arrives via the HOOK_PAYLOAD env var (line 41), and its shlex.split uses (239, 380, 486) only tokenize for inspection, never execute |
+| bash-write-guard.py | FIXED-LITERAL-ARGV | line 42 runs python3 -c with a literal bootstrap plus the PY heredoc from its own source; argv[1:3] are $_derived and $_selfdir, both derived from BASH_SOURCE. The agent JSON it parses arrives via the HOOK_PAYLOAD env var (line 41), and its shlex.split uses (239, 380, 486) only tokenize for inspection, never execute |
 | board_lifecycle.py | TEXT-DERIVED-ARGV | line 1003 _ensure_abandoned_label runs [gh_bin, "label", "create", "abandoned", "--repo", repo_name]; repo_name comes from _resolve_board, which reads harness.json github.repo at lines 289-298 (json.load then github.get("repo")) |
 | check-decision-anchors.py | FIXED-LITERAL-ARGV | line 111 git_tracked_basenames runs ["git", "ls-files"], both elements literal; the DECISIONS.md anchors it parses (line 46 regex, line 172 open) are only compared against that output, never executed |
 | check-domain.py | FIXED-LITERAL-ARGV | line 1478 _unmodified_since_commit runs ["git", "-C", _checkout] + _argv where _argv is one of two literal lists (1476-1477) and _checkout comes from the _sweep list built at 1417-1421 from the resolved root plus harness_boundary.linked_worktrees, both excluded provenances |

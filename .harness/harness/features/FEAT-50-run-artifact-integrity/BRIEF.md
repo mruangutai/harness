@@ -57,7 +57,7 @@ the two fixes FEAT-45 shipped stay in force.
   the ruling instead of inferring it from three enforcement scripts.
 - REQ-08: The checkout binding of REQ-03 is ROUTE-COMPLETE across both governed write surfaces:
   a governed agent's SHELL write of a feature artifact aimed at the MAIN checkout — a redirect,
-  a `cp`, a `perl -pi`, any of the command shapes `bash-write-guard.sh` already extracts a write
+  a `cp`, a `perl -pi`, any of the command shapes `bash-write-guard.py` already extracts a write
   target from — is refused too, so the refusal on the tool route cannot be routed around by
   switching tools. The binding is the same selection the tool route uses, not a second copy of
   it. It is scoped to the CHECKOUT question and deliberately does not extend REQ-04.
@@ -81,7 +81,7 @@ Decisions that SUPPLY the mechanism this feature uses — none of these is an ob
 - DEC-122 and DEC-127 supply `validate-digest.py`'s `SubagentStop` hook and its fail-open-loudly
   discipline, which is the site of REQ-01 and REQ-02.
 - DEC-179 supplies `check-domain.py --resolve`, which resolved every lane in `plan.yaml`.
-- DEC-151 supplies `bash-write-guard.sh`, the governed Bash write route. REQ-08 NARROWS its
+- DEC-151 supplies `bash-write-guard.py`, the governed Bash write route. REQ-08 NARROWS its
   allow-continue and never widens it. That hook exists because an agent routed around the tool
   route, so binding one surface and leaving the other silent is a bypass by construction.
 
@@ -323,7 +323,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   command: `python3 .claude/skills/harness/bin/test-bash-write-guard.py` and
   `git show <review_sha>:.claude/skills/harness/bin/test-bash-write-guard.py | grep -q 'bash-feature-checkout-short'`
 - SC-19: SC-18's assertion can report red. The suite's own `bash-feature-checkout-red` case runs
-  a marker-free mutant copy of `bash-write-guard.sh` beside the original with the binding
+  a marker-free mutant copy of `bash-write-guard.py` beside the original with the binding
   removed and asserts the mutant ALLOWS the main-checkout write the real script refuses, its
   exit code being 0 or 2 with no python traceback on stderr.
   verify: automated        evidence: integration

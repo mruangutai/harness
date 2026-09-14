@@ -27,7 +27,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
 ## Requirements
 
 - REQ-01: Every `.yaml` read in `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`,
-  `check-domain.py` and `bash-write-guard.sh` gets its values from a real YAML parser, and no
+  `check-domain.py` and `bash-write-guard.py` gets its values from a real YAML parser, and no
   hand-rolled YAML key/value regex is left behind in those scripts.
 - REQ-02: A run entry whose `id:` or `squad:` line carries a trailing `#` comment is read correctly and
   its invariants are evaluated, instead of the run vanishing from `runs`.
@@ -93,7 +93,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   required: either one alone is also produced by a bootstrap-escape allow-all or a fail-closed
   block-all, and only a real parse of the manifest produces the pair.
   verify: automated        evidence: unit
-- SC-06: The same paired assertion holds for `bash-write-guard.sh`: a permitted `bash`-issued write is
+- SC-06: The same paired assertion holds for `bash-write-guard.py`: a permitted `bash`-issued write is
   allowed and a forbidden one is blocked, in the hook's own invocation context.
   verify: automated        evidence: unit
 - SC-07: `harness-init`'s step-1 HARD GATE carries a seventh prerequisite that checks the PyYAML import

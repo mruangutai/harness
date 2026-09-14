@@ -65,7 +65,7 @@
   unparseable input, which read exactly like a broken guard. Build hook payloads as FILES and pipe
   them in. When a probe contradicts a suite that just passed, suspect the probe first.
 
-- 2026-08-05 (commit phase): `bash-write-guard.sh` denies a shell redirect to ANY path outside the
+- 2026-08-05 (commit phase): `bash-write-guard.py` denies a shell redirect to ANY path outside the
   agent's domain, including a session scratchpad. That is correct and not a bug — the fix is to
   restructure the work so no file is written (pipe the tool's stdout straight into the consuming
   process), never to hunt for a writable location.

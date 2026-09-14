@@ -35,7 +35,7 @@ the plan's convention.
 
 **No.** Searched `.claude/skills/harness/bin/` for any existing bin/ auditor, argv-class sweep,
 or classification tool:
-- `bash-write-guard.sh` (`bash-write-guard.sh:1-42`) parses Bash *tool-call payloads* for
+- `bash-write-guard.py` (`bash-write-guard.py:1-42`) parses Bash *tool-call payloads* for
   in-place-editor/redirect patterns for domain enforcement — a different input class (agent
   commands, not this repo's own scripts) and a different question (write-target domain, not
   argv provenance).

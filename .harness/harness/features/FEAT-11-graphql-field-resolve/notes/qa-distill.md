@@ -49,7 +49,7 @@ new entries are additions covering gaps those two didn't reach, not replacements
 
 ## Harness defect noted, not distilled
 
-`review-harness-qa-c0.md` records a `bash-write-guard.sh` false-positive on `cp ... 2>/dev/null`
+`review-harness-qa-c0.md` records a `bash-write-guard.py` false-positive on `cp ... 2>/dev/null`
 (redirect target misread as a `cp` destination). That was already correctly routed as an
 `open_question` in that run's DIGEST, not into Expertise — a workaround entry here would outlive
 the fix. Not re-raised in this distillation; it belongs to whoever reads that run's DIGEST, not to

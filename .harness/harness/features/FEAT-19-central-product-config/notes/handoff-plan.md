@@ -12,7 +12,7 @@ task's ordering follows `depends_on` in `plan.yaml`.
 
 - Route resolution is verified, not asserted: `check-plan-routes.py` exits 0, 7/7 routed, 0
   violations — I ran it myself, independently of pm — `.harness/features/FEAT-19-central-product-config/plan.yaml` — verified-at 63b83c7
-- No task touches `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or
+- No task touches `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or
   `check-state.sh`, so DEC-174's carve-out binds nothing here; D-08 keeps `harness_boundary.py`
   out of every task's `files:` deliberately — plan.yaml `tasks[].files` — verified-at 63b83c7
 - T-02, T-03, T-07 are `main-session-direct` because their targets are ungranted, not because of

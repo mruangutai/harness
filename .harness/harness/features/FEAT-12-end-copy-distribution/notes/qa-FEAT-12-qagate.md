@@ -179,7 +179,7 @@ FEAT-12 dispatch) is:
 `f3452bf, 96d5d5c, 8782ee1, 275de45, 5042f40, e987c6d, 9e49ba7, ff75afb, 65d40cb, 8b53ebd, d543809`
 
 Excluded deliberately: `6c89fff`, a merge of `origin/main` into the FEAT-12 branch that carries
-unrelated `bash-write-guard.sh`/`test-bash-write-guard.py`/`test-harness-yaml.py` changes from
+unrelated `bash-write-guard.py`/`test-bash-write-guard.py`/`test-harness-yaml.py` changes from
 other work (visible in the full-range diff but authored elsewhere) — including it would have
 misattributed those files to FEAT-12. Their absence from FEAT-12's own commit set is itself the
 check that the wider range's noise was correctly excluded.

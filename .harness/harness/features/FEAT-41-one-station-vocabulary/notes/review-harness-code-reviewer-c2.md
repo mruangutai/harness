@@ -404,13 +404,13 @@ gap since the protocol requires a written answer per gated record.
 
 Built an end-to-end `$TMPDIR` probe (not a unit test) with a fixture whose only domain grant is
 `harness-frontend-dev: { path: frontend/**, upsert: true }` — nothing under
-`.harness/harness/features/FEAT-VICTIM/` — and fired the *actual* `bash-write-guard.sh` (the
+`.harness/harness/features/FEAT-VICTIM/` — and fired the *actual* `bash-write-guard.py` (the
 PreToolUse Bash hook) with the exact payload it would receive for:
 ```
 python3 .../plan-merge.py set-feature-station --file <victim's plan.yaml> --station done
 ```
-**`bash-write-guard.sh` returned exit 0, no stderr — did not see it as a write at all.** Read its
-detection logic directly (`bash-write-guard.sh:407-524`): the `findings` list is only ever
+**`bash-write-guard.py` returned exit 0, no stderr — did not see it as a write at all.** Read its
+detection logic directly (`bash-write-guard.py:407-524`): the `findings` list is only ever
 populated by `sed -i`/`perl -i`, `tee`, `mv`/`cp`, `rm`, `sponge`, `awk -i`, or a bare shell
 redirect — invoking an arbitrary program that performs its own internal file writes (like
 `plan-merge.py`) matches none of these, so `if not findings: sys.exit(0)` (`:644`) fires before
@@ -443,7 +443,7 @@ final disposition).
 | id | severity | file:line | BLOCKS |
 |---|---|---|---|
 | NEW-1 | **high** | `BUG-1030-stale-anchor-write-hazard/feature.json` (deleted in `a8a8944`) | **yes** |
-| carried-security | **high** | `bash-write-guard.sh:407-524,644`; `plan-merge.py` `set-feature-station`/`set-task-station` | **yes** |
+| carried-security | **high** | `bash-write-guard.py:407-524,644`; `plan-merge.py` `set-feature-station`/`set-task-station` | **yes** |
 | MED-1 | med | `check-domain.py:1037,1045` (`RE_STATE_YAML`, `RE_CLAUDE_MD`) | no |
 | H-01-b | med | `check-domain.py:1487`; `test-check-domain.py:2684` | no |
 | `_t09_case_fold` reason | med | `test-check-domain.py:2782` | no |
@@ -486,7 +486,7 @@ DIGEST:
   findings: 10
   must_fix:
     - "BUG-1030-stale-anchor-write-hazard's non-terminal feature.json status (Review) was deleted by commit a8a8944 with no plan.yaml, no issue, no D-NN — its station is now recorded in zero files, inconsistent with BUG-1071/#1079's deliberate preservation of the identical shape"
-    - "plan-merge.py's set-feature-station/set-task-station verbs are reachable via an ordinary Bash call with no caller-identity or per-feature domain binding at any layer (check-domain.py never sees Bash; bash-write-guard.sh's pattern list does not cover program invocations that write internally) — reproduced live: an unrelated agent's fixture flipped a victim feature's station to done, exit 0, plan.yaml genuinely rewritten"
+    - "plan-merge.py's set-feature-station/set-task-station verbs are reachable via an ordinary Bash call with no caller-identity or per-feature domain binding at any layer (check-domain.py never sees Bash; bash-write-guard.py's pattern list does not cover program invocations that write internally) — reproduced live: an unrelated agent's fixture flipped a victim feature's station to done, exit 0, plan.yaml genuinely rewritten"
   spec_violations:
     - { kind: omission, path: "BUG-1030-stale-anchor-write-hazard/feature.json", ref: "REQ-06 (station recorded in exactly one file — now recorded in zero)" }
     - { kind: omission, path: "plan-merge.py (set-feature-station, set-task-station)", ref: "REQ-05 (no decision authorizes the identity gap; D-07 covers sign-approval only)" }

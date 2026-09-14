@@ -579,7 +579,7 @@ def run_bug1106_shared_pattern_consistency():
     """The digest.md/state.yaml patterns are respelled, not shared, between
     check-domain.py (whose shape-phase import of harness_boundary must stay ABSORBING —
     see the comment beside RE_STATE_YAML there) and harness_boundary.py (which
-    bash-write-guard.sh imports safely). Assert the two copies are byte-identical so this
+    bash-write-guard.py imports safely). Assert the two copies are byte-identical so this
     respelling cannot silently drift (issue #1106)."""
     with open(HOOK, encoding="utf-8") as f:
         cd_source = f.read()

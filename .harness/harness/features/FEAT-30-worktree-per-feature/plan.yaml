@@ -22,7 +22,7 @@ approval:
       date: 2026-08-20
       subject: REQ-04's HEAD refusal binds all sixteen governed agents, harness-dev-ops included
       ruling: >-
-        The HEAD-move matcher is evaluated BEFORE bash-write-guard.sh's harness-dev-ops early
+        The HEAD-move matcher is evaluated BEFORE bash-write-guard.py's harness-dev-ops early
         return, so the refusal reaches that persona too. The early return survives unchanged for
         every WRITE.
       reason: >-
@@ -88,7 +88,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: named in DEC-174 am.4 as a registered PreToolUse gate script
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: named in DEC-174 am.4 as a registered PreToolUse gate script
     - surface: .claude/skills/harness/bin/test-check-domain.py
@@ -189,13 +189,13 @@ decisions:
     dec: none
   - id: D-07
     choice: >-
-      The worktree CREATION door in bash-write-guard.sh stays fleet-unaware and unchanged. A
+      The worktree CREATION door in bash-write-guard.py stays fleet-unaware and unchanged. A
       served-repo worktree creation issued over Bash stays refused, and the sanctioned creation path
       is feature-worktree.py, whose single dest_for() makes an illegal destination unrepresentable.
     because: >-
       measured at eeabc59, git worktree add against workspace_root/<repo>/.claude/worktrees/<repo>/
       FEAT-30 exits 2 for harness-backend-dev and for harness-orchestrator, because the legal home is
-      computed as realpath(CLAUDE_PROJECT_DIR)/.claude/worktrees at bash-write-guard.sh:464 with no
+      computed as realpath(CLAUDE_PROJECT_DIR)/.claude/worktrees at bash-write-guard.py:464 with no
       fleet awareness. That is not REQ-01's served-repo half being blocked: creation goes through
       feature-worktree.py, which forks git from inside Python, so the Bash parser sees no git token
       and the door never fires. Making the door fleet-aware would widen a governed write path to
@@ -734,7 +734,7 @@ tasks:
       not merely the two-level shape start working. Replacing rather than widening is the failure
       mode here, and it is the mirror image of the do-not-add-a-segment rule above.
 
-      DO NOT TOUCH bash-write-guard.sh line 545. That line matches a ^\.claude/worktrees/ PREFIX
+      DO NOT TOUCH bash-write-guard.py line 545. That line matches a ^\.claude/worktrees/ PREFIX
       only - DEC-153's blanket allow for governed agents on the Bash route. It carries no segment
       count, so it is already depth-agnostic and already correct under the two-level layout.
       Unifying it into checkout_relative would touch a signed carve-out for no behavioural gain.
@@ -871,27 +871,27 @@ tasks:
     traces: [REQ-04, REQ-03]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 - bash-write-guard.sh is a registered PreToolUse gate script and its test file is inside the carve-out with it
+    execution_reason: DEC-174 am.4 - bash-write-guard.py is a registered PreToolUse gate script and its test file is inside the carve-out with it
     depends_on: [T-04]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
       set -u
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
-      git show eeabc59:.claude/skills/harness/bin/bash-write-guard.sh > "$T/bin/bash-write-guard.sh" || exit 1
-      chmod +x "$T/bin/bash-write-guard.sh"
+      git show eeabc59:.claude/skills/harness/bin/bash-write-guard.py > "$T/bin/bash-write-guard.py" || exit 1
+      chmod +x "$T/bin/bash-write-guard.py"
       rm -rf "$T/bin/__pycache__"
-      BASH_WRITE_GUARD_BIN="$T/bin/bash-write-guard.sh" \
+      BASH_WRITE_GUARD_BIN="$T/bin/bash-write-guard.py" \
         python3 .claude/skills/harness/bin/test-bash-write-guard.py >/dev/null 2>&1 \
         && { echo "RED PROOF FAILED: the HEAD-move cases pass against the eeabc59 guard"; exit 1; }
       python3 .claude/skills/harness/bin/test-bash-write-guard.py || exit 1
       python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
       exit 0
     intent: |
-      Add one rule to .claude/skills/harness/bin/bash-write-guard.sh and its cases to
+      Add one rule to .claude/skills/harness/bin/bash-write-guard.py and its cases to
       test-bash-write-guard.py. No other file changes.
 
       THE RULE. When the payload's agent_type matches the governed-agent prefix harness-, a Bash
@@ -1253,7 +1253,7 @@ tasks:
          ABSOLUTE PATH for every file operation, and by git's directory option - git -C and the
          worktree path - for every git command. It never uses cd, which does not persist between
          Bash calls in any case. It never moves HEAD: checking out a branch, switching, a hard reset,
-         a rebase and a merge are all refused for a governed agent by bash-write-guard.sh, and the
+         a rebase and a merge are all refused for a governed agent by bash-write-guard.py, and the
          refusal names the alternative. State that the refusal exists, so the orchestrator does not
          read a denial as a malfunction.
 
@@ -1267,7 +1267,7 @@ tasks:
          session for the same reason. This sentence discharges must_fix M-1: git worktree remove
          succeeds at exit 0 from inside the tree it removes, so guidance that omits who runs it and
          from where tells the orchestrator to delete its own cwd, which check-domain.py:428-431,
-         bash-write-guard.sh:135-137 and check-state.sh:1082-1085 each already refuse to say and
+         bash-write-guard.py:135-137 and check-state.sh:1082-1085 each already refuse to say and
          T-05 refuses on the Bash route. The orchestrator's part of a terminal state is to finish
          landing its artifacts and report; removal is not its act. State that remove refuses on a dirty tree, and refuses until every
          artifact under the feature's directory is present with identical content on the default

@@ -95,10 +95,10 @@ case-name set from each run:
 
 ## Finding closure, verified directly against source (not inferred from the suite alone)
 
-1. **[HIGH, security] shared-outcome checkout binding** — CLOSED. `bash-write-guard.sh:785` now
+1. **[HIGH, security] shared-outcome checkout binding** — CLOSED. `bash-write-guard.py:785` now
    calls `feature_checkout_guard(rel, ap)` inside the `outcome == "shared"` branch (verified by
-   direct `git diff dca2d3d..HEAD -- bash-write-guard.sh`: the sole change is this one added line).
-   `grep -n feature_checkout_guard bash-write-guard.sh` shows exactly two call sites (781 feature-
+   direct `git diff dca2d3d..HEAD -- bash-write-guard.py`: the sole change is this one added line).
+   `grep -n feature_checkout_guard bash-write-guard.py` shows exactly two call sites (781 feature-
    scoped, 785 shared), matching what `bash-feature-checkout-red`'s precondition requires.
 2. **[HIGH, code quality] `code_grade` FAIL on two aggregators** — CLOSED. Ran
    `code-grade.py --json` directly (bar is 3): `run_feat50_checkout_binding`

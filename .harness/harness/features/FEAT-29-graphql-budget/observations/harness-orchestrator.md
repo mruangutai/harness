@@ -14,7 +14,7 @@
   wrote the note in the same act as the status) and I still got the filename wrong; the pre-commit
   gate is what caught it. Ending phase → filename, always.
 
-- 2026-08-19: `bash-write-guard.sh` blocks `cp` into the session scratchpad
+- 2026-08-19: `bash-write-guard.py` blocks `cp` into the session scratchpad
   (`/private/tmp/claude-501/.../scratchpad`) for `harness-orchestrator` — "targets probe.yaml,
   outside your domain". So the standard "copy the file and test the edit on the copy" move is not
   available. The substitute that worked: read the real file into Python, apply the substitution

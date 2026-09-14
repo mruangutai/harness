@@ -33,7 +33,7 @@ info-level, pre-existing.
 
 ### 3. Data exposure — CLEAN
 Grepped the full changed surface (`gh-sync.py`, `merge-gate.py`, `feature_schema.py`,
-`check-state.sh`, `post-merge-sweep.py`, `bash-write-guard.sh`, `check-domain.py`,
+`check-state.sh`, `post-merge-sweep.py`, `bash-write-guard.py`, `check-domain.py`,
 `check-fixture-secrets.sh`) for token/credential/secret-shaped strings. Nothing writes a `gh`
 auth token, a PR body, or an issue payload into `feature.json`, a log, a note, or a receipt.
 `record_build_entry`/`save_recorded` write only the four literal enum strings

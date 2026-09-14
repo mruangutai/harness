@@ -62,7 +62,7 @@ _bootstrap_sys.argv = [
 import sys, os, re, json, fnmatch
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
-# It used to be defined in this heredoc, which is why bash-write-guard.sh could not
+# It used to be defined in this heredoc, which is why bash-write-guard.py could not
 # consult it and enforced a second, weaker version of the same question — the split
 # issue #261 reports. A heredoc cannot be imported. Moved verbatim, no behaviour
 # changed, both suites unedited.
@@ -909,7 +909,7 @@ def domain_check():
         sys.exit(2)
 
     if _verdict["outcome"] == "not_a_domain_question":
-        # bash-write-guard.sh already said so ("outside repo — not this hook's
+        # bash-write-guard.py already said so ("outside repo — not this hook's
         # problem"), and this hook did not: a scratch script at /tmp/x.py was legal via
         # Bash and blocked via Write, so an agent learned to route around a hook whose
         # own message said not to. /tmp, /var/folders and unrelated checkouts keep
@@ -1140,7 +1140,7 @@ VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 _I = re.IGNORECASE
 RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$", _I)
 # NOT imported from harness_boundary.RE_STATE_YAML (issue #1106), even though the pattern
-# text is identical there for bash-write-guard.sh's use: the shape phase's import of
+# text is identical there for bash-write-guard.py's use: the shape phase's import of
 # harness_boundary must stay ABSORBING (comment above, near the top of this file) — a
 # fail-closed import here would block the MAIN SESSION, the only tier that can repair a
 # broken harness_boundary.py. test-check-domain.py asserts the two pattern strings match
@@ -1270,7 +1270,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
     # content is reconstructed against the on-disk prior before this branch runs. A
     # correction appends a complete contract block because validate-digest.py reads the
     # last VERDICT; a trailing field alone sits outside that block and repairs nothing.
-    # Bash digest writes are refused outright by bash-write-guard.sh; POST is too late.
+    # Bash digest writes are refused outright by bash-write-guard.py; POST is too late.
     if RE_RUN_DIGEST.match(rel) and absolute_path is not None:
         prior = None
         try:

@@ -14,7 +14,7 @@
   not by inference. Any receipt asserting a corpus size must name the checkout AND the sha, or a
   re-run looks like a failed receipt.
 
-- 2026-08-21: `bash-write-guard.sh` parses the UNEXPANDED text of a Bash command, so a `>` anywhere
+- 2026-08-21: `bash-write-guard.py` parses the UNEXPANDED text of a Bash command, so a `>` anywhere
   in a python3 heredoc is read as a shell redirect. `if len(hl) > 60:` was refused with
   "`redirect` targets 60:, outside your domain". Rewriting as `if len(hl) not in range(61)` ran
   fine. The guard is not wrong to be conservative, but it means analysis scripts passed through

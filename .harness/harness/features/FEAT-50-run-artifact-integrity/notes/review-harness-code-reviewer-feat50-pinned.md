@@ -5,7 +5,7 @@ Reviewed: `9f2a0702bda6de929d42506f5aced2496669a2dc..dca2d3dabc5c1a3c3d7dab19f6d
 ## Changed files (37; `git diff --stat`)
 
 Code/behaviour (12): `.claude/skills/harness-team/SKILL.md`,
-`.claude/skills/harness/bin/{bash-write-guard.sh,check-domain.py,harness_boundary.py,
+`.claude/skills/harness/bin/{bash-write-guard.py,check-domain.py,harness_boundary.py,
 inflight_registry.py,test-bash-write-guard.py,test-check-domain.py,test-harness-boundary.py,
 test-validate-digest.py,validate-digest.py}`,
 `.harness/harness/docs/{DECISIONS.md,DECISIONS-INDEX.md}`.
@@ -31,8 +31,8 @@ in each criterion's own `command:` (never the full suites).
 | SC-07 | MET | `check-domain.py --resolve check-domain.py` → `harness-backend-dev` present; pre-existing worktree-strip cases untouched by diff. |
 | REQ-05, SC-08/SC-09 | MET | `check-state.sh` and `run-unit-tests.sh` absent from the diff (untouched). `def case_inv32` present; `test-run-unit-tests-kinds.py` ran green (23/23). |
 | REQ-06 | MET | All 5 red cases (empty-red, feature-checkout-red, digest-clobber-red, bash-feature-checkout-red, dec156-worktree-red) construct their mutant by deleting exactly the discrimination under test (verified each diff region), not an unrelated edit. |
-| REQ-07, SC-14 | MET | `gen-decisions-index.py --stdout` diffed byte-identical against `DECISIONS-INDEX.md`; `grep -c` on the DEC-208 heading returns exactly 1. All 5 anchors DEC-208 cites (`validate-digest.py:1602-1614`, `check-domain.py:1139-1151`, `bash-write-guard.sh:711-722`, `check-domain.py:727-741`, `validate-digest.py:1413-1424`) spot-checked and match verbatim. |
-| REQ-08, SC-18 | MET | `bash-write-guard.sh:699-726` reuses the same `harness_boundary.worktree_for_feature`/`checkout_relative`/`AmbiguousWorktree` primitives check-domain.py uses (see Stage-2 note on the wrapper duplication). DEC-153 `.claude/worktrees/` continue and the `..` product-workspace continue are unmoved by the diff. bash-feature-checkout-{main,inside,absent,short,red} all ran green. |
+| REQ-07, SC-14 | MET | `gen-decisions-index.py --stdout` diffed byte-identical against `DECISIONS-INDEX.md`; `grep -c` on the DEC-208 heading returns exactly 1. All 5 anchors DEC-208 cites (`validate-digest.py:1602-1614`, `check-domain.py:1139-1151`, `bash-write-guard.py:711-722`, `check-domain.py:727-741`, `validate-digest.py:1413-1424`) spot-checked and match verbatim. |
+| REQ-08, SC-18 | MET | `bash-write-guard.py:699-726` reuses the same `harness_boundary.worktree_for_feature`/`checkout_relative`/`AmbiguousWorktree` primitives check-domain.py uses (see Stage-2 note on the wrapper duplication). DEC-153 `.claude/worktrees/` continue and the `..` product-workspace continue are unmoved by the diff. bash-feature-checkout-{main,inside,absent,short,red} all ran green. |
 | SC-19 | MET | bash-feature-checkout-red deletes the one-line `feature_checkout_guard(rel, ap)` call; real=2, mutant=0. Ran green. |
 | REQ-09, SC-20 | MET | `validate-digest.py:1413-1424` resolves via `inflight_registry.feature_root(owner_root, harness_feature)` when the key is present, else falls back to `owner_root` unchanged. dec156-worktree-{narrative,valid,nofeature} fixtures place root and checkout in *different* directories (unlike `_dec156_case`) and ran green. |
 | SC-21 | MET | dec156-worktree-red reverts to the bare `_root_or_none()` join; real=2, mutant=0. Ran green. |
@@ -75,7 +75,7 @@ disclosed Write-only residual. No unrelated documentation or enforcement change 
    would only fragment one coherent equivalence-class table across several `tempfile.mkdtemp()`
    fixtures for no readability gain.
 4. **[MED] Untested `AmbiguousWorktree` branch sits beside a blanket fail-open absorber.**
-   `check-domain.py:733-736` / `bash-write-guard.sh:713-716` both catch
+   `check-domain.py:733-736` / `bash-write-guard.py:713-716` both catch
    `harness_boundary.AmbiguousWorktree` and deny (verified live: a hand-built two-worktree
    ambiguous fixture against `check-domain.py` today correctly exits 2). But neither
    `test-check-domain.py` nor `test-bash-write-guard.py` constructs that fixture — only
@@ -89,7 +89,7 @@ disclosed Write-only residual. No unrelated documentation or enforcement change 
    in the shipped suite would go red.
 5. **[MED] `feature_checkout_guard` is duplicated near-verbatim across two files instead of using
    the shared-verdict pattern `harness_boundary.classify` already established.**
-   `check-domain.py:715-742` and `bash-write-guard.sh:699-726` re-implement the same
+   `check-domain.py:715-742` and `bash-write-guard.py:699-726` re-implement the same
    worktree/ambiguity/checkout-comparison decision independently rather than exposing it from
    `harness_boundary.py` as a returned verdict (the way `classify()` does, with each hook only
    supplying its own wording) — the exact drift risk `harness_boundary.py`'s own module docstring

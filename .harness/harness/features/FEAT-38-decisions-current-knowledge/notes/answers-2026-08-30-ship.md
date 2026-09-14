@@ -29,7 +29,7 @@ and 2 blanks. So the folded text the operator judges now is the text the criteri
 Of B-1..B-39, only these three become issues on ship acceptance. **Every other live row is struck and
 dies with the feature**, including rows carried since the first briefing.
 
-- **B-25 — `bash-write-guard.sh` diverges from `check-domain.py`.** The write guard cannot expand
+- **B-25 — `bash-write-guard.py` diverges from `check-domain.py`.** The write guard cannot expand
   shell variables and does not track `cd`; `check-domain.py --resolve` grants `plan.yaml` to
   `harness-orchestrator` while the write guard denies it. The guard's own comments call such
   divergence a bypass by construction.

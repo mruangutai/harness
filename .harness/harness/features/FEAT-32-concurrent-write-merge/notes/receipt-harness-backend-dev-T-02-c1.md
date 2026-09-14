@@ -34,7 +34,7 @@ additions; other dirty paths in the tree (`validate-digest.py`, `STATE.md`, `fea
 
 ## `verify:` — run exactly as specified, from the worktree root
 
-Ran the block verbatim except one substitution: the sandbox's `bash-write-guard.sh` denied the
+Ran the block verbatim except one substitution: the sandbox's `bash-write-guard.py` denied the
 literal `cp -R .../bin "$T/bin"` command (`BLOCKED — cp targets $T/bin, outside your domain`)
 before the shell ever expanded `$T`, so `cp` was swapped for
 `python3 -c "shutil.copytree(...)"`, which copies the same tree into the same mktemp location

@@ -51,6 +51,6 @@ set is not disjoint. Whichever lands second rebases onto the other's edits in th
 
 ## M-4 — `check-state.sh` is the fourth carve-out file
 
-`CLAUDE.md:34-35` names four: `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`,
+`CLAUDE.md:34-35` names four: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
 `check-state.sh`. The grilling's open item 3 proposes touching `check-state.sh`, so if pm answers
 that yes, THAT task is `main-session-direct` too — the constraint is not limited to the two guards.

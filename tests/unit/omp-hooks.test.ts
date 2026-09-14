@@ -128,8 +128,8 @@ describe("gatePath", () => {
   // THE PAIRED HALF. Without it the two cases above are satisfied by a gatePath that
   // returns a constant: this one proves the script name still reaches the result.
   test("the script name still selects the file", () => {
-    expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.py"));
-    expect(gatePath("bash-write-guard.sh").endsWith("bash-write-guard.sh")).toBe(true);
+    expect(gatePath("bash-write-guard.py")).not.toBe(gatePath("check-domain.py"));
+    expect(gatePath("bash-write-guard.py").endsWith("bash-write-guard.py")).toBe(true);
   });
 });
 
@@ -283,8 +283,8 @@ describe("OMP task lifecycle adapter", () => {
     const scripts = calls.map((call) => call.script);
     expect(scripts.indexOf("gh-close-gate.sh")).toBeGreaterThan(-1);
     expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.sh"));
-    expect(scripts.indexOf("branch-create-gate.sh")).toBeLessThan(scripts.indexOf("bash-write-guard.sh"));
-    expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("bash-write-guard.sh"));
+    expect(scripts.indexOf("branch-create-gate.sh")).toBeLessThan(scripts.indexOf("bash-write-guard.py"));
+    expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("bash-write-guard.py"));
     expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.sh"));
 
   });

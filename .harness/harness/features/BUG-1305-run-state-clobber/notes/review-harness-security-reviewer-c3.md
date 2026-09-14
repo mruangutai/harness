@@ -69,7 +69,7 @@ widened by cycle-13. `outside-delta`, recorded and not developed further per dis
 ## 4. SEC-01 residual (#1376) — composition only, not re-litigated
 
 **Unchanged.** SEC-01 is a run-directory `rm`/`mv` residual, which is Bash-tool surface
-governed by `bash-write-guard.sh` — a file this diff does not touch (constraints confirm no
+governed by `bash-write-guard.py` — a file this diff does not touch (constraints confirm no
 logic change at that seam). The cycle-13 change is scoped entirely to the `_tool == "Edit"`
 PRE branch inside `check-domain.py`'s reconstruction path; `rm`/`mv` never reach that branch
 (different `tool_name`, different guard file). No shared code path, no shared state, no
@@ -99,7 +99,7 @@ DIGEST:
     - { boundary: "omp Edit payload (file_path only, no old_string/new_string) vs check-domain.py PRE gate", stride: "T", mitigated: true }
     - { boundary: "Edit-reconstruction-None fail-closed message content (stderr, agent-visible)", stride: "I", mitigated: true }
     - { boundary: "sibling shape classes (feature.json/STATE.md/CLAUDE.md) via Edit at PRE", stride: "T", mitigated: false }
-    - { boundary: "SEC-01 run-directory rm/mv (bash-write-guard.sh) composition with this diff", stride: "T", mitigated: true }
+    - { boundary: "SEC-01 run-directory rm/mv (bash-write-guard.py) composition with this diff", stride: "T", mitigated: true }
   open_questions: []
   files_touched: []
   expertise_update: []

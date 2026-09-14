@@ -73,7 +73,7 @@ Two further gaps, both matching the requested defect class:
   a commit message — never as a script or receipt under `notes/`.** Nothing a reviewer
   can re-run; the "verify" for these tasks (unchanged test file + a regex-count grep) is
   the durable evidence, and neither one is the byte-comparison PLAN.md text demands.
-- **`bash-write-guard.sh`'s bootstrap escape (`require_or_bootstrap`, wired at line 78)
+- **`bash-write-guard.py`'s bootstrap escape (`require_or_bootstrap`, wired at line 78)
   has zero test coverage.** `test-bash-write-guard.py` never hides PyYAML for this hook —
   every case fires with the real interpreter. The exact regression this feature already
   shipped once (both hooks discarding `require_or_bootstrap`'s return value, commit
@@ -120,7 +120,7 @@ this gap is **closed at the integration level**: `test-check-domain.py:204-266` 
 the real hook binary as a subprocess with `CLAUDE_CODE_SESSION_ID` set (and
 `CLAUDE_CODE_BRIDGE_SESSION_ID` explicitly popped), with an explanatory comment naming
 exactly why the module-level test doesn't suffice. This is disclosed self-correction,
-not a live gap, **for `check-domain.py`**. It is *not* closed for `bash-write-guard.sh`
+not a live gap, **for `check-domain.py`**. It is *not* closed for `bash-write-guard.py`
 (see BLUF, third bullet) — same mechanism, same production-dead entry risk, no
 subprocess-level test at all.
 
@@ -211,7 +211,7 @@ Neither is discharged in two separate setups. Adequate.
   for `check-state.sh`'s `phase:`/`state.yaml` block/`github:` block.**
 - Expected: regression coverage for `upgrade-config.py`. **Entirely missing** (T-04).
 - Expected: symmetric bootstrap-escape coverage for both hooks named in REQ-04/REQ-05.
-  **Missing for `bash-write-guard.sh`.**
+  **Missing for `bash-write-guard.py`.**
 - Expected: a reproducible byte-equivalence artifact for T-13/T-15. **Missing**, only
   narrative.
 
@@ -232,7 +232,7 @@ Neither is discharged in two separate setups. Adequate.
    those signals depend on the unconverted fields or exercise a quoted value.
 2. **[high]** T-04's `test-upgrade-config.py` and its `SCRIPTS` registration were never
    created. `upgrade-config.py`'s conversion ships with zero regression tests.
-3. **[med]** `bash-write-guard.sh`'s bootstrap-escape path (`require_or_bootstrap`) has
+3. **[med]** `bash-write-guard.py`'s bootstrap-escape path (`require_or_bootstrap`) has
    no test coverage — the exact class of bug (`0775862`) that already shipped once for
    both hooks is now caught only for `check-domain.py`.
 4. **[med]** T-13/T-15's byte-level equivalence proof is not a durable, reviewable
@@ -252,7 +252,7 @@ ever written against them in either order — they were simply not touched.
 VERDICT: FAIL
 
 DIGEST:
-  headline: T-07's check-state.sh conversion is 70% incomplete and I reproduced a live fail-open from it (quoted `status: "complete"` silently skips INV-11) — issue #11's own defect class, alive in the script that closed issue #11; plus a missing T-04 test file and an untested bash-write-guard.sh bootstrap escape.
+  headline: T-07's check-state.sh conversion is 70% incomplete and I reproduced a live fail-open from it (quoted `status: "complete"` silently skips INV-11) — issue #11's own defect class, alive in the script that closed issue #11; plus a missing T-04 test file and an untested bash-write-guard.py bootstrap escape.
   suite: pass
   failures: 0
   matrix_ok: false
@@ -262,7 +262,7 @@ DIGEST:
   coverage_gaps:
     - "check-state.sh: phase:/state.yaml status:-cost:-host:/feature.yaml github: block still raw regex, never routed through harness_yaml"
     - "upgrade-config.py: no test file exists despite T-04 mandating one"
-    - "bash-write-guard.sh: bootstrap-escape (require_or_bootstrap) path never exercised by any test"
+    - "bash-write-guard.py: bootstrap-escape (require_or_bootstrap) path never exercised by any test"
     - "T-13/T-15: byte-level equivalence proof exists only as log/commit-message narrative, not a durable artifact"
   sc_evidence:
     - { id: SC-01, test: ".claude/skills/harness/bin/test-check-state.py:145 (case_e)" }

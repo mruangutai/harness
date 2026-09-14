@@ -101,7 +101,7 @@ byte-unchanged by this fold-in. Their receipts, including the drift detector pro
 ## The commands, verbatim
 
 The fixture, the five mutants and the ladder harness, exactly as run. No file was written — the
-suite output is carried in a shell variable, because `bash-write-guard.sh` denies `harness-pm` a
+suite output is carried in a shell variable, because `bash-write-guard.py` denies `harness-pm` a
 redirect outside its domain and a redirect-based probe was blocked on this session before being
 rewritten to this shape.
 

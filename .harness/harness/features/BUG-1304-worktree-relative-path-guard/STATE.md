@@ -20,12 +20,12 @@ It carries thirteen proposed backlog rows B-1..B-13; ANYTHING NOT LISTED THERE D
 
 VALIDATE CYCLE 1 — both FAIL, three gating findings, all closed. Every premise verified at source
 before it was routed; a finding resting on a false premise buys a cycle for nothing.
-- F-01 (HIGH, REQ-06). `bash-write-guard.sh` routed all three claim refusals through `deny()`, which
+- F-01 (HIGH, REQ-06). `bash-write-guard.py` routed all three claim refusals through `deny()`, which
   appends "File changes go through the Write tool" — advice naming a route that refuses the identical
   destination with identical text, where REQ-06 requires the control-plane expertise destination get
   the sanctioned CLI and nothing else. FOUND BY THE UI REVIEWER, which scoped itself out of
   rendered-UI review and then audited the refusal strings as the operator interface. The code
-  reviewer's own lens could not see it. Closed by `deny_bare()` (`bash-write-guard.sh:655`) at all
+  reviewer's own lens could not see it. Closed by `deny_bare()` (`bash-write-guard.py:655`) at all
   three sites; both routes' stderr now byte-identical modulo prefix, verified by fixture execution.
 - F-02 (HIGH x4, mechanical). `code-grade.py` FAILed on four high records. Closed by splitting
   `claim_worktrees` and three test mega-functions; re-derived at this tier, exit 0, ZERO high.

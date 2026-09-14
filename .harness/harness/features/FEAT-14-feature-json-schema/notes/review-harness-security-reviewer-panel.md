@@ -70,7 +70,7 @@ and says nothing about atomicity. The plan carried the property forward for one 
 it for the other in the same breath — that asymmetry, not just the code, is worth fixing at the
 plan level so it isn't dropped again.
 
-**Not a DEC-174 carve-out file** — `gh-sync.py` is not `check-domain.py`/`bash-write-guard.sh`/
+**Not a DEC-174 carve-out file** — `gh-sync.py` is not `check-domain.py`/`bash-write-guard.py`/
 `validate-digest.py`/`check-state.sh`, so the remedy is an ordinary fix cycle, not the main
 session's. Minimum fix: mirror `write_factory`'s pattern exactly (`tempfile.mkstemp(dir=dirpath)` →
 write → `fsync` → `os.replace`).
@@ -159,7 +159,7 @@ unconfirmed.
   of), and no live corpus file was touched.
 - `git status --porcelain` before and after the probe: identical (two pre-existing untracked notes
   files from the pm/uat roles, unrelated to me).
-- No DEC-174 carve-out file (`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`,
+- No DEC-174 carve-out file (`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
   `check-state.sh`) was edited — I read `check-state.sh` and `check-domain.py` only, to confirm
   blast radius and gate coverage.
 - No `git worktree` was needed — the probe never touched a tracked file.

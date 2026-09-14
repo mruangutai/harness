@@ -58,7 +58,7 @@ decisions:
       set over the live corpus is identical before and after.
       DEC-174's own list settles the rest, and it is cited by its anchor text rather than
       paraphrased: the paragraph in .harness/harness/docs/DECISIONS.md whose first words are "The
-      enforcement layer, enumerated:" names check-domain.py, bash-write-guard.sh, validate-digest.py,
+      enforcement layer, enumerated:" names check-domain.py, bash-write-guard.py, validate-digest.py,
       check-state.sh, check-plan-routes.py, dispatch-guard.sh, and the test file of each. NONE of the
       five surfaces this plan now touches appears in it - harness_yaml.py (T-03), factory_claim.py
       and gh-sync.py (T-06), and the two test trees, neither of which holds the test file of a gate

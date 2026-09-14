@@ -23,7 +23,7 @@ against what each one actually needs:
   `branch-create-gate.sh`, `gh-close-gate.sh` (per T-14/T-15 intent, not independently
   re-run but consistent with the QA gate's parity re-runs).
 - Fail-OPEN by design, all pre-existing and cited (DEC-101 or the hook's own contract), none
-  newly introduced: `check-domain.py`/`bash-write-guard.sh`'s `_root()` uses `strict=False`
+  newly introduced: `check-domain.py`/`bash-write-guard.py`'s `_root()` uses `strict=False`
   deliberately to preserve DEC-101's "no manifest → enforcement OFF" carve-out (`check-domain.py
   :127-154`); `dispatch-guard.sh` fails open on every branch **except** the missing
   `HARNESS-FEATURE` line, which is the one exit-2 branch — confirmed by direct read

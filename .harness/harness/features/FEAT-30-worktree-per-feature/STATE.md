@@ -15,7 +15,7 @@
 
 **VERDICT: FAIL — do not ship.** One high, verified by me independently, INTRODUCED BY THIS DIFF.
 
-**F-1 (high, gates, must_fix).** `bash-write-guard.sh:617-618` `if not findings: sys.exit(0)` runs
+**F-1 (high, gates, must_fix).** `bash-write-guard.py:617-618` `if not findings: sys.exit(0)` runs
 BEFORE the reviewer read-only denial (`:628`) and the domain walk (`:640+`). `python3
 .../expertise-merge.py apply --file <any path>` matches no write pattern, so `findings` is empty and
 the guard exits 0. `cmd_apply` validates neither caller nor `--file`. T-06 built the tool; **T-07, in
@@ -88,7 +88,7 @@ is exact: 10 FAILs, all new refuse cases; T-04's counts hold; D-09's cost is ass
   MOVED B-1 rather than fixing it. Why nobody caught it: none of the five test files this diff touches
   is in `UNIT_SCRIPTS`, so the feature exercised the unit leg zero times. Fix the consistency check first.
 - **Q6.** `SPEC.md:2239` says per-team serialization suffices "because the teams are operating on
-  different checkouts", while the carve-out at `bash-write-guard.sh:687` blanket-allows any governed
+  different checkouts", while the carve-out at `bash-write-guard.py:687` blanket-allows any governed
   agent to write into any worktree on the Bash route. DEC-143 and DEC-153 answer differently and each
   route implements one answer. Intended? Inside #626's scope?
 - **Q7.** Is there any *running* post-run audit of HEAD position, versus the one-shot manual DEC-153

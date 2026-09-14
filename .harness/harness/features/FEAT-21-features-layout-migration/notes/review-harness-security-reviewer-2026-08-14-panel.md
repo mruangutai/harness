@@ -84,14 +84,14 @@ diff before merge (QA's precommit review independently flagged the same stale-pa
 lineage/integrity check (hash, required-approval-gate, distillation-marker) exists to catch a
 *behavioral* edit riding the same route, only diff review.
 
-**5. `branch-create-gate.sh:77-78` and `bash-write-guard.sh`.** `branch-create-gate.sh:77-78`
+**5. `branch-create-gate.sh:77-78` and `bash-write-guard.py`.** `branch-create-gate.sh:77-78`
 hardcodes the literal segment `harness` — this is exactly ADV-2, already ruled with a synthesized
 remedy (`${REPO##*/}`, not a wildcard) in the FEAT-21 precommit security review; not re-filed here.
 Swept the rest of the range (all touched `.sh`/`.py` source, excluding test fixtures and prose) for
 the same CLASS — hardcoded repo-segment literal in enforcement logic — and found none:
 `check-plan-routes.py`, `gh-sync.py` (depth-agnostic root walk-up to the `team-config.yaml` probe,
 no fixed depth or literal), and `validate-feature-json.py` all use `*`/derived segments.
-`bash-write-guard.sh` is **untouched in this range** — it delegates entirely to
+`bash-write-guard.py` is **untouched in this range** — it delegates entirely to
 `harness_boundary.py`/`team-config.yaml`, both covered above, and its own live fixture behavior
 (ungranted write BLOCKED, in-domain write allowed, legacy-shape write BLOCKED, out-of-domain write
 BLOCKED) was independently measured in the FEAT-21 precommit review and re-confirmed here by

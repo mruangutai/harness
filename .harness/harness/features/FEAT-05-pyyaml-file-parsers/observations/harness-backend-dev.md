@@ -11,7 +11,7 @@
 - 2026-08-03: the D-03 fixture's first draft only covered `teams[].members[]` agents (backend-dev,
   dev-ops, pm, documentor) and would have let a `manifest_domains` that walks only that path pass
   while silently returning empty `mine` for `leads:` entries and the bare top-level `orchestrator:`
-  block — both nest differently and both are real callers via `check-domain.py`/`bash-write-guard.sh`.
+  block — both nest differently and both are real callers via `check-domain.py`/`bash-write-guard.py`.
   Added `harness-eng-lead` and `harness-orchestrator` rows. When proving old/new logic equivalent,
   the fixture set must span every distinct nesting shape the walked structure contains, not just the
   shapes the brief happened to name.

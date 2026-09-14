@@ -25,7 +25,7 @@ All twelve PLAN tasks are `done` and every task's own `verify:` passed at its co
 - Do NOT chase `check-plan-routes.py` or `check-state.sh` red — both went green at T-08 — verified-at 3abaedd.
 - Do NOT rename `BUILD.md:335`, `:353`, `:357` or `check-plan-routes.py:405` — dated records exempted
   by name under R-01 — `plan.yaml` `approval.rulings` — verified-at 0a49250.
-- Do NOT edit the four DEC-174 carve-out files — `check-domain.py`, `bash-write-guard.sh`,
+- Do NOT edit the four DEC-174 carve-out files — `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py`, `check-state.sh` — CLAUDE.md — verified-at 3abaedd.
 - Do NOT back-fill the plan's D-04/D-08 DEC citations — operator ruled it a goal-check finding — `plan.yaml` `approval.rulings` — verified-at 93da60d.
 

@@ -4,7 +4,7 @@
 
 ## F-01 (deny() appends contradictory "Write tool" advice) — CLOSED, confirmed by live execution
 
-`bash-write-guard.sh:655` adds `deny_bare()` (prints `bash-write-guard: BLOCKED — {reason}`, no
+`bash-write-guard.py:655` adds `deny_bare()` (prints `bash-write-guard: BLOCKED — {reason}`, no
 second line) and all three `claim_checkout_guard` call sites (`:744` ambiguous, `:749` unreadable
 registry, `:766` normal mismatch) now use it instead of `deny()`. Grepped the whole file for
 `"Write tool"` — the only two remaining hits are the pre-existing generic `deny()` (READ-ONLY-agent
@@ -14,7 +14,7 @@ case and the unrelated `feature_checkout_guard`/domain-mismatch guards), neither
 Ran the real fixtures (not just read source) for all three shapes on both routes and compared the
 actual stderr bytes:
 
-| Shape | check-domain.py | bash-write-guard.sh |
+| Shape | check-domain.py | bash-write-guard.py |
 |---|---|---|
 |Normal mismatch (malformed pointer)|`check-domain: BLOCKED — {agent} holds worktree claim(s): {held}. Destination {dest} belongs in its proper checkout at {home}; write it from a bound worktree.`|identical text, `bash-write-guard:` prefix only|
 |Ambiguous claim|`check-domain: BLOCKED — {agent} has an ambiguous worktree claim: feature '{id}' matches N linked worktrees: {names}`|identical text, prefix only|

@@ -5,7 +5,7 @@ Both falsified clauses are corrected. **Neither conclusion changed**: D-17 still
 says `derive_station` is NOT changed. Only the stated REASON changed.
 
 Why they were false: `BRIEF.md:93-101` lists FOUR untouched enforcement files
-(`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py`, `check-plan-routes.py`) — `check-state.sh`
+(`check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-plan-routes.py`) — `check-state.sh`
 is not among them (ruling 4, 2026-08-23). And `plan.yaml` D-24 has T-22 editing `check-state.sh` by
 main-session-direct cutover under the DEC-174 carve-out. So "cannot be edited under DEC-174" and
 "forbidden by SC-10" were both false.

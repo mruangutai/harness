@@ -1267,7 +1267,7 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-bash-write-guard.py is the test of bash-write-guard.sh, a
+      DEC-174 carve-out. test-bash-write-guard.py is the test of bash-write-guard.py, a
       registered PreToolUse gate script, and AGENTS.md:8 names a gate's test verbatim.
     depends_on: [T-02]
     status: abandoned

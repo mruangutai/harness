@@ -171,7 +171,7 @@ that measured "0 violations at `Plan`" was measuring the stale value being conve
 correctness.
 
 **This generalises and will recur.** Every DEC-174 carve-out feature — anything touching
-`check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` or `check-state.sh` — is built
+`check-domain.py`, `bash-write-guard.py`, `validate-digest.py` or `check-state.sh` — is built
 main-session-direct and produces no handoff notes. FEAT-15 is the first. **FEAT-17 is already
 planned as main-session-direct and will be the second.**
 

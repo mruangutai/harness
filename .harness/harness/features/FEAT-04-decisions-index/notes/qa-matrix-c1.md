@@ -35,7 +35,7 @@ a post-ship cache-read measure. Recorded as a coverage gap per protocol; not thi
 
 No task demanded a kind never produced. `matrix_ok: true`.
 
-Diff also carries unrelated fixes (`bash-write-guard.sh`, `check-domain.py`, both with their own
+Diff also carries unrelated fixes (`bash-write-guard.py`, `check-domain.py`, both with their own
 `test-bash-write-guard.py`/`test-check-domain.py`, both `PASS` in the runner output) — not FEAT-04
 scope per PLAN's task table, already covered, not a gap.
 
@@ -87,7 +87,7 @@ cap logic. That confirms the coupling is a recurring, manual step, not a one-tim
 
 ## Findings already on record (per dispatch) — not re-litigated here
 
-DEC-102 index row supersession clause gap; `bash-write-guard.sh` heredoc/compound-line misparse;
+DEC-102 index row supersession clause gap; `bash-write-guard.py` heredoc/compound-line misparse;
 orchestrator playbook cost-append vs. placeholder duplicate-key; `.harness/**/*.md` as an
 undocumented `check-docs.sh` scan surface; a code/receipt-only member having no per-feature
 writable artifact beyond observations.

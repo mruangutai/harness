@@ -9,10 +9,10 @@ today are tagged, then pruned.
 
 Measured at `a29ad06` in `/Users/molchairuangutai/GitHub/harness` unless stated.
 
-## D-a — how `bash-write-guard.sh` reaches the shared functions
+## D-a — how `bash-write-guard.py` reaches the shared functions
 
 **A new sibling module `.claude/skills/harness/bin/harness_boundary.py`, imported lazily by both
-heredocs, exactly as `harness_yaml` already is.** Precedent verified: `bash-write-guard.sh:73` and
+heredocs, exactly as `harness_yaml` already is.** Precedent verified: `bash-write-guard.py:73` and
 `check-domain.py:338/502/530` both do `import harness_boundary`-shaped lazy imports of `harness_yaml`
 after their manifest checks, and both files are `python3 - "$_derived" ... <<'PY'` heredocs
 (`check-domain.py:97`, and the same shape in the guard), so `sys.path` already contains `bin/`.
@@ -29,12 +29,12 @@ plus `rel` and the advertise list) and leaves the PRINTING to each hook.
 Two wrinkles that make it not a free move:
 
 - Both guards import `harness_yaml` LAZILY on purpose (`check-domain.py:292`,
-  `bash-write-guard.sh:38`): a top-of-file import made a hook whose module is missing crash before
+  `bash-write-guard.py:38`): a top-of-file import made a hook whose module is missing crash before
   the DEC-101 fail-open message. `harness_boundary` inherits that constraint, and
   `test-bash-write-guard.py`'s isolated-copy case (an absent manifest still fails OPEN) is what
   adjudicates it.
 - `resolve_fleet()` and `select_base()` today PRINT `check-domain: BLOCKED ...` and `sys.exit(2)`
-  themselves. Moved verbatim they would make `bash-write-guard.sh` emit a verdict naming the wrong
+  themselves. Moved verbatim they would make `bash-write-guard.py` emit a verdict naming the wrong
   hook. The module takes the label as a parameter.
 
 ## D-b — the creation refusal is BROAD, and undeterminable means refuse
@@ -48,7 +48,7 @@ Broad here means: any `git` invocation whose effect is a new checkout OF THIS RE
 materialise a DIFFERENT repository, which carries no `.harness/team-config.yaml` and no agents, so
 nobody is misled into believing it is governed. That is the harm #103 records.
 
-Three mechanics the intent must carry, all verified against `bash-write-guard.sh`:
+Three mechanics the intent must carry, all verified against `bash-write-guard.py`:
 
 - `git` produces no entries in `findings`, and `:320` is `if not findings: sys.exit(0)`. The
   worktree scan therefore has to run BEFORE that early exit, or it is dead code.
@@ -105,7 +105,7 @@ the worktree makes it unreachable and gc-eligible. So the task TAGS it before re
 |---|---|---|
 | `.claude/skills/harness/bin/harness_boundary.py` (NEW) | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
-| `.claude/skills/harness/bin/bash-write-guard.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
+| `.claude/skills/harness/bin/bash-write-guard.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/check-state.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-bash-write-guard.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
@@ -180,11 +180,11 @@ both routes silently OFF at once. Fail-closed is affordable **only at the govern
 session never reaches `:493`. The SECOND `import harness_yaml`, at `:529` in the shape phase, is
 deliberately absorbing and is NOT gated on `_governed` — an exit 2 there would block the main
 session's own shape-gated writes. T-01 now names one site and forbids the other. On the Bash route
-`harness-dev-ops` returns at `bash-write-guard.sh:54-59`, before line 73. New: REQ-09, SC-10, D-06.
+`harness-dev-ops` returns at `bash-write-guard.py:54-59`, before line 73. New: REQ-09, SC-10, D-06.
 
 ## MF-4 — Reading A, recorded as D-07
 
-`rel` at `bash-write-guard.sh:400` is ROOT-relative, so every product path begins with `..`. The
+`rel` at `bash-write-guard.py:400` is ROOT-relative, so every product path begins with `..`. The
 `..` continue runs after `classify` but only as an outcome filter: deny on `out_of_place_worktree`,
 continue on everything else. Dropping it would begin enforcing product-base domains on the Bash route
 for the first time — fenced out of scope by the grilling.

@@ -63,7 +63,7 @@ section claimed four bin scripts host their entire Python body in a shell heredo
 **TWO**, re-derived at source 2026-09-07:
 
 - `post-merge-sweep.py:29-293` — `python3 -I - <<'PYEOF'`, the whole body on stdin.
-- `bash-write-guard.sh:42` — `python3 -c '… exec(compile(sys.stdin.read(), …))' … <<'PY'`, the same
+- `bash-write-guard.py:42` — `python3 -c '… exec(compile(sys.stdin.read(), …))' … <<'PY'`, the same
   shape reached with the payload moved to the `HOOK_PAYLOAD` env var so the heredoc can own stdin.
 
 The other two named here are **counter-examples, and they are the repo's own documented rejection
@@ -75,7 +75,7 @@ very stdin the hook's JSON arrives on.
 **What that reverses.** A standing DEC entry is warranted when a shape recurs and will keep
 recurring. Here the shape is **receding**: of four candidates, two have already been converted to
 the decision-in-a-file form, deliberately and with the reason written down, and both survivors are
-convertible by the same move — `bash-write-guard.sh` already proves the payload can travel by env,
+convertible by the same move — `bash-write-guard.py` already proves the payload can travel by env,
 which is the only thing the heredoc was buying. A DEC that exempts a shape the repo is actively
 retiring would outlive its subject and be cited later as a licence to skip the `unit` floor on any
 awkward surface, which is precisely the failure `D-12`'s own "WHAT THIS IS NOT" paragraph guards
@@ -146,7 +146,7 @@ ids still resolve to findings present in `panel.findings`.
 
 - **Q1 (non-blocking), RE-PUT on the true set of two.** Superseded: the original Q1 asked whether to
   write a repo-wide DEC-217 sibling on the premise that four bin scripts share the heredoc shape.
-  Only two do (`post-merge-sweep.py:29-293`, `bash-write-guard.sh:42`) and the other two document
+  Only two do (`post-merge-sweep.py:29-293`, `bash-write-guard.py:42`) and the other two document
   rejecting the shape and `exec` a `.py` file, so the recommendation is **withdrawn** — see
   "Recommendation" above. What is left for the operator is narrower: **should the conversion of the
   two surviving heredoc-hosted gates be raised as a backlog chore, or is the shape accepted where it

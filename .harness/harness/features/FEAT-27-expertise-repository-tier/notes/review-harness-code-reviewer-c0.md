@@ -105,7 +105,7 @@ listing it here only so it isn't lost between qa's digest and the review panel's
   surface, and its own commit message discloses the one thing it deliberately leaves open (DEC-27).
 - **No-touch constraints honored**: `git diff --stat` confirms `fleet.yaml`, `harness.json`,
   `gh_board.py`, `load_board`, `factory_claim.py`, `check-state.sh`, `check-domain.py`,
-  `bash-write-guard.sh`, `validate-digest.py`, and everything under `FEAT-24-*/` are absent from
+  `bash-write-guard.py`, `validate-digest.py`, and everything under `FEAT-24-*/` are absent from
   this diff.
 - **No YAML parse dependency added** to `inject-expertise.sh` — read the full current file; no
   `import yaml`, no `python3 -c` block touching `team-config.yaml` or `fleet.yaml`.

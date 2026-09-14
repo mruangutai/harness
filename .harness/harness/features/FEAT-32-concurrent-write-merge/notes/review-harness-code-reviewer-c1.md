@@ -12,7 +12,7 @@ guard it exists to enforce.
 
 All work done via `python3` (heredoc / `-c`) writing only to mktemp dirs outside the repo, or plain
 `subprocess.run` invocations of the unmodified in-repo hooks as read-only executables. No repo file was
-written, edited, or staged. `bash-write-guard.sh` (I am `harness-code-reviewer`, a `REVIEWERS` entry)
+written, edited, or staged. `bash-write-guard.py` (I am `harness-code-reviewer`, a `REVIEWERS` entry)
 denies every bash redirect/cp/mv/rm/tee/sed-i pattern unconditionally regardless of target — confirmed
 live (`echo hi > /tmp/x` was denied) — so all scratch I/O went through Python's own `open()`/`shutil`,
 which the guard's regex scanner does not pattern-match (this is the documented "unparseable passes"

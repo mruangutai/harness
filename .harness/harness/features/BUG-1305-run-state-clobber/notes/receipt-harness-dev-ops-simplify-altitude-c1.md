@@ -13,7 +13,7 @@ the residuals D-08/D-12/D-13 are signed and I did not re-litigate them.
 
 | Rule | Stated in | # statements | Verdict |
 |---|---|---|---|
-| Which paths are run-identity artifacts | `harness_boundary.RE_RUN_IDENTITY` (built from `run_identity.MARKER_NAME`), consumed by `check-domain.py` SHAPE_PATTERNS + `bash-write-guard.sh._run_artifact_guard` | 1 | leave — correct, follows the pre-existing `RE_RUN_DIGEST`/`RE_STATE_YAML` pattern (`harness_boundary.py:1-46`) |
+| Which paths are run-identity artifacts | `harness_boundary.RE_RUN_IDENTITY` (built from `run_identity.MARKER_NAME`), consumed by `check-domain.py` SHAPE_PATTERNS + `bash-write-guard.py._run_artifact_guard` | 1 | leave — correct, follows the pre-existing `RE_RUN_DIGEST`/`RE_STATE_YAML` pattern (`harness_boundary.py:1-46`) |
 | Witness↔checkpoint seed-field conflict | `run_identity.conflict()`, called directly by both `check-domain.py:1645` and `check-state.sh:1493` | 1 | leave — both callers pass the real objects through |
 | Run_uid conflict | canonical: `run_identity.uid_conflict()`. Shadow copy: `check-state.sh:1504-1506`'s hand-rolled guard before calling it | 2 | **fold-in** (Finding 1) |
 | POST-time effective-uid selection (landed › witness › freshly minted) | inline in `check-domain.py:1582-1588`, no function in `run_identity.py`, no unit test | 1, wrong altitude | **briefing-row** (Finding 2) |

@@ -42,7 +42,7 @@ T-08, the qa re-run, the panel, the goal-check and the docs sweep are five. One 
 `.harness/harness.json` is **outside** the carve-out on the evidence, and the operator rules:
 
 - Amendment 4 (`DECISIONS.md:4983`) declares the category — hooks, validators, gate **scripts** —
-  governing, and the list recording: `check-domain.py`, `bash-write-guard.sh`,
+  governing, and the list recording: `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh` and each
   one's test. `harness.json` is data, not a script.
 - No enforcement-layer script reads `test_kinds.eval.cmd`. `run-unit-tests.sh:108` reads

@@ -40,7 +40,7 @@
 
 ## Working set
 
-- **Hooks:** `check-domain.py`, `bash-write-guard.sh` — both parse the manifest via
+- **Hooks:** `check-domain.py`, `bash-write-guard.py` — both parse the manifest via
   `harness_yaml.manifest_domains()`; one shared walk, so they cannot diverge (D-03).
 - **Module:** `harness_yaml.py` — the only `try: import yaml` in the tree (D-12).
 - **Readers:** `check-state.sh` (closes issue #11), `gh-sync.py`, `upgrade-config.py`.

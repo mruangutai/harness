@@ -34,7 +34,7 @@ Observed exit code: **0**
   (yaml-scoped) boundary.
 - `feature_schema.py`, `validate-feature-json.py`, `feature-schema.json`,
   `test-validate-feature-json.py`, `run-unit-tests.sh`, `harness_yaml.py`, `check-domain.py`,
-  `check-state.sh`, `bash-write-guard.sh`, `validate-digest.py` were not opened for editing.
+  `check-state.sh`, `bash-write-guard.py`, `validate-digest.py` were not opened for editing.
 - No commit made (orchestrator holds the pen per DEC-153).
 
 ## Additional checks (P-07/P-09 — a green suite alone does not prove an assertion redden-able)

@@ -108,7 +108,7 @@ operator_rulings_2026_08_10: 'Q1 AMENDED. SC-01''s "single-digit GraphQL points 
   This is signed D-03 step 3 behaving as written and it does not violate SC-07, so
   no engineering fix cycle may close it. Recorded, not fixed.
 
-  Q3 TAKEN BY THE MAIN SESSION. bash-write-guard.sh mis-parses `cp ... 2>/dev/null`
+  Q3 TAKEN BY THE MAIN SESSION. bash-write-guard.py mis-parses `cp ... 2>/dev/null`
   and blocks a legal in-domain write. DEC-174 carve-out: fixed directly, never dispatched.'
 peer_feature_collision:
   peer: FEAT-12-end-copy-distribution
@@ -126,7 +126,7 @@ preflight_measurements: Taken by me at 8dedeae BEFORE any dispatch, so no claim 
   come from the change.
 residuals: 'All carried into the briefing''s backlog as B-1..B-16, which is the list
   that survives: anything not in that table dies silently at acceptance. The ones
-  that most want the operator''s eye are B-5 (bash-write-guard.sh mis-parses a redirect
+  that most want the operator''s eye are B-5 (bash-write-guard.py mis-parses a redirect
   and is a DEC-174 carve-out file only the operator may fix), B-7 (multi-clause criteria
   scored as covered when one clause is asserted — the same defect twice in this feature),
   and B-13 (the expertise gate is red on a pre-existing file).'

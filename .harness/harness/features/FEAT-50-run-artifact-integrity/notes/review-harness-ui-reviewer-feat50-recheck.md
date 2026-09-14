@@ -21,7 +21,7 @@ messages the two fixed guards print. Treated as in-remit per project Expertise P
 Ran the actual guard code (not just read it) via the repo's own regression harnesses, capturing
 verbatim stderr:
 
-- `bash-write-guard.sh` shared-domain checkout refusal (`python3 test-bash-write-guard.py` →
+- `bash-write-guard.py` shared-domain checkout refusal (`python3 test-bash-write-guard.py` →
   `run_feat50_checkout_binding`, 6/6 incl. mutation-kill "red" case):
   `bash-write-guard: BLOCKED — <abs-path> is a feature artifact whose write belongs in worktree
   <abs-worktree-path>. Write it there, not in the main checkout.` — **names the offending path, the

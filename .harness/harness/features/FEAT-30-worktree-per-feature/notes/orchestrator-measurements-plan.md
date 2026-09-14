@@ -23,7 +23,7 @@ rooted in the main checkout IS the failing shape, and it is the shape this featu
 ## The one I got wrong, and the correction
 
 **M-2. A DIRECT `git worktree add` into a served repository's own checkout is refused.**
-On stdin to `bash-write-guard.sh`:
+On stdin to `bash-write-guard.py`:
 
     git worktree add <workspace_root>/kaya-ai/.claude/worktrees/kaya-ai/FEAT-30 <branch>
       harness-backend-dev   exit 2
@@ -67,7 +67,7 @@ S-2 of a staged send-back and could have bought an unnecessary enforcement-layer
 **M-3. Refuse-on-dirty is already git's behaviour; the gap is the force flag.**
 `git worktree remove` on a tree holding one untracked file: exit **128**, message
 `contains modified or untracked files, use --force to delete it`. The same removal with `--force`
-passes `bash-write-guard.sh` at exit **0** — its git parser handles `worktree add|move` only. SC-07 is
+passes `bash-write-guard.py` at exit **0** — its git parser handles `worktree add|move` only. SC-07 is
 therefore a small addition to that parser plus a rule, not a dirty-tree detector.
 
 ## Corroborations

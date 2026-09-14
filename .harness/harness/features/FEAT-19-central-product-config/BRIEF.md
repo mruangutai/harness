@@ -361,7 +361,7 @@ surface this feature could plausibly want.
 
 ## Constraints
 
-- **DEC-174** — `check-domain.py`, `bash-write-guard.sh`, `validate-digest.py` and
+- **DEC-174** — `check-domain.py`, `bash-write-guard.py`, `validate-digest.py` and
   `check-state.sh` are never changed through a team run. Any task touching them is
   `main-session-direct`.
 - **DEC-179** — routing is resolved at plan time by `check-domain.py --resolve`. **Three** of this

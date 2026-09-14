@@ -50,7 +50,7 @@ was re-dispatched. Runs 10 of 20.
   is [unit] and its `when` names `__bug_class__`, which has no test_kinds entry and can never
   resolve. T-02/T-03/T-04 carry the actual #103 and #261 fixes and are all bugfix — a future guard
   change typed entirely bugfix clears this blocking gate on a run that never loads the code.
-- Q3 classify's `shared` outcome is UNREACHABLE, not merely untested, so bash-write-guard.sh:571-577
+- Q3 classify's `shared` outcome is UNREACHABLE, not merely untested, so bash-write-guard.py:571-577
   is dead code new in this diff. Filing "add a shared-path test" would spend a cycle on a test that
   must fail against correct code.
 - Q4 F-C forces a choice that is not the panel's: strike DEC-193 under DEC-188, amend it to state

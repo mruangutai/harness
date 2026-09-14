@@ -48,7 +48,7 @@ bullet and SC-11 itself — not only in a note.
 
 - `PF-3d9ac1d0…` (Bash governed-write route) → REQ-08 · D-10 (one seam, both surfaces, plus the
   scope fence that REQ-04 is NOT extended) · T-09 narrows the allow-continue at
-  `bash-write-guard.sh:747`, names the loop's ROOT-relative `rel` at `:706` and fences the
+  `bash-write-guard.py:747`, names the loop's ROOT-relative `rel` at `:706` and fences the
   `rel.startswith("..")` continue at `:744` as out of scope · T-10's five cases including the
   short-form clause and `bash-feature-checkout-red` · SC-18/SC-19 · two `lanes:` rows.
   Binding, regression and reachability proof are all present and distinct.

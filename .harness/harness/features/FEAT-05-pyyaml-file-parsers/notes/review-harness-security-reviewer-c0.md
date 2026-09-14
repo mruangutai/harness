@@ -1,7 +1,7 @@
 # Security review — FEAT-05 PyYAML file parsers — STRIDE audit of the two write gates
 
 Diff `37a8a66..340e18a` (18 commits). All findings below are from reading
-`check-domain.py`, `bash-write-guard.sh`, `harness_yaml.py` at `340e18a` directly, plus live
+`check-domain.py`, `bash-write-guard.py`, `harness_yaml.py` at `340e18a` directly, plus live
 end-to-end reproductions against the actual hook binaries in this worktree (commands shown
 inline, run against disposable `tempfile.mkdtemp()` fixture roots — never against this repo's
 own `.harness/team-config.yaml`). Author artifacts (BRIEF/PLAN/handoff/UAT) were treated as
@@ -22,14 +22,14 @@ just the one the author cited:
 
 - `check-domain.py:74-75` — `if not agent: sys.exit(0)` (main session's Write/Edit calls carry
   no `agent_type`)
-- `bash-write-guard.sh:51-52` — `agent = d.get("agent_type") or ""` / `if not agent: sys.exit(0)`
+- `bash-write-guard.py:51-52` — `agent = d.get("agent_type") or ""` / `if not agent: sys.exit(0)`
   — **structurally identical**, same payload field, checked before `require_or_bootstrap` is
   ever called (`:78`).
 
 So the main session's own Bash call to run the printed `python3 -m pip install pyyaml`
 command is **never subject to the PyYAML gate at all** — it exits 0 before `require_or_bootstrap`
 is reached. There is a second, independent recovery path too: `harness-dev-ops` is
-unconditionally exempt from `bash-write-guard.sh` (`:56-57`, `if agent == "harness-dev-ops":
+unconditionally exempt from `bash-write-guard.py` (`:56-57`, `if agent == "harness-dev-ops":
 sys.exit(0)`), also *before* the PyYAML gate — so dev-ops can `tee`/`cat >` a fix via Bash
 regardless of PyYAML or marker state, without ever touching `require_or_bootstrap`. It is
 **not** exempt from `check-domain.py` (only the main session is, `:74-75`), so its recovery
@@ -65,7 +65,7 @@ def load_file(path):
 ```
 
 Both hooks' manifest-domain-walk call sites catch only two exception types
-(`check-domain.py:133-159`, `bash-write-guard.sh:286-306`:
+(`check-domain.py:133-159`, `bash-write-guard.py:286-306`:
 `except harness_yaml.DuplicateKeyError` / `except harness_yaml.YamlParseError`), and
 `load_str` itself (`:92-101`) converts only `yaml.YAMLError` subclasses. Anything else —
 a bad encoding, the manifest path being a directory — propagates uncaught, crashes the hook's
@@ -82,7 +82,7 @@ payloads** — a disposable `tempfile.mkdtemp()` fixture root, `harness-backend-
   ```
   $ check-domain.py   (manifest has one 0xFF byte)
   EXIT 1 — UnicodeDecodeError at harness_yaml.py:107 (load_file's f.read())
-  $ bash-write-guard.sh  (same manifest, Bash write to the same forbidden path)
+  $ bash-write-guard.py  (same manifest, Bash write to the same forbidden path)
   EXIT 1 — identical UnicodeDecodeError, same call site (harness_yaml.py:120 -> :107)
   ```
 - **Manifest path is a directory** (`os.access(manifest, os.R_OK)` at `check-domain.py:100`
@@ -101,7 +101,7 @@ allowing it with enforcement silently off") and the code's own stated design goa
 (`check-domain.py:119-121`, *"Allowing by crash is not allowing"* — written for the
 `yaml is None` case, not extended to this one). It also contradicts DEC-171 am.1's fail-closed
 mandate, cited by name in both call sites' comments (`check-domain.py:147-150`,
-`bash-write-guard.sh:297-299`) as the reason a malformed manifest should block, not pass.
+`bash-write-guard.py:297-299`) as the reason a malformed manifest should block, not pass.
 
 **A second, narrower instance of the same root cause** exists at `check-domain.py:305-325`,
 the DEC-150/154 state.yaml shape gate: a `RecursionError` from PyYAML's composer on a deeply
@@ -127,7 +127,7 @@ failure becomes the already-wired fail-closed path at both call sites, not just
 
 ## 3. Elevation during the escape window — MED — reviewers lose their read-only guarantee
 
-`bash-write-guard.sh` hard-codes a `REVIEWERS` carve-out (`:92`, `:274-277`): any detected
+`bash-write-guard.py` hard-codes a `REVIEWERS` carve-out (`:92`, `:274-277`): any detected
 write pattern from `harness-code-reviewer`/`harness-security-reviewer`/`harness-ui-reviewer` is
 denied outright, unconditionally, "their job is findings, never fixes." **`check-domain.py` has
 no equivalent** — `grep -n "REVIEWERS\|READ-ONLY" check-domain.py` returns nothing. Reviewers'
@@ -150,7 +150,7 @@ Self-healing once PyYAML is installed; bounded to one session.
 
 - **`systemMessage` stdout JSON (D-14b), `harness_yaml.py:313`** — built via `json.dumps()`,
   not string interpolation, so embedded `\n`/`#` in the static `INSTALL_COMMAND` constant
-  cannot produce malformed JSON. `grep -n "print(" check-domain.py bash-write-guard.sh` shows
+  cannot produce malformed JSON. `grep -n "print(" check-domain.py bash-write-guard.py` shows
   every other `print()` in both scripts targets `file=sys.stderr`; this is the only stdout
   writer on the codepath (single-process design, T-13/T-15) — no second-writer collision.
 - **YAML alias/anchor expansion ("billion laughs")** — tested directly: a 20-level
@@ -183,9 +183,9 @@ Self-healing once PyYAML is installed; bounded to one session.
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: "check-domain.py AND bash-write-guard.sh's manifest walk fail OPEN on any non-YAMLError read failure (bad UTF-8, manifest-as-directory — both verified live) — every agent's every write goes ungoverned, not just the write that triggered it. The suspected escape/deadlock is otherwise refuted: main session and harness-dev-ops both have real Bash recovery paths."
+  headline: "check-domain.py AND bash-write-guard.py's manifest walk fail OPEN on any non-YAMLError read failure (bad UTF-8, manifest-as-directory — both verified live) — every agent's every write goes ungoverned, not just the write that triggered it. The suspected escape/deadlock is otherwise refuted: main session and harness-dev-ops both have real Bash recovery paths."
   in_scope: true
-  scope_reason: "diff changes the write-gating enforcement layer itself (check-domain.py, bash-write-guard.sh, harness_yaml.py) — every write from every agent in the org passes through this code."
+  scope_reason: "diff changes the write-gating enforcement layer itself (check-domain.py, bash-write-guard.py, harness_yaml.py) — every write from every agent in the org passes through this code."
   severity_max: high
   findings: 2
   must_fix:
@@ -195,7 +195,7 @@ DIGEST:
       non-YAMLError failure -- UnicodeDecodeError on an invalid-UTF-8 byte, or IsADirectoryError
       when the manifest path is a directory (check-domain.py:100's R_OK guard does not catch
       this) -- propagates uncaught through both hooks' manifest walk (check-domain.py:133-159,
-      bash-write-guard.sh:286-306), crashes the hook's python3 subprocess, exits 1, and per
+      bash-write-guard.py:286-306), crashes the hook's python3 subprocess, exits 1, and per
       DEC-100 exit 1 is non-blocking: every subsequent write from every agent proceeds
       ungoverned until the manifest is fixed. Verified live against both hook binaries with a
       one-bad-byte manifest and a directory-as-manifest fixture, targeting a path outside the
@@ -205,14 +205,14 @@ DIGEST:
       read-or-parse failure becomes the already-wired fail-closed YamlParseError path.
   threat_model:
     - { boundary: "PreToolUse Write/Edit hook (check-domain.py) manifest walk vs. repo state", stride: T, mitigated: false }
-    - { boundary: "PreToolUse Bash hook (bash-write-guard.sh) manifest walk vs. repo state", stride: T, mitigated: false }
+    - { boundary: "PreToolUse Bash hook (bash-write-guard.py) manifest walk vs. repo state", stride: T, mitigated: false }
     - { boundary: "check-domain.py state.yaml shape gate (DEC-150/154) vs. one owned file", stride: T, mitigated: false }
     - { boundary: "bootstrap-escape marker (.harness/.pyyaml-bootstrap) as a session-identity write permit", stride: S, mitigated: true }
-    - { boundary: "PyYAML-absent escape window -- domain enforcement fully off in check-domain.py, no reviewer carve-out unlike bash-write-guard.sh", stride: E, mitigated: false }
+    - { boundary: "PyYAML-absent escape window -- domain enforcement fully off in check-domain.py, no reviewer carve-out unlike bash-write-guard.py", stride: E, mitigated: false }
     - { boundary: "PreToolUse hook stdout (systemMessage JSON, D-14b) -- host's allow/block interpretation channel", stride: T, mitigated: true }
   open_questions:
     - { id: Q1, question: "Should harness_yaml.load_str/load_file catch Exception broadly (matching check-state.sh's own pattern) and move the file read inside the try, so a UnicodeDecodeError/IsADirectoryError/RecursionError all become YamlParseError at both hook call sites instead of crashing the hook open?", blocking: true }
-    - { id: Q2, question: "Should check-domain.py gain a REVIEWERS carve-out symmetric to bash-write-guard.sh's, so a reviewer stays read-only even during an active bootstrap-escape window?", blocking: false }
+    - { id: Q2, question: "Should check-domain.py gain a REVIEWERS carve-out symmetric to bash-write-guard.py's, so a reviewer stays read-only even during an active bootstrap-escape window?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/fix-harness-tooling-backlog/.harness/features/FEAT-05-pyyaml-file-parsers/notes/review-harness-security-reviewer-c0.md

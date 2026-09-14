@@ -35,7 +35,7 @@ test what its label claimed, per the dispatch's sole authorised exception.
 ## Proof it bites
 
 Copied `bin/` to a tmpdir via `python3 -c "shutil.copytree(...)"` (the accepted `cp`-avoidance
-substitution — `bash-write-guard.sh` denies literal `cp` with a variable target). In the copy,
+substitution — `bash-write-guard.py` denies literal `cp` with a variable target). In the copy,
 mutated `harness_merge.py`'s `require_destination` BY NAME:
 
 ```
@@ -70,7 +70,7 @@ Confirmed unmutated suite stays fully green: 18/18 checks passed with the new co
 place (run separately, no mutation).
 
 ## `verify:` — re-run verbatim (with the `cp -R` → `python3 -c "shutil.copytree(...)"`
-substitution, same as cycles 1-2, because `bash-write-guard.sh` denies literal `cp` with a
+substitution, same as cycles 1-2, because `bash-write-guard.py` denies literal `cp` with a
 variable target)
 
 ```

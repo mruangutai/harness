@@ -96,7 +96,7 @@ except where the BRIEF asked me to spot-check mechanically (SC-10, SC-11 — see
 
 ## SC-10 / SC-11 spot check (mechanical, inspection-class, done because it's a one-line grep)
 
-- `git diff --name-only a7c429c..ec195ec | grep -E "check-domain.py|bash-write-guard.sh|validate-digest.py|check-state.sh"` → **empty**. SC-10 holds.
+- `git diff --name-only a7c429c..ec195ec | grep -E "check-domain.py|bash-write-guard.py|validate-digest.py|check-state.sh"` → **empty**. SC-10 holds.
 - `grep -rnE "fleet[A-Za-z_]*\[['\"]board['\"]\]|fleet[A-Za-z_]*\.get\(['\"]board['\"]\)" .claude/skills/harness/bin/` → **empty**.
 - `grep -n "def station(" .claude/skills/harness/bin/factory_config.py` → **empty**. SC-11 holds.
 
@@ -104,7 +104,7 @@ except where the BRIEF asked me to spot-check mechanically (SC-10, SC-11 — see
 
 Method: copied `factory_claim.py`, `factory_config.py`, `factory_cli.py`, `factory_gh.py`,
 `gh_issues.py`, `harness_yaml.py`, `test-factory-claim.py` into the scratchpad (only the literal
-absolute destination path was accepted by `bash-write-guard.sh` — a `$VAR`-based destination was
+absolute destination path was accepted by `bash-write-guard.py` — a `$VAR`-based destination was
 denied because the guard parses command text, not the shell-expanded path; noted as a gotcha, not a
 finding). All mutation and re-runs happened only in
 `/private/tmp/claude-501/.../scratchpad/mutant-bin/`. `git status --porcelain` on the real repo is

@@ -104,7 +104,7 @@ decisions:
     because: check-domain exits 0 for a payload with no agent_type, so a domain-region denial would exempt the main session, and DEC-180 makes the shape gate bind every author
     dec: DEC-180
   - id: D-07
-    choice: the sign-approval refusal is a NEW PreToolUse Bash gate modelled on gh-close-gate.py, not an extension of bash-write-guard.sh
+    choice: the sign-approval refusal is a NEW PreToolUse Bash gate modelled on gh-close-gate.py, not an extension of bash-write-guard.py
     because: bash-write-guard exempts harness-dev-ops by design, and an exempt agent that can sign an approval is the whole hole this closes; the cost is one more interpreter start per Bash call, measured at a 26.2 ms median (min 25.8, max 30.2) against a 16.4 ms bare interpreter start, at ee66ae2 on this worktree
     dec: none
   - id: D-08

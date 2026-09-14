@@ -73,7 +73,7 @@ records, not a claim that a timely relay occurred.
 None blocking. Seven residual findings are carried to the operator as proposed backlog in
 `notes/ship-review-2026-08-30-fold-ship.md`; anything not accepted there dies silently.
 
-- **B-25** — `bash-write-guard.sh` cannot expand shell variables and does not track `cd`; it resolves
+- **B-25** — `bash-write-guard.py` cannot expand shell variables and does not track `cd`; it resolves
   targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` was denied while the same
   command with a literal absolute path was allowed, and `check-domain.py --resolve` grants that path.
 - **B-26** — `/usr/bin/grep` is `pi-uu-grep 0.2.0`, in which `^+` matches EVERY line. Four false

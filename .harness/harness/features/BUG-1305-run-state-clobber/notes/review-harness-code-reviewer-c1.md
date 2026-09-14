@@ -110,7 +110,7 @@ identity = m._bug1305_marker_path(state)
 r = m._fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
 # r.returncode == 0
 ```
-Exit 0 — confirmed directly against the pinned hook, not inferred. `bash-write-guard.sh`'s Bash route
+Exit 0 — confirmed directly against the pinned hook, not inferred. `bash-write-guard.py`'s Bash route
 is unaffected (`_run_artifact_guard` matches on path alone, no existence check, so Bash creation is
 still refused). Only the PRE **Edit** route has the gap. It is new to this feature: state.yaml's
 identical "file absent → pass-through" behavior is BENIGN there (an absent prior is explicitly

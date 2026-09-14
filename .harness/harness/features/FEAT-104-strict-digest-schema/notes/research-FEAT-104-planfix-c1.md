@@ -108,7 +108,7 @@ lead writes it by hand per `harness-team/SKILL.md:54`, which T-05 updates.
 ## F4 — med — closed
 
 T-01 PART 6 writes `git rev-parse HEAD` of its own commit — a bare 40-character line — to
-`notes/base-revision-pre-T-04.txt` (a tracked file, Write tool, `bash-write-guard.sh` denies a
+`notes/base-revision-pre-T-04.txt` (a tracked file, Write tool, `bash-write-guard.py` denies a
 redirect), and that file is in T-01's `files:`. T-08 reads the id from there and **re-derives both
 sides** before using it, as does T-08's own `verify:`: 40 hex characters; `git cat-file -e` resolves it;
 `git show <sha>:validate-digest.py` **contains** `DOCUMENTED_OPTIONAL` (T-01 is in) and **does not
