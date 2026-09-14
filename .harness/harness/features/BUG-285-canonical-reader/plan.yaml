@@ -168,7 +168,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The inventory is implemented in check-plan-routes.py and its integration test, both inside the DEC-174 enforcement carve-out.
     depends_on: [T-09]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py#main
       - tests/integration/test-check-plan-routes.py#case_20

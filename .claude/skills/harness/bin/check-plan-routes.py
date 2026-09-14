@@ -19,7 +19,9 @@ Task blocks are found with the SAME regex check-state.py uses (D-08), copied
 rather than shared because check-state.py belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
+import ast
 import glob
+import json
 import os
 import re
 import subprocess
@@ -892,7 +894,414 @@ def check_invariant_number_collisions(root, findings):
     return count
 
 
+READER_CALL_CATEGORIES = {
+    "json.load": "json_file",
+    "json.loads": "json_string",
+    "yaml.load": "pyyaml",
+    "yaml.safe_load": "pyyaml",
+    "harness_yaml.load_file": "harness_yaml_file",
+    "harness_yaml.load_str": "harness_yaml_string",
+    "harness_yaml.load_plan": "load_plan",
+    "factory_config.load_fleet": "load_fleet",
+    "harness_yaml.manifest_domains": "manifest_domains",
+    "feature_json_write.load_feature_json": "load_feature_json",
+}
+CANONICAL_ACCESSOR_NAMES = {
+    "load_feature_json", "load_harness_json", "load_plan", "load_fleet",
+    "manifest_domains", "load_frontmatter", "load_omp_config",
+    "read_hook_payload", "parse_gh_json",
+}
+LEGAL_READER_EXEMPTIONS = {
+    "harness_yaml_primitive",
+    "in_memory_validation",
+    "canonical_writer_transform",
+    "module_internal_format",
+    "test_or_migration_corpus",
+    "sole_state_yaml_reader",
+}
+READER_CLASSIFICATION_SCHEMA = "canonical-reader-classification/1"
+READER_CLASSIFICATION_REL = os.path.join(
+    "tests", "integration", "canonical-reader-classification.json")
+
+
+def _qualified_name(node, aliases):
+    if isinstance(node, ast.Name):
+        return aliases.get(node.id, node.id)
+    if isinstance(node, ast.Attribute):
+        parent = _qualified_name(node.value, aliases)
+        if parent:
+            return f"{parent}.{node.attr}"
+    return None
+
+
+class _ReaderAliasCollector(ast.NodeVisitor):
+    def __init__(self):
+        self.aliases = {}
+
+    def visit_Import(self, node):
+        for item in node.names:
+            self.aliases[item.asname or item.name.split(".")[0]] = item.name
+
+    def visit_ImportFrom(self, node):
+        if not node.module:
+            return
+        for item in node.names:
+            if item.name == "*":
+                continue
+            self.aliases[item.asname or item.name] = f"{node.module}.{item.name}"
+
+    def visit_Assign(self, node):
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            resolved = _qualified_name(node.value, self.aliases)
+            if resolved:
+                self.aliases[node.targets[0].id] = resolved
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node):
+        if isinstance(node.target, ast.Name) and node.value is not None:
+            resolved = _qualified_name(node.value, self.aliases)
+            if resolved:
+                self.aliases[node.target.id] = resolved
+        self.generic_visit(node)
+
+
+def _normalized_reader_name(qualified, file):
+    if (
+            file.endswith("/harness_yaml.py")
+            and qualified in {"load_file", "load_str"}):
+        return f"harness_yaml.{qualified}"
+    return qualified
+
+
+def _reader_category(qualified, file):
+    qualified = _normalized_reader_name(qualified, file)
+    category = READER_CALL_CATEGORIES.get(qualified)
+    if category:
+        return category
+    if not qualified:
+        return None
+    name = qualified.rsplit(".", 1)[-1]
+    if (
+            qualified.startswith("artifact_accessors.")
+            and name in CANONICAL_ACCESSOR_NAMES):
+        return name
+    return qualified if qualified in CANONICAL_ACCESSOR_NAMES else None
+
+
+class _ReaderCallCollector(ast.NodeVisitor):
+    def __init__(self, aliases, file):
+        self.aliases = aliases
+        self.file = file
+        self.symbols = []
+        self.calls = []
+
+    def _visit_symbol(self, node):
+        self.symbols.append(node.name)
+        self.generic_visit(node)
+        self.symbols.pop()
+
+    visit_ClassDef = _visit_symbol
+    visit_FunctionDef = _visit_symbol
+    visit_AsyncFunctionDef = _visit_symbol
+
+    def visit_Call(self, node):
+        qualified = _qualified_name(node.func, self.aliases)
+        category = _reader_category(qualified, self.file)
+        if category:
+            self.calls.append({
+                "file": self.file,
+                "symbol": ".".join(self.symbols) or "<module>",
+                "callee": qualified,
+                "category": category,
+                "line": node.lineno,
+                "column": node.col_offset,
+            })
+        self.generic_visit(node)
+
+
+def reader_candidates_from_source(source, file):
+    tree = ast.parse(source, filename=file)
+    aliases = _ReaderAliasCollector()
+    aliases.visit(tree)
+    collector = _ReaderCallCollector(aliases.aliases, file)
+    collector.visit(tree)
+    ordinals = {}
+    for call in sorted(collector.calls, key=lambda item: (item["line"], item["column"])):
+        key = (call["symbol"], call["category"])
+        ordinals[key] = ordinals.get(key, 0) + 1
+        call["id"] = (
+            f"{file}::{call['symbol']}::{call['category']}#{ordinals[key]}")
+    return collector.calls
+
+
+def _reader_source_paths(root):
+    bin_root = os.path.join(root, ".claude", "skills", "harness", "bin")
+    prefix = os.path.join(".claude", "skills", "harness", "bin")
+    paths = []
+    for current, dirs, files in os.walk(bin_root):
+        dirs[:] = sorted(name for name in dirs if name != "__pycache__")
+        for name in sorted(files):
+            if name.endswith(".py"):
+                absolute = os.path.join(current, name)
+                relative = os.path.relpath(absolute, bin_root)
+                paths.append((absolute, os.path.join(prefix, relative)))
+    return paths
+
+
+def _scan_reader_tree(root):
+    candidates, scanned, findings = [], [], []
+    for absolute, relative in _reader_source_paths(root):
+        scanned.append(relative)
+        try:
+            with open(absolute, encoding="utf-8") as source:
+                candidates.extend(reader_candidates_from_source(source.read(), relative))
+        except (OSError, UnicodeDecodeError, SyntaxError) as error:
+            findings.append(
+                f"{relative}::<module> source_parse remedy=repair source: {error}. "
+                "PLAN AMENDMENT REQUIRED")
+    return candidates, scanned, findings
+
+
+def _row_lookup(rows):
+    lookup, findings = {}, []
+    for row in rows:
+        row_id = row.get("id") if isinstance(row, dict) else None
+        if not row_id:
+            findings.append("classification row has no id. PLAN AMENDMENT REQUIRED")
+        elif row_id in lookup:
+            findings.append(
+                f"duplicate classification row {row_id}. PLAN AMENDMENT REQUIRED")
+        else:
+            lookup[row_id] = row
+    return lookup, findings
+
+
+def _candidate_mismatch(candidate, row):
+    for field in ("file", "symbol", "category"):
+        if row.get(field) != candidate[field]:
+            return (
+                f"{candidate['file']}::{candidate['symbol']} {candidate['category']} "
+                f"remedy={row.get('remedy', 'unknown')}: classification {field} "
+                f"is {row.get(field)!r}, expected {candidate[field]!r}. "
+                "PLAN AMENDMENT REQUIRED")
+    return None
+
+
+def _exemption_finding(row):
+    exemption = row.get("exemption")
+    if exemption not in LEGAL_READER_EXEMPTIONS:
+        return (
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy', 'unknown')}: illegal exemption "
+            f"{exemption!r}. PLAN AMENDMENT REQUIRED")
+    if not str(row.get("reason", "")).strip():
+        return (
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            "remedy=none: exemption requires a reason. PLAN AMENDMENT REQUIRED")
+    return None
+
+
+def _route_finding(row, task_files):
+    route = row.get("execution_route")
+    category = row.get("dec174_category")
+    if category != "none" and route != LEGAL_MAIN_SESSION_TOKEN:
+        return (
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy')}: DEC-174 category {category!r} requires "
+            "main-session-direct. PLAN AMENDMENT REQUIRED")
+    task = row.get("task")
+    if task and task != "none" and row.get("file") not in task_files.get(task, ()):
+        return (
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy')}: {task} task files omit this source. "
+            "PLAN AMENDMENT REQUIRED")
+    return None
+
+
+def _classification_shape_findings(document, scanned_files):
+    findings = []
+    if document.get("schema") != READER_CLASSIFICATION_SCHEMA:
+        findings.append(
+            f"classification schema must be {READER_CLASSIFICATION_SCHEMA}. "
+            "PLAN AMENDMENT REQUIRED")
+    if document.get("scanned_files") != scanned_files:
+        findings.append(
+            "scanned-file manifest differs from the live Python tree. "
+            "PLAN AMENDMENT REQUIRED")
+    rows = document.get("rows")
+    if not isinstance(rows, list):
+        findings.append(
+            "classification rows must be a list. PLAN AMENDMENT REQUIRED")
+        return findings, None
+    return findings, rows
+
+
+def _live_row_findings(live, lookup):
+    findings = []
+    for candidate_id, candidate in live.items():
+        row = lookup.get(candidate_id)
+        if row is None:
+            findings.append(
+                f"{candidate['file']}::{candidate['symbol']} {candidate['category']} "
+                "remedy=unclassified: live AST row absent from artifact. "
+                "PLAN AMENDMENT REQUIRED")
+            continue
+        mismatch = _candidate_mismatch(candidate, row)
+        if mismatch:
+            findings.append(mismatch)
+    return findings
+
+
+def _classified_row_findings(row_id, row, live, task_files):
+    if row_id not in live:
+        return [
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy', 'unknown')}: artifact row absent from AST. "
+            "PLAN AMENDMENT REQUIRED"
+        ]
+    findings = []
+    disposition = row.get("disposition")
+    if disposition not in {"canonical", "migrate", "exempt"}:
+        findings.append(
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
+            f"{disposition!r}. PLAN AMENDMENT REQUIRED")
+    if disposition == "exempt":
+        exemption = _exemption_finding(row)
+        if exemption:
+            findings.append(exemption)
+    route = _route_finding(row, task_files)
+    if route:
+        findings.append(route)
+    return findings
+
+
+def _artifact_row_findings(lookup, live, task_files):
+    findings = []
+    for row_id, row in lookup.items():
+        findings.extend(_classified_row_findings(row_id, row, live, task_files))
+    return findings
+
+
+def _state_reader_findings(rows):
+    state_readers = [
+        row for row in rows
+        if isinstance(row, dict)
+        and row.get("artifact") == "state.yaml"
+        and row.get("exemption") == "sole_state_yaml_reader"
+    ]
+    if len(state_readers) <= 1:
+        return []
+    return [
+        "second state.yaml reader found; add a canonical accessor. "
+        "PLAN AMENDMENT REQUIRED"
+    ]
+
+
+def reader_classification_findings(candidates, scanned_files, document, task_files):
+    findings, rows = _classification_shape_findings(document, scanned_files)
+    if rows is None:
+        return findings
+    lookup, duplicate_findings = _row_lookup(rows)
+    findings.extend(duplicate_findings)
+    live = {candidate["id"]: candidate for candidate in candidates}
+    findings.extend(_live_row_findings(live, lookup))
+    findings.extend(_artifact_row_findings(lookup, live, task_files))
+    findings.extend(_state_reader_findings(rows))
+    return findings
+
+
+def _classification_document(path):
+    try:
+        with open(path, encoding="utf-8") as source:
+            document = json.load(source)
+    except (OSError, UnicodeDecodeError, ValueError) as error:
+        return None, [f"{path}: classification cannot be read: {error}"]
+    if not isinstance(document, dict):
+        return None, [f"{path}: classification must be a JSON object"]
+    return document, []
+
+
+def _task_files(root, plan_relative):
+    import harness_yaml
+    plan = harness_yaml.load_plan(os.path.join(root, plan_relative))
+    task_files = {}
+    for task in plan["tasks"]:
+        paths = []
+        for entry in task.get("files", []):
+            path = entry.get("path") if isinstance(entry, dict) else entry
+            paths.append(str(path).split("#", 1)[0])
+        task_files[str(task["id"])] = paths
+    return task_files
+
+
+def _audit_result(scanned, candidates, findings, violations):
+    exit_code = 2 if findings else (1 if violations else 0)
+    return {
+        "exit_code": exit_code,
+        "unresolved": len(violations),
+        "scanned_files": scanned,
+        "candidates": candidates,
+        "classification_findings": findings,
+        "violations": violations,
+    }
+
+
+def _classification_task_files(root, document):
+    try:
+        return _task_files(root, document.get("plan", "")), []
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        finding = f"{document.get('plan')}: plan cannot be read: {error}"
+        return {}, [finding]
+
+
+def _migration_violations(rows):
+    return [
+        f"{row['file']}::{row['symbol']} {row['category']} "
+        f"artifact={row['artifact']} remedy={row['remedy']} task={row['task']} "
+        f"route={row['execution_route']}"
+        for row in rows
+        if isinstance(row, dict) and row.get("disposition") == "migrate"
+    ]
+
+
+def audit_canonical_readers(root, classification_path=None):
+    classification_path = classification_path or os.path.join(
+        root, READER_CLASSIFICATION_REL)
+    candidates, scanned, scan_findings = _scan_reader_tree(root)
+    document, document_findings = _classification_document(classification_path)
+    if document is None:
+        return _audit_result(
+            scanned, candidates, scan_findings + document_findings, [])
+    task_files, task_findings = _classification_task_files(root, document)
+    findings = scan_findings + document_findings + task_findings
+    findings.extend(
+        reader_classification_findings(candidates, scanned, document, task_files))
+    return _audit_result(
+        scanned, candidates, findings,
+        _migration_violations(document.get("rows", [])))
+
+
+def _run_canonical_reader_audit(root):
+    result = audit_canonical_readers(root)
+    for finding in result["classification_findings"]:
+        print(f"CLASSIFICATION {finding}")
+    for violation in result["violations"]:
+        print(f"VIOLATION {violation}")
+    print(
+        f"{result['unresolved']} unresolved reader site(s) across "
+        f"{len(result['scanned_files'])} Python file(s)")
+    return result["exit_code"]
+
+
 def main(argv):
+    if argv[1:] == ["--canonical-reader-audit"]:
+        try:
+            root = harness_boundary.resolve_root(BIN_DIR)
+        except ValueError as error:
+            print(f"check-plan-routes: {error}", file=sys.stderr)
+            sys.exit(2)
+        sys.exit(_run_canonical_reader_audit(root))
     examined = None
     if len(argv) > 1:
         try:
