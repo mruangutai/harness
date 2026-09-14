@@ -11,6 +11,6 @@
   NOBODY for negative-path test fixtures.
 - 2026-08-05: the task's receipt (b) demands zero `startswith` hits in the
   checker's source even for uses that parse subprocess *output* lines (e.g.
-  detecting a `SHARED ` prefix on check-domain.sh's stdout), not just for
+  detecting a `SHARED ` prefix on check-domain.py's stdout), not just for
   path-matching logic. Had to replace with `re.match(r"^SHARED ", line)` to
   satisfy the grep even though the original use was not a routing bug.

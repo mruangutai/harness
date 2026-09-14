@@ -44,6 +44,6 @@ not, `max_total_cycles` is.
 - Q3 (operator, at acceptance): ship / fix first / re-scope / stop, and strike any backlog rows.
 - Q4 (operator): approve the new DEC-196 heading wording — permanent record text no intent prescribes.
 - Q5 (main session): the paused FEAT-25/26/27 directories account for every remaining
-  `check-state.sh` violation. FEAT-24 itself reports zero.
+  `check-state.py` violation. FEAT-24 itself reports zero.
 
 Briefing: `notes/ship-review-2026-08-19-ship-02.md`.

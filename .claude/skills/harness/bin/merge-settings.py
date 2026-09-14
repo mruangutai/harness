@@ -29,7 +29,7 @@ import shutil
 import sys
 
 # The hook prerequisites, each keyed by the (event, script basename) pair that identifies
-# it — check-domain.sh appears on TWO events and they are two separate prerequisites.
+# it — check-domain.py appears on TWO events and they are two separate prerequisites.
 #
 # THE COUNT IS DERIVED FROM THIS LIST, never written as a word. At origin/main the word
 # "six" appeared on 5 lines of this file and 3 times in the snippet, and "seven" on 5
@@ -44,14 +44,14 @@ import sys
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
-        "script": "inject-expertise.sh",
+        "script": "inject-expertise.py",
         "matcher": "harness-.*",
         "why": "Expertise injection. Absent -> every agent starts with no Expertise "
                "and nothing is raised.",
     },
     {
         "event": "PreToolUse",
-        "script": "check-domain.sh",
+        "script": "check-domain.py",
         # NO agent-name matcher, deliberately: one registration serves all 16 and the
         # script dispatches on `agent_type` from the payload (DEC-110/111).
         "matcher": "Write|Edit",
@@ -66,7 +66,7 @@ HOOK_SPECS = [
         # deliberately is not: pre-Bash there is nothing to shape-check, post-Bash the
         # file is on disk.
         "event": "PostToolUse",
-        "script": "check-domain.sh",
+        "script": "check-domain.py",
         "args": " --post",
         "matcher": "Write|Edit|Bash",
         "why": "State-file SHAPE enforcement on the routes PreToolUse cannot reach "
@@ -87,7 +87,7 @@ HOOK_SPECS = [
     },
     {
         "event": "PreToolUse",
-        "script": "branch-create-gate.sh",
+        "script": "branch-create-gate.py",
         # Bash matcher, separate entry from check-domain (Write|Edit). SELF-GATING on
         # harness.json github.sync — registered everywhere, no-op where the mirror is
         # off, so registration stays unconditional like every prerequisite (DEC-144).
@@ -101,14 +101,14 @@ HOOK_SPECS = [
         # Was in the snippet since DEC-151 but missing HERE — the one-way template
         # check never caught it, so deploys silently skipped it.
         "event": "PreToolUse",
-        "script": "bash-write-guard.sh",
+        "script": "bash-write-guard.py",
         "matcher": "Bash",
         "why": "Bash write-bypass guard (DEC-151). Absent -> the common shell write "
                "shapes (sed -i, tee, redirects) bypass domain enforcement silently.",
     },
     {
         "event": "PreToolUse",
-        "script": "dispatch-guard.sh",
+        "script": "dispatch-guard.py",
         # No agent matcher: the script passes through anything that is not a harness
         # agent, and the main session (no agent_type) is never governed (DEC-156).
         "matcher": "Task|Agent",
@@ -118,7 +118,7 @@ HOOK_SPECS = [
     },
     {
         "event": "PreToolUse",
-        "script": "merge-gate.sh",
+        "script": "merge-gate.py",
         "matcher": "Bash",
         "why": "Mirror build-entry merge gate (DEC-138). Absent -> a merge lands while a "
                "build-entry receipt is still owed, silently.",
@@ -142,8 +142,8 @@ _TOOL_NAMES = {"Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent", "Read",
 def _runs_script(cmd, script):
     """Does this command actually invoke `script`, as opposed to merely mentioning it?
 
-    SUBSTRING MATCHING WAS THE HOLE (review W1/W2). `check-domain.sh.disabled` contains
-    `check-domain.sh`, so a decoy entry naming a disabled copy widened the coverage set and
+    SUBSTRING MATCHING WAS THE HOLE (review W1/W2). `check-domain.py.disabled` contains
+    `check-domain.py`, so a decoy entry naming a disabled copy widened the coverage set and
     let the real registration be narrowed back to `Write` with every gate green. The token
     must BE the script, not contain it. This does not resolve the path or check the file
     exists — a registration pointing at a deleted file still reads as present, and that

@@ -49,7 +49,7 @@ exactly once in the whole file, inside `discharged_at_cycle_5:`.
 `sequencing_note:` records the panel's 5(d) answer as its finding of record: **no plan gate and no
 task verify between T-01 and T-12 invokes the standing unit suite**, but the guarantee is not
 plan-encoded — `tests/unit/test-issue-types-pin.py` is deliberately red until T-11/T-12 land,
-`run-unit-tests.sh` globs `tests/unit/test-*.py`, `gates.qa_gate` is blocking, and T-12 is
+`run-unit-tests.py` globs `tests/unit/test-*.py`, `gates.qa_gate` is blocking, and T-12 is
 `main-session-direct` with no ordering rule relative to the qa segment; a premature qa run fails the
 only blocking gate with a `loop_back` no squad may own under DEC-174. Deliberately **not** expressed
 as a task, decision or `depends_on`: build-phase segment ordering is the orchestrator's
@@ -61,9 +61,9 @@ execution-time authority, and the orchestrator carries the constraint in its han
   identical to the value supplied, so the stored block is byte-faithful to what was staged.
 - Reload: 9 findings, 3 readers all `ran`, `must_fix: []`, `status: plan`,
   `approval: {status: pending}`, 12 tasks and 20 decisions unchanged in count.
-- `check-state.sh` (the worktree's own copy, so its root resolves to this checkout) reports **no
+- `check-state.py` (the worktree's own copy, so its root resolves to this checkout) reports **no
   INV-32 line for FEAT-55 at all**. That is expected and not evidence by itself: INV-32 skips any
-  plan whose approval is not `approved` (`check-state.sh:424-427`). So the INV-32 predicates were
+  plan whose approval is not `approved` (`check-state.py:424-427`). So the INV-32 predicates were
   applied directly to the stored block (`/tmp/feat55_inv32_probe.py`): **BAD none, WARN none**, with
   a positive control proving the predicates discriminate — a `step:`-keyed `readers` block produces
   **3 BADs**, the exact failure this feature hit once before.

@@ -7,10 +7,10 @@ Pin: `d78f393a7d5addc1cbd2f31628aed18c54983b9a`. Scope: `git diff main...d78f393
 ## Change type / matrix
 
 The plan's original tasks (T-01..T-12) are `logic`/`config`/`docs`, floor = `unit` only. But
-this fix cycle's actual diff (validate-digest.py + its integration suite, run-unit-tests.sh,
-check-state.sh, `.omp/extensions/harness-hooks.ts`) crosses Python/Bash/TS module boundaries
+this fix cycle's actual diff (validate-digest.py + its integration suite, run-unit-tests.py,
+check-state.py, `.omp/extensions/harness-hooks.ts`) crosses Python/Bash/TS module boundaries
 and its own regression tests (`check_hook_feature_dir`, `check_skipped_member_errors`,
-`_check_plan_feature_binding`) live in `test-validate-digest.py`, which `run-unit-tests.sh`
+`_check_plan_feature_binding`) live in `test-validate-digest.py`, which `run-unit-tests.py`
 registers under **integration**, not unit. I therefore ran BOTH kinds — unit alone would have
 missed every regression test that actually pins F1/F2/F3/F5.
 
@@ -31,7 +31,7 @@ registered, no drift.
 
 ## Main's per-suite evidence — corroborated by direct re-run, not restated
 
-Ran inside `run-unit-tests.sh --kind integration`; grepped the `N/N … passed` summary lines
+Ran inside `run-unit-tests.py --kind integration`; grepped the `N/N … passed` summary lines
 myself: `69/69 CLI cases passed`, `14/14 hook cases passed`, `24/24 T-09 cases passed`,
 `2/2 template cases passed`, `18/18 reviewer severity_max enum checks passed`, `ALL PASSED.`
 Matches exactly. `test-code-grade.py` PASS (unit kind). `test-gen-decisions-index.py` PASS
@@ -82,7 +82,7 @@ undeterminable, only one whose recorded and actual branches genuinely disagree. 
 
 M4 (32-bit truncated finding id, med/security — asserted not demonstrated), M6 (goalcheck
 transcription ambiguity, low), M7 (withhold message states fact not remedy, low), and the
-`check-state.sh` attribution-check missing-`continue` (low) — did not re-derive; `check-state.sh`
+`check-state.py` attribution-check missing-`continue` (low) — did not re-derive; `check-state.py`
 did change at this pin (INV-32 disposition refactor, `70fd441`) but that hunk is unrelated to
 the earlier low finding's line range and I did not re-verify it.
 

@@ -17,22 +17,22 @@ clause `DEAD`. Per-task reasons are in the DIGEST, which is what the orchestrato
 ## The four dispatch findings
 
 1. **T-14 — CONFIRMED intact, one justification falsified.** The insertion point survived: the
-   per-feature loop opens at `check-state.sh:202` (glob now two levels deep), `val()` at `:227`,
+   per-feature loop opens at `check-state.py:202` (glob now two levels deep), `val()` at `:227`,
    `runs` at `:237-244`, the INV-6 block at `:246-253` (was circa `:221-229`), the validator
    predicate at `:250`, `subprocess` already imported at `:49`. INV-32 still free — highest is
    INV-31. `CHECK_STATE_BIN` at `test-check-state.py:17`, `case_u` at `:1195`. **What died is the
    REASON, not the instruction:** the task justified computing the plan path relative to the git top
-   level "because root is CLAUDE_PROJECT_DIR". Since FEAT-42 T-12, `check-state.sh:38` resolves root
+   level "because root is CLAUDE_PROJECT_DIR". Since FEAT-42 T-12, `check-state.py:38` resolves root
    through `harness_boundary.resolve_root(_selfdir)`. The instruction still stands — the harness root
    need not be the repo top — so the justification was rewritten and the instruction guarded against
    simplification.
 2. **T-10 — CONFIRMED dead in part.** FEAT-40 merged; the violation closed itself. Measured here:
    FEAT-40's `feature.json` reads `Done`, `check-plan-routes.py` skips it as shipped, and a full
-   `check-state.sh` run emits **zero** `INV-26` lines (its one violation is FEAT-41's unapproved
+   `check-state.py` run emits **zero** `INV-26` lines (its one violation is FEAT-41's unapproved
    BRIEF). Both ship defects remain real — `gh-sync.py` is byte-identical to `e5afc19`. The repair
    was also **redundant**: FEAT-40's `plan.yaml` carries no top-level `status` at all, and T-07's
    migration (already a dependency of T-10) is what writes it. So T-10 dropped the FEAT-40 file, its
-   `git diff --quiet` verify line, and the repair paragraph; the `check-state.sh` run survives as a
+   `git diff --quiet` verify line, and the repair paragraph; the `check-state.py` run survives as a
    regression bound. **SC-09 was re-based** — it would otherwise be true by construction — onto the
    clause that still fails today: FEAT-40's plan carries no `status: done`.
 3. **STATE.md is stale — CONFIRMED, reported not edited.** `STATE.md:20` records "0 violations across
@@ -45,7 +45,7 @@ clause `DEAD`. Per-task reasons are in the DIGEST, which is what the orchestrato
    bullets" description and the `:78` anchor were corrected to `:96`.
 
 **Step-5 claim-schema check, stated explicitly: no task assumes the old claim schema.** No task's
-`files:`, `intent:` or `verify:` names `inflight_registry.py`, `dispatch-guard.sh` or
+`files:`, `intent:` or `verify:` names `inflight_registry.py`, `dispatch-guard.py` or
 `validate-digest.py`, and the only "claim" hits in the plan are the English word and `factory_claim.py`
 (board task claiming, unrelated). Nothing added.
 
@@ -63,7 +63,7 @@ clause `DEAD`. Per-task reasons are in the DIGEST, which is what the orchestrato
 
 | Held at HEAD | Moved |
 |---|---|
-| SC-02: 27 lines / 5 files, per-file split identical | Every `check-state.sh` anchor +25; `check-domain.sh` +29 |
+| SC-02: 27 lines / 5 files, per-file split identical | Every `check-state.py` anchor +25; `check-domain.py` +29 |
 | SC-04: ten `set_station` sites | `factory_claim` +5, `board_lifecycle` +2/+3, `check-plan-routes` +6 |
 | `_EXPECT\|_st26` = six lines; `_renamed`/`_no_finding` = 4/4 | `factory_config._STATION_KEYS` 41 → **39** |
 | feature-schema 11 props / 8 required | plan files 29 → **31**; pending task lines 55 → **56** |
@@ -74,7 +74,7 @@ clause `DEAD`. Per-task reasons are in the DIGEST, which is what the orchestrato
 literals" is **three** (line 1438 at `ee66ae2` carried no such literal), and the BRIEF's
 "`test-gh-sync.py` run by two tasks, 298 s" is **three tasks, ~447 s** — T-07's verify has always run it.
 
-**One scope addition, and it is a re-derivation:** `check-state.sh:1061` and `:1599` now carry comments
+**One scope addition, and it is a re-derivation:** `check-state.py:1061` and `:1599` now carry comments
 citing DEC-192 for the case-sensitivity T-07 ends. They spell `Done` in backticks so SC-02's
 quoted-literal grep cannot reach them. T-07 was told to rewrite both.
 

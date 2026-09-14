@@ -33,7 +33,7 @@ never opened. One process deviation: `plan-merge.py apply` cannot revise an exis
 
 - **F-02.** SC-05 cites call sites BY FUNCTION NAME: `_resolved_rel`, `_plan_route`, the
   `Edit`/`Write` target-assembly block in `__main__`, and the sweep's `targets.append`. All four
-  confirmed present in `check-domain.sh` at HEAD (defs at `:1852`, `:1910`; assembly `:2042-2078`;
+  confirmed present in `check-domain.py` at HEAD (defs at `:1852`, `:1910`; assembly `:2042-2078`;
   `targets.append` `:2218`). `verify: inspection` kept; the criterion is still that `_norm`'s
   return contract is unchanged.
 - **F-04.** SC-01/02/03 keep the shared suite command as the RUNNER and each gains a `row:` line

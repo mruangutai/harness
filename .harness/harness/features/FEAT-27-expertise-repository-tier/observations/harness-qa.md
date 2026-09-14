@@ -1,15 +1,15 @@
 # Observations — harness-qa — FEAT-27
 
-- 2026-08-19: `bash-write-guard.sh` denies `cp`/`sed -i` on ANY path under the scratchpad
-  (`check-domain.sh --resolve` answers `NOBODY` there) — not just repo paths. Mutation-probe
+- 2026-08-19: `bash-write-guard.py` denies `cp`/`sed -i` on ANY path under the scratchpad
+  (`check-domain.py --resolve` answers `NOBODY` there) — not just repo paths. Mutation-probe
   copies must go through the `Write` tool, never `Bash cp`, even in scratchpad. Cost me one
-  self-inflicted bug: I wrote a mutated `check-expertise.sh` copy under the baseline's filename
+  self-inflicted bug: I wrote a mutated `check-expertise.py` copy under the baseline's filename
   by re-using a mutation draft as the "baseline" — caught only because the T-03 abspath probe
   (case6) failed against what I *thought* was the unmutated baseline. Lesson: run the baseline
   probe FIRST, unconditionally, before touching any mutant file, and diff the baseline copy
   against the real file's content (not just its md5/existence) before trusting it as control.
 - 2026-08-19: `run_cmd([CHECK, ...], cwd=some_tempdir)` in a probe harness needs `CHECK` to be an
-  **absolute** path — `./check-expertise.sh` resolves against the harness's own cwd at spawn
+  **absolute** path — `./check-expertise.py` resolves against the harness's own cwd at spawn
   time, not the subprocess's `cwd=` override, so a relative `CHECK_EXPERTISE_BIN` silently
   breaks exactly the bare-path-invocation case (case6) it's supposed to prove.
 - 2026-08-19: FEAT-27 T-02's case12 (hostile `agent_type` values against the
@@ -41,7 +41,7 @@
   (specific to uncaught Python exceptions, which this mutant does not produce). A
   `"Traceback" not in stderr` assertion in case13's place would have stayed green under the
   exact mutant it exists to catch.
-- 2026-08-19: `bash-write-guard.sh` blocks Bash-tool file redirects (`>` / `cp`) into the
+- 2026-08-19: `bash-write-guard.py` blocks Bash-tool file redirects (`>` / `cp`) into the
   scratchpad too, not just repo paths — every write for a mutation probe, including throwaway
   scratch copies, has to go through the `Write` tool. Second time this has cost a false start
   this feature; worth a durable pattern if it recurs on a third.
@@ -74,7 +74,7 @@
   byte-identical). Re-confirmed the standing adequacy gap independently: T-01 is `change_type:
   config` (matrix `always: []`), so the matrix itself never obligates a kind for the 16
   repository-tier grants — SC-02's only regression pin is T-01's inline one-shot `verify:` block
-  (ran it directly, `ALL-GRANTS-OK`, exit 0), which is not in `run-unit-tests.sh`'s
+  (ran it directly, `ALL-GRANTS-OK`, exit 0), which is not in `run-unit-tests.py`'s
   UNIT_SCRIPTS/INTEGRATION_SCRIPTS arrays and `test-check-domain.py` has exactly one
   case-insensitive hit on "repository" — a comment about "a product repository", zero actual
   repository-tier test cases. This is a matrix-compliant gap, not a matrix violation, and it is

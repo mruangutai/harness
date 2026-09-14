@@ -22,7 +22,7 @@ unstruck backlog rows — but see the parent-issue trap under Dead ends first.
   panel's blocking question was a measurement — verified-at fb80543
 - The kaya manifests carry 377 identical paths and ZERO sha256 fields, so byte-identity was never
   captured and can never now be captured — read by me — verified-at fb80543
-- 17 Expertise ops applied by their owners; `check-expertise.sh` OK on all 13 files; the three
+- 17 Expertise ops applied by their owners; `check-expertise.py` OK on all 13 files; the three
   reviewer files took insertions only, checked per file — verified-at fb80543
 
 ## Dead ends

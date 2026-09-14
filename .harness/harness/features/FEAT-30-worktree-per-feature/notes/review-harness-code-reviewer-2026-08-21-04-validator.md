@@ -10,7 +10,7 @@ up two novel medium findings and confirmed all four established ones — none re
 Every changed file traces to a `T-0N` task and its `REQ`. Spot-checked SC-02 (merge-base, not
 branch name — `test-feature-worktree.py:244-250`), SC-05/SC-02c (16-agent grant parity —
 `test-check-domain.py:1660-1837`), SC-07 (both routes: `feature-worktree.py:203-221` GATE 2 and
-`bash-write-guard.sh` T-05's `remove`/`prune` extension), SC-08 (lock + union —
+`bash-write-guard.py` T-05's `remove`/`prune` extension), SC-08 (lock + union —
 `expertise-merge.py`), SC-09 (179/0 unit, 213/0 integration, cited from
 `runs/2026-08-21-01-validator/digest.md`, not re-run). No finding here.
 
@@ -27,11 +27,11 @@ exactly why they are this review's job. All are in scope and were read.
 ## Stage 2 — established findings
 
 **1. T-04's carve-out contradiction (not T-05's — see correction).** The contradictory instruction
-lives in **T-04's** intent (`plan.yaml`, the block ending "DO NOT TOUCH bash-write-guard.sh line
+lives in **T-04's** intent (`plan.yaml`, the block ending "DO NOT TOUCH bash-write-guard.py line
 545 ... it is already correct" immediately followed by the ask for a paired refuse case at the
 same depth), not T-05's — T-05's own intent text is entirely about the HEAD-move rule and the
 Bash-route forced-removal refusal and never mentions this carve-out. Confirmed by direct read of
-`bash-write-guard.sh:687` (`if re.match(r"^\.claude/worktrees/", rel): continue`, unconditional,
+`bash-write-guard.py:687` (`if re.match(r"^\.claude/worktrees/", rel): continue`, unconditional,
 depth-agnostic, pre-dating this feature) and of the delivered test,
 `test-bash-write-guard.py:588-611` (`run_worktree_deep`'s docstring states the contradiction
 first, then asserts the carve-out IS blanket rather than fabricating the impossible refuse case).
@@ -59,7 +59,7 @@ re-sign T-03's verify against `checkout_relative`, not `WORKTREES_SEGMENT`.
 
 **3. F-ALT-1 (REFUSE_ON_DIRTY / REQUIRE_LANDED / UNION_APPLY) — refutation checked, holds.** I
 traced all three flags by hand rather than re-executing the mutation (my Bash access is
-write-denied on every write-shaped command, including in scratch — `bash-write-guard.sh` refused
+write-denied on every write-shaped command, including in scratch — `bash-write-guard.py` refused
 even an `rm -rf` under `/private/tmp/...` with "harness-code-reviewer is READ-ONLY", so I could not
 build a mutated copy on disk to re-run against). Static trace: `REFUSE_ON_DIRTY=False` and
 `REQUIRE_LANDED=False` each skip an entire gate block wholesale (`feature-worktree.py:212-224` and
@@ -73,19 +73,19 @@ behavioural, not by-name, and that is a legitimate answer to "is there a checked
 `squad-appliable`, `info`, does not gate. Flagging the limitation on my own re-run rather than
 silently trusting: this is inherited, not independently re-measured by me.
 
-**4. `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` where `check-expertise.sh:44` requires
+**4. `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` where `check-expertise.py:44` requires
 `[A-Z]{1,3}`.** Confirmed byte-for-byte. Failure scenario: a distilling agent's scratch entries
 file carries a lowercase or mixed-case id (typo, or a model producing `- ab-01: ...`);
 `expertise-merge.py apply` parses it as a valid entry (`ENTRY_RE` matches), cap-counts it, and
 writes it to the actual `.harness/expertise/<agent>.md` file with exit 0 and `ADDED ab-01` on
 stdout — a clean success signal. The only thing that later catches this is a **manual** step:
-`harness-distill/SKILL.md` item 4 instructs the agent to separately run `check-expertise.sh <file>`
+`harness-distill/SKILL.md` item 4 instructs the agent to separately run `check-expertise.py <file>`
 and fix violations before returning. There is no automatic call from `expertise-merge.py` into
-`check-expertise.sh`, so a distilling agent that returns without running item 4 leaves a
+`check-expertise.py`, so a distilling agent that returns without running item 4 leaves a
 format-invalid entry live in a file injected into every future spawn of that persona. Narrowing
 `expertise-merge.py`'s regex to match would be the fix, not a regression, since it is the *merge
 tool* that is over-permissive relative to the *format contract's own checker* — the same file
-already keeps its `CAPS` dict in cross-checked agreement with `check-expertise.sh`'s (via
+already keeps its `CAPS` dict in cross-checked agreement with `check-expertise.py`'s (via
 `test-expertise-merge.py`'s case 8, per the file's own header comment) but never did the same for
 `ENTRY_RE`. `squad-appliable`, `med`, does not gate (mitigated by the manual SKILL.md step, and no
 observed instance in the shipped file).

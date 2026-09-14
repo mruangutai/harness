@@ -119,7 +119,7 @@ for name, good, bad in pointers:
     check(f"{name} unresolved ignored without resolution",
           problems(f"Scope: done\nAuthority: {bad}", False) == [])
 
-for value in ("docs:whatever", "check-domain.sh:1523", "brief-perspective:SC-04"):
+for value in ("docs:whatever", "check-domain.py:1523", "brief-perspective:SC-04"):
     for resolve in (True, False):
         got = problems(f"Scope: done\nAuthority: {value}", resolve)
         check(f"unknown authority {value} resolve={resolve}",

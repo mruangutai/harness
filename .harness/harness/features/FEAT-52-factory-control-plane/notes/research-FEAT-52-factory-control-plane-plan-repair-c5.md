@@ -48,7 +48,7 @@ closing "do not run the checker over the live tree" all retained — each assert
 `Per-site direction assertions at the pinned tree, plus the whole-scope run at the reviewed sha`
 · `traces: [REQ-02, REQ-04, REQ-06]` · `change_type: logic` · `execution_mode: main-session-direct`
 · `depends_on: [T-12]` · files `.claude/skills/harness/bin/test-anchor-directions.py` and
-`run-unit-tests.sh` · `verify: python3 .agents/skills/harness/bin/test-anchor-directions.py`.
+`run-unit-tests.py` · `verify: python3 .agents/skills/harness/bin/test-anchor-directions.py`.
 
 - **Ref:** `HARNESS_REVIEW_SHA` when set and non-empty, else literal `HEAD`; validated with
   `git rev-parse --verify <ref>^{commit}`. Unresolvable ref = hard failure, never a working-tree
@@ -78,7 +78,7 @@ closing "do not run the checker over the live tree" all retained — each assert
    `plan-merge.py apply --proposal -` printed `ADDED T-15` / `APPLIED …/plan.yaml`, `EXIT=0`.
    A third amend corrected `tasks:T-15.execution_reason`
    (`--expect-sha256 f2919da0c1228efc86e6def56d034bf43959ef515d5f0d7c8d39267cf9da156e`): the first
-   draft asserted `run-unit-tests.sh` resolves to NOBODY, which `check-plan-routes.py` disproved
+   draft asserted `run-unit-tests.py` resolves to NOBODY, which `check-plan-routes.py` disproved
    (granted to `harness-backend-dev, harness-dev-ops`). `AMENDED tasks:T-15.execution_reason`.
 2. `len(tasks): 15` · `'approval' in doc: False` · `doc['status']: 'plan'` · task ids `T-01..T-15`
    · every task status `ready` · decisions `D-01..D-08`.
@@ -109,7 +109,7 @@ closing "do not run the checker over the live tree" all retained — each assert
    - `/tmp/feat52-t02-intent.txt`, `/tmp/feat52-t15-proposal.yaml`, `/tmp/feat52-t15-reason.txt`,
      `/tmp/feat52-verify.py`, `/tmp/feat52-before-after.py` — scratch, outside the repository.
 
-Nothing committed, nothing pushed, HEAD untouched, `run-unit-tests.sh` not run.
+Nothing committed, nothing pushed, HEAD untouched, `run-unit-tests.py` not run.
 
 ## Open for the next reader
 

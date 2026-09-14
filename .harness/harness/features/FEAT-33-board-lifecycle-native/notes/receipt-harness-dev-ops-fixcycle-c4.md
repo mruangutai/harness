@@ -17,7 +17,7 @@ them for writing.
 
 ## Suite
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind all` — **EXIT 0**, 46 script-level
+`python3 .claude/skills/harness/bin/run-unit-tests.py --kind all` — **EXIT 0**, 46 script-level
 `^PASS test-` lines, **851** total `^PASS`, **0** `^FAIL`. Baseline before this cycle was EXIT 0 /
 46 / 840 / 0, reproduced first on the untouched tree. +11 assertions, all in
 `test-board-lifecycle.py` (138 -> 149 checks in that script).

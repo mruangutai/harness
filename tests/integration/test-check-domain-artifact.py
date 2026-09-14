@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: artifact integrity on the Write and Edit routes.
+"""check-domain.py: artifact integrity on the Write and Edit routes.
 
 Slice of the former test-check-domain.py (issue #1527) — FEAT-50's artifact binding,
 BUG-1124's state.yaml upserts, BUG-1106's Edit route, BUG-1305's run-identity marker
@@ -80,7 +80,7 @@ def _feat50_mutant_between(start, end, iso):
     changed = source[:begin] + source[finish:]
     if changed == source:
         raise AssertionError("INCONCLUSIVE: mutant is byte-identical")
-    path = os.path.join(iso, "check-domain.sh")
+    path = os.path.join(iso, "check-domain.py")
     with open(path, "w", encoding="utf-8") as mutant_file:
         mutant_file.write(changed)
     os.chmod(path, os.stat(HOOK).st_mode)
@@ -372,7 +372,7 @@ def run_feat50_artifact_integrity():
 def _fire_digest_edit(root, path, old_s, new_s, replace_all=False):
     # NO agent_type, matching _feat50_digest_fire/_bug1124_state_fire's payload shape:
     # these cases test the SHAPE gate (DEC-180, domain-independent), not the domain
-    # phase, and check-domain.sh exempts a payload with no agent_type from the domain
+    # phase, and check-domain.py exempts a payload with no agent_type from the domain
     # phase entirely so the shape-only behaviour can be isolated.
     return _fire_edit(root, path, old_s, new_s, agent=None, replace_all=replace_all)
 
@@ -577,9 +577,9 @@ def run_bug1305_digest_repair_cases():
 
 def run_bug1106_shared_pattern_consistency():
     """The digest.md/state.yaml patterns are respelled, not shared, between
-    check-domain.sh (whose shape-phase import of harness_boundary must stay ABSORBING —
+    check-domain.py (whose shape-phase import of harness_boundary must stay ABSORBING —
     see the comment beside RE_STATE_YAML there) and harness_boundary.py (which
-    bash-write-guard.sh imports safely). Assert the two copies are byte-identical so this
+    bash-write-guard.py imports safely). Assert the two copies are byte-identical so this
     respelling cannot silently drift (issue #1106)."""
     with open(HOOK, encoding="utf-8") as f:
         cd_source = f.read()
@@ -604,12 +604,12 @@ def run_bug1106_shared_pattern_consistency():
     hb_state = _pattern_literal(hb_source, "RE_STATE_YAML =")
 
     results = [
-        ("bug1106: RE_RUN_DIGEST is found in both check-domain.sh and harness_boundary.py",
+        ("bug1106: RE_RUN_DIGEST is found in both check-domain.py and harness_boundary.py",
          cd_digest is not None and hb_digest is not None,
          f"check-domain={cd_digest!r} harness_boundary={hb_digest!r}"),
         ("bug1106: RE_RUN_DIGEST's pattern text is byte-identical in both files",
          cd_digest == hb_digest, f"{cd_digest!r} != {hb_digest!r}"),
-        ("bug1106: RE_STATE_YAML is found in both check-domain.sh and harness_boundary.py",
+        ("bug1106: RE_STATE_YAML is found in both check-domain.py and harness_boundary.py",
          cd_state is not None and hb_state is not None,
          f"check-domain={cd_state!r} harness_boundary={hb_state!r}"),
         ("bug1106: RE_STATE_YAML's pattern text is byte-identical in both files",

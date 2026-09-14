@@ -6,7 +6,7 @@
 (`BRIEF.md:186`, `PLAN.md:586`) and mission ship is gated on both being `approved`. Once signed,
 the first dispatch is **T-01 to eng-lead** — tests for `bin/gen-decisions-index.py`, written first,
 `change_type: logic`, six named tests, plus the step that registers `test-gen-decisions-index.py`
-in `bin/run-unit-tests.sh`'s `SCRIPTS` array. T-01 → T-02 → T-03..T-08 strictly serial on one file
+in `bin/run-unit-tests.py`'s `SCRIPTS` array. T-01 → T-02 → T-03..T-08 strictly serial on one file
 (`PLAN.md ## Ordering`). Answer Q1 before dispatching T-09.
 
 ## Trust

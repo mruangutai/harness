@@ -77,7 +77,7 @@ every file under `tests/` are byte-unchanged — I only read them.
 | layout_migration.py:92-94 | ok |
 | layout_migration.py:98-104 | ok |
 | layout_fixtures.py:68-71 | ok |
-| check-state.sh:2363-2367 | ok |
+| check-state.py:2363-2367 | ok |
 
 #### Triplications judged and NOT flagged
 

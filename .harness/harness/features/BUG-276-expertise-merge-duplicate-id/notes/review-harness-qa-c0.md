@@ -24,8 +24,8 @@ beyond the floor voluntarily. Both kinds ran green, so the floor is met with mar
 
 | kind | runner | exit | FAIL lines | PASS lines (pooled, all files) |
 |---|---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | 0 | 0 | 520 (31 files, 3.80s wall) |
-| integration | `run-unit-tests.sh --kind integration` | 0 | 0 | 1636 (49 files, 66.57s wall) |
+| unit | `run-unit-tests.py --kind unit` | 0 | 0 | 520 (31 files, 3.80s wall) |
+| integration | `run-unit-tests.py --kind integration` | 0 | 0 | 1636 (49 files, 66.57s wall) |
 
 FAIL count captured via `grep -c '^FAIL '` on the full pooled log (not a tail read — hazard (a)
 observed). Exit status captured into a shell variable immediately after each run, per hazard (a).

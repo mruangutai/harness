@@ -20,20 +20,20 @@
     },
     "branch": {
       "type": "string",
-      "description": "The feature's branch name, or the literal string 'none' when unset — check-state.sh INV-6 already treats 'none' as unset via PLACEHOLDER_UNSET, so this stays a plain string rather than nullable. No demonstrated code reader."
+      "description": "The feature's branch name, or the literal string 'none' when unset — check-state.py INV-6 already treats 'none' as unset via PLACEHOLDER_UNSET, so this stays a plain string rather than nullable. No demonstrated code reader."
     },
     "pr": {
       "type": ["integer", "null"],
-      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.sh's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
+      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.py's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
     },
     "review_sha": {
       "type": "string",
-      "description": "Read by check-state.sh's val(\"review_sha\") check against PLACEHOLDER_UNSET. The literal string 'none' is a legal, unset value for the same reason as branch."
+      "description": "Read by check-state.py's val(\"review_sha\") check against PLACEHOLDER_UNSET. The literal string 'none' is a legal, unset value for the same reason as branch."
     },
     "cycles_used": {
       "type": "integer",
       "minimum": 0,
-      "description": "Read by check-state.sh's val(\"cycles_used\") check against the FAIL-run count."
+      "description": "Read by check-state.py's val(\"cycles_used\") check against the FAIL-run count."
     },
     "max_total_cycles": {
       "type": "integer",
@@ -42,7 +42,7 @@
     },
     "runs": {
       "type": "array",
-      "description": "Read by check-state.sh's per-run loop, entry.get(\"id\"/\"squad\"/\"verdict\").",
+      "description": "Read by check-state.py's per-run loop, entry.get(\"id\"/\"squad\"/\"verdict\").",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -51,7 +51,7 @@
           "id": { "type": "string", "description": "The run's identifier." },
           "squad": { "type": "string", "description": "The squad that executed the run." },
           "verdict": { "type": "string", "description": "The run's verdict." },
-          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.sh's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." },
+          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.py's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." },
           "code_grade": { "type": "string", "enum": ["n_a"], "description": "BUG-1080. Present ONLY as `n_a`, declaring that this validator run graded a specification and no code, which is the plan-phase panel DEC-207 legalises. INV-6 then requires no pinned review_sha for it, because there is no commit to pin. ABSENCE MEANS THE RUN REVIEWED CODE and a pin IS required — the opposite default from `agent` above, and deliberately so: every entry already on disk predates this key and did review code, so a benign absence would retire INV-6 across the whole corpus. The enum is closed for the same reason; an unrecognised value must fail rather than exempt." },
           "started_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant at which feature-record.py run-start appended this entry; read by feature-record.py spend, which sums ended_at minus started_at into the feature's wall-clock minutes (SC-18). ABSENCE MEANS THE ENTRY PREDATES FEAT-59 and is not an error; such an entry contributes zero minutes." },
           "ended_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant at which feature-record.py run-end closed this entry; read by feature-record.py spend. ABSENCE MEANS THE RUN IS STILL OPEN, or predates FEAT-59 — both contribute zero minutes, never an estimate." },
@@ -62,16 +62,16 @@
     "max_total_runs": {
       "type": "integer",
       "minimum": 1,
-      "description": "Read by check-state.sh's _as_budget(val(\"max_total_runs\")). Optional: SPEC 11.3 says it may be omitted to inherit harness.json's default."
+      "description": "Read by check-state.py's _as_budget(val(\"max_total_runs\")). Optional: SPEC 11.3 says it may be omitted to inherit harness.json's default."
     },
     "mission": {
       "type": "string",
       "enum": ["patch", "plan"],
-      "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.sh, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21) and exempts a `patch` plan from INV-32's panel demand. `patch` writes a one-task plan.yaml in the intake run and then runs build → validate → ship with no pre-build panel; `plan` runs the one-run plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan and /harness-patch refuse to start on it."
+      "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.py, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21) and exempts a `patch` plan from INV-32's panel demand. `patch` writes a one-task plan.yaml in the intake run and then runs build → validate → ship with no pre-build panel; `plan` runs the one-run plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan and /harness-patch refuse to start on it."
     },
     "judgements": {
       "type": "array",
-      "description": "The append-only ledger of every autonomous judgement the harness made on this feature, written by feature-record.py judgement and read by check-state.sh (which refuses a mission change, re-gate or succession with no matching entry) and by the operator, who audits it after the fact instead of ruling in-flight (SC-21). ABSENCE MEANS NO JUDGEMENT HAS BEEN RECORDED, which for a feature run under FEAT-59 is itself what check-state.sh flags.",
+      "description": "The append-only ledger of every autonomous judgement the harness made on this feature, written by feature-record.py judgement and read by check-state.py (which refuses a mission change, re-gate or succession with no matching entry) and by the operator, who audits it after the fact instead of ruling in-flight (SC-21). ABSENCE MEANS NO JUDGEMENT HAS BEEN RECORDED, which for a feature run under FEAT-59 is itself what check-state.py flags.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -98,7 +98,7 @@
     },
     "budget_decisions": {
       "type": "array",
-      "description": "One entry per raise of `max_total_cycles`, appended by feature-record.py raise-cycles alongside the raise itself, and read by check-state.sh, which refuses a `max_total_cycles` above the template default with no matching entry (SC-15, DEC-157). ABSENCE MEANS THE BUDGET WAS NEVER RAISED, or was raised before FEAT-59.",
+      "description": "One entry per raise of `max_total_cycles`, appended by feature-record.py raise-cycles alongside the raise itself, and read by check-state.py, which refuses a `max_total_cycles` above the template default with no matching entry (SC-15, DEC-157). ABSENCE MEANS THE BUDGET WAS NEVER RAISED, or was raised before FEAT-59.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -113,7 +113,7 @@
     "github": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Read by gh-sync.py's load_recorded and by check-state.sh INV-21. Present only once a feature is mirrored to GitHub; no property inside is required.",
+      "description": "Read by gh-sync.py's load_recorded and by check-state.py INV-21. Present only once a feature is mirrored to GitHub; no property inside is required.",
       "properties": {
         "milestone": { "type": ["integer", "null"], "description": "The GitHub milestone number, or null." },
         "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
@@ -152,7 +152,7 @@
     "factory": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Read by factory_decompose.py's load_factory, factory_claim.py's issue_number, and check-state.sh INV-24. Present only once a feature is decomposed by the factory; no property inside is required.",
+      "description": "Read by factory_decompose.py's load_factory, factory_claim.py's issue_number, and check-state.py INV-24. Present only once a feature is decomposed by the factory; no property inside is required.",
       "properties": {
         "repo": { "type": ["string", "null"], "description": "The factory repo name, or null." },
         "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },

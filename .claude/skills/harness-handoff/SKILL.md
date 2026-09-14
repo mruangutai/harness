@@ -49,7 +49,7 @@ first dispatch — wakes, verification before accepting a verdict, never waiting
 
 - `HARNESS_CONTROL_PLANE_ROOT: <absolute path>` in your starting context is the Harness control plane, not your working directory. `UNRESOLVED` → `VERDICT: BLOCKED`; never guess.
 - `<HARNESS_CONTROL_PLANE_ROOT>` prefixes every Harness-owned read; `<HARNESS_FEATURE_TREE_ROOT>` prefixes every feature-directory write. Never interchangeable; never a bare relative Harness-owned path in an instruction.
-- The control-plane root is read-only to you; write grants are unchanged (check-domain.sh).
+- The control-plane root is read-only to you; write grants are unchanged (check-domain.py).
 
 ## Writing the artifact
 

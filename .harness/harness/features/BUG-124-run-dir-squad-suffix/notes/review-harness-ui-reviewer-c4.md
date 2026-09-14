@@ -9,16 +9,16 @@
 - File-extension census of the four-file diff: 1 `.sh`, 1 `.py` (source), 2 `.py` (tests). Zero
   html/css/scss/tsx/jsx/vue/svelte/less. Confirms repo-tier P-01 (no rendered UI in this repo by
   default) — nothing here is a rendered surface.
-- Read in full: the `dispatch-guard.sh` diff (both hunks, `artifact://1840`), `harness_boundary.py`
+- Read in full: the `dispatch-guard.py` diff (both hunks, `artifact://1840`), `harness_boundary.py`
   lines 816–915 (all four new helpers' bodies, not just signatures), and grepped
   `tests/integration/test-dispatch-guard.py` case 18/20/22 for what wording the suite actually pins.
 - Per dispatch: judged the one adjacent non-rendered surface named — the refusal string
-  `dispatch-guard.sh` emits on stderr for an inverted run-dir slug (REQ-02/SC-02/SC-08). Accessibility
+  `dispatch-guard.py` emits on stderr for an inverted run-dir slug (REQ-02/SC-02/SC-08). Accessibility
   and dark/light theme parity have no purchase on a stderr string — stated explicitly, not silently
   omitted (repo-tier P-03 applies analogously to a stderr string as it does to a print-only test
   suite; both are one-channel text with no colour-only state encoding).
 
-## The refusal message, read in full (`dispatch-guard.sh:172-182`)
+## The refusal message, read in full (`dispatch-guard.py:172-182`)
 
 ```
 dispatch-guard: BLOCKED -- run-dir slug 'eng-t01' cannot be written by any squad lead.
@@ -31,7 +31,7 @@ dispatch-guard: BLOCKED -- run-dir slug 'eng-t01' cannot be written by any squad
 
 **Legibility / actionability (REQ-02, SC-02):** the two load-bearing facts — the offending slug
 (`'eng-t01'`, plain quoting via `%r`, matches house convention already used at
-`dispatch-guard.sh:101`/`245` for persona/path values) and the compliant forms
+`dispatch-guard.py:101`/`245` for persona/path values) and the compliant forms
 (`<task-or-purpose>-eng` etc., derived from `run_dir_forms()`, `harness_boundary.py:892-915`) — are
 both printed **unescaped and in plain text**. A dispatcher does not need to parse the escaped tail
 line to fix the dispatch; the fix ingredients are legible without it. `test-dispatch-guard.py:556-560`
@@ -57,7 +57,7 @@ confusion; not required to ship.
 New print lines use ASCII `--` (`"BLOCKED -- run-dir slug..."`, `"SKIPPED -- the manifest..."`);
 sibling lines elsewhere in the same file use an em dash (`"BLOCKED — this governed dispatch..."` at
 line 131, `"... — no claim recorded."` at line 101). Measured: the *pre-existing* file at `80ce35d1`
-already mixes both (`git show 80ce35d1:.../dispatch-guard.sh` — 18 em dashes, 9 ASCII `--`, the T-09
+already mixes both (`git show 80ce35d1:.../dispatch-guard.py` — 18 em dashes, 9 ASCII `--`, the T-09
 block already using `--`). The new BUG-124 lines are internally consistent with themselves and with
 the T-09 half of the existing split; they do not introduce a new inconsistency, only continue an
 existing one. Per house precedent (P-11 in Expertise: don't file a fix against an untouched

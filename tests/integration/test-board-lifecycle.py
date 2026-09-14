@@ -76,7 +76,7 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
                    factory_issues=None, plan_station=None):
     """A `feature.json` fixture at `<root>/.harness/<repo_slug>/features/<feat>/feature.json` —
     the SAME `.harness/*/features/*/feature.json` glob shape `board_lifecycle.py`'s own
-    `_feature_dirs` reads, and check-state.sh's INV-24/INV-26 already read (T-15).
+    `_feature_dirs` reads, and check-state.py's INV-24/INV-26 already read (T-15).
 
     `status=None` OMITS the key rather than writing a null — the post-migration shape (FEAT-41
     T-07), not a malformed document. `plan_station` writes the sibling plan.yaml carrying that

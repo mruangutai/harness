@@ -16,15 +16,15 @@ lanes:
     - surface: .claude/skills/harness/bin/test-factory-*.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY for this path, so no agent may write it
-    - surface: .claude/skills/harness/bin/check-state.sh
+      reason: check-domain.py --resolve returns NOBODY for this path, so no agent may write it
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
-      reason: DEC-174 carve-out, check-state.sh is the state gate and cannot vouch for its own change
+      reason: DEC-174 carve-out, check-state.py is the state gate and cannot vouch for its own change
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       reason: it is the gate script's own test and is edited in the same DEC-174 direct step
@@ -64,7 +64,7 @@ decisions:
     because: measured on board 3, which holds 150 items of which 80 are Done, the item payload carries no state key so a tool cannot filter closed issues from it, while query status:Ready returned 1 item and is:open returned 70 - the filter bounds the read by the ready column rather than by board size, at no cost. The accepted limitation is that the board still grows monotonically, which effort ticket 186 owns; the rejected alternatives were a second gh call per item, which is a per-poll cost proportional to the whole board, and an archive step, which is new scope and destroys the operator visibility REQ-01 asks for
     dec: none
   - id: D-11
-    choice: The eight tasks that edit run-unit-tests.sh - T-02, T-03, T-04, T-05, T-06, T-07, T-11 and T-12 - are serialised at dispatch and never run concurrently, even when the dependency graph makes them one wave
+    choice: The eight tasks that edit run-unit-tests.py - T-02, T-03, T-04, T-05, T-06, T-07, T-11 and T-12 - are serialised at dispatch and never run concurrently, even when the dependency graph makes them one wave
     because: that script's drift detector exits 2 for any bin/test-*.py it does not list, so a task that has created its test file but not yet registered it turns EVERY other task's verify red with a message naming the wrong task; the graph cannot express the constraint, so recording it here is what carries it into build instead of leaving it in one lead's head. One further ordering constraint the graph cannot express rides here - T-12 must land in the same run as T-04 through T-07, before the qa gate evaluates them, because it is the only integration-kind coverage of their surface, the only test anywhere in this feature that observes a real process exit status, and, since the criteria rework, the only automated proof that the four tools COMPOSE into the journey at all (SC-19) - three reasons living in one task, so deleting or reordering it costs all three, and the gate evaluates one feature diff once after the build team returns rather than per task. T-10 by contrast must land in the FIRST wave and must not be made to wait on T-12, because SC-06 declares integration evidence and the kind detects nothing until T-10 widens its glob. Neither constraint rests on the change_type feature matrix floor - an earlier draft justified both that way and was wrong, since qa classifies a diff by reading it rather than by reading a task's change_type field
     dec: none
   - id: D-12
@@ -77,7 +77,7 @@ decisions:
     dec: DEC-179
   - id: D-07
     choice: Factory tools are underscore-named importable Python modules whose command-line entry sits behind a main guard, and their tests import and monkeypatch the runner seam instead of forking the script
-    because: run-unit-tests.sh splits its two arrays by whether a test drives a real script end to end, so import-and-monkeypatch tests belong in UNIT_SCRIPTS and the unit test kind then genuinely covers this surface
+    because: run-unit-tests.py splits its two arrays by whether a test drives a real script end to end, so import-and-monkeypatch tests belong in UNIT_SCRIPTS and the unit test kind then genuinely covers this surface
     dec: none
   - id: D-08
     choice: The CLI contract of DESIGN.md C-3 — stdout carries the machine-readable payload only, exit 0 success, 1 nothing to do, 2 refused, 3 lost race, and every entry point traps unexpected exceptions into exit 2 — is implemented once in a shared factory_cli module that every entry point calls, not restated in each tool
@@ -106,7 +106,7 @@ tasks:
     traces: [REQ-06]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve reports NOBODY for .harness/factory/fleet.yaml, so no agent domain grants the write (DEC-179, D-06)
+    execution_reason: check-domain.py --resolve reports NOBODY for .harness/factory/fleet.yaml, so no agent domain grants the write (DEC-179, D-06)
     depends_on: []
     status: done
     files:
@@ -189,9 +189,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_cli.py
       - .claude/skills/harness/bin/test-factory-cli.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t11.txt 2>&1; s=$?; grep -q "^PASS test-factory-cli.py$" /tmp/v-t11.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t11.txt 2>&1; s=$?; grep -q "^PASS test-factory-cli.py$" /tmp/v-t11.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_cli.py, the one place the factory's command-line contract is implemented. Every
       other factory tool with a command-line entry calls into it, so the contract is written once
@@ -274,7 +274,7 @@ tasks:
           stderr and exits 1.
       The test must not spawn a subprocess.
 
-      Register test-factory-cli.py in run-unit-tests.sh by appending it to the UNIT_SCRIPTS array
+      Register test-factory-cli.py in run-unit-tests.py by appending it to the UNIT_SCRIPTS array
       in this same task. It never forks, so it belongs in UNIT_SCRIPTS and not in
       INTEGRATION_SCRIPTS, and leaving it unregistered makes that script's drift detector exit 2
       and redden every other task's verify.
@@ -290,9 +290,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t02.txt 2>&1; s=$?; grep -q "^PASS test-factory-config.py$" /tmp/v-t02.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t02.txt 2>&1; s=$?; grep -q "^PASS test-factory-config.py$" /tmp/v-t02.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_config.py, the only reader of .harness/factory/fleet.yaml. Every other factory
       tool takes its repository and board from this module and never from the working directory.
@@ -305,13 +305,13 @@ tasks:
           from inside it, a relative .harness/factory/fleet.yaml resolves against the target repo,
           and the factory reads a fleet declaration that is not its own or none at all.
           Use the three-tier root resolution this repository already standardises on. The reference
-          copy is the _resolve_root function in check-plan-routes.py, and run-unit-tests.sh's header
+          copy is the _resolve_root function in check-plan-routes.py, and run-unit-tests.py's header
           comment block is 24 lines about this exact collapse-to-cwd defect and why each obvious
           probe is wrong. Copy the tiers, not the probe: prefer CLAUDE_PROJECT_DIR when it is set
           AND the probe file is readable under it; otherwise derive the root from __file__ by
           walking up out of the bin directory; announce on stderr when a set CLAUDE_PROJECT_DIR is
           discarded rather than swapping trees in silence. The probe file is docs/harness/SPEC.md,
-          the same one run-unit-tests.sh uses and for the same reason — deploy.sh copies the skill
+          the same one run-unit-tests.py uses and for the same reason — deploy.sh copies the skill
           directory to a location that carries the scripts but no docs, so probing for the bin
           directory or for a script re-accepts that tree.
           FLEET_PATH is harness_root() joined with .harness/factory/fleet.yaml. An explicit --fleet
@@ -369,7 +369,7 @@ tasks:
       --show over an invalid fleet writes nothing to stdout, one line to stderr, and exits 2. The
       test must not spawn a subprocess.
 
-      Register test-factory-config.py in run-unit-tests.sh by appending it to the UNIT_SCRIPTS
+      Register test-factory-config.py in run-unit-tests.py by appending it to the UNIT_SCRIPTS
       array. It belongs in UNIT_SCRIPTS, not INTEGRATION_SCRIPTS, because it never forks. Leaving
       it unregistered makes the script's drift detector exit 2 and redden the whole suite.
 
@@ -384,9 +384,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t03.txt 2>&1; s=$?; grep -q "^PASS test-factory-gh.py$" /tmp/v-t03.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t03.txt 2>&1; s=$?; grep -q "^PASS test-factory-gh.py$" /tmp/v-t03.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_gh.py, the single place every factory tool talks to GitHub through. It exists so
       that the tools are testable offline and so that failure behaviour is decided once.
@@ -540,7 +540,7 @@ tasks:
       under contextlib.redirect_stdout over an io.StringIO and checking it is empty. The test must
       not spawn a subprocess.
 
-      Register test-factory-gh.py in run-unit-tests.sh's UNIT_SCRIPTS array in this same task.
+      Register test-factory-gh.py in run-unit-tests.py's UNIT_SCRIPTS array in this same task.
 
   - id: T-04
     title: Publish an approved plan as issues on the board
@@ -553,9 +553,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_decompose.py
       - .claude/skills/harness/bin/test-factory-decompose.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_decompose.py, which turns one approved plan into work items in a target
       repository and places each on the control-plane board.
@@ -816,7 +816,7 @@ tasks:
       Write feature.yaml SURGICALLY — locate the factory block textually and rewrite only those
       lines, preserving the rest of the file byte for byte. Do not load it and dump it back. That
       same file carries gh-sync.py's github block and the operator's comments; gh-sync.py does
-      surgical text rewriting for exactly this reason, and check-state.sh's INV-23 budgets comment
+      surgical text rewriting for exactly this reason, and check-state.py's INV-23 budgets comment
       lines, so a round trip that reformats the file trips a gate in a different feature and reads
       as an unrelated regression.
 
@@ -944,7 +944,7 @@ tasks:
       entry point exit 2, not 1. The test must not
       spawn a subprocess and must not touch the real feature directories.
 
-      Register test-factory-decompose.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+      Register test-factory-decompose.py in run-unit-tests.py's UNIT_SCRIPTS array in this task.
 
   - id: T-05
     title: Claim the next board item atomically
@@ -957,9 +957,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/test-factory-claim.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t05.txt 2>&1; s=$?; grep -q "^PASS test-factory-claim.py$" /tmp/v-t05.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t05.txt 2>&1; s=$?; grep -q "^PASS test-factory-claim.py$" /tmp/v-t05.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_claim.py, the polling and claiming tool. It is how an agent takes work, and it
       is the only thing standing between two agents and the same issue.
@@ -1271,7 +1271,7 @@ tasks:
       monkeypatched preflight raising GhError exits 2, not 1, with stdout empty and one stderr
       line naming a concrete value. The test must not spawn a subprocess.
 
-      Register test-factory-claim.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+      Register test-factory-claim.py in run-unit-tests.py's UNIT_SCRIPTS array in this task.
 
   - id: T-06
     title: Prepare a workspace checkout for a claimed issue
@@ -1284,9 +1284,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_workspace.py
       - .claude/skills/harness/bin/test-factory-workspace.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_workspace.py, which gives an agent a ready checkout of a repository the harness
       does not live in. The harness is not installed into that repository in this increment; the
@@ -1352,7 +1352,7 @@ tasks:
       otherwise read as nothing to do. The test must not spawn a subprocess and must not touch any
       real repository.
 
-      Register test-factory-workspace.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+      Register test-factory-workspace.py in run-unit-tests.py's UNIT_SCRIPTS array in this task.
 
   - id: T-07
     title: Land finished work as a pull request
@@ -1365,9 +1365,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_land.py
       - .claude/skills/harness/bin/test-factory-land.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t07.txt 2>&1; s=$?; grep -q "^PASS test-factory-land.py$" /tmp/v-t07.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t07.txt 2>&1; s=$?; grep -q "^PASS test-factory-land.py$" /tmp/v-t07.txt && [ "$s" -eq 0 ]
     intent: |
       Add factory_land.py, the last step of the journey. It opens a pull request and stops. The
       operator merges; the factory never does, in this increment.
@@ -1424,27 +1424,27 @@ tasks:
       raising a plain ValueError makes the entry point exit 2, not 1. The test must not spawn a
       subprocess.
 
-      Register test-factory-land.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+      Register test-factory-land.py in run-unit-tests.py's UNIT_SCRIPTS array in this task.
 
   - id: T-08
     title: Add the state-check invariant for recorded factory claims
     traces: [REQ-06, REQ-07]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — check-state.sh is a gate script, and green gates cannot vouch for the code that produces them; its own test file is edited in the same direct step
+    execution_reason: DEC-174 carve-out — check-state.py is a gate script, and green gates cannot vouch for the code that produces them; its own test file is edited in the same direct step
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      grep -q "INV-24" .claude/skills/harness/bin/check-state.sh && grep -q "INV-24" .claude/skills/harness/bin/test-check-state.py && .claude/skills/harness/bin/run-unit-tests.sh --kind integration > /tmp/v-t08.txt 2>&1 && grep -q "^PASS test-check-state.py$" /tmp/v-t08.txt
+      grep -q "INV-24" .claude/skills/harness/bin/check-state.py && grep -q "INV-24" .claude/skills/harness/bin/test-check-state.py && .claude/skills/harness/bin/run-unit-tests.py --kind integration > /tmp/v-t08.txt 2>&1 && grep -q "^PASS test-check-state.py$" /tmp/v-t08.txt
     intent: |
-      Add INV-24 to check-state.sh, covering the factory block that T-04 writes into a feature's
+      Add INV-24 to check-state.py, covering the factory block that T-04 writes into a feature's
       feature.yaml.
 
       For every .harness/features/*/feature.yaml that parses and carries a `factory` mapping:
-        - Load .harness/factory/fleet.yaml with the same harness_yaml helper check-state.sh
+        - Load .harness/factory/fleet.yaml with the same harness_yaml helper check-state.py
           already uses. If the fleet file is absent, append one `bad` entry saying the feature
           records factory state but no fleet declares the repository, and skip the rest for that
           feature.
@@ -1468,7 +1468,7 @@ tasks:
       A feature.yaml with no factory block is not a violation and must produce no output.
 
       Add cases to test-check-state.py in the same task, in the style of its existing cases,
-      forking the real check-state.sh against a temporary tree: a feature with a factory block
+      forking the real check-state.py against a temporary tree: a feature with a factory block
       naming a listed repository passes; a feature naming an unlisted repository produces a
       violation whose message contains the repository name; two features recording the same
       repository and issue number produce a violation naming both; ONE FEATURE'S factory.parent
@@ -1478,7 +1478,7 @@ tasks:
       factory block carrying no parent key produces no INV-24 output; a factory block with no fleet
       file present produces a violation; a tree with no factory blocks at all produces no INV-24
       output. Name the new cases so that the literal string INV-24 appears in test-check-state.py
-      as well as in check-state.sh. Do not add a new file to the bin directory — these cases go
+      as well as in check-state.py. Do not add a new file to the bin directory — these cases go
       into the existing test script, which is already registered in INTEGRATION_SCRIPTS.
 
   - id: T-09
@@ -1595,7 +1595,7 @@ tasks:
       Why this is load-bearing and not cosmetic: the qa gate resolves each required kind by two
       signals, and one of its four states is misconfigured — "cmd is null, or no test files
       matched" — which returns BLOCKED rather than a pass. The integration kind has a real runner
-      (run-unit-tests.sh --kind integration, which does execute test-check-state.py because that
+      (run-unit-tests.py --kind integration, which does execute test-check-state.py because that
       file is listed in INTEGRATION_SCRIPTS), but its detect glob tests/integration/** matches
       zero files in this repository, so the kind resolves to "no test files matched" and SC-06
       can never come back satisfied. Widening detect is what lets the runner's result count,
@@ -1633,9 +1633,9 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-factory-integration.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration > /tmp/v-t12.txt 2>&1; s=$?; grep -q "^PASS test-factory-integration.py$" /tmp/v-t12.txt && [ "$s" -eq 0 ]
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration > /tmp/v-t12.txt 2>&1; s=$?; grep -q "^PASS test-factory-integration.py$" /tmp/v-t12.txt && [ "$s" -eq 0 ]
     intent: |
       Add test-factory-integration.py, the only test in this feature that observes a real PROCESS
       exit status.
@@ -1723,7 +1723,7 @@ tasks:
           raises before anything else runs.
       Keep each case to one subprocess call; the whole file must run in well under 60 seconds.
 
-      Register test-factory-integration.py in run-unit-tests.sh by appending it to the
+      Register test-factory-integration.py in run-unit-tests.py by appending it to the
       INTEGRATION_SCRIPTS array, NOT to UNIT_SCRIPTS — that array is the one for tests that drive a
       real script end to end through a fork, which is exactly what this file does, and the split is
       what keeps the unit kind honest about what it covers. Leaving it unregistered makes the

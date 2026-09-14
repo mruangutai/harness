@@ -77,7 +77,7 @@ Added `_is_violations_invocation` (argument-present regex, excludes zero-arg
 `suite_layout.violations()` docstring mentions) and `_violations_callers` (git-tracked,
 source-extension-filtered via `suite_layout.SOURCE_EXTENSIONS`, `tests/`-excluded, comment-lines
 skipped), then one `check(...)` asserting the resulting set equals
-`{".claude/skills/harness/bin/run-unit-tests.sh"}`, passing the observed set as detail. Existing
+`{".claude/skills/harness/bin/run-unit-tests.py"}`, passing the observed set as detail. Existing
 `"runner delegates layout once"` check left untouched (purely additive, inserted after it).
 
 **Scoping decisions** (all as required):
@@ -97,17 +97,17 @@ skipped), then one `check(...)` asserting the resulting set equals
   requires the qualified `suite_layout.violations(` spelling, which that file's own function
   definition/calls never use.
 - Assertion equates the observed **set** to the single-element set naming
-  `.claude/skills/harness/bin/run-unit-tests.sh` (not a bare length check), and passes
+  `.claude/skills/harness/bin/run-unit-tests.py` (not a bare length check), and passes
   `repr(_violations_callers(...))` as the `check(...)` detail.
 
 **RED proof (mutation probe)**:
 - Probe file: `.claude/skills/harness/bin/board-station.py` (unrelated script, not
-  `run-unit-tests.sh`).
+  `run-unit-tests.py`).
 - sha256 before: `80042071e34bc51ab4fabfb0f163b66780b73c476c0dc7aeafdaec38a6297043`
 - Appended a genuine invocation (`suite_layout.violations("/tmp/probe-root")`, an argument
   present) via the Edit tool, ran `tests/unit/test-suite-layout.py`:
   ```
-  FAIL violations() has exactly one non-test caller repository-wide ['.claude/skills/harness/bin/board-station.py', '.claude/skills/harness/bin/run-unit-tests.sh']
+  FAIL violations() has exactly one non-test caller repository-wide ['.claude/skills/harness/bin/board-station.py', '.claude/skills/harness/bin/run-unit-tests.py']
   ```
   Exit 1.
 - Restored the file (removed the appended lines via Edit tool). sha256 after:
@@ -117,10 +117,10 @@ skipped), then one `check(...)` asserting the resulting set equals
 ## Verification (all run from the worktree root)
 
 1. `python3 tests/unit/test-suite-layout.py` — exit 0, 47 checks, 0 FAIL (baseline 46 + 1 new).
-2. `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0, 342 PASS, 0 FAIL, 27 files
+2. `.claude/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0, 342 PASS, 0 FAIL, 27 files
    (baseline 341 + 1 new).
 3. `python3 tests/integration/test-run-unit-tests-layout.py` — exit 0, 14 PASS, 0 FAIL (unchanged).
-4. `.claude/skills/harness/bin/run-unit-tests.sh --check-layout` — exit 0.
+4. `.claude/skills/harness/bin/run-unit-tests.py --check-layout` — exit 0.
 5. `python3 tests/manual/suite-census.py tree-audit --ref HEAD` — `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`
    (unchanged).
 6. `python3 .claude/skills/harness/bin/code-grade.py --base "$(git merge-base origin/main HEAD)" --head "$(git stash create)"`

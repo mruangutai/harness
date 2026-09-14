@@ -3,7 +3,7 @@
 BLUF: 5 entries applied — 3 craft displacements (P-06, G-06, G-09), 2 repository additions
 (G-07, G-08). All three relayed candidates accepted after independent judgment; two self-derived
 repository facts added from the ship briefing (B-9, and the `bugfix.when` placeholder observed
-across qa-c7/c8/c9). Both files pass `check-expertise.sh` (`OK`).
+across qa-c7/c8/c9). Both files pass `check-expertise.py` (`OK`).
 
 ## Source material read
 
@@ -39,7 +39,7 @@ test per leg, not per rule. New entry: P-06.
 **Accepted → repository Gotchas, added G-07.** Ship briefing B-9: the suite is green only with
 `HARNESS_AGENT_TYPE` unset; with it set, `test-plan-merge.py` fails 11 checks and the run exits 1 —
 a false regression tied to this repo's own env-var convention, not the diff under test. Directly
-analogous to the existing repo-tier G-04/G-05 entries about `run-unit-tests.sh` quirks.
+analogous to the existing repo-tier G-04/G-05 entries about `run-unit-tests.py` quirks.
 
 **Accepted → repository Gotchas, added G-08.** Across qa-c7, qa-c8 and the panel re-run, the
 `bugfix` row's `when: match_bug_class` clause was checked and found to never fire (no bug-class

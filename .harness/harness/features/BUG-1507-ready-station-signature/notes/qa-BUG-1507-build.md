@@ -49,7 +49,7 @@ VERIFY_EXIT:0
 
 Configured kind command — the gate the floor actually rests on, run directly:
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .agents/skills/harness/bin/run-unit-tests.py --kind integration
 ...
 ----- test-station-argument-spelling.py (exit 0, 0.08s) -----
 PASS test-station-argument-spelling.py

@@ -15,7 +15,7 @@ python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registr
 ```
 
 If your persona holds no shell, do not run that command. Your dispatcher supplies
-`HARNESS-FEATURE-TREE-ROOT: <absolute path>` in the dispatch; dispatch-guard.sh refuses its absence
+`HARNESS-FEATURE-TREE-ROOT: <absolute path>` in the dispatch; dispatch-guard.py refuses its absence
 at exit 2. If it is absent anyway, return `VERDICT: BLOCKED`.
 
 ## Check your own domain FIRST, and use what you already own
@@ -29,7 +29,7 @@ at exit 2. If it is absent anyway, return `VERDICT: BLOCKED`.
 | lead | `runs/<run-id>/digest.md` — the durable digest `validate-digest.py` checks (DEC-156) |
 
 **If you own such a path, your artifact goes there and you write no receipt.** A dispatch that names
-a receipt path for you does not override this — check-domain.sh will deny the write, correctly
+a receipt path for you does not override this — check-domain.py will deny the write, correctly
 (#216).
 
 ## The receipt — fallback for the six who own no other path

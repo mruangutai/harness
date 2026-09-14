@@ -2,7 +2,7 @@
 """Issue #1033 / DEC-212: a config change that alters a VALUE'S SHAPE (a key's
 container type, required-ness, or structural nesting) must be bound to the
 `integration` floor, or a task like FEAT-41 T-01 can ship a broken state gate
-green — 112/112 unit-green while `check-state.sh`'s own INV-26 block and
+green — 112/112 unit-green while `check-state.py`'s own INV-26 block and
 `board_lifecycle.py` threw a `TypeError` against the changed shape.
 
 This is a pure data/prose fix (a `test_matrix.config.when` clause, a

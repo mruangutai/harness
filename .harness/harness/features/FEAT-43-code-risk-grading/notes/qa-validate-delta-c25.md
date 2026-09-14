@@ -209,7 +209,7 @@ blockers already closed in `runs/validate-final-panel-c21-validator/digest.md` a
 CLI, `gate_policy.py`, `validate-digest.py`'s wiring, the glossary, and the skill's worked examples) —
 I relied on their prior verdicts and the code reviewer's re-confirmation in this same cycle, since
 this delta's diff touches only `code_grade.py` and `test-code-grade.py`. I did not re-run the
-canonical/project-wide suite or `check-state.sh` (excluded by the assignment; the orchestrator runs
+canonical/project-wide suite or `check-state.py` (excluded by the assignment; the orchestrator runs
 those once, after this gate). I did not re-verify the 12-demand `REASON REQUIRED` SC-15 set or the
 195-record/12-demand gated-output measurement — the code reviewer already reproduced both
 independently in this run and the assignment says explicitly to build on that, not repeat it. SC-11's

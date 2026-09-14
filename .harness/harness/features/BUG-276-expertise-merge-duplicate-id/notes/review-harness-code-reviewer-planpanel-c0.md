@@ -16,7 +16,7 @@ place for its exit-11 assertions to be true, not just topologically satisfiable.
 Verified every file:line anchor named in the shared context against the actual source at this
 checkout (not the plan's prose) — `compute_union` at line 114, `_check_proposal_ambiguity` at
 305-317 (message differs from the new guard only by "ops"→"entries", confirmed), docstring
-exit-code table 14-19 (only 0/6/7/8 present, confirmed), `check-expertise.sh` duplicate-id check at
+exit-code table 14-19 (only 0/6/7/8 present, confirmed), `check-expertise.py` duplicate-id check at
 202-207 (matches "~202-206"), `cmd_apply`'s stdout print of refusal lines at line 538 (exact),
 `test-expertise-ops.py` bindings — `compute_union`=24, `MergeRefusal`=25, `check`=42,
 `base_sections`=46, `case_u9`=131, `case_u10`=142 with its `compute_union` unpack at line 150 exactly,

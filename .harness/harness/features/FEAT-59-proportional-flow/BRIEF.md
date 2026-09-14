@@ -19,7 +19,7 @@ ledgers and run artifacts:
   findings). The first build dispatch BLOCKED on five plan paths the layout gate forbids —
   "four goal-check cycles and three panel cycles read it and none noticed; the first build dispatch
   found it in one member spawn" (`observations/harness-orchestrator.md`). Three of six review cycles
-  FAILed on SC-04, a repository-wide `check-state.sh` assertion red on other features' debris.
+  FAILed on SC-04, a repository-wide `check-state.py` assertion red on other features' debris.
 - FEAT-43 (49 runs, 29 cycles): 12 of 18 rework triggers were genuine defects, found one per cycle
   across six separate "final" reviews because readers run as sequential squad segments. Each defect
   cost ~4 runs plus a human authorization; `max_total_cycles` was raised seven times and always
@@ -129,7 +129,7 @@ kind), `inspection`, or `uat`.
 
 - SC-10 (code maintainer): the BRIEF template carries `## Done when — by perspective` and SCs
   tagged with a perspective; `REQ-NN` and the free-text `## Goal` are removed from the template.
-  `check-state.sh` refuses a new BRIEF with a perspective that no SC discharges, or an SC with no
+  `check-state.py` refuses a new BRIEF with a perspective that no SC discharges, or an SC with no
   perspective. Pre-existing BRIEFs are not graded.
   verify: automated  evidence: python
 - SC-11 (code maintainer): the handoff `## Done when` section is a pointer to the BRIEF's
@@ -152,7 +152,7 @@ kind), `inspection`, or `uat`.
 - SC-15 (operator): at signature the operator records one rework ruling in `feature.json`
   (`rework: {rounds: N, wall_clock_minutes: M}`); the orchestrator loops inside it without asking
   and returns `awaiting_user` only on a new finding class (scope change, emergent SC) or budget
-  exhaustion. `check-state.sh` enforces `cycles_used <= max_total_cycles` and refuses a raise
+  exhaustion. `check-state.py` enforces `cycles_used <= max_total_cycles` and refuses a raise
   without a `decision:` record in `feature.json` (DEC-157).
   verify: automated  evidence: python
 - SC-16 (code maintainer): an SC whose `verify:` command asserts repository-wide state outside the
@@ -184,7 +184,7 @@ kind), `inspection`, or `uat`.
 
 - SC-21 (operator): every autonomous judgement — mission choice, finding `kind`, re-gate or not,
   continue or stop, succession — is appended to `feature.json` `judgements[]` as
-  `{at, by, decision, reason}` with a one-line reason. `check-state.sh` refuses a mission change,
+  `{at, by, decision, reason}` with a one-line reason. `check-state.py` refuses a mission change,
   re-gate, or succession with no matching entry. A ledger the operator can audit is the whole
   basis of trust; an unrecorded judgement is indistinguishable from an accident.
   verify: automated  evidence: python
@@ -266,7 +266,7 @@ are recorded user decisions — SC-15 finally enforces it), DEC-174, DEC-188, DE
 thresholds, seam-based handoff), DEC-204 (digest is a claim until disk confirms).
 
 **DEC-174 routing.** SC-05, SC-06, SC-07, SC-08, SC-10, SC-11, SC-15, SC-16, SC-17, SC-18, SC-19
-change `plan-merge.py`, `validate-digest.py`, `check-state.sh`, `check-domain.sh`, the qa gate, or
+change `plan-merge.py`, `validate-digest.py`, `check-state.py`, `check-domain.py`, the qa gate, or
 their tests. Those are main-session-direct work with explicit tests and human diff review; they do
 not go through the enforcement path they change. The remaining SCs (skills, templates, team YAML,
 agent prompts, decision text) go through the normal path. The plan sequences the direct batch

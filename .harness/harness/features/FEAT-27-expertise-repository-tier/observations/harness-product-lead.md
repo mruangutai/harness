@@ -10,7 +10,7 @@
   ruling, the instruction "test this against the source, do not inherit it" is what buys the better
   anchor — a deferential member would have returned my own reasoning back to me.
 - 2026-08-19: the `[ -r ]` guard is double-covered for its *specified* duty and uncovered for its
-  *unspecified* one. `inject-expertise.sh:75-77`'s segment filter independently rejects an unexpanded
+  *unspecified* one. `inject-expertise.py:75-77`'s segment filter independently rejects an unexpanded
   glob word (it carries a literal `*`), which is why qa's guard-removal mutant survived all 18 cases.
   The comment at `:63-65` states the guard exists for the non-matching-glob case — i.e. the code's own
   comment describes only the duty that is redundant, and is silent on the one that is load-bearing.
@@ -44,7 +44,7 @@
   files are the OTHER member's so the disclaimer is cheap rather than a re-derivation.
 - 2026-08-19 (specfix-product): the dispatch offered the member an out — "if it concludes the line
   is already correct, change nothing, an empty result is a real outcome". I checked the premise at
-  source first (`inject-expertise.sh:100` and `:104` both `cap_body ... 150`; `SPEC.md:963` gives
+  source first (`inject-expertise.py:100` and `:104` both `cap_body ... 150`; `SPEC.md:963` gives
   150/150/40) and found it foreclosed, so I encoded "already correct is not an available outcome,
   but overturn me with your own evidence if you disagree" (P-06 + O-04). An unqualified escape
   hatch on a premise the lead can settle in two Reads buys a member spawn that may return nothing.

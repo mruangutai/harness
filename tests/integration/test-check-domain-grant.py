@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: the domain grant path and the manifest that feeds it.
+"""check-domain.py: the domain grant path and the manifest that feeds it.
 
 Slice of the former test-check-domain.py (issue #1527) — the live-repo grant cases,
 T-12's manifest parsing, FEAT-15's fleet/base resolution, `--resolve`, and the
@@ -33,7 +33,7 @@ def case(name, path, want, agent="harness-documentor", tool="Write"):
 
 
 # ---------------- MUST PASS: outside the repo is not a domain question --------
-# bash-write-guard.sh:211 already says so ("outside repo — not this hook's
+# bash-write-guard.py:211 already says so ("outside repo — not this hook's
 # problem"). The Write hook must agree, or the same scratch file is legal via
 # Bash and illegal via Write.
 case("a scratch script in /tmp", "/tmp/backfill_t04.py", 0)
@@ -152,10 +152,10 @@ def run_t12():
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
-    shutil.copy(HOOK, os.path.join(isobin, "check-domain.sh"))
+    shutil.copy(HOOK, os.path.join(isobin, "check-domain.py"))
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(iso, "anything.md"), "content": "x"}}
-    r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
+    r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
                        capture_output=True, text=True,
                        env=_env(iso))
     t12("an ABSENT manifest still fails OPEN, loudly (DEC-101 carve-out intact)",
@@ -312,7 +312,7 @@ def run_t12():
 
     # SC-08's ACTUAL clause: "a channel the user sees". stderr is not that on an allow —
     # measured, not assumed. `systemMessage` on stdout is the PreToolUse contract's
-    # user-visible channel, already live in this repo via branch-create-gate.sh:82,111.
+    # user-visible channel, already live in this repo via branch-create-gate.py:82,111.
     # Parsed rather than substring-matched: malformed JSON on a hook's stdout is worse
     # than none, so this fails if the payload is not loadable.
     def _sysmsg(res):
@@ -362,7 +362,7 @@ def run_t12():
     # converted script". The user ruled: REMOVE IT, honour the signature.
     #
     # What that costs is EARLIER detection, not correctness — measured before deciding:
-    # a malformed state.yaml written during a grant is still refused by check-state.sh
+    # a malformed state.yaml written during a grant is still refused by check-state.py
     # at the next /harness entry, naming the same keys, by a session that can read it.
     # One bad file to delete, against a crude reader living on forever in a write guard.
     #
@@ -854,7 +854,7 @@ def run_resolve():
           r.stdout.split() == ["harness-dev-ops"], f"got {r.stdout.split()!r}")
 
     # (b) a doubly-granted path returns BOTH, sorted
-    r = resolve(".agents/skills/harness/bin/run-unit-tests.sh")
+    r = resolve(".agents/skills/harness/bin/run-unit-tests.py")
     check("(b) --resolve: a doubly-granted path returns both grantees",
           sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
           f"got {r.stdout.split()!r}")
@@ -900,7 +900,7 @@ def run_resolve():
     # against the CWD, not the root — so (h) read out-of-domain whenever the runner was
     # launched from anywhere but the repository root. That is the other half of #556.
     # Claude Code sends an absolute file_path; these now say what production sends.
-    r = hook(f"{ROOT}/.agents/skills/harness/bin/check-domain.sh", "harness-documentor")
+    r = hook(f"{ROOT}/.agents/skills/harness/bin/check-domain.py", "harness-documentor")
     check("(g) no --resolve: an out-of-domain Write still exits 2",
           r.returncode == 2, f"got {r.returncode}")
     r = hook(f"{ROOT}/.harness/harness/docs/SPEC.md", "harness-documentor")
@@ -927,11 +927,11 @@ def run_resolve():
     # emits — the same convention cases (c)/(d) already use.
     def denied(r):
         return r.returncode == 2 and "may not write" in (r.stderr or "")
-    r = hook_env(".agents/skills/harness/bin/check-domain.sh", "harness-documentor",
+    r = hook_env(".agents/skills/harness/bin/check-domain.py", "harness-documentor",
                  ".harness/harness.json")
     check("(i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook",
           denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
-    r = hook_env(".agents/skills/harness/bin/check-domain.sh", "harness-documentor", "")
+    r = hook_env(".agents/skills/harness/bin/check-domain.py", "harness-documentor", "")
     check("(j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook",
           denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
 
@@ -986,7 +986,7 @@ def _schema_crash_cases(root, rel, illegal):
     live_before = open(live_fs, "rb").read()
     live_mtime = os.stat(live_fs).st_mtime_ns
     iso = isolated_bin(root)
-    copied_hook = os.path.join(iso, "check-domain.sh")
+    copied_hook = os.path.join(iso, "check-domain.py")
     fails = _schema_copy_control(root, rel, illegal, copied_hook)
     _inject_schema_crash(os.path.join(iso, "feature_schema.py"))
     fails += _schema_crash_control(root, rel, illegal, copied_hook)

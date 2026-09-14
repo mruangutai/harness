@@ -27,8 +27,8 @@ is thereby cleared for `T-07` and `DEC-208`; `SC-14` and `D-08` still read "thre
 |---|---|---|
 | 1 presence | `validate-digest.py:1602-1614` | `_ABSENT` sentinel; absent/null → stderr + `return 0`, blank string → `return 2` |
 | 2 checkout binding | `feature-worktree.py:236-248` | the FEAT-32 short-form/long-form measurement and the refuse-on-two-candidates comment |
-| 3 digest preservation | `check-domain.sh:1139-1151` | `prior.strip() and not content.startswith(prior)`, guard commented Write/PRE-only |
-| 4 route completeness | `bash-write-guard.sh:711-722`, `check-domain.sh:727-741` | both call `harness_boundary.worktree_for_feature` and both catch `AmbiguousWorktree` |
+| 3 digest preservation | `check-domain.py:1139-1151` | `prior.strip() and not content.startswith(prior)`, guard commented Write/PRE-only |
+| 4 route completeness | `bash-write-guard.py:711-722`, `check-domain.py:727-741` | both call `harness_boundary.worktree_for_feature` and both catch `AmbiguousWorktree` |
 | 5 digest location | `validate-digest.py:1413-1424` | `base = inflight_registry.feature_root(owner_root, feature)`, falling back to `_root_or_none()` |
 
 All eleven cited decisions (`DEC-95 122 127 143 151 154 156 174 180 191 193`) resolve to exactly one

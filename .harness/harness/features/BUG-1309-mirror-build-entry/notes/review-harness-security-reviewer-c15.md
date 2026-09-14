@@ -8,7 +8,7 @@ which the code DOES handle — are absent from `merge_values`. The parser reads 
 the branch and the real branch as unclaimed, so `feature_for()` finds no owner and the hook returns
 with **no permission decision at all** (silent allow) while real git merges the true branch. SC-04
 clause (a) — "every realistic operator merge form is denied" — is still false as written. Confirmed
-live end-to-end through `merge-gate.sh`, not inferred.
+live end-to-end through `merge-gate.py`, not inferred.
 
 ## Confirmed finding (must_fix, high)
 

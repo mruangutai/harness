@@ -9,7 +9,7 @@
 
 VALIDATE IS CLOSED AND THE FEATURE IS SHIP-READY at `review_sha` **c5869301**. Panel PASS with
 `must_fix: []` and `severity_max: med`; goal-check PASS with all TWELVE criteria met; blocking qa
-gate PASS; SIMPLIFY PASS and empty; `check-state.sh` exit 0, zero violations; `run-unit-tests.sh
+gate PASS; SIMPLIFY PASS and empty; `check-state.py` exit 0, zero violations; `run-unit-tests.py
 --kind all` exit 0, 0 `^FAIL `, 73 files discovered — the SAME 73 as the pre-build baseline, so the
 green is not a discovery collapse. UAT DOES NOT APPLY: BRIEF.md carries ZERO `verify: uat` criteria,
 so `gates.uat: blocking_when_uat_criteria_exist` is satisfied vacuously; pm confirmed it explicitly
@@ -20,12 +20,12 @@ It carries thirteen proposed backlog rows B-1..B-13; ANYTHING NOT LISTED THERE D
 
 VALIDATE CYCLE 1 — both FAIL, three gating findings, all closed. Every premise verified at source
 before it was routed; a finding resting on a false premise buys a cycle for nothing.
-- F-01 (HIGH, REQ-06). `bash-write-guard.sh` routed all three claim refusals through `deny()`, which
+- F-01 (HIGH, REQ-06). `bash-write-guard.py` routed all three claim refusals through `deny()`, which
   appends "File changes go through the Write tool" — advice naming a route that refuses the identical
   destination with identical text, where REQ-06 requires the control-plane expertise destination get
   the sanctioned CLI and nothing else. FOUND BY THE UI REVIEWER, which scoped itself out of
   rendered-UI review and then audited the refusal strings as the operator interface. The code
-  reviewer's own lens could not see it. Closed by `deny_bare()` (`bash-write-guard.sh:655`) at all
+  reviewer's own lens could not see it. Closed by `deny_bare()` (`bash-write-guard.py:655`) at all
   three sites; both routes' stderr now byte-identical modulo prefix, verified by fixture execution.
 - F-02 (HIGH x4, mechanical). `code-grade.py` FAILed on four high records. Closed by splitting
   `claim_worktrees` and three test mega-functions; re-derived at this tier, exit 0, ZERO high.
@@ -64,7 +64,7 @@ every task first time.
 
 THE THREE REQUIRED FOLLOW-UPS ARE FILED AND OPEN, and are NOT backlog rows. None was implemented
 inside BUG-1304 — doing so would expand an approved scope.
-- #1341 — `dispatch-guard.sh:122` `_root_for` basename equality should be `worktree_for_feature`
+- #1341 — `dispatch-guard.py:122` `_root_for` basename equality should be `worktree_for_feature`
   prefix alignment. Struck T-08's defect; the strike is legitimate only because #1341 owns it.
 - #1342 — `linked_worktrees` fail-OPEN on OSError and on an unreadable pointer. NARROWER than when
   filed: `RuleBug1304UnreadableConflict` settled the registry half, so only `linked_worktrees`
@@ -96,7 +96,7 @@ from which registry FILE a claim sits in; filtering the binding enumerator with 
 - HARNESS DEFECT — `plan-merge.py apply` cannot amend an existing top-level `panel`: it is not in
   `UNION_KEYS` (`:104`), so the step-8 guard (`:764-774`) exits 7 CONFLICT and writes nothing. The
   working verb is `set-panel --value-file` (`:1040`), which the playbook never names. Backlog B-10.
-- HARNESS DEFECT — a handoff note cannot be written from a worktree. `check-domain.sh:1614` passes
+- HARNESS DEFECT — a handoff note cannot be written from a worktree. `check-domain.py:1614` passes
   `rel` worktree-STRIPPED with `root` the MAIN checkout while `FEATURE_RE` is `^`-anchored. Measured
   both ways. This is BUG-1304's own defect class one layer up. Backlog B-11.
 - HARNESS DEFECT — subagents returned complete, well-formed VERDICT/DIGEST blocks while the host

@@ -11,16 +11,16 @@ as their text demands. One `info`-severity finding on message clarity in
 
 ## 1. Matrix gate
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit`
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit`
   → **EXIT 0**, exactly 4 `^FAIL ` lines, all `tests/unit/test-factory-claim-mutation.py`
   (BUG-1290 5a/5b/5b-dup/5c) — this is the by-design negative-case suite; script itself PASSes.
   Matches baseline exactly.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration`
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration`
   → **EXIT 1**. Grep of `^FAIL ` returns 7 lines; 6 are per-case failures
   (`case_04_all_granted_exits_0`, `case_05_ungranted_declared_main_session_exits_0`,
   `case_15_deviation_plan_still_exits_0`, `case_17_midpattern_wildcard_grant_exits_0`,
   `case_19d_explicit_path_unaffected_by_the_root_guard`,
-  `case_19d2_explicit_path_with_no_tasks_still_exits_0`), the 7th is the run-unit-tests.sh
+  `case_19d2_explicit_path_with_no_tasks_still_exits_0`), the 7th is the run-unit-tests.py
   one-line-per-failed-script summary (`FAIL test-check-plan-routes.py`, per Expertise G-04). The
   runner's own tally line reads `6 FAILURE(S): [...]` naming exactly those six. All six cite the
   same `.harness/team-config.yaml` owner-manifest deviation vs the main checkout (D-14, expires at

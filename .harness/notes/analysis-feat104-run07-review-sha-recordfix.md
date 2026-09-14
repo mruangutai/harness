@@ -1,6 +1,6 @@
 # Record fix — run-07 checkpoint `review_sha` corrected — FEAT-104-strict-digest-schema
 
-**BLUF. The correction LANDED. `check-domain.sh` did not refuse it.**
+**BLUF. The correction LANDED. `check-domain.py` did not refuse it.**
 `.harness/harness/features/FEAT-104-strict-digest-schema/runs/2026-09-09-07-qa-gate-validator/state.yaml`
 now reads `review_sha: 168f875f`, the commit the run actually graded, replacing the stale
 dispatch-time pin `6126ac07`. Nothing else about the run changed: `schema_version` stays `2`,
@@ -16,14 +16,14 @@ That inconsistency is now resolved; the file no longer contradicts its own diges
 
 ## The measurement the dispatch asked for — closed-run artifacts have TWO correction regimes, not one
 
-The eng-side refusal at `check-domain.sh:1327` is **not** a general "closed run artifacts cannot be
+The eng-side refusal at `check-domain.py:1327` is **not** a general "closed run artifacts cannot be
 corrected" rule. It is specific to `digest.md`, and the guard's routes behave oppositely:
 
 | Route | Matcher | Regime | Field correction possible? |
 |---|---|---|---|
-| run digest | `RE_RUN_DIGEST` (`check-domain.sh:1315-1332`) | **prefix-append only** — `not content.startswith(prior)` denies; message says "the missing line must be appended at the end" | **No.** `validate-digest.py`'s parser stops at the indent-0 `artifact:` line, so appended text is never parsed |
+| run digest | `RE_RUN_DIGEST` (`check-domain.py:1315-1332`) | **prefix-append only** — `not content.startswith(prior)` denies; message says "the missing line must be appended at the end" | **No.** `validate-digest.py`'s parser stops at the indent-0 `artifact:` line, so appended text is never parsed |
 | run checkpoint | state-file shape / DEC-150 + `run-state-schema.json` | **schema validation only** — closed allowlist checked; no prior-content prefix relation required | **Yes.** Verified by this write landing |
-| run identity witness | `RE_RUN_IDENTITY` (`check-domain.sh:1334-1342`) | **write-once, refuses always** | No, by design |
+| run identity witness | `RE_RUN_IDENTITY` (`check-domain.py:1334-1342`) | **write-once, refuses always** | No, by design |
 
 The third witness the dispatch anticipated did not materialise, and the negative result is the more
 useful one: **the missing correction channel is a `digest.md` defect, not a closed-run-artifact
@@ -48,7 +48,7 @@ top-level allowlist declares no `note`, so the rationale lives here and the matc
 
 The dispatch named
 `.harness/harness/features/FEAT-104-strict-digest-schema/notes/review-harness-validator-lead-recordfix.md`.
-`check-domain.sh` refused it verbatim:
+`check-domain.py` refused it verbatim:
 
 ```
 check-domain: BLOCKED — harness-validator-lead may not write .claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/notes/review-harness-validator-lead-recordfix.md
@@ -73,7 +73,7 @@ itself was never refused.**
   human-facing pointer re-pinned in the same operation? Repository Expertise G-01: a re-pin applied to
   one and not the other sends the next run at a stale SHA. Not verified here.
 - **Q2 (non-blocking, harness owner):** the `digest.md` correction channel is representable but not
-  readable — `check-domain.sh:1327` mandates a strict prefix-append while `validate-digest.py` stops
+  readable — `check-domain.py:1327` mandates a strict prefix-append while `validate-digest.py` stops
   parsing at the indent-0 `artifact:` line, so an appended correction can never be parsed. The
   contrast with `state.yaml` is now measured. A harness defect report, not a workaround to memorise.
 - **Q3 (non-blocking, harness owner):** dispatches keep routing lead artifacts to

@@ -67,13 +67,13 @@ python3 -c "import yaml;d=yaml.safe_load(open('.harness/harness/features/FEAT-52
 |---|---|---|---|
 | T-01 | `logic` → unit | REQ-06 | `inflight_registry.py` gains a `feature-root --feature FEAT-NN-slug` verb; the discriminating case asserts the printed path DIFFERS from the owner root |
 | T-02 | `logic` → unit | REQ-04, REQ-06 | new `check-instruction-paths.py`; **three** violation classes sharing ONE `^\.harness/([^/]+/)?features/` predicate; empty scope is exit 2, never 0 |
-| T-03 | `logic` → unit | REQ-01, REQ-04, REQ-05 | `inject-expertise.sh` emits the control-plane block unconditionally and a `HARNESS_PATH_DRIFT` line; **exit stays 0 on every branch** (D-04) |
+| T-03 | `logic` → unit | REQ-01, REQ-04, REQ-05 | `inject-expertise.py` emits the control-plane block unconditionally and a `HARNESS_PATH_DRIFT` line; **exit stays 0 on every branch** (D-04) |
 | T-04 | `docs` | REQ-02, REQ-06 | anchor families F1–F4 across `.omp/agents/**` and four squad skills, then `sync-agent-adapters.py --apply` |
 | T-05 | `docs` | REQ-02, REQ-03 | the fifth family — the systematic-debugging read a product clone cannot satisfy: anchor it AND state the read is permitted |
 | T-06 | `docs` | REQ-02, REQ-06 | twelve remaining factory-reachable skills, by direction. Do **not** touch harness-init/grilling/wayfinding |
 | T-07 | `docs` | REQ-02, REQ-06 | seven templates; README's eight spans split 3 READ / 5 WRITE. Bare filenames in the left column stay bare |
 | T-08 | `docs` | REQ-02, REQ-03, REQ-06 | one new section in `harness-handoff/SKILL.md` stating both anchors, the read-only policy and the literal phrase "holds no shell" |
-| T-09 | `logic` → unit | REQ-06 | `dispatch-guard.sh` refuses a shell-less dispatch with no `HARNESS-FEATURE-TREE-ROOT:` line at exit 2; predicate is the **tool grant**, never a name list. No apostrophe anywhere in the block |
+| T-09 | `logic` → unit | REQ-06 | `dispatch-guard.py` refuses a shell-less dispatch with no `HARNESS-FEATURE-TREE-ROOT:` line at exit 2; predicate is the **tool grant**, never a name list. No apostrophe anywhere in the block |
 | T-10 | `docs` | REQ-02, REQ-06 | the emit duty in the playbook, the lead loop and the team skill |
 | T-11 | `docs` | REQ-02, REQ-06 | the emit duty in the four agent definitions that dispatch or receive it; change no frontmatter |
 | T-12 | `config` | REQ-04 | wire the lint into the `integration` job, exit 1 and exit 2 distinguished; **two mutants** prove the assertion can go red. Its verify is also the plan's whole-scope run |
@@ -86,7 +86,7 @@ python3 -c "import yaml;d=yaml.safe_load(open('.harness/harness/features/FEAT-52
 1. **T-02's checker must stay RED until T-12.** Its own verify runs only the test file, deliberately —
    a verify asserting a by-construction red is unsatisfiable the moment the anchoring lands.
 2. **Registration is asymmetric.** `test-check-instruction-paths.py` and `test-anchor-directions.py`
-   go in `UNIT_SCRIPTS` in `run-unit-tests.sh` and **nowhere else**; adding either to
+   go in `UNIT_SCRIPTS` in `run-unit-tests.py` and **nowhere else**; adding either to
    `harness.json`'s `test_kinds.integration.detect` trips the KIND-DRIFT cross-check. The three
    already-registered test files get no new registration at all.
 3. **Never hand-edit `.claude/agents/*.md`** — generated output; `sync-agent-adapters.py --check` in

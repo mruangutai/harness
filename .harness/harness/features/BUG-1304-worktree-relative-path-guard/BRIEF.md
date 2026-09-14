@@ -9,7 +9,7 @@ The cause is structural, not carelessness: such an agent's process cwd is the ma
 bare relative path resolves into the session root and every existing guard reads it as in-base and
 granted. The checkout binding that already exists covers feature ARTIFACT paths only — it derives
 the feature id from the target path, so source, tests and docs, which carry no feature id, are
-unbound (observed at `c369fb1f`: `check-domain.sh feature_checkout_guard`, keyed on
+unbound (observed at `c369fb1f`: `check-domain.py feature_checkout_guard`, keyed on
 `RE_FEATURE_ARTIFACT = ^\.harness/[^/]+/features/([^/]+)/`). The `wrong_checkout` refusal (issue #895,
 `harness_boundary.classify`) is the mirror case and cannot fire here: the target is in the session
 root. Cost when it lands unnoticed: work written to the wrong branch, silently, with the worktree's
@@ -34,7 +34,7 @@ placed worktree write does today changes.
   spelling. A destination outside the agent's assigned worktree is refused whether it was written
   relative or absolute; a relative path that resolves inside the assigned worktree is allowed.
   Spelling is the cause of the observed incidents, not the harm: at `c369fb1f` the same claimed path
-  already exited 0 relative and 2 absolute on an unrelated rule (`check-domain.sh _claimed_abs`
+  already exited 0 relative and 2 absolute on an unrelated rule (`check-domain.py _claimed_abs`
   docstring, measured at `f1ae55f2`), so a spelling rule would both refuse legitimate relative work
   and miss the identical damage done absolutely.
 - REQ-03: Legitimate traffic keeps working unchanged: any write whose destination is inside the
@@ -66,7 +66,7 @@ placed worktree write does today changes.
   root is never silently read as "no claims here". That is the identical shape this requirement
   already refuses in an unparsed destination `.git` pointer — a record that exists, claims to carry
   the answer, and cannot be read — and it matches the fail-closed treatment an unparseable manifest
-  already gets on both routes (`bash-write-guard.sh:684-694`). `inflight_registry._parse` treats
+  already gets on both routes (`bash-write-guard.py:684-694`). `inflight_registry._parse` treats
   such a file as empty (`:56-65`) deliberately, for the CLAIM/WRITE path, and that fallback is
   pinned by `case_8_corrupt_registry` (`tests/integration/test-inflight-registry.py:329`); the
   READ/REFUSAL path this bug adds must not inherit it. Chosen fail-closed because the guarded
@@ -149,9 +149,9 @@ placed worktree write does today changes.
   against the pre-change copy of the two guard scripts, run in the same test, so each new assertion
   is shown to be discriminating rather than ever-green. **An exit 0 out of a fail-open branch is not
   an unrefused write, so every pre-change call must also prove the frozen guard RAN.**
-  `check-domain.sh` exits 0 after printing on its quarantine-boundary exception (`:1864-1869`,
+  `check-domain.py` exits 0 after printing on its quarantine-boundary exception (`:1864-1869`,
   `quarantine boundary was not enforced ... passing through`) and on a missing manifest (`:383-386`,
-  `enforcement OFF`); `bash-write-guard.sh` fail-opens SILENTLY at exit 0 on an unparseable payload
+  `enforcement OFF`); `bash-write-guard.py` fail-opens SILENTLY at exit 0 on an unparseable payload
   (`:78-80`) and on a missing manifest (`:267-269`). Each pre-change call therefore asserts both:
   (a) its stderr contains none of the substrings `enforcement OFF`, `was not enforced`,
   `passing through`; and (b) a POSITIVE CONTROL fired at the same frozen guard, in the same

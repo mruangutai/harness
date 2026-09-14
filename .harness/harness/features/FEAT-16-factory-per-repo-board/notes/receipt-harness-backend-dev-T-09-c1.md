@@ -9,7 +9,7 @@ T-09 — Assert the declared repository-to-board pairing in test-no-distribution
 Dispatch text and `plan.yaml` T-09 `verify:` agree, verbatim:
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 ## Invocation and verbatim output
@@ -17,7 +17,7 @@ Dispatch text and `plan.yaml` T-09 `verify:` agree, verbatim:
 Invoked exactly as:
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Exit code: `0`.
@@ -818,7 +818,7 @@ $ grep -n "case5()" .claude/skills/harness/bin/test-no-distribution.py
 1. Reading the diff myself — the only I/O in `case5` is `open(fleet_path, ...)`.
 2. `grep -n "case5" -A 45 .claude/skills/harness/bin/test-no-distribution.py | grep -iE
    "requests|urllib|http|socket|subprocess|gh "` returned no hits.
-3. The task ran inside `run-unit-tests.sh --kind unit`, which is UNIT_SCRIPTS — hermetic by
+3. The task ran inside `run-unit-tests.py --kind unit`, which is UNIT_SCRIPTS — hermetic by
    convention — and it passed with no network dependency introduced.
 
 ## Mutant proof (not required by task_verify, done to satisfy the Iron Law / P-07)

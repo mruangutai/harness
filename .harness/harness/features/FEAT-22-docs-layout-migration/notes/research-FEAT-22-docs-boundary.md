@@ -9,13 +9,13 @@ upstream session snapshot is stale by two commits. Every figure below was measur
 Unit 4 is **larger than the dispatch's three-item cluster** and its shape is decided by two
 measurements, not by judgement:
 
-1. **The destination is UNGRANTED.** `check-domain.sh --resolve .harness/harness/docs/SPEC.md` →
+1. **The destination is UNGRANTED.** `check-domain.py --resolve .harness/harness/docs/SPEC.md` →
    `NOBODY`. Nothing in the repo may write the harness docs after the move. The grant must land in
    the same commit, mirroring FEAT-21's signed wildcard shape (`.harness/*/features/**` →
    `.harness/*/docs/**`). FEAT-21's ship review B-16 is the recorded cost of shipping a path without
    its grant.
-2. **A DEC-174 file IS touched, and so is a signed decision's ruling text.** `check-state.sh:676`
-   and `check-domain.sh:953` each carry one diagnostic string naming `docs/harness/DECISIONS.md`,
+2. **A DEC-174 file IS touched, and so is a signed decision's ruling text.** `check-state.py:676`
+   and `check-domain.py:953` each carry one diagnostic string naming `docs/harness/DECISIONS.md`,
    and **DEC-189's ruling enumerates `docs/harness/**` as one of the four named control-plane
    paths** — the move falsifies that sentence.
 
@@ -95,7 +95,7 @@ semantics:
 **(d) instruction-side literals — take the new path**
 - `CLAUDE.md` (resolve: NOBODY), `.claude/skills/harness-principles/SKILL.md` (NOBODY),
   `.claude/skills/harness/templates/plan.yaml:44` (NOBODY), `check-plan-routes.py:44` (a comment),
-  `check-domain.sh:953` + `check-state.sh:676` (diagnostic prose, both DEC-174).
+  `check-domain.py:953` + `check-state.py:676` (diagnostic prose, both DEC-174).
 
 ## The coupled cluster, re-verified
 
@@ -139,7 +139,7 @@ docs/harness/{SPEC,DECISIONS,DECISIONS-INDEX,BUILD}.md, org.html  -> harness-doc
 .harness/harness/docs/SPEC.md                                     -> NOBODY   <-- the gap
 .claude/skills/harness/bin/{factory_config,harness_boundary,
    gen-decisions-index,layout_migration,layout_fixtures,
-   check-domain.sh,test-*}                                        -> harness-backend-dev harness-dev-ops
+   check-domain.py,test-*}                                        -> harness-backend-dev harness-dev-ops
 .github/workflows/tests.yml                                       -> harness-dev-ops
 .harness/team-config.yaml                                         -> NOBODY
 CLAUDE.md                                                         -> NOBODY
@@ -148,7 +148,7 @@ CLAUDE.md                                                         -> NOBODY
 .harness/expertise/harness-documentor.md                          -> harness-documentor
 ```
 
-**DEC-174, plainly: YES, two files are touched** — `check-state.sh:676` and `check-domain.sh:953`,
+**DEC-174, plainly: YES, two files are touched** — `check-state.py:676` and `check-domain.py:953`,
 one diagnostic prose line each. Neither is a path resolution; both are user-facing staleness.
 Folding them costs nothing extra, because four other surfaces (`team-config.yaml`, `CLAUDE.md`,
 `harness-principles/SKILL.md`, `templates/plan.yaml`) already resolve NOBODY and force a
@@ -163,7 +163,7 @@ verdict for the hook path and for `--resolve`. Its own green cannot vouch for it
 - **`READER_TABLE` needs no row edit.** Confirmed by reading `layout_migration.py:93-101`: every
   DOCS row already carries its `migrated` regex. Leave.
 - `docs/PRINCIPLES.md` stays global (map #336 ruling). It is not under `docs/harness/`.
-- `gh-sync.py`, `branch-create-gate.sh`, `validate-feature-json.py`, `factory_claim.py`, the
+- `gh-sync.py`, `branch-create-gate.py`, `validate-feature-json.py`, `factory_claim.py`, the
   gitignore snippet and prose: **unit 9**.
 - **No `fleet.yaml` edit.** Segment `harness` comes from `harness.json` `github.repo`
   (`layout_migration._declared_segments`), and the features surface already reads
@@ -195,10 +195,10 @@ verdict for the hook path and for `--resolve`. Its own green cannot vouch for it
 
 ## Which runner produces which evidence kind — measured, because the glob disagrees
 
-`harness.json` `test_kinds` and `run-unit-tests.sh` do **not** agree, and the runner is what
-executes. `run-unit-tests.sh:17-18` holds two explicit arrays:
+`harness.json` `test_kinds` and `run-unit-tests.py` do **not** agree, and the runner is what
+executes. `run-unit-tests.py:17-18` holds two explicit arrays:
 
-| Suite | `harness.json` detect | `run-unit-tests.sh` array | Kind an SC must declare |
+| Suite | `harness.json` detect | `run-unit-tests.py` array | Kind an SC must declare |
 |---|---|---|---|
 | `test-layout-migration.py` | `unit` (the `test-*.py` glob) | `UNIT_SCRIPTS` | **unit** |
 | `test-check-domain.py` | `unit` (the same glob) | `INTEGRATION_SCRIPTS` | **integration** |
@@ -304,7 +304,7 @@ absent.
 
 ### Verified mechanics
 
-- `run-unit-tests.sh:57-60` runs each script with stdout inherited, and BOTH sides print a per-case
+- `run-unit-tests.py:57-60` runs each script with stdout inherited, and BOTH sides print a per-case
   label on PASS: `test-check-domain.py` emits `ok    <label>` (integration half) and
   `test-layout-migration.py` emits `ok   - case 1: real root exits 0` and siblings (unit half). So
   both of T-05's label greps for `harness/docs` in runner output are real checks, not dead ones.
@@ -378,7 +378,7 @@ wording. Tokens below are verbatim, at post-edit line numbers:
 
 Each item's factual claim was re-derived at source rather than trusted (P-15):
 
-- `CLAUDE.md` is **75** lines; `check-state.sh:674` warns above **80**. Five lines of headroom, as stated.
+- `CLAUDE.md` is **75** lines; `check-state.py:674` warns above **80**. Five lines of headroom, as stated.
 - The deny-message advertise filter is a comprehension over `applicable_globs` calling
   `is_control_plane_glob(g)` and iterating `HARNESS_CONTROL_PLANE` on the same expression
   (`harness_boundary.py:339-343`). D-02 and T-08 describe it correctly.
@@ -395,7 +395,7 @@ INTERVAL it was quantified over was not. It read "From the move until T-09 regen
 the INTEGRATION SUITE is red on exactly one script... unit green."
 
 That is the state **after T-04 and T-05 land**, not from the move. Measured against the runner's own
-script lists (`run-unit-tests.sh:17-18`), T-04's six files split three unit
+script lists (`run-unit-tests.py:17-18`), T-04's six files split three unit
 (`test-team-catalog`, `test-no-distribution`, `test-factory-config`) and three integration
 (`test-harness-yaml`, `test-validate-digest`, `test-gen-decisions-index`); T-05's five split four
 integration and one unit. So between T-02 and T-05 the unit suite is red too and integration is red
@@ -451,11 +451,11 @@ Run against the tree at `0f12f14` before any migration:
 
 - Both suites are **green, zero FAILs** at baseline. So T-05's "exactly one integration FAIL" is a
   state only this migration can produce.
-- `run-unit-tests.sh` inherits each script's stdout (`:58-65`), so case labels do reach the captured
+- `run-unit-tests.py` inherits each script's stdout (`:58-65`), so case labels do reach the captured
   output — T-05's `grep -qi 'harness/docs'` assertions can fire at all.
 - Those greps return **zero hits in both suites pre-migration**, so they cannot pass by accident.
   The existing labels carry `docs/harness/**`, which does not contain `harness/docs`.
-- `--stdout` (`gen-decisions-index.py:391-397`), `check-expertise.sh` and `check-domain.sh --resolve`
+- `--stdout` (`gen-decisions-index.py:391-397`), `check-expertise.py` and `check-domain.py --resolve`
   all exist; no verify names a flag that is not there.
 - T-09's `grep -q ... && { exit 1; }` at `:868` was tested under `bash -e`: an unmatched grep in an
   AND-list does **not** exit the shell, empirically. Not the G-14 shape. No fix needed.

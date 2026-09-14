@@ -4,7 +4,7 @@
 
 Scoped IN — the feature adds every new call site that shells out to `gh` for board writes
 (`gh_board.py`, `gh-sync.py`'s `start-task`/`close-task`) plus a session-entry read
-(`check-state.sh`'s INV-26 block), and widens `harness.json` with board config (`.harness/harness.json`
+(`check-state.py`'s INV-26 block), and widens `harness.json` with board config (`.harness/harness.json`
 +24). Untrusted-ish input (`plan.yaml` task status) and a new command-construction surface are both
 present, so this earns a full pass, not a scope-out.
 
@@ -12,8 +12,8 @@ present, so this earns a full pass, not a scope-out.
 
 Reading:
 - Read `gh_board.py`, `factory_gh.py` (pre-existing, unchanged by this diff — confirmed via
-  `git log -1` on the file), the INV-26 block in `check-state.sh`, `gh-sync.py`'s diff, the
-  `check-plan-routes.py` status-enum diff, `branch-create-gate.sh`'s diff (a deletion), and the
+  `git log -1` on the file), the INV-26 block in `check-state.py`, `gh-sync.py`'s diff, the
+  `check-plan-routes.py` status-enum diff, `branch-create-gate.py`'s diff (a deletion), and the
   `harness.json` `github.board` addition.
 - Traced every call site that constructs a `station` value passed to `gh_board.set_station`:
   `gh-sync.py:574` (`"Building"`, literal) and `gh-sync.py:196` via `derive_station()`
@@ -25,7 +25,7 @@ Reading:
   and never string-built shell commands. GraphQL query text (`_FIELD_QUERY`, `_ISSUE_ITEM_QUERY`
   in `factory_gh.py`) is a fixed template; all values ride as bound `-f`/`-F` variables, not
   string-interpolated into the query — rules out GraphQL injection.
-- Confirmed the INV-26 block is a single-quoted heredoc (`check-state.sh:24`,
+- Confirmed the INV-26 block is a single-quoted heredoc (`check-state.py:24`,
   `python3 - "$root" <<'PY'`) — no shell variable expansion inside it, so nothing from the
   surrounding bash script is interpolated as shell syntax there either.
 - Checked `check-plan-routes.py`'s new `status` enum gate (`+326-338`): rejects (appends a
@@ -34,7 +34,7 @@ Reading:
 - Grepped all new/changed files and fixtures for `token|password|secret|Authorization|ghp_|gho_`
   — zero hits. No credential is read, stored, or logged by any new code path; `gh` remains the
   sole auth holder, consistent with the module's own stated contract (`gh_board.py:1-17`).
-- Read `branch-create-gate.sh`'s diff: it **deletes** a block that pinned `project_id`/
+- Read `branch-create-gate.py`'s diff: it **deletes** a block that pinned `project_id`/
   `field_id`/`option_id` in `harness.json` and shelled a GraphQL call using them — net risk
   reduction, no new surface.
 - **The fake-binary trap, verified, not assumed.** `gh_board.py:8-12` documents it: a test that
@@ -71,7 +71,7 @@ doesn't re-raise them cold (P-12):
    `gh_board.py:33-40` (`BoardError`) wraps `factory_gh.GhError`, whose message includes
    `next_step = _first_line(r.stderr) or _first_line(r.stdout)` (`factory_gh.py:97`). This reaches
    stderr via `gh-sync.py`'s `print(f"gh-sync: ERROR - {e}", file=sys.stderr)` (`gh-sync.py:196,
-   576`) and INV-26's `bad.append(...)` lines in `check-state.sh`. Not a new pattern — the same
+   576`) and INV-26's `bad.append(...)` lines in `check-state.py`. Not a new pattern — the same
    `GhError`-to-operator-stderr path already exists pre-diff in `factory_land.py`,
    `factory_claim.py`, `factory_decompose.py`. `gh` itself does not print bearer tokens in its
    error text by design (e.g. "HTTP 401: Bad credentials", not the credential), so this is
@@ -79,15 +79,15 @@ doesn't re-raise them cold (P-12):
    Reachable by: nobody new — any operator who can run harness tooling already has local `gh`
    auth. No fix proposed.
 
-2. **`info` — INV-26's `gh` board read (`check-state.sh`, `board_stations` → `run_gh` →
+2. **`info` — INV-26's `gh` board read (`check-state.py`, `board_stations` → `run_gh` →
    `subprocess.run`) carries no timeout**, unlike the adjacent `gh auth status` probe in the same
    block which does (`timeout=15`). This is pre-existing behavior in `factory_gh.run_gh`
    (unchanged file, not part of this diff), but this feature adds a new call site that now runs at
    **every session entry** rather than only inside an explicit tool invocation, raising how often a
    hung `gh` process (network stall, adversarial/MITM endpoint) could stall session start.
    Availability-only, no data exposure or write, and the mechanism is inherited, not introduced.
-   `check-state.sh` is under the DEC-174 carve-out — if this were ever judged worth fixing, it is
-   an **operator escalation**, never a team-run fix cycle, since it touches `check-state.sh`
+   `check-state.py` is under the DEC-174 carve-out — if this were ever judged worth fixing, it is
+   an **operator escalation**, never a team-run fix cycle, since it touches `check-state.py`
    directly.
 
 3. **`info` — INV-26's own read path fails silent, indistinguishable from "ran clean".**
@@ -127,6 +127,6 @@ dismissed-context, not gating findings against this diff.
 
 ## Carve-out note
 
-`check-state.sh` was touched by this feature (INV-26 block). No finding here requires changing
+`check-state.py` was touched by this feature (INV-26 block). No finding here requires changing
 it — all three `info` notes above are dismissed or, if ever acted on, explicitly flagged as an
 **operator escalation**, never a fix cycle, per the DEC-174 carve-out.

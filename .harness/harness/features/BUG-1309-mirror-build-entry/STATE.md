@@ -76,7 +76,7 @@
 - Q4 (non-blocking, harness defect, 5th and 6th sighting) — an agent returned a complete, well-formed
   fenced digest while the host recorded `failed (exit 1) — subagent called yield with null data`.
   Row B-26.
-- Q5 (non-blocking, harness defect) — `bash-write-guard.sh` blocked `cp` and shell redirection for a
+- Q5 (non-blocking, harness defect) — `bash-write-guard.py` blocked `cp` and shell redirection for a
   read-only role but did not block `python3 -c "open(path,'w')"` run through bash. Row B-27.
 - Q6 (non-blocking, backlog) — T-05's `verify:` grade assertion takes `min(grade)` over
   `git_merge`/`words`/`direct_merge`/`gh_merge` and never names `option_end`, `first_subcommand` or

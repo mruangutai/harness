@@ -47,7 +47,7 @@ keys are the c0/c1 set. 131 lines (c1: 127), the four added lines inside the two
   `test-gh-sync.py` 16, 17, 18, 25, 144, 769, 1406-1410, 1442 (the `T-06C: … no github: block`
   check ends there), 1444 (`fix1 Part B` comment verbatim), 1470-1480. The notes grant it now cites
   is right: `.harness/*/features/*/notes/qa-*.md` at owner-manifest `team-config.yaml:259`, and
-  `check-domain.sh --resolve …/notes/qa-r1.md` → `harness-orchestrator, harness-qa`, exit 0.
+  `check-domain.py --resolve …/notes/qa-r1.md` → `harness-orchestrator, harness-qa`, exit 0.
 - **No production change authorised** — `BRIEF.md:38-40` routes a red assertion to the operator;
   `plan.yaml:49-50` forbids the edit; D-04 (`:28-31`) and steps b–d confine the mutant to a
   `shutil.copy` in a tempdir.

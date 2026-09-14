@@ -34,7 +34,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-gh-sync.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       lane: team
       agent: harness-backend-dev
       reason: >-
@@ -44,20 +44,20 @@ lanes:
     - surface: .claude/skills/harness/bin/gh_board.py
       lane: main-session-direct
       reason: >-
-        New module. check-domain.sh --resolve at 2ccd7f0 answers harness-backend-dev and
-        harness-dev-ops, the same pair the four carve-out files answer, but check-state.sh
+        New module. check-domain.py --resolve at 2ccd7f0 answers harness-backend-dev and
+        harness-dev-ops, the same pair the four carve-out files answer, but check-state.py
         imports it and INV-26 computes its verdict from its return value, so it is a
         DEC-174 carve-out BY CONTENT on FEAT-17's harness_boundary.py precedent.
     - surface: .claude/skills/harness/bin/test-gh-board.py
       lane: main-session-direct
       reason: co-changes with the module a gate verdict is computed from, in the same diff a human reads
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 carve-out named in CLAUDE.md - the state gate
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
-      reason: co-changes with check-state.sh, in the same diff a human reads
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      reason: co-changes with check-state.py, in the same diff a human reads
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: >-
         --resolve answers harness-backend-dev and harness-dev-ops, but the only edit is
@@ -172,7 +172,7 @@ decisions:
       status to building in plan.yaml. gh-sync.py open writes no station at all.
     because: >-
       The orchestrator already runs open and close-task, already holds the commit pen (DEC-153),
-      already records a task's status into plan.yaml, and check-domain.sh --resolve grants it
+      already records a task's status into plan.yaml, and check-domain.py --resolve grants it
       plan.yaml - so it is the only tier that knows a task moved from pending to in flight at the
       moment it happens. open writes no station because at open time no task has a status, so the
       derivation returns no verdict, and inventing a fourth station source there would reintroduce
@@ -202,7 +202,7 @@ decisions:
     choice: >-
       One new module, .claude/skills/harness/bin/gh_board.py, holds the board config read, the
       station derivation and the board read and write, and it is the only implementation of each.
-      gh-sync.py writes through it and check-state.sh INV-26 reads through it. The board read is
+      gh-sync.py writes through it and check-state.py INV-26 reads through it. The board read is
       ONE project item-list call per session returning every card's column, matched to issue
       numbers offline, never one query per issue.
     because: >-
@@ -238,7 +238,7 @@ decisions:
       citation still lands. gh issue develop is not used at all. The build branch is created the
       ordinary way, git checkout -b feat/FEAT-18-board-truth, like every feature shipped so far,
       and nothing links the pull request to the parent issue. TWO BREAKS FORCED IT AND BOTH WERE
-      MEASURED, NOT PREDICTED. First, the gh route bypasses branch-create-gate.sh entirely: all
+      MEASURED, NOT PREDICTED. First, the gh route bypasses branch-create-gate.py entirely: all
       four extraction patterns are git subcommands and everything else falls to else exit 0, and
       the git checkout that follows carries no -b, so DEC-144's flow-id check never runs on either
       command. Second, measured end to end on the disposable fixture
@@ -254,14 +254,14 @@ decisions:
       notes/answers-2026-08-13-revision.md; do not re-derive them.
     choice: >-
       STRUCK - no longer in force. It read: the build branch is created THROUGH the parent issue
-      with gh issue develop and then checked out locally, and branch-create-gate.sh is NOT extended
+      with gh issue develop and then checked out locally, and branch-create-gate.py is NOT extended
       to cover that route, the gap being recorded rather than closed.
     because: >-
       RECORDED, NO LONGER LOAD-BEARING - the reasoning below stays true and stays on the record,
       it simply no longer decides anything. It read: gh issue develop cannot link a branch that
       already exists, measured 2026-08-12 as API
       returned empty branch name, so the branch has to be created that way from the start - which
-      is what removes the composed Closes-N string entirely. branch-create-gate.sh extracts a
+      is what removes the composed Closes-N string entirely. branch-create-gate.py extracts a
       branch name from four forms only - git checkout -b, git switch -c or --create,
       git worktree add -b, and git branch NAME - so gh issue develop followed by a plain
       git checkout of an existing branch matches none of them and passes silently. Teaching the
@@ -331,18 +331,18 @@ tasks:
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out by content - check-state.sh imports this module and INV-26 computes its
+      DEC-174 carve-out by content - check-state.py imports this module and INV-26 computes its
       verdict from its return value, the same ground FEAT-17 placed harness_boundary.py on.
     depends_on: []
     status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/test-gh-board.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
       - .claude/skills/harness/templates/harness.json
     verify: |
-      python3 .claude/skills/harness/bin/test-gh-board.py && .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      python3 .claude/skills/harness/bin/test-gh-board.py && .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create .claude/skills/harness/bin/gh_board.py - the ONE implementation of the harness board's
       station rule. Two consumers follow in T-03 and T-04; two copies of this logic is the drift
@@ -357,7 +357,7 @@ tasks:
           station_field: Status
 
       Three keys and no more. Do NOT pin project_id, field_id or any option id: the four flat keys
-      branch-create-gate.sh reads today pinned exactly those, and a wrong pinned id there did
+      branch-create-gate.py reads today pinned exactly those, and a wrong pinned id there did
       nothing at all, silently. Resolution is by NAME at runtime, so a wrong name is loud.
       Add the same block to .claude/skills/harness/templates/harness.json with the value null and a
       one-line _note beside it in the style of the sibling entries, so upgrade-config.py's additive
@@ -367,7 +367,7 @@ tasks:
       integration has an explicit detect list naming tests/integration/**, test-check-state.py and
       test-factory-integration.py. Add .claude/skills/harness/bin/test-gh-sync.py and
       .claude/skills/harness/bin/test-check-plan-routes.py to that same pipe-separated list.
-      Both files are already run by run-unit-tests.sh --kind integration, so this changes nothing
+      Both files are already run by run-unit-tests.py --kind integration, so this changes nothing
       about what executes; what it changes is that the kind four of this feature's criteria cite as
       their evidence now DETECTS the files those criteria are proven on. A runner that matches zero
       files on the surface being changed is a gate that proves nothing, and INV-20 reads the same
@@ -425,7 +425,7 @@ tasks:
       not rediscover it live.
 
       Create .claude/skills/harness/bin/test-gh-board.py and REGISTER it in
-      .claude/skills/harness/bin/run-unit-tests.sh's UNIT_SCRIPTS array in this same task - the
+      .claude/skills/harness/bin/run-unit-tests.py's UNIT_SCRIPTS array in this same task - the
       runner keeps explicit script arrays and its drift detector fails the WHOLE run on an
       unregistered test file, which would redden every other task's verify.
 
@@ -543,15 +543,15 @@ tasks:
         - a feature whose harness.json carries no github.board runs open and close-task unchanged,
           exits 0, and makes no item-edit call.
   - id: T-04
-    title: Add INV-26 to check-state.sh comparing every live feature's plan against its cards
+    title: Add INV-26 to check-state.py comparing every live feature's plan against its cards
     traces: [REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out - check-state.sh is the fourth gate script named in CLAUDE.md
+    execution_reason: DEC-174 carve-out - check-state.py is the fourth gate script named in CLAUDE.md
     depends_on: [T-02, T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
@@ -560,7 +560,7 @@ tasks:
       stderr, and the operator accepted that stderr inside a subagent run is not something they
       read - so a board that drifted is caught here or it is not caught at all.
 
-      Add INV-26 to .claude/skills/harness/bin/check-state.sh. The highest invariant in the file
+      Add INV-26 to .claude/skills/harness/bin/check-state.py. The highest invariant in the file
       today is INV-25; number the new one INV-26 and follow the file's existing shape for appending
       to the bad list. It runs once, at session entry, after INV-25.
 
@@ -578,7 +578,7 @@ tasks:
       the repository - being unimportable is a defect in the tree, not a property of the
       environment. Follow the wording shape INV-25 uses for harness_boundary.py.
 
-      THE GH BINARY MUST BE OVERRIDABLE OR THIS CANNOT BE TESTED. check-state.sh has no gh call
+      THE GH BINARY MUST BE OVERRIDABLE OR THIS CANNOT BE TESTED. check-state.py has no gh call
       today. Resolve the binary once, from the environment variable FACTORY_GH if set, else gh -
       the same variable factory_gh already honours, so one fake serves the module and the
       invariant. Do not invent a third variable name.
@@ -626,7 +626,7 @@ tasks:
       THE NON-VACUITY PAIR IS THE POINT OF THIS TASK AND BOTH HALVES SHIP TOGETHER:
         - THE MIS-COLUMNED FIXTURE. A feature whose plan.yaml records T-01 as done, whose
           feature.json records an issue number for T-01 and a parent, and whose fake board page
-          puts that issue's card in Backlog. check-state.sh must report a violation whose text
+          puts that issue's card in Backlog. check-state.py must report a violation whose text
           names the feature, T-01, done and Backlog.
         - THE CORRECTED TWIN. The SAME fixture with exactly one byte changed - that one card's
           status in the fake page reading Done instead of Backlog, and the parent's reading Review
@@ -640,11 +640,11 @@ tasks:
           violation.
         - a feature whose recorded issue number is absent from the board page is a CANNOT VERIFY
           violation, not a clean pass.
-        - with FACTORY_GH pointing at a binary that does not exist, check-state.sh records no
+        - with FACTORY_GH pointing at a binary that does not exist, check-state.py records no
           INV-26 finding and its exit status is whatever the rest of the file decides - INV-26
           contributes nothing.
   - id: T-05
-    title: Delete branch-create-gate.sh's dormant board-flip block and its four config keys
+    title: Delete branch-create-gate.py's dormant board-flip block and its four config keys
     traces: [REQ-06]
     change_type: logic
     execution_mode: team
@@ -652,23 +652,23 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .claude/skills/harness/bin/branch-create-gate.py
       # AMENDED 2026-08-13, mid-build, operator re-signed. The task as signed was internally
       # inconsistent: change_type: logic makes test_matrix.logic.always ["unit"] mandatory, and
       # `logic` is not an exempt change type, but no test file was named — and
-      # branch-create-gate.sh is a live PreToolUse hook that had never had a test in its life
+      # branch-create-gate.py is a live PreToolUse hook that had never had a test in its life
       # while this task deletes a substantial block from it. The member returned BLOCKED rather
-      # than inventing a PASS. check-domain.sh --resolve already grants this path to
+      # than inventing a PASS. check-domain.py --resolve already grants this path to
       # harness-backend-dev, so no domain boundary was crossed; check-plan-routes.py validates
       # the declared files: list and never the diff, so nothing gated on the omission and the
       # divergence would have gone unrecorded. Added so the signed artifact matches the tree.
       - .claude/skills/harness/bin/test-branch-create-gate.py
     verify: |
-      ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.sh | grep -q '"permissionDecision": "deny"'
+      ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.py && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" python3 .claude/skills/harness/bin/branch-create-gate.py | grep -q '"permissionDecision": "deny"'
     intent: |
       One place moves cards, and after T-03 that place is gh-sync.py. Remove the other one.
 
-      In .claude/skills/harness/bin/branch-create-gate.sh delete the optional board-flip block -
+      In .claude/skills/harness/bin/branch-create-gate.py delete the optional board-flip block -
       the section whose comment begins with the words about an optional board flip, containing the
       gh api graphql projectItems lookup and the gh project item-edit call. Delete with it the four
       config values it reads: PROJ_NUM, PROJ_ID, FIELD_ID and OPT_ID must disappear from the
@@ -697,7 +697,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve answers NOBODY for .claude/skills/harness/SKILL.md at 2ccd7f0, so
+      check-domain.py --resolve answers NOBODY for .claude/skills/harness/SKILL.md at 2ccd7f0, so
       it is a declared main-session step rather than a mid-run rejected write (DEC-179).
     depends_on: [T-03]
     status: done
@@ -755,7 +755,7 @@ tasks:
          posts the ship review on it. Do not instruct any use of gh issue develop; that route is
          struck, and the two reasons live in D-08's strike record rather than in this file.
          Make this edit with the file editor, never by echoing the line through a shell:
-         branch-create-gate.sh is registered live on the Bash route and would adjudicate that
+         branch-create-gate.py is registered live on the Bash route and would adjudicate that
          literal command as a branch creation.
 
       Do not restate what DECISIONS.md holds. This file is the orchestrator's playbook, so every

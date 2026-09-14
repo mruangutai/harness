@@ -36,7 +36,7 @@ assertion re-verified at `tests/unit/test-suite-layout.py:104-105`; AC-06 SC-08+
 SC-10 → `:341-348`, cases 6-7; AC-08 SC-11 → case 2 `:389-390`, T-02 case 5 `:498-499`; AC-09 SC-12 →
 T-03 `:502-589`, T-04 `:590-632`; AC-10 SC-13 → T-05 `:633-703`; AC-11 SC-14/15/16 → `:462-463`,
 SC-15's pin re-derived (`run_pool.py --mutation-check "$BIN_DIR"` is still the sole invocation and
-still line 47 of `run-unit-tests.sh`). **11 + 0 + 0 = 11.**
+still line 47 of `run-unit-tests.py`). **11 + 0 + 0 = 11.**
 
 ## 4. FEAT-44 classification — carried through, not weakened
 

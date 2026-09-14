@@ -2,7 +2,7 @@
 
 **One entry applied, repository tier; three relayed candidates rejected as already covered; one
 craft candidate judged worth a displacement but UNAPPLIABLE — `expertise-merge.py` is union-only and
-has no mechanism to displace at a full section.** Both my files pass `check-expertise.sh` at exit 0.
+has no mechanism to displace at a full section.** Both my files pass `check-expertise.py` at exit 0.
 
 ## Relayed candidates
 
@@ -54,5 +54,5 @@ makes "displace a weaker entry" unexecutable doctrine rather than a choice I dec
   16 → 17 lines of a 40-line budget. Patterns 4 → 5; Gotchas 7 → 7; Outcomes 0 → 0; Open 0 → 0.
 - `.harness/expertise/harness-documentor.md` — untouched. Patterns 15/15, Gotchas 15/15,
   Outcomes 10/10, Open 0/5, before and after.
-- `check-expertise.sh`: `OK` exit **0** on each of my two files. Nothing staged, nothing committed,
+- `check-expertise.py`: `OK` exit **0** on each of my two files. Nothing staged, nothing committed,
   no worktree removed, no suite run.

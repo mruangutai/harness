@@ -37,7 +37,7 @@ session cut it before you were spawned; you neither create nor remove it.
   calls anyway.
 - **Every git command uses `git -C <that path>`.** Address the worktree; do not move to it.
 - **You never move HEAD.** Checking out a branch, switching, a hard reset, a rebase, a merge — all
-  refused for every governed agent by `bash-write-guard.sh`, and the refusal names the alternative.
+  refused for every governed agent by `bash-write-guard.py`, and the refusal names the alternative.
   **A denial there is the guard working, not a malfunction**: HEAD is shared state for the duration
   of a run, and moving it re-points every file under every other agent in that checkout.
 
@@ -54,7 +54,7 @@ exactly:
 HARNESS-FEATURE: FEAT-42-one-root-resolver
 ```
 
-with the id of the feature you are working. `dispatch-guard.sh` refuses a governed dispatch
+with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch
 without it at exit 2. It is the only signal that tells the guard which checkout you were
 assigned to: your process working directory does not follow your assignment, and a claim
 recorded in the wrong checkout is why the previous planning run could not spawn at all.
@@ -105,7 +105,7 @@ task statuses went unrecorded** before anyone noticed. That is why the tool now 
 rather than you: `set-task-station` is the route those five needed and did not have.
 
 **You never write `approval:`** — it records a signature only the main session can have asked
-for (DEC-120), and `check-domain.sh` actively denies your `Edit` of it.
+for (DEC-120), and `check-domain.py` actively denies your `Edit` of it.
 
 ## The cycle budget is yours alone
 
@@ -151,4 +151,4 @@ apart is that the main session named the path. A `resume` dispatch that carries 
 defect in the hand-off, not a cue to search: report it rather than guessing. You never write this
 file yourself (see Domain, above).
 
-For every shell-less lead dispatch, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>` resolved once with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`; dispatch-guard.sh refuses its absence at exit 2.
+For every shell-less lead dispatch, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>` resolved once with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`; dispatch-guard.py refuses its absence at exit 2.

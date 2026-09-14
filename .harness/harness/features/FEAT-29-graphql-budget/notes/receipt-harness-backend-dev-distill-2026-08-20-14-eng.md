@@ -157,7 +157,7 @@ expertise_update:
    guards)** — rejected as a distinct entry. This is an instance of existing G-14's already-general
    "enumerate the matrix, name the untested cell" rule, discovered by applying it; not a new rule.
 
-## `check-expertise.sh` results
+## `check-expertise.py` results
 
 - `.harness/expertise/harness-backend-dev.md`: **OK**. One pre-existing advisory (G-08 names
   `team-config` — flagged as a repository-layer candidate) predates this distillation and was not

@@ -22,7 +22,7 @@ and remove this worktree from OUTSIDE it, which INV-29 now demands.
   verified-at 143240e4.
 - `cycles_used` 11 of 11, being the ten spent to signature plus the single cycle the operator
   authorised — `feature.json` — verified-at 143240e4.
-- Distillation applied ops to ten Expertise files across three squads; both `check-expertise.sh`
+- Distillation applied ops to ten Expertise files across three squads; both `check-expertise.py`
   sweeps exit 0 — `runs/2026-09-05-06-eng`, `-05-product`, `-2-validator` digests — verified-at
   143240e4.
 

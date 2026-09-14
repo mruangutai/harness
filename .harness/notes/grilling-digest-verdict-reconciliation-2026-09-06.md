@@ -8,7 +8,7 @@ Ship a state-gate fix that prevents a completed lead run from recording a featur
 - The state gate detects and reports divergence; it does not auto-repair either record.
 - Scope is only completed lead-hosted runs with durable digests. Non-lead, incomplete, missing, and legacy-run behavior remains unchanged.
 - This is BUG-440 and follows the full Harness BUG flow. The known cause skips the debug investigation segment.
-- `check-state.sh` and its test are enforcement-layer surfaces, so their implementation is main-session-direct.
+- `check-state.py` and its test are enforcement-layer surfaces, so their implementation is main-session-direct.
 
 ## Not yet specified
 - None.
@@ -19,5 +19,5 @@ Ship a state-gate fix that prevents a completed lead run from recording a featur
 
 ## Facts I verified (so pm does not re-derive them)
 - FEAT-22 recorded one `digest.md` `FAIL` versus `feature.json` `PASS` mismatch after reconciling 17 runs manually.
-- `check-state.sh` validates a completed lead digest structurally but does not compare its verdict with the matching `feature.json` run entry.
+- `check-state.py` validates a completed lead digest structurally but does not compare its verdict with the matching `feature.json` run entry.
 - `feature.json.runs[]` has `id`, `squad`, and `verdict`; its run id maps to `runs/<id>/`.

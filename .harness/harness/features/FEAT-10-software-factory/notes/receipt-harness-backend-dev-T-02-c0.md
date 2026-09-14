@@ -7,14 +7,14 @@ FEAT-10-software-factory T-02: Add the fleet loader module and its unit test
 ## What landed
 - `.claude/skills/harness/bin/factory_config.py` — new. `harness_root()`/`FLEET_PATH`
   (absolute, three-tier resolution copied from `check-plan-routes.py`'s `_resolve_root` and
-  `run-unit-tests.sh`'s header comment, probing `docs/harness/SPEC.md`), `workspace_path`,
+  `run-unit-tests.py`'s header comment, probing `docs/harness/SPEC.md`), `workspace_path`,
   `FleetError`, `load_fleet`, `repo_entry`, `station`, and a `--show` CLI entry behind
   `if __name__ == "__main__":` wrapped in `factory_cli.run("config", _main,
   expected=(FleetError,))`.
 - `.claude/skills/harness/bin/test-factory-config.py` — new. Plain python3 script, no pytest,
   53 checks, `N/N checks passed.` sibling summary form. Writes fixtures into
   `tempfile.TemporaryDirectory()`, never reads the real fleet.yaml.
-- `.claude/skills/harness/bin/run-unit-tests.sh` — one line changed: `test-factory-config.py`
+- `.claude/skills/harness/bin/run-unit-tests.py` — one line changed: `test-factory-config.py`
   appended to the existing `UNIT_SCRIPTS` array (line 58 before append; the rest of the diff
   in this file is pre-existing held dirt from T-11, untouched by me).
 
@@ -62,10 +62,10 @@ before writing `factory_config.py`.
 
 ## verify — cross-checked against plan.yaml:294, matches verbatim
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t02.txt 2>&1; s=$?; grep -q "^PASS test-factory-config.py$" /tmp/v-t02.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t02.txt 2>&1; s=$?; grep -q "^PASS test-factory-config.py$" /tmp/v-t02.txt && [ "$s" -eq 0 ]
 ```
 
-**Result: PASS.** `$s` (run-unit-tests.sh's own exit code) = 0. `grep -q "^PASS
+**Result: PASS.** `$s` (run-unit-tests.py's own exit code) = 0. `grep -q "^PASS
 test-factory-config.py$"` matched. Full verbatim tail of `/tmp/v-t02.txt`:
 
 ```
@@ -86,7 +86,7 @@ Also ran the real CLI against the real fleet: `python3
 `board` and `repos` keys, nothing on stderr, exit 0.
 
 ## Not touched
-`check-state.sh`, `test-check-state.py` (DEC-174 carve-out, T-08 withheld) — did not read-to-edit
+`check-state.py`, `test-check-state.py` (DEC-174 carve-out, T-08 withheld) — did not read-to-edit
 or write either. `factory_gh.py` — not imported; T-02 never needed GitHub access (R-01).
 No `git add`/`git commit`. No live `gh`/`git` call — every path in the test is a tempdir fixture
 or (for the real-fleet CLI smoke check above) a read-only `--show` against the existing,
@@ -95,6 +95,6 @@ already-committed `fleet.yaml`.
 ## Files touched
 - `.claude/skills/harness/bin/factory_config.py` (new)
 - `.claude/skills/harness/bin/test-factory-config.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one line: `UNIT_SCRIPTS` append)
+- `.claude/skills/harness/bin/run-unit-tests.py` (one line: `UNIT_SCRIPTS` append)
 - `.claude/skills/harness/bin/test-factory-cli.py` (retrofit: 3 lines)
 - `.claude/skills/harness/bin/test-factory-gh.py` (retrofit: 3 lines)

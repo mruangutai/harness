@@ -8,10 +8,10 @@ denial to three files with one mechanism. Nothing was posted to GitHub.
 
 ## The one overturn to report
 
-The dispatch cited **DEC-119** as check-domain.sh's fail-open-loudly precedent. It is not there:
+The dispatch cited **DEC-119** as check-domain.py's fail-open-loudly precedent. It is not there:
 `awk` over `DECISIONS.md:2356-2408` for `fail.open|loud` returns **zero lines**. The real precedent
 is **DEC-127 @2805**, whose body at `DECISIONS.md:2839` reads "fail OPEN, LOUDLY, on our own bug,
-matching `check-domain.sh`'s precedent" — plus check-domain.sh's own comments at `:798` and `:811`.
+matching `check-domain.py`'s precedent" — plus check-domain.py's own comments at `:798` and `:811`.
 D-10 now cites those, not DEC-119.
 
 ## Anchors re-derived at `62f861c` (old → new)
@@ -22,15 +22,15 @@ D-10 now cites those, not DEC-119.
 | DEC-112 index row | `:141` (guessed) | `DECISIONS-INDEX.md:131`, entry `@1915`, "writes `## Approval` on an explicit yes" at `:1931` |
 | DEC-129 | cited as approval authority | `@2954`, **zero** occurrences of "approval" — citation was wrong |
 | DEC-174 am.4 enumeration | `:4851-4853` | heading `:4836`, enumeration sentence **`:4859-4860`**, "category decides, list records" `:4860-4862` |
-| fail-open-loudly | DEC-119 region | **DEC-127 @2805**, body `:2839`; code `check-domain.sh:798`, `:811` |
+| fail-open-loudly | DEC-119 region | **DEC-127 @2805**, body `:2839`; code `check-domain.py:798`, `:811` |
 | `stop_hook_active` | comment cites `:838` | statement at **`:845`** (comment at `:580`) |
 
 ## Premises re-verified (all held)
 
-1. `grep -c main_session check-domain.sh` → **0**. The list is read by no code.
+1. `grep -c main_session check-domain.py` → **0**. The list is read by no code.
 2. `validate-digest.py:580` cites `:838`; statement at `:845`. Only three `stop_hook_active` hits: `:580`, `:817` (docstring, no line cited, correct), `:845`.
 3. `team-config.yaml` cites DEC-129 on **three** lines: `:89`, `:90`, `:91`. Line `:108` cites DEC-129 *legitimately* (per-feature `DESIGN.md` layout) — this caught a defect in my own first draft of T-15's verify, which asserted `"DEC-129" not in src` and would have failed on `:108`. Now scoped to the three `except` lines.
-4. **The hole is three files wide.** `team-config.yaml:89`/`:90` grant pm `BRIEF.md` and `PLAN.md` whole; `except ## Approval` beside them is a comment. With zero `main_session` reads in check-domain.sh, a pm writing `status: approved` into a BRIEF is unrefused today.
+4. **The hole is three files wide.** `team-config.yaml:89`/`:90` grant pm `BRIEF.md` and `PLAN.md` whole; `except ## Approval` beside them is a comment. With zero `main_session` reads in check-domain.py, a pm writing `status: approved` into a BRIEF is unrefused today.
 
 ## Decisions I made
 

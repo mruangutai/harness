@@ -19,9 +19,9 @@ a labelled recommendation rather than a ruling.
   runs/2026-09-05-2-validator/digest.md — verified-at c369fb1
 - check-plan-routes.py exits 0 with 5 DEVIATION and 0 VIOLATION, so SC-10 is green at plan time —
   run at the orchestrator tier over plan.yaml — verified-at 36311d67
-- T-05's red demonstration is executable: tree() copies run-unit-tests.sh into the temp tree and
+- T-05's red demonstration is executable: tree() copies run-unit-tests.py into the temp tree and
   run() executes that copy, and the `layout_out=` anchor exists —
-  tests/integration/test-run-unit-tests-layout.py:16-23,48 and run-unit-tests.sh:33 — verified-at c369fb1
+  tests/integration/test-run-unit-tests-layout.py:16-23,48 and run-unit-tests.py:33 — verified-at c369fb1
 - SC-02/SC-04 AST counts (any()=2, "*?["=2, ".."=2 pre-fix; 1 each post-fix) — four independent
   agreeing derivations — notes/review-harness-code-reviewer-planpanel-c1.md — verified-at c369fb1
 - SC-09's named-check list is COMPLETE — every anchor it names exists, but whether it OMITS a

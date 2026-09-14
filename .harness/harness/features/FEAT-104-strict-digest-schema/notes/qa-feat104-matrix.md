@@ -20,7 +20,7 @@ graded tree carries only committed content, no live team-authored edit.
 ## 2. Full suite
 
 ```
-env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh; echo "SUITE_EXIT=$?"
+env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py; echo "SUITE_EXIT=$?"
 ```
 → `pool: 8 workers, 106 files, 76.37s wall` · `ALL PASSED` · `SUITE_EXIT=0`.
 
@@ -30,8 +30,8 @@ above, this is NOT a red signal; graded on `SUITE_EXIT=0` alone, which is clean.
 
 ## 3. Per-kind commands (test_matrix floor for `change_type: logic`)
 
-- `unit` (active): `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` → `pool: 8 workers, 36 files, 2.33s wall`, `UNIT_EXIT=0`. **satisfied** (regression gate; see coverage gap below).
-- `integration` (active): `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` → `pool: 8 workers, 70 files, 75.89s wall`, `ALL PASSED`, `INTEGRATION_EXIT=0`. **satisfied** — every new automated criterion for T-01/T-04/T-05/T-06/T-07/T-08 lives here.
+- `unit` (active): `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` → `pool: 8 workers, 36 files, 2.33s wall`, `UNIT_EXIT=0`. **satisfied** (regression gate; see coverage gap below).
+- `integration` (active): `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` → `pool: 8 workers, 70 files, 75.89s wall`, `ALL PASSED`, `INTEGRATION_EXIT=0`. **satisfied** — every new automated criterion for T-01/T-04/T-05/T-06/T-07/T-08 lives here.
 - `component`, `ui`, `typecheck`: `cmd: null`, status `unresolved` in `.harness/harness.json` — not obligated by `change_type: logic`, no predicate fires. **not applicable.**
 - `functional`, `eval`: status `excluded`, signed DEC-187. **not applicable.**
 - `omp_session_accessor`, `handoff_comprehension`, `issue_types_live`: `locally_run`. This diff does not touch any of these three kinds' `detect` surface (schema/digest/CLI code, not session-accessor/handoff-prompt/issue-type surfaces). **not applicable — no recorded run required.**
@@ -91,12 +91,12 @@ part of this diff and was touched by the landed repair commits. **Anchors resolv
 ## 7. Coverage gaps
 
 - `unit` binds **zero new assertions** for this diff — every new automated criterion (T-01/T-04/T-05/T-06/T-07/T-08) rests on `tests/integration/`. **Advisory, not a gate failure** — `unit` ran clean as a regression floor per the repository's standing convention that hook/CLI subprocess behavior lives in `integration`, and the matrix does not require `unit` to carry new coverage, only to pass.
-- T-07's evidence container has accept/refuse cases but **no pre-change comparison** (unlike T-08's vendored fixture) — nothing demonstrates the container's assertions could have been red before the change. **Advisory gap**, not a gate failure: T-07 is exercised functionally (accept+refuse both present, per-key granular per §6) and check-domain.sh's step-schema refusal did not exist pre-diff at all (no "revert to" state to fixture against), same reasoning the prior cycle applied to T-06/T-07 generally.
+- T-07's evidence container has accept/refuse cases but **no pre-change comparison** (unlike T-08's vendored fixture) — nothing demonstrates the container's assertions could have been red before the change. **Advisory gap**, not a gate failure: T-07 is exercised functionally (accept+refuse both present, per-key granular per §6) and check-domain.py's step-schema refusal did not exist pre-diff at all (no "revert to" state to fixture against), same reasoning the prior cycle applied to T-06/T-07 generally.
 
-## 8. `check-state.sh`
+## 8. `check-state.py`
 
 ```
-bash .agents/skills/harness/bin/check-state.sh
+python3 .agents/skills/harness/bin/check-state.py
 ```
 → exit 1 (project-wide, pre-existing violations, not caused by this diff). FEAT-104-scoped output:
 10 `INV-26` card/plan-mismatch lines (T-01,T-03..T-10, parent) — **known class, not routed** (D-23:

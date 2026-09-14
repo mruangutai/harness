@@ -28,7 +28,7 @@ record must not pre-empt that.
 
 ## The reader record — three, and why the third is `ran`
 
-`check-state.sh:534` expects `{should-not-exist, scope, goalcheck}` and emits a HARD `INV-32 … bad`
+`check-state.py:534` expects `{should-not-exist, scope, goalcheck}` and emits a HARD `INV-32 … bad`
 for any of the three not recorded `ran`/`skipped` (`:542-548`). The cycle-0 block recorded two; that
 was a latent defect, fixed by transcription.
 
@@ -55,14 +55,14 @@ is carried.
   `git status --porcelain` (whole worktree) = only
   `M .harness/harness/features/BUG-124-run-dir-squad-suffix/plan.yaml` before this note was written.
 - **`check-plan-routes.py <plan.yaml>`** from the worktree: `0 violation(s) across 1 plan(s)`, exit 0.
-- **`resolved_by` omission accepted**: `check-state.sh`'s own INV-32 body (lines 473–555, extracted
+- **`resolved_by` omission accepted**: `check-state.py`'s own INV-32 body (lines 473–555, extracted
   verbatim and executed over the landed panel — `/tmp/bug124_inv32_probe.py`) returns **0 bad, 7 warn**,
   the warns being the seven `disposition resolved` notes. `resolved` is the vocabulary token
   (`templates/plan.yaml:80`); `closed` would have made the two `high` cycle-0 entries HARD `bad`.
 
 ## Open questions
 
-- **Q1 (non-blocking, harness owner).** The live `check-state.sh` cannot grade this plan at all:
+- **Q1 (non-blocking, harness owner).** The live `check-state.py` cannot grade this plan at all:
   it globs the **owner** checkout's `.harness/*/features/*` (`:118-120`), which has no
   `BUG-124-run-dir-squad-suffix` dir, and INV-32 grades only `approved` plans (`:428-471`). A full
   run from inside the worktree printed 867 lines and **zero** mentioning BUG-124. Same

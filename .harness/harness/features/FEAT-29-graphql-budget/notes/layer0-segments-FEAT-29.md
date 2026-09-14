@@ -12,8 +12,8 @@ execution carve-out is a separate axis and is mechanized nowhere).
 
 ## Why this is two batches and not one
 
-`check-state.sh` INV-26 calls `_gb.board_stations`. **T-02 rewires `board_stations` onto the cheap
-read.** So T-02 landing in the working tree — not the commit, the *tree*, since `check-state.sh`
+`check-state.py` INV-26 calls `_gb.board_stations`. **T-02 rewires `board_stations` onto the cheap
+read.** So T-02 landing in the working tree — not the commit, the *tree*, since `check-state.py`
 imports `gh_board.py` from disk — is what makes the gate cheap. The moment it lands, the 490–507
 red state SC-01 and SC-04 are graded against is gone.
 
@@ -23,7 +23,7 @@ I considered three ways to keep the build in one session and rejected all three:
   point would carry no `plan.yaml`. Fixing that needs the branch committed first, which puts the
   two trees on one branch. Real complexity for a saving of one spawn.
 - **Land T-01 and T-04 only** (neither touches the gate's cost path) and hold T-02/T-03. T-01 edits
-  `factory_gh.py`, which `check-state.sh` imports; T-03 wires cost logging into `run_gh` and creates
+  `factory_gh.py`, which `check-state.py` imports; T-03 wires cost logging into `run_gh` and creates
   `.harness/logs/gh-cost-<date>.jsonl` during the baseline run. Both perturb the tree SC-04 compares.
   Splitting the eng squad into two runs to save nothing measurable is a bad trade.
 - **Recover the baseline later from a git checkout.** Technically possible; it is not the same
@@ -46,7 +46,7 @@ test. Doing it after works too; doing it *between* T-06 and T-07 adds a differen
 | # | Task | Issue | Surface | Unblocked by | GraphQL cost |
 |---|---|---|---|---|---|
 | 1 | **T-09** | #587 | `notes/measurement-board6.md` | T-01, T-02 | ~110 |
-| 2 | **T-07** | #585 | `check-state.sh`, `notes/measurement-after.md` | T-01, T-02, T-06 | ~5 |
+| 2 | **T-07** | #585 | `check-state.py`, `notes/measurement-after.md` | T-01, T-02, T-06 | ~5 |
 | 3 | **T-08** | #586 | `CLAUDE.md` | T-07 | 0 |
 
 T-09 before T-07 puts the two independent-of-each-other measurements first; if T-07's cutover proof
@@ -110,7 +110,7 @@ Each pair costs about 4 GraphQL points, extrapolated from a measurement: `gh-syn
 2026-08-19, board 3).
 
 **One trap, and it lands on T-06 specifically.** INV-26 skips a feature entirely while every task
-reads `pending` — `check-state.sh:1218-1221`, *"Nothing has started. No card can be wrong yet, so no
+reads `pending` — `check-state.py:1218-1221`, *"Nothing has started. No card can be wrong yet, so no
 claim is right."* So if you mark T-06 `building` before running the gate, INV-26 starts comparing all
 nine FEAT-29 cards against the plan for the first time, **inside the baseline**. Either way is
 defensible; **just be consistent across T-06 and T-07**, because SC-04 compares those two violation
@@ -148,7 +148,7 @@ commit — no file either measurement reads is touched by that commit:
    confirmed it. FEAT-26 and FEAT-28 are paused; confirm no other agent run is live.
 3. **`CLAUDE.md` is dirty in your tree** and I have not touched it. It is not on this branch's
    artifact commit. T-08 is yours and the collision is yours.
-4. **The two standing `check-state.sh` violations** are FEAT-26 and FEAT-28 unapproved BRIEFs. They
+4. **The two standing `check-state.py` violations** are FEAT-26 and FEAT-28 unapproved BRIEFs. They
    must appear identically in `measurement-before.md` and `measurement-after.md`. If either flow's
    BRIEF gets approved between the two runs, that is a legitimate `EXPLAINED-DIFFERENCE` — record it,
    do not adjust the captured output.
@@ -160,8 +160,8 @@ commit — no file either measurement reads is touched by that commit:
 
 ## What I did NOT do
 
-- **I did not run `check-state.sh`.** You ran it minutes ago on this same tree at `3920513` and
+- **I did not run `check-state.py`.** You ran it minutes ago on this same tree at `3920513` and
   reported it clean for FEAT-29 with two violations on other flows. Spending 507 of 1,327 remaining
   points to re-derive your reading would have left T-06 unaffordable in this window.
 - **I did not run `gh project item-list` or any board read.** Same reason.
-- **I did not touch `CLAUDE.md`, `check-state.sh`, or `.harness/notes/`.**
+- **I did not touch `CLAUDE.md`, `check-state.py`, or `.harness/notes/`.**

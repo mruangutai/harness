@@ -3,7 +3,7 @@
 ## BLUF
 
 One MED finding: the panel finding's 32-bit truncated content-hash identity
-(`panel_findings.py`) feeds directly into `check-state.sh` INV-32's overrule-matching, and
+(`panel_findings.py`) feeds directly into `check-state.py` INV-32's overrule-matching, and
 that identity mechanism is not hardened against a deliberate second-preimage from the one
 component this same diff (DEC-206) already declares content-unvalidated — the wrapped
 `fable-advisor` reader. A crafted summary that hash-collides with a *previously overruled*
@@ -19,16 +19,16 @@ state it.
 - `bin/panel_findings.py` — full read. Hash construction analyzed line-by-line (see finding).
 - `bin/test-panel-findings.py` — full read; confirmed no test exercises reader-field newline
   injection or collision resistance.
-- `bin/check-state.sh` — diffed precisely (`git diff 1d3e5db..d0ebbe6`) to isolate the INV-32
+- `bin/check-state.py` — diffed precisely (`git diff 1d3e5db..d0ebbe6`) to isolate the INV-32
   addition from the ~1800 pre-existing lines; INV-32 block read in full. Pure Python
   string/dict operations on parsed YAML — no `eval`, no shell-out with untrusted content.
 - `bin/test-check-state.py` — new INV-32 fixture helpers (`_inv32_plan`, `_inv32_run`) read;
   `subprocess.run([script], ...)` is a fixed self-path, list-form, no injection.
 - `bin/test-harness-yaml-corpus.py` — diffed; `TEAMS_EXPECTED` 2→3, a data constant, no logic.
 - `bin/test-plan-panel.py` — read header + all `subprocess.run` call sites
-  (`check-domain.sh --resolve <path>`); list-form argv, fixed binary, paths sourced from the
+  (`check-domain.py --resolve <path>`); list-form argv, fixed binary, paths sourced from the
   team file's own declared outputs, not attacker input.
-- `bin/run-unit-tests.sh` — diffed; exactly two new literal strings appended to
+- `bin/run-unit-tests.py` — diffed; exactly two new literal strings appended to
   `UNIT_SCRIPTS`. No new code path.
 - `bin/sync-agent-adapters.py` — diffed; exactly one new literal string
   (`"fable-advisor"`) appended to the `SPAWNS["harness-validator-lead"]` list, plus a comment.
@@ -49,11 +49,11 @@ state it.
   `skills/harness/templates/plan.yaml` — diffed in full; pure doctrine prose plus the new
   `panel:` template block. Verified `panel:` is declared a sibling of `approval:`, and
   `.harness/team-config.yaml:25` (`".harness/*/features/*/plan.yaml approval:"`) is a
-  pre-existing, unchanged, key-level deny-list entry read by `check-domain.sh`
+  pre-existing, unchanged, key-level deny-list entry read by `check-domain.py`
   (`_yaml_key_range`, unchanged). pm's grant
   (`.harness/*/features/*/plan.yaml, upsert: true # except approval:`) is unchanged by this
   diff — the new `panel:` key rides on infrastructure that already exists and was already
-  built to resist key-boundary bypass (comment at `check-domain.sh:644-648` describes three
+  built to resist key-boundary bypass (comment at `check-domain.py:644-648` describes three
   previously-fixed bypasses). Not a gap opened by this diff.
 - Both `.omp/agents/harness-validator-lead.md` and `.claude/agents/harness-validator-lead.md`
   — diffed; identical new section in both copies (byte-for-byte prose match checked by eye).
@@ -82,10 +82,10 @@ self-paths, no shell).
 ## Finding — MED
 
 **`.claude/skills/harness/bin/panel_findings.py:28-33`, gated by
-`.claude/skills/harness/bin/check-state.sh:202-214`** — the panel finding identity is
+`.claude/skills/harness/bin/check-state.py:202-214`** — the panel finding identity is
 `PF-` + the first 8 hex chars (32 bits) of `sha256(reader + "\n" + normalize(summary))`. That
 id is the sole key INV-32 uses to decide whether an *existing* operator overrule still covers
-a *current* finding (`check-state.sh:206` `overruled.add(fid)`; `:214`
+a *current* finding (`check-state.py:206` `overruled.add(fid)`; `:214`
 `fid not in overruled` gates high/critical/unrated findings). 32 bits is a deliberate second-
 preimage search of roughly 2^31 average SHA-256 evaluations — seconds to low minutes on
 commodity hardware, not a cryptographic barrier — and the one component whose content this
@@ -135,7 +135,7 @@ the *innocuous* collision case but is silent on the *adversarial* one.
   (repo content flows to an external LLM whose return is unvalidated by design, DEC-206), but
   architecturally identical to every other harness reader that already reads plan/BRIEF
   content, not something this diff newly introduces. Bounded further by
-  `check-domain.sh`/`team-config.yaml:303-309`: `harness-validator-lead`'s write domain is
+  `check-domain.py`/`team-config.yaml:303-309`: `harness-validator-lead`'s write domain is
   scoped to its own run directory, its own expertise/observations files, and
   `.harness/notes/analysis-*.md` — even a fully manipulated lead cannot write outside that
   domain, so injected content reaching the lead cannot itself reach `plan.yaml`, source, or
@@ -144,7 +144,7 @@ the *innocuous* collision case but is silent on the *adversarial* one.
 - **DEC-206's compensating control** — verified present, not just claimed. The exact rule
   ("`unrated` is gating-equivalent to `high`") is stated identically in
   `plan-panel.yaml` (both reader prompts), `.omp/agents/harness-validator-lead.md` and its
-  `.claude` twin, and enforced mechanically at `check-state.sh:214`
+  `.claude` twin, and enforced mechanically at `check-state.py:214`
   (`severity in {"high","critical","unrated"} ... and fid not in overruled`). Four
   independent statements of the same rule, all consistent, one of them load-bearing code.
 - **`sync-agent-adapters.py` path handling** — the function that writes files
@@ -152,7 +152,7 @@ the *innocuous* collision case but is silent on the *adversarial* one.
   one-line change only appends a string to a list consumed as YAML frontmatter data, never as
   a filename or path component. No traversal surface here to audit that the diff itself
   opened.
-- **`check-state.sh` shell wrapper** (root resolution, `python3 -I -c ...`) — unchanged by
+- **`check-state.py` shell wrapper** (root resolution, `python3 -I -c ...`) — unchanged by
   this diff (confirmed via `git diff`); INV-32 lives entirely inside the existing heredoc's
   Python, which receives `root`/`_selfdir` as `sys.argv`, not shell-interpolated.
 
@@ -161,12 +161,12 @@ VERDICT: PASS
 DIGEST:
   headline: "One MED finding (32-bit truncated finding-id feeds INV-32's overrule gate, no test for adversarial collision); nothing HIGH+, ship-blocking"
   in_scope: true
-  scope_reason: "New content-hash identity mechanism (panel_findings.py) gates an operator-signature invariant (check-state.sh INV-32) and is fed by a component (fable-advisor) this diff itself declares content-unvalidated (DEC-206) — squarely Tampering/Integrity, plus a new external-subagent trust boundary, secrets, and write-domain surface to check across 40 files."
+  scope_reason: "New content-hash identity mechanism (panel_findings.py) gates an operator-signature invariant (check-state.py INV-32) and is fed by a component (fable-advisor) this diff itself declares content-unvalidated (DEC-206) — squarely Tampering/Integrity, plus a new external-subagent trust boundary, secrets, and write-domain surface to check across 40 files."
   severity_max: med
   findings: 1
   must_fix: []
   threat_model:
-    - { boundary: "fable-advisor summary text -> panel_findings.py hash -> check-state.sh INV-32 overrule match", stride: "T", mitigated: false }
+    - { boundary: "fable-advisor summary text -> panel_findings.py hash -> check-state.py INV-32 overrule match", stride: "T", mitigated: false }
     - { boundary: "fable-advisor return -> validator-lead context (prompt injection)", stride: "E", mitigated: true }
     - { boundary: "pm write of plan.yaml `panel:` key vs main-session-only `approval:` key", stride: "T", mitigated: true }
     - { boundary: "reader severity self-report -> INV-32 gating (DEC-206 compensating control)", stride: "T", mitigated: true }

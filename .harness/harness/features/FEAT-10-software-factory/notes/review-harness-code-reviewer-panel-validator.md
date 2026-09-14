@@ -7,7 +7,7 @@ non-blocking.
 
 Scope actually reviewed: `git status --porcelain` confirms the 15 new `.py` files under
 `.claude/skills/harness/bin/` are `??` (untracked, no diff exists) and were read as whole files;
-`git diff HEAD` was used for the four modified in-scope files. Ran `run-unit-tests.sh --kind unit`
+`git diff HEAD` was used for the four modified in-scope files. Ran `run-unit-tests.py --kind unit`
 and `--kind integration` read-only: **all green**, 7/7 new unit files PASS, `test-factory-integration.py`
 93/93 checks PASS, `test-check-state.py` (T-08, withheld) still PASS. No live `gh`/`git`, no writes,
 no commits made.
@@ -251,7 +251,7 @@ DIGEST:
     - "factory_land.py:77 — build create_pull_request behind factory_gh with a measured status-code + phrase predicate (matching factory_gh.py:229 / factory_decompose.py:407's discipline), never patch the regex in place (fix order item 2/3)"
     - ".harness/harness.json test_kinds.functional.cmd is still null/misconfigured for a diff qa classifies as api/cross_module — resolve before re-gating (fix order item 1)"
   spec_violations: []
-  reviewed: "f9488a2..working-tree (15 untracked .py files read whole; git diff HEAD for run-unit-tests.sh, .harness/harness.json, docs/harness/DECISIONS.md, docs/harness/DECISIONS-INDEX.md)"
+  reviewed: "f9488a2..working-tree (15 untracked .py files read whole; git diff HEAD for run-unit-tests.py, .harness/harness.json, docs/harness/DECISIONS.md, docs/harness/DECISIONS-INDEX.md)"
   human_commits_in_scope: []
   open_questions:
     - { id: Q1, question: "Does gh pr create's captured (non-TTY) stdout/stderr ever carry a second URL ahead of the PR link on the genuine already-exists path? Unverifiable without live gh; if yes it strengthens finding 1's first-URL-wins half.", blocking: false }

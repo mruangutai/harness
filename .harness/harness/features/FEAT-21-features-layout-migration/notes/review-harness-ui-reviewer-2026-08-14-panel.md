@@ -31,8 +31,8 @@ for what this review does not cover.
   agent-instruction prose — no DESIGN.md content, no markup, no styling, no a11y tree. Mechanical
   reference-path fix, consistent with the feature's stated goal.
 - `BRIEF.md` read directly: FEAT-21's own scope statement is exclusively about path-migration
-  mechanics (`check-state.sh` discovery sites, `check-domain.sh` sweep globs, `check-plan-routes.py`,
-  team-config grants, `branch-create-gate.sh`) — no UI/visual/interaction goal anywhere in it.
+  mechanics (`check-state.py` discovery sites, `check-domain.py` sweep globs, `check-plan-routes.py`,
+  team-config grants, `branch-create-gate.py`) — no UI/visual/interaction goal anywhere in it.
 
 Conclusion: this diff has no rendered UI surface and no design contract was touched, checked at both
 the extension level and the specific filename (`DESIGN.md`/mockup/prototype) this role audits.
@@ -41,7 +41,7 @@ theme parity) is a measured result, not an assumption from the feature title.
 
 ## The one surface I did look at for real — operator-facing terminal output
 
-Read `check-state.sh` diff in full and `test-layout-migration.py:300-380` (case 20).
+Read `check-state.py` diff in full and `test-layout-migration.py:300-380` (case 20).
 
 **Remit call, with reasoning:** operator-facing CLI/terminal text is **outside my remit** for the
 dimensions that define this role — fidelity to a design contract, rendered layout, focus/interaction
@@ -52,15 +52,15 @@ One narrow slice **is** inside my remit per this repo's own accumulated practice
 batch/CLI text gets its accessibility sub-check — "state not conveyed by colour alone" — stated
 explicitly rather than skipped). I ran that check and audited what my lens covers:
 
-- `grep -niE '\\033|\\x1b|ansi|color|colour'` across `check-state.sh` at `b1d3925`: **zero
+- `grep -niE '\\033|\\x1b|ansi|color|colour'` across `check-state.py` at `b1d3925`: **zero
   matches**. The script emits plain, uncoloured text throughout — before and after this diff. No
   colour-only state encoding exists to regress. Clean, but low-value: the property held trivially
   because the script never used colour at all.
 - The 18 finding-label call sites (`bad.append`/`warn.append` matching `{feat}/`) were all migrated
-  to the new `fpath()` helper (`check-state.sh:55-59`) — confirmed zero remaining raw `{feat}/`
+  to the new `fpath()` helper (`check-state.py:55-59`) — confirmed zero remaining raw `{feat}/`
   path-prefix literals in the file at `b1d3925`. Consistent conversion, not a partial migration
   that would leave some labels stale.
-- `test-layout-migration.py` case 20 (`:329-368`) now invokes `check-state.sh` via `subprocess.run`
+- `test-layout-migration.py` case 20 (`:329-368`) now invokes `check-state.py` via `subprocess.run`
   against a built fixture tree and compares its real stdout to `layout_migration.render()` over the
   same tree — confirmed no second hand-written mirror remains in this file at `b1d3925`, consistent
   with commit `3df7002`'s stated fix (parity pinned against the real gate, not a copy).

@@ -8,7 +8,7 @@
 - status: awaiting-user
 - station: plan — SIGNED, and the build cannot be orchestrator-hosted. Both approvals landed on
   2026-09-01 (plan.yaml:3-6 `approved`/mruangutai, BRIEF.md:221-225 `approved`), which cleared the
-  one FEAT-52 VIOLATION the previous seq carried; check-state.sh now reports ZERO for this feature
+  one FEAT-52 VIOLATION the previous seq carried; check-state.py now reports ZERO for this feature
   and its remaining VIOLATIONs are all FEAT-51/BUG-1187, pre-existing and out of scope.
   The build mission then hit a hard authority boundary: **14 of the 15 tasks carry
   `execution_mode: main-session-direct`** — T-01..T-12, T-14, T-15 — and only T-13 is `team`
@@ -56,7 +56,7 @@
   the main session. Re-measured this run and unchanged. It means the DEC-174 carve-out is
   currently held by instruction alone, with no mechanism behind it.
 - Q5 (harness owner, non-blocking): a member holds no write grant inside a lead run dir (#216);
-  `check-domain.sh:1204` admits only a payload whose opening bytes are the prior file verbatim,
+  `check-domain.py:1204` admits only a payload whose opening bytes are the prior file verbatim,
   so a recorded digest can be appended to, never prepended; `notes/review-*` is a reviewer path
   a lead cannot write.
 - Q6 (harness owner, non-blocking): the feature directory is UNTRACKED — one bare `??` line in
@@ -64,6 +64,6 @@
   changed and unchanged files alike. Any gate proving BRIEF/plan integrity by clean diff on this
   tree is a FALSE GREEN.
 - Q7 (record imprecision, deliberately unfixed): PF-4ea5b566's recorded summary says "no literal
-  exit statement anywhere"; `inject-expertise.sh` has three (`exit 0` at :28, :49, :137). The
+  exit statement anywhere"; `inject-expertise.py` has three (`exit 0` at :28, :49, :137). The
   operative claim survives. Correcting the text would change its content-hash id and invalidate
   any ruling on it, so it is flagged, not edited.

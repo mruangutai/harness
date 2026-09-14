@@ -34,7 +34,7 @@ rather than accepting any agent's report:
 - unit suite exit 0, **341 PASS / 0 FAIL**, 27 files — 316 before this feature, so +25 real checks
 - integration exit 0, **14 PASS / 0 FAIL**
 - `--check-layout` exit 0; tree-audit `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`; decision anchors 30/0 failed
-- `check-state.sh` exits 0 with no violation and no note for this feature
+- `check-state.py` exits 0 with no violation and no note for this feature
 
 **The plan phase's stated honest limit is closed.** Every green/red result on record at signature
 time was a hand-simulation of the specification against reader-written reimplementations — three
@@ -67,8 +67,8 @@ so the measurement is sound — only the provenance token is wrong. Remedy: one 
 
 **B-3 · SC-16 UNMET · unproven, not wrong ·** the criterion's decisive clause is that
 `violations()` has exactly one caller. I verified by `git grep` at the reviewed revision that it
-does — `run-unit-tests.sh:33`, alone. But no unit assertion pins that repository-wide; the nearest
-one counts lines *inside* `run-unit-tests.sh` and would stay green if a second caller appeared
+does — `run-unit-tests.py:33`, alone. But no unit assertion pins that repository-wide; the nearest
+one counts lines *inside* `run-unit-tests.py` and would stay green if a second caller appeared
 elsewhere. Remedy: one caller-count assertion.
 
 ## The budget, and a doctrine question you should settle
@@ -80,7 +80,7 @@ against my own interest.
 
 Whether 10 of 10 *stops* a feature is genuinely undefined. The playbook says stop "on crossing";
 step 7 scopes exhaustion to the fix loop; and there is **no mechanical check on `max_total_cycles`
-anywhere** — `check-state.sh` only enforces INV-7. Per your standing direction I put it to
+anywhere** — `check-state.py` only enforces INV-7. Per your standing direction I put it to
 `fable-advisor` rather than to you. It ruled: the send-back does count, and forward first-pass work
 continues while the branch stops at the first genuine rework demand. I followed that, which is why
 validation ran at all instead of stopping three segments earlier. **A one-line decision defining
@@ -117,7 +117,7 @@ Anything not listed here dies silently, so this is everything that survived coll
 | B-8 | chore | Integration case 2 asserts only one sentinel absent where case 4 asserts both. |
 | B-9 | bug | `validate-digest.py` demands `code_grade` on a code-reviewer digest and rejects every value while `review_sha` is unpinned, so a plan-phase panel reader that did its job settles as `failed`. |
 | B-10 | bug | Agents assigned to a worktree edited the **main checkout** by passing bare relative paths to file tools — twice this session, both caught and reverted. A guard refusing a relative path under a worktree dispatch would close it. |
-| B-11 | bug | `check-domain.sh` refused a first digest write with "run digest already holds a recorded digest" when none existed; two runs also had their `state.yaml` clobbered by a later run and needed repair. |
+| B-11 | bug | `check-domain.py` refused a first digest write with "run digest already holds a recorded digest" when none existed; two runs also had their `state.yaml` clobbered by a later run and needed repair. |
 | B-12 | enhancement | Define "exhausts" for `max_total_cycles` as reached-versus-crossed, and decide whether it deserves a mechanical check at all. |
 
 ## What I did not do

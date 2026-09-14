@@ -27,14 +27,14 @@
   the answers because they predated them. Two Write calls bought the whole run.
 - 2026-08-22 (fix2-product): **T-19 was dispatched twice by two product-lead hosts and nothing in
   the org could see it.** `mutates_repo` serialization operates inside ONE host's DAG; two hosts on
-  one task are invisible to each other, and `check-domain.sh` cannot see `Bash` writes anyway. The
+  one task are invisible to each other, and `check-domain.py` cannot see `Bash` writes anyway. The
   only thing that prevented DEC-159 carrying the mid-flight rule twice — in an entry whose criterion
   is "one statement, one home" — was pm writing "run the verify command BEFORE your edit" into
   T-19's own `intent:` at `plan.yaml:1548-1550`. A task whose verify fails on the pre-change tree
   doubles as a duplicate-work detector, and that is worth authoring deliberately, not by luck.
 - 2026-08-22 (fix2-product): **fixing a falsified clause in an entry does not surface the entry's
   OTHER falsified clauses.** DEC-159:3986-3987 says handoff notes are denied at `>40 lines`;
-  `check-domain.sh:951` denies at `>60` and DEC-159's own `:3968` already says
+  `check-domain.py:951` denies at `>60` and DEC-159's own `:3968` already says
   `~60-line cap (raised from 40 at DEC-160)`. Two paragraphs of one entry contradict each other and
   the code, and this survived a cycle whose entire subject was a false clause in that same entry.
   The documentor found it because it audited the WHOLE entry rather than only the clause it was

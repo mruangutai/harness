@@ -1,6 +1,6 @@
 # REUSE receipt — FEAT-26 commit 9a30ea5, simplify-eng pass
 
-BLUF: two real reuse findings, both in `gh-sync.py`/`check-state.sh`'s new INV-28 block;
+BLUF: two real reuse findings, both in `gh-sync.py`/`check-state.py`'s new INV-28 block;
 neither is a fresh duplication invented by this commit — both are the third-or-later
 near-identical copy of a shape the file already had, which the tasks' own intent
 (model on the existing function/block) explicitly reproduced rather than factored.
@@ -38,16 +38,16 @@ Test-file additions checked and are clean: no re-implementation found there.
 
 ## Finding 2 — INV-28's glob+parse-guard is INV-21's, restated a third time in the file
 
-- File: `.claude/skills/harness/bin/check-state.sh`
+- File: `.claude/skills/harness/bin/check-state.py`
 - Lines: INV-21's gate+glob+parse guard 913-929 (17 lines incl. a `F-02` comment); INV-28's
   gate+glob+parse guard 1062-1070 (9 lines, no comment) — both at HEAD.
-- Command run: `sed -n '913,916p;924,929p' check-state.sh` vs `sed -n '1062,1070p'
-  check-state.sh` — output shows the two are line-for-line identical except the local
+- Command run: `sed -n '913,916p;924,929p' check-state.py` vs `sed -n '1062,1070p'
+  check-state.py` — output shows the two are line-for-line identical except the local
   variable name (`gdoc` vs `pdoc`) and the invariant id string interpolated into the
   `bad.append(...)` message (`INV-21` vs `INV-28`).
 - Wider measurement: `grep -n 'for fy in glob.glob(os.path.join(H, "\*", "features",
-  "\*", "feature.json"))' check-state.sh` returns 5 hits (lines 177, 573, 914, 953, 1063);
-  `grep -c 'does not parse, so INV' check-state.sh` returns 4. INV-28 is not the second
+  "\*", "feature.json"))' check-state.py` returns 5 hits (lines 177, 573, 914, 953, 1063);
+  `grep -c 'does not parse, so INV' check-state.py` returns 4. INV-28 is not the second
   copy of this shape in the file, it is at minimum the fourth — this commit did not
   introduce the duplication, it added one more instance of a pattern already unfactored
   before it landed.
@@ -60,7 +60,7 @@ Test-file additions checked and are clean: no re-implementation found there.
   "unreadable" (e.g. adding a not-a-dict guard consistently, which INV-21's neighbour
   INV-24 already handles differently via `YamlParseError` alone rather than bare
   `Exception`), has to be applied to four sites by hand; a grep for the string moved on
-  one copy and not the others is exactly the kind of miss check-state.sh itself exists to
+  one copy and not the others is exactly the kind of miss check-state.py itself exists to
   catch in other files.
 - Alternative: a small generator, `_iter_sync_features(cj, H)`, yielding `(feat, gdoc)`
   pairs (or raising/appending to a caller-supplied `bad` list on parse failure) once

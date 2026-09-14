@@ -1,6 +1,6 @@
 # Observations — harness-pm — FEAT-23
 
-- 2026-08-17: my own scratchpad redirect was denied by `bash-write-guard.sh` (`redirect targets
+- 2026-08-17: my own scratchpad redirect was denied by `bash-write-guard.py` (`redirect targets
   $S/red-t01.py, outside your domain`). Red-run probes therefore have to run inline through
   `python3 - <<'PY'` with a `tempfile.mkdtemp()`, never a scratch script written by shell redirect.
   The same denial is what caught the identical shape hiding inside T-01's draft verify clause — the

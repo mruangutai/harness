@@ -25,7 +25,7 @@ All anchors read at HEAD `cd680240` of `feat/FEAT-56-central-onboarding-model` i
 |---|---|---|
 | SC-01 ordered central-model statement in `harness-init/SKILL.md` | **survives-amended** | the ordered markers live in Track B prose (`SKILL.md:8-11`, `:245-247`), which moves; re-point the subject blob to `.claude/skills/harness-add-repo/SKILL.md` and re-run T-01's block there |
 | SC-02 per-clone install strings verbatim | **survives-unchanged** | Track A stays in `harness-init` (`SKILL.md:53`, `:87`); `test-hooks-install.py` keeps its subject. Met, not re-proved |
-| SC-03 six executable sites state the central model | **survives-amended** | add one clause: each remedy must name the door that actually does the job (registration remedies → `harness-add-repo`). Today `check-state.sh:111` and `:2436` say "control-plane clone" where the shipped skill now says "this harness checkout" — inherited drift |
+| SC-03 six executable sites state the central model | **survives-amended** | add one clause: each remedy must name the door that actually does the job (registration remedies → `harness-add-repo`). Today `check-state.py:111` and `:2436` say "control-plane clone" where the shipped skill now says "this harness checkout" — inherited drift |
 | SC-04 fifteen docs state onboarding as registration + one file | **survives-amended** | same fifteen files, plus the new skill; three of the fifteen are command files whose prose names the wrong door once split |
 | SC-05 `--check-product-configs` names an unreachable member | **survives-unchanged** | `factory_config.py:328,478`; 18/18 unit checks. Untouched by both rejections |
 | SC-06 unit suite exit 0 | **survives-unchanged** | standing gate |
@@ -56,7 +56,7 @@ documenting, not building.** The grounds, each measured:
   delivered: `.omp/providers/anthropic.yml` and `openai.yml` map the four roles, and
   `check-omp-port.py:84` refuses any agent whose `model` is not a provider-neutral alias.
 - **The documenting is not cosmetic.** ~20 documents tell the operator to type `/harness-init`
-  (`check-state.sh:111`, `check-domain.sh:385`, `upgrade-config.py:6`, `README.md`, `SPEC.md`,
+  (`check-state.py:111`, `check-domain.py:385`, `upgrade-config.py:6`, `README.md`, `SPEC.md`,
   `BUILD.md`, `org.html:286`, templates …). That slash spelling resolves to **no command in either
   surface** — Claude Code has no such file, and OMP would not see it if it did. The revision
   replaces slash spellings with "load the `harness-init` / `harness-add-repo` skill".
@@ -96,7 +96,7 @@ into this configured fleet` (`:239`, steps 2/3/4/6/7/8 at `:245`, `:284`, `:292`
 - **Kind: a SKILL, not a command, and not both.** A command file is Claude-only (§2), so a
   `.claude/commands/harness-add-repo.md` would re-commit the rejected shape; a skill is reachable
   under every provider today. Owner: the main session — no agent domain grants it
-  (`check-domain.sh --resolve .claude/skills/harness-add-repo/SKILL.md` → `NOBODY`, exit 0),
+  (`check-domain.py --resolve .claude/skills/harness-add-repo/SKILL.md` → `NOBODY`, exit 0),
   so it is a declared `main-session-direct` task under DEC-179/DEC-174.
 
 **Referencing sites the new name breaks** (method: `notes/research-FEAT-56-init-audit.md` item 3):
@@ -105,8 +105,8 @@ into this configured fleet` (`:239`, steps 2/3/4/6/7/8 at `:245`, `:284`, `:292`
 |---|---|
 | `bin/check-instruction-paths.py:14-18` | `MAIN_SESSION_ONLY` tuple — add `"harness-add-repo"` or the anchor rule scans it (`_skill_docs`, `:28-34`) |
 | `bin/check-omp-port.py:97-103` | validates every agent's `autoloadSkills` against `.agents/skills/<name>/SKILL.md`; any agent that autoloads the new skill must exist before the assertion runs |
-| `bin/check-state.sh:111, 287, 408, 2375, 2436` | four `/harness-init` remedies + the "control-plane clone" wording; the registration-shaped ones re-point |
-| `bin/check-domain.sh:385` | fail-open remedy names the door |
+| `bin/check-state.py:111, 287, 408, 2375, 2436` | four `/harness-init` remedies + the "control-plane clone" wording; the registration-shaped ones re-point |
+| `bin/check-domain.py:385` | fail-open remedy names the door |
 | `bin/upgrade-config.py:6, 192, 236` | docstring + two remedies |
 | `bin/gh-sync.py:256` | `github.repo` skip message |
 | `bin/layout_migration.py:123` | `MARKER` applicability rationale |
@@ -119,7 +119,7 @@ into this configured fleet` (`:239`, steps 2/3/4/6/7/8 at `:245`, `:284`, `:292`
 | `templates/README.md`, `templates/harness.json:2`, `templates/team-config.yaml:3`, `templates/BRIEF.md`, `references/github-mirror.md` | template surface |
 | `DECISIONS.md` + `DECISIONS-INDEX.md` | new entry, by amendment; regenerate the index (`gen-decisions-index.py`) |
 | `tests/integration/test-hooks-install.py:265` | `case_commands_verbatim_in_skill` reads `harness-init/SKILL.md` — safe (Track A stays), but the case must be re-anchored if step numbering changes |
-| `tests/integration/test-post-merge-sweep.py:783-785`, `bin/post-merge-sweep.sh:68-69` | cite `SKILL.md:73/:78`; Track B's removal is below those lines, so they survive — re-anchor to headings anyway |
+| `tests/integration/test-post-merge-sweep.py:783-785`, `bin/post-merge-sweep.py:68-69` | cite `SKILL.md:73/:78`; Track B's removal is below those lines, so they survive — re-anchor to headings anyway |
 | `tests/integration/test-layout-migration.py:250-254` | onboarded-product fixture premise, already amended once |
 
 `.harness/harness/features/**` occurrences are record; DEC-188 forbids editing them.
@@ -193,9 +193,9 @@ choosing the shape that pays the doc sweep once.
 | DEC-220 — onboarding is fleet registration plus one product-resident file | `.harness/harness/docs/DECISIONS.md` DEC-220 heading; index row in `DECISIONS-INDEX.md` |
 | `product_config_report()` and `--check-product-configs` | `.claude/skills/harness/bin/factory_config.py:328` (report), `:449-478` (CLI guard, exit 2) |
 | Its 18-case suite | `tests/unit/test-fleet-product-config.py` — 18/18 at the pin |
-| Six corrected `bin/` sites | `check-instruction-paths.py:12-15`, `check-state.sh:111`, `check-domain.sh:385`, `upgrade-config.py:6`, `gh-sync.py:256`, `layout_migration.py:123` |
+| Six corrected `bin/` sites | `check-instruction-paths.py:12-15`, `check-state.py:111`, `check-domain.py:385`, `upgrade-config.py:6`, `gh-sync.py:256`, `layout_migration.py:123` |
 | The fifteen-file documentation sweep | enumerated in `BRIEF.md:116-124`, cited one-per-file in `notes/research-FEAT-56-goalcheck-ship-c0.md` §SC-04 |
-| Four retired per-product-install claims | `check-state.sh:373-374`, `templates/harness.json:5`, `.harness/harness.json:4`, `.harness/harness.json:6` (`_handoff_done_when_baseline_note`) |
+| Four retired per-product-install claims | `check-state.py:373-374`, `templates/harness.json:5`, `.harness/harness.json:4`, `.harness/harness.json:6` (`_handoff_done_when_baseline_note`) |
 | Repaired team-config template (parses as YAML) | `.claude/skills/harness/templates/team-config.yaml` — SC-10 |
 | The Track A/Track B seam itself | `harness-init/SKILL.md:48` and `:239` — the split reuses it rather than re-cutting it |
 
@@ -209,5 +209,5 @@ Nothing above is reverted by this proposal.
 - **Q2 (non-blocking):** the four existing doors are invisible under OMP (§2). Successor feature, or
   live with skill-triggered invocation? 14 files if built.
 - **Q3 (non-blocking):** the three stale `copied into every onboarded project` residues and the
-  `control-plane clone` / `this harness checkout` vocabulary drift (`check-state.sh:111`, `:2436`) —
+  `control-plane clone` / `this harness checkout` vocabulary drift (`check-state.py:111`, `:2436`) —
   fold into T-13, or leave as the follow-up chore the goal-check already recorded?

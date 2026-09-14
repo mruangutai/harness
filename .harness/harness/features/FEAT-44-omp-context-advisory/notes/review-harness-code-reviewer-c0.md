@@ -74,11 +74,11 @@ stale.
 | `omp-hooks.test.ts:12` | import block closes, sources `harness-hooks.ts` | VERIFIED |
 | `omp-hooks.test.ts:3` | `tmpdir` import | VERIFIED |
 | `.claude/settings.json:54-68` | `PostToolUse` block, two hook objects | VERIFIED |
-| `.claude/settings.json:58-61` | `check-domain.sh --post` entry (kept) | VERIFIED |
+| `.claude/settings.json:58-61` | `check-domain.py --post` entry (kept) | VERIFIED |
 | `.claude/settings.json:62-65` | `context-watch-hook.py` entry (removed) | VERIFIED |
 | `.claude/settings.json:64` | the command line itself | VERIFIED |
-| `run-unit-tests.sh:30` | `UNIT_SCRIPTS` contains `test-context-watch.py` | VERIFIED |
-| `run-unit-tests.sh:31` | `INTEGRATION_SCRIPTS` contains the two cli/hook test names | VERIFIED |
+| `run-unit-tests.py:30` | `UNIT_SCRIPTS` contains `test-context-watch.py` | VERIFIED |
+| `run-unit-tests.py:31` | `INTEGRATION_SCRIPTS` contains the two cli/hook test names | VERIFIED |
 | `.harness/harness.json:119` | `integration.detect` contains both context-watch test paths | VERIFIED |
 | `test-orchestrator-playbook.py:62-67` | `case4` function body | VERIFIED |
 | `test-orchestrator-playbook.py:63-65` | presence assertion (wording regex) | VERIFIED |
@@ -180,7 +180,7 @@ silently folding it into `readContextAnchor(undefined)`'s "none," and add one T-
 - **Sweep for other present-tense DECISIONS.md claims about context-watch/PostToolUse/nonce/context-check** —
   full-file grep found only DEC-198 (`:6790`), DEC-201 (`:7043,:7045`), DEC-159 (`:4092`) — the three
   T-06 already amends — plus DEC-158's historical Applied list (`:3972`, past-tense, correctly left
-  alone) and several unrelated `PostToolUse` mentions (`check-domain.sh`'s own hook, `:5288, :5302,
+  alone) and several unrelated `PostToolUse` mentions (`check-domain.py`'s own hook, `:5288, :5302,
   :5307, :5379, :6726`, all describing a *different* registered hook that survives this change). Three
   amendments are sufficient.
 - **Seven-artifact delete list** — repo-wide sweep (basenames + `context-watch`, `context-check`,
@@ -189,7 +189,7 @@ silently folding it into `readContextAnchor(undefined)`'s "none," and add one T-
   (covered by T-06), and FEAT-31's own historical `notes/` (a closed feature's record, correctly left
   alone — same DEC-158 precedent). The list is exactly right in both directions: nothing missing,
   nothing over-included.
-- **Three mechanical guards** — read at source: `run-unit-tests.sh`'s drift check (`:95-140`) really
+- **Three mechanical guards** — read at source: `run-unit-tests.py`'s drift check (`:95-140`) really
   cannot see a `test_kinds.integration.detect` entry with no matching array member (confirmed by reading
   its two one-directional loops), which is exactly why T-04's verify carries the separate `git grep`;
   `test-run-unit-tests-kinds.py` (confirmed by reading `case_2`/`case_3`) tests only the two directions

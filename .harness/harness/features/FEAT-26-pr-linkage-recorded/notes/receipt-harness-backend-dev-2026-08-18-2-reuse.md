@@ -11,7 +11,7 @@
 - `.claude/skills/harness/bin/test-gh-sync.py` — grepped for fake-gh invocation logging
   (`FAKE_GH`, `FAKE_LOG`, `calls.log`, `read_calls`) to settle T-04's hedge.
 - `.claude/skills/harness/bin/feature-schema.json`, `test-validate-feature-json.py`,
-  `test-check-state.py`, `check-state.sh` — skimmed for existing shape T-01/T-05 model on
+  `test-check-state.py`, `check-state.py` — skimmed for existing shape T-01/T-05 model on
   (INV-21 block, existing `github.properties` block); matches what the plan already cites.
 
 ## What I checked for, per the dispatch's four named items

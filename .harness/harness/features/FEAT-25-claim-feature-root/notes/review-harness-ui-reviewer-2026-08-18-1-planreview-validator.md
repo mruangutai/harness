@@ -22,7 +22,7 @@ and a CLI diagnostic, not a feature with a human-facing screen.
 
 **Extension census** (`find .claude/skills/harness/bin -iname '*.html|*.css|*.scss|*.tsx|*.jsx|*.vue|*.svelte|*.less'`):
 zero matches. SC-08 additionally confines every change to `.claude/skills/harness/bin/` and explicitly
-forbids touching `factory_config.py`, `fleet.yaml`, `harness.json`, `gh_board.py`, `check-domain.sh` —
+forbids touching `factory_config.py`, `fleet.yaml`, `harness.json`, `gh_board.py`, `check-domain.py` —
 none of which are UI surfaces either.
 
 **What the feature actually does**: repoints a module-level path constant (`FEATURES_ROOT`), splits

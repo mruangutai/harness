@@ -1,7 +1,7 @@
 # Handoff — BUG-1302-suite-layout-fail-closed, build → validate — written at ac8dd671, seq-1
 
 <!-- RESHAPED, NOT RE-AUTHORED. The build ran main-session-direct under DEC-174 and left this
-     note freeform; check-state.sh flagged it against the DEC-159/160 shape gate. The validate
+     note freeform; check-state.py flagged it against the DEC-159/160 shape gate. The validate
      orchestrator rewrote it into the five-section grammar on 2026-09-05. Every claim below was
      already made by the build note or is cited to an artifact predating this rewrite. -->
 

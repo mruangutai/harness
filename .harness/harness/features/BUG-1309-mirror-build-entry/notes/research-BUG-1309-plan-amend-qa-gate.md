@@ -23,21 +23,21 @@ What each `verify:` actually proves:
 - **T-11** — asserts one `PASS BE-NN ` line per id for all 30 ids via `seq -w 1 30`, so the block
   cannot pass while any case is absent or renumbered, and fails on any `^FAIL ` line.
 
-## Lanes, measured with `check-domain.sh --resolve` (exit 0 each)
+## Lanes, measured with `check-domain.py --resolve` (exit 0 each)
 
 - `tests/integration/test-hooks-install.py` → harness-backend-dev, harness-dev-ops, harness-qa
 - `tests/unit/test-feature-schema-build-entry.py` → harness-backend-dev, harness-dev-ops, harness-qa
 - `tests/unit/test-gh-sync-build-entry.py` → harness-backend-dev, harness-dev-ops, harness-qa
-- control: `post-merge-sweep.sh`, `check-state.sh` → harness-backend-dev, harness-dev-ops
+- control: `post-merge-sweep.py`, `check-state.py` → harness-backend-dev, harness-dev-ops
 
 ## Overturned premise: the fixture repair is main-session-direct, not team (D-11)
 
 The dispatch pinned T-10 to `team` on the `--resolve` grant. **A team grant cannot settle carve-out
-membership**: the same resolver grants team on `post-merge-sweep.sh` and `check-state.sh` themselves
+membership**: the same resolver grants team on `post-merge-sweep.py` and `check-state.py` themselves
 (control row above), which is exactly why this plan's signed `lanes` rows override it on T-04/T-06/T-07.
 `DECISIONS.md:4360-4363` puts "**the test file of each**" gate inside the carve-out and states the
 category governs, not the enumeration; case (e) of that file runs a real `git merge` through the
-tracked `core.hooksPath` shim and executes `post-merge-sweep.sh` end to end (`test-hooks-install.py:388-432`).
+tracked `core.hooksPath` shim and executes `post-merge-sweep.py` end to end (`test-hooks-install.py:388-432`).
 The line drawn in D-11 is **exercises a gate**, never **imports a module a gate uses** — the wider
 reading would drag `tests/integration/test-gh-sync.py` and `test-validate-feature-json.py` into the
 carve-out, and this plan's own lanes rows place both in team. `lanes` itself was left untouched: a
@@ -45,7 +45,7 @@ new row would need `resolved_at` re-pinned, and `apply` refuses a differing top-
 
 ## T-07 has no unit-reachable seam, and D-10 says so instead of inventing one
 
-`post-merge-sweep.sh:29-43` runs its whole body — including the retention branch at `:221-233` — inside
+`post-merge-sweep.py:29-43` runs its whole body — including the retention branch at `:221-233` — inside
 a `python3 -I -` heredoc fed on **stdin**. Nothing can import it. Its only unit-reachable input is
 `feature_schema.BUILD_ENTRY_ERA_EXEMPT`, covered by BE-10, which is the exact property `:223` branches on
 and the one the stale fixture turned on. Extracting that decision into a module purely to host a test
@@ -74,8 +74,8 @@ OK T-02 granted to harness-backend-dev, harness-dev-ops, harness-qa
 OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
-DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
-DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.sh, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-06 .claude/skills/harness/bin/check-state.py, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor
 DEVIATION T-10 tests/integration/test-hooks-install.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct

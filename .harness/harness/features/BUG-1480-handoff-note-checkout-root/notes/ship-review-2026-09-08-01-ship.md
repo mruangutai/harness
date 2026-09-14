@@ -21,7 +21,7 @@ cherry-pick into BUG-201).
 | commit | file | change |
 |---|---|---|
 | `6b5ae254` | `tests/integration/test-check-domain.py` | `_handoff_worktree_cases` — four rows proving a note in a worktree-only feature dir resolves there |
-| `d8a99991` | `.claude/skills/harness/bin/check-domain.sh` | `_checkout_root(path)` sibling helper beside `_norm`, and one argument at the `handoff_done_when.problems(...)` call site |
+| `d8a99991` | `.claude/skills/harness/bin/check-domain.py` | `_checkout_root(path)` sibling helper beside `_norm`, and one argument at the `handoff_done_when.problems(...)` call site |
 
 `_norm` already asked `harness_boundary.checkout_relative` for the pair `(checkout root, relative
 path)` and threw the root away. The fix stops throwing it away — at one call site, in a sibling
@@ -57,7 +57,7 @@ Nothing needs an answer before merge. Every residual is in the table below.
 
 | ID | nature | what | why it is not in this PR |
 |---|---|---|---|
-| B-1 | bug | `check-domain.sh:1472-1474` — the `RE_FEATURE_JSON` schema lookup joins a checkout-stripped `rel` onto the main `root`, so a worktree-only `feature.json` is schema-checked against the wrong checkout. Same root cause as BUG-1480, outside its diff. Remedy is one token: `_checkout_root(absolute_path)` in place of `root`. Self-documented at `:1464-1468` as an accepted residual since 2026-08-23 | D-01 bounds this PR to one defect. It is a one-line fix that deserves its own red test |
+| B-1 | bug | `check-domain.py:1472-1474` — the `RE_FEATURE_JSON` schema lookup joins a checkout-stripped `rel` onto the main `root`, so a worktree-only `feature.json` is schema-checked against the wrong checkout. Same root cause as BUG-1480, outside its diff. Remedy is one token: `_checkout_root(absolute_path)` in place of `root`. Self-documented at `:1464-1468` as an accepted residual since 2026-08-23 | D-01 bounds this PR to one defect. It is a one-line fix that deserves its own red test |
 | B-2 | chore | REQ-06's containment narrowing has no executable row: no test observes a worktree note's `finding:`/`approval:` pointer into the MAIN checkout being refused. A later edit could widen or drop the bound with the suite green | `tests/integration/**` is `main-session-direct` under DEC-174; no member may add it, and it is proof, not behaviour |
 | B-3 | chore | REQ-02's other direction is unfixtured: no row combines a *present* linked worktree with a note validated in the MAIN checkout. The main-checkout path is covered, but only where no worktree exists | same as B-2 |
 | B-4 | chore | `templates/HANDOFF.md:45` documents `finding:`/`approval:` as a bare PATH with no root semantics, while 22 notes across 11 features use the main-root spelling `.claude/worktrees/harness/<FEAT>/…` that the signed narrowing now refuses from a worktree-standing note. Found by reading the 95-note corpus, not the diff — every reviewer scoped to the diff was right to return clean | Documentation change outside the defect. The narrowing itself is signed and correct; what is missing is the sentence telling the next author which root a pointer is read against |

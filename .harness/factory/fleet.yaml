@@ -12,7 +12,7 @@ schema: factory-fleet/1
 # the harness base, and keep full write rights.
 #
 # The absence is what enforces it, and the mechanism CHANGED when the entry came out.
-# Measured both ways on `harness-factories/harness/.claude/skills/harness/bin/check-domain.sh`:
+# Measured both ways on `harness-factories/harness/.claude/skills/harness/bin/check-domain.py`:
 # with the entry present, `--resolve` returned NOBODY (product base, control-plane globs
 # filtered); with it absent, `--resolve` exits 2 — "under the factory workspace but belongs
 # to no repository declared in fleet.yaml". Louder, not quieter. Re-adding the entry is a

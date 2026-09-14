@@ -20,11 +20,11 @@ none found). `find … -iname DESIGN.md` under this feature's tree: **no match**
 exists. This is a Mode B audit of an adjacent text surface, not a rendered-UI review; nothing here
 contradicts that framing.
 
-**Verified, not assumed, that the remedy is test-only:** `git diff <old>..<new> -- check-state.sh`
-is empty, and the working-tree copy of `check-state.sh` diffs empty against the new pin too. The
+**Verified, not assumed, that the remedy is test-only:** `git diff <old>..<new> -- check-state.py`
+is empty, and the working-tree copy of `check-state.py` diffs empty against the new pin too. The
 INV-37 message text I audit below is therefore the *same bytes* cycle 1 read.
 
-## 2. INV-37 gate message as an interface (`check-state.sh:1552-1557`, unchanged)
+## 2. INV-37 gate message as an interface (`check-state.py:1552-1557`, unchanged)
 
 Message shape (verified against source, not paraphrased):
 ```
@@ -39,7 +39,7 @@ record is wrong.
   wrong") almost verbatim.
 - **No prescribed remedy action** (no "Fix: …" / "Run … for reasons"). I checked this against the
   file's own convention rather than an abstract standard (P-14): of 122 `bad.append`/`warn.append`
-  call sites in `check-state.sh`, only 5 carry an explicit remedy clause (`INV-31` ×4 "Fix: …",
+  call sites in `check-state.py`, only 5 carry an explicit remedy clause (`INV-31` ×4 "Fix: …",
   `INV-15` "Run bin/validate-digest.py lead on it for reasons"). Omitting one is the file's norm,
   not an outlier, and here a scripted remedy would be dishonest: REQ-04 is that no single mechanical
   fix exists — either record could be the wrong one, and only a human can tell.
@@ -50,10 +50,10 @@ remedy-clause convention and found the omission consistent with house practice, 
 
 ## 3. Day-one density: 4 blocking findings among the gate's other output — measured
 
-Ran the *pre-INV-37* `check-state.sh` live against the real control-plane root (read-only; INV-37
+Ran the *pre-INV-37* `check-state.py` live against the real control-plane root (read-only; INV-37
 isn't merged there yet, so this measures the surrounding volume the 4 disclosed findings will land
 in): **801 total output lines, 1 `VIOLATION` line, 800 `note` lines.** Reading the print loop
-(`check-state.sh:2504-2505`) confirms the format is fixed: `for m in bad: print("VIOLATION …")`
+(`check-state.py:2504-2505`) confirms the format is fixed: `for m in bad: print("VIOLATION …")`
 runs to completion **before** `for m in warn: print("note …")` starts — every violation is emitted
 as one contiguous block at the very top of the sweep, ahead of all notes, every time.
 
@@ -68,7 +68,7 @@ filed here.)
 
 ## Findings
 
-None new. Carrying forward: V-05 (low, output-spoofing via unescaped names, `check-state.sh:1553`)
+None new. Carrying forward: V-05 (low, output-spoofing via unescaped names, `check-state.py:1553`)
 is unchanged and is security's lens, not re-litigated here.
 
 ```yaml
@@ -82,7 +82,7 @@ DIGEST:
   must_fix: []
   states_unspecified: []
   contract_violations: []
-  a11y: ["not applicable — batch/CLI text output, no colour-only state encoding, confirmed by reading the print loop (check-state.sh:2504-2505)"]
+  a11y: ["not applicable — batch/CLI text output, no colour-only state encoding, confirmed by reading the print loop (check-state.py:2504-2505)"]
   open_questions: []
   files_touched: []
   expertise_update: []

@@ -74,6 +74,6 @@ all three: `OK`, exit 0.
 
 ## Not mine, seen and not chased
 
-`check-plan-routes.py` / `check-state.sh` red closes at T-08. I did not run them and did not touch
+`check-plan-routes.py` / `check-state.py` red closes at T-08. I did not run them and did not touch
 `check-plan-routes.py`, `.harness/features/**` state files, or `DECISIONS-INDEX.md` (generated,
 T-10's).

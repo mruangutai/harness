@@ -25,7 +25,7 @@ must return before T-12.
   read by me — verified-at 37a8a66. Affects FEAT-06 only; the grilling artifact is stale on it
 - `cost-report.py` reads no YAML and is a state.yaml WRITER — pm verified at source, `:112` path-munge
   and `:189` in `patch_state_cost`, docstring `:170` — verified-at 37a8a66. This falsifies REQ-01
-- `yaml.safe_load` silently collapses duplicate keys, so `check-domain.sh:287`'s dup-key detector
+- `yaml.safe_load` silently collapses duplicate keys, so `check-domain.py:287`'s dup-key detector
   needs a raising `construct_mapping` — eng-lead run 02 digest, tested — verified-at 37a8a66
 - The governed hook path measures 80.63ms, not the grilling's 23.7ms (that was the `:48` early exit)
   — notes/receipt-harness-dev-ops-pyyaml-probe-2026-08-02.md — verified-at 37a8a66

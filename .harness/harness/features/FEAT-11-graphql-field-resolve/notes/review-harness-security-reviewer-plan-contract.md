@@ -53,7 +53,7 @@ detail from `gh`'s stderr is newly exposed. **info.**
 
 Nothing in the plan captures `GITHUB_TOKEN`/`GH_TOKEN` or environment into an exception or log.
 `run_gh` captures only `gh`'s own stdout/stderr; `GhError` never renders raw stdout/stderr into
-`str()` (see #3). `run-unit-tests.sh` prints no environment variables (verified: no `env`/`TOKEN`
+`str()` (see #3). `run-unit-tests.py` prints no environment variables (verified: no `env`/`TOKEN`
 output in the script).
 
 The `/tmp/feat11-unit.log` / `/tmp/feat11-integration.log` paths (plan.yaml:65-66) are predictable

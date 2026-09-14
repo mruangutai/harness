@@ -93,7 +93,7 @@ skill edited to carry what a run learned — the three-part rule for skill text 
 FEAT-60):** *if a gate refuses on it, name the gate; if a decision holds it, point; if one seam
 needs it, reference it.* A skill carries the rule, one clause of why, and a pointer — never the
 gate's field list, the decision's evidence, or a procedure preloaded on every wake.
-`check-skill-weight.py` measures the preload and `check-state.sh` notes an excess.
+`check-skill-weight.py` measures the preload and `check-state.py` notes an excess.
 
 ```markdown
 # Expertise — <your-agent-name>

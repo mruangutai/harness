@@ -48,7 +48,7 @@ Scope, all three sweeps: `48bbe7e -- . ':(exclude).harness/harness/features/*'
 against ids that survive this feature:
 
 - `DEC-188` → **exit 0, 26 hits**, e.g. `.claude/skills/harness-brief/SKILL.md:52`,
-  `.claude/skills/harness/bin/check-domain.sh:523`, `bin/gen-decisions-index.py:205`.
+  `.claude/skills/harness/bin/check-domain.py:523`, `bin/gen-decisions-index.py:205`.
 - `DEC-90` → **exit 0, 6 hits**, e.g. `DECISIONS-INDEX.md:100`, `DECISIONS.md:1057`.
 - Regex-and-traversal control for sweep 2: the identical `am\.[0-9]+` command at `7ebfc9e` returns
   hits across 20+ files (`.claude/commands/harness.md`, `.gitignore`, `.github/workflows/tests.yml`, …).

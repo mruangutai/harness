@@ -38,7 +38,7 @@ merely quiet.
 ## Constraints
 
 - **Supplies (mechanism this work relies on):** DEC-174 governs the enforcement-layer carve-out;
-  `check-domain.sh --resolve` answers `harness-backend-dev`, `harness-dev-ops`, `harness-qa` for
+  `check-domain.py --resolve` answers `harness-backend-dev`, `harness-dev-ops`, `harness-qa` for
   `tests/integration/test-plan-merge.py`, so the build lane is ordinary squad work rather than
   main-session-direct. DEC-211 supplies the parallel-suite contract, and it is satisfied by
   measurement: `run_pool.py:63` runs each test file as its own `subprocess.run`, so an in-process
@@ -47,7 +47,7 @@ merely quiet.
 - **Blocks (bounds the solution):** the Advisor's settled ruling (`runs/2026-09-05-02-validator/
   digest.md`) confines the fix to `tests/integration/test-plan-merge.py` — no shared
   `tests/integration/` helper, no tree-wide env-discipline lint, no central scrub in
-  `run_pool.py` or `run-unit-tests.sh`, and no change to `plan-merge.py`.
+  `run_pool.py` or `run-unit-tests.py`, and no change to `plan-merge.py`.
 - The operator's grilling note (`.harness/notes/grilling-six-residual-bugs-2026-09-05.md`)
   out-scopes unrelated cleanup, redesigns and compatibility shims.
 - Operator-set cap: eight build/review cycles for this flow; the Advisor may extend, twenty is the
@@ -88,7 +88,7 @@ a failure of the change.
 
 ## Verification gaps
 
-- The `integration` kind has a runner (`run-unit-tests.sh --kind integration`), but that runner
+- The `integration` kind has a runner (`run-unit-tests.py --kind integration`), but that runner
   goes through `run_pool.py`, which spawns each file as a subprocess that inherits the ambient
   environment. A green run through the runner therefore does not by itself prove hermeticity; the
   direct `python3 tests/integration/test-plan-merge.py` invocation named in SC-01 and SC-03 is the

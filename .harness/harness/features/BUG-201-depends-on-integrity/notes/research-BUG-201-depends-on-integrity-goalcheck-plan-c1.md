@@ -17,7 +17,7 @@ defects I found are repaired below; after them every SC-01..SC-09 is `met`. Noth
 | PF-6dda61 (SC-02) | **repaired** | `BRIEF.md` SC-02: "exits with status EXACTLY 5 … `ILLEGAL PLAN` and `T-99` … sha256 unchanged … AND the paired allow … Exit 9 … does not satisfy". Matches T-02 (a)+(b) |
 | PF-cc2bcf (SC-05) | **repaired** | SC-05 now requires import + reaching cases, paired-allows PASS in the same run, and enumerates the FAIL set (cases 1,3,5,6c). Import/fixture error excluded explicitly |
 | PF-e9eff4 (REQ-04 2nd half) | **repaired** | T-03 `verify:` is eight suites (lines 301-308), T-06 the same eight (459-467); SC-06 (3 unit) and SC-07 (4 integration) bind them, split by `evidence:` kind |
-| PF-4e8683 (D-03 lane) | **repaired, then SETTLED by ruling** | D-03 `because` cites the "The enforcement layer, enumerated:" paragraph and the `check-domain.sh --resolve` reading; advisor 2026-09-07 ruled T-03/T-06 stay `team` |
+| PF-4e8683 (D-03 lane) | **repaired, then SETTLED by ruling** | D-03 `because` cites the "The enforcement layer, enumerated:" paragraph and the `check-domain.py --resolve` reading; advisor 2026-09-07 ruled T-03/T-06 stay `team` |
 | PF-4f9180 (exit-2 surface) | **unchanged-deliberately** | info; exit 2 from `check-plan-routes.py` already stops consumption pre-signature and its stderr interpolates the exception. No artifact change was needed and none was made |
 | PF-092cbd (self-dep sentence) | **repaired** | T-03 intent 342-345: "NON-NORMATIVE NOTE … NOT a behaviour to implement … Write no branch, no special case and no test for it" |
 | PF-7beea1 (SC-03 count) | **repaired** | SC-03 is a floor with provenance (67 committed at `af859ee8`, 68 in this worktree); agrees with T-04's "AT LEAST 67". Re-measured today: 68 files, 0 dangling |
@@ -86,7 +86,7 @@ and the same for `T-06`, both `AMENDED tasks:T-0N.verify` / `APPLIED …/plan.ya
 change.** Nothing else a reader graded was touched.
 
 **V-1 (`med`, `should-not-exist`) — REQ-04's second-half proof bound four of six consumers.**
-`PF-e9eff4`'s own text enumerated four consumers and the c1 repair bound three; `check-state.sh:140`
+`PF-e9eff4`'s own text enumerated four consumers and the c1 repair bound three; `check-state.py:140`
 was a fourth unbound consumer neither had named. Three edits:
 
 1. `BRIEF.md` SC-07 now names six integration suites, adding
@@ -101,7 +101,7 @@ was a fourth unbound consumer neither had named. Three edits:
 
 **The consumer set is CLOSED at six files** — `grep load_plan` over
 `.claude/skills/harness/bin/` at HEAD, re-run by me, not adopted: `check-plan-routes.py:366`,
-`check-state.sh:140`, `factory_claim.py:107`, `factory_decompose.py:471`, `gh-sync.py:357`/`:1154`/
+`check-state.py:140`, `factory_claim.py:107`, `factory_decompose.py:471`, `gh-sync.py:357`/`:1154`/
 `:1264` call `harness_yaml.load_plan`; `plan-merge.py` reaches the same rule through
 `validate_plan_doc` directly and never calls `load_plan` (its two `load_plan` mentions, `:465` and
 `:499`, are comments). `harness_yaml.py:295` is the definition. `.agents/` has no consumer;

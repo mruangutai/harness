@@ -127,7 +127,7 @@ panel:
         T-03 places the worktree-checkout-binding check only inside `domain_check()`'s
         allow/shared branches; `harness_boundary.classify`'s `not_a_domain_question` outcome
         returns earlier and separately, so a write landing there never reaches T-03's check,
-        while T-09 narrows a single `bash-write-guard.sh:747` continue that covers both `allow`
+        while T-09 narrows a single `bash-write-guard.py:747` continue that covers both `allow`
         and `not_a_domain_question` and would fire on it — the two "route-complete"
         checkout-binding fixes are not symmetric in verdict-shape coverage.
       consequence: >-
@@ -213,7 +213,7 @@ panel:
   severity_max: med
 
 lanes:
-  # Every row's resolve verdict was produced by check-domain.sh --resolve, not read off
+  # Every row's resolve verdict was produced by check-domain.py --resolve, not read off
   # team-config.yaml. NOBODY means no persona is granted the path, which is a
   # main-session-direct lane by check-plan-routes.py's own rule and not a carve-out.
   # A main-session-direct lane on a GRANTED path is a DEC-174 carve-out; check-plan-routes.py
@@ -236,7 +236,7 @@ lanes:
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops, and DEC-174
         OVERRIDES that grant. A gate's own test is inside the line, because it is the only
         thing proving the gate discriminates.
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops, and DEC-174
@@ -247,7 +247,7 @@ lanes:
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops, and DEC-174
         OVERRIDES that grant. It is the domain gate's own test.
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops, and DEC-174
@@ -275,7 +275,7 @@ lanes:
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops and DEC-174 does
         NOT override it. This module is not a registered hook, validator or gate; it is a library
         a gate imports, and DEC-174's carve-out names the gates. The cutover that makes
-        check-domain.sh CALL the new helper is a separate task and stays main-session-direct.
+        check-domain.py CALL the new helper is a separate task and stays main-session-direct.
     - surface: .claude/skills/harness/bin/inflight_registry.py
       lane: team
       agent: harness-backend-dev
@@ -289,8 +289,8 @@ lanes:
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops and DEC-174 does
         NOT override it: it is the library's own test, not a gate's. It is a UNIT script in
-        run-unit-tests.sh, so cases added here are evidence of kind unit, not integration.
-    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+        run-unit-tests.py, so cases added here are evidence of kind unit, not integration.
+    - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: >-
         resolved at 5d12e68: the resolver GRANTS this file to harness-backend-dev and
@@ -353,7 +353,7 @@ decisions:
       worktrees and real() adds two negligible realpath calls
       (harness_boundary.py:138-156,258-273); bounded to writes matching the feature-path regex
       inside the already-ALLOWED governed branch, this is under 1% of the ~38 ms
-      interpreter-startup floor check-domain.sh already pays per hook launch.
+      interpreter-startup floor check-domain.py already pays per hook launch.
     dec: DEC-191
   - id: D-04
     choice: >-
@@ -379,19 +379,19 @@ decisions:
       payload and the file alone. Enforcing directory uniqueness would need a notion of run
       identity no writer supplies, and would refuse a lead revising its own digest within one run.
       The absolute target rather than root+rel because rel on the shape route comes from _norm,
-      which STRIPS the worktree prefix at check-domain.sh:1007-1013: joining it to root names the
+      which STRIPS the worktree prefix at check-domain.py:1007-1013: joining it to root names the
       MAIN checkout's copy, so the rule would read a file that does not exist for any lead working
       in a worktree and would allow exactly the clobber it exists to refuse. Cost: one file read
       per Write to a digest path, on the pre route only, and no read at all on the other routes.
     dec: DEC-154
   - id: D-06
     choice: >-
-      The digest rule is enforced on check-domain.sh's PRE write-payload route only. RE_RUN_DIGEST
+      The digest rule is enforced on check-domain.py's PRE write-payload route only. RE_RUN_DIGEST
       is added neither to SHAPE_PATTERNS nor to the post-hoc sweep pattern list. The Edit,
       NotebookEdit and Bash routes are therefore UNENFORCED, accepted as residual risk.
     because: >-
       The pre route is the one moment the earlier content still exists, and it is Write-only by
-      construction at check-domain.sh:1367-1368. A sweep runs after the write, where the prior text
+      construction at check-domain.py:1367-1368. A sweep runs after the write, where the prior text
       is already gone; the POST named-target route reads the file as it landed and would compare it
       with itself. Both would be checks that cannot fire, and SHAPE_PATTERNS is what opens the
       second of them, so omitting RE_RUN_DIGEST from it removes a wasted read rather than a
@@ -435,15 +435,15 @@ decisions:
       and that is now a recorded ruling rather than a deferral: the operator ruled on 2026-08-31
       (notes/answers-2026-08-31-plan.md, "Operator ruling — INV-32", choice d) that INV-32 is
       being fixed in ANOTHER session, so neither option (a)'s approval.date scoping nor option
-      (b)'s 32-plan backfill enters this plan and check-state.sh is edited by no task here.
+      (b)'s 32-plan backfill enters this plan and check-state.py is edited by no task here.
       D-09 records what that ruling costs this feature.
     dec: none
 
   - id: D-09
     choice: >-
-      FEAT-50 carries the UNWEAKENED check-state.sh exit-0 criterion (SC-11) and BLOCKS its own
+      FEAT-50 carries the UNWEAKENED check-state.py exit-0 criterion (SC-11) and BLOCKS its own
       signature and its own build on an EXTERNAL event: the retroactive INV-32 fix landing on the
-      default branch. No task here touches check-state.sh, no approval.date scoping and no
+      default branch. No task here touches check-state.py, no approval.date scoping and no
       32-plan panel backfill enters this plan. SC-11 therefore becomes gradeable only after that
       external fix lands with FEAT-50's feature directory present.
     because: >-
@@ -463,11 +463,11 @@ decisions:
     dec: none
   - id: D-10
     choice: >-
-      The checkout binding is enforced on BOTH governed write surfaces: check-domain.sh's
-      PreToolUse tool route (T-03) and bash-write-guard.sh's governed Bash write route (T-09),
+      The checkout binding is enforced on BOTH governed write surfaces: check-domain.py's
+      PreToolUse tool route (T-03) and bash-write-guard.py's governed Bash write route (T-09),
       through the SAME harness_boundary.worktree_for_feature seam, with no second derivation of
       the selection. On the Bash route the rule NARROWS the allow-continue at
-      bash-write-guard.sh:747 and never widens: the product-workspace continue above it
+      bash-write-guard.py:747 and never widens: the product-workspace continue above it
       (rel.startswith("..")) is untouched and stays out of scope. This closes the CHECKOUT
       question (REQ-03, REQ-08) ONLY. REQ-04's run-digest preservation rule is NOT extended to
       Bash and stays Write-only; D-06's residual stands unchanged.
@@ -498,7 +498,7 @@ decisions:
       housekeeping. Measured live in this planning run: three lead digest.md files in FEAT-50
       itself fail the DEC-156 contract and were passed by this hook for exactly that reason.
       AND, BECAUSE A READER WILL OTHERWISE SEE A CONTRADICTION: D-03 forbids reading
-      harness_feature in check-domain.sh's PreToolUse route, and that ban is ROUTE-SPECIFIC, not
+      harness_feature in check-domain.py's PreToolUse route, and that ban is ROUTE-SPECIFIC, not
       a blanket one. It holds there because that key's presence varies by route while the target
       path is present on every route. It does not extend here: this is the SubagentStop hook,
       which ALREADY consumes d.get("harness_feature") at validate-digest.py:1514 and :1598-1599,
@@ -662,7 +662,7 @@ tasks:
       it does not claim three when two remain.
 
       Register nothing. test-validate-digest.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh and is already an explicit entry in harness.json's integration.detect, so
+      run-unit-tests.py and is already an explicit entry in harness.json's integration.detect, so
       adding cases needs no registration change and moving it would trip the runner's KIND-DRIFT
       check.
 
@@ -672,13 +672,13 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out, check-domain.sh is the registered PreToolUse domain gate
+      DEC-174 carve-out, check-domain.py is the registered PreToolUse domain gate
     depends_on: [T-08]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     intent: |
-      Add ONE narrowing check to .claude/skills/harness/bin/check-domain.sh, placed on the ALLOW
+      Add ONE narrowing check to .claude/skills/harness/bin/check-domain.py, placed on the ALLOW
       branch inside domain_check() so it runs ONLY after the domain verdict for the target is
       otherwise an allowance. It must never turn a refusal into an allowance and never widen a
       glob.
@@ -698,7 +698,7 @@ tasks:
       selection here and do NOT match worktree basenames for equality, which this repository has
       already measured false (feature-worktree.py:236-248). This task is the CUTOVER that makes the
       gate use it, and the cutover is layer 0 under DEC-174 even though the helper itself is not:
-      check-domain.sh is a registered PreToolUse gate, so this edit is main-session-direct while
+      check-domain.py is a registered PreToolUse gate, so this edit is main-session-direct while
       T-08's library edit is a team task. Treat a None return as "no registered worktree". Then:
 
       - No registered worktree for that feature: the check does NOT fire. Exit unchanged. A feature
@@ -729,17 +729,17 @@ tasks:
 
       Placement constraints, all load-bearing:
       - Write the check as ONE function and call it from the ALLOW branch inside domain_check() at
-        check-domain.sh:835-841, immediately before approval_guard(rel, agent). Both names it needs
+        check-domain.py:835-841, immediately before approval_guard(rel, agent). Both names it needs
         are already bound there: `_verdict` and `rel` (bound at :833). approval_guard sits on that
         same branch for exactly this reason -- a check on the DENY path never fires for an agent
         that HOLDS the grant, and every persona granted a feature path holds it, so the deny path
         is the one place this rule could never bite.
-      - Also call it from the `shared` branch at check-domain.sh:843-848, before that branch's
-        return. `shared` is check-domain.sh's SECOND allowance (DEC-85), so a rule naming only
+      - Also call it from the `shared` branch at check-domain.py:843-848, before that branch's
+        return. `shared` is check-domain.py's SECOND allowance (DEC-85), so a rule naming only
         outcome == "allow" leaves an unbound main-checkout write through the one outcome nobody
         thought to name.
       - domain_check() is itself reached only under `if _run_domain and not _no_parser:`
-        (check-domain.sh:872), so in a PyYAML-bootstrap session this binding does not run at all
+        (check-domain.py:872), so in a PyYAML-bootstrap session this binding does not run at all
         while T-04's shape-phase rule still does. That is disclosed in BRIEF.md's
         `## Verification gaps` and is NOT to be worked around here: making the domain route
         parser-free is a different change.
@@ -759,10 +759,10 @@ tasks:
       domain-legal, so nothing bound a write to the checkout the agent was dispatched into. Six
       such writes happened during FEAT-45 and three of the artifacts existed nowhere else.
     verify: |
-      bash -n .claude/skills/harness/bin/check-domain.sh || exit 1
+      python3 -m py_compile .claude/skills/harness/bin/check-domain.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
-      HOOK = os.path.abspath('.claude/skills/harness/bin/check-domain.sh')
+      HOOK = os.path.abspath('.claude/skills/harness/bin/check-domain.py')
       MAN = ("schema_version: 1\nteams:\n  - name: build\n    members:\n"
              "      - name: harness-documentor\n        domain:\n"
              "          - { path: .harness/*/features/*/BRIEF.md, upsert: true }\n")
@@ -793,8 +793,8 @@ tasks:
       assert 'FEAT-X' in bound.stderr, f'worktree unnamed: {bound.stderr[:300]}'
       print('OK')
       EOF
-      bash .claude/skills/harness/bin/check-domain.sh --resolve \
-        .claude/skills/harness/bin/check-domain.sh | grep -q 'harness-backend-dev'
+      python3 .claude/skills/harness/bin/check-domain.py --resolve \
+        .claude/skills/harness/bin/check-domain.py | grep -q 'harness-backend-dev'
 
   - id: T-04
     title: Refuse a run digest write that would destroy the recorded digest
@@ -802,18 +802,18 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out, check-domain.sh is the registered PreToolUse domain gate
+      DEC-174 carve-out, check-domain.py is the registered PreToolUse domain gate
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     intent: |
-      Add a fifth shape-rule family to .claude/skills/harness/bin/check-domain.sh covering the
+      Add a fifth shape-rule family to .claude/skills/harness/bin/check-domain.py covering the
       lead's run digest, beside the four that exist.
 
       1. Define RE_RUN_DIGEST as ^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$ next to
       RE_STATE_YAML. Do NOT add it to SHAPE_PATTERNS. has_shape_rules() gates ONLY the POST
-      named-target route (check-domain.sh:1377); the PRE Write route builds its target
+      named-target route (check-domain.py:1377); the PRE Write route builds its target
       unconditionally (:1367-1370) and reaches shape_problems() regardless. Adding the pattern to
       SHAPE_PATTERNS therefore buys the PRE route nothing and opens the POST route to one extra
       read of the file it just wrote, for a comparison of that file with itself that can never
@@ -828,7 +828,7 @@ tasks:
       3. shape_problems() currently takes (rel, content, display). Add a fourth parameter carrying
       the ABSOLUTE path of the file the write is aimed at, default None, and thread it from ALL
       THREE `targets` construction sites. There are three, not two, and every one must be widened
-      together: the PRE Write route at check-domain.sh:1369-1370, the POST named-target route at
+      together: the PRE Write route at check-domain.py:1369-1370, the POST named-target route at
       :1381, and the sweep's append at :1505. The read-back at :1546 is a strict 3-tuple
       destructure (`for _rel, _text, _disp in targets:`), so 4-tuples from two sites and a 3-tuple
       from the third is a ValueError -- exit 1, non-blocking, and every Bash sweep silently off,
@@ -839,7 +839,7 @@ tasks:
 
       Read the file at the write's own absolute target path — the `target` the pre route already
       holds — never `os.path.join(root, rel)`. `rel` here comes from `_norm`, which STRIPS the
-      worktree prefix (`check-domain.sh:1007-1013`), so joining it to `root` names the main
+      worktree prefix (`check-domain.py:1007-1013`), so joining it to `root` names the main
       checkout's copy of a worktree-resident digest: the guard would read a file that does not
       exist and allow the clobber, or refuse a legitimate write against another checkout's file.
       Compare against the copy the write will actually replace.
@@ -867,7 +867,7 @@ tasks:
       rewrite that silently drops content, which is the defect.
 
       What this rule does and does not reach, and it must be stated in the code comment too. The
-      PRE route is `Write`-only (check-domain.sh:1367-1368: `if _tool != "Write" or not target:
+      PRE route is `Write`-only (check-domain.py:1367-1368: `if _tool != "Write" or not target:
       sys.exit(0)`), so the guarantee is exactly this: a `Write` that would replace an existing
       non-empty runs/<runid>/digest.md is refused. An `Edit`, a `NotebookEdit` or a `cat >` from
       Bash reaches no enforcement point at all. Do not write a comment implying otherwise.
@@ -876,10 +876,10 @@ tasks:
       lead's alone but nothing enforced uniqueness, <run_dir>/digest.md was a plain overwrite, and a
       lead reusing a run directory across cycles destroyed the cycle-0 record.
     verify: |
-      bash -n .claude/skills/harness/bin/check-domain.sh || exit 1
+      python3 -m py_compile .claude/skills/harness/bin/check-domain.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
-      HOOK = os.path.abspath('.claude/skills/harness/bin/check-domain.sh')
+      HOOK = os.path.abspath('.claude/skills/harness/bin/check-domain.py')
       d = os.path.realpath(tempfile.mkdtemp())
       os.makedirs(os.path.join(d, '.harness'))
       with open(os.path.join(d, '.harness', 'team-config.yaml'), 'w') as fh:
@@ -953,7 +953,7 @@ tasks:
       3. feature-checkout-absent -- the same main-checkout write with NO worktree registered for
       that feature id. Assert exit 0. A feature developed in the main checkout stays legal.
 
-      4. feature-checkout-red -- the reachability proof for case 1. Write a copy of check-domain.sh
+      4. feature-checkout-red -- the reachability proof for case 1. Write a copy of check-domain.py
       with the feature-checkout binding removed, to a dot-prefixed path in the script's OWN
       directory whose name is UNIQUE PER PROCESS by including os.getpid() (D-07: that directory is
       shared and tracked and features run in parallel, so a fixed name lets one run's finally
@@ -963,7 +963,7 @@ tasks:
       source; the mutant did not crash, by requiring its exit code to be 0 or 2 AND its stderr to
       carry no python traceback; the real script exits 2; and the mutant exits 0. Fail loudly as
       INCONCLUSIVE if the region searched for is absent or the copy is byte-identical. The copy
-      MUST sit in the script's own directory: check-domain.sh imports harness_yaml and
+      MUST sit in the script's own directory: check-domain.py imports harness_yaml and
       harness_boundary from there, so a copy in the fixture tmpdir exits non-zero on import and the
       case would pass while measuring nothing.
 
@@ -1004,7 +1004,7 @@ tasks:
       must not fire there, because has_shape_rules() does not carry RE_RUN_DIGEST and the POST
       route would only ever compare the landed file with itself.
 
-      Register nothing. test-check-domain.py is already in INTEGRATION_SCRIPTS in run-unit-tests.sh
+      Register nothing. test-check-domain.py is already in INTEGRATION_SCRIPTS in run-unit-tests.py
       and is already an explicit entry in harness.json's integration.detect, so adding cases needs
       no registration change and moving it would trip the runner's KIND-DRIFT check.
 
@@ -1029,9 +1029,9 @@ tasks:
 
       1. At the sentence that currently reads "The run dir is yours alone." -- around the run-dir
       layout block near the top of section 2 -- add one sentence stating that a write to
-      <run_dir>/digest.md is REFUSED by check-domain.sh when that file already holds content the
+      <run_dir>/digest.md is REFUSED by check-domain.py when that file already holds content the
       write would not preserve, so reusing another cycle's run directory fails at the write instead
-      of destroying its record. Name check-domain.sh, so a lead reading the refusal knows which
+      of destroying its record. Name check-domain.py, so a lead reading the refusal knows which
       gate produced it.
 
       2. In the red-flags table at the end of the file, add one row. Left column: "I'll reuse last
@@ -1039,7 +1039,7 @@ tasks:
       overwritten, and that a new cycle takes a run directory of its own.
 
       Change nothing else. Do not restate the enforcement rule anywhere a third time -- one
-      statement, one home. Do not add a decision id to the prose beyond naming check-domain.sh;
+      statement, one home. Do not add a decision id to the prose beyond naming check-domain.py;
       the ruling itself is the new decision T-07 records.
 
   - id: T-07
@@ -1128,7 +1128,7 @@ tasks:
       oversight.
 
       4. THE CHECKOUT BINDING IS ROUTE-COMPLETE ACROSS BOTH GOVERNED WRITE SURFACES. The same
-      rule as ruling 2 is enforced on bash-write-guard.sh's governed Bash write route, through
+      rule as ruling 2 is enforced on bash-write-guard.py's governed Bash write route, through
       the same harness_boundary.worktree_for_feature seam. State why in one clause: a refusal on
       the tool route alone is a signpost to the shell, and this hook exists precisely because an
       agent routed around the other one (DEC-151), so a divergence between the two surfaces is a
@@ -1252,7 +1252,7 @@ tasks:
       raising AmbiguousWorktree with both names in the message. Assert on returned VALUES, not
       truthiness: None and a checkout path are the two answers a caller branches on.
 
-      Register nothing. test-harness-boundary.py is already in UNIT_SCRIPTS in run-unit-tests.sh,
+      Register nothing. test-harness-boundary.py is already in UNIT_SCRIPTS in run-unit-tests.py,
       so cases added here are evidence of kind unit; moving it would trip the runner's KIND-DRIFT
       check.
   - id: T-09
@@ -1261,16 +1261,16 @@ tasks:
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out, bash-write-guard.sh is the registered PreToolUse Bash write guard
+      DEC-174 carve-out, bash-write-guard.py is the registered PreToolUse Bash write guard
     depends_on: [T-08]
     status: done
     files:
-      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/bash-write-guard.py
     verify: |
-      bash -n .claude/skills/harness/bin/bash-write-guard.sh || exit 1
+      python3 -m py_compile .claude/skills/harness/bin/bash-write-guard.py || exit 1
       python3 - <<'EOF'
       import json, os, subprocess, tempfile
-      G = os.path.abspath('.claude/skills/harness/bin/bash-write-guard.sh')
+      G = os.path.abspath('.claude/skills/harness/bin/bash-write-guard.py')
       MAN = ("schema_version: 1\nteams:\n  - name: build\n    members:\n"
              "      - name: harness-documentor\n        domain:\n"
              "          - { path: .harness/*/features/*/BRIEF.md, upsert: true }\n")
@@ -1302,12 +1302,12 @@ tasks:
       EOF
     intent: |
       Close the Bash half of the checkout binding in
-      .claude/skills/harness/bin/bash-write-guard.sh. T-03 binds the tool route only; a governed
+      .claude/skills/harness/bin/bash-write-guard.py. T-03 binds the tool route only; a governed
       agent denied the Write can `cat > `, `perl -pi` or `cp` the SAME main-checkout feature
       artifact and it lands at exit 0. Worse, T-03's refusal message NAMES the worktree, so the
       unbound route is signposted. This task closes it. D-10 governs.
 
-      WHERE. The findings loop at bash-write-guard.sh:703-761 already computes, per extracted
+      WHERE. The findings loop at bash-write-guard.py:703-761 already computes, per extracted
       write target: `ap` (absolute) and `rel` (ROOT-relative). At :747 it reads
 
         if verdict["outcome"] in ("allow", "not_a_domain_question"): continue
@@ -1424,7 +1424,7 @@ tasks:
 
       2. bash-feature-checkout-inside — the identical write aimed at the same feature path INSIDE
       that worktree. Assert exit 0. Be honest in the case's own comment about what this proves:
-      if the worktree sits under .claude/worktrees/ the DEC-153 continue at bash-write-guard.sh
+      if the worktree sits under .claude/worktrees/ the DEC-153 continue at bash-write-guard.py
       :714 returns before classify is ever called, so the exit 0 is not evidence that the new
       binding's allow branch ran — it is evidence that the new check did not disturb DEC-153's
       carve-out, which is what this case actually binds.
@@ -1442,7 +1442,7 @@ tasks:
       directory was FEAT-32-concurrent-write-merge).
 
       5. bash-feature-checkout-red — the reachability proof for case 1, by D-07's idiom. Write a
-      MARKER-FREE copy of bash-write-guard.sh with the feature-checkout binding removed — locate
+      MARKER-FREE copy of bash-write-guard.py with the feature-checkout binding removed — locate
       the region by its own source text, never by a line number and never by any commit ref,
       relative or pinned — to a DOT-PREFIXED path in the script's OWN directory whose name is
       UNIQUE PER PROCESS by including os.getpid(); copy the file mode; remove it in a `finally`
@@ -1461,7 +1461,7 @@ tasks:
       than hand-rolling a second subprocess path.
 
       Register nothing. test-bash-write-guard.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh:31 and is already an explicit entry in harness.json's integration.detect,
+      run-unit-tests.py:31 and is already an explicit entry in harness.json's integration.detect,
       so cases added here are evidence of kind integration and no registration change is needed;
       moving it would trip the runner's KIND-DRIFT check.
 
@@ -1546,7 +1546,7 @@ tasks:
 
       WHY harness_feature IS LEGITIMATE INPUT HERE and D-03's ban does not reach it — carry this
       as a comment, because the next reader will otherwise see a contradiction. D-03 forbids
-      reading harness_feature in check-domain.sh's PreToolUse route, where that key's presence
+      reading harness_feature in check-domain.py's PreToolUse route, where that key's presence
       varies by route while the target path is present on every route. This is the SubagentStop
       hook, which ALREADY consumes d.get("harness_feature") at :1514 and passes it to
       _hook_feature_dir at :1598-1599. This change follows the file's own established pattern; it
@@ -1632,6 +1632,6 @@ tasks:
       byte-identical. Reuse the empty-red case's mutant helper rather than writing a second one.
 
       Register nothing. test-validate-digest.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh and is already an explicit entry in harness.json's integration.detect, so
+      run-unit-tests.py and is already an explicit entry in harness.json's integration.detect, so
       cases added here are evidence of kind integration; moving it would trip the runner's
       KIND-DRIFT check.

@@ -7,7 +7,7 @@ resolves through the OS's own (case-insensitive-FS-aware) inode comparison inste
 string compare; the new regression test (case 8) exercises this directly and PASSES on this host
 (case-insensitive APFS — it does not skip), and would FAIL against the pre-fix string-compare
 logic (traced below). Full unit suite: 39/39 in `test-factory-workspace.py`, and
-`run-unit-tests.sh --kind unit` is clean end to end (both run `env -u HARNESS_AGENT_TYPE`, no
+`run-unit-tests.py --kind unit` is clean end to end (both run `env -u HARNESS_AGENT_TYPE`, no
 redirection — output captured directly by the tool). Stage 1 (spec) passes cleanly; Stage 2 finds
 one narrow, non-blocking residual gap in the fix's own `except OSError` fallback (F-C1-01, med)
 plus items that restate already-dispositioned cycle-0 residuals. `must_fix: []`.
@@ -186,7 +186,7 @@ non-gating per the batch context, not a new item).
   them, so the direct test run below reflects the pinned code).
 - `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-workspace.py` → `39/39 checks
   passed`, exit 0; case 8 present and `ok` (not `skip`).
-- `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` →
+- `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` →
   every suite line `PASS`/`N/N`, no `FAIL` anywhere, `test-factory-workspace.py` reported
   `39/39 checks passed` in the aggregate run too.
 - `python3 .claude/skills/harness/bin/code-grade.py --base 6d969ed3... --head bae47f3c...` (table

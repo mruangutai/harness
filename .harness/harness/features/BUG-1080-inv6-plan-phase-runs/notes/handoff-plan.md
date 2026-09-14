@@ -2,12 +2,12 @@
 
 ## Next
 
-Fix INV-6 in `check-state.sh` so the plan-phase panel run DEC-207 legalises can be
+Fix INV-6 in `check-state.py` so the plan-phase panel run DEC-207 legalises can be
 recorded without reddening the gate. Main-session-direct under DEC-174: this is
 gate-script and validator-test code, so it must not run through the enforcement path it
 changes. Test-first.
 
-- `.claude/skills/harness/bin/check-state.sh` - the INV-6 predicate
+- `.claude/skills/harness/bin/check-state.py` - the INV-6 predicate
 - `.claude/skills/harness/bin/feature-schema.json` - `runs[]` is `additionalProperties: false`
 - `.claude/skills/harness/bin/test-check-state.py` - six red-first cases
 - `issue://1080` - the filed defect and its measurements
@@ -15,7 +15,7 @@ changes. Test-first.
 ## Trust
 
 - claim - the three rules admit no satisfying value - verified-at 9f2a0702 - source: read
-  `check-state.sh` INV-6, `validate-digest.py:891-905`, `DECISIONS.md:6348`.
+  `check-state.py` INV-6, `validate-digest.py:891-905`, `DECISIONS.md:6348`.
 - claim - recording the panel is what reds the gate - verified-at 9f2a0702 - source:
   FEAT-46's `consolidated-plan-findings-c1.md:84` records exactly one violation at panel
   time; the second appeared when the runs were recorded.
@@ -35,6 +35,6 @@ changes. Test-first.
 
 ## Working set
 
-- `.claude/skills/harness/bin/check-state.sh`
+- `.claude/skills/harness/bin/check-state.py`
 - `.claude/skills/harness/bin/test-check-state.py`
 - `.claude/skills/harness/bin/feature-schema.json`

@@ -36,7 +36,7 @@ decisions:
       test_no_amendment_construct_survives_in_the_authority enforces it mechanically. For FEAT-05's
       STATE.md it is NOT forced by any test: it is the operator's ruling of 2026-09-06, at signature
       review, that the false claim is rewritten in place to match DEC-174's treatment, with no appended
-      dated note. That ruling is SUPPORTED, not compelled, by two things in check-domain.sh:1796-1806 -
+      dated note. That ruling is SUPPORTED, not compelled, by two things in check-domain.py:1796-1806 -
       its own characterisation of STATE.md as a current-truth record, carried as the rationale on the
       120-line-budget denial ("It holds no history: the Current section is replaced, never appended"),
       and its section-vocabulary bar, which denies any heading outside Current and Open Questions, so a
@@ -50,7 +50,7 @@ decisions:
       The FEAT-05 STATE.md task is execution_mode team with execution_agent harness-orchestrator, not
       main-session-direct.
     because: |
-      check-domain.sh --resolve grants .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md
+      check-domain.py --resolve grants .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md
       to harness-orchestrator alone at 41c16c7; no member persona holds it, and the build-phase
       orchestrator writes it directly rather than dispatching a member. It is a feature state record,
       not an enforcement-layer artifact, so DEC-174 supplies no carve-out and declaring a granted path
@@ -71,7 +71,7 @@ decisions:
       as found.
     because: |
       The file is 165 lines against the 120-line budget with 7 headings against the 2 allowed, so
-      check-domain.sh denies a Write pre-hoc while an Edit is permitted and reported after the fact.
+      check-domain.py denies a Write pre-hoc while an Edit is permitted and reported after the fact.
       Shrinking a completed feature's record is out of scope for a correction flow.
     dec: DEC-150
 
@@ -123,13 +123,13 @@ tasks:
 
       1. DECISIONS.md, DEC-174, the EVIDENCE SENTENCE ONLY. At 41c16c7 it is lines 4308-4309 and
          reads: "The evidence, all from 2026-08-03 and all on this repo. Every gate was green -
-         run-unit-tests.sh, check-docs.sh, check-state.sh, gen-decisions-index.py --check - while:"
+         run-unit-tests.py, check-docs.sh, check-state.py, gen-decisions-index.py --check - while:"
          (the file spells the command names and the bold lead-in with its own backtick and asterisk
          markup; re-read the region before editing, since line numbers move). Rewrite that sentence
          so it states current truth. It MUST, after the edit:
            - keep the bold lead-in naming the date, and keep the sentence ending with "while:" so the
              three-bullet defect list that follows still reads as its continuation;
-           - name only run-unit-tests.sh, check-docs.sh and check-state.sh as the gates that were
+           - name only run-unit-tests.py, check-docs.sh and check-state.py as the gates that were
              green, because those three were;
            - say of gen-decisions-index.py --check, using these EXACT contiguous phrases, which this
              task's verify greps after collapsing whitespace and stripping backticks, asterisks and
@@ -187,12 +187,12 @@ tasks:
     intent: |
       One edit, in .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md.
 
-      At 41c16c7 lines 14-15 read: "All four gates green: run-unit-tests.sh 0 (11 suites),
-      check-docs.sh 0, check-state.sh 0, gen-decisions-index.py --check 0. Every .harness slash-star
+      At 41c16c7 lines 14-15 read: "All four gates green: run-unit-tests.py 0 (11 suites),
+      check-docs.sh 0, check-state.py 0, gen-decisions-index.py --check 0. Every .harness slash-star
       yaml parses." (the file carries backtick and asterisk markup; re-read the two lines before
       editing). Rewrite them IN PLACE so they say:
-        - three gates were green, naming run-unit-tests.sh 0 with its 11 suites, check-docs.sh 0 and
-          check-state.sh 0, and keep the sentence that every .harness YAML file parses - both claims
+        - three gates were green, naming run-unit-tests.py 0 with its 11 suites, check-docs.sh 0 and
+          check-state.py 0, and keep the sentence that every .harness YAML file parses - both claims
           are true and are not what this feature corrects;
         - that the fourth entry, gen-decisions-index.py --check 0, is corrected on 2026-09-06 under
           BUG-148, using these EXACT contiguous phrases, which this task's verify greps after
@@ -227,7 +227,7 @@ tasks:
       The agreement therefore rests on this instruction and on SC-06, the operator's read of both
       corrected passages.
 
-      USE Edit, NEVER Write. The file is 165 lines against check-domain.sh's 120-line STATE.md budget
+      USE Edit, NEVER Write. The file is 165 lines against check-domain.py's 120-line STATE.md budget
       and carries 7 headings against the 2 the vocabulary allows, so a Write carrying whole-file
       content is DENIED pre-hoc while an Edit is not. The PostToolUse shape report that fires on the
       over-budget file afterwards is EXPECTED and non-blocking: leave the pre-existing violation
@@ -332,7 +332,7 @@ panel:
   - id: PF-6b4a7af5de3e77e59af34e9a00b68548
     reader: scope
     severity: med
-    summary: 'D-01''s because for STATE.md overclaims: check-domain.sh:1796-1805 bars
+    summary: 'D-01''s because for STATE.md overclaims: check-domain.py:1796-1805 bars
       a new ## section,
 
       not an inline dated note in ## Current, so rewrite-vs-append is a preference
@@ -361,7 +361,7 @@ panel:
       test_no_amendment_construct_survives_in_the_authority while the STATE.md half
       is the
 
-      operator''s ruling, supported by check-domain.sh:1796-1806 and compelled by
+      operator''s ruling, supported by check-domain.py:1796-1806 and compelled by
       no test.
 
       '

@@ -492,7 +492,7 @@
     </div>
     <div class="tally t-signal">
       <dt>Signal loss</dt>
-      <dd>96.6%<small>of check-state.sh output is one broken invariant</small></dd>
+      <dd>96.6%<small>of check-state.py output is one broken invariant</small></dd>
     </div>
     <div class="tally t-cheap">
       <dt>Under 5 lines</dt>
@@ -729,7 +729,7 @@
             <h3>A committed foreign key into a gitignored tree</h3>
             <span class="chip c-signal">Signal loss</span>
           </div>
-          <p class="row-where">.gitignore:7 excludes the runs tree · check-state.sh:296-315 asserts every id resolves to a directory</p>
+          <p class="row-where">.gitignore:7 excludes the runs tree · check-state.py:296-315 asserts every id resolves to a directory</p>
           <p class="row-fail">
             441 output lines, 426 of them <em>run &lt;id&gt; is referenced but its dir is absent</em>.
             One feature of 34 has a runs directory in this checkout; the other 33 reference 425
@@ -777,7 +777,7 @@
             <h3>The station vocabulary is defined in eight places</h3>
             <span class="chip c-silent">Silent</span>
           </div>
-          <p class="row-where">feature-schema.json:47 · gh-sync.py:99 · check-state.sh:494 and :495 · check-plan-routes.py:409 · factory_config.py:41 · board_lifecycle.py:438 and :445</p>
+          <p class="row-where">feature-schema.json:47 · gh-sync.py:99 · check-state.py:494 and :495 · check-plan-routes.py:409 · factory_config.py:41 · board_lifecycle.py:438 and :445</p>
           <p class="row-fail">
             Two of the eight are a literal duplicate of the same six-tuple, in files that already
             import each other. Add a seventh column: seven sites get updated and the duplicate is
@@ -825,7 +825,7 @@
             <h3>Role rosters hardcoded in guards, beside the file claiming authority</h3>
             <span class="chip c-silent">Silent</span>
           </div>
-          <p class="row-where">team-config.yaml:5-8 says "nothing is declared twice" · check-state.sh:748 · bash-write-guard.sh:322 · validate-digest.py:189 · inflight_registry.py:32</p>
+          <p class="row-where">team-config.yaml:5-8 says "nothing is declared twice" · check-state.py:748 · bash-write-guard.py:322 · validate-digest.py:189 · inflight_registry.py:32</p>
           <p class="row-fail">
             Add a fourth lead persona. Domain resolution grants it, dispatch works, runs execute —
             and the invariant requiring a complete lead-hosted run to produce a valid digest
@@ -848,7 +848,7 @@
             <h3>review_sha has four live shapes, and one is not a SHA</h3>
             <span class="chip c-silent">Silent</span>
           </div>
-          <p class="row-where">feature-schema.json:53 — plain string · check-state.sh:224 only asks whether it is empty or a placeholder</p>
+          <p class="row-where">feature-schema.json:53 — plain string · check-state.py:224 only asks whether it is empty or a placeholder</p>
           <p class="row-fail">
             Measured across 34 features: 9 full SHAs, 21 abbreviations, 3 <code>"none"</code>
             strings, and <strong>one SHA range</strong> — <code>a606d7a..9b07cfc</code>. Nothing
@@ -895,7 +895,7 @@
             <h3>Every feature record is parsed seven times per run</h3>
             <span class="chip c-loud">Cost</span>
           </div>
-          <p class="row-where">check-state.sh:177, :573, :708, :914, :953, :1063, :1278 — seven independent glob-and-parse passes</p>
+          <p class="row-where">check-state.py:177, :573, :708, :914, :953, :1063, :1278 — seven independent glob-and-parse passes</p>
           <p class="row-fail">
             At 34 features that is 238 opens and 238 parses of documents that cannot change during
             the run, plus one record read a second time inside a loop that already parsed it, plus a

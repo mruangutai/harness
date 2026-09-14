@@ -3,7 +3,7 @@
 ## Verdict on item 6, up front
 
 **(b): a real hole exists, and it is narrower than "enforcement does nothing."** The
-mechanism that is supposed to catch this — `check-domain.sh`'s state-file shape gate,
+mechanism that is supposed to catch this — `check-domain.py`'s state-file shape gate,
 `feature_schema.problems_for_text`'s JSON-decode check — **works correctly and reliably**
 when it receives a payload shaped the way the platform's own registration and the OMP
 bridge's `preDomain`/`postDomain` are documented to produce (probes 1 and 2, below: both
@@ -13,9 +13,9 @@ message). jsonschema is importable and `validate-feature-json.py` runs (probe 4)
 not an environment where the checker is silently absent. The `PreToolUse Edit` exit-0 is
 by design, not a bug (probe 3, item 3's own framing is correct).
 
-The hole is at the **OMP-bridge-to-`check-domain.sh` handoff for the `edit` tool**
+The hole is at the **OMP-bridge-to-`check-domain.py` handoff for the `edit` tool**
 specifically (probe 5): `extractEditPaths(input.input)` is the ONLY thing standing between
-a real `edit` `tool_result` event and `check-domain.sh --post` ever being invoked at all,
+a real `edit` `tool_result` event and `check-domain.py --post` ever being invoked at all,
 and **nothing in this repository's test suite exercises that handoff end-to-end.** The 43
 passing `omp-hooks.test.ts` cases include three units for `extractEditPaths`'s string
 parsing in isolation and two for `gatePath` resolution — zero cases construct a `tool_result`
@@ -24,7 +24,7 @@ right `file_path`, the way the file already does for `toolName: "task"` (`:265`,
 If the live OMP host's `event.input` for an `edit` result is not shaped `{ input: "<raw
 patch text>" }` — or if `input.input` ever fails the `^\[([^#\r\n]+)#[0-9A-F]{4}\]$` header
 regex for any reason the format doesn't anticipate — `extractEditPaths` returns `[]`,
-`postDomain` calls the runner **zero times**, and `check-domain.sh --post` never runs.
+`postDomain` calls the runner **zero times**, and `check-domain.py --post` never runs.
 Nothing logs this: no error, no stderr, no exit code, because no process was ever spawned.
 This matches the incident's own description exactly ("nothing refused it... caught only
 because the next unrelated command happened to parse the file") — a silent zero, not a
@@ -47,13 +47,13 @@ lines), then damaged by deleting line 33 (the closing `}` of the second review e
 the exact shape of a stale-anchor offset error: `sed -i '' '33d'`. Confirmed broken before
 probing: `json.loads` → `Expecting ',' delimiter: line 33 column 5 (char 764)`.
 
-Command (payload shape read from `check-domain.sh:1-80,318-336` and
+Command (payload shape read from `check-domain.py:1-80,318-336` and
 `test-check-domain.py:1056-1058,1075-1078`; `--post` + `hook_event_name: PostToolUse` are
 redundant-but-both-sufficient signals per `:312-319`):
 
 ```
 echo "$PAYLOAD" | CLAUDE_PROJECT_DIR="$TMP" HARNESS_PROJECT_DIR="$TMP" \
-  .claude/skills/harness/bin/check-domain.sh --post
+  .claude/skills/harness/bin/check-domain.py --post
 ```
 payload: `{"agent_type":"harness-orchestrator","hook_event_name":"PostToolUse","tool_name":"Edit","tool_input":{"file_path":"<TMP>/.../feature.json","old_string":"a","new_string":"b"}}`
 
@@ -66,7 +66,7 @@ check-domain: OVER BUDGET (already written) — .harness/harness/features/FEAT-9
 ```
 
 **Finding: detection WORKS on this route, given this payload shape.** `old_string`/
-`new_string` are irrelevant here — `check-domain.sh:1372-1381` reads the file back off
+`new_string` are irrelevant here — `check-domain.py:1372-1381` reads the file back off
 disk for a named-file POST target, never reconstructs the edit.
 
 ## Item 2 — PostToolUse Bash sweep route
@@ -90,21 +90,21 @@ candidate whose `mtime` is **older** than the last sweep; a fresh corrupting wri
 postdates the stamp until a sweep actually runs and advances it, so a bad write is never
 older than the mark on the very next sweep. **Neither mechanism is a plausible suppressor
 of this specific incident.** The real gap, if the sweep never fired at all, is upstream of
-both: `check-domain.sh --post`'s Bash-sweep branch is reached only when the OMP bridge
+both: `check-domain.py --post`'s Bash-sweep branch is reached only when the OMP bridge
 routes a `toolName: "bash"` `tool_result` through `postDomain` (`harness-hooks.ts:265-271`)
 — if the agent's next action after the bad edit wasn't a Bash call, the sweep simply never
 ran, which is consistent with (b)/item 6, not a defect in the sweep's own skip logic.
 
 ## Item 3 — PreToolUse Edit route
 
-Confirmed by reading (`check-domain.sh:1361-1370`) and by running: `Edit` (any content) at
+Confirmed by reading (`check-domain.py:1361-1370`) and by running: `Edit` (any content) at
 `PreToolUse` exits 0 with no output. Verified twice — once ungoverned (no `agent_type`),
 once as `harness-orchestrator` against this worktree's real `.harness/team-config.yaml`
 copied into the fixture, to isolate "domain phase passes/is skipped" from "shape phase
 runs" — both exited 0.
 
 ```
-$ echo "$PAYLOAD_PRE_EDIT" | CLAUDE_PROJECT_DIR="$TMP" HARNESS_PROJECT_DIR="$TMP" check-domain.sh
+$ echo "$PAYLOAD_PRE_EDIT" | CLAUDE_PROJECT_DIR="$TMP" HARNESS_PROJECT_DIR="$TMP" check-domain.py
 EXIT=0
 ```
 
@@ -154,7 +154,7 @@ const input = (event.input && typeof event.input === "object" ? event.input : {}
 `harness-hooks.ts:258-263` (`postDomain`, `edit` branch):
 ```
 if (toolName === "edit") {
-  return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.sh", ["--post"], {
+  return extractEditPaths(input.input).map((filePath) => runner(cwd, "check-domain.py", ["--post"], {
     ...base,
     tool_name: "Edit",
     tool_input: { file_path: filePath },
@@ -199,7 +199,7 @@ domain split). Recording the spec here rather than writing it:
   `toolName: "edit"`, `input: { input: "[a.ts#A1B2]\nPUT 1.=1:\n+x\n" }` (or the real
   patch-language shape this repo's `_edit` tool emits) fired through
   `registerHarnessHooks`'s `tool_result` handler with a fake `runner`, and asserts the fake
-  runner recorded exactly one call with `script: "check-domain.sh"`, `args` including
+  runner recorded exactly one call with `script: "check-domain.py"`, `args` including
   `"--post"`, and `payload.tool_input.file_path === "a.ts"` — mirroring the existing
   `"task"`-toolName integration cases at `:265-268`/`:299-302`, which is the established
   pattern for this exact kind of assertion in this file.

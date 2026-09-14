@@ -87,7 +87,7 @@ Read the new helper and the assertion (`check("violations() has exactly one non-
   excluded, so the nine `notes/`/`BRIEF.md` prose mentions of `violations()` structurally cannot
   satisfy or break the assertion. **Verified empirically**, not just read: built a synthetic
   throw-away git fixture (`/tmp`, no writes to the worktree) with (1) the real caller
-  (`run-unit-tests.sh`), (2) a second `.py` file calling `suite_layout.violations(x)`, (3) a `.md`
+  (`run-unit-tests.py`), (2) a second `.py` file calling `suite_layout.violations(x)`, (3) a `.md`
   file mentioning `violations()` in prose only. `_violations_callers` returned both real callers
   and ignored the `.md` file; the assertion's equality check evaluated `False` (red) with the second
   caller present, and `True` (green) once it was removed. This is the identity-level evidence the

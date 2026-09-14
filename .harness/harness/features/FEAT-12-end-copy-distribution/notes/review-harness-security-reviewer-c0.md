@@ -41,10 +41,10 @@ is not built yet (FEAT-10 increment 1 shipped the git-level tools only). So I ca
 "factory's own guards" alternative in the dispatch's three-way question is even reachable code
 today, and I am not rating this as if it were.
 
-Separately, `check-domain.sh` — read via `plan.yaml`'s own lanes table, not edited (DEC-174) —
+Separately, `check-domain.py` — read via `plan.yaml`'s own lanes table, not edited (DEC-174) —
 explicitly passes paths **outside `CLAUDE_PROJECT_DIR` through ungoverned**
 (`.harness/features/FEAT-12-end-copy-distribution/plan.yaml`, lanes row for
-`/Users/molchairuangutai/GitHub/kaya-ai/**`: *"outside CLAUDE_PROJECT_DIR, so check-domain.sh
+`/Users/molchairuangutai/GitHub/kaya-ai/**`: *"outside CLAUDE_PROJECT_DIR, so check-domain.py
 passes it through ungoverned"*). So even a harness-rooted session touching kaya-ai by absolute
 path was never governed by harness's own domain check, before or after this feature — that half
 of the guard question is a FEAT-10 factory-model boundary, not something FEAT-12 changed.
@@ -102,7 +102,7 @@ out of this feature's scope per the dispatch, and I am not re-scoping it.
   either way. Unchanged by this diff (`factory_workspace.py` has an empty diff in range;
   `factory_config.py`'s diff is docstring-only — `git diff 687fd3e..d543809 --
   .../factory_config.py` shown above). Not a new finding; actor already controls the value.
-- `upgrade-config.py`, `run-unit-tests.sh`, `test-upgrade-config.py`: diffs are user-facing message
+- `upgrade-config.py`, `run-unit-tests.py`, `test-upgrade-config.py`: diffs are user-facing message
   text and a test-registration line only (`git diff` output inspected directly). No logic change.
 - Re-swept the full 22-file set (not just the prose subset), including the two deletions
   (`deploy.sh`, 287 lines; `harness-deploy.md`, 121 lines): `git diff 687fd3e..d543809 -- <all 22
@@ -124,6 +124,6 @@ Items 1 and 2 (settled by qa with mutants): agree with disposition, not relitiga
 | # | Severity | Item |
 |---|---|---|
 | 1 | med | kaya-ai's guard posture is genuinely zero right now (verified), and this feature makes it fleet-reachable (T-06) in the same range that strips its only guards (T-03/T-05), with no task/SC/gate requiring `/harness-init` re-wiring before first dispatch. Intended per `SPEC.md` §3.3's own rewrite; the gap is that the precondition is unrecorded. |
-| — | info | `check-domain.sh` cannot govern any path outside `CLAUDE_PROJECT_DIR` by design (confirmed via `plan.yaml`'s lanes table) — a FEAT-10 factory-model boundary fact, not FEAT-12's to fix. Worth an Expertise entry under a future distillation dispatch; not written now (`expertise_update: []`). |
+| — | info | `check-domain.py` cannot govern any path outside `CLAUDE_PROJECT_DIR` by design (confirmed via `plan.yaml`'s lanes table) — a FEAT-10 factory-model boundary fact, not FEAT-12's to fix. Worth an Expertise entry under a future distillation dispatch; not written now (`expertise_update: []`). |
 
 No `must_fix`. `severity_max: med`.

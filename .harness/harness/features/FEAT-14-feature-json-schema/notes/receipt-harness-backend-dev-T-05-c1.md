@@ -6,7 +6,7 @@ T-05's own mandate (item 1: repoint `_is_shipped`'s path join from `feature.yaml
 `feature.json`) is complete and correct in all four tool files and their four test files, all
 independently green. But that same repoint breaks a landed, off-limits unit test
 (`case_24_Done_is_skipped` in `test-check-plan-routes.py`, T-11's `want_checked` fixture loop),
-which the dispatch explicitly forbids editing. `run-unit-tests.sh` — T-05's own verify command —
+which the dispatch explicitly forbids editing. `run-unit-tests.py` — T-05's own verify command —
 now exits 1 solely because of that one test. **ESCALATE**: the intent's prohibition and the
 intent's verify command contradict each other, empirically confirmed, not resolved by me.
 
@@ -21,7 +21,7 @@ if n != 4:
     bad.append('test-harness-yaml-corpus.py names feature.yaml %d times, expected exactly 4 '
                '(the three preserved path:line citations plus the FEAT-05 sentence); the '
                'historical marker must not add a fifth' % n)
-r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh'],
+r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.py'],
                    capture_output=True, text=True)
 if r.returncode != 0:
     bad.append('unit runner exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))
@@ -30,7 +30,7 @@ sys.exit(1 if bad else 0)
 PY
 ```
 Output (the script's own 2000-char tail, which lands after the actual failure line because
-`run-unit-tests.sh` keeps running later test files — exactly why the dispatch says to re-run the
+`run-unit-tests.py` keeps running later test files — exactly why the dispatch says to re-run the
 runner directly for full output):
 ```
 unit runner exited 1:
@@ -44,7 +44,7 @@ PASS test-factory-integration.py
 ```
 Exit code: **1**
 
-Re-running `.claude/skills/harness/bin/run-unit-tests.sh` directly (full, untruncated output)
+Re-running `.claude/skills/harness/bin/run-unit-tests.py` directly (full, untruncated output)
 shows the suite is otherwise entirely green; the sole failure, verbatim:
 
 ```
@@ -66,7 +66,7 @@ PASS case_24_feature_yaml_a_mapping_with_no_status_is_checked_not_crashed
 1 FAILURE(S): ['case_24_Done_is_skipped']
 FAIL test-check-plan-routes.py
 ```
-Every other test file registered in `run-unit-tests.sh` passes (confirmed by grepping the full
+Every other test file registered in `run-unit-tests.py` passes (confirmed by grepping the full
 log for `FAIL` — the only two `FAIL` hits outside deliberate string literals inside unrelated
 fixtures are `case_24_Done_is_skipped` and the resulting `FAIL test-check-plan-routes.py` summary
 line).
@@ -97,7 +97,7 @@ is also correctly checked either way).
 
 ## Why I did not resolve this myself
 
-Two ways to make `run-unit-tests.sh` exit 0 were available and I rejected both, per the
+Two ways to make `run-unit-tests.py` exit 0 were available and I rejected both, per the
 dispatch's own instruction to ESCALATE rather than choose:
 
 1. Rename the fixture's filename inside `case_24`'s loop to `feature.json` — directly
@@ -108,7 +108,7 @@ dispatch's own instruction to ESCALATE rather than choose:
 The dispatch anticipated a different, larger red (`check-plan-routes.py`'s *live corpus* scan
 going from 0 to ~35 violations) and said explicitly that red is fine because "T-05's verify does
 not run check-plan-routes.py." That statement is true of the live-corpus invocation, but it did
-not anticipate that `run-unit-tests.sh` — which T-05's verify *does* run — exercises the same
+not anticipate that `run-unit-tests.py` — which T-05's verify *does* run — exercises the same
 code path through a landed unit test fixture using the old filename. This is the fourth
 contradiction of this shape found in this feature (per the dispatch's own count).
 
@@ -215,9 +215,9 @@ fixed — T-08's job, per the dispatch.
   `test-factory-claim.py`, all tempfile-based, confirmed by reading their fixture builders before
   running) or a direct read of specific functions inside an `importlib`-loaded module against a
   `tempfile.mkdtemp()` fixture (the T-06C/finding-2 blocks in `test-gh-sync.py`). I grepped all
-  four test files for `.harness/features` before running `run-unit-tests.sh`: zero hits in any of
+  four test files for `.harness/features` before running `run-unit-tests.py`: zero hits in any of
   the four — every fixture is `tempfile`-rooted.
-- Before running `run-unit-tests.sh`: `grep -l ".harness/features" test-gh-sync.py
+- Before running `run-unit-tests.py`: `grep -l ".harness/features" test-gh-sync.py
   test-factory-decompose.py test-factory-claim.py test-check-plan-routes.py` → no output (0
   hits in the three prohibited-tool test files; `test-check-plan-routes.py` legitimately reads
   the real repo's own `.harness/features/` tree read-only for its `discover_plans()` cases, which

@@ -14,9 +14,9 @@ empty; the generator was exercised via its read-only `--stdout` mode, never its 
 - Rulings after ` :: `, stripping `— SUPERSEDED BY DEC-NN` and `<!-- ok-stale -->`: max **30** words
   (DEC-69), **0** rows over the 30-word cap; min **72** non-whitespace prose characters, **0** rows
   under the 20-character floor; `RULING PENDING` occurrences **0**.
-- Runner: `run-unit-tests.sh` exit **0**, 7 `PASS` lines including `PASS test-gen-decisions-index.py`,
+- Runner: `run-unit-tests.py` exit **0**, 7 `PASS` lines including `PASS test-gen-decisions-index.py`,
   and `grep -c '^MISCONFIGURED'` over stdout+stderr = **0** (anchored at the emission site
-  `run-unit-tests.sh:19`, not a substring — `ok  … FAIL …` lines in the output are test-case names).
+  `run-unit-tests.py:19`, not a substring — `ok  … FAIL …` lines in the output are test-case names).
 - `test-gen-decisions-index.py` direct: exit 0, all six cases `ok`.
 
 ## Per-SC verdicts
@@ -34,7 +34,7 @@ empty; the generator was exercised via its read-only `--stdout` mode, never its 
 | 09 | inspection | PASS | presence `CLAUDE.md:36,43` (2 hits, both now point at the index); both widened absence greps exit 1 / 0 hits over `CLAUDE.md .claude/skills .claude/agents .harness/expertise` |
 | 10 | inspection | PASS | `harness-handoff/SKILL.md:64` carries `floor`; four numbered triggers `(1)…(4)` at `:72-75` |
 | 11 | automated | PASS | **structural:** 190 ≤ 260 lines, asserted at `:353`; one-per-line re-derived (rows 21–190, no continuation lines), row parse is per-physical-line at `:373`. **per-ruling:** 0/170 over 30 words, max 30, asserted at `:381-397`. Both axes measured at `363b539`; the "82 of 169 … max 165" figure in BRIEF is the pre-remediation `ce2cd17` measurement |
-| 12 | automated | PASS | runner exit 0, `PASS test-gen-decisions-index.py`, 0 lines matching `^MISCONFIGURED`; script listed in `run-unit-tests.sh:6` |
+| 12 | automated | PASS | runner exit 0, `PASS test-gen-decisions-index.py`, 0 lines matching `^MISCONFIGURED`; script listed in `run-unit-tests.py:6` |
 
 ## Stale prose reported, not fixed (no BRIEF edit)
 

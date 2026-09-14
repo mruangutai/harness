@@ -5,18 +5,18 @@ Answers, while a PLAN.md is still being written, whether every task's `files:`
 paths land on an agent granted to write them, or are honestly declared
 `execution_mode: main-session-direct`. It is a PLAN-PHASE CLI, not a
 PreToolUse hook — see D-01 for why this is a new script rather than a mode of
-check-state.sh or an invariant of check-domain.sh.
+check-state.py or an invariant of check-domain.py.
 
 ROUTING IS NEVER RE-IMPLEMENTED HERE (D-02, SC-08): every path is resolved by
-shelling out to `check-domain.sh --resolve <path>` with stdin closed. This
+shelling out to `check-domain.py --resolve <path>` with stdin closed. This
 file must never gain its own copy of Python's stdlib pattern matcher, its own
 glob-to-regex translator, or a bare prefix comparison — a prefix comparison
 on the text before `/**` answers False for a pattern with an earlier
 wildcard segment (e.g. `.harness/features/*/runs/*-eng/**`), which is the
-exact bug check-domain.sh:190-197 records fixing.
+exact bug check-domain.py:190-197 records fixing.
 
-Task blocks are found with the SAME regex check-state.sh uses (D-08), copied
-rather than shared because check-state.sh belongs to the in-flight FEAT-08 and
+Task blocks are found with the SAME regex check-state.py uses (D-08), copied
+rather than shared because check-state.py belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
 import glob
@@ -32,9 +32,9 @@ BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 # this script cannot answer about at all.
 sys.path.insert(0, BIN_DIR)
 import harness_boundary  # noqa: E402  (the path insert above has to come first)
-CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")
+CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.py")
 
-# Copied from check-state.sh:93-94 (D-08) — a duplicated task-BLOCK parser,
+# Copied from check-state.py:93-94 (D-08) — a duplicated task-BLOCK parser,
 # never a duplicated path matcher.
 TASK_RE = re.compile(
     r"^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)",
@@ -64,28 +64,41 @@ LEGAL_MAIN_SESSION_TOKEN = "main-session-direct"
 LEGAL_TOKENS = "team, main-session-direct"  # D-07
 
 
+def _resolver_invocation(root, manifest_root):
+    if os.path.realpath(root) == os.path.realpath(manifest_root):
+        return CHECK_DOMAIN, None
+    owner_check_domain = os.path.join(
+        manifest_root, ".claude", "skills", "harness", "bin",
+        "check-domain.py")
+    if os.path.isfile(owner_check_domain):
+        return owner_check_domain, None
+    env = os.environ.copy()
+    env[harness_boundary.PROJECT_DIR_ENV] = manifest_root
+    return CHECK_DOMAIN, env
+
+
+def _agents_from_output(output):
+    lines = (line.strip() for line in output.splitlines())
+    return sorted({
+        line for line in lines
+        if line and line != "NOBODY" and not re.match(r"^SHARED ", line)
+    })
+
+
 def resolve_agents(path, root, manifest_root):
     """Return agents from the same resolver script the live hook invokes."""
-    check_domain = CHECK_DOMAIN
-    if os.path.realpath(root) != os.path.realpath(manifest_root):
-        check_domain = os.path.join(
-            manifest_root, ".claude", "skills", "harness", "bin", "check-domain.sh")
+    check_domain, env = _resolver_invocation(root, manifest_root)
     proc = subprocess.run(
         [check_domain, "--resolve", path],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
+        env=env,
     )
     if proc.returncode == 2:
         sys.stderr.write(proc.stderr)
         sys.exit(2)
-    agents = []
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if not line or line == "NOBODY" or re.match(r"^SHARED ", line):
-            continue
-        agents.append(line)
-    return sorted(set(agents))
+    return _agents_from_output(proc.stdout)
 
 
 def _owner_root(root):
@@ -545,9 +558,9 @@ def _is_shipped(feature_dir):
     naming no feature. One malformed file anywhere under .harness/features/ silently
     converted the whole checker into a liar.
 
-    That is the same defect this change fixes in passing for check-state.sh (`NameError:
+    That is the same defect this change fixes in passing for check-state.py (`NameError:
     cj`) and the same one harness_yaml.manifest_domains records as M-02. Three instances,
-    one shape: a crash exits 1, and 1 is already spoken for. check-state.sh:160-168 is the
+    one shape: a crash exits 1, and 1 is already spoken for. check-state.py:160-168 is the
     model — `isinstance(doc, dict)` is checked before anything reads a key off it.
     """
     fy = os.path.join(feature_dir, "plan.yaml")
@@ -563,7 +576,7 @@ def _is_shipped(feature_dir):
         #
         # WHY A PLAN.md IS SUFFICIENT EVIDENCE, measured rather than assumed: NO production code
         # in this tree writes a PLAN.md. Every reference to it across bin/ is a read
-        # (check-state.sh, gh-sync.py, this file); the only writers are test fixtures. A
+        # (check-state.py, gh-sync.py, this file); the only writers are test fixtures. A
         # directory carrying one therefore predates plan.yaml, and its plan is a record.
         #
         # FAIL-CHECKED IN THE OTHER DIRECTION: a directory with NEITHER file is still False, so
@@ -602,15 +615,15 @@ def discover_plans():
     was byte-identical to a clean tree (issue #133, B-7). Measured before this fix:
     `cd /tmp && python3 <repo>/.agents/skills/harness/bin/check-plan-routes.py` exited 0.
 
-    Root precedence follows check-domain.sh (`:178-180`, and again at `:276-281` for
+    Root precedence follows check-domain.py (`:178-180`, and again at `:276-281` for
     its hook path — two call sites, one rule), because a third derivation is a third
     thing to drift: CLAUDE_PROJECT_DIR if it holds a readable manifest, else the root
     DERIVED from this file's location (bin/ is four levels down).
 
-    ONE BRANCH DIFFERS, DELIBERATELY. check-domain.sh's third branch is
+    ONE BRANCH DIFFERS, DELIBERATELY. check-domain.py's third branch is
     `root = root or os.getcwd()`; this one is `""` and exits 2. A cwd fallback IS the
     B-7 fail-open — it is how a checker ends up scanning wherever it happens to be
-    standing. check-domain.sh can afford it because it demands a readable manifest one
+    standing. check-domain.py can afford it because it demands a readable manifest one
     line later and exits 2 anyway; here the glob would simply come back empty and
     report success. Exit 2 means "the checker could not run", which is also what
     distinguishes this from a freshly-onboarded project: that project HAS a manifest
@@ -792,7 +805,7 @@ def live_invariant_numbers(root):
     set and the caller must not treat it as one: an empty set would make every number in
     every plan look newly claimed and fire on plans that merely cite an existing rule.
     """
-    path = os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.sh")
+    path = os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.py")
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
             return {int(m) for m in INV_TOKEN_RE.findall(f.read())}
@@ -807,7 +820,7 @@ def check_invariant_number_collisions(root, findings):
     `FEAT-26-pr-linkage-recorded/plan.yaml` used `INV-28` sixteen times while
     `FEAT-34-worktree-act3-enforced/BRIEF.md` used it eight times. Both features were
     unbuilt, one was signed and entering its build, and NOTHING saw it — not
-    `check-state.sh`, not this checker, not two review rounds on either feature. A human
+    `check-state.py`, not this checker, not two review rounds on either feature. A human
     reading a task list found it.
 
     The rule given to the planner at the time was "do not infer the next free number from
@@ -819,7 +832,7 @@ def check_invariant_number_collisions(root, findings):
     `plan.yaml` at all, so a plan-only scan reproduces the exact miss. Both files are read
     where they exist.
 
-    A NUMBER ALREADY IN `check-state.sh` IS A REFERENCE, NOT A CLAIM. Plans discuss
+    A NUMBER ALREADY IN `check-state.py` IS A REFERENCE, NOT A CLAIM. Plans discuss
     existing invariants constantly; firing on those would make this unreadable within a
     week. Only numbers absent from the gate script are treated as claims.
 
@@ -833,7 +846,7 @@ def check_invariant_number_collisions(root, findings):
     live = live_invariant_numbers(root)
     if live is None:
         findings.append("NOTE invariant-collision check SKIPPED — "
-                        ".agents/skills/harness/bin/check-state.sh could not be read, so "
+                        ".agents/skills/harness/bin/check-state.py could not be read, so "
                         "a claimed number cannot be told from a cited one.")
         return 0
 
@@ -874,7 +887,7 @@ def check_invariant_number_collisions(root, findings):
             findings.append(
                 f"VIOLATION INV-{num} is claimed by {len(owners)} unbuilt features: "
                 f"{', '.join(owners)}. A number is free only when it is absent from "
-                f"check-state.sh AND unclaimed by every signed-but-unbuilt plan. "
+                f"check-state.py AND unclaimed by every signed-but-unbuilt plan. "
                 f"Decide which feature builds first; it keeps the number.")
     return count
 

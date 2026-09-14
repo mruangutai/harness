@@ -55,7 +55,7 @@ disclosed, deliberate decision rather than an oversight (code comment `:846-850`
 2. **"Zero signal anywhere" — now false, confirmed end-to-end, not just per-hook.** I wrote a second
    scratch script that fires `tool_call` then `tool_result` on the *same* unparseable edit payload
    through the real (unmutated) module (**executed**, `bun run e2e-check.ts`): `tool_call` returns
-   `undefined` (no block) and spawns zero `check-domain.sh` calls; `tool_result` on the identical input
+   `undefined` (no block) and spawns zero `check-domain.py` calls; `tool_result` on the identical input
    returns `{ content: [{ text: "...neither the pre-write nor the post-write shape check ran on any
    file..." }] }`, no `isError` key. This corroborates the commit message's "MEASURED... S2 DOES fire on
    the same edit, so the operator is told once" — cycle 0's "zero signal anywhere" was true of the
@@ -65,7 +65,7 @@ disclosed, deliberate decision rather than an oversight (code comment `:846-850`
 **Net severity call.** The panel's HIGH rating combined three things: wrong-in-a-realistic-case
 behaviour, zero test coverage, and zero signal. Behaviour is unchanged (still fail-open on unparseable
 edits), but it is now a structurally-defensible position, not an oversight: `extractEditPaths` failing
-means no file was identified, and there is no target to hand `check-domain.sh` — blocking *every*
+means no file was identified, and there is no target to hand `check-domain.py` — blocking *every*
 shape-unreadable edit outright would be a fail-closed policy change with its own cost (refusing
 legitimate edits whose patch text happens not to match the two regexes), which is exactly the kind of
 enforcement-semantics change DEC-174 reserves for a real decision, not a silent side-effect of a bug
@@ -77,9 +77,9 @@ question is Q1 above, correctly routed as a question rather than decided unilate
 
 | Test | What it binds | Verified how |
 |---|---|---|
-| "a hashline edit is gated BEFORE it lands" | `preDomain`'s edit branch reaches `check-domain.sh` exactly once, with the exact extracted path, `tool_name: "Edit"`, and no `--post` — the PRE/blocking route's happy path, previously completely unexercised | Mutation: reddens when `preDomain`'s edit branch is neutered (**executed**) |
+| "a hashline edit is gated BEFORE it lands" | `preDomain`'s edit branch reaches `check-domain.py` exactly once, with the exact extracted path, `tool_name: "Edit"`, and no `--post` — the PRE/blocking route's happy path, previously completely unexercised | Mutation: reddens when `preDomain`'s edit branch is neutered (**executed**) |
 | "every file of a multi-section edit is gated before it lands" | Same route, multi-path extraction, order preserved | Mutation: reddens (**executed**) |
-| "a non-string patch reaches no pre-write gate and does not block the edit" | The *current, disclosed* fail-open: zero `check-domain.sh` calls of either kind, `blocked` undefined | Does NOT redden under the PRE mutation (**executed**, correctly — it isn't testing PRE's happy path) — it pins the fail-open as a known, regression-guarded state: if a future change accidentally started blocking here, or accidentally started calling `check-domain.sh` with a fabricated path, this test would catch either |
+| "a non-string patch reaches no pre-write gate and does not block the edit" | The *current, disclosed* fail-open: zero `check-domain.py` calls of either kind, `blocked` undefined | Does NOT redden under the PRE mutation (**executed**, correctly — it isn't testing PRE's happy path) — it pins the fail-open as a known, regression-guarded state: if a future change accidentally started blocking here, or accidentally started calling `check-domain.py` with a fabricated path, this test would catch either |
 
 None of the three overclaims what it binds. This is a real, discriminating fix to the coverage half of
 M1, not a coverage-shaped decoration.
@@ -130,7 +130,7 @@ an assertion whose name claims more than it checks. Specifically checked and rul
 - `cycle` → `cycles_used` (DEC-154): not reviewable from this diff — `runs/**` is gitignored
   (**executed**, `git check-ignore -v`), so this rename touches no tracked file and isn't part of
   `base..review_sha`. Read directly at source: the current run's top-level key is `cycles_used: 0`,
-  the whitelisted INV-16 key (**executed**, grepped `check-state.sh`'s `KNOWN` set). Correct as far as
+  the whitelisted INV-16 key (**executed**, grepped `check-state.py`'s `KNOWN` set). Correct as far as
   it's checkable; not a code-review target since it's ephemeral, untracked run state.
 
 **One genuine gap, reported as should_fix rather than a fourth "assertion that lied":** the end-to-end
@@ -142,7 +142,7 @@ script myself, outside the checked-in suite. If a future refactor decoupled the 
 call sites (e.g., made S2 conditional on state `preDomain` sets), nothing would catch the regression
 until the next incident. **Alternative:** one more `test()` in the same describe block, driving
 `tool_call` then `tool_result` on an identical unparseable payload and asserting `(a)` zero
-`check-domain.sh` calls total, `(b)` the returned `tool_result` content contains the "neither...nor"
+`check-domain.py` calls total, `(b)` the returned `tool_result` content contains the "neither...nor"
 text — pinning the exact claim the commit's justification rests on.
 
 ## Stage 1 — spec compliance

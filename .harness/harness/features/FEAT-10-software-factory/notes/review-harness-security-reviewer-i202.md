@@ -8,12 +8,12 @@ not resolve on its own; noting this so the next reader isn't confused). Review s
 ## Q1 — Gate integrity / fail-open
 
 **bin/ scripts.** `git grep -n 'check-docs' 835b297 -- .claude/skills/harness/bin/` returns one
-hit: `check-state.sh:856`, inside a comment explaining the removal ("INV-10 IS GONE, AND THE
+hit: `check-state.py:856`, inside a comment explaining the removal ("INV-10 IS GONE, AND THE
 NUMBER IS RETIRED WITH IT..."). No code, no `[ -x check-docs.sh ] && run`, no `|| true`, no loop
-entry. Read directly at the SHA (`check-state.sh:840-870`): the INV-10 block that used to invoke
+entry. Read directly at the SHA (`check-state.py:840-870`): the INV-10 block that used to invoke
 `check-docs.sh` is deleted outright, not wrapped in a guard.
 
-`run-unit-tests.sh` and `deploy.sh` at 835b297: no match for `check-docs` in either (checked via
+`run-unit-tests.py` and `deploy.sh` at 835b297: no match for `check-docs` in either (checked via
 `git show <sha>:<path> | grep`).
 
 **Hook registrations** (the surface the first pass under-covered — `.claude/settings.json` is
@@ -21,8 +21,8 @@ outside `bin/` and `.github/`, and is exactly where a `PreToolUse`/`PostToolUse`
 at a deleted file would fail open per G-01/DEC-100 — non-2 exit is non-blocking, no stderr).
 `git grep -n 'check-docs' 835b297 -- .claude/settings.json .claude/settings.local.json` — no
 match. Full read of `git show 835b297:.claude/settings.json`: five hook registrations
-(`inject-expertise.sh`, `check-domain.sh` ×2, `branch-create-gate.sh`, `bash-write-guard.sh`,
-`dispatch-guard.sh`, `validate-digest.py`) — none reference `check-docs.sh`.
+(`inject-expertise.py`, `check-domain.py` ×2, `branch-create-gate.py`, `bash-write-guard.py`,
+`dispatch-guard.py`, `validate-digest.py`) — none reference `check-docs.sh`.
 
 **Non-.md hits repo-wide.** Full `git grep -n 'check-docs' 835b297` (63KB) filtered to non-`.md`
 files: every hit is a `.txt`/`.html`/`.yaml` artifact under `.harness/features/FEAT-0{3,4,7,8,9,10}-*/`
@@ -31,7 +31,7 @@ files: every hit is a `.txt`/`.html`/`.yaml` artifact under `.harness/features/F
 config. Historical record, not live enforcement.
 
 **No orphaned test file.** `git ls-tree -r 835b297 -- .claude/skills/harness/bin/` has no
-`test-check-docs.py`; `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays have no
+`test-check-docs.py`; `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays have no
 dangling entry for it.
 
 ## Q2 — CODEOWNERS
@@ -40,14 +40,14 @@ dangling entry for it.
 `check-docs.sh` from a parenthetical list inside the file's "NOT OWNED, deliberately" section.
 `check-docs.sh` was never an owned path — it appeared only in prose explaining why certain other
 `bin/` scripts are intentionally unowned. No path lost an owner: the two actual entries
-(`/.github/` and `/.claude/skills/harness/bin/run-unit-tests.sh`, both `@mruangutai`) are
+(`/.github/` and `/.claude/skills/harness/bin/run-unit-tests.py`, both `@mruangutai`) are
 unchanged. Ownership scope is neither widened nor narrowed.
 
 ## Q3 — CI
 
 `git grep -n 'check-docs' 835b297 -- .github/` returns nothing. Full read of
 `git show 835b297:.github/workflows/tests.yml`: the `integration` job runs
-`run-unit-tests.sh --kind integration` and the promoted `check-plan-routes.py` route gate —
+`run-unit-tests.py --kind integration` and the promoted `check-plan-routes.py` route gate —
 neither ever invoked `check-docs.sh`. No CI step disappears (there was nothing to disappear) and
 no step goes red waiting on a deleted binary.
 
@@ -70,7 +70,7 @@ The rewritten test still asserts the fence-guard against a synthetic `DEC-9999` 
 still asserts row-count-matches-distinct-DEC-count against the real authority file copied into a
 temp dir — the index-vs-authority relationship is intact, not degraded to a synthetic-only check.
 
-`test-gen-decisions-index.py` is in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` array (confirmed
+`test-gen-decisions-index.py` is in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` array (confirmed
 by direct read), and CI's `tests.yml` runs `--kind integration`, so this gate is exercised on
 every push/PR, not silently dropped to unit-only.
 

@@ -9,11 +9,11 @@ All line anchors below measured at review_sha via `git show 4de92e75:<file>`.
 
 ### 1. Is this the right change at all? — Yes. No part of it is work that should not exist.
 
-Mechanism verified end-to-end at the pin: `_checkout_root` (check-domain.sh:1151-1163) mirrors
+Mechanism verified end-to-end at the pin: `_checkout_root` (check-domain.py:1151-1163) mirrors
 `_norm`'s absorb-and-fall-back shape exactly (same `try/except Exception`, same
 `real(_ck[0]) != real(root)` guard, falls back to `root`, raises nothing, exits nowhere), and the
 ONLY behavioural change is the argument swap at the `handoff_done_when.problems(...)` call inside
-the `RE_HANDOFF` branch of `shape_problems` (check-domain.sh:1761-1762). Every dispatch route —
+the `RE_HANDOFF` branch of `shape_problems` (check-domain.py:1761-1762). Every dispatch route —
 PRE Edit identity, PRE Edit reconstructed, PRE Write, POST named-file, and the POST sweep — builds
 the uniform 4-tuple with a real absolute path as its fourth element (the sweep's
 `targets.append((_norm(_p), _f.read(), _show(_p), _p))` carries `_p` absolute), so the fix covers

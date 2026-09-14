@@ -231,7 +231,7 @@ def main():
     t_yaml = os.path.join(tdir, "team-config.yaml")
     if not os.path.isfile(p_yaml):
         print(f"team-config.yaml: MISSING at {p_yaml} — domain enforcement is off "
-              f"(check-domain.sh fails open without a manifest). A team-config.yaml exists "
+              f"(check-domain.py fails open without a manifest). A team-config.yaml exists "
               f"only in the control plane, so this message is about this clone. Run "
               f"/harness-init.")
         gaps.append("team-config.yaml")
@@ -252,7 +252,7 @@ def main():
         except harness_yaml.YamlParseError as e:
             print(f"team-config.yaml: DOES NOT PARSE — {e}")
             print("  The upgrade cannot compare a manifest it cannot read. Fix the file "
-                  "first; `check-domain.sh` is failing closed on it too (DEC-171).")
+                  "first; `check-domain.py` is failing closed on it too (DEC-171).")
             gaps.append("team-config.yaml")
         try:
             tver, tnames = yaml_version(tt), yaml_names(tt)
@@ -286,7 +286,7 @@ def main():
     if "team-config.yaml" in gaps:
         print("\nMANUAL STEP REQUIRED — team-config.yaml was NOT changed. "
               "Until the entries above are added by hand, any new agent has no "
-              "declared domain and check-domain.sh will block all of its writes.")
+              "declared domain and check-domain.py will block all of its writes.")
         return 1
     return 0
 

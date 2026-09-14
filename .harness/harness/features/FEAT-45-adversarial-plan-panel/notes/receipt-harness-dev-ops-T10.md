@@ -5,7 +5,7 @@
 `plan-panel.yaml`, `SKILL.md`, `harness-plan.md`, `team-config.yaml`, the
 `.omp/agents/`+`.claude/agents/` roster census, `harness-validator-lead.md`'s frontmatter
 `spawns:`, and `sync-agent-adapters.py`'s `SPAWNS` map — no doctrine defect found.
-Registered as the last element of `run-unit-tests.sh`'s `UNIT_SCRIPTS`, after T-09's
+Registered as the last element of `run-unit-tests.py`'s `UNIT_SCRIPTS`, after T-09's
 already-committed `test-panel-findings.py` append (write-lock respected, no race). The
 file and its registration are correct; the ONLY thing standing between T-10 and a green
 verify is the pre-existing `test-harness-yaml-corpus.py` failure documented in §2, which
@@ -13,7 +13,7 @@ T-10 did not cause and is not authorized to fix.
 
 ## Verify (T-10's own `verify:`, cross-checked byte-for-byte against plan.yaml before running)
 Re-measured directly, not taken on trust. The chain is
-`python3 test-plan-panel.py && OUT="$(run-unit-tests.sh --kind unit)" && grep -q
+`python3 test-plan-panel.py && OUT="$(run-unit-tests.py --kind unit)" && grep -q
 'test-plan-panel.py' <<<"$OUT" && python3 - <<'EOF' [token-presence check]`. A bare
 assignment `OUT="$(cmd)"` carries `cmd`'s own exit status, so the `&&` chain
 short-circuits at the second link when the runner is non-zero — the grep and the token
@@ -21,7 +21,7 @@ heredoc never execute in that run.
 
 Per-link results, each re-run individually and unconditionally:
 1. `test-plan-panel.py` alone → **rc=0**, 24/24 checks pass.
-2. `run-unit-tests.sh --kind unit` alone → **rc=1** (the pre-existing `test-harness-yaml-corpus.py`
+2. `run-unit-tests.py --kind unit` alone → **rc=1** (the pre-existing `test-harness-yaml-corpus.py`
    failure from §2 below; not caused by either of my files).
 3. `grep -q 'test-plan-panel.py'` against the runner's captured output, run unconditionally
    (not chained) → **rc=0**, matches (`PASS test-plan-panel.py` is present).
@@ -36,7 +36,7 @@ correct and the token probe is satisfied on its own. The verify cannot go green 
 owns it.
 
 ## Acceptance §2 — the runner's real result, read correctly (not by tailing)
-`OUT="$(run-unit-tests.sh --kind unit)"; RC=$?` → **RC=1**, **2** `^FAIL ` lines:
+`OUT="$(run-unit-tests.py --kind unit)"; RC=$?` → **RC=1**, **2** `^FAIL ` lines:
 - `.claude/skills/harness/teams holds exactly 2 team definitions (SC-05)`
 - `FAIL test-harness-yaml-corpus.py`
 
@@ -81,14 +81,14 @@ name-set equality (same `len(...) ==` and `set(...) ==` mechanism as the `.omp/a
 count); 2's empty-outputs skip branch (trivially `True`, no assertion to falsify).
 
 ## `git diff --stat` / `git status --porcelain` (post-mutant, final)
-Only `run-unit-tests.sh` (modified, one-line append) and `test-plan-panel.py` (new,
+Only `run-unit-tests.py` (modified, one-line append) and `test-plan-panel.py` (new,
 untracked) changed by me. `plan.yaml` shows two `status:` field bumps
 (T-11 → done, T-10 → building) that were already present before I started this task and
 that I did not make — out of scope, left untouched.
 
 ## Notes for the next reader
-- `check-domain.sh`'s domain guard denied an Edit whose section header used the bare
-  filename `run-unit-tests.sh`; re-issuing with the full worktree-relative path in the
+- `check-domain.py`'s domain guard denied an Edit whose section header used the bare
+  filename `run-unit-tests.py`; re-issuing with the full worktree-relative path in the
   section header resolved cleanly against my granted `.claude/skills/harness/bin/**`
   domain — a resolution artifact of the edit tool, not a real domain gap (P-14 pattern).
 - SKILL.md's goal-check needle (case 1c) wraps across a markdown line break with `**`

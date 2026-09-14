@@ -47,7 +47,7 @@ Flag unnecessary complexity the diff adds: comments that now say something twice
 ```
 Read-only code review, angle: EFFICIENCY. Repo: /Users/molchairuangutai/GitHub/harness, branch feat/FEAT-22-docs-layout-migration. Scope: `git diff main...HEAD -- .claude .github .gitignore CLAUDE.md .harness/team-config.yaml .harness/expertise .harness/notes/audit-decisions.py`. IGNORE feature bookkeeping and the moved docs.
 
-Flag wasted work the diff introduces. check-state.sh and check-domain.sh run at session entry / every write — anything newly expensive there matters most (the diff should be one diagnostic string each; verify nothing else crept in). test-no-distribution now walks two roots — measure whether that meaningfully slows the suite. audit-decisions.py's module-scope reads — pre-existing shape, only the paths moved; confirm no new cost. Only flag things costing minutes or hot-path milliseconds. For each: file, line, summary, cost, cheaper alternative. No edits. Compact; empty if clean.
+Flag wasted work the diff introduces. check-state.py and check-domain.py run at session entry / every write — anything newly expensive there matters most (the diff should be one diagnostic string each; verify nothing else crept in). test-no-distribution now walks two roots — measure whether that meaningfully slows the suite. audit-decisions.py's module-scope reads — pre-existing shape, only the paths moved; confirm no new cost. Only flag things costing minutes or hot-path milliseconds. For each: file, line, summary, cost, cheaper alternative. No edits. Compact; empty if clean.
 ```
 
 ## line 7938 · subagent=general-purpose · desc=Altitude review FEAT-22 cluster

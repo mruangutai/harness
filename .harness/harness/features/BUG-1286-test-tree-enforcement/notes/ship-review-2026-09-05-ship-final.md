@@ -14,7 +14,7 @@ remedies, and the revalidation found nothing new that gates.
 - **qa `test_matrix` gate: PASS** — the project's only blocking gate.
 - unit 342 PASS / 0 FAIL / 27 files; integration 14 / 0; `--check-layout` exit 0; tree-audit
   `TOTAL 85 OUTSIDE 9 VIOLATIONS 0` and the note round-trips at exit 0; decision anchors 30 / 0;
-  `check-state.sh` exit 0 with no violation and no note for this feature.
+  `check-state.py` exit 0 with no violation and no note for this feature.
 
 All of the above I ran myself at the pinned revision rather than accepting a report.
 
@@ -44,7 +44,7 @@ the function in prose.
 digest.md` fails the lead digest contract — it has no `artifact:` line. pm caught it and I
 confirmed it directly. It is gitignored, absent from the reviewed tree, covered by no criterion,
 and superseded by the `-03` record, so it gates nothing. But it is a false-looking entry in the
-factory's own record and it is row B-11 below. pm also reported `check-state.sh` exiting 1 where I
+factory's own record and it is row B-11 below. pm also reported `check-state.py` exiting 1 where I
 measured 0, twice, before and after; I could not reproduce their exit 1 and I am reporting the
 disagreement rather than resolving it in my own favour.
 

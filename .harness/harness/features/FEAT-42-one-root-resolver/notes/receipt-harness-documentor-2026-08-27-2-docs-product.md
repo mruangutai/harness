@@ -35,38 +35,38 @@ holds `.claude/skills/harness-brief/` (resolved `NOBODY` for me). Replacement sp
 paragraph was never touched by this feature; one clause in it simply went false.
 **Owner:** main session / doc owner of `.harness/harness/docs/**`.
 
-**F3 · `.claude/skills/harness/bin/check-state.sh:1143`** — "`root` is CLAUDE_PROJECT_DIR or the cwd".
-**Truth:** `check-state.sh:38` sets `root` from `harness_boundary.resolve_root(_selfdir)` and refuses
+**F3 · `.claude/skills/harness/bin/check-state.py:1143`** — "`root` is CLAUDE_PROJECT_DIR or the cwd".
+**Truth:** `check-state.py:38` sets `root` from `harness_boundary.resolve_root(_selfdir)` and refuses
 with exit 2 when it cannot resolve (`:39-40`); the file's own header at `:21-25` says so explicitly.
 The comment survives *directly beneath* prose stating the opposite. The reasoning it carries (why the
 base must come from the first porcelain entry, not `<root>/.claude/worktrees/`) is still sound — only
 its premise is dead. **Owner:** DEC-174 carve-out — main-session-direct.
 
 **F4 · `.claude/skills/harness/bin/check-plan-routes.py:475-478`** — "Root precedence follows
-check-domain.sh (`:178-180` … `:276-281`) … CLAUDE_PROJECT_DIR if it holds a readable manifest, else
+check-domain.py (`:178-180` … `:276-281`) … CLAUDE_PROJECT_DIR if it holds a readable manifest, else
 the root DERIVED from this file's location". **Truth:** both files now call
 `harness_boundary.resolve_root`; the read name is `HARNESS_PROJECT_DIR` and the probe is
-`MARKER` = `.harness/team-config.yaml`. The cited `check-domain.sh` line anchors no longer point at
+`MARKER` = `.harness/team-config.yaml`. The cited `check-domain.py` line anchors no longer point at
 any root-resolution code. **Owner:** DEC-174 carve-out.
 
-**F5 · `.claude/skills/harness/bin/test-check-plan-routes.py:1133-1136`** — "check-state.sh is a NAMED
+**F5 · `.claude/skills/harness/bin/test-check-plan-routes.py:1133-1136`** — "check-state.py is a NAMED
 EXCEPTION … it has no derived fallback at all — `cd "$root"` with an invalid CLAUDE_PROJECT_DIR fails
 and it silently reports on the cwd. That is a real defect". **Truth:** that defect is fixed
-(`check-state.sh:38` resolves via `harness_boundary`, `:39-43` refuses with `exit 2`). This is the most *actionable* stale prose in the sweep: it
+(`check-state.py:38` resolves via `harness_boundary`, `:39-43` refuses with `exit 2`). This is the most *actionable* stale prose in the sweep: it
 is a live docstring asserting a live defect, sitting on an assertion that still exempts
-`check-state.sh` from the shared-probe check — so the one file the exemption was written for is now
+`check-state.py` from the shared-probe check — so the one file the exemption was written for is now
 the one file that would pass it. **Recommendation:** delete the exemption and the paragraph together;
 do not edit one without the other. **Owner:** DEC-174 carve-out.
 
 **F6 · `.claude/skills/harness/bin/test-dispatch-guard.py:365` and `:381`** — the docstring says "with
 no cwd in its payload the root falls back to CLAUDE_PROJECT_DIR -- the real checkout", and `:381`
 implements the run-wide fix as `os.environ["CLAUDE_PROJECT_DIR"] = _iso`. **Truth:**
-`dispatch-guard.sh:141` calls `hb.resolve_root(HARNESS_GUARD_BIN_DIR or os.getcwd(), strict=False)`,
+`dispatch-guard.py:141` calls `hb.resolve_root(HARNESS_GUARD_BIN_DIR or os.getcwd(), strict=False)`,
 which reads `HARNESS_PROJECT_DIR` only — so that assignment is **inert**. Not a live leak today:
 `case_2_governed_agent_no_model` (`:68-82`) sets both names on its own `fire(env=...)`. But the
 run-wide safety net described in a 15-line docstring no longer exists, and the next case added
 without its own `env=` will leak a claim into the live registry exactly as narrated. **Owner:**
-DEC-174 carve-out (`dispatch-guard.sh`'s test).
+DEC-174 carve-out (`dispatch-guard.py`'s test).
 
 **F7 · `.github/workflows/tests.yml:188` and `:251`** — the two `::error::` messages tell a CI
 debugger to "Check CLAUDE_PROJECT_DIR and .harness/*/features/" / "…and the feature/doc roots".
@@ -87,7 +87,7 @@ unset CLAUDE_PROJECT_DIR) must not block a legitimate lead on our own resolution
 named cause is retired; the fail-open-loudly posture it justifies is correct and unchanged. Lowest
 harm of the four seeded leads — the rule survives its rationale. **Owner:** DEC-174 carve-out.
 
-**F10 · `.claude/skills/harness/bin/test-check-state.py:3-4`** (module docstring) — "check-state.sh
+**F10 · `.claude/skills/harness/bin/test-check-state.py:3-4`** (module docstring) — "check-state.py
 is run with CLAUDE_PROJECT_DIR pointed at each". **Truth:** the file's own `_env` helper (`:66-67`)
 sets **both** names and writes `MARKER` into the fixture, and its docstring there explains that
 without the marker every case scanned the live repository. The module docstring contradicts the
@@ -95,7 +95,7 @@ helper 60 lines below it. A new case written from the module docstring alone sil
 repo. **Owner:** DEC-174 carve-out.
 
 **F11 · `.claude/skills/harness/bin/test-harness-yaml.py:20-22`** — "CLAUDE_PROJECT_DIR overrides when
-the caller has already resolved it (run-unit-tests.sh does)". **Truth:** `run-unit-tests.sh` contains
+the caller has already resolved it (run-unit-tests.py does)". **Truth:** `run-unit-tests.py` contains
 no occurrence of `PROJECT_DIR` at all (verified). The parenthetical was already false before this
 feature; FEAT-42 makes the whole sentence false. The same two-name `REPO_ROOT` chain survives in five
 test harnesses — `test-harness-yaml.py:22`, `test-harness-yaml-corpus.py:59`,
@@ -114,7 +114,7 @@ nothing checks them. Contrast `dest_for`, `:56-59` in the same paragraph, which 
 - `.claude/settings.json` and `templates/settings.snippet.json` `${CLAUDE_PROJECT_DIR}/...` command
   strings: host-owned shell expansion of the hook *path*, unrelated to the retired resolver chain.
   Still correct. Same for `SPEC.md:657` and `BUILD.md:44/49/54/405/408/411`.
-- `check-domain.sh:1142` and `feature_schema.py:78` — "this module is imported through
+- `check-domain.py:1142` and `feature_schema.py:78` — "this module is imported through
   CLAUDE_PROJECT_DIR — the main checkout". Still **true**: the hook script is still launched by the
   host through that expansion, so `sys.path` still points at the main checkout. Matches the grep,
   is not a finding.
@@ -158,8 +158,8 @@ distillation dispatch.
 ## DEC-174 amendment 4 — reported, not edited
 
 `.harness/harness/docs/DECISIONS.md:5006-5008` (the "So the enforcement layer is:" sentence, in
-amendment 4 which opens at `:4983`) enumerates: `check-domain.sh`, `bash-write-guard.sh`,
-`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
+amendment 4 which opens at `:4983`) enumerates: `check-domain.py`, `bash-write-guard.py`,
+`validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py`, **and the test
 file of each** — 12 files.
 
 **Accuracy at 9d12e3a: all 12 exist under those exact names.** No renames, no deletions. Verified by
@@ -169,9 +169,9 @@ file of each** — 12 files.
 amendment itself says a script joins the day it becomes a gate:
 
 - **Registered hooks absent from the list** (`.claude/settings.json:12, 32, 40, 64`):
-  `inject-expertise.sh`, `branch-create-gate.sh`, `gh-close-gate.sh`, `context-watch-hook.py`. Each
-  fires on every session or every tool call; `gh-close-gate.sh` and `branch-create-gate.sh` *refuse*
-  actions, which is the same evidence on which `dispatch-guard.sh` joined.
+  `inject-expertise.py`, `branch-create-gate.py`, `gh-close-gate.py`, `context-watch-hook.py`. Each
+  fires on every session or every tool call; `gh-close-gate.py` and `branch-create-gate.py` *refuse*
+  actions, which is the same evidence on which `dispatch-guard.py` joined.
 - **CI gate steps absent from the list** (`.github/workflows/tests.yml`): `validate-feature-json.py`,
   `layout_migration.py`. `check-plan-routes.py` joined on precisely the DEC-183-made-it-a-CI-step
   argument; these two are steps of the same required job.
@@ -213,5 +213,5 @@ for comments only, which is a bigger change and is not recommended here.
 
 - **Q1 (non-blocking):** who owns `.claude/skills/harness-brief/SKILL.md`? `--resolve` returned
   `NOBODY`, and F1 is the highest-harm finding.
-- **Q2 (non-blocking):** should F5's `check-state.sh` exemption in `test-check-plan-routes.py` be
+- **Q2 (non-blocking):** should F5's `check-state.py` exemption in `test-check-plan-routes.py` be
   deleted now that the defect it names is fixed? That is a gate-behaviour change, DEC-174.

@@ -39,7 +39,7 @@ the comparison T-04's verify depends on.
 
 ## Check 2 — T-01 registry self-policing vs existing exact-path-registry validators: **no finding**
 
-Searched `check-domain.sh`, `check-plan-routes.py`, `check-state.sh`, `check-expertise.sh`, and
+Searched `check-domain.py`, `check-plan-routes.py`, `check-state.py`, `check-expertise.py`, and
 `tests/unit/test-suite-layout.py`'s own `sole_implementations()` sweep (lines 17-20, 38, 110-134).
 `SOLE_IMPLEMENTATION_EXEMPTIONS` (test-suite-layout.py:17-20) is the closest analog — a literal
 exact-path tuple — but its policing is a single set-difference (`unexpected = sorted(set(
@@ -86,7 +86,7 @@ that would fail loudly if it went stale.
 
 ## Check 4 — task `verify:` hand-rolling an existing bin script: **no finding**
 
-T-01's verify runs the real test file plus `run-unit-tests.sh --check-layout`; T-02's runs the
+T-01's verify runs the real test file plus `run-unit-tests.py --check-layout`; T-02's runs the
 integration test file; T-03's runs the new subcommand directly; T-04's runs `tree-audit --against`
 against the note it just wrote; T-05's runs `gen-decisions-index.py --stdout | diff` plus
 `check-decision-anchors.py`. Each verify invokes the real instrument rather than reimplementing a

@@ -5,7 +5,7 @@
 Built and integrated on `feat/FEAT-59-proportional-flow` at `a1c3a683`; PR open for the
 operator's diff review. DEC-174 main-session-direct build: no orchestrator, lead or persona ran;
 eight generic subagents owned file-bounded slices under main-session decomposition. Unit and
-integration suites green; port, adapter and command checkers exit 0; `check-state.sh` reports
+integration suites green; port, adapter and command checkers exit 0; `check-state.py` reports
 0 violations on the branch.
 
 Acceptance is two live flows and is OPEN: SC-23 (next real bug through `/harness-patch`) and

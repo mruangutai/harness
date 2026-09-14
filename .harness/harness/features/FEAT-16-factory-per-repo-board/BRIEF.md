@@ -91,14 +91,14 @@ second requirement no task can serve.
   `Backlog,Plan,Ready,Building,Review,Done,` (trailing comma from `tr`, run and pasted, not
   constructed).
   verify: inspection
-- SC-08: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` exits 0 on the finished feature.
+- SC-08: `.claude/skills/harness/bin/run-unit-tests.py --kind unit` exits 0 on the finished feature.
   verify: automated      evidence: unit
-- SC-09: `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` exits 0 on the finished
+- SC-09: `.claude/skills/harness/bin/run-unit-tests.py --kind integration` exits 0 on the finished
   feature.
   verify: automated      evidence: integration
 - SC-10: The feature's diff changes none of the four DEC-174 carve-out scripts. Mechanically:
-  `git diff --name-only a29ad06..HEAD` intersected with `check-domain.sh`, `bash-write-guard.sh`,
-  `validate-digest.py` and `check-state.sh` (all under `.claude/skills/harness/bin/`) is empty.
+  `git diff --name-only a29ad06..HEAD` intersected with `check-domain.py`, `bash-write-guard.py`,
+  `validate-digest.py` and `check-state.py` (all under `.claude/skills/harness/bin/`) is empty.
   Base `a29ad06` is HEAD at plan time, at which `git status --porcelain` reports all four clean —
   so a non-empty intersection is this feature's doing and nobody else's.
   verify: inspection
@@ -209,10 +209,10 @@ resolved differently:
   operator can consent to that. `verify: uat` is the honest method; it stays `not_met` until the user
   runs it.
 
-### (c) The pairing assertion lives in `test-no-distribution.py`, not `check-state.sh`
+### (c) The pairing assertion lives in `test-no-distribution.py`, not `check-state.py`
 
-`check-state.sh` is a DEC-174 carve-out file, **and** it is granted to `harness-backend-dev` and
-`harness-dev-ops` by `check-domain.sh --resolve`. Declaring a task on it `main-session-direct`
+`check-state.py` is a DEC-174 carve-out file, **and** it is granted to `harness-backend-dev` and
+`harness-dev-ops` by `check-domain.py --resolve`. Declaring a task on it `main-session-direct`
 therefore emits a `DEVIATION` line from `check-plan-routes.py` on every future run of a required CI
 check — permanent noise that never clears — and the task cannot be done by the team at all. Against
 that, `test-no-distribution.py` resolves to the same two agents on the ordinary team lane, is already
@@ -222,9 +222,9 @@ and runs in `UNIT_SCRIPTS`, so SC-05 gets real `unit` evidence.
 Two measured facts settle the rest of the carve-out question, and both say the gate scripts are not
 touched at all:
 
-- `check-domain.sh` calls `factory_config.load_fleet` and then reads only `workspace_root` and
+- `check-domain.py` calls `factory_config.load_fleet` and then reads only `workspace_root` and
   `repos[].name`. It never reads `board`. The schema change does not reach its source.
-- `check-state.sh`'s INV-24 reads the fleet with `harness_yaml.load_file`, not `load_fleet`, and
+- `check-state.py`'s INV-24 reads the fleet with `harness_yaml.load_file`, not `load_fleet`, and
   reads only `repos[].name`. It is untouched, and its fixture at `test-check-state.py:836` keeps
   working.
 
@@ -287,7 +287,7 @@ does not.
 
 ### (f) The migration is three-phase, and the ordering is not tidiness
 
-`check-domain.sh:214` calls `load_fleet` on every governed write and prints "BLOCKED — the fleet
+`check-domain.py:214` calls `load_fleet` on every governed write and prints "BLOCKED — the fleet
 declaration does not load … Enforcement is CLOSED rather than partial" on any exception.
 `test-check-domain.py` case (c) fires exactly that path against a *harness* path and asserts exit 2,
 so a fleet that does not load refuses harness writes, not only product ones. Both naive orderings
@@ -327,8 +327,8 @@ one-session bootstrap escape here would be the exact circularity smell DEC-174 n
   `factory_claim` against it; read `Status` back off board 2 and confirm `Building`.
   Clean up by deleting `refs/heads/factory/issue-N`, removing the `factory:claimed` label and closing
   the issue.
-- **DEC-174 carve-out.** No task changes `check-domain.sh`, `bash-write-guard.sh`,
-  `validate-digest.py` or `check-state.sh`. Measured: none needs to.
+- **DEC-174 carve-out.** No task changes `check-domain.py`, `bash-write-guard.py`,
+  `validate-digest.py` or `check-state.py`. Measured: none needs to.
 - **`harness.json`'s `github.repo` is out of scope.** It still names `mruangutai/harness` for the
   issue mirror; that is a different mechanism from the station board.
 - **Out of scope, from the grilling.** Moving kaya's issues to board 3 or harness's to board 2; board

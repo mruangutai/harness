@@ -70,7 +70,7 @@ measured finding would have been lost under the new rules.
 - Deleting or pruning standing worktrees. The user declined this explicitly; lever 6 reduces what
   a worktree holds, never how many exist.
 - Deleting, pruning or lossily rewriting any feature's recorded history. The record is evidence.
-- `check-state.sh`'s GitHub project-board query, which is 11.3s of its 14.3s runtime. Measured
+- `check-state.py`'s GitHub project-board query, which is 11.3s of its 14.3s runtime. Measured
   during this grilling and filed as issue #1541; it is gate tooling, not this feature's surface.
 - Any relaxation of the gate rule (`must_fix` non-empty or `severity_max >= high` → FAIL).
 - `feature.json` schema changes (see instrumentation, above).
@@ -113,11 +113,11 @@ measured finding would have been lost under the new rules.
   features copied 27 times.
 - 93% of the repository's tracked files (3211 of 3469) live under `.harness/`.
 - What the bulk actually costs in time, measured, so lever 6 is not oversold: 1.38s per
-  `check-state.sh` run in `worktree_terminal.classify_all` (75 git calls across 30 worktrees), and
+  `check-state.py` run in `worktree_terminal.classify_all` (75 git calls across 30 worktrees), and
   it scales with worktree count. `git status` in a worktree is 0.06s. Feature COUNT costs nothing
   measurable: check-state took 14.7s with 86 feature dirs and 14.65s with 16.
 - Readers that walk `features/*` and would therefore see less in a sparse checkout:
-  `check-state.sh` (INV-17, INV-23, INV-28 and others), `board_lifecycle.py`,
+  `check-state.py` (INV-17, INV-23, INV-28 and others), `board_lifecycle.py`,
   `check-plan-routes.py`, `factory_decompose.py`, `feature-worktree.py`, `feature_json_write.py`,
   `feature_schema.py`, `harness_boundary.py`, `layout_fixtures.py`, `layout_migration.py`,
   `quarantine.py`. This list is the fail-open surface, not a task list.

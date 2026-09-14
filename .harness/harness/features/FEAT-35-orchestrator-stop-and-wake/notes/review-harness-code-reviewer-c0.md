@@ -110,7 +110,7 @@ station, "logs stay in place" meaning file location, "hold `Write`" meaning perm
 ## SC-01, SC-02, SC-04 — re-verified independently (not trusted from build)
 
 Ran directly against `git show <sha>:.claude/skills/harness/SKILL.md` output for both shas, not the
-worktree file, and against the actual `run-unit-tests.sh --kind unit` invocation:
+worktree file, and against the actual `run-unit-tests.py --kind unit` invocation:
 
 | SC | at `569d417` | at `e0ae671` |
 |---|---|---|
@@ -121,7 +121,7 @@ worktree file, and against the actual `run-unit-tests.sh --kind unit` invocation
 `test-orchestrator-playbook.py` run live: `PLAYBOOK_PATH=<(git show 569d417:...)` → all 9 named
 checks FAIL, exit 1 (confirms T-05's own demonstration requirement). Run against the live worktree
 file (`git status --porcelain` confirms `.claude/` clean at `e0ae671`) → all 9 PASS, exit 0. Also
-confirmed wired into the real gate: `run-unit-tests.sh --kind unit` includes and runs
+confirmed wired into the real gate: `run-unit-tests.py --kind unit` includes and runs
 `test-orchestrator-playbook.py` in its output.
 
 ## SC-07 — clean
@@ -171,7 +171,7 @@ None of the eight is vacuous (each demonstrably flips at `569d417` — verified 
 assertion that cannot fail" does not apply to this file; the gap is discrimination *shape*
 (exact-literal), not reachability.
 
-`run-unit-tests.sh` diff — one basename appended to `UNIT_SCRIPTS`, confirmed it actually executes
+`run-unit-tests.py` diff — one basename appended to `UNIT_SCRIPTS`, confirmed it actually executes
 in the real gate (above). No quality issue.
 
 ## Not re-raised (already ticketed, cited per dispatch)

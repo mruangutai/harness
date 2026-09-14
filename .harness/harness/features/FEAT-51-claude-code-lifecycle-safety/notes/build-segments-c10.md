@@ -124,7 +124,7 @@ running in parallel sooner.
 ## SEGMENT 2 — after T-02 (Main)
 
 - **T-03** (#1138, `cross_module` → unit **and integration**): the quarantine branch in
-  `check-domain.sh`'s Python heredoc, placed **after** the FEAT-41 plan.yaml route denial and
+  `check-domain.py`'s Python heredoc, placed **after** the FEAT-41 plan.yaml route denial and
   **before** the `if not _post:` mode split — that position is load-bearing three ways. Fails
   **open** on any import failure. Grade the canonical case on **`BRIEF.md`, not `plan.yaml`** (a
   `plan.yaml` editor write is already refused for every author, so it cannot discriminate), plus one
@@ -133,7 +133,7 @@ running in parallel sooner.
   Six labels, `an orphan canonical write is quarantined` and
   `an omp-runtime writer is never quarantined` are the two the verify greps.
 - **T-07** (#1142, `cross_module` → unit **and integration**): `MUTATING_VERBS`, `ADOPT_TOOL` and
-  `quarantines()` in `plan-sign-gate.py`, a rewritten header in `plan-sign-gate.sh`, nine labelled
+  `quarantines()` in `plan-sign-gate.py`, a rewritten header in `plan-sign-gate.py`, nine labelled
   cases including the `--file`-is-a-shell-variable **negative control that must run under the live
   orphan fixture** or it proves nothing. `sign-approval` stays out of `MUTATING_VERBS`; `discard`
   is deliberately uncovered and the comment must say why, citing D-18.

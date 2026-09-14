@@ -8,7 +8,7 @@ DEC-216/217 at DECISIONS.md:6792/6818, DEC-212 at :6620.
 
 The two named files (`tests/integration/test-validate-digest.py`, `tests/unit/test-config-shape-matrix.py`)
 both pass standalone, and every assertion they add is red-capable (below). But `.harness/harness/docs/DECISIONS-INDEX.md`
-is part of my reviewed nine-path surface, and `run-unit-tests.sh --kind integration` — the standing
+is part of my reviewed nine-path surface, and `run-unit-tests.py --kind integration` — the standing
 command the `integration` kind actually runs — fails on a **different** integration script,
 `tests/integration/test-gen-decisions-index.py`, over exactly that file. See "FAIL — SC-06 /
 DECISIONS-INDEX.md regeneration idempotence" below.
@@ -41,13 +41,13 @@ Non-`.harness` files: `.claude/agents/harness-code-reviewer.md` (*.md), `.omp/ag
 the diff and directly asserts the changed lines (`case_project_config_routes_bugfix_kinds_by_surface`,
 `case_template_config_routes_bugfix_kinds_by_surface`). Ran it myself, `env -u HARNESS_AGENT_TYPE
 python3 tests/unit/test-config-shape-matrix.py`: exit 0, `19/19 cases passed`, 0.25s — matches the
-orchestrator's reported number, and also confirmed via the standing `run-unit-tests.sh --kind unit`
+orchestrator's reported number, and also confirmed via the standing `run-unit-tests.py --kind unit`
 (exit 0, 27 files, no `^FAIL` line).
 
 Also ran `tests/integration/test-validate-digest.py` myself: `env -u HARNESS_AGENT_TYPE python3
 tests/integration/test-validate-digest.py`: exit 0, 0 lines matching `^FAIL `, `ALL PASSED.`, 19.60s —
 consistent with SC-01's cited baseline shape and the orchestrator's number. **But** the standing
-`integration`-kind command is `run-unit-tests.sh --kind integration`, which runs the whole
+`integration`-kind command is `run-unit-tests.py --kind integration`, which runs the whole
 `tests/integration/**` bucket, not just this one file — and that command is red (below).
 
 ### Open question — untraced config-shape edit (not itself the FAIL, but related)
@@ -87,7 +87,7 @@ Result — **not** byte-identical, exactly one row differs:
 + DEC-217 @6818 [tests,docs,digest,plan] refs: DEC-35 DEC-212 DEC-213 :: Bugfix test kinds follow the changed surface: ...
 ```
 
-Confirmed by the standing gate too: `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh
+Confirmed by the standing gate too: `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py
 --kind integration` exits 1, with `FAIL - test_committed_index_matches_a_fresh_regeneration:
 .harness/harness/docs/DECISIONS-INDEX.md is not what the generator produces` in
 `tests/integration/test-gen-decisions-index.py`. This is a named test, a real assertion diff (full-row
@@ -109,7 +109,7 @@ that is measurably unmet, and it fails the standing `integration`-kind command f
 just this feature's own narrow scope.
 
 **Fix:** regenerate the index (`gen-decisions-index.py --apply` or equivalent) and land the corrected
-row; re-run `run-unit-tests.sh --kind integration` to confirm green.
+row; re-run `run-unit-tests.py --kind integration` to confirm green.
 
 ## Q-C — red-capability, `tests/unit/test-config-shape-matrix.py` (all 19 assertions, all new)
 
@@ -212,14 +212,14 @@ it is a named SC-03 non-compliance a fix-cycle should close cheaply (reference
 ```yaml
 VERDICT: FAIL
 DIGEST:
-  headline: The two named files each pass standalone and every assertion they add is red-capable, but the standing `run-unit-tests.sh --kind integration` command is red — `tests/integration/test-gen-decisions-index.py` fails because `.harness/harness/docs/DECISIONS-INDEX.md`'s DEC-217 row tags are stale relative to a fresh regeneration, breaking SC-06. Additionally: one SC-03 compliance gap (code_grade half of the reviewer plan-mode check hardcodes "n_a" instead of referencing validator.CODE_GRADE_VALUES) and one routing open question about the untraced config-shape commit that is also the origin of the FAIL.
+  headline: The two named files each pass standalone and every assertion they add is red-capable, but the standing `run-unit-tests.py --kind integration` command is red — `tests/integration/test-gen-decisions-index.py` fails because `.harness/harness/docs/DECISIONS-INDEX.md`'s DEC-217 row tags are stale relative to a fresh regeneration, breaking SC-06. Additionally: one SC-03 compliance gap (code_grade half of the reviewer plan-mode check hardcodes "n_a" instead of referencing validator.CODE_GRADE_VALUES) and one routing open question about the untraced config-shape commit that is also the origin of the FAIL.
   suite: fail
   failures: 1
   matrix_ok: true
   coverage_gaps: []
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 19 }
-    - { kind: integration, state: missing, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 26 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 19 }
+    - { kind: integration, state: missing, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 26 }
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-validate-digest.py::main (ALL PASSED, exit 0, 19.60s) — passes standalone, but the file lives inside a kind bucket that fails overall" }
     - { id: SC-02, test: "tests/integration/test-validate-digest.py::run_documented_contract_cases::_discrimination_ok" }
@@ -227,7 +227,7 @@ DIGEST:
     - { id: SC-05, test: "tests/integration/test-validate-digest.py::run_documented_contract_cases::_completeness_ok" }
     - { id: SC-06, test: "tests/integration/test-gen-decisions-index.py::test_committed_index_matches_a_fresh_regeneration — FAILS: DEC-217 row tags [tests,qa,state] committed vs [tests,docs,digest,plan] regenerated" }
   must_fix:
-    - "Regenerate .harness/harness/docs/DECISIONS-INDEX.md (gen-decisions-index.py --apply) so DEC-217's row matches a fresh run; re-confirm `run-unit-tests.sh --kind integration` exits 0 (severity: high)."
+    - "Regenerate .harness/harness/docs/DECISIONS-INDEX.md (gen-decisions-index.py --apply) so DEC-217's row matches a fresh run; re-confirm `run-unit-tests.py --kind integration` exits 0 (severity: high)."
   open_questions:
     - { id: Q1, question: "e014ede3 (harness.json/templates/harness.json bugfix+config predicate edit, DEC-217's own DECISIONS.md entry, test-config-shape-matrix.py, and the now-stale DECISIONS-INDEX.md row) is untraced to any BUG-1303 task. Should it be attributed to a task, or is bundling infrastructure commits into a feature's reviewed diff via the merge-base/review_sha window intentional and out of scope for this feature's own gate?", blocking: false }
     - { id: Q2, question: "Should the SC-03 code_grade hardcode (n_a literal instead of validator.CODE_GRADE_VALUES reference) be fixed as part of this cycle, given SC-03 is a signed, verify:automated criterion whose letter is unmet for that half?", blocking: false }

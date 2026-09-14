@@ -6,8 +6,8 @@ Author-nothing dispatch: no tests, fixtures or source touched.
 ## Matrix — denominator (P-04)
 
 `test_matrix` binds 2 of the 4 tasks:
-- T-01 (`layout_migration.py`, `test-layout-migration.py`, `run-unit-tests.sh`) — `change_type: logic` → **unit** required.
-- T-02 (`check-state.sh`, `test-check-state.py`) — `change_type: cross_module` → **unit + integration** required.
+- T-01 (`layout_migration.py`, `test-layout-migration.py`, `run-unit-tests.py`) — `change_type: logic` → **unit** required.
+- T-02 (`check-state.py`, `test-check-state.py`) — `change_type: cross_module` → **unit + integration** required.
 - T-03 (`.github/workflows/tests.yml`) — `change_type: config` → matrix requires `[]`. `verify: inspection` only.
 - T-04 (`docs/harness/DECISIONS.md`, `DECISIONS-INDEX.md`) — `change_type: docs` → matrix requires `[]`. `verify: inspection` only.
 
@@ -16,13 +16,13 @@ T-03 and T-04's own `verify:` commands were run and passed (both greps/diffs `ok
 
 ## Kinds
 
-- **unit** — `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`, run in-place at `ea476fd`
+- **unit** — `.claude/skills/harness/bin/run-unit-tests.py --kind unit`, run in-place at `ea476fd`
   in worktree `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/qa-feat20-gate`. Exit 0.
   `PASS test-layout-migration.py`, 27 named `ok` assertions, cases 1–18 (18 required by plan, plus
   cases 17–18 added: a non-enum surface row is a loud error, and `scan()`/`exit_code()` contract).
   All 18 T-01 cases present and asserting content (exit code + named surface/reader/tag), not exit
   code alone. State: **satisfied**.
-- **integration** — `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`, same
+- **integration** — `.claude/skills/harness/bin/run-unit-tests.py --kind integration`, same
   worktree. Exit 0. `PASS test-check-state.py`, 84 named `ok` assertions in its block, including
   the five INV-27 cases the plan specifies: (x.1) mixed → INV-27 names reader+tag+remedy,
   (x.2) unjudgeable → CANNOT VERIFY, (x.3) applicable clean → no INV-27 line, (x.4) no marker → no
@@ -66,7 +66,7 @@ capture mechanism differs.
 
 ## Non-finding
 
-The `check-domain.sh --post` OVER BUDGET noise emitted when the worktree was created (about
+The `check-domain.py --post` OVER BUDGET noise emitted when the worktree was created (about
 `FEAT-02` and `FEAT-05-pyyaml-file-parsers` `STATE.md` shape) is pre-existing at `ea476fd`, unrelated
 to this diff and not a finding of this gate — omitted from `coverage_gaps`/`open_questions`.
 

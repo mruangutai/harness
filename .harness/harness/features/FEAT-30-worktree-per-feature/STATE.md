@@ -8,22 +8,22 @@
   this phase added none. Runs 12 of 20, informational and a floor (the operator's five
   main-session-direct tasks are not runs).
 - review_sha: **`a76d69a`**, pinned and committed. Branch tip is one commit past it and changes only
-  that value. **I ran the qa segment BEFORE pinning, contrary to INV-6** — `check-state.sh` caught it.
+  that value. **I ran the qa segment BEFORE pinning, contrary to INV-6** — `check-state.py` caught it.
   No harm: the dispatch carried the explicit range and qa's numbers match mine. Ordering was wrong.
 - All ten tasks read `status: done`. Both approvals `approved` (`BRIEF.md:275-279`, `plan.yaml:4-5`).
 - **Briefing: `notes/ship-review-2026-08-21-04-validator.md`** (+ rendered `.html`).
 
 **VERDICT: FAIL — do not ship.** One high, verified by me independently, INTRODUCED BY THIS DIFF.
 
-**F-1 (high, gates, must_fix).** `bash-write-guard.sh:617-618` `if not findings: sys.exit(0)` runs
+**F-1 (high, gates, must_fix).** `bash-write-guard.py:617-618` `if not findings: sys.exit(0)` runs
 BEFORE the reviewer read-only denial (`:628`) and the domain walk (`:640+`). `python3
 .../expertise-merge.py apply --file <any path>` matches no write pattern, so `findings` is empty and
 the guard exits 0. `cmd_apply` validates neither caller nor `--file`. T-06 built the tool; **T-07, in
 this same diff, rewired `harness-distill/SKILL.md:28-34` to instruct every agent — reviewers included
 — to use exactly that shape.** Reproduced live: `harness-documentor` → another agent's Expertise file,
 → `src/main.py`, `harness-code-reviewer` (read-only) → `src/main.py`, reviewer → `.claude/settings.json`,
-reviewer → outside the repo, documentor → `check-domain.sh`: **all rc=0**, while the same targets via
-`echo >` are rc=2. Against a COPY of `check-domain.sh`: exit 0, **67,976 → 71 bytes**. Real files
+reviewer → outside the repo, documentor → `check-domain.py`: **all rc=0**, while the same targets via
+`echo >` are rc=2. Against a COPY of `check-domain.py`: exit 0, **67,976 → 71 bytes**. Real files
 verified intact. Content is constrained to the Expertise markdown shape, so it is a clean tampering
 primitive for Expertise (injected into every spawn — doctrine injection) and a blunt truncation
 primitive elsewhere; blunt still disables enforcement.
@@ -58,7 +58,7 @@ each time, `IsolationViolation` raised all 5, so the `committer_failed` short-ci
 
 **Four relayed claims failed my re-measurement** (detail in the briefing): the simplify pass's only
 HIGH (F-ALT-1) is refuted — flipping the three switches reddens their suites 4/13/12; the docs pass's
-headline is overstated — `harness-team/SKILL.md:94` correctly names `check-domain.sh` and
+headline is overstated — `harness-team/SKILL.md:94` correctly names `check-domain.py` and
 `harness-zero-micro-management` makes no such claim; **T-03's recorded red proof is inert at HEAD** —
 its mutation leaves 38/38 parity cases green, and the panel showed `WORKTREES_SEGMENT` has no use at
 all in the grant re-basing path, so it *cannot* redden one; and my own inference about
@@ -88,7 +88,7 @@ is exact: 10 FAILs, all new refuse cases; T-04's counts hold; D-09's cost is ass
   MOVED B-1 rather than fixing it. Why nobody caught it: none of the five test files this diff touches
   is in `UNIT_SCRIPTS`, so the feature exercised the unit leg zero times. Fix the consistency check first.
 - **Q6.** `SPEC.md:2239` says per-team serialization suffices "because the teams are operating on
-  different checkouts", while the carve-out at `bash-write-guard.sh:687` blanket-allows any governed
+  different checkouts", while the carve-out at `bash-write-guard.py:687` blanket-allows any governed
   agent to write into any worktree on the Bash route. DEC-143 and DEC-153 answer differently and each
   route implements one answer. Intended? Inside #626's scope?
 - **Q7.** Is there any *running* post-run audit of HEAD position, versus the one-shot manual DEC-153
@@ -107,5 +107,5 @@ is exact: 10 FAILs, all new refuse cases; T-04's counts hold; D-09's cost is ass
   (`plan.yaml:736-739` vs `:861-863`), not T-05's. Q21's recorded subject is **T-10, not T-04**. My qa
   dispatch's T-04 premise was inverted — the leg lacking execution evidence is unit, not integration.
 - Issue **#626** is filed, unblocked and OUT OF SCOPE here; it may be one entry short (`DECISIONS-INDEX.md:114`,
-  DEC-95). `check-state.sh`'s other rows are FEAT-26/28/29; the count is a shared mutable global, so
+  DEC-95). `check-state.py`'s other rows are FEAT-26/28/29; the count is a shared mutable global, so
   scope by name never count. Ship-refresh is a legitimate SKIP: no `INDEX.md` map exists in this repo.

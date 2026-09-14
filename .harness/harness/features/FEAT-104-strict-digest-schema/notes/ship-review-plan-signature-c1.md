@@ -28,7 +28,7 @@ All relative to `.harness/harness/features/FEAT-104-strict-digest-schema/`.
 carve-out diff — DEC-174 requires a human there and no automated gate substitutes).
 
 `plan.yaml` — 12 decisions (D-01..D-12), 10 tasks (T-02 is `abandoned`, subsumed into T-01),
-a `lanes:` table resolving every literal path through `check-domain.sh --resolve`, and the
+a `lanes:` table resolving every literal path through `check-domain.py --resolve`, and the
 `panel:` record with all three readers and four findings.
 
 The substance: unknown keys on a new digest return get rejected instead of ignored; the same
@@ -63,7 +63,7 @@ which deletes PART 6's second commit, `base-revision-pre-T-04.txt` and T-08's tw
 takes the F4 ordering hazard with it. SC-06's substance survives intact.
 **Neither I nor pm may accept this risk** (DEC-176). Either the remedy enters your signature review
 as a change request, or you record `sign-approval --overrule PF-4bd91290deaf98062943319ff3ea5641:<reason>`.
-Signing with neither leaves `check-state.sh` INV-32 red the moment approval flips to `approved`.
+Signing with neither leaves `check-state.py` INV-32 red the moment approval flips to `approved`.
 
 **OD-2 — PF-d2cefa75a1931540efa60d3561f7df6b · med.** D-02's repaired bar admits three lead
 `PASSTHROUGH` rows (`failures`, `suite`, `kinds`) on observed-traffic grounds, while REQ-04 defines
@@ -117,7 +117,7 @@ test failure rather than the next reader's discovery.
 
 | ID | Nature | Item |
 |---|---|---|
-| B-1 | bug | `check-state.sh` INV-26's not-started skip requires `all(status == "ready")`, so one task legitimately recorded `abandoned` on an **unsigned** plan trips a false "the mirror never ran — run `gh-sync.py open`" violation. I measured this directly: with T-02 removed the skip fires; with it present it does not. The instruction is also wrong to follow — the mirror reference puts `gh-sync.py open` *after* signed approval. Remedy: treat `abandoned` as not-started in that skip |
+| B-1 | bug | `check-state.py` INV-26's not-started skip requires `all(status == "ready")`, so one task legitimately recorded `abandoned` on an **unsigned** plan trips a false "the mirror never ran — run `gh-sync.py open`" violation. I measured this directly: with T-02 removed the skip fires; with it present it does not. The instruction is also wrong to follow — the mirror reference puts `gh-sync.py open` *after* signed approval. Remedy: treat `abandoned` as not-started in that skip |
 | B-2 | chore | This worktree's `.harness/team-config.yaml` is behind the owner root by `4d81e460` (the pm `receipt-*.md` grant, #46/#71). It is why `check-plan-routes.py` exits 1 — one violation, the manifest header, no task. The hook reads the owner copy, so nothing executes wrongly; the gate is simply red at signature time and needs an owner |
 | B-3 | bug | 44 of 370 run digests carry no yaml fence and 7 fail `safe_load` — pre-DEC-172 artifacts no validator can read. Out of scope here by your own ruling (nothing is rewritten), but nothing else is tracking them |
 | B-4 | enhancement | Closing the `stop_hook_active` re-prompt passthrough (`validate-digest.py:1744`). D-07 deliberately leaves it open and compensates with a one-shot-sufficient message; DEC-208 records it as intentional. Closing it is its own ruling, not this feature's |

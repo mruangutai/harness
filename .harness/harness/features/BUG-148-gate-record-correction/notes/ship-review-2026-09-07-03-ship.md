@@ -40,7 +40,7 @@ that evidence; the diff between the two over the three product paths is empty.
 | SC-01 | inspection | **met** | `"Every gate was green"` absent from the `## DEC-174`..`## DEC-175` region; the four required facts each grepped separately, each present |
 | SC-02 | inspection | **met** | FEAT-05 `STATE.md` reads `Three gates green:`; all five required facts present separately, including the 2026-09-06 correction date |
 | SC-03 | inspection | **met** | one hunk, wholly inside DEC-174's evidence paragraph; heading, defect bullets and carve-out table appear only as context |
-| SC-04 | automated | **met** | `run-unit-tests.sh --kind integration` exit **0**, **0** `FAIL` lines, both named index tests `ok` |
+| SC-04 | automated | **met** | `run-unit-tests.py --kind integration` exit **0**, **0** `FAIL` lines, both named index tests `ok` |
 | SC-05 | inspection | **met** | outside this feature's own directory, exactly the three allowed paths changed |
 | SC-06 | uat | **met** | split attribution — see point 1 above |
 
@@ -93,7 +93,7 @@ anything not listed here dies silently.**
 | B-4 | bug | `harness-digest-dev` forbids `suite: n/a` with `VERDICT: PASS` (DEC-173), but a read-only reviewer dispatch runs no suite. An honest reader has no legal value for the field |
 | B-5 | bug | `handoff_done_when.py::_feature_dir` cannot resolve `brief-sc:` or `plan-task:` pointers for a feature whose directory lives only in a worktree — it strips the `.claude/worktrees/<name>/` prefix and rejoins to the main checkout root |
 | B-6 | bug | QA subagent wrapper return path: `yield` with null data exits 1 and re-emits. Orthogonal to this feature; worst unfixed consequence is a spurious re-dispatch, not record corruption. **The advisor recommends keeping this row** — but it is a row like any other and your strike outranks that |
-| B-7 | chore | Three INV-29 stale worktrees stand for features that already reached a terminal state — `BUG-440-digest-verdict-reconciliation`, `FEAT-55-issue-types-created-work`, `qa-bug440-c3-probe`. They are the only reason `check-state.sh` exits non-zero, and none concerns BUG-148 |
+| B-7 | chore | Three INV-29 stale worktrees stand for features that already reached a terminal state — `BUG-440-digest-verdict-reconciliation`, `FEAT-55-issue-types-created-work`, `qa-bug440-c3-probe`. They are the only reason `check-state.py` exits non-zero, and none concerns BUG-148 |
 
 Two plan-panel findings stay open **by design** and are not backlog rows:
 `PF-a2df57f48de3e81d49745cfd1adaa20b` (med, accepted-by-design, disclosed in the BRIEF's

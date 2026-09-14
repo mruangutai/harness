@@ -120,11 +120,11 @@ No new Stage-2 finding beyond the advisory in MF-2(c) above (explicitly not a `m
 - `python3 tests/integration/test-validate-digest.py`: exit 0, 0 `^FAIL ` lines, `ALL PASSED.`,
   24.91s (contract cited ~19s; timing variance only, same shape — no disagreement in substance).
 - `python3 tests/unit/test-config-shape-matrix.py`: 19/19, exit 0.
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` (env -u HARNESS_AGENT_TYPE, `rc`
+- `.agents/skills/harness/bin/run-unit-tests.py --kind integration` (env -u HARNESS_AGENT_TYPE, `rc`
   captured immediately): exit 0, 46 files, wall 62.35s, 0 `^FAIL ` lines (grepped the full captured
   output). Contract cited 60.9s — consistent.
 - `gen-decisions-index.py --stdout | diff -q - DECISIONS-INDEX.md`: silent, exit 0.
-- `check-state.sh`: exit 0 (many pre-existing repo-wide `note`-level items unrelated to BUG-1303, no
+- `check-state.py`: exit 0 (many pre-existing repo-wide `note`-level items unrelated to BUG-1303, no
   `INV`-numbered violation naming this feature).
 
 No disagreement with the orchestrator's pre-measured numbers.
@@ -135,7 +135,7 @@ DEC-217's predicates (`touches_runtime_code`, `fix_confined_to_tests_and_contrac
 undocumented in `harness-qa-gate/SKILL.md` and `harness-verification-rules/SKILL.md` (confirmed still
 zero matches for either name or `DEC-217` in both files at this pin). Severity **med** — reconciled at
 cycle 4 to a main-session-only remedy since both candidate files resolve to NOBODY under
-`check-domain.sh`. This is an operator briefing row, not a gating finding this cycle.
+`check-domain.py`. This is an operator briefing row, not a gating finding this cycle.
 
 ## DIGEST
 
@@ -155,7 +155,7 @@ DIGEST:
   human_commits_in_scope: []
   open_questions:
     - { id: Q1, question: "MF-2(c): _derive_plan_mode_code_grade's except Exception reframes any unrelated helper regression (demonstrated with a monkeypatched reviewer_digest raising TypeError) as a generic 'derivation failed' FAIL rather than an unhandled crash naming the real call site. The exception repr is preserved verbatim so nothing is silently lost, and the alternative (no try/except) has a broader blast radius, so this is advisory rather than a finding — flagging for the record only.", blocking: false }
-    - { id: Q-A, question: "DEC-217's predicates (touches_runtime_code, fix_confined_to_tests_and_contract_docs) remain undocumented in harness-qa-gate/SKILL.md and harness-verification-rules/SKILL.md. Reconciled at cycle 4 to med/advisory: both candidate remedy files resolve to NOBODY under check-domain.sh, so this is a main-session-only fix routed to the operator, not re-raised as must_fix here.", blocking: false }
+    - { id: Q-A, question: "DEC-217's predicates (touches_runtime_code, fix_confined_to_tests_and_contract_docs) remain undocumented in harness-qa-gate/SKILL.md and harness-verification-rules/SKILL.md. Reconciled at cycle 4 to med/advisory: both candidate remedy files resolve to NOBODY under check-domain.py, so this is a main-session-only fix routed to the operator, not re-raised as must_fix here.", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1303-plan-code-review-digest/.harness/harness/features/BUG-1303-plan-code-review-digest/notes/review-harness-code-reviewer-c5.md

@@ -10,7 +10,7 @@ Reviewed immutable range `0ec44965a961d19177de871c3bb1f02b701e646b..39602414e1cf
 
 ### F-04 — high, must-fix — literal SC-04 is false
 
-From the exact repository root, literal `bash .claude/skills/harness/bin/check-state.sh` exited **1**. The complete output contained exactly one tagged violation and **zero** case-sensitive `Done when` matches:
+From the exact repository root, literal `python3 .claude/skills/harness/bin/check-state.py` exited **1**. The complete output contained exactly one tagged violation and **zero** case-sensitive `Done when` matches:
 
 > `FEAT-51-claude-code-lifecycle-safety: status is 'done' but notes/handoff-validate.md is missing — the validate seam was crossed without a handoff; the successor is on the disk-only path (DEC-159).`
 
@@ -26,7 +26,7 @@ A repository contributor can place ESC/OSC bytes in an admitted handoff filename
 |---|---|---|
 | F-01 authority containment/fail-closed | **Closed.** | Finding and approval independently reject absolute, traversal and control-bearing paths; canonical resolution must remain under root; only regular UTF-8 files at most 1 MiB are read; resolver exceptions become problems and the write hook exits 2 (`handoff_done_when.py:57-101,143-174,224-253`; unit and real-hook cases cover both types). Directory, FIFO/special, oversize, unreadable/non-UTF-8, and symlink-escape outcomes fail closed by the same bounded reader. |
 | F-02 local-file disclosure through probe admission | **Closed.** | Admission precedes `run`/`ask`, canonicalizes to `.harness/harness/features/<FEAT>/notes/handoff-*.md`, rejects final symlinks, opens no-follow/nonblocking, checks descriptor type/size, bounds the read, then UTF-8 decodes. Six focused tests passed; every outside/traversal/symlink/directory/wrong-name/oversize rejection kept the call log empty, while the valid control made exactly two calls. Unreadable/non-UTF-8 inputs are caught before `ValidatedNote` construction. |
-| F-03 invalid/unreadable Edit mutates before refusal | **Closed.** | PreToolUse reconstructs handoff Edit candidates and validates before mutation. Invalid shape and non-UTF-8 prior bytes exit 2 with byte-identity assertions (`check-domain.sh:1819-1881`; `test-check-domain.py:4138-4184`). Other `OSError`/ambiguous reconstruction returns to the Edit tool's own match/read refusal; it does not create a writable candidate the hook silently approved. |
+| F-03 invalid/unreadable Edit mutates before refusal | **Closed.** | PreToolUse reconstructs handoff Edit candidates and validates before mutation. Invalid shape and non-UTF-8 prior bytes exit 2 with byte-identity assertions (`check-domain.py:1819-1881`; `test-check-domain.py:4138-4184`). Other `OSError`/ambiguous reconstruction returns to the Edit tool's own match/read refusal; it does not create a writable candidate the hook silently approved. |
 | F-04 literal SC-04 | **Survives, high, must-fix.** | Exact violation and owner above. This converges with the c3 QA and UI reviews. |
 | F-05 blank Scope | **Closed.** | Whitespace-only values are refused by unit, write-gate and state-gate cases. |
 | F-06 Scope order | **Closed.** | The product ruling in `notes/research-FEAT-54-validation-order-c1.md` applies REQ-02; all three layers require the non-empty Scope before every Authority. |

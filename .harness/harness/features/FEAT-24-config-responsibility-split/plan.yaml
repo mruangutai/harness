@@ -58,7 +58,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-no-distribution.py
       lane: main-session-direct
       reason: >-
-        check-domain.sh --resolve returned harness-backend-dev at ada8e99, so the path is granted.
+        check-domain.py --resolve returned harness-backend-dev at ada8e99, so the path is granted.
         It is carried in T-07 all the same, because its new case asserts the shape of the same
         fleet.yaml edit and splitting them would leave a red assertion between two tasks.
     - surface: .harness/harness.json
@@ -70,27 +70,27 @@ lanes:
     - surface: .harness/harness/docs/DECISIONS-INDEX.md
       lane: team
       agent: harness-documentor
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: >-
-        DEC-174 carve-out. check-domain.sh --resolve returned harness-backend-dev at ada8e99, but
+        DEC-174 carve-out. check-domain.py --resolve returned harness-backend-dev at ada8e99, but
         the script is one of the four registered gate scripts, and green gates cannot vouch for the
         code that produces them.
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       reason: >-
-        Carried with check-state.sh in one task. The fixture and the invariant change together and
+        Carried with check-state.py in one task. The fixture and the invariant change together and
         splitting them would put a red gate between two tasks.
     - surface: .harness/factory/fleet.yaml
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at ada8e99
+      reason: check-domain.py --resolve returned NOBODY at ada8e99
     - surface: .claude/skills/harness/templates/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returned NOBODY at ada8e99
+      reason: check-domain.py --resolve returned NOBODY at ada8e99
     - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
       lane: main-session-direct
       reason: >-
-        check-domain.sh --resolve returned NOBODY at ada8e99. Forced by DEC-189, which excludes
+        check-domain.py --resolve returned NOBODY at ada8e99. Forced by DEC-189, which excludes
         every manifest entry whose first segment is .harness or .claude when the target resolves in
         a product checkout, so no seat can ever hold this path. See D-04.
   resolved_but_not_written:
@@ -130,7 +130,7 @@ lanes:
     - surface: .claude/skills/harness/bin/layout_migration.py
       resolve: harness-backend-dev
       reason: Resolved and re-grepped at ada8e99 for every moved key. Zero matches. Not a reader.
-    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+    - surface: .claude/skills/harness/bin/branch-create-gate.py
       resolve: harness-backend-dev
       reason: >-
         Resolved and re-grepped at ada8e99. Zero matches for any moved key. The four pinned ids it
@@ -141,7 +141,7 @@ lanes:
       reason: >-
         Resolved because it contains the string Building at :336. That is a comment about plan
         status values, not a board read. Not a reader.
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       resolve: harness-backend-dev
       reason: >-
         Resolved because its UNIT_SCRIPTS and INTEGRATION_SCRIPTS arrays are an explicit
@@ -153,7 +153,7 @@ decisions:
     choice: >-
       Rulings 1 and 3 land as ONE change, split across T-02, T-04 and T-05 only because the routing
       differs. Ruling 1's consolidation lands in T-02 and T-04 as a single shared validator that
-      raises; T-05 carries the same cutover into check-state.sh, which is a DEC-174 carve-out and
+      raises; T-05 carries the same cutover into check-state.py, which is a DEC-174 carve-out and
       therefore cannot be dispatched. There is no task in which the board consolidates while a
       silent None survives, and no later or optional task removes it.
     because: >-
@@ -208,7 +208,7 @@ decisions:
       workspace_root/kaya-ai, a main-session-direct edit there, factory_land to push and open the
       pull request, and the operator merges it. No new grant is added to team-config.yaml.
     because: >-
-      check-domain.sh --resolve returned NOBODY for that path at ada8e99, and that is forced rather
+      check-domain.py --resolve returned NOBODY for that path at ada8e99, and that is forced rather
       than an omission: DEC-189 excludes every manifest entry whose first segment is .harness or
       .claude when the target resolves in a product checkout, so no seat can hold it. DEC-193 names
       workspace_root/<product> as one of exactly two locations code is written under harness
@@ -238,7 +238,7 @@ decisions:
     because: >-
       Every one of the five has at least one code reader at ada8e99: ready in
       factory_decompose.py:399, building and review in gh_board.derive_station:115,117, and
-      building, done and backlog in check-state.sh's INV-26 _EXPECT map. plan has none, because
+      building, done and backlog in check-state.py's INV-26 _EXPECT map. plan has none, because
       board-station.py takes the station as a plain CLI string resolved by name at the board
       (DEC-196), so declaring it would be a declaration no writer reads, which is DEC-196's own
       objection. Probed live on 2026-08-18: boards 2 and 3 both carry all six options, so five is
@@ -727,7 +727,7 @@ tasks:
       hasin "an unusable board config exits 2 with one line naming the key" "$bs_out" || { echo "T-04: the board-station loud-exit case did not pass or did not run"; exit 1; }
       hasin "an explicitly null board still exits 0 having written nothing" "$bs_out" || { echo "T-04: the board-station null case did not pass or did not run"; exit 1; }
       hasin "an unusable board config is a loud failure, not a skipped station write" "$sync_out" || { echo "T-04: the gh-sync loud-failure case did not pass or did not run"; exit 1; }
-      for nr in wayfind.py layout_migration.py check-plan-routes.py branch-create-gate.sh; do
+      for nr in wayfind.py layout_migration.py check-plan-routes.py branch-create-gate.py; do
         f=".claude/skills/harness/bin/$nr"
         grep -qE '^(def |#!/)' "$f" || { echo "T-04: positive control failed - the non-reader search is not reading $nr"; exit 1; }
         grep -nE 'board_for|load_board|station_field|stations|\["board"\]' "$f" && { echo "T-04: $nr now reads a moved board key - it was surveyed as a non-reader"; exit 1; }
@@ -737,19 +737,19 @@ tasks:
       This is the half of the cutover that removes the silent loader. It is one change with T-02
       and T-05; nothing here may be deferred to a follow-up.
 
-      THIS TASK AND T-05 LAND IN ONE COMMIT, AND check-state.sh IS EXPECTED TO EXIT 1 BETWEEN
+      THIS TASK AND T-05 LAND IN ONE COMMIT, AND check-state.py IS EXPECTED TO EXIT 1 BETWEEN
       THEM. Read this before running any gate. Item 2 below changes derive_station's arity.
-      check-state.sh calls it unwrapped at :1180, and that whole file is a single python3 heredoc
+      check-state.py calls it unwrapped at :1180, and that whole file is a single python3 heredoc
       running from :24 to :1343, so an uncaught TypeError kills the script: exit 1, effectively no
       stdout, and EVERY invariant unreported rather than just INV-26. The file's own comment at
       :636 records that exact failure shape. So after this task and before T-05, a run of
-      bin/check-state.sh will exit 1 with an empty report. That is expected, it is not a defect you
+      bin/check-state.py will exit 1 with an empty report. That is expected, it is not a defect you
       introduced, and it is not evidence that this task is wrong.
 
-      YOU MUST NOT EDIT check-state.sh TO CLEAR IT. That file is a DEC-174 carve-out - one of the
+      YOU MUST NOT EDIT check-state.py TO CLEAR IT. That file is a DEC-174 carve-out - one of the
       four registered gate scripts, which green gates cannot vouch for - and T-05 is the
       main-session-direct task that repairs the call site by hand. Return on THIS task's own verify
-      alone, which does not run check-state.sh. If you find yourself reaching for check-state.sh,
+      alone, which does not run check-state.py. If you find yourself reaching for check-state.py,
       stop and report instead. The other exposed call site, gh-sync.py:185, IS yours and is Part B
       item 6 below.
 
@@ -885,7 +885,7 @@ tasks:
 
       ONE THING THE VERIFY CHECKS THAT THIS TASK DOES NOT EDIT. It greps four files the reader
       survey classified as non-readers - wayfind.py, layout_migration.py, check-plan-routes.py and
-      branch-create-gate.sh - and fails if any of them has acquired a board read, each with a
+      branch-create-gate.py - and fails if any of them has acquired a board read, each with a
       positive control proving the search ran. All four match zero moved keys at ada8e99, so this
       clause is a regression guard, not evidence of migration; it is here because it is the only
       repeatable form the non-reader half of SC-10 can take. Do not add a board read to any of
@@ -901,13 +901,13 @@ tasks:
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >-
-      DEC-174 carve-out. check-state.sh is one of the four registered gate scripts, and this task
+      DEC-174 carve-out. check-state.py is one of the four registered gate scripts, and this task
       changes what it treats as a violation. Its fixture file is carried in the same task because
       the invariant and the fixture change together.
     depends_on: [T-04]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       out=$(python3 .claude/skills/harness/bin/test-check-state.py 2>&1); rc=$?
@@ -919,7 +919,7 @@ tasks:
       done
       printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-05: a case failed"; exit 1; }
       test "$rc" = 0 || { echo "T-05: the suite exited $rc"; exit 1; }
-      sed -n '/INV-26 BEGINS/,/INV-26 ENDS/p' .claude/skills/harness/bin/check-state.sh > /tmp/inv26.$$
+      sed -n '/INV-26 BEGINS/,/INV-26 ENDS/p' .claude/skills/harness/bin/check-state.py > /tmp/inv26.$$
       grep -qF "derive_station" /tmp/inv26.$$ || { echo "T-05: positive control failed - the slice does not contain the INV-26 block, so the greps below prove nothing"; rm -f /tmp/inv26.$$; exit 1; }
       grep -nE '"(Building|Review|Backlog|Ready|Plan)"' /tmp/inv26.$$ && { echo "T-05: a station name is still a literal inside INV-26"; rm -f /tmp/inv26.$$; exit 1; }
       grep -nE '_EXPECT[^=]*=[^#]*"(Building|Review|Backlog|Ready|Done|Plan)"' /tmp/inv26.$$ && { echo "T-05: _EXPECT still carries a quoted station value"; rm -f /tmp/inv26.$$; exit 1; }
@@ -929,12 +929,12 @@ tasks:
       This is the carve-out half of the cutover T-02 and T-04 carry. It lands with them, not after
       them: between T-04 and this task derive_station's signature has changed and INV-26 calls it
       with the old arity, so this task is what makes the gate correct again. T-04 AND THIS TASK
-      LAND IN ONE COMMIT: in the window between them check-state.sh raises TypeError at :1180 and,
+      LAND IN ONE COMMIT: in the window between them check-state.py raises TypeError at :1180 and,
       because the whole file is one python3 heredoc, exits 1 with every invariant unreported - so
       the two must not be committed apart, and T-04's executor is told not to reach for this
       carve-out file.
 
-      Edit the INV-26 block of .claude/skills/harness/bin/check-state.sh, which begins at the
+      Edit the INV-26 block of .claude/skills/harness/bin/check-state.py, which begins at the
       comment naming issue #277 and today spans roughly lines 1100 to 1200.
 
       WHAT MUST BE TRUE AFTERWARDS
@@ -1042,7 +1042,7 @@ tasks:
       echo "T-06 GREEN"
     intent: |
       Harness's own board record has no stations key at ada8e99, so gh_board.derive_station and
-      check-state.sh's INV-26 carry the column names as literals and a reader cannot tell what
+      check-state.py's INV-26 carry the column names as literals and a reader cannot tell what
       harness's columns are without knowing DEC-192 by heart. Declare them.
 
       Edit .harness/harness.json and nothing else. The EDIT itself could be made at any time -
@@ -1088,7 +1088,7 @@ tasks:
     traces: [REQ-01, REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returned NOBODY for .harness/factory/fleet.yaml at ada8e99
+    execution_reason: check-domain.py --resolve returned NOBODY for .harness/factory/fleet.yaml at ada8e99
     depends_on: [T-02, T-09]
     status: done
     files:
@@ -1181,7 +1181,7 @@ tasks:
          stop and report it - both are load-bearing absences and this feature must not disturb
          them.
 
-      RUN check-state.sh AND THE FULL SUITE BY HAND after this edit. fleet.yaml is read by the
+      RUN check-state.py AND THE FULL SUITE BY HAND after this edit. fleet.yaml is read by the
       write guard through resolve_fleet, so a malformed file closes every write outside the harness
       root (DEC-193 amendment 1).
 
@@ -1190,7 +1190,7 @@ tasks:
     traces: [REQ-02, REQ-09]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returned NOBODY for .claude/skills/harness/templates/harness.json at ada8e99
+    execution_reason: check-domain.py --resolve returned NOBODY for .claude/skills/harness/templates/harness.json at ada8e99
     depends_on: []
     status: done
     files:
@@ -1244,7 +1244,7 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve returned NOBODY for the target path at ada8e99, and DEC-189 makes
+      check-domain.py --resolve returned NOBODY for the target path at ada8e99, and DEC-189 makes
       that permanent - a manifest entry whose first segment is .harness is excluded when the target
       resolves in a product checkout, so no seat can ever hold this path. D-04 records the route.
     depends_on: []
@@ -1313,7 +1313,7 @@ tasks:
 
       THE ROUTE, AND IT IS THE WHOLE POINT OF THIS TASK BEING MAIN-SESSION-DIRECT. No agent seat
       can write a path under a product checkout's .harness/ - DEC-189 excludes it by target, so
-      check-domain.sh --resolve returns NOBODY and always will. The operator, in the main session,
+      check-domain.py --resolve returns NOBODY and always will. The operator, in the main session,
       performs these steps in order:
 
         1. Open an issue on mruangutai/kaya-ai describing this migration.

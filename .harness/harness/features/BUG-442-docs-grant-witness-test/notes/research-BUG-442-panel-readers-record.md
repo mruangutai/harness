@@ -36,7 +36,7 @@ the parsed panel of this plan reproduced lines 31-69 byte-for-byte before the ch
 
 - diff: 2 added lines at `panel.readers`, nothing else (reproduced verbatim in the DIGEST).
 - loader: `harness_yaml.load_plan` parses; readers `[should-not-exist/ran, scope/ran, goalcheck/ran]`.
-- `check-state.sh` **in the worktree**: zero INV-32 VIOLATION lines; the three BUG-442 INV-32
+- `check-state.py` **in the worktree**: zero INV-32 VIOLATION lines; the three BUG-442 INV-32
   notes are the unchanged finding dispositions. (Run from the main checkout it reports nothing
   about BUG-442 at all — this plan lives only in the worktree's `.harness`.)
 - `git status --porcelain`: ` M …/plan.yaml` unstaged; nothing staged, nothing committed.

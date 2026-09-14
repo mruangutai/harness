@@ -69,8 +69,8 @@ Candidates I would have applied here, recorded for a future `harness-curate` pas
 - `expertise-merge.py apply` on the repository file: `ADDED G-08`, 7×`PRESERVED`, exit 0.
 - `expertise-merge.py apply` on the craft file, `P-04` reuse: `CONFLICT`, exit 7 (live probe).
 - `expertise-merge.py apply` on the craft file, new id at cap: `CAP EXCEEDED`, exit 8 (live probe).
-- `check-expertise.sh` on the repository file: exit 0 (OK), post-change.
-- `check-expertise.sh` on the craft file: exit 0 (OK), unchanged pre- and post- (both write
+- `check-expertise.py` on the repository file: exit 0 (OK), post-change.
+- `check-expertise.py` on the craft file: exit 0 (OK), unchanged pre- and post- (both write
   attempts refused before commit).
 
 Nothing committed, nothing staged, no worktree removed, no project-wide suite run.

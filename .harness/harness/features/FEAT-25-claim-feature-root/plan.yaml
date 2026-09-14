@@ -486,4 +486,4 @@ tasks:
       5. Run test-check-state.py before returning. It imports layout_fixtures and builds its own
          sandbox from every STUB key's legacy form, so a new key participates automatically; the
          run proves the addition did not disturb it. If it reddens, report rather than edit
-         check-state.sh - that script is a DEC-174 carve-out and is not this task's to touch.
+         check-state.py - that script is a DEC-174 carve-out and is not this task's to touch.

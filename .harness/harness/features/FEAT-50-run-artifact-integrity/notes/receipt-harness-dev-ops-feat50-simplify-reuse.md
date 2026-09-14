@@ -13,7 +13,7 @@ plan's own reasoning confirmed against source. No `verify:` clause hand-rolls an
 ### REUSE-01 — T-03 re-derives a feature→worktree lookup `inflight_registry.py` already has
 
 **Element:** T-03, `plan.yaml:289-306` (intent body), i.e. the future body of
-`.claude/skills/harness/bin/check-domain.sh`.
+`.claude/skills/harness/bin/check-domain.py`.
 
 **Summary:** T-03's intent spells out, step by step, "call `linked_worktrees(root)`, select the
 checkout whose basename equals the feature id, then check the target resolves inside it" — but
@@ -38,8 +38,8 @@ T-03's intent — "resolve both sides through `harness_boundary.real` before com
 target resolves inside it" — is also already solved, by `harness_boundary.checkout_relative()`
 (`harness_boundary.py:102-135`), which answers "which checkout does THIS path actually stand in"
 directly (via `worktree_owner`, `harness_boundary.py:515`) rather than by enumerating every linked
-worktree and testing containment against the one that was picked. `check-domain.sh` already calls
-`checkout_relative` this way at `check-domain.sh:250-251` and `check-domain.sh:1009-1012` for the
+worktree and testing containment against the one that was picked. `check-domain.py` already calls
+`checkout_relative` this way at `check-domain.py:250-251` and `check-domain.py:1009-1012` for the
 worktree-stripped candidate and the display path.
 
 **Failure scenario:** T-03's intent does not pin the containment test's implementation (it only
@@ -90,7 +90,7 @@ REQ-04 (`plan.yaml:331`, D-05 `plan.yaml:109-119`) is a SEQUENTIAL clobber acros
 writer at a time, and the requirement is that the SECOND write be REFUSED, not silently combined
 with the first — a lead reusing a stale run dir should be told to take a fresh one, not have its
 new digest spliced onto the old one. D-05's own `because:` clause already states this reasoning.
-Building the refusal in `check-domain.sh`'s existing shape-rule family (D-06, beside
+Building the refusal in `check-domain.py`'s existing shape-rule family (D-06, beside
 `RE_STATE_YAML`) is the mechanism REQ-04 actually forces; routing it through `harness_merge`
 instead would have been the wrong-mechanism move this angle looks for, and the plan did not make
 it.
@@ -115,7 +115,7 @@ strings — not a case of the plan re-implementing something that exists, so not
 this angle.
 
 **Verify clauses:** scanned all seven tasks' `verify:` blocks (T-01 through T-07). None hand-rolls
-a check an existing script already performs — T-03's verify reuses `check-domain.sh --resolve`
+a check an existing script already performs — T-03's verify reuses `check-domain.py --resolve`
 itself; T-07's verify reuses `gen-decisions-index.py --stdout` via diff rather than re-deriving the
 index format. T-04's inline Python `verify` block does source-text regex assertions
 (`RE_RUN_DIGEST` present, in `SHAPE_PATTERNS`, absent from the sweep list) that no existing script
@@ -125,7 +125,7 @@ performs, so nothing to flag there.
 `.claude/skills/harness/bin/harness_boundary.py` (`worktree_owner`, `checkout_relative`,
 `linked_worktrees`, `real`, `root_above`, `resolve_root`, `classify` advertise block), full
 `.claude/skills/harness/bin/harness_merge.py`, `.claude/skills/harness/bin/inflight_registry.py`
-(top-level imports, `_matches`, `_visible`, `feature_root`), `.claude/skills/harness/bin/check-domain.sh`
+(top-level imports, `_matches`, `_visible`, `feature_root`), `.claude/skills/harness/bin/check-domain.py`
 (all `harness_boundary`/worktree-stripping call sites), `.harness/harness/docs/DECISIONS.md` DEC-199
 (full entry) plus DEC-154/DEC-180 headers, `.claude/skills/harness/bin/test-check-state.py`
 (`inv32-red` helpers), `.claude/skills/harness/bin/test-check-domain.py` (both inline mutant

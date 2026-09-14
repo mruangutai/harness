@@ -13,11 +13,11 @@ from the clean worktree at the pinned SHA.
 | OMP hook tests (20) | `python3 .claude/skills/harness/bin/test-omp-hooks.py` (bun test, absolute path — relative path fails, see note) | pass | 20 pass / 0 fail | 20 passed | ✅ |
 | inflight registry checks (88) | `python3 .agents/skills/harness/bin/test-inflight-registry.py` | pass | 88/88 | 88 passed | ✅ |
 | dispatch guard checks (42) | `python3 .agents/skills/harness/bin/test-dispatch-guard.py` | pass | 42/42 | 42 passed | ✅ |
-| Full unit suite | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | pass | exit 0, every registered script `ALL PASS`/`N/N cases passed`, no failures | "passed" | ✅ |
-| Full integration suite (superset incl. the two above, run via the standing harness) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | pass | exit 0, 27/27 registered scripts pass, incl. `88/88` and `42/42` inline | "passed" | ✅ — 3rd attempt; see note |
+| Full unit suite | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | pass | exit 0, every registered script `ALL PASS`/`N/N cases passed`, no failures | "passed" | ✅ |
+| Full integration suite (superset incl. the two above, run via the standing harness) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | pass | exit 0, 27/27 registered scripts pass, incl. `88/88` and `42/42` inline | "passed" | ✅ — 3rd attempt; see note |
 | Adapter drift check | `python3 .agents/skills/harness/bin/sync-agent-adapters.py --check` | pass | exit 0, silent (no drift) | "passed" | ✅ |
 | OMP port check | `python3 .claude/skills/harness/bin/check-omp-port.py` + `test-check-omp-port.py` | pass | `OMP port surface: ok`; 17/17 and 18/18 cases | "passed" | ✅ |
-| Canonical state checker | `.claude/skills/harness/bin/check-state.sh` | pass | exit 0, output is all `note`-level pre-existing housekeeping items (unrelated STATE.md/glossary findings, none touching this diff) | "passed" | ✅ |
+| Canonical state checker | `.claude/skills/harness/bin/check-state.py` | pass | exit 0, output is all `note`-level pre-existing housekeeping items (unrelated STATE.md/glossary findings, none touching this diff) | "passed" | ✅ |
 
 **Note on the integration suite:** standalone invocation is genuinely slow in this sandbox
 (`test-check-domain.py` alone ran 2–5 min); two earlier attempts were killed by an outer `timeout`
@@ -67,12 +67,12 @@ that seeds the mock registry with two features' claims under one dead PID, drive
 
 ### Hook error/rejection-path coverage — YES, and it is exercised, not just success paths
 `omp-hooks.test.ts:206-232` (`"blocks a whole batch and rolls back earlier claims"`) drives a
-`dispatch-guard.sh` **denial** (`task === "deny"` → `{blocked: true, reason: "denied"}`) inside a
+`dispatch-guard.py` **denial** (`task === "deny"` → `{blocked: true, reason: "denied"}`) inside a
 batch where an earlier task already claimed successfully, and asserts (a) the whole batch is blocked
 with the denial reason surfaced, and (b) the earlier successful claim is rolled back
 (`inflight_registry.py release --claim-id claim-1` is asserted present in the call log). This is a
 genuine rejection-path test with rollback verification, not merely "the deny path returns
-non-2xx." `dispatch-guard.sh`'s own suite covers refusal paths independently: `case_11` (missing
+non-2xx." `dispatch-guard.py`'s own suite covers refusal paths independently: `case_11` (missing
 `HARNESS-FEATURE` line refused, stderr names the field), `case_13` (malformed flow id refused), and
 `case_14` (duplicate pm claim for one feature refused) — all pre-existing-shape cases extended by
 this diff, all asserting a distinguishing string alongside the exit code (per the file's own T-08
@@ -82,15 +82,15 @@ convention at `test-dispatch-guard.py:9-11`, avoiding the crash-exits-nonzero-to
 
 Change type inferred: **`cross_module`** — the diff moves one behavior (feature-scoped, PID-aware
 claims) through five interacting layers in the same commit: the registry primitive
-(`inflight_registry.py`), the dispatch-time enforcer (`dispatch-guard.sh`), the OMP hook adapter
+(`inflight_registry.py`), the dispatch-time enforcer (`dispatch-guard.py`), the OMP hook adapter
 (`harness-hooks.ts`), the digest-safety gate (`validate-digest.py`), and seven further gate scripts
 touched to carry the new claim shape through. No single-module change_type fits; `cross_module` is
 the correct and only per-project entry matching this shape (`.harness/harness.json:22-27`).
 
 | Kind | Required by `cross_module`? | State | Evidence |
 |---|---|---|---|
-| `unit` | always | **satisfied** | `run-unit-tests.sh --kind unit` exit 0, all scripts pass (table above) |
-| `integration` | always | **satisfied** | `run-unit-tests.sh --kind integration` exit 0, 27/27 scripts pass, incl. the two PR-named counts reproduced inline (table above) |
+| `unit` | always | **satisfied** | `run-unit-tests.py --kind unit` exit 0, all scripts pass (table above) |
+| `integration` | always | **satisfied** | `run-unit-tests.py --kind integration` exit 0, 27/27 scripts pass, incl. the two PR-named counts reproduced inline (table above) |
 
 Both required kinds are `status: active` in `.harness/harness.json:104-123` with real, executed
 `cmd`s (not `null`) — neither is `misconfigured` or `not applicable`. No `when` clause applies to

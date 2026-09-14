@@ -2,7 +2,7 @@
 """feature_schema.py — the schema-checking module for a feature's execution
 state (feature.json), FEAT-14 D-03.
 
-Imported IN PROCESS by check-domain.sh (T-06) and by validate-feature-json.py
+Imported IN PROCESS by check-domain.py (T-06) and by validate-feature-json.py
 (this directory's thin CLI wrapper) — never spawned as a subprocess on the
 write-time path, so a schema violation can be attributed to the real file it
 came from rather than a temporary one, and the missing-dependency case is an
@@ -11,13 +11,13 @@ launch.
 
 `jsonschema` is imported at MODULE level, inside a try, with the result
 cached in JSONSCHEMA_AVAILABLE. Never import it inside a per-file function:
-check-domain.sh's post sweep calls the entry point once per candidate file,
+check-domain.py's post sweep calls the entry point once per candidate file,
 and a per-call import would pay the (measured) +42.6ms cost, and print the
 unavailability message, once per file instead of once per process.
 
 THE JSON PATH — problems_for_text(), and problems_for_file() on a `.json`
 path — DEPENDS ON STDLIB `json` AND `jsonschema` ONLY, NEVER PyYAML. This is
-deliberate, not an oversight: check-domain.sh's neighbouring `state.yaml`
+deliberate, not an oversight: check-domain.py's neighbouring `state.yaml`
 branch returns `[]` (a fail-open the operator ruled on, DEC-154) when PyYAML
 is absent, because state.yaml genuinely has no other way to be read. This
 module's JSON path has no PyYAML dependency to be absent in the first place,
@@ -73,7 +73,7 @@ def schema_path_for(for_path):
     """The schema that governs `for_path` — the one belonging to the CHECKOUT the file
     lives in, not the one beside this module.
 
-    ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.sh refused a
+    ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.py refused a
     legitimate write — `undeclared key 'source_issues' at /github` — because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's. The hook
     imports this module through CLAUDE_PROJECT_DIR, which resolves to the main checkout, so
@@ -86,7 +86,7 @@ def schema_path_for(for_path):
     key under it hits this.
 
     WALK UP FOR THE SCHEMA FILE ITSELF, never for the `.claude` directory — probing a
-    directory resolves $HOME in a global install, which is the defect dispatch-guard.sh's
+    directory resolves $HOME in a global install, which is the defect dispatch-guard.py's
     case_20 catches by name.
 
     Returns None when no checkout schema is found above `for_path`, and the caller then
@@ -146,7 +146,7 @@ def _pointer(path):
 # THE TENSION THIS RESOLVES. SC-07 requires BOTH that a NEW runs entry omitting
 # `agent` is refused at the write path, AND that every feature.json already on disk
 # still validates. A schema `required` satisfies the first and breaks the second:
-# check-domain.sh's post sweep reaches feature.json files a change never touched, so
+# check-domain.py's post sweep reaches feature.json files a change never touched, so
 # every Bash command in the repository would start exiting 2. No existing feature.json
 # is migrated (operator ruling, 2026-08-20), so absence must keep meaning "predates
 # the change" — which makes the rule POSITIONAL, not a schema requirement.
@@ -341,7 +341,7 @@ def recovery_command_for(feat_dir):
 def _runs_agent_problems(doc, display):
     """Every runs entry at or past its feature's exempt count must carry a non-empty
     string `agent`. Runs ALONGSIDE the jsonschema validation, never inside it, and its
-    problems join the same returned list so check-domain.sh reports them through the
+    problems join the same returned list so check-domain.py reports them through the
     path it already has."""
     if not isinstance(doc, dict):
         return []
@@ -475,7 +475,7 @@ def journal_lines(text):
 def problems_for_text(text, display, for_path=None):
     """Validate JSON document TEXT against the schema. Returns a list of
     stderr LINES, [] when clean. Never exits, never writes a temporary file
-    — this is the entry point check-domain.sh imports at T-06, and it is why
+    — this is the entry point check-domain.py imports at T-06, and it is why
     the module exists: a subprocess cannot be handed the real path, and its
     launch failure would escape as a non-blocking exit 1. `display` is the
     path to name IN THE MESSAGE, not a hint for how to parse `text` — this

@@ -1,7 +1,7 @@
 # Receipt — harness-pm, run amend2-product, step plan-amend2 — FEAT-10
 
 **Path note, first, because it is a known harness contradiction.** `harness-handoff` prescribes
-`notes/receipt-<agent>-<runid>.md`. `check-domain.sh --resolve` on that path returns
+`notes/receipt-<agent>-<runid>.md`. `check-domain.py --resolve` on that path returns
 `harness-orchestrator`, and `harness-pm`'s domain in `.harness/team-config.yaml` grants only
 `.harness/features/*/notes/research-*.md` and `.../notes/uat-*.md`. So this receipt is at
 `notes/research-FEAT-10-amend2-product.md`. Same recurrence the reviewer hit last run (#199).

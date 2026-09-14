@@ -5,10 +5,10 @@
 Grading commit `418a9eb6` on `feat/BUG-124-run-dir-squad-suffix`. `git -C <worktree> status
 --porcelain` shows only `.harness/harness/features/.../feature.json` dirty (orchestrator-owned
 run-artifact, whitelisted, not graded). `git diff --stat 80ce35d1..418a9eb6` confirms the eng diff
-is exactly the four declared files (`dispatch-guard.sh`, `harness_boundary.py`,
+is exactly the four declared files (`dispatch-guard.py`, `harness_boundary.py`,
 `tests/integration/test-dispatch-guard.py`, `tests/unit/test-harness-boundary.py`); the full
 feature diff `de97f4a2..418a9eb6` (merge-base to HEAD) additionally shows files from three
-unrelated PRs merged onto this branch before the BUG-124 plan phase started (`check-expertise.sh`,
+unrelated PRs merged onto this branch before the BUG-124 plan phase started (`check-expertise.py`,
 `factory_config.py`, `factory_decompose.py` and their tests) — these predate `8f9e8fe6` (BUG-124's
 own first commit) and are out of scope; predicate evaluation below is against the correct,
 unchanged 4-file eng diff, so cycles 1-3's predicate rulings are not disturbed.
@@ -19,7 +19,7 @@ been new, and none appeared.**
 ## 1. Matrix resolution (unchanged from cycles 1-3, re-confirmed against the same 4-file diff)
 
 `bugfix` (`.harness/harness.json:203-219`), each `when` leg evaluated against the diff:
-- `{unit, if: touches_runtime_code}` — **TRUE**: `dispatch-guard.sh`, `harness_boundary.py` are
+- `{unit, if: touches_runtime_code}` — **TRUE**: `dispatch-guard.py`, `harness_boundary.py` are
   executed on every governed dispatch. → obligates `unit`.
 - `{integration, if: fix_confined_to_tests_and_contract_docs}` — **FALSE**: production files are
   touched, not just tests/docs. This leg does not independently obligate `integration` — but
@@ -42,8 +42,8 @@ paths run the identical file.
 |---|---|---|---|
 | task-scoped, T-01 `verify:` | `python3 tests/unit/test-harness-boundary.py` | 0 | 60/60 `PASS`, `ALL PASS` |
 | task-scoped, T-02 `verify:` | `python3 tests/integration/test-dispatch-guard.py` | 0 | 69/69 `PASS` |
-| `unit` kind (`test_kinds.unit.cmd`) | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 0 `^FAIL ` lines, 1491 log lines |
-| `integration` kind (`test_kinds.integration.cmd`) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 0 `^FAIL ` lines, 3914 log lines |
+| `unit` kind (`test_kinds.unit.cmd`) | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 0 `^FAIL ` lines, 1491 log lines |
+| `integration` kind (`test_kinds.integration.cmd`) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 0 `^FAIL ` lines, 3914 log lines |
 
 Both configured per-kind commands were exercised directly this cycle (not merely the two
 task-scoped files), closing cycle 1's bounded-evidence caveat now that sibling worktrees are no
@@ -51,7 +51,7 @@ longer a stated constraint here.
 
 ## 3. Full sweep + discovery volume vs. baseline
 
-`env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh`, run by me, captured
+`env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/run-unit-tests.py`, run by me, captured
 exit status (not tail-read), `^FAIL ` counted by grep, not inferred from the final line:
 
 - **`RUNNER_EXIT=0`**

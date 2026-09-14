@@ -23,7 +23,7 @@ T-01 and T-02 first, T-03 after both, then T-04 and T-05).
 
 - Do not widen the moved reader row's migrated pattern to `[^,]+`; T-03 binds a paren-free local instead — `plan.yaml` T-04 step 1 — verified-at eb9d044e
 - Do not re-open D-01's shape to chase the operator's original wording without the operator's answer to Q1 — `notes/research-BUG-1290-factory-claim-repo-root-goalcheck-plan-c1.md` §1 — verified-at eb9d044e
-- Do not migrate `post-merge-sweep.sh:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231` onto the new resolver — `.harness/notes/grilling-factory-claim-repo-root-2026-09-05.md` `## Out of scope` — verified-at eb9d044e
+- Do not migrate `post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231` onto the new resolver — `.harness/notes/grilling-factory-claim-repo-root-2026-09-05.md` `## Out of scope` — verified-at eb9d044e
 
 ## Working set
 

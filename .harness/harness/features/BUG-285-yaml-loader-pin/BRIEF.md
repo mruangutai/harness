@@ -306,7 +306,7 @@ differently either. Three consequences to weigh at signature:
   (`git show <review_sha>:<note path>`). The COPY is mandatory: `.agents/skills` is a symlink to
   `.claude/skills`, so an in-place probe edit is a live-tree edit of production code.
   verify: inspection
-- SC-10: `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` exits
+- SC-10: `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` exits
   0. The unit suite is graded on **EXIT STATUS ONLY**, and that status is captured into a shell
   variable on the command's own line rather than read from `$?` after a pipe — `$?` after a pipe
   reports the pipe's last stage, which has already produced one wrong measurement on this feature.
@@ -330,7 +330,7 @@ differently either. Three consequences to weigh at signature:
   green under the old YAML reader and under the amended handler, and red against any handler that
   omits the decode failure. **It lands in `tests/unit/test-factory-decompose-loader.py`, the file
   T-03 creates, so T-03's existing `verify:` already runs it** — both of its commands (the unit
-  file directly, and `run-unit-tests.sh --kind unit`) execute it with no command change.
+  file directly, and `run-unit-tests.py --kind unit`) execute it with no command change.
   verify: automated        evidence: unit
 - SC-12: In `tests/unit/test-feature-json-readers.py`, the `non-UTF-8 bytes` input
   (`bytes([0xff, 0xfe]) + b"trash"`, written in binary mode) run through `load_recorded` yields the
@@ -422,7 +422,7 @@ differently either. Three consequences to weigh at signature:
   carries two named checks — an empty directory, and a present mapping whose `factory` key is
   absent — each asserting that `load_factory` RETURNS a record EQUAL to `_empty_factory()`, with no
   `SystemExit` raised, and both are executed by that file's own run and by
-  `run-unit-tests.sh --kind unit`. Both are green before and after the change by design; their job
+  `run-unit-tests.py --kind unit`. Both are green before and after the change by design; their job
   is to redden if a later edit moves a refusal above the `os.path.exists` early return, or collapses
   the `"factory" not in doc` membership test into the refusal beside it. A red here is a broken
   ruling, not a broken test. The source-level half — that the early return and the membership test
@@ -441,7 +441,7 @@ differently either. Three consequences to weigh at signature:
   **Risk** above is a one-off measurement recorded in `notes/research-BUG-285-amend-c0.md`, not a
   standing gate, so a `feature.json` introduced later that the two loaders disagree about would not
   be caught by anything in the suite.
-- SC-14's parity check is a STANDING gate — `run-unit-tests.sh --kind unit` runs it on every pass —
+- SC-14's parity check is a STANDING gate — `run-unit-tests.py --kind unit` runs it on every pass —
   but its **able-to-fail** evidence is not: it is the pre-change disagreement measured once at
   `6cb113f4`, seven of the twelve inputs (six on the verdict, one on the value read), recorded in
   `notes/research-BUG-285-parity-survey.md` (the 13-class table) and

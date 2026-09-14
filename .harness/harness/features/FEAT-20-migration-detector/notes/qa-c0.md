@@ -5,14 +5,14 @@ greps fired, and every automated SC I could bind independently reproduced.
 
 ## Phase 1 (BRIEF/plan only, no source read yet)
 
-Before opening `layout_migration.py` or `check-state.sh`, expected coverage derived from BRIEF's 15
+Before opening `layout_migration.py` or `check-state.py`, expected coverage derived from BRIEF's 15
 SCs and D-01..D-04:
 - A unit suite over the detector module covering: real-repo positive control, per-surface MIXED
   (evidence-split and reader-disagreement flavors, both surfaces), CLEAN (fully migrated, and both
   sanctioned intermediate states), CANNOT_VERIFY (neither-form, unreadable, no-evidence, empty-table),
   BOTH-forms MIXED, MIXED-vs-CANNOT_VERIFY precedence, NOT APPLICABLE (case 14) paired with a marker
   case that flips it to CLEAN (case 15) so 14 isn't proving "empty scan is quiet" by accident.
-- An integration suite proving `check-state.sh` surfaces INV-27 on a reddening/cannot-judge fixture,
+- An integration suite proving `check-state.py` surfaces INV-27 on a reddening/cannot-judge fixture,
   is silent on an applicable-clean fixture AND on a no-marker fixture, and handles an import failure.
 - Every reader-path line carries a distinguishing tag (finish vs. revert) — asserted, not just present.
 - No test for the CI wiring itself (`verify: inspection` — SC-09), no test for SC-10/SC-11 (also
@@ -33,8 +33,8 @@ From `harness.json` `test_matrix`: `logic.always=[unit]`, `cross_module.always=[
 
 | kind | state | cmd | named tests |
 |---|---|---|---|
-| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | `test-layout-migration.py` — 18 cases, exit 0 |
-| integration | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` | `test-check-state.py` — cases (x.1)-(x.5), exit 0 |
+| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | `test-layout-migration.py` — 18 cases, exit 0 |
+| integration | satisfied | `.claude/skills/harness/bin/run-unit-tests.py --kind integration` | `test-check-state.py` — cases (x.1)-(x.5), exit 0 |
 | functional | excluded (`DEC-187`) | null | — |
 | component | unresolved | null | not required by this matrix |
 | ui | unresolved | null | not required by this matrix |
@@ -57,8 +57,8 @@ assertion logic from `plan.yaml`'s `verify:` blocks was run verbatim against tho
 ## SC-10 — closed 8-file set, diffed myself
 
 `git diff --name-only 88b1182..11cb644` (20 paths) against `plan.yaml`'s `lanes:` 8-row closed set
-(`layout_migration.py`, `test-layout-migration.py`, `check-state.sh`, `test-check-state.py`,
-`run-unit-tests.sh`, `.github/workflows/tests.yml`, `docs/harness/DECISIONS.md`,
+(`layout_migration.py`, `test-layout-migration.py`, `check-state.py`, `test-check-state.py`,
+`run-unit-tests.py`, `.github/workflows/tests.yml`, `docs/harness/DECISIONS.md`,
 `docs/harness/DECISIONS-INDEX.md`): **all 8 present, all 8 in the diff, no path outside that set is
 a code/production/decision file.** `git diff --diff-filter=R --name-status 88b1182..11cb644` is
 **empty** — no renames.
@@ -166,8 +166,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 18 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 5 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 18 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 5 }
     - { kind: functional, state: excluded, cmd: null, named_tests: 0 }
     - { kind: component, state: not_required, cmd: null, named_tests: 0 }
     - { kind: ui, state: not_required, cmd: null, named_tests: 0 }

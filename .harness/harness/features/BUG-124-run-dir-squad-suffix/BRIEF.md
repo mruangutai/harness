@@ -7,7 +7,7 @@ nothing at dispatch time notices. Every lead's write grant keys on a **trailing*
 only three grants in `.harness/team-config.yaml` containing `/runs/` are
 `.harness/*/features/*/runs/*-product/**` (line 306), `*-eng` (line 315) and `*-validator` (line 324)
 — so an inverted slug resolves to a set that excludes the callee. Measured in this worktree at
-6d969ed3: `check-domain.sh --resolve .../runs/t01-eng/digest.md` answers `harness-eng-lead` and
+6d969ed3: `check-domain.py --resolve .../runs/t01-eng/digest.md` answers `harness-eng-lead` and
 `harness-orchestrator`, while `.../runs/eng-t01/digest.md` answers `harness-orchestrator` alone.
 Both exit 0, because `--resolve` answers on stdout and never through the exit code. The convention is
 stated in prose only (`.claude/skills/harness/SKILL.md:272-274`); no mechanical enforcement exists.
@@ -44,11 +44,11 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
 ## Constraints
 
 - **DEC-100 SUPPLIES the mechanism**: only `exit 2` blocks a dispatch. Exactly one branch of
-  `dispatch-guard.sh` fails closed today (a missing `HARNESS-FEATURE` first line); every other branch
+  `dispatch-guard.py` fails closed today (a missing `HARNESS-FEATURE` first line); every other branch
   passes through on its own failure, and this check must join the second group.
 - **DEC-171 BINDS the reader**: PyYAML is required and hand-rolled YAML regex readers of
   `.harness/team-config.yaml` are struck. The vocabulary must come from a real parse.
-- **`dispatch-guard.sh` is the only site that can see a dispatch prompt** — `tool_input.prompt` exists
+- **`dispatch-guard.py` is the only site that can see a dispatch prompt** — `tool_input.prompt` exists
   only on the dispatch payload (`FEAT-31/notes/probe-hook-payload-identity.md`). `check-plan-routes.py`
   sees plan.yaml `files:` values and never a dispatch-named path, so it cannot host this rule.
 - The guard's python body runs under `python3 -I` and is one single-quoted shell argument: stdlib
@@ -57,7 +57,7 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
   6d969ed3 (`python3 tests/integration/test-dispatch-guard.py`, exit 0, "48 of 48 cases passed"). New
   cases are APPENDED; editing one is deleting the proof.
 - `.harness/team-config.yaml` is READ by this fix and must not be edited by it.
-- `.agents/skills` is a symlink to `.claude/skills`: there is one `dispatch-guard.sh`, not two.
+- `.agents/skills` is a symlink to `.claude/skills`: there is one `dispatch-guard.py`, not two.
 
 ## Success Criteria
 
@@ -82,7 +82,7 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
   exit 2 and stderr states why the check was skipped.
   verify: automated        evidence: integration
 - SC-06: The gate is shown capable of red: the new integration cases, run against the pre-change
-  `dispatch-guard.sh` from `git show 6d969ed3:.claude/skills/harness/bin/dispatch-guard.sh` via
+  `dispatch-guard.py` from `git show 6d969ed3:.claude/skills/harness/bin/dispatch-guard.py` via
   `DISPATCH_GUARD_BIN`, report the refusal cases as FAIL. Evidence is the recorded command and output
   in the builder's receipt, read at the review sha with `git show <review_sha>:<receipt path>`.
   verify: inspection
@@ -105,7 +105,7 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
 ## Verification gaps
 
 - None new. Both kinds this brief rests on have runners: `unit` and `integration` are
-  `.agents/skills/harness/bin/run-unit-tests.sh --kind <kind>` in `.harness/harness.json`, and both
+  `.agents/skills/harness/bin/run-unit-tests.py --kind <kind>` in `.harness/harness.json`, and both
   select real files on this surface (`tests/unit/**`, `tests/integration/**`).
 
 ## Approval

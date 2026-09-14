@@ -29,14 +29,14 @@ fail-open boundary named in the dispatch):
   injection surface.
 
 Scoped OUT, with reason:
-- `.claude/skills/harness/bin/check-state.sh` (INV-17 handoff-shape check) — reads/greps files
+- `.claude/skills/harness/bin/check-state.py` (INV-17 handoff-shape check) — reads/greps files
   under `.harness/*/features/*/notes/handoff-*.md`, which are the harness's own agent-authored
   artifacts, not externally-untrusted input; no shell interpolation of file content, only
   `os.path.basename`/`read()` in an embedded Python heredoc. No path or injection surface.
 - `.claude/skills/harness/bin/feature_schema.py`, `feature-schema.json` — the new `agent` field is
   validated as a non-empty string and used only in an f-string error message, never as a path
   component or shell argument. No surface.
-- `.claude/skills/harness/bin/run-unit-tests.sh` — CI/dev script; the new kind-cross-check heredoc
+- `.claude/skills/harness/bin/run-unit-tests.py` — CI/dev script; the new kind-cross-check heredoc
   reads `.harness/harness.json` via `HARNESS_JSON` env var passed to Python `os.environ`, not
   shell-interpolated into source; no untrusted input (repo config only).
 - All `test-*.py` additions — verified each isolates itself with `tempfile`/fixture dirs; grepped

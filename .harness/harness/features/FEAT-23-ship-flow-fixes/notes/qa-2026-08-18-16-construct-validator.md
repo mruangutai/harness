@@ -129,7 +129,7 @@ which cannot see a per-section regression):
 
 All four sections are exactly 1/1 as expected. No regression.
 
-## check-domain.sh Edit denial in the worktree
+## check-domain.py Edit denial in the worktree
 
 Recurred as expected — `Edit` on the worktree copy of `board-station.py` was denied (domain
 guard scopes qa to notes/observations paths only, worktree or not). Wrote the mutation via

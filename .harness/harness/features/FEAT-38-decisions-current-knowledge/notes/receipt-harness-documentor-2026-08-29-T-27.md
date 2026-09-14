@@ -26,25 +26,25 @@ whole diff below is mine.
 ## Verbatim diff (`git diff -- <D> | grep -E '^[-+]' | grep -v '^[-+][-+][-+]'`)
 
 ```
--<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh :: CRAFT_LINE_BUDGET = 150 -->
+-<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.py :: CRAFT_LINE_BUDGET = 150 -->
 -
 -<!-- claim: grep -F "\"max_total_cycles\": 10" .harness/harness.json :: "max_total_cycles": 10 -->
 -
--<!-- claim: grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.sh :: budget is 80 (DEC-181) -->
+-<!-- claim: grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.py :: budget is 80 (DEC-181) -->
 -<!-- claim: grep -c -m 81 -e "" CLAUDE.md :: 12 -->
 -
--<!-- claim: grep -F "budget is 300" .claude/skills/harness/bin/check-domain.sh :: budget is 300 -->
+-<!-- claim: grep -F "budget is 300" .claude/skills/harness/bin/check-domain.py :: budget is 300 -->
 -
 -<!-- claim: grep -F "name: Plan-route gate" .github/workflows/tests.yml :: name: Plan-route gate -->
 -
 -<!-- claim: grep -F "violation(s) across" .claude/skills/harness/bin/check-plan-routes.py :: violation(s) across {processed} plan(s) -->
 -
--<!-- claim: grep -F "run-unit-tests.sh" .github/CODEOWNERS :: run-unit-tests.sh  @mruangutai -->
+-<!-- claim: grep -F "run-unit-tests.py" .github/CODEOWNERS :: run-unit-tests.py  @mruangutai -->
 -
 -<!-- claim: grep -F "WORKTREES_SEGMENT = " .claude/skills/harness/bin/harness_boundary.py :: WORKTREES_SEGMENT = ".claude/worktrees" -->
 -
 -<!-- claim: grep -F "ALLOWED_FIRST_TOKENS = " .claude/skills/harness/bin/check-decision-claims.py :: ALLOWED_FIRST_TOKENS = {"git", "grep"} -->
--<!-- claim: grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.sh :: test-check-decision-claims.py -->
+-<!-- claim: grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.py :: test-check-decision-claims.py -->
 -
 ```
 

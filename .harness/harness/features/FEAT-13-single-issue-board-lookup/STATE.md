@@ -19,7 +19,7 @@ have pulled that tree out from under a live flow. So FEAT-13 runs in a git workt
 on `feat/FEAT-13-single-issue-board-lookup` at 6dfbf7c. That path is the DEC-143 shape: the
 domain hook strips the `.claude/worktrees/<one-segment>/` prefix and matches the same globs, so
 grants are unchanged. A worktree anywhere else — `/tmp`, a scratchpad — escapes the project root
-and `check-domain.sh` returns WITHOUT ENFORCING, which is a silent fail-open, not a block.
+and `check-domain.py` returns WITHOUT ENFORCING, which is a silent fail-open, not a block.
 
 EVERY COMMAND AND EVERY EDIT RUNS FROM THE WORKTREE, by absolute path. An edit to the main
 checkout's copy of a `factory_*.py` passes the domain hook (backend-dev owns that path in both

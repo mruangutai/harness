@@ -35,7 +35,7 @@ against.
 
 **Cause 2 — BUG-201's own two rows are the harness defect filed below as B-1**, not an omission.
 `notes/handoff-plan.md` and `notes/handoff-build.md` cannot be written at all for a feature that
-lives only in a worktree: `check-domain.sh:1141-1149` takes the checkout-relative path from
+lives only in a worktree: `check-domain.py:1141-1149` takes the checkout-relative path from
 `harness_boundary.checkout_relative` and discards the worktree root, then passes that rel with the
 *main* root into `handoff_done_when.problems` (`:1748`), so every `Authority:` pointer is looked for
 in a checkout where the unmerged feature directory does not exist. Measured again today: the guard
@@ -131,7 +131,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed dies silen
 
 | ID | Nature | What |
 |---|---|---|
-| B-1 | bug | `check-domain.sh` resolves a handoff note's checkout-relative path against the **main** checkout root, so no `notes/handoff-*.md` can be written for a feature that lives only in a worktree — every Authority pointer is unresolvable. Measured three times, most recently today with the live refusal. Fix: carry the worktree root from `harness_boundary.checkout_relative` and pass it as the root for the handoff check. **This is half of why PR #1476 cannot merge.** |
+| B-1 | bug | `check-domain.py` resolves a handoff note's checkout-relative path against the **main** checkout root, so no `notes/handoff-*.md` can be written for a feature that lives only in a worktree — every Authority pointer is unresolvable. Measured three times, most recently today with the live refusal. Fix: carry the worktree root from `harness_boundary.checkout_relative` and pass it as the root for the handoff check. **This is half of why PR #1476 cannot merge.** |
 | B-2 | chore | `plan-merge.py` has no write route to the top-level `lanes` key (`AMENDABLE_KEYS == ("tasks","decisions")`), so `factory_claim.py` and `gh-sync.py` could not be listed in `lanes.rows` even though T-06 edits them. Advisor-settled for this plan; the gap is still there. |
 | B-3 | bug | `code-grade.py`'s pre-image lookup appears line-based rather than by qualname or body: `tests/unit/test-factory-claim.py:432 run_main` was graded as changed although its body is byte-identical at base and only its line offset moved. Raised independently at c1 and c2. |
 | B-4 | enhancement | The "one actionable line" diagnostic contract is not guaranteed: `str(exc)` can carry newlines for a generic parse error, and a crafted `depends_on` entry can carry control or ANSI bytes into the same stderr line. Advisory remedy: `repr()`-quote the entry in the join. Non-gating — same-trust actor, no sink parses it. |

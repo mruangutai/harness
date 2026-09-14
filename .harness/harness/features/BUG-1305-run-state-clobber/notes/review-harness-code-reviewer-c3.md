@@ -1,6 +1,6 @@
 # BUG-1305 · cycle-14 delta code review (C3) — review_sha 5ed929bd
 
-Scope: `1b11bc18..5ed929bd` only (`.claude/skills/harness/bin/check-domain.sh`,
+Scope: `1b11bc18..5ed929bd` only (`.claude/skills/harness/bin/check-domain.py`,
 `tests/integration/test-check-domain.py`, plus STATE.md/feature.json bookkeeping). All
 source read via `git show 5ed929bd:<path>`; confirmed the worktree copy is byte-identical
 to the pin for both the guard and the test file (no intervening commit touches either —
@@ -10,7 +10,7 @@ to the pin for both the guard and the test file (no intervening commit touches e
 
 ## Stage 1 — spec compliance
 
-**(a) All three patterns covered, no fourth swept in.** `check-domain.sh:2045-2048` gates
+**(a) All three patterns covered, no fourth swept in.** `check-domain.py:2045-2048` gates
 entry into the new branch on `RE_RUN_DIGEST.match OR RE_STATE_YAML.match OR
 RE_HANDOFF.match` — exactly the three named classes, no more. `RE_STATE_MD`,
 `RE_FEATURE_JSON`, `RE_CLAUDE_MD` and `RE_PLAN_YAML` are absent from this condition, so an
@@ -27,11 +27,11 @@ also exits 2 (line 2056). The prior fail-open (`sys.exit(0)` on `None`) is fully
 
 **(c) Fail-closed-on-`None`, not deny-by-path** — confirmed, and the two shapes sit
 side by side in the same `if not _post:` chain for direct contrast:
-- `check-domain.sh:2042-2044` — `RE_RUN_IDENTITY` is **deny-by-path**: any `Edit` whose
+- `check-domain.py:2042-2044` — `RE_RUN_IDENTITY` is **deny-by-path**: any `Edit` whose
   target matches is unconditionally forced to `targets = [(..., "", ...)]` regardless of
   whether reconstruction would have succeeded (comment at 2039-2041: "denied by path
   alone").
-- `check-domain.sh:2045-2073` — the three new classes are **fail-closed-on-`None`**:
+- `check-domain.py:2045-2073` — the three new classes are **fail-closed-on-`None`**:
   reconstruction is attempted; only `_content is None`/`_UNREADABLE_EDIT` refuses (exit 2,
   lines 2056/2072); a successful unique-match reconstruction falls through to
   `targets = [(_norm(target), _content, ...)]` at line 2073 and continues into the same
@@ -56,7 +56,7 @@ retried Edit). No `inside-delta:message-wording` finding.
 **The fail-closed-`None` branch is proven in-suite for `RE_STATE_YAML` only; the same
 branch for `RE_RUN_DIGEST` and `RE_HANDOFF` is proven by source-reading alone.**
 
-The branch is a single shared `elif` (check-domain.sh:2045-2073) — one `_edit_reconstructed_content`
+The branch is a single shared `elif` (check-domain.py:2045-2073) — one `_edit_reconstructed_content`
 call and one `if _content is None: ... sys.exit(2)` for all three classes — so at the
 source level the three are symmetric and correctly implemented (Stage-1 (a)/(b)/(c)
 above hold). But every new/updated red/green case in this diff targets `state.yaml`
@@ -96,7 +96,7 @@ string to specifically pin the generic-message branch). Add alongside
 ## Stage 2 — quality of the delta lines
 
 No correctness, duplication, or dead-branch defects beyond Finding 1. One **info**, not
-gating: `check-domain.sh:2058-2071` duplicates the `print(...)` call shape across the
+gating: `check-domain.py:2058-2071` duplicates the `print(...)` call shape across the
 `if RE_STATE_YAML.match(...)`/`else` split, varying only the message body — could be one
 `print` keyed on a conditional message string. Not worth a cycle on its own.
 
@@ -105,7 +105,7 @@ gating: `check-domain.sh:2058-2071` duplicates the `print(...)` call shape acros
 **Delta-scoped grading** (`base 1b11bc18`, `head 5ed929bd` — the cycle-13 diff itself):
 re-ran `code-grade.py` myself → **PASSING 5**, per-function grades **5, 5, 5, 4, 5**
 (driver `abc` for the one grade-4 record, `_bug1305_omp_edit_cases`). This **agrees
-exactly** with the measured result cited in the dispatch. `check-domain.sh` contributes
+exactly** with the measured result cited in the dispatch. `check-domain.py` contributes
 no graded records — it is a `.sh` file (shell scripts are ungraded per policy) even
 though its body is embedded Python.
 

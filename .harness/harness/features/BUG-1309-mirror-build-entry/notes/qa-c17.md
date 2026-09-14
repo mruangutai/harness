@@ -16,8 +16,8 @@ surface touched). Floor = `{unit, integration}`, both required unconditionally.
 
 | kind | state | cmd | result |
 |---|---|---|---|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0, 33 files, all PASS |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0, 50 files, all PASS (`test-merge-gate.py` independently confirmed via `run_pool.py -- tests/integration/test-merge-gate.py`: 25 `ok` lines + `ALL PASSED`) |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0, 33 files, all PASS |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0, 50 files, all PASS (`test-merge-gate.py` independently confirmed via `run_pool.py -- tests/integration/test-merge-gate.py`: 25 `ok` lines + `ALL PASSED`) |
 
 `matrix_ok: true`.
 
@@ -52,7 +52,7 @@ All four clear the bar-4 floor D-17/T-05 grade clause names.
 Built a scratch bin (`/tmp/oldbin`) = current `.claude/skills/harness/bin/` with `merge-gate.py`
 overwritten by `git show e374c9a2:...merge-gate.py` (verified diff shows the swap landed only on
 `git_merge` and its removed helpers). Harness at `/tmp/discriminate_sc11.py` reuses the pinned
-test file's `fixture()`/`gate()` shape, pointed at each `merge-gate.sh` in turn:
+test file's `fixture()`/`gate()` shape, pointed at each `merge-gate.py` in turn:
 
 | case | exists (test-merge-gate.py) | passes at pin | reddens at e374c9a2 |
 |---|---|---|---|
@@ -65,7 +65,7 @@ All three DISCRIMINATING. None is reported non-discriminating.
 ## Premise check — the three measured silent-allow forms, at the pin
 
 Fixture: `FEAT-9001-fixture-non-era`, `build_entry: recovery-required`, `github.sync: true`,
-`github.repo: "acme/widgets"`. Drove `merge-gate.sh` (the pinned copy) directly, exact commands
+`github.repo: "acme/widgets"`. Drove `merge-gate.py` (the pinned copy) directly, exact commands
 and output:
 
 - `git merge -F /tmp/msg.txt feature/test` → `decision=deny`, reason names the fixture feature and

@@ -99,7 +99,7 @@ ok    BUG-240 no bypass: the parser rejects --force
 ```
 `rc=0` (`$?` captured immediately after the run).
 
-### `bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit`
+### `python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Captured exit status into a shell variable immediately, per instructions — not read from the
 runner's own trailing tally line. `rc=0`. `grep -c '^FAIL '` over the full captured output: `0`
@@ -115,7 +115,7 @@ Sub-suite trailing tallies observed (not the verdict, cross-checked against the 
 - `pre_edit_rc`: 1
 - `pre_edit_fail_count`: 4
 - `unit_file_rc` (post-edit `python3 tests/unit/test-factory-workspace.py`): 0
-- `runner_exit_status` (post-edit `run-unit-tests.sh --kind unit`): 0
+- `runner_exit_status` (post-edit `run-unit-tests.py --kind unit`): 0
 - `runner_fail_line_count`: 0
 
 ## Scope

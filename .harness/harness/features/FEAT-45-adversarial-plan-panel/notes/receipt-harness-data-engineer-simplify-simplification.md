@@ -11,7 +11,7 @@ them a comment nobody executes; the "why content hash not sequential id" narrati
 independently re-derived in two files instead of pointed at; and "who may write
 `approval.rulings`" is asserted near-identically in four files with no shared anchor.
 No code-surface (redundant conjunct / narrating comment / over-complex pipeline)
-findings — the new Python (`panel_findings.py`, `check-state.sh`'s INV-32 block,
+findings — the new Python (`panel_findings.py`, `check-state.py`'s INV-32 block,
 `test-plan-panel.py`) is lean and each conjunct/branch tests something distinct. All
 three findings are flag-only: every touched file they name resolves to NOBODY on the
 grant map for this run.
@@ -19,7 +19,7 @@ grant map for this run.
 ## What I examined
 
 - `panel_findings.py` in full (61 lines) — hashing, CLI, docstring.
-- `check-state.sh`'s INV-32 block in full (lines 122–186 of the diff) — every
+- `check-state.py`'s INV-32 block in full (lines 122–186 of the diff) — every
   conjunct in every `if`, the readers/rulings/findings loops.
 - `plan-panel.yaml` in full (62 lines) — both reader prompts, `on_fail` blocks, the
   trailing comment block.
@@ -32,7 +32,7 @@ grant map for this run.
   `T-NN added`) — the one repo-adjacent hit (`test-harness-yaml-corpus.py`'s
   `TEAMS_EXPECTED` comment) follows the pre-existing, repo-wide FEAT-NN/T-NN
   provenance-comment convention (seen in dozens of files: `harness_boundary.py`,
-  `check-domain.sh`, `gh-sync.py`, etc.) and states a present rule plus its
+  `check-domain.py`, `gh-sync.py`, etc.) and states a present rule plus its
   decision citation (D-15), not a bare change narration — not new complexity, so not
   flagged.
 - Confirmed the two `harness-validator-lead.md` files (`.claude/agents/`,
@@ -56,7 +56,7 @@ grant map for this run.
 - **cost**: Two files specify the same behavior (de-dup key, `severity_max`
   roll-up, "never assign a PF- id", the exact skip-recording literal `status
   skipped`). A future change to any of these — e.g. the de-dup key, or the skip
-  wording `check-state.sh` reads back — edited in `harness-validator-lead.md` and not
+  wording `check-state.py` reads back — edited in `harness-validator-lead.md` and not
   mirrored into the comment leaves the comment describing behavior the lead no
   longer has, misleading the next person who reads the team file to understand what
   the lead does.
@@ -86,7 +86,7 @@ grant map for this run.
   a plan author is unlikely to open.
 - **alternative**: Shorten the template comment to the operational fact a plan
   author needs ("`approval.rulings` entries are main-session-only and must name a
-  current `PF-` id or `check-state.sh` refuses it as a stale override") and drop the
+  current `PF-` id or `check-state.py` refuses it as a stale override") and drop the
   re-derivation of *why* it is a content hash, pointing instead to
   `panel_findings.py`'s docstring for that.
 - **appliable**: false — `.claude/skills/harness/templates/plan.yaml` resolves to
@@ -119,13 +119,13 @@ grant map for this run.
   `harness-spec-driven/SKILL.md`, both `harness-validator-lead.md` copies) resolve to
   NOBODY on the grant map for this run; backlog row only.
 
-No regex/anchor findings this pass — I did not flag any conjunct in `check-state.sh`'s
+No regex/anchor findings this pass — I did not flag any conjunct in `check-state.py`'s
 INV-32 block or any pattern in `test-plan-panel.py`/`test-harness-yaml-corpus.py`, so
 the counter-input requirement does not apply.
 
 ## Explicitly not flagged, and why
 
-- No conjunct in INV-32 (`check-state.sh` lines 122–186) is redundant — every `or`
+- No conjunct in INV-32 (`check-state.py` lines 122–186) is redundant — every `or`
   and every combined boolean tests a distinct, independently-failing condition (panel
   presence vs. `last_run` vs. `findings` shape; `who` vs. `date` format; reader status
   vs. skip-detail completeness). Removing any of them narrows what the invariant

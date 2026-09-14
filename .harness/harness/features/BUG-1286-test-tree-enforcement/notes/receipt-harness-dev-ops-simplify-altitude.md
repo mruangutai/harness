@@ -55,7 +55,7 @@ patterns and seven extensions in prose for "the current contract").
 
 ## Q3 — capability at caller vs. callee
 
-**no finding requiring a change, one testability cost worth naming.** `run-unit-tests.sh:33` stays a
+**no finding requiring a change, one testability cost worth naming.** `run-unit-tests.py:33` stays a
 pure one-line delegation (`suite_layout.violations(root)`) — the plan correctly keeps git enumeration
 (`tracked_paths()`) inside the module `violations()` calls, not bolted onto the caller. That is the
 right home for the capability itself.

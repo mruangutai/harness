@@ -25,7 +25,7 @@ construction. Confirmed correct.
 ## 2. Is there an input that's schema-INVALID and gate-EXEMPT? Yes — via the LOADER, not the value.
 
 The remedy's comment claims "a document must never be schema-invalid and gate-exempt at the same
-time: any deviation fails BOTH." True for the VALUE only. False for the DOCUMENT: `check-state.sh`
+time: any deviation fails BOTH." True for the VALUE only. False for the DOCUMENT: `check-state.py`
 reads every `feature.json` through `harness_yaml.load_file` (YAML-tolerant, regardless of the `.json`
 extension — this is documented, deliberate corpus-migration behavior, see `feature_schema.py`'s own
 docstring on the JSON/YAML migration window). `feature_schema.problems_for_file`'s `.json`-suffix path
@@ -35,7 +35,7 @@ corpus format except `"code_grade": n_a` (bareword, unquoted) —
   `"not valid JSON"` → **schema-invalid**.
 - `harness_yaml.load_file` on the identical bytes: parses the bareword as the plain string `"n_a"` →
   `entry.get("code_grade") != "n_a"` is `False` → **not** appended to `code_reviewing_runs`.
-- Ran the actual `check-state.sh` against a full temp `.harness` tree carrying this file: **exit 0,
+- Ran the actual `check-state.py` against a full temp `.harness` tree carrying this file: **exit 0,
   no INV-6 violation printed** — confirmed gate-exempt end to end, not just in the parser unit.
 
 **This is pre-existing, not introduced by the delta.** The pre-remedy comparison
@@ -70,7 +70,7 @@ says the right thing but no orchestrator actually follows. Those are code-review
 presence grants or withholds an actor any access.
 
 **Anchoring is correct.** `CHECK_STATE_BIN`/`SCRIPT` is used in the test file *only* to point the
-`check-state.sh` subprocess under test (grepped every use); it is never consulted when resolving the
+`check-state.py` subprocess under test (grepped every use); it is never consulted when resolving the
 `SKILL.md` path, which is always `__file__`-relative. No env-controlled path reaches the file this
 assertion trusts.
 
@@ -95,8 +95,8 @@ new subprocess/shell call sites, nothing to report.
 - feature.json `runs[].code_grade` self-assertion via unauthenticated write (T): **mitigated: false**
   — unchanged from cycle 0's MED, no new capability over the pre-existing `review_sha`-forgery route,
   not this delta's to fix.
-- check-state.sh value-comparison vs schema enum, case/whitespace (T): **mitigated: true** — closed
+- check-state.py value-comparison vs schema enum, case/whitespace (T): **mitigated: true** — closed
   by this delta's exact-match change.
-- check-state.sh YAML-tolerant document parse vs feature_schema.py's `.json`-suffix strict-JSON parse
+- check-state.py YAML-tolerant document parse vs feature_schema.py's `.json`-suffix strict-JSON parse
   (T): **mitigated: false** — pre-existing, unaffected by this delta, requires the same raw-Bash-write
   precondition already priced at LOW in cycle 0, no new capability granted.

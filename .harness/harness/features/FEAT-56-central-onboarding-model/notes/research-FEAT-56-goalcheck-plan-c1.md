@@ -30,7 +30,7 @@ BRIEF as read today, worktree tip.
   targets *the control plane's own harness.json*. T-15's own intent asserts detection "lives … in
   `harness-init` for this control plane's own `harness.json`" — **no task puts it there.** So an
   operator following the cut skill installs the eight prerequisites, is told to seed `# SEED` globs in
-  a manifest that was never instantiated, and reaches step 9 where `check-state.sh` cannot exit 0 on a
+  a manifest that was never instantiated, and reaches step 9 where `check-state.py` cannot exit 0 on a
   checkout with no `.harness/harness.json`. Nothing catches it: T-11's verify is all absence-of-Track-B
   greps plus the two hooks strings; it never greps `dev-ops`, `harness.json` or `team-config`.
 - **Row 6 (PARTIAL).** Because T-10 moves `:245-283` verbatim, that same `:279-282` sentence lands
@@ -106,7 +106,7 @@ REQ-07→T-09,T-10; REQ-08→T-10,T-11,T-12,T-15,T-16,T-17; REQ-09→T-13,T-14,T
 T-09..T-17 traces ≥1 REQ. Every SC is reachable: SC-01→T-10; SC-02→T-11; SC-03→T-02+T-09;
 SC-04→T-12,T-15,T-16 (+T-05..T-08); SC-05→T-04; SC-06/07→suites; SC-08→T-09+T-14; SC-10→T-12;
 SC-11→T-11; SC-12→T-10; SC-13→T-13,T-14; SC-14→T-17. Both `automated` kinds are ACTIVE in
-`.harness/harness.json`: `unit` — `.agents/skills/harness/bin/run-unit-tests.sh --kind unit`
+`.harness/harness.json`: `unit` — `.agents/skills/harness/bin/run-unit-tests.py --kind unit`
 (`:284-289`); `integration` — the same script `--kind integration` (`:319-324`). No SC rests on a null
 kind (`component`, `ui`, `typecheck` unresolved; `functional`, `eval` excluded). *Disposition: PASS,
 with one advisory the BRIEF already discloses — SC-01, SC-02, SC-10 and SC-13's first two clauses are

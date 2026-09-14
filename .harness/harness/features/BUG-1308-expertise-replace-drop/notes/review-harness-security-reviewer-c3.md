@@ -30,7 +30,7 @@ re-split by `.splitlines()`, it produces one extra **empty** physical line that 
 `SECTION_RE` nor `ENTRY_RE` nor the continuation-line rule, so it is silently discarded by the
 parser — never a forged header, entry, or cap crossing. No reclassification observed in any case.
 
-`check-expertise.sh` (`:73` — `open(path, encoding="utf-8").read().splitlines()`) uses the
+`check-expertise.py` (`:73` — `open(path, encoding="utf-8").read().splitlines()`) uses the
 **identical** Python `str.splitlines()` call `parse_expertise` uses — confirmed by reading its
 embedded script. There is no three-way divergence between the op validator, the tool's own
 parser, and the downstream format checker; VL-05's fix (share one definition of "a line") holds

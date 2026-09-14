@@ -10,8 +10,8 @@ carried forward — and none was weakened by the four ABC splits.
 `gates.uat: blocking_when_uat_criteria_exist` is therefore satisfied **VACUOUSLY**, not by execution.
 
 **Frozen-guard provenance re-verified at this sha, not assumed:** both fixtures are byte-identical to
-the pre-change guards — `diff <(git show c5869301:tests/integration/fixtures/prior-check-domain.sh.fixture)
-<(git show a4e8ecf7:.claude/skills/harness/bin/check-domain.sh)` = 0 lines; same for `bash-write-guard`.
+the pre-change guards — `diff <(git show c5869301:tests/integration/fixtures/prior-check-domain.py.fixture)
+<(git show a4e8ecf7:.claude/skills/harness/bin/check-domain.py)` = 0 lines; same for `bash-write-guard`.
 Suites re-run at this tree: `test-check-domain.py` exit 0, 0 `^FAIL`, 28/28 `[bug1304]` PASS;
 `test-bash-write-guard.py` exit 0, 0 `^FAIL`, 39/39 `[bug1304]` PASS; `test-inflight-registry.py` 147/147.
 Both `run_bug1304_claim_set()` returns are summed into the runner total (`test-check-domain.py:4711`,
@@ -20,9 +20,9 @@ exit code.**
 
 | SC | verdict | method | evidence at `c5869301` |
 |---|---|---|---|
-| SC-01 | met | automated/integration | `test-check-domain.py:4486-4488` — refuse loop fires the relative-main case with `want=2` and `contains=first`, the held worktree's absolute path; the refusal text is built at `harness_boundary.py:299-311` and printed to stderr at `check-domain.sh:811-816` |
+| SC-01 | met | automated/integration | `test-check-domain.py:4486-4488` — refuse loop fires the relative-main case with `want=2` and `contains=first`, the held worktree's absolute path; the refusal text is built at `harness_boundary.py:299-311` and printed to stderr at `check-domain.py:811-816` |
 | SC-02 | met | automated/integration | `test-bash-write-guard.py:1045-1046` (redirect) and `:1047-1048` (in-place `sed`), separate tuple entries driven through `:1052-1053` with `want=2`, `contains=first` |
-| SC-03 | met | automated/integration | absolute case `test-check-domain.py:4483` / `test-bash-write-guard.py:1049`, same loop and same assertion as the relative case; one message builder serves both routes (`harness_boundary.claim_set_refusal:287`, called at `check-domain.sh:813` and `bash-write-guard.sh:766`) |
+| SC-03 | met | automated/integration | absolute case `test-check-domain.py:4483` / `test-bash-write-guard.py:1049`, same loop and same assertion as the relative case; one message builder serves both routes (`harness_boundary.claim_set_refusal:287`, called at `check-domain.py:813` and `bash-write-guard.py:766`) |
 | SC-04 | met | automated/integration | five separate allow assertions: `test-check-domain.py:4492-4494`, `:4495-4497`, `:4503-4505`, `:4507-4508`, `:4519-4521`. Fifth is DISCRIMINATING — the claim is written into the owner-root registry (`:4517-4518`) and adding `FEAT-1304-C-linked` to that SAME registry flips the same destination to exit 2 (`:4522-4526`), so the registry is proven scanned; the allow is `worktree_for_feature` returning None (`harness_boundary.py:233-234`). Bash twin `test-bash-write-guard.py:1058-1063, :1069-1076, :1088-1096` |
 | SC-05 | met | automated/integration | **pointer case, held worktree named:** `test-check-domain.py:4545-4548` and `test-bash-write-guard.py:1119-1122` both pass `contains=context["first"]` — the concrete absolute path `<root>/.claude/worktrees/FEAT-1304-A`, which the destination string (`.../worktrees/broken/...`) does NOT contain, so the needle can only match the `holds worktree claim(s): {held}` clause. **ambiguous case, candidates named, separate fixture:** `test-check-domain.py:4562-4564` and `test-bash-write-guard.py:1138-1140`, `contains="FEAT, FEAT-X"`, the sorted basenames the resolver raised on (`harness_boundary.py:237-241`) |
 | SC-06 | met | automated/integration | **helper bodies read, not call counts:** `test-check-domain.py:4429-4443` — marker set `:4434-4435`, positive control fired at the SAME frozen hook in the same isolated bin tree `:4436-4437`, conjunction `allow==0 and quiet and control==2` at `:4440`; `test-bash-write-guard.py:986-1001` — same three, conjunction `:995-998`. **RUNTIME assertion count measured from the suites' own output: 10 (check-domain) and 12 (bash-write-guard)** — one `is allowed by the frozen pre-change …` PASS line per call, all PASS. T-03/T-05's `-ge 10`/`-ge 12` greps are a STALE TEXTUAL PROXY (`bug1304_assert_pre_change_allows(` now occurs 9 and 10 times = 1 def + 8/9 call sites); the splits hoisted calls into shared helpers invoked more than once. Not graded on the grep |
@@ -34,8 +34,8 @@ exit code.**
 | SC-12 | met | automated/integration | ONE fixture, BOTH routes, BOTH directions: allow half `test-check-domain.py:4635-4638` / `test-bash-write-guard.py:1260-1262`; refusal half naming the corrupt registry `:4639-4641` / `:1264-1266`; refusal half carries the full SC-06 pre-change proof `:4642-4643` / `:1269-1270`. Disjoint from SC-10's fixture (own + corrupt worktrees built fresh, `:4622-4634` / `:1250-1259`). Scoping is structural, not incidental: `harness_boundary.claim_worktrees` returns the proven set BEFORE raising when the destination is already inside a member (`harness_boundary.py:280-284`) |
 
 REQ coverage: REQ-01..REQ-06 trace to shipped code (`harness_boundary.claim_worktrees:264` /
-`_registry_claim_worktrees:252` / `claim_set_refusal:287`, `check-domain.sh:770-816`,
-`bash-write-guard.sh:734-766`, `inflight_registry.live_claims`). REQ-07 — the cycle-1 gap — is now
+`_registry_claim_worktrees:252` / `claim_set_refusal:287`, `check-domain.py:770-816`,
+`bash-write-guard.py:734-766`, `inflight_registry.live_claims`). REQ-07 — the cycle-1 gap — is now
 covered on both halves: DEC-218 with its index row, and plan D-01/D-02/D-05/D-06/D-08.
 
 ## What the splits could have damaged, and did not
@@ -43,7 +43,7 @@ covered on both halves: DEC-218 with its index row, and plan D-01/D-02/D-05/D-06
 `claim_worktrees` split (`_registry_claim_worktrees:252`) keeps the return-before-raise ordering SC-12
 depends on. The three test mega-function splits moved calls into shared helpers but changed no
 assertion: every refuse case still passes its `contains` needle, and the pre-change helper's
-three-part conjunction (`:4440` / `:995-998`) is intact. `deny_bare` (`bash-write-guard.sh:655`) drops
+three-part conjunction (`:4440` / `:995-998`) is intact. `deny_bare` (`bash-write-guard.py:655`) drops
 only the Write-tool advice sentence and still exits 2; it is used at the three claim refusal sites
 (`:744`, `:749`, `:766`) and nowhere else, and the Expertise case pins the omission
 (`test-bash-write-guard.py:1181-1182`).
@@ -52,8 +52,8 @@ only the Write-tool advice sentence and still exits 2; it is used at the three c
 
 - Q1 (non-blocking, carried from cycle-1 Q2, graded not deferred): SC-05's clause "the stderr names
   the worktrees the agent holds" is unreachable in the ambiguous case — that branch raises before S is
-  built, so the message names candidates only (`check-domain.sh:779-784`,
-  `bash-write-guard.sh:743-744`). Graded per-clause: held-worktree naming in the pointer case,
+  built, so the message names candidates only (`check-domain.py:779-784`,
+  `bash-write-guard.py:743-744`). Graded per-clause: held-worktree naming in the pointer case,
   candidate naming in the ambiguous case, which is what the criterion assigns each. No remedy needed.
 - Q2 (non-blocking, record hygiene): T-03's and T-05's `verify:` blocks grep
   `bug1304_assert_pre_change_allows(` for `-ge 10` / `-ge 12`; the textual counts are now 9 and 10

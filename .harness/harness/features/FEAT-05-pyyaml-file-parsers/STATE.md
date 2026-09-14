@@ -11,7 +11,7 @@ Phase `build` COMPLETE 2026-08-03. **All 17 tasks landed.** `review_sha` should 
 before the panel runs — `225cc98` was the baseline when the orchestrator was stood down, and
 twelve commits have landed since.
 
-**Three gates green:** `run-unit-tests.sh` 0 (11 suites), `check-docs.sh` 0, `check-state.sh` 0.
+**Three gates green:** `run-unit-tests.py` 0 (11 suites), `check-docs.sh` 0, `check-state.py` 0.
 Every `.harness/**/*.yaml` parses. **Corrected 2026-09-06 under BUG-148:** the fourth entry logged
 on 2026-08-03, `gen-decisions-index.py --check` 0, was no gate at all — `--check` was never a
 supported mode, and before argv validation landed at `ffbdbfa1` (2026-08-05) an unrecognized
@@ -32,7 +32,7 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
   at the user's instruction, mid-build — recorded as `PLAN.md` **Amendment 1**, which also supplies the
   clean SC-08/SC-09 simulation mechanism the BRIEF asked for: `PYTHONNOUSERSITE=1` makes PyYAML absent
   for exactly one invocation, no uninstall or container needed.
-- **T-01 step 2, re-baselined post-approval.** `check-state.sh` exit **0**, **0** violations, **39**
+- **T-01 step 2, re-baselined post-approval.** `check-state.py` exit **0**, **0** violations, **39**
   notes. Q3's stale exit-1 is discharged.
 - **T-01 step 3.** `notes/receipt-baseline-run-inventory.md`. `parsed == declared` for all five —
   1/1, 4/4, 19/19, 15/15, **3/3**. No run is dropped today, so SC-13's "identical" holds and the
@@ -40,7 +40,7 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
 - **T-02 RED as designed, and it is why the corpus defect was found at all.** It surfaced the invalid
   corpus on its first run, and it named the file and the parse error rather than failing opaquely, which
   is what made it chase-able instead of dismissable as an expected RED. Nine named tests,
-  `run-unit-tests.sh` exit 1, no `MISCONFIGURED`, 9 pre-existing suites PASS.
+  `run-unit-tests.py` exit 1, no `MISCONFIGURED`, 9 pre-existing suites PASS.
 - **T-03.** `harness_yaml.py`, now **9 of 9 green**.
 - **T-05.** `cost-report.py` annotated per D-04, no conversion, no `import harness_yaml`.
 - **The corpus repair.** Three `feature.yaml` files, receipt at
@@ -50,12 +50,12 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
 - **`team-config.yaml:18` APPLIED by the main session**, my candidate verbatim, 1 insertion /
   1 deletion. Candidate and evidence at `notes/receipt-orchestrator-team-config-fix-candidate.md`.
 - **D-03 EQUIVALENCE PROVEN — build the hook conversions on this rather than re-deriving it.** OLD
-  `collect()` (extracted verbatim from `check-domain.sh:107-125`) on the ORIGINAL file vs. NEW
+  `collect()` (extracted verbatim from `check-domain.py:107-125`) on the ORIGINAL file vs. NEW
   `manifest_domains()` on the CANDIDATE file, for **every** `name:` in the manifest: **19 agent names,
   0 mismatches**, `mine` and `shared` matching set-for-set, every glob a `str`.
 - **Interface correction applied mid-run:** `require_or_bootstrap(root, payload=None)` reads the
   `HOOK_PAYLOAD` **env var, never stdin**. T-02's receipt had pinned a stdin fallback;
-  `check-domain.sh:232-235` records the gate's first draft losing the payload exactly that way and
+  `check-domain.py:232-235` records the gate's first draft losing the payload exactly that way and
   passing everything. Read the module against the corrected interface, not the plan's.
 
 ## Open Questions
@@ -70,7 +70,7 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
 - **B3 — the dangerous half is RETIRED. Derived twice independently, by me and by the main session,
   agreeing.** A worktree script running with a main-checkout `root`, writing `.pyyaml-bootstrap` outside
   T-10's `.gitignore` edit, is **impossible by construction**. `.claude/settings.json:23` invokes
-  `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh`, and `check-domain.sh:64` sets
+  `${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py`, and `check-domain.py:64` sets
   `root="${CLAUDE_PROJECT_DIR:-}"`. **The same variable selects both the script and the root, so they
   cannot diverge**; the fallback at `:66-70` is `_derived`, computed from `BASH_SOURCE` at `:60-62`, so
   an unset or unreadable value makes the script self-locate to its own repo. **T-10 is not broken and
@@ -121,7 +121,7 @@ parsed.)
 
 - `verify: unit`. Walks every `.harness/**/*.yaml`, `safe_load`s each, **fails naming file, line and
   column**.
-- **It MUST be listed in `run-unit-tests.sh`'s `SCRIPTS` array.** A test the runner does not invoke
+- **It MUST be listed in `run-unit-tests.py`'s `SCRIPTS` array.** A test the runner does not invoke
   gates nothing — issue #5's exact failure mode.
 - **It must be shown RED against a deliberately malformed fixture, then GREEN on the repaired
   corpus.** An always-green validity gate is indistinguishable from no gate.
@@ -134,7 +134,7 @@ parsed.)
   of `--user` was a defect: without it pip writes into Homebrew-managed `site-packages`, which
   Homebrew's own PEP 668 message warns "can result in a broken Homebrew installation."
 - **T-10 must complete before T-12.**
-- **D-09 stands.** `check-state.sh:113`'s `review_sha: none` fail-open is deliberately not fixed; T-16
+- **D-09 stands.** `check-state.py:113`'s `review_sha: none` fail-open is deliberately not fixed; T-16
   files the issue.
 - **SC-09 is `verify: uat`** and `harness.json:244` is `blocking_when_uat_criteria_exist`, so ship gates
   on a human hand-running T-16's script. No agent can satisfy it.
@@ -149,7 +149,7 @@ parsed.)
 
 ## Backlog nit — not fixed here
 
-`check-domain.sh:59` says "walk up five levels" and `:62` walks up **four** (`../../../..`). Four is
+`check-domain.py:59` says "walk up five levels" and `:62` walks up **four** (`../../../..`). Four is
 correct — `bin` → `harness` → `skills` → `.claude` → root. **The comment is stale, not the code.** It
 matters because a future reader "correcting" the code to match the comment would break the root
 derivation both hooks depend on. The main session is fixing it while in that function.

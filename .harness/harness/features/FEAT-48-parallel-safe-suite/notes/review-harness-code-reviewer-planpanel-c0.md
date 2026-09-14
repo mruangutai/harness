@@ -34,7 +34,7 @@ merge-ordering constraint has no mechanical enforcement; and the four `verify: i
 - **SC-03** (invariant: 0 live findings, historical scan flags all 3 files+lines). `verify:
   automated evidence: unit`. Two gaps: the `>=8` threshold vs. the plan's own measured 10 (F-03),
   and no discovery-count floor on the live-tree half (F-04).
-- **SC-04** (`PASS test-suite-independence.py` from `run-unit-tests.sh --kind unit`). Reddens if
+- **SC-04** (`PASS test-suite-independence.py` from `run-unit-tests.py --kind unit`). Reddens if
   the file is unregistered or fails. Registration step is explicit in T-03 intent and is a one-line
   addition to `UNIT_SCRIPTS`. Clean, low risk.
 - **SC-05** (ten clean `--kind all` runs, wall time recorded). `verify: inspection`, discharged by

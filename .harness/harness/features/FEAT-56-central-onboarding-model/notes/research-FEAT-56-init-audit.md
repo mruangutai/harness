@@ -20,15 +20,15 @@ dispatch says.
 
 | # | Step at HEAD | Lines | Grade | Mechanical reason |
 |---|---|---|---|---|
-| 1 | Install the eight prerequisites + the per-clone `core.hooksPath` step | 39-140 | **NARROW** | #206 says Dead. **Disagree.** Dead for a *served* product (item 4), but this block is also how the CONTROL-PLANE clone gets installed, and `check-state.sh` grades that clone against it every run: INV-9 (`:844`) on the settings entries, INV-31 (`:2431-2489`) on `core.hooksPath`/`post-merge`. `test-hooks-install.py:265 case_commands_verbatim_in_skill` asserts the step-1/step-2 command strings **verbatim out of `SKILL.md`**. Narrow to "this clone", never delete. |
-| 2 | Scaffold `.harness/` from templates (`cp` ×2) | 141-157 | **RE-HOME** (harness.json) / **DELETE** (team-config) | #206 says Dead. **Half wrong.** `team-config.yaml`'s copy is dead: `check-domain.sh:189`/`:331` read `<control-plane>/.harness/team-config.yaml` only. But a product's `harness.json` MUST exist on its default branch or `factory_config.product_config` raises with no fallback (`factory_config.py:279-324`) — so a creation step still exists; only its destination changes (item 5). This is the `cp` #168 was about (`:145-146`). |
+| 1 | Install the eight prerequisites + the per-clone `core.hooksPath` step | 39-140 | **NARROW** | #206 says Dead. **Disagree.** Dead for a *served* product (item 4), but this block is also how the CONTROL-PLANE clone gets installed, and `check-state.py` grades that clone against it every run: INV-9 (`:844`) on the settings entries, INV-31 (`:2431-2489`) on `core.hooksPath`/`post-merge`. `test-hooks-install.py:265 case_commands_verbatim_in_skill` asserts the step-1/step-2 command strings **verbatim out of `SKILL.md`**. Narrow to "this clone", never delete. |
+| 2 | Scaffold `.harness/` from templates (`cp` ×2) | 141-157 | **RE-HOME** (harness.json) / **DELETE** (team-config) | #206 says Dead. **Half wrong.** `team-config.yaml`'s copy is dead: `check-domain.py:189`/`:331` read `<control-plane>/.harness/team-config.yaml` only. But a product's `harness.json` MUST exist on its default branch or `factory_config.product_config` raises with no fallback (`factory_config.py:279-324`) — so a creation step still exists; only its destination changes (item 5). This is the `cp` #168 was about (`:145-146`). |
 | 3 | Interview — technical | 158-165 | **KEEP-AS-IS** | Main-session `AskUserQuestion` + `harness-grilling` (DEC-164). Nothing in it is position-dependent; only where its answers land moves (step 4). |
 | 4 | Delegate detection to `dev-ops` (`test_kinds`) | 166-193 | **RE-HOME** | Agrees with #206. Its write target is spelled as the control plane's own file in both agent copies (`.claude/agents/harness-dev-ops.md:53`, `.omp/agents/harness-dev-ops.md:54`); for a product it is that product's `.harness/harness.json` at its `default_branch`. Also DEC-187 closure is now ruled to happen at the first factory run, not at onboarding (#336, salvaged D-03). |
 | 5 | Seed the domain manifest (`# SEED` globs) | 194-214 | **NARROW** | #206 says Re-homes. **Disagree — it cannot re-home today.** `team-config.yaml` is ruled forced-global (#346, carried in #336), the live grants are repo-agnostic globs (`.harness/*/features/**`, team-config.yaml:45,108-122) and the source globs are harness's own (`web/src/**` :173, `tests/**` :187,229). `harness_boundary.glob_to_re` supports only `**`, `*`, `?` and literals, so `.harness/${repo}/**` is inexpressible; per-repo isolation is unit 7 / **#495, unbuilt**. Narrow to seeding the control plane's own globs. |
 | 6 | Interview — product, then the BRIEF | 215-224 | **RE-HOME** | Agrees. Destination is now `factory_config.features_root()` → `<cp>/.harness/<segment>/features` (`factory_config.py:402-408`), and `plan.yaml` not `PLAN.md` (DEC-182). Measured: `/Users/molchairuangutai/GitHub/harness/.harness/kaya-ai/` **does not exist** (`os.path.isdir` False), matching #498 DC-4 "layout exists, no kaya dir". |
 | 7 | Approval gate, + GitHub mirror (`:240`) + board provisioning (`:252`) | 225-295 | **RE-HOME** | The approval write is main-session-only and already repo-scoped (`team-config.yaml:19-34`). The mirror/board writes are now *product config*: `fleet.yaml` REJECTS a board at any level (`fleet.yaml:3-5`) and `board_for` reads it from the product's own `harness.json` (`factory_config.py:327-347`). #206 folds this into "6-7 Re-homes"; at HEAD it is two sub-sections of real size (56 lines) that #206 never saw. |
-| 8 | Design pass — UI projects only | 296-304 | **KEEP-AS-IS** | **#206's row 8 is void.** Its row 8 was "Map the codebase :179"; that step is gone — the map tier, both doors, INV-14, INV-20, the spawn injection and the renderer were all retired 2026-08-24 (`BUILD.md:208`; `check-state.sh:1562` "the map precondition went with the map tier"). HEAD's step 8 is the design pass, whose grant is already repo-scoped (`team-config.yaml:131`). |
-| 9 | Verify (`check-state.sh`, `merge-settings --check`), then the restart warning | 305-326 | **NARROW** | #206 says "Dead with 1 and 2". **Disagree.** `check-state.sh` requires `.harness/` to exist (`:110-111`) and grades the clone it runs in; there is no product-side state to check. It survives as the control-plane verification, narrowed to that clone. The DEC-100a restart caveat is position-independent. |
+| 8 | Design pass — UI projects only | 296-304 | **KEEP-AS-IS** | **#206's row 8 is void.** Its row 8 was "Map the codebase :179"; that step is gone — the map tier, both doors, INV-14, INV-20, the spawn injection and the renderer were all retired 2026-08-24 (`BUILD.md:208`; `check-state.py:1562` "the map precondition went with the map tier"). HEAD's step 8 is the design pass, whose grant is already repo-scoped (`team-config.yaml:131`). |
+| 9 | Verify (`check-state.py`, `merge-settings --check`), then the restart warning | 305-326 | **NARROW** | #206 says "Dead with 1 and 2". **Disagree.** `check-state.py` requires `.harness/` to exist (`:110-111`) and grades the clone it runs in; there is no product-side state to check. It survives as the control-plane verification, narrowed to that clone. The DEC-100a restart caveat is position-independent. |
 
 Not one of the nine, but in the blast radius: **`--upgrade` (`:327-355`)** — `upgrade-config.py` merges
 *a project root's* `harness.json` and refuses to rewrite `team-config.yaml` (`upgrade-config.py:2,187-188,229-230`).
@@ -40,9 +40,9 @@ Under the central model its subject is either this clone or a product repo; #206
 |---|---|---|
 | a product's `harness.json` | **the product repo**, read from the REMOTE at `default_branch`, never from disk, no fallback, memoised per `(repo, ref)` — `factory_config.py:279-324` | no — product-repo-resident |
 | fleet declaration | `<cp>/.harness/factory/fleet.yaml`: `repos[].name`, `default_branch`, `workspace_root` only; a board at ANY level is rejected by `load_fleet` (`fleet.yaml:1-19`, `factory_config.py:159`) | central |
-| `team-config` policy | `<cp>/.harness/team-config.yaml` **only** — `check-domain.sh:189` and `:331` join `harness_boundary.resolve_root(...)` with it; product paths are classified by `select_base` with control-plane globs filtered out (`harness_boundary.py:376-386`) | central |
+| `team-config` policy | `<cp>/.harness/team-config.yaml` **only** — `check-domain.py:189` and `:331` join `harness_boundary.resolve_root(...)` with it; product paths are classified by `select_base` with control-plane globs filtered out (`harness_boundary.py:376-386`) | central |
 | features tree | `<cp>/.harness/<segment>/features` — `factory_config.features_root` (`:402-408`); `<cp>/.harness/harness/features` is that tree for harness itself | central |
-| expertise | `<cp>/.harness/expertise/<agent>.md` (craft) + `<cp>/.harness/<segment>/expertise/<agent>.md` (repo tier), globbed by `inject-expertise.sh:64,103-156` | central |
+| expertise | `<cp>/.harness/expertise/<agent>.md` (craft) + `<cp>/.harness/<segment>/expertise/<agent>.md` (repo tier), globbed by `inject-expertise.py:64,103-156` | central |
 | codebase map | **nowhere — the tier does not exist.** `BUILD.md:208`; no reader in `bin/` (grepped); `<cp>/.harness/harness/codebase/` absent; #498 DC-7 | n/a |
 
 `factory_workspace.py` writes **no** `.harness/` artifact into a checkout — it only prepares the
@@ -70,15 +70,15 @@ checkout and refuses on identity/dirty (`factory_workspace.py:1-38`).
 | `tests/integration/test-layout-migration.py:250-254` | **yes** | fixture premise "harness-init installs the whole bin/ into products, so every reader file EXISTS here" — the onboarded-product shape the NOT-APPLICABLE case is built on |
 | `tests/integration/test-post-merge-sweep.py:783-785` | no | cites `SKILL.md:73/:78` for relative-`hooksPath`-per-worktree; a line anchor, not an assertion |
 | `tests/integration/test-check-state.py:3889-3890` | no | comment premise "a literal compiled into a file that /harness-init copies everywhere" — INV-32's per-project boundary; the *value* stays per-project either way |
-| `tests/fixtures/prior-check-domain.sh.fixture:384` | **no — do not touch** | frozen prior-copy of `check-domain.sh`; editing it defeats the fixture |
+| `tests/fixtures/prior-check-domain.py.fixture:384` | **no — do not touch** | frozen prior-copy of `check-domain.py`; editing it defeats the fixture |
 | `bin/check-instruction-paths.py:12-16` | **yes** | `MAIN_SESSION_ONLY` lists `harness-init`; a rewrite that dispatches it to an agent breaks this classification |
-| `bin/check-state.sh:110-111, 286-287, 405-407, 2371-2372, 2431-2436` | **yes** | four user-facing remedies name `/harness-init` (`--upgrade` twice); `:2433` asserts the per-clone step "lives in `.claude/skills/harness-init/SKILL.md`" |
-| `bin/check-domain.sh:375-376, 383-384` | **yes** | fail-open message "enforcement OFF (run /harness-init)" — false for a product path once products are governed centrally |
+| `bin/check-state.py:110-111, 286-287, 405-407, 2371-2372, 2431-2436` | **yes** | four user-facing remedies name `/harness-init` (`--upgrade` twice); `:2433` asserts the per-clone step "lives in `.claude/skills/harness-init/SKILL.md`" |
+| `bin/check-domain.py:375-376, 383-384` | **yes** | fail-open message "enforcement OFF (run /harness-init)" — false for a product path once products are governed centrally |
 | `bin/upgrade-config.py:2, 187-188, 229-230` | **yes** | docstring "`/harness-init --upgrade`" plus two remedies telling the user to run init in *this project root* |
 | `bin/merge-settings.py:35-36, 164-165` | no | comments about prose counts in `SKILL.md` and the HARD-GATE consequence |
 | `bin/gh-sync.py:254-255` | **yes** | skip message "run /harness-init --upgrade to record it" (`github.repo` unpinned) — a product's repo pin now lives in the product's config |
 | `bin/layout_migration.py:121-125` | **yes** | the APPLICABLE marker's rationale: "harness-init installs the whole bin/ into product repos" |
-| `bin/post-merge-sweep.sh:68-69` | no | cites `harness-init SKILL.md:73/:78` as the reason a relative `hooksPath` resolves per-worktree |
+| `bin/post-merge-sweep.py:68-69` | no | cites `harness-init SKILL.md:73/:78` as the reason a relative `hooksPath` resolves per-worktree |
 
 **Instructional (routes a session into init):** `.claude/commands/harness.md:12` (**yes** — "BRIEF.md
 missing" routes to `/harness-init`); `.claude/commands/harness-plan.md:18` (**yes** — routes when a
@@ -115,7 +115,7 @@ carry no mention.
 
 **Not in the dispatch's list, found by grep:** `references/github-mirror.md`, `docs/SPEC.md`,
 `docs/BUILD.md`, `docs/DECISIONS.md`, `DECISIONS-INDEX.md`, `docs/org.html`,
-`tests/fixtures/prior-check-domain.sh.fixture`, `tests/integration/test-check-state.py`, plus ~30
+`tests/fixtures/prior-check-domain.py.fixture`, `tests/integration/test-check-state.py`, plus ~30
 historical `features/**` plans and notes (FEAT-04, FEAT-05, BUG-1071 …) which are **record, not to be
 edited** (DEC-188 striking rules). `CLAUDE.md` carries **no** mention.
 
@@ -124,7 +124,7 @@ edited** (DEC-188 striking rules). `CLAUDE.md` carries **no** mention.
 Independently measured (run from `/Users/molchairuangutai/GitHub/harness`):
 
 ```
-$ .claude/skills/harness/bin/check-domain.sh --resolve \
+$ .claude/skills/harness/bin/check-domain.py --resolve \
     /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/src/foo.py
 harness-backend-dev            exit=0
 $ ... --resolve .../kaya-ai/.harness/harness.json   -> NOBODY   exit=0
@@ -138,7 +138,7 @@ hooks path set**, because the enforcing hooks are registered in the control plan
 `.claude/settings.json` and resolve the control plane's manifest.
 
 - **Installing the eight + `core.hooksPath` into a product repo: DEAD.** Nothing reads them there.
-- **Into the control-plane clone: LIVE**, and gated — `check-state.sh` INV-9 (`:844`) and INV-31 (`:2431-2489`).
+- **Into the control-plane clone: LIVE**, and gated — `check-state.py` INV-9 (`:844`) and INV-31 (`:2431-2489`).
 - **Into a repo a human clones and runs `/harness` inside, outside the workspace: has no mechanism.**
   `deploy.sh` is deleted (#203, DEC-113) and nothing distributes `bin/`, so there is no route by
   which such a clone gets the scripts the eight point at. Treat it as a **question for item 5's
@@ -216,7 +216,7 @@ decision — and #206 has not been amended since 2026-08-10.
    `.harness/features/<FEAT>/`; `harness-brief/SKILL.md:95` still cites the retired INV-20. Fix these
    in the same pass or a reviewer will read them as regressions.
 8. **Line-anchored citations into `SKILL.md` rot on the first edit** — `test-post-merge-sweep.py:784`
-   and `post-merge-sweep.sh:69` both cite `SKILL.md:73/:78`. Prefer re-anchoring them to a stable
+   and `post-merge-sweep.py:69` both cite `SKILL.md:73/:78`. Prefer re-anchoring them to a stable
    heading over re-numbering.
 
 ## Open questions

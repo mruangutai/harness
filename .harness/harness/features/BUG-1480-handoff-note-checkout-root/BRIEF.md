@@ -3,7 +3,7 @@
 ## Problem
 
 No feature can write the `notes/handoff-<phase>.md` note DEC-159 requires at each phase seam, because
-every feature lives in a linked worktree until it merges. In `check-domain.sh`, `_norm` (lines
+every feature lives in a linked worktree until it merges. In `check-domain.py`, `_norm` (lines
 1114-1149) asks `harness_boundary.checkout_relative` for the pair `(checkout_root, path relative to
 that checkout)`, keeps `_ck[1]` and discards `_ck[0]`. The handoff branch of `shape_problems` (lines
 1746-1748) then calls `handoff_done_when.problems(rel, content, root, resolve=True)` with a `rel`
@@ -53,7 +53,7 @@ write the note DEC-159 mandates, and nothing about validation in the main checko
 - BLOCKS — `_norm`'s return contract is a path STRING and must not change. Eleven other call sites
   feed it straight into pattern matching, cited BY FUNCTION NAME as SC-05 cites them: `_resolved_rel`,
   `_plan_route`, the `Edit`/`Write` target-assembly block in `__main__`, and the sweep's
-  `targets.append` — all in `check-domain.sh`. Any new information is exposed by a SIBLING helper or
+  `targets.append` — all in `check-domain.py`. Any new information is exposed by a SIBLING helper or
   resolved at the handoff call site.
 - BLOCKS — this lands STANDALONE off `origin/main` at `6d969ed375f8458e32c47502ecdcc85bb9916635`, on
   its own PR. No cherry-pick into BUG-201, and no scope beyond this one defect and its regression
@@ -96,26 +96,26 @@ no `cmd: null` kind covers them.
   the fix and GREEN after — its needles include the worktree's own `BRIEF.md` path fragment, so it
   is a second red-then-green row proving BRIEF.md is read from the worktree copy.
 - SC-04: The `harness_boundary` use in the shape phase remains absorbing: a reviewer reads
-  `git show <review_sha>:.claude/skills/harness/bin/check-domain.sh` and cites file:line showing the
+  `git show <review_sha>:.claude/skills/harness/bin/check-domain.py` and cites file:line showing the
   new checkout-root resolution wrapped in `try/except Exception` with a fallback to `root`, raising
   nothing and exiting nowhere.
   verify: inspection
 - SC-05: `_norm` still returns a path string and no call site of it changed shape: a reviewer reads
-  `git show <review_sha>:.claude/skills/harness/bin/check-domain.sh` and cites `_norm`'s return
+  `git show <review_sha>:.claude/skills/harness/bin/check-domain.py` and cites `_norm`'s return
   statements plus each call site BY FUNCTION NAME — `_resolved_rel`, `_plan_route`, the `Edit`/
   `Write` target-assembly block in `__main__`, and the sweep's `targets.append`. Call sites are
-  named, never numbered: T-02 inserts a helper after `check-domain.sh:1149`, which shifts every
+  named, never numbered: T-02 inserts a helper after `check-domain.py:1149`, which shifts every
   line number below it, so a numbered anchor sends the reviewer to unrelated code at `review_sha`.
   verify: inspection
 - SC-06: The regression test was RED before the fix: a reviewer confirms from `git log` on the
   feature branch that the test commit precedes the fix commit, and that the new case fails when the
-  suite is run with `check-domain.sh` at the test commit.
+  suite is run with `check-domain.py` at the test commit.
   verify: inspection
 - SC-07: The containment bound of REQ-06 holds as intended: a reviewer reads
-  `git show <review_sha>:.claude/skills/harness/bin/check-domain.sh` and
+  `git show <review_sha>:.claude/skills/harness/bin/check-domain.py` and
   `handoff_done_when.py`, and cites (a) `_read_target`'s `resolved.relative_to(root)` containment
   check, which bounds a target by whatever root it is handed, and (b) the fallback branch of the
-  new helper in `check-domain.sh` returning `root`, which is why a main-checkout note's bound is
+  new helper in `check-domain.py` returning `root`, which is why a main-checkout note's bound is
   unchanged. The cited pair must show that the bound follows the resolved checkout rather than
   widening to both trees.
   verify: inspection

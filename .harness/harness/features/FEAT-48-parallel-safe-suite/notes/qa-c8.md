@@ -19,8 +19,8 @@ touches only `run_pool.py`, `test-run-pool.py`, `test-suite-independence.py` (re
 
 | kind | detect/list membership | cmd | state | evidence |
 |---|---|---|---|---|
-| unit | `test-suite-independence.py` in `UNIT_SCRIPTS` (run-unit-tests.sh:30, grep-verified, not just glob-matched) | `run-unit-tests.sh --kind unit`, status active | **satisfied** | targeted run below, exit 0 |
-| integration | `test-run-pool.py` in `INTEGRATION_SCRIPTS` (run-unit-tests.sh:31, grep-verified) | `run-unit-tests.sh --kind integration`, status active | **satisfied** | targeted run below, exit 0 |
+| unit | `test-suite-independence.py` in `UNIT_SCRIPTS` (run-unit-tests.py:30, grep-verified, not just glob-matched) | `run-unit-tests.py --kind unit`, status active | **satisfied** | targeted run below, exit 0 |
+| integration | `test-run-pool.py` in `INTEGRATION_SCRIPTS` (run-unit-tests.py:31, grep-verified) | `run-unit-tests.py --kind integration`, status active | **satisfied** | targeted run below, exit 0 |
 | component/ui/eval/typecheck | `cmd: null` for all four; no `detect` glob matches `.claude/skills/harness/bin/**` | n/a | soft skip (unchanged since c7, no new surface added at e64e863e) | `harness.json:126-153` |
 
 Not re-running `--kind all` per the non-goal (lead already did: exit 0, 63 files, 0 FAIL, 0 MUTATED).
@@ -88,8 +88,8 @@ DIGEST:
   matrix_ok: true
   severity_max: medium
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 1 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 1 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 1 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 1 }
     - { kind: component, state: not_applicable, cmd: null, named_tests: 0 }
     - { kind: ui, state: not_applicable, cmd: null, named_tests: 0 }
     - { kind: eval, state: not_applicable, cmd: null, named_tests: 0 }

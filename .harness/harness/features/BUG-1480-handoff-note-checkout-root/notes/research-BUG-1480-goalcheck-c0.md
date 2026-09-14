@@ -8,10 +8,10 @@ Two proof-thinness notes and one BRIEF prose inaccuracy are recorded as recommen
 
 The BRIEF's `command:` for SC-01/02/03 literally reads `cd /Users/molchairuangutai/GitHub/harness`,
 which is where the code lands **after merge**. Pre-merge the main checkout still holds the PRE-FIX
-`check-domain.sh`, so measuring there would grade the wrong tree. **I ran the identical command
+`check-domain.py`, so measuring there would grade the wrong tree. **I ran the identical command
 inside the worktree** `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1480-handoff-note-checkout-root`,
 once: `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py` → exit 0, 38.3s,
-zero `FAIL ` lines. `git diff 4de92e75 -- .claude/skills/harness/bin/check-domain.sh
+zero `FAIL ` lines. `git diff 4de92e75 -- .claude/skills/harness/bin/check-domain.py
 tests/integration/test-check-domain.py` is **empty** at worktree HEAD `bff942bf`, so the run
 measured `review_sha` content exactly (G-07/G-15 discharged). All inspection evidence was read via
 `git show 4de92e75:<path>`, never a plain file read.
@@ -23,10 +23,10 @@ measured `review_sha` content exactly (G-07/G-15 discharged). All inspection evi
 | SC-01 | automated (integration) | **met** | run row, quoted: `ok    handoff worktree-only feature dir resolves` |
 | SC-02 | automated (integration) | **met** | 42/42 pre-existing rows enumerated from the seven builders, each found `ok` by name (below) |
 | SC-03 | automated (integration) | **met** | rows, quoted: `ok    handoff worktree-only unresolvable pointer refused` and `ok    handoff worktree-only brief-sc pointer refused` |
-| SC-04 | inspection | **met** | `check-domain.sh:1151-1162` @4de92e75 — `try:` 1155, `except Exception: pass` 1160-1161, `return root` 1162; `grep -cE 'sys\.exit\|raise'` over 1151-1162 = **0** |
+| SC-04 | inspection | **met** | `check-domain.py:1151-1162` @4de92e75 — `try:` 1155, `except Exception: pass` 1160-1161, `return root` 1162; `grep -cE 'sys\.exit\|raise'` over 1151-1162 = **0** |
 | SC-05 | inspection | **met** | `_norm` returns `_ck[1]` (`:1146`) and `rel` (`:1149`), both path strings; `git diff 64fcaa34..4de92e75` has exactly **two hunks** (helper add after `:1149`, one-arg swap at `:1761-1762`), so no `_norm` call site is touched. Four named sites located @4de92e75: `_resolved_rel` `:1866`, `_plan_route` `:1924` (`_norm(path)` `:1926`), `__main__` target assembly `:2058,2087,2091`, sweep `targets.append` `:2232` |
 | SC-06 | inspection | **met** | `git merge-base --is-ancestor 6b5ae254 d8a99991` → 0 (test **is an ancestor** of fix, not merely earlier); red-then-green measured in `notes/qa-BUG-1480-c0-sc06.md:32-59` (2 FAIL rows at the test commit, 0 after) |
-| SC-07 | inspection — **mechanism-only** | **met (mechanism-only)** | `handoff_done_when.py:78-87` @4de92e75 — `root = Path(root).resolve()` then `resolved.relative_to(root)` raising `target escapes the project root`; paired with `check-domain.sh:1162` `return root`. **No executable row exercises a cross-checkout `finding:`/`approval:` refusal**, so this grade rests on reading the mechanism, not on an observed refusal — strictly lower confidence than SC-01/02/03 |
+| SC-07 | inspection — **mechanism-only** | **met (mechanism-only)** | `handoff_done_when.py:78-87` @4de92e75 — `root = Path(root).resolve()` then `resolved.relative_to(root)` raising `target escapes the project root`; paired with `check-domain.py:1162` `return root`. **No executable row exercises a cross-checkout `finding:`/`approval:` refusal**, so this grade rests on reading the mechanism, not on an observed refusal — strictly lower confidence than SC-01/02/03 |
 
 ### SC-02, per row — 42 rows checked individually, not by a FAIL count
 

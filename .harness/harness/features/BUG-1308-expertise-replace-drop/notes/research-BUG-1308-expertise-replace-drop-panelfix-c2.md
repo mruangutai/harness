@@ -119,7 +119,7 @@ linter, build or project-wide suite run.
 - **Q1 (non-blocking, operator/main session):** row 7 above — the cycle-1 INFO is recorded `resolved`
   rather than the lead's `OPEN`, because `case20` closed it after the digest was written. Flip it
   back only if the record must mirror the digest rather than the plan.
-- **Q2 (harness defect, non-blocking):** `check-state.sh` INV-32 expects a `goalcheck` reader entry
+- **Q2 (harness defect, non-blocking):** `check-state.py` INV-32 expects a `goalcheck` reader entry
   in `panel.readers` (`expected_readers = {"should-not-exist", "scope", "goalcheck"}`), but the
   validator lead's digest names only the two it ran; the goal-check is run in the product segment
   and is not in the validator's `readers:` list. Inventing a third entry the lead never recorded

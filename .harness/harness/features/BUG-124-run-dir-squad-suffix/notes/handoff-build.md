@@ -29,7 +29,7 @@ Open Questions Q2).
 
 - .harness/harness/features/BUG-124-run-dir-squad-suffix/STATE.md
 - .harness/harness/features/BUG-124-run-dir-squad-suffix/plan.yaml
-- .claude/skills/harness/bin/dispatch-guard.sh
+- .claude/skills/harness/bin/dispatch-guard.py
 
 ## Done when
 

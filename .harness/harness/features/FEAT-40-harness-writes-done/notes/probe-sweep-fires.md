@@ -18,7 +18,7 @@ post-merge-sweep: resolved main checkout root: /private/tmp/claude-501/-Users-mo
 ```
 
 Two `post-merge-sweep:` lines are present. That is the **first** of the two outcomes the task
-allows: the shim resolved AND `post-merge-sweep.sh` executed. The shim's
+allows: the shim resolved AND `post-merge-sweep.py` executed. The shim's
 "post-merge: ... is missing or not executable" line does not appear.
 
 ## core.hooksPath in the owner clone /Users/molchairuangutai/GitHub/harness
@@ -60,7 +60,7 @@ apply. `.claude/skills/harness/hooks` holds one hook: `post-merge`.
 ## What was measured, and what it does not cover
 
 I measured that a merge creating a commit, in a clone configured this way, executes
-`post-merge-sweep.sh`. I did **not** measure what the sweep then does — that it finds a shipped
+`post-merge-sweep.py`. I did **not** measure what the sweep then does — that it finds a shipped
 feature, or that it runs `gh-sync.py ship` correctly. T-10 measures that end to end against
 FEAT-34.
 

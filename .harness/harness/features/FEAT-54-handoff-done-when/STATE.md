@@ -12,7 +12,7 @@ force was needed) and opened **PR #1285**, recorded as `pr: 1285`. Ten of eleven
 including the unit suite, the integration suite, the plan-route, instruction-path and layout gates.
 
 **The merge is blocked by this feature's own new CI step.** The `Repository-state gate` added
-post-review as B-5 runs `check-state.sh` and exits on its status; on a GitHub runner that checker
+post-review as B-5 runs `check-state.py` and exits on its status; on a GitHub runner that checker
 reports exactly one violation — `INV-31: core.hooksPath is unset` — because `actions/checkout`
 never sets it and INV-31 asks whether THIS MACHINE runs the `post-merge` hook. The step is red by
 construction on every runner, `integration` is the single required context with

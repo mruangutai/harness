@@ -38,8 +38,8 @@ itself in the diff; the POST-change version is what ships). Per-task `change_typ
 
 | kind | required? | resolution state | evidence path | verdict |
 |---|---|---|---|---|
-| unit | yes (logic, cross_module) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | contributes PASS |
-| integration | yes (cross_module T-08) | **missing/red — named test fails** | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` → `test-anchor-directions.py` | **FAIL** |
+| unit | yes (logic, cross_module) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | contributes PASS |
+| integration | yes (cross_module T-08) | **missing/red — named test fails** | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` → `test-anchor-directions.py` | **FAIL** |
 | component | no (no `frontend` task) | not applicable (unresolved, not obligated) | — | soft skip |
 | ui | no (no `has_interaction_flow`) | not applicable (unresolved, not obligated) | — | soft skip |
 | eval | no (no `ai_behavior` task) | not applicable (`status: excluded`, DEC-187, and not obligated anyway) | — | soft skip |
@@ -51,14 +51,14 @@ itself in the diff; the POST-change version is what ships). Per-task `change_typ
 
 ## Suite-driver runs (each `rc=$?` captured immediately, never a log tail read)
 
-Driver resolved: only `.agents/skills/harness/bin/run-unit-tests.sh` exists in this repo — there
-is no separate `tests/run-unit-tests.sh` (confirmed: `ls tests/run-unit-tests.sh` → No such
+Driver resolved: only `.agents/skills/harness/bin/run-unit-tests.py` exists in this repo — there
+is no separate `tests/run-unit-tests.py` (confirmed: `ls tests/run-unit-tests.py` → No such
 file). One driver, two kind invocations.
 
 | invocation | rc | `^FAIL ` count | verdict |
 |---|---|---|---|
-| `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | **0** | satisfied |
-| `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | **1** | **2** | FAIL — both FAILs are one named test: `test-anchor-directions.py` |
+| `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** | satisfied |
+| `env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration` | **1** | **2** | FAIL — both FAILs are one named test: `test-anchor-directions.py` |
 
 The unit run's log (`/tmp/qa-unit.log`, 1270 lines) shows nine `N/N checks passed` self-test
 tallies (33, 64, 244, 30, 120, 112, 16, 15, 39, 10) and 318 `^PASS ` script lines — read for

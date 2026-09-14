@@ -62,8 +62,8 @@ not turn this into a real bottleneck at this data volume.
 
 **4. Suites**
 ```
-bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit         → EXIT=0, 0 MISCONFIGURED
-bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration  → EXIT=0, 0 MISCONFIGURED
+python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit         → EXIT=0, 0 MISCONFIGURED
+python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration  → EXIT=0, 0 MISCONFIGURED
 ```
 `test-context-watch.py`: 76 of 76 cases passed. `test-context-watch-cli.py`: 10 of 10 cases passed.
 No failing script in either kind — the pre-committed expected-FAIL set (empty) holds.
@@ -129,7 +129,7 @@ None blocking.
 Identical at both ends of this run (byte-clean):
 ```
  M .claude/skills/harness/bin/context-watch.py
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
  M .claude/skills/harness/bin/test-context-watch.py
  M .harness/harness.json
  M .harness/harness/features/FEAT-31-orchestrator-context-watch/STATE.md

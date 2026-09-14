@@ -15,12 +15,12 @@ working-tree scripts I executed are byte-identical to the pin (HEAD is `1b029f88
 
 | SC | verdict | method (BRIEF's own line) | what settles it at `e77b30ca` |
 |---|---|---|---|
-| SC-01 | met | automated / integration | All eight halves present in `tests/integration/test-check-domain.py`; my replay `run_bug1305_marker_cases()+run_bug1305_identity_cases()` = 17/17 + 10/10 exit 0, and the same replay against a c369fb1f `check-domain.sh` bin = 4/17 + 4/10 with (a) Write+Edit, (b) Write+Edit, (c) Write+Edit and (f)-legacy all red. Detail below. |
+| SC-01 | met | automated / integration | All eight halves present in `tests/integration/test-check-domain.py`; my replay `run_bug1305_marker_cases()+run_bug1305_identity_cases()` = 17/17 + 10/10 exit 0, and the same replay against a c369fb1f `check-domain.py` bin = 4/17 + 4/10 with (a) Write+Edit, (b) Write+Edit, (c) Write+Edit and (f)-legacy all red. Detail below. |
 | SC-02 | met | automated / integration | `test-check-state.py::case_bug1305_run_identity_invariant` (`:4560`) — dirty tree exit 1 with exactly 3 INV-36 lines (`runs/X`,`runs/V`,`runs/W`), clean tree exit 0 / no INV-36. Replayed: `RESULT True`. Red-before: `redproof-BUG-1305.md ## SC-02`. |
-| SC-03 | met | inspection | `check-state.sh:1489,1496,1510` — each message carries `{_run_rel}` and the `conflict`/`uid_conflict` reason naming both values; the test asserts `'A'`,`'B'`,`'U1'`,`'U2'`,`cannot be read` present and `non-checkpoint top-level key` **absent** (`test-check-state.py:4599-4601`). |
+| SC-03 | met | inspection | `check-state.py:1489,1496,1510` — each message carries `{_run_rel}` and the `conflict`/`uid_conflict` reason naming both values; the test asserts `'A'`,`'B'`,`'U1'`,`'U2'`,`cannot be read` present and `non-checkpoint top-level key` **absent** (`test-check-state.py:4599-4601`). |
 | SC-04 | met | automated / integration | `_bug1305_relative_artifact_cases` (`test-validate-digest.py:1965`) — non-compliant refused exit 2 naming the run dir; compliant passes exit 0 in the same tree; missing digest exit 2. Replayed 6/6 exit 0. Hands-off path: `.claude/settings.json:75` registers `validate-digest.py --hook` on SubagentStop. |
 | SC-05 | met | automated / integration | `run_bug1305_digest_repair_cases` — `digest Edit append repair remains allowed` exit 0 **and** `cross-run digest replacement remains refused` exit 2, both in my 5/5 replay. The allowance is not "guard removed". |
-| SC-06 | met | inspection | `check-domain.sh:1296` now reads "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior before this branch runs" — agreeing with SC-05's observed Write+Edit behaviour. No comment asserts Write-only/PRE-only of that guard. Caveat below. |
+| SC-06 | met | inspection | `check-domain.py:1296` now reads "This guard fires on Write and Edit: Edit content is reconstructed against the on-disk prior before this branch runs" — agreeing with SC-05's observed Write+Edit behaviour. No comment asserts Write-only/PRE-only of that guard. Caveat below. |
 | SC-07 | met | inspection | Both directions re-derived below against `notes/regression-delta-BUG-1305.md`. |
 | SC-09 | met | automated / integration | Same INV-36 case: `Z` (checkpoint, no witness) and `L` (witness uid, checkpoint none) are outside the 3 reported lines in *both* trees; `W` (unreadable) and `X` (seed disagreement) are reported. Fifth pin: the note's `## Suite results` now records the control-plane-root run — exit 0, 0 `INV-36` lines. |
 | SC-10 | met | automated / integration | `POST mints uid and matching witness` (32-hex + witness equality over a payload with no uid), `second POST is byte stable`, `POST preserves supplied uid bytes` — all ok at the pin; the two minting cases are **red on c369fb1f** in my own replay. |
@@ -37,7 +37,7 @@ a disagreeing witness, exit 2 + `Issue 1305`; **(a) Edit** on a parsing prior ca
 **(b)** `different minted uid is refused` / `different minted uid Edit is refused`, both asserting `U1`
 and `U2` (`:5014-5019`). **(c)** `modal collision Write/Edit omitting uid is refused` (`:5006-5013`) —
 each now asserts `U1`, `run identity`, and `"field disagreement" not in stderr`; the emitted text
-(`check-domain.sh:1698-1703` + `run_identity.uid_conflict`) names U1, says the same value is recorded
+(`check-domain.py:1698-1703` + `run_identity.uid_conflict`) names U1, says the same value is recorded
 in the witness beside it, and routes a foreign writer to a run directory of its own. **(d)** both
 recovering cases exit 0 (`:4809-4821`), green on both trees. **(e)** `DEC-154 resumed owner …` exit 0;
 `run_identity.conflict` iterates seed fields only and its comment marks `identity` forensic-only, so no
@@ -48,12 +48,12 @@ asserts the converse (`:4803-4805`). Both read the message. No `FAILS if` leg fi
 ## SC-13 — re-derived, including the cycle-11 additions
 
 Refusals: Bash write + Bash removal (`run_bug1106_bash_route`, my replay 8/8 live, **6/8 with both
-witness cases at `exit 0`** against a c369fb1f `bash-write-guard.sh` bin); Write, Edit, and now
+witness cases at `exit 0`** against a c369fb1f `bash-write-guard.py` bin); Write, Edit, and now
 `unmatched Edit` and `Edit creating false witness` of the witness (`_bug1305_marker_file_protection`,
 `:4838`). **Non-vacuity of the two new Edit cases, measured by me:** against a `dc0e0313`
-`check-domain.sh` bin, `unmatched Edit of existing witness is refused` and `Edit creating false witness
+`check-domain.py` bin, `unmatched Edit of existing witness is refused` and `Edit creating false witness
 is refused` both **FAIL at exit 0**, 15/17 — the F-04 hole was live and is now closed by path
-(`check-domain.sh:2039-2042` keys `RE_RUN_IDENTITY` ahead of Edit reconstruction). Scoping: the
+(`check-domain.py:2039-2042` keys `RE_RUN_IDENTITY` ahead of Edit reconstruction). Scoping: the
 sibling `state.yaml` Write (`run_uid is a legal checkpoint key beside identity witness`) and the
 `digest.md` Write (`digest Write append remains allowed beside identity witness`) are both exit 0 and
 both **genuinely composed** — I instantiated `_feat50_digest_fixture()` + `_bug1305_write_marker()` and
@@ -71,7 +71,7 @@ case rename, and a reordering. `## Removed or altered assertions` covers all thr
 
 **Direction two — the six pairs against the suite at the pin.** (1) `legacy checkpoint without uid
 remains allowed` exit 0. (2) `DEC-154 resumed owner …` + both SC-01(d) cases, exit 0. (3) `digest Edit
-append repair remains allowed` exit 0. (4) `check-state.sh` clean tree containing witness-less `Z`,
+append repair remains allowed` exit 0. (4) `check-state.py` clean tree containing witness-less `Z`,
 exit 0. (5) `located compliant digest passes` and `unresolvable artifact lookup still fails open`, both
 exit 0. (6) `state.yaml` Write, `digest.md` Write and the Bash `notes.txt` negative control, all exit
 0. `## Removed or altered assertions`, `## Newly refused writes` and `## Suite results` are all
@@ -104,7 +104,7 @@ message. No leg of the `FAILS if` fires.
   cycle 11 is the one that actually shows the clause. **Remedy:** add that case name beside the
   existing one in the same bullet. The pair itself is satisfied by the suite, which is why this is
   advisory.
-- **A-03 (SC-06 caveat, recorded not graded — unchanged from cycle 1).** `check-domain.sh:1240` still
+- **A-03 (SC-06 caveat, recorded not graded — unchanged from cycle 1).** `check-domain.py:1240` still
   reads "RE_RUN_DIGEST stays out because its content comparison is PRE-only." Its subject is the
   pattern's exclusion from the POST sweep and the statement is true; it asserts nothing about tool
   routes, so SC-06's operative clause holds. Flagged only because the phrasing echoes the false
@@ -120,9 +120,9 @@ message. No leg of the `FAILS if` fires.
   message names the line to carry forward and where it is recorded; POST re-injects the field; the seed
   doctrine is in the tree. Unchanged.
 - **SEC-01 / issue #1376 — directory-level `rm`/`mv`.** Now *narrower in claim, not wider in exposure*:
-  the BRIEF records it as an accepted residual under REQ-02, and `bash-write-guard.sh:788-802` states
+  the BRIEF records it as an accepted residual under REQ-02, and `bash-write-guard.py:788-802` states
   it in both the docstring and the deny message. No guard was weakened to accommodate it.
-- **`unreadable witness fails closed`** (`check-domain.sh` fail-closed branch) remains the one refusal
+- **`unreadable witness fails closed`** (`check-domain.py` fail-closed branch) remains the one refusal
   beyond the disclosed set — narrow (fires only when the prior carries no readable `run_uid` **and** the
   witness will not parse), consistent with the BRIEF's fail-closed doctrine, and covered by no
   criterion. Raised again so it is seen rather than discovered.

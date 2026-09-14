@@ -45,7 +45,7 @@ in this diff.
 ## Already-on-record items (not re-derived)
 
 - Items 1, 3, 4, 5 from the dispatch's known-findings list: acknowledged, not re-assessed here.
-- Item 2 (bash-write-guard.sh heredoc/compound-`;` misparse): its two fixing commits (`3a989a0`,
+- Item 2 (bash-write-guard.py heredoc/compound-`;` misparse): its two fixing commits (`3a989a0`,
   `71a2043`) are outside FEAT-04's own task set (T-01..T-10 land in `ff9d866`, `25493ae`,
   `ce2cd17`, `bdfa3ab`, `80a9934`, `feebf60`, `363b539`) — they're concurrent PR-review fixes, not a
   FEAT-04 deliverable, so I did not re-open the 222-line guard script to re-grade it. On direction

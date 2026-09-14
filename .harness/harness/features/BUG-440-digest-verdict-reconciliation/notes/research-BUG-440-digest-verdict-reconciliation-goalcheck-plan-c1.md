@@ -20,12 +20,12 @@ state.
 | S2 (:8) | detect and report; no auto-repair of either record | delivers | `BRIEF.md:46-48` REQ-04; SC-04 hash-before/after; T-01 intent "Write NOTHING: no repair, no rewrite, no move" |
 | S3 (:9) | scope is completed lead-hosted runs with durable digests; non-lead, incomplete, missing, legacy unchanged | delivers, with one reading to rule on (F-05) | `BRIEF.md:37-45` REQ-03(a)-(e); SC-03 pins each case separately |
 | S4 (:10) | BUG-440, full BUG flow, known cause skips the debug segment | delivers **by construction** — no text says it | plan carries exactly one task and no investigation/debug task (`plan.yaml` `tasks:` = T-01). Informational (F-08); no change |
-| S5 (:11) | `check-state.sh` and its test are main-session-direct | delivers | `plan.yaml:12-19` lanes rows; T-01 `execution_mode: main-session-direct` + `execution_reason` (DEC-174). Both grants re-measured — see §5 |
+| S5 (:11) | `check-state.py` and its test are main-session-direct | delivers | `plan.yaml:12-19` lanes rows; T-01 `execution_mode: main-session-direct` + `execution_reason` (DEC-174). Both grants re-measured — see §5 |
 | O1 (:17) | no retroactive repair of historical records | delivers | REQ-04; `BRIEF.md:99-100` out-of-scope; disclosure at `BRIEF.md:101-114` states the consequence rather than quietly repairing |
-| O2 (:18) | no change to cycle accounting, `feature.json` schema, digest-return semantics | delivers **by construction**, no criterion quantifies it (F-06) | T-01 `files:` names only `check-state.sh`, `test-check-state.py`, the red-proof note; D-04 forbids widening the `runs` 3-tuple; SC-06 catches behaviour drift |
+| O2 (:18) | no change to cycle accounting, `feature.json` schema, digest-return semantics | delivers **by construction**, no criterion quantifies it (F-06) | T-01 `files:` names only `check-state.py`, `test-check-state.py`, the red-proof note; D-04 forbids widening the `runs` 3-tuple; SC-06 catches behaviour drift |
 | F1 (:21) | "FEAT-22 recorded one `digest.md` FAIL vs `feature.json` PASS mismatch" | **contradicted by disk — the grilling's fact is wrong** (F-02) | see §3; contract unchanged |
-| F2 (:22) | `check-state.sh` validates the digest structurally but never compares its verdict | verified true, delivered | `check-state.sh:1516-1535` re-read: `validate("lead", ...)` at :1529, no comparison anywhere in the branch. T-01 hosts the check inside that branch |
-| F3 (:23) | `runs[]` has `id`, `squad`, `verdict`; run id maps to `runs/<id>/` | verified true, delivered | `check-state.sh:643-652` (3-tuple), INV-15 glob `H + "/*/features/*/runs/*/state.yaml"`; D-04 builds its side dict from that same loop |
+| F2 (:22) | `check-state.py` validates the digest structurally but never compares its verdict | verified true, delivered | `check-state.py:1516-1535` re-read: `validate("lead", ...)` at :1529, no comparison anywhere in the branch. T-01 hosts the check inside that branch |
+| F3 (:23) | `runs[]` has `id`, `squad`, `verdict`; run id maps to `runs/<id>/` | verified true, delivered | `check-state.py:643-652` (3-tuple), INV-15 glob `H + "/*/features/*/runs/*/state.yaml"`; D-04 builds its side dict from that same loop |
 
 No grilling line is silent in the sense that matters — S4 and O2 are delivered by the shape of the
 task list rather than by prose, which is the correct home for both.
@@ -93,7 +93,7 @@ BRIEF's disclosure is not scope: it adds no task and spends no cycle.
 keep it.** Conclusion unchanged; its GROUND is corrected here after panel finding
 PF-dcb6d405dd9dfba7c620224365930746 (should-not-exist, info, 2026-09-06). What the note witnesses
 is **NON-VACUITY**: that `case_bug440_digest_verdict_reconciliation()` actually fails against the
-pre-change `check-state.sh`, so the case cannot be an ever-green assertion. It does **not** witness
+pre-change `check-state.py`, so the case cannot be an ever-green assertion. It does **not** witness
 test-first ORDERING, and this note previously claimed it did ("the only evidence the ordering
 happened"): `CHECK_STATE_BIN` pointed at a `git show 772790be` copy is reproducible at any time,
 including after the check was written, so nothing in the artifact places it before the
@@ -155,7 +155,7 @@ See F-05 for the one reading the operator should confirm.
 |---|---|---|---|
 | F-01 | MED | 298 stated as the digest count in `BRIEF.md` Problem **and** copied into T-01 `intent`; baseline pinned to a sha over untracked run directories with no condition | **Corrected both** (G-13): `BRIEF.md:5-18` and `plan.yaml` T-01 `intent` para 1 — 308/308/298/4, dated observation, condition stated |
 | F-02 | MED | Grilling fact F1 is false on disk: FEAT-22's mismatches are digest `PASS` over recorded `INCOMPLETE`; the PASS-over-FAIL record is FEAT-25's | **Contract unchanged** (§3). `BRIEF.md:5-7` reworded so it no longer locates the FAIL-over-PASS record in FEAT-22; the correction reaches the operator in the briefing |
-| F-03 | MED | T-01 `intent` (b) said "the existing `else:` arm, where `_errs` is FALSY" — but the existing `else:` at `check-state.sh:1527` is entered for valid *and* invalid digests; a literal reading stacks a second finding on an invalid digest, regressing REQ-03(d) | **Corrected**: now "a NEW `else:` arm on the `if _errs:` test at :1532 … never the outer `else:` at :1527", citing REQ-03(d). SC-03 case X would have caught it, but at build cost |
+| F-03 | MED | T-01 `intent` (b) said "the existing `else:` arm, where `_errs` is FALSY" — but the existing `else:` at `check-state.py:1527` is entered for valid *and* invalid digests; a literal reading stacks a second finding on an invalid digest, regressing REQ-03(d) | **Corrected**: now "a NEW `else:` arm on the `if _errs:` test at :1532 … never the outer `else:` at :1527", citing REQ-03(d). SC-03 case X would have caught it, but at build cost |
 | F-04 | MED | Disclosure pairs unlabelled and no answerable ruling; reconciliation ticket ownerless | **Corrected**: `BRIEF.md:101-114` — labelled *recorded → digest*, run ids, the `INCOMPLETE`-is-not-a-verdict note, and the yes/no ruling with a named owner |
 | F-05 | LOW | The grilling says "legacy-run behavior remains unchanged"; a legacy record such as FEAT-22's `INCOMPLETE` *will* now fire. The operator-approved contract governs and admits no legacy exemption | **No change.** The tension is resolved by the later, explicit contract and is now visible in the disclosure the operator rules on. Do not add an exemption without that ruling |
 | F-06 | LOW | Nothing quantifies "no `feature.json` schema or cycle-accounting change" | **No change.** Enforced by construction — T-01 `files:` names three files, none of them the schema — and SC-06 catches behavioural drift. A criterion here would be true by construction (P-03) |
@@ -166,8 +166,8 @@ See F-05 for the one reading the operator should confirm.
 
 - `check-plan-routes.py <this plan>` → `0 violation(s)`, exit 0. The one `DEVIATION` line for T-01 is
   the DEC-174 carve-out D-06 predicts and accepts.
-- `check-domain.sh --resolve` on all three lanes paths (G-02, every path, not a sample):
-  `check-state.sh` → backend-dev, dev-ops; `test-check-state.py` → backend-dev, dev-ops, qa;
+- `check-domain.py --resolve` on all three lanes paths (G-02, every path, not a sample):
+  `check-state.py` → backend-dev, dev-ops; `test-check-state.py` → backend-dev, dev-ops, qa;
   `notes/redproof-BUG-440.md` → orchestrator. **All three `resolve:` fields verbatim-accurate.**
 - Post-amend reload **as observed by this goal-check on 2026-09-06, before the plan panel was
   transcribed**: `approval: {status: pending}`, no `panel` key, 1 task, 6 decisions, T-01 keys

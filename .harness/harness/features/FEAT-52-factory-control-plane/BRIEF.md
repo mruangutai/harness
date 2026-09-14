@@ -48,7 +48,7 @@ Named by number; each says whether it BLOCKS or SUPPLIES.
 
 - DEC-100 SUPPLIES: `SubagentStart` fires for nested spawns, so the one registered hook reaches
   lead-spawned members, not only top-level agents.
-- The `inject-expertise.sh` contract BLOCKS one design: `DECISIONS.md:1503` and the script's own
+- The `inject-expertise.py` contract BLOCKS one design: `DECISIONS.md:1503` and the script's own
   header fix it at "always exits 0 so it can never block a spawn", and all seventeen of its existing
   cases assert exit 0. An assertion that exits 2 from that hook contradicts a signed contract.
 - FEAT-42 T-16 SUPPLIES the resolver: `harness_boundary.resolve_root(<bin dir>)`, reached through the
@@ -61,10 +61,10 @@ Named by number; each says whether it BLOCKS or SUPPLIES.
   job, the precedent `check-plan-routes.py` set.
 - DEC-182 SUPPLIES the plan format; `plan-merge.py` is the only write route.
 - DEC-204 SUPPLIES the feature identity a write anchor needs: the FIRST line of every governed
-  dispatch is exactly `HARNESS-FEATURE: FEAT-NN-slug`, refused by `dispatch-guard.sh` when absent,
+  dispatch is exactly `HARNESS-FEATURE: FEAT-NN-slug`, refused by `dispatch-guard.py` when absent,
   so an agent always holds its own feature id with certainty. The same decision BLOCKS the
-  hook-side alternative: `dispatch-guard.sh:76-80` records the measurement that `tool_input.prompt`
-  exists only on the dispatch payload and reaches no other hook, so `inject-expertise.sh` cannot
+  hook-side alternative: `dispatch-guard.py:76-80` records the measurement that `tool_input.prompt`
+  exists only on the dispatch payload and reaches no other hook, so `inject-expertise.py` cannot
   know which feature a spawn belongs to.
 - DEC-116 BLOCKS the obvious remedy for the shell-less case: `harness-product-lead`,
   `harness-eng-lead` and `harness-validator-lead` hold no `Bash` **by design**, so a lead cannot do
@@ -165,7 +165,7 @@ path in this list is a READ target and anchors to the control plane.
   `git show <review_sha>:<path>`.
   verify: automated        evidence: integration
 - SC-12: The spawn-time assertion can report RED on PATH DRIFT for the agent actually spawning, not
-  merely on an unresolved root. `inject-expertise.sh` scans the four instruction files every harness
+  merely on an unresolved root. `inject-expertise.py` scans the four instruction files every harness
   agent receives — `.omp/agents/<agent_type>.md` and the three always-preloaded skills
   `harness-handoff`, `harness-expertise`, `harness-principles` — with the lint's own rule, and emits
   either `HARNESS_PATH_DRIFT: none` or `HARNESS_PATH_DRIFT: <n> unanchored path(s)` followed by up
@@ -176,7 +176,7 @@ path in this list is a READ target and anchors to the control plane.
 - SC-13: A persona that holds no shell is never left to guess its write anchor, and the refusal is
   observable at runtime. Against a temporary owner root carrying `.omp/agents/` entries for one
   shell-less persona (`harness-product-lead`, tools `read, glob, grep, task, write`) and one that
-  holds `bash` (`harness-backend-dev`), `dispatch-guard.sh` is fired with four payloads and
+  holds `bash` (`harness-backend-dev`), `dispatch-guard.py` is fired with four payloads and
   asserted separately on each: a dispatch to the shell-less persona carrying no
   `HARNESS-FEATURE-TREE-ROOT:` line exits 2 with stderr naming that persona AND the missing line;
   the same dispatch carrying the line with the value `inflight_registry.feature_root` resolves
@@ -196,7 +196,7 @@ path in this list is a READ target and anchors to the control plane.
   a count.
   verify: inspection
 - SC-15: The anchored feature-directory WRITE is allowed from where a factory worker actually
-  stands, not only from the harness checkout. `check-domain.sh` is fired with a `Write` whose
+  stands, not only from the harness checkout. `check-domain.py` is fired with a `Write` whose
   `file_path` is the ABSOLUTE receipt path under the feature tree root, with the process working
   directory set to a temporary product-shaped checkout that is NOT that root, and the test asserts
   exit 0. That half alone is not evidence: exit 0 is also what a path outside every base returns,

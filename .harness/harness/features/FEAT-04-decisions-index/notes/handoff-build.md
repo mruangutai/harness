@@ -19,8 +19,8 @@ vacuous. Restore it and byte-verify `git status --porcelain` before any commit.
 
 - 170 rows, 190 lines, 0 `RULING PENDING`, 0 `ok-stale`; ruling words min 13 / median 24 / max 30,
   none over the cap — measured by me, not relayed — verified-at bdfa3ab
-- `run-unit-tests.sh` exit 0, no `MISCONFIGURED`, no `SKIP` line; `check-docs.sh` exit 0 at 45
-  patterns across 101 files; `check-state.sh` exit 0 — run by me — verified-at bdfa3ab
+- `run-unit-tests.py` exit 0, no `MISCONFIGURED`, no `SKIP` line; `check-docs.sh` exit 0 at 45
+  patterns across 101 files; `check-state.py` exit 0 — run by me — verified-at bdfa3ab
 - SC-05 proven NON-vacuously: regenerate then `git diff --exit-code` is exit 0 with a byte-clean tree,
   against the **committed** file. On an untracked file that command exits 0 having tested nothing,
   which is why T-08 step 4 was carved out of the member's dispatch — verified-at ce2cd17

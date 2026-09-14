@@ -29,7 +29,7 @@ criterion is what is graded. The remedy side closes the same argument independen
 owner — runs no gate at all, so a reading that demanded every cause travel the real gate would have made
 both sanctioned remedies non-compliant on arrival.
 
-Consequence, stated so it is not silently assumed: no `check-state.sh` hook is needed, and no DEC-174
+Consequence, stated so it is not silently assumed: no `check-state.py` hook is needed, and no DEC-174
 carve-out change is on the table for SC-10.
 
 **What the uncovered cause actually costs.** `no-rows` is one of five causes `cause_text` defines
@@ -38,7 +38,7 @@ carve-out change is on the table for SC-10.
 phrase "no reader rows for this surface". It is **not** pinned at the gate call site: `case_x` in
 `test-check-state.py:1587` covers mixed, a generic CANNOT VERIFY, two absence cases and the unimportable
 case, never no-rows specifically. The residual is small and nameable: the gate's CANNOT_VERIFY branch
-(`check-state.sh:1319-1323`) is a single f-string interpolating `cause_text` with **no per-cause
+(`check-state.py:1319-1323`) is a single f-string interpolating `cause_text` with **no per-cause
 branching**, so the only defect this misses is a cause-specific post-filter that does not exist and
 would have to be deliberately added. The test's comment near `:396` claims the gap is carried by
 `case_x` and `cause_text` unit coverage; per P-09 I read the assertions rather than the comment — half
@@ -53,7 +53,7 @@ that claim (the `cause_text` half) is true, the `case_x` half is not.
    T-01's verify still holds for this file.
 2. **The hand-written mirror is gone.** `git show b1d3925:.claude/skills/harness/bin/test-layout-migration.py
    | grep -c _inv27_text` -> **0**. Re-derived, not adopted.
-3. **The gate really is the gate.** `_CHECK_STATE = os.path.join(HERE, "check-state.sh")` is invoked via
+3. **The gate really is the gate.** `_CHECK_STATE = os.path.join(HERE, "check-state.py")` is invoked via
    `subprocess.run(..., cwd=tmp, env CLAUDE_PROJECT_DIR=tmp)` and the INV-27 lines are filtered out of
    real stdout; the CI side is `lm.render(lm.scan(tmp))` over the same tree. The gate consumes
    `blame_text`/`cause_text` directly and assembles its own line — it does **not** call `render()`, which
@@ -67,14 +67,14 @@ that claim (the `cause_text` half) is true, the `case_x` half is not.
 
 | # | Side changed alone | Mutation | case-20 FAILs |
 |---|---|---|---|
-| M1 | gate (`check-state.sh` MIXED branch) | drop the last blamed reader from `blame_text` output | 1 |
-| M2 | gate (`check-state.sh` CANNOT_VERIFY branch) | drop the last blamed reader from `_named` | 2 |
-| M3 | gate (`check-state.sh` CANNOT_VERIFY branch) | replace `cause_text(...)` with a constant | 4 |
+| M1 | gate (`check-state.py` MIXED branch) | drop the last blamed reader from `blame_text` output | 1 |
+| M2 | gate (`check-state.py` CANNOT_VERIFY branch) | drop the last blamed reader from `_named` | 2 |
+| M3 | gate (`check-state.py` CANNOT_VERIFY branch) | replace `cause_text(...)` with a constant | 4 |
 | M4 | CI (`layout_migration.render`) | drop the last reader from the `readers:` clause | 3 |
 | M5 | CI (`layout_migration.render`) | replace the cause clause with a constant | 4 |
 
 M1-M3 are exactly the direction cycle 1 proved blind (`sc_status` SC-10 at `d033b9d`: "the same drop
-inside check-state.sh leaves case 20 at 0 FAIL"). They now redden. M4-M5 change only `render()`, which
+inside check-state.py leaves case 20 at 0 FAIL"). They now redden. M4-M5 change only `render()`, which
 no call site shares, so they are CI-only by construction. Both directions hold, on both properties
 (reader set and cause clause).
 
@@ -98,9 +98,9 @@ no call site shares, so they are CI-only by construction. Both directions hold, 
   (`test-layout-migration.py`, 61+/64-). SC-12 was graded met at `d033b9d`, before that commit existed,
   and this dispatch does not re-open it — so this is flagged for the operator, not re-graded. Fixing
   SC-10 is what created the collision; the same collision was noted in commit `649b36b`'s subject.
-- **Q2 (non-blocking, design consequence — intended?):** `bash-write-guard.sh` blocked `... >"$u"` from
+- **Q2 (non-blocking, design consequence — intended?):** `bash-write-guard.py` blocked `... >"$u"` from
   T-01's own `verify:` with `redirect targets "xx", outside your domain`. I read the guard rather than
-  guessing: `mask_quoted` (`bash-write-guard.sh:155-179`) blanks the *contents* of every quoted span to
+  guessing: `mask_quoted` (`bash-write-guard.py:155-179`) blanks the *contents* of every quoted span to
   `x`s by design, deliberately keeping the redirect visible so a quoted target still blocks —
   documented as failing safe. So this is **not** a variable-resolution bug; it is the designed
   fail-closed path, and it applies to **any quoted redirect target**, literal or variable. The

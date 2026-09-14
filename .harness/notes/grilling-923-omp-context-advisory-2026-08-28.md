@@ -88,7 +88,7 @@ than fog** (per the fog test: sharpness of the question, not availability of the
   from omp, not introduced here. We read what the host's own status line shows.
 - **An external watchdog.** Rejected in #923 §4 on structural grounds: it cannot spawn the
   replacement orchestrator (DEC-120 makes main the sole user channel, DEC-147 rejects same-layer peer
-  spawns, and an external process cannot dispatch through `dispatch-guard.sh` at all).
+  spawns, and an external process cannot dispatch through `dispatch-guard.py` at all).
 - Fixing the wording-assertion test class beyond `test-orchestrator-playbook.py` case 4.
 
 ## Facts I verified (so pm does not re-derive them)
@@ -101,7 +101,7 @@ All at `7ebfc9e` (`origin/main`, PR #922 merged) unless noted.
   breach it.
 - **The hook cannot fire under OMP.** `.omp/config.yml:1-3` disables the Claude provider, and
   `check-omp-port.py:61-62` enforces that as a port invariant.
-- **Nothing blocks deletion.** Zero `context-watch` matches in `check-state.sh`; INV-9's hook
+- **Nothing blocks deletion.** Zero `context-watch` matches in `check-state.py`; INV-9's hook
   enumeration (`:316-424`) names inject-expertise and check-domain only. No invariant asserts these
   files exist.
 - **#923 undercounts the delete list by one file, and it is the one nothing would have caught.**
@@ -139,7 +139,7 @@ All at `7ebfc9e` (`origin/main`, PR #922 merged) unless noted.
 - **Mechanical guards that actually move**, all of which must change in the same commit:
   `case4_presence_host_context_signal` in `test-orchestrator-playbook.py` (a regex requiring the
   phrase `host's current-session context signal` in `SKILL.md` — this is what the step 5 rewrite
-  invalidates), `run-unit-tests.sh:17-18` (three registered test scripts), and `harness.json`'s
+  invalidates), `run-unit-tests.py:17-18` (three registered test scripts), and `harness.json`'s
   integration `detect` list (names the context-watch test files explicitly). Re-verify each anchor
   at source before editing; two of the three line numbers handed to pm were already stale.
 - **The module/cutover split is established precedent, from this very mechanism's original build.**

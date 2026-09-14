@@ -43,7 +43,7 @@ the main session records the operator's acceptance of finding 1's risk; no lead 
 no reconciliation needed)`. Two reasons, and the second is decisive:
 
 1. **The panel shape does not constrain a finding's `reader`.** `plan-merge.py::_load_panel_value`
-   validates only `last_run` (str), `cycle` (int), `readers` (list), `findings` (list); check-state.sh
+   validates only `last_run` (str), `cycle` (int), `readers` (list), `findings` (list); check-state.py
    INV-32 reads a finding's `id`, `severity` and `disposition` only, and matches its
    `expected_readers` set against `panel.readers[]`, never against `findings[].reader`. So the
    conditional in the dispatch ("if the shape constrains it") does not fire.
@@ -54,7 +54,7 @@ no reconciliation needed)`. Two reasons, and the second is decisive:
 **This is load-bearing because the id hashes over the stored reader string.** Had the primary-reporter
 form been stored, the id would be `PF-5ac9194207536d394931574afe59efee`. If a later cycle rewrites the
 reader to a bare step id, F3 gets a NEW id and any ruling recorded against `PF-8b58532…` goes stale —
-which check-state.sh reports, by design.
+which check-state.py reports, by design.
 
 ## Field mapping — `why` is the digest's `consequence`
 
@@ -95,8 +95,8 @@ lead's digest findings carry `summary`, `consequence` and `lead_check`. `why` :=
 ## Open questions
 
 - **Q1 (non-blocking, harness defect):** `panel.readers[]` entries are written with a `step:` key (the
-  shape cycle 1 pinned and this cycle repeats), but check-state.sh INV-32 keys those entries by a
-  `reader:` field (`check-state.sh:537-540`). Against an approved plan every expected reader would
+  shape cycle 1 pinned and this cycle repeats), but check-state.py INV-32 keys those entries by a
+  `reader:` field (`check-state.py:537-540`). Against an approved plan every expected reader would
   therefore read as "never ran or was not recorded" — a fail-closed violation on a correctly recorded
   panel. It does not fire today (INV-32 grades approved plans only, and this one is `pending`), but it
   fires the moment the main session signs. Either the writer or the invariant is wrong; that is the

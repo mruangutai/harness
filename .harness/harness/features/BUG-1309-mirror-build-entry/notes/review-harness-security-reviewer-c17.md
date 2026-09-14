@@ -16,7 +16,7 @@ new blocks + `fixture()`/`gate()`/`check()` helpers). Measured, at the pin:
 - A 27-case pure-Python sweep of `merge_ref()` imported directly from the pinned file (no shell,
   no HEAD movement — this sandbox's `bash-write-guard` blocks every `git merge`/undetermined-git
   invocation outright, so verification is against the parser itself plus the fixture-driven suite,
-  which already runs real `bash merge-gate.sh` subprocesses). Full input/output table below.
+  which already runs real `./merge-gate.py` subprocesses). Full input/output table below.
 
 ## Threat model — bypass of an enforcement gate, not a web-app surface
 This script is a PreToolUse hook; the "input" is a shell command line an agent/human is about to

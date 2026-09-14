@@ -91,10 +91,10 @@ out a SHA. Treat them as working-tree anchors; qa's git-pinned measurement (it r
   the expression reduces to `not _tb and c == 1`. The comment at `:1567-1569` claims "the case
   checks that INV-13 ... still ran", which the code does not do.
   I FIRST WROTE that the remedy was `_later_ran = "INV-13" in out`. That is wrong twice over:
-  (1) INV-13's own messages (`check-state.sh:1293-1297`) never contain the literal "INV-13" —
+  (1) INV-13's own messages (`check-state.py:1293-1297`) never contain the literal "INV-13" —
   the string appears only in the comment at `:1286` — so the sub-expression is UNSATISFIABLE,
   not merely redundant, and the plain conjunct would redden the case permanently;
-  (2) it is barely needed, because `check-state.sh:1366-1370` prints EVERYTHING at the very end
+  (2) it is barely needed, because `check-state.py:1366-1370` prints EVERYTHING at the very end
   after all invariants have run, so an abort yields EMPTY stdout and already reddens the
   sibling `reports` case via `bool(ls)`. The real remedy, if the intent is to be honest, is
   `bool(_lines(out))` — any output at all proves the run reached `:1366` — or to delete the
@@ -125,7 +125,7 @@ out a SHA. Treat them as working-tree anchors; qa's git-pinned measurement (it r
   no-false-negatives, and that holds.
 
 - 2026-08-19 (run 5): INV-26's marker slice is CORRECT and wider than the plan predicted.
-  `check-state.sh:1100` BEGINS, `:1284` ENDS, one occurrence each, and INV-13 starts at `:1286`
+  `check-state.py:1100` BEGINS, `:1284` ENDS, one occurrence each, and INV-13 starts at `:1286`
   — so the slice is exactly INV-26 and over-spans nothing. The intent said "roughly lines 1100
   to 1200"; the real block is 184 lines. A marker-count check alone would not have caught a
   misplaced ENDS; reading what FOLLOWS the marker is what settles it.
@@ -161,16 +161,16 @@ out a SHA. Treat them as working-tree anchors; qa's git-pinned measurement (it r
 - 2026-08-19 (run 5): `feature.json:6` records `review_sha: b0604c3` — the SHA of the run that
   FAILED — while this run reviewed `0fa6315`. I ran the discriminating check before rating it:
   `review.yaml:9` says "review_sha IS PINNED BY THE CALLER, never read from" feature.json, and
-  `feature-schema.json:37` says check-state.sh only tests it against PLACEHOLDER_UNSET. So
+  `feature-schema.json:37` says check-state.py only tests it against PLACEHOLDER_UNSET. So
   nothing downstream validates a diff against the recorded value — it is record accuracy, not
   gate correctness, which is what demotes it from escalation to a note. Worth saying anyway:
   INV-6 checks that review_sha is PINNED, never that it is CURRENT — a gate checking presence
   rather than correctness, which is this feature's own subject.
 
 - 2026-08-19 (run 5): CHECK THE GRANT BEFORE NAMING AN OWNER IN must_fix (my own G-12). Last run
-  I corrected qa for routing a `check-state.sh` fix to a dev who may not touch it; this run I
+  I corrected qa for routing a `check-state.py` fix to a dev who may not touch it; this run I
   nearly shipped the mirror-image error by naming `harness-backend-dev` without looking. The
-  manifest is `.harness/team-config.yaml`, NOT `check-domain.sh` — I grepped check-domain.sh
+  manifest is `.harness/team-config.yaml`, NOT `check-domain.py` — I grepped check-domain.py
   first and got zero matches, which proves nothing about the grant. `:161` gives
   harness-backend-dev `{ path: .claude/skills/harness/bin/**, upsert: true }`, so
   test-factory-decompose.py IS writable by it and is not one of DEC-174's four carve-out files.
@@ -237,7 +237,7 @@ cost nothing and would have converted the whole run to BLOCKED had it come back 
   message plus a silently skipped station write, i.e. verbatim the BRIEF's own problem statement.
   DEAD: `board-station.py:114-133` guards file-missing, unreadable, non-dict, absent-github,
   sync-off and repo-unpinned FIRST, so by `:140` the reachable `board is None` is the explicit-null
-  cell ONLY. Same shape at `gh-sync.py:135-151` and `check-state.sh:1138-1147`.
+  cell ONLY. Same shape at `gh-sync.py:135-151` and `check-state.py:1138-1147`.
   (b) A FIXTURE MODELLING AN IMPOSSIBLE FLEET — `test-factory-claim.py:200`'s `repo_dict` nests a
   `board` under a repos entry, exactly the shape SC-01 requires `load_fleet` to REJECT. DEAD on
   reading the docstring three lines up (`:196-199`): a deliberate TEST-SIDE carrier, stripped by
@@ -274,7 +274,7 @@ cost nothing and would have converted the whole run to BLOCKED had it come back 
   lack. Without that control the same grep is indistinguishable from cleanliness.
   CONVERGENCE IS NOT PROOF, and I said so in the digest: code-reviewer reached it by reading the
   raise sites, security by an adversarial census, me by the grep plus plan cross-reference — and
-  NONE of us mutation-proved it. Security tried and `bash-write-guard.sh` correctly refused. Three
+  NONE of us mutation-proved it. Security tried and `bash-write-guard.py` correctly refused. Three
   independent searches agreeing raises confidence a lot and is still not a failing mutant.
 
 - 2026-08-19 (run 9): A ONE-SURFACE MEMBER FINDING THAT WAS ACTUALLY FIVE, and the extension is the
@@ -316,7 +316,7 @@ cost nothing and would have converted the whole run to BLOCKED had it come back 
   only when ALL its clauses are, and "met with a footnote" is how an uncleared half ships as done.
   My own P-12, caught one step from publication.
 
-- 2026-08-19 (run 9): I PASSED `model:` IN THREE DISPATCHES AND `dispatch-guard.sh` BLOCKED ALL
+- 2026-08-19 (run 9): I PASSED `model:` IN THREE DISPATCHES AND `dispatch-guard.py` BLOCKED ALL
   THREE. My own G-12 is about checking capability before routing AROUND it; this is the inverse
   error — reaching for a capability I was never granted. A model pin is org design (DEC-152/155),
   and a task needing a stronger model is an ESCALATION, not a dispatch parameter. Cost: one wasted

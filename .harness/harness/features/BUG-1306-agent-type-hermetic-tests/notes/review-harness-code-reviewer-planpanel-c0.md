@@ -56,7 +56,7 @@ no-regression check on an already-passing invocation, not part of that narrative
   and amend-only internals, never `cmd_sign_approval`, and `plan-merge.py`'s module-level code
   never touches `HARNESS_AGENT_TYPE` (it's read only inside `cmd_sign_approval`'s body,
   `plan-merge.py:1188`), so these imports are unaffected by the pop either way. `.github/workflows/
-  tests.yml` invokes `.agents/skills/harness/bin/run-unit-tests.sh --kind integration`, sets no
+  tests.yml` invokes `.agents/skills/harness/bin/run-unit-tests.py --kind integration`, sets no
   `HARNESS_AGENT_TYPE`, so CI is already clean and this fix cannot change CI's result — matches
   the BRIEF's own framing and pm's Q1. `run_verb`'s `env=None` default (`:137`) and the negative
   control's env-filter dict (`:1130`) both become redundant no-ops post-pop exactly as the plan's
@@ -64,7 +64,7 @@ no-regression check on an already-passing invocation, not part of that narrative
   variable, unaffected. No orphan caller found.
 - **SC-05 confinement.** The amended two-dot-pinned form grades the same twice under normal
   (fast-forward, non-rebased) `main` history. It closes all three escape routes the probe named:
-  editing `plan-merge.py` or a runner (`run_pool.py`/`run-unit-tests.sh` — both live under the same
+  editing `plan-merge.py` or a runner (`run_pool.py`/`run-unit-tests.py` — both live under the same
   `.claude/skills/harness/bin/`/`.agents/skills/harness/bin/` prefixes SC-05 already refuses) and
   editing a second test file (caught by the "only" wording, independent of the explicit restatement).
   The "Harness lifecycle artifacts" clause admits anything under

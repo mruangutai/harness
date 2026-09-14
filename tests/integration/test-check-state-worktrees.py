@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-25, INV-27, INV-29 and INV-31: the checkout itself.
+"""check-state.py INV-25, INV-27, INV-29 and INV-31: the checkout itself.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). Every fixture here is
 a REAL git repository — an out-of-place worktree (INV-25), the layout-migration invariant
@@ -32,7 +32,7 @@ def case_u():
     `git worktree list --porcelain`, so a hand-built .git pointer would not appear in
     that output at all and the case would pass vacuously.
 
-    EVERY DIRECTORY USED AS A RUN ROOT GETS make_fixture. check-state.sh exits 1 with
+    EVERY DIRECTORY USED AS A RUN ROOT GETS make_fixture. check-state.py exits 1 with
     "project not onboarded" before any invariant runs, so a bare worktree root would
     exit non-zero while printing no INV-25 line, and these assertions could never be
     satisfied by correct code.
@@ -146,17 +146,17 @@ def case_u():
         isobin = os.path.join(tmp2, ".agents", "skills", "harness", "bin")
         os.makedirs(isobin)
         _bin = os.path.dirname(os.path.abspath(SCRIPT))
-        for fn in ("check-state.sh", "harness_yaml.py"):
+        for fn in ("check-state.py", "harness_yaml.py"):
             shutil.copy(os.path.join(_bin, fn), os.path.join(isobin, fn))
-        os.chmod(os.path.join(isobin, "check-state.sh"), 0o755)
+        os.chmod(os.path.join(isobin, "check-state.py"), 0o755)
         b = _repo(os.path.join(tmp2, "B"))
         _add_wt(b, os.path.join(tmp2, "B-sib"))
         make_fixture(b, '{}', "  parent: 40")
         env = _root_env(b)
-        r = subprocess.run([os.path.join(isobin, "check-state.sh")], cwd=b,
+        r = subprocess.run([os.path.join(isobin, "check-state.py")], cwd=b,
                            capture_output=True, text=True, env=env)
         # THE VERDICT MOVED FROM A FINDING TO A REFUSAL, and it moved LOUDER (FEAT-42
-        # T-12). check-state.sh now resolves its own root through harness_boundary, so a
+        # T-12). check-state.py now resolves its own root through harness_boundary, so a
         # tree where that module cannot be imported is one this script cannot even locate
         # — it exits 2 before any invariant runs, naming the module on stderr, instead of
         # exiting 1 with an INV-25 CANNOT RUN line. The property this case exists to hold
@@ -282,7 +282,7 @@ def case_x():
 
     # x.5 layout_migration unimportable -> the CANNOT RUN wording, exit 1. The script
     # prepends ITS OWN dir to PYTHONPATH, so a shadow dir cannot outrank the real
-    # module. Faithful route: run a COPY of check-state.sh from a bin dir holding its
+    # module. Faithful route: run a COPY of check-state.py from a bin dir holding its
     # one hard import (harness_yaml) and NO layout_migration.py — the same failure an
     # operator gets when the module is deleted from the tree.
     with tempfile.TemporaryDirectory() as tmp:
@@ -290,7 +290,7 @@ def case_x():
         import shutil
         bindir = os.path.join(tmp, "binx")
         os.makedirs(bindir)
-        shutil.copy(SCRIPT, os.path.join(bindir, "check-state.sh"))
+        shutil.copy(SCRIPT, os.path.join(bindir, "check-state.py"))
         # EVERY MODULE EXCEPT layout_migration.py, STATED AS THAT RATHER THAN AS A LIST.
         #
         # This was an explicit list of the script's imports, and the list was the defect. It
@@ -311,7 +311,7 @@ def case_x():
                         os.path.join(bindir, _f))
         env = dict(os.environ)
         env = _root_env(tmp, env)
-        r = subprocess.run([os.path.join(bindir, "check-state.sh")],
+        r = subprocess.run([os.path.join(bindir, "check-state.py")],
                            cwd=tmp, capture_output=True, text=True, env=env)
         ls = inv(r.stdout)
         ok = r.returncode == 1 and any("CANNOT RUN" in l for l in ls)
@@ -512,7 +512,7 @@ def case_inv29():
         results.append(("(d.3) and says remove will DECLINE until the changes are dealt with",
                         "DECLINE" in line, line))
 
-    # ---- (e) SC-04, a SECOND repository, from ONE check-state.sh run --------------------
+    # ---- (e) SC-04, a SECOND repository, from ONE check-state.py run --------------------
     #
     # THE FIXTURE IS FLEET-RESOLVED, per D-10, and is NOT a directory placed under the
     # harness checkout's own WORKTREES_SEGMENT — no such second repository can exist, because

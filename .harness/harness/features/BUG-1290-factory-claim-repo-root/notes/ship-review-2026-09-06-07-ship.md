@@ -84,7 +84,7 @@ But you asked for B-3 rather than shipping with it, so if you want B-16 closed t
 
 ## The record's own gates — three violations I found and did not create
 
-I ran `check-state.sh` before writing this. It exits non-zero. Two of its findings were mine and I
+I ran `check-state.py` before writing this. It exits non-zero. Two of its findings were mine and I
 fixed them: a stray scratch worktree one of my QA dispatches left behind, and two fixture task ids
 in `STATE.md` that the invariant reads as references to plan tasks that do not exist. Both are
 gone; I re-ran the check to confirm.
@@ -175,7 +175,7 @@ I did not re-read them individually. If you want a phase re-derived from primary
 which.
 
 Every number in the "what actually changed" table, the empty production diff, the T-01 verify
-status on both trees, the B-16 one-line-deletion result, and every `check-state.sh` finding above
+status on both trees, the B-16 one-line-deletion result, and every `check-state.py` finding above
 are **my own measurements**, not any agent's. Everything else is attributed.
 
 ---
@@ -194,7 +194,7 @@ had it fixed.** Rows B-16 onward are new since yesterday.
 | B-4 | chore | **`factory_claim.py:38` `_BIN_DIR` is dead within its module.** Its only reader is unit case `5d`, via `claim._BIN_DIR`. A later cleanup deletes it and reddens `5d` for a reason unrelated to what `5d` tests. Repoint `5d` at `fc._BIN_DIR`. |
 | B-5 | chore | **`features_root`'s join is not traversal-safe in isolation.** `"owner/../../etc/passwd"` escapes the harness root; `"owner/"` collapses the segment. **Not attacker-reachable today** — candidate filtering matches exact `fleet.yaml` membership first. Defence in depth only. |
 | B-6 | bug | **The `feature`-label-derived join is unvalidated, and `feature` *is* attacker-influenced** (`factory_claim.py:170,190`). **Pre-existing**; belongs to the factory owner, not this diff. |
-| B-7 | chore | **`segment_of`'s docstring claims to be "the one home of that rule" and the tree disagrees.** Four identical derivations survive (`post-merge-sweep.sh:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`). Correctly out of scope; nothing indexes them. |
+| B-7 | chore | **`segment_of`'s docstring claims to be "the one home of that rule" and the tree disagrees.** Four identical derivations survive (`post-merge-sweep.py:163`, `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`). Correctly out of scope; nothing indexes them. |
 | B-8 | chore | `_BlockerCache._plan` and `.issue_number` build the `(repo, feature)` key inline in two places rather than through one accessor. Declined at the pin boundary. |
 | B-9 | chore | `features_root(repo)` is resolved at three call sites in `_BlockerCache`. Measured inert (13.32 µs per call, at most twice per unique pair per poll). Shape note only. |
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You declined to rule on it; queued here so it survives. |
@@ -205,7 +205,7 @@ had it fixed.** Rows B-16 onward are new since yesterday.
 
 | ID | Nature | Finding |
 |---|---|---|
-| B-23 | bug | **The plan-panel record is incomplete and `check-state.sh` INV-32 is red on it.** The invariant expects readers `scope`, `should-not-exist` and `goalcheck` recorded; it reports all three unrecorded, and the plan's `panel:` block carries two steps and no `goalcheck`. `plan.yaml` is byte-identical to the previous pin, so this predates this cycle. Only the product manager may write `panel:`. |
+| B-23 | bug | **The plan-panel record is incomplete and `check-state.py` INV-32 is red on it.** The invariant expects readers `scope`, `should-not-exist` and `goalcheck` recorded; it reports all three unrecorded, and the plan's `panel:` block carries two steps and no `goalcheck`. `plan.yaml` is byte-identical to the previous pin, so this predates this cycle. Only the product manager may write `panel:`. |
 | B-24 | chore | **No `notes/handoff-build.md` exists** — the build seam was crossed without one. Flagged by the invariant. Deliberately not fabricated after the fact. |
 | B-25 | chore | **Run bookkeeping fails its own contracts.** Every run's `state.yaml` carries keys the checkpoint schema forbids (`run_uid` from this cycle's leads; prose keys from yesterday's), and five run digests fail the lead digest contract. Systemic lead behaviour, both cycles. |
 

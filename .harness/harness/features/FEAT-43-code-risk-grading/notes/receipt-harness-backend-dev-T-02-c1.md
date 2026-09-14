@@ -24,7 +24,7 @@ Python 3.14.5
 The signed command was then invoked unchanged in that prepared environment:
 
 ```text
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Exit status: 0.
@@ -1482,4 +1482,4 @@ No T-02 production or test code changed in cycle 1. T-02 files across the task r
 - `.claude/skills/harness/bin/code_grade.py`
 - `.claude/skills/harness/bin/test-code-grade.py`
 
-This receipt is the only cycle-1 file changed. `run-unit-tests.sh` was not edited. No formatter, linter, integration suite, project-wide build/suite, or unrelated task was run.
+This receipt is the only cycle-1 file changed. `run-unit-tests.py` was not edited. No formatter, linter, integration suite, project-wide build/suite, or unrelated task was run.

@@ -18,13 +18,13 @@ lanes:
       reason: "DEC-174 extends to the enforcement layer's own tests, edited directly and run explicitly"
     - surface: .claude/agents/harness-code-reviewer.md
       lane: main-session-direct
-      reason: "check-domain.sh --resolve returns NOBODY at c369fb1f"
+      reason: "check-domain.py --resolve returns NOBODY at c369fb1f"
     - surface: .omp/agents/harness-code-reviewer.md
       lane: main-session-direct
-      reason: "check-domain.sh --resolve returns NOBODY at c369fb1f"
+      reason: "check-domain.py --resolve returns NOBODY at c369fb1f"
     - surface: .claude/skills/harness-code-review/SKILL.md
       lane: main-session-direct
-      reason: "check-domain.sh --resolve returns NOBODY at c369fb1f"
+      reason: "check-domain.py --resolve returns NOBODY at c369fb1f"
     - surface: .harness/harness/docs/DECISIONS.md
       lane: team
       agent: harness-documentor
@@ -376,7 +376,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both agent-file copies, so no team lane may write them
+    execution_reason: check-domain.py --resolve returns NOBODY for both agent-file copies, so no team lane may write them
     depends_on: [T-01]
     status: done
     files:
@@ -482,7 +482,7 @@ tasks:
     traces: [REQ-01, REQ-03]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-code-review/SKILL.md
+    execution_reason: check-domain.py --resolve returns NOBODY for .claude/skills/harness-code-review/SKILL.md
     depends_on: [T-01, T-02]
     status: done
     files:

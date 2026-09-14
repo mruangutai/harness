@@ -88,7 +88,7 @@ second commit touching one note file, because a commit cannot contain its own id
 
 ## F3 — high — closed
 
-**Mechanism (D-11), T-06 CLAUSE B.** `check-domain.sh` refuses the **creation** of a run `state.yaml`
+**Mechanism (D-11), T-06 CLAUSE B.** `check-domain.py` refuses the **creation** of a run `state.yaml`
 whose write payload declares `schema_version` absent, non-integer, or below 2 — same write-payload path
 DEC-160 already owns, keyed on the target not existing on disk.
 
@@ -108,7 +108,7 @@ lead writes it by hand per `harness-team/SKILL.md:54`, which T-05 updates.
 ## F4 — med — closed
 
 T-01 PART 6 writes `git rev-parse HEAD` of its own commit — a bare 40-character line — to
-`notes/base-revision-pre-T-04.txt` (a tracked file, Write tool, `bash-write-guard.sh` denies a
+`notes/base-revision-pre-T-04.txt` (a tracked file, Write tool, `bash-write-guard.py` denies a
 redirect), and that file is in T-01's `files:`. T-08 reads the id from there and **re-derives both
 sides** before using it, as does T-08's own `verify:`: 40 hex characters; `git cat-file -e` resolves it;
 `git show <sha>:validate-digest.py` **contains** `DOCUMENTED_OPTIONAL` (T-01 is in) and **does not
@@ -184,7 +184,7 @@ rather than on this feature's behaviour, and SC-15 tests the floor directly inst
 
 **F7 (low) closed too:** T-07's `verify:` greped its own suite's output for `schema_version`, which a
 case merely *named* for the version satisfies. It now greps for `undeclared step key` in both the output
-and `check-state.sh` — the same vocabulary T-06's refusal uses, 0 occurrences today.
+and `check-state.py` — the same vocabulary T-06's refusal uses, 0 occurrences today.
 **F10 closed:** T-01 cites `harness-team/SKILL.md:237-258`; the drifted `238-249` is gone.
 
 ## Traceability, both directions, after the edits

@@ -10,9 +10,9 @@ approval:
 lanes:
   resolved_at: f3452bf
   rows:
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
-      reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+      reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 list)
     - surface: .claude/skills/harness/bin/test-check-domain.py
       lane: main-session-direct
       reason: rides with the carve-out file it tests; a green suite cannot vouch for the gate that produced it
@@ -35,7 +35,7 @@ decisions:
       two copies of the rule would drift the way the plan checker and the hook would then disagree
     dec: none
   - id: D-08
-    choice: The four named harness control-plane entries are a literal constant inside check-domain.sh, matched against the base-relative target with the existing glob_to_re and matches idiom, and are not manifest data.
+    choice: The four named harness control-plane entries are a literal constant inside check-domain.py, matched against the base-relative target with the existing glob_to_re and matches idiom, and are not manifest data.
     because: ruling 1 forbids a team-config.yaml schema change, and the operator ruled out machinery to detect an omitted future entry, so the cost is one remembered place rather than a grammar every entry carries
     dec: none
   - id: D-02
@@ -70,16 +70,16 @@ tasks:
     change_type: cross_module
     test_kinds: [unit, integration]
     execution_mode: main-session-direct
-    execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    execution_reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 list)
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-domain.py
     intent: |
-      In check-domain.sh's Python heredoc, inside domain_check(), add a fleet resolution step. Place
+      In check-domain.py's Python heredoc, inside domain_check(), add a fleet resolution step. Place
       it immediately after the manifest_domains try/except block that produces globs and shared, and
       BEFORE the outside-root branch whose body is the bare return following the comment that begins
       OUTSIDE THE REPO IS NOT A DOMAIN QUESTION. It runs exactly once per hook invocation, for every
@@ -152,11 +152,11 @@ tasks:
     change_type: cross_module
     test_kinds: [unit, integration]
     execution_mode: main-session-direct
-    execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    execution_reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 list)
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-domain.py
@@ -166,7 +166,7 @@ tasks:
       entry anywhere, so there is nothing for two of the four named entries to match against. Build
       the two-sided rule below exactly.
 
-      Add to check-domain.sh, at module scope beside glob_to_re and matches so both the hook path and
+      Add to check-domain.py, at module scope beside glob_to_re and matches so both the hook path and
       the resolve path can call them:
 
       HARNESS_CONTROL_PLANE = ["docs/harness/**", "docs/PRINCIPLES.md", "README.md", ".github/**"] -
@@ -310,11 +310,11 @@ tasks:
     change_type: cross_module
     test_kinds: [unit, integration]
     execution_mode: main-session-direct
-    execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    execution_reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 list)
     depends_on: [T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-domain.py

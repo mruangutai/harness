@@ -1,13 +1,13 @@
 # Observations - harness-pm
 
-- 2026-09-06: BUG-201 — `check-domain.sh --resolve` on a feature `notes/<name>.md` path returns
+- 2026-09-06: BUG-201 — `check-domain.py --resolve` on a feature `notes/<name>.md` path returns
   `harness-orchestrator` ONLY, so a task whose deliverable is a note under a feature's `notes/`
   cannot be given to a dev specialist. I had planned a dev-ops task to record the before/after
   corpus verdict as a note and had to fold that proof into a permanent unit assertion (T-04) plus
   the BRIEF's recorded `af859ee8` baseline instead. Check the resolve before planning any
   note-authoring task.
 - 2026-09-06: BUG-201 — `plan-merge.py` has no `--help` on `check-plan-routes.py` (it prints
-  `ERROR: --help does not exist` and needs a plan path), and `run-unit-tests.sh` takes only
+  `ERROR: --help does not exist` and needs a plan path), and `run-unit-tests.py` takes only
   `--kind unit|integration|all` with no per-file flag, so a single-file `verify:` must be
   `python3 tests/<kind>/test-<name>.py` directly.
 - 2026-09-06: BUG-201 — the write route needed NO new code: `plan-merge.py:_schema_error` already

@@ -91,7 +91,7 @@ tasks:
       builds its scan list from os.listdir, so a tuple entry whose directory does not exist yet is a
       no-op. The reverse order is not: the moment .claude/skills/harness-add-repo/SKILL.md exists
       without this entry, the anchor rule scans it, and check-instruction-paths.py, which
-      check-state.sh runs at every door and before every commit, reddens on a tree that is otherwise
+      check-state.py runs at every door and before every commit, reddens on a tree that is otherwise
       correct. Do not wait for T-10.
 
       Edit the tuple only. Put the entry after "harness-init" and before "harness-grilling", with a
@@ -113,7 +113,7 @@ tasks:
     traces: [REQ-07, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-09]
     status: ready
     files:
@@ -164,7 +164,7 @@ tasks:
       which is a FRESH CHECKOUT's preflight and is also provider-specific. Write a registration
       preflight, each item with its stop-or-continue consequence:
       - this control plane is configured: .harness/harness.json exists here and
-        python3 .claude/skills/harness/bin/check-state.sh runs without reporting an unconfigured
+        python3 .claude/skills/harness/bin/check-state.py runs without reporting an unconfigured
         clone. If it is unconfigured, STOP and route to harness-init: registration into an
         unconfigured control plane produces artifacts nothing reads.
       - the templates directory is readable from here, the same test harness-init makes.
@@ -198,7 +198,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-10]
     status: ready
     files:
@@ -265,7 +265,7 @@ tasks:
     traces: [REQ-03, REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
+    execution_reason: check-domain.py --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
     depends_on: [T-11]
     status: ready
     files:
@@ -349,7 +349,7 @@ tasks:
     traces: [REQ-09]
     change_type: scaffolding
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-12]
     status: ready
     files:
@@ -465,7 +465,7 @@ tasks:
     traces: [REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
+    execution_reason: check-domain.py --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
     depends_on: [T-11]
     status: ready
     files:

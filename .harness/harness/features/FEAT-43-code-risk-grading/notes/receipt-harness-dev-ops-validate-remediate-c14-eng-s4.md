@@ -162,7 +162,7 @@ Built three digests in `/tmp/sec01check/` (outside the repo tree), ran each thro
 ## Recommendation
 
 Loop back to remediation for `test-check-plan-routes.py`'s `case_20` only — either widen the
-joiner's exemption list (it already special-cases `check-state.sh`; this is the same shape of
+joiner's exemption list (it already special-cases `check-state.py`; this is the same shape of
 problem, a string literal defeating a source-text heuristic) or teach `logical_lines` to skip
 bracket characters inside quoted strings. Nothing else in this dispatch needs rework: CR-01, CR-02/
 UI-01, SEC-01 and tree hygiene all hold.

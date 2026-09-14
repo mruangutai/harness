@@ -12,7 +12,7 @@ subprocess (exit 0, permits) and the real `plan-merge.py` (actually signs). F-04
 six-pattern widening are real and correctly closed for every path-shape probe tried, including the
 build's own claimed-safe realpath cases (all reproduced independently as non-reproducing). But a
 **second, different, live-confirmed HIGH gap** in the same mechanism was found: a symlink or
-hardlink with any basename other than `plan.yaml` bypasses `check-domain.sh`'s route denial
+hardlink with any basename other than `plan.yaml` bypasses `check-domain.py`'s route denial
 entirely — pre-hoc AND post-hoc — while the actual `Write` tool follows the link and corrupts the
 real file's bytes. Reachable by every governed agent type via a path they are already granted.
 
@@ -21,7 +21,7 @@ real file's bytes. Reachable by every governed agent type via a path they are al
 `gh-sync.py:618,627-628` both `_record_station` failure prints carry `gh-sync: FAILED`;
 `_commit_terminal_station` (`:649-694`) failure lines ("station committed nowhere", "station
 recorded but NOT committed") carry **neither** `SKIP` nor `FAILED` — read in full, matches the
-deliberate-asymmetry design stated in the docstring. `post-merge-sweep.sh` gates worktree removal
+deliberate-asymmetry design stated in the docstring. `post-merge-sweep.py` gates worktree removal
 on absence of those two literals from ship's combined output. No leaked secrets in the git-command
 error paths (`_git_detail`, local `status`/`commit` only, no remote/credential surface).
 
@@ -82,7 +82,7 @@ forged main-session-only approval signature, reachable by any agent with ordinar
 ## F-04 — case-fold CLOSED; realpath half does not reproduce; **new symlink-name-mismatch gap, HIGH, blocks ship**
 
 **Case-fold matrix, independently reproduced:** `Plan.yaml`, `PLAN.YAML` both denied (`IGNORECASE`
-on `RE_PLAN_YAML`, `check-domain.sh:1046`); `plan.yaml.bak` and `myplan.yaml` still allowed
+on `RE_PLAN_YAML`, `check-domain.py:1046`); `plan.yaml.bak` and `myplan.yaml` still allowed
 (anchored pattern, confirmed).
 
 **Realpath half — DOES NOT REPRODUCE**, matching the build's own claim, verified by tracing
@@ -95,7 +95,7 @@ Tried the same set the build's fix commit names; all still deny.
 **The new gap: a differently-named link to the same file.** `RE_PLAN_YAML` matches on the literal
 final path segment (`plan\.yaml$`). A symlink or hardlink pointing AT `plan.yaml` but named
 something else never matches the regex, at either checkpoint:
-- PRE route denial, `check-domain.sh:1466`: `RE_PLAN_YAML.match(_norm(target))` — `target` is the
+- PRE route denial, `check-domain.py:1466`: `RE_PLAN_YAML.match(_norm(target))` — `target` is the
   Write/Edit tool's own `file_path` argument, unresolved.
 - POST route for a named file (Write/Edit/NotebookEdit that already landed), `:1509-1510`:
   `_rel = _norm(target); if not has_shape_rules(_rel): sys.exit(0)` — same unresolved path, so the
@@ -112,7 +112,7 @@ an illegal vocabulary word): here even an illegal value sails through silently.
 **Confirmed live, with the actual Write tool, not simulated:**
 ```
 ln -s <target>/plan.yaml alias-link.md          # ordinary Bash; `ln` is absent from
-                                                 # bash-write-guard.sh's KNOWN_DATA_FEEDERS
+                                                 # bash-write-guard.py's KNOWN_DATA_FEEDERS
                                                  # (checked directly), not intercepted
 Write(path=alias-link.md, content=<tampered YAML>)
 ```
@@ -161,7 +161,7 @@ route the disclosure does not cover, defeats even the post-hoc sweep, and can fo
 
 - No `shell=True`, no `os.system`, in any changed file across the named set; every `subprocess`
   call uses list-form argv (`gh-sync.py`, `board_lifecycle.py`, `worktree_terminal.py`,
-  `check-domain.sh`'s git calls).
+  `check-domain.py`'s git calls).
 - `locked_update` (`harness_merge.py:126`): read-transform-write under an exclusive lock, tempfile
   + `os.replace` for atomicity — no TOCTOU between validation and write (validation happens before
   the lock, but the vocabulary it validates against, `harness.json`, is not attacker-influenced
@@ -169,7 +169,7 @@ route the disclosure does not cover, defeats even the post-hoc sweep, and can fo
   is cleaned up and `path` is never touched).
 - No secrets, tokens, or operator-identity leakage found in log/error/commit-message paths across
   the named files.
-- `check-domain.sh` exiting 0 for a no-`agent_type` payload is confirmed correct: the plan.yaml PRE
+- `check-domain.py` exiting 0 for a no-`agent_type` payload is confirmed correct: the plan.yaml PRE
   route denial (`:1466`) has no `agent_type` branch at all — it is unconditional on tool+shape, so
   it also binds the main session, matching DEC-180's "independent of domain" claim. SC-07's
   `plan-sign-gate.py` refusal was reprobed directly by subprocess: no-`agent_type` payload exits 0;

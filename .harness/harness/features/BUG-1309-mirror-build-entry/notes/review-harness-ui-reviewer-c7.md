@@ -83,7 +83,7 @@ itself. Carried forward, not re-opened as a fresh gate.
 `start-task` when `entry == "recovery-required"` and the feature is not era-exempt) is a static
 string with no call to `feature_schema.recovery_command_for` — unlike every sibling site in this
 same feature (the era branch three lines above it, `_build_entry_preflight`'s own `refuse()`
-branches, `merge-gate.py`'s deny, `check-state.sh`'s INV-37):
+branches, `merge-gate.py`'s deny, `check-state.py`'s INV-37):
 
 ```
 print(f"gh-sync: build entry is recovery-required for {realpath(feat_dir)}; "
@@ -137,12 +137,12 @@ ambiguous — but a real grep-fragility nit, not gating. `harness-code-reviewer`
 carries the same-shape finding for the DEC-138 stderr string ("owes no build-entry receipt" wrongly
 worded at the compliant-record call site) as `[low]`, consistent with this reading.
 
-## gh-sync.py / check-state.sh / post-merge-sweep.sh — operator text the diff changes
+## gh-sync.py / check-state.py / post-merge-sweep.py — operator text the diff changes
 
-- `check-state.sh` INV-37 (new at this pin, confirmed absent at `894adc0f^`): both branches call
+- `check-state.py` INV-37 (new at this pin, confirmed absent at `894adc0f^`): both branches call
   `feature_schema.recovery_command_for(_fp37)` and name `gh-sync.py open <path>` or `gh-sync.py
   recover-terminal <path> --yes` correctly discriminated. No live gap found by source read.
-- `post-merge-sweep.sh`'s retention SKIP message (`:222-232`) hardcodes `recover-terminal ... --yes`
+- `post-merge-sweep.py`'s retention SKIP message (`:222-232`) hardcodes `recover-terminal ... --yes`
   with **no** call to `recovery_command_for` — looked like the same class of bug as the finding
   above, so I checked it live rather than filing on the pattern alone. **Disproven by execution:**
   ran the real sweep (via the integration test's own fixture helpers, imported by path) against a
@@ -161,5 +161,5 @@ the wrong recovery command for a reachable, executable feature state, contradict
 own gate and risking spurious GitHub sub-issue creation on completed work if followed. Item 3's
 placeholder-naming DENY is reachable (two independent live triggers) but confirmed pre-existing —
 advisory, carried forward. Silent-ALLOW paths are the correct shape. Terminology drift is cosmetic.
-`post-merge-sweep.sh`'s look-alike hardcoding was checked live and found safe by construction — not
+`post-merge-sweep.py`'s look-alike hardcoding was checked live and found safe by construction — not
 a finding.

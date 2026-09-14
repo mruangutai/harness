@@ -33,7 +33,7 @@ Every autonomous judgement is one line in `judgements[]`:
 | `continue` | you decide to keep going or to stop — `--decision continue` or `--decision stop` — at a budget line, a new finding class, or exhaustion |
 | `succession` | your first act on waking as a successor — `continue`, `downgrade` or `stop` |
 
-**A judgement not written is a judgement not made.** `check-state.sh` INV-40 refuses a `mission`
+**A judgement not written is a judgement not made.** `check-state.py` INV-40 refuses a `mission`
 with no `mission` entry, a FAIL run followed by another with no `regate`, and a handoff note with
 runs after its `seq-N` and no `succession`. The ledger is the whole basis of the operator's trust:
 they verify after the fact, from the reason line, never by ruling in-flight (SC-21).
@@ -54,7 +54,7 @@ If no line arrives there is nothing to weigh.
 
 | | Teeth | On crossing |
 |---|---|---|
-| `cycles_used` / `max_total_cycles` | **HARD** — kills runaway fix loops; `check-state.sh` INV-39 enforces the bound | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
+| `cycles_used` / `max_total_cycles` | **HARD** — kills runaway fix loops; `check-state.py` INV-39 enforces the bound | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
 | `rework.rounds` / `rework.wall_clock_minutes` | **THE RULING** — the operator's one answer to "how much rework", given at signature | a `continue` judgement with `--decision stop`, then return with the unmet findings named |
 | `len(runs)` / `max_total_runs` | **INFORMATIONAL** — notices a long feature, never stops one | INV-22 emits a NOTE. Keep going; a high count is not a defect |
 

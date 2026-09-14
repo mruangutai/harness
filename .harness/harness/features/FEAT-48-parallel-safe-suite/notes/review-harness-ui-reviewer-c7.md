@@ -7,7 +7,7 @@ Ran an extension census against the full reviewed diff `d135364e..8e7f56dc`
 **zero matches.** Full changed-file list (44 files) inspected directly — it is:
 
 - 11 Python/bash files under `.claude/skills/harness/bin/` (`isolated_bin.py`, `run_pool.py`,
-  `run-unit-tests.sh`, `test-suite-independence.py`, `test-run-pool.py`, and six existing test
+  `run-unit-tests.py`, `test-suite-independence.py`, `test-run-pool.py`, and six existing test
   files with import/mutation-check touch-ups) — matches the file set named in the dispatch.
 - `.harness/harness.json` (1 line — adds two new files to `test_kinds.integration.detect`).
 - `.harness/harness/docs/DECISIONS.md` + `DECISIONS-INDEX.md` (DEC-211 + index line).
@@ -26,9 +26,9 @@ contract for this feature to audit in either mode.
 Consistent with repository Expertise P-01: this repo ships no rendered UI (files-only, no build
 step); this diff is no exception.
 
-## The one surface considered: `run-unit-tests.sh` terminal output
+## The one surface considered: `run-unit-tests.py` terminal output
 
-Confirmed via `git diff d135364e..8e7f56dc -- .claude/skills/harness/bin/run-unit-tests.sh`: the
+Confirmed via `git diff d135364e..8e7f56dc -- .claude/skills/harness/bin/run-unit-tests.py`: the
 old body was a sequential `for s in "${SCRIPTS[@]}"; do python3 …; echo "PASS $s"/"FAIL $s"; done`
 loop (interleaved live output as each script ran). The new body is `exec python3
 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"`, i.e. scheduling
@@ -44,7 +44,7 @@ contract, state coverage, interaction, accessibility, theme parity — don't hav
 to here; per repository Expertise G-02, I'm stating that explicitly rather than leaving it silent.
 The one thing worth a sentence for whoever reads this shape next: the new output reorders from
 interleaved-live to blocked-on-completion, which is a genuine console-ergonomics change (a human
-watching `run-unit-tests.sh` scroll by loses the "which file is running right now" signal until it
+watching `run-unit-tests.py` scroll by loses the "which file is running right now" signal until it
 finishes) — but that is a CI/DX judgment for the qa or code-review lens, not an accessibility or
 visual-design one, and it's already covered by the panel's already-ruled item #1 (PASS-line
 duplication) and the qa segment's measurements. I'm not filing it as a UI finding.

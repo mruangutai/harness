@@ -34,7 +34,7 @@ message names U1, says where it's recorded, routes a non-owning writer to a run 
   (`:5006-5009`). Message source `run_identity.uid_conflict` (`run_identity.py:138-142`, unchanged
   this delta): for the missing-uid branch it names `run_uid {prior!r}` verbatim, states "the same
   value is recorded in the witness beside it" (where it's recorded), and routes the writer to "a run
-  directory of its own." Wrapped by `check-domain.sh:1697-1702`'s `_head("state.yaml run identity
+  directory of its own." Wrapped by `check-domain.py:1697-1702`'s `_head("state.yaml run identity
   (Issue 1305).")`.
 
 **SC-01(c): MET.**
@@ -47,9 +47,9 @@ All replays below use the pinned worktrees `qa-c2-dc0` (`dc0e0313`), `qa-c2-e77`
 
 **(a) Digest-sibling case (QA-F1) — permitting case, green at both pins, correctly so:**
 ```
-CHECK_DOMAIN_BIN=qa-c2-e77/.../check-domain.sh python3 -c '...run_bug1305_digest_repair_cases()...'
+CHECK_DOMAIN_BIN=qa-c2-e77/.../check-domain.py python3 -c '...run_bug1305_digest_repair_cases()...'
 → ok "digest Write append remains allowed beside identity witness"   (5/5 passed, exit 0)
-CHECK_DOMAIN_BIN=qa-c2-dc0/.../check-domain.sh python3 -c '...run_bug1305_digest_repair_cases()...'
+CHECK_DOMAIN_BIN=qa-c2-dc0/.../check-domain.py python3 -c '...run_bug1305_digest_repair_cases()...'
 → ok "digest Write append remains allowed beside identity witness"   (5/5 passed, exit 0)
 ```
 Green at both. **This is a permitting assertion (SC-01(d)/(e)-style), correctly green at both** —
@@ -72,7 +72,7 @@ cycle and was already correct. Confirmed non-vacuous by mutation probe in a disp
 (`qa-c2-mutate`, detached at `e77b30ca`): `run_identity.uid_conflict` patched to
 `return None` unconditionally (simulating the guard never firing). Replay:
 ```
-CHECK_DOMAIN_BIN=qa-c2-mutate/.../check-domain.sh python3 -c '...run_bug1305_identity_cases()...'
+CHECK_DOMAIN_BIN=qa-c2-mutate/.../check-domain.py python3 -c '...run_bug1305_identity_cases()...'
 → FAIL "modal collision Write omitting uid is refused"
 → FAIL "modal collision Edit removing uid is refused"
 → FAIL "different minted uid is refused"
@@ -84,11 +84,11 @@ The (c) Edit case reddens on the intended mutant. **Credited, measured.**
 **(c) F-04 Edit-creates-witness fix (the delta's actual logic change) — independently replayed, not
 trusted from `redproof-BUG-1305.md` alone:**
 ```
-CHECK_DOMAIN_BIN=qa-c2-dc0/.../check-domain.sh (pre-fix)  python3 -c '...run_bug1305_marker_cases()...'
+CHECK_DOMAIN_BIN=qa-c2-dc0/.../check-domain.py (pre-fix)  python3 -c '...run_bug1305_marker_cases()...'
 → FAIL "unmatched Edit of existing witness is refused"     | exit 0
 → FAIL "Edit creating false witness is refused"            | exit 0
    (15/17 passed, exit 2)
-CHECK_DOMAIN_BIN=qa-c2-e77/.../check-domain.sh (post-fix)  python3 -c '...run_bug1305_marker_cases()...'
+CHECK_DOMAIN_BIN=qa-c2-e77/.../check-domain.py (post-fix)  python3 -c '...run_bug1305_marker_cases()...'
 → ok   "unmatched Edit of existing witness is refused"
 → ok   "Edit creating false witness is refused"
    (17/17 passed, exit 0)
@@ -98,23 +98,23 @@ Matches `redproof-BUG-1305.md`'s own recorded numbers exactly, independently rep
 **(d) Bash-route witness cases (QA-F2) — independently replayed against the SAME `c369fb1f` pin the
 redproof note cites, not merely re-read:**
 ```
-BASH_WRITE_GUARD_BIN=qa-c2-c369/.../bash-write-guard.sh python3 -c '...run_bug1106_bash_route()...'
+BASH_WRITE_GUARD_BIN=qa-c2-c369/.../bash-write-guard.py python3 -c '...run_bug1106_bash_route()...'
 → FAIL "overwriting the write-once identity witness is refused"  | exit 0
 → FAIL "removing the write-once identity witness is refused"     | exit 0
    (6/8 passed, exit 2)
-BASH_WRITE_GUARD_BIN=qa-c2-e77/.../bash-write-guard.sh  python3 -c '...run_bug1106_bash_route()...'
+BASH_WRITE_GUARD_BIN=qa-c2-e77/.../bash-write-guard.py  python3 -c '...run_bug1106_bash_route()...'
 → ok   "overwriting the write-once identity witness is refused"
 → ok   "removing the write-once identity witness is refused"
    (8/8 passed, exit 0)
 ```
-Bit-for-bit matches the note. `bash-write-guard.sh`'s diff in this delta is comment/message-wording
+Bit-for-bit matches the note. `bash-write-guard.py`'s diff in this delta is comment/message-wording
 only (mentions issue #1376) — confirmed by direct diff, no logic change — so this red/green split is
 entirely attributable to the guard version, and the note's evidence (previously QA-F2's gap) is now
 present, real, and independently reproducible. **QA-F2 CLOSED.**
 
 ## 4. New over-refusal check — none found
 
-The witness-path-first Edit branch (`check-domain.sh:2042-2044`) is gated on
+The witness-path-first Edit branch (`check-domain.py:2042-2044`) is gated on
 `RE_RUN_IDENTITY.match(_norm(target))` — matches only the exact witness filename (unchanged
 `harness_boundary.py` pattern), so it cannot reach `state.yaml`, `digest.md`, or any other path.
 Measured, not just read:
@@ -137,7 +137,7 @@ Measured, not just read:
 **F-01 (severity: low, INFO-adjacent — reasoned, not measured as exploitable; ship-rulable, no code
 change required).** SC-01(c) Edit's strengthened assertion (and its pre-existing Write sibling)
 carries a dead conjunct: `"field disagreement" not in stderr`. Grepped the entire
-`check-domain.sh` at `e77b30ca` and its full git history under `-S"field disagreement"` for this
+`check-domain.py` at `e77b30ca` and its full git history under `-S"field disagreement"` for this
 file — the literal substring never appears in any production message, at any commit. It cannot be
 tripped by any real code path, so it discriminates nothing; the actual discriminating conjunct is
 `"U1" in stderr` (mutation-probe confirmed in §3b: disabling `uid_conflict` reddens the case). This
@@ -248,7 +248,7 @@ probe 1 (absent prior)    exit=0                    exit=0
 probe 2 (count==0)        exit=0                    exit=0
 ```
 Both exit 0 at BOTH pins. Cycle-11's F-04 fix added the path-blind `RE_RUN_IDENTITY` pre-check for
-the *marker witness file itself* (`check-domain.sh:2042-2044`) — it did not touch the
+the *marker witness file itself* (`check-domain.py:2042-2044`) — it did not touch the
 `RE_STATE_YAML`/`RE_RUN_DIGEST`/`RE_HANDOFF` branch's own `_edit_reconstructed_content` call or its
 `None`-fallthrough, which is exactly the code this addendum's derivation is about. **This gap
 predates cycle 11 and is not a regression introduced by this delta** — it is a pre-existing hole in

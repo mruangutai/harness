@@ -30,8 +30,8 @@ kills C1 too). Both are the operator's to amend; the criteria themselves hold.
 | SC-05 | met | automated | `test-no-distribution.py:294` `kaya_ai_is_paired_with_board_2` (`kaya_board_number == 2`), plus `:264 board_lives_per_repo_not_fleet_level` and `:289 every_repo_declares_its_own_board` |
 | SC-06 | **not_met** | uat | pending operator; live-run protocol is BRIEF `## Constraints`. Nobody but the operator may run it; a board write is parked. No agent work can close this |
 | SC-07 | met | inspection | live read-only `gh project field-list N --owner mruangutai`, unsorted, both boards: board 2 → `Backlog,Plan,Ready,Building,Review,Done` count=6; board 3 → identical string, count=6 |
-| SC-08 | met | automated | `run-unit-tests.sh --kind unit` re-run at HEAD → `UNIT_EXIT:0`, zero `^FAIL|^ERROR` lines |
-| SC-09 | met | automated | `run-unit-tests.sh --kind integration` re-run at HEAD → `INTEGRATION_EXIT:0`, zero `^FAIL|^ERROR` lines |
+| SC-08 | met | automated | `run-unit-tests.py --kind unit` re-run at HEAD → `UNIT_EXIT:0`, zero `^FAIL|^ERROR` lines |
+| SC-09 | met | automated | `run-unit-tests.py --kind integration` re-run at HEAD → `INTEGRATION_EXIT:0`, zero `^FAIL|^ERROR` lines |
 | SC-10 | met **on intent**, base stale | inspection | `git diff --name-only a7c429c..ec195ec` ∩ four scripts → empty (exit 1); same for `a7c429c..HEAD`. The BRIEF's literal `a29ad06..HEAD` returns **all four**. See below |
 | SC-11 | met | inspection | both greps return nothing at HEAD: the `fleet…["board"]`/`.get("board")` pattern over `.claude/skills/harness/bin/` (exit 1), and `grep -n 'def station(' factory_config.py` (exit 1) |
 | SC-12 | met | inspection | re-run at HEAD after both post-T-10 SPEC edits: `DEC-174 amendment 2` count 1; `per repository served` count 2; `per-repository board` on the DEC-174 row (`DECISIONS-INDEX.md:192`) and the DEC-186 row (`:204`); `SPEC.md:416` now exposes `board_for`/`board_station`, and the `the \`board:\` the factory reads work from` sentence is absent. All four baselines confirmed 0/1 at `a29ad06` |

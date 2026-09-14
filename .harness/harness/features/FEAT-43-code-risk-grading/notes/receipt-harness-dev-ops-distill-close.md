@@ -2,7 +2,7 @@
 
 **BLUF: all three lead-relayed candidates accepted and applied (two displacing a weaker existing
 entry, one filling an open slot); one self-derived repository-tier entry added from the same
-material. Both Expertise files pass `check-expertise.sh` exit 0. No file outside the two Expertise
+material. Both Expertise files pass `check-expertise.py` exit 0. No file outside the two Expertise
 files and this receipt was touched.**
 
 ## Counts by source
@@ -67,10 +67,10 @@ Repository (`.harness/harness/expertise/harness-dev-ops.md`):
 | Outcomes | 0 | 0 |
 | Open | 0 | 0 |
 
-## check-expertise.sh — quoted, exit code
+## check-expertise.py — quoted, exit code
 
 ```
-$ .agents/skills/harness/bin/check-expertise.sh .harness/expertise/harness-dev-ops.md .harness/harness/expertise/harness-dev-ops.md
+$ .agents/skills/harness/bin/check-expertise.py .harness/expertise/harness-dev-ops.md .harness/harness/expertise/harness-dev-ops.md
 OK   .harness/expertise/harness-dev-ops.md
 ADVISORY .harness/expertise/harness-dev-ops.md:20: G-03 names '.claude/' — repository-layer candidate; rule on it (issue 340)
 OK   .harness/harness/expertise/harness-dev-ops.md

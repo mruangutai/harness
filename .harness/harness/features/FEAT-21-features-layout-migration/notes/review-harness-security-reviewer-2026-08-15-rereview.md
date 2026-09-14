@@ -13,15 +13,15 @@ granted lane, and the range introduces no new exposure.
 
 **Confirmed NOT reintroduced, with execution evidence, not a read-and-conclude.**
 
-- `plan_docs` keys (`check-state.sh:82` derivation) are `os.path.basename(os.path.dirname(p))` —
-  bare. The INV-26 loop's `_feat` (`check-state.sh:1161`) is `os.path.basename(_fp)` — also bare,
+- `plan_docs` keys (`check-state.py:82` derivation) are `os.path.basename(os.path.dirname(p))` —
+  bare. The INV-26 loop's `_feat` (`check-state.py:1161`) is `os.path.basename(_fp)` — also bare,
   same shape. Both glob at the same depth (`.harness/*/features/*`).
 - Measured live (not argued): a Python probe replicating the exact `plan_docs` and INV-26
   glob logic against this repo's real `.harness/` tree shows 12 of 21 feature dirs have
   `plan.yaml` and all 12 keys land in `plan_docs` — the 9 "misses" are legacy features that
   use `PLAN.md`, not `plan.yaml` (verified: `FEAT-01`, `FEAT-02`, `FEAT-03-subissue-mirror`
   each contain `PLAN.md`, no `plan.yaml`), i.e. correctly-skipped, not silently dropped.
-- Ran `check-state.sh` live end-to-end (`gh auth status` confirmed authenticated, `github.sync:
+- Ran `check-state.py` live end-to-end (`gh auth status` confirmed authenticated, `github.sync:
   true`, `repo: mruangutai/harness` in `harness.json`) — exit 0. A standalone instrumented
   replay of the INV-26 body (same imports: `gh_board`, same live board load, same
   `_gh_bin`/auth check) confirms the board loaded with 324 stations, `_gh_ok=True`, and the
@@ -49,7 +49,7 @@ granted lane, and the range introduces no new exposure.
 
 ## JOB 2 — did the authorization surface move?
 
-`check-domain.sh --resolve`, verbatim, at `4a98cc4`:
+`check-domain.py --resolve`, verbatim, at `4a98cc4`:
 
 **Positive** (under `.harness/harness/features/FEAT-21-features-layout-migration/`):
 - `notes/receipt-harness-backend-dev-x.md` → `harness-backend-dev`, `harness-orchestrator`
@@ -77,7 +77,7 @@ reviewers, product-lead, eng-lead, validator-lead) is exactly the
 added, no glob widened (e.g. no reviewer gained `.claude/skills/harness/bin/**` or similar),
 no grant removed. Identity-level closure on JOB 2's core claim.
 
-`bash-write-guard.sh` — simulated `HOOK_PAYLOAD` (avoided literal `>` in my own command text
+`bash-write-guard.py` — simulated `HOOK_PAYLOAD` (avoided literal `>` in my own command text
 to stay inside my own read-only guard; built the redirect via `printf '\076'`):
 - `harness-backend-dev` writing `docs/PRINCIPLES.md` (ungranted) → **BLOCKED, exit 2**
   (`redirect targets docs/PRINCIPLES.md, outside your domain`).
@@ -103,7 +103,7 @@ No source file, docs file, `.claude/agents/**` path, or `team-config.yaml` in th
 range but belongs only to `b1d3925`, an engineering/SC-10 commit, not a `#388` close-out
 commit — correctly out of this job's scope.)
 
-Ran `check-domain.sh --resolve` on a representative sample of every path class in the set
+Ran `check-domain.py --resolve` on a representative sample of every path class in the set
 (see JOB 2 above plus `notes/qa-c0.md`, `notes/research-FEAT-21-distill.md`, each
 `review-harness-*-panel.md`, `.harness/expertise/harness-{qa,code-reviewer,
 security-reviewer,orchestrator}.md`). Every file resolves to **at least one legitimate
@@ -143,14 +143,14 @@ the indistinguishability itself is a standing property of D-01's wildcard, not n
 - `4a98cc4` (`gh-sync.py` walk-up refactor): flattened loop is behaviourally identical to
   the prior `while True`/`break` form — same manifest probe (`.harness/team-config.yaml`),
   same fallback arithmetic when no ancestor qualifies. Not a widening.
-- `4a98cc4` (`check-domain.sh` regex anchors, from `d033b9d`): `^\.harness/features/...$` →
+- `4a98cc4` (`check-domain.py` regex anchors, from `d033b9d`): `^\.harness/features/...$` →
   `^\.harness/[^/]+/features/...$` — anchors (`^`/`$`) preserved, new segment matched by
   `[^/]+` (single path component, cannot cross a `/`), so this does not open path
   traversal or admit an unintended prefix/suffix. A tightening-shaped edit, not a loosening.
   `check-plan-routes.py`'s `os.scandir` → `glob.glob` swap preserves dotfile exclusion
   (`glob`'s `*` never matches a leading dot, same as before) — confirmed by reading, and by
   running the full `test-layout-migration.py` suite (below).
-- `branch-create-gate.sh`'s hardcoded segment literal (already-ruled backlog item) moved
+- `branch-create-gate.py`'s hardcoded segment literal (already-ruled backlog item) moved
   from `.harness/features/` to `.harness/harness/features/` — same class (coincidentally
   correct for today's single segment), explicitly *not* wildcarded per `4a98cc4`'s own
   commit message ("branch-gate wildcard — contradicts signed D-01 and validator Q2 —
@@ -165,7 +165,7 @@ the indistinguishability itself is a standing property of D-01's wildcard, not n
 
 | # | Finding | Severity | Blocks ship? |
 |---|---|---|---|
-| 1 | `fpath()`'s `?` fallback (`check-state.sh:59`) is unreachable dead code under the current single-repo-segment tree; would print a visible non-path placeholder, not a misleading wrong path, if a future divergence ever reached it | info | advisory only |
+| 1 | `fpath()`'s `?` fallback (`check-state.py:59`) is unreachable dead code under the current single-repo-segment tree; would print a visible non-path placeholder, not a misleading wrong path, if a future divergence ever reached it | info | advisory only |
 | 2 | D-01's wildcard grant makes orchestrator vs. named-agent authorship of `notes/**` files indistinguishable from git history alone (pre-existing, not worsened) | info | advisory only |
 
 No must-fix. Authorization surface, fail-open closure, close-out lane discipline, and the

@@ -90,7 +90,7 @@ broken tool.
   reduced duplication rather than relocating it (`runs/validate-final-simplify-eng/digest.md`).
 - **Every earlier review finding is closed.** The code reviewer independently re-verified all six
   findings from the `45328d7` review as fixed at this pin.
-- **State is clean.** `check-state.sh` exits 0. The work is committed at
+- **State is clean.** `check-state.py` exits 0. The work is committed at
   `94383e671e51f95d142f3220f97c8e453721d516`, `review_sha` is pinned to it, and GitHub parent #924
   and all ten sub-issues are at Review.
 

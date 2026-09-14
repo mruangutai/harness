@@ -9,7 +9,7 @@ dispatch the `review` team to harness-validator-lead. All three PLAN tasks are `
 
 ## Trust
 
-- The qa gate is GREEN at the graded commit: `run-unit-tests.sh --kind unit` exit 0 and
+- The qa gate is GREEN at the graded commit: `run-unit-tests.py --kind unit` exit 0 and
   `--kind integration` exit 0, all 12 scripts PASS, measured by me in a throwaway worktree checked
   out at 8d7b273 with no working-tree drift — notes/gate-measurement-2026-08-19.md — verified-at 8d7b273
 - The exit 1 seen in the working tree is entirely held dirt: uncommitted `.harness/harness/docs/DECISIONS.md`
@@ -23,7 +23,7 @@ dispatch the `review` team to harness-validator-lead. All three PLAN tasks are `
 - F-1 is PRE-EXISTING, measured not inferred: `git diff d1ffd7f...HEAD -- test-layout-migration.py`
   is one hunk `@@ -399,6 +399,16 @@` adding case 22; the fail-open report block at :412-419 appears
   only as unchanged context — verified-at 8d7b273
-- `bash-write-guard.sh` does refuse worktrees outside `.claude/worktrees/`; it blocked two of my
+- `bash-write-guard.py` does refuse worktrees outside `.claude/worktrees/`; it blocked two of my
   attempts, including one through a shell variable it cannot resolve. No carve-out defect there —
   runs/2026-08-19-2-qa-validator/digest.md Q1 answered — verified-at 8d7b273
 - cycles_used stays 2: both leads reported ZERO send-backs and I dispatched no rework. The

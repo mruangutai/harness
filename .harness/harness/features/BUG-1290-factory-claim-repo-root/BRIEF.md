@@ -44,7 +44,7 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
   there, so that suite must run in the task that edits the file.
 - REQ-08: The repository's own layout gate stays green once `factory_claim.py` stops carrying a
   `.harness`/`features` join (`layout_migration.READER_TABLE:92-94` reads that file today; a reader
-  matching neither form makes the whole `features` surface `CANNOT_VERIFY`, which `check-state.sh`
+  matching neither form makes the whole `features` surface `CANNOT_VERIFY`, which `check-state.py`
   INV-27 reports as a failure at `:2363-2367`). The chosen shape is a MOVE of that reader row onto
   `factory_config.py`, the module that carries the join after the change; the `features` surface
   keeps five reader rows.
@@ -120,7 +120,7 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
   never cwd. Unchanged by this bug. SUPPLIES.
 - No new refusal path for an unknown repository: `factory_config.repo_entry` and candidate step 4
   already fail closed. BOUNDS the change.
-- Out of scope, per the grilling note: migrating `post-merge-sweep.sh:163`, `quarantine.py:109`,
+- Out of scope, per the grilling note: migrating `post-merge-sweep.py:163`, `quarantine.py:109`,
   `worktree_terminal.py:107-129`, `feature_schema.py:231` onto the new resolver; landing
   `.harness/kaya-ai/features/FEAT-04-...` on `main`; populating FEAT-04's `feature.json`
   `factory.issues` map. The one adjacent surface this change FORCES is the layout detector's reader

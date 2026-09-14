@@ -235,7 +235,7 @@ def case_accepted_runs_item_code_grade_n_a():
 
 
 def case_rejected_runs_item_code_grade_other_value():
-    """The enum is CLOSED, and it agrees with check-state.sh's exact-match test: a
+    """The enum is CLOSED, and it agrees with check-state.py's exact-match test: a
     document must never be schema-invalid and gate-exempt at once, in either direction.
     `graded` is rejected here and fires INV-6 there.
 
@@ -255,7 +255,7 @@ def case_rejected_runs_item_code_grade_other_value():
 
 def case_rejected_runs_item_code_grade_case_variant():
     """`N_A` is the exact divergence the panel asked about (Q2): it must fail BOTH layers,
-    since check-state.sh no longer case-folds. Non-vacuous for the same reason as above."""
+    since check-state.py no longer case-folds. Non-vacuous for the same reason as above."""
     doc = full_doc()
     doc["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS",
                     "agent": "harness-validator-lead", "code_grade": "N_A"}]
@@ -711,7 +711,7 @@ def _tree_with_schema(root, extra_github_key=None):
 def case_749_schema_comes_from_the_written_tree():
     """(#749) THE SCHEMA MUST COME FROM THE TREE THE FILE LIVES IN, NOT FROM THIS MODULE.
 
-    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.sh --post` refused a
+    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.py --post` refused a
     legitimate write -- `undeclared key 'source_issues' at /github' -- because the key WAS
     declared in the worktree's own feature-schema.json and was NOT in main's, and the hook
     imports this module from CLAUDE_PROJECT_DIR, the main checkout.

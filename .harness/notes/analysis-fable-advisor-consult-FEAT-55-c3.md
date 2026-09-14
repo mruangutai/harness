@@ -2,7 +2,7 @@
 
 **Path note.** The dispatch named
 `.harness/harness/features/FEAT-55-issue-types-created-work/notes/review-fable-advisor-consult-c3.md`.
-`check-domain.sh` refuses that path to `harness-validator-lead` (a lead's grants are
+`check-domain.py` refuses that path to `harness-validator-lead` (a lead's grants are
 `runs/*-validator/**`, its own expertise/observations, and `.harness/notes/analysis-*.md`), so this
 note lives at the durable path I do own. `runs/**` was rejected as the alternative because run
 digests are gitignored in this repository and would not survive the worktree.

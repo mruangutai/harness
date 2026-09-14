@@ -55,7 +55,7 @@ Integration suite → 14 PASS, 0 FAIL, exit 0. Both match the orchestrator's cla
 
 **Scope**: `git diff 54f01854..ac8dd671 --stat` touches only the two test files plus six
 BUG-1302-feature-tree lifecycle artifacts (STATE.md, feature.json, plan.yaml, notes/*). None of
-`suite_layout.py`, `run-unit-tests.sh`, `code_grade.py`, `.harness/harness.json`,
+`suite_layout.py`, `run-unit-tests.py`, `code_grade.py`, `.harness/harness.json`,
 `.harness/team-config.yaml` appear. No scope finding.
 
 **SC-10 / DEC-174 routing**: ran `check-plan-routes.py` myself — 5 DEVIATION lines (one per task,

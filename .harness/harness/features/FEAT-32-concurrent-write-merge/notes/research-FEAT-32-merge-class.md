@@ -10,20 +10,20 @@ a dependency: nothing may be built until FEAT-30 merges to `main`.
 | Claim | Command / anchor | Result |
 |---|---|---|
 | No lock primitive in `bin/` | `grep -rlE "O_EXCL\|fcntl\.flock" .claude/skills/harness/bin/` | empty |
-| `plan.yaml` has no shape rule | `check-domain.sh:677` | `SHAPE_PATTERNS` = feature.json, state.yaml, handoff, STATE.md, CLAUDE.md — nothing else |
+| `plan.yaml` has no shape rule | `check-domain.py:677` | `SHAPE_PATTERNS` = feature.json, state.yaml, handoff, STATE.md, CLAUDE.md — nothing else |
 | Observation log has no shape rule | same tuple | absent |
 | `validate-digest.py` fail-opens 3 ways | `:828` unreadable, `:838` no `agent_type`, `:845` `stop_hook_active`; `hook_mode` at `:804`, internal-error pass-through printed at `:869` | verified |
-| `dispatch-guard.sh` has **no test** | `ls .claude/skills/harness/bin/test-dispatch-guard.py` | absent — hence T-07 |
-| Unit baseline | `run-unit-tests.sh --kind unit` | exit 0, 179 PASS/FAIL/ERROR lines, 0 beginning `FAIL` |
-| Integration baseline | `run-unit-tests.sh --kind integration` | exit 0, 93 such lines, 0 beginning `FAIL` |
+| `dispatch-guard.py` has **no test** | `ls .claude/skills/harness/bin/test-dispatch-guard.py` | absent — hence T-07 |
+| Unit baseline | `run-unit-tests.py --kind unit` | exit 0, 179 PASS/FAIL/ERROR lines, 0 beginning `FAIL` |
+| Integration baseline | `run-unit-tests.py --kind integration` | exit 0, 93 such lines, 0 beginning `FAIL` |
 | Route check on this plan | `check-plan-routes.py <plan>` | exit 0, 0 violations, 4 `DEVIATION` lines (all DEC-174 shape) |
 | Highest decision number | `DECISIONS-INDEX.md` | DEC-196 — do **not** pin 197, FEAT-31 also takes one |
-| New test files must be registered | `run-unit-tests.sh:39-55` drift detector; `harness.json` `test_kinds.integration.detect` is an explicit list | exits 2 MISCONFIGURED otherwise |
+| New test files must be registered | `run-unit-tests.py:39-55` drift detector; `harness.json` `test_kinds.integration.detect` is an explicit list | exits 2 MISCONFIGURED otherwise |
 
 ## Domain resolution (DEC-179), every literal path in the plan
 
 `harness-backend-dev, harness-dev-ops` — every `.claude/skills/harness/bin/*` path, including
-`dispatch-guard.sh`, `validate-digest.py` and their tests. **Granted, yet laned
+`dispatch-guard.py`, `validate-digest.py` and their tests. **Granted, yet laned
 `main-session-direct`** for the four enforcement-layer paths, which is why the route check prints
 `DEVIATION` and not `VIOLATION`; DEC-179 makes that non-fatal and DEC-174 amendment 4 makes it
 required.
@@ -55,7 +55,7 @@ is why #551 occurrences 3 and 4 stay open and why the fix refuses the **second d
 
 ## Live during this run: two guard behaviours worth knowing
 
-1. `bash-write-guard.sh` refused `sed -i` against my own `plan.yaml` — the target was passed as an
+1. `bash-write-guard.py` refused `sed -i` against my own `plan.yaml` — the target was passed as an
    unexpanded `$P`, so the guard resolved a literal `$P` and denied it. The `Edit` tool worked. A
    shell variable in a write target is invisible to the guard's resolver.
 2. The same guard allowed `python3 - <<PY` to rewrite that identical file, because the command

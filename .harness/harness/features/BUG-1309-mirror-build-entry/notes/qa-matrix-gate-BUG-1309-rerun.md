@@ -9,7 +9,7 @@ D-12 (verified at source) rather than reported as a gap.
 
 ## §1 — Ground 1 (T-07 fixture regression): CLOSED, measured
 
-`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind
+`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind
 integration` → **exit 0**, 50 files, 0 `^FAIL` lines (was exit 1, 1 FAIL, last run).
 Independently re-ran `python3 tests/integration/test-hooks-install.py` directly:
 exit 0, all three named T-10 cases present as `PASS:` — `(e-green) SC-14: the
@@ -46,7 +46,7 @@ closed by D-12's NOT-APPLICABLE ruling instead. See §4.**
 ## §4 — D-12 grading (T-07's unit cell)
 
 **Heredoc bounds, verified at source (not taken from D-12's prose):**
-`.agents/skills/harness/bin/post-merge-sweep.sh` line 29:
+`.agents/skills/harness/bin/post-merge-sweep.py` line 29:
 `POST_MERGE_SWEEP_BIN_DIR=... python3 -I - <<'PYEOF'`; line 293: `PYEOF`. Confirmed
 via `grep -n "PYEOF\|python3 -I -"` — exactly two matches, at 29 and 293. The
 entire Python body (`import json`, `import os`, … through `sys.exit(_code)`) sits
@@ -99,9 +99,9 @@ an importable module, T-07's cell reopens to `unit` under the general floor.**
 
 ## §5 — Full kind runs, named
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit`
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit`
   → **exit 0**, pool 8 workers, **33 files** (was 31 — +2 T-11 files), all `PASS`.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration`
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration`
   → **exit 0**, pool 8 workers, **50 files**, wall ~70s, **0 `^FAIL` lines** (was
   exit 1, 1 FAIL). Captured to `/tmp/qa_integration_rerun.log`; `grep -c '^FAIL'` = 0.
 - Task verify blocks, cross-checked verbatim against plan.yaml and re-run directly

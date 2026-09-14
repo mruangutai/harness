@@ -31,14 +31,14 @@ First failing conjunct (checked individually): `grep -qF 'anchor rule' .claude/s
 1. `check-instruction-paths.py:12-18` — two-line comment above `MAIN_SESSION_ONLY` naming the
    anchor rule as the reason for exclusion (not ownership); `"harness-init"` entry's trailing
    comment now states both the anchor-rule reason and the main-session-only fact in one clause.
-2. `check-state.sh`:
+2. `check-state.py`:
    a. `:111` — no-`.harness/` message now names "this clone" and directs `/harness-init` "in
       the control-plane clone".
    b. `:287` — `.harness/harness.json missing` remedy gains ", in this clone".
    c. `:405-409` — INV-32 `panel_era_start` remedy keeps `/harness-init --upgrade
       (upgrade-config.py)` and adds "against this clone's own harness.json".
    d. `:2434-2436` — INV-31 rationale gains "whose subject is the control-plane clone".
-3. `check-domain.sh:383-388` — fail-open message now reads "enforcement OFF. That path is the
+3. `check-domain.py:383-388` — fail-open message now reads "enforcement OFF. That path is the
    control plane's own manifest; a product repository never carries one. Run /harness-init in
    the control-plane clone." `_run_domain` flag/exit behaviour and the f-string are untouched.
 4. `upgrade-config.py`:
@@ -66,7 +66,7 @@ $ bash -c '<all 12 grep conjuncts for the six files, no python3/bash calls>'
 ```
 All 12 conjuncts (present-and-absent pairs across the six files) pass individually and jointly.
 
-`bash .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"` → prints
+`python3 .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"` → prints
 `harness-documentor`, exit 0.
 
 ## Full literal `verify:` (still red, cause external)
@@ -85,8 +85,8 @@ to me. None of the six files this task owns are implicated in either violation l
 
 ## Syntax gates (step 5)
 
-- `bash -n check-state.sh` — OK
-- `bash -n check-domain.sh` — OK
+- `python3 -m py_compile check-state.py` — OK
+- `python3 -m py_compile check-domain.py` — OK
 - `python3 -c "import ast; [ast.parse(...) for the four .py files]"` — OK
 
 ## git status --porcelain (step 6)

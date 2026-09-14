@@ -2,7 +2,7 @@
 
 BLUF: all three must-fixes are landed in `board_lifecycle.py`, each proven by a failure-injection
 test that reddens against the pre-fix (HEAD) code and passes against the fix, restored
-byte-identical after the RED proof. `run-unit-tests.sh --kind all` exits 0, zero FAIL lines.
+byte-identical after the RED proof. `run-unit-tests.py --kind all` exits 0, zero FAIL lines.
 
 ## MUST-FIX 1 — the linkage guard (confused deputy)
 
@@ -115,7 +115,7 @@ fix's own behaviour, and was kept as a sanity anchor rather than counted as a di
 - The SC-20 / INV-26 bound — not touched by this file at all; no assertion in this fix cycle
   exercises it, and nothing here writes near it.
 
-## `run-unit-tests.sh --kind all`
+## `run-unit-tests.py --kind all`
 
 Exit code `0` (captured directly via `echo "EXIT:$?"` appended to the log, not inferred from a
 piped `tail`). `grep -c "^FAIL"` on the full log: `0`. 46 `PASS test-*.py` lines logged (some

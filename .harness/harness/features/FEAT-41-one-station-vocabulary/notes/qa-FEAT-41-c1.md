@@ -8,7 +8,7 @@ against this checkout at the pin's source state.
 BLUF: **SC-11 is RESOLVED — PASS.** A clean serial run, solely owned, reproduces the baseline
 exactly: unit exit 0/505 PASS/0 FAIL, integration exit 0/816 PASS/0 FAIL (including
 `test-bash-write-guard.py` passing cleanly — cycle 0's confound does not reproduce standalone),
-check-state.sh exit 0/0 VIOLATION/0 traceback, code-grade 0 HIGH/6 grade-2. F-01..F-05 hold at
+check-state.py exit 0/0 VIOLATION/0 traceback, code-grade 0 HIGH/6 grade-2. F-01..F-05 hold at
 source, each mechanically stronger than claimed in one respect and each with one real gap: F-02's
 "two independent layers" claim has no standing test that isolates them, and F-04's fix widened to
 all six shape patterns but only one (plan.yaml) has a standing case-insensitivity test. Neither
@@ -21,9 +21,9 @@ disposed at `note` severity, matching the dispatch's framing.
 
 | check | expected | observed |
 |---|---|---|
-| `run-unit-tests.sh --kind unit` | exit 0, 505 PASS, 0 FAIL | **matches**: exit 0, 505 lines matching `^PASS ` (33 scripts, all green), 0 `^FAIL ` |
-| `run-unit-tests.sh --kind integration` | exit 0, 816 PASS, 0 FAIL | **matches**: exit 0, 816 `PASS`-prefixed lines (28 scripts, all green), 0 `not ok`/`^FAIL `, `test-bash-write-guard.py` line 766 `PASS` |
-| `check-state.sh` | exit 0, 0 VIOLATION, 0 traceback | **matches**: exit 0, `grep -c VIOLATION` = 0, `grep -ic traceback` = 0 |
+| `run-unit-tests.py --kind unit` | exit 0, 505 PASS, 0 FAIL | **matches**: exit 0, 505 lines matching `^PASS ` (33 scripts, all green), 0 `^FAIL ` |
+| `run-unit-tests.py --kind integration` | exit 0, 816 PASS, 0 FAIL | **matches**: exit 0, 816 `PASS`-prefixed lines (28 scripts, all green), 0 `not ok`/`^FAIL `, `test-bash-write-guard.py` line 766 `PASS` |
+| `check-state.py` | exit 0, 0 VIOLATION, 0 traceback | **matches**: exit 0, `grep -c VIOLATION` = 0, `grep -ic traceback` = 0 |
 | `code-grade.py --base 9f2a070 --head fc08375` | 0 gated HIGH, 6 gated grade-2 | **matches**: 105 PASS, 6 `RESULT: FAIL` all at `GRADE: 2` (`_verify_spliced`, `_task_status_line`, `cmd_sign_approval.transform`, `denies`, `case_set_task_station_one_line`, `case_f02_sign_approval_cannot_write_an_unparseable_signature`) — none gated HIGH |
 
 **SC-11 resolution.** Cycle 0's confound — qa measured `test-bash-write-guard.py` failing 2/2
@@ -42,8 +42,8 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 
 | kind | required by | state | evidence |
 |---|---|---|---|
-| unit | logic/api/bugfix (`always`), cross_module (`always`) | **satisfied** | `run-unit-tests.sh --kind unit`, 505 PASS |
-| integration | cross_module (`always`) | **satisfied** | `run-unit-tests.sh --kind integration`, 816 PASS |
+| unit | logic/api/bugfix (`always`), cross_module (`always`) | **satisfied** | `run-unit-tests.py --kind unit`, 505 PASS |
+| integration | cross_module (`always`) | **satisfied** | `run-unit-tests.py --kind integration`, 816 PASS |
 | api's `integration` (`touches_db_or_external`) | not triggered | n/a | T-03 (plan-merge.py) touches no DB/external service |
 | bugfix's `__bug_class__` (`match_bug_class`) | not triggered | n/a | no `bug_class` field on any task |
 | component / ui / eval | not required | **not applicable** | 171-file diff (base..pin) has zero matches for `*.spec.tsx`/`*.stories.(tsx\|ts)`, `tests/e2e/**`/`*.e2e.spec.ts`, `evals/**` |
@@ -55,14 +55,14 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 
 | commit | claim | measured |
 |---|---|---|
-| 787c7fa (F-01) | test added with fix | **holds** — `git show --stat` shows `gh-sync.py` (+23/-3) and `test-gh-sync.py` (+48) in the same commit; new block reads gate literals out of `post-merge-sweep.sh` via regex rather than retyping them |
+| 787c7fa (F-01) | test added with fix | **holds** — `git show --stat` shows `gh-sync.py` (+23/-3) and `test-gh-sync.py` (+48) in the same commit; new block reads gate literals out of `post-merge-sweep.py` via regex rather than retyping them |
 | 8c2972e (F-02) | test added with fix | **holds** — `plan-merge.py` and `test-plan-merge.py` both touched in this commit; six hostile-value cases added |
 | dee7225 (F-03) | test added with fix, "mutated the regex back to prove discriminates" | **holds** — `plan-sign-gate.py` and `test-plan-sign-gate.py` both touched; message documents a mutation-back proof for the fallback case (not independently re-run by me, accepted as commit-message evidence per cycle-0's own standard for this class of claim) |
-| 6eda94d (F-04) | test added with fix | **holds** — `check-domain.sh` and `test-check-domain.py` both touched; case 8 added under `run_t09` |
+| 6eda94d (F-04) | test added with fix | **holds** — `check-domain.py` and `test-check-domain.py` both touched; case 8 added under `run_t09` |
 | 9bdbe91 (F-05 pt 3) | pure refactor, "held BYTE-IDENTICALLY" | **holds as a refactor claim** — this is grade repair (extracting `_landed_blob_text`), not new-behavior TDD; no new test-first obligation applies. Not independently diffed byte-for-byte by me; accepted on the commit's own description, consistent with cycle-0's treatment of T-16's fixture-debt repair as a different shape of compliance |
 | 57892bd (D-15 + F-05 pt2) | decision recorded, two grade regressions repaid | **holds** — plan.yaml diff is additive only (checked: D-15 decision block present at plan.yaml:161-187, `dec: DEC-174`); no test-first question applies to a decision record |
 | c248019 (F-05 pt1) | "All 26 T-09 assertions preserved and still running — counted, not assumed" | **holds** — `run_t09` split into `_t09_edit_denial`/`_t09_binds_every_author`/`_t09_post_sweep`/`_t09_spelling`, all four called from `run_t09` (confirmed at test-check-domain.py:2675-2683) |
-| 8fa2d04 (D-16) | INV-32→INV-33 renumber, T-18 struck | **holds** — `check-state.sh` carries both `# INV-32 BEGIN (FEAT-45 T-07)` and FEAT-41's own INV-33 block (test-check-state.py:3328 onward) side by side; not a test-first case (renumber + strike, not new behavior) |
+| 8fa2d04 (D-16) | INV-32→INV-33 renumber, T-18 struck | **holds** — `check-state.py` carries both `# INV-32 BEGIN (FEAT-45 T-07)` and FEAT-41's own INV-33 block (test-check-state.py:3328 onward) side by side; not a test-first case (renumber + strike, not new behavior) |
 
 ## 4. New-test binding verification (dispatch item 5)
 
@@ -70,7 +70,7 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 - `_record_station` (gh-sync.py:571-631): both failure prints (absent plan.yaml at :618, non-zero
   `set-feature-station` exit at :627-628) read `gh-sync: FAILED —`. Test drives both branches
   (`test-gh-sync.py`, the F-01 block) and asserts the gate literal is present, read dynamically
-  via `_GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:', open(...post-merge-sweep.sh...).read())`
+  via `_GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:', open(...post-merge-sweep.py...).read())`
   — genuinely reads the gate's own literals, not a retyped copy.
 - `_commit_terminal_station` (gh-sync.py:649-700): both failure branches (`git status` failure,
   `git commit` failure) print `gh-sync: WARNING -`, neither gate word. Asserted by the pre-existing
@@ -111,7 +111,7 @@ four green. **No gap.**
 through the write-denial route (all DENIED) with a negative control (`plan.yaml.bak`,
 `myplan.yaml`, still ALLOWED — the pattern is anchored, not substring). **The source fix widened
 `_I = re.IGNORECASE` onto all six patterns** (`RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`,
-`RE_STATE_MD`, `RE_CLAUDE_MD`, `RE_PLAN_YAML` — confirmed at source, check-domain.sh:1037-1046),
+`RE_STATE_MD`, `RE_CLAUDE_MD`, `RE_PLAN_YAML` — confirmed at source, check-domain.py:1037-1046),
 and the commit message claims "Verified all six fold" — but I grepped `test-check-domain.py` for
 `Feature.json`, `Claude.md`, `State.md`, and `Handoff-` (any case-variant of the other five
 patterns) and got **zero hits**. Only one of six patterns has a standing case-insensitivity test;
@@ -135,7 +135,7 @@ by whatever PyYAML's install location happens to be on the machine running
 `test-post-merge-sweep.py`'s subprocess. Unchanged from cycle 0.
 
 **INV-32→INV-33 renumber — both suites' cases are present and green side by side** (confirmed:
-check-state.sh carries both `# INV-32 BEGIN (FEAT-45 T-07)` at :264 and FEAT-41's own INV-33
+check-state.py carries both `# INV-32 BEGIN (FEAT-45 T-07)` at :264 and FEAT-41's own INV-33
 block from :3328 in the test file, both exercised in the green `test-check-state.py` run above).
 **Not measured: whether either invariant's assertions pass on the other's output.** I found no
 cross-mutation case (e.g., feeding an INV-33-shaped fixture through INV-32's grader or vice versa)
@@ -154,11 +154,11 @@ unverified rather than asserted either way.
 | SC-06 | PASS | automated | `test-check-domain.py` exit 0, F-04 case block green (post-sweep coverage unchanged from cycle 0's PASS) |
 | SC-07 | PASS | automated | `test-plan-sign-gate.py` exit 0, all F-03 cases + negative controls green — **flips from cycle 0's FAIL**: F-03 closed the bypass the criterion's own assertion could not see before |
 | SC-08 | **FAIL as literally worded; intent-satisfied** | automated | `python3 -c "..."` scanning every `feature.json` for a `status` key → **one hit**: `.harness/harness/features/BUG-1071-inv32-era-guard/feature.json` still carries `"status": "Review"`. See §6 — this is the disclosed, deliberately-unfixed item, not a regression from this feature's own work. The eleven former readers this feature repointed are confirmed off `plan.yaml` (T-07's migration); BUG-1071 has no `plan.yaml` to repoint to. |
-| SC-09 | PASS | inspection | `git show fc08375:.../FEAT-40.../plan.yaml` carries top-level `status: done`; `check-state.sh` full run emits zero `INV-26` lines for any feature |
+| SC-09 | PASS | inspection | `git show fc08375:.../FEAT-40.../plan.yaml` carries top-level `status: done`; `check-state.py` full run emits zero `INV-26` lines for any feature |
 | SC-10 | PASS | automated | `test-gh-sync.py` exit 0, F-01 cases green; T-10's worktree-refusal and commit-clean-against-HEAD cases unchanged from cycle 0's PASS |
-| SC-11 | **PASS — RESOLVED** | automated | §1 above: clean serial run, both suites and check-state.sh exit 0 at expected counts |
+| SC-11 | **PASS — RESOLVED** | automated | §1 above: clean serial run, both suites and check-state.py exit 0 at expected counts |
 | SC-12 | PASS (struck) | inspection | struck with T-13 exactly as pre-authorized; no coverage lost per D-01 |
-| SC-13 | PASS | automated, integration | `grep -n "_EXPECT" check-state.sh` → 0 hits; `test-check-state.py` exit 0, INV-26 fixture cases (v.T06-pending etc.) green, no `if _want is None: continue` skip survives |
+| SC-13 | PASS | automated, integration | `grep -n "_EXPECT" check-state.py` → 0 hits; `test-check-state.py` exit 0, INV-26 fixture cases (v.T06-pending etc.) green, no `if _want is None: continue` skip survives |
 | SC-14 | PASS | automated | T-15's own verify script, run verbatim → exit 0, "three amendment records present, three amended clauses still standing" |
 
 ## 6. BUG-1071 disposition ruling
@@ -167,10 +167,10 @@ unverified rather than asserted either way.
 `BUG-1071-inv32-era-guard/feature.json` carries `status: "Review"` (pre-migration vocabulary) and
 no `plan.yaml` exists to hold a station instead. Creating one to satisfy T-07's migration would be
 fabricating a planning document for a feature this session did not build — exactly what the
-dispatch and PRINCIPLES rule 15 forbid. `check-state.sh` emits no violation for it (I confirmed:
+dispatch and PRINCIPLES rule 15 forbid. `check-state.py` emits no violation for it (I confirmed:
 the tool has no schema-validation pass over resting `feature.json` files at all — `grep -n
-"feature_schema\|additionalProperties" check-state.sh` is empty; schema enforcement in this
-feature binds only the *write* path via `check-domain.sh`, never a read-time scan of files already
+"feature_schema\|additionalProperties" check-state.py` is empty; schema enforcement in this
+feature binds only the *write* path via `check-domain.py`, never a read-time scan of files already
 on disk), so nothing is silently gated shut by it. **The one place this bites is SC-08's literal
 wording**, which the criterion's own text does not carve an exception into. I am not softening
 that: SC-08 as written is measurably false today, by exactly one file, for a reason outside this
@@ -189,8 +189,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 505 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 816 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 505 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 816 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }
@@ -210,9 +210,9 @@ DIGEST:
     - { id: SC-06, verdict: PASS, method: automated, evidence: "test-check-domain.py exit 0, F-04 post-sweep coverage unchanged" }
     - { id: SC-07, verdict: PASS, method: automated, evidence: "test-plan-sign-gate.py exit 0, F-03 cases + negative controls green — flips from cycle-0 FAIL" }
     - { id: SC-08, verdict: FAIL, method: automated, evidence: "one feature.json (BUG-1071-inv32-era-guard) still carries a status key — literally unmet; disclosed and correctly disposed per §6, not a build regression" }
-    - { id: SC-09, verdict: PASS, method: inspection, evidence: "git show fc08375:.../FEAT-40.../plan.yaml has top-level status: done; check-state.sh 0 INV-26 lines" }
+    - { id: SC-09, verdict: PASS, method: inspection, evidence: "git show fc08375:.../FEAT-40.../plan.yaml has top-level status: done; check-state.py 0 INV-26 lines" }
     - { id: SC-10, verdict: PASS, method: automated, evidence: "test-gh-sync.py exit 0, F-01 + T-10 cases green" }
-    - { id: SC-11, verdict: PASS, method: automated, evidence: "clean serial run: unit 505/0, integration 816/0, check-state.sh 0/0, both exit 0 — RESOLVED, cycle-0 confound does not reproduce standalone" }
+    - { id: SC-11, verdict: PASS, method: automated, evidence: "clean serial run: unit 505/0, integration 816/0, check-state.py 0/0, both exit 0 — RESOLVED, cycle-0 confound does not reproduce standalone" }
     - { id: SC-12, verdict: PASS, method: inspection, evidence: "struck with T-13 exactly as pre-authorized, no coverage lost per D-01" }
     - { id: SC-13, verdict: PASS, method: automated, evidence: "grep _EXPECT 0 hits; test-check-state.py exit 0, INV-26 fixture cases green" }
     - { id: SC-14, verdict: PASS, method: automated, evidence: "T-15's own verify script run verbatim, exit 0" }

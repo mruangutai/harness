@@ -40,7 +40,7 @@ edit_creates_reachable: no
 ## M2 — guard behaviour under an Edit-creates payload, pinned tree (`dc0e0313`)
 
 Synthetic project root: `$TMPDIR/bug1305-m2/proj`, with pinned
-`.claude/skills/harness/bin/{check-domain.sh,harness_boundary.py,harness_yaml.py,run_identity.py}`
+`.claude/skills/harness/bin/{check-domain.py,harness_boundary.py,harness_yaml.py,run_identity.py}`
 materialised via `git show dc0e0313:<path>` and a minimal `.harness/team-config.yaml`, laid out
 at the same 4-levels-up depth `root_from_script` expects.
 
@@ -48,7 +48,7 @@ Absent-target attempt (non-empty, realistic `old_string`, so the empty-string ca
 blamed for the result):
 ```
 $ PAYLOAD='{"hook_event_name":"PreToolUse","tool_name":"Edit","tool_input":{"file_path":".harness/feat1/features/BUG-9999/runs/run1/.run-identity.json","old_string":"placeholder","new_string":"{\"run_uid\":\"FORGED\"}"}}'
-$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" bash "$PROJ/.claude/skills/harness/bin/check-domain.sh")
+$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" python3 "$PROJ/.claude/skills/harness/bin/check-domain.py")
 → (no output)
 EXIT=0
 ```
@@ -57,7 +57,7 @@ CONTROL (same shape, witness file pre-exists with real content, `old_string` mat
 ```
 $ printf '{"run_uid":"REAL-UID-1"}' > "$PROJ/.harness/feat1/features/BUG-9999/runs/run1/.run-identity.json"
 $ PAYLOAD='{...,"tool_input":{"file_path":"...\/.run-identity.json","old_string":"REAL-UID-1","new_string":"FORGED-UID"}}'
-$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" bash "$PROJ/.claude/skills/harness/bin/check-domain.sh")
+$ (cd "$PROJ" && echo "$PAYLOAD" | HARNESS_PROJECT_DIR="$PROJ" python3 "$PROJ/.claude/skills/harness/bin/check-domain.py")
 → check-domain: BLOCKED — .../.run-identity.json: this path is the run's write-once identity
   witness, recorded at the run's first landed checkpoint. ...
 EXIT=2
@@ -78,12 +78,12 @@ $ git -C <worktree> status --porcelain
 ?? .harness/harness/features/BUG-1305-run-state-clobber/notes/review-harness-qa-c1.md
 ?? .harness/harness/features/BUG-1305-run-state-clobber/notes/review-harness-security-reviewer-c1.md
 ?? .harness/harness/features/BUG-1305-run-state-clobber/notes/review-harness-ui-reviewer-c1.md
-(check-domain.sh itself: clean — not modified by this measurement)
+(check-domain.py itself: clean — not modified by this measurement)
 $ git -C <worktree> rev-parse HEAD
 2728aa2072b2e51ef18113720c94bcd59d9160ee
 $ git -C <worktree> merge-base --is-ancestor dc0e0313 HEAD; echo $?
 0   (dc0e0313 IS an ancestor of HEAD — HEAD has advanced past the pin)
-$ git -C <worktree> diff dc0e0313 -- .claude/skills/harness/bin/check-domain.sh | head -80
+$ git -C <worktree> diff dc0e0313 -- .claude/skills/harness/bin/check-domain.py | head -80
   @@ -2036,13 +2036,15 @@ ...
   -    # PRE. Write supplies complete content. Edit is reconstructed only for the protected
   -    # artifact identities whose contracts must reject an invalid candidate before mutation:
@@ -108,7 +108,7 @@ EXIT=2, stderr: check-domain: BLOCKED — ...this path is the run's write-once i
 ```
 So: **pinned tree (`dc0e0313`) is vulnerable; current tree (`HEAD`) is already fixed.** The
 fix landed as a real commit between the pin and HEAD, not as an uncommitted edit — `git status
---porcelain` above shows `check-domain.sh` untouched.
+--porcelain` above shows `check-domain.py` untouched.
 
 ## M3 — blast radius: SKIPPED
 
@@ -137,5 +137,5 @@ not touched).
   precondition also absent' rather than reopening a guard change against HEAD?", blocking: true }
 - { id: Q2, question: "This measurement used this one host/session's Edit tool. If a different
   host or tool version ever permits Edit-creates, the pinned-tree guard hole would have been
-  live there — worth a portable regression test on `check-domain.sh` for the Edit-creates path
+  live there — worth a portable regression test on `check-domain.py` for the Edit-creates path
   independent of any single host's Edit semantics?", blocking: false }

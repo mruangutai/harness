@@ -145,7 +145,7 @@ invocations, is what the qa gate re-runs.
 **Recommended, and worth the two minutes: the real-git end-to-end.** The suites drive the hook
 through fixtures; the three silent allows were found by asking *does git actually merge?* against a
 throwaway repo. `/tmp/bug1309-c15-verify.py` and `/tmp/bug1309-final-probe.py` were the orchestrator's
-probes and may or may not survive in `/tmp`; re-run or re-create one that drives `merge-gate.sh` over
+probes and may or may not survive in `/tmp`; re-run or re-create one that drives `merge-gate.py` over
 all four ruled forms plus the existing 14 deny forms and 9 preserved bounds.
 
 **If you run the suites from inside an agent tool, prefix with `env -u HARNESS_AGENT_TYPE`** — the

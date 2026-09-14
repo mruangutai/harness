@@ -471,7 +471,7 @@ def _plan_station(feat_dir):
 
 def _feature_dirs(root):
     """Every feature directory under the harness root, `<root>/.harness/*/features/*` — the SAME
-    glob shape `check-state.sh`'s own INV-24/INV-26 invariants read, so a feature this audit sees
+    glob shape `check-state.py`'s own INV-24/INV-26 invariants read, so a feature this audit sees
     is the same set those invariants see (T-15)."""
     pattern = os.path.join(root, ".harness", "*", "features", "*", "feature.json")
     return sorted(os.path.dirname(p) for p in glob.glob(pattern))
@@ -506,7 +506,7 @@ def _status_findings(root, board, stations):
     - status `Abandoned` -- DEC-203 gives it no board column to compare against.
     - no recorded `github.parent` -- INV-21 already reports that shape.
     - issues recorded under `factory.issues` rather than `github.issues` -- that feature's cards
-      live on the PRODUCT's board, not this one (the same carve-out check-state.sh's INV-26
+      live on the PRODUCT's board, not this one (the same carve-out check-state.py's INV-26
       already makes for the factory lane).
     There is NO Done exemption (D-22): a status of Done whose parent is not at the done station
     is a finding whether the parent issue is open or closed.

@@ -21,7 +21,7 @@ the fixture and schema rulings all re-derived unchanged.
 
 | It says | Measured | How |
 |---|---|---|
-| 55 python tests, 28 unit / 27 integration | **58**, **31** unit / 27 integration at `56a30a0` (56, 29/27 at `ea6f51f`), no duplicates, no overlap | parse both arrays out of `run-unit-tests.sh`, compare to `glob('bin/test-*.py')` |
+| 55 python tests, 28 unit / 27 integration | **58**, **31** unit / 27 integration at `56a30a0` (56, 29/27 at `ea6f51f`), no duplicates, no overlap | parse both arrays out of `run-unit-tests.py`, compare to `glob('bin/test-*.py')` |
 | 40 non-test `.py` helpers stay | **43** at `56a30a0` (42 at `ea6f51f`; `panel_findings.py` is the addition) | `glob('*.py')` minus `test-*` and `probe-*` |
 | 3 live references to `bin/test-` paths | **6**, unchanged — FEAT-45's three files name none | see the table under *Live references* |
 
@@ -56,16 +56,16 @@ same criterion, not by the `UNIT_SCRIPTS` entry FEAT-45 gave them:
 |---|---|
 | test-board-lifecycle.py | `python3 board_lifecycle.py` x54 |
 | test-board-station.py | `python3 board-station.py` x13 |
-| test-branch-create-gate.py | `branch-create-gate.sh` x7 |
+| test-branch-create-gate.py | `branch-create-gate.py` x7 |
 | test-check-omp-port.py | `python3 check-omp-port.py` x8 |
 | test-factory-decompose.py | `os.fork` x2, concurrent writers of one file |
 | test-feature-json-merge.py | `python3 feature-json-merge.py` x5, plus `os.fork` |
-| test-inject-expertise.py | `inject-expertise.sh` x17 |
-| test-layout-migration.py | `check-state.sh` x6 |
+| test-inject-expertise.py | `inject-expertise.py` x17 |
+| test-layout-migration.py | `check-state.py` x6 |
 | test-sync-agent-adapters.py | `python3 sync-agent-adapters.py` x4 |
 | test-validate-feature-json.py | `validate-feature-json.py` x6 |
 | test-panel-findings.py | `python3 panel_findings.py id --reader … --summary …` — the real CLI, asserting its exit-code contract (2 on an empty reader, 2 on a whitespace-only summary). The pure-function half is loaded in-process via `importlib`, but the CLI cases are not, so the file is integration on the whole |
-| test-plan-panel.py | `check-domain.sh --resolve <path>` x3 call sites, asserting the resolver's `stdout` and returncode. Not a stub and not a fixture builder: the gate script IS the thing whose answer the assertion depends on |
+| test-plan-panel.py | `check-domain.py --resolve <path>` x3 call sites, asserting the resolver's `stdout` and returncode. Not a stub and not a fixture builder: the gate script IS the thing whose answer the assertion depends on |
 
 No file moves integration → unit. Final classification of the 58 at `56a30a0`: **19 unit, 39
 integration**, against today's arrays' 31/27. One of the 39, `test-run-unit-tests-kinds.py`, is
@@ -85,7 +85,7 @@ hook**, which is the artifact.
   consumers land in the same kind.
 - **`feature-schema.json` is production. It stays in `bin/`.** `feature_schema.py:45` reads it at
   runtime as `BIN_DIR/feature-schema.json`, `feature_schema.py:68` names the same path as
-  `SCHEMA_REL`, and `check-domain.sh:1170` names it in the text of a **write denial**. Tests read it
+  `SCHEMA_REL`, and `check-domain.py:1170` names it in the text of a **write denial**. Tests read it
   too, but a production loader owns it.
 - **Residue, stated rather than discovered later.** `layout_fixtures.py` is test support (imported
   only by `test-check-state.py` and `test-layout-migration.py`) and stays in `bin/` under the
@@ -112,13 +112,13 @@ as *the artifact's* directory it becomes `BIN_DIR`; where it uses it as *the tes
 | `.harness/harness.json` `test_kinds.{unit,integration}.detect` | names `bin/` paths and 27 literal files |
 | `test-no-distribution.py:98-105` `ALLOW_LIST` | exactly two entries, both `bin/` paths; a stale entry un-exempts a moved file and case 2 goes red |
 | `test-code-grade-cli.py:45-47,71-93` | its synthetic repo's `unit.detect` and fixture path model the old layout |
-| `test-check-plan-routes.py:162-167` `case_13` | asserts `run-unit-tests.sh` **lists** this test — dies with the arrays |
+| `test-check-plan-routes.py:162-167` `case_13` | asserts `run-unit-tests.py` **lists** this test — dies with the arrays |
 | `test-check-domain.py:1749-1757` | docstring names `tests/**` as product code that resolves to NOBODY; false once it is control-plane |
 | `.github/CODEOWNERS:22-27` | comment explains the ownership by the array mechanism |
 
 **Not touched, deliberately:** `DECISIONS.md` carries **zero** line anchors into any file this
 feature moves or edits (measured: 2 path-form mentions of moved files, both anchorless; 0 anchors
-into `run-unit-tests.sh`, `harness_boundary.py`, `team-config.yaml`, `harness.json`), so the
+into `run-unit-tests.py`, `harness_boundary.py`, `team-config.yaml`, `harness.json`), so the
 anchor-rot check is not in play. Historical notes and receipts under `.harness/` stay as written.
 
 ## Baseline census — re-derived at `56a30a0`, all 58 files `rc=0`
@@ -229,7 +229,7 @@ claiming "12 scripts, ~15s" for integration is stale by 15 scripts; out of scope
 - The census tool is `tests/manual/suite-census.py`, created by T-05 (this line named a different
   filename before the plan settled on that one). Without it the per-file proof is a 25-line inline
   script pasted into two verifies.
-- `run-unit-tests.sh --check-kinds` becomes `--check-layout`, keeping the millisecond mode that
+- `run-unit-tests.py --check-kinds` becomes `--check-layout`, keeping the millisecond mode that
   makes the guard's own cases cheap. The argument-parser regression cases in the deleted
   `test-run-unit-tests-kinds.py` (case 5) are absorbed by the new integration test, not dropped.
 - **Parallel safety is a separate note.** The 247s serial baseline, the per-worker measurements and

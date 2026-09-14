@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: which CHECKOUT and which CWD a verdict is bound to.
+"""check-domain.py: which CHECKOUT and which CWD a verdict is bound to.
 
 Slice of the former test-check-domain.py (issue #1527) — the worktree boundary, the
 deep-layout shape cases, the clean-tracked sweep, BUG-895's wrong-checkout refusals
@@ -165,11 +165,11 @@ def run_worktree():
        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # --- THE FAIL-CLOSED PAIR for the shared module (D-06). An isolated copy carrying
-    # check-domain.sh and harness_yaml.py but NOT harness_boundary.py.
+    # check-domain.py and harness_yaml.py but NOT harness_boundary.py.
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
-    shutil.copy(HOOK, os.path.join(isobin, "check-domain.sh"))
+    shutil.copy(HOOK, os.path.join(isobin, "check-domain.py"))
     shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
@@ -177,7 +177,7 @@ def run_worktree():
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(iso, ".harness", "allowed", "x.txt"),
                               "content": "x"}}
-    r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
+    r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
                        capture_output=True, text=True,
                        env=_env(iso))
     wt("a MISSING harness_boundary.py blocks the write and NAMES the module",
@@ -188,7 +188,7 @@ def run_worktree():
     # everything. The manifest is removed, so DEC-101's deliberate fail-open must still
     # fire — the module being absent must not convert it into a refusal.
     os.remove(os.path.join(iso, ".harness", "team-config.yaml"))
-    r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
+    r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
                        capture_output=True, text=True,
                        env=_env(iso))
     wt("with the module absent AND no manifest, DEC-101 still fails OPEN, loudly",
@@ -641,7 +641,7 @@ def _bug895_scratch_case(wt):
 
 def _bug895_mutant_hook():
     """A full copy of bin/ with harness_boundary.py's WRONG CHECKOUT detection block
-    removed, so `import harness_boundary` inside the copy's own check-domain.sh
+    removed, so `import harness_boundary` inside the copy's own check-domain.py
     resolves to the mutant — `sys.path.insert(0, _bin_dir)` makes the copy's own
     directory win regardless of PYTHONPATH, so only a real sibling copy shadows it."""
     with open(os.path.join(HERE, "harness_boundary.py"), encoding="utf-8") as f:

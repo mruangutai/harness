@@ -35,7 +35,7 @@ the tests passed rather than that the scheduler happened to be kind.
   derived from the test's own path, or whose target is inside the shared code directory the
   runtime check watches. `plan.yaml` D-11 names the classes neither mechanism sees; this
   requirement does not claim them.
-- REQ-03: `run-unit-tests.sh` runs its test files concurrently, and a non-zero exit from any file
+- REQ-03: `run-unit-tests.py` runs its test files concurrently, and a non-zero exit from any file
   fails the run.
 - REQ-04: Output from a parallel run is attributable: every line can be traced to the test file
   that produced it.
@@ -78,7 +78,7 @@ investigation while fully present and unfixed.
   even one named site. The literal historical blobs are not re-fetched in shallow CI; the durable
   CI gate is the equivalent idiom fixtures.
   verify: automated      evidence: unit plus review-time pinned verification
-- SC-04: The invariant actually runs in CI: `run-unit-tests.sh --kind unit` emits
+- SC-04: The invariant actually runs in CI: `run-unit-tests.py --kind unit` emits
   `PASS test-suite-independence.py`.
   FAILS IF: that line is absent, which is what an unregistered test file looks like.
   verify: automated      evidence: unit
@@ -135,7 +135,7 @@ investigation while fully present and unfixed.
   FAILS IF: the editing fixture run exits 0; the shell-mediated write is missed; the creating
   fixture run exits 0; a `MUTATED` line is absent or does not name the path relative to DIR;
   the empty-or-absent DIR case reports clean; a `__pycache__` rewrite is reported, which makes
-  the check redden on the interpreter's own byte-code caching; or `run-unit-tests.sh` invokes
+  the check redden on the interpreter's own byte-code caching; or `run-unit-tests.py` invokes
   the pool with any argument other than `"$BIN_DIR"` — no flag at all is the check silently
   off, and the repository root is the check reddening whenever a sibling agent writes a note,
   which is how it gets deleted.
@@ -177,7 +177,7 @@ investigation while fully present and unfixed.
 
 - FEAT-47 (`feat/FEAT-47-tests-layout`) `git mv`s every `test-*.py` out of
   `.claude/skills/harness/bin/` into `tests/unit/`, `tests/integration/` and `tests/manual/`, and
-  rewrites `run-unit-tests.sh` to be directory-driven. FEAT-48 ships **whole and first**, against
+  rewrites `run-unit-tests.py` to be directory-driven. FEAT-48 ships **whole and first**, against
   today's array-driven runner (`plan.yaml` D-09). It supplies rather than blocks: nothing here waits
   on FEAT-47. Both new files are written so that the move **requires** no edit to their logic — the
   pool takes a list of script paths on argv and never sees how they were discovered, and the
@@ -202,7 +202,7 @@ investigation while fully present and unfixed.
   pinned to the 12-core development box, and the two steps' attribution must survive.
 - **Every intermediate commit is gated.** `.github/workflows/tests.yml` declares `on: push:
   branches:[main]` plus a bare `pull_request:`, which includes `synchronize`, so CI re-runs on
-  every push to an open PR. A transient state that trips `run-unit-tests.sh`'s drift detector —
+  every push to an open PR. A transient state that trips `run-unit-tests.py`'s drift detector —
   a `test-*.py` under `bin/` in neither script array — is a live red build, not a theoretical
   window. Every task that creates a test file therefore registers it in the same task
   (`plan.yaml` T-03, T-04).

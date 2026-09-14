@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
+"""check-state.py at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). The hook registration
 INV-9 requires, the mirrored feature with no recorded parent (INV-21), factory claims
@@ -16,6 +16,8 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT,
@@ -74,14 +76,14 @@ def case_d():
         os.makedirs(cl, exist_ok=True)
         base = {"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                 "hooks": {
-                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                     "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
-                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.sh --post"}]}],
+                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.py --post"}]}],
                     "PreToolUse": [
-                        {"hooks": [{"command": "x/check-domain.sh"}]},
-                        {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                        {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                        {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}
+                        {"hooks": [{"command": "x/check-domain.py"}]},
+                        {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                        {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                        {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}
         local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump(base, f)
@@ -126,7 +128,7 @@ def case_e():
 
     Asserted through the invariant rather than the parser: this fixture has a validator
     run and NO `review_sha`, so a correct parse MUST report INV-6. Pre-fix the run
-    vanished and check-state.sh said nothing at all — which is why a parser-level
+    vanished and check-state.py said nothing at all — which is why a parser-level
     assertion would be the weaker test.
     """
     with tempfile.TemporaryDirectory() as tmp:
@@ -231,13 +233,13 @@ def case_m():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         ok = "No PostToolUse check-domain hook" in out
         print(f"{'ok' if ok else 'FAIL'} - case (m): INV-9 catches a MISSING PostToolUse "
@@ -263,15 +265,15 @@ def case_m2():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write",
-                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
         # tools that are uncovered, because "a hook is misconfigured" without them sends
@@ -304,20 +306,20 @@ def case_m3():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [
                                # decoy: right matcher, and it mentions check-domain only in
                                # a path that does not run it
                                {"matcher": "Write|Edit|Bash",
-                                "hooks": [{"command": "x/check-domain.sh.disabled --post"}]},
+                                "hooks": [{"command": "x/check-domain.py.disabled --post"}]},
                                {"matcher": "Write",
-                                "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         code, out = run(tmp)
         # The decoy DOES widen coverage on a basename match, which is honest: this fixture
         # asserts only that a `Write`-only real entry cannot pass on its own merits.
@@ -356,15 +358,15 @@ def case_t():
         with open(os.path.join(cl, "settings.json"), "w") as f:
             json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
                        "hooks": {
-                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.py"}]}],
                            "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
                            "PostToolUse": [{"matcher": "Write|Edit|Bash(",
-                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                                            "hooks": [{"command": "x/check-domain.py --post"}]}],
                            "PreToolUse": [
-                               {"hooks": [{"command": "x/check-domain.sh"}]},
-                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
-                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
-                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+                               {"hooks": [{"command": "x/check-domain.py"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.py"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.py"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.py"}]}]}}, f)
         _code, out = run(tmp)
         ok = out.strip() != "" and "not a valid regular expression" in out
         print(f"{'ok' if ok else 'FAIL'} - case (t1): an invalid hook matcher is REPORTED, "
@@ -397,7 +399,7 @@ def case_r():
     `if cfg:`, so an absent harness.json left the name unbound and every later consumer
     raised NameError. A crash exits 1 — the same code a real violation exits — so /harness
     entry reported "violations found" for a missing config, with a traceback where the
-    diagnosis should be. check-state.sh's own header records the identical shape being
+    diagnosis should be. check-state.py's own header records the identical shape being
     fixed once already, for a bad _selfdir.
 
     Found while landing DEC-182, because a plan.yaml fixture legitimately carries none.
@@ -579,8 +581,8 @@ def case_s():
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
-    Nothing shares these — deliberately (D-02): check-domain.sh measures a write payload,
-    check-state.sh measures a file on disk, and merging the mechanisms is what let a
+    Nothing shares these — deliberately (D-02): check-domain.py measures a write payload,
+    check-state.py measures a file on disk, and merging the mechanisms is what let a
     malformed file pass unread once already. What is NOT deliberate is the two drifting
     apart in silence, where check-domain blocks at 201 lines while check-state warns at
     251 and no reader can tell which number is the budget.
@@ -595,8 +597,8 @@ def case_o():
     # CHECK_DOMAIN_BIN at a mutant saying "budget is 999" and this case printed ok,
     # having opened the real file instead.
     dom = open(os.environ.get("CHECK_DOMAIN_BIN")
-               or os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
-    # SCRIPT, not a hard-coded "check-state.sh". This case reads source rather than running
+               or os.path.join(here, "check-domain.py"), encoding="utf-8").read()
+    # SCRIPT, not a hard-coded "check-state.py". This case reads source rather than running
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
     # it never opened, which is the failure mode the override exists to expose.
@@ -688,7 +690,7 @@ def case_o():
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
                   f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
-    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.sh and "
+    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.py, check-state.py and "
           f"HANDOFF.md agree on every duplicated budget, key and heading")
     if not ok_all:
         for c in checks:
@@ -908,7 +910,7 @@ def case_inv30_silent_on_closed_milestone():
 
 def case_inv30_silent_offline():
     """SC-12 clause three, and it is TWO claims, not one: no INV-30 line AND no error. This
-    grades the INV-26 offline posture the design copies deliberately — `check-state.sh` runs
+    grades the INV-26 offline posture the design copies deliberately — `check-state.py` runs
     before every commit, so an unreachable network must never become a red gate."""
     with tempfile.TemporaryDirectory() as tmp:
         _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
@@ -954,6 +956,36 @@ def case_inv30_silent_on_nonterminal():
         return ok
 
 
+def case_no_root_replays_resolver_stderr():
+    """An unconfigured isolated copy keeps the resolver's full traceback.
+
+    The former shell entry point replayed stderr from its isolated root-resolution
+    helper. Replacing that traceback with only ``str(exc)`` loses the failure's
+    source and violates the conversion's byte-preservation contract.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        isolated = os.path.join(tmp, "bin")
+        shutil.copytree(_anchor_bin, isolated)
+        script = os.path.join(isolated, "check-state.py")
+        env = os.environ.copy()
+        env.pop("HARNESS_PROJECT_DIR", None)
+        result = subprocess.run(
+            [script], cwd=isolated, env=env, capture_output=True, text=True)
+        lines = result.stderr.splitlines()
+        ok = (
+            result.returncode == 2
+            and not result.stdout
+            and bool(lines)
+            and lines[0].startswith(
+                "check-state.py: no harness root could be resolved from ")
+            and "Traceback (most recent call last):" in result.stderr
+            and "ValueError: no harness root found:" in result.stderr
+            and "check-state.py: no harness root found:" not in result.stderr
+        )
+        print(f"{'ok' if ok else 'FAIL'} - no-root refusal replays the resolver traceback")
+        return ok
+
+
 def main():
     results = []
     ok, code_a = case_a()
@@ -986,6 +1018,7 @@ def main():
     results.append(case_inv30_silent_offline())
     results.append(case_inv30_silent_on_null_milestone())
     results.append(case_inv30_silent_on_nonterminal())
+    results.append(case_no_root_replays_resolver_stderr())
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "

@@ -3,7 +3,7 @@
 
 Fixtures are written under tempfile.mkdtemp() so no repo state is touched.
 Each case invokes the real script as a subprocess against a fixture PLAN.md,
-and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
+and against the repo's own templates/PLAN.md, run-unit-tests.py and source
 for the static/textual checks (cases 8-13, 16).
 """
 import os as _anchor_os, sys as _anchor_sys
@@ -30,7 +30,7 @@ SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 FIXTURE_DIR = os.path.join(TESTS_DIR, "fixtures")
 
-GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
+GRANTED_PATH = ".claude/skills/harness/bin/check-domain.py"  # granted to two agents
 
 
 def cpr():
@@ -148,10 +148,10 @@ def case_06_07():
 
 
 def case_08_09_16():
-    """(8) source mentions check-domain.sh. (9) no fnmatch. (16) no glob_to_re — separate case from 9."""
+    """(8) source mentions check-domain.py. (9) no fnmatch. (16) no glob_to_re — separate case from 9."""
     with open(SCRIPT) as f:
         src = f.read()
-    check("case_08_source_mentions_check_domain_sh", "check-domain.sh" in src)
+    check("case_08_source_mentions_check_domain_py", "check-domain.py" in src)
     check("case_09_source_has_no_fnmatch", "fnmatch" not in src)
     check("case_16_source_has_no_glob_to_re", "glob_to_re" not in src)
 
@@ -168,7 +168,7 @@ def case_10_11_12():
 
 def case_13():
     """(13): the runner discovers this file from the integration directory."""
-    runner = os.path.join(BIN_DIR, "run-unit-tests.sh")
+    runner = os.path.join(BIN_DIR, "run-unit-tests.py")
     with open(runner) as f:
         src = f.read()
     check("case_13_runner_discovers_integration_directory",
@@ -188,7 +188,7 @@ def case_14_15():
 def case_17():
     """(17): the mid-pattern-wildcard grant path must resolve OK, no VIOLATION naming its task.
 
-    This is the exact bug check-domain.sh:190-197 records: a hand-rolled prefix
+    This is the exact bug check-domain.py:190-197 records: a hand-rolled prefix
     comparison on the text before `/**` answers False for a pattern with an earlier
     wildcard segment. The path string below is granted ONLY through
     `.harness/*/features/*/runs/*-eng/**` (team-config.yaml) and must stay verbatim.
@@ -260,7 +260,7 @@ def case_18():
             "- T-01: block form, every path granted\n"
             "  files:\n"
             "    - .harness/harness/docs/SPEC.md\n"
-            "    - .claude/skills/harness/bin/check-domain.sh\n"
+            "    - .claude/skills/harness/bin/check-domain.py\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
         r4 = run(allg)
@@ -917,7 +917,7 @@ def case_23():
     # T-01 measures exactly AT the cap — the one value where the two operators disagree.
     #
     # Tuned with `traces:`, not `files:`. Both count identically against the budget, but
-    # every files entry costs a check-domain.sh subprocess: a search over `files:` ran 110
+    # every files entry costs a check-domain.py subprocess: a search over `files:` ran 110
     # of them and this case timed out at two minutes. `traces:` is never resolved.
     #
     # THREE RUNS, NO SEARCH. Run 1 goes far over and REPORTS its own total, which gives
@@ -1287,13 +1287,13 @@ def case_20():
     writes." This is that commit for root resolution.
 
     KEYED ON THE PROBE STRING, not on control flow. The two spellings inside
-    check-domain.sh are already textually different (a ternary and an if/else) and both
+    check-domain.py are already textually different (a ternary and an if/else) and both
     are correct, so asserting shared structure would fail on a difference nobody minds.
     What every copy MUST agree on is WHICH FILE proves a directory is a harness root: if
     one probes `.harness/team-config.yaml` and another probes something else, they resolve
     different roots on the same tree and no gate notices.
 
-    check-state.sh is a NAMED EXCEPTION, not an oversight. Measured by review: it has no
+    check-state.py is a NAMED EXCEPTION, not an oversight. Measured by review: it has no
     derived fallback at all — `cd "$root"` with an invalid CLAUDE_PROJECT_DIR fails and it
     silently reports on the cwd. That is a real defect, it is a DEC-174 carve-out file, and
     it is unrelated to #133, so it is filed separately rather than fixed here. Encoding it
@@ -1316,7 +1316,7 @@ def case_20():
     rather than filtered by a hand-written quote scanner (the same class of bug this file
     itself was just found holding). `.sh` sources keep the fifth draft's bracket counter
     UNCHANGED: bin/ holds real POSIX shell alongside files that are bash-shebanged but
-    entirely Python inside a heredoc (check-domain.sh), and Python's tokenizer raises on
+    entirely Python inside a heredoc (check-domain.py), and Python's tokenizer raises on
     ordinary, correct bash it was never built to read (measured: 5 of 11 *.sh files in this
     directory raise `tokenize.TokenError` on legitimate syntax -- heredocs and ANSI-C
     quoting, not defects). Running Python's grammar over shell is a wrong-tool mismatch, not
@@ -1477,7 +1477,7 @@ def case_20():
         NOT THE GUARANTEE — case (21) is, because it tests the behaviour and cannot be
         walked around by spelling the probe differently. Four drafts of this case were each
         defeated by a rewrite; that is the ceiling of source-text scanning, not a bug in
-        draft five. check-state.sh is a CODED exception, not prose: it genuinely has no root
+        draft five. check-state.py is a CODED exception, not prose: it genuinely has no root
         probe (verified — 0 matches), which is issue #156, and encoding it here keeps this
         assertion honest rather than quietly passing on a file that has the very defect the
         case is about.
@@ -1514,7 +1514,7 @@ def case_20():
 
 
 def _inv_project(td, features):
-    """A fixture project with N feature dirs and a stub check-state.sh.
+    """A fixture project with N feature dirs and a stub check-state.py.
 
     `features` is a list of (dir_name, station, brief_text, plan_text_or_None). A plan of
     None writes NO plan.yaml at all — that is the FEAT-34 shape, the one that actually got
@@ -1533,7 +1533,7 @@ def _inv_project(td, features):
     binp = os.path.join(td, ".claude", "skills", "harness", "bin")
     os.makedirs(binp, exist_ok=True)
     # The LIVE set. Only these three exist in this fixture's gate script.
-    with open(os.path.join(binp, "check-state.sh"), "w") as f:
+    with open(os.path.join(binp, "check-state.py"), "w") as f:
         f.write("#!/bin/bash\n# INV-1 something\n# INV-2 another\n# INV-3 a third\n")
     for name, station, brief, plan in features:
         fd = os.path.join(td, ".harness", "harness", "features", name)
@@ -1562,11 +1562,11 @@ def case_26():
     MEASURED 2026-08-23, and this case exists because the main session shipped the gap it
     is closing. FEAT-26's plan.yaml used `INV-28` sixteen times and FEAT-34's BRIEF used it
     eight times. Both were unbuilt, both were signed or about to be, and NOTHING saw it —
-    not check-state.sh, not this checker, not two review rounds. It was found by a human
+    not check-state.py, not this checker, not two review rounds. It was found by a human
     reading a task list.
 
     The instruction given to pm at the time was "do not infer the next free number from the
-    highest in the file". Correct, and half a check: it names check-state.sh and says
+    highest in the file". Correct, and half a check: it names check-state.py and says
     nothing about the signed-but-unbuilt plans of other in-flight features. A number is
     free only when BOTH halves agree, and only one half was mechanised.
 
@@ -1612,7 +1612,7 @@ def case_26():
         check("case_26c_a_feature_with_a_BRIEF_and_NO_plan_still_collides",
               ok, f"exit {r.returncode}: {out[:400]!r}")
 
-    # (d) A number ALREADY LIVE in check-state.sh is a REFERENCE, not a claim. Two features
+    # (d) A number ALREADY LIVE in check-state.py is a REFERENCE, not a claim. Two features
     #     citing INV-2 are discussing an invariant that exists; that must stay clean or the
     #     check fires on every plan that mentions an existing rule.
     with tempfile.TemporaryDirectory() as td:
@@ -1688,8 +1688,8 @@ def write_prior_route_validator(directory):
                   if fixture.endswith(".b64") else stored)
         if name == "check-plan-routes.py":
             source = source.replace(
-                'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
-                f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.sh')!r}",
+                'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.py")',
+                f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.py')!r}",
             )
         with open(os.path.join(directory, name), "w") as stream:
             stream.write(source)
@@ -1734,7 +1734,7 @@ def _case_27_owner_manifest(directory):
         stream.write("agents: {}\n")
     owner_bin = os.path.join(owner, ".claude", "skills", "harness", "bin")
     os.makedirs(owner_bin)
-    owner_resolver = os.path.join(owner_bin, "check-domain.sh")
+    owner_resolver = os.path.join(owner_bin, "check-domain.py")
     with open(owner_resolver, "w") as stream:
         stream.write("#!/bin/sh\nprintf '%s\\n' harness-frontend-dev\n")
     os.chmod(owner_resolver, 0o755)

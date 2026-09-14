@@ -27,10 +27,10 @@ source_issues: [1305]
 lanes:
   resolved_at: c369fb1f
   rows:
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
-      reason: "DEC-174 carve-out; check-domain.sh --resolve at c369fb1f grants harness-backend-dev and harness-dev-ops, and the harness does not execute changes to its own registered PreToolUse gate"
-    - surface: .claude/skills/harness/bin/check-state.sh
+      reason: "DEC-174 carve-out; check-domain.py --resolve at c369fb1f grants harness-backend-dev and harness-dev-ops, and the harness does not execute changes to its own registered PreToolUse gate"
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: "DEC-174 carve-out; --resolve grants harness-backend-dev and harness-dev-ops, and this is the state gate run at every /harness entry"
     - surface: .claude/skills/harness/bin/validate-digest.py
@@ -53,10 +53,10 @@ lanes:
       reason: "DEC-174 carve-out; --resolve grants harness-backend-dev, harness-dev-ops and harness-qa, and it is the test of an enforcement-layer module"
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: "ungranted surface; check-domain.sh --resolve at c369fb1f answers NOBODY, so DEC-179 makes it a declared main-session step"
+      reason: "ungranted surface; check-domain.py --resolve at c369fb1f answers NOBODY, so DEC-179 makes it a declared main-session step"
     - surface: .claude/skills/harness-team/SKILL.md
       lane: main-session-direct
-      reason: "ungranted surface; check-domain.sh --resolve at c369fb1f answers NOBODY, so DEC-179 makes it a declared main-session step"
+      reason: "ungranted surface; check-domain.py --resolve at c369fb1f answers NOBODY, so DEC-179 makes it a declared main-session step"
     - surface: .harness/harness/docs/DECISIONS.md
       lane: main-session-direct
       reason: "--resolve grants harness-documentor, but superseding a signed decision's ruling is the operator's act carried out by the only tier with a user channel"
@@ -70,10 +70,10 @@ lanes:
 decisions:
   - id: D-01
     choice: 'Prevention rests on run_uid, a machine-minted identity the checkpoint itself carries, and TWO compares deny, separated by WHAT EACH CAN SEE. run_uid lives inside the checkpoint, so the minted-identity compare is readable only where the prior parses: it stays inside the existing prior-checkpoint ladder and refuses a PRESENT parsing prior carrying a run_uid against an incoming checkpoint carrying a different one or none, on the Write and Edit routes. The WITNESS is a separate file, so it is the only identity available when the prior is absent, zero-byte or unparseable: the seed-field compare runs BEFORE that ladder and is SKIPPED whenever the prior parses to a mapping carrying a non-empty run_uid, deferring to the ladder''s more specific message. There is no acquisition refusal and no refusal keyed on an empty or absent prior, on any route - an owner recovering a zeroed or absent checkpoint agrees with its own witness on every seed field and passes. The write-once per-run-directory marker is therefore a WITNESS WITH TWO CONSUMERS and NOT detection only, and the earlier detection-only phrasing was a defect in this entry: its seed fields are a PRE denial input, and its run_uid is the detection input T-03 reads. What is a denial input NOWHERE is the SESSION IDENTITY the witness records - not on PRE, not on POST, not directly and not through a per-runtime table; it is forensic evidence a human reads when recovering a clobbered directory. The complete set of denial inputs is: the witness seed fields conflict() compares (run_id, feature, squad, host), and the prior checkpoint run_uid against the incoming one.'
-    because: 'a resumed owning run and a foreign run reusing the slug carry IDENTICAL seed fields and DIFFERENT session identities by construction, so a denial keyed on session disagreement refuses exactly the resumed-owner writes this feature exists to protect - _resolve_identity (harness_yaml.py:511-546) resolves a property of the SESSION, never of the RUN, and no fail-open row and no additional recorded field can separate the two cases at state.yaml write time. The discriminator that survives is a value minted per RUN and carried by that run own checkpoint: a resumed owner presents it because it reads it out of the file it is updating, and a foreign run cannot present it without deliberately copying it (D-11). The acquisition discriminator this replaces - CREATION versus CONTINUATION - was measured to refuse approximately only the owner recovering a lost checkpoint and approximately no foreign run (plan panel ranks 1 and 2), because an empty prior_state arises from a readable ZERO-BYTE file as well as from an absent one (check-domain.sh:1508-1518 at c369fb1f).'
+    because: 'a resumed owning run and a foreign run reusing the slug carry IDENTICAL seed fields and DIFFERENT session identities by construction, so a denial keyed on session disagreement refuses exactly the resumed-owner writes this feature exists to protect - _resolve_identity (harness_yaml.py:511-546) resolves a property of the SESSION, never of the RUN, and no fail-open row and no additional recorded field can separate the two cases at state.yaml write time. The discriminator that survives is a value minted per RUN and carried by that run own checkpoint: a resumed owner presents it because it reads it out of the file it is updating, and a foreign run cannot present it without deliberately copying it (D-11). The acquisition discriminator this replaces - CREATION versus CONTINUATION - was measured to refuse approximately only the owner recovering a lost checkpoint and approximately no foreign run (plan panel ranks 1 and 2), because an empty prior_state arises from a readable ZERO-BYTE file as well as from an absent one (check-domain.py:1508-1518 at c369fb1f).'
     dec: none
   - id: D-02
-    choice: "Post-hoc detection is hosted by check-state.sh and is fed by the same marker the write guard reads; the marker is one mechanism with two consumers, not two artifacts."
+    choice: "Post-hoc detection is hosted by check-state.py and is fed by the same marker the write guard reads; the marker is one mechanism with two consumers, not two artifacts."
     because: "a clobbered checkpoint is definitionally silent about its own history, and building the witness twice guarantees the two copies disagree"
     dec: none
   - id: D-03
@@ -81,8 +81,8 @@ decisions:
     because: "DEC-208 ruling 3 signs that a recorded digest is extended and never replaced, and the diagnosis probe measured an append Edit at exit 0 on the pre-change tree"
     dec: DEC-208
   - id: D-04
-    choice: "The operator authorises a separate DEC-205 in-place rewrite of DEC-208 ruling 3's false Write-only scope sentence to the measured Write/Edit truth. REQ-06 separately corrects check-domain.sh's own inline comment."
-    because: "live check-domain.sh reconstructs Edit content for run digests and applies the preservation rule; leaving a measured-false present-tense decision would contradict DEC-205"
+    choice: "The operator authorises a separate DEC-205 in-place rewrite of DEC-208 ruling 3's false Write-only scope sentence to the measured Write/Edit truth. REQ-06 separately corrects check-domain.py's own inline comment."
+    because: "live check-domain.py reconstructs Edit content for run digests and applies the preservation rule; leaving a measured-false present-tense decision would contradict DEC-205"
     dec: DEC-208
   - id: D-05
     choice: "This feature touches validate-digest.py's check_artifact_file root resolution and fail-closed behaviour only; issue 1303 owns the code_grade and review_sha binding in the same file."
@@ -97,15 +97,15 @@ decisions:
     because: "the two live grammars disagree, so a remedy coupled to either one is wrong in half the corpus and would need migrating when the doctrine task lands"
     dec: none
   - id: D-08
-    choice: "Mode B is closed inside validate-digest.py's already-registered SubagentStop hook by fixing check_artifact_file's root resolution and failing closed on a resolvable run directory with no digest; check-state.sh is NOT wired to a hook."
-    because: "that interpreter is already paid per spawn while check-state.sh's sweep grows with run history forever, and the /harness-entry instruction that would otherwise cover the gap is instruction-enforced with nobody having verified it executes"
+    choice: "Mode B is closed inside validate-digest.py's already-registered SubagentStop hook by fixing check_artifact_file's root resolution and failing closed on a resolvable run directory with no digest; check-state.py is NOT wired to a hook."
+    because: "that interpreter is already paid per spawn while check-state.py's sweep grows with run history forever, and the /harness-entry instruction that would otherwise cover the gap is instruction-enforced with nobody having verified it executes"
     dec: none
   - id: D-09
     choice: "Each automated criterion's pre-change failure is demonstrated at build time against a pinned copy of the pre-change script and recorded verbatim in notes/redproof-BUG-1305.md; no pre-change script is committed as a test fixture."
     because: "a committed prior-script fixture rots against every later edit, and a test that fetches a historical blob is unreachable under a depth-1 CI checkout"
     dec: none
   - id: D-10
-    choice: "Every task touching check-domain.sh, check-state.sh, validate-digest.py, run_identity.py or their tests is main-session-direct with a DEC-174 reason."
+    choice: "Every task touching check-domain.py, check-state.py, validate-digest.py, run_identity.py or their tests is main-session-direct with a DEC-174 reason."
     because: "the harness plans changes to its own enforcement layer and does not execute them"
     dec: DEC-174
 
@@ -114,7 +114,7 @@ decisions:
     because: "the acquisition refusal this replaces was measured to refuse approximately only the legitimate owner recovering a lost checkpoint and approximately no foreign run - the plan panel union finding at ranks 1 and 2 - because a foreign run reusing a slug always presents a PRESENT prior with equal seed fields. The Advisor consult recorded this mechanism as fallback Q2c and declined it only on the condition that a second identity signal could deny instead, and cycle 2 F-01 destroyed that condition by measuring that a resolved session identity cannot separate a resumed owner from a foreign run. A minted identity is the weakest thing that CAN separate them, because a foreign run has no way to hold the value except by copying it deliberately."
     dec: none
   - id: D-12
-    choice: "run_uid is minted by check-domain.sh in its existing PostToolUse mode, which already reads what landed - the hook mints the value, appends one run_uid line to the landed state.yaml by text, and records the same value in the write-once witness beside it. The PRE routes never mint. Both key vocabularies that reject unknown top-level keys, ALLOWED in check-domain.sh and CHECKPOINT_KEYS in check-state.sh, gain run_uid in the same task that introduces the field."
+    choice: "run_uid is minted by check-domain.py in its existing PostToolUse mode, which already reads what landed - the hook mints the value, appends one run_uid line to the landed state.yaml by text, and records the same value in the write-once witness beside it. The PRE routes never mint. Both key vocabularies that reject unknown top-level keys, ALLOWED in check-domain.py and CHECKPOINT_KEYS in check-state.py, gain run_uid in the same task that introduces the field."
     because: "minting has to happen where a shell observes every governed write, and POST is the only such place - a PreToolUse hook cannot alter a payload, the leads that author state.yaml hold no shell, and no program in the tree writes a run state.yaml. The cost is that the POST reporter becomes a writer of one line into the file it just read, which is why it appends a single top-level key by text rather than round-tripping the YAML, and never touches a file it could not parse."
     dec: none
   - id: D-13
@@ -166,7 +166,7 @@ panel:
     readers:
     - should-not-exist
     summary: 'T-12 measures the wrong script: a main-session-direct probe executes
-      under the MAIN checkout''s pre-change check-domain.sh, so post_mint_observed:
+      under the MAIN checkout''s pre-change check-domain.py, so post_mint_observed:
       no is guaranteed by construction and the mandatory ## Reported section would
       publish a false claim that this feature is inert in practice.'
     disposition: resolved
@@ -187,7 +187,7 @@ panel:
     disposition: resolved
     resolved_by: T-02
     resolution: 'T-02 extended: harness_boundary.RE_RUN_IDENTITY, the Bash run-artifact
-      guard, and a check-domain.sh Write/Edit route denial, with tests in tests/unit/test-harness-boundary.py,
+      guard, and a check-domain.py Write/Edit route denial, with tests in tests/unit/test-harness-boundary.py,
       tests/integration/test-bash-write-guard.py and tests/integration/test-check-domain.py;
       graded by the new SC-13.'
   - id: PF-bf3d1974a749f7eaf7f59ecc803ee540
@@ -197,7 +197,7 @@ panel:
     readers:
     - scope
     - should-not-exist
-    summary: BRIEF Constraints forbids a project-wide suite while T-08 mandates run-unit-tests.sh
+    summary: BRIEF Constraints forbids a project-wide suite while T-08 mandates run-unit-tests.py
       --kind unit and --kind integration, both repo-wide globs, and SC-07 is graded
       on their results.
     disposition: open
@@ -217,8 +217,8 @@ panel:
     resolved_by: T-08
     resolution: 'T-08''s intent now names SIX pairs: the five of the first pass plus
       the witness-guard pair, because this cycle''s rank-2 remedy itself added refusing
-      branches - the Bash write and removal denials in bash-write-guard.sh and the
-      Write/Edit route denial in check-domain.sh for .run-identity.json - after the
+      branches - the Bash write and removal denials in bash-write-guard.py and the
+      Write/Edit route denial in check-domain.py for .run-identity.json - after the
       count had been fixed at five. Its permitted side is a Write of state.yaml and
       a Write of digest.md in the SAME run directory at exit 0 plus an unaffected
       Bash write to an unrelated ordinary file there. SC-07 counts six in both its
@@ -230,7 +230,7 @@ panel:
     readers:
     - scope
     summary: 'T-12/SC-12 date the PostToolUse-delivery assumption once and nothing
-      re-verifies it: check-state.sh INV-9 checks matcher registration, not delivery.'
+      re-verifies it: check-state.py INV-9 checks matcher registration, not delivery.'
     disposition: open
     note: 'Rank 1''s strike removed this finding''s subject rather than its substance:
       nothing now dates the assumption at all. The gap is DISCLOSED at the signature
@@ -293,7 +293,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - a module imported by check-domain.sh and check-state.sh is enforcement-layer code the harness plans but does not execute"
+    execution_reason: "DEC-174 carve-out - a module imported by check-domain.py and check-state.py is enforcement-layer code the harness plans but does not execute"
     depends_on: []
     status: done
     files:
@@ -439,13 +439,13 @@ tasks:
     - REQ-07
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 carve-out - check-domain.sh is a registered PreToolUse and PostToolUse gate script, bash-write-guard.sh is the registered Bash write guard, harness_boundary.py is the pattern module both import, and each gate''s own test file rides the same carve-out; --resolve at c369fb1f grants all three surfaces to harness-backend-dev and harness-dev-ops, and the routing is recorded here rather than in lanes: because no plan-merge.py verb reaches the lanes: block'
+    execution_reason: 'DEC-174 carve-out - check-domain.py is a registered PreToolUse and PostToolUse gate script, bash-write-guard.py is the registered Bash write guard, harness_boundary.py is the pattern module both import, and each gate''s own test file rides the same carve-out; --resolve at c369fb1f grants all three surfaces to harness-backend-dev and harness-dev-ops, and the routing is recorded here rather than in lanes: because no plan-merge.py verb reaches the lanes: block'
     depends_on: [T-01]
     status: done
     files:
-    - .claude/skills/harness/bin/check-domain.sh
-    - .claude/skills/harness/bin/check-state.sh
-    - .claude/skills/harness/bin/bash-write-guard.sh
+    - .claude/skills/harness/bin/check-domain.py
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/bash-write-guard.py
     - .claude/skills/harness/bin/harness_boundary.py
     - tests/integration/test-check-domain.py
     - tests/integration/test-check-state.py
@@ -457,13 +457,13 @@ tasks:
     intent: |
       Mint the run identity where a shell can see every governed write, record the witness, and close
       the seed-field half of the Mode-A prevention gap. The identity COMPARE is T-09; this task makes
-      the value exist. Both changes live in check-domain.sh RE_STATE_YAML handling, plus the two key
+      the value exist. Both changes live in check-domain.py RE_STATE_YAML handling, plus the two key
       vocabularies that would otherwise reject the field this task introduces.
 
       WRITE THE TEST CASES FIRST AND SHOW THEM RED, then implement. The red demonstration is part of
       this task, not a nicety: build a temp root with isolated_bin(dest_root) from
-      .claude/skills/harness/bin/isolated_bin.py, overwrite the copied check-domain.sh with the
-      pre-change blob from `git show c369fb1f:.claude/skills/harness/bin/check-domain.sh`, and run
+      .claude/skills/harness/bin/isolated_bin.py, overwrite the copied check-domain.py with the
+      pre-change blob from `git show c369fb1f:.claude/skills/harness/bin/check-domain.py`, and run
       the new cases with CHECK_DOMAIN_BIN pointed at that copy (test-check-domain.py:28 already
       reads that variable). Append to
       .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
@@ -474,11 +474,11 @@ tasks:
 
       1. THE KEY VOCABULARIES, FIRST, because everything else fails without them. Two independent
       sets reject unknown top-level keys and both must learn run_uid in this task:
-        - check-domain.sh ALLOWED (:1450-1453 at c369fb1f, inside the RE_STATE_YAML branch) - without
+        - check-domain.py ALLOWED (:1450-1453 at c369fb1f, inside the RE_STATE_YAML branch) - without
           it the shape gate refuses the very key the POST hook injects, on the author next write;
-        - check-state.sh CHECKPOINT_KEYS (:1390-1405 at c369fb1f) - without it INV-16 reports every
+        - check-state.py CHECKPOINT_KEYS (:1390-1405 at c369fb1f) - without it INV-16 reports every
           checkpoint carrying the field, which is every checkpoint written after this lands.
-      The comment at check-domain.sh:1444-1447 already says the KEY VOCABULARY stays in sync with
+      The comment at check-domain.py:1444-1447 already says the KEY VOCABULARY stays in sync with
       CHECKPOINT_KEYS; keep that true. Add one regression case to tests/integration/test-check-state.py
       asserting that a checkpoint carrying run_uid produces no INV-16 finding, and one to
       tests/integration/test-check-domain.py asserting a Write of such a checkpoint is not refused for
@@ -619,9 +619,9 @@ tasks:
 
       4. GUARD THE WITNESS. IT IS A RUN ARTIFACT AND NOTHING GUARDS IT TODAY (plan panel cycle 2,
       rank 2). The witness this task creates is the ONLY input REQ-02 detection reads, and no pattern
-      on any route matches it: bash-write-guard.sh `_run_artifact_guard` (:762-763 at c369fb1f)
+      on any route matches it: bash-write-guard.py `_run_artifact_guard` (:762-763 at c369fb1f)
       matches only harness_boundary.RE_RUN_DIGEST and RE_STATE_YAML (harness_boundary.py:42-45), and
-      check-domain.sh SHAPE_PATTERNS (:1185) is (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF,
+      check-domain.py SHAPE_PATTERNS (:1185) is (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF,
       RE_STATE_MD, RE_CLAUDE_MD, RE_PLAN_YAML). Re-derive all three anchors before editing. Any
       writer holding ordinary domain access to a run's `runs/<dir>/` - which every lead already has,
       because it writes state.yaml and digest.md there - can today delete or overwrite the witness
@@ -637,7 +637,7 @@ tasks:
            spelling of it. Extend the existing comment above the pair rather than writing a new one:
            one definition, both guards import it, so the two write surfaces cannot silently disagree
            about which paths are protected.
-        b. bash-write-guard.sh `_run_artifact_guard` (:744-767): add RE_RUN_IDENTITY to the match and
+        b. bash-write-guard.py `_run_artifact_guard` (:744-767): add RE_RUN_IDENTITY to the match and
            give the marker its OWN deny message rather than folding it into the digest/state.yaml
            sentence, because the reason differs. The message says WHAT THE FILE IS - the run's
            write-once identity witness, recorded at the run's first landed checkpoint - that it is
@@ -645,7 +645,7 @@ tasks:
            of its own writes it into a run directory of its own, and a witness a human genuinely must
            repair is repaired outside the guards. Keep the function's checkout-agnostic placement
            ahead of the DEC-153 carve-out; its docstring's reason covers the marker unchanged.
-        c. check-domain.sh: import RE_RUN_IDENTITY beside the other harness_boundary patterns, add it
+        c. check-domain.py: import RE_RUN_IDENTITY beside the other harness_boundary patterns, add it
            to SHAPE_PATTERNS (:1185), and add a branch in shape_problems (the function at :1203)
            immediately after the RE_RUN_DIGEST branch that refuses ANY Write or Edit whose target
            matches it, carrying the same three sentences as (b). It is a ROUTE denial and not a
@@ -660,12 +660,12 @@ tasks:
            directory, forever.
 
       THE POST HOOK NEEDS NO EXEMPTION, AND THIS IS THE HALF A READER WILL DOUBT. record_seed writes
-      the witness from inside check-domain.sh's own POST process (step 2 above): it is not a governed
+      the witness from inside check-domain.py's own POST process (step 2 above): it is not a governed
       tool write, no PreToolUse hook and no Bash guard sees it, and nothing added here can refuse it.
       The two halves AGREE rather than one covering for the other - record_seed is ITSELF write-once
       (T-01: it returns False and writes nothing when the marker already exists), so the file is
       written exactly once by the only writer that may write it, and every other route is refused by
-      path. Put both sentences in a comment on the check-domain.sh branch, naming record_seed.
+      path. Put both sentences in a comment on the check-domain.py branch, naming record_seed.
 
       CASES FOR THE GUARD, in three files:
         - tests/unit/test-harness-boundary.py: RE_RUN_IDENTITY matches
@@ -687,35 +687,35 @@ tasks:
       `witness guard` subheading: on the pre-change tree all three land with exit 0.
 
   - id: T-03
-    title: Report an already-clobbered checkpoint from check-state.sh against the marker
+    title: Report an already-clobbered checkpoint from check-state.py against the marker
     traces: [REQ-02, REQ-03]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - check-state.sh is the state gate script, and its own test file rides the same carve-out"
+    execution_reason: "DEC-174 carve-out - check-state.py is the state gate script, and its own test file rides the same carve-out"
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - tests/integration/test-check-state.py
       - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
     verify: |
       grep -q '^## SC-02' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && python3 tests/integration/test-check-state.py
     intent: |
-      Add post-hoc clobber detection to check-state.sh, inside the existing per-run-directory loop
+      Add post-hoc clobber detection to check-state.py, inside the existing per-run-directory loop
       `for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.yaml")):`
       (around :1426 at c369fb1f), immediately after the INV-16 shape block and before the INV-15
       digest block, so one loop pass answers all three questions.
 
       WRITE THE TEST CASES FIRST AND SHOW THEM RED. Build the fixture tree, copy the bin directory
-      with isolated_bin, overwrite the copied check-state.sh with `git show
-      c369fb1f:.claude/skills/harness/bin/check-state.sh`, and run the new cases with CHECK_STATE_BIN
+      with isolated_bin, overwrite the copied check-state.py with `git show
+      c369fb1f:.claude/skills/harness/bin/check-state.py`, and run the new cases with CHECK_STATE_BIN
       pointed at that copy (test-check-state.py:22 already reads that variable). Append to
       .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
       headed exactly `## SC-02` with the exact commands and the VERBATIM pre-change output showing
       the violating fixture going UNREPORTED there.
 
       Give the invariant the next unused INV number: list the existing ids with a grep for `INV-` in
-      check-state.sh and take the first integer above the highest one present. Do not reuse a number
+      check-state.py and take the first integer above the highest one present. Do not reuse a number
       and do not hard-code one from this instruction.
 
       THE INVARIANT IS SELF-LIMITING BY CONSTRUCTION, and that is D-13 rather than an omission. It
@@ -752,7 +752,7 @@ tasks:
       THE MESSAGE MUST DISTINGUISH A CLOBBER FROM A MALFORMED CHECKPOINT, which is REQ-03: INV-16
       existing finding says "non-checkpoint top-level key(s)" and speaks about shape; this one must
       say the recorded identity disagrees with the directory it occupies and must never reuse the
-      shape wording. An operator reading only check-state.sh output must be able to tell which of the
+      shape wording. An operator reading only check-state.py output must be able to tell which of the
       two happened and which record to recover.
 
       New cases in tests/integration/test-check-state.py, in one new function registered in main()
@@ -858,7 +858,7 @@ tasks:
         2. the owner root from _root_or_none();
         3. the root derived from this script's own realpath by walking up from
            os.path.dirname(os.path.realpath(__file__)) to the checkout root - the same
-           cwd-independence discipline check-domain.sh documents at its :82-85.
+           cwd-independence discipline check-domain.py documents at its :82-85.
       A candidate list is not a licence to guess: every candidate is a root, never a path pattern,
       and the artifact path is joined onto it unchanged.
 
@@ -873,7 +873,7 @@ tasks:
           and the digest file is the deliverable.
       Update the docstring in the same edit so it describes what the function now does: the
       "FAIL OPEN, LOUDLY when the file cannot be located or read" paragraph becomes fail-open only
-      for the no-root case, and the sentence naming check-state.sh INV-15 as the backstop must not
+      for the no-root case, and the sentence naming check-state.py INV-15 as the backstop must not
       claim more than the backstop delivers - INV-15 runs on a /harness-entry instruction, not on a
       hook, and nobody has verified that instruction is executed.
 
@@ -896,19 +896,19 @@ tasks:
     traces: [REQ-05, REQ-06, REQ-07]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script, and its own test file rides the same carve-out"
+    execution_reason: "DEC-174 carve-out - check-domain.py is a registered PreToolUse gate script, and its own test file rides the same carve-out"
     depends_on:
     - T-02
     - T-09
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
       - tests/integration/test-check-domain.py
       - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
     verify: |
-      grep -q '^## SC-05' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && grep -q 'appended at the end' .claude/skills/harness/bin/check-domain.sh && ! grep -q 'intentionally Write/PRE-only' .claude/skills/harness/bin/check-domain.sh && python3 tests/integration/test-check-domain.py
+      grep -q '^## SC-05' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && grep -q 'appended at the end' .claude/skills/harness/bin/check-domain.py && ! grep -q 'intentionally Write/PRE-only' .claude/skills/harness/bin/check-domain.py && python3 tests/integration/test-check-domain.py
     intent: |
-      Two changes to the digest content guard in check-domain.sh, the `if RE_RUN_DIGEST.match(rel)`
+      Two changes to the digest content guard in check-domain.py, the `if RE_RUN_DIGEST.match(rel)`
       branch (around :1236-1255 at c369fb1f), plus the cases that pin them.
 
       1. REQ-06, the false record. The comment above the branch says this guard is "intentionally
@@ -918,7 +918,7 @@ tasks:
       probe. Rewrite the comment to state what the guard does: it fires on the Write route and on the
       Edit route, because Edit content is reconstructed from old_string/new_string against the
       on-disk prior before this branch runs; Bash writes to a run digest are refused outright by
-      bash-write-guard.sh; POST is too late to refuse and is not this branch's route. Do not soften
+      bash-write-guard.py; POST is too late to refuse and is not this branch's route. Do not soften
       it into "may also apply to Edit" - it does apply, and a hedge is the same defect again.
 
       2. REQ-05, the refusal that does not say what is allowed. The denial at the
@@ -951,7 +951,7 @@ tasks:
         - a Write that is the prior plus appended text exits 0, unchanged from today.
       Append to notes/redproof-BUG-1305.md a section headed exactly `## SC-05` recording, verbatim,
       the pre-change behaviour of all four cases against the pinned copy from `git show
-      c369fb1f:.claude/skills/harness/bin/check-domain.sh` - the first and fourth are expected to
+      c369fb1f:.claude/skills/harness/bin/check-domain.py` - the first and fourth are expected to
       pass there already, and the note must SAY SO rather than imply the whole set was red. The
       second case is the one that must be red on the pre-change tree, because the message it asserts
       does not yet exist.
@@ -1013,17 +1013,17 @@ tasks:
       STILL be permitted, and the pairs are the six below. For each pair, quote the test function and
       case name at the review sha that pins the permitted side, and record its observed exit code from
       the suite run below:
-        - T-02 witness seed-field denial in check-domain.sh - permitted side: a LEGACY run directory,
+        - T-02 witness seed-field denial in check-domain.py - permitted side: a LEGACY run directory,
           carrying no witness at all, behaves exactly as at c369fb1f, an incoming run_id equal to the
           prior exiting 0;
-        - T-09 minted-identity denial in check-domain.sh - permitted side: THE RESUMED OWNER. A prior
+        - T-09 minted-identity denial in check-domain.py - permitted side: THE RESUMED OWNER. A prior
           state.yaml for run_id A carrying run_uid U1 and a Write of an updated checkpoint for run_id A
           carrying U1, delivered with session_id S2, exiting 0; AND BOTH RECOVERING-OWNER FORMS, a prior
           that is a readable zero-byte file and a prior that is absent, each exiting 0. All three are what
           D-01 and D-11 exist to protect;
         - T-06 digest content guard message - permitted side: a lead own-run append repair via Edit
           exiting 0;
-        - T-02 POST minting and T-03 detection invariant - permitted side: check-state.sh exiting 0, with
+        - T-02 POST minting and T-03 detection invariant - permitted side: check-state.py exiting 0, with
           no finding from the new invariant, over a fixture tree of legacy run directories that hold
           checkpoints and no witness.
         - T-05 fail-closed `return 2` in validate-digest.py's check_artifact_file - permitted side: a run
@@ -1032,7 +1032,7 @@ tasks:
           named because the earlier count of four was a set mismatch rather than an arithmetic slip: the
           pairs enumerate {T-02-seed, T-09, T-06, T-02POST/T-03} and T-05's new refusing branch is in none
           of them.
-        - T-02 witness guard route denials in bash-write-guard.sh and check-domain.sh - the refusing
+        - T-02 witness guard route denials in bash-write-guard.py and check-domain.py - the refusing
           branches this cycle's rank-2 remedy added: a Bash write to `.run-identity.json` and a Bash
           removal of it are denied, and a Write and an Edit of it are denied. Permitted side: in the SAME
           run directory, a Write of state.yaml and a Write of digest.md still exit 0, and a Bash write to
@@ -1040,7 +1040,7 @@ tasks:
           the one filename rather than to the directory. This is the SIXTH pair, added because the rank-2
           remedy itself created a refusing branch after the count was fixed at five; SC-13 grades that
           branch's own test coverage, and this pair is its place in the REQ-07 accounting.
-      Then run check-state.sh over THIS repository own .harness tree and record its exit code and any
+      Then run check-state.py over THIS repository own .harness tree and record its exit code and any
       run-directory findings verbatim. A non-zero exit whose findings name run directories that carry an
       agreeing witness, or ANY finding from the new invariant against a directory carrying no witness, is
       a REQ-07 failure in direction two and must be reported as such, not tuned away.
@@ -1052,8 +1052,8 @@ tasks:
       carry forward. Record it under the same heading, distinguished from the pairs above as INTENDED and
       DISCLOSED. Any OTHER newly refused write is a failure.
 
-      SUITES. Run BOTH - `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` and
-      `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` - and record each one exit code
+      SUITES. Run BOTH - `.claude/skills/harness/bin/run-unit-tests.py --kind unit` and
+      `.claude/skills/harness/bin/run-unit-tests.py --kind integration` - and record each one exit code
       and its failure lines verbatim. Read the runner failure accounting before quoting a pass: count
       the FAIL-prefixed lines rather than trusting an exit code alone, and say which of the two you relied
       on. The verify below runs the six touched test files, because a full-suite run under
@@ -1067,7 +1067,7 @@ tasks:
         `## Removed or altered assertions` - the enumeration, or the single word none under it when there
         are none; the heading is present either way.
         `## Newly refused writes` - the six pairs above, each with its permitted-side case name and
-        observed exit code, the disclosed dropped-run_uid refusal, plus the check-state.sh run over this
+        observed exit code, the disclosed dropped-run_uid refusal, plus the check-state.py run over this
         repository own tree.
         `## Suite results` - the two commands above, each with its exit code, its FAIL-line count, and any
         failure lines verbatim.
@@ -1082,12 +1082,12 @@ tasks:
     - REQ-07
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script and run_identity.py is a module imported by two registered gate scripts, so the harness plans this change and does not execute it"
+    execution_reason: "DEC-174 carve-out - check-domain.py is a registered PreToolUse gate script and run_identity.py is a module imported by two registered gate scripts, so the harness plans this change and does not execute it"
     depends_on:
     - T-02
     status: done
     files:
-    - .claude/skills/harness/bin/check-domain.sh
+    - .claude/skills/harness/bin/check-domain.py
     - .claude/skills/harness-team/SKILL.md
     - tests/integration/test-check-domain.py
     - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
@@ -1100,7 +1100,7 @@ tasks:
       slug actually reaches: two runs that pick the same directory name share a run_id and cannot
       share a run_uid.
 
-      THE REFUSAL CONDITION, exactly. In check-domain.sh RE_STATE_YAML PRE branch, INSIDE the
+      THE REFUSAL CONDITION, exactly. In check-domain.py RE_STATE_YAML PRE branch, INSIDE the
       existing `if prior_state:` ladder and immediately AFTER the Issue 1124
       `str(prior_run_id) != str(new_run_id)` compare returns, call
       run_identity.uid_conflict(prior_doc, doc) and deny on a non-None reason. Anchors re-verified at
@@ -1129,7 +1129,7 @@ tasks:
         a. prior_state is empty because the file is absent - the ladder is not entered;
         b. prior_state is empty because the file is a readable ZERO-BYTE file - the ladder is not
            entered either. These are TWO distinct code paths to the same empty local
-           (check-domain.sh:1508-1518 at c369fb1f: the FileNotFoundError branch with os.path.lexists
+           (check-domain.py:1508-1518 at c369fb1f: the FileNotFoundError branch with os.path.lexists
            false, AND an ordinary open().read() of a zero-byte file), and both are legitimate owner
            recovery. State both in the comment. Do not write that the empty value comes from one
            branch only - that claim is measurably false against those lines;
@@ -1159,10 +1159,10 @@ tasks:
       Each message stays one-to-one with its condition.
 
       THE ROUTES IT FIRES ON, named exactly. The Write route, where `content` is the payload; and the
-      Edit route, because check-domain.sh reconstructs Edit content for RE_STATE_YAML from
+      Edit route, because check-domain.py reconstructs Edit content for RE_STATE_YAML from
       old_string/new_string against the on-disk prior before the shape phase runs (:1905-1923 at
       c369fb1f) - so an Edit that rewrites or removes the run_uid line arrives here with the
-      reconstructed doc and is judged identically. Bash is refused wholesale by bash-write-guard.sh
+      reconstructed doc and is judged identically. Bash is refused wholesale by bash-write-guard.py
       _run_artifact_guard. POST neither denies nor reaches this code: it mints and records (T-02).
       Give the Edit route its own case; unlike the retired acquisition condition, this one is
       reachable on both.
@@ -1190,7 +1190,7 @@ tasks:
 
       RED PROOF. Run `git rev-parse HEAD` first - the commit carrying T-02 - and record it as a
       `baseline_sha:` line at column 0 under the section below. Build the isolated_bin root the suite
-      already uses, overwrite the copied check-domain.sh with that sha copy fetched by `git show`
+      already uses, overwrite the copied check-domain.py with that sha copy fetched by `git show`
       with the sha spelled out in full (never a relative ref: T-02 lands as its own commit), run the
       cases below with CHECK_DOMAIN_BIN pointed at it, and APPEND to
       .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
@@ -1233,7 +1233,7 @@ tasks:
     traces: []
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out - run_identity.py is imported by two registered gate scripts and check-state.sh is the state gate run at every /harness entry, so the harness plans this change and does not execute it"
+    execution_reason: "DEC-174 carve-out - run_identity.py is imported by two registered gate scripts and check-state.py is the state gate run at every /harness entry, so the harness plans this change and does not execute it"
     depends_on: []
     status: abandoned
     files:
@@ -1245,7 +1245,7 @@ tasks:
       verb, so a retired task is re-specified rather than deleted, and this body is the record of why.
 
       What it was for: it seeded a write-once marker into every run directory that predates the mechanism,
-      then enabled a check-state.sh invariant reporting any checkpoint that still had none - the
+      then enabled a check-state.py invariant reporting any checkpoint that still had none - the
       "detection is total" half of REQ-02 as originally written.
 
       Why it earns no place now. The corpus it backfills is machine-local, untracked and CONTINUOUSLY
@@ -1294,7 +1294,7 @@ tasks:
     intent: |
       ONE probe, at most two tool calls, one recorded answer. This task MEASURES; it changes no
       guard and fixes nothing. REQ-01 names NotebookEdit as believed-covered on an assumption
-      nobody verified, and check-domain.sh:1931 asserts in a comment that POST sees NotebookEdit.
+      nobody verified, and check-domain.py:1931 asserts in a comment that POST sees NotebookEdit.
       Both claims are unmeasured. Settle them and record the answer.
 
       STEP 1 - is the route reachable at all? Create /tmp/bug1305-probe/ with python3 os.makedirs,
@@ -1310,7 +1310,7 @@ tasks:
       .harness/harness/features/BUG-1305-run-state-clobber/runs/probe-notebookedit/state.yaml in
       this worktree, with content carrying a top-level key the checkpoint vocabulary forbids, for
       example a findings key. That content is refused for EVERY writer by the RE_STATE_YAML shape
-      branch (check-domain.sh:1581-1596 at c369fb1f), governed or not: the main-session carve-out
+      branch (check-domain.py:1581-1596 at c369fb1f), governed or not: the main-session carve-out
       at :310 and :328 is a DOMAIN carve-out and does not reach the shape phase, so the answer does
       not depend on who runs the probe. Exit 2 carrying check-domain stderr means the host matcher
       reaches NotebookEdit - record guard_fires: yes. The write landing with no denial means it does
@@ -1328,9 +1328,9 @@ tasks:
       that NotebookEdit is an ungoverned state.yaml write route, that this feature does NOT close
       it, and what closing it would take - one matcher string in .claude/settings.json. Say the
       same in your return so the goal-check carries it to the operator. Separately, if the
-      measurement disagrees with check-domain.sh:1931 comment claiming POST sees NotebookEdit,
+      measurement disagrees with check-domain.py:1931 comment claiming POST sees NotebookEdit,
       record that the comment is a false claim about the code - the same defect class REQ-06 names -
-      under the same heading. Do not edit check-domain.sh in this task.
+      under the same heading. Do not edit check-domain.py in this task.
   - id: T-12
     title: RETIRED - observe one real end-to-end mint through the registered PostToolUse hook
     traces: []
@@ -1350,13 +1350,13 @@ tasks:
       What it was for: ONE real Write tool call into a fresh run directory under this feature, recording
       whether the registered PostToolUse hook minted a run_uid into the landed state.yaml and recorded the
       witness beside it. It was the plan's only measurement of hook DELIVERY, as distinct from the minting
-      CODE that SC-10 exercises by invoking check-domain.sh --post directly.
+      CODE that SC-10 exercises by invoking check-domain.py --post directly.
 
       WHY IT EARNS NO PLACE NOW: IT MEASURES THE WRONG SCRIPT, BY CONSTRUCTION AND NOT BY LUCK.
       .claude/settings.json registers PostToolUse as
-      ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh --post. This task is
+      ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py --post. This task is
       main-session-direct, so the executing session's project dir is the MAIN checkout and the script that
-      fires is main's PRE-CHANGE check-domain.sh, while T-02's minting lands only in this worktree.
+      fires is main's PRE-CHANGE check-domain.py, while T-02's minting lands only in this worktree.
       post_mint_observed: no is therefore GUARANTEED BY CONSTRUCTION: the probe reports which checkout the
       hook is registered against, never whether the host delivers PostToolUse. A guaranteed answer is not
       a measurement.

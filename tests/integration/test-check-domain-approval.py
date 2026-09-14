@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-domain.sh: approval-gated writes to a plan or a brief.
+"""check-domain.py: approval-gated writes to a plan or a brief.
 
 Slice of the former test-check-domain.py (issue #1527) — T-09's plan/brief approval
 denials across every write route, T-14's main_session.writes exclusion and FEAT-51's
@@ -932,8 +932,8 @@ def _feat51_fail_open_cases(reg, root):
     shutil.copytree(HERE, copybin, dirs_exist_ok=True)
     os.remove(os.path.join(copybin, "inflight_registry.py"))
     unimportable = _feat51_result(
-        "an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch",
-        _feat51_fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.sh")),
+        "an unimportable inflight_registry fails OPEN at the check-domain.py quarantine branch",
+        _feat51_fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.py")),
         0, "boundary was not enforced")
     return [raising, names_file, unimportable]
 

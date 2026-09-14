@@ -23,7 +23,7 @@ output verbatim — any embedded `\n` becomes real physical lines in the rendere
 ```
 `expertise-merge.py ops --file ... --ops ...` → **exit 0**, `ADDED P-99` / `APPLIED ...` — the tool's
 own `_check_caps` (`:310`, D-07) only ever sees 1 net addition to `Patterns` and never rejects.
-`check-expertise.sh` run against the *same resulting file* afterward: `FAIL ... section Gotchas: 16
+`check-expertise.py` run against the *same resulting file* afterward: `FAIL ... section Gotchas: 16
 entries — cap is 15`. The writer says the write is valid; the format's own reader disagrees, and the
 write already landed.
 
@@ -32,7 +32,7 @@ appended verbatim, unguarded): `target: "P-99: injected via TARGET\n## Gotchas (
 renders identically.
 
 **Consequence.** Craft-tier Expertise is injected verbatim into *every future spawn* of that
-persona (SPEC §5, `inject-expertise.sh`). A cap-bypassing injection is a durable,
+persona (SPEC §5, `inject-expertise.py`). A cap-bypassing injection is a durable,
 unauthenticated write of fabricated "Patterns"/"Gotchas" text into a file every later run of that
 role trusts as its own memory — content a compromised or careless distillation step could plant
 via `entry`/`target` text summarizing untrusted upstream content (a malicious PR description, a
@@ -45,7 +45,7 @@ on-disk file stayed byte-identical, but combined stdout read `MISSING TARGET sec
 id=NONEXISTENT-ID\nAPPLIED /tmp/.../harness-spoof.md reason=...` — a downstream LLM-agent
 consumer skimming text rather than checking the process exit code could read this as success.
 
-**Mitigating, but not automatic.** `check-expertise.sh` does catch the resulting cap violation
+**Mitigating, but not automatic.** `check-expertise.py` does catch the resulting cap violation
 when run — but nothing in `expertise-merge.py` invokes it; it is agent-followed instruction only
 (`harness-distill/SKILL.md` step 4), and that instruction sits in the numbered checklist that
 describes the pre-existing `apply` flow. The `ops` flow — this diff's own feature — is documented
@@ -106,7 +106,7 @@ All three check out accurate against the code at the pin — SPEC's `:NNN` line 
 (`_validate_target_section:170-178`, `_check_caps:310-317`, etc.) match the functions I read.
 `DECISIONS-INDEX.md`'s DEC-219 row is a faithful compression of the full entry. No doc asserts a
 validation property the code lacks, with one exception already folded into SEC-1: the
-`harness-distill/SKILL.md` process gap (check-expertise.sh instruction scoped to `apply`, not
+`harness-distill/SKILL.md` process gap (check-expertise.py instruction scoped to `apply`, not
 repeated for `ops`).
 
 ## Seven-file census

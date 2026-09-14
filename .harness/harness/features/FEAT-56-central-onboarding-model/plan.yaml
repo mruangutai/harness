@@ -45,7 +45,7 @@ decisions:
     dec: DEC-221
   - id: D-02
     choice: Step 1's prerequisite install is narrowed to the control-plane clone rather than deleted.
-    because: check-state.sh INV-9 and INV-31 grade this clone against that step on every run and test-hooks-install.py asserts its command strings verbatim out of the skill.
+    because: check-state.py INV-9 and INV-31 grade this clone against that step on every run and test-hooks-install.py asserts its command strings verbatim out of the skill.
     dec: none
   - id: D-03
     choice: The pilot product's four already-committed stale .harness/ subtrees are out of scope, and the rewritten skill only stops producing them.
@@ -234,7 +234,7 @@ panel:
   - id: PF-1eaa38c5f6a2d3e01711128138170312
     severity: med
     reader: should-not-exist
-    summary: 'T-02''s verify is unsatisfiable: plan.yaml:314 runs check-domain.sh
+    summary: 'T-02''s verify is unsatisfiable: plan.yaml:314 runs check-domain.py
       (a bash script) through python3, which SyntaxErrors on `set -uo pipefail` regardless
       of anything T-02 edits'
     disposition: resolved
@@ -496,7 +496,7 @@ panel:
       \ from the templates') sits inside T-10's moved :245-283 AND inside T-11's deleted\
       \ :239-418. No task re-homes it. Consequence: the cut harness-init installs\
       \ the eight prerequisites, then tells the operator to seed '# SEED' globs in\
-      \ a team-config.yaml that was never instantiated, and step 9's check-state.sh\
+      \ a team-config.yaml that was never instantiated, and step 9's check-state.py\
       \ cannot exit 0 on a checkout with no .harness/harness.json. Verified at source\
       \ by the lead. Fix belongs to T-11 (explicit KEEP) plus T-10 (strike :279-282\
       \ from what moves in)."
@@ -592,8 +592,8 @@ tasks:
       factory_cli.payload writes the ONE stdout payload and two payloads break the stream
       contract. Say that in a comment.
 
-      3. NO invariant, NO check-state.sh change
-      This makes a network read. check-state.sh runs at every /harness door and before every
+      3. NO invariant, NO check-state.py change
+      This makes a network read. check-state.py runs at every /harness door and before every
       commit and deliberately makes no network call, so nothing in this task touches it. Put a
       comment on the flag saying so, naming the board-audit precedent (the same cost was ruled
       once-at-onboarding rather than every run).
@@ -636,7 +636,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-05]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-04]
     status: done
     files:
@@ -685,7 +685,7 @@ tasks:
       in a product repository. Add one short paragraph giving the mechanical reason: nothing
       distributes bin/ since deploy.sh was deleted (DEC-113), the enforcing hooks are registered in
       the control plane's own .claude/settings.json and resolve the control plane's own manifest,
-      and check-state.sh INV-9 and INV-31 grade this clone against this step on every run. Every
+      and check-state.py INV-9 and INV-31 grade this clone against this step on every run. Every
       command block, the per-clone core.hooksPath sub-section, the PyYAML and jsonschema blocks,
       the install-command quote from harness_yaml.INSTALL_COMMAND and the STOP rules stay as they
       are.
@@ -732,7 +732,7 @@ tasks:
       config directly to a remote.
 
       Step 5 — Seed the manifest. NARROW. It seeds the control plane's own
-      <control-plane>/.harness/team-config.yaml and nothing else: check-domain.sh reads only that
+      <control-plane>/.harness/team-config.yaml and nothing else: check-domain.py reads only that
       file, the live grants are repo-agnostic globs, and per-repo isolation is unbuilt (issue 495) -
       harness_boundary.glob_to_re supports only **, *, ? and literals, so a per-repo glob is
       inexpressible today. Keep both write-scope rules, the drop-a-SEED-glob rule and the qa
@@ -754,7 +754,7 @@ tasks:
       Step 8 — Design pass. Destination becomes
       <control-plane>/.harness/<segment>/features/<FEAT>/DESIGN.md. Otherwise unchanged.
 
-      Step 9 — Verify. Keep check-state.sh and merge-settings.py --check, stating they grade THIS
+      Step 9 — Verify. Keep check-state.py and merge-settings.py --check, stating they grade THIS
       clone. Add the fleet check with no --repo argument, over every member:
         python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
       Keep the DEC-100a restart caveat and its do-not-overstate paragraph verbatim.
@@ -771,7 +771,7 @@ tasks:
       fallback; run --check-product-configs."
 
       Finally, keep the file's own anchors honest: it is read by
-      tests/integration/test-post-merge-sweep.py and bin/post-merge-sweep.sh by SECTION, not by
+      tests/integration/test-post-merge-sweep.py and bin/post-merge-sweep.py by SECTION, not by
       line number, after T-03 re-anchors them, so do not add a line-numbered self-citation.
 
   - id: T-02
@@ -784,8 +784,8 @@ tasks:
     status: done
     files:
     - .claude/skills/harness/bin/check-instruction-paths.py
-    - .claude/skills/harness/bin/check-state.sh
-    - .claude/skills/harness/bin/check-domain.sh
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/check-domain.py
     - .claude/skills/harness/bin/upgrade-config.py
     - .claude/skills/harness/bin/gh-sync.py
     - .claude/skills/harness/bin/layout_migration.py
@@ -793,10 +793,10 @@ tasks:
       grep -qF 'harness-init' .claude/skills/harness/bin/check-instruction-paths.py &&
       grep -qF 'anchor rule' .claude/skills/harness/bin/check-instruction-paths.py &&
       ! grep -qF '"harness-init",  # main session only' .claude/skills/harness/bin/check-instruction-paths.py &&
-      grep -qF 'control-plane clone' .claude/skills/harness/bin/check-state.sh &&
-      ! grep -qF 'project not onboarded. Run /harness-init.' .claude/skills/harness/bin/check-state.sh &&
-      grep -qF 'never carries one' .claude/skills/harness/bin/check-domain.sh &&
-      ! grep -qF 'enforcement OFF (run /harness-init)' .claude/skills/harness/bin/check-domain.sh &&
+      grep -qF 'control-plane clone' .claude/skills/harness/bin/check-state.py &&
+      ! grep -qF 'project not onboarded. Run /harness-init.' .claude/skills/harness/bin/check-state.py &&
+      grep -qF 'never carries one' .claude/skills/harness/bin/check-domain.py &&
+      ! grep -qF 'enforcement OFF (run /harness-init)' .claude/skills/harness/bin/check-domain.py &&
       grep -qF 'default branch' .claude/skills/harness/bin/upgrade-config.py &&
       grep -qF 'control-plane clone' .claude/skills/harness/bin/upgrade-config.py &&
       grep -qF 'on its default branch' .claude/skills/harness/bin/gh-sync.py &&
@@ -804,7 +804,7 @@ tasks:
       grep -qF 'only the control plane carries the fleet declaration' .claude/skills/harness/bin/layout_migration.py &&
       ! grep -qF 'installs the whole bin/ into product repos' .claude/skills/harness/bin/layout_migration.py &&
       python3 .claude/skills/harness/bin/check-instruction-paths.py &&
-      bash .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"
+      python3 .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"
     intent: |
       Six executable sites still assert that onboarding installs harness artifacts into a product
       repository, or tell a user to run /harness-init to repair a product-side path. Correct each.
@@ -828,7 +828,7 @@ tasks:
       "harness-init" is still present in the file, and the bare comment "# main session only" no
       longer appears on the harness-init line.
 
-      2. check-state.sh, four user-facing remedies. Each keeps its exit behaviour and gains the
+      2. check-state.py, four user-facing remedies. Each keeps its exit behaviour and gains the
       clone as its subject:
          a. line ~110: "harness: no .harness/ - project not onboarded. Run /harness-init." becomes
             a message naming THIS clone: no .harness/ here, so this clone is not an onboarded
@@ -844,7 +844,7 @@ tasks:
          Test asserts: the file contains "control-plane clone" and no longer contains the exact
          string "project not onboarded. Run /harness-init."
 
-      3. check-domain.sh, the fail-open message at lines ~375-376. Today it prints
+      3. check-domain.py, the fail-open message at lines ~375-376. Today it prints
       "check-domain: no {manifest} - enforcement OFF (run /harness-init)." which is false for a
       product path: a product repository never carries a manifest and never will. New message,
       keeping the f-string and the flag-not-exit behaviour untouched:
@@ -895,14 +895,14 @@ tasks:
       - tests/integration/test-check-state.py
       - tests/integration/test-hooks-install.py
       - tests/integration/test-post-merge-sweep.py
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
     verify: |
       python3 tests/integration/test-layout-migration.py &&
       python3 tests/integration/test-hooks-install.py &&
       python3 tests/integration/test-post-merge-sweep.py &&
       grep -qF "read from that repository's own harness.json" tests/integration/test-check-state-records.py &&
       ! grep -qF 'SKILL.md:73' tests/integration/test-post-merge-sweep.py &&
-      ! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.sh
+      ! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.py
     intent: |
       The audit named fifteen test cases as resting on the old install behaviour. Most do not: they
       grade a script or a temp clone, and the per-clone install step SURVIVES narrowed to the
@@ -932,7 +932,7 @@ tasks:
 
       AMENDED - re-anchored, because a line citation into SKILL.md rots on the first edit:
       4. tests/integration/test-post-merge-sweep.py at ~783-785 and
-         .claude/skills/harness/bin/post-merge-sweep.sh at ~68-69 both cite
+         .claude/skills/harness/bin/post-merge-sweep.py at ~68-69 both cite
          "harness-init SKILL.md:73/:78" for why core.hooksPath is relative per worktree. T-01
          renumbers those lines. Replace each line citation with the SECTION heading citation -
          harness-init SKILL.md, the per-clone step section - keeping the surrounding sentence and
@@ -943,13 +943,13 @@ tasks:
       5. tests/integration/test-merge-settings.py - case_matchers, case_agent_specs,
          case_no_duplicate_write grade merge-settings.py, which stays live for the control-plane
          clone. Its docstring clause "a gate harness-init calls HARD" remains true.
-      6. tests/integration/test-merge-gitignore.py - all seven named cases grade merge-gitignore.sh.
+      6. tests/integration/test-merge-gitignore.py - all seven named cases grade merge-gitignore.py.
          Measured at 4b5dbb23: the file contains no /harness-init reference at all.
       7. tests/integration/test-upgrade-config.py - measured at 4b5dbb23: no /harness-init
          reference. If the T-02 remedy strings turn out to be asserted anywhere here, amend the
          assertion to the new string and SAY SO in your digest rather than editing T-02's message
          back.
-      8. tests/fixtures/prior-check-domain.sh.fixture - a frozen prior copy of check-domain.sh.
+      8. tests/fixtures/prior-check-domain.py.fixture - a frozen prior copy of check-domain.py.
          DO NOT TOUCH IT. Editing it defeats the fixture.
 
       If any file above reddens for a reason not listed here, stop and report it: a green suite
@@ -960,7 +960,7 @@ tasks:
     traces: [REQ-04]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness/templates/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness/templates/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
     status: done
     files:
@@ -1003,7 +1003,7 @@ tasks:
             template by /harness-init.
          d. The Versioning paragraph's "Deploy pushes a newer template but leaves the project's
             instantiated file alone" becomes: the template in this repository moves ahead while an
-            instantiated file stays where it is, check-state.sh reports the gap, and the operator
+            instantiated file stays where it is, check-state.py reports the gap, and the operator
             runs /harness-init --upgrade against the clone that holds it. Keep the
             never-clobbered guarantee for domain globs and test_kinds.*.cmd.
       2. .claude/skills/harness/templates/harness.json
@@ -1025,7 +1025,7 @@ tasks:
          column 1. This is issue 168, and it is live, not hypothetical.
          a. Header line 3. "/harness-init copies this to .harness/team-config.yaml" becomes:
             /harness-init instantiates this ONCE, as the control plane's own
-            .harness/team-config.yaml - check-domain.sh reads only that file and a product
+            .harness/team-config.yaml - check-domain.py reads only that file and a product
             repository never carries one. Keep the SEED rule and the identical-in-every-project
             sentence.
          b. REPAIR the flow sequence on main_session.writes: (line 28). Cause: the sequence holds
@@ -1049,7 +1049,7 @@ tasks:
     traces: [REQ-04]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
     status: done
     files:
@@ -1077,7 +1077,7 @@ tasks:
          no .harness/ at all, or when the repository being worked is not in
          .harness/factory/fleet.yaml. A fleet member that is registered but has no feature yet has
          an EMPTY <control-plane>/.harness/<segment>/features/, which is a normal state and routes
-         to /harness-plan, not to onboarding. Keep the check-state.sh call and the unapproved-BRIEF
+         to /harness-plan, not to onboarding. Keep the check-state.py call and the unapproved-BRIEF
          route unchanged.
       2. .claude/commands/harness-plan.md, the Target state bullet at ~line 18. Replace "route to
          /harness-init if the project has no .harness/ at all" with the real onboarding condition:
@@ -1161,7 +1161,7 @@ tasks:
          the skill is rewritten to the central model and deleted by nothing.
          Because - factory_config.product_config reads a member's config from the remote at
          default_branch with no disk fallback, so a central copy would be read by nothing;
-         check-domain.sh resolves policy only from the control plane's own manifest; features and
+         check-domain.py resolves policy only from the control plane's own manifest; features and
          expertise already resolve centrally through factory_config.features_root; and the operator
          struck the central placement on 2026-08-18. Also record the ordering rule: registration
          comes after the config lands, because the failure of the reverse order has no symptom but
@@ -1215,7 +1215,7 @@ tasks:
     traces: [REQ-04]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness/references/github-mirror.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness/references/github-mirror.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
     status: done
     files:
@@ -1256,7 +1256,7 @@ tasks:
       builds its scan list from os.listdir, so a tuple entry whose directory does not exist yet is a
       no-op. The reverse order is not: the moment .claude/skills/harness-add-repo/SKILL.md exists
       without this entry, the anchor rule scans it, and check-instruction-paths.py, which
-      check-state.sh runs at every door and before every commit, reddens on a tree that is otherwise
+      check-state.py runs at every door and before every commit, reddens on a tree that is otherwise
       correct. Do not wait for T-10.
 
       Edit the tuple only. Put the entry after "harness-init" and before "harness-grilling", with a
@@ -1278,7 +1278,7 @@ tasks:
     traces: [REQ-07, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-09]
     status: done
     files:
@@ -1387,7 +1387,7 @@ tasks:
       which is a FRESH CHECKOUT's preflight and is also provider-specific. Write a registration
       preflight, each item with its stop-or-continue consequence:
       - this control plane is configured: .harness/harness.json exists here and
-        python3 .claude/skills/harness/bin/check-state.sh runs without reporting an unconfigured
+        python3 .claude/skills/harness/bin/check-state.py runs without reporting an unconfigured
         clone. If it is unconfigured, STOP and route to harness-init: registration into an
         unconfigured control plane produces artifacts nothing reads.
       - the templates directory is readable from here, the same test harness-init makes.
@@ -1431,7 +1431,7 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-10]
     status: done
     files:
@@ -1552,7 +1552,7 @@ tasks:
       WHY (a), (c) and (d) are not optional, and this is the hole this task exists to close. Surviving step
       5 at :163-164 says to replace every # SEED glob "with the real path from dev-ops's report" — delete
       (c) and a step the cut KEEPS depends on a report nothing in the skill produces. Surviving step 9 at
-      :188-193 requires check-state.sh to exit 0 — on a fresh checkout with no instantiated
+      :188-193 requires check-state.py to exit 0 — on a fresh checkout with no instantiated
       .harness/harness.json that is unreachable, so deleting (a) leaves the procedure unable to finish
       itself. And the surviving interview (b) is run by a main session that is told nowhere else to load
       harness-grilling, which is (d).
@@ -1620,7 +1620,7 @@ tasks:
     traces: [REQ-03, REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
+    execution_reason: check-domain.py --resolve returns NOBODY for all twelve paths at 12f74ea8, the DEC-174 carve-out covering .claude/commands and .claude/skills outside harness/bin
     depends_on: [T-11]
     status: done
     files:
@@ -1704,7 +1704,7 @@ tasks:
     traces: [REQ-09]
     change_type: scaffolding
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
+    execution_reason: check-domain.py --resolve returns NOBODY for both .claude/commands and .omp/commands at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-12]
     status: done
     files:
@@ -1840,7 +1840,7 @@ tasks:
     traces: [REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
+    execution_reason: check-domain.py --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
     depends_on: [T-11]
     status: done
     files:
@@ -2052,7 +2052,7 @@ tasks:
     verify: |
       python3 -c "import json,sys;d=json.load(open('.harness/harness.json'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
       ! grep -q cli_min_version .harness/harness.json &&
-      test "$(bash .claude/skills/harness/bin/check-state.sh | grep -c 'INV-')" -gt 0
+      test "$(python3 .claude/skills/harness/bin/check-state.py | grep -c 'INV-')" -gt 0
     intent: |
       Delete the whole line 3 of .harness/harness.json, `"cli_min_version": "2.1.217",` — the key,
       its value and its trailing comma. Measured at 97fe447f it sits between `"schema_version": 2`
@@ -2065,12 +2065,12 @@ tasks:
       the tree reads it — no reader, no schema entry, no reference under
       .claude/skills/harness/bin/ — so this is a deletion of dead config, not a behaviour change.
 
-      This file is THIS PROJECT'S LIVE CONFIG: every check-state.sh invariant, the test matrix and
+      This file is THIS PROJECT'S LIVE CONFIG: every check-state.py invariant, the test matrix and
       the domain machinery load it, so a broken parse here breaks every gate at once. That is why
       the verify does three things and not one. First `json.load` plus an assertion that the loaded
       mapping lacks the key — a grep alone cannot see a trailing comma or a truncated object.
       Second the grep, which catches the key surviving inside a comment-like string. Third
-      check-state.sh, asserted only to STILL RUN and emit invariant lines: it reports pre-existing
+      check-state.py, asserted only to STILL RUN and emit invariant lines: it reports pre-existing
       VIOLATION lines at HEAD (an unapproved BRIEF among them), so its exit code is not 0 today and
       requiring 0 would be a verify nobody can pass. It takes about 17 seconds, measured.
   - id: T-19
@@ -2079,7 +2079,7 @@ tasks:
       - REQ-11
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for all four paths at 97fe447f, the DEC-174 carve-out covering .harness/team-config.yaml and .claude/skills outside harness/bin
+    execution_reason: check-domain.py --resolve returns NOBODY for all four paths at 97fe447f, the DEC-174 carve-out covering .harness/team-config.yaml and .claude/skills outside harness/bin
     depends_on:
       - T-11
     status: done

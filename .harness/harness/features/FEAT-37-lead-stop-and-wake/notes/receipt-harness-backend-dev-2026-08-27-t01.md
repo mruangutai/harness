@@ -4,7 +4,7 @@
 
 Add `.claude/skills/harness/bin/test-lead-stop-and-wake.py`, a stdlib-only Python 3 guard test
 for three not-yet-shipped FEAT-37 invariants (`playbook`, `bound`, `coverage`), and register it
-in `run-unit-tests.sh`'s `UNIT_SCRIPTS` array.
+in `run-unit-tests.py`'s `UNIT_SCRIPTS` array.
 
 ## Task verify — run from worktree root, literal output
 
@@ -13,7 +13,7 @@ $ cd "$(git rev-parse --show-toplevel)"
 $ python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --self-check; sc=$?
 $ python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook; pb=$?
 $ python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group coverage; cv=$?
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds; ck=$?
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds; ck=$?
 $ echo "selfcheck=$sc playbook=$pb coverage=$cv checkkinds=$ck"
 selfcheck=0 playbook=1 coverage=1 checkkinds=0
 T01_PASS
@@ -23,7 +23,7 @@ T01_PASS
 their required verdicts — `SELFCHECK PASS` on every line. `--group playbook` exits 1 (all 9
 region/window cases fail against the real `harness-team/SKILL.md` — nothing has shipped).
 `--group coverage` exits 1 (`case_index_row`, `case_entry_heading`, `case_entry_scope` all fail —
-DEC-201 still names only the orchestrator). `run-unit-tests.sh --check-kinds` exits 0 (drift
+DEC-201 still names only the orchestrator). `run-unit-tests.py --check-kinds` exits 0 (drift
 detector and kind cross-check agree). **`task_verify: pass`** — the block requires exactly this
 combination and got it.
 
@@ -35,14 +35,14 @@ alternation matches twice on the same line — disambiguated with a trailing `_1
 the two case names don't collide) lack a qualifier and sit outside a STRUCK entry. Exit 1,
 consistent with nothing having shipped.
 
-Full unit suite (`run-unit-tests.sh --kind unit`) run for regression sanity: exit 1 overall
+Full unit suite (`run-unit-tests.py --kind unit`) run for regression sanity: exit 1 overall
 (expected — the new test's whole-file run fails by design), but the runner's per-script summary
 shows `FAIL test-lead-stop-and-wake.py` as the *only* failing script among all 27 registered
 unit scripts; the other 26 (including `test-orchestrator-playbook.py`) all print `PASS`.
 
 ## Anchors re-derived at HEAD (branch `feat/FEAT-37-lead-stop-and-wake`, base `1d8ad0a`)
 
-- `UNIT_SCRIPTS` array: **line 30** of `run-unit-tests.sh`, not line 17 as the intent's stale
+- `UNIT_SCRIPTS` array: **line 30** of `run-unit-tests.py`, not line 17 as the intent's stale
   8fc87f8 pin says (already flagged in the dispatch). Found by array name, appended
   `"test-lead-stop-and-wake.py"` immediately after `"test-orchestrator-playbook.py"`, before
   `"test-omp-hooks.py"`. Nothing else in that file changed.
@@ -69,7 +69,7 @@ unit scripts; the other 26 (including `test-orchestrator-playbook.py`) all print
 ## Files touched
 
 - `.claude/skills/harness/bin/test-lead-stop-and-wake.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one array entry appended)
+- `.claude/skills/harness/bin/run-unit-tests.py` (one array entry appended)
 - this receipt
 
 ## Scope fence — respected
@@ -109,7 +109,7 @@ DIGEST:
   open_questions: []
   files_touched:
     - .claude/skills/harness/bin/test-lead-stop-and-wake.py
-    - .claude/skills/harness/bin/run-unit-tests.sh
+    - .claude/skills/harness/bin/run-unit-tests.py
     - .harness/harness/features/FEAT-37-lead-stop-and-wake/notes/receipt-harness-backend-dev-2026-08-27-t01.md
   expertise_update: []
 artifact: .harness/harness/features/FEAT-37-lead-stop-and-wake/notes/receipt-harness-backend-dev-2026-08-27-t01.md

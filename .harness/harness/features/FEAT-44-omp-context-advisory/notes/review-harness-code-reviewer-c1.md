@@ -61,9 +61,9 @@ Reproduced the three-copy disagreement independently: running `omp` on PATH repo
 the docstring in `test-omp-session-accessor.py` exactly.
 
 `test-omp-session-accessor.py` **is wired into the gate that runs**: it's the last entry in
-`run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` array, and its literal path is present in
+`run-unit-tests.py`'s `INTEGRATION_SCRIPTS` array, and its literal path is present in
 `.harness/harness.json`'s `test_kinds.integration.detect` pipe list (checked with `python3 -c` against
-the parsed JSON, not a truncated grep). `run-unit-tests.sh --check-kinds` passes (ran it: "the script
+the parsed JSON, not a truncated grep). `run-unit-tests.py --check-kinds` passes (ran it: "the script
 arrays and test_kinds.integration.detect agree"). So this is not a self-test that never executes —
 it is a required step, `--auto-approve`d against the real `omp` binary, and it fails (never skips) if
 `shutil.which("omp")` is absent, if the probe produces nothing, or if `getSessionFile` stops resolving.
@@ -71,7 +71,7 @@ it is a required step, `--auto-approve`d against the real `omp` binary, and it f
 If a future OMP renames/drops `getSessionFile`: `resolveSessionFile`'s unit-level branches (throw /
 not-a-function / missing manager) all collapse to `SessionFileResolution.failed`, and separately
 `test-omp-session-accessor.py`'s case 4 (`getSessionFile resolves inside that subagent session`) goes
-red the next time `run-unit-tests.sh --kind integration` runs — which is the required CI step, not a
+red the next time `run-unit-tests.py --kind integration` runs — which is the required CI step, not a
 manual invocation. REQ-04's guarantee is watched by the gate that runs, not merely by something a human
 must remember to invoke.
 
@@ -83,9 +83,9 @@ prose describing what the *retired* entries used to say (correctly left as-is �
 verified this reasoning explicitly in DEC-158's own untouched Applied list), (b) `test-orchestrator-
 playbook.py`'s deliberate absence-check literal, and (c) FEAT-31's own closed-feature `notes/`/`plan.yaml`
 archive (a different, already-shipped feature's historical record — correctly untouched). Zero live
-references in `.claude/settings.json`, `.harness/harness.json`, `run-unit-tests.sh`, or `SKILL.md`
+references in `.claude/settings.json`, `.harness/harness.json`, `run-unit-tests.py`, or `SKILL.md`
 (directly grepped all four, confirmed exit 1/no-match). `.claude/settings.json`'s `PostToolUse` block
-now carries only the `check-domain.sh --post` hook — the second object (the `context-watch-hook.py`
+now carries only the `check-domain.py --post` hook — the second object (the `context-watch-hook.py`
 entry) is gone, valid JSON, no trailing comma.
 
 ### Q5 — DEC amendments: amend-not-strike is right for all three, and the specific SC-09 sub-clauses hold

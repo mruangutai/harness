@@ -11,13 +11,13 @@ Run in a disposable worktree (`.claude/worktrees/qa-panel-b1d3925`, checked out 
 after use — never the live tree).
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit         → exit 0, 15/15 suites PASS (706 ok)
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration  → exit 0, 12/12 suites PASS (634 ok)
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit         → exit 0, 15/15 suites PASS (706 ok)
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration  → exit 0, 12/12 suites PASS (634 ok)
 ```
 
 `b1d3925` touches exactly one file: `test-layout-migration.py` (61+/64-, no production source). That
 file is `T-01`'s binding suite, `change_type: logic` per `plan.yaml:241`, and is listed in
-`UNIT_SCRIPTS` (`run-unit-tests.sh:17`) — unchanged by this commit. So the per-task binding table qa
+`UNIT_SCRIPTS` (`run-unit-tests.py:17`) — unchanged by this commit. So the per-task binding table qa
 built at the prior pin (`notes/qa-c0.md` Job 1) still holds exactly: floor (`logic` → `unit` only)
 does not execute the binding suites for T-03/T-04/T-05/6-of-8-T-06/T-10's gh-sync half, because
 `unit.cmd` runs only `UNIT_SCRIPTS` while those suites sit in `INTEGRATION_SCRIPTS`. Confirmed still
@@ -58,14 +58,14 @@ correctly. Not a blocker, per the dispatch's own framing; recorded as a correcti
 **Sound. The fix genuinely removes the mirror-drift failure mode; it does not relocate it.**
 
 **Does the real-subprocess call remove mirror drift?** Yes, on the mechanism SC-10 exists to police.
-Both call sites — `check-state.sh:1310-1322` and `layout_migration.render()` (this file's CI side) —
+Both call sites — `check-state.py:1310-1322` and `layout_migration.render()` (this file's CI side) —
 compose their reader/blame text from the **same** shared functions, `layout_migration.blame()` /
 `blame_text()` / `cause_text()`. The session-entry side in the test (`test-layout-migration.py:358`)
-now runs the real `check-state.sh` binary as a subprocess against a fixture tree
+now runs the real `check-state.py` binary as a subprocess against a fixture tree
 (`_sp.run([_CHECK_STATE], cwd=tmp, ...)`), and the CI side calls `lm.render(lm.scan(tmp))` over the
 identical tree. `_inv27_text` (the old hand-mirror) is gone — confirmed by grep, zero hits. A drift
 between the two call sites' own **framing** (the bash script's own f-string composition at
-`check-state.sh:1317` vs `render()`'s own line-building) is what this now actually exercises; a drift
+`check-state.py:1317` vs `render()`'s own line-building) is what this now actually exercises; a drift
 inside the shared `blame()`/`cause_text()` functions themselves would move both sides together and
 this parity case would not catch it — but that is a pre-existing, separately-covered surface (the
 seven INV-26 station-mirror cases named in the prior digest), not something SC-10 claims to cover.
@@ -79,7 +79,7 @@ against the source, matching the claim exactly.
 
 **Is the `no-rows` exclusion legitimate?** Yes. `no-rows` fires only when `scan()` is called with a
 `table` argument whose rows are filtered for a surface (`layout_migration.py:232`,
-`if not rows: ... "no-rows"`) — `check-state.sh` always runs the production `READER_TABLE`, which is
+`if not rows: ... "no-rows"`) — `check-state.py` always runs the production `READER_TABLE`, which is
 never empty, so the real gate can structurally never produce this cause. A fixture tree cannot trigger
 it without overriding the table, and overriding the table breaks the "real gate" premise the whole
 case exists to prove. One inaccuracy in the file's own comment (`test-layout-migration.py:396-398`):
@@ -92,7 +92,7 @@ covered, just misattributed in a comment — not a coverage gap, a documentation
 **Render-side mutation probe — the half the orchestrator did not run.** Scratch copy at
 `/private/tmp/.../scratchpad/bin-render-probe/` (copied from the `b1d3925` worktree's `bin/`, outside
 the repo). Mutated `render()` alone: gated the `readers:` clause behind `if False and rep.verdict in
-(MIXED, CANNOT_VERIFY):` (`layout_migration.py:340`), leaving `check-state.sh`'s own composition
+(MIXED, CANNOT_VERIFY):` (`layout_migration.py:340`), leaving `check-state.py`'s own composition
 untouched. **Mutation applied, confirmed by diff** against the unmutated worktree copy (one line
 changed, exactly the guarded conditional). **Suite ran, confirmed by exit code and named FAILs**: `python3
 test-layout-migration.py` → exit 1 (was exit 0 clean), 12 FAIL lines. Three are the discriminating
@@ -106,7 +106,7 @@ independently re-run by me. Against that baseline, my render-only mutation turns
 assertions RED while the rest of the suite's case-20 lines stay green, which is the discriminating
 delta. **This closes the half the orchestrator's probe did not cover**: SC-10 now has independent
 mutation evidence that the case reddens if the **gate** side changes alone (orchestrator, prior run —
-dropping the blamed-reader clause from `check-state.sh`'s own MIXED-branch f-string) *and* if the
+dropping the blamed-reader clause from `check-state.py`'s own MIXED-branch f-string) *and* if the
 **render** side changes alone (this run, `layout_migration.py`'s `render()`). Neither probe touched the
 other's call site — both sides consume the identical `tmp` tree per `_parity_tree()`, so a fixture
 mismatch cannot manufacture the drift; it has to come from the composition logic each side owns
@@ -126,7 +126,7 @@ scoped to the case-20 assertions specifically (which use `tempfile.mkdtemp()` fi
 - `layout_migration.py .` at pin: **exit 0** — `features: CLEAN — evidence migrated`,
   `docs: CLEAN — evidence legacy`, `examined 21 feature dir(s), 1 doc root(s), 7 reader file(s)`,
   `layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify`. Reproduces exactly.
-- `check-state.sh` (`CLAUDE_PROJECT_DIR` pointed at the worktree) at pin: **exit 0**, `grep -c INV-27`
+- `check-state.py` (`CLAUDE_PROJECT_DIR` pointed at the worktree) at pin: **exit 0**, `grep -c INV-27`
   on the full output → **0**. (Per `notes/qa-c0.md` Job 3, `test-check-state.py`'s own suite never
   exercises the real tree, so that suite's PASS was never evidence for this line — running the binary
   itself, as done here, is.) The only `note`-severity lines present are unrelated pre-existing INV-23
@@ -146,7 +146,7 @@ scoped to the case-20 assertions specifically (which use `tempfile.mkdtemp()` fi
 
 | SC | Test |
 |---|---|
-| SC-04 | `run-unit-tests.sh --kind unit`/`--kind integration`, 15+12 suites PASS at `b1d3925` |
+| SC-04 | `run-unit-tests.py --kind unit`/`--kind integration`, 15+12 suites PASS at `b1d3925` |
 | SC-10 | `test-layout-migration.py`, case 20 `parity` — PASS at `b1d3925`; SOUNDNESS independently verified above (six-of-seven count, both mutation halves) |
 | SC-01/03/05/06/08/09/13/14 | unchanged; see `notes/qa-c0.md` for the full table — none touched by this range's three bookkeeping commits or by `b1d3925`'s test-only edit |
 | SC-02/07/11/12 | inspection-only per `BRIEF.md:163-164`; no runner covers them, unaffected by this pin |
@@ -155,7 +155,7 @@ scoped to the case-20 assertions specifically (which use `tempfile.mkdtemp()` fi
 
 - None new. `b1d3925` is a test-file-only edit to an existing, plan-pinned case; it does not open new
   Phase-1-derivable surface. The standing gaps from the prior segment (D-08 delivery-half label
-  unpinned, `check-state.sh` zero-discovery unbound on the real tree, ~181/186 cases unprobed) all
+  unpinned, `check-state.py` zero-discovery unbound on the real tree, ~181/186 cases unprobed) all
   carry forward unchanged — none are this dispatch's to close.
 
 ## New, low-severity finding

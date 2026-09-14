@@ -29,10 +29,10 @@ apply+proof+revert cycle shows only the 17-line addition (see below) — the neu
 
 ## Suite verification (against the batch baseline)
 
-- `run-unit-tests.sh --kind unit` → **exit 0**. `^FAIL ` lines: exactly the 4 by-design
+- `run-unit-tests.py --kind unit` → **exit 0**. `^FAIL ` lines: exactly the 4 by-design
   `BUG-1290 5a/5b/5c` mutation-proof lines from `test-factory-claim-mutation.py` (that file itself
   PASSES). Matches baseline.
-- `run-unit-tests.sh --kind integration` → **exit 1**. `^FAIL ` lines: exactly 6 cases, all in
+- `run-unit-tests.py --kind integration` → **exit 1**. `^FAIL ` lines: exactly 6 cases, all in
   `test-check-plan-routes.py`: `case_04_all_granted_exits_0`,
   `case_05_ungranted_declared_main_session_exits_0`, `case_15_deviation_plan_still_exits_0`,
   `case_17_midpattern_wildcard_grant_exits_0`, `case_19d_explicit_path_unaffected_by_the_root_guard`,

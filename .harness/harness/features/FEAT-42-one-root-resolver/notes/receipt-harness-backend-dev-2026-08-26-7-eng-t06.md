@@ -25,7 +25,7 @@ check also failed, all counted in the total).
 ## Item 6's literal instruction — the required red proof
 
 Item 6 as literally written (`:258` moved to a single `#628` line with NO split) reds
-`test-dispatch-guard.py` case 6, because `dispatch-guard.sh` only ever emits `#628` and
+`test-dispatch-guard.py` case 6, because `dispatch-guard.py` only ever emits `#628` and
 `test-dispatch-guard.py:169-170` still asserts `#551` in stderr. Captured before the citation
 was split:
 

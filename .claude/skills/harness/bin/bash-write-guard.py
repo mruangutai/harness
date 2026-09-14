@@ -1,46 +1,37 @@
-#!/usr/bin/env bash
-# PreToolUse Bash hook — close the CASUAL Bash write bypass (DEC-151).
-#
-# Field incident: qa, denied a source edit by check-domain, made the same edit
-# via `perl -pi` from Bash — the domain hook only sees Write/Edit. This guard
-# does not make Bash-write extraction "winnable" in general (DEC-85 stands);
-# it parses the COMMON in-place editors and redirections, which is what an
-# agent under pressure actually reaches for. Unparseable commands pass — the
-# guard converts casual bypass into deliberate obfuscation, which the post-run
-# tree audit then catches.
-#
-# Policy:
-#   - reviewers (code/security/ui) — READ-ONLY: any detected write pattern is
-#     denied outright, no path analysis. Their job is findings, never fixes.
-#   - dev-ops — exempt (trusted by design, owns builds/deploy; DEC-85).
-#   - every other harness agent — a detected write whose target path is
-#     extractable and OUTSIDE the agent's domain (per team-config.yaml,
-#     shared paths included) is denied; in-domain and unparseable pass.
-#   - main session and non-harness agents — ungoverned, exit 0.
-set -uo pipefail
+#!/usr/bin/env python3
+"""PreToolUse Bash hook — close the casual shell-write bypass (DEC-151).
 
-payload=$(cat)
+Canonical OMP registration lives in `.omp/extensions/harness-hooks.ts`; Claude Code's
+compatibility registration lives in `.claude/settings.json`. The payload supplies the
+agent identity and Bash command.
 
-# BASH_SOURCE is the one question only bash can answer, which is why any bash remains.
-_self="${BASH_SOURCE[0]:-$0}"
-_selfdir="$(cd "$(dirname "$_self")" && pwd)"
-_derived="$(cd "$_selfdir/../../../.." && pwd)"
+Detected common write shapes are refused for reviewers and checked against every other
+governed agent's domain. Dev-ops retains its write recovery exemption, but all governed
+agents remain unable to move HEAD. Main-session and non-Harness calls remain ungoverned.
 
-# T-15: ONE interpreter launch, not two. Same reasoning as T-13 on the sibling hook —
-# this fires on every Bash tool call, and a Python start-up per launch is the bulk of
-# it. Behaviour is unchanged: the dev-ops exemption, the harness-* prefix filter, the
-# absent-manifest fail-open and every exit-2 message are identical, and the unchanged
-# test suite is the equivalence proof (D-10, REQ-07).
-# `-P` IS LOAD-BEARING, NOT TIDINESS (#556). Python puts the invoking directory at
-# sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
-# harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
-# 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
-# (refused) into exit 0 ("enforcement OFF"). The bootstrap removes only sys.path[0]
-# before the heredoc imports anything, preserving site-packages on Python 3.9.
-# test-no-distribution.py case 7 is the invariant.
-HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$_derived" "$_selfdir" <<'PY'
-import sys, os, re, json, shlex
+WAS A .sh (issue #1674). The 962-line Python body lived in a heredoc behind a shell
+bootstrap. A native script keeps one interpreter launch and makes the body visible to
+Python tooling. The bootstrap below preserves the old stdin, environment, argv and root
+contracts exactly; it does not redesign the enforcement body.
+"""
+import os as _bootstrap_os
+import sys as _bootstrap_sys
+
+_bootstrap_selfdir = _bootstrap_os.path.dirname(_bootstrap_os.path.abspath(__file__))
+_bootstrap_derived = _bootstrap_os.path.abspath(
+    _bootstrap_os.path.join(_bootstrap_selfdir, "..", "..", "..", ".."))
+
+# Bash command substitution stripped every trailing newline from the old payload.
+_bootstrap_payload = _bootstrap_sys.stdin.read().rstrip("\n")
+_bootstrap_os.environ["HOOK_PAYLOAD"] = _bootstrap_payload
+_bootstrap_old_pythonpath = _bootstrap_os.environ.get("PYTHONPATH")
+_bootstrap_os.environ["PYTHONPATH"] = _bootstrap_selfdir + (
+    _bootstrap_os.pathsep + _bootstrap_old_pythonpath if _bootstrap_old_pythonpath else "")
+
+# Preserve the synthetic argv shape consumed by the former heredoc body.
+_bootstrap_sys.argv = [
+    _bootstrap_sys.argv[0], _bootstrap_derived, _bootstrap_selfdir]
+import sys, os, re, json, shlex, ast
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
 # behaviour: the two-launch version reached the absent-manifest fail-open in BASH,
@@ -57,7 +48,7 @@ def _root():
     to `_derived`, the other to `""`. The `""` is why an unset environment left every
     subsequent join relative to whatever directory the hook inherited.
 
-    strict=False, and for the same reason as check-domain.sh's twin of this function: a tree
+    strict=False, and for the same reason as check-domain.py's twin of this function: a tree
     with no manifest must fail OPEN at exit 0 (DEC-101), and a strict raise fires on exactly
     that tree. strict=False returns the derived root, which is what the deleted code returned
     there too. What is gone is the `""` and the cwd fall-through, and the override now has to
@@ -287,7 +278,7 @@ except Exception as _be:
           ".agents/skills/harness/bin/harness_boundary.py, then retry.", file=sys.stderr)
     sys.exit(2)
 
-# The RETURN VALUE IS THE DECISION — see check-domain.sh's note. A bare call leaves
+# The RETURN VALUE IS THE DECISION — see check-domain.py's note. A bare call leaves
 # REQ-04's fail-closed and SC-09's expiry inert: the function prints, and the write
 # proceeds anyway because only exit 2 blocks (DEC-100).
 if not harness_yaml.require_or_bootstrap(root):
@@ -304,7 +295,7 @@ if not harness_yaml.require_or_bootstrap(root):
 # introduced by this feature.
 #
 # It is also the exact defect the sibling hook was fixed for one commit earlier
-# ("Skip only what actually needs the parser", check-domain.sh) — fixed there and not
+# ("Skip only what actually needs the parser", check-domain.py) — fixed there and not
 # here, in a pair of files this same feature otherwise went to lengths to keep in step
 # (D-03). Two guards, one rule, and I changed one of them.
 _no_parser = harness_yaml.yaml is None
@@ -480,12 +471,111 @@ def trailing_files(args, drop_first_script=False, script_flags=False):
         out = out[1:]                      # bare `sed -i 's/a/b/' file`: first arg is the script
     return out
 
+PYTHON_EXECUTABLE = re.compile(r"^python(?:3(?:\.\d+)*)?$")
+PYTHON_WRITE_MODE = frozenset("wax+")
+
+
+def _is_python_executable(token):
+    return PYTHON_EXECUTABLE.fullmatch(os.path.basename(token)) is not None
+
+
+def _python_command_sources(tokenized_segments):
+    """Yield source passed through Python's common `-c` command form."""
+    for segment_tokens in tokenized_segments:
+        for i, token in enumerate(segment_tokens):
+            if not _is_python_executable(token):
+                continue
+            args = segment_tokens[i + 1:]
+            for j, arg in enumerate(args):
+                if arg == "-c" and j + 1 < len(args):
+                    yield args[j + 1]
+                    break
+
+
+def _python_heredoc_sources(text):
+    """Yield bodies from heredocs whose command line invokes Python."""
+    lines, i = text.splitlines(), 0
+    while i < len(lines):
+        line = lines[i]
+        masked_match = re.search(r"<<-?\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\1",
+                                 mask_quoted(line))
+        i += 1
+        if not masked_match:
+            continue
+        delimiter = re.match(r"<<-?\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\1",
+                             line[masked_match.start():])
+        if not delimiter:
+            continue
+        tag, dash = delimiter.group(2), delimiter.group(0).startswith("<<-")
+        try:
+            words = shlex.split(line)
+        except ValueError:
+            words = []
+        body_lines = []
+        while i < len(lines):
+            body = lines[i]
+            i += 1
+            if (body.strip() if dash else body) == tag:
+                break
+            body_lines.append(body)
+        if any(_is_python_executable(word) for word in words):
+            yield "\n".join(body_lines)
+
+
+def _call_argument(call, position, keyword_name):
+    for keyword in call.keywords:
+        if keyword.arg == keyword_name:
+            return keyword.value
+    return call.args[position] if len(call.args) > position else None
+
+
+def _is_builtin_open(call):
+    direct = isinstance(call.func, ast.Name) and call.func.id == "open"
+    qualified = (isinstance(call.func, ast.Attribute)
+                 and call.func.attr == "open"
+                 and isinstance(call.func.value, ast.Name)
+                 and call.func.value.id in ("builtins", "io"))
+    return direct or qualified
+
+
+def _constant_string(node):
+    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+
+def _python_open_finding(node):
+    if not isinstance(node, ast.Call) or not _is_builtin_open(node):
+        return None
+    mode = _constant_string(_call_argument(node, 1, "mode"))
+    if mode is None or not PYTHON_WRITE_MODE.intersection(mode):
+        return None
+    path = _constant_string(_call_argument(node, 0, "file"))
+    return "python open", [path] if path is not None else []
+
+
+def _python_open_findings(source):
+    """Return literal targets for builtin `open` calls using a write-capable mode."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return []
+    writes = []
+    for node in ast.walk(tree):
+        finding = _python_open_finding(node)
+        if finding is not None:
+            writes.append(finding)
+    return writes
+
 tokens = []
 for _seg in SEGMENTS:
     try:
         tokens.append(shlex.split(_seg, posix=True))
     except ValueError:
         tokens.append(_seg.split())
+
+for _source in _python_command_sources(tokens):
+    findings.extend(_python_open_findings(_source))
+for _source in _python_heredoc_sources(cmd):
+    findings.extend(_python_open_findings(_source))
 
 # Each segment is one command, so its operand list ends at the segment boundary — no
 # in-list separator hunting, which is what silently failed before (B-6).
@@ -652,6 +742,11 @@ def deny(reason):
           "as an open_question.", file=sys.stderr)
     sys.exit(2)
 
+def deny_bare(reason):
+    """Refuse without suggesting a different write surface."""
+    print(f"bash-write-guard: BLOCKED — {reason}", file=sys.stderr)
+    sys.exit(2)
+
 if agent in REVIEWERS:
     pats = ", ".join(sorted({f[0] for f in findings}))
     deny(f"{agent} is READ-ONLY and this command writes files ({pats}). "
@@ -666,10 +761,10 @@ if _no_parser:
 
 # --- non-reviewers: check extractable paths against the agent's domain ---
 # T-14, and this is the SECURITY-RELEVANT half of D-03. This file used to carry its
-# own copy of check-domain.sh's manifest skimmer — two hand-maintained walks over the
+# own copy of check-domain.py's manifest skimmer — two hand-maintained walks over the
 # same rulebook, which is one edit away from the two write surfaces disagreeing about
 # what an agent may write. That is not a theoretical risk here: this hook exists
-# BECAUSE an agent routed around check-domain.sh (DEC-151), so a divergence between
+# BECAUSE an agent routed around check-domain.py (DEC-151), so a divergence between
 # them is a bypass by construction. Both now call one function; they cannot drift.
 try:
     mine, shared = harness_yaml.manifest_domains(manifest, agent)
@@ -682,7 +777,7 @@ except harness_yaml.DuplicateKeyError as e:
           file=sys.stderr)
     sys.exit(2)
 except harness_yaml.YamlParseError as e:
-    # FAIL CLOSED, matching check-domain.sh. Distinct from the absent-manifest case
+    # FAIL CLOSED, matching check-domain.py. Distinct from the absent-manifest case
     # at :46, which still exits 0: an unconfigured project has nothing to enforce,
     # whereas here the project IS configured and exactly one action fixes it.
     print("bash-write-guard: BLOCKED — the manifest does not parse, so no domain can "
@@ -726,10 +821,45 @@ def feature_checkout_guard(rel, absolute_path):
         return
 
 
+def claim_checkout_guard(destination):
+    """Bind an in-repository Bash write to the agent's live claim worktrees."""
+    if not agent or not agent.startswith("harness-"):
+        return []
+    destination = harness_boundary.real(destination)
+    if not harness_boundary.inside(destination, harness_boundary.real(root)):
+        return []
+    try:
+        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
+    except harness_boundary.AmbiguousWorktree as exc:
+        deny_bare(f"{agent} has an ambiguous worktree claim: {exc}")
+    except Exception as exc:
+        try:
+            import inflight_registry
+            if isinstance(exc, inflight_registry.UnreadableRegistry):
+                deny_bare(harness_boundary.claim_set_refusal(
+                    agent, [], destination, unreadable_paths=exc.paths
+                ))
+        except SystemExit:
+            raise
+        except Exception:
+            pass
+        print(
+            "bash-write-guard: claim-worktree boundary was not enforced; passing "
+            f"through because the guard failed internally: {exc}",
+            file=sys.stderr,
+        )
+        return []
+    if not claim_set:
+        return []
+    if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):
+        return claim_set
+    deny_bare(harness_boundary.claim_set_refusal(agent, claim_set, destination))
+
+
 def _worktree_stripped(rel):
     """`rel` with a leading `.claude/worktrees/<name>/` segment removed, so a
     checkout-agnostic rule can match a path regardless of which worktree it lives in.
-    Mirrors check-domain.sh's `_norm` — harness_boundary.py's own docstring keeps that
+    Mirrors check-domain.py's `_norm` — harness_boundary.py's own docstring keeps that
     stripping local to each caller by design, not shared.
     """
     prefix = harness_boundary.WORKTREES_SEGMENT + "/"
@@ -742,23 +872,23 @@ def _worktree_stripped(rel):
 
 
 def _run_artifact_guard(rel, absolute_path):
-    """Refuse a Bash write aimed at a run's digest.md or state.yaml (issue #1106, gap a).
+    """Refuse unsafe Bash writes to protected run artifacts.
 
-    The Write and Edit routes in check-domain.sh compare a proposed write against the
-    on-disk PRIOR content before it lands (issue #1058's digest prefix guard, issues
-    #1124/#1106's state.yaml run-identity guard). Bash has no equivalent: a shell command
-    carries no complete incoming payload to compare. A content guard is therefore
-    structurally impossible here, so a route denial is the weakest sufficient rule.
-
-    CHECKOUT-AGNOSTIC, DELIBERATELY (code review of PR #1249): unlike
-    `feature_checkout_guard`, whose whole question is "main checkout vs. worktree", this
-    rule is the same everywhere — Bash cannot safely write these two files in ANY
-    checkout, because the underlying gap (no payload to compare) does not depend on
-    which tree the write lands in. It must therefore run ahead of the DEC-153 worktree
-    carve-out below, not behind it: run artifacts normally live inside a feature's own
-    worktree (DEC-95), so placing this check where `feature_checkout_guard` sits would
-    make it inert for exactly the checkout run artifacts are usually written in.
+    Digest and checkpoint guards need complete incoming content, which Bash does
+    not provide. The identity marker is a different route rule: direct writes to
+    its path are refused because it is the run's write-once witness. Directory-level
+    removal can bypass this basename guard; that accepted residual is tracked by
+    issue #1376. This check is checkout-agnostic and stays ahead of the DEC-153
+    worktree carve-out.
     """
+    if harness_boundary.RE_RUN_IDENTITY.match(rel):
+        deny(
+            f"{absolute_path} is the run's write-once identity witness, recorded "
+            "at the run's first landed checkpoint. Its path is never directly rewritten "
+            "or removed once written. A run that needs a record of its own must write "
+            "into a run directory of its own; a witness a human genuinely must repair "
+            "is repaired outside the guards. Directory-level removal is a known residual "
+            "tracked by issue #1376.")
     if (harness_boundary.RE_RUN_DIGEST.match(rel)
             or harness_boundary.RE_STATE_YAML.match(rel)):
         deny(f"{absolute_path} is a run's digest.md or state.yaml. Bash carries no "
@@ -792,6 +922,7 @@ for name, paths in findings:
         # worktree. The MAIN checkout stays hard-protected. Reviewers never reach this
         # branch (denied on any write pattern above).
         if re.match(r"^\.claude/worktrees/", rel):
+            claim_checkout_guard(ap)
             continue
         # tmp/cache noise is not a domain question.
         if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
@@ -837,14 +968,19 @@ for name, paths in findings:
         if rel.startswith(".."):
             continue
 
-        if verdict["outcome"] in ("allow", "not_a_domain_question"):
+        if verdict["outcome"] == "allow":
             feature_checkout_guard(rel, ap)
+            claim_checkout_guard(ap)
+            continue
+
+        if verdict["outcome"] == "not_a_domain_question":
             continue
 
         if verdict["outcome"] == "shared":
             feature_checkout_guard(rel, ap)
+            claim_checkout_guard(ap)
             # Shared paths are owned by nobody and always serialized (DEC-85). Same
-            # notice check-domain.sh prints on its own route.
+            # notice check-domain.py prints on its own route.
             print(f"bash-write-guard: {agent} is writing SHARED path "
                   f"{verdict['rel']} (owned by nobody, must be serialized).",
                   file=sys.stderr)
@@ -856,4 +992,3 @@ for name, paths in findings:
         deny(f"{agent}: `{name}` targets {verdict['rel']}, outside your domain.")
 
 sys.exit(0)
-PY

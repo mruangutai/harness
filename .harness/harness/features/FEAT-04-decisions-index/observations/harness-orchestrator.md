@@ -27,7 +27,7 @@
   slice of the authority — the mandatory-reading floor this very feature exists to remove. The
   decomposition reframed an overrun as the last feature that pays full price. A bare total could not.
 
-- 2026-08-02: `bash-write-guard.sh` still reads `>` and `<` inside an UNQUOTED heredoc body as
+- 2026-08-02: `bash-write-guard.py` still reads `>` and `<` inside an UNQUOTED heredoc body as
   redirects — `if 30 < w` was fine but `w > 30` was blocked as "redirect targets 30]". The quoted-string
   fix that landed mid-build does not cover heredoc'd python. Three members hit the same class on
   compound lines (`rm a; python3 b` blocked as "rm targets python3"). Every instance was a legitimate

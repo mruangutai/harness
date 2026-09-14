@@ -369,7 +369,7 @@ def case_second_repo():
     """(g) SECOND REPOSITORY: a real second git repo, fleet-resolved (never the hard-coded
     "harness" literal), with its own default branch, its own Done feature landed on it and a
     real `git worktree add`. classify() is called directly on that repository's own root — the
-    same call shape post-merge-sweep.sh's contract (T-03) makes per repository — and must
+    same call shape post-merge-sweep.py's contract (T-03) makes per repository — and must
     classify that worktree terminal.
 
     Fleet resolution requires factory_config.FLEET_PATH, computed at IMPORT time from
@@ -931,7 +931,7 @@ def case_direct_build_brief_is_terminal():
 def case_plan_station_scan_without_pyyaml():
     """FEAT-41 T-07: the station is still readable when PyYAML is NOT importable.
 
-    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.sh runs `python3 -I`, and
+    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.py runs `python3 -I`, and
     isolated mode ignores user site-packages — where PyYAML lives on a stock macOS install. This
     module read only JSON until T-07, so it had no third-party dependency; moving the station
     into plan.yaml gave the sweep one it could not satisfy, and EVERY worktree came back

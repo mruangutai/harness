@@ -16,7 +16,7 @@ The full diff contains **87 paths**. Extension census: **1 HTML**, **0 CSS/SCSS/
 - Nested `###` no longer truncates parsing: `_body` stops only at a strict H2 and the nested heading is rejected as unexpected prose. Duplicate `## Done when` headings are counted before parsing and refused (`handoff_done_when.py:24-35,272-287`). A real hook probe reported both the nested heading and the dangling later `SC-99` authority, proving it did not hide the pointer.
 - Approval resolution now accepts only real one-to-six-hash ATX headings with required separating whitespace and optional closing hashes (`handoff_done_when.py:154-174`). `#Approval` and `####### Approval` are separately rejected; ordinary `## Approval` remains the positive control.
 - Finding and approval authorities independently traverse the same containment path. Absolute, traversal, control-character, symlink-escape, non-regular, oversized, unreadable, and unexpected-resolver paths fail closed (`handoff_done_when.py:57-101,143-174,224-253`). Approval has its own absolute/traversal/symlink/FIFO cases in both unit and real-write-gate coverage.
-- PreToolUse reconstructs protected handoff Edit candidates before mutation. Invalid shape exits 2; non-UTF-8 prior bytes return the unreadable sentinel and exit 2 with “cannot be reconstructed safely.” Integration checks require byte identity after both refusals (`check-domain.sh:1821-1881`; `test-check-domain.py:4138-4184`).
+- PreToolUse reconstructs protected handoff Edit candidates before mutation. Invalid shape exits 2; non-UTF-8 prior bytes return the unreadable sentinel and exit 2 with “cannot be reconstructed safely.” Integration checks require byte identity after both refusals (`check-domain.py:1821-1881`; `test-check-domain.py:4138-4184`).
 - Refusals are single-line, linear, uncoloured text under a `check-domain: BLOCKED` head and identify the broken count/value/pointer plus the template. Missing-section enforcement emits two overlapping actionable lines, but the remedy is unambiguous and no approved contract forbids duplication.
 
 ## Prior F-01..F-09 disposition
@@ -40,7 +40,7 @@ A separate prior security advisory remains: `probe-handoff-comprehension.py:86-9
 From the exact repository root, I ran exactly:
 
 ```sh
-bash .claude/skills/harness/bin/check-state.sh
+python3 .claude/skills/harness/bin/check-state.py
 ```
 
 Result: **exit 1**. Tagged `VIOLATION` census: **1**. Complete remaining violation:
@@ -68,7 +68,7 @@ DIGEST:
   must_fix:
     - "F-04: obtain a review pin where the exact repository-root SC-04 command exits 0 without waiving it, substituting a fixture, or mutating FEAT-51 as this dispatch forbids. Owner: harness-orchestrator/main-direct repository-state and review-pin lane."
   contract_violations:
-    - { path: ".claude/skills/harness/bin/check-state.sh", actual: "literal root command exit 1; one tagged FEAT-51 missing-handoff violation; zero Done when matches", specified: "BRIEF SC-04 requires a clean review-time root check" }
+    - { path: ".claude/skills/harness/bin/check-state.py", actual: "literal root command exit 1; one tagged FEAT-51 missing-handoff violation; zero Done when matches", specified: "BRIEF SC-04 requires a clean review-time root check" }
   a11y: []
   open_questions: []
   files_touched: [.harness/harness/features/FEAT-54-handoff-done-when/notes/review-harness-ui-reviewer-c3.md]

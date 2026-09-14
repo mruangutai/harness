@@ -325,7 +325,7 @@ Entered after Stage 1 passed cleanly (no findings to sequence around).
   no recorded `branch` remain cross-forgeable among themselves) and the duplicated binding-error
   line — both already tracked (STATE.md Q4/Q5), neither newly discovered here.
 
-No formatter, linter, project-wide suite, `check-state.sh`, goal-check, UAT, documentation, ship,
+No formatter, linter, project-wide suite, `check-state.py`, goal-check, UAT, documentation, ship,
 merge, PR, deploy, or HEAD movement was performed. Commands run: this feature's five focused test
 files (`test-code-grade.py`, `test-code-grade-cli.py`, `test-gate-policy.py`,
 `test-check-plan-routes.py`, `test-validate-digest.py`, all reran to exit 0), the pinned

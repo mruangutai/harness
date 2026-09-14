@@ -33,8 +33,8 @@ T-05 added `import harness_boundary` at **module level** (top of `harness_yaml.p
 Two tests — `test-bash-write-guard.py` ("a MISSING harness_boundary.py blocks the bash write and
 NAMES the module") and `test-check-domain.py` ("a MISSING harness_boundary.py blocks the write and
 NAMES the module") — build an isolated fixture bin containing only `harness_yaml.py` (deliberately
-omitting `harness_boundary.py`) to prove the D-06 fail-closed pair: `bash-write-guard.sh:244` does
-a bare `import harness_yaml`, and `bash-write-guard.sh:254` wraps `import harness_boundary` in its
+omitting `harness_boundary.py`) to prove the D-06 fail-closed pair: `bash-write-guard.py:244` does
+a bare `import harness_yaml`, and `bash-write-guard.py:254` wraps `import harness_boundary` in its
 own `try/except` producing a controlled `BLOCKED ... exit 2` message. `harness_yaml.py`'s own
 docstring (lines 12–15) states import-time behaviour is "exactly the one try/except ... No marker
 read, no marker write, no caching, no other module-level mutable state" — a hard constraint T-05's
@@ -45,7 +45,7 @@ guarded write proceeds unenforced. Fail-open, exactly the class this codebase is
 
 Fix: moved `import harness_boundary` out of module scope, into a lazy `import harness_boundary`
 inside `require_or_die()` (the only function that uses it) — `.claude/skills/harness/bin/harness_yaml.py`.
-Neither `bash-write-guard.sh` nor `check-domain.sh` calls `require_or_die()`, so their own
+Neither `bash-write-guard.py` nor `check-domain.py` calls `require_or_die()`, so their own
 try/except around `import harness_boundary` is reached again as designed.
 
 Verified: `python3 test-bash-write-guard.py` and `python3 test-check-domain.py` both fully green
@@ -87,15 +87,15 @@ $ (verify block from plan.yaml T-05, verbatim)
 harness_yaml change moved the gate
 ```
 (51 "before" FAILs collapse to mostly PASS "after"; `diff` exits non-zero; verify's own
-`|| { echo "harness_yaml change moved the gate"; exit 1; }` fires; `bash run-unit-tests.sh` is
+`|| { echo "harness_yaml change moved the gate"; exit 1; }` fires; `python3 run-unit-tests.py` is
 never reached.)
 
 **Root cause, confirmed:** `git show 3952814:$B/check-plan-routes.py > /tmp/f42-cpr-old.py` places
 the restored copy at a bare `/tmp` path, not inside a bin directory.
 `check-plan-routes.py:300`'s lazy `import harness_yaml` finds nothing on `sys.path[0]` (`/tmp`, the
 child process's script directory per `test-check-plan-routes.py:54-61`'s `subprocess.run`), and
-`check-plan-routes.py:29`'s `CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")` resolves to
-`/tmp/check-domain.sh`, which does not exist. Every other T- in this feature restores via
+`check-plan-routes.py:29`'s `CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.py")` resolves to
+`/tmp/check-domain.py`, which does not exist. Every other T- in this feature restores via
 `cp -R $B $M/.claude/skills/harness/bin` (whole directory); T-05 alone copies one file to a bare
 path. **`task_verify: fail`** — not attributable to T-05's code.
 
@@ -191,21 +191,21 @@ interpretation — recording it here per rule 15 rather than quietly overwriting
 ### The mechanism — confirmed exactly as the dispatch described, one caller short
 
 Cycle 0's fix moved `import harness_boundary` out of module scope and into `require_or_die()`
-(`.claude/skills/harness/bin/harness_yaml.py`), which restored `bash-write-guard.sh` and
-`check-domain.sh` (neither calls `require_or_die()`). It did **not** cover `check-state.sh`, which
-calls `harness_yaml.require_or_die()` near its own top (`check-state.sh:35`) — before its own later,
+(`.claude/skills/harness/bin/harness_yaml.py`), which restored `bash-write-guard.py` and
+`check-domain.py` (neither calls `require_or_die()`). It did **not** cover `check-state.py`, which
+calls `harness_yaml.require_or_die()` near its own top (`check-state.py:35`) — before its own later,
 properly guarded `import harness_boundary as _hb` at `:1080` (INV-25) ever runs. In the isolated
 fixture both `(u.7)` and `(x.5)` build (a bin/ dir carrying only `harness_yaml.py`, no
 `harness_boundary.py`), `require_or_die()`'s `import harness_boundary` now raised uncaught —
-`ModuleNotFoundError`, uncaught, `check-state.sh` died before it could ever reach `:1080`/`:1657` to
+`ModuleNotFoundError`, uncaught, `check-state.py` died before it could ever reach `:1080`/`:1657` to
 print the "CANNOT RUN" violation both cases assert must appear. Confirmed live before any further
 edit: an isolated bin/ with only `harness_yaml.py` and `require_or_die()` called directly raised
 `ModuleNotFoundError: No module named 'harness_boundary'` (exit 1) instead of returning.
 
 **`(x.5)`'s cause, checked rather than assumed: identical to `(u.7)`, not a second defect.** `(x.5)`'s
 fixture bin/ also carries only `harness_yaml.py` (deliberately omitting BOTH `harness_boundary.py`
-and `layout_migration.py` — `check-state.sh:1657`'s own guarded `import layout_migration` is meant to
-be what fires). But `require_or_die()` at `check-state.sh:35` raises on the missing
+and `layout_migration.py` — `check-state.py:1657`'s own guarded `import layout_migration` is meant to
+be what fires). But `require_or_die()` at `check-state.py:35` raises on the missing
 `harness_boundary.py` first, before the script ever reaches `:1657` to prove the `layout_migration`
 guard works. Same root cause, same fix.
 
@@ -232,7 +232,7 @@ anywhere it matters.
 
 ### TDD: RED confirmed before the fix, GREEN after
 
-Test-check-state.py and check-state.sh are DEC-174 am.4, off-limits — the fix and its test both had
+Test-check-state.py and check-state.py are DEC-174 am.4, off-limits — the fix and its test both had
 to live in `harness_yaml.py`'s own suite, `test-harness-yaml.py`. Added
 `test_require_or_die_survives_a_missing_harness_boundary` (an isolated bin/ carrying only
 `harness_yaml.py`, subprocess-imports it and calls `require_or_die()` directly, asserts exit 0 /
@@ -243,7 +243,7 @@ iterates, per its own inline warning about tests defined but never called.
 
 ### `--kind all`, run to completion, failures enumerated BY CASE NAME
 
-Invocation: `bash .claude/skills/harness/bin/run-unit-tests.sh --kind all` from the worktree root,
+Invocation: `python3 .claude/skills/harness/bin/run-unit-tests.py --kind all` from the worktree root,
 run to completion (no timeout, ~several minutes), exit 1, 3092 `ok`/`PASS` lines, 12 `FAIL` lines:
 
 ```
@@ -266,7 +266,7 @@ are the dispatch's named non-hermetic exception (live in-flight registry collisi
 untouched, `test-validate-digest.py` and its hooks not edited. The remaining 5 lines are the T-04
 baseline verbatim: `(x.2)`, `INV-29 (e)`, `INV-29 (f.7)`, `INV-29 (f.8)`, umbrella
 `FAIL test-check-state.py`. **`(u.7)` and `(x.5)` are gone.** Neither `test-check-state.py` nor
-`check-state.sh` was edited to reach this — only `harness_yaml.py`.
+`check-state.py` was edited to reach this — only `harness_yaml.py`.
 
 ### `test-bash-write-guard.py` / `test-check-domain.py` — still green on MY change, pre-existing
 unrelated noise found and isolated
@@ -277,8 +277,8 @@ test-harness-yaml.py` (reverting only my two files, leaving every other in-fligh
 edits — `harness_boundary.py`, `layout_migration.py`, etc. — untouched) and re-running, that the
 **identical** failure set exists with my two files reverted to cycle 0's already-fixed state. This
 noise is pre-existing in the current worktree's uncommitted, multi-task state and is orthogonal to
-both cycle 0's and my `require_or_die()` change — neither `bash-write-guard.sh` nor
-`check-domain.sh` calls `require_or_die()`, and my change touches no other code path. `git stash
+both cycle 0's and my `require_or_die()` change — neither `bash-write-guard.py` nor
+`check-domain.py` calls `require_or_die()`, and my change touches no other code path. `git stash
 pop` restored both my files correctly (confirmed by re-reading `require_or_die()` and the new test
 name post-pop). Not investigated further — out of scope for T-05, and the dispatch's own instruction
 was "confirm STILL green after your change", which the stash comparison answers: unchanged by my
@@ -301,7 +301,7 @@ harness_yaml change moved the gate
 ```
 `diff` between the before/after `test-check-plan-routes.py` runs is non-empty (dozens of PASS lines
 only in "after"), so the verify's own `|| { echo "harness_yaml change moved the gate"; exit 1; }`
-fires and `bash run-unit-tests.sh --kind all` inside the verify is never reached by the verify script
+fires and `python3 run-unit-tests.py --kind all` inside the verify is never reached by the verify script
 itself (I ran it separately, above, to get the full case-name enumeration). `task_verify: fail`, same
 root cause cycle 0 identified and I did not re-litigate: `check-plan-routes.py`'s restored copy is
 placed at a bare `/tmp` path (`git show 3952814:$B/check-plan-routes.py > /tmp/f42-cpr-old.py`)
@@ -314,7 +314,7 @@ dispatch — one clean confirming run, not re-proven further.
 - `.claude/skills/harness/bin/harness_yaml.py` — `require_or_die()`: wrapped `import
   harness_boundary` + `resolve_root()` in `try/except Exception: return`, so a missing
   `harness_boundary.py` or a `resolve_root` raise cannot abort every caller (including
-  `check-state.sh`) over a best-effort marker-cleanup failure.
+  `check-state.py`) over a best-effort marker-cleanup failure.
 - `.claude/skills/harness/bin/test-harness-yaml.py` — added
   `test_require_or_die_survives_a_missing_harness_boundary` (RED confirmed pre-fix, GREEN post-fix),
   registered in `TESTS`.

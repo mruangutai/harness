@@ -44,7 +44,7 @@ and no re-panel: one cycle of ten remains, and more is an operator decision on `
 - Do not mirror to GitHub: this plan is unsigned — `references/github-mirror.md` — verified-at
   b0aa961a
 - BUILD: land T-11 then T-12 BEFORE the qa segment — the pin guard is deliberately red until they
-  do, `run-unit-tests.sh` globs it, `gates.qa_gate` is blocking, and DEC-174 leaves its `loop_back`
+  do, `run-unit-tests.py` globs it, `gates.qa_gate` is blocking, and DEC-174 leaves its `loop_back`
   no legal owner — plan.yaml `panel.sequencing_note` — verified-at b0aa961a
 
 ## Working set

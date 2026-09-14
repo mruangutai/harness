@@ -16,7 +16,7 @@ that would trigger it, so nothing can redden.
   `git diff --stat`, MEASURED). Per `plan.yaml`, tasks are `logic` (T-01,04,05,06,07,08 —
   `always: [unit]`), `docs` (T-03,09 — `always: []`), `scaffolding` (T-10 — `always: []`). No task
   is `cross_module` or `config`. **Plan-level floor: unit only.**
-- The c11 fix delta specifically (`790023f0..984bd26b`, exactly 2 files: `check-domain.sh`
+- The c11 fix delta specifically (`790023f0..984bd26b`, exactly 2 files: `check-domain.py`
   +26/-8, `test-check-domain.py` +6/-0 — MEASURED via `git diff --numstat`) is `bugfix`:
   `touches_runtime_code` fires (→ unit required); `fix_confined_to_tests_and_contract_docs` does
   **not** fire, since the runtime script itself changed, not just tests/docs — so that leg does
@@ -64,7 +64,7 @@ Read `run-state-schema.json`'s step subschema directly:
 three keywords the batch context claims sit at the step object's own level (plus `properties`,
 which routes into named-field paths, not an empty path). MEASURED, not adopted.
 
-Read `shape_problems` (`check-domain.sh:1630-1677`) directly:
+Read `shape_problems` (`check-domain.py:1630-1677`) directly:
 - Whole-step `type` failure (`_step` not a dict) is *always* caught by the manual
   `_offending.add("<step>")` at line 1635, **outside** the `if _schema_errors:` block — reached
   unconditionally per step, independent of what jsonschema reports.
@@ -107,7 +107,7 @@ Both MEASURED directly by me this cycle, not adopted from c10.
 ## Q14 / Q15 — present-tense severity, MEASURED where possible
 
 - **Q14 — reachable today, severity `low`.** I built a standalone fixture (schema_version 2,
-  declared key `cycles: not-an-int`) and fired it directly against `check-domain.sh` (bypassing
+  declared key `cycles: not-an-int`) and fired it directly against `check-domain.py` (bypassing
   the test file entirely, per DEC-174 — source/tests untouched). Result: `returncode == 2`,
   message head `"undeclared step key or evidence shape."`, `offending key(s): 'cycles'` — wrong
   remedy (tells the author to move a *declared* key under `evidence`) for a type failure on a
@@ -133,13 +133,13 @@ Both MEASURED directly by me this cycle, not adopted from c10.
   my grading this cycle.
 - **F1/F2/F3** — **carried as previously disposed**: F1/F3 stay CLOSED (closed by execution at
   c10, nothing in this cycle reopens them). F2's DECLINED disposition **stands** — I confirm
-  `check-state.sh` is not in the `790023f0..984bd26b` delta (2 files only, neither is
-  `check-state.sh`), so the topology F2 was declined against is unchanged.
+  `check-state.py` is not in the `790023f0..984bd26b` delta (2 files only, neither is
+  `check-state.py`), so the topology F2 was declined against is unchanged.
 - **Standing residual — "schema guards argued fail-closed, not mutation-proven"** — **partially
-  strengthened, not closed**. For the specific step-schema guard in `check-domain.sh` touched
+  strengthened, not closed**. For the specific step-schema guard in `check-domain.py` touched
   this cycle, I directly measured three live discriminating cases (missing-required, undeclared,
   and my own Q14 declared-type probe) against the real binary — genuine execution evidence, not a
-  self-report. I did **not** extend this to `validate-digest.py`'s or `check-state.sh`'s guards
+  self-report. I did **not** extend this to `validate-digest.py`'s or `check-state.py`'s guards
   this cycle (both untouched by the c11 delta), so the residual **carries** for those two files
   unchanged.
 
@@ -153,8 +153,8 @@ DIGEST:
   change_type: "mixed — plan.yaml tasks mostly `logic` (floor: unit); c11's own 2-file fix delta is `bugfix` (touches_runtime_code fires unit; fix_confined_to_tests_and_contract_docs does not fire integration by the letter, but integration is ADDED as clearly warranted since the regression case lives there)"
   required_kinds: [unit, integration]
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 36, provenance: ADOPTED, source: "run 15 same-pin report" }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 70, provenance: ADOPTED, source: "run 15 same-pin report" }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36, provenance: ADOPTED, source: "run 15 same-pin report" }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70, provenance: ADOPTED, source: "run 15 same-pin report" }
     - { kind: integration_focused, state: satisfied, cmd: "python3 tests/integration/test-check-domain.py", named_tests: 13, provenance: MEASURED, source: "run just now, env -u HARNESS_AGENT_TYPE, exit 0" }
   coverage_gaps: ["Q14: type-wrong value on a declared step key routes into the wrong remedy message; no test asserts correct behavior for this case"]
   sc_evidence:
@@ -167,9 +167,9 @@ DIGEST:
     - { id: Q9, area: code, severity: unrated-by-me, status: carried-unchanged, note: "validate-digest.py untouched this cycle" }
     - { id: CF-2, area: contested, severity: med, status: carried-unchanged, note: "subject file outside the 2-file c11 delta" }
     - { id: F1, area: code, severity: n/a, status: closed, note: "closed by execution at c10" }
-    - { id: F2, area: code, severity: n/a, status: declined-stands, note: "check-state.sh topology confirmed unchanged this cycle" }
+    - { id: F2, area: code, severity: n/a, status: declined-stands, note: "check-state.py topology confirmed unchanged this cycle" }
     - { id: F3, area: code, severity: n/a, status: closed, note: "closed by execution at c10" }
-    - { id: "residual: schema guards fail-closed, not mutation-proven", area: code, severity: info, status: carried-partial, note: "strengthened for check-domain.sh's step guard (3 live probes this cycle); still unproven for validate-digest.py and check-state.sh guards, both untouched this cycle" }
+    - { id: "residual: schema guards fail-closed, not mutation-proven", area: code, severity: info, status: carried-partial, note: "strengthened for check-domain.py's step guard (3 live probes this cycle); still unproven for validate-digest.py and check-state.py guards, both untouched this cycle" }
   severity_max: med
   open_questions: []
   files_touched: []

@@ -10,7 +10,7 @@
   the delegation in the return. The doctrinal reason for main-session ownership is that these
   acts relay a user decision; the decision was present, so the bound was satisfied in substance.
 - 2026-08-31 (ship): INV-32 landed with no grandfather clause and turned 32 pre-existing
-  approved plans permanently red at every `check-state.sh` run, FEAT-45's own included.
+  approved plans permanently red at every `check-state.py` run, FEAT-45's own included.
   T-07's approved intent specifies exactly that ("fires ONLY on a plan whose approval.status
   is approved") and its `verify:` asserts `$? -ne 2`, so it is designed behaviour rather than
   a discovery. Baseline measured: 42 VIOLATIONs at HEAD, 10 without INV-32. A gate whose

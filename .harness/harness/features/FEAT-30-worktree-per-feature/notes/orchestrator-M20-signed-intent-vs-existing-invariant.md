@@ -6,7 +6,7 @@ blocking**, because T-08's own `verify:` greps for `^FAIL ` and will not pass wh
 
 ## The failure
 
-    .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    .claude/skills/harness/bin/run-unit-tests.py --kind integration
       -> exit 1, scriptPASS=15, scriptFAIL=1
     FAIL test_exactly_one_guarded_import_in_the_tree: unexpected guarded-import file(s)
          outside the allowed set: {'feature-worktree.py'}
@@ -14,8 +14,8 @@ blocking**, because T-08's own `verify:` greps for `^FAIL ` and will not pass wh
 
 Re-derived the set myself rather than trusting the message:
 
-    guarded_hits : check-domain.sh, feature-worktree.py, feature_schema.py, harness_yaml.py
-    allowed      : check-domain.sh, feature_schema.py, harness_yaml.py
+    guarded_hits : check-domain.py, feature-worktree.py, feature_schema.py, harness_yaml.py
+    allowed      : check-domain.py, feature_schema.py, harness_yaml.py
     offending    : feature-worktree.py     <- exactly one, and it is T-01's
 
 ## Neither side is at fault, which is what makes it a ruling and not a fix
@@ -49,10 +49,10 @@ An execution-time adjustment is mine; changing what the plan's diff contains is 
 
 **Widen the `allowed` set.** One line, and it is the better-grounded side:
 
-- **Precedent already covers a first-party guarded import.** `check-domain.sh` sits in `allowed`
+- **Precedent already covers a first-party guarded import.** `check-domain.py` sits in `allowed`
   for guarding `import feature_schema` — first-party, exactly like `harness_boundary`. So
   "`harness_boundary` is not an external dependency" does not distinguish this case from an
-  already-accepted one. I checked: `check-domain.sh` does currently hold the needle, so the test's
+  already-accepted one. I checked: `check-domain.py` does currently hold the needle, so the test's
   own comment claiming it holds zero occurrences is itself stale.
 - **The test was built to grow this way.** Its comment states assertion 2 *"MUST be a subset (`<=`),
   never `==`"* so new legitimate cases can land without the cap being lost.
@@ -119,7 +119,7 @@ in one line. `--kind unit` is exit 0 and unaffected throughout.
 T-08 returned `verdict: FAIL` with the note *"registrations correct, integration PASS 90 to 198;
 verify red on out-of-scope test-harness-yaml.py"* — the same conclusion I reached by measurement,
 arrived at separately. **And the run did NOT make the undeclared edit**: the tree outside the feature
-directory holds only `run-unit-tests.sh` and `harness.json` modified, plus the four new files. The
+directory holds only `run-unit-tests.py` and `harness.json` modified, plus the four new files. The
 squad correctly refused to fix a file the plan does not give it.
 
 That is the right behaviour and worth recording as such: the cheap wrong move was available and was
@@ -127,7 +127,7 @@ not taken.
 
 ## Consequence for the phase
 
-T-10's `verify:` ends with both `run-unit-tests.sh --kind unit` and `--kind integration` gated on
+T-10's `verify:` ends with both `run-unit-tests.py --kind unit` and `--kind integration` gated on
 exit 0, so **T-10 will FAIL for this same inherited reason regardless of its own quality.** T-10 must
 therefore be graded on its own merits — its red proof and its concurrency assertions — separately
 from the inherited redness.
@@ -228,7 +228,7 @@ here is the answer with four consistent data points.
    `cp targets $T/bin, outside your domain` — it read the unexpanded `$T/bin` as a repository-relative
    path, which is out of domain. That part of the lead's hypothesis is correct.
 2. But that check is never REACHED by some callers, and that is what explains the contradiction.
-   `bash-write-guard.sh:49-57`, in order:
+   `bash-write-guard.py:49-57`, in order:
 
        agent = d.get("agent_type") or ""
        if not agent:                     sys.exit(0)     # no agent_type at all

@@ -41,7 +41,7 @@ Q9–Q13 in STATE.md. **Do not re-dispatch a validator: the copy delta is fully 
   moving the pin would claim the panel reviewed a tree it never saw — `feature.json` — verified-at
   3f69a522
 - Do not treat INV-29's worktree violations as this feature's — every one names another feature —
-  `check-state.sh` output recorded in STATE.md — verified-at 3f69a522
+  `check-state.py` output recorded in STATE.md — verified-at 3f69a522
 
 ## Working set
 

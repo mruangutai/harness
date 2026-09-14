@@ -41,7 +41,7 @@ found — not flagged.
   findings). If any other angle's finding touches D-02's zero/many wording, or the eleven/four
   backfill split, three independent spellings (BRIEF SC-02, plan D-02, plan T-03 intent) need
   synchronized edits in that revision round, and there is no automated check that would catch
-  one left stale — `check-state.sh` does not audit plan prose, only feature.json.
+  one left stale — `check-state.py` does not audit plan prose, only feature.json.
 - **Alternative**: the task intent cites the decision id ("see D-02 for why exactly-one, not
   first-match") instead of restating the because-clause; the decision stays the single
   authoritative spelling.
@@ -71,7 +71,7 @@ found — not flagged.
   independently dependent (T-03 and T-04 both depend only on T-02, not on each other), so
   splitting is correct, not "two tasks that are one."
 - **T-07 bundling two files** (template comment + SKILL.md rows) into one task — both resolve
-  to the same `main-session-direct` lane for the same reason (`check-domain.sh --resolve`
+  to the same `main-session-direct` lane for the same reason (`check-domain.py --resolve`
   returns NOBODY), so one task avoids a second no-op dispatch, not complexity.
 
 ## No SIMPLIFICATION findings beyond the one above

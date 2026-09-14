@@ -1,7 +1,7 @@
 # Panel record repair — BUG-201 `panel.readers` goalcheck row
 
 **BLUF.** The transcription omission is repaired. `panel.readers` now carries all three readers
-INV-32 requires (`check-state.sh:534` — `expected_readers = {"should-not-exist", "scope",
+INV-32 requires (`check-state.py:534` — `expected_readers = {"should-not-exist", "scope",
 "goalcheck"}`), each `status: ran`. The write went through the single legal route,
 `plan-merge.py set-panel --value-file`, which printed `PANEL cycle 1 -> …` / `APPLIED …`, exit 0.
 The diff is 3 insertions, 0 deletions. No task, decision, requirement, finding, severity, station,
@@ -24,7 +24,7 @@ that never ran.
 
 New row: `reader: goalcheck` / `persona: harness-pm` / `status: ran`. No `reason` needed — `ran`,
 not `skipped`. Order is not graded: INV-32 keys readers into a dict and iterates
-`sorted(expected_readers)` (`check-state.sh:538-547`), so appending was chosen for a clean diff.
+`sorted(expected_readers)` (`check-state.py:538-547`), so appending was chosen for a clean diff.
 
 ## B — findings preserved
 

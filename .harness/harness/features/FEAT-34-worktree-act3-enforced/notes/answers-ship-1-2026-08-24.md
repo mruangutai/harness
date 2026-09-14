@@ -15,7 +15,7 @@ thirteen tasks.
 ## Q2 — D-10 stands. Re-run T-01 and T-02. USER RULING.
 
 **The user re-signed with D-10 in it.** `classify_all` goes in `worktree_terminal.py`, not in
-`check-state.sh`. Dispatch the rework; `cycles_used` going to 2 of 10 is authorised.
+`check-state.py`. Dispatch the rework; `cycles_used` going to 2 of 10 is authorised.
 
 The reasoning was verified independently by the main session before it reached the user, so treat it
 as settled rather than re-arguing it:

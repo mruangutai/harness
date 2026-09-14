@@ -7,12 +7,12 @@ shape); `check-instruction-paths.py` exits 0 over 62 files. `approval.status` is
 `status: plan`, no `panel:` key, both retired tasks still `abandoned` in place.
 
 **Every anchor written into a task was verified at source in THIS run**, reading the worktree copies
-of `check-domain.sh` and `check-state.sh` at HEAD `c369fb1f` with no tracked modification, so the
+of `check-domain.py` and `check-state.py` at HEAD `c369fb1f` with no tracked modification, so the
 worktree text IS the pinned text: `if absolute_path is not None:` `:1508`; prior read and
 `prior_unreadable` refusal `:1509-1529` (`if prior_unreadable:` `:1526`, `return out` `:1529`);
 `if prior_state:` ladder `:1530`; unparseable-prior refusal head `:1542` (branch `:1539-1545`);
 Issue-1124 compare `:1567-1574`; shape phase `:1581-1582`; `ALLOWED` `:1450-1453`; Edit
-reconstruction `:1905-1923`; POST `elif target:` `:1930-1950`; `check-state.sh` `CHECKPOINT_KEYS`
+reconstruction `:1905-1923`; POST `elif target:` `:1930-1950`; `check-state.py` `CHECKPOINT_KEYS`
 `:1390-1405` and the run-directory loop `:1426`.
 
 ## Disposition by finding
@@ -55,7 +55,7 @@ T-02 case and by SC-01(f).
 3. **A foreign run colliding on a slug IS refused, Write and Edit.** Prior present with U1 → ladder →
    `uid_conflict` missing-value row. Prior absent/zero-byte/unparseable → witness compare. Proven:
    plan T-09 cases MODAL COLLISION Write and Edit (BRIEF SC-01(b)(c)); plan T-02 cases 1, 2 and 3
-   (BRIEF SC-01(a)); Edit reached because `check-domain.sh:1905-1923` reconstructs `RE_STATE_YAML`.
+   (BRIEF SC-01(a)); Edit reached because `check-domain.py:1905-1923` reconstructs `RE_STATE_YAML`.
 4. **No historical directory, sibling worktree or control-plane root can redden the new invariant.**
    Every reported path in T-03 requires a witness; witness-absent appends nothing, permanently. On
    PRE, `read_marker` returns None for a witness-less directory so `conflict()` returns None, and
@@ -106,7 +106,7 @@ no ruling and no case list moved.**
 | branches added | `plan.yaml` T-08 direction two | "adds three refusing or reporting branches" | "EVERY refusing or reporting branch … the pairs are the four below". Re-derived from the bullets (4) and from the branch set (T-02 seed-field, T-09 identity, T-03 invariant, T-05 fail-closed = 4); "three" agreed with neither |
 | red-proof refusal cases | `plan.yaml` T-09 RED PROOF | "The two refusal cases exit 0 on that tree" | "The THREE refusal cases this branch adds — both MODAL COLLISION routes and the different-run_uid Write". Re-derived from T-09's own case list; the PRECEDENCE case exits 2 on both trees by the Issue 1124 branch and is now placed rather than left unaccounted |
 | notes not written | `plan.yaml` T-10 last line | "The two notes this task would have produced" | "The seeding note … the one note in its `files:` list". Re-derived from T-10's `files:` (one path) and its `verify:` (asserts that one). No second note is named anywhere in the plan or the c1–c3 notes |
-| minting evidence scope | `plan.yaml` T-12 WHY IT EXISTS | "Every other criterion in this plan invokes check-domain.sh --post directly" | "The only other criterion that evidences minting — SC-10 —". Re-derived from the SC list: SC-02/04/05/07/08/09/11 invoke no `--post` |
+| minting evidence scope | `plan.yaml` T-12 WHY IT EXISTS | "Every other criterion in this plan invokes check-domain.py --post directly" | "The only other criterion that evidences minting — SC-10 —". Re-derived from the SC list: SC-02/04/05/07/08/09/11 invoke no `--post` |
 
 ### Checked and left alone — each re-derived, each already true
 
@@ -121,7 +121,7 @@ no ruling and no case list moved.**
 | "Two refusals" / "exactly two compares" | `BRIEF.md` REQ-01, `plan.yaml` T-09 | witness seed-field compare + prior-checkpoint uid compare |
 | "all four cases" | `plan.yaml` T-06 | 4 case bullets; first and fourth green pre-change, as the text says |
 | "exactly these nine names" / "seven keys" | `plan.yaml` T-01 | 9 public names listed; `record_seed` writes run_id, feature, squad, host, identity, run_uid, created_at |
-| "TWO distinct code paths" | `plan.yaml` T-09 fail-open row b | FileNotFoundError branch + zero-byte read at `check-domain.sh:1508-1518` |
+| "TWO distinct code paths" | `plan.yaml` T-09 fail-open row b | FileNotFoundError branch + zero-byte read at `check-domain.py:1508-1518` |
 | REQ→task coverage sentences | `plan.yaml` T-04, T-10 | Loaded the plan: REQ-01 → T-01, T-02, T-09, T-11, T-12 (all live); REQ-02 → T-01, T-03; REQ-03 → T-03 |
 | "the existing two clauses" | `plan.yaml` T-07 | `.claude/skills/harness/SKILL.md:272-274` carries exactly 2: squad suffix keys the glob; never embed the feature id |
 | "Keep the existing two sentences" | `plan.yaml` T-06 | the quoted denial message is 2 sentences |

@@ -1,7 +1,7 @@
 # Plan fix cycle 3 — BUG-1305 — re-keying Mode-A prevention on a minted run identity
 
 **BLUF: the acquisition refusal is gone and Mode-A prevention now keys on `run_uid`, a `uuid4().hex`
-minted by check-domain.sh's PostToolUse mode and carried by the checkpoint itself. The refusal is the
+minted by check-domain.py's PostToolUse mode and carried by the checkpoint itself. The refusal is the
 Issue #1124 compare re-keyed onto that field, inside the existing `if prior_state:` ladder — so no
 refusal can fire on an empty or absent prior, and the recovering owner the panel found is refused by
 nothing. The backfill and its invariant are retired; the detection invariant is self-limiting
@@ -11,9 +11,9 @@ instead. Panel ranks 1-6 all applied, none declined.**
 
 | Moment | Host | What happens |
 |---|---|---|
-| Mint | `check-domain.sh` POST, `elif target:` at :1930-1950 | effective uid = landed doc's `run_uid`, else witness's, else `mint_uid()`; `inject_uid()` appends one `run_uid:` line by TEXT (no YAML round-trip); `record_seed()` writes the witness with the same value, in the same call |
-| Refuse | `check-domain.sh` PRE, inside `if prior_state:` at :1530-1574, after the #1124 run_id compare | `uid_conflict(prior_doc, doc)` — prior carries a uid and incoming carries a different one, or none → deny. Write **and** Edit (Edit content is reconstructed at :1905-1923) |
-| Detect | `check-state.sh` per-run-dir loop at :1426 | witness uid vs checkpoint uid disagreeing → violation. Witness absent, or either side carrying no uid → silent |
+| Mint | `check-domain.py` POST, `elif target:` at :1930-1950 | effective uid = landed doc's `run_uid`, else witness's, else `mint_uid()`; `inject_uid()` appends one `run_uid:` line by TEXT (no YAML round-trip); `record_seed()` writes the witness with the same value, in the same call |
+| Refuse | `check-domain.py` PRE, inside `if prior_state:` at :1530-1574, after the #1124 run_id compare | `uid_conflict(prior_doc, doc)` — prior carries a uid and incoming carries a different one, or none → deny. Write **and** Edit (Edit content is reconstructed at :1905-1923) |
+| Detect | `check-state.py` per-run-dir loop at :1426 | witness uid vs checkpoint uid disagreeing → violation. Witness absent, or either side carrying no uid → silent |
 
 Minting has no other possible host, and the plan says so (D-12): a PRE hook cannot alter a payload,
 leads hold no shell, and **no program in the tree writes a run `state.yaml`** (grepped across
@@ -45,7 +45,7 @@ recovering owner therefore gets its *original* identity back rather than a fresh
 - **1 + 2 (one decision).** Mechanism re-specified (D-11). T-09 kept in place, re-aimed — retiring it
   would have orphaned `depends_on` in T-06 and T-08, which the dispatch protects. Every refusal keyed
   on prior-empty or prior-absent is deleted. T-09's false claim about `prior_state == ""` is replaced
-  by the measured statement that **two** paths produce it (`check-domain.sh:1508-1518`).
+  by the measured statement that **two** paths produce it (`check-domain.py:1508-1518`).
 - **3.** The Advisor's Q2c fallback is now the mechanism, recorded as D-11 with the reason the
   second-identity-signal route collapsed (cycle 2's F-01 measured that a session identity cannot
   separate a resumed owner from a foreign run). No accept-the-residual binary is carried up.

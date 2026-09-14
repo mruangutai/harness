@@ -181,10 +181,10 @@ committer, not by this task, and the pinned SHA remains an ancestor.
 
 ## 8. T-01's declared `verify:` command
 
-`plan.yaml`'s T-01 declares `verify: .claude/skills/harness/bin/run-unit-tests.sh --kind unit`.
+`plan.yaml`'s T-01 declares `verify: .claude/skills/harness/bin/run-unit-tests.py --kind unit`.
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ... (full unit corpus, including PASS test-code-grade.py and PASS test-gate-policy.py) ...
 EXIT:0
 ```

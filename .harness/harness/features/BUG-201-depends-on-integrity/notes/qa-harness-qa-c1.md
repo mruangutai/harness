@@ -26,8 +26,8 @@ All named commands exited 0:
 - `python3 tests/integration/test-check-plan-routes.py`
 - `python3 tests/integration/test-factory-decompose.py` — 162/162
 - `python3 tests/integration/test-check-state.py`
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` — 33 files
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` — 49 files
+- `.agents/skills/harness/bin/run-unit-tests.py --kind unit` — 33 files
+- `.agents/skills/harness/bin/run-unit-tests.py --kind integration` — 49 files
 
 ## Success-criteria evidence
 

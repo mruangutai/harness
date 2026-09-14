@@ -26,7 +26,7 @@ remedy at code and leaves the blind spot standing; grading them met is what forc
 A criterion reworded until it fails has caught nothing. The product lead's own tier initially
 disagreed and then recorded that pm was right — a shape worth preserving.
 
-FOUR OPERATOR ACTS, NONE DISPATCHABLE: (1) the two-file fix — check-state.sh's --id derivation AND
+FOUR OPERATOR ACTS, NONE DISPATCHABLE: (1) the two-file fix — check-state.py's --id derivation AND
 test-check-state.py's (f.3) message assertion, together or the class regresses silently; (2) adopt
 SC-17; (3) amend SC-06 plus a verification gap; (4) rule on SC-08.
 
@@ -60,7 +60,7 @@ I DID NOT COMMIT AND DID NOT OPEN A PR. Both are the operator's, by instruction.
 ## Open Questions
 
 - M1 (BLOCKING, operator's to fix — no squad can): INV-29 prints a removal command that fails for
-  any short-named worktree. Violates REQ-02. check-state.sh + test-check-state.py together.
+  any short-named worktree. Violates REQ-02. check-state.py + test-check-state.py together.
 - Q16 (BLOCKING, operator): SC-08 is declared `verify: automated` in the signed brief, not uat.
   Settle whether the outstanding item is SC-08 itself or the operator's-own-clone verification gap.
 - Q17 (operator): SC-06's squash clause looks unsatisfiable as worded. Amend the criterion and add

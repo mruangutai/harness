@@ -1,6 +1,6 @@
 # Measurement — before the cheap-read cutover (T-06)
 
-One `check-state.sh` run, differenced across `gh api rate_limit --jq .resources.graphql.used`.
+One `check-state.py` run, differenced across `gh api rate_limit --jq .resources.graphql.used`.
 That endpoint is REST and costs zero GraphQL points — re-confirmed here, since `before` was
 read immediately after the counter reset and the reads themselves moved it by nothing.
 

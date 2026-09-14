@@ -74,7 +74,7 @@ Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and
 - 2026-09-09: run `2026-09-08-panel-validator` PASS — the validate panel at the pin. All four
   readers RAN, none skipped. `severity_max: med`, `must_fix: []`, `code_grade: grade_2`. Findings:
   VL-01 (med), F-01 (low, a `BrokenPipeError` in the `verify:` chain under `pipefail`, unexploited
-  because `run-unit-tests.sh` executes the file directly), F-02 (med, an accepted grade-2 function
+  because `run-unit-tests.py` executes the file directly), F-02 (med, an accepted grade-2 function
   with its reason on file), and two assessed-and-dismissed info rows.
 - 2026-09-09: VL-01 MEASURED by the orchestrator rather than relayed —
   `notes/vl-01-plan-merge-shape-measurement.md`. The shape the witness cannot see occurs twice in

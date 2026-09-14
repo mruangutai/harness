@@ -1,9 +1,9 @@
 # Expertise — harness-code-reviewer
 ## Patterns (max 15)
 ## Gotchas (max 15)
-- G-01: WHEN reviewing check-expertise.sh's REPO_TIER_RE alongside inject-expertise.sh's segment filter DO diff both regexes together — REPO_TIER_RE accepts any `[^/]+` segment but the hook silently drops non-lowercase-alnum-hyphen segments, so checker OK does not mean the hook injects.
-- G-02: WHEN reviewing inject-expertise.sh's cap_body DO test a fixture missing its trailing newline at the 40- and 150-line boundaries — its `wc -l` vs `head -n` comparison undercounts by one there and silently drops the over-budget tail with no truncation notice.
-- G-03: WHEN reviewing check-expertise.sh's directory-sweep mode over `.harness/*/expertise/` DO build a dangling-symlink fixture — its unguarded `open()` crashes and aborts the sweep, reusing exit 1 with "violations found", so later-sorted files go silently unaudited.
+- G-01: WHEN reviewing check-expertise.py's REPO_TIER_RE alongside inject-expertise.py's segment filter DO diff both regexes together — REPO_TIER_RE accepts any `[^/]+` segment but the hook silently drops non-lowercase-alnum-hyphen segments, so checker OK does not mean the hook injects.
+- G-02: WHEN reviewing inject-expertise.py's cap_body DO test a fixture missing its trailing newline at the 40- and 150-line boundaries — its `wc -l` vs `head -n` comparison undercounts by one there and silently drops the over-budget tail with no truncation notice.
+- G-03: WHEN reviewing check-expertise.py's directory-sweep mode over `.harness/*/expertise/` DO build a dangling-symlink fixture — its unguarded `open()` crashes and aborts the sweep, reusing exit 1 with "violations found", so later-sorted files go silently unaudited.
 - G-04: WHEN judging whether a test actually runs in a Harness gate DO confirm it sits under `tests/unit/` or `tests/integration/` — a test-shaped file elsewhere is discovered by no runner, and one left under bin makes the layout guard reject every invocation.
 - G-05: WHEN writing a feature artifact from inside this repo's FEAT worktree DO use an absolute path — feature.json/plan.yaml/STATE.md live only in the worktree copy while notes/ and runs/ also sync to the main checkout, so a relative write can land in the main checkout and later fail code_grade binding.
 - G-06: WHEN reading a code-grade.py report DO remember it only lists functions with no pre-image (new) or a worsened grade versus base — it never emits an 'inherited, unrelated, unchanged' record, so a partition claiming that shape for any listed record is definitionally wrong.
@@ -11,6 +11,6 @@
 - G-08: WHEN reviewing suite_layout.py violations() DO check whether _registry_findings runs unconditionally on any successful git enumeration, independent of the self-ownership test -- it misfires on a checkout that does not itself ship suite_layout.py, past a narrower one-prefix assertion that misses it (open, unresolved).
 - G-09: WHEN reasoning about a chained verify: over test-factory-integration.py or test-factory-claim.py DO note both share one global FAILS counter and a single sys.exit(1 if FAILS) — any reddened case in the file fails the whole chain, not just the task's own diff.
 - G-10: WHEN verifying a monkeypatch/proxy substitution targets factory_claim.py's factory_config reference DO confirm it resolves via LOAD_GLOBAL at call time, not a snapshotted import — this module-level rebinding is what lets test-time patching of factory_config.features_root intercept production code without editing factory_claim itself.
-- G-11: WHEN grepping for "undeclared step key" as a discriminating test substring DO note it has two producers in this repo — check-domain.sh (write-time) and check-state.sh (at-rest sweep) — so uniqueness for a specific test fixture rests on which hook fires, not the string alone.
+- G-11: WHEN grepping for "undeclared step key" as a discriminating test substring DO note it has two producers in this repo — check-domain.py (write-time) and check-state.py (at-rest sweep) — so uniqueness for a specific test fixture rests on which hook fires, not the string alone.
 ## Outcomes (max 10)
 ## Open (max 5)

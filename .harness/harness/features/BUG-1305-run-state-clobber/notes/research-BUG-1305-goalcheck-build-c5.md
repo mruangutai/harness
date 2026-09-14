@@ -39,7 +39,7 @@ honestly ("On OMP every Edit payload is path-only, so every Edit of these govern
 that refusal and must use Write" — the c4 F-02 advisory is cured), and the three cited case names
 resolve and assert what is claimed (see leg 3). All six permitted-write pairs present at the pin
 and none asserted non-zero: legacy update `test-check-domain.py:5161`; resumed owner `:5155` and
-both recovering-owner cases `:5157`, `:5159`; digest append repair `:3891`; `check-state.sh`
+both recovering-owner cases `:5157`, `:5159`; digest append repair `:3891`; `check-state.py`
 legacy/owned silence `test-check-state.py:4560-4612` (clean tree `clean_code == 0`, `:4609`);
 validate-digest `located compliant digest passes` / `unresolvable artifact lookup still fails open`
 (`test-validate-digest.py:1973`, `:1984`); witness-guard siblings `test-check-domain.py:4970`,
@@ -63,7 +63,7 @@ not a shape stub; `_record_handoff_result(..., 0)` gates on exit 0.
 Integration line (`note:38`) **is** the pin measurement: exit 0, 46 files, 0 `FAIL`, 63.70s,
 explicitly labelled "at the cycle-16 seam" — identical to main's seam figures. The unit line
 (`note:37`, exit 0, 28 files, 3.97s) is **not** a pin measurement: last written at `dee707e9`, and
-`bash-write-guard.sh`, `check-domain.sh` and `run_identity.py` all changed after it. No FAIL line
+`bash-write-guard.py`, `check-domain.py` and `run_identity.py` all changed after it. No FAIL line
 and no non-zero exit is recorded, so the criterion's FAILS clause does not fire → **F-02, advisory.**
 
 ## Leg 5 — the amended sentences, read in place: **coherent**
@@ -81,7 +81,7 @@ payload. No transcription near-miss found. One residual imprecision → F-03.
   pin — the sole deletion in that file). Substance true (an exception removed = strengthening),
   identifier false. Remedy: replace `main` with `check_artifact_file` in note `:9`.
 - **F-02 — Advisory · Advisor-bound.** Unit suite figure stale (leg 4). Remedy: re-run
-  `run-unit-tests.sh --kind unit` at the pin and restate note `:37` with the seam label, or state
+  `run-unit-tests.py --kind unit` at the pin and restate note `:37` with the seam label, or state
   the sha at which it was observed.
 - **F-03 — Advisory · cycle-18-eligible.** `BRIEF.md:385` requires each disclosed class be stated
   "with the test that pins its message"; for class 2 the note quotes the message verbatim but names

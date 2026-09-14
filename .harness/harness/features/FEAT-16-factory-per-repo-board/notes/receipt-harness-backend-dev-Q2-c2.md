@@ -84,7 +84,7 @@ fleet key invalid: repos[mruangutai/kaya-ai].board — give mruangutai/kaya-ai i
 ```
 Names all four required fields: owner, number, station_field, stations.
 
-## Verify — `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+## Verify — `.claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Full run captured to `/tmp/unit_out2.txt`. Exit status: `0`.
 
@@ -104,7 +104,7 @@ Full run captured to `/tmp/unit_out2.txt`. Exit status: `0`.
   `ok    (8b) the next_step mentions repos[].board`.
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ... (12 suite files, all PASS/ok) ...
 $ echo $?
 0

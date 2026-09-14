@@ -34,7 +34,7 @@ assumed rather than observed:
 
 Both remain single shell blocks, both are literal `|` scalars in the file (verified: newlines
 survive the amend, 23 and 25), both far under 60s. The temp-tree writes go through python's
-`open()`, never a shell redirect, so `bash-write-guard.sh` does not deny the verify.
+`open()`, never a shell redirect, so `bash-write-guard.py` does not deny the verify.
 
 ## Evidence the file is intact
 
@@ -49,7 +49,7 @@ survive the amend, 23 and 25), both far under 60s. The temp-tree writes go throu
   splice was diffed against the pre-amend value and the difference is confined to STEP 3's four
   lines.
 - `BRIEF.md` SC-06 is byte-unchanged; the reproduction (Problem, lines 5-11) and the
-  `check-expertise.sh` blindness sentence are intact; neither false clause survives anywhere.
+  `check-expertise.py` blindness sentence are intact; neither false clause survives anywhere.
 
 ## F-03's contradiction, closed
 

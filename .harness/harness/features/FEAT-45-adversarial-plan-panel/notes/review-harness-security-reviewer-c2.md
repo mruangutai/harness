@@ -9,7 +9,7 @@ Worktree: `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT
 
 In scope (mechanism/enforcement code, read in full):
 - `validate-digest.py` (SEC-01 fix + new plan-review binding + `SKIPPED` schema) — **findings below**
-- `check-state.sh` INV-32 restructuring (`:174-242`) — re-reviewed, **no regression**
+- `check-state.py` INV-32 restructuring (`:174-242`) — re-reviewed, **no regression**
 - `.omp/extensions/harness-hooks.ts` (empty-yield fail-open fix) — **verified closed, no new hole**
 - `.claude/skills/harness-team/SKILL.md`, `.harness/harness/docs/SPEC.md`, `templates/plan.yaml`, `.claude/skills/harness/SKILL.md`, `harness-spec-driven/SKILL.md` — doc/template surface for `panel:`/`SKIPPED`, read for authorization intent, corroborates finding 2
 - `.claude/agents/harness-validator-lead.md` / `.omp/agents/harness-validator-lead.md` — new agent, confirms `fable-advisor` reader is a documented, accepted trust boundary ("SHAPE is yours; never CONTENT and never IDENTITY") — not a new finding, already scoped by design
@@ -18,7 +18,7 @@ In scope (mechanism/enforcement code, read in full):
 - `test-validate-digest.py`, `test-check-state.py`, `test-panel-findings.py`, `test-plan-panel.py`, `test-harness-yaml-corpus.py` — test files; used to confirm coverage gaps (see finding 2), not independently gated
 
 Out of scope, no security surface (docs/templates/planning artifacts, grep'd for secrets — none found):
-`.claude/commands/harness-plan.md`, `DECISIONS.md`, `DECISIONS-INDEX.md`, `sync-agent-adapters.py` (+7, test-registry constant only), `run-unit-tests.sh` (+4, test-name array only), all of `.harness/harness/features/FEAT-45-adversarial-plan-panel/{BRIEF.md,STATE.md,feature.json,plan.yaml,notes/*,observations/*}` and `grilling-*.md` (this feature's own planning trail, not mechanism).
+`.claude/commands/harness-plan.md`, `DECISIONS.md`, `DECISIONS-INDEX.md`, `sync-agent-adapters.py` (+7, test-registry constant only), `run-unit-tests.py` (+4, test-name array only), all of `.harness/harness/features/FEAT-45-adversarial-plan-panel/{BRIEF.md,STATE.md,feature.json,plan.yaml,notes/*,observations/*}` and `grilling-*.md` (this feature's own planning trail, not mechanism).
 
 ## Finding 1 — HIGH — half one (re-review, SEC-01's own fix)
 
@@ -72,11 +72,11 @@ Rate **high**: reachable by the lead alone (no elevated privilege needed beyond 
 
 ## Finding 3 — confirmed non-regression (half one) — INV-32 fails closed on absent/null `severity`
 
-Independently traced, not from the diff's own tests: `check-state.sh:213`, `severity = str(item.get("severity", "")).strip().lower()`. Absent key → `.get` returns `""` → `severity == ""`. Present-but-YAML-null → `.get` returns the dict's actual `None` value (the default is only used when the key is *missing*) → `str(None) == "None"` → `.lower() == "none"`. Both `""` and `"none"` are unequal to every member of `{"info", "low", "med"}` (`:219`), and neither can equal `"resolved"` (`:215`, requires exact string `"resolved"`) nor land in `overruled` (`:217`, requires exact `finding` id match against a real ruling). Both cases therefore fall through to `bad.append(...)` at `:219` — blocking (`check-state.sh:1872`, `sys.exit(1 if bad else 0)`). **No regression**; the restructured `if/elif/elif` (`:214-219`) still fails closed for both shapes the dispatch named.
+Independently traced, not from the diff's own tests: `check-state.py:213`, `severity = str(item.get("severity", "")).strip().lower()`. Absent key → `.get` returns `""` → `severity == ""`. Present-but-YAML-null → `.get` returns the dict's actual `None` value (the default is only used when the key is *missing*) → `str(None) == "None"` → `.lower() == "none"`. Both `""` and `"none"` are unequal to every member of `{"info", "low", "med"}` (`:219`), and neither can equal `"resolved"` (`:215`, requires exact string `"resolved"`) nor land in `overruled` (`:217`, requires exact `finding` id match against a real ruling). Both cases therefore fall through to `bad.append(...)` at `:219` — blocking (`check-state.py:1872`, `sys.exit(1 if bad else 0)`). **No regression**; the restructured `if/elif/elif` (`:214-219`) still fails closed for both shapes the dispatch named.
 
 ## Finding 4 — confirmed non-regression — operator attribution on overrules
 
-`check-state.sh:198-206`: every `rulings` entry (not only `ruling: overrule` ones) is checked for non-empty `who` and a `YYYY-MM-DD`-shaped `date` (`re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", ...)`); a violation always adds to `bad` (`:200`), which always exits 1. One code-quality quirk observed, not gating: an unattributed/undated ruling whose `ruling:` field is literally `"overrule"` still gets added to the `overruled` set at `:206-207` (the `if not who/date: bad.append(...)` at `:199-200` has no `continue`, so execution falls through to the `elif ... == "overrule": overruled.add(fid)` regardless). This double-books the finding as both `bad` (from the malformed ruling) and demoted-to-`warn` (from the finding-severity loop reading `overruled`) — but since `bad` alone already forces exit 1, this cannot be used to *slip past* the block; it is bookkeeping noise, not a bypass. Not raised as a separate finding.
+`check-state.py:198-206`: every `rulings` entry (not only `ruling: overrule` ones) is checked for non-empty `who` and a `YYYY-MM-DD`-shaped `date` (`re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", ...)`); a violation always adds to `bad` (`:200`), which always exits 1. One code-quality quirk observed, not gating: an unattributed/undated ruling whose `ruling:` field is literally `"overrule"` still gets added to the `overruled` set at `:206-207` (the `if not who/date: bad.append(...)` at `:199-200` has no `continue`, so execution falls through to the `elif ... == "overrule": overruled.add(fid)` regardless). This double-books the finding as both `bad` (from the malformed ruling) and demoted-to-`warn` (from the finding-severity loop reading `overruled`) — but since `bad` alone already forces exit 1, this cannot be used to *slip past* the block; it is bookkeeping noise, not a bypass. Not raised as a separate finding.
 
 ## Not re-raised
 
@@ -89,7 +89,7 @@ VERDICT: FAIL
 DIGEST:
   headline: two high findings — plan-review binding skips branch corroboration (SEC-01's own asymmetry), and SKIPPED is an unverified, project-wide roll-up escape hatch
   in_scope: true
-  scope_reason: "branch's own contribution touches an integrity/authorization gate script (check-state.sh INV-32), a digest validator with a self-reported binding (validate-digest.py SEC-01 fix + new plan-review mode + SKIPPED schema), and the hook that invokes it (harness-hooks.ts) — all trust-boundary code, not merely docs"
+  scope_reason: "branch's own contribution touches an integrity/authorization gate script (check-state.py INV-32), a digest validator with a self-reported binding (validate-digest.py SEC-01 fix + new plan-review mode + SKIPPED schema), and the hook that invokes it (harness-hooks.ts) — all trust-boundary code, not merely docs"
   severity_max: high
   findings: 2
   must_fix:
@@ -98,8 +98,8 @@ DIGEST:
   threat_model:
     - { boundary: "harness-code-reviewer digest -> validate-digest.py plan-review binding", stride: T, mitigated: false }
     - { boundary: "lead digest members: list -> validate-digest.py worst-wins roll-up", stride: T, mitigated: false }
-    - { boundary: "check-state.sh INV-32 severity/disposition gate", stride: E, mitigated: true }
-    - { boundary: "check-state.sh INV-32 operator-attributed overrule", stride: S, mitigated: true }
+    - { boundary: "check-state.py INV-32 severity/disposition gate", stride: E, mitigated: true }
+    - { boundary: "check-state.py INV-32 operator-attributed overrule", stride: S, mitigated: true }
     - { boundary: "plan-panel fable-advisor (non-harness) reader -> validator-lead transcription", stride: I, mitigated: false, precondition-absent: "documented, accepted design (validator-lead.md: 'SHAPE is yours; never CONTENT and never IDENTITY') — not this cycle's finding" }
   open_questions: []
   files_touched: []

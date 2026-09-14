@@ -44,7 +44,7 @@ self-dependency check, no cycles, no ordering. `approval.status: pending`, `## A
 - **PF-4e86832239a56c223544656261a83cd7 — REPAIRED, measured not asked.** D-03's `because` now
   cites the DECISIONS.md paragraph by its anchor text ("The enforcement layer, enumerated:"),
   states that none of the five surfaces this plan touches appears in it, and records the
-  `check-domain.sh --resolve` result putting `harness_yaml.py`, `factory_claim.py` and `gh-sync.py`
+  `check-domain.py --resolve` result putting `harness_yaml.py`, `factory_claim.py` and `gh-sync.py`
   in the same lane (harness-backend-dev, harness-dev-ops).
 - **PF-4f91801bd1344ae2e8d1818b26cbd518 (info) — NO CHANGE, deliberately.** The exit-2 stop at
   `check-plan-routes.py` already satisfies "before it can be consumed"; nothing in the artifacts

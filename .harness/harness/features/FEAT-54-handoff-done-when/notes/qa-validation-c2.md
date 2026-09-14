@@ -12,8 +12,8 @@ Before source access, BRIEF/plan required unit coverage for Done-when shape, typ
 
 | Kind | State | Exact command | Exit | Discovery |
 |---|---|---|---:|---:|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 25 files (`pool: 8 workers, 25 files`) |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 44 files (`pool: 8 workers, 44 files`) |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 25 files (`pool: 8 workers, 25 files`) |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 44 files (`pool: 8 workers, 44 files`) |
 | handoff_comprehension | locally-run, not executed | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a |
 
 No assertion, import, load, collection, or syntax failure occurred. The integration output includes all 33 FEAT-54 `test-check-domain.py` results and all 14 FEAT-54 `test-check-state.py` results in their preserved order.
@@ -58,4 +58,4 @@ Automated criteria: SC-01/02 `tests/integration/test-check-domain.py:4033-4058`;
 
 ## Separate external condition and adequacy limit
 
-SC-04's repository-root `check-state.sh` inspection remains blocked by the unrelated FEAT-51 `status is 'done' but notes/handoff-validate.md is missing` condition established in prior evidence. Per dispatch it was neither rerun nor repaired and is not a matrix failure. This c2 gate establishes deterministic repair behavior and code grade only; it does not provide the credentialled comprehension measurement, SC-04 root-corpus inspection, UAT, full review, or project-wide validation.
+SC-04's repository-root `check-state.py` inspection remains blocked by the unrelated FEAT-51 `status is 'done' but notes/handoff-validate.md is missing` condition established in prior evidence. Per dispatch it was neither rerun nor repaired and is not a matrix failure. This c2 gate establishes deterministic repair behavior and code grade only; it does not provide the credentialled comprehension measurement, SC-04 root-corpus inspection, UAT, full review, or project-wide validation.

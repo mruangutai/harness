@@ -3,7 +3,7 @@
 ## Next
 
 Build BUG-124 per its signed plan: dispatch harness-eng-lead for T-01 then T-02
-(dispatch-guard.sh refuses a run-dir slug matching no callee grant), per
+(dispatch-guard.py refuses a run-dir slug matching no callee grant), per
 plan-task:T-01.verify. T-03 (SKILL.md docs) is main-session-direct, deferred to after
 build closes.
 
@@ -22,7 +22,7 @@ build closes.
 ## Working set
 
 - .harness/harness/features/BUG-124-run-dir-squad-suffix/plan.yaml
-- .claude/skills/harness/bin/dispatch-guard.sh
+- .claude/skills/harness/bin/dispatch-guard.py
 - .harness/team-config.yaml
 
 ## Done when

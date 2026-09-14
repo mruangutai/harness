@@ -13,13 +13,13 @@ fail-open regression in `hook_mode()`'s new suspension branch (F-1), plus one **
 | REQ-01 (zero polling) | met | `.claude/skills/harness/SKILL.md:46-47`, `.claude/skills/harness-team/SKILL.md:128-129` state "zero" explicitly |
 | REQ-02 (nonterminal suspension) | met, but see F-1 | `validate-digest.py:1662-1710` — SUSPENDED branch validates persona+awaiting set-equality before `return 0` |
 | REQ-03 (same-parent resume) | met (doc) | `SKILL.md:47-48`, `harness-team/SKILL.md:130-131`; enforced indirectly by the registry, not directly testable in this diff |
-| REQ-04 (two governed routes quarantined, Bash-in-domain excluded per D-19) | met | `check-domain.sh:1683-1703`, `plan-sign-gate.py:339-390`; D-19's narrowing stated verbatim in DECISIONS.md and BRIEF `## Verification gaps` |
+| REQ-04 (two governed routes quarantined, Bash-in-domain excluded per D-19) | met | `check-domain.py:1683-1703`, `plan-sign-gate.py:339-390`; D-19's narrowing stated verbatim in DECISIONS.md and BRIEF `## Verification gaps` |
 | REQ-05 (explicit adopt/discard) | met | `quarantine.py` `cmd_adopt`/`cmd_discard`, no timer/scheduler; grep across `bin/` confirms the only callers are the CLI itself and the two gates' refusal text (T-04 intent) |
 | REQ-06 (terminal digest only after completion/adoption) | met | SUSPENDED branch returns before `validate()` is ever called (`validate-digest.py:1680`) |
 | REQ-07 (OMP unchanged) | met | D-04 in `orphan_write` (`inflight_registry.py:291-317`): `has_compatibility_claim` is false when every live claim for the feature is `runtime == "omp"`, so `orphan_write` always returns `False` for an OMP-only feature regardless of writer identity — independently reproduced, see SC-07 below |
 
 D-01..D-19 checked individually against the diff: no violation found. D-11's ordering (FEAT-41 route
-denial before the quarantine branch) is source-confirmed at `check-domain.sh:1647-1678` (denial,
+denial before the quarantine branch) is source-confirmed at `check-domain.py:1647-1678` (denial,
 `sys.exit(2)`) preceding `:1680-1703` (quarantine branch) — see Lead 6. D-13/D-14 (fail-open on an
 unresolvable `--file`, one shared root) confirmed at `plan-sign-gate.py:346-348` and `:35`. No task
 touches a file outside its declared `files:` list; no file in the touched set lacks a task/decision
@@ -36,7 +36,7 @@ the only legal turn-end shape, clause 4 gates all further action on `quarantine.
 (`test_dec_210_entry_names_both_enforcement_points`,
 `test_dec_210_entry_states_the_bash_write_route_for_plan_yaml`,
 `test_dec_210_index_row_names_the_compatibility_host_in_the_ruling`). DECISIONS.md's DEC-210 entry
-names both `check-domain.sh` and `plan-sign-gate.sh` and states the `plan-merge.py` Bash route
+names both `check-domain.py` and `plan-sign-gate.py` and states the `plan-merge.py` Bash route
 sentence (`docs/DECISIONS.md:6497-6504`). **met.**
 
 ## SC-07 (OMP closure) — independently reproduced, met
@@ -77,7 +77,7 @@ discipline.
 
 **Lead 4 — duplicated refusal text: confirmed, does not rise above a backlog row.** The middle
 sentence ("is canonical, but {agent} holds no live claim for {feature}. Its parent is gone and a
-replacement may already be writing.") is character-identical between `check-domain.sh:1695-1696`
+replacement may already be writing.") is character-identical between `check-domain.py:1695-1696`
 and `plan-sign-gate.py:408-409`. `plan-sign-gate.py`'s own header states "ONE refusal text, used
 verbatim for EVERY denial" (`:50-51`) for its `sign-approval` `REASON`, and the file's own new
 quarantine refusal is a second, independently-worded text — a real inconsistency with the stated
@@ -94,7 +94,7 @@ persona (`harness-qa`) in a *different* session than the calling `harness-orches
 — which is exactly the live-orphan fixture, not a no-claim fixture. Ran the file directly: passes.
 
 **Lead 6 — D-11 ordering: confirmed, no finding.** Source-read: the FEAT-41 route-denial's
-`sys.exit(2)` (`check-domain.sh:1647-1678`) textually and executionally precedes the FEAT-51
+`sys.exit(2)` (`check-domain.py:1647-1678`) textually and executionally precedes the FEAT-51
 quarantine branch (`:1680-1703`); an orphan `Write` of `plan.yaml` reaches the first branch, exits
 2 with "plan.yaml has exactly ONE writer" (`:1660`), and never reaches the quarantine code. Backed
 by a dedicated regression test, `an orphan Write of plan.yaml keeps the FEAT-41 route denial` +

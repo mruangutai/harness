@@ -4,22 +4,22 @@ BLUF: all four open items from the grilling are decided on evidence; none needs 
 The shared rule is extracted into `.claude/skills/harness/bin/harness_boundary.py`, imported lazily
 by both guards; the out-of-place-worktree predicate reads the checkout's own `.git` pointer file (no
 `git` subprocess, no `git worktree list`); the creation refusal covers `git worktree add|move` broadly
-and refuses on an undeterminable destination; `check-state.sh` gains INV-25; the two siblings alive
+and refuses on an undeterminable destination; `check-state.py` gains INV-25; the two siblings alive
 today are tagged, then pruned.
 
 Measured at `a29ad06` in `/Users/molchairuangutai/GitHub/harness` unless stated.
 
-## D-a — how `bash-write-guard.sh` reaches the shared functions
+## D-a — how `bash-write-guard.py` reaches the shared functions
 
 **A new sibling module `.claude/skills/harness/bin/harness_boundary.py`, imported lazily by both
-heredocs, exactly as `harness_yaml` already is.** Precedent verified: `bash-write-guard.sh:73` and
-`check-domain.sh:338/502/530` both do `import harness_boundary`-shaped lazy imports of `harness_yaml`
+heredocs, exactly as `harness_yaml` already is.** Precedent verified: `bash-write-guard.py:73` and
+`check-domain.py:338/502/530` both do `import harness_boundary`-shaped lazy imports of `harness_yaml`
 after their manifest checks, and both files are `python3 - "$_derived" ... <<'PY'` heredocs
-(`check-domain.sh:97`, and the same shape in the guard), so `sys.path` already contains `bin/`.
+(`check-domain.py:97`, and the same shape in the guard), so `sys.path` already contains `bin/`.
 
 **Scope of the refactor, honestly.** It is not five function moves. `select_base` returns
 `(base, filter_globs, target_side_test)` and the decision is finished by its CONSUMER —
-`check-domain.sh domain_check()` at `:536-660`: glob filtering, base-relative `rel`, the DEC-143
+`check-domain.py domain_check()` at `:536-660`: glob filtering, base-relative `rel`, the DEC-143
 worktree-prefix stripping (`_wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)`), the
 `target_side_test(r)` filter over candidates, the shared-path branch, and the `Permitted for you:`
 advertise list. Replicating only the five module-scope functions in the guard would recreate the
@@ -28,13 +28,13 @@ plus `rel` and the advertise list) and leaves the PRINTING to each hook.
 
 Two wrinkles that make it not a free move:
 
-- Both guards import `harness_yaml` LAZILY on purpose (`check-domain.sh:292`,
-  `bash-write-guard.sh:38`): a top-of-file import made a hook whose module is missing crash before
+- Both guards import `harness_yaml` LAZILY on purpose (`check-domain.py:292`,
+  `bash-write-guard.py:38`): a top-of-file import made a hook whose module is missing crash before
   the DEC-101 fail-open message. `harness_boundary` inherits that constraint, and
   `test-bash-write-guard.py`'s isolated-copy case (an absent manifest still fails OPEN) is what
   adjudicates it.
 - `resolve_fleet()` and `select_base()` today PRINT `check-domain: BLOCKED ...` and `sys.exit(2)`
-  themselves. Moved verbatim they would make `bash-write-guard.sh` emit a verdict naming the wrong
+  themselves. Moved verbatim they would make `bash-write-guard.py` emit a verdict naming the wrong
   hook. The module takes the label as a parameter.
 
 ## D-b — the creation refusal is BROAD, and undeterminable means refuse
@@ -48,7 +48,7 @@ Broad here means: any `git` invocation whose effect is a new checkout OF THIS RE
 materialise a DIFFERENT repository, which carries no `.harness/team-config.yaml` and no agents, so
 nobody is misled into believing it is governed. That is the harm #103 records.
 
-Three mechanics the intent must carry, all verified against `bash-write-guard.sh`:
+Three mechanics the intent must carry, all verified against `bash-write-guard.py`:
 
 - `git` produces no entries in `findings`, and `:320` is `if not findings: sys.exit(0)`. The
   worktree scan therefore has to run BEFORE that early exit, or it is dead code.
@@ -58,12 +58,12 @@ Three mechanics the intent must carry, all verified against `bash-write-guard.sh
   `root` would read `git worktree add .claude/worktrees/FEAT-99` from an unrelated cwd as legitimate.
   Refuse and say why. The paired allow uses an absolute path under `.claude/worktrees/`.
 
-## D-c — yes, `check-state.sh` reports it, as INV-25
+## D-c — yes, `check-state.py` reports it, as INV-25
 
-`check-state.sh` is the fourth DEC-174 carve-out (M-4), so the task is `main-session-direct`. The
-cost objection that killed `git worktree list` for the guards does not apply: `check-state.sh` runs
+`check-state.py` is the fourth DEC-174 carve-out (M-4), so the task is `main-session-direct`. The
+cost objection that killed `git worktree list` for the guards does not apply: `check-state.py` runs
 once per session entry, not once per governed write. Highest live INV is INV-24
-(`check-state.sh:742`, DEC-186), so the new one is INV-25.
+(`check-state.py:742`, DEC-186), so the new one is INV-25.
 
 ## D-d — the predicate, and why it is not the declined `git worktree list`
 
@@ -99,14 +99,14 @@ the worktree makes it unreachable and gc-eligible. So the task TAGS it before re
 `git worktree list` before and after to files — untracked live state leaves no commit evidence
 (G-15). The FEAT-13 worktree surviving is the paired allow.
 
-## Lanes — every literal `files:` path, resolved with `check-domain.sh --resolve` at `a29ad06`
+## Lanes — every literal `files:` path, resolved with `check-domain.py --resolve` at `a29ad06`
 
 | Path | `--resolve` answer | Lane in this plan |
 |---|---|---|
 | `.claude/skills/harness/bin/harness_boundary.py` (NEW) | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
-| `.claude/skills/harness/bin/check-domain.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
-| `.claude/skills/harness/bin/bash-write-guard.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
-| `.claude/skills/harness/bin/check-state.sh` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
+| `.claude/skills/harness/bin/check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
+| `.claude/skills/harness/bin/bash-write-guard.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
+| `.claude/skills/harness/bin/check-state.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-check-domain.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-bash-write-guard.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
 | `.claude/skills/harness/bin/test-check-state.py` | `harness-backend-dev`, `harness-dev-ops` | main-session-direct |
@@ -122,7 +122,7 @@ named files already carry.
 
 ## No dedicated test file for the new module
 
-Deliberate. `run-unit-tests.sh:17-45` keeps explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays and
+Deliberate. `run-unit-tests.py:17-45` keeps explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays and
 a drift detector over their union that fails the WHOLE run on an unregistered `test-*.py` (G-08).
 The module is exercised BEHAVIOURALLY through both guards' existing suites, which is stronger
 evidence than a unit test of the extracted functions (P-13).
@@ -131,7 +131,7 @@ evidence than a unit test of the extracted functions (P-13).
 
 `test-check-domain.py` and `test-bash-write-guard.py` match `harness.json`'s `unit` detect glob
 (`.claude/skills/harness/bin/test-*.py`) but sit in `INTEGRATION_SCRIPTS`, so
-`run-unit-tests.sh --kind unit` does NOT execute them. Every SC resting on those two files therefore
+`run-unit-tests.py --kind unit` does NOT execute them. Every SC resting on those two files therefore
 declares `evidence: integration`, whose `cmd` does run them, and each task's `verify:` invokes the
 test file directly. Recorded as a BRIEF verification gap and as a non-blocking open question; no
 `harness.json` change is in this feature's scope.
@@ -153,8 +153,8 @@ in place; the feature, D-01, `classify()` and the task staging are untouched.
 ## The finding under MF-1, re-derived at source
 
 Inside the harness base a glob match is accepted only when the TARGET passes
-`is_control_plane_target` (`check-domain.sh:277-289`), wired as that base's unconditional target-side
-test at `check-domain.sh:249-253`. The test passes a first path segment of `.harness` or `.claude`
+`is_control_plane_target` (`check-domain.py:277-289`), wired as that base's unconditional target-side
+test at `check-domain.py:249-253`. The test passes a first path segment of `.harness` or `.claude`
 (`is_control_plane_glob`, `:158-165`) and otherwise only the CLOSED four-entry
 `HARNESS_CONTROL_PLANE` at `:149-154`. So `<root>/allowed/x.txt` under an `allowed/**` grant exits
 **2**, and every paired allow in the original draft asserted 0. Fixed by moving the fixture path to
@@ -174,17 +174,17 @@ returns None, and no grant reaches it. Not touched.
 
 ## The inverted premise (MF-3), and where exit 2 is safe
 
-Exit 1 is NON-blocking (`check-domain.sh:14`), so an unimportable `harness_boundary.py` would take
+Exit 1 is NON-blocking (`check-domain.py:14`), so an unimportable `harness_boundary.py` would take
 both routes silently OFF at once. Fail-closed is affordable **only at the governed import site**:
 `_run_domain = _domain_phase = _governed and not _post` (`:432`, `:450`, `:471`, `:493`), so the main
 session never reaches `:493`. The SECOND `import harness_yaml`, at `:529` in the shape phase, is
 deliberately absorbing and is NOT gated on `_governed` — an exit 2 there would block the main
 session's own shape-gated writes. T-01 now names one site and forbids the other. On the Bash route
-`harness-dev-ops` returns at `bash-write-guard.sh:54-59`, before line 73. New: REQ-09, SC-10, D-06.
+`harness-dev-ops` returns at `bash-write-guard.py:54-59`, before line 73. New: REQ-09, SC-10, D-06.
 
 ## MF-4 — Reading A, recorded as D-07
 
-`rel` at `bash-write-guard.sh:400` is ROOT-relative, so every product path begins with `..`. The
+`rel` at `bash-write-guard.py:400` is ROOT-relative, so every product path begins with `..`. The
 `..` continue runs after `classify` but only as an outcome filter: deny on `out_of_place_worktree`,
 continue on everything else. Dropping it would begin enforcing product-base domains on the Bash route
 for the first time — fenced out of scope by the grilling.

@@ -16,8 +16,8 @@
 - **The deliverable is complete and green.** `docs/harness/DECISIONS-INDEX.md`: 170 rows, 190 lines
   (cap 260), 0 `RULING PENDING`, 0 rows over the 30-word ruling cap. Measured by me at `363b539`.
 - gates at `b621be6`, all run by me: `check-docs.sh` exit 0 at 45 patterns across 106 files;
-  `run-unit-tests.sh` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
-  `check-state.sh` exit 0; `test-gen-decisions-index.py` direct, exit 0, all six cases `ok`.
+  `run-unit-tests.py` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
+  `check-state.py` exit 0; `test-gen-decisions-index.py` direct, exit 0, all six cases `ok`.
 - **SC-01's count moved and that is correct.** Its prose pins 169 rows at `f723194`; the operative
   clause is "counted at run time rather than against a frozen number", and `DEC-170` landed mid-build.
   170 index rows against 170 live authority headings (171 raw, one fenced at `DECISIONS.md:1583`).
@@ -55,7 +55,7 @@
   versus `cost: pending_orchestrator` duplicate-key contradiction (INV-16 — suppressed by dispatch
   on runs 13-15, unfixed at source); `.harness/**/*.md` being an undocumented `check-docs.sh` scan
   target, with the pattern printed on two physical lines so escaping one is not enough;
-  `bash-write-guard.sh` misreading heredoc bodies and compound-line operands as redirects; and a
+  `bash-write-guard.py` misreading heredoc bodies and compound-line operands as redirects; and a
   member whose deliverable is a verification receipt having no writable artifact path but its
   observations log.
 - **Calibration, worth pricing rather than repeating** — 3 of 3 panel members re-derived the

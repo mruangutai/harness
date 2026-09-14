@@ -2,7 +2,7 @@
 
 Scope per dispatch: resolver contract + call-site fail-open/closed audit + three named stale
 comments + the case_20 exemption + SC-10 TDD evidence quality + the e51b814 lane question +
-the check-domain.sh relative-path judgment. Read-only; DEC-174 barred me from editing ~30 of
+the check-domain.py relative-path judgment. Read-only; DEC-174 barred me from editing ~30 of
 the 80 files (all confirmed untouched here — `files_touched` below is this note only).
 
 ## Verdict: PASS, no must_fix. Findings below are backlog, ranked.
@@ -17,35 +17,35 @@ confirmed by direct read, not by trusting the docstrings.
 
 **Call-site contract check (item 1/2) — no defect.** Cross-checked all nine cutover sites
 against what each one actually needs:
-- Fail-CLOSED on unresolvable root (correct — these are refusal-shaped gates): `check-state.sh`
+- Fail-CLOSED on unresolvable root (correct — these are refusal-shaped gates): `check-state.py`
   (`:38-43`, exit 2, verified directly — the stale comment at `:1143` notwithstanding, see
   below), `check-plan-routes.py` (`:510-521`, `except ValueError: … sys.exit(2)`),
-  `branch-create-gate.sh`, `gh-close-gate.sh` (per T-14/T-15 intent, not independently
+  `branch-create-gate.py`, `gh-close-gate.py` (per T-14/T-15 intent, not independently
   re-run but consistent with the QA gate's parity re-runs).
 - Fail-OPEN by design, all pre-existing and cited (DEC-101 or the hook's own contract), none
-  newly introduced: `check-domain.sh`/`bash-write-guard.sh`'s `_root()` uses `strict=False`
-  deliberately to preserve DEC-101's "no manifest → enforcement OFF" carve-out (`check-domain.sh
-  :127-154`); `dispatch-guard.sh` fails open on every branch **except** the missing
+  newly introduced: `check-domain.py`/`bash-write-guard.py`'s `_root()` uses `strict=False`
+  deliberately to preserve DEC-101's "no manifest → enforcement OFF" carve-out (`check-domain.py
+  :127-154`); `dispatch-guard.py` fails open on every branch **except** the missing
   `HARNESS-FEATURE` line, which is the one exit-2 branch — confirmed by direct read
-  (`dispatch-guard.sh:100-165`), so the dispatch's framing of that one branch is accurate
+  (`dispatch-guard.py:100-165`), so the dispatch's framing of that one branch is accurate
   *as scoped to this file's own branches* (several other cutover files fail closed on
   unresolvable root independently — the "one fail-closed branch" claim is not a whole-feature
   claim and shouldn't be read as one); `validate-digest.py`'s `_root_or_none()` (`:791-802`)
   is `strict=False` + blanket `except Exception: return None`, explicitly a side-errand
-  fail-open backstopped by `check-state.sh` INV-15; `inject-expertise.sh` uses `strict=True`
+  fail-open backstopped by `check-state.py` INV-15; `inject-expertise.py` uses `strict=True`
   (the default) but wraps the call so an unresolved root prints to stderr and **exits 0**,
   deliberately overriding T-16's own plan text — the override cites `DECISIONS.md:1503`,
   which I opened and confirms: "always exits 0 so it can never block a spawn." Legitimate,
-  well-cited deviation, not a defect. `context-watch.py` and `post-merge-sweep.sh` use
+  well-cited deviation, not a defect. `context-watch.py` and `post-merge-sweep.py` use
   `root_from_script` (zero filesystem check, never raises) — matches the deleted functions'
   exact behaviour per T-08/T-09 intent, confirmed by reading both.
 - Net effect vs. pre-feature: every fail-open here is either unchanged (DEC-101) or **strictly
-  safer** than before (inject-expertise.sh previously silently injected the *wrong checkout's*
+  safer** than before (inject-expertise.py previously silently injected the *wrong checkout's*
   Expertise via a pwd fallback; now it injects nothing and says so on stderr).
 
 **Three stale comments (item 3) — all confirmed, and SC-01 structurally cannot catch any of
 them.** Read at 9d12e3a:
-- `check-state.sh:~1141-1143`: "`root` is CLAUDE_PROJECT_DIR or the cwd" — false; root comes
+- `check-state.py:~1141-1143`: "`root` is CLAUDE_PROJECT_DIR or the cwd" — false; root comes
   from `harness_boundary.resolve_root` (`:38-43`).
 - `check-plan-routes.py:~477`: "CLAUDE_PROJECT_DIR if it holds a readable manifest, else the
   root DERIVED from this file's location" — false; the actual precedence (confirmed at
@@ -63,12 +63,12 @@ reach retired-name prose, only retired-name *code*). Worth a follow-up invariant
 accepted-risk note; not blocking.
 
 **Fourth instance of the same class (item 4) — found while checking the named exemption.**
-`test-check-plan-routes.py`'s `case_20` docstring (`:1133-1136`) still asserts check-state.sh
+`test-check-plan-routes.py`'s `case_20` docstring (`:1133-1136`) still asserts check-state.py
 "silently reports on the cwd. That is a real defect." At 9d12e3a that defect is fixed (T-12,
 confirmed above: exit 2, not a silent fallback). The "exemption" itself isn't coded
 skip-list logic — I read `case_20`'s body (`:1174-1204`): it's an emergent blind spot of a
 source-text pattern (`.harness` literal + a filesystem predicate on the same logical line)
-that check-state.sh's python-one-liner-in-a-heredoc never matched, before or after the
+that check-state.py's python-one-liner-in-a-heredoc never matched, before or after the
 cutover, because the probe now lives inside `harness_boundary.MARKER`, not inline. So nothing
 regressed and nothing is actively hidden — case_20 is stated in its own comments to be "a
 cheap smoke check, not the guarantee" (case 21 is). **Finding (chore, low):** reword the
@@ -95,7 +95,7 @@ signed off identically on a red produced by a body-less stub. **Finding (low-med
 worth a decision on whether SC-10-style receipts should require a discriminating red (e.g. a
 deliberately-wrong-but-present stub) for functions being extended in place, not just added.
 
-**check-domain.sh's relative-path base (item 7) — judged correct to leave unfixed.** Read
+**check-domain.py's relative-path base (item 7) — judged correct to leave unfixed.** Read
 `_show`/`_norm` at `:970-1010` (script line numbers shift ±1 from the note's citation but the
 `os.path.abspath(path)`-against-cwd calls are exactly where the note says). Confirmed via
 `notes/cwd-import-bypass-2026-08-27.md`'s "Still open" section and cross-checked the claim
@@ -121,9 +121,9 @@ Its diff (confirmed via `git show e51b814`) touches two files DEC-174 protects:
   lane, on a file the review dispatch's own protected list ("every `test-*.py` covering one")
   and AGENTS.md's "...gate scripts, or their tests" both cover.
 
-The plan's own lane table is where this fell through: rows for `check-state.sh`,
+The plan's own lane table is where this fell through: rows for `check-state.py`,
 `check-plan-routes.py`, etc. explicitly say "and its test file with it"; the row for
-`post-merge-sweep.sh` doesn't carry that phrase, so nothing in the plan's own bookkeeping
+`post-merge-sweep.py` doesn't carry that phrase, so nothing in the plan's own bookkeeping
 would have flagged this commit as out-of-lane. The squad's own T-21 was later created
 *specifically* for this failure mode on `test-check-state.py` ("a squad repairing its own
 gate through the gate it just moved is exactly the path the carve-out closes") — but T-21
@@ -146,14 +146,14 @@ files) — noted for `harness-security-reviewer`, not assessed here.
 1. `test-post-merge-sweep.py` functional edit + `test-check-state.py` comment edit landed via
    team lane in a DEC-174-protected path (e51b814) — **med**, process/governance.
 2. Three stale comments naming the retired `CLAUDE_PROJECT_DIR` chain
-   (`check-state.sh:~1143`, `check-plan-routes.py:~477`, `validate-digest.py:~815`), plus a
+   (`check-state.py:~1143`, `check-plan-routes.py:~477`, `validate-digest.py:~815`), plus a
    fourth in `test-check-plan-routes.py:1133-1136`'s case_20 docstring — **low**, chore, no
    presence/absence pair currently catches this class.
 3. SC-10's red-receipt criterion accepts an `AttributeError`-only red as equivalent to a
    behaviourally discriminating one; 3 of 4 T-01 functions got the weaker kind — **low-med**,
    chore, GREEN assertions are real so no live gap today.
-4. `inject-expertise.sh`'s stderr-discard on resolver failure loses the discard-notice detail
-   that `check-state.sh`/`branch-create-gate.sh` preserve — **low**, minor consistency,
+4. `inject-expertise.py`'s stderr-discard on resolver failure loses the discard-notice detail
+   that `check-state.py`/`branch-create-gate.py` preserve — **low**, minor consistency,
    acceptable given the hook's own "always exit 0, never block" contract.
 
 ```yaml
@@ -169,7 +169,7 @@ DIGEST:
   reviewed: "ea71a1c..9d12e3a"
   human_commits_in_scope: []
   open_questions:
-    - { id: Q1, question: "Should the plan's lane table extend 'and its test file with it' to every main-session-direct row (post-merge-sweep.sh currently lacks it), and should a commit-tag-vs-files-touched check exist so a DEC-174 breach like e51b814 is machine-detectable rather than requiring a manual diff read?", blocking: false }
+    - { id: Q1, question: "Should the plan's lane table extend 'and its test file with it' to every main-session-direct row (post-merge-sweep.py currently lacks it), and should a commit-tag-vs-files-touched check exist so a DEC-174 breach like e51b814 is machine-detectable rather than requiring a manual diff read?", blocking: false }
     - { id: Q2, question: "Should SC-10-style receipts require a behaviourally discriminating red (not just an AttributeError) when extending an existing module in place?", blocking: false }
   files_touched: [.harness/harness/features/FEAT-42-one-root-resolver/notes/review-harness-code-reviewer-2026-08-27.md]
   expertise_update: []

@@ -65,7 +65,7 @@ Diffed worktree `.harness/expertise/harness-ai-dev.md` and `.harness/harness/exp
 against the main checkout's copies before applying: both identical (`diff` exit 0 on both). No
 staleness; safe to apply.
 
-## check-expertise.sh result (verbatim, whole directory)
+## check-expertise.py result (verbatim, whole directory)
 
 ```
 OK   .harness/expertise/harness-ai-dev.md
@@ -79,7 +79,7 @@ OK   .harness/expertise/harness-documentor.md
 OK   .harness/expertise/harness-eng-lead.md
 OK   .harness/expertise/harness-orchestrator.md
 ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names '.claude/' — repository-layer candidate; rule on it (issue 340)
-ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names 'check-domain.sh' — repository-layer candidate; rule on it (issue 340)
+ADVISORY .harness/expertise/harness-orchestrator.md:85: G-11 names 'check-domain.py' — repository-layer candidate; rule on it (issue 340)
 OK   .harness/expertise/harness-pm.md
 ADVISORY .harness/expertise/harness-pm.md:4: P-01 names '.harness/' — repository-layer candidate; rule on it (issue 340)
 OK   .harness/expertise/harness-product-lead.md

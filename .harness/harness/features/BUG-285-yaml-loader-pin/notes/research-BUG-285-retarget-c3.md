@@ -6,7 +6,7 @@ killed. All retargeted onto measured anchors at `6cb113f4`. Five tasks in, five 
 task's goal changed. Two new decisions: **D-12** (where T-01's fixture lands) and **D-13** (the
 ordering that keeps T-01 out of T-04's and T-05's verify).
 
-**The unit-suite FAIL trap is closed.** `run-unit-tests.sh --kind unit` prints **four** lines
+**The unit-suite FAIL trap is closed.** `run-unit-tests.py --kind unit` prints **four** lines
 beginning `FAIL ` on a **green** run — a test's own live-mutant proof. SC-10 asserted zero, so it
 was false at baseline and would have failed a correct build. SC-10 now grades exit status only and
 says why the count is not the measure; T-03, T-04 and T-05 carry the same correction, and each now
@@ -127,7 +127,7 @@ named is no longer measurable at `6cb113f4` with main merged in.
 
 **6. Baselines re-measured myself** (worktree, `6cb113f4`, `env -u HARNESS_AGENT_TYPE`):
 `test-gh-sync-open.py` exit 0, **79 ok**, 0 FAIL, **10.6s**; `test-gh-sync-record.py` exit 0,
-**56 ok**, 0 FAIL, **8.8s**; `run-unit-tests.sh --kind unit` exit 0, 36 files, **2.40s wall**, and
+**56 ok**, 0 FAIL, **8.8s**; `run-unit-tests.py --kind unit` exit 0, 36 files, **2.40s wall**, and
 **4 lines beginning `FAIL `** (`MUTANT ACTIVE` … `MUTATION PROOF: 3/3 cases reddened`). The `ok`
 counts match the orchestrator's measurement exactly; wall times differ by <1s (10.6 vs 11.2, 8.8
 vs 9.1) — two runs of one command, not drift. The plan records my measured values.

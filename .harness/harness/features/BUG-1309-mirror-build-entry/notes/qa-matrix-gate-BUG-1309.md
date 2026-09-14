@@ -7,9 +7,9 @@ Three independent reasons, any one of which fails the matrix on its own:
 1. **A real regression in the standing suite.** `tests/integration/test-hooks-install.py`
    case `case_sc14_end_to_end_and_red_proof`, sub-case `(e-green) SC-14: the terminal
    feature's worktree is gone after a real merge...` is RED. Command:
-   `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind
+   `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind
    integration` → exit 1; this is the only `FAIL` line in a 3941-line run. Root cause traced
-   to source, not inferred: T-07's diff to `post-merge-sweep.sh` (git diff shown below)
+   to source, not inferred: T-07's diff to `post-merge-sweep.py` (git diff shown below)
    retains a merged worktree whenever `github.sync` is true and `feature.json` lacks
    `github.build_entry`, unless the feature directory is in the frozen
    `BUILD_ENTRY_ERA_EXEMPT` set. The pre-existing fixture in `test-hooks-install.py`
@@ -20,7 +20,7 @@ Three independent reasons, any one of which fails the matrix on its own:
    only). The sweep now prints `post-merge-sweep: SKIP removal of ... — FEAT-90-e-green-thing
    records github.build_entry=absent` and returns without removing, so the test's
    `not os.path.isdir(dest)` assertion fails.
-   - **Owning task: T-07.** **Fault: COVERAGE, not code.** `post-merge-sweep.sh` is doing
+   - **Owning task: T-07.** **Fault: COVERAGE, not code.** `post-merge-sweep.py` is doing
      exactly what the signed D-08 policy requires — an already-merged, sync-enabled feature
      with no Build-entry receipt is supposed to be retained. The fixture is what's stale: it
      was written before `build_entry` existed and jumps straight to a `Done`-station merge
@@ -28,7 +28,7 @@ Three independent reasons, any one of which fails the matrix on its own:
      already sets up). It needs updating to record `build_entry: "opened"` (or route through
      the fake-gh open flow) before the merge, so SC-14's green case still tests what it was
      meant to test. This file is not in any BUG-1309 task's declared `files:` list — T-07
-     changed `post-merge-sweep.sh` without re-running the fuller integration bucket, which is
+     changed `post-merge-sweep.py` without re-running the fuller integration bucket, which is
      exactly how this leaked through (T-07's own `verify:` only runs
      `test-post-merge-sweep.py`).
 
@@ -46,8 +46,8 @@ Three independent reasons, any one of which fails the matrix on its own:
 3. **`bugfix`'s conditional `unit` requirement is unmet for T-02, T-04, T-06, T-07.**
    `test_matrix.bugfix.when` fires `unit` on `touches_runtime_code` (DEC-217: "modifies at
    least one file that is not under `tests/**`, is not `*.md`, and is not under `.harness/`").
-   True for all four: `gh-sync.py` (T-02, T-04), `check-state.sh` + `feature_schema.py` (T-06),
-   `post-merge-sweep.sh` (T-07). No `tests/unit/test-*.py` file was added or changed by any of
+   True for all four: `gh-sync.py` (T-02, T-04), `check-state.py` + `feature_schema.py` (T-06),
+   `post-merge-sweep.py` (T-07). No `tests/unit/test-*.py` file was added or changed by any of
    the four; every one of their tests lives in `tests/integration/`. `fix_confined_to_tests_and_
    contract_docs` is false for all four (real runtime code changed), so `integration` is not
    independently required by that leg — though it is present anyway (all named cases for T-02,
@@ -84,8 +84,8 @@ Three independent reasons, any one of which fails the matrix on its own:
 
 ## Every test run, named, with counts
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` → **exit 0**, pool: 8 workers, 31 files, all `PASS`, including `test-omp-hooks.py` (56 pass / 0 fail via `bun test`) and `test-config-shape-matrix.py` (19/19, unaffected by this feature's schema change — it self-tests the harness.json matrix declaration, not per-feature schemas).
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` → **exit 1**, pool: 8 workers, 50 files, wall 74.9s. Exactly one `FAIL`: `test-hooks-install.py` (see §1). Every other file `PASS`, including the full set of named contract cases:
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` → **exit 0**, pool: 8 workers, 31 files, all `PASS`, including `test-omp-hooks.py` (56 pass / 0 fail via `bun test`) and `test-config-shape-matrix.py` (19/19, unaffected by this feature's schema change — it self-tests the harness.json matrix declaration, not per-feature schemas).
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` → **exit 1**, pool: 8 workers, 50 files, wall 74.9s. Exactly one `FAIL`: `test-hooks-install.py` (see §1). Every other file `PASS`, including the full set of named contract cases:
   - `test-validate-feature-json.py`: T-01's 8 new cases, `ALL PASS`.
   - `test-gh-sync.py`: 316 `ok` / 0 `FAIL`, all 8 T-02 cases, all 7 T-03 cases, all 5 T-04 cases present as `ok`.
   - `test-merge-gate.py`: `exit 0`, all 14 T-05 cases `ok`, `ALL PASSED`.
@@ -135,7 +135,7 @@ T-04's or T-06's era-gate cases; those are **reasoned**, not measured, from the 
   proves presence and passing, not ordering. I am not upgrading this silence into compliance.
 - **T-09**: no red/green cycle applicable (pure documentation append); receipt shows the intent's
   factual claims were checked against landed code (`gh-sync.py:625-626`, `:1357-1389`, `:289`,
-  `:1277-1323`; `check-state.sh:1983-2018`; `.claude/settings.json:48`) before being written, and
+  `:1277-1323`; `check-state.py:1983-2018`; `.claude/settings.json:48`) before being written, and
   one factual correction was made and disclosed (the era-exempt set bounds three call sites, not
   the one the intent named).
 

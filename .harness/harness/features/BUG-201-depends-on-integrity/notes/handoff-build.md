@@ -1,7 +1,7 @@
 # Handoff — BUG-201-depends-on-integrity, build → validate — written at b44005a8, seq-2
 
 <!-- BACKFILLED 2026-09-08, not written at the seam, for the same reason as handoff-plan.md:
-     check-domain.sh refused the worktree write until BUG-1480 shipped in PR #1497. Recorded
+     check-domain.py refused the worktree write until BUG-1480 shipped in PR #1497. Recorded
      as a backfill rather than presented as contemporaneous. -->
 
 ## Next

@@ -2,10 +2,10 @@
 
 ## BLUF
 PASS, `severity_max: none`. The c2→c3 delta is a pure test-refactor confined to
-`tests/integration/test-check-state.py`; `check-state.sh` is byte-identical to the c2 pin
+`tests/integration/test-check-state.py`; `check-state.py` is byte-identical to the c2 pin
 (verified by hash, not assumed). No new write path, no new subprocess/shell surface, no change
 to the INV-37 message content or its data-exposure profile. V-04/V-05/V-07/V-08 carry forward
-unchanged at their existing severities (all `check-state.sh`-anchored, and that file didn't move).
+unchanged at their existing severities (all `check-state.py`-anchored, and that file didn't move).
 V-02/V-03 bindings — single-run blocking fixture, run X's `"VERDICT: FAIL\n"` digest text — are
 still bound verbatim in the restructured code.
 
@@ -13,11 +13,11 @@ still bound verbatim in the restructured code.
 `git diff a1a6795..442e0d2 --stat`: **1 file**, `tests/integration/test-check-state.py`
 (+41/-22). No other path touched — confirmed by `--stat`, not inferred.
 
-`check-state.sh` byte-identity check (not assumed, per dispatch requirement): sha256 of
-`git show a1a6795:.claude/skills/harness/bin/check-state.sh` and
-`git show 442e0d2:.claude/skills/harness/bin/check-state.sh` are both
+`check-state.py` byte-identity check (not assumed, per dispatch requirement): sha256 of
+`git show a1a6795:.claude/skills/harness/bin/check-state.py` and
+`git show 442e0d2:.claude/skills/harness/bin/check-state.py` are both
 `c25e85ed61c1448bde8668272c1081b58f21470e6efdae7423a2992313d3c455` — identical. `git diff
-a1a6795..442e0d2 -- <that path>` returns 0 lines. Cycle-1/2 clearances for check-state.sh
+a1a6795..442e0d2 -- <that path>` returns 0 lines. Cycle-1/2 clearances for check-state.py
 (REQ-01..04, D-07, PF-b884d6ee, SC-07, and V-04/V-05/V-06/V-07/V-08) carry forward by name per
 the contract.
 
@@ -36,7 +36,7 @@ the diff hunk (`@@ -4663,15 +4663,18 @@` starts after them) and are untouched.
   `ok`/`True`, and the pre-existing before/after sha256 hash-equality assertion (`unchanged`)
   still holds, i.e. the check-under-test still writes nothing to the fixture tree.
 - **INV-37 message / data exposure:** the new code only changes *how the test asserts on*
-  `check-state.sh`'s stdout (`re.findall(r"^.*INV-37.*$", out, re.M)` + `out.count(...)` in place
+  `check-state.py`'s stdout (`re.findall(r"^.*INV-37.*$", out, re.M)` + `out.count(...)` in place
   of list comprehensions) — the message itself is produced by the unchanged binary. Same tokens
   are asserted (`FEAT-TEST`, `M`, `FAIL`, `PASS`, `feature.json`, `digest.md`) and the same
   silent-on-other-runs check is present (`silent = ("runs/E", "runs/N", "runs/I", "runs/G",
@@ -52,12 +52,12 @@ the diff hunk (`@@ -4663,15 +4663,18 @@` starts after them) and are untouched.
 ## Threat model
 Nothing in this diff crosses a trust boundary: it is test code exercising an already-audited,
 byte-identical script, with fixture I/O confined to a per-call `TemporaryDirectory`. No STRIDE
-category applies beyond what was already assessed against `check-state.sh` in cycles 1–2.
+category applies beyond what was already assessed against `check-state.py` in cycles 1–2.
 
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "c2→c3 delta is test-only complexity refactor; check-state.sh byte-identical (sha256 match); no new write path, injection, or data-exposure surface"
+  headline: "c2→c3 delta is test-only complexity refactor; check-state.py byte-identical (sha256 match); no new write path, injection, or data-exposure surface"
   in_scope: true
   scope_reason: "Dispatch specifically asked whether the restructured fixtures could escape tempfile.TemporaryDirectory or introduce a write path, and whether INV-37 message content changed exposure — examined both, found nothing"
   severity_max: none
@@ -65,7 +65,7 @@ DIGEST:
   must_fix: []
   threat_model:
     - { boundary: "test fixture write path (tempfile.TemporaryDirectory -> runs/<name>/{state.yaml,digest.md})", stride: T, mitigated: true }
-    - { boundary: "check-state.sh stdout -> INV-37 assertion (unchanged binary, unchanged message shape)", stride: I, mitigated: true }
+    - { boundary: "check-state.py stdout -> INV-37 assertion (unchanged binary, unchanged message shape)", stride: I, mitigated: true }
   open_questions: []
   files_touched: []
   expertise_update: []

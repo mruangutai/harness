@@ -6,7 +6,7 @@
 
 Explicitly empty: `[]`.
 
-The added test performs seven isolated temporary-project subprocess invocations when the integration suite runs (`.agents/skills/harness/bin/test-merge-gitignore.py:36-125`). That is required behavioral coverage, not duplicated production work. Its registration adds one test entry to the existing integration boundary suite (`.agents/skills/harness/bin/run-unit-tests.sh:12`) and one detector literal (`.harness/harness.json:79`); under the settled D-01/DEC-187/DEC-197 direction, these are intentional integration evidence rather than waste. No startup/session/write hot path is changed.
+The added test performs seven isolated temporary-project subprocess invocations when the integration suite runs (`.agents/skills/harness/bin/test-merge-gitignore.py:36-125`). That is required behavioral coverage, not duplicated production work. Its registration adds one test entry to the existing integration boundary suite (`.agents/skills/harness/bin/run-unit-tests.py:12`) and one detector literal (`.harness/harness.json:79`); under the settled D-01/DEC-187/DEC-197 direction, these are intentional integration evidence rather than waste. No startup/session/write hot path is changed.
 
 ```yaml
 VERDICT: PASS

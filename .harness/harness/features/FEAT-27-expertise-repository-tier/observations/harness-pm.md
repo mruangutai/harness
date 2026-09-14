@@ -48,7 +48,7 @@ because the authoring agent was dead — a boundary crossing, recorded rather th
   50 lines per task — `intent` is NOT budgeted. So prose added to `intent` is free and four lines
   added to `verify` pushed T-04 from 48 to 52. Compressing the guard to three dense lines brought it
   to 49.
-- 2026-08-18: `bash-write-guard.sh` denies every shell redirect I attempt, including into the
+- 2026-08-18: `bash-write-guard.py` denies every shell redirect I attempt, including into the
   session scratchpad under /private/tmp and including paths with no repo-like component
   (`craft/agent-bd.md` was refused). Probe fixtures therefore have to be built by a Python script
   written with the Write tool, which creates its own tempdir — the redirect never appears in a bash

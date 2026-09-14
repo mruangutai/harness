@@ -48,7 +48,7 @@ import tempfile
 #
 # It used `yaml.safe_load`, which ACCEPTS a duplicated top-level key (last one wins)
 # while `harness_yaml.load_str` REJECTS it. So a .harness file could pass this gate
-# green and then break check-state.sh and both write hooks — a gate more permissive
+# green and then break check-state.py and both write hooks — a gate more permissive
 # than the thing it protects is not a gate. Found by the goal-check.
 try:
     import yaml

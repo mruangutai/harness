@@ -21,8 +21,8 @@ G-08 — contributes nothing, does not shrink the floor set by `feature`.)
 
 | kind | state | command | observed |
 |---|---|---|---|
-| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0, 33 files, pool summary "33 files, 2.23s wall" — all named PASS |
-| integration | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0 (job bg_23, 70.44s wall); 3949-line log, no FAIL lines |
+| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0, 33 files, pool summary "33 files, 2.23s wall" — all named PASS |
+| integration | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0 (job bg_23, 70.44s wall); 3949-line log, no FAIL lines |
 
 `ai_behavior`, `ui`, `component`, `functional`, `typecheck` are not implicated by this diff (no
 production surface of those kinds touched) — not applicable, consistent with the standing
@@ -93,7 +93,7 @@ measured live, not inherited from cycle 1's prose.
   mutation coverage as noted above.
 - I did not re-run `locally_run` kinds (`omp_session_accessor`, `handoff_comprehension`,
   `issue_types_live`) — none of this feature's touched surface (`merge-gate.py`, `gh-sync.py`
-  build-entry path, `feature_schema.py`, `post-merge-sweep.sh`) matches those kinds' `detect`
+  build-entry path, `feature_schema.py`, `post-merge-sweep.py`) matches those kinds' `detect`
   globs, so they are not implicated and no recorded run is owed for this change.
 
 No new finding. This is a clean, independently re-derived confirmation at 358ac561, not a restatement

@@ -56,11 +56,11 @@ Suites run by me at the pin (tracked tree clean, `HARNESS_AGENT_TYPE` unset):
 
 ## REQ coverage
 
-REQ-01 -> T-03/T-14 (`inject-expertise.sh` control-plane block). REQ-02 -> T-04..T-08, T-10, T-11
+REQ-01 -> T-03/T-14 (`inject-expertise.py` control-plane block). REQ-02 -> T-04..T-08, T-10, T-11
 (the five canonical sites re-anchored; whole-scope checker clean) — **its family-5 half is the one
 whose proof SC-06 lost.** REQ-03 -> SC-07 evidence (no grant widened). REQ-04 -> T-02, T-12
 (`check-instruction-paths.py` + the enforced `integration` step). REQ-05 -> `case4c`. REQ-06 ->
-T-01, T-09, T-15 (`feature-root` verb, `dispatch-guard.sh:171-183`, anchor-direction rows). Nothing
+T-01, T-09, T-15 (`feature-root` verb, `dispatch-guard.py:171-183`, anchor-direction rows). Nothing
 in the brief is unimplemented; the gaps are evidence and record gaps, not missing product.
 
 ## Recommended next ship action — one short remediation cycle, then ship
@@ -94,5 +94,5 @@ inspection and the practical surface is closed upstream by the resolver's loud r
   simplify/review path re-takes criterion grades against the post-simplification tree — the
   falsification is invisible by construction.
 - Q3 (non-blocking, harness owner): nothing gates `DECISIONS-INDEX.md` regeneration in CI or in
-  `check-state.sh`; the only gate is one feature task's own `verify:` clause, so index rot ships
+  `check-state.py`; the only gate is one feature task's own `verify:` clause, so index rot ships
   whenever no live plan happens to carry that clause.

@@ -23,7 +23,7 @@ the PR. `#417`, `#430` and `#453` close on merge, not before.
 - **The EXIT CONTRACT is now scoped to command-line arguments.** It previously claimed 2 was the
   only non-zero exit unconditionally, which no guard in the file can hold — a closed stdout ends
   in 120 at shutdown flush.
-- Gates at this tip: unit 0, integration 0, T-02/T-03/T-05 GREEN, `check-state.sh` 0.
+- Gates at this tip: unit 0, integration 0, T-02/T-03/T-05 GREEN, `check-state.py` 0.
 
 ## Dead ends
 

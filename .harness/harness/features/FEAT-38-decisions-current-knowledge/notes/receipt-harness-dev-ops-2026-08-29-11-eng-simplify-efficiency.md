@@ -9,7 +9,7 @@ estimated, below.
 
 Neither `check-decision-anchors.py` nor `check-decision-claims.py` is wired into
 any `.claude/settings.json` hook (`SubagentStart`, `PreToolUse`, `PostToolUse` —
-read whole; only `check-domain.sh`, `branch-create-gate.sh`, `dispatch-guard.sh`,
+read whole; only `check-domain.py`, `branch-create-gate.py`, `dispatch-guard.py`,
 `validate-digest.py` are registered). Grep of the whole tree for the two names
 outside `bin/` turns up exactly:
 
@@ -19,13 +19,13 @@ outside `bin/` turns up exactly:
   verify block (one-shot).
 - `.harness/harness.json:119` — `test-check-decision-anchors.py` and
   `test-check-decision-claims.py` (the TEST files, not the checkers) appended to
-  `test_kinds.integration.detect`. This is what makes `run-unit-tests.sh --kind
+  `test_kinds.integration.detect`. This is what makes `run-unit-tests.py --kind
   integration` pick them up.
-- `.claude/skills/harness/bin/run-unit-tests.sh:31` — both test scripts registered
+- `.claude/skills/harness/bin/run-unit-tests.py:31` — both test scripts registered
   by bare name in `INTEGRATION_SCRIPTS`. Each test file itself invokes the
   checker binary via `subprocess.run` once per test case (6 cases for anchors, 7
   for claims) against a synthetic temp fixture, never the live `DECISIONS.md`.
-- `.github/workflows/tests.yml:89-92` — `run-unit-tests.sh --kind integration`
+- `.github/workflows/tests.yml:89-92` — `run-unit-tests.py --kind integration`
   runs on every `push` to `main` and every `pull_request` (not on every commit to
   a feature branch without a PR, per the file's own asymmetric-trigger design).
   This is the only place the checkers run per-PR, and it runs them indirectly via
@@ -47,8 +47,8 @@ every-session-entry gate.
 | `check-decision-claims.py` (default target, live DECISIONS.md) | **0.074s** | `examined 11 claim(s), 0 failed` |
 | `test-check-decision-anchors.py` | **0.289s** | 6/6 ok |
 | `test-check-decision-claims.py` | **0.245s** | 7/7 ok |
-| `run-unit-tests.sh --kind integration` (30 scripts incl. both new tests) | **2m31.6s** | exit 0, 700 PASS, 0 FAIL; `PASS test-check-decision-anchors.py` at output line 1959, `PASS test-check-decision-claims.py` at 1967 |
-| `run-unit-tests.sh` (all kinds, no `--kind`) | **2m53.1s** | exit 0, 1285 ok/PASS lines, 0 FAIL |
+| `run-unit-tests.py --kind integration` (30 scripts incl. both new tests) | **2m31.6s** | exit 0, 700 PASS, 0 FAIL; `PASS test-check-decision-anchors.py` at output line 1959, `PASS test-check-decision-claims.py` at 1967 |
+| `run-unit-tests.py` (all kinds, no `--kind`) | **2m53.1s** | exit 0, 1285 ok/PASS lines, 0 FAIL |
 
 The two new checkers' own runtime (0.076s + 0.074s = 0.15s) and their tests'
 runtime (0.289s + 0.245s = 0.53s) are each roughly 0.02–0.3% of the 2m31–2m53
@@ -85,7 +85,7 @@ import time (confirmed by reading both files end-to-end) — this was itself a
 design point noted in T-17/T-20's receipts, so it is already right, not a new
 finding. No closures capturing a scope for later reuse in either file.
 
-## 5. `run-unit-tests.sh --kind integration`/full-suite runs at CI/qa-gate boundaries
+## 5. `run-unit-tests.py --kind integration`/full-suite runs at CI/qa-gate boundaries
 
 These are deliberate full-suite runs at boundary steps (CI on push/PR, the qa
 gate's own integration run) — the skill names this explicitly as evidence the

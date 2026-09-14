@@ -91,7 +91,7 @@ a failing grade routes back to the engineering lead through the fix loop that al
 ## Facts I verified (so pm does not re-derive them)
 
 - **There is no coverage instrumentation of any kind.** `coverage.py` is not installed; there is no
-  `requirements.txt`, `pyproject.toml`, `Pipfile` or `poetry.lock` anywhere; `run-unit-tests.sh` has
+  `requirements.txt`, `pyproject.toml`, `Pipfile` or `poetry.lock` anywhere; `run-unit-tests.py` has
   no coverage invocation; CI measures nothing — checked at `origin/main` `696de63`.
 - **There is no linter or complexity tool either** — no `ruff`, `pylint`, `flake8`, `eslint` or
   Sonar config exists.

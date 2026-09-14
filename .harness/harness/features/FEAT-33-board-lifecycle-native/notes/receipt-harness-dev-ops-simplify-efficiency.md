@@ -9,7 +9,7 @@ Flag-only — no edits made.
 - **Summary:** Both tasks' `verify:` runs the whole `--kind integration` suite (14 scripts) although
   each task's `files:` list names exactly one pair, `gh-sync.py` / `test-gh-sync.py`.
 - **Concrete cost, measured at this checkout (`a473c28`), read-only invocations only:**
-  - `run-unit-tests.sh --kind integration` (all 14 integration scripts): **2:33 (153s)** wall,
+  - `run-unit-tests.py --kind integration` (all 14 integration scripts): **2:33 (153s)** wall,
     63.2s user / 22.3s system, exit 0.
   - `python3 .claude/skills/harness/bin/test-gh-sync.py` alone (the targeted case that binds T-07's
     and T-08's own acceptance — SC-05's #642 replay, SC-03's close-reason assertions): **1:13 (73s)**
@@ -53,7 +53,7 @@ Flag-only — no edits made.
   success"). Not flagged.
 - **T-10's `board_lifecycle.py provision`/`audit` calls added to `/harness-init`.** Runs once per
   onboarding, not at every session entry or every write — the plan itself states this in T-10's own
-  intent (contrasted explicitly with `check-state.sh`, which would run "dozens of times per build").
+  intent (contrasted explicitly with `check-state.py`, which would run "dozens of times per build").
   This is the hot-path scrutiny the angle asks for, already applied by the plan's own author. Not
   flagged.
 - **`start-task`'s new one-board-read-plus-one-issue-read cost (T-07), added to a hot path

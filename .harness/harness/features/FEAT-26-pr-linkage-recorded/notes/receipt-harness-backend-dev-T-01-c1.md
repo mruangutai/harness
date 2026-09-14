@@ -81,7 +81,7 @@ echo VERIFY-OK
 
 Output: `VERIFY-OK`
 
-## Full suite — `run-unit-tests.sh --kind all`
+## Full suite — `run-unit-tests.py --kind all`
 
 Ran to completion (exit 0). 41 scripts (19 unit + 22 integration), every one printed `PASS
 <script>` — grep confirms 0 lines matching `^FAIL ` across the whole log. `test-validate-feature-json.py`
@@ -90,5 +90,5 @@ itself printed `ALL PASS` including all five new cases.
 ## Scope discipline
 
 Touched only the two files named in the task (`feature-schema.json`,
-`test-validate-feature-json.py`). Did not touch `gh-sync.py`, `check-state.sh`, any
+`test-validate-feature-json.py`). Did not touch `gh-sync.py`, `check-state.py`, any
 `feature.json`, `harness.json`, or any file under the DEC-174 carve-out.

@@ -62,7 +62,7 @@ panel:
       \ **correct** T-02: post-T-02 the real-git cases call the real `_control_plane_root()`,\
       \ and `resolve_root` prints a `discarding HARNESS_PROJECT_DIR=\u2026` line to\
       \ `sys.stderr` when the override is set but carries no MARKER. Neither the suite\
-      \ nor `run-unit-tests.sh` sanitises the variable."
+      \ nor `run-unit-tests.py` sanitises the variable."
     disposition: resolved
     resolved_by: T-01
   - id: PF-1414b1a16d9c271f2793225d4ea61f1f
@@ -327,7 +327,7 @@ tasks:
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       python3 tests/unit/test-factory-workspace.py \
-        && bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+        && python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       T-01 has already written the failing cases. Do not weaken, rename or delete any of them; make
       them pass. .agents/skills is a symlink to ../.claude/skills, so there is exactly ONE file to

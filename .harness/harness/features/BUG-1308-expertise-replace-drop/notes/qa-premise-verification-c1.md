@@ -2,7 +2,7 @@
 
 All commands run from the worktree root against files confirmed byte-identical to the pinned
 `review_sha` (`git diff --quiet 4c76f0f5 -- .claude/skills/harness/bin/{expertise-merge,harness_merge}.py
-tests/integration/test-expertise-merge.py tests/unit/test-expertise-ops.py .claude/skills/harness/bin/check-expertise.sh`
+tests/integration/test-expertise-merge.py tests/unit/test-expertise-ops.py .claude/skills/harness/bin/check-expertise.py`
 → no output, identical). All fixtures live under a `mktemp -d` scratch dir (created and removed
 via the Write tool / `rm -rf`, since bash-write-guard denies `cp`/redirect writes outside domain);
 no tracked file was ever opened for write. `HARNESS_AGENT_TYPE` unset per Expertise G-07.
@@ -51,16 +51,16 @@ echo '[{"op":"replace","target":"G-08","section":"Gotchas",
 ```
 Output: `REPLACED G-08` / `APPLIED <fixture>`. **Exit 0.** The written file now contains a second
 literal `## Gotchas (max 15)` header and a forged `- G-16: forged additional entry` line, spliced
-mid-section. Line-count of `^- [A-Za-z]{1,3}-[0-9]+: ` (how `check-expertise.sh` counts) rose from
+mid-section. Line-count of `^- [A-Za-z]{1,3}-[0-9]+: ` (how `check-expertise.py` counts) rose from
 15 → **16**, over cap, with the tool having reported success.
 
-`bash .claude/skills/harness/bin/check-expertise.sh <fixture>` on the resulting file:
+`python3 .claude/skills/harness/bin/check-expertise.py <fixture>` on the resulting file:
 ```
 FAIL <fixture>
   - section Gotchas: 16 entries — cap is 15
 EXIT:1
 ```
-So the two tools disagree: `expertise-merge.py ops` exits 0 on a file `check-expertise.sh` rejects.
+So the two tools disagree: `expertise-merge.py ops` exits 0 on a file `check-expertise.py` rejects.
 
 **Step 3 — discriminator, same payload through `apply --entries`:** fresh 15-entry fixture, proposal
 file containing the *same* forged header+entry as real (non-indented) lines:

@@ -15,14 +15,14 @@ Twelve criteria are `not_met` because nothing is built yet — the expected plan
 | SC-01 | not_met | Unbuilt. `T-01` builds the third `hook_mode()` answer and the six exact-label cases in `test-validate-digest.py`; its `verify:` greps two of those labels then runs the suite. |
 | SC-02 | not_met | Unbuilt. Same `T-01`; the three escape assertions are three of the six mandated labels (no-live-child, omitted-child, member-persona), each its own case per P-04. |
 | SC-03 | not_met | Unbuilt. `T-01`'s "leaves the parent claim live" label plus its `STEP ONE` release change; the intent mandates reading the claim off disk via `claims()`, not from the exit code. |
-| SC-04 | not_met | Unbuilt. `T-03` at the `check-domain.sh` Write gate over `T-02`'s `orphan_write` predicate; the third assertion (orphan `plan.yaml` keeps the FEAT-41 route-denial text) is D-11's deferral. |
+| SC-04 | not_met | Unbuilt. `T-03` at the `check-domain.py` Write gate over `T-02`'s `orphan_write` predicate; the third assertion (orphan `plan.yaml` keeps the FEAT-41 route-denial text) is D-11's deferral. |
 | SC-05 | not_met | Unbuilt. `T-03` — the `notes/` and quarantine-path allows beside the refused `BRIEF.md` write. |
 | SC-06 | not_met | Unbuilt. `T-04` ships `quarantine.py`; its intent mandates the 14-task/1-task adoption case through `plan-merge.py` union, `discard` removing one directory, and `list` proven inert by sha256, with "no scheduler, no timer, no TTL". |
 | SC-07 | not_met | Unbuilt. `T-02` carries the `runtime != omp` condition; the `--kind integration` / `--kind unit` and `blocking: true` legs land with `T-04`'s registration. |
 | SC-08 | not_met | Unbuilt, and `inspection` by a reviewer at `review_sha`. `T-05` writes the four clauses into both playbooks with `test-orchestrator-playbook.py` / `test-lead-stop-and-wake.py` cases. |
 | SC-09 | not_met | Unbuilt. `T-06` writes the entry and the hand-written index ruling half; `T-08` is the assertion that makes an omitted Bash half red. See the `DEC-209` section below — the plan self-heals and the guard fails safe. |
 | SC-10 | not_met | `uat` — only the operator can move this, from the main checkout after merge (BRIEF `## Verification gaps`). The conduct it grades is `T-05`'s. |
-| SC-11 | not_met | Unbuilt. `T-07` adds the second rule to `plan-sign-gate.sh` / `.py`; its intent carries the three refusals, the own-claim-live and `runtime: omp` exit-0 controls, and the `PLAN_SIGN_GATE_BIN` red proof. |
+| SC-11 | not_met | Unbuilt. `T-07` adds the second rule to `plan-sign-gate.py` / `.py`; its intent carries the three refusals, the own-claim-live and `runtime: omp` exit-0 controls, and the `PLAN_SIGN_GATE_BIN` red proof. |
 | SC-13 | not_met | Unbuilt. `T-10` adds two fail-open cases plus a negative control to **each** of `test-check-domain.py` and `test-plan-sign-gate.py`; graded at the reviewed sha per G-15. |
 
 No criterion is `cannot_verify`: each names the task that will grade it.
@@ -53,7 +53,7 @@ No criterion is `cannot_verify`: each names the task that will grade it.
 
 **The one residual, and it is a recommendation, not a decision.** D-05's own reason says quarantine
 exists because "quarantining them would destroy the completed analysis the operator wants
-recoverable". Recoverability now rests on nothing enforcing it: `bash-write-guard.sh:259` exempts
+recoverable". Recoverability now rests on nothing enforcing it: `bash-write-guard.py:259` exempts
 `harness-dev-ops` outright, `:504-505` routes `rm` through `classify`, and `:784-790` prints a notice
 and **continues** on the `shared` verdict that D-06's `.harness/*/features/*/quarantine/**` glob
 produces. The ruling records this honestly (D-18, and the BRIEF `## Verification gaps` bullet) rather
@@ -80,15 +80,15 @@ contain — framing, not requirement.
   digest gate…"*. `BRIEF.md` contains **zero** `DEC-209` tokens (re-verified: `grep -c` = 0), so
   SC-09 names no number and is unaffected. `T-06`'s intent carries the next-free-number fallback and
   `T-08`'s `QUARANTINE_DEC` comment mandates that the constant moves with it. **The guard fails
-  safe, verified at source:** the shipped DEC-209 region contains none of `check-domain.sh`,
-  `plan-sign-gate.sh`, `quarantine.py adopt`, `plan-merge.py` (all `grep -c` = 0 over
+  safe, verified at source:** the shipped DEC-209 region contains none of `check-domain.py`,
+  `plan-sign-gate.py`, `quarantine.py adopt`, `plan-merge.py` (all `grep -c` = 0 over
   `git show 0bc57c88:…DECISIONS.md`), so a stale constant makes T-08 red, never falsely green.
   SC-09 is therefore graded `not_met` for being unbuilt only. The 21 `DEC-209` tokens in
   `plan.yaml`'s decisions block read stale and affect **no** SC — see Q1.
 - **`T-06`'s third conjunct `grep -q 'DEC-209' DECISIONS-INDEX.md` is non-discriminating** (the token
   is already in the committed index) and would also stay green if T-06 took DEC-210. It weakens no
   SC's evidence: the discrimination for SC-09 lives in the two awk conjuncts, which slice the
-  **last** `## DEC-` region and are proven red on the current tree and on the `check-domain.sh`-only
+  **last** `## DEC-` region and are proven red on the current tree and on the `check-domain.py`-only
   defect entry, and in T-08's per-clause assertions. Worth noting for the panel: **no** conjunct of
   T-06 grades SC-09's "index row names the compatibility host in the hand-written ruling half" —
   that clause rests on inspection at review, not on the suite.

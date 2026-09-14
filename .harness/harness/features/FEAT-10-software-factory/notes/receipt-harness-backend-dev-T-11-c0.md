@@ -28,7 +28,7 @@ T-11: Add the shared CLI contract module and its unit test (D-08).
 ## Files touched
 - `.claude/skills/harness/bin/factory_cli.py` (new)
 - `.claude/skills/harness/bin/test-factory-cli.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` — appended `"test-factory-cli.py"` to the
+- `.claude/skills/harness/bin/run-unit-tests.py` — appended `"test-factory-cli.py"` to the
   `UNIT_SCRIPTS` array (line 58 at task start). Nothing else in this file was touched;
   the pre-existing unrelated diff in it (root-resolution rewrite, extra `INTEGRATION_SCRIPTS`
   entries `test-gen-omp-agents.py`/`test-omp-reviewer-guard.py`) was already present in the
@@ -40,7 +40,7 @@ Command (verbatim, cross-checked against `plan.yaml` T-11 lines 192-193 before r
 matches exactly):
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t11.txt 2>&1; s=$?; grep -q "^PASS test-factory-cli.py$" /tmp/v-t11.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t11.txt 2>&1; s=$?; grep -q "^PASS test-factory-cli.py$" /tmp/v-t11.txt && [ "$s" -eq 0 ]
 ```
 
 Compound command exit status (`echo $?` immediately after): `0`
@@ -135,7 +135,7 @@ PASS test-factory-cli.py
 
 ## Sanity: `--kind all`
 Not part of the declared verify, run only to confirm this diff (which touches only
-`UNIT_SCRIPTS`) does not disturb the integration suite: `run-unit-tests.sh --kind all`
+`UNIT_SCRIPTS`) does not disturb the integration suite: `run-unit-tests.py --kind all`
 exits `0`, all scripts including `test-omp-reviewer-guard.py` (last in the list) report
 `ALL PASS` / `PASS`.
 

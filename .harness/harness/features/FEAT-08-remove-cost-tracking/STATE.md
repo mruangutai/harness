@@ -26,7 +26,7 @@ template differing solely by the `—` escape; residual EMPTY/exit 1. SC-06: 89;
 Byte-identity does not hold for the template; my empty-diff-over-`runs/` suggestion is vacuous
 (`git ls-tree` at `ae2443d` returns **0** tracked paths under any `runs/`), which I confirmed
 independently; and product-lead's own cycle-0 sign-off missed that the draft had silently dropped
-`check-state.sh` and `SKILL.md` from SC-05. That send-back is the fifth cycle.
+`check-state.py` and `SKILL.md` from SC-05. That send-back is the fifth cycle.
 
 **Discrimination, stated plainly: neither rewritten criterion would have failed at `ae2443d`** — both
 are over-removal guards and SC-12 is the signed in-BRIEF precedent for the class. **Both CAN fail
@@ -66,7 +66,7 @@ IDs are not reused. Q2, Q4, Q5, Q7, Q8, Q18 are answered or ruled. **MF-1 is res
   Blocked on: nobody — in the briefing's backlog.
 
 - Q6: SC-03 is repo-wide and passes today only because FEAT-09 sits in its own worktree — the hazard
-  is dormant, not gone. Re-rooting `check-state.sh` via `CLAUDE_PROJECT_DIR` is **forbidden by user
+  is dormant, not gone. Re-rooting `check-state.py` via `CLAUDE_PROJECT_DIR` is **forbidden by user
   ruling** and was not proposed.
   Blocked on: nobody.
 

@@ -12,11 +12,11 @@ was red-proven at plan time against temporary copies, so no build-phase manual p
   returns nothing. Second false citation, same file.
 - No file under `.claude/skills/harness/bin/` reads the workflow as a subject. `test-check-domain.py`
   and `layout_migration.py` mention `tests.yml` only as a fixture path.
-- `run-unit-tests.sh:40-54` is a drift detector: any `test-*.py` in the bin dir not listed in
+- `run-unit-tests.py:40-54` is a drift detector: any `test-*.py` in the bin dir not listed in
   `UNIT_SCRIPTS` or `INTEGRATION_SCRIPTS` exits 2. Registration is mandatory, not optional.
 - **THE ROAD NOT TAKEN — D-01 REJECTED THIS.** The next two bullets describe Route A, a NEW
   `bin/test-*.py` file. D-01 chose the other path: the predicate is hosted inside the existing
-  `test-check-plan-routes.py`, which is already in `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:18`).
+  `test-check-plan-routes.py`, which is already in `INTEGRATION_SCRIPTS` (`run-unit-tests.py:18`).
   **No `UNIT_SCRIPTS` registration is part of this feature** — a downstream reading of these lines
   as the plan of record is where that false premise came from. Kept, marked, not deleted.
   - (rejected) `test_kinds.unit.detect` globs `.claude/skills/harness/bin/test-*.py`;
@@ -95,7 +95,7 @@ the `Unit suite` step, not criteria this step enforces, and FEAT-14's BRIEF carr
 
 - The drift detector above means a new test file forces its registration line into the same PR —
   Route A's write into the file FEAT-27 is editing is forced, not deferrable.
-- `test-check-plan-routes.py` is already in `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:18`) and in
+- `test-check-plan-routes.py` is already in `INTEGRATION_SCRIPTS` (`run-unit-tests.py:18`) and in
   `harness.json` `test_kinds.integration.detect`, so hosting the assertion there keeps
   `evidence: integration` honest with zero edits elsewhere. A new `bin/test-*.py` falls under
   `test_kinds.unit.detect`, so Route A would also change which kind grades these SCs.
@@ -135,12 +135,12 @@ the DEC-183 reversal question moved from this note into `## Approval`, unanswere
    over `yaml.safe_load`.
 2. **Routing, stated in the BRIEF** (line ~131). Anchors re-derived at `de4b76a`, all resolve:
    job id `integration` `tests.yml:32`; `test-check-plan-routes.py` in `INTEGRATION_SCRIPTS`
-   `run-unit-tests.sh:18` and NOT in `UNIT_SCRIPTS` `:17`; `Integration suite` step `tests.yml:81`,
+   `run-unit-tests.py:18` and NOT in `UNIT_SCRIPTS` `:17`; `Integration suite` step `tests.yml:81`,
    its `run: … --kind integration` at `tests.yml:84`. **Test kind and CI context are both
    `integration` — there is no unit/integration mismatch.** A "kind is unit" claim would have been a
    new falsehood.
 3. **DEC-183 question** now in `## Approval` (line ~166), `status: pending` byte-identical.
-   check-state.sh:91-92 matches `status:\s*approved` inside that section; the added prose contains
+   check-state.py:91-92 matches `status:\s*approved` inside that section; the added prose contains
    no such string, so the gate reading is unchanged.
 
 ## Open (for the plan owner, not for me — BRIEF-only scope)

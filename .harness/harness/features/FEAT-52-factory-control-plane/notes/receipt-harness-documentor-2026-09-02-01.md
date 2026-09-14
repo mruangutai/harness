@@ -36,9 +36,9 @@ an allocation.
 The asymmetry, the tool-grant predicate, both rejected alternatives, the spawn-time assertion and
 the issue 356 / 357 citations are all in the entry. Every factual claim in the intent was checked
 against the shipped code before transcription, and all held: the injected line and
-`HARNESS_PATH_DRIFT` (`inject-expertise.sh:61-85`, `exit 0` at `:161`); `feature-root` /
+`HARNESS_PATH_DRIFT` (`inject-expertise.py:61-85`, `exit 0` at `:161`); `feature-root` /
 `worktree_for_feature` (`inflight_registry.py:268,649`); the exit-2 refusal keyed on `has_bash`, a
-**tool grant and not a name list** (`dispatch-guard.sh`, the `if not has_bash:` branch);
+**tool grant and not a name list** (`dispatch-guard.py`, the `if not has_bash:` branch);
 inline-plus-fenced enforcement and the control-plane-anchored-feature-path violation class
 (`check-instruction-paths.py:76-88`); required CI step (`.github/workflows/tests.yml:205`). Issue
 356 comment 2 confirms the five path families and comment 4 the `CLAUDE_PROJECT_DIR` UNSET
@@ -47,7 +47,7 @@ measurement.
 ## Anchor rot in the signed intent — corrected, not copied forward
 
 The intent anchors the always-exits-0 hook contract at **`DECISIONS.md:1503`**. That line, **in both
-the worktree and `main`**, is `check-domain.sh`'s `/**` `startswith` bug. The contract actually lives
+the worktree and `main`**, is `check-domain.py`'s `/**` `startswith` bug. The contract actually lives
 in a table row at `DECISIONS.md:1388`, owned by **DEC-101**. I cited DEC-101 **by number** and did
 not reproduce the rotten line reference.
 

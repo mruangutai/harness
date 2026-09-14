@@ -66,7 +66,7 @@ filter, per T-03's intent.
 
 ### 1. Unit suite
 ```
-env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 rc=0. `^PASS ` count: 341. `^FAIL ` count: 0. File count (from pool summary line
 `pool: 8 workers, 27 files, 2.09s wall`): 27. Matches stated baseline exactly.

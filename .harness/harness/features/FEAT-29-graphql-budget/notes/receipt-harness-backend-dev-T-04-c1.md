@@ -64,11 +64,11 @@ code always preserves the original gh text and never mentions "GraphQL budget ex
 ## `task_verify` — run exactly, verbatim from plan.yaml T-04
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Captured exit status into a variable (not read from `tail`), and counted `^FAIL ` lines across
-the full output, per the dispatch's warning about `run-unit-tests.sh`'s own trailing
+the full output, per the dispatch's warning about `run-unit-tests.py`'s own trailing
 `N/N checks passed` line masking a red suite:
 
 ```
@@ -133,5 +133,5 @@ never mentions "GraphQL budget exhausted", so the unrelated case behaves as befo
 ## No live `gh` call
 
 Every test drives `factory_gh.subprocess.run` (or the recorder helper wrapping it) — no `gh`
-binary invoked, no `check-state.sh` run, per the hard constraints. `gh_cost_log.py` /
+binary invoked, no `check-state.py` run, per the hard constraints. `gh_cost_log.py` /
 `test-gh-cost-log.py` were not created (T-03 remains untouched, as instructed).

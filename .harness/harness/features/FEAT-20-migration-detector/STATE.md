@@ -24,7 +24,7 @@ that table dies silently on acceptance.
 **Close-out distillation: 38 ops across 12 Expertise files — 25 additions, 12 replacements, 1
 deletion, net 269 → 293 entries.** Measured against `8cd251a`, which predates every distillation
 write, rather than taken on three leads' word: no entry id present before is missing after, and
-`check-expertise.sh` exits 0 over all 13 files. The single deletion was a dev-ops rule falsified at
+`check-expertise.py` exits 0 over all 13 files. The single deletion was a dev-ops rule falsified at
 HEAD. I applied 17 returned ops verbatim myself, surgically, never rewriting a file whole.
 
 **One run returned BLOCKED and it is not a work failure.** The validator squad's distillation

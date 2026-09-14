@@ -100,7 +100,7 @@ Settled by the operator 2026-08-20 and stated as three facts so nobody re-derive
   during a live run is refused rather than trusted not to.
 
   The original text was silent on `harness-dev-ops`, and silence resolved to *exempt*:
-  `bash-write-guard.sh:56-57` returns exit 0 for that persona before line 58's `harness-` prefix
+  `bash-write-guard.py:56-57` returns exit 0 for that persona before line 58's `harness-` prefix
   test, so a rule keyed off that prefix provably never reaches it — and T-01, T-02 and T-08 are
   laned to exactly that persona. The scoping is therefore what makes the requirement true of the
   agents most likely to move `HEAD`.
@@ -194,7 +194,7 @@ Settled by the operator 2026-08-20 and stated as three facts so nobody re-derive
 - SC-04: A feature's artifacts are on `main` before its worktree is removed. The check names the
   paths it verified rather than reporting a count.
   verify: automated      evidence: integration
-- SC-05: `check-domain.sh` grants the same paths inside a worktree as outside it, for every one of
+- SC-05: `check-domain.py` grants the same paths inside a worktree as outside it, for every one of
   the 16 agents. DEC-143 already strips the worktree prefix before matching; this asserts it,
   because nothing currently does.
   verify: automated      evidence: integration
@@ -222,7 +222,7 @@ resting on it can never be met and never fails loudly — a gate that looks real
 
 - `functional`, `component`, `ui`, `eval` and `typecheck` all have `cmd: null`. **No criterion above
   rests on any of them.** Every `automated` criterion is pinned to `integration`, which runs via
-  `run-unit-tests.sh --kind integration`.
+  `run-unit-tests.py --kind integration`.
 - **11 of 12 criteria are `automated`, and NONE is `uat`.** SC-01b was the single `uat` criterion
   until the operator's 2026-08-20 instruction; it is now `automated / integration` and owned by
   T-10. Its former reason — four live orchestrators contending for one account budget — named
@@ -249,7 +249,7 @@ feature uses, and the operator's challenge to that framing is why they now read 
   `.harness/x.md`, so domain globs would miss and every in-worktree write would be refused. That is
   REQ-08 and SC-02c: one segment in one regex, in the enforcement layer, main-session-direct.
 - **Nested product state does NOT collide with harness's own discovery**, which was the main risk
-  and is checked rather than assumed. `check-state.sh:38` sets `H = <root>/.harness` and discovery
+  and is checked rather than assumed. `check-state.py:38` sets `H = <root>/.harness` and discovery
   globs `H/*/features/*`. A worktree under `.claude/` carries its own repository's `.harness/`, which
   sits outside that glob. Harness will not read a served repo's features as its own.
 - **DEC-143 already strips the worktree prefix** before matching domain globs, so an agent inside

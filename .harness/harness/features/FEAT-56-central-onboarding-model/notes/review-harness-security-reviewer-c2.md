@@ -90,12 +90,12 @@ Read both files in full at `9768681c`, plus their new test (`tests/integration/t
   verification-completeness question with no trust boundary or exploit behind it; out of scope
   for this role, not declined for lack of looking.)
 
-## Surface 4 — T-02 message-only edits: `gh-sync.py`, `check-state.sh`, `check-domain.sh`, `upgrade-config.py`, `layout_migration.py`
+## Surface 4 — T-02 message-only edits: `gh-sync.py`, `check-state.py`, `check-domain.py`, `upgrade-config.py`, `layout_migration.py`
 Diffed every hunk at `-U6`/`-U8`/`-U16` context against `4b5dbb23` and read every changed line.
 - All five files: **every changed line is inside a `print(...)`/`.append(...)` string literal or a
   `#`-comment/docstring.** No `if`/`elif`/`else`/`sys.exit`/`return`/`raise` line touched anywhere
   in the five diffs.
-- `check-domain.sh`'s fail-open branch (`if not os.access(manifest, os.R_OK): print(...);
+- `check-domain.py`'s fail-open branch (`if not os.access(manifest, os.R_OK): print(...);
   _run_domain = False`) — the condition, the assignment, and the guarding `if _run_domain:` two
   lines below are byte-identical before and after. The edit only expands the printed sentence.
   Confirmed this is the *only* hunk in the file.
@@ -126,7 +126,7 @@ Diffed all five files (`-U4`) against base.
 | harness-add-repo landing a commit on a third-party default branch | Spoofing (repo identity) | false — human-mediated only, pre-existing gap |
 | factory_config.py remote `harness.json` read (no disk fallback) | Tampering / Information Disclosure | true — json-only parse, no path-join, no leak in error text |
 | sync-command-adapters.py file generation into `.claude/commands/` | Tampering (path escape) | true — non-recursive glob, `.name`-only targets, same-repo trust |
-| check-domain.sh fail-open-without-manifest branch | Elevation of Privilege | true — control flow byte-identical to base, message-only edit |
+| check-domain.py fail-open-without-manifest branch | Elevation of Privilege | true — control flow byte-identical to base, message-only edit |
 | team-config.yaml / harness.json grant and hook keys | Tampering | true — diffed; only `cli_min_version` removed, no adjacent key changed |
 
 ## Open questions

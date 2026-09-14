@@ -21,7 +21,7 @@ working tree — `git status --short` and `git diff --stat dc0e0313 -- <these 4 
 **Not applicable / no finding:** colour-only state encoding, contrast, theme parity — this is
 stderr/stdout text with no colour channel at all.
 
-**SC-01(c) message** (`check-domain.sh:~1697-1704`, `uid_conflict()` body in `run_identity.py:130-141`):
+**SC-01(c) message** (`check-domain.py:~1697-1704`, `uid_conflict()` body in `run_identity.py:130-141`):
 for an incoming checkpoint carrying no `run_uid` against a present prior carrying U1, the emitted
 text is: *"the existing checkpoint belongs to run_uid 'U1'; this write cannot be shown to update
 that run. A run that owns the record must carry its run_uid line forward verbatim from the
@@ -34,7 +34,7 @@ reads the *same* code path: it names the exact value to carry forward and where 
 message correctly serves two different readers (foreign writer / owner who dropped the field) with
 distinct, sequenced instructions. No finding.
 
-**SC-03 detection wording** (`check-state.sh` INV-36, lines ~1493-1514): both the field-disagreement
+**SC-03 detection wording** (`check-state.py` INV-36, lines ~1493-1514): both the field-disagreement
 and `run_uid`-disagreement branches emit `"INV-36: {rel}: the checkpoint occupying this run
 directory records an identity that disagrees with the identity recorded when the directory was
 first written: {reason}. The checkpoint the witness describes is the record that was lost; the
@@ -50,21 +50,21 @@ never carry both findings in the same pass. No finding; SC-03 is met as written.
 **UI-01 (low).** Two sibling "witness unreadable" messages, both new in this diff, state the fact
 with no remedy, unlike their SC-13 sibling which does:
 
-- `check-domain.sh:1641-1643` (PRE, Write/Edit route, `MarkerUnreadable` on the *prior's* witness):
+- `check-domain.py:1641-1643` (PRE, Write/Edit route, `MarkerUnreadable` on the *prior's* witness):
   `"this run directory's recorded identity cannot be read, so a Write that could silently replace
   another run checkpoint is refused."`
-- `check-state.sh:1487-1491` (INV-36 detection, same exception): `"INV-36: {rel}: its recorded run
+- `check-state.py:1487-1491` (INV-36 detection, same exception): `"INV-36: {rel}: its recorded run
   identity cannot be read, so whether the checkpoint occupying this directory belongs to it cannot
   be determined."`
 
 Compare the write-once-witness refusal a few lines above in the same file
-(`check-domain.sh:~1697-1704`'s `RE_RUN_IDENTITY` block, graded by SC-13), which for the *analogous*
+(`check-domain.py:~1697-1704`'s `RE_RUN_IDENTITY` block, graded by SC-13), which for the *analogous*
 human-repair case explicitly says *"a witness a human genuinely must repair is repaired outside the
 guards."* The two MarkerUnreadable messages above give an operator no such pointer: a human hitting
 either message knows a write was refused or an invariant is undecidable, but not that the file in
 question is `.run-identity.json`, nor that hand-repair (outside the guards) is the expected recovery
 path. **Concrete scenario:** an operator sees `INV-36: runs/2026-09-05-02-lead: its recorded run
-identity cannot be read...` in a `check-state.sh` sweep with dozens of other findings, and — with
+identity cannot be read...` in a `check-state.py` sweep with dozens of other findings, and — with
 no filename and no remedy — has no way to distinguish "go read `.run-identity.json`'s permissions/
 encoding" from "this run is now permanently unrecoverable." **Remedy:** name the file
 (`.run-identity.json`) and add the same "repaired outside the guards" pointer the SC-13 message
@@ -79,6 +79,6 @@ not require rework to land this feature.
 
 - Fidelity/spacing/contrast/theme-parity/interaction-state dimensions of the standard Mode B table:
   **n/a** — no rendered surface exists to hold any of them.
-- REQ-06/SC-06's corrected `check-domain.sh` inline comment (the "intentionally Write/PRE-only"
-  fix, `check-domain.sh:~110-114` in the diff): a developer-facing code comment, not an emitted
+- REQ-06/SC-06's corrected `check-domain.py` inline comment (the "intentionally Write/PRE-only"
+  fix, `check-domain.py:~110-114` in the diff): a developer-facing code comment, not an emitted
   operator message — code-reviewer's lens, not mine. Declined.

@@ -16,7 +16,7 @@ via `harness-validator-lead`. Then write `notes/layer0-segments-FEAT-29.md`'s ba
   `.harness/harness/features/FEAT-29-graphql-budget/plan.yaml:5`, `BRIEF.md:148` — verified-at 3920513
 - Q1 (board pruning) is RULED code-fix-only; nine tasks, none added — `BRIEF.md:141` — verified-at 3920513
 - Lanes unchanged at the branch point; `gh_board.py`/`factory_gh.py`/`gh_cost_log.py`/`gh-sync.py` →
-  `harness-backend-dev, harness-dev-ops`, `CLAUDE.md` → `NOBODY` — `check-domain.sh --resolve` output —
+  `harness-backend-dev, harness-dev-ops`, `CLAUDE.md` → `NOBODY` — `check-domain.py --resolve` output —
   verified-at 3920513
 - `check-plan-routes.py` = `0 violation(s)`, exit 0; `DEVIATION` on T-06/T-07/T-09 is correct output —
   run at 3920513 — verified-at 3920513
@@ -24,7 +24,7 @@ via `harness-validator-lead`. Then write `notes/layer0-segments-FEAT-29.md`'s ba
   sub-issues #579–#587 — `feature.json` `github` block — verified-at 3920513
 - GraphQL budget 3673/5000 used at 09:59 local, window resets 10:45:06 — `gh api rate_limit` —
   verified-at 3920513
-- `check-state.sh` was clean for FEAT-29 with two violations on FEAT-26/FEAT-28 unapproved BRIEFs —
+- `check-state.py` was clean for FEAT-29 with two violations on FEAT-26/FEAT-28 unapproved BRIEFs —
   operator's run on this tree, minutes before spawn — **UNVERIFIED by me** (a re-run costs ~507 of
   1,327 remaining points)
 - Issues #579–#587 may or may not be on board 3; `gh-sync.py open` printed no station line —
@@ -36,7 +36,7 @@ via `harness-validator-lead`. Then write `notes/layer0-segments-FEAT-29.md`'s ba
   worktree from the branch point carries no `plan.yaml` — `git status --porcelain` at spawn —
   verified-at 3920513
 - Do not land T-01/T-04 early to parallelise — both perturb the tree SC-04 compares
-  (`factory_gh.py` is imported by `check-state.sh`; T-03 writes `.harness/logs/gh-cost-<date>.jsonl`
+  (`factory_gh.py` is imported by `check-state.py`; T-03 writes `.harness/logs/gh-cost-<date>.jsonl`
   during the gate run) — `notes/layer0-segments-FEAT-29.md` — verified-at 3920513
 - Do not re-open Q1 or add a pruning task — operator ruling — `BRIEF.md:141` — verified-at 3920513
 - Do not "upgrade" SC-01/SC-03 from `verify: inspection` to automated — that is a plan change —
@@ -48,4 +48,4 @@ via `harness-validator-lead`. Then write `notes/layer0-segments-FEAT-29.md`'s ba
 - `.harness/harness/features/FEAT-29-graphql-budget/notes/layer0-segments-FEAT-29.md`
 - `.harness/harness/features/FEAT-29-graphql-budget/BRIEF.md` (SC-01..SC-10, constraints)
 - `.harness/harness/features/FEAT-29-graphql-budget/feature.json`
-- `.claude/skills/harness/bin/check-state.sh` (INV-26 at 1120-1240)
+- `.claude/skills/harness/bin/check-state.py` (INV-26 at 1120-1240)

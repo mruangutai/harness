@@ -47,7 +47,7 @@ goal-check caught it.
 > - A checkout with only ignored files present is NOT refused -- ignored dirt is not work.
 > - The computed path resolving to the harness repo is refused even when clean.
 > - A genuinely clean scratch checkout still refreshes exactly as today.
-> - run-unit-tests.sh exits 0.
+> - run-unit-tests.py exits 0.
 
 ## Evidence from the read-only scout (main session, this session, at HEAD)
 
@@ -94,7 +94,7 @@ Each item names how it was taken. Items 1, 2 and 5 correct or extend the scout's
    the recorder to answer `status --porcelain`; the file-survives-byte-identical criterion needs a
    real temporary git repository instead, which is reachable because the guard fires BEFORE the
    first `fetch` (no network).
-7. **Domain routing** (`check-domain.sh --resolve`, run by the orchestrator):
+7. **Domain routing** (`check-domain.py --resolve`, run by the orchestrator):
    `.claude/skills/harness/bin/factory_workspace.py` → harness-backend-dev, harness-dev-ops;
    `tests/unit/test-factory-workspace.py` → harness-backend-dev, harness-dev-ops, harness-qa.
    Both are team-lane surfaces; no main-session-direct carve-out is involved.

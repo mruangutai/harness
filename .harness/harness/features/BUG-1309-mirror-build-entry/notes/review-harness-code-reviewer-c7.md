@@ -27,7 +27,7 @@ test suite itself flipped polarity in the same commit, not left stale. Ran the w
 
 No scope creep found: `merge-settings.py`'s HOOK_SPECS addition, the three hook-array registrations,
 `feature_schema.BUILD_ENTRY_ERA_EXEMPT`/`recovery_command_for`, `gh-sync.py`'s `record_build_entry`/
-`_build_entry_preflight`/`recover-terminal` family, and `check-state.sh` INV-37 all trace cleanly to
+`_build_entry_preflight`/`recover-terminal` family, and `check-state.py` INV-37 all trace cleanly to
 REQ-01..REQ-10 and D-01..D-12 with no unrequested behaviour added. No omission found in the surfaces
 read (below). SC-09 (doc naming) not independently re-read word-for-word this cycle — no code change
 in this diff touches `github-mirror.md`/`SKILL.md` beyond what six prior cycles already inspected at
@@ -39,7 +39,7 @@ this same pin (unchanged since); not re-litigated.
 `record_build_entry`, `_build_entry_preflight`, `_build_entry_recovery_notice`,
 `cmd_recover_terminal` + its three helpers, `main`'s `_BUILD_ENTRY` arming, `cmd_ship`'s new skip
 text); `feature_schema.py` full diff (`BUILD_ENTRY_ERA_EXEMPT`, `recovery_command_for`);
-`check-state.sh` INV-37 block in full; `post-merge-sweep.sh`'s new retention block in full;
+`check-state.py` INV-37 block in full; `post-merge-sweep.py`'s new retention block in full;
 `.claude/settings.json`, `templates/settings.snippet.json`, `.omp/extensions/harness-hooks.ts`,
 `merge-settings.py` HOOK_SPECS diffs. Not re-read line-by-line this cycle: `feature-schema.json`,
 the four test files beyond spot-checking case names/counts, and the two doc files (six prior cycles
@@ -53,16 +53,16 @@ already covered these; nothing in this pin's diff touches them).
   unreadable/absent plan.yaml. This fails toward the SAFER command — recover-terminal creates zero
   task sub-issues, `open` on an actually-finished feature would recreate the exact historical-issue
   bug this feature exists to close (FEAT-55). Correct fail direction, not a gap.
-- `check-state.sh` INV-37 (:1993-1996): `_sync37 = bool(...) except Exception: False` — a malformed
+- `check-state.py` INV-37 (:1993-1996): `_sync37 = bool(...) except Exception: False` — a malformed
   `harness.json` silently disables the INV-37 loop with no dedicated diagnostic. NOT a coverage hole
   in practice: `cj`/`cfg` parsing at :995-1002 (unconditional, earlier in the same file) already
   appends `".harness/harness.json is not valid JSON."` to `bad` for the identical failure mode, so
   the operator is never left without a violation. **[info]** — INV-37 re-parses `harness.json`
   independently instead of reusing the already-validated `cj`, which is pure duplication risk (a
   future edit to the earlier parse's error handling would silently uncouple from this one) rather
-  than a live gap. Introduced at this pin (new code, `git show 894adc0f^:.../check-state.sh` has no
+  than a live gap. Introduced at this pin (new code, `git show 894adc0f^:.../check-state.py` has no
   INV-37 block at all — confirmed, entire block is new). Non-gating.
-- `post-merge-sweep.sh`'s new retention block (:213-232): `except (OSError, json.JSONDecodeError):
+- `post-merge-sweep.py`'s new retention block (:213-232): `except (OSError, json.JSONDecodeError):
   SKIP removal ... return` on failure to read either config file — fails toward RETAINING the
   worktree (the safe direction: an operator can always remove a wrongly-kept worktree by hand, but a
   wrongly-removed one loses the evidence this whole feature exists to preserve). Correct direction.
@@ -75,7 +75,7 @@ already covered these; nothing in this pin's diff touches them).
   For `recover-terminal`, `_BUILD_ENTRY` stays unarmed (no `feat_dir`), so a `load_config` skip
   (e.g. gh outage) during recovery writes nothing at all, leaving the record exactly as it was
   (absent or `recovery-required`) — satisfies REQ-09's "leaves the feature non-terminal"; the
-  worktree-keeps half of REQ-09 is already decided earlier by `post-merge-sweep.sh` at the original
+  worktree-keeps half of REQ-09 is already decided earlier by `post-merge-sweep.py` at the original
   merge event and is not re-evaluated by a later `recover-terminal` invocation, so there is nothing
   here to re-derive dynamically. No gap found on this path.
 
@@ -163,7 +163,7 @@ mechanical result exactly (not my own reading of it).
    `merge-gate.py:136-137,145-146` — the DEC-138 stderr message is duplicated verbatim; at the second
    site "owes no build-entry receipt" misdescribes a record that is actually held/compliant.
    Cosmetic. Non-gating.
-3. **[info, new at this pin]** `check-state.sh:1993-1996` (INV-37) — re-parses `harness.json`
+3. **[info, new at this pin]** `check-state.py:1993-1996` (INV-37) — re-parses `harness.json`
    independently of the file's own already-validated `cj`/`cfg` (set at :995-1002, which already
    flags invalid JSON as a `bad` finding). Currently harmless — no live coverage gap — but is
    duplicated parsing that could silently drift from the primary parse in a future edit. Non-gating.

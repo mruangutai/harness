@@ -8,21 +8,21 @@ nothing.** `plan.yaml` is untouched by this run.
 Observed at worktree HEAD `0a120c6`, `.harness/harness/docs/DECISIONS.md` working tree 6277 lines
 (the 6291 figure handed to me is stale).
 
-## T-15 — `check-expertise.sh` invoked with no argument
+## T-15 — `check-expertise.py` invoked with no argument
 
 `plan.yaml` T-15 `verify:` line reads:
 
 ```
-      bash .claude/skills/harness/bin/check-expertise.sh || exit 1
+      python3 .claude/skills/harness/bin/check-expertise.py || exit 1
 ```
 
-The script requires at least one path: run bare it prints `usage: check-expertise.sh
+The script requires at least one path: run bare it prints `usage: check-expertise.py
 <file-or-dir> ...` and exits **2**, so `|| exit 1` fires and the block can never pass. Passed the
 file it exits 0 (`OK   .harness/harness/expertise/harness-documentor.md`). `$E` is already bound two
 lines above. **Replacement line, verbatim:**
 
 ```
-      bash .claude/skills/harness/bin/check-expertise.sh "$E" || exit 1
+      python3 .claude/skills/harness/bin/check-expertise.py "$E" || exit 1
 ```
 
 With that one change the whole T-15 block runs green today: no `amendment` match, `P-01: WHEN`
@@ -36,14 +36,14 @@ present, `P-02:` present, checker exit 0. Verified by dry run.
       printf '%s\n' "$OUT" | grep -q 'KIND-DRIFT' && { echo 'KIND-DRIFT fired'; exit 1; }
 ```
 
-My own measurement of `bash run-unit-tests.sh --kind integration 2>&1` (160 s, runner exit 1):
+My own measurement of `python3 run-unit-tests.py --kind integration 2>&1` (160 s, runner exit 1):
 **6 bare `KIND-DRIFT` matches, 0 matches for `^KIND-DRIFT:`.** All six are passing-case labels from
 `test-run-unit-tests-kinds.py`, the suite *for* the drift detector — e.g. `ok    case 2: a
 KIND-DRIFT line NAMES test-check-state.py`. The clause therefore fires on green, and the block
 exits 1 while both required lines are present (`PASS test-check-decision-anchors.py`, `PASS
 test-check-decision-claims.py` both observed). The real detector prints at column 0 —
 `print("KIND-DRIFT: %s is in INTEGRATION_SCRIPTS…", file=sys.stderr)`,
-`run-unit-tests.sh:112,123,128`. **Replacement line, verbatim:**
+`run-unit-tests.py:112,123,128`. **Replacement line, verbatim:**
 
 ```
       printf '%s\n' "$OUT" | grep -q '^KIND-DRIFT:' && { echo 'KIND-DRIFT fired'; exit 1; }

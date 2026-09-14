@@ -39,6 +39,6 @@ T-01 -> T-02 -> T-03 -> T-04 through `depends_on` so no two edit it concurrently
 
 ## Open, not answered here
 
-- Whether BUG-1302 should amend DEC-174's enumeration to name `run-unit-tests.sh` (Q1).
+- Whether BUG-1302 should amend DEC-174's enumeration to name `run-unit-tests.py` (Q1).
 - Whether the operator accepts remedy (a) and the main-session ownership of the red it can produce
   (Q2). The BRIEF pins (a); a different answer re-plans T-03 only.

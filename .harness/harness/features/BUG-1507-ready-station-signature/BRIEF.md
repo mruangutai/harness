@@ -176,7 +176,7 @@ names, no schema change, no station-enum work.
   because no machine contract exists for them — a test asserting their wording would pin source text,
   which is not a contract, so they are graded by inspection instead.
 - **No criterion rests on a null-runner kind.** `integration` is active
-  (`.claude/skills/harness/bin/run-unit-tests.sh --kind integration`) and its detect glob
+  (`.claude/skills/harness/bin/run-unit-tests.py --kind integration`) and its detect glob
   `tests/integration/**` matches the file T-05 adds. `component`, `ui`, `typecheck` and `eval` are
   null or excluded here and no criterion touches them.
 - **Residual, stated rather than hidden:** nothing proves the orchestrator OBEYS the new `building`

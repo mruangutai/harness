@@ -42,7 +42,7 @@ FALSIFICATION — The concrete parser failure remains: “the scanner dropped an
 
 ## DEC-174
 BELIEF — The superseded factory-workspace reading remains explicit: “that route resolves to NOBODY, or that it is merely unsanctioned.”
-FALSIFICATION — The post-removal measurement remains: an undeclared factory-workspace repository makes `check-domain.sh --resolve` exit **2**, not return NOBODY.
+FALSIFICATION — The post-removal measurement remains: an undeclared factory-workspace repository makes `check-domain.py --resolve` exit **2**, not return NOBODY.
 
 ## DEC-183
 BELIEF — The rejected implementation is still characterized: “The harness was too heavy” because it cloned a workspace and executed workflow bodies.
@@ -57,7 +57,7 @@ BELIEF — The outside-repository Bash pass-through remains, narrowed rather tha
 FALSIFICATION — The malformed-fleet exception remains measured: “absent 0, valid 0, malformed 0 before and **2** now.”
 
 ## DEC-194
-BELIEF — The rejected applicability rule remains named: keying applicability to `check-state.sh`’s own path “is wrong by construction.”
+BELIEF — The rejected applicability rule remains named: keying applicability to `check-state.py`’s own path “is wrong by construction.”
 FALSIFICATION — The observed consequence remains: init installed that marker in every product, so every product became applicable, held neither layout, and reported `CANNOT VERIFY` forever.
 
 ## DEC-181

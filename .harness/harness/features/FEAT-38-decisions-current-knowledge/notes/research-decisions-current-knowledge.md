@@ -93,17 +93,17 @@ whole index-contract ticket. Anything wider is out.
 
 ## DEC-181 — the ruling, and why it is not the operator's
 
-DEC-181 is **live**, not struck. Its budget half is enforced at `check-domain.sh:1335`
+DEC-181 is **live**, not struck. Its budget half is enforced at `check-domain.py:1335`
 (`CLAUDE.md is {n} lines — budget is 80 (DEC-181)`). The `**STRUCK IN PART**` paragraph is an
 amendment wearing a strike's clothes: it narrates what a *different* half used to say. Under the
 grilled destination it is folded like any amendment, and DEC-181 is not a deletion candidate. This is
 derivable from the code, so it is a decision, not a question.
 
 Two false claims inside its body, both corrected in the same fold:
-- it cites `check-domain.sh:779-780`, which at HEAD is a DEC-171 comment block about a manifest that
+- it cites `check-domain.py:779-780`, which at HEAD is a DEC-171 comment block about a manifest that
   will not parse — nothing to do with a budget;
 - it says peers include `feature.yaml 200/20`; the code says `feature.json` 300
-  (`check-domain.sh:1103`, `:1303`).
+  (`check-domain.py:1103`, `:1303`).
 
 ## M1 — existence proof, and the design that is weak enough
 
@@ -124,10 +124,10 @@ that exists and now says something unrelated. That is M2's job, and duplicating 
 - Absence assertions written as `! grep -qE …` (exit-status form, never `test "$(… | wc -l)" = 0`)
   **fail today** on the amendment pattern, and the 15-id per-id loop reports all fifteen present.
   Each verify in the plan was shown to reject the current tree.
-- `run-unit-tests.sh` is deliberately **not** a task `verify:` — it is the whole suite and belongs to
+- `run-unit-tests.py` is deliberately **not** a task `verify:` — it is the whole suite and belongs to
   the qa gate (SC-11), not to a 60-second task check.
 
-## Lanes — `check-domain.sh --resolve`, run per path
+## Lanes — `check-domain.py --resolve`, run per path
 
 `harness-documentor`: `DECISIONS.md`, `DECISIONS-INDEX.md`, `SPEC.md`, `BUILD.md`,
 `.harness/harness/expertise/harness-documentor.md`.
@@ -145,9 +145,9 @@ returns 149 files. No path in the plan spells `.agents/skills`.
 
 ## Registration trap for the two new checkers
 
-`run-unit-tests.sh:123` runs a KIND-DRIFT check: every name in `INTEGRATION_SCRIPTS` must appear as
+`run-unit-tests.py:123` runs a KIND-DRIFT check: every name in `INTEGRATION_SCRIPTS` must appear as
 an explicit literal path in `harness.json`'s `integration` detect. The two halves live in **different
-lanes** (`run-unit-tests.sh` → backend-dev, `.harness/harness.json` → dev-ops), so a new test script
+lanes** (`run-unit-tests.py` → backend-dev, `.harness/harness.json` → dev-ops), so a new test script
 registered on one side only makes the runner exit 2. The plan orders `harness.json` first and gives
 that task a verify that does not invoke the runner.
 

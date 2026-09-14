@@ -9,13 +9,13 @@ sweep, not as its point.
 **The user split this into TWO features.** This artifact seeds both; pm coins the ids (DEC-133).
 
 - **Feature 1 — the `.yaml` file parsers.** PyYAML as an init prerequisite, plus conversion of
-  `check-state.sh`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`, `check-domain.sh`,
-  `bash-write-guard.sh`.
+  `check-state.py`, `gh-sync.py`, `cost-report.py`, `upgrade-config.py`, `check-domain.py`,
+  `bash-write-guard.py`.
 - **Feature 2 — the DIGEST parser.** Fence the three-part return, convert `validate-digest.py`.
 
 **Feature 2 is BLOCKED ON Feature 1 and must not be planned in parallel.** `validate-digest.py`
 cannot `import yaml` until Feature 1's init gate makes PyYAML a guaranteed prerequisite, and both
-features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
+features edit `bin/` and `run-unit-tests.py`. Plan and ship Feature 1 first.
 
 ## Settled
 
@@ -31,7 +31,7 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
   `requirements.txt` — nothing in the harness would read it, and it would be the first dependency
   manifest in a files-only repo.
 - **Hook behaviour when PyYAML is absent** → **fail CLOSED, block the write.** This reverses
-  DEC-101's fail-open reasoning for `check-domain.sh`. **Also needs recording as a decision.**
+  DEC-101's fail-open reasoning for `check-domain.py`. **Also needs recording as a decision.**
 - **Bootstrap escape** → one exception to fail-closed: if PyYAML is missing, the hook prints the
   install command and permits writes **for that session only**, blocking from the next session on.
   Without this, an existing project that pulls the update without re-running init has every agent
@@ -59,18 +59,18 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
 - Whether the six converted scripts share one YAML helper module or each import `yaml` directly.
   Recommended a shared `bin/harness_yaml.py` during grilling, but this is architecture — eng-lead
   reviews it, and pm should not have it pre-decided.
-- How `bash-write-guard.sh` and `check-domain.sh` detect "same session" for the one-time bypass.
+- How `bash-write-guard.py` and `check-domain.py` detect "same session" for the one-time bypass.
   Sharp enough to state, not yet answered; a marker file under `.harness/` is the obvious shape but
   its lifecycle is unexamined.
 - **Who edits the 13 return templates in Feature 2.** RESOLVED 2026-08-02 — the user assigned it to
   the main session, which did it. Retained here because the underlying question is unresolved: `team-config.yaml:35` states
   `.claude/agents/** IS DELIBERATELY UNOWNED — no agent may write it, and that is the point.` So
-  `check-domain.sh` blocks every template edit, and DEC-172's "templates and parser ship together"
+  `check-domain.py` blocks every template edit, and DEC-172's "templates and parser ship together"
   is unsatisfiable by any agent as the org stands. This is the FEAT-03 Q13 shape recurring
   (`FEAT-03-subissue-mirror/feature.yaml:96` — "no agent domain covers it"). Either the main session
   makes those edits pre-ship, or the ownership rule needs revisiting. **Feature 2 cannot be planned
   until this is answered.**
-- **`check-state.sh` gets no bootstrap escape, but the hooks do.** On a PyYAML-less machine the hooks
+- **`check-state.py` gets no bootstrap escape, but the hooks do.** On a PyYAML-less machine the hooks
   permit writes for one session while the `/harness` door refuses to open — so the recovery path is
   "edit files outside the harness." That may be intended; it is currently unstated.
 
@@ -79,32 +79,32 @@ features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
 - Making DIGEST a real file (feature 2's rejected alternative — recorded, not planned).
 - Issue #10 (`validate-digest` `change_type` vocabulary lacks `logic`). Same file, different defect:
   a schema-vocabulary gap, not a parser bug. Not absorbed.
-- The other regex in `check-state.sh` that is not YAML parsing (`CHECKPOINT_KEYS` whitelist at :279
+- The other regex in `check-state.py` that is not YAML parsing (`CHECKPOINT_KEYS` whitelist at :279
   is a key check, and the `T-\d+` scan at :89 reads markdown).
 
 ## Facts I verified (so pm does not re-derive them)
 
 All at `37a8a66`.
 
-- **Six production scripts hand-parse YAML.** `check-state.sh` (17 regex calls), `gh-sync.py` (11),
-  `validate-digest.py` (11), `check-domain.sh` (9), `bash-write-guard.sh` (6), `upgrade-config.py`
+- **Six production scripts hand-parse YAML.** `check-state.py` (17 regex calls), `gh-sync.py` (11),
+  `validate-digest.py` (11), `check-domain.py` (9), `bash-write-guard.py` (6), `upgrade-config.py`
   (2), `cost-report.py` (1). Counted with `grep -cE 're\.(search|findall|match|finditer)'`.
   **Caveat found in FEAT-05 planning:** `cost-report.py` does not PARSE YAML into values — it does a
   targeted line-scan replacement of the `cost:` block (`:189`). Whether it belongs in the sweep is a
   scope judgment, not a given; the BRIEF's REQ-01 named it without that distinction.
 - **The three "shell" scripts are bash wrappers around embedded Python heredocs** —
-  `check-domain.sh:35,74,97,235`, `bash-write-guard.sh:24,48`, `check-state.sh:17`. There is no
-  Python-startup cost to *add*; `check-domain.sh` already launches the interpreter three times per
+  `check-domain.py:35,74,97,235`, `bash-write-guard.py:24,48`, `check-state.py:17`. There is no
+  Python-startup cost to *add*; `check-domain.py` already launches the interpreter three times per
   hook call. Consolidating would likely make it faster.
 - **Measured latency, 100 iterations each:** bare `python3 -c pass` 16.7ms · `python3 -c 'import
-  yaml'` 29ms · `check-domain.sh` on a `{}` payload 23.7ms. **The 23.7ms figure is WRONG for the
+  yaml'` 29ms · `check-domain.py` on a `{}` payload 23.7ms. **The 23.7ms figure is WRONG for the
   governed path** — a `{}` payload has no `agent_type` and returns early, so it never exercised the
   hook. dev-ops measured the real governed path at **80.63ms** during FEAT-05 planning. Use that.
 - **PyYAML is NOT importable from `/opt/homebrew/bin/python3`**, and PEP 668 rejects a plain
   `pip install` (`--dry-run` output names `--break-system-packages` as the override).
 - **Apple's `/usr/bin/python3` DOES ship PyYAML 6.0.1.** Do not pin it — macOS-only and deprecated
   for scripting; it would break Linux, CI, and the distributable package.
-- **The #11 defect, precisely:** `check-state.sh:109`'s block-form regex requires `\s*\n` after the
+- **The #11 defect, precisely:** `check-state.py:109`'s block-form regex requires `\s*\n` after the
   `id:` and `squad:` captures, so a trailing `#` comment on either line drops the entire run from
   `runs`, silently failing open on INV-6, INV-7 and INV-8 at exit 0. Reproduced directly. It has not
   fired only because those two lines carry no comments anywhere today (0 of them, vs 18 on
@@ -113,7 +113,7 @@ All at `37a8a66`.
 - **An author already hit this and routed around it instead of fixing it** —
   `FEAT-03-subissue-mirror/feature.yaml:63-64` carries a written warning about exactly this bug.
 - **The defect class is documented repeatedly in-tree; #11 is not its first appearance.** I did not
-  verify an ordinal and am not claiming one. What is checkable: `check-state.sh:105-107` names two
+  verify an ordinal and am not claiming one. What is checkable: `check-state.py:105-107` names two
   priors in its own comment (DEC-123 digest parser, DEC-129 INV-4), DEC-101 records an INV-12 false
   positive on block-form YAML, and `validate-digest.py:247-272` documents five hand-patches of the
   same class — one (F4) a trailing-`#`-comment fix identical to #11, found independently.
@@ -124,7 +124,7 @@ All at `37a8a66`.
 - **The three-part return is already a well-formed YAML mapping** (`VERDICT:` scalar, `DIGEST:`
   mapping, `artifact:` scalar) but is unfenced in free prose — `harness-handoff/SKILL.md:14-22`. All
   five patches are boundary-detection bugs, not YAML bugs.
-- **`check-state.sh` currently passes** — exit 0, zero violations; all output is INV-8 notes about
+- **`check-state.py` currently passes** — exit 0, zero violations; all output is INV-8 notes about
   pruned run dirs.
 - **No `requirements.txt`, `pyproject.toml` or `package.json` exists at repo root.**
 - **Open backlog checked** (`gh issue list`): #11 is the anchor. #12, #13, #14 are test-coverage

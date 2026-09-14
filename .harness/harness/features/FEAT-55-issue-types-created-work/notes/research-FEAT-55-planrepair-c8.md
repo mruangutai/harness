@@ -40,7 +40,7 @@ feature, so omitting it would make the enumeration incomplete about a read this 
 the defect the row exists to prevent.
 
 **Durable guard: a new standing unit test, `tests/unit/test-issue-types-pin.py`, written by T-01.**
-`run-unit-tests.sh` globs `tests/unit/test-*.py`, so it runs forever. It asserts presence in
+`run-unit-tests.py` globs `tests/unit/test-*.py`, so it runs forever. It asserts presence in
 `DECISIONS.md`, presence in `github-mirror.md`, and identity between the two **as three separate
 failures** — a comparison alone would pass when both copies are missing (two absent extractions
 compare equal), which is exactly the state the guard exists to catch. T-01's verify greps for

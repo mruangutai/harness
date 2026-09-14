@@ -50,8 +50,8 @@ Six files, six citations, each read via `git show 62debeaf:<path>`:
 | file | line | what it states |
 |---|---|---|
 | `bin/check-instruction-paths.py` | 12–15 | `MAIN_SESSION_ONLY` rationale is the anchor rule over a clone-relative `core.hooksPath`, not product ownership |
-| `bin/check-state.sh` | 111 | `this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.` (its other three remedies: `:287`, `:406`, `:2373`, all clone-scoped) |
-| `bin/check-domain.sh` | 384–386 | `a product repository never carries one. Run /harness-init in the control-plane clone.` |
+| `bin/check-state.py` | 111 | `this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.` (its other three remedies: `:287`, `:406`, `:2373`, all clone-scoped) |
+| `bin/check-domain.py` | 384–386 | `a product repository never carries one. Run /harness-init in the control-plane clone.` |
 | `bin/upgrade-config.py` | 4–6 | docstring: a member's `harness.json` `must then be committed to the repository's default branch to be read at all` (remedies at `:192`, `:236`, both clone-scoped) |
 | `bin/gh-sync.py` | 255–256 | skip message: `for a fleet member, that file lives in the member's own repository on its default branch` |
 | `bin/layout_migration.py` | 123–131 | `MARKER` applicability: `Onboarding installs no bin/ into a product repository at all`; marker is `.harness/factory/fleet.yaml` |
@@ -102,7 +102,7 @@ itself is re-run here.
 
 ### SC-06 — `met` (automated, re-run)
 
-`run-unit-tests.sh --kind unit` → **exit 0**, `pool: 8 workers, 34 files, 2.23s wall`.
+`run-unit-tests.py --kind unit` → **exit 0**, `pool: 8 workers, 34 files, 2.23s wall`.
 Four `^FAIL ` lines appear (lines 957–962 of the run log) and **all four are inside
 `test-factory-claim-mutation.py`'s by-design mutant output** — that file's own banner is
 `----- test-factory-claim-mutation.py (exit 0, 0.35s) -----` and its verdict line is
@@ -110,7 +110,7 @@ Four `^FAIL ` lines appear (lines 957–962 of the run log) and **all four are i
 
 ### SC-07 — `met` (automated, re-run)
 
-`run-unit-tests.sh --kind integration` → **exit 0**, `pool: 8 workers, 49 files, 69.30s wall`.
+`run-unit-tests.py --kind integration` → **exit 0**, `pool: 8 workers, 49 files, 69.30s wall`.
 Grepped the whole run for a skip tied to a skill anchor: **no non-PASS skip/anchor line**;
 `test-check-decision-anchors.py` passes including `ok - test_live_authority_anchors_all_resolve`,
 and `PASS - product clone can read anchored systematic-debugging skill`. No case reports a skip for
@@ -139,10 +139,10 @@ Only the operator's stated PASS/FAIL settles it.
 - **REQ-02** (SC-02) — **covered.** Both command strings present verbatim at `SKILL.md:78,85` and
   the hooks-install suite green.
 - **REQ-03** (SC-03) — **partly covered.** All six named sites state the central model, but
-  `bin/check-state.sh:374` still asserts `COPIED INTO EVERY ONBOARDED PROJECT by /harness-init` —
+  `bin/check-state.py:374` still asserts `COPIED INTO EVERY ONBOARDED PROJECT by /harness-init` —
   an executable site asserting the deleted model, outside SC-03's four-remedy scope for that file.
 - **REQ-04** (SC-04, SC-10) — **partly covered.** All fifteen files carry a correct statement and
-  the template parses, but `templates/harness.json:5` still says `check-state.sh is copied into
+  the template parses, but `templates/harness.json:5` still says `check-state.py is copied into
   every onboarded project` — inside T-05's own `files:` list, and the same claim is mirrored in this
   clone's live `.harness/harness.json:4`.
 - **REQ-05** (SC-05) — **covered.** `--check-product-configs` names the unreachable member and exits
@@ -157,10 +157,10 @@ Only the operator's stated PASS/FAIL settles it.
 files.** Both criteria grade by *one `file:line` per named file*; a file whose cited line is correct
 passes even when a second line in the same file contradicts it. Concretely, at 62debeaf:
 
-- `.claude/skills/harness/bin/check-state.sh:373-374` — `THE BOUNDARY IS PER-PROJECT CONFIG … This
+- `.claude/skills/harness/bin/check-state.py:373-374` — `THE BOUNDARY IS PER-PROJECT CONFIG … This
   file is COPIED INTO EVERY ONBOARDED PROJECT by /harness-init`. False under the central model:
   `deploy.sh` is deleted (DEC-113) and nothing distributes `bin/`.
-- `.claude/skills/harness/templates/harness.json:5` (`_panel_era_start_note`) — `check-state.sh is
+- `.claude/skills/harness/templates/harness.json:5` (`_panel_era_start_note`) — `check-state.py is
   copied into every onboarded project, so this MUST be per-project`. **This file is in T-05's
   `files:` list and is SC-04 item #9**; the criterion's citation (`:2`) is correct, the file is not.
 - `.harness/harness.json:4` — the same sentence, in this control plane's live config. Not named by

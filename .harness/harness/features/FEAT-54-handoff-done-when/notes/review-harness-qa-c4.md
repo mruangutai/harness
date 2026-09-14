@@ -16,8 +16,8 @@ Plan change types are `logic` (T-01/02/03/04/06/07/12), `config` (T-05), `docs` 
 
 Both configured commands were run from repository root with only `HARNESS_AGENT_TYPE` unset to prevent the documented governed-agent identity leak; the command portion is byte-for-byte the configured `test_kinds.<kind>.cmd`.
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0; runner reported `pool: 8 workers, 25 files`; non-zero discovery; it executed both FEAT-54 unit files.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0; runner reported `pool: 8 workers, 44 files`; non-zero discovery; it executed all three FEAT-54 integration files.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0; runner reported `pool: 8 workers, 25 files`; non-zero discovery; it executed both FEAT-54 unit files.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0; runner reported `pool: 8 workers, 44 files`; non-zero discovery; it executed all three FEAT-54 integration files.
 
 No assertion, import, collection, syntax, load, or discovery failure occurred. Required-kind states are therefore `unit: satisfied` and `integration: satisfied`; `matrix_ok: true`.
 
@@ -34,9 +34,9 @@ No perturbation was authored in this gate-only dispatch. Discrimination claims a
 
 ## SC-04 and required inspections
 
-- **SC-04 PASS:** exact root command `bash .claude/skills/harness/bin/check-state.sh` exited **0**. Search of its complete 812-line capture found **0** case-sensitive `Done when` matches and **0** `VIOLATION` matches. The output consists only of advisory `note` rows. This independently closes c3 F-04; the previous FEAT-51 missing-handoff violation is absent at this pin.
-- **SC-07 PASS (inspection):** `check-domain.sh:1561-1566` imports and calls `handoff_done_when.problems(..., resolve=True)` and fails closed; `check-state.sh:53-56,1243-1251` imports and calls the same implementation with `resolve=False`. Neither gate contains a second Done-when block parser or target resolver.
-- **SC-08 PASS (inspection):** template/playbook, DEC-159/214, and both gate implementations state five sections and name `## Done when`. The surviving four-heading statements at `check-state.sh:1194-1202,1215-1219` are the BRIEF-authorized, commit/feature-bound historical observations, not current-contract claims.
+- **SC-04 PASS:** exact root command `python3 .claude/skills/harness/bin/check-state.py` exited **0**. Search of its complete 812-line capture found **0** case-sensitive `Done when` matches and **0** `VIOLATION` matches. The output consists only of advisory `note` rows. This independently closes c3 F-04; the previous FEAT-51 missing-handoff violation is absent at this pin.
+- **SC-07 PASS (inspection):** `check-domain.py:1561-1566` imports and calls `handoff_done_when.problems(..., resolve=True)` and fails closed; `check-state.py:53-56,1243-1251` imports and calls the same implementation with `resolve=False`. Neither gate contains a second Done-when block parser or target resolver.
+- **SC-08 PASS (inspection):** template/playbook, DEC-159/214, and both gate implementations state five sections and name `## Done when`. The surviving four-heading statements at `check-state.py:1194-1202,1215-1219` are the BRIEF-authorized, commit/feature-bound historical observations, not current-contract claims.
 - **SC-11 PASS:** with `BASE=0ec44965a961d19177de871c3bb1f02b701e646b`, the prescribed historical-note intersection printed nothing. The positive-control arm was non-empty with four paths and equaled the added-only arm set-for-set: FEAT-51 `handoff-validate.md` plus FEAT-54 `handoff-build.md`, `handoff-plan.md`, and `handoff-validate.md`. No base-existing handoff was touched.
 
 ## Exact 16-path inspection census
@@ -45,10 +45,10 @@ No perturbation was authored in this gate-only dispatch. Discrimination claims a
 2. `tests/unit/test-handoff-done-when.py`
 3. `tests/unit/test-probe-handoff-comprehension.py`
 4. `tests/integration/test-check-domain.py`
-5. `.claude/skills/harness/bin/check-domain.sh`
+5. `.claude/skills/harness/bin/check-domain.py`
 6. `.harness/harness.json`
 7. `tests/integration/test-check-state.py`
-8. `.claude/skills/harness/bin/check-state.sh`
+8. `.claude/skills/harness/bin/check-state.py`
 9. `.claude/skills/harness/templates/HANDOFF.md`
 10. `.claude/skills/harness/SKILL.md`
 11. `tests/manual/probe-handoff-comprehension.py`
@@ -87,8 +87,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

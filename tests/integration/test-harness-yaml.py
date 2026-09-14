@@ -25,14 +25,14 @@ if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
 # Repo root: four levels above .agents/skills/harness/bin. CLAUDE_PROJECT_DIR
-# overrides when the caller has already resolved it (run-unit-tests.sh does).
+# overrides when the caller has already resolved it (run-unit-tests.py does).
 REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )
 MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
 
 # D-03 equivalence fixture: the PRE-change collect() output from
-# check-domain.sh:105-126, run against this repo's real .harness/team-config.yaml
+# check-domain.py:105-126, run against this repo's real .harness/team-config.yaml
 # and inlined here as literals (not derived from harness_yaml — that would prove
 # nothing). manifest_domains() must return exactly these tuples for these agents.
 # The nine `shared` manifest paths every agent's row below repeats verbatim. ONE literal
@@ -531,18 +531,18 @@ def test_require_or_die_survives_a_missing_harness_boundary():
     """require_or_die()'s root-resolution is used for exactly one thing: best-effort
     unlink of the PyYAML bootstrap marker (`_marker_path`, reached only inside
     `if yaml is not None:`). That cleanup must not be able to abort every caller of
-    require_or_die() — including check-state.sh, the canonical pre-commit state
+    require_or_die() — including check-state.py, the canonical pre-commit state
     checker — when harness_boundary.py (a DIFFERENT module) is missing or its
     resolve_root() raises.
 
     Regression: FEAT-42 T-05 added a lazy `import harness_boundary` inside
     require_or_die(). In an isolated bin/ carrying only harness_yaml.py (no
-    harness_boundary.py — check-state.sh's own u.7/x.5 fixtures build exactly this),
+    harness_boundary.py — check-state.py's own u.7/x.5 fixtures build exactly this),
     that import raised ModuleNotFoundError UNCAUGHT, so require_or_die() crashed with
     a raw traceback and exit 1 instead of returning normally — exit 1 is
-    NON-BLOCKING, and worse, check-state.sh never reached its own later, PROPERLY
+    NON-BLOCKING, and worse, check-state.py never reached its own later, PROPERLY
     guarded INV-25/INV-27 checks at all. Fail-open, same class as the module-level
-    import T-05 already fixed for bash-write-guard.sh/check-domain.sh, one caller
+    import T-05 already fixed for bash-write-guard.py/check-domain.py, one caller
     later."""
     import shutil
 
@@ -621,21 +621,21 @@ def test_exactly_one_guarded_import_in_the_tree():
     # required dependency, each living in the module whose job IS that
     # dependency's policy. FEAT-14 (D-04) added jsonschema as a second
     # required dependency, so feature_schema.py is now allowed alongside
-    # harness_yaml.py. check-domain.sh is T-06's tight try around
+    # harness_yaml.py. check-domain.py is T-06's tight try around
     # `import feature_schema` — T-06 is main-session-direct and lands AFTER
     # this fix, so it holds zero occurrences of the needle right now. This
     # MUST be a subset (`<=`), never `==`: an equality assertion sized to all
-    # three fails immediately (check-domain.sh is empty today), and one sized
+    # three fails immediately (check-domain.py is empty today), and one sized
     # to today's two goes red the moment T-06 lands with nothing driving it.
     # Subset is what spans that window without losing the cap.
     # feature-worktree.py added 2026-08-20 by operator ruling (FEAT-30 Q1). T-01's SIGNED
     # intent required it: "import harness_boundary lazily and, if the import fails, exit 2
     # with a message naming the module." It guards a FIRST-PARTY sibling, which is the same
-    # category check-domain.sh is already allowed for — not a fourth third-party fallback,
+    # category check-domain.py is already allowed for — not a fourth third-party fallback,
     # which is what this cap exists to prevent. The alternative considered and rejected was
     # dropping the guard: it breaks no test today, because NOTHING exercises the guarded
     # branch, but it departs from signed text to buy nothing.
-    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.sh",
+    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
                "feature-worktree.py"}
     assert set(guarded_hits) <= allowed, (
         f"unexpected guarded-import file(s) outside the allowed set: "
@@ -687,7 +687,7 @@ def test_duplicate_key_is_catchable_as_a_parse_error():
     defeating the very handler each had just added.
 
     Finding 5: the message must also carry DEC-156's guidance, because removing
-    check-state.sh's dedicated scan dropped that wording from the codebase entirely
+    check-state.py's dedicated scan dropped that wording from the codebase entirely
     while a comment claimed it was preserved.
     """
     import harness_yaml as hy

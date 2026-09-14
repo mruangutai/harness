@@ -42,7 +42,7 @@ an open operator escalation and is deliberately NOT graded here.
    `T-01 granted to backend-dev, dev-ops, qa` / `T-02 granted to backend-dev, dev-ops` (qa NOT
    granted) / `T-03 granted to backend-dev, dev-ops, qa`. Plan routes T-02 → `harness-backend-dev`,
    T-01/T-03 → `harness-qa`. Exactly the operator's (b). D-05 correctly records that no verb writes
-   `lanes:` and that `execution_agent` + `check-domain.sh` is what binds.
+   `lanes:` and that `execution_agent` + `check-domain.py` is what binds.
 6. **Consequence (c) — BRIEF states the measured truth — VERIFIED AT SOURCE.** `BRIEF.md:3-36` names
    both readers separately: gh-sync "correct, unpinned" (`:8-16`, work is "a regression pin over
    already-correct code — worth having, but it fixes nothing") and factory_decompose "still
@@ -68,7 +68,7 @@ an open operator escalation and is deliberately NOT graded here.
 - **`code == EXIT_REFUSED` is non-discriminating alone** (`factory_cli.py:96` also exits
   `EXIT_REFUSED` from the generic handler). The stderr clauses in SC-11 / T-03 check 4 are what
   carry it — both are required, so this is a note, not a gap.
-- **No task's `verify:` invokes `run-unit-tests.sh --kind integration`**; both integration suites are
+- **No task's `verify:` invokes `run-unit-tests.py --kind integration`**; both integration suites are
   run by direct `python3` with a FAIL-line count asserted (stronger, per G-08). The declared kind
   runner is exercised by the qa gate, not by a task.
 

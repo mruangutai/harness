@@ -14,7 +14,7 @@ prior clearances and open items (V-02 through V-08, SC-05) carry forward unchang
 - `git diff a1a679..442e0d2 --stat`: **only** `tests/integration/test-check-state.py` changed
   (41 insertions / 22 deletions). Two commits in range, both `[harness:T-01]` — no
   `[harness:human]` commits, nothing to re-review outside the normal chain.
-- `.claude/skills/harness/bin/check-state.sh` diff `a1a679..442e0d2`: **0 lines** — byte-identical.
+- `.claude/skills/harness/bin/check-state.py` diff `a1a679..442e0d2`: **0 lines** — byte-identical.
   Cycle-1 spec-compliance clearances (REQ-01..04 incl. (a)-(e), D-07, PF-b884d6ee, SC-07) **carry
   forward by name**, not re-derived.
 
@@ -60,7 +60,7 @@ Enumerated every conjunct of cycle-2's `mixed_ok` against c3's `_bug440_mixed_ca
 the six-token check. c3's `line = lines[0] if len(lines) == 1 else ""` drops that filter — the six-
 token check (which includes bare `"M"` as one token, itself V-04's known order-blind weakness) is now
 the only thing tying the line to run M. Traced against the real emitter
-(`check-state.sh:1538-1553`): `_rid = os.path.basename(rundir)` and
+(`check-state.py:1538-1553`): `_rid = os.path.basename(rundir)` and
 `dg = os.path.join(rundir, "digest.md")` are both derived from the same `rundir` on adjacent lines,
 so no plausible single-point mutation desyncs "run {_rid}" from the `dg` relpath the way V-04's two
 adjacent `!r` fields can be transposed. **Rating: low/informational, non-gating** — a real strictness
@@ -92,7 +92,7 @@ Fixture data is byte-identical to cycle-2 at both binding sites:
 
 ## Carried forward unchanged (not re-derived, per assignment §5)
 V-04 (med, OPEN, six-token order-blindness — see also the new low addendum above), V-05 (low, OPEN),
-V-06 (info, RESOLVED c2), V-07 (info, OPEN), V-08 (info, OPEN) — all anchored in check-state.sh,
+V-06 (info, RESOLVED c2), V-07 (info, OPEN), V-08 (info, OPEN) — all anchored in check-state.py,
 confirmed byte-identical at this pin. SC-05 note staleness (low, OPEN) — unaffected by a test-only
 diff.
 

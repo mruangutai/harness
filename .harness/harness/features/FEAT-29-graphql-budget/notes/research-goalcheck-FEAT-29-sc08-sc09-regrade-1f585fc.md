@@ -111,7 +111,7 @@ rows 1-9 makes that claim. The original assertion is struck and reversed (row 4,
 
 **The load-bearing failure — row 1, `.harness/harness/expertise/harness-orchestrator.md:9-12`:**
 
-> `- G-01: WHEN running check-state.sh DO expect roughly 500 GraphQL points from INV-26's whole-board`
+> `- G-01: WHEN running check-state.py DO expect roughly 500 GraphQL points from INV-26's whole-board`
 > `  read against a 5,000-point budget — …`
 
 A claim about this exact read's cost, carrying **zero of the three condition tokens** — no board, no item

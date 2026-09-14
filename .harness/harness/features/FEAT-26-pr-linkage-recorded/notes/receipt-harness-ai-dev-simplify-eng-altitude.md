@@ -1,12 +1,12 @@
 # ALTITUDE — FEAT-26 build diff (HEAD `9a30ea5`) — receipt
 
-Scope: code only (gh-sync.py, check-state.sh, feature-schema.json, SKILL.md, plan.yaml template,
+Scope: code only (gh-sync.py, check-state.py, feature-schema.json, SKILL.md, plan.yaml template,
 DEC-200). No source file touched by this pass. All line numbers re-derived at HEAD via
 `git show 9a30ea5` and direct `sed -n` reads of the worktree files, quoted below.
 
-## Finding 1 — INV-28 vs INV-21 in check-state.sh: same skeleton, not a new duplication
+## Finding 1 — INV-28 vs INV-21 in check-state.py: same skeleton, not a new duplication
 
-`check-state.sh:1044-1084` (INV-28, comment 1044-1061, code 1062-1083) vs `check-state.sh:908-941`
+`check-state.py:1044-1084` (INV-28, comment 1044-1061, code 1062-1083) vs `check-state.py:908-941`
 (INV-21, comment 908-912, code 913-941).
 
 Isolated the two code bodies (`sed -n '913,941p'` = 29 lines vs `sed -n '1062,1083p'` = 22 lines)
@@ -44,14 +44,14 @@ the `source_issues` array (type/shape validation only — integers, not bools/st
 `test-validate-feature-json.py`'s five new cases, e.g. `case_rejected_source_issues_quoted_number`).
 The schema carries no `if status==Done then required: [pr]` conditional, and none was added.
 
-The "Done implies pr recorded" rule lives entirely in `check-state.sh`'s new INV-28 block
-(`check-state.sh:1073`, `str(pdoc.get("status", "")).split()[:1] != ["Done"]`) as a WARN.
+The "Done implies pr recorded" rule lives entirely in `check-state.py`'s new INV-28 block
+(`check-state.py:1073`, `str(pdoc.get("status", "")).split()[:1] != ["Done"]`) as a WARN.
 
 This is the right home, and by direct precedent: INV-21 — same file, same warn, same
 "the mirror never gates" reasoning — already governs a structurally identical cross-field,
 workflow-conditional rule (issues recorded implies parent recorded) and was never put in the schema
 either. A JSON Schema validates a *document's* shape; whether a `Done` feature's `pr` is populated is
-a *state-machine* invariant over the mirror, which is exactly what `check-state.sh`'s INV-NN series
+a *state-machine* invariant over the mirror, which is exactly what `check-state.py`'s INV-NN series
 exists to hold, and it is explicitly non-gating (DEC-200: "the new invariant is warn, not violation").
 Putting it in the schema would make an absent `pr` a hard validation failure on every non-terminal
 feature, which is wrong — `pr: null` is legal until `Done`.
@@ -118,5 +118,5 @@ all four: what looks at first read like a new special case (INV-28's near-duplic
 `cmd_closes`'s single caller, the exactly-one rule's three homes) turns out, once measured against the
 rest of the file/table, to be this codebase's *existing* convention applied consistently to an eighth
 case — not a new departure this diff should be faulted for. The one real, worth-flagging debt
-(finding 1's six-times-repeated glob+parse idiom in check-state.sh) predates this commit by five
+(finding 1's six-times-repeated glob+parse idiom in check-state.py) predates this commit by five
 instances and is sized as a lead-level defactoring ticket, not a fix owed by T-05.

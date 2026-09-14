@@ -3,7 +3,7 @@
 ## 1. Format check
 
 ```
-bash .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+python3 .claude/skills/harness/bin/check-expertise.py .harness/expertise/
 ```
 
 All 15 files report `OK`, including the five in scope for this run

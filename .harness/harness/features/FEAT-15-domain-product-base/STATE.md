@@ -16,7 +16,7 @@
   `notes/answers-2026-08-10-01-plan-product.md` — the ruling file is the authority for the revision.
 - artifacts: `BRIEF.md`, `plan.yaml`. Five tasks, every one `execution_mode: main-session-direct`
   with an `execution_reason`, under the DEC-174 carve-out. No build squad was spawned and no task
-  dispatches an agent at `check-domain.sh`.
+  dispatches an agent at `check-domain.py`.
 - the ruling folded in: Q1 → option (c). Prefix inference stands; four harness paths
   (`docs/harness/**`, `docs/PRINCIPLES.md`, `README.md`, `.github/**`) are named explicitly and
   resolve against BOTH bases. The accepted cost — one more place to remember, no detection
@@ -49,9 +49,9 @@
   reproduce is not evidence, so the cheapest honest fix at signature is to strike the count rather
   than replace it with a fourth one.
 - **Q3 (backlog).** `harness.json`'s unit detect glob claims `test-check-domain.py`, but
-  `run-unit-tests.sh` executes it from `INTEGRATION_SCRIPTS`, so `--kind unit` reports green without
+  `run-unit-tests.py` executes it from `INTEGRATION_SCRIPTS`, so `--kind unit` reports green without
   running a case. Pre-existing; every SC correctly names `evidence: integration`.
-- **Q4 (ticket).** `bash-write-guard.sh` keeps its own outside-repo rule and is out of scope, so a
+- **Q4 (ticket).** `bash-write-guard.py` keeps its own outside-repo rule and is out of scope, so a
   Bash-route write into a product checkout stays ungoverned after this ships.
 - **Q5 (disclosure).** No UAT criterion: an honest UAT needs a real product checkout under
   `workspace_root`, which has never existed. The plan inspects the refusal text instead.

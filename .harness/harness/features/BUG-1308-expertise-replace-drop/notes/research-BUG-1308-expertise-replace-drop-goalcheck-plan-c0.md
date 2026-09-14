@@ -35,7 +35,7 @@ below, not part of the issue's regression sentence.
 
 - Every T traces ≥1 REQ: T-01, T-02 (7 REQs), T-03 (REQ-08), T-04 (REQ-08). **No orphan tasks.**
 - Every SC reachable from a task: SC-01..05 → T-02 cases 11–15; SC-06 → case16; SC-07 → T-01
-  `tests/unit/test-expertise-ops.py`; SC-08 → cases 11/12 `check-expertise.sh`; SC-09 → case17;
+  `tests/unit/test-expertise-ops.py`; SC-08 → cases 11/12 `check-expertise.py`; SC-09 → case17;
   SC-10 → T-04. **No orphan SCs.**
 - **GAP G1:** T-02 `traces: [REQ-03..REQ-09]` omits REQ-01 and REQ-02, yet its case11/case12 are the
   only *integration* proof of replace and drop. REQ-01/02 are traced solely by T-01 (unit).
@@ -55,9 +55,9 @@ ordinal position 7, section counts).
 ## 5 — Verifiability (paths checked, nothing project-wide run)
 
 `tests/integration/test-expertise-merge.py`, `tests/integration/test-gen-decisions-index.py`,
-`.claude/skills/harness/bin/check-expertise.sh`, `.claude/skills/harness-distill/SKILL.md`,
+`.claude/skills/harness/bin/check-expertise.py`, `.claude/skills/harness-distill/SKILL.md`,
 `.harness/harness/docs/SPEC.md` all EXIST in the worktree; `tests/unit/test-expertise-ops.py` is
-created by T-01. `check-expertise.sh` does accept a file argument (its `for arg in "$@"` loop), so
+created by T-01. `check-expertise.py` does accept a file argument (its `for arg in "$@"` loop), so
 SC-08 is invocable. Every verify is a targeted single-file invocation — no suite. Anchors re-derived
 and both hold: SKILL.md carries "Updates are **ops**, each naming its target:" and SPEC.md §5.3
 carries "The apply is a union merge, not a whole-file write". **Nothing found wrong here.**

@@ -5,7 +5,7 @@ WHY: this module's whole job is deciding failure behaviour once — loud (GhErro
 swallowed default — and routing the three DAG edge functions through gh_issues' argv builders
 so FACTORY_GH cannot be silently bypassed (the T-12 stub-gh escape named in the plan). Every
 case here monkeypatches subprocess.run or run_gh with an in-process recorder; nothing spawns a
-real gh (run-unit-tests.sh classifies this as UNIT for exactly that reason).
+real gh (run-unit-tests.py classifies this as UNIT for exactly that reason).
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))

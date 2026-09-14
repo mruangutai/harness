@@ -17,7 +17,7 @@ authorship line — treated as in-scope, unreviewed prior to this cycle, per con
 
 **(a) Internal error → deny, executed.** Fixture: `FEAT-9001-fixture-non-era`, `build_entry`
 absent (owes a receipt), `plan.yaml` overwritten to 0 bytes. `git merge feature/test` via the real
-`merge-gate.sh`:
+`merge-gate.py`:
 ```
 exit code: 0
 decision: deny
@@ -45,7 +45,7 @@ receipt-owed reason (`could not verify` does NOT leak into that reason) — matc
 receipt-owed refusal both survive side by side.
 
 **No collapse of the two postures.** They remain opposite answers to different questions, both
-demonstrated by direct execution against the shipped `merge-gate.sh`, not inferred from the tests.
+demonstrated by direct execution against the shipped `merge-gate.py`, not inferred from the tests.
 
 **Regression-test validity, executed against the parent.** Ran the exact parent (`0f8ec4bd^`)
 `merge-gate.py` against both new fixtures (0-byte `plan.yaml`; `feature.json` as `[]`). Both crash
@@ -79,11 +79,11 @@ they DENY cleanly. Not vacuous.
   command never reaches it — confirmed live, `"T-05 non-merge command allows"` still passes.
 
 **Widened to sibling PreToolUse gates (per this cycle's charge).** Grepped the whole `bin/` tree for
-`permissionDecision`/`hookSpecificOutput` emitters: `gh-close-gate.py` and `branch-create-gate.sh`,
+`permissionDecision`/`hookSpecificOutput` emitters: `gh-close-gate.py` and `branch-create-gate.py`,
 both DEC-138-adjacent gates. `gh-close-gate.py`'s `denies()` operates purely on the shell-command
 string (tokens, regexes, bounded list indexing) and touches no per-feature file — the specific
 defect class here (untrusted *file content* causing an unguarded attribute error) has no analogue
-there. `branch-create-gate.sh` is a documented, intentionally different posture — it fails CLOSED on
+there. `branch-create-gate.py` is a documented, intentionally different posture — it fails CLOSED on
 `gh` unavailability by design ("this one is a gate, not a mirror"), unchanged by this diff, and
 found no unguarded exception path in its python one-liners. `plan-sign-gate.py` (a third
 PreToolUse gate found in the same directory) governs an unrelated concern — plan-signature and
@@ -145,7 +145,7 @@ grade-1, no production grade-3-below-bar. `code_grade: grade_2`.
 independently reproduced.
 
 Delta-only quality: the diff is a mechanical `try:`/`except Exception: deny(...)` wrap plus two new
-test cases exercising the shipped CLI end-to-end (subprocess through `merge-gate.sh`, not a mocked
+test cases exercising the shipped CLI end-to-end (subprocess through `merge-gate.py`, not a mocked
 internals call) — the interface under test is the real one, not reached past. No dead branches, no
 duplication, no comment/code drift introduced. Both new assertions are discriminating (proven above
 against the parent, not merely plausible).

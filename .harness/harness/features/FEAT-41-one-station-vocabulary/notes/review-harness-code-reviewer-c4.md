@@ -12,7 +12,7 @@ including the three cycle-3 closures and BUG-1080) follows it.
 
 **FAIL.** One HIGH: `plan-merge.py apply` — an open, ungated verb every orchestrator agent can
 call — can inject `station_only: true` into a plan.yaml that still carries real, unapproved
-tasks, and `check-state.sh` then silently skips the approval check for it. This is the *same*
+tasks, and `check-state.py` then silently skips the approval check for it. This is the *same*
 hole MF-3 (cycle 3) closed, reopened through a different door: forging the credential instead of
 exploiting its absence. Three panels missed it because they tested whether the marker's absence
 could be exploited (it can't, anymore) but not whether the marker's *presence* could be forged
@@ -54,13 +54,13 @@ override), `gh-sync.py:136` (the one policy site). Matches the criterion's own c
 required, `additionalProperties: false`, no `status` key.
 
 ### SC-09 — PASS. `git show 64f42ef8:.../FEAT-40-harness-writes-done/plan.yaml` line 3 is
-`status: done`. Full `check-state.sh` run (below) emits **zero** `INV-26` lines.
+`status: done`. Full `check-state.py` run (below) emits **zero** `INV-26` lines.
 
 ### SC-11 — PASS. `check-plan-routes.py` exits 0, `0 violation(s) across 4 plan(s)`. The
 `DEVIATION` lines printed are informational lane-resolution notices (T-02/T-03/T-06/T-10/T-11/
 T-14/T-16/T-17/T-18/T-19 — the whole DEC-174 main-session-direct carve-out), not failures.
 
-### SC-13 — PASS (grep half). `grep -n "_EXPECT" check-state.sh` → empty. The fixture half
+### SC-13 — PASS (grep half). `grep -n "_EXPECT" check-state.py` → empty. The fixture half
 (an out-of-vocabulary task station makes INV-26 name the feature/task/value) is covered by the
 known-good `test-check-state.py` INV-26 cases in the trusted unit/integration baseline; I did not
 re-derive a fresh fixture for it given the time budget spent on the station_only hole below —
@@ -71,7 +71,7 @@ DECISIONS.md:4902 (DEC-182, shape-gate clause), :5290 (DEC-191, required-key cou
 (DEC-203 §6, the lifecycle-field clause). Each reads "Amended … UNCHANGED … amendment and not a
 strike"; none struck.
 
-Full `check-state.sh` run: exit 1, **exactly one** `VIOLATION` line (INV-29 on the standing
+Full `check-state.py` run: exit 1, **exactly one** `VIOLATION` line (INV-29 on the standing
 `BUG-1080-inv6-plan-phase-runs` worktree — the documented environmental exception), zero `INV-26`,
 zero `Traceback`. Matches the dispatch's stated baseline.
 
@@ -154,7 +154,7 @@ agent into thinking it tripped the sign-approval gate when it did not.
 
 **Can `apply` inject the marker into a task-bearing plan? Yes, confirmed live.**
 `plan-merge.py apply` (and its alias `add-tasks`, identical code path) is one of the two verbs
-`check-domain.sh`'s shape gate leaves open to every agent (D-06/T-09); `.claude/settings.json`
+`check-domain.py`'s shape gate leaves open to every agent (D-06/T-09); `.claude/settings.json`
 has no hook naming it. Its splice algorithm (`apply_merge`, plan-merge.py:459-596) treats
 `station_only` — not in `UNION_KEYS = ("tasks", "decisions")`, not `approval` — as "Step 8: every
 other top-level key" (:576-596): if the key is absent from the base and present in the proposal,
@@ -171,7 +171,7 @@ $ cat plan.yaml
 ... tasks: [{id: T-01, ...}]
 station_only: true
 ```
-`check-state.sh`'s INV-check (:210-215) reads `if doc.get("station_only") is True: continue` —
+`check-state.py`'s INV-check (:210-215) reads `if doc.get("station_only") is True: continue` —
 **unconditionally**, regardless of whether `tasks` is empty. The freshly-forged plan now skips
 the "no `approval:` block — cannot tell if the goal is signed" check entirely, even though it
 still names a real, unapproved task. This is the exact outcome MF-3 closed (a feature exempted
@@ -198,13 +198,13 @@ unsigned, task-bearing plan via the ordinary merge verb."
   grepped and confirmed `harness_yaml.py` has no `dump`/write function of any kind for
   `plan.yaml`; it is read-only. `plan-merge.py`'s byte-splice is the only writer (D-03/T-09),
   so this specific vector does not exist.
-- *What do `check-state.sh`/`check-plan-routes.py` do with `station_only: true` AND non-empty
+- *What do `check-state.py`/`check-plan-routes.py` do with `station_only: true` AND non-empty
   `tasks:` together?* Nothing — I grepped `station_only` across `check-plan-routes.py`,
-  `check-domain.sh`, `factory_config.py`, `gh_board.py`, `board_lifecycle.py`, `gh-sync.py`: zero
-  hits in every one of them. Only `check-state.sh` and `harness_yaml.py` know the field exists at
-  all, and neither detects the contradictory combination — `check-state.sh` just trusts the flag,
+  `check-domain.py`, `factory_config.py`, `gh_board.py`, `board_lifecycle.py`, `gh-sync.py`: zero
+  hits in every one of them. Only `check-state.py` and `harness_yaml.py` know the field exists at
+  all, and neither detects the contradictory combination — `check-state.py` just trusts the flag,
   unconditionally.
-- *Is INV-34's remediation text (check-state.sh:1141-1147) safe, as written?* The text itself
+- *Is INV-34's remediation text (check-state.py:1141-1147) safe, as written?* The text itself
   (create a **new**, plan-less directory's plan.yaml with `station_only: true, tasks: []` via
   `apply`) is safe in isolation — `apply` on a non-existent base writes the proposal whole and
   only refuses an `approval` key, and a brand-new station-only stub with no tasks carries nothing
@@ -215,7 +215,7 @@ unsigned, task-bearing plan via the ordinary merge verb."
   which this reviewer's own sandbox write-guard blocks — noted as an aside, not a FEAT-41
   finding, since it's this session's tooling, not the reviewed code) and ran
   `case_inv34_an_emptied_plan_is_not_station_only` (the "(inv34.e)" case) against each:
-  - keying reverted only (`check-state.sh`'s `station_only is True` → old `not tasks` keying),
+  - keying reverted only (`check-state.py`'s `station_only is True` → old `not tasks` keying),
     loader intact → **ok** (plan fails to *load* at all: `"tasks:" is empty ... must SAY so`).
   - loader reverted only (empty-tasks-always-accepted), keying intact → **ok** (loads, but
     `station_only` is absent so the approval/`T-99` dangling-task check still fires normally).
@@ -232,7 +232,7 @@ unsigned, task-bearing plan via the ordinary merge verb."
    documentation gap. INV-34 is a real, general invariant (every feature directory needs
    somewhere to record a station) and BUG-1080 genuinely had nowhere to record one after the
    rebase — deferring would have meant either suppressing a true violation this feature's own
-   check just started emitting, or shipping FEAT-41 against a red `check-state.sh`. Backfilling
+   check just started emitting, or shipping FEAT-41 against a red `check-state.py`. Backfilling
    with BUG-1080's *own last recorded value*, through the sanctioned `apply` verb, rather than
    inventing one, is the narrowest available fix. The gap: nothing in `handoff-build.md` or the
    commit (`64f42ef` itself) records that this is a **cross-feature** write with a different
@@ -246,7 +246,7 @@ unsigned, task-bearing plan via the ordinary merge verb."
 
 1. `plan-merge.py apply`/`add-tasks` (plan-merge.py:576-596, "Step 8: every other top-level key")
    — no validation on arbitrary new top-level keys lets any agent inject `station_only: true`
-   into an existing, task-bearing, unsigned plan, silently disabling `check-state.sh`'s approval
+   into an existing, task-bearing, unsigned plan, silently disabling `check-state.py`'s approval
    check for that feature. HIGH. Concrete fix shape (not mine to design): validate `station_only`
    the same way `_STATION`/station values already are before Step 8 writes it, or require the
    marker to only ever be introduced together with `tasks: []` (paralleling the loader's own

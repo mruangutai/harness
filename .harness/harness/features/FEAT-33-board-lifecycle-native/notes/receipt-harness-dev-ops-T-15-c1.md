@@ -76,7 +76,7 @@ updated both:
 2. **No recorded parent** — `github.parent` absent or not an `int` → exempt (INV-21's finding,
    not this one).
 3. **`factory.issues` populated, `github.issues` empty** — this feature's cards live on the
-   product's board (the same carve-out check-state.sh's INV-26 makes for the factory lane).
+   product's board (the same carve-out check-state.py's INV-26 makes for the factory lane).
 
 Test case for exemption 3 deliberately sets a MISMATCHING station fixture (`Backlog` where a
 non-exempt comparison would expect `Building`) so a leaky exemption implementation would
@@ -127,12 +127,12 @@ in the fixture (so REASON/LABEL/STATION cannot accidentally cover for STATUS) �
 and finding text are asserted from the real subprocess exit status, not an in-process
 `SystemExit` catch, matching case (K)'s own rationale.
 
-## Verify: `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+## Verify: `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Command, verbatim as quoted in the dispatch and independently re-extracted from `plan.yaml`'s
 T-15 `verify:` field (byte-identical to the quoted copy):
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind all
+.claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 Output (full log, 2748 lines, exit 0): every script printed `PASS <script>.py`, including

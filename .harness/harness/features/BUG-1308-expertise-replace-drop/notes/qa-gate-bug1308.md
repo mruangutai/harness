@@ -23,8 +23,8 @@ excluded from consideration by DEC-217's own text): `.claude/skills/harness-dist
 
 | kind | state | cmd | evidence |
 |---|---|---|---|
-| unit | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0, `^FAIL `=0, 28 files discovered (`pool: 8 workers, 28 files`), `test-expertise-ops.py` present and green |
-| integration | **satisfied** (qa-added) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0, `^FAIL `=0, 46 files discovered, `test-expertise-merge.py` case11..case20 present and green |
+| unit | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0, `^FAIL `=0, 28 files discovered (`pool: 8 workers, 28 files`), `test-expertise-ops.py` present and green |
+| integration | **satisfied** (qa-added) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0, `^FAIL `=0, 46 files discovered, `test-expertise-merge.py` case11..case20 present and green |
 
 Non-required kinds, honest state: `functional`/`eval` **excluded** (DEC-187, unrelated to this
 diff). `component`/`ui`/`typecheck` **unresolved**, null `cmd` — not required by the `bugfix` row
@@ -33,9 +33,9 @@ state per the dispatch's own instruction.
 
 ## Suite runs (verbatim, from worktree root)
 
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` → exit 0; `grep -c '^FAIL '`=0;
+- `.agents/skills/harness/bin/run-unit-tests.py --kind unit` → exit 0; `grep -c '^FAIL '`=0;
   discovery line `pool: 8 workers, 28 files, 4.05s wall`.
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` → exit 0; `grep -c '^FAIL '`=0;
+- `.agents/skills/harness/bin/run-unit-tests.py --kind integration` → exit 0; `grep -c '^FAIL '`=0;
   discovery line `pool: 8 workers, 46 files, 63.73s wall`.
 (Both runs used `env -u HARNESS_AGENT_TYPE`, per repo Expertise G-07 — without it `test-plan-merge.py`
 fails 11 checks unrelated to this diff.)

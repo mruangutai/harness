@@ -40,7 +40,7 @@ Replace with — one line, three double-quoted elements, nothing else changed:
    quoting error on a `main_session` line took out the entire manifest.
 
 2. **The lead's wedge concern does not apply to this line, and I checked rather than reasoned.**
-   `grep -n 'main_session' check-domain.sh bash-write-guard.sh` returns **nothing**. Neither hook reads
+   `grep -n 'main_session' check-domain.py bash-write-guard.py` returns **nothing**. Neither hook reads
    the `main_session:` block at all — `collect()` keys off `name:` entries and the `shared:` marker, and
    `main_session` has neither. So line 18 is not on either hook's scan path.
 
@@ -52,7 +52,7 @@ Replace with — one line, three double-quoted elements, nothing else changed:
 
 5. **D-03's equivalence is PROVEN — the test that is currently red will go green.** This is the
    substantive result. T-02 test 5 asserts `manifest_domains()` equals the pre-change `collect()`. I ran
-   the comparison directly, extracting `collect()`'s logic verbatim from `check-domain.sh:107-125`:
+   the comparison directly, extracting `collect()`'s logic verbatim from `check-domain.py:107-125`:
 
    - **OLD** `collect()` against the **ORIGINAL** (unquoted) file, versus
    - **NEW** `harness_yaml.manifest_domains()` against the **CANDIDATE** (quoted) file,

@@ -2,7 +2,7 @@
 
 **Measured twice this run, same command, same checkout:**
 
-    FACTORY_GH=/nonexistent/gh .claude/skills/harness/bin/check-state.sh
+    FACTORY_GH=/nonexistent/gh .claude/skills/harness/bin/check-state.py
 
     07:41  2 VIOLATIONs — unapproved BRIEFs in FEAT-26 and FEAT-28
     08:07  3 VIOLATIONs — the same two, plus FEAT-31-orchestrator-context-watch
@@ -10,7 +10,7 @@
 Nothing about FEAT-30 changed between those runs. The main session started another flow, and its
 unapproved BRIEF is a third violation.
 
-**So D-08 as written — "check-state.sh reports exactly TWO VIOLATIONs" — is already false, and any
+**So D-08 as written — "check-state.py reports exactly TWO VIOLATIONs" — is already false, and any
 SC-09 `verify:` asserting a violation COUNT will fail for reasons that have nothing to do with this
 feature.** It is the same defect class the send-back addendum names: a bare number is unfalsifiable.
 A count over a whole-repository scan is worse than unfalsifiable — it is a shared mutable global,

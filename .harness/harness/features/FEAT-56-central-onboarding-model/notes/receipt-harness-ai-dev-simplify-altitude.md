@@ -36,7 +36,7 @@ two hand-edits, and the two are already out of sync.
 three-condition test (the superset `harness-plan.md` already has), and change
 `harness-plan.md:18-20` to read "...or route to `/harness-init` per the Gate check in step 0
 above" — deleting its own re-derivation of the condition list.
-**applicable: false** — both files are under `.claude/commands/**`, which `check-domain.sh
+**applicable: false** — both files are under `.claude/commands/**`, which `check-domain.py
 --resolve` resolves to NOBODY; this squad may not write either. Remedy given above is precise
 enough to apply without re-deriving this analysis.
 **fold-in**
@@ -55,7 +55,7 @@ a caller; it is the established home.
 
 ### F3 — Accepted residual named without its compensating control? (assignment item 2)
 **Checked:** `BRIEF.md`'s "Verification gaps" section names the residual explicitly —
-"`check-state.sh` deliberately makes no network call, so no every-run invariant can grade a fleet
+"`check-state.py` deliberately makes no network call, so no every-run invariant can grade a fleet
 member's remote `harness.json`. REQ-05 is discharged by an operator-run check (SC-05), which means
 a member whose config is deleted after onboarding stays invisible until the next build." The
 control (`--check-product-configs`, operator-run) is named alongside the gap, not left implicit.

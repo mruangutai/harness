@@ -43,7 +43,7 @@ that's when FEAT-20's ship review ran.
 Zero `.py` / `.sh` files appear in `ea476fd..045dcd9` (confirmed above via the full name-status
 list). The detector's own output strings — `layout: features CLEAN | docs CLEAN`, `examined N
 feature dir(s)...`, `[legacy]`/`[migrated]`/`[both]`/`[neither]`/`[unreadable]`, `NOT APPLICABLE:`,
-the CANNOT VERIFY wordings — live in `check-state.sh` / `layout_migration.py`, neither touched here.
+the CANNOT VERIFY wordings — live in `check-state.py` / `layout_migration.py`, neither touched here.
 **Condition not met — not re-reviewed**, per the dispatch's own instruction. The ship-review
 markdown/HTML *quotes* those strings narratively (e.g. `features: CLEAN`, `docs: CLEAN`, `examined
 20 feature dir(s)...`) but a quote in a report is not the source string; it was not re-audited as

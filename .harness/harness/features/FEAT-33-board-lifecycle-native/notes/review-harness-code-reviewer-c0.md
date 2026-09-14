@@ -116,7 +116,7 @@ gap, not a runtime defect on its own.
   `gh-sync.py` mirror posture (catch `BoardError` per write, print, continue; never gates),
   consistent with DEC-138/146 and distinct from the control-plane contract DEC-186 requires of
   `board_lifecycle.py` itself.
-- **SC-20 / INV-26 widening (`check-state.sh:1345-1375`, T-22)** — bounded correctly: accepts
+- **SC-20 / INV-26 widening (`check-state.py:1345-1375`, T-22)** — bounded correctly: accepts
   `review`/`building` for a `done` task only when `feature.json.status == "Review"`; still flags
   `Building`-status and `Backlog`-card cases. `test-check-state.py` cases v.T22a-d
   (`:1605-1650`) are genuinely discriminating on both directions of the bound, not just presence.

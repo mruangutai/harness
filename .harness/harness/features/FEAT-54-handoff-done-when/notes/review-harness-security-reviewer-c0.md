@@ -12,11 +12,11 @@ Reviewed range: `0ec44965a961d19177de871c3bb1f02b701e646b..e75767df4b75e71f2c9b1
 
 **OWASP:** A01 Broken Access Control / path traversal; A03 Injection-shaped unsafe path interpretation; A04 insecure fail-open design.  
 **STRIDE:** Tampering, Information disclosure, Denial of service.  
-**Owner lane:** **Main direct mutation** — remedy touches DEC-174 enforcement surfaces `.claude/skills/harness/bin/handoff_done_when.py`, `.claude/skills/harness/bin/check-domain.sh`, and their gate tests.
+**Owner lane:** **Main direct mutation** — remedy touches DEC-174 enforcement surfaces `.claude/skills/harness/bin/handoff_done_when.py`, `.claude/skills/harness/bin/check-domain.py`, and their gate tests.
 
 **Concrete attacker and gain.** Any governed orchestrator allowed to write its own `notes/handoff-*.md` controls the `Authority:` value passed to the hook. `finding:` and `approval:` accept an unrestricted path (`handoff_done_when.py:14-15`), then join it directly to `root` (`:85`, `:90`) and call `read_text()` (`:56`, `:93`). An absolute path discards `root`; `../` and symlinks are not contained. This gives the author an oracle over readable files outside the repository (whole-token presence for findings and exact Markdown-heading presence for approvals), and permits unbounded reads of special or very large files.
 
-There is also a deterministic validation bypass. A pointer such as `Authority: approval:bad\u0000path#Approval` passes `APPROVAL_RE`; `Path.read_text()` raises `ValueError`, which the `(OSError, UnicodeError)` handler at `:92-95` does not catch. The exception propagates through `problems()` and the unguarded caller at `check-domain.sh:1567`. That script explicitly documents at `:13-14` that only exit 2 blocks and exit 1 lets the write proceed. The same resolver is reached again on the post-write report path, so the invalid pointer is not recovered there. The author therefore lands a handoff that the new contract was specifically added to refuse.
+There is also a deterministic validation bypass. A pointer such as `Authority: approval:bad\u0000path#Approval` passes `APPROVAL_RE`; `Path.read_text()` raises `ValueError`, which the `(OSError, UnicodeError)` handler at `:92-95` does not catch. The exception propagates through `problems()` and the unguarded caller at `check-domain.py:1567`. That script explicitly documents at `:13-14` that only exit 2 blocks and exit 1 lets the write proceed. The same resolver is reached again on the post-write report path, so the invalid pointer is not recovered there. The author therefore lands a handoff that the new contract was specifically added to refuse.
 
 **Required remedy.** Treat both path-bearing grammars as repository-relative paths: reject absolute paths, `..`, NUL/control characters, and any resolved/symlinked target outside `root`; require a bounded regular file before reading. Convert every malformed-path and resolver exception into a returned problem, and put an exception boundary around the write-gate call so unexpected validator failure still produces exit 2. Add gate-level cases for NUL, absolute, traversal, symlink escape, and an unbounded/special-file target. Persisted `resolve=False` should reject unsafe path grammar without opening a target.
 
@@ -51,11 +51,11 @@ There is also a deterministic validation bypass. A pointer such as `Authority: a
 
 ## Shared-set and pinned-diff inspection evidence
 
-Every required shared path was opened before scoping: `.claude/skills/harness/SKILL.md`; `bin/check-domain.sh`; `bin/check-state.sh`; `bin/handoff_done_when.py`; `templates/HANDOFF.md`; `.harness/harness.json`; `DECISIONS-INDEX.md`; the applicable complete DEC-159/160/171/174/179/180/182/214 entries in `DECISIONS.md`; both FEAT-54 handoffs; all five named unit/integration/manual tests; and the complete approved `BRIEF.md` and `plan.yaml`. Large pre-existing gate/test files were inspected through the full pinned hunks plus their caller, normalization, exit, and aggregation paths. The rendered HTML output was opened separately. The whole changed feature corpus was scanned for credential signatures and trust-boundary terms.
+Every required shared path was opened before scoping: `.claude/skills/harness/SKILL.md`; `bin/check-domain.py`; `bin/check-state.py`; `bin/handoff_done_when.py`; `templates/HANDOFF.md`; `.harness/harness.json`; `DECISIONS-INDEX.md`; the applicable complete DEC-159/160/171/174/179/180/182/214 entries in `DECISIONS.md`; both FEAT-54 handoffs; all five named unit/integration/manual tests; and the complete approved `BRIEF.md` and `plan.yaml`. Large pre-existing gate/test files were inspected through the full pinned hunks plus their caller, normalization, exit, and aggregation paths. The rendered HTML output was opened separately. The whole changed feature corpus was scanned for credential signatures and trust-boundary terms.
 
 Per-file diff census below uses: **E** enforcement/runtime, **I** interpreted output, **T** test, **S** signed/spec/decision/config, **H** handoff input, **R** execution/history record. Every path in the 60-file pinned diff is accounted for.
 
-- **E:** `.claude/skills/harness/bin/check-domain.sh`; `.claude/skills/harness/bin/check-state.sh`; `.claude/skills/harness/bin/handoff_done_when.py`; `tests/manual/probe-handoff-comprehension.py`.
+- **E:** `.claude/skills/harness/bin/check-domain.py`; `.claude/skills/harness/bin/check-state.py`; `.claude/skills/harness/bin/handoff_done_when.py`; `tests/manual/probe-handoff-comprehension.py`.
 - **S:** `.claude/skills/harness/SKILL.md`; `.claude/skills/harness/templates/HANDOFF.md`; `.harness/harness.json`; `.harness/harness/docs/DECISIONS-INDEX.md`; `.harness/harness/docs/DECISIONS.md`; `.harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md`; `.harness/harness/features/FEAT-54-handoff-done-when/plan.yaml`; `.harness/notes/grilling-handoff-done-when-2026-09-02.md`.
 - **H:** `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-build.md`; `.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-plan.md`.
 - **T:** `tests/integration/test-check-domain.py`; `tests/integration/test-check-state.py`; `tests/integration/test-run-unit-tests-kinds.py`; `tests/unit/test-handoff-done-when.py`.
@@ -64,8 +64,8 @@ Per-file diff census below uses: **E** enforcement/runtime, **I** interpreted ou
 
 ## Success-criterion inspection notes
 
-- **SC-07:** the pinned gates call one implementation: `check-domain.sh:1562-1567` with `resolve=True`, and `check-state.sh:54,1244-1251` with `resolve=False`; neither gate implements a second body parser or target resolver.
-- **SC-08:** no current-contract “four sections” claim remains in the named live surfaces. The two matches at `check-state.sh:1199,1218` are the BRIEF's explicitly exempt past-measurement/incident record.
+- **SC-07:** the pinned gates call one implementation: `check-domain.py:1562-1567` with `resolve=True`, and `check-state.py:54,1244-1251` with `resolve=False`; neither gate implements a second body parser or target resolver.
+- **SC-08:** no current-contract “four sections” claim remains in the named live surfaces. The two matches at `check-state.py:1199,1218` are the BRIEF's explicitly exempt past-measurement/incident record.
 - **SC-11:** `git diff --name-status b7956fc4..e75767d -- '.harness/harness/features/*/notes/handoff-*.md'` reports only the two FEAT-54 handoff additions, so no pre-base handoff is modified and the positive control is non-empty.
 - **SC-04:** not executed in this security panel because the dispatch expressly prohibited validation commands; no met claim is made here.
 - **SC-10:** **pending operator UAT** and cannot be marked met by this review.

@@ -1,6 +1,6 @@
 # Goal-check — FEAT-31, gc1, at review_sha fcb8984
 
-**Path note:** the dispatch named `notes/goalcheck-gc1.md`; `check-domain.sh` denies that path to
+**Path note:** the dispatch named `notes/goalcheck-gc1.md`; `check-domain.py` denies that path to
 `harness-pm` and permits `notes/research-FEAT-*.md`. The guard is right, so the artifact lives here.
 
 ## BLUF — the goal is NOT met, and everything outstanding is the operator's
@@ -51,9 +51,9 @@ issue. Composite: gate half **met** (`test-check-state.py` `(t10-b)` rejects an 
 
 ## New finding, not among #663-#669 — for the operator
 
-**DEC-159's enforcement paragraph still says `check-domain.sh` denies a handoff note ">40 lines"**
+**DEC-159's enforcement paragraph still says `check-domain.py` denies a handoff note ">40 lines"**
 (`DECISIONS.md:3986`), while the same entry states the ~60 cap and both gates enforce 60
-(`check-domain.sh:952`, `check-state.sh:664`). A falsified clause standing in the authority — the
+(`check-domain.py:952`, `check-state.py:664`). A falsified clause standing in the authority — the
 DEC-188 shape, pre-existing, not introduced by this feature. Not filed as an issue (searched). It
 does not fail SC-09, whose subject is the mid-flight case and the watchdog clause.
 

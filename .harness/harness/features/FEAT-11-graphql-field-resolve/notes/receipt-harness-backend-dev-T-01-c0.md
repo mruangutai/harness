@@ -174,7 +174,7 @@ Output:
 ```
 PASS
 ```
-Exit code 0. (`run-unit-tests.sh --kind unit` and `test-factory-integration.py` both ran to
+Exit code 0. (`run-unit-tests.py --kind unit` and `test-factory-integration.py` both ran to
 completion inside the block silently — only the final `echo PASS` prints, since every `test`
 clause passed and none of the `||` failure branches fired.)
 
@@ -205,7 +205,7 @@ directly (only `project_field_options`/`project_field_set` at the module boundar
 
 ## Clauses checked against the tree at 8dedeae
 
-Directly grepped (not eyeballed) after the advisor flagged I hadn't: `run-unit-tests.sh` line 17
+Directly grepped (not eyeballed) after the advisor flagged I hadn't: `run-unit-tests.py` line 17
 is `UNIT_SCRIPTS=(... "test-factory-gh.py" ...)`, line 18 is
 `INTEGRATION_SCRIPTS=(... "test-factory-integration.py" ...)` — matches. All the
 `test-factory-integration.py` anchors (178-188 field-list handler, 190-191 project-view handler,

@@ -48,7 +48,7 @@ so it is not silent. The `test-validate-feature-json.py` substring fix (`79e2639
 **FIVE handed-down premises proved FALSE this run, every one caught by a receiver re-measuring.**
 (1) "`test_kinds` 28 → 27" — the truth was 29 → 27; the numeral reached no durable record.
 (2) "`.claude/settings.json` is absent" — it is present and still registers a PostToolUse hook on
-`Write|Edit|Bash`, `check-domain.sh --post`, not the retired watchdog; DEC-159's clause is scoped
+`Write|Edit|Bash`, `check-domain.py --post`, not the retired watchdog; DEC-159's clause is scoped
 "for this" and is true as written. (3) "DEC-159's amendment ends with a stray `---`" — it was
 DEC-201's. (4) The goal-check digest's headline says "sixteen live criteria" while its own table
 carries 17 rows; the table is right. (5) **This orchestrator's own "61 scripts reporting PASS" was
@@ -73,9 +73,9 @@ records, not a claim that a timely relay occurred.
 None blocking. Seven residual findings are carried to the operator as proposed backlog in
 `notes/ship-review-2026-08-30-fold-ship.md`; anything not accepted there dies silently.
 
-- **B-25** — `bash-write-guard.sh` cannot expand shell variables and does not track `cd`; it resolves
+- **B-25** — `bash-write-guard.py` cannot expand shell variables and does not track `cd`; it resolves
   targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` was denied while the same
-  command with a literal absolute path was allowed, and `check-domain.sh --resolve` grants that path.
+  command with a literal absolute path was allowed, and `check-domain.py --resolve` grants that path.
 - **B-26** — `/usr/bin/grep` is `pi-uu-grep 0.2.0`, in which `^+` matches EVERY line. Four false
   readings across this feature; every affected measurement was redone in Python.
 - **B-39** — a run-directory slug collision destroyed a record. `runs/` is gitignored, so it was
@@ -85,7 +85,7 @@ None blocking. Seven residual findings are carried to the operator as proposed b
 - **B-41** — three `### DEC-NNN addendum` sub-headings survive in `DECISIONS.md` (DEC-124, DEC-125,
   DEC-141). A sibling construct to the abolished amendment, present at the original base `7ebfc9e`
   and outside this feature's approved scope. FEAT-46's triage is the natural home.
-- **B-42** — `run-unit-tests.sh --check-kinds` asserts only one direction and would NOT have caught
+- **B-42** — `run-unit-tests.py --check-kinds` asserts only one direction and would NOT have caught
   the naive-union defect it was cited as guarding. Pre-existing; ranked first on irreversibility.
 - **B-43** — four test scripts print their own `PASS <script>` line byte-identically to the runner's
   own marker, so any log-based tally over-counts. It produced a false "61" in this run's reporting.

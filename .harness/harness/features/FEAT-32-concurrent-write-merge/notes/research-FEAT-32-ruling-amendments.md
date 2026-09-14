@@ -46,8 +46,8 @@ corrected in T-15: `templates/plan.yaml:25-26` ("Written by the ORCHESTRATOR onl
 since it cites DEC-120 in the same sentence) and `agents/harness-pm.md:28` ("that is the
 orchestrator's, because only it can reach the user" — flatly false).
 
-Measured at `c32f332`: `grep -n approval check-domain.sh` → **one** line, `:858`, a comment.
-`check-domain.sh --resolve` on a plan.yaml → `harness-orchestrator`, `harness-pm`. `team-config.yaml:18`
+Measured at `c32f332`: `grep -n approval check-domain.py` → **one** line, `:858`, a comment.
+`check-domain.py --resolve` on a plan.yaml → `harness-orchestrator`, `harness-pm`. `team-config.yaml:18`
 grants the **heading form only**, so `plan.yaml`'s `approval:` mapping is granted to **nobody**. Three
 disagreements plus one gap, enforced by nothing.
 
@@ -74,7 +74,7 @@ defect and are deliberately untouched (see open question Q2).
   records") and the sibling precedent. **None moved.** T-10 stays `team`/`harness-dev-ops` (registration
   DATA, matching the `test_kinds` precedent); T-02/T-03/T-04/T-05/T-06 stay `team` (libraries and
   CLIs — "a module a gate imports is not itself a gate"); T-01/T-07/T-08/T-09 stay
-  `main-session-direct`. The two new tasks follow: T-14 `main-session-direct` (check-domain.sh is a
+  `main-session-direct`. The two new tasks follow: T-14 `main-session-direct` (check-domain.py is a
   *named* enforcement script and am.4 pulls its test in with it), T-15 `main-session-direct` (DEC-179
   — all three files resolve NOBODY).
 - **R7** — `#627`, `#560`, `#605` were already out in the BRIEF but only `#627` appeared in

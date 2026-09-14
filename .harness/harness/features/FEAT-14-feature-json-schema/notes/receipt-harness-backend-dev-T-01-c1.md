@@ -3,7 +3,7 @@
 ## Verify clause, as run verbatim
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Cross-checked against `plan.yaml` T-01's `verify:` — identical string. Matches, not `BLOCKED`.
@@ -36,7 +36,7 @@ machine (not trusted from BRIEF.md's line).
 - `.claude/skills/harness/bin/feature_schema.py` (new)
 - `.claude/skills/harness/bin/validate-feature-json.py` (new)
 - `.claude/skills/harness/bin/test-validate-feature-json.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one-line edit: `test-validate-feature-json.py`
+- `.claude/skills/harness/bin/run-unit-tests.py` (one-line edit: `test-validate-feature-json.py`
   added to `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS`)
 
 Nothing else. `.harness/features/FEAT-14-feature-json-schema/feature.yaml` and `STATE.md` show
@@ -87,9 +87,9 @@ added). Verified this is a well-formed draft 2020-12 schema via
 `jsonschema.Draft202012Validator.check_schema(...)`.
 
 Every property carries a `description`. Object-valued and reader-censused properties cite the
-reader BY NAME (`gh-sync.py's load_recorded`, `check-state.sh INV-21`, `factory_decompose.py's
-load_factory`, `factory_claim.py's issue_number`, `check-state.sh INV-24`, `check-plan-routes.py's
-finished-feature skip`, `check-state.sh INV-17's seam table`), never by line number, per the
+reader BY NAME (`gh-sync.py's load_recorded`, `check-state.py INV-21`, `factory_decompose.py's
+load_factory`, `factory_claim.py's issue_number`, `check-state.py INV-24`, `check-plan-routes.py's
+finished-feature skip`, `check-state.py INV-17's seam table`), never by line number, per the
 intent's explicit instruction that T-11/T-12 move those lines inside this same build.
 `feature_id`, `branch`, `pr`, `max_total_cycles` — the four keys the BRIEF records as having no
 demonstrated reader — carry a description saying so, rather than inventing a reader for them.
@@ -99,7 +99,7 @@ demonstrated reader — carry a description saying so, rather than inventing a r
 **My call, as invited by the intent:** both live inside `feature_schema.py`, not the CLI.
 
 - `problems_for_text(text, display)` is JSON-only — it always parses `text` with `json.loads`.
-  This is the function `check-domain.sh` imports at T-06 (per the intent, its entry point), and
+  This is the function `check-domain.py` imports at T-06 (per the intent, its entry point), and
   its `display` argument is a label for the message only, never a hint for how to parse.
 - `problems_for_file(path)` does the extension dispatch: `path.endswith(".json")` reads the file
   as text and calls `problems_for_text` (stdlib `json` + `jsonschema` only); any other extension

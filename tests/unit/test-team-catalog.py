@@ -163,7 +163,7 @@ try:
             body = read(os.path.join(BIN, fn))
             hits += [f"{fn}:{i+1}" for i, l in enumerate(body.splitlines()) if needle in l]
     tok_ok = all("PLACEHOLDER_UNSET" in read(os.path.join(BIN, f))
-                 for f in ("check-state.sh", "validate-digest.py"))
+                 for f in ("check-state.py", "validate-digest.py"))
     check("(6) the placeholder literal occurs exactly once across bin/, and both "
           "consumers reference PLACEHOLDER_UNSET — SC-02",
           len(hits) == 1 and tok_ok,

@@ -27,7 +27,7 @@ lived in prose independent of the marker, or leaned on marker text for content.
 |---|---|---|---|
 | DEC-145 | 1 (`CRAFT_LINE_BUDGET = 150` grep) | `DECISIONS.md:3242-3244` (635cd3ba) — "**Deploying the checker is the control; authoring discipline is not.** Where the caps were authored but the checker was not yet deployed, 9 of 15 Expertise files failed it again within a day of being distilled." Prior belief (authoring discipline suffices) stated, falsification (9/15 failed again) stated, both untouched by the marker deletion which sat 13 lines earlier next to an unrelated enforcement sentence. | **met** |
 | DEC-157 | 1 (`"max_total_cycles": 10` grep) | `DECISIONS.md:3551-3559` — "`max_total_cycles` kept exhausting on healthy features... The audit of those numbers says otherwise: FEAT-02's 19 'cycles' span 16 runs, of which only ~6 were rework." Prior belief (the counted unit was right) and its falsification (audit of real runs) both in prose; deleted marker was a bare config-value assertion two bullets later, no narrative content. | **met** |
-| DEC-181 | 2 (`budget is 80` grep, `grep -c CLAUDE.md`) + the earlier `budget is 300` grep | `DECISIONS.md:4788-4793` — "**Issue #139 ruled out `check-domain.sh`'s shape gate**... Both clauses were true when written and neither is true now: the main session is bound on all four routes." Belief (issue #139's stated reason) and falsification (both clauses now false) survive; the three deleted markers sat elsewhere and asserted only numeric facts already stated in the adjacent prose (e.g. "feature.json 300" already appears in the sentence the third marker sat under). | **met** |
+| DEC-181 | 2 (`budget is 80` grep, `grep -c CLAUDE.md`) + the earlier `budget is 300` grep | `DECISIONS.md:4788-4793` — "**Issue #139 ruled out `check-domain.py`'s shape gate**... Both clauses were true when written and neither is true now: the main session is bound on all four routes." Belief (issue #139's stated reason) and falsification (both clauses now false) survive; the three deleted markers sat elsewhere and asserted only numeric facts already stated in the adjacent prose (e.g. "feature.json 300" already appears in the sentence the third marker sat under). | **met** |
 | DEC-183 | 3 (`name: Plan-route gate`, `violation(s) across`, CODEOWNERS grep) | `DECISIONS.md:4900-4901` — "`check-plan-routes.py` shipped working and nothing mechanical ran it (issue #133). DEC-179's clause 'nothing executes it automatically' is now false." A second, larger fold at `:4922-4936` — "THE STEP IS UNGUARDED, BY DECISION... All 39 of those assertions were deleted by owner decision" — states the prior design (a heavy assertion suite) and its falsification/replacement (owner decision to drop it). Both survive; none of the three deleted markers carried narrative, only checker-output-format and CODEOWNERS-line assertions. | **met** |
 | DEC-193 | 1 (`WORKTREES_SEGMENT =` grep) | `DECISIONS.md:5349-5357` — "**The evidence, and the wording matters because half of the original evidence was overtaken.** Measured at `a29ad06`: a Write to `<root>/src/main.py` exited 2 while the same write via Bash exited 0... The other case — a session ROOTED in the sibling worktree — is NOT evidence of an enforcement hole." Belief (both cases were evidence of a hole) and falsification (one case reclassified) both present; the deleted marker was a code-constant assertion in an earlier paragraph, unrelated. | **met** |
 
@@ -42,8 +42,7 @@ line changes per entry.
 
 ### 2a. Which changed units does the green suite bind?
 
-Ran the live suite in place (worktree = pin for every path checked): `bash
-.claude/skills/harness/bin/run-unit-tests.sh`, `RC=0`. Counted in Python against the actual
+Ran the live suite in place (worktree = pin for every path checked): `python3 .claude/skills/harness/bin/run-unit-tests.py`, `RC=0`. Counted in Python against the actual
 `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` literals (not a bare `PASS ` regex — that overcounts: one
 script, `test-inflight-registry.py`, prints an internal case line `PASS
 case_floor_inflight_registry.py` that itself matches the naive per-script marker regex, inflating a
@@ -58,13 +57,13 @@ Per changed file:
 
 | File | Bound by | Evidence |
 |---|---|---|
-| `run-unit-tests.sh` (T-24 array edit) | `test-run-unit-tests-kinds.py` `case_1_green_on_the_real_tree` — invokes `--check-kinds` against the REAL config and REAL arrays and asserts zero KIND-DRIFT lines; this is the one case in the suite that exercises the actual current arrays, not a synthetic copy. Also self-checked by the runner's own inline drift detector (unmodified, confirmed at gate item 7 and re-read directly here at lines 60-74). | direct |
+| `run-unit-tests.py` (T-24 array edit) | `test-run-unit-tests-kinds.py` `case_1_green_on_the_real_tree` — invokes `--check-kinds` against the REAL config and REAL arrays and asserts zero KIND-DRIFT lines; this is the one case in the suite that exercises the actual current arrays, not a synthetic copy. Also self-checked by the runner's own inline drift detector (unmodified, confirmed at gate item 7 and re-read directly here at lines 60-74). | direct |
 | `check-decision-claims.py` + test (T-24, deleted) | none, by design — Contract 3. Confirmed absent from the reviewed tree (`git ls-tree -r 635cd3ba \| grep check-decision-claims` → `[]`, re-derived independently of the gate record). | n/a, accepted |
 | `gen-decisions-index.py` (dead-code apply + earlier T-06/T-10 work) | `test-gen-decisions-index.py`, run directly: `PASS`. SC-06's dead-code claim independently re-verified: no `AMEND_HEADING_RE`/`AMEND_BOLD_RE`/`SUPERSESSION_VERB_RE`/`BODY_SUPERSESSION_RE`/`compute_amendments`/`format_amendment_span`/`compute_supersession_target` anywhere in the file at the pin (grepped directly against the worktree copy, not the outer-repo trap above). | direct |
 | `test-gen-decisions-index.py` SC-07 case | `test_no_amendment_construct_survives_in_the_authority` — see mutation proof below | direct, mutation-proved |
 | `check-decision-anchors.py` + test (RETAINED, frozen) | `test-check-decision-anchors.py`, run directly: exit 0, 8 named `ok -` cases. SHA-256 independently re-verified against `git show 635cd3ba:` of both paths — `adb9a648...` and `7a4e0ba1...`, matching Contract 2 exactly (re-derived, not copied from the gate record). | direct |
 | `.harness/harness.json` (T-25 `detect` edit) | `--check-kinds`, run standalone: agree. Also `test-run-unit-tests-kinds.py`'s `case_1` reads this exact file. | direct |
-| `board_lifecycle.py`, `check-domain.sh`, `.github/workflows/tests.yml` (earlier tasks) | Diffed the full range (`7ebfc9e..635cd3ba`): all three changes are **comment-text only** — repointing stale citations `DEC-186`→`DEC-203`, `DEC-192`→`DEC-203` (×3), `DEC-171 am.1`→`DEC-171` (×2). Zero logic delta; nothing to bind behaviorally. Checked the citations themselves resolve: `## DEC-203` is a live heading at the pin (`DECISIONS.md:5982`); DEC-186/DEC-192/DEC-171-am.1 no longer appear anywhere in these three files. **Looked, nothing to report** — this is exactly REQ-04/SC-04's citation-repointing sweep working as intended, no residual dangling reference. | citation-resolution check, not a behavioral test (none needed — no behavior changed) |
+| `board_lifecycle.py`, `check-domain.py`, `.github/workflows/tests.yml` (earlier tasks) | Diffed the full range (`7ebfc9e..635cd3ba`): all three changes are **comment-text only** — repointing stale citations `DEC-186`→`DEC-203`, `DEC-192`→`DEC-203` (×3), `DEC-171 am.1`→`DEC-171` (×2). Zero logic delta; nothing to bind behaviorally. Checked the citations themselves resolve: `## DEC-203` is a live heading at the pin (`DECISIONS.md:5982`); DEC-186/DEC-192/DEC-171-am.1 no longer appear anywhere in these three files. **Looked, nothing to report** — this is exactly REQ-04/SC-04's citation-repointing sweep working as intended, no residual dangling reference. | citation-resolution check, not a behavioral test (none needed — no behavior changed) |
 | `DECISIONS.md`, `DECISIONS-INDEX.md` | No standing automated check binds prose truth. `gen-decisions-index.py --stdout` diff-clean against the committed index is the one mechanical tie (SC-05, part of the standing suite via `test_committed_index_matches_a_fresh_regeneration`); everything else is Part 3 below. | see Part 3 |
 
 ### 2b. Can the new/changed assertions actually fail? Mutation-proved.
@@ -99,7 +98,7 @@ a plain temp-dir copy was used instead, consistent with the constraint):
 All three SC-08 observations independently re-derived (not copied from the gate record), all
 three pass.
 
-### 2c. Discovery count re-derivation (`run-unit-tests.sh`'s own registration edit)
+### 2c. Discovery count re-derivation (`run-unit-tests.py`'s own registration edit)
 
 Covered in 2a: 55/55 against the literal `UNIT_SCRIPTS`+`INTEGRATION_SCRIPTS` union, non-zero,
 matches `len(UNIT_SCRIPTS)=27 + len(INTEGRATION_SCRIPTS)=28`. Re-derived at `635cd3ba` directly
@@ -142,7 +141,7 @@ unprotected, by design, going forward:
 
 ## Verdicts on the full shared file set (Contract-aware, no pre-emptive skips)
 
-- `run-unit-tests.sh` — looked, one array-line change, bound by `test-run-unit-tests-kinds.py`
+- `run-unit-tests.py` — looked, one array-line change, bound by `test-run-unit-tests-kinds.py`
   case_1 against the real tree. No finding.
 - `check-decision-claims.py` + test — looked, confirmed deleted from the reviewed tree
   independently. No finding (Contract 3).
@@ -152,7 +151,7 @@ unprotected, by design, going forward:
   re-hashed), still named on both registration sides, SC-08's three observations all reproduced.
   No finding (Contract 2 — not re-reporting the known docstring issue).
 - `.harness/harness.json` — looked, one `detect` string entry, `--check-kinds` agrees. No finding.
-- `board_lifecycle.py`, `check-domain.sh`, `.github/workflows/tests.yml` — looked, comment-only
+- `board_lifecycle.py`, `check-domain.py`, `.github/workflows/tests.yml` — looked, comment-only
   citation repoints, all targets resolve to a live heading, no logic touched. No finding.
 - `DECISIONS.md`, `DECISIONS-INDEX.md` — SC-11 graded above (5/5 met). SC-05 (index diffs clean)
   covered by the standing green suite. Everything else is Part 3's named, accepted, unprotected

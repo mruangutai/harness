@@ -30,7 +30,7 @@ STUB = {
         "legacy":   "agents:\n  x:\n    write:\n      - { path: .harness/features/*/notes/n.md }\n",
         "migrated": "agents:\n  x:\n    write:\n      - { path: .harness/repoA/features/*/notes/n.md }\n",
     },
-    ".agents/skills/harness/bin/check-domain.sh": {
+    ".agents/skills/harness/bin/check-domain.py": {
         "legacy":   "SWEEP_GLOBS=('.harness/features/*/plan.yaml')\n",
         "migrated": "SWEEP_GLOBS=('.harness/*/features/*/plan.yaml')\n",
     },
@@ -38,7 +38,7 @@ STUB = {
         "legacy":   'plans = glob.glob(os.path.join(root, ".harness", "features", "*", "plan.yaml"))\n',
         "migrated": 'plans = glob.glob(os.path.join(root, ".harness", repo, "features", "*", "plan.yaml"))\n',
     },
-    ".agents/skills/harness/bin/check-state.sh": {
+    ".agents/skills/harness/bin/check-state.py": {
         "legacy":   'for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):\n',
         "migrated": 'for fy in glob.glob(os.path.join(H, _repo, "features", "*", "feature.json")):\n',
     },

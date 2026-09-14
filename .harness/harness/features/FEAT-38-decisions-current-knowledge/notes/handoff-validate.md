@@ -27,7 +27,7 @@ verified-at b460650. Ship later completed: PR #996 merged and `gh-sync.py ship` 
   relayed correctly; the missing original is the defect this file records — `STATE.md` — verified-at
   eb7e751
 - Do not change FEAT-38's `Done` status or add an exemption to silence INV-17; the feature shipped and
-  the invariant correctly requires the missing record — `feature.json`, `check-state.sh` — UNVERIFIED
+  the invariant correctly requires the missing record — `feature.json`, `check-state.py` — UNVERIFIED
 
 ## Working set
 

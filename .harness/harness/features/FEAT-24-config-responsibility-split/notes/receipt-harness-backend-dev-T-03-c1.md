@@ -9,7 +9,7 @@ of its own six printed section totals (12+27+20+10+30+14), re-derived after the 
 `grep -c "^ok\|^FAIL"` count of 117 in an intermediate pass included 4 lines that were `FAIL`, not
 `ok`, before the board blocks were dropped; corrected here rather than left standing.
 
-**The wider `bin/run-unit-tests.sh` sweep found one pre-existing failure outside my scope** —
+**The wider `bin/run-unit-tests.py` sweep found one pre-existing failure outside my scope** —
 `test-no-distribution.py`, two cases, caused by T-07's own fixture not yet matching the
 `fleet.yaml` edit T-07 already landed on this branch (`d177bab`). Detail and evidence in section
 12. Not mine to fix (`DO NOT TOUCH`); raised as a blocking `open_question`.
@@ -211,11 +211,11 @@ targets the DIFFERENT contamination class of stale successful reads across cases
 test-side stub map, and restructuring `_STUB_BOARDS` into a per-call-site parameter is a larger
 change than this task's add-nothing-else rule allows.
 
-## 12. `bin/run-unit-tests.sh` sweep — a pre-existing red outside my scope, found and NOT touched
+## 12. `bin/run-unit-tests.py` sweep — a pre-existing red outside my scope, found and NOT touched
 
 T-03's own verify covers five suites by name; T-02's intent states the stronger guarantee ("T-02
 and T-03 land in ONE commit, so the red window never exists in recorded history"). I ran the full
-registered suite (`bin/run-unit-tests.sh`) to check that guarantee, not just the five named
+registered suite (`bin/run-unit-tests.py`) to check that guarantee, not just the five named
 suites.
 
 **Result: `test-no-distribution.py` FAILS**, with two cases —
@@ -230,7 +230,7 @@ D-10 requires kaya's own PR (T-09) to merge before T-07 removes the board from `
 per that same note the fleet.yaml edit landed ahead of `test-no-distribution.py`'s own fixture
 update — the two are out of the order D-10 states.
 
-I did not edit `test-no-distribution.py`, `fleet.yaml`, or `check-state.sh`, per the dispatch's
+I did not edit `test-no-distribution.py`, `fleet.yaml`, or `check-state.py`, per the dispatch's
 DO NOT TOUCH list. This failure predates my session: `fleet.yaml` and `d177bab` were both on the
 branch before I started, and `test-no-distribution.py` imports none of the six modules or test
 files I touched (`grep -n "^import\|^from"` shows only `os`, `re`, `subprocess`, `sys` — it reads
@@ -239,7 +239,7 @@ T-03's own verify does not run this file, so `task_verify` for T-03 is unaffecte
 full-suite claim of "the red window never exists" does not hold at this commit until T-07's own
 fixture lands.
 
-Every other suite `bin/run-unit-tests.sh` runs is green (197 `PASS` lines, one `FAIL` block —
+Every other suite `bin/run-unit-tests.py` runs is green (197 `PASS` lines, one `FAIL` block —
 `test-no-distribution.py`'s two cases above).
 
 ## 13. Scope note — sixth file

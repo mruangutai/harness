@@ -40,7 +40,7 @@ one sitting. Nothing was dispatched on the revision; nothing was signed.
 | Expertise files holding both layers mixed | 10 |
 
 **Three of the four DEC-174 carve-out scripts are in the docs-migration surface** —
-`check-domain.sh`, `check-state.sh`, plus `harness_boundary.py`, which DEC-193 names as the one
+`check-domain.py`, `check-state.py`, plus `harness_boundary.py`, which DEC-193 names as the one
 shared rule. Every one of those edits is main-session-direct by rule.
 
 ## Decisions so far
@@ -157,7 +157,7 @@ Carried in from the two stores above. Each is settled; none is a ticket.
     factory run, not signed at approval.** Nobody has run kaya's commands from here, so marking any
     kind `active` would be the unverified claim DEC-187 exists to stop.
   - **D-07 — the config resolver's flag is `--which-config`, never `--resolve`.**
-    `check-domain.sh --resolve` already answers a DIFFERENT question in a DIFFERENT shape — which
+    `check-domain.py --resolve` already answers a DIFFERENT question in a DIFFERENT shape — which
     agent owns a path, as plain text including the literal `NOBODY`. A second `--resolve` returning
     JSON about which config applies is a homonym.
   - Also carried: the engineering-review finding that **`load_fleet()` called with no argument reads
@@ -257,7 +257,7 @@ Carried in from the two stores above. Each is settled; none is a ticket.
 ### The shape
 
 **Unit 0 — the migration detector — lands BEFORE anything moves.** `#344` established that no
-mechanism in the tree can detect a partial migration: `check-state.sh`'s fourteen discovery globs
+mechanism in the tree can detect a partial migration: `check-state.py`'s fourteen discovery globs
 return nothing and it reports a healthy tree, while CI's plan-route guard is defeated by exactly the
 shape a repo segment produces (`examined > 0, plans == 0`, a case its own comment names as uncaught).
 So every intermediate state in any sequence would hide its own mistakes.
@@ -279,16 +279,16 @@ and shipping one here would be the same defect inside the fix for it.
 | 6 | Expertise re-home + craft/repo split (#340) | **3** |
 | 7 | Repo-aware write grants via `agent_id` (#351) | **3, 5** |
 | 8 | Live kaya proof | **5**, ideally **2** |
-| 9 | Small independents — `gh-sync.py:729`, `branch-create-gate.sh:77`, `validate-feature-json.py`, `factory_claim.py:43`, gitignore, prose | anytime |
+| 9 | Small independents — `gh-sync.py:729`, `branch-create-gate.py:77`, `validate-feature-json.py`, `factory_claim.py:43`, gitignore, prose | anytime |
 
 ### Two constraints that hold whatever order is chosen
 
-**Unit 3 is ONE COMMIT.** The grants in `team-config.yaml`, `check-domain.sh`'s four shape regexes
+**Unit 3 is ONE COMMIT.** The grants in `team-config.yaml`, `check-domain.py`'s four shape regexes
 and its `SWEEP_GLOBS`, `check-plan-routes.py`'s discovery, and the physical move are mechanically
-coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.sh --resolve`, which reads
+coupled — `check-plan-routes.resolve_agents` shells out to `check-domain.py --resolve`, which reads
 `team-config.yaml` and calls `harness_boundary.matches`. Split them and you get either a tree where
 every write is denied, or — worse and undetectable — a tree whose shape gate is silently off.
-`check-state.sh`'s glob block lands with or before it, because it is the only thing that would report
+`check-state.py`'s glob block lands with or before it, because it is the only thing that would report
 a partial move at all.
 
 **Unit 4 is its own atomic unit** and has no ordering tie to unit 3. `factory_config._PROBE`,

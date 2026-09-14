@@ -3,7 +3,7 @@
 ## Scope census
 
 Two files, no network/credential/PII surface. Censused for the real asset at risk: **gate
-integrity** — `check-state.sh` INV-32 (`check-state.sh:174-279`) is a fail-closed control
+integrity** — `check-state.py` INV-32 (`check-state.py:174-279`) is a fail-closed control
 requiring proof an adversarial panel reviewed an approved plan. This diff adds the first
 exemption paths into it (`:180-216`, delimited `# INV-32 ERA BEGIN/END (BUG-1071)`), plus
 matching test coverage. In scope as Tampering/Repudiation against that control (my Expertise
@@ -12,15 +12,15 @@ changes are fixtures over the same mechanism, not a second surface.
 
 ## Verified evidence (claims re-run, not trusted)
 
-- `bash check-state.sh` in the real worktree: **exit 0**, 32 `INV-32` lines, all printed with the
-  `note` prefix (never `VIOLATION`) — `check-state.sh:1905-1906` prints `bad` as `VIOLATION` and
+- `python3 check-state.py` in the real worktree: **exit 0**, 32 `INV-32` lines, all printed with the
+  `note` prefix (never `VIOLATION`) — `check-state.py:1905-1906` prints `bad` as `VIOLATION` and
   `warn` as `note`; only `bad` drives `sys.exit(1)`. Split confirmed: 1 "approval.date is
   missing" + 31 "before the adversarial panel" = 32. Matches the claimed evidence exactly.
 - `python3 test-check-state.py`: 151 `ok`, 0 `FAIL`, exit 0. All four new cases present and
   green, including `case_inv32_era_guard_is_load_bearing` (`real=0 mutant=1 violations` — I
   re-ran it, not just read it).
 - Confirmed by grep, not assumed: `INV-32:` / `approval.date` appears **nowhere else** in
-  `check-state.sh` outside the INV-32 block. The pre-existing INV-3 check (`:153-172`) validates
+  `check-state.py` outside the INV-32 block. The pre-existing INV-3 check (`:153-172`) validates
   only `approval.status`, never `approval.date`. No second guard forces the field.
 - `harness_yaml.load_plan`'s `REQUIRED_TASK_FIELDS` (`harness_yaml.py:288`) covers only task
   shape, not `approval`. No schema-level requirement on `approval.date` either.
@@ -28,12 +28,12 @@ changes are fixtures over the same mechanism, not a second surface.
 ## Q1–Q3, answered
 
 **Q1 (hardcoded date).** `INV32_ERA_START` is a literal shipped in harness's own gate script,
-run against every onboarded repo. A repo that ships INV-32 later, or a fork of `check-state.sh`
+run against every onboarded repo. A repo that ships INV-32 later, or a fork of `check-state.py`
 whose panel shipped on a different date, inherits `2026-08-31` as a foreign constant with no
 provenance check. Concrete failure mode: none *for this repo* — the constant is a one-time
 bootstrap boundary, and the file's own convention elsewhere (INV-30/INV-31 in this same file) is
 literal comparison dates hardcoded the same way. Not a new pattern, not a live bug for this repo,
-but worth naming: a future repo that vendors `check-state.sh` verbatim inherits the wrong
+but worth naming: a future repo that vendors `check-state.py` verbatim inherits the wrong
 boundary silently (no assertion anywhere ties `INV32_ERA_START` to that repo's own panel
 ship-date). Low severity — hardening, not a finding, since nothing exploits it today.
 
@@ -48,10 +48,10 @@ it against git history, commit date, or file mtime).
 **Reachability is narrower than "any subsequent agent," though.** `## Approval` blocks —
 `plan.yaml`'s `approval:` fragment, which is where `date` lives — are written by the **main
 session only** (`SPEC.md:152`, "the one carve-out to single-owner"; enforced for every other
-governed agent by `check-domain.sh`'s `approval_guard`, which denies the `approval:` fragment to
-everyone but the main session — `check-domain.sh:429-440`, `team-config.yaml:21-25,98-99`). A
+governed agent by `check-domain.py`'s `approval_guard`, which denies the `approval:` fragment to
+everyone but the main session — `check-domain.py:429-440`, `team-config.yaml:21-25,98-99`). A
 governed build/dev agent **cannot** touch `approval.date`; only the main session (operator
-channel) can, and the main session is exempt from `check-domain.sh` entirely (no `agent_type` →
+channel) can, and the main session is exempt from `check-domain.py` entirely (no `agent_type` →
 ungoverned). So the actor who can exploit this is exactly the actor the dispatch names: a hurried
 operator, not "a subsequent agent."
 
@@ -59,7 +59,7 @@ operator, not "a subsequent agent."
 directly (P-02: an actor who already controls a value already holds the privilege it grants — no
 escalation). The main session is the **only** writer of `approval:` and, per the same manifest
 grant (`team-config.yaml:99`, only `approval:` is carved out of `plan.yaml`'s write grant to
-`harness-pm`), nothing in `check-domain.sh` restricts the main session from *also* writing
+`harness-pm`), nothing in `check-domain.py` restricts the main session from *also* writing
 `panel:` — the main session could fabricate a complete, INV-32-passing panel record directly and
 skip the era guard's exemption paths entirely. **The undated/backdated bypass grants no new
 capability an already-privileged actor did not already have.** It is not privilege escalation.
@@ -139,7 +139,7 @@ VERDICT: PASS
 DIGEST:
   headline: "INV-32 era guard fail-open on approval.date is real and unguarded elsewhere, but confined to the main session, which already has unrestricted authority to fabricate the whole panel record — not privilege escalation, MED not HIGH, no must_fix."
   in_scope: true
-  scope_reason: "check-state.sh's INV-32 block is a fail-closed gate-integrity control; this diff adds its first exemption paths. Tampering/Repudiation surface against gate integrity, not conventional OWASP input/auth/secrets surface."
+  scope_reason: "check-state.py's INV-32 block is a fail-closed gate-integrity control; this diff adds its first exemption paths. Tampering/Repudiation surface against gate integrity, not conventional OWASP input/auth/secrets surface."
   severity_max: med
   findings: 3
   must_fix: []

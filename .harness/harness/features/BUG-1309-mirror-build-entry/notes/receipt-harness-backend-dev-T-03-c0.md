@@ -16,7 +16,7 @@
   - `main()`'s `--yes` gate now accepts `recover-terminal` alongside `abandon`.
   - `cmd_ship`'s `skip("no recorded milestone — nothing to close")` is now actionable,
     naming `recover-terminal <abspath> --yes` as the fix, still through `skip()` (exit 0)
-    and still carrying the literal `gh-sync: SKIP` prefix `post-merge-sweep.sh` greps.
+    and still carrying the literal `gh-sync: SKIP` prefix `post-merge-sweep.py` greps.
 - `tests/integration/test-gh-sync.py`
   - New fixture helper `stage_recover` (a sync-enabled `stage()` project plus a
     plan.yaml carrying `source_issues` and a pre-seeded `github` block), plus

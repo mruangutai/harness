@@ -5,14 +5,14 @@
 Nothing on this feature. It merged as PR #899 at 2026-08-27T20:35:44Z; #870 and #556 are closed.
 Eight residual findings are filed as #891–#898 and are ordinary backlog, not follow-up work owed
 here. The two that matter most if anyone picks them up: #898 (the lead digest contract cannot
-represent an honest send-back, so recording a corrected mistake reds `check-state.sh`) and #897
-(this feature's own id is hardcoded as the copy-paste exemplar in `dispatch-guard.sh:105` and
+represent an honest send-back, so recording a corrected mistake reds `check-state.py`) and #897
+(this feature's own id is hardcoded as the copy-paste exemplar in `dispatch-guard.py:105` and
 `harness-zero-micro-management/SKILL.md:30`, so a lead copying the remedy is admitted and routed
 to the wrong checkout).
 
 ## Trust
 
-- `run-unit-tests.sh --kind all` at 61f0a0e: exit 0, 57 files, 3139 case verdicts, zero failures.
+- `run-unit-tests.py --kind all` at 61f0a0e: exit 0, 57 files, 3139 case verdicts, zero failures.
   CI `integration` agreed on the PR, 2m49s.
 - The #556 proof is real and is the strong one: the same command from the repository root and from
   `bin/` gives a byte-identical verdict set after normalising tmpdir paths — case-level diff of 0

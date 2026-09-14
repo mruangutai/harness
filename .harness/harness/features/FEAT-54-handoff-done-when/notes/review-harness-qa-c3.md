@@ -14,8 +14,8 @@ The plan's logic tasks require `unit`. The shared module/two-gate seam warrants 
 
 | Kind | Configured command | Discovery | Exit/outcome |
 |---|---|---:|---|
-| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 25 files | 0, satisfied |
-| integration | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 44 files | 0, satisfied |
+| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 25 files | 0, satisfied |
+| integration | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 44 files | 0, satisfied |
 
 Both commands ran once from the exact repository root with `CLAUDE_PROJECT_DIR` set to that root. Unit executed `test-handoff-done-when.py` and `test-probe-handoff-comprehension.py`; integration executed `test-check-domain.py`, `test-check-state.py`, and `test-run-unit-tests-kinds.py`. No assertion, import, collection, syntax, or load failure occurred.
 
@@ -31,9 +31,9 @@ Both commands ran once from the exact repository root with `CLAUDE_PROJECT_DIR` 
 
 ## Mandatory inspections
 
-- **SC-04 FAIL:** from the exact repository root, literal `bash .claude/skills/harness/bin/check-state.sh` exited **1**. It emitted exactly one `VIOLATION`: `FEAT-51-claude-code-lifecycle-safety: status is 'done' but notes/handoff-validate.md is missing — the validate seam was crossed without a handoff; the successor is on the disk-only path (DEC-159).` No output line names `Done when`. Informational `note` lines are not additional violations.
-- **SC-07 PASS:** `check-domain.sh:1561-1566` imports/calls `handoff_done_when.problems(..., resolve=True)` and fails closed; `check-state.sh:53-56,1243-1251` imports/calls the same implementation with `resolve=False`. Neither gate contains another Done-when body parser or pointer resolver.
-- **SC-08 PASS:** template/playbook, DEC-159/214, and both gates state the five-section contract and name `## Done when`. The only four-heading gate prose is the authorized FEAT-31 historical measurement/incident (`check-state.sh:1194-1202,1215-1219`); DEC-160's first-live-handoff sentence is likewise historical, not a current-contract assertion.
+- **SC-04 FAIL:** from the exact repository root, literal `python3 .claude/skills/harness/bin/check-state.py` exited **1**. It emitted exactly one `VIOLATION`: `FEAT-51-claude-code-lifecycle-safety: status is 'done' but notes/handoff-validate.md is missing — the validate seam was crossed without a handoff; the successor is on the disk-only path (DEC-159).` No output line names `Done when`. Informational `note` lines are not additional violations.
+- **SC-07 PASS:** `check-domain.py:1561-1566` imports/calls `handoff_done_when.problems(..., resolve=True)` and fails closed; `check-state.py:53-56,1243-1251` imports/calls the same implementation with `resolve=False`. Neither gate contains another Done-when body parser or pointer resolver.
+- **SC-08 PASS:** template/playbook, DEC-159/214, and both gates state the five-section contract and name `## Done when`. The only four-heading gate prose is the authorized FEAT-31 historical measurement/incident (`check-state.py:1194-1202,1215-1219`); DEC-160's first-live-handoff sentence is likewise historical, not a current-contract assertion.
 - **SC-11 PASS:** merge-base is exactly the supplied base. The prescribed primary intersection printed nothing. The positive control printed `handoff-build.md` and `handoff-plan.md`, exactly equal to the added-only set.
 - **Approval authorities PASS:** plan and BRIEF approval blocks are approved by Mike Ruangutai on 2026-09-02 (`plan.yaml:3-6`, `BRIEF.md:199-203`). Both new handoffs have a non-empty immediate-action Scope and point to the existing BRIEF `## Approval` heading (`handoff-plan.md:53-55`, `handoff-build.md:34-37`). The four product rulings and their authorities remain recorded in `notes/signature-inputs-c3.md:27-61` and are consistent with D-10/DEC-214.
 
@@ -69,8 +69,8 @@ DIGEST:
   failures: 1
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

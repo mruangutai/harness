@@ -27,12 +27,12 @@ fix-cycle diff, per standing instruction)
 
 - **unit** — required (`touches_runtime_code`, since the feature diff touches
   `factory_claim.py`/`factory_config.py`/`feature-worktree.py`/`layout_fixtures.py`/
-  `layout_migration.py`). **satisfied** — `run-unit-tests.sh --kind unit`, exit 0, all 28
+  `layout_migration.py`). **satisfied** — `run-unit-tests.py --kind unit`, exit 0, all 28
   script rows `PASS`, including `test-factory-claim.py` and `test-factory-claim-mutation.py`.
 - **integration** — the `bugfix` `when` predicate `fix_confined_to_tests_and_contract_docs` does
   NOT fire for the feature as a whole (production changed in earlier cycles), but SC-07/SC-09
   name `tests/integration/test-factory-integration.py` and `test-layout-migration.py` as their own
-  verification, so I add it per the floor-not-ceiling rule. **satisfied** — `run-unit-tests.sh
+  verification, so I add it per the floor-not-ceiling rule. **satisfied** — `run-unit-tests.py
   --kind integration`, exit 0, 46 files, all `PASS`, both named scripts among them, 0 `^FAIL `
   lines.
 - **`__bug_class__` / `match_bug_class`** — **n/a**. Per repository Expertise G-08, this predicate
@@ -50,12 +50,12 @@ fix-cycle diff, per standing instruction)
   exit 0.
 - `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-claim-mutation.py` → prints
   `MUTATION PROOF: 3/3 cases reddened` and `KEY-COLLAPSE PROOF: FAIL BUG-1290 5b printed`, exit 0.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` → runner
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` → runner
   exit **0**; `grep -c '^FAIL '` = **4** — all four are `test-factory-claim-mutation.py`'s own
   internal `FAIL  BUG-1290 5x: ...` diagnostic print lines (its intentional mutation-proof output,
   captured inside an exit-0, `PASS`-scored script row), not a script-level failure; `grep -nE
   '^(PASS|FAIL) test-'` shows 28/28 `PASS`, 0 `FAIL`.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` →
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` →
   runner exit **0**; `grep -c '^FAIL '` = **0**; 46/46 scripts `PASS`, including
   `test-factory-integration.py` and `test-layout-migration.py`.
 - Production identity: `git diff --stat c488218e -- .agents/ .claude/skills/ bin/` → empty,

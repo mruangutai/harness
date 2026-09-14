@@ -20,10 +20,10 @@ team, 4 are main-session-direct and NOT dispatchable.
 - Pull request linked to issue is DISABLED on board 3, ENABLED on board 2 — same query — verified-at e3c9187
 - Both suites pass at e3c9187: --kind unit and --kind integration, exit 0, zero FAIL lines.
   That is SC-10's baseline — ran them myself — verified-at e3c9187
-- Registering a new test file in run-unit-tests.sh UNIT_SCRIPTS is MANDATORY: the drift detector
+- Registering a new test file in run-unit-tests.py UNIT_SCRIPTS is MANDATORY: the drift detector
   builds ALL_SCRIPTS as the union and flags any unregistered test-*.py, exit 2 MISCONFIGURED
-  (`run-unit-tests.sh:36-41`) — read directly — verified-at e3c9187
-- run-unit-tests.sh accepts `--kind` (line 23) and REJECTS a bare positional with exit 2. An
+  (`run-unit-tests.py:36-41`) — read directly — verified-at e3c9187
+- run-unit-tests.py accepts `--kind` (line 23) and REJECTS a bare positional with exit 2. An
   earlier handoff of mine claimed the opposite — read directly — verified-at e3c9187
 - factory_config.py:41 is a five-tuple and :134 is exact set equality; :253 product_config reads
   a served repo's config from the REMOTE at default_branch, never a checkout — verified-at e3c9187
@@ -43,7 +43,7 @@ team, 4 are main-session-direct and NOT dispatchable.
   promoted to Ready, a new #674-class bug — notes/research-board-lifecycle.md — verified-at e3c9187
 - Adding an Abandoned Status option to any board: DEC-192 refused a seventh column and the disk
   schema already carries a column-less Abandoned — DECISIONS.md:5890-5892 — verified-at e3c9187
-- Forbidding the run-unit-tests.sh registration edit: I imposed that constraint and pm correctly
+- Forbidding the run-unit-tests.py registration edit: I imposed that constraint and pm correctly
   overrode it; the drift detector makes it mandatory — this session's error — verified-at e3c9187
 - Mid-run course correction at any tier below the main session: no SendMessage, no wait
   primitive, so every attempt becomes a competing sibling spawn — measured twice — verified-at e3c9187

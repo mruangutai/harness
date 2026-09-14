@@ -34,7 +34,7 @@ Outputs (four separate paths, none in the repository): `/tmp/sc11-uat/arm_a1.py`
 `arm_a2.py`, `arm_b1.py`, `arm_b2.py`. Keep these filenames — they match no `test_kinds` detect
 pattern, so all four are graded at the production bar 4 (verified: a smoke file at this path graded
 `"bar": 4`). Agents writing to `/tmp` are permitted by the domain hook by design
-(`check-domain.sh:825-831`).
+(`check-domain.py:825-831`).
 
 ## The task — identical for all four, paste verbatim
 

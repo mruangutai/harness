@@ -54,7 +54,7 @@ PASS test-code-grade-cli
 Command (verbatim from `plan.yaml`):
 
 ```sh
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Exit status: `2`

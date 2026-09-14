@@ -37,8 +37,8 @@ change has no UI, no eval, no new external dependency surface.
 
 | kind | cmd | state | result |
 |---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | satisfied | 10/10 scripts PASS; `test-factory-gh.py` 118/118, all others green (33, 56, 30, 172, 77, 45, 13, 15, 10 checks) |
-| integration | `run-unit-tests.sh --kind integration` | satisfied | 12/12 scripts PASS; `test-factory-integration.py` **97/97** — this is the standing-gate integration KIND run, not just the task verify's direct invocation |
+| unit | `run-unit-tests.py --kind unit` | satisfied | 10/10 scripts PASS; `test-factory-gh.py` 118/118, all others green (33, 56, 30, 172, 77, 45, 13, 15, 10 checks) |
+| integration | `run-unit-tests.py --kind integration` | satisfied | 12/12 scripts PASS; `test-factory-integration.py` **97/97** — this is the standing-gate integration KIND run, not just the task verify's direct invocation |
 
 No stray `test-*.py` in `bin/` (22 files, matches the 10+12 union) — the predicted drift-detector
 obstacle did not fire; both kind commands ran clean, no misconfiguration.
@@ -207,6 +207,6 @@ integration KIND command directly and it is green (97/97), independent of the ta
 
 ## What I did not do
 
-Did not touch `run-unit-tests.sh`, any DEC-174 carve-out file, or anything under `bin/`. All
+Did not touch `run-unit-tests.py`, any DEC-174 carve-out file, or anything under `bin/`. All
 mutation and probe work ran in the scratchpad against copies, never in-place. No commit. Cleaned
 scratch state is outside the repo and does not appear in `git status`.

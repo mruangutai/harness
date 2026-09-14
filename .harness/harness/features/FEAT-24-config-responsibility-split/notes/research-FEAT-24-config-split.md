@@ -36,7 +36,7 @@ named in the dispatch, classified:
   consumer; it reads `github.repo` and the board only. Confirms DEC-196's "one more call site".
 - `wayfind.py` — **no match** for any moved key. Not a reader.
 - `layout_migration.py` — **no match**. Not a reader.
-- `branch-create-gate.sh` — **no match**. `test-branch-create-gate.py:55` asserts the ABSENCE of
+- `branch-create-gate.py` — **no match**. `test-branch-create-gate.py:55` asserts the ABSENCE of
   `project_number`, `project_id`, `status_field`, `in_progress_option` from that script; kaya's
   migration removes the same four keys from kaya's config and does not touch this test.
 - `factory_decompose.py` — **board reader** (`board_for`, `board_station`), pre-clone. Above.
@@ -44,12 +44,12 @@ named in the dispatch, classified:
   values, not a board read. Not a reader.
 
 Loud-loader surfaces (`load_board` / `derive_station` consumers): `gh-sync.py:139,185`,
-`board-station.py:132`, `check-state.sh:1131,1151,1180`.
+`board-station.py:132`, `check-state.py:1131,1151,1180`.
 
 ## The station-name literals in code, and what they must become
 
 - `gh_board.derive_station` returns `"Building"` (`:115`) and `"Review"` (`:117`).
-- `check-state.sh` INV-26 `_EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}`
+- `check-state.py` INV-26 `_EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}`
   — three more literals, and two of them (`Done`, `Backlog`) are stations the fleet schema's
   three-key set does not cover.
 - `factory_decompose.py:399` resolves `"ready"` through `board_station` already — the model to copy.
@@ -77,7 +77,7 @@ The remote read works today with no clone and no new dependency — one `gh api 
 
 ## The pen for kaya's file — measured, not argued
 
-`check-domain.sh --resolve` at `ada8e99`:
+`check-domain.py --resolve` at `ada8e99`:
 
 - `/Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json` → **NOBODY**
 - `.harness/factory/fleet.yaml` → **NOBODY**
@@ -116,13 +116,13 @@ Amendments 1 and 2 are T-10; 3,4,5 ride in the task that edits the file (G-13).
   wrong reason. Named in T-02, T-03.
 - **Two fake-gh variables.** `factory_gh.run_gh` reads `FACTORY_GH`; `gh-sync.py` reads
   `GH_SYNC_GH`. A test setting one leaves the other hitting the real network. Named in T-04.
-- **Registration list.** `run-unit-tests.sh:17-18` holds explicit `UNIT_SCRIPTS` /
+- **Registration list.** `run-unit-tests.py:17-18` holds explicit `UNIT_SCRIPTS` /
   `INTEGRATION_SCRIPTS` arrays; an unregistered new test file fails the whole run's drift check.
   No new test file is added by this plan, so no registration change is needed.
 
 ## Baselines, observed at `ada8e99` with the plan pending
 
-- **Registered test scripts (SC-13's "no test file removed"):** `run-unit-tests.sh:17` holds **16**
+- **Registered test scripts (SC-13's "no test file removed"):** `run-unit-tests.py:17` holds **16**
   `UNIT_SCRIPTS`, `:18` holds **12** `INTEGRATION_SCRIPTS`, **28 total**. This plan adds no script,
   so the number must be 28 at the merge commit.
 - **`gh_board.py` quoted station names:** 3 at `ada8e99`. Must be 0 after T-04.

@@ -14,7 +14,7 @@ two loaders that read them disagree about failure. `factory_config._validate_boa
 `gh_board.load_board` returns `None` **silently** on the same condition, at which point station
 writes are skipped, INV-26 compares nothing, and every gate stays green. Harness's own board record
 has no `stations` key at all, so `gh_board.derive_station` hardcodes `"Building"` and `"Review"` and
-`check-state.sh`'s INV-26 hardcodes `"Building"`, `"Done"` and `"Backlog"` — a reader cannot tell
+`check-state.py`'s INV-26 hardcodes `"Building"`, `"Done"` and `"Backlog"` — a reader cannot tell
 what harness's columns are without knowing DEC-192 by heart. Meanwhile kaya-ai's own `harness.json`
 on `master` still pins `project_id`, `status_field` and `in_progress_option`, the pre-FEAT-18 flat
 keys that do nothing at all, silently, when fed to a loader. The cost is the exact class FEAT-18 was
@@ -60,7 +60,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   `done` — is read from the board's declared `stations` map, proved by five independent
   assertions, one per key, each of which fails if only that key's lookup is reverted to a literal.
   verify: automated      evidence: unit
-- SC-03: Neither `gh_board.derive_station` nor `check-state.sh`'s INV-26 block contains a station
+- SC-03: Neither `gh_board.derive_station` nor `check-state.py`'s INV-26 block contains a station
   name as a string literal, asserted per file with a positive control that proves the search runs.
   verify: automated      evidence: integration
 - SC-04: Every malformed board shape — not a mapping, missing `owner`, missing or non-integer
@@ -97,12 +97,12 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   verify: inspection
 - SC-10: Every one of the eight files the reader survey classified as reading a moved key is
   migrated, with **one named assertion per file** and no file resting on another's: `gh_board.py`
-  and `check-state.sh` by a literal-absence search over the file (or its INV-26 block) with a
+  and `check-state.py` by a literal-absence search over the file (or its INV-26 block) with a
   positive control; `gh-sync.py`, `board-station.py` and `factory_config.py` by named behavioural
   cases that can only pass after the migration; `factory_land.py`, `factory_claim.py` and
   `factory_decompose.py` by a named case each pinning the value they now resolve through the new
   source. The four files the survey classified as non-readers — `wayfind.py`,
-  `layout_migration.py`, `check-plan-routes.py`, `branch-create-gate.sh` — are searched for every
+  `layout_migration.py`, `check-plan-routes.py`, `branch-create-gate.py` — are searched for every
   moved key, each with its own positive control, and must still match none.
   verify: automated      evidence: integration
 - SC-11: The two recorded statements this change falsifies — DEC-174 amendment 2's per-repository
@@ -110,10 +110,10 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   carry an amendment, asserted per entry, and `gen-decisions-index.py --stdout` still matches
   `DECISIONS-INDEX.md` byte for byte.
   verify: automated      evidence: integration
-- SC-12: `check-state.sh` completes and reports INV-26 as a violation, rather than aborting or
+- SC-12: `check-state.py` completes and reports INV-26 as a violation, rather than aborting or
   reporting clean, when the board declaration is unusable.
   verify: automated      evidence: integration
-- SC-13: The full suite passes at the merge commit — `run-unit-tests.sh --kind all` green — and no
+- SC-13: The full suite passes at the merge commit — `run-unit-tests.py --kind all` green — and no
   test file was removed to achieve it, asserted by comparing the registered script count before
   and after.
   verify: automated      evidence: unit
@@ -146,8 +146,8 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
 - **The config resolver's flag is `--which-config`, never `--resolve`** (#336 D-07).
 - **Harness is not in `fleet.yaml`** (#355), and `test-no-distribution.py
   case3_absence_harness_is_not_a_fleet_member` keeps passing.
-- **DEC-174 carve-out.** Any task touching `check-state.sh`, `check-domain.sh`,
-  `bash-write-guard.sh` or `validate-digest.py` is executed by hand by the operator.
+- **DEC-174 carve-out.** Any task touching `check-state.py`, `check-domain.py`,
+  `bash-write-guard.py` or `validate-digest.py` is executed by hand by the operator.
 - **DEC-189/DEC-193.** No agent seat can be granted a path under a product checkout's `.harness/`;
   the checkout at `workspace_root/<product>` is nonetheless a sanctioned write location.
 - Out of scope: `harness-init`'s rewrite (#206), product boards, `factory_claim.py`'s claim

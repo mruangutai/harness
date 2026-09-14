@@ -14,10 +14,10 @@ panel pins.
 `change_type: cross_module` requires `unit` + `integration`, always (`.harness/harness.json`).
 Ran the CONFIGURED commands (not the task's narrower `verify:` line):
 
-- `unit`: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0. 10 scripts green,
+- `unit`: `.claude/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0. 10 scripts green,
   including `test-factory-claim.py` 95/95, `test-factory-land.py` 56/56, `test-factory-gh.py`,
   `test-factory-decompose.py` all green.
-- `integration`: `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0. All
+- `integration`: `.claude/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0. All
   named suites green, including `test-factory-integration.py` 97/97 and `test-check-state.py`.
 
 Both kinds `status: active` with real `cmd`; both ran against a tree where the required-kind test
@@ -26,7 +26,7 @@ kind is triggered by `cross_module`.
 
 **Configured vs. task `verify:` command — they DO diverge (G-04), gated on the broader one.** The
 task's own `verify:` ran `test-factory-integration.py` directly, one script. The CONFIGURED
-`integration` command (`run-unit-tests.sh --kind integration`) runs the full integration bucket —
+`integration` command (`run-unit-tests.py --kind integration`) runs the full integration bucket —
 11+ scripts including `test-check-state.py`, `test-bash-write-guard.py`, `test-gh-sync.py`, etc.
 — of which `test-factory-integration.py` is one. Both passed here, so the divergence didn't change
 the outcome this run, but the gate is taken on the CONFIGURED command per dispatch instruction, not

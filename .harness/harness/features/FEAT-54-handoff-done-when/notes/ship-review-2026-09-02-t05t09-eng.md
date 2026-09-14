@@ -2,7 +2,7 @@
 
 **The build stopped after one of twelve tasks, and it is not a build problem.** The approved plan
 pins five of its files at paths this repository forbids, and justifies two of its decisions by
-machinery that no longer exists in `run-unit-tests.sh`. FEAT-47-tests-layout merged **at the plan's
+machinery that no longer exists in `run-unit-tests.py`. FEAT-47-tests-layout merged **at the plan's
 own declared base commit** and moved every test under `tests/` and every probe under
 `tests/manual/`; the plan was drafted against the layout that merge replaced. Nothing a squad can do
 closes this. It needs your ruling on one question, then a pm amendment and a re-signature.
@@ -25,9 +25,9 @@ Option A is also the eng-lead's recommendation, independently reached.
 ## The evidence, all measured at HEAD `63af2eda`, all re-derived by me rather than relayed
 
 - `suite_layout.violations()` reports any `test-*.py`, `*.test.*` or `probe-*` left under
-  `.claude/skills/harness/bin/` (`suite_layout.py:29-33`), and `run-unit-tests.sh:31` runs it on
+  `.claude/skills/harness/bin/` (`suite_layout.py:29-33`), and `run-unit-tests.py:31` runs it on
   every invocation. **T-01, T-03, T-06, T-09 and T-12 all pin their files there.**
-- `run-unit-tests.sh` has **no** `UNIT_SCRIPTS`, **no** `INTEGRATION_SCRIPTS`, **no** `KINDCHECK`
+- `run-unit-tests.py` has **no** `UNIT_SCRIPTS`, **no** `INTEGRATION_SCRIPTS`, **no** `KINDCHECK`
   heredoc and **no** probe-drift check. It globs `tests/unit/test-*.py` and
   `tests/integration/test-*.py` (`:25-27`). D-04's and D-06's `because` clauses both cite that
   absent machinery, and T-12's three cases have no subject at all.

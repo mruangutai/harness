@@ -20,10 +20,10 @@ directories it reported before this run.
   `plan-merge.py amend --key tasks --id T-01 --field verify --expect-sha256 33d5117a…`; every other
   line of the block is byte-identical and it is still a literal `|` block.
 - **F-2 (advisory, no task change) — citation strengthened** (`BRIEF.md:120-127`, beside DEC-205).
-  Cites `check-domain.sh:1798-1800`, quotes the denial message, and states the nuance: that sentence
+  Cites `check-domain.py:1798-1800`, quotes the denial message, and states the nuance: that sentence
   is the rationale attached to the LINE-BUDGET denial, **not** a standalone rule elsewhere in the
   file — read as the enforcement layer's own characterisation of `STATE.md` as a current-truth
-  record, not an independent prohibition on appending. Verified at source (`check-domain.sh:1796-1800`).
+  record, not an independent prohibition on appending. Verified at source (`check-domain.py:1796-1800`).
 - F-4, F-5, F-6 left as recorded advisories. `approval: {status: pending}`; no `panel:` key.
 
 ## Measured, read-only, in this worktree at HEAD `41c16c7` (2026-09-06)

@@ -26,9 +26,9 @@ concentrated on `merge-gate.py`. I found nothing new there either.
   `test-post-merge-sweep.py:883`) — cycle 1's Q1/F2 is now closed, not merely restated.
 - (b) **Widened to files no prior code-review cycle covered.** c0/c1 read `merge-gate.py`,
   `feature_schema.py`'s era set, and `gh-sync.py`'s skip/refuse table closely; both left
-  `post-merge-sweep.sh`'s SC-06 branch, `feature-schema.json`'s schema declaration, `gh-sync.py`'s
+  `post-merge-sweep.py`'s SC-06 branch, `feature-schema.json`'s schema declaration, `gh-sync.py`'s
   `cmd_recover_terminal`/`cmd_open`/`record_build_entry` bodies, `plan-merge.py`'s regex change,
-  `check-state.sh` INV-37, the hook-registration surfaces, and the doc surfaces largely
+  `check-state.py` INV-37, the hook-registration surfaces, and the doc surfaces largely
   unexamined. I read and traced each (not merely grepped) and additionally **ran** the beds that
   exercise them, rather than trusting a prior green claim:
   - `plan-merge.py:1120` narrowed `_replace_signature_fields`'s regex from `^(\s+)` to `^(  )`.
@@ -50,11 +50,11 @@ concentrated on `merge-gate.py`. I found nothing new there either.
     (`create_calls`, `test-gh-sync.py:714`, explicitly scoped to POST/`issue create` payloads, not
     path substrings), not a substring search, matching SC-05's own wording. Ran
     `tests/integration/test-gh-sync.py`: full suite green (T-02/T-03/T-04/T-12 sections all `ok`).
-  - `post-merge-sweep.sh`'s SC-06 branch (era-absent print-then-fall-through vs.
+  - `post-merge-sweep.py`'s SC-06 branch (era-absent print-then-fall-through vs.
     not-in-allow-set `elif`-return) matches D-08/D-12's text: era+absent prints and continues to
     normal removal (swept); anything outside `{opened, not-applicable, recovered-terminal}`
     (including era `recovery-required`) returns before removal (retained).
-  - `check-state.sh`'s new INV-37 (`:1983-2019`) skips a feature whose `factory.issues` is
+  - `check-state.py`'s new INV-37 (`:1983-2019`) skips a feature whose `factory.issues` is
     non-empty. This looked, on first read, like an unplanned fail-open — a second, undocumented
     exemption alongside the era set. Traced it to source: `factory.issues` is a *different*
     mirroring mechanism (`factory_decompose.py`/`factory_claim.py`, a separate fleet-decompose
@@ -73,7 +73,7 @@ concentrated on `merge-gate.py`. I found nothing new there either.
     sequence names it as step 1 (`SKILL.md:141`). Grepped both files for "ship"-as-mirror-trigger
     wording: none found.
   - Hook registration (`settings.json`, `settings.snippet.json`, `merge-settings.py`,
-    `.omp/extensions/harness-hooks.ts`): `merge-gate.sh` is registered once in each surface,
+    `.omp/extensions/harness-hooks.ts`): `merge-gate.py` is registered once in each surface,
     consistent with the other three. The `should-not-exist` reader's plan-time position finding
     (PF-f1684…) is recorded resolved by T-05 and is a placement question, not a behavioral one —
     not re-litigated here.
@@ -104,10 +104,10 @@ perform.
 
 ## What I looked for and did not find
 
-- No re-derivation of `BUILD_ENTRY_ERA_EXEMPT` outside `feature_schema.py` (checked `check-state.sh`,
-  `merge-gate.py`, `gh-sync.py`, `post-merge-sweep.sh` — all import the one module-level set).
+- No re-derivation of `BUILD_ENTRY_ERA_EXEMPT` outside `feature_schema.py` (checked `check-state.py`,
+  `merge-gate.py`, `gh-sync.py`, `post-merge-sweep.py` — all import the one module-level set).
 - No consumer of `github.build_entry` that defaults absence to a permissive value (re-confirmed for
-  `check-state.sh` INV-37 and `post-merge-sweep.sh`'s SC-06 branch, both newly read this cycle;
+  `check-state.py` INV-37 and `post-merge-sweep.py`'s SC-06 branch, both newly read this cycle;
   `merge-gate.py`/`gh-sync.py` sides were c0's own finding, not re-derived here).
 - No place where the `GRADE-2 REASON` comment text is consumed by tooling, and no discrepancy
   between the comment's claim and the function it sits above.

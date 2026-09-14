@@ -18,11 +18,11 @@ dispatched at either.
   rejection branch rather than an early return — `notes/review-harness-code-reviewer-c5.md` —
   verified-at e2c800f1
 - Digest-validator suite exit 0, zero `^FAIL `, `ALL PASSED`; `test-config-shape-matrix.py` 19/19;
-  `run-unit-tests.sh --kind integration` exit 0 over 46 files — orchestrator ran all three, exit
+  `run-unit-tests.py --kind integration` exit 0 over 46 files — orchestrator ran all three, exit
   status captured in a variable — verified-at e2c800f1
 - `gen-decisions-index.py --stdout | diff -q -` is silent at exit 0, so SC-06's idempotence clause is
   now true; it was FALSE at the superseded pin 59c5de97 — orchestrator run — verified-at e2c800f1
-- `check-state.sh` exits 0 from this worktree; its notes name other features, none BUG-1303 —
+- `check-state.py` exits 0 from this worktree; its notes name other features, none BUG-1303 —
   orchestrator run — verified-at e2c800f1
 - `review_sha` e2c800f1 is HEAD and the tree is clean, so the pin covers every reviewed byte —
   `git status --porcelain` empty — verified-at e2c800f1
@@ -31,7 +31,7 @@ dispatched at either.
 
 ## Dead ends
 
-- Do not dispatch a squad at F-02's two skill files — `check-domain.sh --resolve` returns `NOBODY`
+- Do not dispatch a squad at F-02's two skill files — `check-domain.py --resolve` returns `NOBODY`
   for both — orchestrator ran the guard per path — verified-at e2c800f1
 - Do not re-run the c4 panel's security or ui lenses — each PASSED on a measured census and the fix
   commit adds no surface for either — `runs/2026-09-05-14-validator/digest.md` `not_rerun` —

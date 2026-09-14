@@ -94,7 +94,7 @@ distinguishes bfb77f23 from 7e38d0ae, and I measured both endpoints directly.
 ### Runner corroboration (corroboration only, per BRIEF's own caveat)
 
 ```
-$ env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration
 EXIT=0   FAIL_LINE_COUNT=0 (grepped across the WHOLE captured output, not the tail)
 ----- test-plan-merge.py (exit 0, 10.70s) -----
 PASS test-plan-merge.py
@@ -113,7 +113,7 @@ regression floor for a bugfix, not a demand for a new unit-level test of a non-e
 unit-level change:
 
 ```
-$ env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ env -u HARNESS_AGENT_TYPE python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit
 EXIT=0   FAIL_LINE_COUNT=0
 pool: 8 workers, 27 files, 2.09s wall
 ```

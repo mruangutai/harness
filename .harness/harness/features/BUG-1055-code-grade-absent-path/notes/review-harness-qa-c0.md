@@ -19,8 +19,8 @@ Reviewed `git diff 9f2a070..e353c7e` in the worktree. **No source, tests, or fix
 
 | kind | required by | state | cmd | binding evidence |
 |---|---|---|---|---|
-| `unit` | `bugfix.always` | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | `test-code-grade.py` is a member of `UNIT_SCRIPTS` (`run-unit-tests.sh:30`) and matches the `unit` kind's `detect` glob (`.claude/skills/harness/bin/test-*.py`). Ran `check_base_source_absent_from_worktree` standalone: 0 failures. |
-| `integration` | `bugfix.when: match_bug_class` (fires) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | `test-code-grade-cli.py` is a member of `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:31`) and matches the `integration` kind's `detect` glob (listed explicitly). Ran `test_absent_new_path_grades_the_range` standalone: 0 failures. |
+| `unit` | `bugfix.always` | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | `test-code-grade.py` is a member of `UNIT_SCRIPTS` (`run-unit-tests.py:30`) and matches the `unit` kind's `detect` glob (`.claude/skills/harness/bin/test-*.py`). Ran `check_base_source_absent_from_worktree` standalone: 0 failures. |
+| `integration` | `bugfix.when: match_bug_class` (fires) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | `test-code-grade-cli.py` is a member of `INTEGRATION_SCRIPTS` (`run-unit-tests.py:31`) and matches the `integration` kind's `detect` glob (listed explicitly). Ran `test_absent_new_path_grades_the_range` standalone: 0 failures. |
 
 Both configured `cmd`s are **broader** than what exercises this change — each runs the project's full unit or integration bucket (473 / 588 tests). Per the dispatch, I did not re-run those buckets (already green, not evidence about this diff); I ran the two named tests directly via `importlib` against the review_sha content instead, which is sufficient to confirm presence and pass.
 

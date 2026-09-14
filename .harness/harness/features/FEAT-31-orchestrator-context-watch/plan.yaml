@@ -19,14 +19,14 @@ lanes:
     - surface: .claude/skills/harness/bin/test-context-watch-cli.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
       reason: TWO LANES BY EDIT KIND, see D-06 as amended by D-19. An append to UNIT_SCRIPTS or INTEGRATION_SCRIPTS is data and stays team (T-02, T-07). The T-12 edit that adds a new REJECTION RULE to the runner of tests.yml's two required steps is enforcement layer by category under DECISIONS.md lines 4851 to 4854, so T-12 is main-session-direct. check-domain --resolve grants the path to harness-backend-dev and harness-dev-ops at 7299669; the carve-out is narrower than the grant.
     - surface: .claude/skills/harness/bin/verify-context-watch-live.py
       lane: team
       agent: harness-backend-dev
-      reason: resolves to harness-backend-dev and harness-dev-ops at 7299669. NOT named test-*.py, so the run-unit-tests.sh drift detector never reaches it and no test_kinds detect glob matches it; see D-17 for the cost.
+      reason: resolves to harness-backend-dev and harness-dev-ops at 7299669. NOT named test-*.py, so the run-unit-tests.py drift detector never reaches it and no test_kinds detect glob matches it; see D-17 for the cost.
     - surface: .claude/skills/harness/bin/test-run-unit-tests-kinds.py
       lane: main-session-direct
       reason: DEC-174 am.4 pairs a gate's test with the gate at DECISIONS.md lines 4841 to 4854; this is the test of the T-12 cross-check, so it moves with it even though check-domain --resolve grants the path to harness-backend-dev and harness-dev-ops at 7299669.
@@ -48,10 +48,10 @@ lanes:
     - surface: .claude/settings.json
       lane: main-session-direct
       reason: resolves to NOBODY; second-half surface for the PostToolUse registration
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer; second-half surface for SC-07's write route
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: DEC-174 named enforcement layer; second-half surface for SC-14's INV-17 seam table
     - surface: .claude/skills/harness/bin/test-check-state.py
@@ -59,16 +59,16 @@ lanes:
       reason: DEC-174 am.4 pairs the gate's test with the gate
     - surface: .claude/skills/harness/bin/feature-schema.json
       lane: main-session-direct
-      reason: CORRECTED 2026-08-21 by plan5 - this row previously read team, harness-backend-dev with the note that "the gate that enforces it is main-session-direct". That note was the answer and the row contradicted it. check-domain.sh:815 already calls feature_schema.problems_for_text, so this file IS the gate's rule table and editing it changes what the gate rejects with no separate cutover to be anyone else's hands. DECISIONS.md lines 4864 to 4867 at 2cf792f place the cutover on the main-session-direct side, and lines 4859 to 4862 make the enumeration a category rather than a list. check-domain.sh --resolve grants the path to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant, exactly as for check-domain.sh and check-state.sh. See D-23.
+      reason: CORRECTED 2026-08-21 by plan5 - this row previously read team, harness-backend-dev with the note that "the gate that enforces it is main-session-direct". That note was the answer and the row contradicted it. check-domain.py:815 already calls feature_schema.problems_for_text, so this file IS the gate's rule table and editing it changes what the gate rejects with no separate cutover to be anyone else's hands. DECISIONS.md lines 4864 to 4867 at 2cf792f place the cutover on the main-session-direct side, and lines 4859 to 4862 make the enumeration a category rather than a list. check-domain.py --resolve grants the path to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant, exactly as for check-domain.py and check-state.py. See D-23.
     - surface: .claude/skills/harness/bin/feature_schema.py
       lane: main-session-direct
-      reason: the module check-domain.sh imports in process at :815. Same reasoning as feature-schema.json above - the library write IS the cutover here, because the gate already imports it, so DEC-174 am.4's "a squad may write the library" split is NOT available. check-domain.sh --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant. See D-23.
+      reason: the module check-domain.py imports in process at :815. Same reasoning as feature-schema.json above - the library write IS the cutover here, because the gate already imports it, so DEC-174 am.4's "a squad may write the library" split is NOT available. check-domain.py --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant. See D-23.
     - surface: .claude/skills/harness/bin/test-validate-feature-json.py
       lane: main-session-direct
-      reason: DEC-174 am.4 pairs a gate's test with the gate, DECISIONS.md lines 4859 to 4862 at 2cf792f. This is the test of the rule feature_schema.py enforces, and it is in UNIT_SCRIPTS at 2cf792f, which is what makes it SC-07's evidence unit. check-domain.sh --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f.
+      reason: DEC-174 am.4 pairs a gate's test with the gate, DECISIONS.md lines 4859 to 4862 at 2cf792f. This is the test of the rule feature_schema.py enforces, and it is in UNIT_SCRIPTS at 2cf792f, which is what makes it SC-07's evidence unit. check-domain.py --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f.
     - surface: .claude/skills/harness/bin/test-check-domain.py
       lane: main-session-direct
-      reason: DEC-174 am.4 names check-domain.sh and the test file of each, DECISIONS.md lines 4859 to 4862 at 2cf792f. check-domain.sh --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant.
+      reason: DEC-174 am.4 names check-domain.py and the test file of each, DECISIONS.md lines 4859 to 4862 at 2cf792f. check-domain.py --resolve grants it to harness-backend-dev and harness-dev-ops at 2cf792f; the carve-out is narrower than the grant.
     - surface: .claude/skills/harness/bin/context-watch-hook.py
       lane: main-session-direct
       reason: a REGISTERED hook once .claude/settings.json names it, and DEC-174's ruling names the category "hooks, validators, gate scripts" with DECISIONS.md lines 4859 to 4862 at 2cf792f declaring the list non-exhaustive and a script joining it on the day it becomes one. This file does not exist at 2cf792f so --resolve has no grant to report for it; the DIRECTORY .claude/skills/harness/bin/ resolves to harness-backend-dev and harness-dev-ops, and the carve-out is narrower. See D-24.
@@ -98,8 +98,8 @@ decisions:
     because: DEC-160 requires that a decision adding a harness.json key says so, and NO success criterion in the approved BRIEF covers that. This is a gap the BRIEF left, closed here by a task rather than by an SC.
     dec: DEC-160
   - id: D-06
-    choice: Registering a new test file in run-unit-tests.sh is a TEAM task, not main-session-direct.
-    because: run-unit-tests.sh is not in DEC-174's named list, check-domain --resolve grants it to backend-dev and dev-ops, and the edit is a one-element array append that changes no gate rule. Recorded as a D-NN so the operator can overrule it in one read if a test runner counts as enforcement layer.
+    choice: Registering a new test file in run-unit-tests.py is a TEAM task, not main-session-direct.
+    because: run-unit-tests.py is not in DEC-174's named list, check-domain --resolve grants it to backend-dev and dev-ops, and the edit is a one-element array append that changes no gate rule. Recorded as a D-NN so the operator can overrule it in one read if a test runner counts as enforcement layer.
     dec: DEC-174
   - id: D-07
     choice: change_type is drawn only from logic, config and docs across this plan. Never frontend, never ai_behavior, never feature.
@@ -130,7 +130,7 @@ decisions:
     because: In PostToolUse the tool has already run, so exit 2 only carries stderr back to the agent, which is exactly the operator ruling that the warning advises and does not refuse. A matcher that never fires for an orchestrator is the green-and-incapable-of-red failure in hook form.
     dec: none
   - id: D-14
-    choice: SECOND HALF. Four surfaces are main-session-direct and every cutover is the operator's hands — .claude/settings.json, check-domain.sh, check-state.sh and test-check-state.py.
+    choice: SECOND HALF. Four surfaces are main-session-direct and every cutover is the operator's hands — .claude/settings.json, check-domain.py, check-state.py and test-check-state.py.
     because: DEC-174 carves out the enforcement layer and its list is non-exhaustive; settings.json and the templates directory additionally resolve to NOBODY.
     dec: DEC-174
   - id: D-15
@@ -139,27 +139,27 @@ decisions:
     dec: DEC-191
   - id: D-16
     choice: SECOND HALF. SC-15 IS SPLIT. Its automatable half asserts that INV-17 rejects a handoff whose four required section headings are all present but whose Next section body is empty, which is the exact mutation SC-15 names. Its agent-behaviour half, that a fresh orchestrator's first dispatch matches the predecessor's Next section, has NO TASK and is routed to the operator alongside SC-10, because only a live orchestrator can produce a first dispatch.
-    because: Measured at 6f651f1, INV-17 tests only heading PRESENCE, via HANDOFF_HEADINGS at check-state.sh line 509 and the membership test at line 614, so an emptied Next section passes the gate today and the new assertion goes red before the change. No automated test can spawn a harness orchestrator, and D-12 forbids reading the projects directory, so the behaviour half is unautomatable for the same reason SC-10 is. Raised to the operator as a blocking open question because it narrows an approved criterion that reads verify automated, evidence integration.
+    because: Measured at 6f651f1, INV-17 tests only heading PRESENCE, via HANDOFF_HEADINGS at check-state.py line 509 and the membership test at line 614, so an emptied Next section passes the gate today and the new assertion goes red before the change. No automated test can spawn a harness orchestrator, and D-12 forbids reading the projects directory, so the behaviour half is unautomatable for the same reason SC-10 is. Raised to the operator as a blocking open question because it narrows an approved criterion that reads verify automated, evidence integration.
     dec: DEC-159
 
   - id: D-17
     choice: SC-01's live half is .claude/skills/harness/bin/verify-context-watch-live.py, a file DELIBERATELY NOT named test-*.py, delivered by T-13. The fixture half is T-07's test-context-watch-cli.py. The alternative of one test-*.py file that prints a loud skip when ~/.claude/projects is absent is REJECTED.
-    because: run-unit-tests.sh's drift detector loops over "$BIN_DIR"/test-*.py, so a bin file whose name does not match that glob never reaches it and cannot raise MISCONFIGURED. The skip variant is the weaker door - tests.yml lines 78 and 84 run --kind unit and --kind integration as required steps, so a printed skip inside a required step is a green suite that verified nothing, which is this repository's most-filed defect shape. THE COST, NAMED - verify-context-watch-live.py matches no test_kinds detect glob at 7299669, so it sits OUTSIDE the test matrix and outside tests.yml, and nothing runs it unless an agent is told to. That is the price of the operator's A-1 ruling and it is accepted, not hidden. T-13's own verify covers the script's plumbing with a fixture self-test so the file is not wholly unexercised.
+    because: run-unit-tests.py's drift detector loops over "$BIN_DIR"/test-*.py, so a bin file whose name does not match that glob never reaches it and cannot raise MISCONFIGURED. The skip variant is the weaker door - tests.yml lines 78 and 84 run --kind unit and --kind integration as required steps, so a printed skip inside a required step is a green suite that verified nothing, which is this repository's most-filed defect shape. THE COST, NAMED - verify-context-watch-live.py matches no test_kinds detect glob at 7299669, so it sits OUTSIDE the test matrix and outside tests.yml, and nothing runs it unless an agent is told to. That is the price of the operator's A-1 ruling and it is accepted, not hidden. T-13's own verify covers the script's plumbing with a fixture self-test so the file is not wholly unexercised.
     dec: none
 
   - id: D-18
     choice: F-1's instance and D-4's class are ONE edit to ONE file in ONE task. T-11, execution_mode team, execution_agent harness-dev-ops, appends TEN explicit literal paths to test_kinds.integration.detect in .harness/harness.json. T-07 does NOT carry .harness/harness.json in its files. The class is CLOSED, not widened.
-    because: Measured at 7299669 in the FEAT-31 worktree, INTEGRATION_SCRIPTS in run-unit-tests.sh holds 12 entries and test_kinds.integration.detect names 4 of them explicitly, so EIGHT classify as unit via unit.detect's catch-all .claude/skills/harness/bin/test-*.py — test-validate-digest.py, test-check-expertise.py, test-gen-decisions-index.py, test-bash-write-guard.py, test-check-domain.py, test-harness-yaml.py, test-upgrade-config.py, test-merge-settings.py. The ten are those eight plus test-context-watch-cli.py (T-07, the F-1 instance) and test-run-unit-tests-kinds.py (T-12). It is one task and not two because check-domain.sh --resolve .harness/harness.json returns harness-dev-ops ONLY at 7299669, so T-07 at harness-backend-dev cannot carry that path and check-plan-routes.py would report a DEVIATION for it. The split is FORCED by the grant, not chosen. THE SWEEP, all ten tasks at 7299669 - T-02 appends test-context-watch.py to UNIT_SCRIPTS and unit.detect's catch-all already classifies it unit, so it agrees and needs nothing; T-05 edits test-upgrade-config.py, which is one of the eight and is fixed by T-11 rather than by T-05, whose lane is harness-backend-dev; T-10 edits test-check-state.py, already explicit in integration.detect; no other task creates or moves a test file. COST - 1 new task, 1 config file, 10 string appends, no code. The template .claude/skills/harness/templates/harness.json is NOT touched - its integration.detect is tests/integration/** with cmd null at 7299669, and the ten paths are this repository's own bin tests, so propagating them to a fresh project would name files that will never exist there.
+    because: Measured at 7299669 in the FEAT-31 worktree, INTEGRATION_SCRIPTS in run-unit-tests.py holds 12 entries and test_kinds.integration.detect names 4 of them explicitly, so EIGHT classify as unit via unit.detect's catch-all .claude/skills/harness/bin/test-*.py — test-validate-digest.py, test-check-expertise.py, test-gen-decisions-index.py, test-bash-write-guard.py, test-check-domain.py, test-harness-yaml.py, test-upgrade-config.py, test-merge-settings.py. The ten are those eight plus test-context-watch-cli.py (T-07, the F-1 instance) and test-run-unit-tests-kinds.py (T-12). It is one task and not two because check-domain.py --resolve .harness/harness.json returns harness-dev-ops ONLY at 7299669, so T-07 at harness-backend-dev cannot carry that path and check-plan-routes.py would report a DEVIATION for it. The split is FORCED by the grant, not chosen. THE SWEEP, all ten tasks at 7299669 - T-02 appends test-context-watch.py to UNIT_SCRIPTS and unit.detect's catch-all already classifies it unit, so it agrees and needs nothing; T-05 edits test-upgrade-config.py, which is one of the eight and is fixed by T-11 rather than by T-05, whose lane is harness-backend-dev; T-10 edits test-check-state.py, already explicit in integration.detect; no other task creates or moves a test file. COST - 1 new task, 1 config file, 10 string appends, no code. The template .claude/skills/harness/templates/harness.json is NOT touched - its integration.detect is tests/integration/** with cmd null at 7299669, and the ten paths are this repository's own bin tests, so propagating them to a fresh project would name files that will never exist there.
     dec: DEC-160
 
   - id: D-19
-    choice: D-4's check lands INSIDE .claude/skills/harness/bin/run-unit-tests.sh as a cross-check between its two script arrays and .harness/harness.json's test_kinds, plus a --check-kinds mode that runs only that cross-check and exits. T-12, execution_mode main-session-direct. Its test is a NEW file .claude/skills/harness/bin/test-run-unit-tests-kinds.py, registered in INTEGRATION_SCRIPTS by T-12 and named in test_kinds.integration.detect by T-11. THE RULE IS A SET COMPARISON, NOT A CLASSIFIER - every INTEGRATION_SCRIPTS entry must appear as an explicit literal path in integration.detect, and no UNIT_SCRIPTS entry may.
-    because: Today the drift detector reads its own two bash arrays and NEVER reads harness.json, so a mismatch between the arrays and test_kinds is invisible to every gate — which is exactly how the eight in D-18 went unnoticed. Placing the cross-check in run-unit-tests.sh makes it unskippable - that script IS the command behind tests.yml lines 78 and 84, the two required steps. That same fact makes it enforcement layer by CATEGORY rather than by analogy — DECISIONS.md lines 4851 to 4854 declare the enumeration non-exhaustive and rule that a script becomes enforcement layer on the day it becomes a gate, the category deciding and the list recording; lines 4856 to 4859 add that the cutover which makes a gate use new logic is main-session-direct. D-06 is NOT contradicted - its stated basis is that a one-element array append changes no gate rule, and T-02 and T-07 remain team on exactly that basis. T-12 changes what the runner REJECTS, which D-06 never covered. THE SET COMPARISON is chosen over a glob classifier so the check does not depend on the unwritten precedence rule in Q-B - it needs no answer to whether an explicit path beats a catch-all glob. THE SELF-REFERENCE IS RESOLVED, not left - test-run-unit-tests-kinds.py matches the drift detector's own test-*.py glob, so it must sit in one array, it drives run-unit-tests.sh as a subprocess so that array is INTEGRATION_SCRIPTS, and it must therefore also be explicit in integration.detect or the new check goes red on itself — which is why T-11 lists it and why T-12 depends on T-11.
+    choice: D-4's check lands INSIDE .claude/skills/harness/bin/run-unit-tests.py as a cross-check between its two script arrays and .harness/harness.json's test_kinds, plus a --check-kinds mode that runs only that cross-check and exits. T-12, execution_mode main-session-direct. Its test is a NEW file .claude/skills/harness/bin/test-run-unit-tests-kinds.py, registered in INTEGRATION_SCRIPTS by T-12 and named in test_kinds.integration.detect by T-11. THE RULE IS A SET COMPARISON, NOT A CLASSIFIER - every INTEGRATION_SCRIPTS entry must appear as an explicit literal path in integration.detect, and no UNIT_SCRIPTS entry may.
+    because: Today the drift detector reads its own two bash arrays and NEVER reads harness.json, so a mismatch between the arrays and test_kinds is invisible to every gate — which is exactly how the eight in D-18 went unnoticed. Placing the cross-check in run-unit-tests.py makes it unskippable - that script IS the command behind tests.yml lines 78 and 84, the two required steps. That same fact makes it enforcement layer by CATEGORY rather than by analogy — DECISIONS.md lines 4851 to 4854 declare the enumeration non-exhaustive and rule that a script becomes enforcement layer on the day it becomes a gate, the category deciding and the list recording; lines 4856 to 4859 add that the cutover which makes a gate use new logic is main-session-direct. D-06 is NOT contradicted - its stated basis is that a one-element array append changes no gate rule, and T-02 and T-07 remain team on exactly that basis. T-12 changes what the runner REJECTS, which D-06 never covered. THE SET COMPARISON is chosen over a glob classifier so the check does not depend on the unwritten precedence rule in Q-B - it needs no answer to whether an explicit path beats a catch-all glob. THE SELF-REFERENCE IS RESOLVED, not left - test-run-unit-tests-kinds.py matches the drift detector's own test-*.py glob, so it must sit in one array, it drives run-unit-tests.py as a subprocess so that array is INTEGRATION_SCRIPTS, and it must therefore also be explicit in integration.detect or the new check goes red on itself — which is why T-11 lists it and why T-12 depends on T-11.
     dec: DEC-174
 
   - id: D-20
-    choice: SC-14's approved second half is a SIBLING task T-14, not folded into T-10, and T-14 runs BEFORE T-10 (T-10 depends_on T-14). T-14 RESTRUCTURES - it moves the handoff shape check OUT of the for prev in SEAM_NOTES[_status] loop in check-state.sh into a single pass that globs notes/handoff-*.md per feature directory, so the loop keeps only the missing-note branch. SEAM_NOTES is UNCHANGED. C-3's double-report risk is resolved BY STRUCTURE, not by ordering. BRIEF.md's SC-14 mechanism clause is rewritten by this plan round because the mechanism it named is now forbidden.
-    because: A sibling is chosen over a fold because T-14 is a refactor with its own red proof while T-10 is a new rule, and one dispatch carrying both makes a failed refactor indistinguishable from a failed empty-body check. T-14 runs FIRST so T-10's empty-body check is written ONCE, into the single extracted shape-check site, instead of being written inside the loop and then moved. BY STRUCTURE beats BY ORDERING because after the extraction the shape check has exactly ONE call site and the glob finds every existing note including the seam-stem ones, so no file can be reported twice by construction rather than by a rule someone must remember. Measured at 7299669 - check-state.sh line 592's loop both builds the required-note path and shape-checks it at line 614, which is the shared site; SEAM_NOTES is at line 495 and the comment above it, lines 475 to 481, records that deriving stems from status values matches on a case-insensitive filesystem and goes dark on Linux CI — the only machine that gates the merge. HANDOFF_HEADINGS at line 509 and the 60-line cap are untouched. A shape failure stays a VIOLATION through bad.append; the warn-instead variant was offered to the operator and REJECTED. The FEAT-01 and FEAT-02 literal exemption at HANDOFF_EXEMPT_LITERAL line 523 and the all-main-session-direct exemption at _handoff_exempt line 525 skip only the MISSING-note branch - once a file exists the shape check runs regardless, and the glob widens which files reach it rather than changing that rule. main-session-direct for the same reason as T-10, DECISIONS.md lines 4851 to 4854.
+    choice: SC-14's approved second half is a SIBLING task T-14, not folded into T-10, and T-14 runs BEFORE T-10 (T-10 depends_on T-14). T-14 RESTRUCTURES - it moves the handoff shape check OUT of the for prev in SEAM_NOTES[_status] loop in check-state.py into a single pass that globs notes/handoff-*.md per feature directory, so the loop keeps only the missing-note branch. SEAM_NOTES is UNCHANGED. C-3's double-report risk is resolved BY STRUCTURE, not by ordering. BRIEF.md's SC-14 mechanism clause is rewritten by this plan round because the mechanism it named is now forbidden.
+    because: A sibling is chosen over a fold because T-14 is a refactor with its own red proof while T-10 is a new rule, and one dispatch carrying both makes a failed refactor indistinguishable from a failed empty-body check. T-14 runs FIRST so T-10's empty-body check is written ONCE, into the single extracted shape-check site, instead of being written inside the loop and then moved. BY STRUCTURE beats BY ORDERING because after the extraction the shape check has exactly ONE call site and the glob finds every existing note including the seam-stem ones, so no file can be reported twice by construction rather than by a rule someone must remember. Measured at 7299669 - check-state.py line 592's loop both builds the required-note path and shape-checks it at line 614, which is the shared site; SEAM_NOTES is at line 495 and the comment above it, lines 475 to 481, records that deriving stems from status values matches on a case-insensitive filesystem and goes dark on Linux CI — the only machine that gates the merge. HANDOFF_HEADINGS at line 509 and the 60-line cap are untouched. A shape failure stays a VIOLATION through bad.append; the warn-instead variant was offered to the operator and REJECTED. The FEAT-01 and FEAT-02 literal exemption at HANDOFF_EXEMPT_LITERAL line 523 and the all-main-session-direct exemption at _handoff_exempt line 525 skip only the MISSING-note branch - once a file exists the shape check runs regardless, and the glob widens which files reach it rather than changing that rule. main-session-direct for the same reason as T-10, DECISIONS.md lines 4851 to 4854.
     dec: DEC-174
 
   - id: D-21
@@ -169,24 +169,24 @@ decisions:
 
   - id: D-22
     choice: D-4's routing splits by DEC-174 am.4's CATEGORY rule. The eight-plus-two data entries in .harness/harness.json go to team, harness-dev-ops (T-11). The new cross-check and its test go to main-session-direct (T-12). This is a DEFAULT ADOPTED IN THE ABSENCE OF AN OPERATOR ANSWER to Q-A, carried in this plan's return as non-blocking, and it is the operator's to overrule in one read.
-    because: Q-A asks whether harness.json's test_kinds is enforcement layer under DEC-174. It is config CONSUMED BY gates rather than a hook or a gate script, and DECISIONS.md lines 4856 to 4859 carry the governing analogy - a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct. test_kinds is on the library side of that line. Three further facts point the same way - check-domain.sh --resolve .harness/harness.json returns harness-dev-ops at 7299669, so the grant exists; T-03 in this same plan already edits that file as execution_mode team, so ruling otherwise would retroactively invalidate T-03's lane; and DECISIONS.md lines 4851 to 4854 name five SCRIPTS and their tests, not a config file. The check itself is the opposite case - it becomes a gate on the day it lands, because run-unit-tests.sh is the command behind tests.yml's two required steps, so it is enforcement layer by category and not by analogy, and its test joins it because a gate's test is the only thing proving the gate discriminates.
+    because: Q-A asks whether harness.json's test_kinds is enforcement layer under DEC-174. It is config CONSUMED BY gates rather than a hook or a gate script, and DECISIONS.md lines 4856 to 4859 carry the governing analogy - a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct. test_kinds is on the library side of that line. Three further facts point the same way - check-domain.py --resolve .harness/harness.json returns harness-dev-ops at 7299669, so the grant exists; T-03 in this same plan already edits that file as execution_mode team, so ruling otherwise would retroactively invalidate T-03's lane; and DECISIONS.md lines 4851 to 4854 name five SCRIPTS and their tests, not a config file. The check itself is the opposite case - it becomes a gate on the day it lands, because run-unit-tests.py is the command behind tests.yml's two required steps, so it is enforcement layer by category and not by analogy, and its test joins it because a gate's test is the only thing proving the gate discriminates.
     dec: DEC-174
 
   - id: D-23
     choice: THIRD HALF, SC-07. The runs item gains an OPTIONAL key agent in feature-schema.json - declared in properties so it is writable at all under additionalProperties false, and deliberately NOT in the schema's required list - and the refusal is a SEPARATE rule in feature_schema.py keyed on POSITION - an entry at index greater than or equal to that feature's frozen exempt COUNT must carry a non-empty agent, and an entry below it need not. The exempt count is a frozen literal map from feature directory name to the number of runs entries that feature had at the cutover sha, defaulting to ZERO for any feature absent from the map. T-15 delivers all of it and it is main-session-direct.
-    because: The two halves of SC-07 are in direct tension and only a positional rule satisfies both. Putting agent in the schema's required list satisfies "a run entry without the field is refused at write" and BREAKS "a feature.json whose existing entries lack it still validates" - measured at 2cf792f, 31 feature.json files carry 390 runs entries and the keys present across all of them are exactly id, squad and verdict, so a required agent denies every subsequent write to all 31, and check-domain.sh's post sweep reaches untouched files, so every Bash command in the repository would exit 2. Three rules were considered and rejected with their reasons named. A DIFF against the on-disk previous state is the strongest rule and is UNAVAILABLE - check-domain.sh:1027-1034 records that only the PRE Write route carries whole-file content, and in POST the disk already holds the new version, so the diff exists on one route of four - green and incapable of red on the others. A DATE-PREFIX cutoff on the run id is DEAD ON MEASUREMENT - 175 of the 390 existing ids are not date-prefixed, so the pattern cannot be enforced, and FEAT-31's own six ids (plan4-product, build-eng and four others) are all non-date, so the harness's live convention is the non-conforming one and the rule would almost never fire. A MONOTONE SUFFIX rule - once one entry carries agent every later one must - satisfies both halves but has a hole of exactly one entry per feature, which is the entry that matters, because a feature with no agent-bearing entry yet can append one more without it. The frozen count closes that hole completely and is exact - an existing feature's legacy entries are exempt by index, its next entry is not, and a NEW feature defaults to zero so its FIRST entry is required. Cost, named - the map is 31 lines of literal data that must be measured at the sha the task lands rather than at plan time, and deleting a legacy runs entry shifts the indices so a legacy entry becomes required - a loud attributable denial rather than a silent pass, which is the right direction to fail. THE RESIDUAL GAP, stated rather than hidden - the map is keyed on the feature directory name parsed out of the display path, so a feature.json validated under a display path carrying no FEAT id defaults to exempt count zero and requires agent everywhere, which is strict rather than permissive.
+    because: The two halves of SC-07 are in direct tension and only a positional rule satisfies both. Putting agent in the schema's required list satisfies "a run entry without the field is refused at write" and BREAKS "a feature.json whose existing entries lack it still validates" - measured at 2cf792f, 31 feature.json files carry 390 runs entries and the keys present across all of them are exactly id, squad and verdict, so a required agent denies every subsequent write to all 31, and check-domain.py's post sweep reaches untouched files, so every Bash command in the repository would exit 2. Three rules were considered and rejected with their reasons named. A DIFF against the on-disk previous state is the strongest rule and is UNAVAILABLE - check-domain.py:1027-1034 records that only the PRE Write route carries whole-file content, and in POST the disk already holds the new version, so the diff exists on one route of four - green and incapable of red on the others. A DATE-PREFIX cutoff on the run id is DEAD ON MEASUREMENT - 175 of the 390 existing ids are not date-prefixed, so the pattern cannot be enforced, and FEAT-31's own six ids (plan4-product, build-eng and four others) are all non-date, so the harness's live convention is the non-conforming one and the rule would almost never fire. A MONOTONE SUFFIX rule - once one entry carries agent every later one must - satisfies both halves but has a hole of exactly one entry per feature, which is the entry that matters, because a feature with no agent-bearing entry yet can append one more without it. The frozen count closes that hole completely and is exact - an existing feature's legacy entries are exempt by index, its next entry is not, and a NEW feature defaults to zero so its FIRST entry is required. Cost, named - the map is 31 lines of literal data that must be measured at the sha the task lands rather than at plan time, and deleting a legacy runs entry shifts the indices so a legacy entry becomes required - a loud attributable denial rather than a silent pass, which is the right direction to fail. THE RESIDUAL GAP, stated rather than hidden - the map is keyed on the feature directory name parsed out of the display path, so a feature.json validated under a display path carrying no FEAT id defaults to exempt count zero and requires agent everywhere, which is strict rather than permissive.
     dec: DEC-191
   - id: D-24
     choice: THIRD HALF, SC-13. The warning is SPLIT ACROSS TWO LANES BY THE MODULE-VERSUS-CUTOVER RULE, and the split is deliberate rather than incidental. T-16, execution_mode team, harness-backend-dev, puts the warning LOGIC in context-watch.py as a module-level function and a --warn-for AGENT_ID mode that reads nothing but a transcript and prints nothing but text. T-17, execution_mode main-session-direct, creates the THIN registered hook .claude/skills/harness/bin/context-watch-hook.py, registers it in .claude/settings.json, and delivers the hook's own test. context-watch.py NEVER becomes the registered hook.
-    because: DECISIONS.md lines 4864 to 4867 at 2cf792f state the rule this follows - a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate use it is main-session-direct. Registering context-watch.py itself as the hook would make it a hook, put it in DEC-174's category by lines 4859 to 4862, and RETROACTIVELY move T-01, T-06, T-08 and T-16 out of the team lane - three of which are already built under it. The split is therefore not a convenience - it is what keeps the built work's lane honest. The dividing line is stated so a reader can check it - the LIBRARY decides whether to warn and what the text says and cannot reach settings.json; the HOOK parses the PostToolUse payload, calls the library, writes the text to stderr and exits 2. Nothing in the library knows it is being called by a hook, so the library's violation set is identical before and after registration, which is exactly the proof lines 4864 to 4867 ask for. Contrast with D-23, where the same split was examined and found UNAVAILABLE because check-domain.sh already imports the module - the two decisions apply one rule and reach opposite answers, and the difference is whether a cutover exists to be separated out.
+    because: DECISIONS.md lines 4864 to 4867 at 2cf792f state the rule this follows - a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate use it is main-session-direct. Registering context-watch.py itself as the hook would make it a hook, put it in DEC-174's category by lines 4859 to 4862, and RETROACTIVELY move T-01, T-06, T-08 and T-16 out of the team lane - three of which are already built under it. The split is therefore not a convenience - it is what keeps the built work's lane honest. The dividing line is stated so a reader can check it - the LIBRARY decides whether to warn and what the text says and cannot reach settings.json; the HOOK parses the PostToolUse payload, calls the library, writes the text to stderr and exits 2. Nothing in the library knows it is being called by a hook, so the library's violation set is identical before and after registration, which is exactly the proof lines 4864 to 4867 ask for. Contrast with D-23, where the same split was examined and found UNAVAILABLE because check-domain.py already imports the module - the two decisions apply one rule and reach opposite answers, and the difference is whether a cutover exists to be separated out.
     dec: DEC-174
   - id: D-25
-    choice: THIRD HALF, SC-13. The hook registers on the EXISTING PostToolUse entry whose matcher is Write|Edit|Bash - the command is appended to that entry's hooks array beside check-domain.sh --post. No new matcher, no PreToolUse registration, and it exits 2 with the warning on stderr. It warns whenever the measured current size is at or above the threshold, on every crossing tool call, with no state and no once-only suppression.
+    choice: THIRD HALF, SC-13. The hook registers on the EXISTING PostToolUse entry whose matcher is Write|Edit|Bash - the command is appended to that entry's hooks array beside check-domain.py --post. No new matcher, no PreToolUse registration, and it exits 2 with the warning on stderr. It warns whenever the measured current size is at or above the threshold, on every crossing tool call, with no state and no once-only suppression.
     because: The matcher was the one thing notes/probe-hook-delivery-channel.md left open and told the plan to CHECK rather than assume, so it was measured rather than inherited. Across the 25 most recently modified harness-orchestrator transcripts on this machine on 2026-08-21, 3280 tool_use events break down as Bash 2858, Write 221, Agent 121, Read 78, SendMessage 2 - so Write|Edit|Bash covers 3079 of 3280, or 93.9 percent, and Bash alone covers 87 percent. The existing matcher fires abundantly for an orchestrator, so the green-and-incapable-of-red hook shape the probe warned about does not arise and no new matcher is justified. Two further measured notes - Edit appears ZERO times, so its presence in the matcher is inert here, and the dispatch tool is named Agent rather than Task, which matters to anyone tempted to add Task to the matcher. PreToolUse is excluded by the operator's ruling, not by measurement - in PRE, exit 2 IS the refusal. WARN-EVERY-TIME over warn-on-the-crossing-edge, and the trade is real in both directions - the edge rule warns approximately once and is stateless, but it MISSES ENTIRELY when the hook does not fire on the exact call that crosses, and a warning that silently never arrives is the failure DEC-148's watchdog died of. Warn-every-time cannot miss and its cost is repetition, bounded by the orchestrator doing what the warning asks. Repetition is the cost accepted; it is raised to the operator as a non-blocking question rather than settled here.
     dec: none
   - id: D-26
-    choice: THIRD HALF. SC-13's integration evidence lands in a NEW file test-context-watch-hook.py rather than in T-07's test-context-watch-cli.py, and its registration is split across THREE tasks by lane - T-17 appends it to INTEGRATION_SCRIPTS in run-unit-tests.sh, and T-18, execution_mode team harness-dev-ops, appends its path to test_kinds.integration.detect in .harness/harness.json.
-    because: A new bin/test-*.py that is unregistered fails the ENTIRE suite - run-unit-tests.sh lines 52 to 53 print MISCONFIGURED and exit 2 for any unlisted match, on every --kind - so the file and its INTEGRATION_SCRIPTS registration MUST land in one change or there is a window in which every kind is red. That forced coupling is why a data append sits inside a main-session-direct task, and the run-unit-tests.sh lanes row already sanctions two lanes by edit kind for exactly this reason (D-06 as amended by D-19). The harness.json append cannot join it - check-domain.sh --resolve .harness/harness.json returns harness-dev-ops alone at 2cf792f, and D-18 already recorded that this split is FORCED by the grant rather than chosen. It is not folded into T-07's test-context-watch-cli.py because that file is execution_mode team and the hook's test pairs with the hook under DEC-174 am.4. AN ORDERING HAZARD IS LEFT OPEN AND IS NOT MINE TO CLOSE - T-12's new cross-check rejects any INTEGRATION_SCRIPTS entry absent from integration.detect, so T-12 must run AFTER T-18 or it goes red on test-context-watch-hook.py. This plan round was instructed not to alter existing depends_on edges, so T-12's edge list is untouched and the requirement is recorded here and raised in the return instead.
+    choice: THIRD HALF. SC-13's integration evidence lands in a NEW file test-context-watch-hook.py rather than in T-07's test-context-watch-cli.py, and its registration is split across THREE tasks by lane - T-17 appends it to INTEGRATION_SCRIPTS in run-unit-tests.py, and T-18, execution_mode team harness-dev-ops, appends its path to test_kinds.integration.detect in .harness/harness.json.
+    because: A new bin/test-*.py that is unregistered fails the ENTIRE suite - run-unit-tests.py lines 52 to 53 print MISCONFIGURED and exit 2 for any unlisted match, on every --kind - so the file and its INTEGRATION_SCRIPTS registration MUST land in one change or there is a window in which every kind is red. That forced coupling is why a data append sits inside a main-session-direct task, and the run-unit-tests.py lanes row already sanctions two lanes by edit kind for exactly this reason (D-06 as amended by D-19). The harness.json append cannot join it - check-domain.py --resolve .harness/harness.json returns harness-dev-ops alone at 2cf792f, and D-18 already recorded that this split is FORCED by the grant rather than chosen. It is not folded into T-07's test-context-watch-cli.py because that file is execution_mode team and the hook's test pairs with the hook under DEC-174 am.4. AN ORDERING HAZARD IS LEFT OPEN AND IS NOT MINE TO CLOSE - T-12's new cross-check rejects any INTEGRATION_SCRIPTS entry absent from integration.detect, so T-12 must run AFTER T-18 or it goes red on test-context-watch-hook.py. This plan round was instructed not to alter existing depends_on edges, so T-12's edge list is untouched and the requirement is recorded here and raised in the return instead.
     dec: DEC-174
 
 tasks:
@@ -312,7 +312,7 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-context-watch.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-context-watch.py
       # line 1 is the VERDICT: its exit status is non-zero on any failing case. It is kept as a
@@ -323,7 +323,7 @@ tasks:
       # 2cf792f in this worktree: the last line is "15 of 15 cases passed". Composition is what
       # makes both claims enforced -- line 1 catches a failing case, line 2 catches a run that
       # stopped printing the summary at all.
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect the line: PASS test-context-watch.py
       # expect NO line containing MISCONFIGURED
     intent: |
@@ -331,7 +331,7 @@ tasks:
       importlib.util.spec_from_file_location so this file belongs in the unit kind. Honour an
       environment override CONTEXT_WATCH_BIN for the path of the script under test, defaulting to
       context-watch.py beside this file, so a mutation run points both the loader and every case
-      at the same file. Register the filename in the UNIT_SCRIPTS array in run-unit-tests.sh,
+      at the same file. Register the filename in the UNIT_SCRIPTS array in run-unit-tests.py,
       line 17 area — the drift detector at lines 40-51 fails the whole suite with MISCONFIGURED on
       any unregistered test-*.py.
 
@@ -399,7 +399,7 @@ tasks:
     traces: [REQ-03]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: .claude/skills/harness/templates/harness.json resolves to NOBODY under check-domain.sh --resolve at 6f651f1, so no team agent can write it; DEC-160 makes the template the source for harness-init --upgrade
+    execution_reason: .claude/skills/harness/templates/harness.json resolves to NOBODY under check-domain.py --resolve at 6f651f1, so no team agent can write it; DEC-160 makes the template the source for harness-init --upgrade
     depends_on: [T-03]
     status: done
     files:
@@ -462,13 +462,13 @@ tasks:
       unchanged after the upgrade.
 
       Either way the test file must gain at least one case whose assertion names 200000 explicitly,
-      and the file is already registered in INTEGRATION_SCRIPTS so run-unit-tests.sh needs no edit.
+      and the file is already registered in INTEGRATION_SCRIPTS so run-unit-tests.py needs no edit.
       State in the test's docstring which of the two branches was found true and by what read.
 
       DO NOT EDIT .harness/harness.json IN THIS TASK. test-upgrade-config.py is one of the eight
       files measured at 7299669 as sitting in INTEGRATION_SCRIPTS while absent from
       test_kinds.integration.detect, so the qa matrix reads it as a unit test today. That is fixed
-      by T-11 and ONLY by T-11: check-domain.sh --resolve .harness/harness.json returns
+      by T-11 and ONLY by T-11: check-domain.py --resolve .harness/harness.json returns
       harness-dev-ops alone at 7299669, so this task's agent is not granted the write and an
       attempt would be denied at the guard rather than merged. See D-18.
 
@@ -492,7 +492,7 @@ tasks:
       # task's intent adds four named cases -- D, E, F, G -- so 19 is the floor. A run that
       # reports 15 or 18 exits 1 HERE. The previous form named no number and no comparison, so it
       # was green for any count including 15.
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect the line: PASS test-context-watch.py
     intent: |
       TOOL CHANGE. Add to context-watch.py a --config PATH flag defaulting to
@@ -535,7 +535,7 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-context-watch-cli.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-context-watch-cli.py
       # line 1 is the VERDICT -- bare, so a failing case is not masked by a pipe.
@@ -545,13 +545,13 @@ tasks:
       # a summary line naming the number of cases passed"), in exactly the form its sibling
       # test-context-watch.py already emits and which was measured at 2cf792f. Asserting the
       # COUNT is 1 catches a vanished summary and a duplicated one.
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
       # expect the line: PASS test-context-watch-cli.py
       # expect NO line containing MISCONFIGURED
     intent: |
       Create .claude/skills/harness/bin/test-context-watch-cli.py, which drives the real script as
       a SUBPROCESS end to end — that is what puts it in the integration kind rather than the unit
-      one. Register the filename in the INTEGRATION_SCRIPTS array in run-unit-tests.sh, line 18
+      one. Register the filename in the INTEGRATION_SCRIPTS array in run-unit-tests.py, line 18
       area; the drift detector at lines 40-51 fails the suite with MISCONFIGURED otherwise.
       NO TEST HERE MAY DEPEND ON ~/.claude/projects EXISTING. Every fixture is a literal in this
       file written under tempfile.mkdtemp and passed with --projects-dir.
@@ -594,7 +594,7 @@ tasks:
       .claude/skills/harness/bin/test-context-watch-cli.py to test_kinds.integration.detect is
       REQUIRED for this file to classify as integration rather than unit — measured at 7299669,
       unit.detect's catch-all .claude/skills/harness/bin/test-*.py matches it and
-      integration.detect is an explicit path list that does not — but check-domain.sh --resolve
+      integration.detect is an explicit path list that does not — but check-domain.py --resolve
       .harness/harness.json returns harness-dev-ops alone at 7299669, so that append is T-11's,
       which is why this task depends on T-11. See D-18. Until T-11 lands, every
       evidence: integration claim resting on this file is FALSE.
@@ -684,11 +684,11 @@ tasks:
     traces: [REQ-10]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, so no team agent performs the cutover even though check-domain.sh --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669
+    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.py is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, so no team agent performs the cutover even though check-domain.py --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669
     depends_on: [T-14]
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
@@ -702,13 +702,13 @@ tasks:
       # task's five -- case A, case B, and case C's three sections one at a time -- is 100.
       # Each new case MUST print one line beginning "ok" on pass, which is this file's existing
       # convention across all 90.
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
       # expect the line: PASS test-check-state.py
       # expect NO line containing MISCONFIGURED
     intent: |
       SC-15 requires that the relay be SHOWN TO FAIL when the handoff's "## Next" is emptied.
       Measured in the FEAT-31 worktree at 7299669 it cannot be: INV-17's shape check in
-      .claude/skills/harness/bin/check-state.sh tests only that the HEADING is present.
+      .claude/skills/harness/bin/check-state.py tests only that the HEADING is present.
       HANDOFF_HEADINGS is the four literals "## next", "## trust", "## dead ends",
       "## working set", and the `miss` computation beside it is the headings absent from the
       lowercased line list. So a handoff carrying all four headings with NOTHING under "## Next"
@@ -726,7 +726,7 @@ tasks:
       and no risk of double-reporting. If the marker is absent, T-14 has not landed: STOP and
       report it rather than re-adding the check inside the loop.
 
-      PART ONE — check-state.sh. Inside T-14's single shape-check pass, after the `miss` check
+      PART ONE — check-state.py. Inside T-14's single shape-check pass, after the `miss` check
       and the 60-line cap check, add a check that each of the four required sections has a
       NON-EMPTY BODY. A section's body is the lines after its heading up to the next line whose
       stripped form begins with two hash characters, or end of file. A body is empty when every
@@ -761,14 +761,14 @@ tasks:
 
       Case A, ACCEPTED: a fixture feature directory whose status has crossed a seam, carrying
       notes/handoff-plan.md with all four headings and a non-empty body under each, the "## Next"
-      body naming a concrete dispatch. Assert check-state.sh emits NO INV-17 line for it.
+      body naming a concrete dispatch. Assert check-state.py emits NO INV-17 line for it.
       Case B, REJECTED: the SAME fixture with the "## Next" body emptied and the heading left in
-      place. Assert check-state.sh emits an INV-17 line that names the fixture feature AND names
+      place. Assert check-state.py emits an INV-17 line that names the fixture feature AND names
       Next.
       Case C: the other three sections emptied ONE AT A TIME, each asserted as its own case, so a
       check that only inspects "## Next" cannot pass all of them.
 
-      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.sh
+      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.py
       into the same tmpdir with the new empty-body check removed, locating it by the marker comment
       specified in part one. Assert the mutant text DIFFERS from the original text before running
       anything. Then run both against case B and assert the COUNT of INV-17 lines is strictly
@@ -776,7 +776,7 @@ tasks:
       the harness failed to apply the mutation: report the case as INCONCLUSIVE and exit non-zero.
       Never report it as passed.
 
-      Register nothing new: test-check-state.py is already in run-unit-tests.sh's
+      Register nothing new: test-check-state.py is already in run-unit-tests.py's
       INTEGRATION_SCRIPTS array and already listed in test_kinds.integration.detect in
       .harness/harness.json, so the drift detector and the qa matrix both already see it.
 
@@ -802,7 +802,7 @@ tasks:
       d = json.load(open('.harness/harness.json'))
       ig = [g.strip() for g in d['test_kinds']['integration']['detect'].split('|')]
       base = set(g.rsplit('/', 1)[-1] for g in ig)
-      src = open('.claude/skills/harness/bin/run-unit-tests.sh').read()
+      src = open('.claude/skills/harness/bin/run-unit-tests.py').read()
       ints = re.findall(r'\"([^\"]+)\"', re.search(r'INTEGRATION_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
       units = re.findall(r'\"([^\"]+)\"', re.search(r'UNIT_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
       miss = [n for n in ints if n not in base]
@@ -832,10 +832,10 @@ tasks:
         .claude/skills/harness/bin/test-run-unit-tests-kinds.py
 
       WHY, and re-derive it before you write rather than trusting this paragraph. Measured in the
-      FEAT-31 worktree at 7299669: run-unit-tests.sh's INTEGRATION_SCRIPTS holds 12 entries;
+      FEAT-31 worktree at 7299669: run-unit-tests.py's INTEGRATION_SCRIPTS holds 12 entries;
       test_kinds.integration.detect names only 4 of them; test_kinds.unit.detect ends in the
       catch-all .claude/skills/harness/bin/test-*.py which matches every one. So the remaining
-      EIGHT are classified UNIT by the qa matrix while run-unit-tests.sh --kind integration runs
+      EIGHT are classified UNIT by the qa matrix while run-unit-tests.py --kind integration runs
       them, and nothing detects the disagreement because the drift detector reads only its own two
       bash arrays. The last two paths in the list above do not exist yet: they are created by T-07
       and T-12 in this same plan, and listing a path that matches no file is harmless because
@@ -853,18 +853,18 @@ tasks:
       tree disagrees with this task's premise and you should say so rather than proceed silently.
 
   - id: T-12
-    title: Make the two lists unable to disagree silently — run-unit-tests.sh cross-checks its script arrays against harness.json test_kinds, with a red proof that asserts the mismatch is NAMED
+    title: Make the two lists unable to disagree silently — run-unit-tests.py cross-checks its script arrays against harness.json test_kinds, with a red proof that asserts the mismatch is NAMED
     traces: [REQ-01, REQ-02, REQ-05]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 am.4 — DECISIONS.md lines 4851 to 4854 declare the enumeration non-exhaustive and rule that a script becomes enforcement layer on the day it becomes a gate, the category deciding and the list recording; lines 4856 to 4859 add that the cutover making a gate use new logic is main-session-direct. run-unit-tests.sh is the command behind tests.yml lines 78 and 84, the two required steps, so a NEW REJECTION RULE in it is enforcement layer by category. Its test joins it under the same amendment. D-06 keeps T-02 and T-07 on team because an array append changes no gate rule; this task does. See D-19 and D-22.
+    execution_reason: DEC-174 am.4 — DECISIONS.md lines 4851 to 4854 declare the enumeration non-exhaustive and rule that a script becomes enforcement layer on the day it becomes a gate, the category deciding and the list recording; lines 4856 to 4859 add that the cutover making a gate use new logic is main-session-direct. run-unit-tests.py is the command behind tests.yml lines 78 and 84, the two required steps, so a NEW REJECTION RULE in it is enforcement layer by category. Its test joins it under the same amendment. D-06 keeps T-02 and T-07 on team because an array append changes no gate rule; this task does. See D-19 and D-22.
     depends_on: [T-11]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/skills/harness/bin/test-run-unit-tests-kinds.py
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+      python3 .claude/skills/harness/bin/run-unit-tests.py --check-kinds
       # expect exit 0 and NO line containing KIND-DRIFT -- this one is ALREADY ENFORCED and is
       # left alone: this task's own intent specifies exit 2 on every KIND-DRIFT line, so exit 0
       # forbids one by construction.
@@ -879,7 +879,7 @@ tasks:
       # AND THE COUNT HAS A FLOOR: this task's intent names five cases, 1 through 5. A file
       # reporting "3 of 3 cases passed" is green on the shape assertion above and red here.
     intent: |
-      PART ONE — .claude/skills/harness/bin/run-unit-tests.sh. Add a cross-check between the two
+      PART ONE — .claude/skills/harness/bin/run-unit-tests.py. Add a cross-check between the two
       bash arrays in this file and test_kinds in .harness/harness.json. Today the drift detector
       reads only UNIT_SCRIPTS and INTEGRATION_SCRIPTS and NEVER opens harness.json, which is
       exactly how eight files came to sit in INTEGRATION_SCRIPTS while the qa matrix classified
@@ -921,14 +921,14 @@ tasks:
       exists so part two's cases run in well under a second instead of driving the ~15s suite.
 
       PART TWO — create .claude/skills/harness/bin/test-run-unit-tests-kinds.py. It drives
-      run-unit-tests.sh as a SUBPROCESS, which is what puts it in the integration kind. Register
+      run-unit-tests.py as a SUBPROCESS, which is what puts it in the integration kind. Register
       its filename in the INTEGRATION_SCRIPTS array in this same task. It is already named in
       test_kinds.integration.detect by T-11, which is why this task depends on T-11 — a new
       bin/test-*.py absent from that list would make the very check being added go RED on its own
       test file. Every fixture is a LITERAL written under tempfile.mkdtemp() and removed in a
       finally block; nothing is checked in.
 
-      CASE 1, GREEN ON THE REAL TREE. Run run-unit-tests.sh --check-kinds with no HARNESS_JSON
+      CASE 1, GREEN ON THE REAL TREE. Run run-unit-tests.py --check-kinds with no HARNESS_JSON
       override. Assert exit 0 and assert the COUNT of lines containing KIND-DRIFT across stdout
       and stderr is EXACTLY 0. Record that count; case 2 compares against it.
 
@@ -938,7 +938,7 @@ tasks:
       in INTEGRATION_SCRIPTS and has been in integration.detect since before this feature. ASSERT
       THE MUTATION APPLIED before running anything: assert the mutant's detect string differs from
       the original AND that the removed path is absent from the mutant and present in the original.
-      Then run run-unit-tests.sh --check-kinds with HARNESS_JSON pointed at the mutant. ASSERT THE
+      Then run run-unit-tests.py --check-kinds with HARNESS_JSON pointed at the mutant. ASSERT THE
       OUTPUT CONTAINS A KIND-DRIFT LINE WHOSE TEXT INCLUDES THE LITERAL test-check-state.py, and
       assert the count of KIND-DRIFT lines is exactly 1, which is strictly greater than case 1's 0.
       THE EXIT STATUS IS NOT THE PROOF and must not be the only assertion — a non-zero exit cannot
@@ -957,7 +957,7 @@ tasks:
       exit is non-zero. Then point it at a file containing the text not json at all and assert the
       same shape. A skip here would be invisible inside a required CI step.
 
-      CASE 5, THE ARGUMENT PARSER DID NOT REGRESS. Assert run-unit-tests.sh --kind nonsense still
+      CASE 5, THE ARGUMENT PARSER DID NOT REGRESS. Assert run-unit-tests.py --kind nonsense still
       exits 2 with a message naming the kinds, and that --check-kinds ran no test by asserting its
       stdout carries NO line beginning with PASS or FAIL.
 
@@ -998,12 +998,12 @@ tasks:
       # and the STATED line is required to be present, so a silent non-zero exit fails too.
       ls .claude/skills/harness/bin/test-verify-context-watch-live.py 2>/dev/null; test $? -ne 0
       # expect success: this file must NOT be named or shadowed by a test-*.py sibling
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect NO line containing MISCONFIGURED — the file's name keeps it out of the drift detector
     intent: |
       Create .claude/skills/harness/bin/verify-context-watch-live.py. THE FILENAME IS PART OF THE
       DESIGN AND MUST NOT BE CHANGED TO test-*.py OR verify-*_test.py OR ANYTHING MATCHING
-      test-*.py. run-unit-tests.sh's drift detector loops over "$BIN_DIR"/test-*.py and fails the
+      test-*.py. run-unit-tests.py's drift detector loops over "$BIN_DIR"/test-*.py and fails the
       ENTIRE suite with MISCONFIGURED on any unlisted match, whichever --kind is running; a
       differently-named file never reaches it. Registering this file as a test instead would make
       CI read ~/.claude/projects, which does not exist on ubuntu-latest, and go red on every PR.
@@ -1055,11 +1055,11 @@ tasks:
     traces: [REQ-09, REQ-10]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, and this task changes which files INV-17 rejects, which lines 4856 to 4859 place squarely on the main-session-direct side. check-domain.sh --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669; the carve-out is narrower than the grant. See D-20.
+    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.py is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, and this task changes which files INV-17 rejects, which lines 4856 to 4859 place squarely on the main-session-direct side. check-domain.py --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669; the carve-out is narrower than the grant. See D-20.
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
@@ -1070,7 +1070,7 @@ tasks:
       # form named an output that does not exist. Floor: 90 plus this task's five named cases
       # D, E, F, G, H = 95. Each new case must print one line beginning "ok" on pass, the
       # convention all 90 already follow.
-      test "$(bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep -c '^  VIOLATION.*handoff-')" = "0"
+      test "$(python3 .claude/skills/harness/bin/check-state.py 2>&1 | grep -c '^  VIOLATION.*handoff-')" = "0"
       # THE MIGRATION CLAIM IS ASSERTED, NOT COMMENTED, AND THE `|| true` IS GONE. The previous
       # form was `... | grep -c 'handoff-' || true`, which cannot fail: `|| true` forces exit 0
       # and the expected value sat in a comment. Two further corrections, both measured at
@@ -1079,21 +1079,21 @@ tasks:
       # exemptions for FEAT-15, FEAT-21 and FEAT-22, not violations. The old comment's "0 at
       # 7299669" was true of the total then and is false of the total now, so asserting the total
       # would go red for a reason this task did not cause. (2) The prefix is the contract:
-      # check-state.sh:1366 prints violations as "  VIOLATION  <msg>" and notes as "  note ".
+      # check-state.py:1366 prints violations as "  VIOLATION  <msg>" and notes as "  note ".
       # This is the assertion that carries this task's own claim -- "this task adds ZERO
       # violations" -- and it goes RED the moment the new glob pass reports a real handoff note.
-      # Note check-state.sh exits non-zero at 2cf792f for ONE unrelated violation, FEAT-26's
+      # Note check-state.py exits non-zero at 2cf792f for ONE unrelated violation, FEAT-26's
       # unapproved BRIEF.md, which is why the exit status is not the assertion here.
     intent: |
       SC-14's second half, as ruled by the operator on 2026-08-21: INV-17 must shape-check EVERY
       handoff note in a feature directory, not only the ones SEAM_NOTES names. Measured in the
-      FEAT-31 worktree at 7299669, check-state.sh builds handoff paths ONLY by looping
+      FEAT-31 worktree at 7299669, check-state.py builds handoff paths ONLY by looping
       SEAM_NOTES[_status] (line 592), so a note with any other stem is never opened, while
-      check-domain.sh's RE_HANDOFF (line 665 in THIS worktree, a different line in the main
+      check-domain.py's RE_HANDOFF (line 665 in THIS worktree, a different line in the main
       checkout — prefer the symbol name) already accepts handoff-[a-z0-9-]+\.md, so writing a
       mid-phase note is already legal and already unchecked.
 
-      PART ONE — check-state.sh, AND IT IS A RESTRUCTURE, NOT AN ADDITION. Today one loop both
+      PART ONE — check-state.py, AND IT IS A RESTRUCTURE, NOT AN ADDITION. Today one loop both
       builds the required-note path and shape-checks it. Adding a glob pass on top of that would
       report every seam-stem failure TWICE. Resolve it BY STRUCTURE:
         (a) The `for prev in SEAM_NOTES[_status]` loop keeps ONLY the missing-note branch and its
@@ -1128,7 +1128,7 @@ tasks:
       exactly as it is.
 
       THE MIGRATION RECEIPT — THIS TASK CARRIES IT, and it is re-asserted rather than re-derived
-      blind, because check-state.sh sweeps every feature directory on every run so these files are
+      blind, because check-state.py sweeps every feature directory on every run so these files are
       read the moment the glob lands. Measured in the FEAT-31 worktree at 7299669: 69 files match
       .harness/harness/features/*/notes/handoff-*.md, of which 66 carry seam stems (25 plan,
       21 build, 20 validate) and THREE carry non-seam stems and are therefore newly in reach —
@@ -1147,7 +1147,7 @@ tasks:
       .harness or .claude/skills, and NOTHING reads ~/.claude/projects.
 
       Case D, THE WIDENING: a fixture feature directory carrying notes/handoff-midphase.md — a stem
-      in no SEAM_NOTES list — with one of the four headings missing. Assert check-state.sh emits an
+      in no SEAM_NOTES list — with one of the four headings missing. Assert check-state.py emits an
       INV-17 line naming handoff-midphase.md. Assert this case FAILS before part one lands, which
       is the point of the criterion.
       Case E, THE CAP REACHES IT TOO: the same non-seam note with all four headings and 61 lines.
@@ -1161,7 +1161,7 @@ tasks:
       Case H, ACCEPTED: a fixture whose notes hold three well-formed handoff notes, two seam stems
       and one non-seam stem. Assert ZERO INV-17 lines for that feature.
 
-      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.sh
+      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.py
       into the same tmpdir with the entire new pass removed, locating it by the marker comment in
       part one (b). ASSERT THE MUTANT TEXT DIFFERS from the original before running anything: a
       mutation that failed to apply reports a surviving mutant that never existed. Then run both
@@ -1169,20 +1169,20 @@ tasks:
       the original. Print both counts. If the counts are equal, report the case as INCONCLUSIVE and
       exit non-zero. Never report it as passed.
 
-      Register nothing new: test-check-state.py is already in run-unit-tests.sh's
+      Register nothing new: test-check-state.py is already in run-unit-tests.py's
       INTEGRATION_SCRIPTS array and already explicit in test_kinds.integration.detect, so the drift
       detector, the T-12 cross-check and the qa matrix all already see it.
 
       SCOPE FENCE. This task does NOT add the empty-body rule — that is T-10, which depends on this
       task and writes its check inside the pass created here. It does not add any stem to
-      SEAM_NOTES, it does not touch check-domain.sh or RE_HANDOFF, and it does not touch DEC-159.
+      SEAM_NOTES, it does not touch check-domain.py or RE_HANDOFF, and it does not touch DEC-159.
 
   - id: T-15
     title: SC-07 — feature.json runs items carry an agent identifier, and the write path refuses a NEW entry that omits it, without invalidating any of the 390 existing entries
     traces: [REQ-04]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, and the module/cutover split is UNAVAILABLE here rather than declined - saying so explicitly because silence on this point is a send-back. DECISIONS.md lines 4864 to 4867 at 2cf792f rule that a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct, proven by the gate's violation set being identical before and after. check-domain.sh:815 ALREADY calls feature_schema.problems_for_text in process, so there is no cutover left to separate out - the library write IS the cutover, and it changes the gate's violation set for every writer including the main session the instant it lands, with no hand the carve-out governs in between. Lines 4859 to 4862 make the enumeration a category rather than a list and name check-domain.sh plus the test file of each; am.4 therefore also pulls test-check-domain.py, and test-validate-feature-json.py is the test of the rule this task adds. check-domain.sh --resolve at 2cf792f grants feature-schema.json, feature_schema.py, test-validate-feature-json.py and test-check-domain.py all to harness-backend-dev and harness-dev-ops; the carve-out is narrower than the grant, exactly as D-19 records for check-domain.sh and check-state.sh. See D-23.
+    execution_reason: DEC-174 carve-out, and the module/cutover split is UNAVAILABLE here rather than declined - saying so explicitly because silence on this point is a send-back. DECISIONS.md lines 4864 to 4867 at 2cf792f rule that a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct, proven by the gate's violation set being identical before and after. check-domain.py:815 ALREADY calls feature_schema.problems_for_text in process, so there is no cutover left to separate out - the library write IS the cutover, and it changes the gate's violation set for every writer including the main session the instant it lands, with no hand the carve-out governs in between. Lines 4859 to 4862 make the enumeration a category rather than a list and name check-domain.py plus the test file of each; am.4 therefore also pulls test-check-domain.py, and test-validate-feature-json.py is the test of the rule this task adds. check-domain.py --resolve at 2cf792f grants feature-schema.json, feature_schema.py, test-validate-feature-json.py and test-check-domain.py all to harness-backend-dev and harness-dev-ops; the carve-out is narrower than the grant, exactly as D-19 records for check-domain.py and check-state.py. See D-23.
     depends_on: []
     status: done
     files:
@@ -1220,7 +1220,7 @@ tasks:
 
       THOSE TWO HALVES ARE IN DIRECT TENSION AND THE SHAPE OF THE FIX IS WHAT RESOLVES IT. Read
       D-23 before writing a line. The short form: a schema `required` satisfies the first half and
-      breaks the second, because check-domain.sh's post sweep reaches feature.json files this
+      breaks the second, because check-domain.py's post sweep reaches feature.json files this
       change never touched, so every Bash command in the repository would exit 2. The rule is
       POSITIONAL instead.
 
@@ -1232,7 +1232,7 @@ tasks:
 
       PART TWO — .claude/skills/harness/bin/feature_schema.py. Add a rule that runs ALONGSIDE the
       jsonschema validation, not inside it, and whose problems join the same returned list so
-      check-domain.sh reports them through the path it already has at :815.
+      check-domain.py reports them through the path it already has at :815.
         THE RULE. Derive the feature directory name from the `display` path the caller passed --
         it is the path named in the message, and for a real write it is
         .harness/<repo>/features/<FEAT-NN-slug>/feature.json. Look that name up in a frozen
@@ -1282,7 +1282,7 @@ tasks:
       it as passed.
 
       PART FOUR — .claude/skills/harness/bin/test-check-domain.py, case F, which is the half that
-      makes "the WRITE PATH refuses" true rather than "the module refuses". Drive check-domain.sh
+      makes "the WRITE PATH refuses" true rather than "the module refuses". Drive check-domain.py
       as a subprocess on its PRE Write route with a payload whose target is a fixture
       feature.json under a feature name absent from the map and whose content holds a runs entry
       without agent. Assert the process exits 2 and that its stderr names 'agent'. Add its red
@@ -1294,9 +1294,9 @@ tasks:
       that none is migrated, and the whole point of the positional rule is that absence keeps
       meaning "predates the change". Do NOT add a twelfth top-level key to feature.json; DEC-191's
       closed set of eleven is untouched and only the runs ITEM gains a property. Do NOT change
-      check-domain.sh itself: it already imports the module at :815 and needs no edit, which is
+      check-domain.py itself: it already imports the module at :815 and needs no edit, which is
       worth stating in the receipt because the BRIEF's DEC-174 paragraph (lines 231-237) predicted
-      an edit to check-domain.sh's write route and the code makes that unnecessary.
+      an edit to check-domain.py's write route and the code makes that unnecessary.
 
   - id: T-16
     title: SC-13 library half — context-watch.py can answer "is THIS agent over the threshold, and what should the warning say", as a function and a mode, with no knowledge that a hook exists
@@ -1315,7 +1315,7 @@ tasks:
       test "$(python3 .claude/skills/harness/bin/test-context-watch.py | grep -oE '^[0-9]+ of' | head -1 | cut -d' ' -f1)" -ge 22
       # MEASURED FLOOR: 15 cases at 2cf792f, plus T-06's four (D, E, F, G) which this task depends
       # on, plus this task's three (H, I, J) = 22.
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit
       # expect NO line containing MISCONFIGURED
     intent: |
       THIS TASK BUILDS A LIBRARY, NOT A HOOK, AND THE DISTINCTION IS THE WHOLE REASON IT IS A
@@ -1345,7 +1345,7 @@ tasks:
       THRESHOLD, and the NEAREST SEAM. For the seam, name DEC-159's seam rule and the concrete
       next artifact the orchestrator must write -- notes/handoff-<stem>.md with its four required
       sections -- rather than a generic instruction. It ADVISES: it must not contain the words
-      blocked, stopped, refused or prevented, for the reason check-domain.sh:648-653 records for
+      blocked, stopped, refused or prevented, for the reason check-domain.py:648-653 records for
       its own VERB in post mode. Nothing was prevented and the orchestrator decides.
       IT WRITES NOTHING AND IT NEVER RAISES. Any unreadable file, missing directory, absent config
       or unparseable line returns None, because a warning path that can crash would take an
@@ -1379,19 +1379,19 @@ tasks:
     traces: [REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out. context-watch-hook.py becomes a REGISTERED HOOK the moment .claude/settings.json names it, and DEC-174's ruling names the category "hooks, validators, gate scripts" while DECISIONS.md lines 4859 to 4862 at 2cf792f declare the enumeration non-exhaustive and rule that a script joins the list on the day it becomes a gate - the category decides, the list records. Lines 4864 to 4867 put the cutover that makes a gate use new logic squarely in the operator's hands, and this task IS that cutover - T-16 wrote the library, this task makes something call it. am.4 pairs the test with it. .claude/settings.json additionally resolves to NOBODY at 2cf792f, so that path is forced rather than a carve-out choice. The run-unit-tests.sh append is a data edit that D-06 would put in the team lane, and it is HERE rather than in its own task because run-unit-tests.sh lines 52 to 53 print MISCONFIGURED and exit 2 for any unregistered bin/test-*.py on every --kind, so a new test file and its registration must land in one change or every kind is red in between - a forced coupling, and the exact case the run-unit-tests.sh lanes row already sanctions as two lanes by edit kind. See D-24, D-25 and D-26.
+    execution_reason: DEC-174 carve-out. context-watch-hook.py becomes a REGISTERED HOOK the moment .claude/settings.json names it, and DEC-174's ruling names the category "hooks, validators, gate scripts" while DECISIONS.md lines 4859 to 4862 at 2cf792f declare the enumeration non-exhaustive and rule that a script joins the list on the day it becomes a gate - the category decides, the list records. Lines 4864 to 4867 put the cutover that makes a gate use new logic squarely in the operator's hands, and this task IS that cutover - T-16 wrote the library, this task makes something call it. am.4 pairs the test with it. .claude/settings.json additionally resolves to NOBODY at 2cf792f, so that path is forced rather than a carve-out choice. The run-unit-tests.py append is a data edit that D-06 would put in the team lane, and it is HERE rather than in its own task because run-unit-tests.py lines 52 to 53 print MISCONFIGURED and exit 2 for any unregistered bin/test-*.py on every --kind, so a new test file and its registration must land in one change or every kind is red in between - a forced coupling, and the exact case the run-unit-tests.py lanes row already sanctions as two lanes by edit kind. See D-24, D-25 and D-26.
     depends_on: [T-16]
     status: done
     files:
       - .claude/skills/harness/bin/context-watch-hook.py
       - .claude/settings.json
       - .claude/skills/harness/bin/test-context-watch-hook.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 -c "import json;d=json.load(open('.claude/settings.json'));hits=[h.get('command','') for m in d['hooks']['PostToolUse'] if m.get('matcher')=='Write|Edit|Bash' for h in m.get('hooks',[]) if 'context-watch-hook.py' in h.get('command','')];assert len(hits)==1,hits;assert len([h for m in d['hooks'].get('PreToolUse',[]) for h in m.get('hooks',[]) if 'context-watch-hook.py' in h.get('command','')])==0,'registered on PreToolUse, which the operator excluded';print('VERIFY-OK',hits[0])"
       # THE REGISTRATION IS ASSERTED, and so is its ABSENCE from PreToolUse. Measured at 2cf792f:
       # settings.json already carries one PostToolUse entry with matcher Write|Edit|Bash holding
-      # check-domain.sh --post. This task appends beside it; it creates no new matcher. A hook
+      # check-domain.py --post. This task appends beside it; it creates no new matcher. A hook
       # registered on PreToolUse would REFUSE, which the operator's ruling excludes, so that is
       # asserted false rather than trusted.
       python3 .claude/skills/harness/bin/test-context-watch-hook.py
@@ -1401,14 +1401,14 @@ tasks:
       # THE SUMMARY AND ITS FLOOR ARE BOTH ASSERTED. The file does not exist at 2cf792f so there
       # is no measured count to floor; the four cases below are what this task's intent names, and
       # the summary shape is the one measured on test-context-watch.py at 2cf792f.
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration
-      # expect NO line containing MISCONFIGURED -- run-unit-tests.sh:52-53 print it and exit 2, so
+      python3 .claude/skills/harness/bin/run-unit-tests.py --kind integration
+      # expect NO line containing MISCONFIGURED -- run-unit-tests.py:52-53 print it and exit 2, so
       # exit 0 already forbids it. This is the line that proves the INTEGRATION_SCRIPTS append
       # landed.
     intent: |
       THE DELIVERY CHANNEL IS SETTLED AND MUST NOT BE RE-LITIGATED. Evidence:
       notes/probe-hook-delivery-channel.md. PostToolUse plus exit 2, whose stderr reaches the
-      running agent. check-domain.sh:571-573 states the mode table and :648-653 records the
+      running agent. check-domain.py:571-573 states the mode table and :648-653 records the
       consequence -- in POST the write already landed, so exit 2 there only carries stderr back to
       the agent. PreToolUse plus exit 2 is EXCLUDED by operator ruling: in PRE, exit 2 is the
       refusal, and this warning ADVISES.
@@ -1431,7 +1431,7 @@ tasks:
       the instrument is advisory and the operator's own reading of the tool is the backstop.
 
       PART TWO — .claude/settings.json. APPEND the command to the hooks array of the EXISTING
-      PostToolUse entry whose matcher is Write|Edit|Bash, beside check-domain.sh --post. Create no
+      PostToolUse entry whose matcher is Write|Edit|Bash, beside check-domain.py --post. Create no
       new matcher and add no new event. Use the same ${CLAUDE_PROJECT_DIR} form the neighbouring
       commands use. WHY THAT MATCHER AND NOT ANOTHER, measured rather than assumed because the
       probe told the plan to check: across the 25 most recently modified harness-orchestrator
@@ -1443,7 +1443,7 @@ tasks:
       is the measurement that shows it does fire.
 
       PART THREE — create .claude/skills/harness/bin/test-context-watch-hook.py, and REGISTER its
-      filename in the INTEGRATION_SCRIPTS array in run-unit-tests.sh in THIS SAME TASK. It drives
+      filename in the INTEGRATION_SCRIPTS array in run-unit-tests.py in THIS SAME TASK. It drives
       the hook as a SUBPROCESS with a JSON payload on stdin, which is what puts it in the
       integration kind and what makes it SC-13's evidence. Every fixture is a literal written
       under tempfile.mkdtemp() and removed in a finally block; nothing is checked in and nothing
@@ -1479,8 +1479,8 @@ tasks:
 
       SCOPE FENCE. Do NOT register context-watch.py itself as a hook (D-24). Do NOT edit
       .harness/harness.json: appending this test's path to test_kinds.integration.detect is T-18's,
-      because check-domain.sh --resolve .harness/harness.json returns harness-dev-ops alone at
-      2cf792f and an attempt here is denied at the guard. Do NOT touch check-domain.sh's own
+      because check-domain.py --resolve .harness/harness.json returns harness-dev-ops alone at
+      2cf792f and an attempt here is denied at the guard. Do NOT touch check-domain.py's own
       registration or its --post behaviour.
 
   - id: T-18
@@ -1500,7 +1500,7 @@ tasks:
       ig = [g.strip() for g in d['test_kinds']['integration']['detect'].split('|')]
       assert '.claude/skills/harness/bin/test-context-watch-hook.py' in ig, ig
       base = set(g.rsplit('/', 1)[-1] for g in ig)
-      src = open('.claude/skills/harness/bin/run-unit-tests.sh').read()
+      src = open('.claude/skills/harness/bin/run-unit-tests.py').read()
       ints = re.findall(r'\"([^\"]+)\"', re.search(r'INTEGRATION_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
       units = re.findall(r'\"([^\"]+)\"', re.search(r'UNIT_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
       miss = [n for n in ints if n not in base]
@@ -1521,17 +1521,17 @@ tasks:
       there and the leading tests/integration/** glob.
 
       WHY THIS IS ITS OWN TASK AND ITS OWN LANE. T-17 creates that test file and registers it in
-      run-unit-tests.sh's INTEGRATION_SCRIPTS. Without this append the file is classified UNIT by
+      run-unit-tests.py's INTEGRATION_SCRIPTS. Without this append the file is classified UNIT by
       test_kinds.unit.detect's catch-all .claude/skills/harness/bin/test-*.py while
-      run-unit-tests.sh --kind integration runs it, which is exactly the eight-file
+      run-unit-tests.py --kind integration runs it, which is exactly the eight-file
       misclassification D-18 measured and T-11 closed. It cannot ride inside T-17 because
-      check-domain.sh --resolve .harness/harness.json returns harness-dev-ops ALONE at 2cf792f, so
+      check-domain.py --resolve .harness/harness.json returns harness-dev-ops ALONE at 2cf792f, so
       T-17's route cannot carry that path; D-18 already recorded that this split is FORCED by the
       grant rather than chosen.
 
       ORDERING, AND IT IS A REAL HAZARD SOMEONE MUST HOLD. T-12 adds a cross-check that rejects
       any INTEGRATION_SCRIPTS entry absent from integration.detect, printing a KIND-DRIFT line and
-      exiting 2. Once T-17 lands and before THIS task lands, run-unit-tests.sh reports KIND-DRIFT
+      exiting 2. Once T-17 lands and before THIS task lands, run-unit-tests.py reports KIND-DRIFT
       on test-context-watch-hook.py on every invocation, which fails the required tests.yml steps
       for all kinds. So this task must land BEFORE T-12 runs and ideally in the same sitting as
       T-17. This plan round was instructed not to alter existing depends_on edges, so T-12's edge

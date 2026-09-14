@@ -2,7 +2,7 @@
 
 **Landed in both copies, including a Patterns displacement.** Four entries applied to
 `.harness/expertise/harness-ui-reviewer.md`: G-11, G-12, O-05 (pure adds) and a P-09 displacement.
-`check-expertise.sh` exits 0 on both the durable main-checkout copy
+`check-expertise.py` exits 0 on both the durable main-checkout copy
 (`/Users/molchairuangutai/GitHub/harness/.harness/expertise/harness-ui-reviewer.md`) and the
 worktree copy; a raw `diff` between the two absolute paths is empty (byte-identical).
 
@@ -38,7 +38,7 @@ absolute main-checkout path with the identical scratch entries — exit 0, 3 ADD
   a state the feature just made normal" rule). Landed via the apply-to-confirm route: proposing
   the same id with new text against the live file first (exit 7 CONFLICT, nothing applied,
   confirming exact existing text), then a single-line targeted edit of only that bullet (not a
-  whole-file rewrite) on both copies, then `check-expertise.sh` on both — exit 0 both times.
+  whole-file rewrite) on both copies, then `check-expertise.py` on both — exit 0 both times.
 - **Rejected (own).** The duplicated `validate-digest.py` binding-error line (two call paths
   converging on one error producer) sits in code-reviewer's call-path-tracing lens, not this
   role's remit; a narrow one-off unlikely to recur unchanged across repos.
@@ -62,6 +62,6 @@ repository rather than the craft.
 - `expertise-merge.py apply` (main, P-09 same-id-new-text) — exit 7 CONFLICT, confirmed, nothing
   applied (apply-to-confirm step).
 - Targeted single-line edit of the P-09 bullet only, on both absolute copies.
-- `check-expertise.sh` on both copies — exit 0 each; raw `diff` of both — empty.
+- `check-expertise.py` on both copies — exit 0 each; raw `diff` of both — empty.
 - One throwaway empirical test (created and deleted, never tracked) confirming `apply`'s
   same-id-different-text behaviour before the apply-to-confirm route was relayed by the lead.

@@ -1,9 +1,9 @@
 # SIMPLIFY — ALTITUDE angle — BUG-124, cycle 4
 
 BLUF: one altitude finding. The rest of the diff is well-placed — the four helpers sit in
-`harness_boundary.py` (the shared library check-domain.sh/bash-write-guard.sh/dispatch-guard.sh
+`harness_boundary.py` (the shared library check-domain.py/bash-write-guard.py/dispatch-guard.py
 already use for exactly this kind of grant-matching primitive), the message assembly stays
-single-sourced in `dispatch-guard.sh`, and none of the four is a special case bolted onto shared
+single-sourced in `dispatch-guard.py`, and none of the four is a special case bolted onto shared
 infrastructure for a single caller.
 
 ## Findings
@@ -25,7 +25,7 @@ infrastructure for a single caller.
    times elsewhere in `team-config.yaml` for other paths, so it's a normal, expected shape, not a
    hypothetical one), `run_dir_grant_globs` would include that squad's pattern in the write
    vocabulary, `run_dir_slug_ok` would accept a slug that squad cannot actually write, and
-   dispatch-guard.sh would pass the dispatch through — a fail-open on the exact guard this task
+   dispatch-guard.py would pass the dispatch through — a fail-open on the exact guard this task
    built to close the equivalent fail-open at write time.
    **alternative:** extract the shared shape (a predicate-parameterized walk over "list of
    mappings carrying `path`") into one generic primitive in `harness_yaml.py`, have
@@ -38,10 +38,10 @@ infrastructure for a single caller.
    mine to fold in during a read-only pass — it belongs back to the plan/next task, not this
    apply step.
 
-No other altitude finding. The bash-side derivation preamble in `dispatch-guard.sh` (lines
+No other altitude finding. The bash-side derivation preamble in `dispatch-guard.py` (lines
 27–61) exists solely because `python3 -I` excludes user site-packages (D-03, documented at the
 call site) — that split is a real, load-bearing home decision, not misplaced logic, and the
 second manifest parse it performs is separately settled (F-4, not an efficiency finding). The
-refusal message (dispatch-guard.sh:148-186) is assembled once, in the guard, from
+refusal message (dispatch-guard.py:148-186) is assembled once, in the guard, from
 `run_dir_forms`/`run_dir_slug_ok`/`run_dir_refs` — no second copy of the wording or the rule
 exists elsewhere.

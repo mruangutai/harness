@@ -31,7 +31,7 @@ Anchors, quoted:
   therefore lack the property entirely. Unreadable-file robustness is a byproduct of the
   implementer's choice, not a plan commitment.
 
-Why nothing reddens today, verified at source rather than re-run: `inject-expertise.sh:75-77` is the
+Why nothing reddens today, verified at source rather than re-run: `inject-expertise.py:75-77` is the
 segment filter `case "$segment" in ''|*[!a-z0-9-]*) continue ;;`, and an unexpanded glob word carries
 a literal `*`, so it fails that filter independently. The `[ -r ]` guard's *specified* duty is
 double-covered; its *unspecified* duty is uncovered. That asymmetry is the whole gap.
@@ -85,10 +85,10 @@ declining is cheap and *not* revisited — backlog items under a shipped feature
 - **Lane, derived not asserted:** T-02 is `change_type: logic`, `execution_mode: team`,
   `execution_agent: harness-dev-ops`; the `lanes:` row for `.claude/skills/harness/bin/**` is
   `team` / `harness-dev-ops`. T-07 touches only `.claude/skills/harness/bin/test-inject-expertise.py`
-  — same surface, so **`team` / `harness-dev-ops`**. `inject-expertise.sh` is not one of DEC-174's
+  — same surface, so **`team` / `harness-dev-ops`**. `inject-expertise.py` is not one of DEC-174's
   four enforcement scripts, so the carve-out does not fire. `change_type: logic` (`test_matrix` has
   no tests-only type; `logic` → `unit`, matching T-02).
-- **Verify:** T-02's shape verbatim — `run-unit-tests.sh --kind unit`, require
+- **Verify:** T-02's shape verbatim — `run-unit-tests.py --kind unit`, require
   `^PASS test-inject-expertise.py$`, no `^FAIL `.
 - **Case 13 — unreadable repository-tier file.** Assert the hook exits 0, emits **no** repository
   header for that segment, and writes nothing to stderr.

@@ -1,13 +1,13 @@
 # Observations — harness-backend-dev — FEAT-10-software-factory
 
 - 2026-08-09 (T-02): the three-tier root resolution is now copied THREE places
-  (`check-plan-routes.py::_resolve_root`, `run-unit-tests.sh`'s header/body, and
+  (`check-plan-routes.py::_resolve_root`, `run-unit-tests.py`'s header/body, and
   `factory_config.py::harness_root`). All three probe `docs/harness/SPEC.md` for the same
   deploy.sh-copies-bin-not-docs reason. If a fourth factory tool ever needs its own root
   resolution, it should import `factory_config.harness_root()` rather than growing a fourth
   copy — the plan's own T-02 intent already flags two-copies-of-a-rule as how tools end up
   looking in different directories; a third/fourth hand-rolled copy is the same defect.
-- 2026-08-09 (T-02): `python3 <script>.py` run directly (as run-unit-tests.sh does) puts the
+- 2026-08-09 (T-02): `python3 <script>.py` run directly (as run-unit-tests.py does) puts the
   script's own directory on `sys.path[0]` automatically, so `factory_*.py` bin scripts can
   `import factory_cli`/`import harness_yaml` with no `sys.path.insert` boilerplate — confirmed
   this matches the existing `factory_gh.py`/`test-factory-cli.py` style rather than the

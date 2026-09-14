@@ -67,8 +67,8 @@ untraced.
 ## Contract measurements — re-verified, one deviation
 
 All five orchestrator measurements reproduce: digest suite exit 0 / 0 FAIL / `ALL PASSED.`;
-`test-config-shape-matrix.py` 19/19; `run-unit-tests.sh --kind integration` rc 0, 0 `^FAIL `, 46 files;
-index diff silent rc 0; `check-state.sh` rc 0 (two unrelated `note` lines: FEAT-43 INV-23, BUG-1081
+`test-config-shape-matrix.py` 19/19; `run-unit-tests.py --kind integration` rc 0, 0 `^FAIL `, 46 files;
+index diff silent rc 0; `check-state.py` rc 0 (two unrelated `note` lines: FEAT-43 INV-23, BUG-1081
 INV-28). **Deviation, wall time only:** the integration pool took **88.1s**, not 60.9s — concurrent
 sibling load, no verdict changes.
 

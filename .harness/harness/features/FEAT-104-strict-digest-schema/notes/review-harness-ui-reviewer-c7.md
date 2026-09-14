@@ -13,7 +13,7 @@ These are generated ship-review report artifacts from an earlier plan-signature 
 authored product UI (repo Expertise P-02/G-11 — confirmed directly, not assumed).
 
 **Ruling: no rendered UI surface in this diff.** The remaining 52 files are enforcement
-scripts (`validate-digest.py`, `check-domain.sh`, `check-state.sh`), a JSON schema, agent/skill
+scripts (`validate-digest.py`, `check-domain.py`, `check-state.py`), a JSON schema, agent/skill
 instruction markdown, a decision log, and tests/fixtures — none of it a rendered surface this
 role's Mode A/B lens (spacing/colour/states/interaction/contrast) applies to.
 
@@ -41,7 +41,7 @@ involved. I graded it.
   verifying test (`test-validate-digest.py:3128-3145`) does not check for the filename substring
   either, so this gap is invisible to the suite that is supposed to gate it.
 
-**Step-key rejection** — `check-domain.sh:1652-1658` (undeclared step key / evidence shape):
+**Step-key rejection** — `check-domain.py:1652-1658` (undeclared step key / evidence shape):
 names every offending key (`_names = ", ".join(repr(key) for key in sorted(_offending))`) AND
 names the file (`.claude/skills/harness/bin/run-state-schema.json`) AND the symbol (`evidence`).
 This path fully satisfies REQ-05/SC-08's "by file and symbol" bar.

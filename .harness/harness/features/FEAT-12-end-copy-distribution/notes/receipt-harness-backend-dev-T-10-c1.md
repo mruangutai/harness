@@ -9,7 +9,7 @@ verify output): 85.
 ## Verify — run exactly as given
 
 ```
-test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
+test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
 ```
 
 - **Exit status:** 0
@@ -97,8 +97,8 @@ report it if that does not fix it.
 
 ## DEC-174 carve-out
 
-Not touched: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`. `check-docs.sh` not recreated (absent, correctly).
+Not touched: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
+`check-state.py`. `check-docs.sh` not recreated (absent, correctly).
 
 ## Scope
 

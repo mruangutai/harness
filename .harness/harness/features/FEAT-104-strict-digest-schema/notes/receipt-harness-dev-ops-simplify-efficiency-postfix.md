@@ -2,12 +2,12 @@
 
 BLUF: no material waste in the fix delta. Both hot-path additions are reuses of already-loaded
 data plus microsecond-scale comparisons; measured, not estimated. Prior pass's F-1 (schema
-reopen in `check-state.sh`'s sweep) is untouched by this delta and stands as before — still not
+reopen in `check-state.py`'s sweep) is untouched by this delta and stands as before — still not
 worth an apply at current or near-term census. `findings` below is empty.
 
-## 1. `check-domain.sh` `_version_decreased` block (:1757+) — reuse, not a new read
+## 1. `check-domain.py` `_version_decreased` block (:1757+) — reuse, not a new read
 
-`prior_doc` is already parsed at `check-domain.sh:1718-1722` (pre-existing identity-check logic,
+`prior_doc` is already parsed at `check-domain.py:1718-1722` (pre-existing identity-check logic,
 unchanged by this diff) before the new block ever runs; the new code only calls
 `prior_doc.get("schema_version")` on that already-in-memory dict. **No additional file read is
 added.** Isolated cost of the new comparison logic itself, 2,000,000 iterations in-process:
@@ -15,7 +15,7 @@ added.** Isolated cost of the new comparison logic itself, 2,000,000 iterations 
 file's own comment (and the prior pass's measurement) already attributes to a governed write.
 Not worth flagging.
 
-## 2. `check-state.sh` per-run persona lookup (:1587+) — measured, not assumed
+## 2. `check-state.py` per-run persona lookup (:1587+) — measured, not assumed
 
 The dispatch frames this as moving from "a single exempt persona to a per-run lookup" and asks
 for the sweep's cost before/after. Measured directly, two ways:
@@ -64,13 +64,13 @@ the full suites here would itself be the waste this angle exists to flag. Skippe
 
 ## Findings
 
-None. Both new hot-path branches are either a reuse of already-loaded data (check-domain.sh) or
-an O(1) branch with a measured negative-to-zero delta (check-state.sh); neither introduces a new
+None. Both new hot-path branches are either a reuse of already-loaded data (check-domain.py) or
+an O(1) branch with a measured negative-to-zero delta (check-state.py); neither introduces a new
 read, a new loop layer, or a cost that scales with the run census.
 
 ## Unchanged from the prior pass
 
-F-1 (`check-state.sh:1492-1496`, schema file reopened per matching run inside the sweep loop) is
+F-1 (`check-state.py:1492-1496`, schema file reopened per matching run inside the sweep loop) is
 untouched by this fix delta — same code, same "not worth an apply" judgement as the prior
 receipt (0.0375ms/reopen, currently paid 0 times since `schema_version >= 2` census there is a
 separate check from the persona-lookup one; even at a few hundred v2 runs, sub-0.3% of sweep

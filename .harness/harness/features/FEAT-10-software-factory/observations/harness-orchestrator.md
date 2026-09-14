@@ -24,7 +24,7 @@
   rule while board 3's can — which converted the riskiest operator answer into a pick-from-list.
   Unioning `open_questions` upward is not enough; they need a carried ledger across segments.
 
-- 2026-08-08: `dispatch-guard.sh` rejected a `model: opus` parameter on my first lead dispatch.
+- 2026-08-08: `dispatch-guard.py` rejected a `model: opus` parameter on my first lead dispatch.
   The model pin is org design (DEC-152) and a dispatch-time override is an ESCALATION, not an
   option. Re-dispatching without the parameter was the whole fix.
 
@@ -34,7 +34,7 @@
   the fix dispatch. Later, two reviewers inside the validator squad converged on MF-2 the same
   way. Convergence from different lenses is the strongest signal available at plan time.
 
-- 2026-08-08: Mission plan makes `check-state.sh` exit 1 for the whole session — INV-1 treats an
+- 2026-08-08: Mission plan makes `check-state.py` exit 1 for the whole session — INV-1 treats an
   unapproved BRIEF as a VIOLATION, not a warning. Expected and unavoidable; worth disclosing in
   the return so nobody reads a red board as a defect.
 
@@ -112,7 +112,7 @@
   and I nearly relayed all four verbatim into a return that framed the commit as non-mechanical.
   Four commands settled it: the branch was already cut (`git rev-parse --abbrev-ref HEAD`), the two
   "staged deletions" were committed (`git diff --cached` empty), the OMP stream was committed, and
-  check-state.sh's "unsplittable foreign dirt" was ONE hunk of 52 additions opening "INV-24" — the
+  check-state.py's "unsplittable foreign dirt" was ONE hunk of 52 additions opening "INV-24" — the
   feature's own work. Git-state claims rot faster than any other kind in STATE.md because every
   commit invalidates them silently, and STATE.md is superseded-not-appended so nothing flags the
   rot. Re-derive every git claim at HEAD before relaying it, however confident the predecessor was.

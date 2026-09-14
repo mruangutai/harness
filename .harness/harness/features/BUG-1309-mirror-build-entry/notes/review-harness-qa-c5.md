@@ -20,7 +20,7 @@ evidence lives in `tests/integration/test-merge-gate.py`, the file the diff itse
 Required kinds: **unit, integration**. `matrix_ok: true`.
 
 The full feature diff (`merge-base main HEAD` = `6ad7233f`) is far broader (new `merge-gate.py`,
-`feature_schema.py`, `gh-sync.py` changes, `post-merge-sweep.sh`, `check-state.py` etc.) but this
+`feature_schema.py`, `gh-sync.py` changes, `post-merge-sweep.py`, `check-state.py` etc.) but this
 cycle's own commit is the only content difference from the prior pin, per the assignment's
 gate-only scope.
 
@@ -84,7 +84,7 @@ Reproduced by hand (root not in the repo, `/tmp`, not committed): took case 15's
 (branch mismatch → `document=None`, gh binary broken → `failure` set) and added one **entirely
 unrelated** `FEAT-9003-unrelated-malformed/feature.json = []` alongside it.
 
-- **Control** (case-15 shape, no unrelated record): `merge-gate.sh` on `gh pr merge 7` with a
+- **Control** (case-15 shape, no unrelated record): `merge-gate.py` on `gh pr merge 7` with a
   broken `GH_BIN` → stdout empty (no decision), stderr `merge-gate: could not verify this merge -
   ... allowing it, because GitHub is a mirror and never a gate (DEC-138).` — matches case 15.
 - **With the unrelated malformed record added**: same command, same broken `GH_BIN`, **same target
@@ -121,7 +121,7 @@ writes `json.dump([], f)` — valid JSON, wrong type — so it only ever exercis
 
 Reproduced by hand: same fixture as case 19 but the *target branch's own* `feature.json` is
 literally malformed JSON (`"{ this is not valid json"`) rather than a validly-parsed list. Ran
-`merge-gate.sh` on `git merge feature/test` for that branch: **stdout empty, stderr empty — the
+`merge-gate.py` on `git merge feature/test` for that branch: **stdout empty, stderr empty — the
 merge is silently ALLOWED.** This is exactly the failure mode `473d82cb` was written to close (a
 malformed record for the merging branch's own feature must fail closed with a repair action), and
 it is open again for the sub-case the fix's own test never constructs. This is not a hypothetical

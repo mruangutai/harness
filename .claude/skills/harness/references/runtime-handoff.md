@@ -24,5 +24,5 @@ suspend the turn (harness-team carries the `SUSPENDED` shape).
 ## Personas without a shell
 
 A persona that holds no shell cannot resolve the feature-tree root itself. You supply it on a
-`HARNESS-FEATURE-TREE-ROOT: <absolute path>` line of the dispatch; dispatch-guard.sh refuses its
+`HARNESS-FEATURE-TREE-ROOT: <absolute path>` line of the dispatch; dispatch-guard.py refuses its
 absence at exit 2 (DEC-214).

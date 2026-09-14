@@ -109,17 +109,17 @@ describe("yieldContractText", () => {
 // cases assert the path is a function of THIS MODULE's location and of nothing else.
 describe("gatePath", () => {
   test("resolves under the repository that ships this extension", () => {
-    const p = gatePath("check-domain.sh");
-    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.sh")).toBe(true);
+    const p = gatePath("check-domain.py");
+    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.py")).toBe(true);
     expect(existsSync(p)).toBe(true);
   });
 
   test("is byte-identical whatever the process working directory is", () => {
     const before = process.cwd();
-    const first = gatePath("check-domain.sh");
+    const first = gatePath("check-domain.py");
     try {
       process.chdir(tmpdir());
-      expect(gatePath("check-domain.sh")).toBe(first);
+      expect(gatePath("check-domain.py")).toBe(first);
     } finally {
       process.chdir(before);
     }
@@ -128,8 +128,8 @@ describe("gatePath", () => {
   // THE PAIRED HALF. Without it the two cases above are satisfied by a gatePath that
   // returns a constant: this one proves the script name still reaches the result.
   test("the script name still selects the file", () => {
-    expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.sh"));
-    expect(gatePath("bash-write-guard.sh").endsWith("bash-write-guard.sh")).toBe(true);
+    expect(gatePath("bash-write-guard.py")).not.toBe(gatePath("check-domain.py"));
+    expect(gatePath("bash-write-guard.py").endsWith("bash-write-guard.py")).toBe(true);
   });
 });
 
@@ -151,12 +151,20 @@ describe("OMP task lifecycle adapter", () => {
       payload: Record<string, unknown>,
     ) => {
       calls.push({ script, args, payload });
-      if (script === "inject-expertise.sh") return { blocked: false, stdout: "" };
-      if (script === "dispatch-guard.sh") {
+      if (script === "inject-expertise.py") return {
+        blocked: false,
+        stdout: JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: "SubagentStart",
+            additionalContext: "injected expertise",
+          },
+        }),
+      };
+      if (script === "dispatch-guard.py") {
         const task = (payload.tool_input as Record<string, unknown>).task;
         if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
         // The guard's FAIL-OPEN shape: exit 0, nothing on stdout. Seven branches of
-        // dispatch-guard.sh return exactly this (:34, :38, :72, :112, :138, :145, :187).
+        // dispatch-guard.py return exactly this (:34, :38, :72, :112, :138, :145, :187).
         // Absent from this fixture, no test could execute the pass-through path and F1
         // was invisible to a green suite.
         if (task === "passthrough") return { blocked: false, stdout: "" };
@@ -186,7 +194,7 @@ describe("OMP task lifecycle adapter", () => {
           ? { blocked: true, reason: "children live", stdout: "" }
           : { blocked: false, stdout: "" };
       }
-      if (script === "plan-sign-gate.sh") {
+      if (script === "plan-sign-gate.py") {
         const command = ((payload.tool_input as Record<string, unknown> | undefined)?.command as string) || "";
         if (command.includes("sign-approval")) {
           return { blocked: true, reason: "plan-sign-gate: refused", stdout: "" };
@@ -214,6 +222,19 @@ describe("OMP task lifecycle adapter", () => {
       },
     }, ctx);
   }
+
+  test("injects context through the native Python hook", async () => {
+    const { handlers, calls } = fixture();
+    const ctx = {
+      cwd: "/repo",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
+    const result = await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
+    }, ctx);
+    expect(calls.some((call) => call.script === "inject-expertise.py")).toBe(true);
+    expect(result?.message?.content).toBe("injected expertise");
+  });
 
   test("normalizes batch and flat task calls", () => {
     expect(normalizeTaskDispatches({
@@ -281,34 +302,34 @@ describe("OMP task lifecycle adapter", () => {
       input: { command: "gh issue close 12" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
     const scripts = calls.map((call) => call.script);
-    expect(scripts.indexOf("gh-close-gate.sh")).toBeGreaterThan(-1);
-    expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.sh"));
-    expect(scripts.indexOf("branch-create-gate.sh")).toBeLessThan(scripts.indexOf("bash-write-guard.sh"));
-    expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("bash-write-guard.sh"));
-    expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.sh"));
+    expect(scripts.indexOf("gh-close-gate.py")).toBeGreaterThan(-1);
+    expect(scripts.indexOf("gh-close-gate.py")).toBeLessThan(scripts.indexOf("branch-create-gate.py"));
+    expect(scripts.indexOf("branch-create-gate.py")).toBeLessThan(scripts.indexOf("bash-write-guard.py"));
+    expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("bash-write-guard.py"));
+    expect(scripts.indexOf("merge-gate.py")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.py"));
 
   });
 
-  // BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120 — only the main session signs an approval) is
+  // BUG-1132: plan-sign-gate.py (REQ-05/DEC-120 — only the main session signs an approval) is
   // wired into `.claude/settings.json` for native Claude Code but was never added to this bash
   // gate list, so a `plan-merge.py sign-approval` Bash call under OMP reached NEITHER a deny
   // NOR even an invocation of the script. This asserts both: the gate runs on every bash call,
   // and its `blocked` decision is honoured rather than swallowed.
-  test("BUG-1132: plan-sign-gate.sh runs on a Bash call and its refusal blocks the tool call", async () => {
+  test("BUG-1132: plan-sign-gate.py runs on a Bash call and its refusal blocks the tool call", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by x --date 2026-09-01" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
-    expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
+    expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     expect(result).toEqual({ block: true, reason: "plan-sign-gate: refused" });
   });
 
   // NEGATIVE CONTROL: an ordinary Bash call with no `sign-approval` in it must still run the
   // gate (proving the wiring is unconditional, not scoped by a prior positive result) and must
   // NOT be blocked by it.
-  test("BUG-1132 negative control: plan-sign-gate.sh runs but does not block an ordinary Bash call",
+  test("BUG-1132 negative control: plan-sign-gate.py runs but does not block an ordinary Bash call",
        async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
@@ -316,7 +337,7 @@ describe("OMP task lifecycle adapter", () => {
       toolName: "bash",
       input: { command: "git status --porcelain" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
-    expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
+    expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     // Not blocked. #1103 also merges HARNESS_AGENT_TYPE into every allowed bash call's env
     // (asserted on its own below), so this no longer stays `undefined` — it now carries a
     // revised input, and the thing this negative control must still prove is `block` absent.
@@ -324,7 +345,7 @@ describe("OMP task lifecycle adapter", () => {
   });
 
   // #1103: cmd_sign_approval now checks its own caller's identity rather than relying solely
-  // on plan-sign-gate.sh's text-parsing denylist (BUG-1132's own commit). That check reads
+  // on plan-sign-gate.py's text-parsing denylist (BUG-1132's own commit). That check reads
   // HARNESS_AGENT_TYPE from its own process environment — this proves the OMP host is the one
   // actually setting it, from the SAME `currentAgent` the hook payload already carries, and
   // that it MERGES into any env the caller's own command already specified rather than
@@ -509,7 +530,7 @@ describe("OMP task lifecycle adapter", () => {
   // feature.json that gh-sync.py had rewritten between the read and the write,
   // and nothing refused it.
   //
-  // postDomain hands an `edit` result to check-domain.sh --post via
+  // postDomain hands an `edit` result to check-domain.py --post via
   // extractEditPaths(...).map(...). An empty array yields ZERO runner calls and
   // no diagnostic of any kind, because no process is ever spawned. Until these
   // cases the suite drove `task` eight times and `edit` NOT ONCE: a regression
@@ -530,10 +551,10 @@ describe("OMP task lifecycle adapter", () => {
 
   const postPaths = (calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }>) =>
     calls
-      .filter((call) => call.script === "check-domain.sh" && call.args.includes("--post"))
+      .filter((call) => call.script === "check-domain.py" && call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path);
 
-  test("a hashline edit reaches check-domain.sh --post carrying the edited path", async () => {
+  test("a hashline edit reaches check-domain.py --post carrying the edited path", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     // The exact file and tag shape of the 2026-08-30 corruption.
@@ -543,10 +564,10 @@ describe("OMP task lifecycle adapter", () => {
       editCtx,
     );
     const post = calls.filter((call) =>
-      call.script === "check-domain.sh" && call.args.includes("--post"));
+      call.script === "check-domain.py" && call.args.includes("--post"));
     expect(post.length).toBe(1);
     expect((post[0].payload as any).tool_input).toEqual({ file_path: path });
-    // Named `Edit`, not `edit`: check-domain.sh matches the Claude-shaped name.
+    // Named `Edit`, not `edit`: check-domain.py matches the Claude-shaped name.
     expect((post[0].payload as any).tool_name).toBe("Edit");
   });
 
@@ -607,14 +628,14 @@ describe("OMP task lifecycle adapter", () => {
   // merely going unreported. Every case above filters on `--post`, so by
   // construction none of them touched this route: neutering it changed nothing.
   // -------------------------------------------------------------------------
-  test("a hashline edit is gated BEFORE it lands - check-domain.sh with no --post", async () => {
+  test("a hashline edit is gated BEFORE it lands - check-domain.py with no --post", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
     const blocked = await handlers.get("tool_call")?.(
       editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
     const pre = calls.filter((call) =>
-      call.script === "check-domain.sh" && !call.args.includes("--post"));
+      call.script === "check-domain.py" && !call.args.includes("--post"));
     expect(pre.length).toBe(1);
     expect((pre[0].payload as any).tool_input).toEqual({ file_path: path });
     expect((pre[0].payload as any).tool_name).toBe("Edit");
@@ -629,7 +650,7 @@ describe("OMP task lifecycle adapter", () => {
       editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
       editCtx);
     expect(calls
-      .filter((call) => call.script === "check-domain.sh" && !call.args.includes("--post"))
+      .filter((call) => call.script === "check-domain.py" && !call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path))
       .toEqual(["a/one.json", "b/two.yaml"]);
   });
@@ -644,7 +665,7 @@ describe("OMP task lifecycle adapter", () => {
     // -- it would refuse every edit whose payload shape the extractor cannot read
     // -- so it is recorded as an open decision, not taken silently here. The S2
     // notice on the RESULT is what tells the operator both checks were skipped.
-    expect(calls.filter((call) => call.script === "check-domain.sh")).toEqual([]);
+    expect(calls.filter((call) => call.script === "check-domain.py")).toEqual([]);
     expect(blocked).toBeUndefined();
   });
 });
@@ -773,7 +794,7 @@ describe("context advisory injection", () => {
     const handlers = new Map<string, Function>();
     const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
     const runner = (_cwd: string, script: string) => {
-      if (script === "check-domain.sh" && opts.blockReason) {
+      if (script === "check-domain.py" && opts.blockReason) {
         return { blocked: true, reason: opts.blockReason, stdout: "" };
       }
       return { blocked: false, stdout: "" };

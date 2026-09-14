@@ -62,8 +62,8 @@ the walk cost by orders of magnitude.
   already imported pre-diff for `product_config`'s existing use). No module-level work runs at
   import time — `product_config_report`, `_check_product_configs` and the new argparse flags are
   all inside function bodies, not executed at import.
-- **check-state.sh reachability**: grepped `check-state.sh` for `check-product-configs` and
-  `check_product_configs` — zero matches. `check-state.sh` imports `factory_config` (lines 80,
+- **check-state.py reachability**: grepped `check-state.py` for `check-product-configs` and
+  `check_product_configs` — zero matches. `check-state.py` imports `factory_config` (lines 80,
   1888, 2028) only for `TERMINAL_MARKER` and `MANDATED_STATIONS`, both pre-existing module
   constants unrelated to this diff, and never calls `product_config_report`,
   `_check_product_configs`, or passes `--check-product-configs` anywhere. Confirmed by grep, not
@@ -71,7 +71,7 @@ the walk cost by orders of magnitude.
 - Grepped every other caller of `factory_config` (`plan-merge.py`, `gh_board.py`,
   `worktree_terminal.py`, `harness_boundary.py`, `layout_fixtures.py`, `gh-sync.py`,
   `layout_migration.py`, `factory_workspace.py`, `check-plan-routes.py`,
-  `check-domain.sh`, `post-merge-sweep.sh`, `feature-worktree.py`, `board_lifecycle.py`,
+  `check-domain.py`, `post-merge-sweep.py`, `feature-worktree.py`, `board_lifecycle.py`,
   `factory_decompose.py`, `factory_claim.py`, `factory_land.py`, `board-station.py`) — none of
   these reference `check-product-configs`/`check_product_configs`/`product_config_report`
   either. The new flag is reachable only by an operator invoking

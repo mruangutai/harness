@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-3/4/5, INV-6, INV-22, INV-23, INV-34 and INV-35: file content.
+"""check-state.py INV-3/4/5, INV-6, INV-22, INV-23, INV-34 and INV-35: file content.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). What a feature's own
 files must contain — the plan read through the loader (INV-3/4/5), the review_sha pin and
@@ -281,7 +281,7 @@ def case_p():
     # `warn.append` to `bad.append` left the ENTIRE SUITE GREEN with this case printing
     # `ok ... (1 -> 1)`. It was comparing two constants.
     #
-    # check-state.sh prints `  VIOLATION  ` for bad and `  note       ` for warn. That
+    # check-state.py prints `  VIOLATION  ` for bad and `  note       ` for warn. That
     # prefix flips under the mutation, on the fixture this case already has, and it cannot
     # saturate. One line, no second fixture — and notably NOT the "build a clean fixture"
     # fix, which would duplicate case (d)'s settings blob that case (d)'s own docstring
@@ -704,7 +704,7 @@ def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
     marker could be MINTED onto a task-bearing SIGNED plan -- via the ungated `apply` verb or a
     raw Bash write -- durably silencing the approval and STATE.md-task checks for that feature.
 
-    THIS CASE EXISTS BECAUSE A COMMENT CLAIMED IT ALREADY DID. `check-state.sh` cited case
+    THIS CASE EXISTS BECAUSE A COMMENT CLAIMED IT ALREADY DID. `check-state.py` cited case
     (inv34.d) as asserting this guarantee; two reviewers checked at source and (inv34.d)'s fixture
     carries NO marker, so the cited test never tested it. A false citation in a comment is worse
     than a missing test, because it stops the next reader looking.
@@ -760,7 +760,7 @@ def case_inv35_unquoted_hash_digit_is_reported():
 
 def case_inv35_matches_real_truncation():
     """(inv35.b) THE PROOF THIS IS NOT HYPOTHETICAL. The exact fixture (inv35.a) flags,
-    loaded through the same harness_yaml module check-state.sh and every other reader use,
+    loaded through the same harness_yaml module check-state.py and every other reader use,
     silently drops everything from the `#` onward. If this case ever goes green while
     (inv35.a) still fires, the invariant has drifted from the defect it exists to catch."""
     with tempfile.TemporaryDirectory() as tmp:

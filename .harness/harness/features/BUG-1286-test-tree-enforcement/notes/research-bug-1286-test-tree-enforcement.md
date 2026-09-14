@@ -65,7 +65,7 @@ real root must report the path.
 
 ## Facts that shaped the plan
 
-- The runner already checks layout before dispatch — `run-unit-tests.sh:33-42` prints
+- The runner already checks layout before dispatch — `run-unit-tests.py:33-42` prints
   `MISCONFIGURED:` per line and exits 2 before any `tests/*/test-*.py` runs. **No runner edit is
   needed**; the ordering guarantee is a test assertion, not a code change.
 - `harness.json` `test_kinds.unit.detect` already globs `**/*.test.*|**/*_test.*|**/test_*.py`
@@ -78,7 +78,7 @@ real root must report the path.
   lengthening the entry shifts later anchors and regeneration is mandatory; the ` :: ` tail is
   hand-written and regeneration alone will not update it.
 
-## Lane resolution (check-domain.sh --resolve, at the pinned SHA)
+## Lane resolution (check-domain.py --resolve, at the pinned SHA)
 
 `suite_layout.py` → backend-dev/dev-ops · `tests/**` → backend-dev/dev-ops/qa ·
 `DECISIONS.md` and `DECISIONS-INDEX.md` → documentor · feature `notes/qa-*.md` → qa/orchestrator.

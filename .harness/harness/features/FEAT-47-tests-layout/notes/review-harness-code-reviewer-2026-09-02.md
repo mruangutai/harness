@@ -25,7 +25,7 @@ types, the migration/residue instruments' core logic — holds.
 | REQ | Status | Evidence |
 |---|---|---|
 | REQ-01 | met | `harness_boundary.py:289` carries `"tests/**"`; `team-config.yaml:187,229` grant `harness-backend-dev`/`harness-dev-ops`; unchanged since base, still true at review sha |
-| REQ-02 | met | `run-unit-tests.sh` builds `SCRIPTS` from `tests/unit/test-*.py` / `tests/integration/test-*.py` globs only; no registration list survives |
+| REQ-02 | met | `run-unit-tests.py` builds `SCRIPTS` from `tests/unit/test-*.py` / `tests/integration/test-*.py` globs only; no registration list survives |
 | REQ-03 | met | SC-09's `children` dynamic-instrumentation run is reused from the prior recheck, no code changed since — acceptable per BRIEF's own "point measurement" framing |
 | REQ-04 | met | migration conservation law (`suite-census.py migration --floor 58`) exits 0 against the review sha per the prior independent QA recheck; not re-run here per dispatch |
 | REQ-05 | met, with a scope note (see Finding F-3) | `suite_layout.py` catches all four contracted violation types; `tests/integration/test-run-unit-tests-layout.py` proves the runner surfaces each |
@@ -53,7 +53,7 @@ But REQ-07's own text binds to the *mechanism*, not to those three spellings, an
 describe the deleted mechanism in words the sweep cannot see:
 
 1. **`.harness/harness.json:117`**, the `_test_kinds_note` field (untouched by this diff, though
-   `harness.json` is one of T-05's own declared files): *"run-unit-tests.sh's drift detector requires
+   `harness.json` is one of T-05's own declared files): *"run-unit-tests.py's drift detector requires
    every `probe-*.py` script under bin/ to appear in exactly one `locally_run` kind's `detect`, so the
    check stays discoverable rather than remembered."* This is doubly wrong at the review sha: the
    drift detector it names was deleted by this same diff, and the probe it describes no longer lives
@@ -62,12 +62,12 @@ describe the deleted mechanism in words the sweep cannot see:
    `bin/` clean — the real behavior (`suite_layout.py`'s unconditional "no probe-shaped file under
    bin/" check) has nothing to do with registration.
 2. **`.claude/skills/harness/bin/layout_fixtures.py:12`** (untouched by this diff): *"Not a test file
-   (the run-unit-tests.sh drift detector scans only test-\*.py)."* Same mechanism, same deletion,
+   (the run-unit-tests.py drift detector scans only test-\*.py)."* Same mechanism, same deletion,
    same file left uncorrected.
 3. **`.harness/expertise/harness-dev-ops.md`** (project tier — the cross-repo glob T-07's own D-19
    declares as swept, `.harness/expertise/*.md` and `.harness/*/expertise/*.md`), gotcha **G-03**:
    *"See the drift-detector's nested-loop membership check in
-   `.claude/skills/harness/bin/run-unit-tests.sh` for the working pattern."* This is injected into
+   `.claude/skills/harness/bin/run-unit-tests.py` for the working pattern."* This is injected into
    every `harness-dev-ops` spawn, in every repository, forever — not scoped to this one. The nested-
    loop pattern it points to was deleted by this diff; a dev-ops agent following this pointer today
    finds nothing at that location. T-07 repaired the five files under `.harness/harness/expertise/`
@@ -181,7 +181,7 @@ DIGEST:
   findings: 6
   must_fix:
     - "REQ-07: harness.json:117 _test_kinds_note, bin/layout_fixtures.py:12, and the project-tier
-       .harness/expertise/harness-dev-ops.md G-03 all still present the deleted run-unit-tests.sh
+       .harness/expertise/harness-dev-ops.md G-03 all still present the deleted run-unit-tests.py
        drift detector / KIND-DRIFT cross-check as a live mechanism; none is a record path REQ-07
        exempts (F-1)"
     - "code_grade: fail — tests/manual/suite-census.py:143 main(), GRADE 3 against BAR 4, ABC 20.2,

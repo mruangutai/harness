@@ -41,12 +41,12 @@ what "missing" does depends on the CLI version (below).
     "SubagentStart": [
       { "matcher": "harness-.*",
         "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] }
     ],
     "PreToolUse": [
       { "matcher": "Write|Edit",
         "hooks": [{ "type": "command",
-                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] }
     ],
     "SubagentStop": [
       { "matcher": "harness-.*",
@@ -110,7 +110,7 @@ tries to avoid.
 
 ### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
-`check-domain.sh` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
+`check-domain.py` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
 Expertise allowed · shared paths allowed with a warning. Two details the source plan had wrong, and
 getting either wrong makes the hook fail open:
 
@@ -153,7 +153,7 @@ guardrail** (DEC-85).
 
 
 **`delete: false` is deleted from the design.** It never existed as a field and nothing implemented
-it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.sh`, or it
+it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.py`, or it
 does not exist.
 
 ### Resolved without a spike — nested spawning (was the hard prerequisite)
@@ -189,9 +189,9 @@ the time of writing; the live list is authoritative if the two disagree.
 | # | Task | Status |
 |---|---|---|
 | 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
-| 2 | settings.json prerequisites + `inject-expertise.sh` | **done** (DEC-101) |
+| 2 | settings.json prerequisites + `inject-expertise.py` | **done** (DEC-101) |
 | 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out (cost-report.py removed — DEC-178) |
-| 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
+| 4 | `bin/check-state.py` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
 | 5 | DIGEST schema validator | **done** (DEC-101) |
 | 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
@@ -220,7 +220,7 @@ All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimat
 
 | Metric | Baseline (old rules) | Target signal (new rules) | How to measure |
 |---|---|---|---|
-| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.sh .harness/expertise/` |
+| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.py .harness/expertise/` |
 | Expertise corpus size | 1,422 lines / 23,145 words at peak; worst file 383 lines | ≤150 lines/file by physics; corpus roughly flat per feature | `wc -lw .harness/expertise/*.md` |
 | Per-spawn injection tax | worst file ~7k tokens, uncapped, growing | ≤150 lines hard-capped, truncation warning never seen | grep the warning string in spawn contexts |
 | Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` (cost-report.py removed — DEC-178) |
@@ -417,10 +417,10 @@ repository, which is what keeps the first half dumb and safe.
   "hooks": {
     "SubagentStart": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] } ],
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.py" }] } ],
     "PreToolUse": [ { "matcher": "Write|Edit",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] } ],
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.py" }] } ],
     "SubagentStop": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook" }] } ]
@@ -442,7 +442,7 @@ repository, which is what keeps the first half dumb and safe.
 **4. `.harness/features/<FEAT>/BRIEF.md`** — a **draft**, then the user's approval written into it.
 
 > **Corrected 2026-07-26.** An earlier version of this line said "init never marks it approved," which
-> contradicts interview step 3 below *and* the first Done-when: `check-state.sh` reports
+> contradicts interview step 3 below *and* the first Done-when: `check-state.py` reports
 > `BRIEF.md is NOT approved — halt` on a pending brief, so an init that leaves one has not onboarded
 > the project (verified against a fixture: exit 1 pending, exit 0 approved). The real rule is that init
 > never **self**-approves. It asks with `AskUserQuestion` and writes what the user answered.
@@ -496,7 +496,7 @@ not found" with no explanation.
 
 ### Step 1 is a hard gate
 
-If `merge-settings.py` or `merge-gitignore.sh` cannot run, **init stops there.** Observed in testing
+If `merge-settings.py` or `merge-gitignore.py` cannot run, **init stops there.** Observed in testing
 (DEC-112): with the scripts denied, a run hand-replicated the `.gitignore` half, skipped the settings
 half, and continued to step 5 — producing a finished-looking project with **no domain enforcement**. A
 half-installed init does not announce itself, which makes it worse than a refused one.
@@ -507,7 +507,7 @@ The fixture was built to be adversarial: a pre-existing `.claude/settings.json` 
 own hooks on three events plus `permissions` and an `env` key, an existing `.gitignore` (one of whose
 entries the harness snippet also contains), and a split `web/` + `api/` source layout.
 
-- ✅ **`bin/check-state.sh` passes in a freshly-initialised project** (all settings entries, INV-9).
+- ✅ **`bin/check-state.py` passes in a freshly-initialised project** (all settings entries, INV-9).
   Exit 0. It exits **1** first on a pending brief — which is what forced the approval question above.
 - ✅ **A spawned harness agent is blocked from an out-of-domain write in that project.** `exit 2`, the
   full permitted-paths message reached the agent, and the file was absent from disk. The in-domain write
@@ -602,7 +602,7 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
    **DEC-227 records the measurement that replaced it**: per-run `started_at`/`ended_at`/`tokens` in
    `feature.json`, summed into every orchestrator return and one advisory line — a signal, never a
    gate.
-2. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
+2. `bin/check-state.py` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE).
 3. A **DIGEST schema validator** (~40 lines) routing drift into the existing
@@ -690,7 +690,7 @@ data required.
 These fixes are real and all three reviews want them — but each touches sections that may be deleted
 outright, so doing them now risks polishing text that will not survive:
 
-1. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
+1. `bin/check-state.py` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE). Scope depends on how many duties the orchestrator still has.
 2. A **DIGEST schema validator** (~40 lines) routing drift into the existing
@@ -797,7 +797,7 @@ Beyond "build personas + assemble them." Prune freely.
 | 14 | ~~the distribution command~~ | **Struck — done by deletion.** It shipped under DEC-113, scoped to distribution only; the copy mechanism behind it is deleted and the factory checks a repository out instead. See the detail block below. |
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
-| 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
+| 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.py`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
 | 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** Amended by DEC-221: the manifest and the `BRIEF.md` are the control plane's, and the only artifact that lands in a product repository is its own `harness.json`, on that repository's default branch. |
 | 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
@@ -807,8 +807,8 @@ Beyond "build personas + assemble them." Prune freely.
 and the four that do exist must be converted from bare `.md` files into skills. `rules/mental-model.md`
 is **renamed to `expertise`** (DEC-80).
 
-**Net-new scripts** (`bin/`): `check-domain.sh` (domain enforcement, stdin JSON + `exit 2`) and
-`inject-expertise.sh` (the `SubagentStart` hook).
+**Net-new scripts** (`bin/`): `check-domain.py` (domain enforcement, stdin JSON + `exit 2`) and
+`inject-expertise.py` (the `SubagentStart` hook).
 
 **Net-new artifacts:** `.harness/expertise/<agent>.md` per agent with stable entry IDs (SPEC §5.2),
 `.harness/features/<FEAT>/notes/uat.md`, `.harness/notes/prototypes/<FEAT>/`.
@@ -859,7 +859,7 @@ The repo has **none**, yet the commit policy depends on ignoring `.harness/featu
 Without it, run dirs dirty the working tree — and the git-failure-mode rule halts a team with
 `BLOCKED` on a dirty tree, so **the harness's own artifacts would deadlock the next run.** Add the
 rule here and to the onboarding template `templates/gitignore.snippet`, which `/harness-init` merges
-into the target repository via `bin/merge-gitignore.sh`. Reconcile the dirty-tree
+into the target repository via `bin/merge-gitignore.py`. Reconcile the dirty-tree
 halt with a **whitelist**: harness-owned paths and in-progress staged work do not count as dirty.
 
 ### Detail: #16 — `.harness/README.md`
@@ -960,14 +960,14 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/agents/harness-{frontend,backend,ai}-dev.md`, `harness-data-engineer.md`, `harness-dev-ops.md` | **new** — 5 eng specialists |
 | `.claude/agents/harness-{pm,qa,documentor,visual-designer,ui-reviewer}.md` | **new** — product/validator agents |
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
-| `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
+| `.claude/skills/harness/bin/check-domain.py` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
 | `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
 | `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-222). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
 | `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-222): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |
-| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
+| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.py`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |
-| `.claude/skills/harness/bin/inject-expertise.sh` | **new** — `SubagentStart` hook that injects an agent's Expertise |
+| `.claude/skills/harness/bin/inject-expertise.py` | **new** — `SubagentStart` hook that injects an agent's Expertise |
 | `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` + `PreToolUse` + `SubagentStop` | **new** — **all four required**, none on by default, and each degrades silently if absent (§ Step 0a; DEC-111, DEC-122) |
 | `.claude/agents/harness-{code,security}-reviewer.md` | rewrite — de-GSD'd + three-part return (`ceo-reviewer` and `eng-reviewer` are **deleted**) |
 | `.claude/skills/harness/rules/*.md` | rewrite — retarget injection prose to personas |

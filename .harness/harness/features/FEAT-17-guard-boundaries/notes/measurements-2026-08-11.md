@@ -49,8 +49,8 @@ pending`. Three paths in its `files:` union are ones FEAT-17 will almost certain
 FEAT-16's scope (#262, the per-repo board) is fenced out of FEAT-17 by the grilling, but its FILE
 set is not disjoint. Whichever lands second rebases onto the other's edits in those three files.
 
-## M-4 — `check-state.sh` is the fourth carve-out file
+## M-4 — `check-state.py` is the fourth carve-out file
 
-`CLAUDE.md:34-35` names four: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`. The grilling's open item 3 proposes touching `check-state.sh`, so if pm answers
+`CLAUDE.md:34-35` names four: `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`,
+`check-state.py`. The grilling's open item 3 proposes touching `check-state.py`, so if pm answers
 that yes, THAT task is `main-session-direct` too — the constraint is not limited to the two guards.

@@ -37,7 +37,7 @@ P-11/dispatch item 2).
 New in this diff, verified by direct execution against the live worktree
 (`suite_layout.violations('.')` → `[]`; `suite-census.py tree-audit --ref 9adbce6b…` →
 `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`, matching the orchestrator's stated measurement) and by reading
-`run-unit-tests.sh:33-40`, which prefixes every `violations()` line with `MISCONFIGURED: ` on stderr
+`run-unit-tests.py:33-40`, which prefixes every `violations()` line with `MISCONFIGURED: ` on stderr
 before any test sentinel runs:
 
 | Message | Names path? | Names rule? | Names remedy? |
@@ -56,10 +56,10 @@ Phrasing is internally consistent: all six are `<subject-phrase>: {value}`, and 
 most-tripped message** — the one an engineer sees the first time they commit a stray `test_*.py`
 outside `tests/`, rendered on stderr as `MISCONFIGURED: tracked test-shaped file outside tests/:
 .harness/tools/test_rogue.py` (confirmed via `tests/integration/test-run-unit-tests-layout.py`
-case 2 and via `run-unit-tests.sh:33-40`). It states the fact and the path but not the remedy —
+case 2 and via `run-unit-tests.py:33-40`). It states the fact and the path but not the remedy —
 contrast with sibling refusal messages in the SAME `.claude/skills/harness/bin/` directory
-(`bash-write-guard.sh:233-234` "Work in the worktree cut for this feature and address it with
-git's -C option rather than moving to it.", `check-domain.sh:207-209` "Restore
+(`bash-write-guard.py:233-234` "Work in the worktree cut for this feature and address it with
+git's -C option rather than moving to it.", `check-domain.py:207-209` "Restore
 .agents/skills/harness/bin/harness_boundary.py, then retry.", `check-plan-routes.py:639-644`
 "Point the override at a harness checkout, or pass PLAN.md paths explicitly."), which pair the
 fact with an explicit next action. This message does not.

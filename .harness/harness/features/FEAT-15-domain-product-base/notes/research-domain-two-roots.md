@@ -13,12 +13,12 @@ Measured at `06ae963` unless stated.
 
 > **Revised scope, replacing the three items in the body:**
 >
-> 1. `check-domain.sh` learns a SECOND base: `workspace_root` from `.harness/factory/fleet.yaml`. A
+> 1. `check-domain.py` learns a SECOND base: `workspace_root` from `.harness/factory/fleet.yaml`. A
 >    target under `<workspace_root>/<repo>/` is made relative to that repo root and matched against the
 >    product-shaped globs.
 > 2. Outside-root becomes a decision, not a silent return, for paths under a known product workspace.
 >    `/tmp` and anything outside both bases keep today's no-verdict behaviour — the reasoning in that
->    comment is sound and `bash-write-guard.sh:211` agrees.
+>    comment is sound and `bash-write-guard.py:211` agrees.
 > 3. Domain entries carry which base they resolve against, so `.harness/**` never accidentally matches
 >    inside a product checkout and `src/**` never accidentally matches inside harness.
 >
@@ -62,7 +62,7 @@ its CI at `.github/`. None of those can be written with a control-plane prefix, 
 is available (declined). **There is therefore no manifest entry that says "harness's own `docs/**`".**
 
 This is not theoretical. `check-plan-routes.py` resolves task routes through
-`check-domain.sh --resolve`, and at `06ae963` it reports, over live (non-shipped) plans:
+`check-domain.py --resolve`, and at `06ae963` it reports, over live (non-shipped) plans:
 
 - FEAT-12 (BUILDING) T-12 `README.md`, `docs/harness/SPEC.md`, `docs/harness/BUILD.md`; T-14
   three `docs/harness/*.md` — both `execution_mode: team`, granted to harness-documentor.
@@ -85,7 +85,7 @@ alternative — accept the revocation — moves every harness doc and CI edit in
 
 ## 4. Testability seam — it EXISTS. No task needed to create it
 
-- `check-domain.sh` takes `root` from `CLAUDE_PROJECT_DIR` when `.harness/team-config.yaml` is
+- `check-domain.py` takes `root` from `CLAUDE_PROJECT_DIR` when `.harness/team-config.yaml` is
   readable under it; `test-check-domain.py`'s `fixture()`/`fire()` already build such a root in a
   tempdir and pass it through the environment. A fixture root can therefore carry its own
   `.harness/factory/fleet.yaml` declaring a repo whose name is **not** `harness` (e.g. `acme/widget`)
@@ -100,12 +100,12 @@ alternative — accept the revocation — moves every harness doc and CI edit in
   governed write from a fixture root.
 - `workspace_path()` is called, never restated: `factory_config.workspace_path(fleet, name)` for each
   `fleet["repos"][].name`.
-- `test-check-domain.py` is already registered in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`, so no
+- `test-check-domain.py` is already registered in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`, so no
   new file and no new registration (G-08 does not fire).
 
 ## 5. Fail-closed repair path — confirmed, no deadlock
 
-`.claude/skills/harness/bin/check-domain.sh --resolve .harness/factory/fleet.yaml` prints `NOBODY`
+`.claude/skills/harness/bin/check-domain.py --resolve .harness/factory/fleet.yaml` prints `NOBODY`
 at `06ae963`. The fleet declaration is in no agent's domain, and the main session is exempt from the
 domain phase — the same reasoning the existing unparseable-manifest branch states for
 `team-config.yaml`. So the only party who can repair a broken fleet is the one this guard never
@@ -133,12 +133,12 @@ up to two candidates from one target).
   at `06ae963`, working tree as found.
 - `python3 .claude/skills/harness/bin/check-plan-routes.py` (no args, all live plans) → **exit 0** at
   `06ae963`. `DEVIATION` lines do not increment the violation counter; only `VIOLATION` does.
-- `check-domain.sh --resolve .claude/skills/harness/bin/check-domain.sh` → `harness-backend-dev`,
+- `check-domain.py --resolve .claude/skills/harness/bin/check-domain.py` → `harness-backend-dev`,
   `harness-dev-ops`. Both carve-out files are granted, so a `main-session-direct` task naming them
   draws `DEVIATION`, exit 0 — not `VIOLATION`. The marker stays.
 - `check-plan-routes.py` on this feature's own `plan.yaml` → five `DEVIATION` lines,
   `0 violation(s)`, **exit 0**, every carve-out marker intact.
-- `check-state.sh` → **exit 1 at `06ae963`, BRIEF pending, `feature.yaml` absent (the
+- `check-state.py` → **exit 1 at `06ae963`, BRIEF pending, `feature.yaml` absent (the
   orchestrator's file, not pm's)**. Both findings are expected at this phase.
 
 ## 10. What prefix inference does to the existing suite — measured, not counted by grep
@@ -161,7 +161,7 @@ whether that glob's first segment is `.harness` or `.claude`. Two manifests only
 complete because in-root the applicable set narrows from `globs` to `cp_globs ⊆ globs`: narrowing is
 monotone, so the only possible in-root flip is `0 → 2`, and no case expecting a refusal can flip.
 
-Result, measured at `96d5d5c` (script: reuse of `check-domain.sh`'s own `glob_to_re`/`matches` over
+Result, measured at `96d5d5c` (script: reuse of `check-domain.py`'s own `glob_to_re`/`matches` over
 `harness_yaml.manifest_domains`) — **five** in-root allow assertions lose their grant:
 
 | assertion | granted today by | disposition |
@@ -179,7 +179,7 @@ expectation, and `FIXTURE_MANIFEST` gains one control-plane entry (`.harness/all
 grant the two fixture paths.
 
 Three adjacent hazards were checked and are clear. (1) The bootstrap-grant cases (`fire_noyaml`,
-`allowed/a.md` and friends) never reach the partition: `check-domain.sh` calls `domain_check()` under
+`allowed/a.md` and friends) never reach the partition: `check-domain.py` calls `domain_check()` under
 `if _run_domain and not _no_parser`. (2) The `--resolve` cases (a), (b) and (c) are all granted by
 control-plane globs (`.harness/harness.json` → `harness-dev-ops`;
 `.claude/skills/harness/bin/**` → `harness-backend-dev` and `harness-dev-ops`;
@@ -201,7 +201,7 @@ keys the template mandates, with the reason preserved word for word:
 
 ```
 execution_mode: main-session-direct
-execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+execution_reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 list)
 ```
 
 ## Open questions
@@ -210,9 +210,9 @@ execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 lis
   inexpressible under prefix inference; the fix revokes documentor's and dev-ops's routes to live
   files and turns a required CI check red. Operator's call before signature.
 - **Q2 (not blocking).** `harness.json`'s `unit` detect glob (`...bin/test-*.py`) claims
-  `test-check-domain.py`, but `run-unit-tests.sh` runs it from `INTEGRATION_SCRIPTS`. Every SC here
+  `test-check-domain.py`, but `run-unit-tests.py` runs it from `INTEGRATION_SCRIPTS`. Every SC here
   names `evidence: integration`, which is the bucket that actually executes it. The detect/runner
   disagreement is pre-existing and belongs in the backlog.
-- **Q3 (not blocking).** `bash-write-guard.sh` has its own outside-repo rule and is untouched here,
+- **Q3 (not blocking).** `bash-write-guard.py` has its own outside-repo rule and is untouched here,
   so a Bash-route write into a product checkout stays ungoverned after this fix. Out of scope by the
   grilling; worth a ticket.

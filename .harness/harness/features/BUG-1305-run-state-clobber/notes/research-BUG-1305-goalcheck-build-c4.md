@@ -19,7 +19,7 @@ item.** Mode A and Mode B are each independently declarable delivered.
 - **The justification is TRUE at the pin, not merely present.** Both flipped cases
   (`test-check-domain.py:3839`, `:3848`) use `_bug1124_state_fixture` — a governed `state.yaml` — and
   both now assert exit 2 plus `Write the complete file instead`. The branch they exercise is
-  `check-domain.sh:2057-2072` (`_content is None` → exit 2). `_edit_reconstructed_content`
+  `check-domain.py:2057-2072` (`_content is None` → exit 2). `_edit_reconstructed_content`
   (`:2005-2035`) returns `None` on `count == 0` and on `count > 1 and not replace_all`, i.e. exactly
   the two payload shapes the Edit tool itself refuses. Strictly more refusing, nothing permitted
   lost: **fail-closed strengthening, confirmed.**
@@ -77,10 +77,10 @@ on the record. Both are outside DEC-174's no-edit cycle and outside any cycle th
 ## Criteria not re-checked, one line each
 
 The delta touches exactly two files: `tests/integration/test-check-domain.py` (`314e0227`) and this
-note (`1155f188`). `check-domain.sh`, `bash-write-guard.sh`, `check-state.sh`, `validate-digest.py`
+note (`1155f188`). `check-domain.py`, `bash-write-guard.py`, `check-state.py`, `validate-digest.py`
 and every other test file are byte-unchanged across `5ed929bd..154ff2a0`.
 
-- SC-02, SC-03, SC-09 — rest on `check-state.sh` + `test-check-state.py`, both untouched by the delta.
+- SC-02, SC-03, SC-09 — rest on `check-state.py` + `test-check-state.py`, both untouched by the delta.
 - SC-04 — rests on `validate-digest.py` + its test file, both untouched.
 - SC-10 — POST minting path and `run_identity.py` untouched.
 - SC-11 — grades `probe-notebookedit-BUG-1305.md`, untouched.
@@ -97,7 +97,7 @@ and every other test file are byte-unchanged across `5ed929bd..154ff2a0`.
   never reaches the PRE branch. I measured the permit myself; the suite cannot.
 - **F-04 — advisory, provenance.** `## Suite results` (`:37-40`) predates the six new cases (46 files,
   cycle-10/12 timings). Records exit 0 / 0 FAIL, so no leg fires, but it is not a pin measurement.
-- **F-05 — advisory, carried unchanged.** `check-domain.sh:1240` — outside the delta (my c3 F-03).
+- **F-05 — advisory, carried unchanged.** `check-domain.py:1240` — outside the delta (my c3 F-03).
 
 ## Tree state
 

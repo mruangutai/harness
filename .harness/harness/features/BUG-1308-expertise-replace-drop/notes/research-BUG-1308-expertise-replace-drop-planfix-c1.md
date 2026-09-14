@@ -54,7 +54,7 @@ lock (D-09). Deterministic because either serialisation order yields the same fi
 ## Coverage mapping
 
 SC → T: SC-01→T-02 c11 · SC-02→T-02 c12 · SC-03→T-02 c13 · SC-04→T-02 c14 · SC-05→T-02 c15 ·
-SC-06→T-02 c16 · SC-07→T-01 (u1–u10, u10 permanent red) · SC-08→T-02 c11/c12 (`check-expertise.sh`) ·
+SC-06→T-02 c16 · SC-07→T-01 (u1–u10, u10 permanent red) · SC-08→T-02 c11/c12 (`check-expertise.py`) ·
 SC-09→T-02 c17 (+T-03 supplies the text) · SC-10→T-04 · **SC-11→T-02 c18**. No orphan SC.
 
 T → REQ: T-01 → REQ-01…REQ-07 · T-02 → REQ-01…REQ-09 · T-03 → REQ-08 · T-04 → REQ-08. No orphan task.

@@ -7,7 +7,7 @@ Push `fix/1157-approval-overrule` and open a pull request for issue #1157 from c
 - `python3 tests/integration/test-plan-merge.py` passes, including repeatable `--overrule`, current-finding validation, required attribution/date/reason, and byte-identical refusals.
 - `python3 tests/integration/test-check-state.py` passes, including risk acceptance for high, critical, unrated, and absent-severity findings without a `ruling: overrule` discriminator.
 - Changed production Python functions grade 4 or 5 with `code-grade.py --base origin/main --head HEAD`.
-- The canonical `check-state.sh` was run before commit. It remains red only on two unrelated existing FEAT-51 conditions: missing `notes/handoff-validate.md` and a standing terminal worktree.
+- The canonical `check-state.py` was run before commit. It remains red only on two unrelated existing FEAT-51 conditions: missing `notes/handoff-validate.md` and a standing terminal worktree.
 
 ## Dead ends
 
@@ -18,7 +18,7 @@ Push `fix/1157-approval-overrule` and open a pull request for issue #1157 from c
 ## Working set
 
 - `.claude/skills/harness/bin/plan-merge.py` — repeatable `sign-approval --overrule PF-ID:<reason>` writer and validation.
-- `.claude/skills/harness/bin/check-state.sh` — INV-32 complete-entry validation and accepted-risk behavior.
+- `.claude/skills/harness/bin/check-state.py` — INV-32 complete-entry validation and accepted-risk behavior.
 - `tests/integration/test-plan-merge.py` — writer regression coverage.
 - `tests/integration/test-check-state.py` — INV-32 regression coverage.
 - `.claude/skills/harness/templates/plan.yaml` — ruling and disposition contract.

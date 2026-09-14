@@ -42,7 +42,7 @@ REFUSE_ON_DIRTY = True
 REQUIRE_LANDED = True
 
 # The flow-id form this CLI accepts: FEAT or BUG, a number, and an optional kebab slug — the same
-# vocabulary branch-create-gate.sh already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
+# vocabulary branch-create-gate.py already accepts (see its `flow=$(printf ... FEAT|BUG ...)`).
 _ID_RE = re.compile(r"^(FEAT|BUG)-[0-9]+[a-z0-9-]*$")
 
 
@@ -334,7 +334,7 @@ def cmd_behind(args):
 
     NO THRESHOLD, DELIBERATELY. An earlier design gated on whether the missing commits
     touched `.claude/` or the decision docs, to stay quiet on ordinary drift. That
-    discriminator exists because the check was going to live in `check-state.sh`, which runs
+    discriminator exists because the check was going to live in `check-state.py`, which runs
     at every door AND before every commit. At the SHIP DOOR it runs once per ship, so any
     commit behind is worth stopping for and the fix is one merge.
 

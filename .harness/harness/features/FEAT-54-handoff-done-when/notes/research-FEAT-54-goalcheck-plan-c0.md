@@ -53,12 +53,12 @@ T-01/T-02 (module), though T-08 writes its prose into the template.
   :315). Notes written at build seams before T-04 lands escape the write gate; after T-07 they are
   non-baselined and carry no section, so INV-17 reports them and T-07's own verify
   (`! grep -qi 'done when'`, plan.yaml:371) fails for a planning reason no code fix addresses.
-- **F-03 (medium) SC-08 contradicts T-07.** SC-08 requires `check-state.sh`'s handoff heading constants to
+- **F-03 (medium) SC-08 contradicts T-07.** SC-08 requires `check-state.py`'s handoff heading constants to
   state five (BRIEF.md:100-103); T-07 orders `HANDOFF_HEADINGS` left untouched with a separate constant
-  (plan.yaml:386-387). That constant is a four-item list at `check-state.sh:1059` and is still read at
+  (plan.yaml:386-387). That constant is a four-item list at `check-state.py:1059` and is still read at
   :1199 and :1219. As written the criterion is unmeetable-by-design; narrow it or change T-07.
 - **F-04 (medium) SC-09 names a kind that cannot carry it.** `evidence: unit` (BRIEF.md:108), but the
-  probe-registration check lives in `run-unit-tests.sh` itself (:76-83) and its test file
+  probe-registration check lives in `run-unit-tests.py` itself (:76-83) and its test file
   `test-run-unit-tests-kinds.py` is in INTEGRATION_SCRIPTS; no UNIT_SCRIPTS file asserts SC-09. Also "makes
   no model call" is not observable from a `--dry-run` exit 0 — nothing asserts network silence.
 - **F-05 (medium) SC-07 has no author.** It demands a mutation experiment (remove the resolution entry
@@ -71,7 +71,7 @@ T-01/T-02 (module), though T-08 writes its prose into the template.
 - **F-07 (low) T-07's verify requires non-empty output** (`test -n "$out"`, plan.yaml:371): a silent
   check-state run fails a correct implementation.
 - **F-08 (low) T-08's verify greps `! grep -rqi 'four sections'` over all of SKILL.md**; the only live
-  occurrences are `SKILL.md:304`, `templates/HANDOFF.md:4`, `check-domain.sh:1523` (T-04) and
+  occurrences are `SKILL.md:304`, `templates/HANDOFF.md:4`, `check-domain.py:1523` (T-04) and
   `DECISIONS.md:3701` (T-10), so REQ-09's scope does match the task file union — the grep is merely
   broader than the claim.
 

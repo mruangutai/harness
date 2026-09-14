@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""plan-sign-gate.sh — the PreToolUse Bash hook that refuses an agent's `sign-approval`.
+"""plan-sign-gate.py — the PreToolUse Bash hook that refuses an agent's `sign-approval`.
 
 FEAT-41 T-08, closing REQ-05. DEC-120 says the approval signature is the user's and is
 relayed by the main session alone. Until this gate that was prose: `plan-merge.py
@@ -26,7 +26,7 @@ import sys
 import tempfile
 
 BIN = _anchor_bin
-GATE = os.environ.get("PLAN_SIGN_GATE_BIN") or os.path.join(BIN, "plan-sign-gate.sh")
+GATE = os.environ.get("PLAN_SIGN_GATE_BIN") or os.path.join(BIN, "plan-sign-gate.py")
 
 fails = 0
 
@@ -43,7 +43,7 @@ def check(name, cond, detail=""):
 def _root():
     """A throwaway harness root.
 
-    THE team-config.yaml MARKER IS NOT OPTIONAL (FEAT-42 T-15). plan-sign-gate.sh resolves
+    THE team-config.yaml MARKER IS NOT OPTIONAL (FEAT-42 T-15). plan-sign-gate.py resolves
     through harness_boundary.resolve_root, which honours HARNESS_PROJECT_DIR only when
     .harness/team-config.yaml is readable underneath it. A fixture holding only harness.json
     silently falls back to the derived root — the LIVE checkout — and the case would then be
@@ -68,7 +68,7 @@ def gate(command, agent_type=None):
         payload["agent_type"] = agent_type
     env = dict(os.environ)
     env["HARNESS_PROJECT_DIR"] = ROOT
-    r = subprocess.run(["bash", GATE], input=json.dumps(payload),
+    r = subprocess.run([GATE], input=json.dumps(payload),
                        capture_output=True, text=True, env=env)
     return r.returncode, (r.stderr or "")
 
@@ -77,7 +77,7 @@ SIGN = "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.
 
 # ---------------------------------------------------------------------------------------
 # THE MAIN SESSION IS EXEMPT BY THE MECHANISM, NOT BY A NAMED CARVE-OUT.
-# An absent `agent_type` IS the main session — check-domain.sh's approval_guard records the
+# An absent `agent_type` IS the main session — check-domain.py's approval_guard records the
 # same reasoning for the same reason, and a named branch would be a second carve-out to keep
 # in sync. This case is what makes the gate usable at all: the main session is the ONE
 # author that must be able to sign.
@@ -105,7 +105,7 @@ check("the refusal names awaiting_user, which is what the agent should return in
       "awaiting_user" in err, f"stderr={err[:400]!r}")
 
 # ---------------------------------------------------------------------------------------
-# THE FOUR EVASIONS THE PRECEDENT ALREADY MEASURED (gh-close-gate.sh's own comment lists
+# THE FOUR EVASIONS THE PRECEDENT ALREADY MEASURED (gh-close-gate.py's own comment lists
 # ten reaching a grep-based gate straight through). basename strips the path, shlex strips
 # the quoting and the backslash, and each token is re-scanned so eval and bash -c are READ.
 # ---------------------------------------------------------------------------------------
@@ -541,7 +541,7 @@ def qgate(command, agent_type, session_id, root, gate_path=None):
     }
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     result = subprocess.run(
-        ["bash", gate_path or GATE], input=json.dumps(payload),
+        [gate_path or GATE], input=json.dumps(payload),
         capture_output=True, text=True, env=env,
     )
     return result.returncode, result.stderr
@@ -632,7 +632,7 @@ os.remove(os.path.join(_copybin, "inflight_registry.py"))
 _import_root = _qroot(_other)
 _rc, _err = qgate(
     _apply.format(root=_import_root), "harness-orchestrator", _session,
-    _import_root, gate_path=os.path.join(_copybin, "plan-sign-gate.sh"),
+    _import_root, gate_path=os.path.join(_copybin, "plan-sign-gate.py"),
 )
 check("an unimportable inflight_registry fails OPEN at the plan-sign-gate.py quarantine rule",
       _rc == 0 and "boundary was not enforced" in _err,

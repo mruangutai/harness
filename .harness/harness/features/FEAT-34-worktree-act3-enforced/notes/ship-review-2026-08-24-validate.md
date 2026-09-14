@@ -9,7 +9,7 @@ of its own success criteria are blind to.** Do not merge yet. Four things are yo
 can do any of them.
 
 The defect is small and the failure is loud in the worst way — it wastes your time at exactly the
-moment the system is trying to help you. You hit a blocked commit. `check-state.sh` refuses and
+moment the system is trying to help you. You hit a blocked commit. `check-state.py` refuses and
 tells you a worktree is stale. You copy the removal command it prints, run it, and get
 `not a linked worktree` for a directory that is plainly sitting there. The refusal is correct. The
 remedy it hands you is not.
@@ -21,10 +21,10 @@ directory is `FEAT-33-some-longer-name`. That is precisely why nothing caught it
 
 `worktree_terminal.py:248-251` resolves a short name to the **landed** directory name and stores
 that as the record's `feature_id`, while `path` keeps the **short** worktree path.
-`check-state.sh:1326-1329` builds `--id` from `feature_id`. `feature-worktree.py:56-59` joins that
+`check-state.py:1326-1329` builds `--id` from `feature_id`. `feature-worktree.py:56-59` joins that
 id into a path literally, and its first gate at `:207-214` exits 3 because no such directory exists.
 
-The hook does it correctly: `post-merge-sweep.sh:150` derives the id from the record's own path.
+The hook does it correctly: `post-merge-sweep.py:150` derives the id from the record's own path.
 So the gate and the hook disagree — which is the exact thing decision D-02 exists to prevent — and
 the hook is the one that is right.
 
@@ -121,9 +121,9 @@ row by ID.
 | ID | Nature | What |
 |---|---|---|
 | B-1 | chore | `test-post-merge-sweep.py`'s module docstring omits `case_linked_worktree_main_checkout` entirely — the only red proof for the FEAT-35 wrong-copy defect. Corrected wording is paste-ready in the simplify receipt |
-| B-2 | chore | Stale line citations: 3 of 12 checked are wrong, including `check-state.sh:1209` citing INV-26 at `:1203` when it is at `:1363`. INV-29's insertion shifted them |
+| B-2 | chore | Stale line citations: 3 of 12 checked are wrong, including `check-state.py:1209` citing INV-26 at `:1203` when it is at `:1363`. INV-29's insertion shifted them |
 | B-3 | enhancement | INV-30 budgets 15s+60s of timeout on a call measured at 0.475s — 75s worst case on a pre-commit gate whose common path costs 0.78s — and repeats a `gh auth` round trip INV-26 already makes at `:1397`. Two constants |
-| B-4 | chore | The segment-resolution helper is duplicated at `worktree_terminal.py:107-129` and `post-merge-sweep.sh:100-118`. De-duplicating widens a public surface D-10 pinned, so it needs a decision, not a refactor |
+| B-4 | chore | The segment-resolution helper is duplicated at `worktree_terminal.py:107-129` and `post-merge-sweep.py:100-118`. De-duplicating widens a public surface D-10 pinned, so it needs a decision, not a refactor |
 | B-5 | bug | T-10's `verify:` cannot go red: the agent loop discards its result via `|| true`, and the rest greps 3 skill files — not the 16 agents SC-09 quantifies over — then pipes to `wc -l`, so it always exits 0 |
 | B-6 | chore | `BRIEF.md:246` and `:359` still read "NOT YET RE-SIGNED" against `:449` recording all three signed. The cause is structural — the banner is pasted from pm's draft block and is false the instant you sign — so fix the convention, not the two lines |
 | B-7 | bug | SC-11's first half has no assertion; the fixture lands both features already `Done`, making the status write unobservable. Widen the fixture or narrow the criterion |

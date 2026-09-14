@@ -2,7 +2,7 @@
 
 **Note on artifact path:** the dispatch named
 `notes/review-code-reviewer-panel-2026-08-27.md`; my write domain only permits
-`notes/review-harness-code-reviewer-*.md` (`check-domain.sh` denied the named path). Writing here
+`notes/review-harness-code-reviewer-*.md` (`check-domain.py` denied the named path). Writing here
 instead — flagged as an open question below, not worked around.
 
 ## BLUF
@@ -10,7 +10,7 @@ instead — flagged as an open question below, not worked around.
 **PASS.** SC-04 and SC-05 both `met`, evidence below. No `must_fix`. Stage 1 (spec compliance) clean
 across the 9-file surface — every change traces to REQ-01..07 or a signed plan decision (D-12/D-13/
 D-17), no scope creep, no omission. Stage 2 (quality) found nothing above `low`: the fail-open hunt on
-`inflight_registry.py` and `run-unit-tests.sh` came back clean — both were rewritten in this diff
+`inflight_registry.py` and `run-unit-tests.py` came back clean — both were rewritten in this diff
 specifically to remove a fail-open the operator measured live (#628 ambiguous-release, and the cwd/root
 resolution fallback).
 
@@ -18,7 +18,7 @@ resolution fallback).
 
 `git -C <worktree> diff --stat 8fc87f8..4e652f9` on the 9 named paths only:
 `.claude/skills/harness-team/SKILL.md`, `.claude/skills/harness/bin/inflight_registry.py`,
-`.claude/skills/harness/bin/run-unit-tests.sh`, `.claude/skills/harness/bin/test-inflight-registry.py`,
+`.claude/skills/harness/bin/run-unit-tests.py`, `.claude/skills/harness/bin/test-inflight-registry.py`,
 `.claude/skills/harness/bin/test-lead-stop-and-wake.py`, `.harness/harness/docs/DECISIONS-INDEX.md`,
 `.harness/harness/docs/DECISIONS.md`, `.harness/harness/docs/SPEC.md`,
 `.harness/notes/backlog-orchestrator-inoculation-2026-08-27.md`. No `[harness:human]` commits in
@@ -103,7 +103,7 @@ No scope creep found in the 9 files. No omission found against REQ-01..07.
 - `_resolve_root` (inflight_registry.py, CLI): `harness_boundary.resolve_root` wrapped in
   `try/except ValueError → root = None`; a `None` root then fails closed in `main()` ("no checkout
   root…", exit 1). No path where a resolution failure silently proceeds.
-- `run-unit-tests.sh`: root resolution now refuses (exit 2) rather than falling back to `pwd`, closing
+- `run-unit-tests.py`: root resolution now refuses (exit 2) rather than falling back to `pwd`, closing
   the fallback-to-wrong-tree fail-open named in the file's own header comment. The
   discovery-count-binding concern raised in the dispatch is already answered structurally: the "drift
   detector" (loop comparing `test-*.py` glob against the two explicit arrays) and the "KIND CROSS-CHECK"
@@ -139,7 +139,7 @@ DIGEST:
   reviewed: "8fc87f8..4e652f9"
   human_commits_in_scope: []
   open_questions:
-    - { id: Q1, question: "Dispatch named the artifact path notes/review-code-reviewer-panel-2026-08-27.md; check-domain.sh only permits notes/review-harness-code-reviewer-*.md for this agent. Written to the permitted path instead — should team-config.yaml's routing for this role be updated to match the panel-naming convention, or should dispatches for this role use the agent-name pattern going forward?", blocking: false }
+    - { id: Q1, question: "Dispatch named the artifact path notes/review-code-reviewer-panel-2026-08-27.md; check-domain.py only permits notes/review-harness-code-reviewer-*.md for this agent. Written to the permitted path instead — should team-config.yaml's routing for this role be updated to match the panel-naming convention, or should dispatches for this role use the agent-name pattern going forward?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-37-lead-stop-and-wake/notes/review-harness-code-reviewer-2026-08-27.md

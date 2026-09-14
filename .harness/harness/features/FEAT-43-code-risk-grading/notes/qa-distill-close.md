@@ -38,13 +38,13 @@ three `CONFLICT` lines and exited 7, applying nothing (confirmed: file unchanged
 resolve). Read `compute_union` in `expertise-merge.py` — it is additive-only, no replace/drop op
 exists in the tool, so exit 7 for an intentional distillation-time displacement is the documented
 "resolve it yourself" case, not a concurrent-writer accident. Resolved with a single-line `edit`
-per target (P-15, G-15, O-05), never a whole-file write. `check-expertise.sh` confirms the result
+per target (P-15, G-15, O-05), never a whole-file write. `check-expertise.py` confirms the result
 is well-formed.
 
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: Distilled 3 relay candidates into harness-qa craft Expertise (2 replace, 1 merge), all sections at cap resolved via targeted single-line edits after the merge tool's documented exit-7 refusal; check-expertise.sh exits 0.
+  headline: Distilled 3 relay candidates into harness-qa craft Expertise (2 replace, 1 merge), all sections at cap resolved via targeted single-line edits after the merge tool's documented exit-7 refusal; check-expertise.py exits 0.
   expertise_update:
     - { op: replace, target: P-15, section: Patterns, entry: "WHEN attributing a failing test as a merge regression DO run it at each parent commit in an isolated clone or worktree, not infer from the test file's byte-identity across refs — a test whose subject is the surrounding tree regresses with no change to its own source.", why: "relay C1 — a real attribution error in my own mergedelta review; generalizable methodology, displaces a narrower single-scenario matrix-floor note" }
     - { op: merge, target: G-15, section: Gotchas, entry: "WHEN a verify clause asserts a property against a live, mutable corpus rather than a pinned fixture DO treat a green re-run as no proof of a fix — the threshold can flip from unrelated state changes alone — and instead verify the changed assertion's logic directly.", why: "relay C2 — sharpens G-15's existing flake-flagging framing with the actionable corrective; same rule, not a distinct one" }

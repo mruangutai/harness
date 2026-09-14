@@ -3,7 +3,7 @@
 ## Examined
 - `tests/integration/test-check-domain.py:5182-5292` (`_AggTee`, `_aggregation_verdict`,
   `run_bug151_selfcheck_cases`, `main()`) and its imports at `:1-28`.
-- Shared-home candidates: `.claude/skills/harness/bin/run-unit-tests.sh` (full text),
+- Shared-home candidates: `.claude/skills/harness/bin/run-unit-tests.py` (full text),
   `.claude/skills/harness/bin/run_pool.py` (`run_one`, `_emit_result`, `_run_scripts`,
   `_print_summary`, `main`).
 - Sibling column-0 `ok`/`FAIL` print convention: grepped across all of `tests/integration/`
@@ -53,7 +53,7 @@
   longer notices, because it never had a definition to enforce against.
 - **Alternative**: none applicable inside this one file — the convention's scope is
   suite-wide, and a single-file docstring can't be the authoritative statement for 90
-  other files. A shared doc/lint (e.g. a note in `run-unit-tests.sh` or a `suite_layout.py`
+  other files. A shared doc/lint (e.g. a note in `run-unit-tests.py` or a `suite_layout.py`
   check) is the right level, but is new machinery outside this file.
 - **Recommendation**: `briefing-row`.
 

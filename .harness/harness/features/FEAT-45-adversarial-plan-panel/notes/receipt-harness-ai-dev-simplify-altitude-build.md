@@ -16,7 +16,7 @@ sits at the right depth. `fold-in` (backlog row; not appliable this run).
 ## What I examined
 
 - `panel_findings.py` (61 lines, whole file) and its three intended consumers: the INV-32
-  branch in `check-state.sh` (lines 174-238), `.omp/agents/harness-validator-lead.md` +
+  branch in `check-state.py` (lines 174-238), `.omp/agents/harness-validator-lead.md` +
   `.claude/agents/harness-validator-lead.md` ("Hosting plan-panel" sections, identical text),
   and the pm/plan doctrine (`harness-spec-driven/SKILL.md` "The panel result",
   `templates/plan.yaml` `panel:`/`approval:` comments, `plan-panel.yaml`'s own closing
@@ -41,7 +41,7 @@ needs the VALUE calls the CLI or imports the module rather than re-deriving it:
 `finding_id` and asserts behaviour (reword-insensitive, content-sensitive, reader-sensitive,
 length 11), never a literal hash value.
 
-The one consumer that does NOT call the module — `check-state.sh`'s INV-32 — legitimately
+The one consumer that does NOT call the module — `check-state.py`'s INV-32 — legitimately
 doesn't need to: it only ever treats `id` as an opaque string (set membership for
 overrule-matching, presence for "malformed"), never re-derives or format-validates it with a
 regex. That is the "validates shape, doesn't need the module" case the dispatch called out as
@@ -81,7 +81,7 @@ This is not a new finding: the plan-phase altitude pass already found it (this d
 recommended trimming `plan-panel.yaml`'s comment to the `review.yaml`-style generic recap,
 dropping the FEAT-45-specific mechanics. That recommendation was correctly returned
 FLAG-ONLY (`plan-panel.yaml` and `harness-validator-lead.md` both resolve to NOBODY per
-`check-domain.sh` — confirmed again for this pass) and was never applied, which is why the
+`check-domain.py` — confirmed again for this pass) and was never applied, which is why the
 duplication is still present in the code I'm reading now. Re-raising it here because it is
 an accepted residual with no compensating control named anywhere in the diff (no test, no
 comment pointing at the authority) — it should be a visible backlog row, not silently
@@ -94,7 +94,7 @@ pointer to `.omp/agents/harness-validator-lead.md` as the mechanics' one authori
 drop the FEAT-45-specific detail (unrated-as-high, PF- id ownership) from the team-file
 comment entirely.
 
-One place this pattern is legitimate and I am NOT flagging it: `check-state.sh:202-204`'s
+One place this pattern is legitimate and I am NOT flagging it: `check-state.py:202-204`'s
 `STALE OVERRIDE` message and `templates/plan.yaml:34-37`'s comment both restate the same
 "reworded finding → new content-hash id → old ruling stops applying" rationale that
 `panel_findings.py`'s own module docstring states. Unlike the case above, neither of these

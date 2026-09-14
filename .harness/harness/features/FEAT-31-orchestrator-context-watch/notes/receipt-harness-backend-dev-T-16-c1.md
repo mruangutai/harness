@@ -128,7 +128,7 @@ Exit status: `0` (55 of 55 satisfies `-ge 22` — see the honesty section below
 for why this line is vacuous for this task's work, exactly as flagged in
 the dispatch).
 
-### Line 3: `bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+### Line 3: `python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Full output is long (1041 lines, many unrelated unit scripts); the lines
 that matter:
@@ -142,7 +142,7 @@ No line anywhere in the output contains `MISCONFIGURED` (checked with
 about — the operator's concurrent T-17 creating
 `test-context-watch-hook.py` before it is registered — did NOT manifest in
 this run; I am reporting that absence rather than assuming it, since
-`run-unit-tests.sh` reflects on-disk state at the moment this line ran.
+`run-unit-tests.py` reflects on-disk state at the moment this line ran.
 
 Exit status of the whole invocation: `0`
 
@@ -199,7 +199,7 @@ Lines 1 and 3 are NOT vacuous. Line 1 is the bare suite: any regression in
 either the pre-existing cases or the 26 new ones would print `FAIL` and
 change the trailing count, which the grep/test in line 2 (and my own
 reading of line 1's own tail) would catch. Line 3 reds if
-`run-unit-tests.sh` reports anything other than `PASS test-context-watch.py`
+`run-unit-tests.py` reports anything other than `PASS test-context-watch.py`
 for this script, or if it prints `MISCONFIGURED`. I did not find either of
 these two capable of vacuous passage in a way that would mask a real
 regression in my work.
@@ -221,7 +221,7 @@ instruction; this branch did not fire in this run (counts differ).
 No other file was written. `.harness/harness.json`, `STATE.md`, and
 `plan.yaml` show as modified in `git status` but were not touched by this
 task — they are the operator's concurrent tasks in this same worktree.
-`.claude/settings.json` and `.claude/skills/harness/bin/run-unit-tests.sh`
+`.claude/settings.json` and `.claude/skills/harness/bin/run-unit-tests.py`
 show NO diff (`git diff --stat` on both is empty) — confirmed untouched,
 per the dispatch's hardest boundary.
 
@@ -236,5 +236,5 @@ per the dispatch's hardest boundary.
   was modified, only the `main()` argument parser gained three new flags
   and one new early-return branch ahead of the existing logic.
 - I did not touch `.claude/settings.json` or
-  `.claude/skills/harness/bin/run-unit-tests.sh`. `context-watch-hook.py`
+  `.claude/skills/harness/bin/run-unit-tests.py`. `context-watch-hook.py`
   and `test-context-watch-hook.py` are not mine and were not created by me.

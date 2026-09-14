@@ -82,7 +82,7 @@ findings:
 - id: PF-4ea5b56692f0684ae2a69722b19bc74f
   severity: med
   reader: should-not-exist
-  summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.sh is set -uo pipefail, so a
+  summary: T-14's text scan cannot prove SC-02's claim - inject-expertise.py is set -uo pipefail, so a
     set -u abort exits 1 with no literal exit statement anywhere
   disposition: open
 - id: PF-da16f6e14bec89a768041c4146c87873
@@ -172,7 +172,7 @@ findings:
   severity: med
   reader: goalcheck
   summary: 'R1: issue 356''s headline symptom is never re-measured - no task and no SC fires harness_boundary.classify
-    or check-domain.sh on the anchored absolute receipt path with the agent standing in a product base.
+    or check-domain.py on the anchored absolute receipt path with the agent standing in a product base.
     One test-check-domain.py case asserting allow would carry it.'
   disposition: open
 - id: PF-900f8e07139778d6f6fd67a50ca2e2b9

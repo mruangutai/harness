@@ -20,7 +20,7 @@ DIGEST:
     - boundary: "S2 advisory text (tool_result POST handler, edit route, harness-hooks.ts:852-854)"
       stride: I
       mitigated: true
-    - boundary: "extractEditPaths(input.input) -> preDomain's file_path -> check-domain.sh (harness-hooks.ts:219-234, spawnSync stdin-JSON, not argv)"
+    - boundary: "extractEditPaths(input.input) -> preDomain's file_path -> check-domain.py (harness-hooks.ts:219-234, spawnSync stdin-JSON, not argv)"
       stride: T
       mitigated: true
     - boundary: "write_feature_json's caller-supplied tail_regex parameter (feature_json_write.py:84)"
@@ -64,7 +64,7 @@ artifact: .harness/harness/features/BUG-1030-stale-anchor-write-hazard/notes/rev
 Short cycle on `83282dea..fbaa7fec` only (review_sha `fbaa7fec`, base `6d6d1cea`; HEAD `e024599`
 adds only the pin record — confirmed by `git log`, **executed**). Read-only per DEC-174; every
 mutation below ran against pure-Python scratch copies under `/tmp`, built and torn down with
-`open()`/`shutil.rmtree` (no shell `cp`/`mv`/`tee`, which `bash-write-guard.sh` correctly blocked
+`open()`/`shutil.rmtree` (no shell `cp`/`mv`/`tee`, which `bash-write-guard.py` correctly blocked
 on a first attempt — reported to myself in this note, not evaded). `git status --porcelain` in
 the worktree is clean of my writes now; a first `write` attempt landed in the OUTER
 (`main`-branch) checkout's untracked `.harness/harness/features/BUG-1030-stale-anchor-write-
@@ -75,7 +75,7 @@ corrected by rewriting with the worktree's absolute path and removing the stray 
 `test-validate-feature-json.py` (+27), `.omp/extensions/harness-hooks.ts` (+9/-2, advisory text
 only), the four c0 review notes, `review_sha`, and two handoff docs. **No production
 `.py` source changed** — `feature_json_write.py`, `harness_merge.py`, `gh-sync.py`,
-`factory_decompose.py`, `check-domain.sh` are byte-identical to `83282dea` (**executed**,
+`factory_decompose.py`, `check-domain.py` are byte-identical to `83282dea` (**executed**,
 `git diff --stat` over each path is empty).
 
 ## 1. S2 advisory reword — clean, no leakage [executed]
@@ -87,16 +87,16 @@ post-write..."`), replacing the old two-literal concatenation — no template li
 context. **Answer: no, it does not interpolate any path, content, patch text, or stack
 trace.**
 
-## 2. Attacker-influenced `file_path` reaching `check-domain.sh` — no argv/shell surface [executed]
+## 2. Attacker-influenced `file_path` reaching `check-domain.py` — no argv/shell surface [executed]
 
 Traced the full path: `extractEditPaths` (harness-hooks.ts:70-84, pure regex match on
 `input.input`, agent-authored patch text) → `preDomain`'s edit branch
 (`:219-234`, unchanged this cycle) builds `{ tool_input: { file_path: filePath } }` → passed as
-the `payload` argument to `runner(cwd, "check-domain.sh", [], payload)` → `runPolicy`
+the `payload` argument to `runner(cwd, "check-domain.py", [], payload)` → `runPolicy`
 (`:198-222`, also unchanged) calls `spawnSync(gatePath(script), args, { ..., input:
 JSON.stringify(payload) })` — **`args` is the literal empty array `[]`; `filePath` is never
 placed in `args`**, only inside the JSON string handed to the child's **stdin**.
-`check-domain.sh:75` reads it back with `payload=$(cat)`, exports it as `HOOK_PAYLOAD`, and the
+`check-domain.py:75` reads it back with `payload=$(cat)`, exports it as `HOOK_PAYLOAD`, and the
 embedded Python heredoc (`:160`, `:334-336`) does `json.loads(...)` then
 `ti.get("file_path")` — a data read, never a shell substitution or `exec`/`eval` of the value.
 **Answer: no, an attacker-influenced `file_path` cannot reach argv or a shell string; it only
@@ -110,7 +110,7 @@ already matches the list-form-argv discipline cycle 0's own security review conf
 Built a scratch copy (`.claude/skills/harness/bin/omp-hooks.test.ts` +
 `.omp/extensions/harness-hooks.ts` + the two `.jsonl` fixtures, correct relative depth) under
 `/tmp`, ran `bun test` unmutated first: **50 pass / 1 fail** (the 1 fail is an environmental
-artifact of the scratch copy missing `check-domain.sh` on disk, present identically with or
+artifact of the scratch copy missing `check-domain.py` on disk, present identically with or
 without the mutation — not a false claim in the source). Then mutated only `preDomain`'s edit
 branch to `return [];` unconditionally (the exact pre-fix silent-zero shape) and reran:
 **48 pass / 3 fail** — exactly 2 new failures, both the two new PRE-route tests

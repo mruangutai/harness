@@ -7,7 +7,7 @@ finding left open.** One write, `plan-merge.py set-panel`, exit 0. Nothing outsi
 
 ## What was missing, and is not any more
 
-1. **The `goalcheck` reader row.** INV-32 (`check-state.sh:534`) expects
+1. **The `goalcheck` reader row.** INV-32 (`check-state.py:534`) expects
    `{should-not-exist, scope, goalcheck}`; only the first two were recorded, so the gap would have
    fired at signature. Recorded `status: ran` (it ran, and its six findings are on disk), persona
    `harness-pm`, with the PRODUCT-segment ordering, its artifact path, and the no-run-directory fact
@@ -31,7 +31,7 @@ finding left open.** One write, `plan-merge.py set-panel`, exit 0. Nothing outsi
 | PF-1f9cd11c94c62290357384a3935fd1a0 | goalcheck | info | resolved, T-02 — F-06, trace names the case |
 
 **Every open finding is info/low/med.** The two high findings are resolved, so they gate nothing
-(`check-state.sh:527-533`) — and they stay recorded at **high**, because downgrading a resolved
+(`check-state.py:527-533`) — and they stay recorded at **high**, because downgrading a resolved
 finding falsifies what was found.
 
 **Two findings are open on purpose, not by omission.** PF-59b9… is a real unfixed defect the plan

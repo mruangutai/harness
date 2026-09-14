@@ -91,7 +91,7 @@ digests.
 
 - Q1 (non-blocking, harness defect): `runs/2026-09-07-01-product/digest.md` fails the lead digest
   contract and CANNOT be repaired — corrections may only append, and validate-digest.py parses the
-  FIRST `DIGEST:` block. check-state.sh reports a VIOLATION until that directory is removed.
+  FIRST `DIGEST:` block. check-state.py reports a VIOLATION until that directory is removed.
 - Q2 (non-blocking, harness defect): INV-32 grades the panel record only on an APPROVED plan, so a
   malformed readers index is undetectable until the moment of signature.
 - Q3: RESOLVED at signature — the operator KEPT both low-severity plan-panel findings.

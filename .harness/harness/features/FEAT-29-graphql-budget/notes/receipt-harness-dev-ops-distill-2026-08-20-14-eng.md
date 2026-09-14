@@ -57,7 +57,7 @@ half (G-14: assert before you write) stands regardless of whether this gap ever 
 
 ## Verification
 
-`check-expertise.sh` on both files:
+`check-expertise.py` on both files:
 ```
 OK   .harness/expertise/harness-dev-ops.md
 ADVISORY .harness/expertise/harness-dev-ops.md:22: G-03 names '.claude/' — repository-layer candidate; rule on it (issue 340)

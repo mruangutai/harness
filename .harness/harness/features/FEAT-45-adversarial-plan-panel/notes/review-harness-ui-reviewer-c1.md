@@ -19,7 +19,7 @@ established. Not re-derived, re-measured.
 
 ## Primary hunt — severity-vocabulary census against the new allow-list `{info, low, med}`
 
-**The gate, read at the pin** (`check-state.sh:214-215`):
+**The gate, read at the pin** (`check-state.py:214-215`):
 ```
 if severity not in {"info", "low", "med"} and disposition != "resolved" and fid not in overruled:
     bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains open ...")
@@ -34,7 +34,7 @@ variants are not a separate risk.
 4. `.harness/harness/docs/DECISIONS.md` DEC-206 (:7429-7443) — `unrated` sentinel, "self-emitted severity", "an omitted severity fails closed"
 5. `.claude/skills/harness/SKILL.md:111` — "High, critical, or unrated findings return `awaiting_user`" (deny-language, consistent subset of the same 6 tokens, no new one)
 6. `.claude/skills/harness-spec-driven/SKILL.md:108-112` — pm transcription contract; no full listing, no contradicting token
-7. `.claude/skills/harness/bin/check-state.sh:214-215` — the gate itself
+7. `.claude/skills/harness/bin/check-state.py:214-215` — the gate itself
 8. `.claude/agents/harness-validator-lead.md:129` and `.omp/agents/harness-validator-lead.md:135` — `severity_max: info|low|med|high|critical` — **a different field** (digest rollup, not per-finding severity); no `n/a`, no `unrated` here since the panel host is never scoped out
 9. `.claude/skills/harness/bin/test-check-state.py` (fixtures) — tokens used: `"high"`, `"unrated"`, absent key, `None` (JSON-null). `panel_findings.py` carries no severity handling at all (identity/hashing only, confirmed by reading the file — 55 lines, `severity` never appears)
 10. Every `plan.yaml` repo-wide (`git ls-tree -r c745d3a | grep 'features/.*/plan\.yaml$'`, grepped for a `severity:` field) — **zero real panel-finding severity values exist anywhere in the repo today.** FEAT-45 is the first feature to carry this mechanism; there is no historical drift to measure, only the doctrine's stated vocabulary.
@@ -73,13 +73,13 @@ corpus file) — recorded as a decline that measured, not a finding.
 
 ## M7 (low, ui, carried forward) — reconfirmed open, unchanged
 
-`check-state.sh:215`'s withhold message still states only the fact: `"finding {fid} is {severity or
+`check-state.py:215`'s withhold message still states only the fact: `"finding {fid} is {severity or
 'unrated'} and remains open without an operator overrule."` — no mention that resolving means a task
 sets `disposition: resolved`, no mention of the stale-override rename mechanic in the doctrine prose
-itself (that explanation lives only in the *stale-override* branch's own message, `check-state.sh
+itself (that explanation lives only in the *stale-override* branch's own message, `check-state.py
 :203-205`, unchanged since c0). `git grep -n "disposition" .claude/commands/harness-plan.md
 .claude/skills/harness/SKILL.md` still returns zero hits in either file. Confirmed via `git diff
-d0ebbe6 c745d3a -- .claude/skills/harness/bin/check-state.sh`: the fix touched exactly two lines (the
+d0ebbe6 c745d3a -- .claude/skills/harness/bin/check-state.py`: the fix touched exactly two lines (the
 allow-list flip and the message's severity-display fallback); the message's remedy content is
 untouched. Non-gating (`low`), as at c0.
 
@@ -91,9 +91,9 @@ still no remedy stated — but a small legibility gain on the fact half of the m
 
 ## M4/M5/M6 — status confirmed via diff, not re-derived
 
-`git diff --name-only d0ebbe6 c745d3a` (c0 pin → c1 pin) touches only `check-state.sh`,
+`git diff --name-only d0ebbe6 c745d3a` (c0 pin → c1 pin) touches only `check-state.py`,
 `test-check-state.py`, and bookkeeping/notes files. **`panel_findings.py` (M4's site) and
-`test-plan-panel.py` (M5's site) are absent from that list — untouched, unchanged.** `check-state.sh`
+`test-plan-panel.py` (M5's site) are absent from that list — untouched, unchanged.** `check-state.py`
 was touched, but only at the two lines shown above; the `expected_readers = {"should-not-exist",
 "scope", "goalcheck"}` line (M6's site, now at `:216`) is outside the diff hunk, unchanged. All three
 remain open exactly as cycle 0 left them; none is this role's to re-litigate.

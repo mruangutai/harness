@@ -65,7 +65,7 @@ merges into the note's row set and a correct measurement reports spurious MISSIN
 1. `plan.yaml` loads; `status: plan`; `approval: {status: pending}` with no `rulings`; `panel:` block
    byte-identical to `HEAD` (6061 bytes).
 2. `check-plan-routes.py` → `0 violation(s) across 1 plan(s)`, exit 0; all five tasks carry 11 keys.
-3. `check-state.sh` → for this feature only `VIOLATION … BRIEF.md is NOT approved` plus the pending
+3. `check-state.py` → for this feature only `VIOLATION … BRIEF.md is NOT approved` plus the pending
    approval note; **no INV-35 line**.
 4. 9 REQs, all traced; 19 SCs, each with exactly one `verify:` and every `automated` one naming a
    `test_kinds` kind (`unit`/`integration`); table rows match the SC set exactly; ACs 01–11 covered.
@@ -103,5 +103,5 @@ one-out count assertion, or the additive paragraph — and no other task, decisi
 `approval:` or BRIEF text was touched. Re-checked: file loads, `status: plan`,
 `approval: {status: pending}` with no `rulings`, `panel:` still byte-identical to HEAD at 6061
 bytes; `check-plan-routes.py` → `0 violation(s) across 1 plan(s)`, exit 0, all five tasks at 11
-keys; `check-state.sh` → no `INV-35` line anywhere and this feature's only VIOLATION is the
+keys; `check-state.py` → no `INV-35` line anywhere and this feature's only VIOLATION is the
 expected unsigned BRIEF.

@@ -12,9 +12,9 @@ milestone #44 is closed. `plan.yaml` station `done`, all five task stations `don
 `review_sha` `bb3a31ed`, `cycles_used` 11 of 11.
 
 Feature-close distillation ran once per squad, three leads concurrently, each scoped to its own
-members' files so no squad's `check-expertise.sh` sweep could read another's mid-write file. Ten
+members' files so no squad's `check-expertise.py` sweep could read another's mid-write file. Ten
 member Expertise files were updated plus the orchestrator's own repository tier (Gotchas 14→15,
-Outcomes 0→1). Both corpus-wide `check-expertise.sh` sweeps exit 0; the single ADVISORY line on
+Outcomes 0→1). Both corpus-wide `check-expertise.py` sweeps exit 0; the single ADVISORY line on
 `harness-security-reviewer` predates this feature and is a flag for a human, not a violation.
 
 Rejection was first-class: members rejected candidates on merit as already covered by live entries,

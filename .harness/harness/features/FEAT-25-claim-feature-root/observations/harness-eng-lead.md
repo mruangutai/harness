@@ -44,7 +44,7 @@
   and `:1744-1806` rather than waiting for the member to report: the suite builds its sandbox from
   every STUB key's `legacy` form, so a new key participates automatically. Split the routing in
   advance — an (x.3) failure means the doer's own stub matches both patterns (`[both]` form-set,
-  fixable in `layout_fixtures.py`); an x.1/x.2/x.4/x.5 failure is the DEC-174 `check-state.sh`
+  fixable in `layout_fixtures.py`); an x.1/x.2/x.4/x.5 failure is the DEC-174 `check-state.py`
   blocker. Without that split a self-inflicted stub error reads as a false BLOCKED.
 
 - 2026-08-19: `.harness/notes/dec-11-frontmatter-enumeration-2026-08-19.md` was named to me as held

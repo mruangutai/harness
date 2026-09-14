@@ -1,51 +1,73 @@
-#!/usr/bin/env bash
-# Deterministic state-invariant checker. Run at every /harness entry.
-#
-# WHY THIS EXISTS: the orchestrator is an LLM performing ~15 bookkeeping duties
-# per cycle with nothing validating any of them. A skipped duty is silent, and a
-# bad STATE.md write poisons every subsequent spawn. The precedent:
-# prose guarding a safety claim is unenforceable — so the same answer applies:
-# judgment routes, a script audits the bookkeeping.
-#
-# Exit 0 = all invariants hold. Exit 1 = violations found (printed).
-# This gates the ORCHESTRATOR, not a tool call, so exit 1 is correct here;
-# the exit-2 rule applies only to PreToolUse hooks.
-set -uo pipefail
-# _selfdir is resolved BEFORE the cd. BASH_SOURCE may be relative to the ORIGINAL
-# working directory, so computing it after `cd "$root"` resolves it against the wrong
-# base and the heredoc dies with ModuleNotFoundError. That is a crash, and this script
-# exits 1 on crash exactly as it does on a real violation — so /harness entry would
-# report "violations found" for a missing module. Found while fixing F-02; the original
-# ordering passed every check I ran only because I always ran from the repo root.
-_selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+#!/usr/bin/env python3
+"""check-state.py — deterministic state-invariant checker. Run at every /harness entry.
 
-# THE ROOT COMES FROM harness_boundary, reached through this script's own directory, never
-# from the environment and never from the caller's cwd (FEAT-42 T-12). What stood here was a
-# two-name chain with a pwd fallback, and this is the canonical pre-commit gate for the whole
-# repository: a state checker that silently examines the wrong checkout reports a clean tree
-# while the real one is broken, and nothing says so.
-#
-# REFUSING IS THE POINT — exit 2, never a fallback. The file's contract is 0 clean, 1 findings,
-# so an unresolvable root needs a code that cannot be read as either. Do not name the retired
-# variables here even in prose: the invariant that keeps them gone counts the name in every
-# tracked source file.
-# THE RESOLVER'S OWN STDERR IS KEPT AND REPLAYED, never swallowed. Two different things
-# arrive on it and both matter: the discard notice for an override that carries no MARKER,
-# and the ImportError when harness_boundary.py is not beside this script at all. Sending
-# either to /dev/null turns a refusal into "no harness root could be resolved", which names
-# the symptom and not the cause.
-_rooterr="$(mktemp)"
-root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfdir" 2>"$_rooterr")"
-if [ -z "$root" ] || [ ! -d "$root" ]; then
-  echo "check-state.sh: no harness root could be resolved from $_selfdir — refusing to run." >&2
-  cat "$_rooterr" >&2
-  rm -f "$_rooterr"
-  exit 2
-fi
-cat "$_rooterr" >&2
-rm -f "$_rooterr"
-cd "$root" || exit 2
-PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$root" "$_selfdir" <<'PY'
+Exit 0 = clean. Exit 1 = violations (listed). Exit 2 = cannot run (no harness root).
+
+WAS A .sh (issue #1674). 2,969 lines of Python lived in a `<<'PY'` heredoc where
+ast, linters, coverage and #1594's reader audit could not see any of it -- this is
+the largest such file in the repository and the reason that audit had to declare a
+quarter of its own target surface out of scope.
+
+THE BOOTSTRAP IS PRESERVED EXACTLY, and it is the part worth reading before editing:
+
+  * `sys.argv[1]` is the resolved harness root and `sys.argv[2]` is this script's
+    directory. The body reads both at roughly ten sites. Rather than rewrite those
+    references -- ten chances to introduce a defect in a gate -- argv is rebuilt
+    below to the exact shape the heredoc received. Stray user arguments are still
+    ignored, because the wrapper never forwarded "$@" either.
+  * The old wrapper ran `python3 -c '... sys.path.pop(0) ...'`, popping the empty
+    string that `-c` puts on sys.path so the CWD could not shadow a sibling module.
+    Running as a real script needs no such trick: sys.path[0] is already this file's
+    directory, and the CWD is never added. The pop is gone because its cause is.
+  * The `cd "$root"` and the exported PYTHONPATH are NOT cosmetic. Subprocesses
+    spawned by the body inherit both, and several resolve paths relative to the
+    working directory. They are reproduced verbatim.
+"""
+import contextlib as _contextlib
+import io as _io
+import os as _os
+import subprocess as _subprocess
+import sys as _sys
+
+_selfdir = _os.path.dirname(_os.path.abspath(__file__))
+_sys.path.insert(0, _selfdir)
+
+
+_ROOT_PROBE = (
+    "import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; "
+    "print(harness_boundary.resolve_root(sys.argv[1]))"
+)
+
+
+def _resolve_root():
+    captured = _io.StringIO()
+    try:
+        with _contextlib.redirect_stderr(captured):
+            import harness_boundary as _hb
+            return _hb.resolve_root(_selfdir), captured.getvalue()
+    except Exception:
+        probe = _subprocess.run(
+            [_sys.executable, "-I", "-c", _ROOT_PROBE, _selfdir],
+            capture_output=True, text=True)
+        return "", probe.stderr
+
+
+_root, _root_stderr = _resolve_root()
+if not _root or not _os.path.isdir(_root):
+    print(f"check-state.py: no harness root could be resolved from {_selfdir}"
+          " — refusing to run.", file=_sys.stderr)
+    _sys.stderr.write(_root_stderr)
+    raise SystemExit(2)
+_sys.stderr.write(_root_stderr)
+
+_os.environ["PYTHONPATH"] = (
+    _selfdir + (_os.pathsep + _os.environ["PYTHONPATH"] if _os.environ.get("PYTHONPATH") else "")
+)
+_os.chdir(_root)
+
+# The exact argv the heredoc was handed: argv[1] = root, argv[2] = this bin dir.
+_sys.argv = [_sys.argv[0], _root, _selfdir]
+
 import sys, os, re, glob, json, subprocess
 
 sys.path.insert(0, sys.argv[2])
@@ -944,12 +966,12 @@ else:
     # hook_present uses, because a project may legitimately split one requirement in two.
     post = hooks.get("PostToolUse") or []
     def _runs_cd(entry):
-        # TOKEN, not substring — `check-domain.sh.disabled` contains the name and runs
+        # TOKEN, not substring — `check-domain.py.disabled` contains the name and runs
         # nothing. A decoy entry naming a disabled copy widened this check's coverage set
         # and let the real registration be narrowed to `Write` with all four gates green.
         for _h in (entry.get("hooks") or []):
             for _tok in str(_h.get("command", "")).split():
-                if os.path.basename(_tok) == "check-domain.sh":
+                if os.path.basename(_tok) == "check-domain.py":
                     return True
         return False
 
@@ -1021,7 +1043,7 @@ if os.path.isfile(_omp_cfg):
 #
 # Pre-existing and reproduced on main at the same fixture before being fixed here; found
 # while landing DEC-182 because a plan.yaml fixture legitimately carries no harness.json.
-# Fixed in passing rather than left in a file this change already opens: check-state.sh is
+# Fixed in passing rather than left in a file this change already opens: check-state.py is
 # a DEC-174 carve-out, so the next person to touch it pays the full carve-out cost, and
 # leaving a known landmine for them is worse than a two-line diff here. The absent-config
 # case is already reported by the INV-1 check above; this only stops the crash.
@@ -1052,7 +1074,7 @@ import subprocess
 # plan/build/validate/ship — is recorded here because leaving it standing was the actual
 # hazard: with phase gone from the corpus the read returns the empty string on every
 # feature, the membership test fails on every feature, and the loop `continue`s on every
-# feature. INV-17 would stop examining anything at all while check-state.sh went on exiting
+# feature. INV-17 would stop examining anything at all while check-state.py went on exiting
 # exactly as it does today. A gate that examines nothing reports nothing wrong.
 #
 # THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATION NAMES.
@@ -1107,7 +1129,7 @@ SEAM_NOTES = {
 # on whichever feature happens to sit at that station.
 _missing_seam_rows = [_s for _s in STATUS_ORDER if _s not in SEAM_NOTES]
 if _missing_seam_rows:
-    bad.append("check-state.sh: SEAM_NOTES has no row for station(s) %s — the seam table and "
+    bad.append("check-state.py: SEAM_NOTES has no row for station(s) %s — the seam table and "
                "the station vocabulary have drifted, and INV-17 would raise KeyError on the "
                "first feature at one of them." % ", ".join(_missing_seam_rows))
 HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
@@ -1235,7 +1257,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # question. Because the glob finds every note including the seam stems, no file can be
     # reported twice — there is no second place that could report it.
     #
-    # WHY A GLOB. check-domain.sh's RE_HANDOFF already accepts handoff-[a-z0-9-]+.md, so a
+    # WHY A GLOB. check-domain.py's RE_HANDOFF already accepts handoff-[a-z0-9-]+.md, so a
     # mid-phase note is already legal to write and was, until now, never opened. Measured at
     # cf51dce in the FEAT-31 worktree: 74 notes match, 71 on seam stems and THREE on
     # non-seam stems newly in reach — FEAT-09/handoff-ship.md (56 lines),
@@ -1351,7 +1373,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
                    f"record the station and silently discard the task history.")
 
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
-# swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is
+# swept from DISK. check-domain.py enforces the same numbers on a WRITE payload, which is
 # where they can still be prevented; this reads the file as it actually is, so no tool and
 # no author identity can route around it — including a session where the PostToolUse half
 # of that hook was never registered, which is the case INV-9 above reports.
@@ -1363,7 +1385,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
 # that has to land first. The write-time gate is the one with teeth; this one's job is
 # that the drift reaches a human.
 #
-# VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
+# VOCABULARY stays in sync with check-domain.py; the MECHANISM deliberately does not
 # (D-02) — that one measures a payload, this one measures a file.
 for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
     _ftext = read(fy) or ""
@@ -1391,7 +1413,7 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
     # fire, and a check that cannot fire is a check a reader trusts.
 
 # CLAUDE.md (issue #139), swept from disk like its peers. The write-time gate in
-# check-domain.sh is the one with teeth; this is the backstop for a session where the
+# check-domain.py is the one with teeth; this is the backstop for a session where the
 # PostToolUse half was never registered, exactly as for the four state files below.
 _cm = os.path.join(root, "CLAUDE.md")
 _cml = (read(_cm) or "").splitlines()
@@ -1499,7 +1521,7 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
     # or not it has a dedicated handler.
     # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
     # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
-    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.sh.
+    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.py.
     unknown = sorted({str(k) for k in sdoc if str(k) not in CHECKPOINT_KEYS})
     if unknown:
         bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
@@ -1939,7 +1961,7 @@ if _wt_seg:
 # under "already built — do not strike, do not rebuild".
 #
 # THE ENUMERATION IS NOT REPEATED HERE. `git worktree list` is run by worktree_terminal, the
-# single shared predicate this gate and post-merge-sweep.sh both cross (D-02), so the gate and
+# single shared predicate this gate and post-merge-sweep.py both cross (D-02), so the gate and
 # the hook can never disagree about what is eligible. A second copy of the walk in this file
 # is exactly what D-02 exists to prevent.
 #
@@ -2071,7 +2093,7 @@ if _wt29 is not None:
             # They differ for a SHORT-NAMED worktree: feature_id is the LANDED directory on the
             # default branch, which is the full name, while `remove` matches the checkout. Printing
             # feature_id there gives a command that exits "not a linked worktree" for a directory
-            # plainly sitting in front of the reader. post-merge-sweep.sh:150 already derives it
+            # plainly sitting in front of the reader. post-merge-sweep.py:150 already derives it
             # this way; this is the same derivation, not a second rule.
             bad.append(_head29 + " Remove it with `python3 "
                                  ".agents/skills/harness/bin/feature-worktree.py remove "
@@ -2426,7 +2448,7 @@ if _inv26_board:
 #
 # THE OFFLINE POSTURE IS INV-26's, NOT A NEW ONE. The IMPORT failing is a violation, because
 # the module ships with this repository. Everything else — `gh` absent, unauthenticated, the
-# network unreachable, a milestone that 404s — records NOTHING. `check-state.sh` runs before
+# network unreachable, a milestone that 404s — records NOTHING. `check-state.py` runs before
 # every commit, and an offline environment must never become a red gate.
 #
 # ONE `gh` CALL, NOT ONE PER FEATURE. 24 features carry a recorded milestone at 9165162; a
@@ -2742,12 +2764,12 @@ def _brief_scs(txt):
 
 # INV-41's notion of INVOKING a gate script, as distinct from naming one. A code span that
 # is a command line -- the script with a path or interpreter before it, or arguments after
-# it -- is an invocation. A bare `check-state.sh` span is a mention (FEAT-59's own SC-10
-# reads "`check-state.sh` refuses a new BRIEF") UNLESS the sentence runs it ("the reviewer
-# runs `check-state.sh`") or grades its result ("`check-state.sh` exits 0"), which is the
-# FEAT-54 SC-04 shape this invariant exists to refuse. A `check-state.sh:1868` citation is
+# it -- is an invocation. A bare `check-state.py` span is a mention (FEAT-59's own SC-10
+# reads "`check-state.py` refuses a new BRIEF") UNLESS the sentence runs it ("the reviewer
+# runs `check-state.py`") or grades its result ("`check-state.py` exits 0"), which is the
+# FEAT-54 SC-04 shape this invariant exists to refuse. A `check-state.py:1868` citation is
 # neither: the name is followed by `:`, not by an argument boundary.
-_INV41_SCRIPTS = ("check-state.sh", "check-domain.sh")
+_INV41_SCRIPTS = ("check-state.py", "check-domain.py")
 _INV41_RUNS_BEFORE = re.compile(r"\b(?:run|runs|running|ran|execute|executes|invoke|invokes|call|calls)\s*$")
 _INV41_GRADES_AFTER = re.compile(r"(?:exits?\b|exit\s+code|passes|is\s+green|reports|prints|returns)")
 
@@ -2790,7 +2812,7 @@ def _inv41_scoped(text, feat):
 # checks here are INV-1/2 (the `## Approval` block), which apply to both shapes unchanged.
 # Said here so nobody goes looking for a REQ check that was never written.
 # INV-41 (SC-16) runs in the same loop because it reads the same SC list: an SC whose text
-# invokes check-state.sh or check-domain.sh with no feature-scoped argument grades the whole
+# invokes check-state.py or check-domain.py with no feature-scoped argument grades the whole
 # repository -- other features' debris reddens it (FEAT-54 SC-04, three of six review cycles).
 for feat, brief in sorted(briefs.items()):
     if feat in _abandoned or not _brief_is_by_perspective(brief):
@@ -3015,4 +3037,3 @@ for m in warn: print(f"  note       {m}")
 if not bad and not warn:
     print("  all state invariants hold.")
 sys.exit(1 if bad else 0)
-PY

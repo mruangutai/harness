@@ -205,7 +205,7 @@ def _legal_stations(resolved):
 
     IMPORTED, NEVER RESPELLED (FEAT-41 T-03). factory_config owns MANDATED_STATIONS and
     TERMINAL_MARKER; declaring either here would be a second vocabulary, and since this module
-    is imported by nothing, check-plan-routes.py and check-domain.sh would each respell it as a
+    is imported by nothing, check-plan-routes.py and check-domain.py would each respell it as a
     bare literal and D-05's claim that the marker is declared once in code would be false the
     day it landed.
 
@@ -820,7 +820,7 @@ def _verify_reset(text, verb):
     """Refuse rather than write a task change under a signature the splice could not void.
 
     `_verify_signature`'s rule from the other direction, same exit 5: the RELOADED value is
-    what check-state.sh and the operator read, so it — not the splice's own report — decides
+    what check-state.py and the operator read, so it — not the splice's own report — decides
     whether APPROVAL-RESET is true. Proven before this check (review F3): a flow-style approval
     printed the receipt, exited 0 and reloaded as approved."""
     got = _approval_status(_reload_or_refuse(text.encode("utf-8")))
@@ -1323,7 +1323,7 @@ def cmd_set_feature_station(args):
 #
 # FINDING IDENTITY IS panel_findings.finding_id, imported. The validator lead never assigns a
 # PF- id (it holds no Bash); pm used to run the helper by hand and transcribe. record-panel
-# computes it from the digest's reader and summary, once, in the one place check-state.sh's
+# computes it from the digest's reader and summary, once, in the one place check-state.py's
 # INV-32 and approval.rulings agree on.
 FINDING_KINDS = ("substance", "form", "proportionality")
 PROPORTIONALITY_SCOPES = ("task", "mission")
@@ -1895,7 +1895,7 @@ def cmd_sign_approval(args):
     # and never set by this process. AN ABSENT VARIABLE IS THE MAIN SESSION, the identical
     # exemption plan-sign-gate.py's own hook already uses for the identical reason ("AN ABSENT
     # OR EMPTY agent_type IS THE MAIN SESSION"), and the one convention this whole codebase
-    # applies without exception (dispatch-guard.sh, bash-write-guard.sh, check-domain.sh,
+    # applies without exception (dispatch-guard.py, bash-write-guard.py, check-domain.py,
     # validate-digest.py). Treating absence as a refusal here would refuse the main session's
     # own legitimate signature — a stricter check that is wrong, not merely untested.
     #
@@ -2849,7 +2849,7 @@ def cmd_delete_items(args):
 # member spawn". Readers were asked to find by reading what a script can find by running. This
 # verb is that script. It WRITES NOTHING; exit 0 means every `files:` anchor resolves under
 # --root, every team task's `execution_agent` is granted its files by the SAME resolver the
-# build hook consults (check-plan-routes.resolve_agents -> check-domain.sh --resolve), and
+# build hook consults (check-plan-routes.resolve_agents -> check-domain.py --resolve), and
 # every `traces:` id is present in the sibling BRIEF.md. Exit 1 lists each failure on its own
 # FAIL line; exit 2 means the check could not run at all (no manifest under --root).
 
@@ -2857,7 +2857,7 @@ def cmd_delete_items(args):
 def _check_plan_routes_module():
     """check-plan-routes.py as a module: the hyphen keeps it out of `import`, and its resolver
     is the ONE route resolver (DEC-179) — re-implementing it here would be a second copy of the
-    rule check-domain.sh applies at build time, which is the drift SC-07 exists to close."""
+    rule check-domain.py applies at build time, which is the drift SC-07 exists to close."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "check_plan_routes", os.path.join(BIN_DIR, "check-plan-routes.py"))
@@ -2873,7 +2873,7 @@ def _trace_in_brief(trace, brief_text):
 class _Routes:
     """The route resolver bound to one --root, answering once per path.
 
-    check-domain.sh is a subprocess per question, so the answer for a path is cached across
+    check-domain.py is a subprocess per question, so the answer for a path is cached across
     the tasks that name it. Which checkout answers is check-plan-routes' choice, not ours: it
     runs the check-domain that lives under the resolution manifest's own root, so a worktree
     is answered by its owner (the DEVIATION rule), and no environment is set here — the

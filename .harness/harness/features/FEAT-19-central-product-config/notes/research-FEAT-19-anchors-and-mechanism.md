@@ -23,7 +23,7 @@ survives in either file."* At `63b83c7` that is **false as written and true in s
 
 | File | What the anchor is |
 |---|---|
-| `check-domain.sh` | one worktree-relative match, plus `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD` — feature-path shape regexes |
+| `check-domain.py` | one worktree-relative match, plus `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF`, `RE_STATE_MD` — feature-path shape regexes |
 | `harness_boundary.py` | `WORKTREE_REL_RE`, plus two inside `glob_to_re`'s translator |
 
 None of them is workspace resolution — that moved to `resolve_fleet` and `select_base` as the
@@ -41,7 +41,7 @@ overturned the ruling; these now size the work rather than argue against it.
 |---|---|---|
 | 473 references across 152 files | **3411 occurrences across 462 files** | `git grep -o '\.harness' 63b83c7 -- . \| wc -l`; `git grep -l` for files |
 | 40 live + 22 template domain globs `upgrade-config.py` refuses to rewrite | **77 `.harness/`-prefixed globs in `.harness/team-config.yaml`**; the refusal still stands and is deliberate — `upgrade-config.py`'s docstring: YAML is REPORTED ONLY because `safe_dump` strips the comments that justify every glob | `python3` walk of `safe_load`; `upgrade-config.py` module docstring |
-| four anchored `[^/]+` regexes at `check-domain.sh` | workspace resolution moved to `harness_boundary.resolve_fleet` / `select_base`; four *feature-path* regexes remain (see above) | `grep -n '\[\^/\]'` |
+| four anchored `[^/]+` regexes at `check-domain.py` | workspace resolution moved to `harness_boundary.resolve_fleet` / `select_base`; four *feature-path* regexes remain (see above) | `grep -n '\[\^/\]'` |
 | CI assertions in `tests.yml` | present but **not** at `:134-141`; that range is the `check-plan-routes.py` step. The live assertions are the plan-count guard and the zero-directories guard | `grep -n 'harness' .github/workflows/tests.yml` |
 | no layout-migration machinery | **still true.** `upgrade-config.py` merges `harness.json` key-wise and knows nothing about a second config location | read `upgrade-config.py` |
 
@@ -49,7 +49,7 @@ overturned the ruling; these now size the work rather than argue against it.
 not two features of growth. FEAT-10's figure is not reproducible from its recorded methodology,
 so the row above is the new baseline with its command, not an attempt to reproduce theirs.
 
-## Routing — every candidate path delegated to `check-domain.sh --resolve` at `63b83c7`
+## Routing — every candidate path delegated to `check-domain.py --resolve` at `63b83c7`
 
 | Path | `--resolve` | rc |
 |---|---|---|
@@ -60,14 +60,14 @@ so the row above is the new baseline with its command, not an attempt to reprodu
 | `.harness/harness.json` | harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/product_config.py` | harness-backend-dev harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/test-product-config.py` | harness-backend-dev harness-dev-ops | 0 |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | harness-backend-dev harness-dev-ops | 0 |
+| `.claude/skills/harness/bin/run-unit-tests.py` | harness-backend-dev harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/upgrade-config.py` | harness-backend-dev harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/gh_board.py` | harness-backend-dev harness-dev-ops | 0 |
 | `docs/harness/DECISIONS.md`, `DECISIONS-INDEX.md` | harness-documentor | 0 |
 
 **Four of this feature's surfaces are granted to NOBODY**, so they are declared main-session
 steps under DEC-179 — an ungranted surface is legitimate, not a task that silently fails.
-`check-state.sh` resolves to backend-dev/dev-ops but is one of DEC-174's four and is
+`check-state.py` resolves to backend-dev/dev-ops but is one of DEC-174's four and is
 main-session-direct for a different reason. The two reasons are kept distinct in the plan.
 
 ## The per-product path — settled by evidence, not preference
@@ -121,9 +121,9 @@ Each gets its own success criterion.
 - `.harness/harness.json` has 16 top-level keys; `github` is `{sync, repo, board{owner, number,
   station_field}}` and its own `_note` already says the placement is temporary and that #206 moves it.
 - `harness-init/SKILL.md` is 286 lines with nine numbered steps.
-- Nothing in `check-state.sh` enumerates `.harness/`'s children, so adding `products/` trips no
+- Nothing in `check-state.py` enumerates `.harness/`'s children, so adding `products/` trips no
   inventory invariant. `dirty_tree_whitelist` is `.harness/**`, which already covers it.
-- `run-unit-tests.sh` keeps explicit `UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays with a drift
+- `run-unit-tests.py` keeps explicit `UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays with a drift
   detector over their union: a new test file unregistered there fails the whole run.
 
 ## Open — for the eng-lead architecture review that runs after this plan

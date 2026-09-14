@@ -27,7 +27,7 @@ the subprocess call count:
 - `_ghs.gh(...)`, unset — 0 lines, exactly 1 call.
 
 `test-factory-gh.py`'s module-scope `HARNESS_GH_COST_LOG=0` at line 25 is untouched.
-`run-unit-tests.sh` already lists `test-gh-cost-log.py` under `UNIT_SCRIPTS` (prior cycle) —
+`run-unit-tests.py` already lists `test-gh-cost-log.py` under `UNIT_SCRIPTS` (prior cycle) —
 no change needed there this cycle.
 
 ## RED/GREEN
@@ -92,12 +92,12 @@ Before any work this cycle: 39504 bytes, 168 lines, sha256
 and both final suite runs: identical byte count, line count, and hash. Every new case redirects
 `factory_config.harness_root` to a `tempfile.TemporaryDirectory()` and asserts the redirect took
 effect before trusting it (`redirect()`, matching every existing case in this file). Did not run
-`check-state.sh`. Made no live `gh` call.
+`check-state.py`. Made no live `gh` call.
 
 ## task_verify
 
 `task: T-03`. Verify string cross-checked against `plan.yaml` T-03 (lines 265–266) — matches the
-dispatch's quoted string exactly: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`.
+dispatch's quoted string exactly: `.claude/skills/harness/bin/run-unit-tests.py --kind unit`.
 
 Expected PASS count computed BEFORE running: prior baseline 164 (per `qa-matrix-gate.md`'s
 measured run) + 8 new checks = **172**.
@@ -125,11 +125,11 @@ reviewer knows this was checked twice, not assumed once.
 
 Only `test-gh-cost-log.py` (one of T-03's six declared files) was changed —
 `git status --porcelain .claude/skills/harness/bin/` shows exactly that one file, modified.
-`gh_cost_log.py`, `factory_gh.py`, `gh-sync.py`, `run-unit-tests.sh`, `test-factory-gh.py` are
+`gh_cost_log.py`, `factory_gh.py`, `gh-sync.py`, `run-unit-tests.py`, `test-factory-gh.py` are
 byte-identical to their pre-cycle state (all three mutated files' hashes verified above; the
 other two were never touched). `test-gh-sync.py` was read (the importlib mechanism at
 890–891) but not edited, per instruction. No LEAVE LIST file touched, no live `gh` call, no
-`check-state.sh` run.
+`check-state.py` run.
 
 ## Not done / explicitly out of scope
 

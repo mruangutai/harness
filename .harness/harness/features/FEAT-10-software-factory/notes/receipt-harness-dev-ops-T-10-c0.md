@@ -13,7 +13,7 @@ Before (verbatim, `_reason` value quoted for the record — superseded, marked s
   "detect": "tests/integration/**",
   <!-- ok-stale -->
   "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
-  "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind integration",
+  "cmd": ".claude/skills/harness/bin/run-unit-tests.py --kind integration",
   <!-- ok-stale -->
   "_reason": "unset — dev-ops has not run detection yet"
 }
@@ -24,7 +24,7 @@ After:
 "integration": {
   "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py",
   "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
-  "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind integration"
+  "cmd": ".claude/skills/harness/bin/run-unit-tests.py --kind integration"
 }
 ```
 
@@ -50,11 +50,11 @@ integration detects 1 file(s)
 is present in the `detect` string, per the task's intent, but does not yet exist on disk — T-12's
 job, not this task's.)
 
-## Second measurement — `run-unit-tests.sh --kind integration`
+## Second measurement — `run-unit-tests.py --kind integration`
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 **Exit status: 0**
@@ -140,7 +140,7 @@ PASS test-omp-reviewer-guard.py
 ```
 
 Note (mechanism, stated after the measured output per instructions): the executed list is
-driven by `run-unit-tests.sh`'s own `INTEGRATION_SCRIPTS` list (unmodified by this task —
+driven by `run-unit-tests.py`'s own `INTEGRATION_SCRIPTS` list (unmodified by this task —
 T-11 owns that file), not by the widened `detect` glob in `harness.json`. `detect` feeds the
 qa gate's kind-resolution check (SC-06), separate from what this runner executes. This T-10
 edit did not add or remove any test from the executed set; it only made the kind resolvable.
@@ -149,12 +149,12 @@ yet exist (T-12).
 
 ## Bounds observed
 
-- Did not touch `.claude/skills/harness/bin/check-state.sh` or
+- Did not touch `.claude/skills/harness/bin/check-state.py` or
   `.claude/skills/harness/bin/test-check-state.py` (DEC-174 carve-out; T-10 only names the
   file in the `detect` glob).
-- Did not touch `.claude/skills/harness/bin/run-unit-tests.sh` (T-11's file).
+- Did not touch `.claude/skills/harness/bin/run-unit-tests.py` (T-11's file).
 - Only file written: `.harness/harness.json`, plus this receipt.
-- Pre-existing `check-state.sh` VIOLATIONs (FEAT-04/FEAT-07) were not touched or repaired.
+- Pre-existing `check-state.py` VIOLATIONs (FEAT-04/FEAT-07) were not touched or repaired.
 
 ## Verdict
 

@@ -37,8 +37,8 @@ max_cost_usd: 120
 pending:
 - 'BRIEF AMENDMENTS Q1-Q3, rule at signature. REQ-01 names cost-report.py which reads
   no YAML at all. SC-03''s parenthetical undercounts the survivors: 7 of 17 calls
-  in check-state.sh legitimately stay, six parsing MARKDOWN. SC-02''s exit-0 baseline
-  is stale — check-state.sh exits 1 today on this feature''s own unsigned BRIEF'
+  in check-state.py legitimately stay, six parsing MARKDOWN. SC-02''s exit-0 baseline
+  is stale — check-state.py exits 1 today on this feature''s own unsigned BRIEF'
 - Q7 ROUTING WALL, third recurrence. dev-ops is granted neither .gitignore nor templates/**
   nor harness-init/SKILL.md, so PLAN T-10 and T-11 are MAIN-SESSION steps inside the
   build spine, and T-12 blocks on T-10. FEAT-03 Q13 and FEAT-04 T-09 are the same
@@ -62,7 +62,7 @@ resolved:
   on no identity
 - E1 no universal install string. Two lines gated on the PEP 668 error TEXT, not exit
   status
-- E4/D-06 check-state.sh gets NO bootstrap escape, deliberately, consequence written
+- E4/D-06 check-state.py gets NO bootstrap escape, deliberately, consequence written
   into the plan
 - DEC-172 carries a Correction at DECISIONS.md:4566-4580 reversing both halves of
   its same-ship clause. 13 files not 16, templates may ship FIRST. Affects FEAT-06

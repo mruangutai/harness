@@ -43,7 +43,7 @@ not a ratifiable residue as currently worded.
   verbatim, matching the case-insensitive substring, so `!` fails today and will pass once T-07
   rewrites the sentence. `T-08`'s fixed pair is confirmed red today too: the string
   `worktree_for_feature(owner_root, flow)` does not exist yet (the live call at
-  `dispatch-guard.sh:174` uses parameter name `declared`, not `flow`), and
+  `dispatch-guard.py:174` uses parameter name `declared`, not `flow`), and
   `os.path.basename(wt) == flow` at `:122` is present today, so `! grep -q ...` currently fails.
 - **L-04: CLOSED.** I independently counted every refusal-producing case in T-03 and T-05's
   enumerated case lists (not pm's count): T-03 has exactly 9 (cases 1, 2, 3, 7's second half, 9,

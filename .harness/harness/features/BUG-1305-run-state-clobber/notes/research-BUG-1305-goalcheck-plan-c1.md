@@ -11,12 +11,12 @@ ruled that a plan leaving that route open "is not deliverable as written" (`note
 **Fit for the adversarial panel; NOT fit for signature until F-01 and F-02 are resolved.**
 
 Verified independently: every code anchor and prose gloss the plan asserts is correct
-(check-domain.sh `RE_STATE_YAML` :1439 / `_no_parser` :1475 / #1124 branch :1567 / `RE_RUN_DIGEST`
-comment :1237-1238 / Edit reconstruction :1905; check-state.sh loop :1426 with INV-16 :1443 before
+(check-domain.py `RE_STATE_YAML` :1439 / `_no_parser` :1475 / #1124 branch :1567 / `RE_RUN_DIGEST`
+comment :1237-1238 / Edit reconstruction :1905; check-state.py loop :1426 with INV-16 :1443 before
 INV-15 :1476; validate-digest.py `check_artifact_file` :1486 and its single-candidate `cands` :1535;
 harness_yaml `_resolve_identity` :511; inflight_registry :255-258; SKILL.md:272-274;
 harness-team/SKILL.md:45; DECISIONS.md:3243). Lane rows spot-checked with
-`check-domain.sh --resolve`: both SKILL.md files answer `NOBODY`, the four bin/test surfaces answer
+`check-domain.py --resolve`: both SKILL.md files answer `NOBODY`, the four bin/test surfaces answer
 as the plan records. Highest live invariant is INV-35, so T-03's "next unused number" instruction is
 sound. `feature.json max_total_cycles: 8` matches the stated cap.
 
@@ -27,7 +27,7 @@ sound. `feature.json max_total_cycles: 8` matches the stated cap.
 `host`. In the diagnosis's route 8 — the "leading Mode-A candidate"
 (`notes/receipt-harness-dev-ops-diag-c1.md:52`) — two runs of the *same feature* choose the same
 `<purpose>-<squad>` slug, so all four fields are equal and `conflict()` returns None. T-02 therefore
-denies nothing that check-domain.sh:1567 does not already deny, except the narrow new case of a run
+denies nothing that check-domain.py:1567 does not already deny, except the narrow new case of a run
 directory whose prior `state.yaml` was **deleted**. The signal that would discriminate (`session_id`)
 is recorded by D-01 and explicitly barred from being a denial input; T-04 measures it and is forbidden
 to write a follow-through task (plan.yaml:359-360), so even a `discriminates: yes` answer lands
@@ -61,7 +61,7 @@ grading SC-07 — one opening plan.yaml, one opening the note — reach opposite
 
 **F-05 · med · SC-01's route set is under-specified against REQ-01's.** REQ-01 says "any write route
 the harness governs"; SC-01 says "both governed tool write routes". Bash is a governed, refusing route
-(`bash-write-guard.sh:745-767`) and NotebookEdit's coverage rests on an unverified host-matcher
+(`bash-write-guard.py:745-767`) and NotebookEdit's coverage rests on an unverified host-matcher
 assumption the diagnosis raised as its own open Q1 (`receipt-...-diag-c1.md:47`, :209-212). A reader
 taking "both" as {Write, Edit} passes SC-01; a reader taking REQ-01's wording fails it.
 
@@ -91,7 +91,7 @@ grader holding the criterion alone is judging tone.
 2. **Mode separation — holds.** Mode A: REQ-01/02/03 → T-01,T-02,T-03,T-04 → SC-01,02,03. Mode B:
    REQ-04/05/06 → T-05,T-06 → SC-04,05,06. No task and no criterion conflates them; either mode can be
    declared done while the other is open. One coupling, benign: T-06 `depends_on: [T-02]`, an
-   edit-collision ordering on check-domain.sh, not a conflation. SC-07 spans both by design.
+   edit-collision ordering on check-domain.py, not a conflation. SC-07 spans both by design.
 3. **Determinism — SC-02, SC-04, SC-05 are clean; SC-01 (F-05), SC-03 (F-08) and SC-07 (F-04) admit
    opposite verdicts.** No criterion anchors on a line number or a population count — checked
    explicitly against the two disagreeing counts in the evidence base

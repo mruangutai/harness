@@ -4,14 +4,14 @@
 
 PASS. `factory_workspace.py` and `test-factory-workspace.py` land test-first (RED confirmed on
 `ModuleNotFoundError` before any implementation code existed); `test-factory-workspace.py` is
-registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS` array by appending, not rewriting.
+registered in `run-unit-tests.py`'s `UNIT_SCRIPTS` array by appending, not rewriting.
 
 ## Files
 
 - `.claude/skills/harness/bin/factory_workspace.py` — new
 - `.claude/skills/harness/bin/test-factory-workspace.py` — new, 30 checks, plain python3, no
   pytest, no subprocess, no real repository touched
-- `.claude/skills/harness/bin/run-unit-tests.sh` — one-line append to `UNIT_SCRIPTS` (line 58),
+- `.claude/skills/harness/bin/run-unit-tests.py` — one-line append to `UNIT_SCRIPTS` (line 58),
   `INTEGRATION_SCRIPTS` untouched
 
 ## A gap found and closed after the first green run (advisor review)
@@ -78,13 +78,13 @@ just recorded and returns `""`.
 ## verify — carried verbatim from plan.yaml (cross-checked, matches)
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
 ```
 
 Invocation form used to run it (identical, run from repo root):
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
 echo "verify_result=$?"
 ```
 
@@ -129,7 +129,7 @@ PASS test-factory-workspace.py
 
 `--kind unit` overall: exit 0, `PASS` for all 7 unit files (the pre-existing 6 plus
 `test-factory-workspace.py`). `--kind integration` re-checked separately, unpiped, not through
-`tail` (not part of this task's verify, but `run-unit-tests.sh` is shared): exit 0, `PASS` for
+`tail` (not part of this task's verify, but `run-unit-tests.py` is shared): exit 0, `PASS` for
 all 13 files, unaffected — confirms the `UNIT_SCRIPTS`-only append did not disturb
 `INTEGRATION_SCRIPTS`. `check-docs.sh` also re-run unpiped after every edit: "no stale statements
 found.", exit 0.

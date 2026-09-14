@@ -19,14 +19,14 @@ No other task touches an Expertise file (confirmed: `plan.yaml` contains no refe
 tree, `git grep -n UNIT_SCRIPTS -e INTEGRATION_SCRIPTS -e check-kinds` (excluding the same three record
 prefixes T-06's residue mode excludes, and excluding the sources c1 already found and this plan already
 fixes) also matches:
-- `.harness/harness/expertise/harness-dev-ops.md:13` — G-10, "WHEN `run-unit-tests.sh`'s
+- `.harness/harness/expertise/harness-dev-ops.md:13` — G-10, "WHEN `run-unit-tests.py`'s
   `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays are touched by a merge from `main` DO run `--check-kinds`
   immediately after..."
 - `.harness/harness/expertise/harness-pm.md:3` — P-01, "WHEN a criterion declares `evidence: unit` DO
-  confirm the file holding its assertions is in run-unit-tests.sh's `UNIT_SCRIPTS` and not
+  confirm the file holding its assertions is in run-unit-tests.py's `UNIT_SCRIPTS` and not
   `INTEGRATION_SCRIPTS`..."
 - `.harness/harness/expertise/harness-qa.md:8` — G-05, "WHEN a feature branch's later merge-from-main
-  reintroduces run-unit-tests.sh's `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` entries... DO expect the
+  reintroduces run-unit-tests.py's `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` entries... DO expect the
   KIND-DRIFT union check to exit 2..."
 
 All three are git-tracked (confirmed via `git ls-files`), all three sit under
@@ -82,10 +82,10 @@ structurally unreachable is itself never driven to the failing case.
 ## New finding 4 — med — T-07's verify can pass on a content-gutted stub
 
 T-07's verify checks: no forbidden token; `"tests/integration" in` each file's full text; `"- G-02:"` /
-`"- G-04:"` present. `check-expertise.sh` (read in full) enforces section names, per-entry word cap,
+`"- G-04:"` present. `check-expertise.py` (read in full) enforces section names, per-entry word cap,
 id format and file budget — it does **not** enforce the WHEN/DO shape T-07's intent mandates ("keep the
 WHEN/DO shape"). A replacement entry gutted to e.g. `- G-02: see tests/integration` passes every
-assertion in T-07's verify and passes `check-expertise.sh`, while losing the insight the task exists to
+assertion in T-07's verify and passes `check-expertise.py`, while losing the insight the task exists to
 preserve. Given T-07 is `main-session-direct` (no independent reviewer gate before merge), this is a
 real, if narrow, gap.
 
@@ -99,7 +99,7 @@ real, if narrow, gap.
 | T-04 | `git ls-files --error-unmatch`; zero `probe-*` in bin; `compile()`. | Yes, trivially — move plus valid syntax. Provenance sentence "It was first registered in" confirmed present verbatim at `probe-omp-session-accessor.py:14`. Sound (weak by design, per REQ-08's disclosed gap, not a new issue). |
 | T-05 | `--check-layout`/`--bogus`; pool-arg parse; per-kind tally-set equality; `suite_layout` unit tests; sole-implementation sweep; `migration --floor 58`; `verdict-lines --strict`. | Yes on every point hand-traced, including against FEAT-48's actual `run_pool.py` invocation line (`--mutation-check "$BIN_DIR"`, confirmed byte-identical in FEAT-48 `plan.yaml`) and D-11's watched-directory argument. 104 tracked `.py` files confirmed today (claim: 104, floor 90 — non-vacuous, not raised to match). Sound, no change from c1. |
 | T-06 | Index-sync; `test-gen-decisions-index.py`; `test-check-decision-anchors.py`; `grep DEC-207`; `suite-census.py residue`. | **No.** New finding 1 makes `residue` fail on first run (three unaddressed Expertise files). New finding 2 makes the `grep DEC-207` line pass **vacuously today**, independent of finding 1, and risks silently certifying a skipped self-edit even after finding 1 is fixed. |
-| T-07 | `check-expertise.sh`; token absence; `"tests/integration" in` text; id lines present. | Yes for a faithful edit. Also yes (wrongly) for a content-gutted stub — new finding 4. Not affected by finding 1 (T-07's own two files are correctly repaired; the gap is the other three files T-07 never touches). |
+| T-07 | `check-expertise.py`; token absence; `"tests/integration" in` text; id lines present. | Yes for a faithful edit. Also yes (wrongly) for a content-gutted stub — new finding 4. Not affected by finding 1 (T-07's own two files are correctly repaired; the gap is the other three files T-07 never touches). |
 
 ## Cycle-1 findings — disposition
 
@@ -140,7 +140,7 @@ real, if narrow, gap.
 - `goalcheck_path` does not exist — expected pre-signature, recorded rather than treated as satisfied.
 - Neither this plan nor FEAT-48 has executed. All soundness claims above are against plan **text** (this
   plan's and FEAT-48's) plus the **current tree** state (git-verified directly, not hand-traced), never
-  against a running suite, `suite_layout.py`, `suite-census.py`, or the rewritten `run-unit-tests.sh`,
+  against a running suite, `suite_layout.py`, `suite-census.py`, or the rewritten `run-unit-tests.py`,
   none of which exist yet.
 - I did not independently re-derive every `dec:` field's eventual correctness beyond DEC-207 itself
   (e.g. D-05/D-06/D-07/D-17's citations to DEC-187/DEC-197/DEC-174/DEC-145, which are pre-existing
@@ -167,4 +167,4 @@ verify assert on the new entry's distinguishing content rather than on the bare 
 critical | T-07 repairs only 2 of (at least) 5 live Expertise files that assert `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`/`check-kinds` as current craft (`harness-dev-ops.md:13`, `harness-pm.md:3`, `harness-qa.md:8` are untouched by any task and uncovered by any of T-05's three declared exemptions) | T-06's residue sweep (its own verify, `suite-census.py residue`) fails on the first run, for the same class of defect cycle 1's F-01 named, via instances neither cycle 1 nor this plan's authors found; REQ-07 is not met by this plan as scoped.
 high | `DEC-207`, the number every `dec:` field in this plan's decisions cites for its own new entry, is already taken in `DECISIONS.md` by an unrelated FEAT-45 entry; T-06's verify line `grep -q "^## DEC-207 "` is vacuously true against the unmodified tree today | T-06's explicit self-healing instruction (re-derive, then edit the plan's own verify text) is the only thing standing between this and a silently-skipped "did you write the new decision entry" check; forgetting that one sub-step leaves the check passing on nothing.
 med | `suite-census.py`, the sole instrument behind SC-01/02/07/09/10, has no dedicated test driving its own subcommands (especially `residue`'s four self-refusal rules) against a synthetic bad-input fixture | The mechanism built specifically to make REQ-07's remedy fail-closed is never itself proven able to fail; a bug in the refusal logic would ship silently and only be caught, if at all, by a human at inspection time.
-med | T-07's verify (token-absence + substring-presence + id-line-presence) does not enforce the WHEN/DO shape its own intent mandates, and `check-expertise.sh` doesn't either | A content-gutted stub entry (e.g. "see tests/integration") passes every automated check while losing the insight the task exists to preserve.
+med | T-07's verify (token-absence + substring-presence + id-line-presence) does not enforce the WHEN/DO shape its own intent mandates, and `check-expertise.py` doesn't either | A content-gutted stub entry (e.g. "see tests/integration") passes every automated check while losing the insight the task exists to preserve.

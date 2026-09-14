@@ -25,7 +25,7 @@ SC-11, SC-12 and SC-16 on the first live `/harness-plan`.
 
 ## Dead ends
 
-- Do NOT expect `check-state.sh` green. 42 VIOLATIONs this run, 32 of them INV-32 on
+- Do NOT expect `check-state.py` green. 42 VIOLATIONs this run, 32 of them INV-32 on
   plans approved before the panel existed (FEAT-45's own included) — `/tmp` run this
   session, `plan.yaml` T-07 intent "fires ONLY on a plan whose approval.status is
   approved" — verified-at 4624d1e. T-07's own `verify:` asserts `$? -ne 2`, so a

@@ -24,16 +24,16 @@ logging (`main_session.writes` grants `.harness/logs/**`), not scope creep.
 **SC-02** (verify: inspection) — checked against `notes/layout-boundary-2026-08-14.md`. Pre-move
 block reads `features: CLEAN — evidence legacy`, `docs: CLEAN — evidence legacy`,
 `0 mixed, 0 cannot-verify` (lines 7-11); post-move block reads `features: CLEAN — evidence
-migrated`, `docs: CLEAN — evidence legacy`, `0 mixed, 0 cannot-verify` (lines 64-68); check-state.sh
+migrated`, `docs: CLEAN — evidence legacy`, `0 mixed, 0 cannot-verify` (lines 64-68); check-state.py
 exit 0 both sides, INV-27 lines: 0 post-move (line 75). Matches SC-02's pinned wording exactly.
 
 **SC-07** (verify: inspection) — repo-wide `git grep -l '\.harness/features/' -- .claude/agents
 .claude/commands .claude/skills`, not diff-scoped. All 19 T-07 prose files correctly carry the
 literal `.harness/harness/features/...` (D-01's prose form). Survivors outside `templates/` and
-`harness-init/SKILL.md`: `check-plan-routes.py`, `check-state.sh`, `gh-sync.py` (each one stale
+`harness-init/SKILL.md`: `check-plan-routes.py`, `check-state.py`, `gh-sync.py` (each one stale
 historical/explanatory comment, true as written, not agent-facing write instructions — see low
 findings below); `layout_fixtures.py`/`layout_migration.py` (the detector's own legacy-pattern
-table, meant to carry the literal); `merge-gitignore.sh`, `test-factory-claim.py`,
+table, meant to carry the literal); `merge-gitignore.py`, `test-factory-claim.py`,
 `test-factory-integration.py` (named unit-9 survivors, already ruled sanctioned); `test-validate-
 feature-json.py` (the named `FEAT-99-x` display-path survivor, already ruled);
 `test-harness-yaml-corpus.py` (untouched by this diff — checked, its one occurrence at line 232 is
@@ -45,7 +45,7 @@ finding); `test-validate-digest.py` (confirmed inert, above). SC-07 holds as wri
 **SC-12** — cannot be evaluated pre-commit; it asserts a landed-commit shape (two commits total)
 that does not exist yet. Not a finding against this diff; T-09's own job.
 
-### Finding 1 — MUST FIX, high, blocks T-09 — check-state.sh finding labels never got the segment (T-05)
+### Finding 1 — MUST FIX, high, blocks T-09 — check-state.py finding labels never got the segment (T-05)
 
 T-05's intent is explicit and gives a worked example: *"where a finding names a path, build the
 label FROM THE DISCOVERED PATH — the segment-qualified relative path the glob returned... Every
@@ -53,7 +53,7 @@ finding today identifies a feature by a bare directory name, and most build a pa
 'FEAT-21/BRIEF.md'."* That literal example maps one-to-one onto the code.
 
 Every `bad.append`/`warn.append` in the diff still uses the bare `{feat}` prefix, unchanged —
-`check-state.sh:109,111,114,124,127,134,140,142,150,154,162,183,187,569,865` and more, e.g.
+`check-state.py:109,111,114,124,127,134,140,142,150,154,162,183,187,569,865` and more, e.g.
 `bad.append(f"{feat}/BRIEF.md has no '## Approval' section...")`. The path is not merely
 unqualified — it is **structurally unavailable**: `briefs`, `plans`, `plan_docs`, `states` are all
 built as `{os.path.basename(os.path.dirname(p)): read(p) for p in glob.glob(...)}` (lines ~53-66),
@@ -106,14 +106,14 @@ routed to whichever unit lands the second segment (unit 5 or 8, alongside D-08's
 collision), with a `case_22` sibling that chmods the segment directory rather than the feature
 directory.
 
-### Finding 3 — med, open question, not decided — branch-create-gate.sh may have the wrong side of D-01 (T-07)
+### Finding 3 — med, open question, not decided — branch-create-gate.py may have the wrong side of D-01 (T-07)
 
-`branch-create-gate.sh:77-78` now reads `ls -d "$root/.harness/harness/features/${flow}"*` — a
-**literal** segment. This dispatch explicitly names `branch-create-gate.sh` on the wildcard side of
-the D-01 sweep ("Check ... `branch-create-gate.sh` ... against the 19 agent/skill/team/command
+`branch-create-gate.py:77-78` now reads `ls -d "$root/.harness/harness/features/${flow}"*` — a
+**literal** segment. This dispatch explicitly names `branch-create-gate.py` on the wildcard side of
+the D-01 sweep ("Check ... `branch-create-gate.py` ... against the 19 agent/skill/team/command
 files ... and `test-factory-cli.py`" — i.e., expected to pattern with the glob/regex group, not the
 prose group), and structurally `ls -d "..."*` is a discovery glob, the same shape as
-`check-domain.sh`'s `SWEEP_GLOBS` and `check-plan-routes.py`'s `discover_plans()` glob — both of
+`check-domain.py`'s `SWEEP_GLOBS` and `check-plan-routes.py`'s `discover_plans()` glob — both of
 which correctly took the wildcard form under T-03/T-04. D-01's own text is unqualified on globs:
 "Grants, globs and regexes take a WILDCARD... never a hardcoded harness segment."
 
@@ -127,8 +127,8 @@ segment's flow, not just this repo's own — and DEC-133 coins FEAT ids per-BRIE
 uniqueness rule, so a same-numbered flow in another segment is not exotic.
 
 I am not deciding this — it needs the same explicit D-01 boundary ruling the plan gave
-`team-config.yaml`/`check-domain.sh`/`check-plan-routes.py` (a ROW AUDIT), which
-`branch-create-gate.sh` never got. Cannot fire today (one segment); when it does fire it is LOUD
+`team-config.yaml`/`check-domain.py`/`check-plan-routes.py` (a ROW AUDIT), which
+`branch-create-gate.py` never got. Cannot fire today (one segment); when it does fire it is LOUD
 (deny, naming the searched path) either way, so it is not an urgent block — flagging as an
 `open_question` rather than a must_fix.
 
@@ -151,9 +151,9 @@ probed — both stage both files together — so the choice of manifest remains 
 inspection, not by a test that would fail if it silently changed again. Recommend: fold this into a
 plan.yaml decision (or amend D-07) rather than leaving it only in the boundary note.
 
-### Finding 5 — low, informational — stale comment in check-state.sh (T-05)
+### Finding 5 — low, informational — stale comment in check-state.py (T-05)
 
-`check-state.sh:51` — `# BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/features/<FEAT>/{BRIEF,PLAN}.md.`
+`check-state.py:51` — `# BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/features/<FEAT>/{BRIEF,PLAN}.md.`
 — states the OLD path as present-tense fact. Post-move this is false (real path is
 `.harness/harness/features/<FEAT>/...`). Not one of the sanctioned "historical, true-as-written"
 comments (those describe a past measurement; this describes present-tense current shape). Cosmetic
@@ -163,7 +163,7 @@ comments (those describe a past measurement; this describes present-tense curren
 
 No additional findings beyond the fail-open items already raised in Stage 1 (findings 1-2 are both
 fail-open/silent-failure findings and were reported there per the task's "hunt fail-open first"
-framing). T-05's `os.listdir` → `glob` conversion (`check-state.sh:95-103`) correctly preserves the
+framing). T-05's `os.listdir` → `glob` conversion (`check-state.py:95-103`) correctly preserves the
 `isdir` guard, `sorted()` ordering, and builds `_fj_p` from the glob-returned `_fd` rather than
 re-joining `H` + bare name — matches intent verbatim. T-04's regexes and T-03's four shape regexes
 were verified to match a real post-move path (executed, not just read). T-08's rename is a clean
@@ -175,8 +175,8 @@ directory rename.
 
 | # | File | Task | Severity | Blocking |
 |---|---|---|---|---|
-| 1 | check-state.sh | T-05 | high | **yes — must_fix** |
+| 1 | check-state.py | T-05 | high | **yes — must_fix** |
 | 2 | check-plan-routes.py | T-04 | med | no (advisory) |
-| 3 | branch-create-gate.sh | T-07 | med | no (open question) |
+| 3 | branch-create-gate.py | T-07 | med | no (open question) |
 | 4 | gh-sync.py | T-10 | low | no |
-| 5 | check-state.sh:51 | T-05 | low | no |
+| 5 | check-state.py:51 | T-05 | low | no |

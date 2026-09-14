@@ -27,7 +27,7 @@ fail-open rows and red-proof cases. Nothing here restates it.
   test files) and carries the witness registration; T-03 is the detection invariant.
 - **S3 — T-09.** Depends on T-02. The identity refusal itself, plus the `harness-team` seed-field
   documentation.
-- **S4 — T-06.** Depends on T-02 and T-09. Same file as both (`check-domain.sh`), so it is serialised
+- **S4 — T-06.** Depends on T-02 and T-09. Same file as both (`check-domain.py`), so it is serialised
   behind them by construction, not by preference.
 - **S5 — T-08.** Depends on every code task. Produces the regression delta SC-07 is graded on and
   re-runs all six suites.

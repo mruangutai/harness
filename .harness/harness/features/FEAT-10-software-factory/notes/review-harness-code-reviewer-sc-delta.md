@@ -5,7 +5,7 @@ semantics (REQ-07←SC-20, SC-01's edge-idempotence wording) — both already pa
 BRIEF.md, neither rises to `high`. Nothing `must_fix`.
 
 **Path note:** the dispatch named `notes/receipt-harness-code-reviewer-sc-delta.md`; this role's
-`check-domain.sh` write-guard permits only `notes/review-harness-code-reviewer-*.md`, so this
+`check-domain.py` write-guard permits only `notes/review-harness-code-reviewer-*.md`, so this
 artifact is written there instead. Flagged as a non-blocking `open_question` below — if a downstream
 consumer greps for the dispatched filename it finds nothing.
 

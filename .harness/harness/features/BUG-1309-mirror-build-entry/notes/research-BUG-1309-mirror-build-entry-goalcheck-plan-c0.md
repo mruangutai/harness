@@ -73,7 +73,7 @@ T-06 INV-37 — LOCAL (`feature.json` + `harness.json`). T-07 retention — LOCA
 LOCAL (step 5 reads `feature.json`), but its *input* is not: step 3's `gh pr view` is a GitHub read
 and step 5 denies on its failure. That single branch is the mirror gating, and it contradicts
 DEC-138's stated posture that `gh` absent or unauthenticated means the flow succeeds and reports the
-sync skipped. D-07's "a gate that cannot verify says so" is a real principle, but `branch-create-gate.sh`
+sync skipped. D-07's "a gate that cannot verify says so" is a real principle, but `branch-create-gate.py`
 applies it to a *local* fact; here it is applied to a remote one.
 
 ## Open questions

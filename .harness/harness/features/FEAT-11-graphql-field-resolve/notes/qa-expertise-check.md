@@ -4,7 +4,7 @@ Verification-only. No files under `.harness/expertise/` were edited. No commits 
 
 ## Verbatim gate output
 
-Command: `.claude/skills/harness/bin/check-expertise.sh .harness/expertise/`
+Command: `.claude/skills/harness/bin/check-expertise.py .harness/expertise/`
 
 ```
 OK   .harness/expertise/harness-backend-dev.md
@@ -75,7 +75,7 @@ contain right now.
 
 ## Gate result
 
-`check-expertise.sh` exits 1 (FAIL) because `harness-documentor.md` line 43 (Gotcha G-04) is 53
+`check-expertise.py` exits 1 (FAIL) because `harness-documentor.md` line 43 (Gotcha G-04) is 53
 words against a 50-word cap. This is not an author I hold write access to — no `harness-qa`
 Expertise action is implied, but the overall gate did not pass clean.
 
@@ -87,7 +87,7 @@ Verification-only, as before. No files under `.harness/expertise/` edited. No co
 
 ### 1. Verbatim gate output
 
-Command: `.claude/skills/harness/bin/check-expertise.sh .harness/expertise/`
+Command: `.claude/skills/harness/bin/check-expertise.py .harness/expertise/`
 
 ```
 OK   .harness/expertise/harness-backend-dev.md
@@ -125,7 +125,7 @@ Counted by reading each file directly and counting `- P-`/`- G-`/`- O-`/`- OQ-` 
 ### 3. `harness-documentor.md`
 
 `wc -l` = **79 lines**. Still **fails** the gate: line 43, Gotcha G-04, 53 words against the
-50-word cap (verbatim from the check-expertise.sh output above). Unedited — not my file to fix.
+50-word cap (verbatim from the check-expertise.py output above). Unedited — not my file to fix.
 
 ### 4. Comparison against the five self-reported AFTER counts in this dispatch
 
@@ -166,7 +166,7 @@ gated here, noted for awareness only.)
 
 ### Final gate result
 
-`check-expertise.sh` still exits **1 (FAIL)** — sole cause is `harness-documentor.md`'s G-04
+`check-expertise.py` still exits **1 (FAIL)** — sole cause is `harness-documentor.md`'s G-04
 word-cap violation (line 43, unchanged, not mine to fix — DEC-174/product-squad-owned file). All
 five files this dispatch asked about are format-clean (`OK` in the gate output) and their counted
 entry tallies **match every self-reported AFTER figure exactly**, with `harness-validator-lead.md`

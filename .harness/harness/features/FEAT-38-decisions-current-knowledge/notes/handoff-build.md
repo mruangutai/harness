@@ -47,7 +47,7 @@ the entry and claim, and that routes to `harness-product-lead` as a fix cycle.
 - Do not re-split T-24; the three-step order took the whole suite to exit 2 — `plan.yaml` — verified-at `635cd3ba`
 - Do not count diff or suite lines with shell `grep`: `pi-uu-grep 0.2.0` matches a line-leading `+`
   against every line — four false readings this phase — B-26
-- Do not pass a shell variable or post-`cd` relative path as a write target; `bash-write-guard.sh`
+- Do not pass a shell variable or post-`cd` relative path as a write target; `bash-write-guard.py`
   resolves against the session root and denies — B-25
 - Do not grade SC-09 or REQ-08; retired tombstones — `BRIEF.md` — verified-at `b460650`
 

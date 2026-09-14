@@ -58,7 +58,7 @@ sees `bool(0 printed) == bool(0 total)` — no mismatch, no diagnostic — repro
 "green while broken" failure one layer up, now inside the safeguard meant to prevent it.
 
 **Severity: med, not gating.** Requires a future source edit by someone who already holds commit
-access to this test file — the same access that would let them weaken `check-domain.sh` directly, so
+access to this test file — the same access that would let them weaken `check-domain.py` directly, so
 per this role's own P-02 heuristic (an actor who already controls the value already holds the
 privilege it would grant) this is a defense-in-depth/detection-integrity gap, not a privilege
 escalation. Not reachable from the diff's current state; nothing in this diff introduces or triggers

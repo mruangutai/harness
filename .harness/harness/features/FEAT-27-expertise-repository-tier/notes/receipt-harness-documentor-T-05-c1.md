@@ -13,7 +13,7 @@ spawn by the `SubagentStart` hook, that the agent never reads either itself, and
 
 `.harness/harness/docs/SPEC.md` (4 hunks) — §5.2's format paragraph now names both tiers and paths
 (`.harness/expertise/` and `.harness/<repo>/expertise/`), both budgets (150-line / 40-line) as
-enforced at authoring time by `bin/check-expertise.sh` and re-applied as a truncation backstop in
+enforced at authoring time by `bin/check-expertise.py` and re-applied as a truncation backstop in
 the hook, the injection order (global craft → project craft → every repository tier present, sorted
 by segment), scope-only labelling, the precedence rule in the hook's own words, and the
 not-your-segment caveat. The repository-token scan is stated as ADVISORY only, never a violation,
@@ -30,12 +30,12 @@ Three stale statements the task did not name, all in SPEC and all one-tier:
 
 ## Grounded in the code, not the plan
 
-- Order, sorting, labels and the precedence sentence: `.claude/skills/harness/bin/inject-expertise.sh`
+- Order, sorting, labels and the precedence sentence: `.claude/skills/harness/bin/inject-expertise.py`
   (global block, project block, then repository blocks sorted by segment; the precedence line is
   emitted **only when at least one repository block exists** — SPEC says so, rather than claiming it
   is always present).
 - Budgets, tier classification by resolved absolute path, and the advisory-only token scan:
-  `.claude/skills/harness/bin/check-expertise.sh` (`CRAFT_LINE_BUDGET=150`, `REPO_LINE_BUDGET=40`,
+  `.claude/skills/harness/bin/check-expertise.py` (`CRAFT_LINE_BUDGET=150`, `REPO_LINE_BUDGET=40`,
   advisories never appended to `problems`, so the exit code cannot flip).
 
 ## Verify

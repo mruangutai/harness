@@ -90,7 +90,7 @@ expertise_update:
 
 Applied via `expertise-merge.py apply` against both files (exit 0 both times; `ADDED
 P-06/P-07/P-08` and `ADDED G-02` respectively, all other existing ids `PRESERVED`). No
-whole-file write performed. `check-expertise.sh` intentionally not run (orchestrator's
+whole-file write performed. `check-expertise.py` intentionally not run (orchestrator's
 job). Nothing committed.
 
 ## Verification

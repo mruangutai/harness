@@ -14,7 +14,7 @@ real defect is not rework (DEC-157).
 
 **The feature's board writes are correct; the detector it exists to build is not.** Seven of the
 eight live criteria are met. **SC-05 is `not_met`** — reported, not fixed and not re-scoped.
-`check-state.sh:1143-1146` does `if _derived is None: continue`, which skips the **entire** feature:
+`check-state.py:1143-1146` does `if _derived is None: continue`, which skips the **entire** feature:
 the per-task card comparison (`:1166-1182`), the mirror-never-ran clause (`:1154-1159`) and the
 parent check (`:1184-1194`) alike. `gh_board.py:114-118` returns `None` for a **legal** plan mixing
 `done` and `pending` with nothing `building` — the ordinary window between one task closing and the
@@ -22,7 +22,7 @@ next starting, which is when a session most often opens. No typo is needed to re
 this myself rather than relaying it: `derive_station` on `{T-01 done, T-02 pending}` returns `None`,
 and every INV-26 fixture is single-task (`_inv26_fixture`, `test-check-state.py:1307`), so the
 suppressing branch is unexercised and a green suite could not have caught it. Both remedy sites —
-`check-state.sh` and `gh_board.py`, under `.claude/skills/harness/bin/` — are DEC-174 carve-outs.
+`check-state.py` and `gh_board.py`, under `.claude/skills/harness/bin/` — are DEC-174 carve-outs.
 
 **E-01 is the open decision and it is the operator's alone:** take the fix main-session-direct, or
 ship FEAT-18 with the SC-05 gap recorded. No fix was dispatched and no repair loop was proposed.
@@ -50,8 +50,8 @@ amendment working.
 
 ## Open Questions
 
-- **E-01 (BLOCKING, operator only):** VL-01/SC-05's only remedy sites are `check-state.sh` and
-  `gh_board.py`; `check-state.sh` is a DEC-174 carve-out, so the fix cannot be dispatched through a
+- **E-01 (BLOCKING, operator only):** VL-01/SC-05's only remedy sites are `check-state.py` and
+  `gh_board.py`; `check-state.py` is a DEC-174 carve-out, so the fix cannot be dispatched through a
   team run. Fix it main-session-direct, or ship with the gap recorded?
 - **Q-SC01-GRADE (non-blocking, operator may re-grade)** — a NEW question, not the BRIEF's Q1
   below, which stays closed: SC-01 was graded on its achievable half, SC-05 on its

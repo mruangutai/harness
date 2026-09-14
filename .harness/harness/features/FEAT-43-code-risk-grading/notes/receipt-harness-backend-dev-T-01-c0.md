@@ -25,13 +25,13 @@ FileNotFoundError: [Errno 2] No such file or directory: '/Users/molchairuangutai
 Invocation:
 
 ```text
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Observed output:
 
 ```text
-run-unit-tests.sh: no harness root could be resolved from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-43-code-risk-grading/.claude/skills/harness/bin — refusing to run
+run-unit-tests.py: no harness root could be resolved from /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-43-code-risk-grading/.claude/skills/harness/bin — refusing to run
 ```
 
 Exit status: 2.

@@ -53,7 +53,7 @@ unexecuted, and still matches the ruling — pm confirmed both.
 | Delta review of the enum fix (at `6752597`) | **PASS**, `must_fix: []` |
 | Delta review of the T-01 closure (this pin) | **PASS**, `must_fix: []`, `severity_max: med` |
 | Test matrix — the project's only blocking gate | **PASS** — unit 29/29, integration 32/32 |
-| `check-state.sh` | **exit 0** |
+| `check-state.py` | **exit 0** |
 | Canonical repository suite | 957 results, **one** failing suite — not ours |
 | Goal-check | **19 of 20 met, none `not_met`**, SC-11 unproven |
 

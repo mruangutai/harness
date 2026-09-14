@@ -35,7 +35,7 @@ excluding `test-*.py`: only `harness_yaml.py:18` (inside its own guarded try/exc
 3. `git diff --numstat -- .../harness_yaml.py` — `5 1 .claude/skills/harness/bin/harness_yaml.py`
    `git diff` confirms the only hunk touched is inside the module docstring (lines 4-9 region);
    no code, import, or line outside that paragraph moved.
-4. `bash .../run-unit-tests.sh --check-kinds` — "check-kinds: the script arrays and
+4. `python3 .../run-unit-tests.py --check-kinds` — "check-kinds: the script arrays and
    test_kinds.integration.detect agree." — exit 0
 
 ## Scope discipline

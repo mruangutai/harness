@@ -25,7 +25,7 @@ its right home; two likely candidates are settled dead ends, cited below rather 
   extension added, the AND restructured, an extra guard added), `_disposition`'s copy must be
   updated in lockstep or the census's `out-of-vocabulary`/`violation` split silently diverges
   from what the live enforcement guard (`suite_layout.violations()`, called on every
-  `run-unit-tests.sh` invocation) actually decides — and nothing catches the drift: the unit
+  `run-unit-tests.py` invocation) actually decides — and nothing catches the drift: the unit
   suite's `sole_implementations()` sweep (`tests/unit/test-suite-layout.py:42-52`) only greps for
   discovery-mechanism fragments (`os.listdir`, `.glob(`, etc.), not for a re-spelled boolean
   conjunct, so this particular duplication is outside what that sweep can ever flag.
@@ -50,7 +50,7 @@ its right home; two likely candidates are settled dead ends, cited below rather 
   deliberately different vocabularies (D-01, D-04 in `plan.yaml`); folding them together is
   REFUSED by decision, not an open question. Not raised as a finding.
 - **Whether the repository-wide clause belongs in a caller (the runner or the census script)
-  rather than in `suite_layout.py`** — checked directly: `run-unit-tests.sh` is asserted by
+  rather than in `suite_layout.py`** — checked directly: `run-unit-tests.py` is asserted by
   `tests/unit/test-suite-layout.py:140-143` ("runner delegates layout once") to call into
   `suite_layout` exactly once and non-comment, so the runner does not reimplement any part of the
   clause. `tests/manual/suite-census.py`'s `tree-audit` command is a separate one-shot audit tool

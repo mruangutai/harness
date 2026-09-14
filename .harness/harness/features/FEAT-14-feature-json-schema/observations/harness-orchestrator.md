@@ -9,7 +9,7 @@
   `importlib.util.spec_from_file_location`, replace the one function that reads disk, and run
   `main([])` under `redirect_stdout`. No file is written, so no guard fires and nothing needs
   restoring. Note `main()` took an `argv` positional — read the signature before assuming.
-- 2026-08-11: `run-unit-tests.sh` splits into `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` by fork
+- 2026-08-11: `run-unit-tests.py` splits into `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` by fork
   behaviour, NOT by what the file is about. So a task whose verify says `--kind unit` can leave the
   very test file that task edits unexecuted. Grep the two arrays for the edited test file before
   trusting a `--kind`-scoped verify clause.

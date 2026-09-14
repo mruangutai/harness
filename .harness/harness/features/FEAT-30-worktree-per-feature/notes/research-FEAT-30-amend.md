@@ -9,7 +9,7 @@ Post-write: `plan.yaml` 1383, `BRIEF.md` 250.
 
 ## A. REQ-04 binds all sixteen. Anchors re-verified before citing.
 
-`bash-write-guard.sh` at HEAD: `:50` reads `agent_type`, `:54-55` the exemption comment, `:56-57`
+`bash-write-guard.py` at HEAD: `:50` reads `agent_type`, `:54-55` the exemption comment, `:56-57`
 `if agent == "harness-dev-ops": sys.exit(0)`, `:58` the `harness-` prefix test. The handed anchors
 were off by one; the dispatch's corrected set is what is cited.
 
@@ -35,7 +35,7 @@ satisfied by deleting the exemption, which removes the recovery path.
   move: T-08's verify contains no `git`; T-01's and T-02's contain only `git show <sha>:<path>`,
   which reads. Their tests fork git via `subprocess` inside python.
 - **Q10's attributed measurement is now verified, not attributed.** `.claude/settings.json`
-  registers `bash-write-guard.sh` on **PreToolUse Bash** only; `check-domain.sh` is PreToolUse
+  registers `bash-write-guard.py` on **PreToolUse Bash** only; `check-domain.py` is PreToolUse
   `Write|Edit` and PostToolUse. A `subprocess` fork is not a tool call, so no hook fires on it.
   `notes/orchestrator-M16-sc01b-is-automatable.md` measured the same thing empirically.
 - **One real defect the ruling creates, and it is fixed.** `git show` was in neither of T-05's two
@@ -71,15 +71,15 @@ requires the suite to go red**.
 
 **Mechanical consequences, both discharged rather than left.** T-10 adds **no new test file** — it
 extends `test-feature-worktree.py`, which T-08 already registers in `INTEGRATION_SCRIPTS` and in
-`harness.json integration.detect`. That is deliberate: `run-unit-tests.sh:41-55` exits 2
+`harness.json integration.detect`. That is deliberate: `run-unit-tests.py:41-55` exits 2
 MISCONFIGURED for any `bin/test-*.py` absent from either array, and `integration.detect` is an
 explicit pipe list. A third file would have needed both, and T-08 is not reopened.
 
 **Lane hand-check against DEC-174, done by hand because the checker cannot do it.**
 `check-plan-routes.py` resolves `bin/**` to `harness-backend-dev harness-dev-ops` and would OK an
 enforcement-layer file laned to the team. T-10's only file is
-`.claude/skills/harness/bin/test-feature-worktree.py` — not `bash-write-guard.sh`, not
-`check-domain.sh`, not `harness_boundary.py`, and not either guard's test file. It is nobody's gate.
+`.claude/skills/harness/bin/test-feature-worktree.py` — not `bash-write-guard.py`, not
+`check-domain.py`, not `harness_boundary.py`, and not either guard's test file. It is nobody's gate.
 **Verdict: legitimately `team`, `harness-dev-ops`.** No lane in the plan changed.
 
 **Consistency.** `BRIEF.md`'s verification-gaps paragraph said *"10 of 12 criteria are `automated`"*
@@ -100,7 +100,7 @@ enforcement layer, so none costs the operator's own hands.
 
 T-09 point 3 now states that **the main session runs the removal, from outside the tree**, never the
 orchestrator from inside it — symmetric with point 1's attribution of creation, and citing why
-(`check-domain.sh:428-431`, `bash-write-guard.sh:135-137`, `check-state.sh:1082-1085`, plus T-05 on
+(`check-domain.py:428-431`, `bash-write-guard.py:135-137`, `check-state.py:1082-1085`, plus T-05 on
 the Bash route). It adds that the orchestrator's part of a terminal state is to finish landing and
 report; removal is not its act.
 

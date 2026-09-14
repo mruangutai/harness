@@ -43,7 +43,7 @@ D-11 governs a different question (which *files* sit inside the DEC-174 executio
 does not collide with D-12's *test-kind* disposition.
 
 **Finding A (med) — D-12's DEC-174 supporting clause misreads DEC-174.** D-12 (plan.yaml:158-186)
-argues extracting post-merge-sweep.sh's heredoc-hosted retention arm into an importable module
+argues extracting post-merge-sweep.py's heredoc-hosted retention arm into an importable module
 "would be a runtime change to a DEC-174 enforcement surface made to satisfy a directory label...
 and it would touch the enforcement layer under DEC-174 as well" — read as: DEC-174 forecloses that
 path. But DEC-174 itself (DECISIONS.md:4302-4403, "Where the line falls for a library a gate
@@ -60,7 +60,7 @@ out of the decisions you open") is told DEC-174 blocks something it names a sanc
 ## Q5 — is the offered evidence sufficient for T-07's retention branch?
 
 **Finding B (med) — the offered coverage has a real, unexercised branch member.**
-post-merge-sweep.sh:222's retention gate is `elif entry not in {"opened", "not-applicable",
+post-merge-sweep.py:222's retention gate is `elif entry not in {"opened", "not-applicable",
 "recovered-terminal"}:` — three values share the "let it be removed" side of that set. T-07's
 eight named cases (verified present, test-post-merge-sweep.py:886-895) exercise `opened` ("T-07
 opened removes the worktree") and `recovered-terminal` ("T-07 recovered-terminal removes the
@@ -71,8 +71,8 @@ test-post-merge-sweep.py:896-925: `shapes` only ever writes `None` or an explici
 exists). T-10's red-proof (plan.yaml:1531-1591) is real and does strengthen the `opened` path, but
 it commits `build_entry="opened"`, not `"not-applicable"` — it does not touch this gap either.
 `not-applicable` is reachable in production: it is recorded when `github.sync` was false/absent at
-Build entry time (SC-01), and post-merge-sweep.sh reads `github.sync` fresh at *sweep* time
-(post-merge-sweep.sh:216-217) — a project that flips `github.sync` on between a feature's Build
+Build entry time (SC-01), and post-merge-sweep.py reads `github.sync` fresh at *sweep* time
+(post-merge-sweep.py:216-217) — a project that flips `github.sync` on between a feature's Build
 entry and its merge reaches this exact state. A mutation dropping or misspelling
 `"not-applicable"` out of that set literal would silently start retaining (or, the reverse typo,
 start removing) worktrees for that state, and nothing in the evidence D-12 offers — "the
@@ -89,7 +89,7 @@ was actually proven.
   misdescribes the decision it cites.
 - Finding B (med): D-12's "the integration kind carries the coverage" claim for T-07's retention
   branch is not fully proven — the `"not-applicable"` member of the retention allow-set
-  (post-merge-sweep.sh:222) is exercised by none of the eight named cases nor by T-10's red-proof,
+  (post-merge-sweep.py:222) is exercised by none of the eight named cases nor by T-10's red-proof,
   leaving a real, currently-silent regression window in the same set the tested members belong to.
 
 No findings on Q1–Q3; T-12 itself (trace, dependency order, verify-vs-source shape) is clean.

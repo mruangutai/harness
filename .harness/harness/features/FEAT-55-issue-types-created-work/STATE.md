@@ -29,7 +29,7 @@
 - **MERGE NOT PERFORMED, and it is not mine to perform.** Measured this session:
   - `git -C /Users/molchairuangutai/GitHub/harness switch main` → `bash-write-guard: BLOCKED — git
     switch moves HEAD, and every harness agent is refused this for the duration of a run`. `merge`
-    is in the same `HEAD_MOVERS` set at `.claude/skills/harness/bin/bash-write-guard.sh:176`, so a
+    is in the same `HEAD_MOVERS` set at `.claude/skills/harness/bin/bash-write-guard.py:176`, so a
     local merge is refused identically. The guard working, not a malfunction. DEC-153 keeps merge,
     PR and deploy user-gated; the commit pen alone is mine.
   - `gh-sync.py ship <this worktree's feature dir>` → exit 1, refused BEFORE any write or network
@@ -67,7 +67,7 @@ worked around, and one non-gating ratification.
   carry no `status:` key and `set-task-station` only SPLICES an existing line (Q5). I did NOT work
   around it: writing plan content outside `plan-merge.py` is what D-04 forbids. Never a gate.
 - Q17 (NEW; the concrete instance of the unrepairable-digest defect) — FIVE FEAT-55 run digests fail
-  the lead contract and `check-state.sh` reports each as a VIOLATION: `2026-09-04-03-product`,
+  the lead contract and `check-state.py` reports each as a VIOLATION: `2026-09-04-03-product`,
   `2026-09-04-11-validator`, `2026-09-05-c5-validator`, `2026-09-05-26-validator` (all pre-existing,
   plan phase) and `2026-09-05-30-validator` — the review panel's own run, whose lead emitted a valid
   fenced contract in its RETURN and wrote a file without one. That file's prose record is complete
@@ -78,7 +78,7 @@ worked around, and one non-gating ratification.
 - Q3 (operator, non-blocking) — T-06 §5 specifies the backlog receipt nested under `items`, but
   T-05's red test seeds and reads those keys at the top level and T-06 had to make it green
   unedited, so the on-disk receipt is FLAT. Ratify it or correct the prose; behaviour is unaffected.
-- Q4 — `bash-write-guard.sh` blocked `cp` onto a file outside my domain but NOT `python3 -c` writing
+- Q4 — `bash-write-guard.py` blocked `cp` onto a file outside my domain but NOT `python3 -c` writing
   the identical path in the identical call. It reads the command line for write verbs, not syscalls.
 - Q5 — `set-task-station` records no station on a status-less plan, and misreports the cause as
   `T-01 is not in <file> — it carries: T-01, T-02`, naming the task it just called absent.

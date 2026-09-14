@@ -4,7 +4,7 @@
 panel record is transcribed, and every amended `verify:` block was observed RED at `4b5dbb23` before
 it was written.** `approval:` is untouched at `status: pending`; no risk acceptance was written. Two
 residuals go back up: T-02's `files:` still lists a test file the Q2 ruling deletes (out of scope
-here), and `check-state.sh` INV-32 will demand a third reader (`goalcheck`) the moment the plan is
+here), and `check-state.py` INV-32 will demand a third reader (`goalcheck`) the moment the plan is
 signed.
 
 ## What changed
@@ -32,8 +32,8 @@ returns 1. Counts measured at `4b5dbb23`, working tree clean but for the untrack
 | file | asserts PRESENT | asserts ABSENT |
 |---|---|---|
 | `check-instruction-paths.py` | `harness-init` (D-05 preservation guard, green today — NOT a discriminator, kept because deleting the entry is the failure D-05 forbids); `anchor rule` (0) | `"harness-init",  # main session only` (1) — line-specific: the bare comment survives on the other two tuple entries, so a file-global absence check would be wrong |
-| `check-state.sh` | `control-plane clone` (0) | `project not onboarded. Run /harness-init.` (1) |
-| `check-domain.sh` | `never carries one` (0) | `enforcement OFF (run /harness-init)` (1) |
+| `check-state.py` | `control-plane clone` (0) | `project not onboarded. Run /harness-init.` (1) |
+| `check-domain.py` | `never carries one` (0) | `enforcement OFF (run /harness-init)` (1) |
 | `upgrade-config.py` | `default branch` (0), `control-plane clone` (0) | — (intent names no stale string here) |
 | `gh-sync.py` | `on its default branch` (0) | `run /harness-init --upgrade to record it` (1) |
 | `layout_migration.py` | `only the control plane carries the fleet declaration` (0) | `installs the whole bin/ into product repos` (1) |
@@ -43,7 +43,7 @@ asserts `default branch` PRESENT. That string is ALREADY in `gh-sync.py:673` (an
 comment), so the assertion was green before the task ran. The recorded assertion is now
 `on its default branch`, which returns 0 today.
 
-MF-1 itself: `bash` replaces `python3` for `check-domain.sh`, the idiom at
+MF-1 itself: `bash` replaces `python3` for `check-domain.py`, the idiom at
 `FEAT-09-plan-time-route-check/PLAN.md:158`.
 
 ## A2 — the four unbacked files
@@ -114,7 +114,7 @@ alone, as the digest scoped it.
 1. **T-02's `files:` still lists `tests/unit/test-onboarding-model-strings.py`.** The Q2 ruling means
    that file is never created; the key is `tasks[T-02].files`, entry 7. `files` is out of dispatch
    scope. Raised as an open question.
-2. **INV-32 wants three readers.** `check-state.sh:534` sets
+2. **INV-32 wants three readers.** `check-state.py:534` sets
    `expected_readers = {"should-not-exist", "scope", "goalcheck"}` and appends a `bad` line for any
    reader absent from `panel.readers`. It grades approved plans only (`:427`), so the plan is clean
    today — but the state check will fail the moment the operator signs unless a `goalcheck` entry
@@ -130,7 +130,7 @@ alone, as the digest scoped it.
 ```
 $ python3 tests/unit/test-onboarding-model-strings.py &&
   python3 .claude/skills/harness/bin/check-instruction-paths.py &&
-  python3 .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"
+  python3 .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"
 can't open file '.../tests/unit/test-onboarding-model-strings.py': [Errno 2] No such file or directory
 EXIT=2
 ```
@@ -138,13 +138,13 @@ EXIT=2
 The chain short-circuits on conjunct 1, so MF-1 was proven on conjunct 3 alone:
 
 ```
-$ python3 .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"
-  File ".../.claude/skills/harness/bin/check-domain.sh", line 24
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"
+  File ".../.claude/skills/harness/bin/check-domain.py", line 24
     set -uo pipefail
             ^^^^^^^^
 SyntaxError: invalid syntax
 EXIT=1
-$ bash .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"
+$ python3 .claude/skills/harness/bin/check-domain.py --resolve "$PWD/README.md"
 harness-documentor
 EXIT=0
 ```

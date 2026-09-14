@@ -86,7 +86,7 @@ file's existing `RE_STATE_YAML` convention would suggest either way). T-04's own
 on a purely cosmetic mismatch even though T-05's real behavioral fixtures (`digest-clobber`,
 `digest-append`) all pass, forcing a rename with no functional purpose to satisfy a landing gate.
 **alternative:** Replace the identifier-name grep with a direct behavioral check equivalent to
-T-05's own fixture — invoke `check-domain.sh`'s pre route against a fixture non-empty
+T-05's own fixture — invoke `check-domain.py`'s pre route against a fixture non-empty
 `digest.md` with a non-prefix payload and assert exit 2, then a prefix payload and assert exit 0
 — or drop T-04's inline behavioral verify entirely and rely on T-05 (`depends_on: [T-03, T-04]`,
 lands immediately after) as the one place this behavior is actually exercised.
@@ -133,7 +133,7 @@ time, rather than a literal number embedded in the verify command.
 ### SIMP-07 — T-03's literal-phrase grep is unbacked by any behavioral assertion
 **element:** T-03 intent (plan.yaml:296-300) and `verify:` (plan.yaml:323-327)
 **summary:** T-03's own verify greps the literal phrase `belongs in the worktree` out of
-`check-domain.sh`'s source. Neither SC-03 nor T-05's actual behavioral cases (`feature-checkout-*`)
+`check-domain.py`'s source. Neither SC-03 nor T-05's actual behavioral cases (`feature-checkout-*`)
 assert this exact wording — they check only that stderr names the target path and the worktree,
 generically. Judged against T-01's `not validated` (argued and accepted as load-bearing because
 exit code alone cannot discriminate the fix from the defect): this one is different — T-05's exit
@@ -145,7 +145,7 @@ every real behavioral check (SC-03, T-05 case 1) keeps passing, but T-03's own a
 verify (a one-shot landing gate) is the only place asserting the old spelling, so the mismatch is
 invisible until someone happens to re-run T-03's exact verify line.
 **alternative:** Replace T-03's literal-phrase grep with a smoke invocation asserting the
-observable behavior instead — run `check-domain.sh`'s pre route against a minimal fixture shaped
+observable behavior instead — run `check-domain.py`'s pre route against a minimal fixture shaped
 like T-05's case 1 and assert exit 2 — deferring the exact wording check entirely to T-05's
 stderr-content assertions, which already require path+worktree naming without pinning phrasing.
 

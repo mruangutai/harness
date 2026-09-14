@@ -51,7 +51,7 @@ Verified by reading the file at HEAD (`eb9d044e`, working tree clean for all sou
 `test-factory-integration.py:26-30,74-81,487,881-883,925`;
 `layout_migration.py:83-88,92-94,98-104`; `layout_fixtures.py:45-48,53-56,68-71`;
 `test-layout-migration.py:421-429`; `test-no-distribution.py:371-372`;
-`check-state.sh:2363-2367`.
+`check-state.py:2363-2367`.
 Corrected: `factory_claim.py:94-146` -> `:94-157`; `test-factory-claim.py:7-16` -> `:14-16` plus a
 separate `:7-8` reword.
 
@@ -66,7 +66,7 @@ separate `:7-8` reword.
 ## Open questions
 
 - **Q1 (operator, blocking signature):** D-01's deviation above. Two functions, not one; home pinned.
-- **Q2 (harness defect, non-blocking):** `check-domain.sh` resolves the fleet from the **main
+- **Q2 (harness defect, non-blocking):** `check-domain.py` resolves the fleet from the **main
   checkout's** `.claude/skills/harness/bin/factory_gh.py`, which currently imports a module
   (`gh_issue_types`) that exists nowhere in the tree — an unrelated in-flight edit. Every write by
   every agent, including writes to `/tmp`, was denied with `BLOCKED — the fleet declaration does not

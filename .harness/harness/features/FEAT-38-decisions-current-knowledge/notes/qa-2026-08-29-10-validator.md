@@ -8,7 +8,7 @@ a test-first record gap for 3 of 4 logic tasks are reported as findings, not gat
 
 ## 1. Independent measurement of the full runner — CONFIRMED
 
-Command: `.agents/skills/harness/bin/run-unit-tests.sh` (no `--kind`), run twice, isolated (no
+Command: `.agents/skills/harness/bin/run-unit-tests.py` (no `--kind`), run twice, isolated (no
 concurrent jobs), from worktree root.
 
 - Run A (job bg_5): `EXIT:0 FAIL:0 PASS:1117 KINDDRIFT:0`. Tail shows both new checkers'
@@ -38,8 +38,8 @@ Change types present: **docs 16, logic 4, config 3** (verified against `plan.yam
 
 | kind | required by matrix for {docs,logic,config}? | state | cmd |
 |---|---|---|---|
-| `unit` | yes (`logic.always`) | **satisfied** (whole-suite green; see finding below) | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` |
-| `integration` | not named in matrix for any present type, but the diff's four logic checkers' own tests live here | **satisfied**, added by me (diff clearly warrants it — floor is a minimum) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` |
+| `unit` | yes (`logic.always`) | **satisfied** (whole-suite green; see finding below) | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` |
+| `integration` | not named in matrix for any present type, but the diff's four logic checkers' own tests live here | **satisfied**, added by me (diff clearly warrants it — floor is a minimum) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` |
 | `functional` | no | **not applicable** — `status: excluded`, `signed: DEC-187`, reason: repo ships no service API and the two-bucket split covers everything | n/a |
 | `component` | no — `frontend` is not a present change type | **not applicable** (unresolved `cmd: null`, but not required by the matrix for docs/logic/config, so this is a genuine soft-skip, not BLOCKED) | null |
 | `ui` | no — `frontend`/`feature` `has_interaction_flow` predicates never fire (no frontend/feature tasks) | **not applicable** | null |
@@ -53,9 +53,9 @@ rests on a null-runner kind.
 **Finding (non-blocking, advisory) — matrix taxonomy mismatch on `logic`.** The matrix requires only
 `unit` for `logic`, but all three new/changed logic files' tests
 (`test-gen-decisions-index.py`, `test-check-decision-anchors.py`, `test-check-decision-claims.py`)
-are registered in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`, not `UNIT_SCRIPTS` — none of
+are registered in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`, not `UNIT_SCRIPTS` — none of
 UNIT_SCRIPTS' 27 files touch these tasks. This is *by the project's own documented convention*
-(`run-unit-tests.sh:19-29`, issue #160): the split is "does this drive a real script end-to-end via
+(`run-unit-tests.py:19-29`, issue #160): the split is "does this drive a real script end-to-end via
 subprocess", and all three test files spawn the checker as a subprocess (`subprocess.run([sys.executable,
 CHECKER, ...])`). So the literal `unit` floor for `logic` is unsatisfied by a *unit-kind-named* test
 for this diff, while `integration` — not named in the matrix for `logic` (unlike `cross_module`/
@@ -200,8 +200,8 @@ strong and correct in §3-6.
 ```yaml
 matrix_ok: true
 kinds:
-  - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 417 }
-  - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 700 }
+  - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 417 }
+  - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 700 }
   - { kind: functional, state: not_applicable, signed: DEC-187 }
   - { kind: component, state: not_applicable, cmd: null }
   - { kind: ui, state: not_applicable, cmd: null }

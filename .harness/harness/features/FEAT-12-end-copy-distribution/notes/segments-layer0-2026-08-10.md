@@ -8,7 +8,7 @@ this orchestrator cannot execute them.** Written after the eng and product segme
 
 | Task | Surface | What the guard says to `harness-orchestrator` |
 |---|---|---|
-| T-06, T-08, T-11 | `fleet.yaml`, `.claude/commands/`, rule skills, both `team-config.yaml` | `check-domain.sh` **BLOCKED, exit 2** on Write. Probed each path myself |
+| T-06, T-08, T-11 | `fleet.yaml`, `.claude/commands/`, rule skills, both `team-config.yaml` | `check-domain.py` **BLOCKED, exit 2** on Write. Probed each path myself |
 | T-01..T-05 | `/Users/molchairuangutai/GitHub/kaya-ai/**` | outside `CLAUDE_PROJECT_DIR`; both guards pass through, **exit 0** |
 | T-09 | `$HOME/.harness/registry.json` | outside `CLAUDE_PROJECT_DIR`; guards pass through, **exit 0** |
 

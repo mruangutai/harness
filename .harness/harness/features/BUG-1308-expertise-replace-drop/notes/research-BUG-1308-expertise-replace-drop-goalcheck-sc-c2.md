@@ -11,8 +11,8 @@ content was read with `git show <review_sha>:<path>`, never the working tree (G-
 
 | Suite | Command | Exit | `^FAIL ` lines | Files |
 |---|---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 0 | 28 |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 0 | 46 |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 0 | 28 |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 0 | 46 |
 
 Counted with `grep -c '^FAIL '`, not a tail read (G-08). Matches the contract exactly.
 Named files run directly: `test-expertise-ops.py` exit 0 (69 `PASS` assertions),
@@ -30,7 +30,7 @@ Named files run directly: `test-expertise-ops.py` exit 0 (69 `PASS` assertions),
 | SC-05 | **met** | automated / integration | integration | case15 ×3: non-zero exit; sha256 equals pre-invocation; following add-only apply exit 0 |
 | SC-06 | **met** | automated / integration | integration | exit 0; case4 exit 7 CONFLICT, case5 exit 8 CAP EXCEEDED, case16 re-asserts both; diff `4b0d04e9..48d2285b` removes **no** pre-existing `check(`; `expertise-merge.py` is purely additive (+308/−0) |
 | SC-07 | **met** | automated / unit | `python3 tests/unit/test-expertise-ops.py` | exit 0; u10 feeds the same replacement input to `compute_union`: "returns non-empty conflicts" + "merged Patterns still carries **OLD** text at index 6" — reverting the resolver reddens |
-| SC-08 | **met** | automated / integration | integration | `check-expertise.sh` exit 0 on the replace-produced file (case11) **and** the drop-produced file (case12); also case19 |
+| SC-08 | **met** | automated / integration | integration | `check-expertise.py` exit 0 on the replace-produced file (case11) **and** the drop-produced file (case12); also case19 |
 | SC-09 | **met** | automated / integration | integration | case17 ×11 — see clause table |
 | SC-10 | **met** | automated / integration | `git show …:DECISIONS-INDEX.md` + `python3 tests/integration/test-gen-decisions-index.py` | `DEC-219` row at :219; phrase count = **1**; generator test exit 0 |
 | SC-11 | **met** | automated / integration | integration | case18 ×5 — see clause table; **2.04s observed** hold |

@@ -14,9 +14,9 @@ zero enforcing assertion anywhere in the plan — including the detector itself.
 - This feature is shell/Python gate code plus a directory rename — no markup, no CSS, no rendered
   surface. Scoping out on that basis alone would be correct, per the dispatch's own framing.
 - The dispatch names one adjacent in-remit surface: operator-facing diagnostic text emitted by
-  `branch-create-gate.sh` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.sh`
+  `branch-create-gate.py` (T-07 GROUP 2), `check-plan-routes.py` (T-04), and `check-state.py`
   (T-05). Audited all three against the plan's actual verify blocks and the real files at HEAD, then
-  swept T-02/T-03 (`team-config.yaml`, `check-domain.sh`) for the same gap class since they are the
+  swept T-02/T-03 (`team-config.yaml`, `check-domain.py`) for the same gap class since they are the
   other two reader-migration tasks in the same coupled cluster.
 
 ## Finding 1 — must_fix, severity high
@@ -66,20 +66,20 @@ neither does the detector's own row for this file.**
 
 ## Checked clean
 
-- **T-05 (`check-state.sh`)**: no equivalent gap. Its finding messages (e.g. `INV-17`, `INV-26`
+- **T-05 (`check-state.py`)**: no equivalent gap. Its finding messages (e.g. `INV-17`, `INV-26`
   lines) build path text from variables (`feat`, `rel`) derived from the same join sites the task
   migrates, not from separately hardcoded literals. Direct grep of the file for
   `.harness/features` outside the join calls found exactly one hit, a comment at line 51, never
   printed to a user.
-- **T-07 GROUP 2 (`branch-create-gate.sh`)**: fully covered. Its verify does a whole-file negative
+- **T-07 GROUP 2 (`branch-create-gate.py`)**: fully covered. Its verify does a whole-file negative
   search — `'.harness/features/' not in open(...).read()` — which catches both the lookup
   (line 77) and the deny message (line 78) in one assertion. This is the pattern T-04's verify
   should have used and didn't.
-- **T-02 (`team-config.yaml`)** and **T-03 (`check-domain.sh`)**, swept for the same gap class
+- **T-02 (`team-config.yaml`)** and **T-03 (`check-domain.py`)**, swept for the same gap class
   though not named by the dispatch: both use a whole-*line* literal search —
   `re.search(r'\.harness/features/', l)` over every line in the file — not a narrow join-call
   pattern, so they would catch a message literal anywhere in either file. Direct grep of
-  `check-domain.sh` confirms exactly the eight sites T-03's intent names (four `SWEEP_GLOBS`
+  `check-domain.py` confirms exactly the eight sites T-03's intent names (four `SWEEP_GLOBS`
   entries, four anchored regexes) and no additional message string carrying the literal. No gap.
 
 ## Not verifiable from source

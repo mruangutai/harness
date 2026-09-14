@@ -137,10 +137,10 @@ If this entry is missing, no refusal can ever reach you, and the rest of this te
 measuring a script nobody calls.
 
 ```bash
-grep -n "merge-gate.sh" $UAT_CHECKOUT/.claude/settings.json
+grep -n "merge-gate.py" $UAT_CHECKOUT/.claude/settings.json
 ```
 
-**Observe:** one line naming `merge-gate.sh` as a hook command.
+**Observe:** one line naming `merge-gate.py` as a hook command.
 
 - **PASS** if a line is printed.
 - **FAIL** if nothing is printed.
@@ -153,7 +153,7 @@ grep -n "merge-gate.sh" $UAT_CHECKOUT/.claude/settings.json
 python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT recovery-required
 
 printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 ```
 
 **Observe:** a JSON line with `"permissionDecision": "deny"` and a reason reading roughly:
@@ -188,22 +188,22 @@ see when you type the command the way you really type it.
 python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT recovery-required
 
 printf '{"tool_input":{"command":"git merge --no-ff feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git merge --squash feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git merge -m message feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git merge -F /tmp/message feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git merge --cleanup strip feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 printf '{"tool_input":{"command":"git --attr-source HEAD merge --no-ff feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 ```
 
 `-F /tmp/message` needs no such file to exist: the gate reads the command text and git is never run.
@@ -259,11 +259,11 @@ opened
 
 ```bash
 printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 echo "exit=$?"
 
 printf '{"tool_input":{"command":"git merge --no-ff feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 echo "exit=$?"
 ```
 
@@ -286,7 +286,7 @@ somewhere else.
 python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT merged
 
 printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 
 FAKE_LOG=$UAT_ROOT/calls.log GH_SYNC_GH=$UAT_ROOT/gh \
   python3 $UAT_CHECKOUT/.claude/skills/harness/bin/gh-sync.py recover-terminal $UAT_FEAT --yes
@@ -295,7 +295,7 @@ python3 -c "import json,sys; g=json.load(open(sys.argv[1]))['github']; print('bu
   $UAT_FEAT/feature.json
 
 printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 echo "exit=$?"
 ```
 
@@ -321,7 +321,7 @@ that would not work.
 python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT recovery-required --unpinned
 
 printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
-  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+  | HARNESS_PROJECT_DIR=$UAT_ROOT $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.py
 ```
 
 **Observe:** a `deny` that says **NO COMMAND CLEARS THIS BY ITSELF**, then names the two

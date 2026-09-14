@@ -15,7 +15,7 @@ The earlier stacked PR #833 is historical only. This extraction keeps FEAT-36 se
 | SC-03 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-03; absent and partial targets contain every rule exactly once |
 | SC-04 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-04; second merge is byte-identical |
 | SC-05 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-05; explicit project root changes only the requested target |
-| SC-06 | PASS | inspection | `runs/goal-check-c2-product/digest.md` SC-06; integration registration is correct and `merge-gitignore.sh` remains byte-identical |
+| SC-06 | PASS | inspection | `runs/goal-check-c2-product/digest.md` SC-06; integration registration is correct and `merge-gitignore.py` remains byte-identical |
 
 No criterion declares UAT, and no waiver was used.
 
@@ -36,7 +36,7 @@ The ship-refresh and feature-close distillation jobs were issued concurrently. D
 | Ship-refresh | PASS / skipped: `.harness/codebase/` does not exist, so there is no map-domain intersection, stale section, or HTML map to render | Map render/check not applicable; `runs/ship-refresh-product/digest.md` |
 | Product distillation | PASS: PM, documentor, and product lead accepted no ops; all candidates were absent or already covered | No Expertise file changed; `runs/distill-product/digest.md` |
 | Engineering distillation | PASS after one receipt correction: no accepted op; the apparent merge-tool issue was a heading-less empty proposal, not a tool defect | No Expertise file changed; `runs/distill-eng/digest.md` |
-| Validator distillation | PASS on c1 reassessment: security O-09 and UI G-11 remain applied and checked; code-reviewer P-04/P-06/G-13 and QA P-13/P-03/G-06 are individually closed as unapplied/not permitted | `check-expertise.sh .harness/expertise/` PASS with existing advisories only; `runs/distill-c1-validator/digest.md` supersedes the original blocking disposition without rewriting it |
+| Validator distillation | PASS on c1 reassessment: security O-09 and UI G-11 remain applied and checked; code-reviewer P-04/P-06/G-13 and QA P-13/P-03/G-06 are individually closed as unapplied/not permitted | `check-expertise.py .harness/expertise/` PASS with existing advisories only; `runs/distill-c1-validator/digest.md` supersedes the original blocking disposition without rewriting it |
 
 The six replacements are not permitted results because harness-distill requires: “Apply through the merge tool. Never write the file yourself,” while the available merge tool supports lock-safe additive union only. Direct or whole-file replacement was not attempted. The stale code-reviewer P-06 wording and replace/drop capability gap remain recorded as non-gating close-out dispositions; neither creates a second backlog row. Observation logs remain archived; none existed and none was created or deleted.
 

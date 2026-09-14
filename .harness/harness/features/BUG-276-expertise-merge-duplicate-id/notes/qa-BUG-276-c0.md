@@ -44,8 +44,8 @@ T-02 exists specifically to cover this. Floor: {unit, integration}. Both require
 - T-02 verify block (verbatim): **exit 0**. Integration suite bare run: 220 PASS, 0 FAIL. All
   three named case27 markers present and PASS. Standalone CLI-drive assertion (real subprocess,
   temp tree, exit 11, `AMBIGUOUS TARGET`/`id=P-02` in combined stdout+stderr) passed.
-- `run-unit-tests.sh --kind unit`: **exit 0**, 520 PASS, 0 FAIL.
-- `run-unit-tests.sh --kind integration`: **exit 0**, 1513 PASS, 0 FAIL.
+- `run-unit-tests.py --kind unit`: **exit 0**, 520 PASS, 0 FAIL.
+- `run-unit-tests.py --kind integration`: **exit 0**, 1513 PASS, 0 FAIL.
 - No `FAIL ` lines anywhere in either standing-runner output — nothing pre-existing red, no
   regression, nothing to attribute.
 
@@ -92,7 +92,7 @@ decorative.
 - D-07 (parse_expertise/render silent drop on ENTRY_RE misses) — recorded separate defect,
   explicitly out of scope here. Confirmed present in the code, confirmed not touched by this diff,
   confirmed the BRIEF/plan record it correctly. Advisory only.
-- `check-expertise.sh` untouched — confirmed, per BRIEF constraint; correct.
+- `check-expertise.py` untouched — confirmed, per BRIEF constraint; correct.
 - No exit-11 row in `.claude/skills/harness-distill/SKILL.md`'s refusal table (D-09) — confirmed
   absent, decision correctly defers to operator at signature. Advisory only.
 

@@ -11,21 +11,21 @@ found correct — outcome 1 of the three pre-decided outcomes.
 Command (character-exact from plan.yaml:1637, cross-checked against the dispatch — no mismatch):
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration > /tmp/v-t12.txt 2>&1; s=$?; grep -q "^PASS test-factory-integration.py$" /tmp/v-t12.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind integration > /tmp/v-t12.txt 2>&1; s=$?; grep -q "^PASS test-factory-integration.py$" /tmp/v-t12.txt && [ "$s" -eq 0 ]
 ```
 
 Result: **pass** (both the grep and `[ "$s" -eq 0 ]` succeeded; `$?` of the whole compound was 0).
 
 ## Measurement, as required
 
-**BEFORE my append** — `run-unit-tests.sh --kind integration`:
+**BEFORE my append** — `run-unit-tests.py --kind integration`:
 - exit status: **0**
 - files run (13): test-validate-digest.py, test-gh-sync.py, test-check-state.py,
   test-check-expertise.py, test-gen-decisions-index.py, test-bash-write-guard.py,
   test-check-domain.py, test-harness-yaml.py, test-upgrade-config.py, test-check-plan-routes.py,
   test-merge-settings.py, test-gen-omp-agents.py, test-omp-reviewer-guard.py
 
-**AFTER my append** — `run-unit-tests.sh --kind integration`:
+**AFTER my append** — `run-unit-tests.py --kind integration`:
 - exit status: **0**
 - files run (14): the same 13, plus **test-factory-integration.py**
 
@@ -35,10 +35,10 @@ Result: **pass** (both the grep and `[ "$s" -eq 0 ]` succeeded; `$?` of the whol
   test-team-catalog.py, test-factory-cli.py, test-factory-gh.py, test-factory-config.py,
   test-factory-workspace.py, test-factory-decompose.py, test-factory-claim.py,
   test-factory-land.py
-- `UNIT_SCRIPTS` (line 58 of `run-unit-tests.sh`) is byte-identical before and after my edit —
+- `UNIT_SCRIPTS` (line 58 of `run-unit-tests.py`) is byte-identical before and after my edit —
   confirmed by re-reading the line post-edit against the pre-edit `Read` output.
 
-No new red anywhere; nothing in `check-state.sh` / `test-check-state.py` / `validate-digest.py`
+No new red anywhere; nothing in `check-state.py` / `test-check-state.py` / `validate-digest.py`
 was touched.
 
 **`--kind all` (union path, run twice for stability):** exit 0 both times, 24/24 `PASS test-*.py`
@@ -101,7 +101,7 @@ into operator output, the duplicated 422 phrase, `factory_claim.py:43`) were tou
 
 While sanity-checking the mutant-catching power of the live-git assertions by hand, I typed
 `git checkout -Bx bogus --track origin/nope` directly into Bash outside any fixture. It was
-correctly blocked by `branch-create-gate.sh` (DEC-144) before anything happened. Per the
+correctly blocked by `branch-create-gate.py` (DEC-144) before anything happened. Per the
 dispatch's explicit instruction, I stopped that manual-verification approach entirely rather than
 finding a way around the gate — the G1/G2 assertions' non-vacuousness rests instead on the
 outcome-based assertions (SHA/upstream, not just exit status) plus the fixture-sanity checks that
@@ -110,5 +110,5 @@ prove the `-B` pre-conditions were genuinely met before the tool ran.
 ## Files touched
 
 - `.claude/skills/harness/bin/test-factory-integration.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (single-line append to `INTEGRATION_SCRIPTS`,
+- `.claude/skills/harness/bin/run-unit-tests.py` (single-line append to `INTEGRATION_SCRIPTS`,
   line 59; `UNIT_SCRIPTS` at line 58 untouched)

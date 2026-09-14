@@ -16,7 +16,7 @@ export WT=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-
 export UATDIR=/tmp/harness-uat-sc10
 export CLAIM=$WT/.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-uat-probe.md
 mkdir -p $UATDIR
-gate() { python3 -c 'import json,sys;print(json.dumps({"tool_name":"Write","agent_type":"harness-orchestrator","tool_input":{"file_path":sys.argv[1],"content":open(sys.argv[2]).read()}}))' "$CLAIM" "$UATDIR/note.md" | "$WT/.claude/skills/harness/bin/check-domain.sh"; echo "exit=$?"; }
+gate() { python3 -c 'import json,sys;print(json.dumps({"tool_name":"Write","agent_type":"harness-orchestrator","tool_input":{"file_path":sys.argv[1],"content":open(sys.argv[2]).read()}}))' "$CLAIM" "$UATDIR/note.md" | "$WT/.claude/skills/harness/bin/check-domain.py"; echo "exit=$?"; }
 ```
 
 `$CLAIM` must stay ABSOLUTE. With a relative claimed path the gate resolves it against your

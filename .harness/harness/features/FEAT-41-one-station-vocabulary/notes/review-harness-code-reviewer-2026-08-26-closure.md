@@ -16,7 +16,7 @@ route:
 It is explicitly barred from `deny()` because that helper appends the STATE.md-flavored ROUTING
 constant:
 
-> "DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1063-1066 and
+> "DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.py defines deny() at 1063-1066 and
 > its last line appends the module-level ROUTING constant defined at 879, which speaks about
 > STATE.md, digests and notes/ - a different file class entirely." (843-846)
 
@@ -72,7 +72,7 @@ equivalent main-checkout path — it does not require stating *why* (that the di
 a worktree about to be deleted):
 
 > "exit 1 with one line naming the equivalent path in the main checkout ... This is a refusal,
-> not a skip: skip() exits 0 and post-merge-sweep.sh would then delete the worktree." (927-930)
+> not a skip: skip() exits 0 and post-merge-sweep.py would then delete the worktree." (927-930)
 
 Lower risk than F-1's case: `ship` is main-session-direct, not an LLM agent choosing between a
 denied route and a shell-write escape hatch, so the fail-open-via-misread-as-malfunction failure

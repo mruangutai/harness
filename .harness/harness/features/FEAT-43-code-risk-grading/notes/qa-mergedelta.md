@@ -2,7 +2,7 @@
 
 **BLUF:** All five orchestrator measurements (a–e) reproduced by my own runs, with the exact
 numbers claimed. Item f confirmed by execution: all three FEAT-43 test files are matched by the
-kind they're registered under, and `run-unit-tests.sh --check-kinds` (the shipped cross-check)
+kind they're registered under, and `run-unit-tests.py --check-kinds` (the shipped cross-check)
 agrees the two arrays and `test_kinds.integration.detect` are consistent. One correction to the
 orchestrator's item-b explanation (arithmetic, not a defect, `severity: info`). **Send-back
 correction:** the `test-validate-feature-json.py` (`case_root_resolves`) failure under `--kind
@@ -94,12 +94,12 @@ git diff baa96b7e HEAD -- .claude/skills/harness-code-risk-grading/SKILL.md \
 Read `.harness/harness.json` `test_kinds`: only `test-code-grade-cli.py` appears as an explicit
 literal in `integration.detect`; `test-code-grade.py` and `test-gate-policy.py` do not appear
 there (they reach `unit` only via `unit.detect`'s catch-all `.claude/skills/harness/bin/test-*.py`
-glob). Read `run-unit-tests.sh`: `test-code-grade.py` and `test-gate-policy.py` are in
+glob). Read `run-unit-tests.py`: `test-code-grade.py` and `test-gate-policy.py` are in
 `UNIT_SCRIPTS`; `test-code-grade-cli.py` is in `INTEGRATION_SCRIPTS`.
 
-Ran the shipped cross-check itself: `bash run-unit-tests.sh --check-kinds` → **exit 0**,
+Ran the shipped cross-check itself: `python3 run-unit-tests.py --check-kinds` → **exit 0**,
 `check-kinds: the script arrays and test_kinds.integration.detect agree.` (Note the check's own
-documented scope, read at `run-unit-tests.sh:82-88`: it is a set-membership comparison — every
+documented scope, read at `run-unit-tests.py:82-88`: it is a set-membership comparison — every
 `INTEGRATION_SCRIPTS` name must appear literally in `integration.detect`, and no `UNIT_SCRIPTS`
 name may appear there — it deliberately does NOT adjudicate "which kind wins" when a catch-all
 glob and an explicit entry could both apply, because that question is undecided by design.)
@@ -114,7 +114,7 @@ array actually executes and passes them:
 | `test-code-grade-cli.py` | `INTEGRATION_SCRIPTS` + explicit `integration.detect` entry | `--kind integration` → `PASS test-code-grade-cli.py` | **yes** |
 
 All three FEAT-43 tests are discovered and pass under exactly the kind they're registered in,
-after main's changes to `run-unit-tests.sh`. `run-unit-tests.sh --kind unit` full run: **exit
+after main's changes to `run-unit-tests.py`. `run-unit-tests.py --kind unit` full run: **exit
 1**, but the single failure is `FAIL test-validate-feature-json.py` (`case_root_resolves`), a
 file **unrelated to FEAT-43** — `git diff baa96b7e HEAD --` and `git diff cbdadef HEAD --` both
 produce zero output for `test-validate-feature-json.py`/`validate-feature-json.py`, i.e. neither
@@ -130,12 +130,12 @@ see the "Send-back" section below.** `--kind integration` full run: exit 0,
 orchestrator-cited number reproduced exactly by an independent run (a, c, d, e byte-for-byte; b's
 count and crash-freedom exactly, only its stated *reason* was incomplete); item f additionally
 proves by execution — not by reading config — that the hand-resolved matrix conflict actually
-routes each FEAT-43 test file to the kind it claims, and that `run-unit-tests.sh`'s own drift
+routes each FEAT-43 test file to the kind it claims, and that `run-unit-tests.py`'s own drift
 cross-check (main's replacement code) still agrees with `harness.json`.
 
 **What this sweep does NOT cover, stated plainly:**
 - **Main's own content was not re-reviewed on its merits.** `validate-digest.py`'s automatic
-  +34/−8 merge, the `dispatch-guard.sh`/`inflight_registry.py`/`check-omp-port.py` changes, the
+  +34/−8 merge, the `dispatch-guard.py`/`inflight_registry.py`/`check-omp-port.py` changes, the
   agent-template changes, and the `context-watch` removal are accepted as main's own reviewed
   work, not independently re-audited here — only their *interaction* with FEAT-43's surfaces
   (the gate, the matrix, the SEC-01 range binding) was exercised.
@@ -245,7 +245,7 @@ test pass at both parents and fail only at the merge" — is answered above: yes
 
 **Ruling: caused by the merge, `severity: med`.** It is a genuine gate regression — a merge of
 any two branches that each independently add one live feature directory, where the union's count
-lands on a multiple-of-ten-plus-one, will trip `run-unit-tests.sh --kind unit` to exit 1 on an
+lands on a multiple-of-ten-plus-one, will trip `run-unit-tests.py --kind unit` to exit 1 on an
 unrelated file. It is not `high`/`critical`: `validate-feature-json.py`'s actual behavior (root
 resolution, sweep correctness) is unaffected — only a fragile substring assertion in the *test*
 is exposed by the merge's arithmetic. But it is a real, reproducible break in the unit-kind gate
@@ -269,7 +269,7 @@ DIGEST:
   sc_evidence: []
   severity_max: med
   must_fix:
-    - "test-validate-feature-json.py case_root_resolves fails at merge 1d292c2 (`run-unit-tests.sh --kind unit` exit 1) but passes cleanly at both parents 6d6d1ce and cbdadef; caused by the merge unioning FEAT-43's and FEAT-44's feature.json (40+40->41 files swept), tripping a substring-match bug (`\"1 file(s)\" in stderr`) in the test's own assertion at test-validate-feature-json.py:349-351. severity: med — a real unit-kind gate regression introduced only by the merge, though validate-feature-json.py's actual behavior is unaffected."
+    - "test-validate-feature-json.py case_root_resolves fails at merge 1d292c2 (`run-unit-tests.py --kind unit` exit 1) but passes cleanly at both parents 6d6d1ce and cbdadef; caused by the merge unioning FEAT-43's and FEAT-44's feature.json (40+40->41 files swept), tripping a substring-match bug (`\"1 file(s)\" in stderr`) in the test's own assertion at test-validate-feature-json.py:349-351. severity: med — a real unit-kind gate regression introduced only by the merge, though validate-feature-json.py's actual behavior is unaffected."
   open_questions: []
   files_touched: []
   expertise_update: []

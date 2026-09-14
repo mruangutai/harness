@@ -115,9 +115,9 @@ PASS
 
 ## Both test kinds, run separately, real per-kind counts
 
-- `run-unit-tests.sh --kind unit`: exit 0. **10/10 scripts PASS**, per-script counts: 13, 15, 10,
+- `run-unit-tests.py --kind unit`: exit 0. **10/10 scripts PASS**, per-script counts: 13, 15, 10,
   33, 118 (`test-factory-gh.py`), 56, 30, 172, 77, 45.
-- `run-unit-tests.sh --kind integration`: exit 0. **12/12 scripts PASS**
+- `run-unit-tests.py --kind integration`: exit 0. **12/12 scripts PASS**
   (`test-validate-digest.py`, `test-gh-sync.py`, `test-check-state.py`, `test-check-expertise.py`,
   `test-gen-decisions-index.py`, `test-bash-write-guard.py`, `test-check-domain.py`,
   `test-harness-yaml.py`, `test-upgrade-config.py`, `test-check-plan-routes.py`,
@@ -126,7 +126,7 @@ PASS
 
 ## Constraints honoured
 
-No live `gh` calls (all fixture/fake-driven). `check-domain.sh`, `bash-write-guard.sh`,
-`validate-digest.py`, `check-state.sh`, `run-unit-tests.sh` untouched.
+No live `gh` calls (all fixture/fake-driven). `check-domain.py`, `bash-write-guard.py`,
+`validate-digest.py`, `check-state.py`, `run-unit-tests.py` untouched.
 `test-factory-decompose.py` / `test-factory-claim.py` / `test-factory-land.py` untouched — sha256
 pins confirmed matching in the verify block above. No commit made, no push.

@@ -20,8 +20,8 @@ additionally read through `git show 8ff5197f:<path>`.
 | SC-01 | met | T-10's `verify` block run **verbatim** (string cross-checked against `plan.yaml:1287-1316` — identical, no mismatch); final `check-instruction-paths.py` printed `scanned 62 file(s), 0 violation(s)`; block exit **0** |
 | SC-02 | met | `git show 8ff5197f:.claude/skills/harness-init/SKILL.md` carries `git config --get core.hooksPath \|\| echo "(unset)"` at **:74** and `git config core.hooksPath .claude/skills/harness/hooks` at **:81**; `test-hooks-install.py` exit **0** |
 | SC-05 | met | `tests/unit/test-fleet-product-config.py` → `18/18 checks passed`, exit **0** (reproduces the `12f74ea8` result, but this is the grade of record) |
-| SC-06 | met | `run-unit-tests.sh --kind unit` exit **0**; 4 `^FAIL ` lines, all inside `test-factory-claim-mutation.py` (log 1018-1028), which itself reports `PASS` — the by-design mutation proof. `pool: 8 workers, 34 files`. Baseline matched exactly |
-| SC-07 | **not_met** | `run-unit-tests.sh --kind integration` exit **1**. See the honest reading below |
+| SC-06 | met | `run-unit-tests.py --kind unit` exit **0**; 4 `^FAIL ` lines, all inside `test-factory-claim-mutation.py` (log 1018-1028), which itself reports `PASS` — the by-design mutation proof. `pool: 8 workers, 34 files`. Baseline matched exactly |
+| SC-07 | **not_met** | `run-unit-tests.py --kind integration` exit **1**. See the honest reading below |
 | SC-08 | met | `check-instruction-paths.py` → `scanned 62 file(s), 0 violation(s)`, exit **0**; `check-omp-port.py` → `OMP port surface: ok`, exit **0** |
 | SC-10 | met | `python3 -c "import yaml;yaml.safe_load(open('.claude/skills/harness/templates/team-config.yaml'))"` exit **0** |
 | SC-13 | met | four clauses, each taken separately — below |
@@ -73,8 +73,8 @@ row `2.1.172` at **:962** — both inside DEC-83, which spans `:953-991`.
 | Site | Citation |
 |---|---|
 | `check-instruction-paths.py` | **:18** — `MAIN_SESSION_ONLY` lists `"harness-add-repo"` |
-| `check-state.sh` | **:111**, **:287** (unconfigured/half-onboarded clone → `/harness-init` *in this clone*), **:408**, **:2375** (both `--upgrade`). Four remedies, zero registration ones |
-| `check-domain.sh` | **:386-388** — "That path is the control plane's own manifest; a product repository never carries one. Run /harness-init in the control-plane clone." |
+| `check-state.py` | **:111**, **:287** (unconfigured/half-onboarded clone → `/harness-init` *in this clone*), **:408**, **:2375** (both `--upgrade`). Four remedies, zero registration ones |
+| `check-domain.py` | **:386-388** — "That path is the control plane's own manifest; a product repository never carries one. Run /harness-init in the control-plane clone." |
 | `upgrade-config.py` | docstring **:2-6** (control-plane clone; a fleet member's copy must be committed to its default branch); remedies **:191-192** and **:234-236** |
 | `gh-sync.py` | **:255-256** — "for a fleet member, that file lives in the member's own repository on its default branch" |
 | `layout_migration.py` | **:122-131** — "The fleet declaration is the one file only the control plane carries: products are DECLARED IN it, never holders OF it", above `MARKER = .harness/factory/fleet.yaml` |

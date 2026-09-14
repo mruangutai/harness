@@ -35,7 +35,7 @@ than reading the strings in isolation (see Evidence).
 **F1 — med, advisory.** The exit-2 "needs BOTH --expect-sha256 and --value-file" refusal
 (plan-merge.py ~1063) says "Run --show first." but does not reconstruct the actual next command
 (`--file <resolved> --key <key> --id <id> --field <field> --show`). Measured against the
-precedent the dispatch names — `check-state.sh:327-330`'s own rule that a recovery command must
+precedent the dispatch names — `check-state.py:327-330`'s own rule that a recovery command must
 NAME THE FILE, not print something the operator has to hand-assemble — this message falls short
 of that bar, though less severely: the operator already typed `--key/--id/--field` in the same
 breath, so nothing here is *unrecoverable*, only more retyping than necessary.
@@ -62,7 +62,7 @@ requires `verify: |`, "literal, never folded `>` — a byte-exact contract." **T
 *content* held** — I compared `yaml.safe_load` before/after and the string round-trips exactly
 — but the *form* the operator sees, in the plan.yaml itself and in a subsequent `--show`, no
 longer matches the repo's own documented authoring convention, and does so on every multi-line
-`amend`. Grepped `harness_yaml.py` and `check-plan-routes.py`/`check-state.sh`: nothing enforces
+`amend`. Grepped `harness_yaml.py` and `check-plan-routes.py`/`check-state.py`: nothing enforces
 the scalar *style* textually, only the parsed value — so nothing gates on this, which is why it
 stays advisory. But it is not hypothetical: I reproduced it against a faithful reconstruction of
 FEAT-46's actual `T-23.verify` field (see Evidence) — the exact field the shared contract names

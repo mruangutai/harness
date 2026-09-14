@@ -1,8 +1,8 @@
 # Observations — harness-orchestrator — FEAT-29-graphql-budget
 
-- 2026-08-19: `check-state.sh` runs at ZERO GraphQL cost with `FACTORY_GH` pointed at a
+- 2026-08-19: `check-state.py` runs at ZERO GraphQL cost with `FACTORY_GH` pointed at a
   non-existent binary. INV-26 gates its board read on `gh auth status` succeeding
-  (`check-state.sh:1158-1165`) and records nothing when it does not, so every other invariant still
+  (`check-state.py:1158-1165`) and records nothing when it does not, so every other invariant still
   runs. Measured: `graphql.used` 3753 before and 3753 after a full run. That turned the mandated
   pre-commit gate from a 507-point spend into a free one on a feature whose whole budget was 1,327
   points. It is not a substitute for the real run — INV-26's board claim goes unchecked — but for a
@@ -14,7 +14,7 @@
   wrote the note in the same act as the status) and I still got the filename wrong; the pre-commit
   gate is what caught it. Ending phase → filename, always.
 
-- 2026-08-19: `bash-write-guard.sh` blocks `cp` into the session scratchpad
+- 2026-08-19: `bash-write-guard.py` blocks `cp` into the session scratchpad
   (`/private/tmp/claude-501/.../scratchpad`) for `harness-orchestrator` — "targets probe.yaml,
   outside your domain". So the standard "copy the file and test the edit on the copy" move is not
   available. The substitute that worked: read the real file into Python, apply the substitution
@@ -33,7 +33,7 @@
   its stdout — the operator's positive control later showed they DO land, in `Backlog`.
 
 - 2026-08-19: INV-26 skips a feature entirely while every task reads `pending`
-  (`check-state.sh:1218-1221`). A baseline/after comparison of gate output that straddles the first
+  (`check-state.py:1218-1221`). A baseline/after comparison of gate output that straddles the first
   status write is therefore comparing two different INV-26 regimes, not two states of one gate —
   the before/after must both be taken on the same side of that line.
 
@@ -128,9 +128,9 @@
   double-counting it is wrong. Ask for "send-backs issued inside this run" explicitly in the dispatch.
 
 - 2026-08-19: **I cited a PASS count for four dispatches before checking what it counted.**
-  `grep -c '^PASS '` on `run-unit-tests.sh` output returned 139/160/164/172 and I reported those as
+  `grep -c '^PASS '` on `run-unit-tests.py` output returned 139/160/164/172 and I reported those as
   suite sizes. The runner emits exactly ONE `PASS <script>` line per script (18 for `--kind unit`,
-  `run-unit-tests.sh:58-67`); every other match came from individual scripts printing their own
+  `run-unit-tests.py:58-67`); every other match came from individual scripts printing their own
   `PASS` lines. A second measurer summing per-script totals got 806 on the same suite. The DELTA was
   always sound (+8 = eight new checks) and no decision turned on the absolute — but I put an
   unexamined number into a commit message and three dispatches. Before citing a count, run the
@@ -139,7 +139,7 @@
 - 2026-08-19: **a conflict between two agents' reports about an enforcement hook was settled by
   running the hook.** qa reported one member denied an Edit on `factory_gh.py` and another completing
   the same mutation, and concluded all mutation evidence on the feature was of uncertain
-  admissibility. `check-domain.sh --resolve` on that path returns `harness-backend-dev,
+  admissibility. `check-domain.py --resolve` on that path returns `harness-backend-dev,
   harness-dev-ops` and not `harness-qa` — so the denial was correct and the other member reached the
   file through Bash, which the hook cannot see (DEC-85). Both were honest; neither was wrong. The
   evidence in question was authored by an agent that IS granted, so it stood. **When two agents
@@ -152,7 +152,7 @@
   consequence, not just the preference, is what made it land.
 
 - 2026-08-19: **the same guard refused the same mistake in three independent lead contexts on one
-  feature** — `dispatch-guard.sh` blocking a `model:` parameter. Each lead lost a spawn turn to it.
+  feature** — `dispatch-guard.py` blocking a `model:` parameter. Each lead lost a spawn turn to it.
   The prior occurrences were recorded only in observations logs, which are never injected at spawn,
   so no successor could be warned. A lesson that lives only where it is never read is not a lesson;
   a repeated guard refusal across independent contexts is evidence the rule belongs where the call

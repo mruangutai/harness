@@ -58,7 +58,7 @@ def main():
               "gh-sync: HELD" not in r.stdout, repr(r.stdout))
         check("ship: prints NO FAILED line when nothing failed",
               "gh-sync: FAILED" not in r.stdout, repr(r.stdout))
-        check("ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.sh's worktree gate greps "
+        check("ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.py's worktree gate greps "
               "that literal and a healthy run must not trip it",
               "gh-sync: SKIP" not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
         check("ship: records the terminal status",
@@ -171,7 +171,7 @@ def main():
               "#40" in r.stderr and "child list unreadable" in r.stderr, repr(r.stderr))
         # THE REPORT IS THE POINT, not the exit code. An earlier cut printed the stderr line and
         # continued WITHOUT recording the miss, so the run ended with no `FAILED` line at all --
-        # and post-merge-sweep.sh gates worktree removal on exactly three things: a non-zero exit,
+        # and post-merge-sweep.py gates worktree removal on exactly three things: a non-zero exit,
         # `SKIP`, and `FAILED`. A card that silently missed done therefore had its evidence swept
         # away with the tree. An unreadable child list is a card that did not reach done, which is
         # what `FAILED` means, so it is reported like every other one.
@@ -296,7 +296,7 @@ def main():
 
     # ---- DEFECT ONE: the terminal station write is COMMITTED ---------------------------------
     # It used to be left in the working tree, so the default branch read a non-terminal station
-    # while the board read the done column — the INV-26 violation check-state.sh reported against
+    # while the board read the done column — the INV-26 violation check-state.py reported against
     # FEAT-40 and issue 842. This asserts the file is CLEAN AGAINST HEAD after a successful ship,
     # which is the property the violation's absence actually depends on.
     with tempfile.TemporaryDirectory() as tmpC:
@@ -435,14 +435,14 @@ def main():
               f"out={outW[-500:]!r}")
         check("T-10 defect two: the refusal names the equivalent path in the MAIN CHECKOUT",
               "main checkout" in outW, f"out={outW[-500:]!r}")
-        # A REFUSAL, NOT A SKIP. skip() exits 0 and post-merge-sweep.sh reads a SKIP as
+        # A REFUSAL, NOT A SKIP. skip() exits 0 and post-merge-sweep.py reads a SKIP as
         # "nothing went wrong" — it would delete the worktree, taking the station with it.
         check("T-10 defect two: it is a REFUSAL and not a SKIP — the sweep must not read this as "
               "permission to delete",
               "gh-sync: SKIP" not in outW, f"out={outW[-500:]!r}")
 
     # ---- THE SWEEP'S POSITIVE-SIGNAL GATE IS UNCHANGED --------------------------------------
-    # post-merge-sweep.sh gates worktree removal on the ABSENCE of `gh-sync: SKIP` and
+    # post-merge-sweep.py gates worktree removal on the ABSENCE of `gh-sync: SKIP` and
     # `gh-sync: FAILED` from ship's combined output. The commit added by defect one must never
     # emit either word on a failure path, or a trivial bookkeeping miss would silently cancel a
     # worktree removal — a different subsystem entirely.
@@ -474,7 +474,7 @@ def main():
     # FEAT-41 F-01: A STATION WRITE THAT NEVER REACHED DISK MUST BE VISIBLE TO THE SWEEP.
     #
     # Found by the validation panel, not by this suite, and the gap IS the finding: no case here
-    # drove either failure branch of `_record_station`, so nothing measured what post-merge-sweep.sh
+    # drove either failure branch of `_record_station`, so nothing measured what post-merge-sweep.py
     # would then do. The sweep gates worktree REMOVAL on the ABSENCE of two literals from ship's
     # combined output. A station that was never recorded anywhere is exactly the case where the
     # standing worktree is the only surviving evidence -- so that failure line must carry one of
@@ -489,9 +489,9 @@ def main():
     # answers are opposite. Do not "fix" the two into agreement.
     # ---------------------------------------------------------------------------------------------
     _GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:',
-                                open(os.path.join(HERE, "post-merge-sweep.sh")).read())
+                                open(os.path.join(HERE, "post-merge-sweep.py")).read())
 
-    check("F-01 fixture: the sweep's gate literals are discoverable in post-merge-sweep.sh, so this "
+    check("F-01 fixture: the sweep's gate literals are discoverable in post-merge-sweep.py, so this "
           "case cannot pass by asserting against a string nothing actually reads",
           len(_GATE_LITERALS) >= 2, repr(_GATE_LITERALS))
 
@@ -512,7 +512,7 @@ def main():
             bothF = rF.stdout + rF.stderr
             check(f"F-01 ({_labelF}): ship says the station was not recorded",
                   "not recorded" in bothF, f"exit {rF.returncode}; out={bothF[-700:]!r}")
-            check(f"F-01 ({_labelF}): and that line carries a literal post-merge-sweep.sh gates on, "
+            check(f"F-01 ({_labelF}): and that line carries a literal post-merge-sweep.py gates on, "
                   f"so the sweep keeps the worktree holding the only record of the station",
                   any(lit in bothF for lit in _GATE_LITERALS),
                   f"gates={_GATE_LITERALS} out={bothF[-700:]!r}")

@@ -30,7 +30,7 @@ That is the point: **the only station that self-heals is the one GitHub writes.*
 
 ## The mechanism finding — `feature.json.status` already IS the station map
 
-`check-state.sh:494` declares `STATUS_ORDER = ["Backlog","Plan","Ready","Building","Review","Done",
+`check-state.py:494` declares `STATUS_ORDER = ["Backlog","Plan","Ready","Building","Review","Done",
 "Abandoned"]`, schema-required with a closed value set, and `gh-sync.py`'s `_record_status` already
 writes it at ship (`Done`) and abandon (`Abandoned`). Those are DEC-192's six column names plus the
 one with no column. So the event-driven map needs **no new vocabulary**: the station a parent card
@@ -47,7 +47,7 @@ workflows**, and **a Claude Code hook**. Hooks are the enforcement layer, which 
 feature from executing, and a board read inside `PostToolUse Write|Edit` would fire on every edit in
 every session — measured cost of one board read on board 3 is **490–506 GraphQL points**
 (`notes/grilling-graphql-cost-2026-08-10.md`, struck-and-restated entry). That is the waste the
-operator already refused for `check-state.sh`, an order of magnitude worse.
+operator already refused for `check-state.py`, an order of magnitude worse.
 
 So the achievable design, stated as a ceiling rather than sold as a solution: **fold each station
 write into a command that is already mandatory at that moment**, so forgetting the station requires

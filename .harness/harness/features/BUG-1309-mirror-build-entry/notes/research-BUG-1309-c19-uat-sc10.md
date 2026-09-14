@@ -102,7 +102,7 @@ it at `HEAD` a826673. The ONLY other path any of the three dispatches wrote is
 two dispatches and none in the third (2 insertions / 0 deletions cumulative against 9c07f557),
 mandated by `harness-expertise` and never injected into any spawn.
 Excluding that one file: `BRIEF.md`, `plan.yaml` (every approval byte), `feature.json`,
-`STATE.md`, `merge-gate.py`, `merge-gate.sh`, `test-merge-gate.py`, every other source, test and
+`STATE.md`, `merge-gate.py`, `merge-gate.py`, `test-merge-gate.py`, every other source, test and
 agent note, and `runs/c19uat-product/` are **untouched** by these dispatches. None of them ran a
 suite, formatter or linter; none opened a cycle, authored or sought an answers file, or shipped,
 merged, committed or pushed anything.

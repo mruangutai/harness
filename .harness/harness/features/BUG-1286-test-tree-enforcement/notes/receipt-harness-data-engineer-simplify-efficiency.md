@@ -1,7 +1,7 @@
 # EFFICIENCY angle — BUG-1286 plan draft (T-01..T-05, D-01..D-06)
 
 **BLUF: no findings.** Measured the hot-path subprocess pair at ~46ms combined per
-`run-unit-tests.sh` invocation in this checkout (2670 tracked files) — negligible against the
+`run-unit-tests.py` invocation in this checkout (2670 tracked files) — negligible against the
 ~15s integration suite it gates and against the two CI call sites that actually exist. The
 conjunct order spends one of the two subprocesses on roots that will turn out inert, but the
 saving is single-digit milliseconds in a rare edge case, not worth reordering at the cost of the
@@ -19,11 +19,11 @@ Measured directly in this checkout (`git ls-files | wc -l` = **2670** tracked fi
   runs both inside one function).
 
 (a) Call sites, found by grep, not guessed:
-- `.github/workflows/tests.yml:86,92` — CI runs `run-unit-tests.sh --kind unit` then
+- `.github/workflows/tests.yml:86,92` — CI runs `run-unit-tests.py --kind unit` then
   `--kind integration`, **2 invocations per CI run**, each paying the layout check once before
-  kind dispatch (`run-unit-tests.sh:33`, ahead of the `run_pool.py` exec at line 47).
+  kind dispatch (`run-unit-tests.py:33`, ahead of the `run_pool.py` exec at line 47).
 - `.claude/skills/harness/bin/validate-digest.py:1613-1665` (`_reverify_suite`/
-  `check_qa_matrix_claim`) — re-runs the whole `run-unit-tests.sh` (30-minute timeout) once per
+  `check_qa_matrix_claim`) — re-runs the whole `run-unit-tests.py` (30-minute timeout) once per
   digest that claims an unconditional `VERDICT: PASS` + `suite: pass` + `matrix_ok: true`; each
   such re-run pays the same 46ms once.
 - No other scripted invocation exists; every other grep hit (`CODEOWNERS`, `harness-spec-driven/
@@ -33,7 +33,7 @@ Measured directly in this checkout (`git ls-files | wc -l` = **2670** tracked fi
 (b) Cost is justified. `.github/workflows/tests.yml:88`'s own comment measures the integration
 kind at "~15s"; 46ms against that is ~0.3%, and against the 1800s `_reverify_suite` timeout it is
 noise. The two subprocesses are not per-file or per-test-case — they fire once per
-`run-unit-tests.sh` invocation, not once per script in `SCRIPTS`.
+`run-unit-tests.py` invocation, not once per script in `SCRIPTS`.
 
 (c) No cheaper shape to propose. Dropping `git rev-parse --show-toplevel` would remove the exact
 protection T-01's own intent names ("a fixture root nested inside another checkout can never be
@@ -77,14 +77,14 @@ recorded here so a future reader does not re-derive it.
 Measured current runtimes in this checkout:
 - `tests/unit/test-suite-layout.py` (5 existing cases, no subprocesses): `real 0m0.097s`.
 - `tests/integration/test-run-unit-tests-layout.py` (5 existing cases, 9 `run()` subprocess
-  calls): `real 0m1.360s` (~150ms/call average, each call itself execs `run-unit-tests.sh` →
+  calls): `real 0m1.360s` (~150ms/call average, each call itself execs `run-unit-tests.py` →
   `run_pool.py`).
 
 T-01 adds 8 unit cases, most requiring a real git fixture (`git init -b main`, `git add -A`,
 commit — each tens of ms per the measurements above, comparable to the ~46ms hot-path pair since
 they are the same class of git subprocess). Even generously budgeting ~150ms per new case (fixture
 build + one or two `violations()` calls), 8 cases add on the order of ~1.2s, landing the unit
-suite well under 10s — T-01's `verify:` also runs `run-unit-tests.sh --check-layout` once more
+suite well under 10s — T-01's `verify:` also runs `run-unit-tests.py --check-layout` once more
 (~50-100ms), nowhere near the 60s the file's own `run()` helper already budgets per subprocess
 call.
 
@@ -96,7 +96,7 @@ executes both fake sentinel scripts through `run_pool.py`). Budgeting generously
 No pair of new cases is redundant at equal binding strength. T-01's unit cases exercise
 `suite_layout.violations()` directly (predicate level); T-02's integration cases exercise the same
 scenarios (single rogue file, three rogue files, `.git`-replaced-by-empty-dir) through the real
-`run-unit-tests.sh` subprocess (wiring level: exit code, `MISCONFIGURED:` stderr formatting, and
+`run-unit-tests.py` subprocess (wiring level: exit code, `MISCONFIGURED:` stderr formatting, and
 the ordering guarantee that no sentinel runs first). These are different binding strengths by
 design — the pyramid's two layers, not a duplicate — so none is named as redundant.
 

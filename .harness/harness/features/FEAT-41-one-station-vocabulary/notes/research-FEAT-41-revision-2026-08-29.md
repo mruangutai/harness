@@ -40,7 +40,7 @@ T-08, T-09, T-13. REQ-06 → T-07. REQ-07 → T-10, T-14. **Nothing dropped.**
 All 13 SCs keep a discharging task, checked against each task's own `verify:` block: SC-01 → T-01
 (`:113-114`); SC-02 → T-02; SC-03 → T-04 (`:319`); SC-04 → T-06 (`:485`, count = 4); SC-05, SC-06 →
 T-09; SC-07 → T-08 (`:809-812`); SC-08 → T-07 (`:695-696`); SC-09 → T-07 migration + T-10's
-`check-state.sh` run; SC-10 → T-10 (`:975`); SC-11 → T-04 (`:318`) + the suite; SC-12 → T-13
+`check-state.py` run; SC-10 → T-10 (`:975`); SC-11 → T-04 (`:318`) + the suite; SC-12 → T-13
 (`:1174`); SC-13 → T-06 (`:486`). **No SC rested on the removed task** — it had no criterion at all,
 which is exactly why the loss needed a disclosure and a backlog row rather than a re-scope.
 

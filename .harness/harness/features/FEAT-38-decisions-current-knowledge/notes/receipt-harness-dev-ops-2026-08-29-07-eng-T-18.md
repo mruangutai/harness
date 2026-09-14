@@ -70,7 +70,7 @@ index 95a1d29..aa21850 100644
 -      "detect": "tests/integration/**|...|.claude/skills/harness/bin/test-gh-close-gate.py",
 +      "detect": "tests/integration/**|...|.claude/skills/harness/bin/test-gh-close-gate.py|.claude/skills/harness/bin/test-check-decision-anchors.py|.claude/skills/harness/bin/test-check-decision-claims.py",
        "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
-       "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind integration",
+       "cmd": ".agents/skills/harness/bin/run-unit-tests.py --kind integration",
        "status": "active"
 ```
 
@@ -98,5 +98,5 @@ Both paths named in the dispatch exist on disk in the worktree, executable:
 
 ## Scope
 
-Did not touch `run-unit-tests.sh` (T-19), `.github/workflows/tests.yml`, or any checker source. Did
-not run `run-unit-tests.sh`. Committed nothing.
+Did not touch `run-unit-tests.py` (T-19), `.github/workflows/tests.yml`, or any checker source. Did
+not run `run-unit-tests.py`. Committed nothing.

@@ -16,8 +16,8 @@ Both commands ran exactly once from the absolute worktree with `CLAUDE_PROJECT_D
 
 | Kind | Configured command | Discovery | Exit |
 |---|---|---:|---:|
-| unit | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 25 files | 0 |
-| integration | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 44 files | 0 |
+| unit | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 25 files | 0 |
+| integration | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 44 files | 0 |
 
 The unit transcript includes 54 named PASS assertions from `test-handoff-done-when.py`. The integration transcript includes the changed `test-check-domain.py` and `test-check-state.py`, with all focused FEAT-54 cases green. Discovery was non-vacuous in both kinds.
 
@@ -45,7 +45,7 @@ Each was invoked separately as `python3 .agents/skills/harness/bin/validate-dige
 
 ## External blocker
 
-FEAT-51's missing repository-root `notes/handoff-validate.md` remains known to make the literal SC-04 `check-state.sh` review command nonzero. Per dispatch it was neither rerun nor repaired here. The five FEAT-54 digest-contract failures previously co-reported by that command are independently closed above; FEAT-51 remains an external blocker to claiming SC-04 and shipping, not a failure of either configured FEAT-54 matrix kind.
+FEAT-51's missing repository-root `notes/handoff-validate.md` remains known to make the literal SC-04 `check-state.py` review command nonzero. Per dispatch it was neither rerun nor repaired here. The five FEAT-54 digest-contract failures previously co-reported by that command are independently closed above; FEAT-51 remains an external blocker to claiming SC-04 and shipping, not a failure of either configured FEAT-54 matrix kind.
 
 ```yaml
 VERDICT: PASS
@@ -55,8 +55,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
     - { kind: handoff_comprehension, state: locally-run, cmd: "tests/manual/probe-handoff-comprehension.py", named_tests: 0 }
   coverage_gaps: []
   sc_evidence:

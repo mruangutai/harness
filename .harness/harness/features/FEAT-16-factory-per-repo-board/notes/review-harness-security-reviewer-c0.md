@@ -56,7 +56,7 @@ counts — GitHub Projects v2 structural metadata, not secrets, not tokens. No a
   always positionally bound to a preceding named flag, so a `-`-leading repo string cannot be
   misread as a flag (distinct from the unflagged-positional shape G-02 warns about).
 - `test-check-domain.py` diff is fixture-YAML-only (indenting `board:` under each `repos[]` entry);
-  `check-domain.sh` itself is untouched, confirmed by reading the diff directly rather than trusting
+  `check-domain.py` itself is untouched, confirmed by reading the diff directly rather than trusting
   the task framing (DEC-174 carve-out script, correctly absent from this diff).
 - `test-no-distribution.py` case5 is a new assertion pinning the live `fleet.yaml` repo-to-board
   pairing via `yaml.safe_load` — no security surface, additive test only.

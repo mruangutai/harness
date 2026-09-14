@@ -99,14 +99,14 @@ Two consequences worth stating rather than rediscovering:
   harness, so it needs no control-plane twin. The accepted-risk sentence above is what covers it if
   one is ever added.
 - **The grilling's phrasing "harness has its own `src/` and `docs/`" is loose.** `docs/` is real;
-  `src/` is not. `check-domain.sh` matches path STRINGS, not existing files, which is why the probe
+  `src/` is not. `check-domain.py` matches path STRINGS, not existing files, which is why the probe
   `harness-documentor -> src/main.py` exits 2 against a directory that does not exist. The
   mechanism claim holds; the file-existence claim does not. pm should not repeat it as written.
 
 ## Unchanged and still binding
 
 - Every task stays `execution_mode: main-session-direct`. No build squad. No task dispatches an
-  agent at `check-domain.sh` — DEC-174.
+  agent at `check-domain.py` — DEC-174.
 - Ruling 2: a path under `workspace_root` for a repo not in `fleet.yaml` is REFUSED.
 - Ruling 3: an unparseable `fleet.yaml` fails closed on every write.
 - `/tmp` and anything outside both bases keep today's no-verdict behaviour.

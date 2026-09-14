@@ -15,7 +15,7 @@
 ## Probing guards
 
 - 2026-08-20: probing a guard is vacuous unless the probe carries a GOVERNED `agent_type`.
-  `bash-write-guard.sh` exempts `harness-dev-ops` (DEC-151), so my first three probes all exited 0
+  `bash-write-guard.py` exempts `harness-dev-ops` (DEC-151), so my first three probes all exited 0
   and I nearly read that as "creation is permitted everywhere". Re-run as `harness-backend-dev` and
   `harness-orchestrator`, the served-repo destination exited 2. Same command, same file, opposite
   verdict — the agent_type IS the experiment.
@@ -69,7 +69,7 @@
   with it.
 
 - 2026-08-20: a runner's own drift detector turns a half-landed task set into a broken tree.
-  `run-unit-tests.sh` globs `bin/test-*.py` and exits 2 on any file absent from its explicit arrays,
+  `run-unit-tests.py` globs `bin/test-*.py` and exits 2 on any file absent from its explicit arrays,
   so the moment T-01 created a test file every `--kind` exited 2, and stayed that way until T-08
   registered it. Committing a partial lane there would have shipped a suite runner that cannot run.
   The window was invisible from the task list; only invoking the runner showed it.
@@ -121,6 +121,6 @@
 
 - 2026-08-20: when a lead reports a contradiction it "could not run the discriminating check" on, look
   for whether the answer is WHO rather than WHAT. Two spawns got opposite results from one command
-  because `bash-write-guard.sh` early-returns for no `agent_type` and for `harness-dev-ops`; I had
+  because `bash-write-guard.py` early-returns for no `agent_type` and for `harness-dev-ops`; I had
   reproduced the denial myself, so four data points settled in one read what the lead could not settle
   at all.

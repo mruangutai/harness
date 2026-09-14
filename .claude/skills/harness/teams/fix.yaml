@@ -10,7 +10,7 @@
 # THE LEAD HOSTS A DEV FROM THE ENG SQUAD. DEC-118 as amended by FEAT-59 permits a fix
 # member from another squad in this run. Author and reviewer stay distinct PERSONAS:
 # the dev writes source and its receipt; the readers write only their notes; the lead
-# writes only its run dir. check-domain.sh keys on the persona, not on the host, so the
+# writes only its run dir. check-domain.py keys on the persona, not on the host, so the
 # dev's grant is exactly what it is under an eng-lead run.
 #
 # THE PIN IS THE ORCHESTRATOR'S, NOT A STEP. The dev commits; the readers verify the tip

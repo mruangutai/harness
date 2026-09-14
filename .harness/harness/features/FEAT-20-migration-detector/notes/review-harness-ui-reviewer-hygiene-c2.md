@@ -6,7 +6,7 @@
 My c1 med (`review-harness-ui-reviewer-hygiene.md`) was: the `neither` clause is singular
 ("a coupled reader matches neither form") but the blame list behind its em-dash is unfiltered and can
 carry a contradicting tag (`[both]`). The operator's M-1 ruling (widen `blame()` to every
-`CANNOT_VERIFY` cause, per `check-state.sh:1295-1332` diffed against `a714bd0` below) does not touch
+`CANNOT_VERIFY` cause, per `check-state.py:1295-1332` diffed against `a714bd0` below) does not touch
 this wording at all — it is a pure mechanical refactor of *which causes* append `blame()`, not of
 *how* the append reads:
 
@@ -53,7 +53,7 @@ comment's framing is correct in intent; it is not present at the point of read.
 ## All five causes, constructed and rendered (measured, not reasoned about)
 
 Built `SurfaceReport`s against the real `blame()` (`layout_migration.py:262-273` at `6296149`) and ran
-them through `_cv_wording` copied verbatim from `check-state.sh:1295-1319`:
+them through `_cv_wording` copied verbatim from `check-state.py:1295-1319`:
 
 ```
 unreadable, readers=[a:unreadable,b:neither,c:migrated,d:legacy]
@@ -105,10 +105,10 @@ a fix should not have introduced while fixing M-1's coverage gap.
 ## Proposed remedy — not invented, the file's own sibling convention
 
 Not a decision I can take, but concrete so this doesn't loop a third time: the `MIXED` branch at the
-same call site (`layout_migration.py`'s `render()` and `check-state.sh:1325-1327`) already renders its
+same call site (`layout_migration.py`'s `render()` and `check-state.py:1325-1327`) already renders its
 reader list with a labelled join, not a bare dash — `"...readers {_ev}; readers {_rd}"` (`_rd` is the
 same `"%s [%s]" % (p, f)` blame format). The proposed fix for `CANNOT_VERIFY` is to match that existing
-convention rather than invent new wording: replace `check-state.sh:1319`'s
+convention rather than invent new wording: replace `check-state.py:1319`'s
 `_text + (" — " + _named if _named else "")` with a `"; readers: " + _named` labelled join (still
 appending nothing when `_named` is empty). One line, cause-agnostic, no re-filtering — and it makes
 `CANNOT_VERIFY`'s join match the file's own `MIXED` precedent instead of reading as an extension of
@@ -129,14 +129,14 @@ side effect, since the blame list would no longer share punctuation with the cla
    blast radius widened from 2 of 5 causes to 3 of 5 (all but `no-rows`, which is structurally immune,
    and `undeclared-segment`, which has its own new-but-different problem). Concrete alternative, cited
    from the file's own existing convention (see above): replace the bare `" — "` blame-list separator
-   at `check-state.sh:1319` with `"; readers: " + _named`, matching the sibling `MIXED` message's
+   at `check-state.py:1319` with `"; readers: " + _named`, matching the sibling `MIXED` message's
    `"; readers {_rd}"` join already in the same file.
 3. **`undeclared-segment`'s double em-dash** — judged above as a new, low-severity, non-contradictory
    but genuinely ambiguous construction, introduced by this PR's fix (not present pre-M-1, since that
    cause didn't call `blame()` before). The same proposed remedy (item 2) fixes it as a side effect.
 4. **DESIGN.md-governed surface in this diff?** None, measured: `git diff --name-status
    3c75aa6..6296149` — **16 files**, all `.sh` / `.py` / `.yaml` / `.md`:
-   `check-state.sh`, `layout_fixtures.py` (new), `layout_migration.py`, `test-check-state.py`,
+   `check-state.py`, `layout_fixtures.py` (new), `layout_migration.py`, `test-check-state.py`,
    `test-layout-migration.py`, four new review notes
    (`review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-hygiene.md`),
    `observations/harness-validator-lead.md`, `plan.yaml`, `.harness/logs/2026-08-14.md`, two deleted
@@ -176,7 +176,7 @@ DIGEST:
   contract_violations: []
   a11y: ["n/a — batch/CLI stdout text, no markup, no colour-only state encoding, no rendered surface"]
   open_questions:
-    - { id: Q1, question: "Proposed remedy for both the preserved A-1 and the new undeclared-segment double-dash: replace check-state.sh:1319's bare '\" — \" + _named' with a labelled separator, e.g. '\"; readers: \" + _named' — matching the sibling MIXED message's existing '\"; readers {_rd}\"' join at the same call site, so this is the file's own convention rather than invented wording. One line, cause-agnostic, no re-filtering. Not a decision I can take; approval-gated same as M-1/M-2 remedies.", blocking: false }
+    - { id: Q1, question: "Proposed remedy for both the preserved A-1 and the new undeclared-segment double-dash: replace check-state.py:1319's bare '\" — \" + _named' with a labelled separator, e.g. '\"; readers: \" + _named' — matching the sibling MIXED message's existing '\"; readers {_rd}\"' join at the same call site, so this is the file's own convention rather than invented wording. One line, cause-agnostic, no re-filtering. Not a decision I can take; approval-gated same as M-1/M-2 remedies.", blocking: false }
   files_touched: [.harness/features/FEAT-20-migration-detector/notes/review-harness-ui-reviewer-hygiene-c2.md]
   expertise_update: []
 artifact: .harness/features/FEAT-20-migration-detector/notes/review-harness-ui-reviewer-hygiene-c2.md

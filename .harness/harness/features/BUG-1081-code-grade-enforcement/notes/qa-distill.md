@@ -1,7 +1,7 @@
 # QA distillation — BUG-1081-code-grade-enforcement
 
 Applied 3 ops through `expertise-merge.py apply` (exit 0 each, verified by re-read): 2 craft
-displacements, 1 repository-tier addition. `check-expertise.sh` single-file mode: OK on both
+displacements, 1 repository-tier addition. `check-expertise.py` single-file mode: OK on both
 files, post-apply.
 
 ## Craft — `.harness/expertise/harness-qa.md` (150-line budget; 46 lines after)

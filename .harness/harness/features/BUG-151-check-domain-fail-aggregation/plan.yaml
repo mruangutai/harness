@@ -197,9 +197,9 @@ tasks:
              the Write tool, to a SIBLING path INSIDE tests/integration/ and NOT to /tmp, because
              the module anchors ROOT and its bin imports off its own __file__, so a copy elsewhere
              in the filesystem does not resolve. Name it tests/integration/_bug151_baseline.py:
-             run-unit-tests.sh collects tests/integration/test-*.py, so a name that does not begin
+             run-unit-tests.py collects tests/integration/test-*.py, so a name that does not begin
              with "test-" cannot be globbed into the suite. Before running anything, confirm the
-             copy does not upset the layout gate -- ".claude/skills/harness/bin/run-unit-tests.sh
+             copy does not upset the layout gate -- ".claude/skills/harness/bin/run-unit-tests.py
              --check-layout" must still exit 0 while the sibling exists; this was checked at plan
              time with this exact name and placement and exited 0. Then run the sibling copy and
              collect the set of names on lines starting with "ok" at column 0; run the post-change

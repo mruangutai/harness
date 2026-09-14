@@ -10,12 +10,12 @@ hypothetical; both are verified at source. `code_grade: n_a` — no code exists 
 
 Traced the modal case (prior run_id A/F/S/H + `run_uid` U1; incoming agrees on all four seed fields,
 carries no `run_uid`) through both routes at `c369fb1f`. Write: `content` parses to `doc`
-(`check-domain.sh:1479`-ish), `absolute_path is not None` block reads `prior_state`, parses to
+(`check-domain.py:1479`-ish), `absolute_path is not None` block reads `prior_state`, parses to
 `prior_doc` (dict, run_id A). Issue-1124 compare at `:1567-1574` is an **inequality** test
 (`if str(prior_run_id) != str(new_run_id): return`); run_ids are EQUAL in the modal case, so it does
 NOT return, and falls through to wherever T-09 places `uid_conflict(prior_doc, doc)` next —
 `prior_doc.run_uid=U1`, `doc.run_uid` absent → the "missing run_uid" branch fires → refused. Edit:
-`check-domain.sh:1905-1923` reconstructs the full post-edit content into the SAME `content` variable
+`check-domain.py:1905-1923` reconstructs the full post-edit content into the SAME `content` variable
 before the RE_STATE_YAML branch runs, so it reaches the identical code path. Confirmed correct as
 specified, on both routes. **Not a finding.**
 
@@ -37,8 +37,8 @@ record per P-15.
 ## Q3/Q4 — the finding: the witness is unwritten-guarded on every route (HIGH — must be addressed or
 explicitly disclosed before signature)
 
-`bash-write-guard.sh:762-763` — `_run_artifact_guard` — matches only `harness_boundary.RE_RUN_DIGEST`
-and `RE_STATE_YAML`. `check-domain.sh`'s `SHAPE_PATTERNS` (`:1185`) is
+`bash-write-guard.py:762-763` — `_run_artifact_guard` — matches only `harness_boundary.RE_RUN_DIGEST`
+and `RE_STATE_YAML`. `check-domain.py`'s `SHAPE_PATTERNS` (`:1185`) is
 `(RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD, RE_PLAN_YAML)` plus the
 separately-matched `RE_RUN_DIGEST`. **None of these, and no pattern added anywhere in T-01–T-12,
 matches `.run-identity.json`** (`MARKER_NAME`, T-01). Consequence: any writer with ordinary domain
@@ -53,14 +53,14 @@ alone (Q1 above), so write-time prevention degrades only where the prior is ALSO
 rewrite `.run-identity.json` after any of the plan's own disclosed residual routes fires (first-write
 race D-13/F-08, forgery, a bootstrap-grant session DEC-171, or an ungoverned NotebookEdit route T-11
 is still measuring) and the clobber becomes not merely "undetected" (already accepted) but
-**undetectable and its forensic trail erased**, with `check-state.sh` reporting nothing, forever. The
+**undetectable and its forensic trail erased**, with `check-state.py` reporting nothing, forever. The
 Goal states "if one ever is [replaced], the harness says so on its own" — that promise does not hold
 against a route requiring no more privilege than the write it is meant to catch.
 
 One nuance the dispatch's own framing got wrong and worth correcting for the record: item 4's premise
-("bash-write-guard.sh:744-767 refuses a Bash write or removal of a run artifact") is not what the code
+("bash-write-guard.py:744-767 refuses a Bash write or removal of a run artifact") is not what the code
 says — it names two specific patterns, neither of which is the marker. T-12's own cleanup instruction
-repeats the same over-broad claim ("bash-write-guard.sh refuses a Bash write or removal of a run
+repeats the same over-broad claim ("bash-write-guard.py refuses a Bash write or removal of a run
 artifact, and the probe directory is one") to justify using `os.remove`/`os.rmdir` instead of shell
 `rm` — accurate for `state.yaml`, not accurate for `.run-identity.json`, though the safer-anyway
 `python3` removal means T-12 itself doesn't misbehave from this.
@@ -91,8 +91,8 @@ it. Fix is cheap: add a fifth pair to T-08's list and to SC-07's FAILS-if enumer
 reconcile at signature)
 
 BRIEF Constraints: "Focused tests only. No formatter, no linter, no build, no **project-wide suite**."
-T-08 instructs "Run BOTH — `run-unit-tests.sh --kind unit` and `run-unit-tests.sh --kind integration`."
-Verified at source (`run-unit-tests.sh:26-29`): `--kind unit` → `SCRIPTS=(tests/unit/test-*.py)`,
+T-08 instructs "Run BOTH — `run-unit-tests.py --kind unit` and `run-unit-tests.py --kind integration`."
+Verified at source (`run-unit-tests.py:26-29`): `--kind unit` → `SCRIPTS=(tests/unit/test-*.py)`,
 `--kind integration` → `SCRIPTS=(tests/integration/test-*.py)` — both are **repo-wide globs**, not
 scoped to this feature's four touched files. This is not an implementer error: **SC-07 itself requires
 it** ("every refusal asserted by the harness `unit` and `integration` suites at `c369fb1f` is still
@@ -116,7 +116,7 @@ pm's disposition, just confirming it holds on the merits.
 ## T-12/SC-12 dates the load-bearing assumption once, does not close it (LOW/MED — operator can rule
 at signature, already substantially disclosed)
 
-`check-state.sh:840-941` (INV-9) verified to check only that `.claude/settings.json`'s PostToolUse
+`check-state.py:840-941` (INV-9) verified to check only that `.claude/settings.json`'s PostToolUse
 matcher is a syntactically valid registered regex — registration, not delivery. SC-12/T-12 record one
 live Write's outcome, once, at signature time. Nothing in the plan re-verifies delivery afterward. A
 later silent host regression (version upgrade, settings drift not caught by INV-9's regex-validity
@@ -125,7 +125,7 @@ with the whole suite green, exactly the "nobody notices until a human does" fail
 Problem statement names for the original bug. SC-12's own text is honest about the scope of what it
 measures, so this is disclosed rather than hidden — flagging so the operator is explicit that
 signing accepts a one-time dated measurement, not a standing guarantee. (Independently, peer
-`ShouldNotExist` also found T-12/SC-12 is confounded pre-merge by which checkout's `check-domain.sh`
+`ShouldNotExist` also found T-12/SC-12 is confounded pre-merge by which checkout's `check-domain.py`
 main-session-direct tasks execute from — a different, complementary defect on the same task; see their
 digest.)
 
@@ -135,7 +135,7 @@ digest.)
   correctly `traces: []`; `depends_on` graph (T-01←[]; T-02,T-03←[T-01]; T-09,T-12←[T-02];
   T-06←[T-02,T-09]; T-08←[T-02,T-03,T-05,T-06,T-09]) is a valid DAG, no cycles.
 - Spot-checked `verify:` blocks for T-01/T-02/T-03/T-05/T-06/T-07/T-09 against source anchors
-  (`check-domain.sh:1508,1526,1529,1530,1567-1574,1905-1923,1930`; `check-state.sh:840-941,1390,1426`;
+  (`check-domain.py:1508,1526,1529,1530,1567-1574,1905-1923,1930`; `check-state.py:840-941,1390,1426`;
   `SKILL.md:272-274` does contain the literal string `task-or-purpose` T-07's negative grep targets)
   — all anchors verified accurate at `c369fb1f`, all commands are syntactically executable as written.
 - Re-derived every arity claim send-back-1 corrected against its own recount; found no further

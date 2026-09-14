@@ -15,7 +15,7 @@ mostly exists and in several cases visibly works when hand-driven, but "verify: 
 evidence: unit/integration" means a committed test, and for SC-01, SC-02, SC-03, SC-06, SC-08,
 SC-12 and SC-13 no such test exists in the tree at the pin. On top of the missing-evidence class,
 two are genuine fail-open defects: `inflight_registry.feature_root` silently collapses onto the
-control-plane root on `AmbiguousWorktree` (SC-10's own guarantee), and `dispatch-guard.sh`'s new
+control-plane root on `AmbiguousWorktree` (SC-10's own guarantee), and `dispatch-guard.py`'s new
 tool-grant read swallows every read/parse failure with **zero stderr line**, unlike every other
 fail-open branch in the same file, which all say so out loud.
 
@@ -50,7 +50,7 @@ fail-open branch in the same file, which all say so out loud.
 4. **`.omp/agents/harness-orchestrator.md:146`** — MET (the matching emit duty, not the receive
    duty). "For every shell-less lead dispatch, include `HARNESS-FEATURE-TREE-ROOT: <absolute
    path>` resolved once with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py
-   feature-root --feature <FEAT>`; dispatch-guard.sh refuses its absence at exit 2."
+   feature-root --feature <FEAT>`; dispatch-guard.py refuses its absence at exit 2."
 
 `harness-handoff/SKILL.md:65-66` — MET. Carries the exception ("If your persona holds no shell,
 do not run that command...") immediately beside the self-resolution command at line 65.
@@ -65,7 +65,7 @@ not hand-diverged.
 
 ## Findings, ranked
 
-### F1 — HIGH, BLOCKING. `dispatch-guard.sh:145-153` — silent fail-open on an unreadable/malformed
+### F1 — HIGH, BLOCKING. `dispatch-guard.py:145-153` — silent fail-open on an unreadable/malformed
 persona file, contradicting the task's own intent and the file's own convention.
 
 ```
@@ -108,14 +108,14 @@ exists so the resolver "never guesses" when two linked worktrees prefix-match on
 (`FEAT-90-alpha` and `FEAT-90-alpha-redo`, say) — `inflight_registry.py feature-root --feature
 FEAT-90-alpha` silently prints the control-plane root instead of refusing. If a lead's dispatcher
 runs that exact command to populate `HARNESS-FEATURE-TREE-ROOT:` (per `harness/SKILL.md`'s emit
-duty), the dispatch carries the control-plane root; `dispatch-guard.sh:171-177`'s own comparison
+duty), the dispatch carries the control-plane root; `dispatch-guard.py:171-177`'s own comparison
 (`reg.feature_root(owner_root, declared)`) computes the identical silently-wrong value, so the two
 sides agree and the guard passes the dispatch. The lead's receipt and observations then land in
 the control plane, off whichever worktree the feature is actually building in — invisible at that
 worktree's `review_sha`, which is precisely the failure class D-06 exists to end. No test exercises
 this branch (`test-inflight-registry.py` case35 has no ambiguous-worktree case).
 
-### F3 — HIGH, BLOCKING. SC-13 has zero committed evidence — `dispatch-guard.sh`'s entire
+### F3 — HIGH, BLOCKING. SC-13 has zero committed evidence — `dispatch-guard.py`'s entire
 shell-less-refusal mechanism is unverified.
 
 `test-dispatch-guard.py` is byte-identical between the merge-base and the pin (508 lines, 0-line
@@ -140,7 +140,7 @@ to close.
 SC-12 all have code that appears correct on manual inspection but no committed test proving it.
 
 Manually verified at the pin (not committed anywhere): the UNRESOLVED branch of
-`inject-expertise.sh` does emit `HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED` and the exact
+`inject-expertise.py` does emit `HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED` and the exact
 `VERDICT: BLOCKED` sentence, exit 0 — confirmed by invoking the script via process substitution
 from a rootless cwd. The `HARNESS_PATH_DRIFT` mechanism and the CI wiring both read correctly on
 inspection (`check-instruction-paths.py`'s `scope()`/`main()` derive `--list-scope` and the scanned
@@ -175,7 +175,7 @@ style) are noted for completeness; per policy these never gate on their own.
 
 ## Not re-raised (already-known / out of scope per dispatch)
 
-`check-state.sh` VIOLATION lines (FEAT-51/BUG-1033, worktree-only), the 6 `team-config.yaml`
+`check-state.py` VIOLATION lines (FEAT-51/BUG-1033, worktree-only), the 6 `team-config.yaml`
 DEVIATION sub-cases (environmental), the deliberate absence of `HARNESS_FEATURE_TREE_ROOT` from
 `harness-backend-dev.md`'s adapter file, the untracked feature directory, and `STATE.md`'s stale
 status — all per the dispatch's explicit ruled-list.
@@ -188,4 +188,4 @@ acceptance rule ("FAIL if any success criterion is unmet"). Recommend routing ba
 implementer: F3/F4/F5 are pure test-writing gaps against code that in several cases already works
 (cheap to close); F1 needs one `print(..., file=sys.stderr)` line; F2 needs `feature_root` to
 either propagate `AmbiguousWorktree` to its caller (who already fails open with a stderr line at
-`dispatch-guard.sh:172-175`) or print its own diagnostic before falling back — not silently.
+`dispatch-guard.py:172-175`) or print its own diagnostic before falling back — not silently.

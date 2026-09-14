@@ -22,8 +22,8 @@ lanes:
 decisions:
   - id: D-01
     choice: >-
-      The behavioral test executes merge-gitignore.sh as a real subprocess and is registered as
-      integration evidence in both run-unit-tests.sh and harness.json.
+      The behavioral test executes merge-gitignore.py as a real subprocess and is registered as
+      integration evidence in both run-unit-tests.py and harness.json.
     because: >-
       The observable contract includes process exit status, stderr, filesystem writes and caller cwd;
       DEC-187 classifies real-script subprocess coverage as integration, and DEC-197 requires an
@@ -32,7 +32,7 @@ decisions:
   - id: D-02
     choice: >-
       The build authors and runs the behavioral test before any production edit, and changes
-      merge-gitignore.sh only if that first run proves a documented contract violation.
+      merge-gitignore.py only if that first run proves a documented contract violation.
     because: >-
       The utility already documents the intended behavior, so passing new coverage is the complete
       outcome and a speculative production rewrite would add risk without correcting an observed defect.
@@ -50,12 +50,12 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-merge-gitignore.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
-      - .claude/skills/harness/bin/merge-gitignore.sh
+      - .claude/skills/harness/bin/merge-gitignore.py
     verify: |
       python3 .claude/skills/harness/bin/test-merge-gitignore.py &&
-      .claude/skills/harness/bin/run-unit-tests.sh --kind all
+      .claude/skills/harness/bin/run-unit-tests.py --kind all
     intent: |
       Deliver SC-01 through SC-06 and all five traced requirements in one test-first task.
 
@@ -79,14 +79,14 @@ tasks:
       absolute project root, and proves the requested project's .gitignore changes while the caller
       directory gains no .gitignore.
 
-      Before editing merge-gitignore.sh, run the new test program against the untouched utility and
+      Before editing merge-gitignore.py, run the new test program against the untouched utility and
       retain the pass or named failure in the task receipt. If every case passes, do not edit
-      merge-gitignore.sh. Only if a case fails may production change: keep the failing case, confirm it
+      merge-gitignore.py. Only if a case fails may production change: keep the failing case, confirm it
       expresses REQ-01 through REQ-05 rather than an undocumented preference, make the smallest source
       correction that turns that case green, and report the original failure in the receipt. Do not
       change provider handling, Anthropic support, Claude Code compatibility, or unrelated utilities.
 
-      Register test-merge-gitignore.py in INTEGRATION_SCRIPTS in run-unit-tests.sh and add its exact
+      Register test-merge-gitignore.py in INTEGRATION_SCRIPTS in run-unit-tests.py and add its exact
       path to test_kinds.integration.detect in .harness/harness.json. Do not add it to UNIT_SCRIPTS;
       unit.detect already overlaps by its catch-all pattern, and DEC-197 makes the explicit integration
       path authoritative. Preserve the runner's drift detector and kind cross-check. The verification

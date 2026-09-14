@@ -17,9 +17,9 @@ unchanged before/after (diffed byte-for-byte, `NO DIFF`).
   exactly and B below proves the suite is green with the var **unset**, so it does not gate.
 
 ## B — both suites, `EXPERTISE_MERGE_BIN` unset — CONFIRMED
-- `env -u EXPERTISE_MERGE_BIN .agents/skills/harness/bin/run-unit-tests.sh --kind unit` → exit 0,
+- `env -u EXPERTISE_MERGE_BIN .agents/skills/harness/bin/run-unit-tests.py --kind unit` → exit 0,
   `^FAIL ` count 0, 28 files (`pool: 8 workers, 28 files, 2.15s wall`).
-- `env -u EXPERTISE_MERGE_BIN .agents/skills/harness/bin/run-unit-tests.sh --kind integration` → exit 0,
+- `env -u EXPERTISE_MERGE_BIN .agents/skills/harness/bin/run-unit-tests.py --kind integration` → exit 0,
   `^FAIL ` count 0, 46 files (`pool: 8 workers, 46 files, 61.92s wall`).
 
 ## C — T-01/T-02 verify blocks, byte-matched against `plan.yaml` — CONFIRMED

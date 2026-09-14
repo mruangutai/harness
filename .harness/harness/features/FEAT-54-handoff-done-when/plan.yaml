@@ -60,10 +60,10 @@ panel:
 lanes:
   resolved_at: b7956fc4
   rows:
-    - surface: .claude/skills/harness/bin/check-domain.sh
+    - surface: .claude/skills/harness/bin/check-domain.py
       lane: main-session-direct
       reason: 'DEC-174 — registered PreToolUse write gate, granted by the resolver and still not squad work'
-    - surface: .claude/skills/harness/bin/check-state.sh
+    - surface: .claude/skills/harness/bin/check-state.py
       lane: main-session-direct
       reason: 'DEC-174 — the state gate itself'
     - surface: .claude/skills/harness/bin/test-check-domain.py
@@ -78,7 +78,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-handoff-done-when.py
       lane: main-session-direct
       reason: 'DEC-174 — the test of that gate logic'
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: 'DEC-174 — the suite runner is a required check on main (DEC-183)'
     - surface: .claude/skills/harness/templates/HANDOFF.md
@@ -106,7 +106,7 @@ decisions:
     because: a frozen path list needs no git history, so the answer cannot change with clone depth the way a git-log discriminator does in a depth-1 CI checkout; failure mode is a dead entry after a note is renamed, which exempts nothing; a historical note someone later edits is refused by the write gate until it gains the section, so it can only leave the historical set by becoming compliant; what each pass checks once the section is present is D-10's ruling, not this one's, and is deferred to it by id.
     dec: none
   - id: D-02
-    choice: 'one implementation of block parsing and pointer resolution, a new module .claude/skills/harness/bin/handoff_done_when.py, imported by check-domain.sh and check-state.sh'
+    choice: 'one implementation of block parsing and pointer resolution, a new module .claude/skills/harness/bin/handoff_done_when.py, imported by check-domain.py and check-state.py'
     because: 'DEC-179 priced a second matcher that drifts from the first; two gates asking the same question must ask the same code'
     dec: DEC-179
   - id: D-03
@@ -114,7 +114,7 @@ decisions:
     because: 'the feature dir is derivable from the note own path, so resolution needs no configuration; an absent target file is unresolved rather than skipped, which is the whole point of real resolution'
     dec: none
   - id: D-04
-    choice: the comprehension benchmark is persisted as tests/manual/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, under neither of the two directories run-unit-tests.sh globs (tests/unit and tests/integration) so --kind all cannot execute it, and absent from test_matrix
+    choice: the comprehension benchmark is persisted as tests/manual/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, under neither of the two directories run-unit-tests.py globs (tests/unit and tests/integration) so --kind all cannot execute it, and absent from test_matrix
     because: 'registration is what grades the probe as TEST code: code_grade._is_test_path counts a locally_run kind''s detect matches at the lighter complexity bar 3 instead of grading a probe script as production code (code_grade.py:458-472), so a persisted but unregistered probe is graded at the production bar; the kind must be locally_run and never active because tests/unit/test-suite-layout.py:105 requires that no ACTIVE kind''s detect names tests/manual; and locally_run keeps it rerunnable at review without making a nondeterministic model run a release gate'
     dec: DEC-201
   - id: D-05
@@ -122,7 +122,7 @@ decisions:
     because: 'the existing handoff and CLAUDE.md messages already explain the rule and name the template, and DEC-100b requires naming the offending item rather than leaving the author to guess'
     dec: DEC-100b
   - id: D-06
-    choice: the new test file tests/unit/test-handoff-done-when.py is a UNIT test by placement — run-unit-tests.sh selects the unit suite by the glob tests/unit/test-*.py — and no per-file entry is added to test_kinds.integration.detect
+    choice: the new test file tests/unit/test-handoff-done-when.py is a UNIT test by placement — run-unit-tests.py selects the unit suite by the glob tests/unit/test-*.py — and no per-file entry is added to test_kinds.integration.detect
     because: it spawns no subprocess, which is exactly the criterion separating tests/unit from tests/integration, and placement under tests/unit is the whole of its registration because the runner globs that directory; the integration half has no per-file subject left at HEAD — test_kinds.integration.detect is the single directory glob tests/integration/** which cannot match a file under tests/unit, and tests/unit/test-suite-layout.py:101-102 pins that value byte-for-byte to templates/harness.json, so editing it to name a file would redden that assertion
     dec: none
   - id: D-07
@@ -135,7 +135,7 @@ decisions:
     because: 'the operator settled that untouched historical handoffs remain valid AND that every newly written or edited handoff must use the five-section contract (grilling line 16); widening the baseline to cover this build''s own notes would exempt the first notes ever written under the new contract, and leaving them non-compliant would redden the corpus scan T-07 adds, for a planning reason no code fix addresses'
     dec: none
   - id: D-10
-    choice: 'pointer TARGETS are resolved at write time only: check-domain.sh calls handoff_done_when.problems(..., resolve=True) and checks section presence, block shape, pointer grammar AND target resolution; check-state.sh (INV-17) calls the same single implementation with resolve=False and checks section presence against the frozen baseline, block shape and pointer GRAMMAR only — the authority prefix is one of the four legal types and the pointer is well formed for that type — and never opens a target. One module, one parser, one pointer grammar (DEC-179); resolve gates nothing but whether a target file is opened'
+    choice: 'pointer TARGETS are resolved at write time only: check-domain.py calls handoff_done_when.problems(..., resolve=True) and checks section presence, block shape, pointer grammar AND target resolution; check-state.py (INV-17) calls the same single implementation with resolve=False and checks section presence against the frozen baseline, block shape and pointer GRAMMAR only — the authority prefix is one of the four legal types and the pointer is well formed for that type — and never opens a target. One module, one parser, one pointer grammar (DEC-179); resolve gates nothing but whether a target file is opened'
     because: 'the operator ruled at the batched signature review of 2026-09-02, on finding PF-4205e7e2, that a standing re-resolution over the persisted corpus is a rot vector: a later BRIEF repair that renumbers an SC reddens an untouched, previously valid note and forces the very edit the frozen baseline exists to prevent, while the grilling settled resolution at write time only. Pointer GRAMMAR stays in the persisted pass because a typed prefix consults no target and therefore cannot rot, and a note whose authority is outside the four legal kinds must still be caught there. The operator ruled at the same batched signature review of 2026-09-02, on finding PF-bd92960a, that the typed pointer grammar — the four authority types and the id format of each — is a STABLE CONTRACT: the persisted pass validates grammar only and never target existence, and any future rename or narrowing of an authority type or of an id format is an explicit versioned contract change made by the feature that makes it, not machinery this feature builds. The operator also confirmed (Q3) that grammar validation IS part of the persisted shape validation. This clause is a record of the ruling and adds no mechanism, no task, no criterion and no grammar-versioning machinery, which stays out of scope'
     dec: DEC-179
 
@@ -145,7 +145,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — the test of gate logic imported by check-domain.sh and check-state.sh'
+    execution_reason: 'DEC-174 — the test of gate logic imported by check-domain.py and check-state.py'
     depends_on: []
     status: done
     files:
@@ -156,7 +156,7 @@ tasks:
     intent: |
       Create tests/unit/test-handoff-done-when.py, a stdlib-only self-checking script in the
       style of the other test-*.py files under tests/unit/ (named cases, one printed line per
-      case, exit 1 on any failure). PLACEMENT IS REGISTRATION: run-unit-tests.sh selects the unit
+      case, exit 1 on any failure). PLACEMENT IS REGISTRATION: run-unit-tests.py selects the unit
       suite by the glob tests/unit/test-*.py, so a file dropped in that directory is registered by
       being there, and no runner edit registers anything. Do NOT add any per-file entry to
       test_kinds.integration.detect: that value is the directory glob tests/integration/**, it
@@ -196,7 +196,7 @@ tasks:
       (e) TWO refusals of an authority outside the four types, asserted separately: an Authority:
           line whose prefix is none of the four ("Authority: docs:whatever") returns a message
           saying so and listing the four legal prefixes; and an Authority: line carrying a BARE
-          SOURCE-CODE LOCATION ("Authority: check-domain.sh:1523") returns the same refusal, so
+          SOURCE-CODE LOCATION ("Authority: check-domain.py:1523") returns the same refusal, so
           "a source-code location alone is not an authority" (REQ-04) is observed and not assumed;
       (f) AND semantics, distinguished from ANY observably: four authorities all resolving returns
           [], proving the maximum is accepted, and the SAME block with exactly one of those four
@@ -223,7 +223,7 @@ tasks:
     traces: [REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — gate logic imported by both check-domain.sh and check-state.sh'
+    execution_reason: 'DEC-174 — gate logic imported by both check-domain.py and check-state.py'
     depends_on: [T-01]
     status: done
     files:
@@ -278,7 +278,7 @@ tasks:
       5. No I/O outside the paths named above, and no process spawn: both callers are hooks on a
          latency budget.
 
-      Do not touch check-domain.sh or check-state.sh in this task. The expected state at the end
+      Do not touch check-domain.py or check-state.py in this task. The expected state at the end
       is GREEN for test-handoff-done-when.py and unchanged behaviour everywhere else.
   - id: T-03
     title: Write the failing write-gate cases in test-check-domain.py
@@ -291,7 +291,7 @@ tasks:
     - REQ-08
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — check-domain.sh''s own test'
+    execution_reason: 'DEC-174 — check-domain.py''s own test'
     depends_on: [T-02]
     status: done
     files:
@@ -303,7 +303,7 @@ tasks:
       Extend tests/integration/test-check-domain.py with the write-gate cases for the
       fifth handoff section. Use the existing handoff fixture helpers in that file (the rows near
       the current handoff cap and missing-section cases) so the new cases go through the real
-      check-domain.sh process and assert on its exit code and stderr, never on its source.
+      check-domain.py process and assert on its exit code and stderr, never on its source.
 
       Cases, each a separate named assertion:
       (a) a handoff note carrying "## Next", "## Trust", "## Dead ends", "## Working set" and no
@@ -323,7 +323,7 @@ tasks:
           the same edit that adds a well formed block is allowed;
       (g) an authority outside the four types is refused through the gate, TWO separate
           assertions: an unknown prefix ("Authority: docs:whatever") and a BARE SOURCE-CODE
-          LOCATION ("Authority: check-domain.sh:1523"). Each is exit 2 and the stderr lists the
+          LOCATION ("Authority: check-domain.py:1523"). Each is exit 2 and the stderr lists the
           four legal prefixes. This is the gate-level proof of REQ-04's second sentence;
       (h) NO PER-SECTION CAP EXISTS, asserted positively: a five-section note whose "## Trust"
           section runs 25 lines and whose whole file is exactly 60 lines is ALLOWED, exit 0, and
@@ -340,7 +340,7 @@ tasks:
       grammar AND target resolution are all in force (REQ-06, D-10), so every pointer case here
       is a resolving-or-refused case rather than a grammar-only one.
 
-      Do not modify check-domain.sh in this task. The expected state at the end is RED: the new
+      Do not modify check-domain.py in this task. The expected state at the end is RED: the new
       cases fail because the gate does not yet demand or parse the section, and the output names
       the section. Case (h) is expected GREEN before and after — it is a regression guard on the
       absence of a per-section cap, and its value is that it reddens if one is ever added.
@@ -349,15 +349,15 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-05, REQ-06, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — check-domain.sh is a registered PreToolUse gate script'
+    execution_reason: 'DEC-174 — check-domain.py is a registered PreToolUse gate script'
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-domain.py
     verify: |
       cd "$CLAUDE_PROJECT_DIR" && python3 tests/integration/test-check-domain.py
     intent: |
-      In .claude/skills/harness/bin/check-domain.sh, extend the RE_HANDOFF branch of
+      In .claude/skills/harness/bin/check-domain.py, extend the RE_HANDOFF branch of
       shape_problems (the block at the "handoff shape (DEC-159)" head) so that every handoff
       write and edit it already sees must also satisfy the Done when contract:
 
@@ -371,7 +371,7 @@ tasks:
         all in force, which is what REQ-06 demands and what D-10 confines to write time;
       - keep the 60-line whole-file cap and its message unchanged, and add no per-section cap;
       - ALSO bring this gate's OWN PROSE into the five-section contract. Two live four-section
-        claims sit inside check-domain.sh today; locate each BY ITS CONTENT, never by line
+        claims sit inside check-domain.py today; locate each BY ITS CONTENT, never by line
         number, which moves:
         (i) the normative "DEC-159:" comment immediately above the RE_HANDOFF branch, which
         today says the handoff note is working memory for a successor with "four fixed
@@ -428,7 +428,7 @@ tasks:
           every note that is not; the list is finite and MUST NEVER GROW, because a note edited
           after the contract landed is refused at write until it complies, and a note written
           DURING this feature's own build is a new note that complies (D-08) rather than a
-          baseline entry; it is per-project because check-state.sh is copied into every onboarded
+          baseline entry; it is per-project because check-state.py is copied into every onboarded
           project, so a hardcoded list would export this repository's history; an empty list is
           the right value for a project onboarded after this feature.
         "handoff_done_when_baseline": a JSON array of repo-relative path strings, exactly the
@@ -446,7 +446,7 @@ tasks:
     traces: [REQ-06, REQ-07, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — check-state.sh''s own test'
+    execution_reason: 'DEC-174 — check-state.py''s own test'
     depends_on: [T-02, T-05]
     status: done
     files:
@@ -457,7 +457,7 @@ tasks:
     intent: |
       Extend tests/integration/test-check-state.py with the INV-17 cases for the fifth
       section, reusing the existing INV-17 fixture builders (the helpers around the current
-      HANDOFF_GOOD note and the shape-line assertions) so each case runs the real check-state.sh
+      HANDOFF_GOOD note and the shape-line assertions) so each case runs the real check-state.py
       and asserts on its reported lines.
 
       Cases, each separately named:
@@ -485,7 +485,7 @@ tasks:
           tempfile.TemporaryDirectory holding TWO compliant notes — one whose repo-relative path
           IS in that fixture's harness.json handoff_done_when_baseline and one that is NOT, each
           carrying a well formed, fully resolving "## Done when" block — record every fixture
-          note's bytes and mtime, run check-state.sh against that fixture root, and assert BOTH
+          note's bytes and mtime, run check-state.py against that fixture root, and assert BOTH
           that no reported line mentions "Done when" AND that each fixture note is byte-identical
           and mtime-identical afterwards. This case NEVER runs a gate over the real repository
           tree and NEVER compares the mtime or bytes of a real feature note: a permanent suite
@@ -497,7 +497,7 @@ tasks:
       (h) NO PER-SECTION CAP EXISTS, asserted positively at the STATE CHECK: build a
           NON-BASELINED note whose "## Done when" block is well formed and fully resolving,
           whose "## Trust" section runs 25 lines, and whose whole file is exactly 60 lines, and
-          assert that check-state.sh reports NO line naming that note's path at all — in
+          assert that check-state.py reports NO line naming that note's path at all — in
           particular none mentioning a cap or any section length. This is the state-check half
           of SC-14; T-03 case (h) is the write-gate half, and SC-14 requires both. It is
           expected GREEN before and after this feature: its value is that it reddens the moment
@@ -507,7 +507,7 @@ tasks:
       including a fixture .harness/harness.json. No case in this file runs a gate over the real
       repository tree, and none compares the mtime or bytes of a real feature note.
 
-      Do not modify check-state.sh in this task. The expected state at the end is RED on cases
+      Do not modify check-state.py in this task. The expected state at the end is RED on cases
       (a), (c), (e2) and (f), with "Done when" in the output. Cases (b), (d), (e1), (g) and (h)
       are expected GREEN both before and after — (e1) is the D-10 guard on the persisted pass
       never re-resolving a target, and (h) is a regression guard on the ABSENCE of a per-section
@@ -517,27 +517,27 @@ tasks:
     traces: [REQ-07, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — check-state.sh is the project state gate'
+    execution_reason: 'DEC-174 — check-state.py is the project state gate'
     depends_on:
     - T-06
     - T-11
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-state.py
     verify: |
       cd "$CLAUDE_PROJECT_DIR" || exit 1
       python3 tests/integration/test-check-state.py || exit 1
-      grep -qi 'done when' .claude/skills/harness/bin/check-state.sh || exit 1
-      out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1); rc=$?
+      grep -qi 'done when' .claude/skills/harness/bin/check-state.py || exit 1
+      out=$(python3 .claude/skills/harness/bin/check-state.py 2>&1); rc=$?
       test "$rc" -le 1 || exit 1
       printf '%s\n' "$out" | grep -qi 'done when' && exit 1
       printf 'ok rc=%s\n' "$rc"
     intent: |
-      In .claude/skills/harness/bin/check-state.sh, extend the INV-17 handoff shape pass (the
+      In .claude/skills/harness/bin/check-state.py, extend the INV-17 handoff shape pass (the
       glob over notes/handoff-*.md that today reports missing sections, the 60-line cap and empty
       sections) so it also enforces the Done when contract, per D-01:
 
-      - THE HEADING CONSTANT MUST NAME FIVE SECTIONS. HANDOFF_HEADINGS at check-state.sh:1059 is
+      - THE HEADING CONSTANT MUST NAME FIVE SECTIONS. HANDOFF_HEADINGS at check-state.py:1059 is
         today ["## next", "## trust", "## dead ends", "## working set"] and is read twice: at :1199
         to compute `miss`, and at :1219 to select the headings whose bodies must be non-empty. A
         state check whose heading constant still names four sections cannot grade the fifth. Rename
@@ -572,7 +572,7 @@ tasks:
       never treat the absence of a note from the list as permission to skip its shape.
 
       Do not edit test-check-state.py in this task. Expected end state: test-check-state.py GREEN,
-      and check-state.sh over this repository reports no line mentioning Done when, with all 141
+      and check-state.py over this repository reports no line mentioning Done when, with all 141
       baselined notes unmodified. This task depends on T-11 because its verify runs the real corpus
       scan: every handoff note written during this build is non-baselined (D-08), so one that does
       not yet carry the section would be reported by the very pass this task adds.
@@ -652,7 +652,7 @@ tasks:
       assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
       assert k['exclude']=='.claude/worktrees/**', k
       assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'
-      print('ok')" && bash .claude/skills/harness/bin/run-unit-tests.sh --check-layout
+      print('ok')" && python3 .claude/skills/harness/bin/run-unit-tests.py --check-layout
     intent: |
       Persist the comprehension benchmark so review can rerun it, without letting it into any
       normal test run.
@@ -683,7 +683,7 @@ tasks:
          under tests/manual/, a directory neither of the runner's two suite globs
          (tests/unit/test-*.py, tests/integration/test-*.py) covers, so --kind all cannot execute
          it. Under .claude/skills/harness/bin/ it would instead be a layout violation:
-         suite_layout.violations() reports any probe-* left there and run-unit-tests.sh exits 2 on
+         suite_layout.violations() reports any probe-* left there and run-unit-tests.py exits 2 on
          any violation, which is why the probe is persisted under tests/manual/ and not beside the
          gate scripts. The kind stays locally_run rather than active because
          tests/unit/test-suite-layout.py:105 requires that no ACTIVE kind's detect names
@@ -816,7 +816,7 @@ tasks:
     traces: [REQ-10]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — test-run-unit-tests-kinds.py is run-unit-tests.sh''s own test, and the suite runner is a required check on main (DEC-183)'
+    execution_reason: 'DEC-174 — test-run-unit-tests-kinds.py is run-unit-tests.py''s own test, and the suite runner is a required check on main (DEC-183)'
     depends_on: [T-09]
     status: done
     files:
@@ -829,14 +829,14 @@ tasks:
       printf 'ok\n'
     intent: |
       Create tests/integration/test-run-unit-tests-kinds.py, a NEW file. Placement IS registration:
-      run-unit-tests.sh globs tests/integration/test-*.py, so no runner edit and no test_kinds edit
+      run-unit-tests.py globs tests/integration/test-*.py, so no runner edit and no test_kinds edit
       registers it. Do NOT modify tests/integration/test-run-unit-tests-layout.py or
       .claude/skills/harness/bin/suite_layout.py in this task: weakening either is forbidden, and
       this task needs neither touched.
 
       The obligation under REQ-10 is to assert the comprehension probe's registration and its
       absence from the normal suites. The machinery the pre-FEAT-47 draft of this task named — an
-      inline heredoc inside run-unit-tests.sh that cross-checked each probe against the declared test
+      inline heredoc inside run-unit-tests.py that cross-checked each probe against the declared test
       kinds and printed a drift line per unregistered probe, plus two shell arrays naming the scripts
       each suite ran — does not exist: the runner selects suites by glob and reads no test kinds at
       all. So the registration claim is asserted against .harness/harness.json directly, and the
@@ -862,11 +862,11 @@ tasks:
           discriminates rather than being ever-green.
       (c) --kind all CANNOT EXECUTE THE PROBE. Build a fixture root under
           tempfile.TemporaryDirectory in the shape of test-run-unit-tests-layout.py's tree():
-          .harness/team-config.yaml, plus run-unit-tests.sh, harness_boundary.py, suite_layout.py
+          .harness/team-config.yaml, plus run-unit-tests.py, harness_boundary.py, suite_layout.py
           and run_pool.py copied into <tmp>/.claude/skills/harness/bin, one passing test-*.py under
           tests/unit and one under tests/integration. Add tests/manual/probe-handoff-comprehension.py
           to that fixture, a file that prints a unique sentinel string and exits 1. Run the
-          fixture's run-unit-tests.sh with --kind all and assert exit 0, both fixture tests' output
+          fixture's run-unit-tests.py with --kind all and assert exit 0, both fixture tests' output
           present, and the sentinel ABSENT: the probe sits under neither globbed directory, so
           --kind all cannot execute it. Assert also that --check-layout over that same fixture exits
           0, so a probe under tests/manual is not a layout violation — while the identical file

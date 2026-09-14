@@ -64,7 +64,7 @@ task, every active task traces at least one REQ, and no task cites a REQ that do
 
 ## Gate state at signature
 
-- `check-state.sh` reports exactly **two** FEAT-104 violations. One is the signature gate itself
+- `check-state.py` reports exactly **two** FEAT-104 violations. One is the signature gate itself
   ("BRIEF.md is NOT approved"), which is the gate working.
 - The other is the INV-26 false positive: its not-started skip requires `all(status == "ready")`,
   so T-02's `abandoned` value alone makes it demand `gh-sync.py open` — a command the mirror
@@ -106,7 +106,7 @@ is another flow's worktree, and you have stopped cross-worktree releases. The me
 the decision is not mine. I landed the lead's digest from my own tier instead, carrying its fenced
 contract block, and disclosed both corrections in the file rather than overwriting them.
 
-**Why this bears on your signature rather than on my bookkeeping.** `check-domain.sh` enforces
+**Why this bears on your signature rather than on my bookkeeping.** `check-domain.py` enforces
 single-flight by agent TYPE across every linked worktree, not per feature. So while another flow
 holds `harness-product-lead` or `harness-eng-lead`, this feature's build-phase dispatches will hit
 the same wall — mid-run, after earlier writes to the same path have succeeded, which is what makes

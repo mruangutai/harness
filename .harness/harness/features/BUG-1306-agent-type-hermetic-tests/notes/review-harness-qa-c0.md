@@ -63,7 +63,7 @@ unset). The governed run passing IS the criterion; a workaround here would have 
 Ran the full `integration` kind's standing command with `HARNESS_AGENT_TYPE=harness-orchestrator`
 set ambient for the whole runner (not just the one file):
 ```
-$ HARNESS_AGENT_TYPE=harness-orchestrator bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ HARNESS_AGENT_TYPE=harness-orchestrator python3 .agents/skills/harness/bin/run-unit-tests.py --kind integration
 EXIT=0   FAIL-line count=0
 ```
 **No other test file reddens** under the governed ambient identity, at this pin. Independently
@@ -80,7 +80,7 @@ attribute to merge-base vs. this pin.
 
 ## Item 5 — what the runner-level green does and does not prove
 
-A green `run-unit-tests.sh --kind integration` run proves the **CI path** is unbroken — the
+A green `run-unit-tests.py --kind integration` run proves the **CI path** is unbroken — the
 command CI actually invokes exits 0. It proves **nothing about hermeticity**, because
 `run_pool.py` (`.agents/skills/harness/bin/run_pool.py`) spawns each test file as its own
 `subprocess.run` and **passes the ambient environment through unfiltered**: if a future case in

@@ -80,7 +80,7 @@ no top-level `gates:` key in `plan.yaml` (grepped `^gates:` — zero hits; the `
 blocking` cited in the dispatch lives in `.harness/harness.json:351-355`, a repo-level config, not
 a plan-level gate). Every task's own `verify:` names specific files
 (`tests/unit/test-issue-types.py`, `tests/integration/test-gh-issue-types.py`, etc.); none globs
-`tests/unit/test-*.py` or shells out to `run-unit-tests.sh`. `run-unit-tests.sh`'s `unit` kind
+`tests/unit/test-*.py` or shells out to `run-unit-tests.py`. `run-unit-tests.py`'s `unit` kind
 globs `tests/unit/test-*.py` (confirmed by reading the script), which would pick up
 `test-issue-types-pin.py` and fail red — but the only caller of that full-suite path is the
 project's `qa_gate`, documented in `.agents/skills/harness/SKILL.md:145-148` as **segment 2 of
@@ -92,7 +92,7 @@ that a main-session-direct task is deferred to *after* qa_gate — the segment-o
 it is a process-discipline dependency on the orchestrator, not a plan-encoded or tool-encoded
 guarantee**, and if violated it fails LOUD (qa_gate is `blocking`; a premature run would redden the
 whole suite, not silently pass). No task's `verify:`, no `gates:` block, and no config I read
-claims otherwise or papers over it. I found nothing — in the plan, in `run-unit-tests.sh`, or in
+claims otherwise or papers over it. I found nothing — in the plan, in `run-unit-tests.py`, or in
 `.harness/harness.json` — that would make this fail *silently*.
 
 ## B. Four accepted surfaces — unchanged

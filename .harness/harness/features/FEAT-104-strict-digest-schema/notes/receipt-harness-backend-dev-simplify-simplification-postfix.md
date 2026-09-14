@@ -1,12 +1,12 @@
 BLUF: the fix delta (6126ac07→99035a9c) adds two SIMPLIFICATION-angle issues — a
-ternary-plus-guard in `check-domain.sh` that restates a predicate already written twice in the
+ternary-plus-guard in `check-domain.py` that restates a predicate already written twice in the
 same file, and a comment in `validate-digest.py` that narrates the change instead of stating the
 current rule; the test refactors in both files are genuine reductions, not relocations, and one
 prior-pass residual (S2) already covers the cross-file duplication so I do not re-derive it.
 
 ## Findings
 
-### F-S1 — `check-domain.sh:1760-1770` (hardlinked `.agents/skills/harness/bin/check-domain.sh`, same inode)
+### F-S1 — `check-domain.py:1760-1770` (hardlinked `.agents/skills/harness/bin/check-domain.py`, same inode)
 The new `_prior_is_strict`/`_version_decreased` pair restates a predicate this file already
 computes twice: `_valid_version` at `:1594-1597` is `isinstance(v, int) and not isinstance(v, bool)
 and v >= 2` — exactly `_prior_is_strict`'s shape, just for `_version` instead of `_prior_version`
@@ -49,10 +49,10 @@ True, matches "refuses a version-2 checkpoint downgrade").
 The reworded comment reads "Generic `lead` **remains** an explicit compatibility persona for
 callers that truly cannot recover the producing raw persona or contract era." — this narrates
 continuity through the fix rather than stating today's rule, and it drops the one concrete anchor
-the pre-fix comment carried (naming `check-state.sh` as the actual caller).
+the pre-fix comment carried (naming `check-state.py` as the actual caller).
 **Cost:** "remains" has no antecedent for a reader six months out with no memory of this commit,
 and without the caller name the comment can no longer be checked against the real invariant F2
-just introduced in `check-state.sh:1590-1596` (99035a9c) — `"lead"` is now provably used *only* for
+just introduced in `check-state.py:1590-1596` (99035a9c) — `"lead"` is now provably used *only* for
 the `schema_version 1` legacy branch, `_host` is used for `>= 2`. The comment states a looser,
 unfalsifiable "callers that truly cannot recover" instead of that exact, checkable rule.
 **Alternative (concrete):**
@@ -80,10 +80,10 @@ requirement — and is not flagged; it is a correct addition, not narration.)
 No prior SIMPLIFICATION receipt exists for this feature (this is the first run of this angle), so
 there is nothing of my own to reaffirm. A sibling in this same postfix run
 (`receipt-harness-ai-dev-simplify-altitude-postfix.md`) already covers the cross-file duplication
-of the same "strict version" idiom between `check-domain.sh` and `check-state.sh` under accepted
+of the same "strict version" idiom between `check-domain.py` and `check-state.py` under accepted
 residual **S2** ("its fold-in already covers the newly-repeated type-check idiom too") — I do not
 re-derive that cross-file angle here; F-S1 above is a narrower, same-file finding (three
-restatements inside `check-domain.sh` alone) that S2's fold-in note does not itself spell out. A
+restatements inside `check-domain.py` alone) that S2's fold-in note does not itself spell out. A
 bounded keyword scan of the broader pre-fix diff (`78e34f06`→`6126ac07`, the same four bin files)
 turned up no further narrating-comment or redundant-conjunct instances beyond what S1/S2/S4 already
 name in the prior receipts.
@@ -94,7 +94,7 @@ None. No correctness observations beyond the panel's own findings.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: two SIMPLIFICATION findings in the fix delta (a same-file triple-restated version predicate in check-domain.sh, a narrating comment in validate-digest.py); both test refactors are genuine reductions; flag-only per DEC-174 NOBODY carve-out
+  headline: two SIMPLIFICATION findings in the fix delta (a same-file triple-restated version predicate in check-domain.py, a narrating comment in validate-digest.py); both test refactors are genuine reductions; flag-only per DEC-174 NOBODY carve-out
   tests_added: 0
   suite: pass
   task: none

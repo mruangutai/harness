@@ -35,10 +35,10 @@ which yields `PF-` + the first **32** chars of `sha256(reader + "\n" + normalize
 (`panel_findings.py:28-33`), severity **excluded** from identity.
 
 Why: `panel_findings.py` is by its own docstring "the ONE place a panel finding's identity is
-computed, so the validator lead, pm and check-state.sh cannot disagree", and `harness-spec-driven`
+computed, so the validator lead, pm and check-state.py cannot disagree", and `harness-spec-driven`
 says compute every id with it and never type one. A hand-typed id is not reproducible by
 `sign-approval --overrule PF-ID`, which refuses an id absent from `panel.findings`
-(`plan-merge.py:295-299`), nor by check-state INV-32 (`check-state.sh:514-517`). Including severity
+(`plan-merge.py:295-299`), nor by check-state INV-32 (`check-state.py:514-517`). Including severity
 would also have re-hashed finding 1 the moment the lead upheld `med` over "advisory" — making the
 lead's own ruling rewrite the id. The template's `PF-0123abcd` is an 8-hex illustration the shipped
 tool does not produce.

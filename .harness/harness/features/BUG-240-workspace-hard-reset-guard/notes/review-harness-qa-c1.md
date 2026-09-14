@@ -22,7 +22,7 @@ Diff `6d969ed..bae47f3c` (two files): `.claude/skills/harness/bin/factory_worksp
 
 | kind | state | evidence |
 |---|---|---|
-| unit | **satisfied** | `python3 tests/unit/test-factory-workspace.py` exit 0; `bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` exit 0 |
+| unit | **satisfied** | `python3 tests/unit/test-factory-workspace.py` exit 0; `python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit` exit 0 |
 | integration | not applicable | predicate does not fire for this diff |
 | `__bug_class__` | not applicable | predicate unresolvable project-wide (repo Expertise G-08) |
 
@@ -31,7 +31,7 @@ Diff `6d969ed..bae47f3c` (two files): `.claude/skills/harness/bin/factory_worksp
 - `python3 tests/unit/test-factory-workspace.py`: captured exit status in a variable = **0**.
   Final line: `39/39 checks passed.` Separately counted `^FAIL` lines = **0**, `^ok` lines = **39**,
   `^skip` lines = **0**. Matches the expected 39-checks/0-FAIL state exactly.
-- `bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit`: exit status = **0**, `^FAIL`
+- `python3 .agents/skills/harness/bin/run-unit-tests.py --kind unit`: exit status = **0**, `^FAIL`
   count = **0** (per-script `PASS`/exit-0 summary; unrelated to the source's own `FAIL ` idiom).
 - **Case 8 RAN on this host** (no `skip` line was printed): the case's own probe
   (`os.path.isdir(wr/PROBE)` after creating `wr/probe`) found this tmpdir volume case-insensitive,
@@ -66,7 +66,7 @@ freshly-measured redden — flag it as such per Expertise O-03.
   case-insensitive-spelling variant of the same identity predicate.
 - SC-04 (order preserved, clone-vs-refresh unchanged) → the existing-checkout-order check appended
   inside case (B), plus unchanged cases (A)/(B)/(C).
-- SC-05 (`run-unit-tests.sh --kind unit` exits 0) → directly measured above, exit 0.
+- SC-05 (`run-unit-tests.py --kind unit` exits 0) → directly measured above, exit 0.
 - SC-06 (no bypass, inspection) → BUG-240 case 7 (`--force`/`--yes`/`FACTORY_FORCE` absent from
   source text) plus argparse rejecting `--force`; verified by inspection per the SC's own
   `verify: inspection`, not this gate's job to re-adjudicate.

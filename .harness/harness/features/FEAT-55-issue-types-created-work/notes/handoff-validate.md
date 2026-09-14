@@ -17,7 +17,7 @@ feature-close distillation. Cited: STATE.md `## Current`, plan.yaml `status: rev
   `approval.rulings` ids present — verified-at 76ba5f41
 - All ten FEAT-55 suites exit 0 / FAIL 0, per-file exit code and per-file `^FAIL ` count, never a
   tail read — my own census — verified-at 76ba5f41
-- The unit driver `.claude/skills/harness/bin/run-unit-tests.sh` exit 0 / FAIL 0 — my own census,
+- The unit driver `.claude/skills/harness/bin/run-unit-tests.py` exit 0 / FAIL 0 — my own census,
   exit status captured in a variable — verified-at 76ba5f41
 - Zero `SEVERITY: high` across the whole feature diff —
   `code-grade.py --base eb9d044e --head 76ba5f41` — verified-at 76ba5f41

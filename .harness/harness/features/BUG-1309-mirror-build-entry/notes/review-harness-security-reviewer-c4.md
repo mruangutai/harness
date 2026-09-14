@@ -18,7 +18,7 @@ own threat model, so this is reachable by ordinary write access, not privilege e
 
 Fixture: feature `FEAT-9001-fixture-non-era`, `entry=None` (owes a receipt — baseline
 denies citing `gh-sync.py open`). Corrupted only that feature's own `feature.json` to
-`[{"branch": "feature/test"}]` post-fixture-creation, then ran `merge-gate.sh` for
+`[{"branch": "feature/test"}]` post-fixture-creation, then ran `merge-gate.py` for
 `git merge feature/test`.
 
 - **`af132780` (current diff)**: `rc=0`, stdout empty (no `hookSpecificOutput` printed at

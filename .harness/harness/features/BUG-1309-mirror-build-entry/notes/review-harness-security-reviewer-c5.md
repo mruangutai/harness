@@ -2,7 +2,7 @@
 
 ## Verdict: FAIL — severity_max=high, must_fix=2
 
-Both directions asked for were judged and executed against a live fixture (`bash .claude/skills/harness/bin/merge-gate.sh`, `HARNESS_PROJECT_DIR` pointed at a tmp repo). LOOSER is clean. TIGHTER is not: the sentinel is a global boolean across the *whole* repo scan, not scoped to the target branch's own record, and it is only set for one of several malformed-record shapes. That produces one new false-DENY class and leaves one false-ALLOW class open that this very fix claims to close.
+Both directions asked for were judged and executed against a live fixture (`.claude/skills/harness/bin/merge-gate.py`, `HARNESS_PROJECT_DIR` pointed at a tmp repo). LOOSER is clean. TIGHTER is not: the sentinel is a global boolean across the *whole* repo scan, not scoped to the target branch's own record, and it is only set for one of several malformed-record shapes. That produces one new false-DENY class and leaves one false-ALLOW class open that this very fix claims to close.
 
 ## F1 — HIGH — cross-feature false DENY (new, induced-on-healthy-repo)
 

@@ -15,10 +15,10 @@ Three things it leaves open, all filed or recorded rather than carried:
   `pr: null` and INV-28 names it. That is REQ-04 working, not a defect.
 
 ## Trust
-- `run-unit-tests.sh --kind all` at merge: **45 scripts PASS, 0 FAIL, exit 0**.
+- `run-unit-tests.py --kind all` at merge: **45 scripts PASS, 0 FAIL, exit 0**.
 - Goal-check: **11 of 11 signed criteria MET, 0 NOT MET, 0 UNVERIFIABLE**, each row citing a
   command run in the worktree or a `file:line` read.
-- `check-state.sh` at merge: one violation, FEAT-34's unsigned BRIEF — a different flow.
+- `check-state.py` at merge: one violation, FEAT-34's unsigned BRIEF — a different flow.
 - **The seat was proved on itself.** `record-pr` run against this feature's own directory
   after merge resolved `feat/FEAT-26` to `752`. Then `ship` printed `pr already recorded as
   #752 — not overwritten`, which is SC-03 observed live rather than asserted.
@@ -35,7 +35,7 @@ Three things it leaves open, all filed or recorded rather than carried:
   `case_749c` probed `source_issues`, the key this feature adds. Green on `main`, red the
   instant the schema change merged. Caught by running the suite **in the worktree**; on
   `main` alone it looked fine. Probe with a key no schema declares.
-- **A feature that adds a schema key could not write data using that key.** `check-domain.sh`
+- **A feature that adds a schema key could not write data using that key.** `check-domain.py`
   resolves through `CLAUDE_PROJECT_DIR`, so a worktree write was graded against `main`'s
   schema. Not a workaround — filed as #749, fixed, merged as `569d417`. FEAT-26 survived only
   because `--post` reports after the write lands; a `--pre` route on the same rule blocks it.
@@ -51,7 +51,7 @@ Three things it leaves open, all filed or recorded rather than carried:
   `STATE.md`, and `notes/research-FEAT-26-goal-check.md`.
 - `.claude/skills/harness/bin/gh-sync.py` — `record-pr`, `cmd_closes`, `source_issues`
   mirroring, and the docstring's DEC-200 paragraph.
-- `.claude/skills/harness/bin/check-state.sh` — INV-28, hand-written under the DEC-174
+- `.claude/skills/harness/bin/check-state.py` — INV-28, hand-written under the DEC-174
   carve-out, sitting before INV-25's block.
 - `feature-schema.json` — `github.source_issues`; the `pr` annotation names all 3 readers.
 - `test-gh-sync.py`, `test-check-state.py`, `test-validate-feature-json.py` — the

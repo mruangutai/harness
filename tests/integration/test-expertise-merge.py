@@ -89,7 +89,7 @@ def target(root, stem):
     """An Expertise-TIER path inside `root`, for any fixture handed to `--file`.
 
     The fixtures used to be flat — `<root>/case2.md` — and the tool now REFUSES a --file
-    that is not an Expertise file (exit 9), because `bash-write-guard.sh` is
+    that is not an Expertise file (exit 9), because `bash-write-guard.py` is
     allow-by-omission and reached neither its reviewer check nor its domain walk for a
     CLI invocation. The fixture shape was wrong for the rule, not the other way round:
     every assertion below is unchanged.
@@ -300,7 +300,7 @@ def case_cap_drift_detector():
 def case_destination_refusal(root):
     """Case 9 — the tool REFUSES a --file that is not an Expertise file (exit 9).
 
-    THE HOLE THIS CLOSES, reproduced 2026-08-21 before the fix: `bash-write-guard.sh` is
+    THE HOLE THIS CLOSES, reproduced 2026-08-21 before the fix: `bash-write-guard.py` is
     ALLOW-BY-OMISSION. It scans a command for a write pattern it recognises and, finding
     none, exits 0 at `:617` — BEFORE the reviewer read-only denial at `:628` and before
     the domain walk at `:676`. A `python3 … expertise-merge.py apply --file <anything>`

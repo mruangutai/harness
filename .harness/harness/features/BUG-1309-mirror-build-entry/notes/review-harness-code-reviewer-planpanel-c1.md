@@ -52,7 +52,7 @@ conjunct (verified against `gh-sync.py:186-192`).
 returns recover-terminal") is *indirectly* exercised by `test-check-state.py`'s first INV-37 check
 (`fixture(tmp, "FEAT-9001-fixture-non-era")` defaults `station="done"`, and the subprocess assertion
 requires `"recover-terminal" in line`) — but that's a different observable layer (a printed message
-through `check-state.sh`'s own branch at `check-state.sh:2011-2018`, not `recovery_command_for`'s raw
+through `check-state.py`'s own branch at `check-state.py:2011-2018`, not `recovery_command_for`'s raw
 return), so I would not call it as clean-cut a duplicate as BE-01/05/07. Worth a second look, not
 worth blocking on.
 
@@ -62,9 +62,9 @@ worth blocking on.
   `test-hooks-install.py:406` (grep, one hit besides the `def`). All three verify needles are true
   prefixes of real/planned assertion names (`test-hooks-install.py:419` region, and the new
   assertion's exact text as specified). The retention-skip message it must NOT match,
-  `"records github.build_entry"`, is verbatim in `post-merge-sweep.sh`'s SKIP print. `depends_on:
+  `"records github.build_entry"`, is verbatim in `post-merge-sweep.py`'s SKIP print. `depends_on:
   [T-07]` is correct — the fixture repair only makes sense once T-07's retention branch exists.
-  `traces: [REQ-02]` (post R4) is accurate; the heredoc bounds `post-merge-sweep.sh:29-293` cited for
+  `traces: [REQ-02]` (post R4) is accurate; the heredoc bounds `post-merge-sweep.py:29-293` cited for
   known-open item (a) are exact (grepped `PYEOF`/`set -u`).
 - **T-11 gh-sync.py-hosted cases (BE-11..BE-30)**: cross-checked against every `build_entry`
   occurrence in `test-gh-sync.py` (T-02's 8 named cases at :3409-3494, T-03's 7 at :3509-3586, T-04's

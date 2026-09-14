@@ -1,6 +1,6 @@
 # Goal-check — FEAT-38 signed plan vs. the operator's stated goal — pin 73898a3
 
-> Dispatch named `notes/goalcheck-plan-73898a3.md`. `check-domain.sh` denied it — `harness-pm` owns
+> Dispatch named `notes/goalcheck-plan-73898a3.md`. `check-domain.py` denied it — `harness-pm` owns
 > `notes/research-*.md`, not `notes/goalcheck-*.md`. Written here instead (harness-handoff, #216).
 
 **VERDICT: PARTLY SERVES.** The operator's stated goal is **already fully discharged by landed
@@ -70,7 +70,7 @@ feature is not a requirement of this feature.
 - **SC-14 — keep.** Its third clause (`git grep -l check-decision-claims` with the three dated-record
   pathspecs excluded) is the *only* thing in the plan proving no sixth reference site exists.
   Measured at the pin: exactly 5 tracked files, matching the recorded blast radius.
-- **SC-15 — keep.** Not a restatement. `run-unit-tests.sh` exits 2 when its `INTEGRATION_SCRIPTS`
+- **SC-15 — keep.** Not a restatement. `run-unit-tests.py` exits 2 when its `INTEGRATION_SCRIPTS`
   array and `harness.json`'s `integration` detect disagree, and a one-sided deregistration is
   invisible to a single-file absence search.
 - **SC-16 — keep; the only one of the five that serves the stated goal.** Without it the feature
@@ -139,8 +139,8 @@ mistakes it for a live back-and-forth.
   claim mechanism: `git grep -niE 'two mechanical check|executable claim|claim marker|claim:.*::'
   73898a3 -- . ':!.harness/harness/features' ':!.harness/notes' ':!.harness/logs'` returns only those.
   No unowned stale-truth site exists.
-- T-29's note is not line-budgeted. `check-domain.sh` budgets `notes/handoff-*.md` only
-  (check-domain.sh:924, 1035); a 70-row table in `notes/research-*.md` is permitted.
+- T-29's note is not line-budgeted. `check-domain.py` budgets `notes/handoff-*.md` only
+  (check-domain.py:924, 1035); a 70-row table in `notes/research-*.md` is permitted.
 - T-27's positive control is sound: `git show 48bbe7e:...DECISIONS.md | grep -c '<!-- claim:'` = 11.
 - T-29's count floor of 60 survives T-24: candidates drop 72 -> 70.
 

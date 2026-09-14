@@ -95,7 +95,7 @@ git diff --name-only $(git merge-base main HEAD)..HEAD -- the four DEC-174 files
 (empty above = no edit reached any of the four)
 ```
 
-The list is **four files, not five**: `check-state.sh` left it under D-24, because D-23's ruling
+The list is **four files, not five**: `check-state.py` left it under D-24, because D-23's ruling
 makes INV-26 fire on every done task with a deliberately-open sub-issue, and T-22 is the operator's
 own cutover that fixes it.
 

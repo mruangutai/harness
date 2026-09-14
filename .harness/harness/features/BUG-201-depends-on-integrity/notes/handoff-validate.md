@@ -1,7 +1,7 @@
 # Handoff — BUG-201-depends-on-integrity, validate → ship — written at 69af7582, seq-3
 
 <!-- BACKFILLED 2026-09-08, like its two siblings. The seam writes were refused at the time by
-     check-domain.sh, which discarded the worktree root and resolved every Authority pointer
+     check-domain.py, which discarded the worktree root and resolved every Authority pointer
      against the main checkout; that defect shipped as BUG-1480 in PR #1497. This note records a
      seam already crossed rather than one ahead, and is written after PR #1476 merged, when the
      `done` station made the note required. Said plainly instead of dated as contemporaneous. -->
