@@ -3,7 +3,7 @@
 ## Problem
 
 FEAT-55 was planned, approved, built, reviewed and merged with `github.sync: true` and never opened
-its GitHub mirror. Nothing refused it. At the merge, `post-merge-sweep.sh` ran `gh-sync.py ship`
+its GitHub mirror. Nothing refused it. At the merge, `post-merge-sweep.py` ran `gh-sync.py ship`
 against the main-checkout feature directory, `cmd_ship` hit `skip("no recorded milestone — nothing
 to close")` before `_record_pr` and the `done` station write, and the sweep read that SKIP as "not
 proof the terminal status was recorded" and kept the worktree. The feature reached its merge with
@@ -127,7 +127,7 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   parent and source issues and ZERO task sub-issues — asserted as an exact count of the recorded
   `github.issues` map and of the fake `gh` binary's create calls, not as a substring search.
   verify: automated        evidence: integration
-- SC-06: `post-merge-sweep.sh` retention keys on the RECORDED Build-entry value and never on era
+- SC-06: `post-merge-sweep.py` retention keys on the RECORDED Build-entry value and never on era
   membership, over two graded features: one that RECORDS `recovery-required` — the state a recovery
   attempted while GitHub is unavailable leaves behind, which keeps that feature non-terminal — has
   its worktree KEPT after the merge, with the sweep naming the recorded receipt, and that holds even

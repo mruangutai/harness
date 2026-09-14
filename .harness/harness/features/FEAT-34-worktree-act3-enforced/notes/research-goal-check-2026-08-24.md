@@ -37,7 +37,7 @@ Both panel readings re-derived at the pin against the test source, not inherited
 fixture where the bug is invisible; SC-05 uses the fixture where the bug is live but grades only
 firing. No third criterion touches the command. The four defect links re-derived independently at
 the pin — `worktree_terminal.py:248-251,271-275`, `check-state.sh:1320-1329`,
-`feature-worktree.py:56-59,207-214`, `post-merge-sweep.sh:150` — all hold as stated.
+`feature-worktree.py:56-59,207-214`, `post-merge-sweep.py:150` — all hold as stated.
 
 ### Paste-ready: the criterion that closes it
 
@@ -56,7 +56,7 @@ the pin — `worktree_terminal.py:248-251,271-275`, `check-state.sh:1320-1329`,
   afterwards. **Red proof, demonstrated failing before the fix:** an implementation composing `--id`
   from the resolved landed feature id passes (a), passes every clause of `SC-01` and every clause of
   `SC-05`, and fails (b) and (c) — `feature-worktree.py remove`'s GATE 1 exits 3, "not a linked
-  worktree". This is also `D-02`'s guarantee stated as a criterion: `post-merge-sweep.sh:150` already
+  worktree". This is also `D-02`'s guarantee stated as a criterion: `post-merge-sweep.py:150` already
   derives the id from the record's own path, and the gate must not disagree with the hook.
   verify: automated        evidence: integration
 ```
@@ -204,7 +204,7 @@ block below carries it under `amendments-signed: Amendment 2`.
 ## REQ coverage
 
 `REQ-01`, `REQ-03`..`REQ-06` → `worktree_terminal.py` + `check-state.sh` INV-29 (T-01/T-02/T-06/T-07).
-`REQ-07`..`REQ-08`, `REQ-11` → `post-merge-sweep.sh` (T-03/T-04). `REQ-09`, `REQ-13` →
+`REQ-07`..`REQ-08`, `REQ-11` → `post-merge-sweep.py` (T-03/T-04). `REQ-09`, `REQ-13` →
 `hooks/post-merge` + `harness-init/SKILL.md` (T-11/T-12/T-13). `REQ-10` → `harness-handoff/SKILL.md:82`
 + `harness/SKILL.md:434-437` (T-10). `REQ-12` → INV-30 (T-08/T-09).
 

@@ -8,7 +8,7 @@ wrong are recorded below as CONTENT, never line numbers.
 
 | path | `--resolve` |
 |---|---|
-| `bin/gh-sync.py`, `bin/feature-schema.json`, `bin/check-state.sh`, `bin/post-merge-sweep.sh`, `bin/merge-gate.sh` | `harness-backend-dev harness-dev-ops` |
+| `bin/gh-sync.py`, `bin/feature-schema.json`, `bin/check-state.sh`, `bin/post-merge-sweep.py`, `bin/merge-gate.sh` | `harness-backend-dev harness-dev-ops` |
 | `tests/integration/*`, `tests/unit/omp-hooks.test.ts` | `harness-backend-dev harness-dev-ops harness-qa` |
 | `references/github-mirror.md`, `SKILL.md`, `.claude/settings.json`, `templates/settings.snippet.json`, `.omp/extensions/harness-hooks.ts` | **NOBODY** |
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md` | `harness-documentor` |
@@ -24,7 +24,7 @@ wrong are recorded below as CONTENT, never line numbers.
 2. `skip()` is the single funnel for every environmental no-go (`gh()` routes non-zero exits into
    it), which is what makes `skip(msg, build_entry=None)` a complete recording point rather than one
    of several.
-3. `post-merge-sweep.sh` greps ship's combined stdout+stderr for the literal `gh-sync: SKIP` and
+3. `post-merge-sweep.py` greps ship's combined stdout+stderr for the literal `gh-sync: SKIP` and
    `gh-sync: FAILED`. T-03 rewords the milestone SKIP message and must keep that prefix.
 4. `check-state.sh` INV-26 `continue`s on `station_of(_fp) in ("done", TERMINAL_MARKER)` and again
    on `_derived is None and all(_s == "ready" for _s in _statuses)`. FEAT-55 hit both. INV-26's

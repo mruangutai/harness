@@ -27,11 +27,30 @@ import json
 import os
 import shutil
 import subprocess
+import re
 import sys
 import tempfile
 
 BIN = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BIN, "..", "..", "..", ".."))
+
+
+def post_merge_sweep_corpus(scratch):
+    """Safe dry-run, argument, cwd and broken-installation sweep cases."""
+    with open(os.path.join(scratch, "harness_boundary.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write("raise RuntimeError('cwd shadow imported')\n")
+    return [
+        {"label": "dry run from repository root", "argv": ["--dry-run"]},
+        {"label": "git non-squash flag remains ignored",
+         "argv": ["0", "--dry-run"]},
+        {"label": "git squash flag and stray args remain ignored",
+         "argv": ["1", "unexpected", "--dry-run"]},
+        {"label": "cwd-independent dry run ignores module shadow",
+         "argv": ["--dry-run"], "cwd": scratch},
+        {"label": "unconfigured isolated copy stays non-fatal",
+         "argv": ["--dry-run"], "isolate": True},
+    ]
 
 
 def corpus(tool, scratch, impl):
@@ -85,6 +104,8 @@ def corpus(tool, scratch, impl):
             {"argv": ["--nonsense", "extra"]},                  # ignored, not an error
             {"argv": [], "isolate": True},                      # no root -> refuse, exit 2
         ]
+    if tool == "post-merge-sweep":
+        return post_merge_sweep_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 
@@ -99,12 +120,24 @@ def run(impl, case, scratch):
         impl, cwd = os.path.join(iso, os.path.basename(impl)), iso
     p = subprocess.run([impl] + argv, capture_output=True, text=True, cwd=cwd)
     # Absolute paths leak roots that differ between capture and verify: the checkout
-    # (harmless but noisy) and the scratch dir (a fresh mkdtemp each run). Without
-    # scrubbing both, synthetic cases report false differences and the proof reddens
-    # for reasons unrelated to the change, which teaches you to ignore it.
+    # (harmless but noisy) and the scratch dir (a fresh mkdtemp each run). Two source
+    # coordinates intentionally move: the executable's suffix, and the first traceback
+    # frame from heredoc `<stdin>` to the installed module. Normalize only those locations;
+    # the exit code, downstream frames, exception type/message and all ordinary output
+    # remain byte-for-byte requirements.
+    impl_stem = os.path.splitext(os.path.basename(impl))[0]
     def scrub(s):
-        return s.replace(ROOT, "<ROOT>").replace(scratch, "<SCRATCH>")
-    return {"case": {"argv": [scrub(a) for a in argv], "cwd": scrub(cwd),
+        normalized = (s.replace(ROOT, "<ROOT>").replace(scratch, "<SCRATCH>")
+                      .replace(impl_stem + ".sh", "<IMPL>")
+                      .replace(impl_stem + ".py", "<IMPL>"))
+        return re.sub(
+            r'  File "(?:<stdin>|[^"\n]*<IMPL>)", line \d+, in <module>\n'
+            r'(?:    [^\n]+\n(?:    [~^ ]+\n)?)?',
+            '  File "<IMPL>", in <module>\n',
+            normalized,
+        )
+    return {"case": {"label": case.get("label", ""),
+                     "argv": [scrub(a) for a in argv], "cwd": scrub(cwd),
                      "isolate": bool(case.get("isolate"))},
             "exit": p.returncode, "stdout": scrub(p.stdout), "stderr": scrub(p.stderr)}
 

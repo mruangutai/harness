@@ -21,7 +21,7 @@ real file's bytes. Reachable by every governed agent type via a path they are al
 `gh-sync.py:618,627-628` both `_record_station` failure prints carry `gh-sync: FAILED`;
 `_commit_terminal_station` (`:649-694`) failure lines ("station committed nowhere", "station
 recorded but NOT committed") carry **neither** `SKIP` nor `FAILED` — read in full, matches the
-deliberate-asymmetry design stated in the docstring. `post-merge-sweep.sh` gates worktree removal
+deliberate-asymmetry design stated in the docstring. `post-merge-sweep.py` gates worktree removal
 on absence of those two literals from ship's combined output. No leaked secrets in the git-command
 error paths (`_git_detail`, local `status`/`commit` only, no remote/credential surface).
 

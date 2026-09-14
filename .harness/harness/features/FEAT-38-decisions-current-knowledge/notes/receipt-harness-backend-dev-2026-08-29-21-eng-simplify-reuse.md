@@ -39,7 +39,7 @@ or classification tool:
   in-place-editor/redirect patterns for domain enforcement — a different input class (agent
   commands, not this repo's own scripts) and a different question (write-target domain, not
   argv provenance).
-- `post-merge-sweep.sh` sweeps worktrees for post-merge repair actions — unrelated concern.
+- `post-merge-sweep.py` sweeps worktrees for post-merge repair actions — unrelated concern.
 - `test-no-distribution.py` sweeps for the deleted deploy mechanism — unrelated surface.
 No script anywhere under `bin/` classifies call sites by FIXED-LITERAL-ARGV vs
 TEXT-DERIVED-ARGV. T-29 is genuinely new.

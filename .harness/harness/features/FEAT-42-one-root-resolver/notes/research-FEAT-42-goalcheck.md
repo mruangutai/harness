@@ -135,7 +135,7 @@ to the SC wording, not as a defect in this build.
 - **SC-04.** Each symbol checked separately at `9d12e3a` over `bin/` minus `test-*`: `harness_root`,
   `def root(`, `wayfind.root`, `_repo_root_from_script`, `_root_from(`, `_resolve_repo_root` — **all
   0**. Survivors present: `worktree_owner` at `harness_boundary.py:515`,
-  `_resolve_main_checkout_root` at `post-merge-sweep.sh:64` (called at `:245`). The two inline chains
+  `_resolve_main_checkout_root` at `post-merge-sweep.py:64` (called at `:245`). The two inline chains
   (`harness_yaml.py`, `check-state.sh:22`) are gone — covered by SC-01's repo-wide zero.
 
 ## The remaining criteria

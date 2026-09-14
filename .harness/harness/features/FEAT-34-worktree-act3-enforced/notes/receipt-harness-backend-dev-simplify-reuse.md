@@ -9,10 +9,10 @@ fold later, and this pass is flag-only against a pinned SHA regardless.
 ## Finding 1 — `_repo_arg_for_segment` re-spelled verbatim
 
 `.claude/skills/harness/bin/worktree_terminal.py:107-130` and
-`.claude/skills/harness/bin/post-merge-sweep.sh:100-119` carry the identical algorithm
+`.claude/skills/harness/bin/post-merge-sweep.py:100-119` carry the identical algorithm
 (match `"harness"` literally, else load `fleet.yaml` and match an entry's trailing segment) —
 diffed byte-for-byte, only parameter names and docstrings differ, the body is identical.
-post-merge-sweep.sh's own docstring names the reason: `worktree_terminal.py`'s module
+post-merge-sweep.py's own docstring names the reason: `worktree_terminal.py`'s module
 docstring restricts its public surface to `CLASSES`, `classify`, `classify_all` (D-10), so the
 private, same-named helper is "not for import" and gets re-derived instead.
 
@@ -20,11 +20,11 @@ Cost: the fleet-matching rule (currently: `name.split("/", 1)[-1] == segment`) n
 call sites that must be edited in lockstep on any change to how a repo segment resolves to a
 `--repo` argument — e.g. if fleet entries ever gain aliases or a repo can appear at more than
 one segment. Nothing enforces the two stay identical; the module's own docstring is what
-created the second copy, not an oversight in post-merge-sweep.sh.
+created the second copy, not an oversight in post-merge-sweep.py.
 
 Alternative: promote `_repo_arg_for_segment` to worktree_terminal.py's public surface (it
 already takes `factory_config` as an explicit parameter, so it has no hidden coupling to the
-module's private import cache) and have post-merge-sweep.sh call
+module's private import cache) and have post-merge-sweep.py call
 `worktree_terminal.repo_arg_for_segment(segment, factory_config)`. D-10 named the public
 surface as `CLASSES`/`classify`/`classify_all` only — widening it is a plan-level call, not
 mine to make silently.
@@ -38,7 +38,7 @@ Three independent copies of the same operation (run `git worktree list --porcela
 given cwd, split on blank lines, pull the `worktree <path>` line):
 - `.claude/skills/harness/bin/check-state.sh:1117` (INV-25, untouched by this diff)
 - `.claude/skills/harness/bin/worktree_terminal.py:56-70` (`_worktree_list_raw`/`_worktree_paths`, new, private)
-- `.claude/skills/harness/bin/post-merge-sweep.sh:65-97` (`_resolve_main_checkout_root`, new)
+- `.claude/skills/harness/bin/post-merge-sweep.py:65-97` (`_resolve_main_checkout_root`, new)
 
 The dispatch asked me to check the plan's claim that INV-29 replaces INV-25's enumeration
 rather than duplicating it. **That claim holds for INV-29 itself** — INV-29's own comment
@@ -53,9 +53,9 @@ worktree_terminal.py's own docstring at `_worktree_paths` even says it "reuses t
 parsing shape check-state.sh already uses at :1117-:1135 ... rather than a second parser" —
 which describes cloning the shape, not eliminating the original.
 
-post-merge-sweep.sh's third copy exists because `worktree_terminal.classify()` deliberately
+post-merge-sweep.py's third copy exists because `worktree_terminal.classify()` deliberately
 skips porcelain index 0 (the main checkout) from its returned records, so a caller that needs
-the main checkout path itself — as post-merge-sweep.sh does, to resolve where a *landed*
+the main checkout path itself — as post-merge-sweep.py does, to resolve where a *landed*
 feature dir lives — cannot get it from the public `classify`/`classify_all` surface at all,
 and has no public helper to call instead.
 
@@ -69,7 +69,7 @@ do not rebuild," so this file is the one most likely to go stale silently.
 
 Alternative: add a public `main_checkout_path(root)` to worktree_terminal.py — a thin wrapper
 around the existing private `_worktree_paths(root)[0]` — and have both check-state.sh's INV-25
-and post-merge-sweep.sh's `_resolve_main_checkout_root` call it instead of running their own
+and post-merge-sweep.py's `_resolve_main_checkout_root` call it instead of running their own
 subprocess. That reduces three implementations to one, consistent with D-02's own stated
 purpose ("one predicate the gate and the hook cross, so they can never disagree").
 

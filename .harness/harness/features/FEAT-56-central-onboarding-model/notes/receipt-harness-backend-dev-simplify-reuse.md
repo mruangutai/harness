@@ -53,7 +53,7 @@ clean — see below).
 ## Checked and clean
 
 - The six `bin/` message-string edits in the diff (`check-domain.sh`, `check-instruction-paths.py`,
-  `check-state.sh`, `gh-sync.py`, `layout_migration.py`, `post-merge-sweep.sh`,
+  `check-state.sh`, `gh-sync.py`, `layout_migration.py`, `post-merge-sweep.py`,
   `upgrade-config.py`) are all plain `print()`/`skip()`/comment prose rewordings (clarifying
   control-plane-vs-fleet-member language) — none of them are `FleetError`-shaped and none
   hand-roll a string that `factory_cli.body` or another existing formatter already produces.

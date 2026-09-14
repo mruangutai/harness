@@ -23,7 +23,7 @@ station whitelist), so this is scoped to `sign-approval`'s free-text `--by`/`--d
 set-feature-station exited N: ...") never contain the literal `SKIP` or `FAILED`.
 `cmd_ship`'s tail (`gh-sync.py:1613`) only calls `_commit_terminal_station` when
 `_record_station` returns `True`, so a write failure correctly skips the commit — but
-`post-merge-sweep.sh`'s positive-signal gate (`:186-195`) greps ship's combined output for
+`post-merge-sweep.py`'s positive-signal gate (`:186-195`) greps ship's combined output for
 exactly those two literals to decide whether the terminal write is proof enough to remove the
 worktree. A `_record_station` failure (lock contention, transient I/O, a corrupted plan.yaml)
 prints neither literal, so if the worktree happens to be otherwise clean the gate sails through

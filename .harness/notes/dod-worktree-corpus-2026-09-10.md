@@ -107,7 +107,7 @@ they should be cited rather than assumed: `harness-init/SKILL.md:81` sets `core.
 onboarding step, and `check-state.sh:2607` is INV-31, which REFUSES a clone whose `core.hooksPath`
 is wrong ("no harness hook runs on this clone"). A fresh clone missing the config is therefore a
 named and gated state, not a silent hole. `post-merge` there is a deliberate shim whose
-body lives in `bin/post-merge-sweep.sh` so a test can reach it (FEAT-34 T-11, D-08), and that sweep
+body lives in `bin/post-merge-sweep.py` so a test can reach it (FEAT-34 T-11, D-08), and that sweep
 already walks every linked worktree — its `SKIP … not under WORKTREES_SEGMENT` lines appeared in
 the probe above.
 

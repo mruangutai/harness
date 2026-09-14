@@ -1238,7 +1238,7 @@ tasks:
       DO NOT PUSH: a post-merge hook moving a remote branch is a second, larger surprise. Print
       one line naming the commit. A failure to commit is a loud stderr line and does NOT change
       the exit status, matching the best-effort posture the rest of ship already has - but it must
-      NOT print the string that post-merge-sweep.sh treats as positive evidence.
+      NOT print the string that post-merge-sweep.py treats as positive evidence.
 
       Defect two - ship accepts a feature dir inside a worktree that is about to be deleted. At
       the top of cmd_ship, resolve the feature dir with os.path.realpath and refuse when it lies
@@ -1250,7 +1250,7 @@ tasks:
       DECORATION, for the same reason it is in T-09: a refusal that says only what to use instead
       is indistinguishable from a stuck gate, and an agent that reads it as one retries ship from
       somewhere else instead of moving the write. This is a refusal, not a skip: skip()
-      exits 0 and post-merge-sweep.sh would then delete the worktree.
+      exits 0 and post-merge-sweep.py would then delete the worktree.
 
       Both defect fixes above act on gh-sync.py, which the rebase did NOT touch: re-confirmed at
       0d4845b with git diff --stat e5afc19 HEAD that gh-sync.py is byte-identical to its state at

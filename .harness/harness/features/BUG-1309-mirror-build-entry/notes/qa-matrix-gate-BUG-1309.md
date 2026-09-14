@@ -9,7 +9,7 @@ Three independent reasons, any one of which fails the matrix on its own:
    feature's worktree is gone after a real merge...` is RED. Command:
    `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind
    integration` → exit 1; this is the only `FAIL` line in a 3941-line run. Root cause traced
-   to source, not inferred: T-07's diff to `post-merge-sweep.sh` (git diff shown below)
+   to source, not inferred: T-07's diff to `post-merge-sweep.py` (git diff shown below)
    retains a merged worktree whenever `github.sync` is true and `feature.json` lacks
    `github.build_entry`, unless the feature directory is in the frozen
    `BUILD_ENTRY_ERA_EXEMPT` set. The pre-existing fixture in `test-hooks-install.py`
@@ -20,7 +20,7 @@ Three independent reasons, any one of which fails the matrix on its own:
    only). The sweep now prints `post-merge-sweep: SKIP removal of ... — FEAT-90-e-green-thing
    records github.build_entry=absent` and returns without removing, so the test's
    `not os.path.isdir(dest)` assertion fails.
-   - **Owning task: T-07.** **Fault: COVERAGE, not code.** `post-merge-sweep.sh` is doing
+   - **Owning task: T-07.** **Fault: COVERAGE, not code.** `post-merge-sweep.py` is doing
      exactly what the signed D-08 policy requires — an already-merged, sync-enabled feature
      with no Build-entry receipt is supposed to be retained. The fixture is what's stale: it
      was written before `build_entry` existed and jumps straight to a `Done`-station merge
@@ -28,7 +28,7 @@ Three independent reasons, any one of which fails the matrix on its own:
      already sets up). It needs updating to record `build_entry: "opened"` (or route through
      the fake-gh open flow) before the merge, so SC-14's green case still tests what it was
      meant to test. This file is not in any BUG-1309 task's declared `files:` list — T-07
-     changed `post-merge-sweep.sh` without re-running the fuller integration bucket, which is
+     changed `post-merge-sweep.py` without re-running the fuller integration bucket, which is
      exactly how this leaked through (T-07's own `verify:` only runs
      `test-post-merge-sweep.py`).
 
@@ -47,7 +47,7 @@ Three independent reasons, any one of which fails the matrix on its own:
    `test_matrix.bugfix.when` fires `unit` on `touches_runtime_code` (DEC-217: "modifies at
    least one file that is not under `tests/**`, is not `*.md`, and is not under `.harness/`").
    True for all four: `gh-sync.py` (T-02, T-04), `check-state.sh` + `feature_schema.py` (T-06),
-   `post-merge-sweep.sh` (T-07). No `tests/unit/test-*.py` file was added or changed by any of
+   `post-merge-sweep.py` (T-07). No `tests/unit/test-*.py` file was added or changed by any of
    the four; every one of their tests lives in `tests/integration/`. `fix_confined_to_tests_and_
    contract_docs` is false for all four (real runtime code changed), so `integration` is not
    independently required by that leg — though it is present anyway (all named cases for T-02,

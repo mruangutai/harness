@@ -71,7 +71,7 @@ it, outside `bin/`.
 | harness_boundary.py | NO-EXECUTION | the single match at line 122 is a comment stating that this resolver deliberately runs no git subprocess; the file spawns nothing |
 | harness_yaml.py | NO-EXECUTION | the single match at line 231 is a comment about a hook subprocess exit code; the loader itself never spawns a process and never evaluates its input |
 | inflight_registry.py | TEXT-DERIVED-ARGV | line 159 runs ["ps", "-o", "lstart=", "-p", str(pid)]; on the _omp_claim_live path pid is claim.get("supervisor_pid") read from the registry JSON parsed at line 54 (line 178, then _process_start_time at 182). The executable is literal and pid is int-validated at line 131, so the exposure is narrow, but the value's provenance is a parsed .json |
-| post-merge-sweep.sh | TEXT-DERIVED-ARGV | line 215 runs feature-worktree.py remove --repo repo_arg --id wt_id; repo_arg comes from _repo_arg_for_segment (line 152), which returns either the literal "harness" or a name read out of the parsed fleet.yaml via factory_config.load_fleet at lines 110-118 |
+| post-merge-sweep.py | TEXT-DERIVED-ARGV | line 215 runs feature-worktree.py remove --repo repo_arg --id wt_id; repo_arg comes from _repo_arg_for_segment (line 152), which returns either the literal "harness" or a name read out of the parsed fleet.yaml via factory_config.load_fleet at lines 110-118 |
 | run-unit-tests.sh | FIXED-LITERAL-ARGV | line 149 runs python3 "$BIN_DIR/$s" where s iterates the two literal arrays at lines 30-31, and line 101 runs python3 -I - with the KINDCHECK heredoc from its own source. It parses test_kinds.integration.detect at line 108 but only set-compares it; no parsed value reaches argv |
 | test-bash-write-guard.py | FIXED-LITERAL-ARGV | the harness at line 185 runs [GUARD] with the JSON payload on STDIN, never in argv; the isolated-tree variants (240, 445, 490, 495) build the executable path by os.path.join off a tempdir this file creates |
 | test-board-lifecycle.py | FIXED-LITERAL-ARGV | line 398 runs [sys.executable, SCRIPT] + args and line 415 runs [sys.executable, "-c", code]; SCRIPT is a module constant, args are caller literals, and code is an f-string from this file's own source |
@@ -140,7 +140,7 @@ executable is always a literal or an env var, and the value is a repo slug, a br
 - `factory_workspace.py:103,129,130` — `fleet.yaml` `default_branch` into `git checkout`/`reset`
 - `feature-worktree.py:125,289` — `fleet.yaml` `default_branch` into `git worktree add`/`rev-parse`
 - `worktree_terminal.py:150,160` — `fleet.yaml` `default_branch` into `git ls-tree`/`rev-parse`
-- `post-merge-sweep.sh:215` — a `fleet.yaml` repo name into `feature-worktree.py --repo`
+- `post-merge-sweep.py:215` — a `fleet.yaml` repo name into `feature-worktree.py --repo`
 - `inflight_registry.py:159` — the registry JSON's `supervisor_pid` into `ps -p`
 
 **Group B — document text becoming argv (2).** These are the shape closest to the mechanism T-24

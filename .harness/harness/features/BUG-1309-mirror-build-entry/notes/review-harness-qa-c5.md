@@ -20,7 +20,7 @@ evidence lives in `tests/integration/test-merge-gate.py`, the file the diff itse
 Required kinds: **unit, integration**. `matrix_ok: true`.
 
 The full feature diff (`merge-base main HEAD` = `6ad7233f`) is far broader (new `merge-gate.py`,
-`feature_schema.py`, `gh-sync.py` changes, `post-merge-sweep.sh`, `check-state.py` etc.) but this
+`feature_schema.py`, `gh-sync.py` changes, `post-merge-sweep.py`, `check-state.py` etc.) but this
 cycle's own commit is the only content difference from the prior pin, per the assignment's
 gate-only scope.
 

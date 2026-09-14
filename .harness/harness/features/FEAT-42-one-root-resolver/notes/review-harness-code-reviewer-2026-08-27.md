@@ -36,7 +36,7 @@ against what each one actually needs:
   (the default) but wraps the call so an unresolved root prints to stderr and **exits 0**,
   deliberately overriding T-16's own plan text — the override cites `DECISIONS.md:1503`,
   which I opened and confirms: "always exits 0 so it can never block a spawn." Legitimate,
-  well-cited deviation, not a defect. `context-watch.py` and `post-merge-sweep.sh` use
+  well-cited deviation, not a defect. `context-watch.py` and `post-merge-sweep.py` use
   `root_from_script` (zero filesystem check, never raises) — matches the deleted functions'
   exact behaviour per T-08/T-09 intent, confirmed by reading both.
 - Net effect vs. pre-feature: every fail-open here is either unchanged (DEC-101) or **strictly
@@ -123,7 +123,7 @@ Its diff (confirmed via `git show e51b814`) touches two files DEC-174 protects:
 
 The plan's own lane table is where this fell through: rows for `check-state.sh`,
 `check-plan-routes.py`, etc. explicitly say "and its test file with it"; the row for
-`post-merge-sweep.sh` doesn't carry that phrase, so nothing in the plan's own bookkeeping
+`post-merge-sweep.py` doesn't carry that phrase, so nothing in the plan's own bookkeeping
 would have flagged this commit as out-of-lane. The squad's own T-21 was later created
 *specifically* for this failure mode on `test-check-state.py` ("a squad repairing its own
 gate through the gate it just moved is exactly the path the carve-out closes") — but T-21
@@ -169,7 +169,7 @@ DIGEST:
   reviewed: "ea71a1c..9d12e3a"
   human_commits_in_scope: []
   open_questions:
-    - { id: Q1, question: "Should the plan's lane table extend 'and its test file with it' to every main-session-direct row (post-merge-sweep.sh currently lacks it), and should a commit-tag-vs-files-touched check exist so a DEC-174 breach like e51b814 is machine-detectable rather than requiring a manual diff read?", blocking: false }
+    - { id: Q1, question: "Should the plan's lane table extend 'and its test file with it' to every main-session-direct row (post-merge-sweep.py currently lacks it), and should a commit-tag-vs-files-touched check exist so a DEC-174 breach like e51b814 is machine-detectable rather than requiring a manual diff read?", blocking: false }
     - { id: Q2, question: "Should SC-10-style receipts require a behaviourally discriminating red (not just an AttributeError) when extending an existing module in place?", blocking: false }
   files_touched: [.harness/harness/features/FEAT-42-one-root-resolver/notes/review-harness-code-reviewer-2026-08-27.md]
   expertise_update: []

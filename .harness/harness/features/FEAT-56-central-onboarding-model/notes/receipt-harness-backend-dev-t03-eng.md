@@ -30,7 +30,7 @@ verbatim match, no mismatch.
    unchanged.
 
 4. `tests/integration/test-post-merge-sweep.py` (~lines 783-785) and
-   `.claude/skills/harness/bin/post-merge-sweep.sh` (~lines 68-69). Both cited
+   `.claude/skills/harness/bin/post-merge-sweep.py` (~lines 68-69). Both cited
    "harness-init SKILL.md:73/:78". Read the CURRENT SKILL.md (414 lines, post e502adca) and found
    the section heading at line 62: `#### The per-clone step: point git at the tracked hooks
    directory`. Replaced both line citations with "harness-init SKILL.md, the per-clone step
@@ -62,7 +62,7 @@ python3 tests/integration/test-hooks-install.py &&
 python3 tests/integration/test-post-merge-sweep.py &&
 grep -qF "read from that repository's own harness.json" tests/integration/test-check-state.py &&
 ! grep -qF 'SKILL.md:73' tests/integration/test-post-merge-sweep.py &&
-! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.sh
+! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.py
 ```
 
 Output (last lines of each script plus overall result):
@@ -95,7 +95,7 @@ EXIT=0
 == grep checks ==
 grep -qF "read from that repository's own harness.json" tests/integration/test-check-state.py -> rc=0
 ! grep -qF 'SKILL.md:73' tests/integration/test-post-merge-sweep.py -> rc=0 (pattern absent)
-! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.sh -> rc=0 (pattern absent)
+! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.py -> rc=0 (pattern absent)
 ```
 
 Ran the exact verify block chained with `&&` end-to-end, captured into `rc=$?` (a variable, not a
@@ -113,7 +113,7 @@ scoped grep is required). Did NOT run the whole project suite.
 
 ```
 $ git status --porcelain
- M .claude/skills/harness/bin/post-merge-sweep.sh
+ M .claude/skills/harness/bin/post-merge-sweep.py
  M .harness/harness/features/FEAT-56-central-onboarding-model/feature.json
  M .harness/harness/features/FEAT-56-central-onboarding-model/plan.yaml
  M tests/integration/test-check-state.py

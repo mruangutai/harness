@@ -50,7 +50,7 @@ configuration fix and no command at all.
   the remedy is the configuration fix, never `gh-sync.py open`. `D-09.because` was not amended, so
   the overturnable-at-signature disclosure survives byte-identically.
 - **R2 — `T-07.intent` WHY paragraph** gained one sentence: for the era corpus, settled bullet 8 is
-  delivered by the PRE-EXISTING gates at `post-merge-sweep.sh:192-195` and `:206-209` (the anchors
+  delivered by the PRE-EXISTING gates at `post-merge-sweep.py:192-195` and `:206-209` (the anchors
   the task already cites), which keep the worktree and return before the new build-entry block; the
   new check is the backstop for a ship that exits cleanly printing neither line.
 
@@ -65,7 +65,7 @@ OK T-03 granted to harness-backend-dev, harness-dev-ops, harness-qa
 DEVIATION T-04 .claude/skills/harness/bin/gh-sync.py, tests/integration/test-gh-sync.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-05: declared main-session-direct (.claude/settings.json, .claude/skills/harness/templates/settings.snippet.json, .omp/extensions/harness-hooks.ts ungranted)
 DEVIATION T-06 .claude/skills/harness/bin/check-state.sh, .claude/skills/harness/bin/feature_schema.py, tests/integration/test-check-state.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
-DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.sh, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
+DEVIATION T-07 .claude/skills/harness/bin/post-merge-sweep.py, tests/integration/test-post-merge-sweep.py granted to harness-backend-dev, harness-dev-ops, harness-qa but declared main-session-direct
 OK T-08: declared main-session-direct (.claude/skills/harness/references/github-mirror.md, .claude/skills/harness/SKILL.md ungranted)
 OK T-09 granted to harness-documentor
 0 violation(s) across 1 plan(s)

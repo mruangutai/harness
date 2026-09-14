@@ -22,7 +22,7 @@
 - 2026-08-24: FEAT-34 T-02 rework (classify-from-linked-worktree hole) — every existing case in
   test-worktree-terminal.py called classify(repo_root) from the repo root, so the main checkout's
   realpath always coincidentally equaled `root` and got skipped; none exercised classify(root) with
-  root itself set to a linked worktree, which is how check-state.sh/post-merge-sweep.sh always call
+  root itself set to a linked worktree, which is how check-state.sh/post-merge-sweep.py always call
   it. Added case_classify_from_linked_worktree() — RED against unfixed worktree_terminal.py:195-197,
   emits an unresolved record for the main checkout with feature_id=None. Pattern for future modules
   with a "root vs enumerated path" skip check: always add a case where root is NOT the first

@@ -45,13 +45,13 @@ Expertise P-01.
   reports it" — an explicit unresolved-state warning. Different token, different clause; a healthy
   run prints neither and instead the unchanged `gh-sync: every recorded card is at Done`
   (`:1291`). The taxonomy does its job.
-- **Operator visibility, confirmed structurally:** `post-merge-sweep.sh:178` calls
+- **Operator visibility, confirmed structurally:** `post-merge-sweep.py:178` calls
   `_print_proc_output(ship)` (`:121-124`), which writes `ship`'s full captured stdout+stderr back
   to the sweep's own stdout unconditionally, before the gate logic runs. A `git merge` that fires
   the post-merge hook therefore surfaces every `HELD`/`FAILED` line to the operator's terminal, not
   just to the gate's internal decision.
 - No ANSI colour anywhere in the four touched CLI files (`gh-sync.py`, `gh-close-gate.sh`,
-  `post-merge-sweep.sh`, `check-state.sh` — grepped for escape sequences, zero real hits).
+  `post-merge-sweep.py`, `check-state.sh` — grepped for escape sequences, zero real hits).
   Theme/colour-contrast is therefore **not applicable**, stated rather than silently skipped.
 
 ## Contract 3 — `abandon`'s dry run

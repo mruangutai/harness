@@ -257,7 +257,7 @@ def gh_try(args):
     `gh()` turns any non-zero exit into `skip()`, which prints the literal `gh-sync: SKIP` and
     calls `sys.exit(0)`. That is right for a mid-flight environmental failure of the whole
     invocation, and WRONG for `cmd_ship`'s per-card child read: it would abandon a ship that
-    had already written most of its cards, and `post-merge-sweep.sh` greps that exact literal
+    had already written most of its cards, and `post-merge-sweep.py` greps that exact literal
     to decide whether to keep the worktree, so a single unreadable child list would silently
     change worktree behaviour on an otherwise healthy run."""
     with gh_cost_log.measured(args) as _cost:
@@ -636,7 +636,7 @@ def _record_station(feat_dir, station):
     commit somebody else's edit under this function's message.
 
     AND BOTH FAILURE LINES SAY `gh-sync: FAILED` (FEAT-41 F-01, found by the validation panel).
-    post-merge-sweep.sh gates worktree REMOVAL on the ABSENCE of `gh-sync: SKIP` and
+    post-merge-sweep.py gates worktree REMOVAL on the ABSENCE of `gh-sync: SKIP` and
     `gh-sync: FAILED` from ship's combined output, treating absence-plus-exit-0 as positive
     evidence the write ran. Without the word, a station that reached disk NOWHERE read to the
     sweep as a clean ship: it deleted the worktree, which was the only surviving evidence the
@@ -705,7 +705,7 @@ def _commit_terminal_station(feat_dir):
     FAILURE IS LOUD BUT NEVER FATAL, matching the best-effort posture the rest of ship already
     has (DEC-146). It prints to stderr and returns; the exit status is untouched.
 
-    AND THE FAILURE LINE MUST NOT SAY EITHER OF TWO WORDS. post-merge-sweep.sh gates worktree
+    AND THE FAILURE LINE MUST NOT SAY EITHER OF TWO WORDS. post-merge-sweep.py gates worktree
     removal on the ABSENCE of `gh-sync: SKIP` and `gh-sync: FAILED` from this command's combined
     output. Emitting either here would make an uncommitted station — a trivial, recoverable
     bookkeeping miss — silently cancel the worktree removal, which is a different subsystem
@@ -1685,7 +1685,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
     branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
-    and `ship` is already invoked with captured output by `post-merge-sweep.sh`, so a TTY
+    and `ship` is already invoked with captured output by `post-merge-sweep.py`, so a TTY
     prompt would be both a first for this codebase and unanswerable from the sweep.
 
     THE PARENT CLOSES WHATEVER ITS HISTORY. Where it came from is no longer recorded at all
@@ -1999,14 +1999,14 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     FAILURE POSTURE, unchanged (DEC-146): best-effort per card. A `BoardError` on one card
     prints one stderr line and the loop continues, the exit status stays 0, and there is no
     transaction across N `project_field_set` calls. git ignores a post-merge hook's exit status
-    anyway, which is why `post-merge-sweep.sh` greps this function's OUTPUT rather than its exit
+    anyway, which is why `post-merge-sweep.py` greps this function's OUTPUT rather than its exit
     code.
 
     ORDER: `_record_pr` runs before `_record_station(feat_dir, "done")`, and that status write
     stays the LAST STATEMENT of the successful path (T-01/FEAT-23) -- `skip()` calls
     `sys.exit(0)`, so reaching it is itself the proof no early-exit branch fired."""
     # DEFECT TWO OF FEAT-41 T-10: A FEATURE DIR INSIDE A WORKTREE THAT IS ABOUT TO BE DELETED.
-    # post-merge-sweep.sh runs ship and then REMOVES the worktree, so a terminal station written
+    # post-merge-sweep.py runs ship and then REMOVES the worktree, so a terminal station written
     # to a feature dir under .claude/worktrees/ is written to a directory with minutes to live.
     #
     # A REFUSAL, NOT A SKIP, and that is the whole point of putting it here. `skip()` exits 0,
@@ -2147,7 +2147,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             # SAME BUCKET as the board-read failure four lines above, and for the same
             # reason: this card did not reach done, and nothing downstream reports it. An
             # earlier cut printed and continued WITHOUT recording it, so the run exited 0
-            # with no `FAILED` line -- which post-merge-sweep.sh reads as a clean ship and
+            # with no `FAILED` line -- which post-merge-sweep.py reads as a clean ship and
             # removes the worktree on. A network blip on one child list would have left the
             # ticket open and said nothing.
             print(f"gh-sync: ERROR - #{num} child list unreadable, card not moved: {e}",
@@ -2194,7 +2194,7 @@ def _ship_audit(repo):
     """Run the board audit and print each finding under ship's own prefix.
 
     No audit line may carry the substring `gh-sync: SKIP` or `gh-sync: FAILED`.
-    `post-merge-sweep.sh` greps ship's combined output for both, and an audit finding is
+    `post-merge-sweep.py` greps ship's combined output for both, and an audit finding is
     neither an environmental no-go nor a failed write -- a line carrying either literal would
     silently change worktree behaviour on a healthy run."""
     try:

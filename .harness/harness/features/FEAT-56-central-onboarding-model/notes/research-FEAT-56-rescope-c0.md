@@ -119,7 +119,7 @@ into this configured fleet` (`:239`, steps 2/3/4/6/7/8 at `:245`, `:284`, `:292`
 | `templates/README.md`, `templates/harness.json:2`, `templates/team-config.yaml:3`, `templates/BRIEF.md`, `references/github-mirror.md` | template surface |
 | `DECISIONS.md` + `DECISIONS-INDEX.md` | new entry, by amendment; regenerate the index (`gen-decisions-index.py`) |
 | `tests/integration/test-hooks-install.py:265` | `case_commands_verbatim_in_skill` reads `harness-init/SKILL.md` — safe (Track A stays), but the case must be re-anchored if step numbering changes |
-| `tests/integration/test-post-merge-sweep.py:783-785`, `bin/post-merge-sweep.sh:68-69` | cite `SKILL.md:73/:78`; Track B's removal is below those lines, so they survive — re-anchor to headings anyway |
+| `tests/integration/test-post-merge-sweep.py:783-785`, `bin/post-merge-sweep.py:68-69` | cite `SKILL.md:73/:78`; Track B's removal is below those lines, so they survive — re-anchor to headings anyway |
 | `tests/integration/test-layout-migration.py:250-254` | onboarded-product fixture premise, already amended once |
 
 `.harness/harness/features/**` occurrences are record; DEC-188 forbids editing them.

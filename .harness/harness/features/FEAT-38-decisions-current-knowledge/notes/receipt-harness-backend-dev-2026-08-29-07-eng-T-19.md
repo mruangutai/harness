@@ -384,7 +384,7 @@ ok    ship: the milestone is still PATCHed closed
 ok    ship: prints the all-clear line when nothing was held and nothing failed
 ok    ship: prints NO HELD summary line when nothing was held
 ok    ship: prints NO FAILED line when nothing failed
-ok    ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.sh's worktree gate greps that literal and a healthy run must not trip it
+ok    ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.py's worktree gate greps that literal and a healthy run must not trip it
 ok    ship: records the terminal status
 ok    ship D-10: a task sub-issue reaches Done regardless of what sub_issues would say about it
 ok    ship D-10: ship makes NO sub_issues read for a task sub-issue - the depth-1 exemption is a saved call, not just a skipped branch

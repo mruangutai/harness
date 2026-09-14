@@ -79,7 +79,7 @@ including the discriminating clause (b) — same fixture, only the `gh` stub's m
 answer differs — which is exactly the "already proven" INV-30-keyed-on-status-alone red proof
 cited in the dispatch; I did not re-run that mutation, per instruction.
 
-**post-merge-sweep.sh and the shim.** `test-post-merge-sweep.py` covers both merge shapes (a/b),
+**post-merge-sweep.py and the shim.** `test-post-merge-sweep.py` covers both merge shapes (a/b),
 self-exclusion with an unguarded-variant red proof (c), per-feature record assertion rather than
 a total count (d, SC-11), the record-then-remove order via a gh-stub failure that leaves one
 worktree standing and removes the other (e, D-04), an unresolved record left alone (f), the

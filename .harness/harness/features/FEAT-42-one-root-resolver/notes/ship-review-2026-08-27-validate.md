@@ -93,7 +93,7 @@ found it.
 | --- | --- |
 | **All 11 success criteria MET** | goal-check, `sc_status` full and PASS |
 | SC-01: zero occurrences of the retired name | **I re-derived it**: 0 across 0 files over 1669 tracked files. Discriminating — 21 across 17 at `3952814` |
-| SC-04: seven deleted resolvers gone | **I checked each symbol separately**, not one global grep. All 0 in executable code; both survivors intact (`harness_boundary.py:515`, `post-merge-sweep.sh:64`) |
+| SC-04: seven deleted resolvers gone | **I checked each symbol separately**, not one global grep. All 0 in executable code; both survivors intact (`harness_boundary.py:515`, `post-merge-sweep.py:64`) |
 | SC-05: byte-identical verdicts across the cutover | The real two-sha proof, taken this run: 43 paths, 43 lines each side, 0-line diff — with a **positive control** that moved 17 of 43 lines when mutated. QA had reported the #556 cwd proof against it by mistake; I routed the re-derivation to pm and it now holds |
 | SC-10: red-before-green for four resolver functions | Met on its wording, and settled beyond it: a mutation probe killed **6 of 6** mutants with named failures. The receipts are misleading; the coverage is real |
 | QA gate (the project's only blocking gate) | PASS. Suite exit 0, 3139 case verdicts, zero failures |

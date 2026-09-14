@@ -64,10 +64,10 @@ a hole in the shipped behavior (the fix as shipped is correct and covered via `_
 Reverted; confirmed clean via `git status --porcelain` (empty) and `git diff` (empty).
 
 **F-01 — verified structurally, no mutation needed.** `test-gh-sync.py:3218`'s `_GATE_LITERALS =
-re.findall(r'if "([^"]+)" in combined:', open(.../post-merge-sweep.sh).read())` genuinely reads
-`post-merge-sweep.sh`'s own two gate strings (`"gh-sync: SKIP"`, `"gh-sync: FAILED"`, confirmed at
-`post-merge-sweep.sh:192,206`) at test time. Because the assertion (`any(lit in bothF for lit in
-_GATE_LITERALS)`) is built from that same live read, a literal change in `post-merge-sweep.sh`
+re.findall(r'if "([^"]+)" in combined:', open(.../post-merge-sweep.py).read())` genuinely reads
+`post-merge-sweep.py`'s own two gate strings (`"gh-sync: SKIP"`, `"gh-sync: FAILED"`, confirmed at
+`post-merge-sweep.py:192,206`) at test time. Because the assertion (`any(lit in bothF for lit in
+_GATE_LITERALS)`) is built from that same live read, a literal change in `post-merge-sweep.py`
 changes what the test checks for automatically — it cannot silently pass a drifted pair. No
 mutation was needed to establish this; it follows from the mechanism itself.
 

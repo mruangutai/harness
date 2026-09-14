@@ -77,7 +77,7 @@ The third row is why the greps are in the verify and not decoration.
 - `feature-worktree.py remove <id>` → **exit 2**, `the following arguments are required: --repo,
   --id`. Real form: `remove --repo REPO --id ID`.
 
-`post-merge-sweep.sh:140` and `:165-166` already use the correct forms; the plan text did not.
+`post-merge-sweep.py:140` and `:165-166` already use the correct forms; the plan text did not.
 
 ## Edits made
 

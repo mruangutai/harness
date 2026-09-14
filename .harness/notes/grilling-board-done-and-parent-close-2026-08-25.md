@@ -79,7 +79,7 @@ Measured at `cc84b29` unless stated.
   this session** — verify it before depending on it.
 - **The post-merge sweep does not fire on the harness's own clone.**
   `core.hooksPath = /Users/molchairuangutai/GitHub/harness/.git/hooks`, and `.git/hooks` holds only
-  samples. `post-merge-sweep.sh:174` is what runs `gh-sync.py ship`.
+  samples. `post-merge-sweep.py:174` is what runs `gh-sync.py ship`.
 - **Only FEAT-34's cards are stranded.** #616, #642, #701, #756 and #798 are all `CLOSED` at `Done`.
   #818 is `CLOSED` at `Review`, because its hand close landed *before* validate entry wrote `Review`
   over the top. Whichever ran last won; nothing says which should.

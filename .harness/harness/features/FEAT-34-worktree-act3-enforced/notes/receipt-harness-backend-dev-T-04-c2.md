@@ -70,5 +70,5 @@ PASS**, 0 FAIL, exit 0 (was 41 pre-rework; +6 new case-(i) assertions).
 ## Files touched
 
 - `.claude/skills/harness/bin/test-post-merge-sweep.py`
-- `.claude/skills/harness/bin/post-merge-sweep.sh` (shared with T-03; the fix case (i)
+- `.claude/skills/harness/bin/post-merge-sweep.py` (shared with T-03; the fix case (i)
   grades)

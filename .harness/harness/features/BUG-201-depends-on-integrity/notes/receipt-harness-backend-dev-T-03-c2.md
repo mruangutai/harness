@@ -58,7 +58,7 @@ Q-ADV-8). No edit made to `harness_yaml.py`, `test-factory-claim-mutation.py`, t
 4. `tests/integration/test-harness-yaml.py` → `ok   test_load_plan_accepts_a_station_only_record_and_only_with_a_station` (exit 0)
 5. `tests/unit/test-factory-claim.py` → `125/125 checks passed.`
 6. `tests/unit/test-factory-claim-mutation.py` → `KEY-COLLAPSE PROOF: FAIL BUG-1290 5b printed` (exit 0; recovered with NO edit to this file, as required)
-7. `tests/integration/test-gh-sync.py` → `ok    F-01 (set-feature-station exits non-zero): and that line carries a literal post-merge-sweep.sh gates on, so the sweep keeps the worktree holding the only record of the station` (exit 0)
+7. `tests/integration/test-gh-sync.py` → `ok    F-01 (set-feature-station exits non-zero): and that line carries a literal post-merge-sweep.py gates on, so the sweep keeps the worktree holding the only record of the station` (exit 0)
 8. `tests/integration/test-check-plan-routes.py` → `ALL PASS`
 9. `tests/integration/test-factory-decompose.py` → `162/162 checks passed.`
 10. `tests/integration/test-check-state.py` → `ok - exit code unchanged by INV-21 (a: 1, b: 1)` (exit 0)

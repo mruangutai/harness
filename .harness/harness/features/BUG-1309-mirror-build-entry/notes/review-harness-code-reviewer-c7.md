@@ -39,7 +39,7 @@ this same pin (unchanged since); not re-litigated.
 `record_build_entry`, `_build_entry_preflight`, `_build_entry_recovery_notice`,
 `cmd_recover_terminal` + its three helpers, `main`'s `_BUILD_ENTRY` arming, `cmd_ship`'s new skip
 text); `feature_schema.py` full diff (`BUILD_ENTRY_ERA_EXEMPT`, `recovery_command_for`);
-`check-state.sh` INV-37 block in full; `post-merge-sweep.sh`'s new retention block in full;
+`check-state.sh` INV-37 block in full; `post-merge-sweep.py`'s new retention block in full;
 `.claude/settings.json`, `templates/settings.snippet.json`, `.omp/extensions/harness-hooks.ts`,
 `merge-settings.py` HOOK_SPECS diffs. Not re-read line-by-line this cycle: `feature-schema.json`,
 the four test files beyond spot-checking case names/counts, and the two doc files (six prior cycles
@@ -62,7 +62,7 @@ already covered these; nothing in this pin's diff touches them).
   future edit to the earlier parse's error handling would silently uncouple from this one) rather
   than a live gap. Introduced at this pin (new code, `git show 894adc0f^:.../check-state.sh` has no
   INV-37 block at all — confirmed, entire block is new). Non-gating.
-- `post-merge-sweep.sh`'s new retention block (:213-232): `except (OSError, json.JSONDecodeError):
+- `post-merge-sweep.py`'s new retention block (:213-232): `except (OSError, json.JSONDecodeError):
   SKIP removal ... return` on failure to read either config file — fails toward RETAINING the
   worktree (the safe direction: an operator can always remove a wrongly-kept worktree by hand, but a
   wrongly-removed one loses the evidence this whole feature exists to preserve). Correct direction.
@@ -75,7 +75,7 @@ already covered these; nothing in this pin's diff touches them).
   For `recover-terminal`, `_BUILD_ENTRY` stays unarmed (no `feat_dir`), so a `load_config` skip
   (e.g. gh outage) during recovery writes nothing at all, leaving the record exactly as it was
   (absent or `recovery-required`) — satisfies REQ-09's "leaves the feature non-terminal"; the
-  worktree-keeps half of REQ-09 is already decided earlier by `post-merge-sweep.sh` at the original
+  worktree-keeps half of REQ-09 is already decided earlier by `post-merge-sweep.py` at the original
   merge event and is not re-evaluated by a later `recover-terminal` invocation, so there is nothing
   here to re-derive dynamically. No gap found on this path.
 

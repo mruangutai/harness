@@ -26,8 +26,8 @@ relayed as fact.
 | `harness_boundary.py:446` | `worktree_owner()` |
 | `wayfind.py:46` | `root()` |
 | `dispatch-guard.sh:75` | `_root_from()` |
-| `post-merge-sweep.sh:42` | `_resolve_repo_root()` |
-| `post-merge-sweep.sh:65` | `_resolve_main_checkout_root()` |
+| `post-merge-sweep.py:42` | `_resolve_repo_root()` |
+| `post-merge-sweep.py:65` | `_resolve_main_checkout_root()` |
 
 ### THE CENSUS IS NOT EXHAUSTIVE, and the lead proved it itself
 
@@ -79,7 +79,7 @@ function* is not, and it carries no comment saying so.
 | `walk_up_for_probe(start, probe_relpath)` | Walking up from `start`, what is the nearest directory containing `probe_relpath`? |
 
 **Deletion test passes on all three.** The 4-up arithmetic is duplicated verbatim at
-`factory_config.py:44-50`, `context-watch.py:67-74`, `post-merge-sweep.sh:42-58`; the probe shape
+`factory_config.py:44-50`, `context-watch.py:67-74`, `post-merge-sweep.py:42-58`; the probe shape
 at `check-plan-routes.py:491-513` and `factory_config.py:44-58`; the walk at `wayfind.py:46-53`
 and `dispatch-guard.sh:75-88`.
 
@@ -101,8 +101,8 @@ accident.
 | `harness_boundary.py:446 worktree_owner()` | **STAYS — bucket A was wrong.** It answers "which checkout owns this path" via a `.git`-pointer walk; it never touches env, derive, or probe |
 | `wayfind.py:46 root()` | THIN-CALLER · 1 site · not barred |
 | `dispatch-guard.sh:75` | THIN-CALLER · 1 site · **barred** (registered PreToolUse) |
-| `post-merge-sweep.sh:42` | THIN-CALLER · 1 site · **barred** (self-declared post-merge hook body) |
-| `post-merge-sweep.sh:65` | **STAYS — bucket A was wrong.** Asks git which linked worktree is main; its own docstring at `:71-72` insists the two never fuse |
+| `post-merge-sweep.py:42` | THIN-CALLER · 1 site · **barred** (self-declared post-merge hook body) |
+| `post-merge-sweep.py:65` | **STAYS — bucket A was wrong.** Asks git which linked worktree is main; its own docstring at `:71-72` insists the two never fuse |
 
 **Bucket B largely collapses, and this is the useful structural result.** 12 of the 15 STAY,
 because they already take `root` as an explicit parameter — `harness_yaml.py:441`,
@@ -146,7 +146,7 @@ guess.**
   (`FleetError` at `:66-71`) rather than today's warn-and-trust. Not a free ratification.
 - **Q3** — `.harness/notes/analysis-*.md` is in no agent's domain. One line at
   `team-config.yaml:101` would fix it: `- { path: .harness/notes/analysis-*.md, upsert: true }`.
-- **Q4** — is `post-merge-sweep.sh` inside DEC-174's execution bar? It is a self-declared
+- **Q4** — is `post-merge-sweep.py` inside DEC-174's execution bar? It is a self-declared
   post-merge hook body, absent from `.claude/settings.json`'s registered list.
 - **Q5** — `harness_yaml.py:449` and `check-state.sh:22` are the 8th and 9th resolvers. Fold in
   or backlog?
@@ -259,7 +259,7 @@ executes those directly, never the team.
 
 - **Q3** — `.harness/notes/analysis-*.md` is in no agent's domain, so no agent can write this
   kind of report. One line at `team-config.yaml:101` fixes it.
-- **Q4** — is `post-merge-sweep.sh` inside DEC-174's execution bar? Self-declared hook body,
+- **Q4** — is `post-merge-sweep.py` inside DEC-174's execution bar? Self-declared hook body,
   absent from `.claude/settings.json`'s registered list.
 - **Q6** — `validate-digest.py:148`/`:66` give an analysis-only dev persona no truthful `suite`
   value. It cost three of four report bodies and pushed two agents into fabricating `suite: pass`.

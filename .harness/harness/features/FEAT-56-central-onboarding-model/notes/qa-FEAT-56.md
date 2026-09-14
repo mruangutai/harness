@@ -30,7 +30,7 @@ mutation-proof reproduction) is clean.
   codes, globs, or control-flow tokens touched. Claim holds.
 - **T-03** `bugfix` (declared) — diff-confirmed comment/citation-only: `test-check-state.py:3886`,
   `test-layout-migration.py:248-249`, `test-hooks-install.py:1-4`, `test-post-merge-sweep.py:783`,
-  `post-merge-sweep.sh:66-68` — every hunk is a comment. No assertion, fixture, or behavior line
+  `post-merge-sweep.py:66-68` — every hunk is a comment. No assertion, fixture, or behavior line
   changed. `test-merge-settings.py` still contains `harness-init` (item 5's unchanged claim,
   verified); `test-merge-gitignore.py`/`test-upgrade-config.py` have zero `git diff --stat`
   entries (untouched, verified); `prior-check-domain.sh.fixture` untouched. Claim holds.
@@ -44,7 +44,7 @@ mutation-proof reproduction) is clean.
   executed by gates) → obligates `unit`. Discharged by the standing suite (SC-06's bucket already
   includes these files' behavior indirectly; T-02's own intent explicitly forbids a new permanent
   string-pinning unit test — panel finding PF-557e8589 already resolved this choice). **false**
-  for T-03 (comment-only; `post-merge-sweep.sh`'s one touched line has zero behavioral delta).
+  for T-03 (comment-only; `post-merge-sweep.py`'s one touched line has zero behavioral delta).
 - `fix_confined_to_tests_and_contract_docs`: **false** for T-02 (touches production `bin/`
   scripts, not confined to tests). **true** for T-03 (all five files are `tests/**` or a
   comment-only `.sh` edit) → obligates `integration`, already the standing kind (satisfied, SC-07).
@@ -121,7 +121,7 @@ compared to the HEAD version run directly here:
   **No volume change.**
 - `check-decision-anchors.py`: HEAD `examined 33 anchor(s), 0 failed` exit 0. Base: identical
   `examined 33 anchor(s), 0 failed` exit 0. **No volume change.**
-- `post-merge-sweep.sh`: not independently run (no standing harness invoking it outside
+- `post-merge-sweep.py`: not independently run (no standing harness invoking it outside
   `test-post-merge-sweep.py`, already green per SC-06/07 audit above); its only diff hunk is the
   comment re-anchor confirmed in the T-03 audit.
 

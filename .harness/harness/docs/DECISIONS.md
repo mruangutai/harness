@@ -7046,7 +7046,7 @@ block Build.
 was never opened is recovered by `gh-sync.py recover-terminal <feat> --yes`, which creates the
 milestone and the parent and source issues only — never historical task sub-issues — and records
 `recovered-terminal` (`gh-sync.py:1277-1323`). While GitHub is unavailable that recovery stays
-non-terminal and `post-merge-sweep.sh` keeps the worktree (`post-merge-sweep.sh:222-231`).
+non-terminal and `post-merge-sweep.py` keeps the worktree (`post-merge-sweep.py:222-231`).
 `check-state.sh` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
 terminal and its task statuses are absent (`check-state.sh:1983-2018`). One frozen set,
 `feature_schema.BUILD_ENTRY_ERA_EXEMPT`, bounds INV-37 and both refusals to the post-receipt era.

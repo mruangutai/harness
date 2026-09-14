@@ -46,7 +46,7 @@ closed by D-12's NOT-APPLICABLE ruling instead. See §4.**
 ## §4 — D-12 grading (T-07's unit cell)
 
 **Heredoc bounds, verified at source (not taken from D-12's prose):**
-`.agents/skills/harness/bin/post-merge-sweep.sh` line 29:
+`.agents/skills/harness/bin/post-merge-sweep.py` line 29:
 `POST_MERGE_SWEEP_BIN_DIR=... python3 -I - <<'PYEOF'`; line 293: `PYEOF`. Confirmed
 via `grep -n "PYEOF\|python3 -I -"` — exactly two matches, at 29 and 293. The
 entire Python body (`import json`, `import os`, … through `sys.exit(_code)`) sits

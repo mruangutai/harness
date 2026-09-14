@@ -67,7 +67,7 @@ implementation before being written (documentor P-07):
 - partial write / caller error record nothing — `_NO_RECORD` at `gh-sync.py:289`.
 - `recover-terminal --yes` records `recovered-terminal` as its last statement —
   `gh-sync.py:1277-1323`.
-- sweep keeps the worktree — `post-merge-sweep.sh:222-231`.
+- sweep keeps the worktree — `post-merge-sweep.py:222-231`.
 - INV-37 — `check-state.sh:1983-2018`.
 
 **One correction to the intent's framing, made deliberately in the entry.** The intent attributes

@@ -93,7 +93,7 @@ measured live, not inherited from cycle 1's prose.
   mutation coverage as noted above.
 - I did not re-run `locally_run` kinds (`omp_session_accessor`, `handoff_comprehension`,
   `issue_types_live`) — none of this feature's touched surface (`merge-gate.py`, `gh-sync.py`
-  build-entry path, `feature_schema.py`, `post-merge-sweep.sh`) matches those kinds' `detect`
+  build-entry path, `feature_schema.py`, `post-merge-sweep.py`) matches those kinds' `detect`
   globs, so they are not implicated and no recorded run is owed for this change.
 
 No new finding. This is a clean, independently re-derived confirmation at 358ac561, not a restatement

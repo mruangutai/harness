@@ -39,7 +39,7 @@ RECORDS `recovery-required` is RETAINED. The two conditions differ, and the gap 
 reachable:
 
 > a feature in `BUILD_ENTRY_ERA_EXEMPT` whose post-T-02 `open` stops on a temporary no-go records
-> `recovery-required` → merge-gate ALLOWS the merge (`:555-570`) → `post-merge-sweep.sh` retains the
+> `recovery-required` → merge-gate ALLOWS the merge (`:555-570`) → `post-merge-sweep.py` retains the
 > worktree (`:804-813`) → `check-state.sh` INV-29 refuses, because a standing worktree whose feature
 > reached a terminal state on the default branch is exactly what it reports
 > (`check-state.sh:1931-1935`, read at source).

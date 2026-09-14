@@ -1950,7 +1950,7 @@ if _wt_seg:
 # under "already built — do not strike, do not rebuild".
 #
 # THE ENUMERATION IS NOT REPEATED HERE. `git worktree list` is run by worktree_terminal, the
-# single shared predicate this gate and post-merge-sweep.sh both cross (D-02), so the gate and
+# single shared predicate this gate and post-merge-sweep.py both cross (D-02), so the gate and
 # the hook can never disagree about what is eligible. A second copy of the walk in this file
 # is exactly what D-02 exists to prevent.
 #
@@ -2082,7 +2082,7 @@ if _wt29 is not None:
             # They differ for a SHORT-NAMED worktree: feature_id is the LANDED directory on the
             # default branch, which is the full name, while `remove` matches the checkout. Printing
             # feature_id there gives a command that exits "not a linked worktree" for a directory
-            # plainly sitting in front of the reader. post-merge-sweep.sh:150 already derives it
+            # plainly sitting in front of the reader. post-merge-sweep.py:150 already derives it
             # this way; this is the same derivation, not a second rule.
             bad.append(_head29 + " Remove it with `python3 "
                                  ".agents/skills/harness/bin/feature-worktree.py remove "

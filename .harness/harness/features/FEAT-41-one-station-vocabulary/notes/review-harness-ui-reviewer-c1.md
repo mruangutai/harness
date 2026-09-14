@@ -64,7 +64,7 @@ Message-text quality is high and consistent with this feature's own conventions:
   route, by explicit design ("THE REASON COMES FIRST, THEN THE ROUTE" — `:1479`), and lists four
   concrete remedy commands.
 - `gh-sync.py`'s worktree-ship refusal (`:1459-1463`) and `_commit_terminal_station`'s
-  deliberately-non-gating WARNING wording (verified against `post-merge-sweep.sh:192-208`, which
+  deliberately-non-gating WARNING wording (verified against `post-merge-sweep.py:192-208`, which
   greps combined stdout+stderr for the literal strings `"gh-sync: SKIP"` and `"gh-sync: FAILED"`)
   both correctly avoid or include those two words depending on whether the underlying condition
   should hold worktree removal — no false-success and no false-block case found.

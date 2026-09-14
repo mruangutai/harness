@@ -48,10 +48,10 @@ the exact bug class named in the dispatch.
   fixture-local bin dir **inside a linked worktree** (`WT_CALLER`) carrying its OWN divergent copy
   of the same feature id, and asserts `feat_dir` resolves against the real main checkout `R`, not
   `WT_CALLER` — reads a `"resolved main checkout root: …"` line the sweep prints unconditionally.
-  This is bug #3 (one root for two jobs) reproduced and fixed; matches `post-merge-sweep.sh:159-163`
+  This is bug #3 (one root for two jobs) reproduced and fixed; matches `post-merge-sweep.py:159-163`
   (`main_checkout_root` split from `_resolve_repo_root()`, verified by reading the source).
 
-All three vantage-point cases measured PASS in my own run. `post-merge-sweep.sh` itself carries the
+All three vantage-point cases measured PASS in my own run. `post-merge-sweep.py` itself carries the
 two named resolutions (`_resolve_repo_root` at :42, `main_checkout_root` handling at :159-163) —
 confirmed by grep, not inference.
 

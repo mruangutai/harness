@@ -47,7 +47,7 @@ lanes:
     - surface: .claude/skills/harness/bin/context-watch.py
       lane: main-session-direct
       reason: its body is exec_module-loaded by the registered context-watch-hook.py
-    - surface: .claude/skills/harness/bin/post-merge-sweep.sh
+    - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: main-session-direct
       reason: not in the am.4 enumeration and refuses nothing, but it DELETES worktrees and this build lives in one
     - surface: .claude/skills/harness/bin/run-unit-tests.sh
@@ -744,17 +744,17 @@ tasks:
     depends_on: [T-03]
     status: done
     files:
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      grep -q "_resolve_repo_root" $B/post-merge-sweep.sh && { echo "old name survives"; exit 1; }
-      grep -q "_resolve_main_checkout_root" $B/post-merge-sweep.sh || { echo "the git-question survivor was removed"; exit 1; }
-      grep -q "HARNESS_PROJECT_DIR" $B/post-merge-sweep.sh && { echo "chain survives"; exit 1; }
+      grep -q "_resolve_repo_root" $B/post-merge-sweep.py && { echo "old name survives"; exit 1; }
+      grep -q "_resolve_main_checkout_root" $B/post-merge-sweep.py || { echo "the git-question survivor was removed"; exit 1; }
+      grep -q "HARNESS_PROJECT_DIR" $B/post-merge-sweep.py && { echo "chain survives"; exit 1; }
       python3 $B/test-post-merge-sweep.py || exit 1
       echo T-09-OK
     intent: |
-      DELETE _resolve_repo_root() at .claude/skills/harness/bin/post-merge-sweep.sh:42-58 and
+      DELETE _resolve_repo_root() at .claude/skills/harness/bin/post-merge-sweep.py:42-58 and
       repoint its one call site at :227 to harness_boundary.root_from_script(BIN_DIR). The embedded
       python already computes BIN_DIR from the script's own location; reuse it.
 

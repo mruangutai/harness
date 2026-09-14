@@ -146,7 +146,7 @@ privilege question, not the write loop's failure posture.
   (config value vs. file); the CANNOT-RUN path is a violation, not a pass; realpath comparison
   correctly passes an absolute `core.hooksPath` naming the same directory. `test-check-state.py`
   exercises all six named states including the absolute-path-passes case.
-- **`post-merge-sweep.sh`**: `gh-sync: FAILED` added as a second, independent condition beside
+- **`post-merge-sweep.py`**: `gh-sync: FAILED` added as a second, independent condition beside
   `SKIP` in the positive-signal gate; `HELD` deliberately excluded; removal declined without
   changing the sweep's own exit code. Matches D-11/T-04 step 7b exactly.
 

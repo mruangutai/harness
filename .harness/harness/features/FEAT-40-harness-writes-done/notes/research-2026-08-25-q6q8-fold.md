@@ -48,7 +48,7 @@ inverse-of-the-mirror posture; `ship` performs none of them itself, so DEC-203 i
 stand. Getting this wrong would have forced T-03 to write a seventh purpose into a signed decision.
 
 `ship` never gates on the audit: exit 0 regardless, and no audit line may carry `gh-sync: SKIP` or
-`gh-sync: FAILED` (`post-merge-sweep.sh` greps both).
+`gh-sync: FAILED` (`post-merge-sweep.py` greps both).
 
 ## Reconciled, so nothing reads as contradictory
 

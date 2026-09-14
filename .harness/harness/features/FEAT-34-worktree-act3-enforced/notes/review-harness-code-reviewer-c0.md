@@ -40,9 +40,9 @@ exact command as instructed. `dest_for` builds
 named does not exist, even though it plainly does under its short name. The commit stays blocked
 (INV-29 keeps firing) and the printed remedy is not the fix.
 
-`post-merge-sweep.sh:150` gets this right: `wt_id = os.path.basename(path.rstrip(os.sep))`,
+`post-merge-sweep.py:150` gets this right: `wt_id = os.path.basename(path.rstrip(os.sep))`,
 derived from the record's own `path`, never from `feature_id` — and it is that `wt_id` that gets
-passed to `--id` (`post-merge-sweep.sh` `_handle_record`, further down). INV-29's composition is
+passed to `--id` (`post-merge-sweep.py` `_handle_record`, further down). INV-29's composition is
 inconsistent with the hook's own, correct pattern for the identical case.
 
 **Why the shipped, green suite does not catch it.** `test-check-state.py`'s message-content group
@@ -55,7 +55,7 @@ anywhere in the diff composes and *checks* the remediation command for a worktre
 differs from its own path basename.
 
 **Fix shape** (not prescribing, since this is read-only territory): use
-`os.path.basename(_r29["path"].rstrip(os.sep))` for `--id`, exactly as `post-merge-sweep.sh:150`
+`os.path.basename(_r29["path"].rstrip(os.sep))` for `--id`, exactly as `post-merge-sweep.py:150`
 already does, rather than `_r29["feature_id"]`.
 
 ---
@@ -154,11 +154,11 @@ check-state.sh/INV-25/INV-26; these cite a *different* file):
 | `INV-25's precedent at :1173` | `check-state.sh:1314` | `check-state.sh:1173` ("NO REMOVAL GUIDANCE HERE") | correct |
 | `SAME RESOLUTION AS INV-26 at :1371` | `check-state.sh:1596` | `check-state.sh:1371` (`_gh_bin = os.environ.get("FACTORY_GH")...`) | correct |
 | `check-state.sh:1117-1135` | `worktree_terminal.py:81` | porcelain parse block, `check-state.sh:1117-1135` | correct |
-| `check-state.sh:1138-1143` | `worktree_terminal.py:202`, and `post-merge-sweep.sh:83` | "THE BASE IS DERIVED ONCE..." comment, `check-state.sh:1138-1143` | correct |
-| `check-state.sh:1173` | `post-merge-sweep.sh:145` | as above | correct |
+| `check-state.sh:1138-1143` | `worktree_terminal.py:202`, and `post-merge-sweep.py:83` | "THE BASE IS DERIVED ONCE..." comment, `check-state.sh:1138-1143` | correct |
+| `check-state.sh:1173` | `post-merge-sweep.py:145` | as above | correct |
 | `factory_config.py:46` | `worktree_terminal.py:120` | `harness_root()`'s `_BIN_DIR` derivation, `factory_config.py:46` | correct |
 | `feature-worktree.py:287` | `worktree_terminal.py:164` | `r = _run_git(["rev-parse", f"{default_branch}:{rel}"], owner_root)`, `feature-worktree.py:287` | correct |
-| `harness-init SKILL.md:73/:78` | `post-merge-sweep.sh:75` | `:73` is the `git config core.hooksPath ...` command, `:78` is the relative-path rationale | correct |
+| `harness-init SKILL.md:73/:78` | `post-merge-sweep.py:75` | `:73` is the `git config core.hooksPath ...` command, `:78` is the relative-path rationale | correct |
 | `worktree_terminal.py:202-206` | `check-state.sh:1262` | actual record at `:211-214` | **stale**, ~9 lines |
 | `worktree_terminal.py:303-306` | `check-state.sh:1263` | actual record at `:311-314` | **stale**, ~8 lines |
 | `INV-26 at :1203` | `check-state.sh:1209` | actual at `:1363` | **stale** (already filed, L1) |
@@ -176,7 +176,7 @@ remedy (re-derive line numbers before the next edit touches this block).
 
 Traced REQ-01..REQ-13 and D-01..D-11 against the diff. Every touched surface maps to a task; no
 scope creep found (`worktree_terminal.py`'s `_repo_arg_for_segment` duplication into
-`post-merge-sweep.sh` is flagged in the prior digest as D1/low and is a plan-level question, not
+`post-merge-sweep.py` is flagged in the prior digest as D1/low and is a plan-level question, not
 this pass's to relitigate). SC-01 through SC-16 verified at the level `verify: inspection` or
 `verify: automated` calls for; the one exception is F1 above, which SC-01's own fixture does not
 exercise and F3 above (T-04 case f) turned out to concern the plan, not the code.
@@ -208,13 +208,13 @@ DIGEST:
   severity_max: high
   findings: 4
   must_fix:
-    - "check-state.sh:1320-1328 composes `--id` from `_r29['feature_id']` (the resolved LANDED name) instead of `os.path.basename(_r29['path'])` (the worktree's own directory name, as post-merge-sweep.sh:150 correctly does); for a short-named worktree matching exactly one landed directory (worktree_terminal.py:249,273-277) the two differ and the printed `feature-worktree.py remove --id <landed-name>` fails feature-worktree.py's GATE 1 (dest_for's literal join, feature-worktree.py:56-59,207,211-214) with 'not a linked worktree', exit 3 — REQ-02's 'the exact command that removes it' is violated in exactly the scenario SC-05 clause (c) was added to cover."
+    - "check-state.sh:1320-1328 composes `--id` from `_r29['feature_id']` (the resolved LANDED name) instead of `os.path.basename(_r29['path'])` (the worktree's own directory name, as post-merge-sweep.py:150 correctly does); for a short-named worktree matching exactly one landed directory (worktree_terminal.py:249,273-277) the two differ and the printed `feature-worktree.py remove --id <landed-name>` fails feature-worktree.py's GATE 1 (dest_for's literal join, feature-worktree.py:56-59,207,211-214) with 'not a linked worktree', exit 3 — REQ-02's 'the exact command that removes it' is violated in exactly the scenario SC-05 clause (c) was added to cover."
   spec_violations:
     - { kind: mismatch, path: .claude/skills/harness/bin/check-state.sh, ref: REQ-02 }
   reviewed: "9165162be80e6b39055cff6b989227ce1b875172..513c4a46e34cbe327d96922c01cebdd18e85d62e"
   human_commits_in_scope: []
   open_questions:
-    - { id: Q1, question: "F1 (must_fix): confirm the fix is to derive --id from os.path.basename(record['path']) rather than record['feature_id'] in check-state.sh's INV-29, matching post-merge-sweep.sh:150's existing pattern, and add a message-content assertion to test-check-state.py's short-named case (f.3) so this class cannot regress silently again.", blocking: true }
+    - { id: Q1, question: "F1 (must_fix): confirm the fix is to derive --id from os.path.basename(record['path']) rather than record['feature_id'] in check-state.sh's INV-29, matching post-merge-sweep.py:150's existing pattern, and add a message-content assertion to test-check-state.py's short-named case (f.3) so this class cannot regress silently again.", blocking: true }
     - { id: Q2, question: "F2 (not must_fix): harness-init/SKILL.md's per-clone step remains prose a reader must interpret, contrary to T-12's own stated instruction to avoid that; test-hooks-install.py works around it with an independent re-implementation of the conditional rather than exercising the documented text. Accept as a known, plan-sanctioned gap, or tighten the prose into an unambiguous script block?", blocking: false }
     - { id: Q3, question: "F3: plan.yaml's T-04 case (f) intent text misdescribes the unresolved predicate (says 'no landed directory' / exempt_absent's condition, should say 'ambiguous prefix, matches more than one'). The shipped code and tests are correct. Worth a plan.yaml correction for future readers, or leave as a known stale label?", blocking: false }
   files_touched: []

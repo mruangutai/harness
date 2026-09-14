@@ -63,7 +63,7 @@ this state. `tests/integration/test-merge-gate.py` has exactly one era-exempt ca
 in both directions and, on the code as written, real: an operator who trusts the printed notice
 and proceeds to merge gets an unexpected deny.
 
-By contrast, `post-merge-sweep.sh:223-231` and `check-state.sh:2002` (INV-37) both implement the
+By contrast, `post-merge-sweep.py:223-231` and `check-state.sh:2002` (INV-37) both implement the
 **unconditional** era-membership skip D-08/DEC-220 actually describe — the era check there does
 not consult the recorded value at all — which is the strongest evidence this is `merge-gate.py`
 deviating from its own decision record, not the decision record being stale.
@@ -103,7 +103,7 @@ now can tell. Enumerated (worktree line numbers):
 | `:1099` milestone create+recovery both fail | if cmd==open, and only if no create yet succeeded | default → `recovery-required` | yes |
 | `:1454` start-task "no recorded issue" | never (not `open`) | untouched | n/a — this skip predates and is orthogonal to Build-entry; `_build_entry_preflight` already ran and refused/allowed above it |
 | `:1699` abandon "nothing to abandon" | never | untouched | n/a — abandon doesn't touch build_entry |
-| `:2015` ship "no recorded milestone" | never (`_BUILD_ENTRY` only arms for `open`) | untouched — stays whatever it was | yes: ship's own skip is not where the receipt is written; the message now names `recover-terminal`, and the **actual** fix for the original bug (ship-skip-then-delete-worktree) lives in `post-merge-sweep.sh`'s retention check, verified by T-07/T-10 |
+| `:2015` ship "no recorded milestone" | never (`_BUILD_ENTRY` only arms for `open`) | untouched — stays whatever it was | yes: ship's own skip is not where the receipt is written; the message now names `recover-terminal`, and the **actual** fix for the original bug (ship-skip-then-delete-worktree) lives in `post-merge-sweep.py`'s retention check, verified by T-07/T-10 |
 | `recover-terminal`'s internal `gh()` failure (funnels to `:242`) | never (`_BUILD_ENTRY` only arms for `open`) | untouched, stays absent if never recorded | yes, matches `cmd_recover_terminal`'s own docstring at `gh-sync.py:1298-1303` |
 
 Caveat on `:278`/`:282` (no/unreadable harness.json): these fire before the project is even
@@ -155,7 +155,7 @@ count:
 2. `gh-sync.py:1361` — `_build_entry_preflight`'s Build refusal (T-04).
 3. `gh-sync.py:1380` — `_build_entry_recovery_notice`'s messaging branch (paired with #2).
 4. `merge-gate.py:132` — the merge deny (T-05) — **the one that diverges; see Stage 1 above.**
-5. `post-merge-sweep.sh:223` — retention (T-07), correctly keyed differently per D-08 (era gates
+5. `post-merge-sweep.py:223` — retention (T-07), correctly keyed differently per D-08 (era gates
    only the *absent* case; `recovery-required` retains regardless of era, exactly per spec).
 
 That is five sites reading the one set, as SIMPLIFY claimed — confirmed by direct enumeration, not
@@ -176,7 +176,7 @@ absence into a permissive value:
 - `merge-gate.py:131` reads the raw field (`entry = ...get("build_entry")`); absence is `None`,
   which is excluded from the pass-set (`opened`/`not-applicable`/`recovered-terminal`) and (era
   aside) reaches `deny`. Fail-closed on absence, not permissive.
-- `post-merge-sweep.sh:222-228` reads raw; a `None` (and any other value outside the pass-set)
+- `post-merge-sweep.py:222-228` reads raw; a `None` (and any other value outside the pass-set)
   falls to the `elif` and **retains** the worktree — fail-closed toward keeping evidence, not
   toward deleting it.
 - `check-state.sh:2010` (`(_doc37.get("github") or {}).get("build_entry") is not None`) treats

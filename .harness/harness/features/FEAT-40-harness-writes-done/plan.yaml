@@ -72,7 +72,7 @@ decisions:
     because: FEAT-34's parent 728 has 13 children whose cards read Review, so a single-pass order would skip it and the acceptance test would fail for the wrong reason
     dec: none
   - id: D-05
-    choice: the terminal done write keeps DEC-146's best-effort per-card posture and exit 0, and ship prints two distinct summary literals - gh-sync HELD for a designed skip and gh-sync FAILED for a write that failed - of which post-merge-sweep.sh reads FAILED as a reason to decline the worktree removal
+    choice: the terminal done write keeps DEC-146's best-effort per-card posture and exit 0, and ship prints two distinct summary literals - gh-sync HELD for a designed skip and gh-sync FAILED for a write that failed - of which post-merge-sweep.py reads FAILED as a reason to decline the worktree removal
     because: no transaction spans N project_field_set calls and git ignores a post-merge hook's exit status, so the reader must change rather than the writer; the sweep already treats a literal's absence as its positive evidence and never the exit code, and a standing worktree is the evidence a human trips over
     dec: DEC-146
   - id: D-06
@@ -96,7 +96,7 @@ decisions:
     because: cmd_open is the only writer of the recorded issue map and creates each task issue flat, attaching it to the parent and never to another task issue, so the recursion has depth 1 by construction; checking each would add one sub_issues read per task sub-issue - thirteen on FEAT-34's acceptance run - to prove a set that is empty by construction
     dec: none
   - id: D-11
-    choice: an incomplete terminal batch emits the new literal gh-sync FAILED, never gh-sync SKIP, and post-merge-sweep.sh gains FAILED as a second condition of its existing positive-signal gate
+    choice: an incomplete terminal batch emits the new literal gh-sync FAILED, never gh-sync SKIP, and post-merge-sweep.py gains FAILED as a second condition of its existing positive-signal gate
     because: reusing SKIP would preserve the standing worktree but overload a token the module reserves for an environmental no-go where nothing was written, so a partial write would report as no write at all; a second literal preserves the same worktree evidence while keeping the prefix taxonomy one meaning per token
     dec: none
 
@@ -210,7 +210,7 @@ tasks:
            git merge --no-ff that branch. A merge that creates a commit is what fires post-merge;
            an "Already up to date" merge fires nothing, so assert a merge commit was created.
         4. Capture the merge's combined stdout and stderr. The post-merge shim execs
-           post-merge-sweep.sh, which prints its own lines prefixed post-merge-sweep:. Assert at
+           post-merge-sweep.py, which prints its own lines prefixed post-merge-sweep:. Assert at
            least one such line is present. If instead you see the shim's
            "post-merge: ... is missing or not executable" line, that is also proof the hook
            resolved; record which of the two you saw.
@@ -332,7 +332,7 @@ tasks:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-gh-sync.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
       - .claude/skills/harness/bin/test-post-merge-sweep.py
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
@@ -340,7 +340,7 @@ tasks:
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-post-merge-sweep.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-board-lifecycle.py'
-      grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.sh
+      grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.py
       grep -q 'def audit_findings' .claude/skills/harness/bin/board_lifecycle.py
     intent: |
       Rewrite cmd_ship in .claude/skills/harness/bin/gh-sync.py so the harness lands cards at the
@@ -428,7 +428,7 @@ tasks:
         - when neither class occurred, print the single line, unchanged:
             gh-sync: every recorded card is at <done>
       NO NEW LINE THIS TASK ADDS MAY CONTAIN THE SUBSTRING "gh-sync: SKIP", and this is a hard
-      constraint, not a style note: post-merge-sweep.sh:192 greps ship's combined stdout+stderr for
+      constraint, not a style note: post-merge-sweep.py:192 greps ship's combined stdout+stderr for
       exactly that substring and declines to remove the worktree on a match. A new line carrying it
       would silently change worktree behaviour on runs that are entirely healthy. Contract 1 of
       DESIGN.md also reserves SKIP for an environmental no-go where nothing was written, which a
@@ -438,7 +438,7 @@ tasks:
       never gates, no transaction exists across N project_field_set calls, and git ignores a
       post-merge hook's exit status anyway.
 
-      Step 7b. TEACH THE SWEEP TO READ THE FAILED LINE, in .claude/skills/harness/bin/post-merge-sweep.sh.
+      Step 7b. TEACH THE SWEEP TO READ THE FAILED LINE, in .claude/skills/harness/bin/post-merge-sweep.py.
       That script already refuses to trust ship's exit code: it greps the combined output for
       "gh-sync: SKIP" and declines the removal on a match, because the standing worktree is "the
       only remaining evidence" the status was never recorded (its own comment, :180-195). Add the
@@ -490,7 +490,7 @@ tasks:
       SHIP NEVER GATES ON THE AUDIT. A factory_gh.GhError means the audit COULD NOT RUN: print one
       stderr line saying exactly that and continue. Ship's exit status stays 0 whatever the audit
       reports, and no audit line may carry the substring "gh-sync: SKIP" or the substring
-      "gh-sync: FAILED" — post-merge-sweep.sh greps both, and an audit finding is not a failed
+      "gh-sync: FAILED" — post-merge-sweep.py greps both, and an audit finding is not a failed
       write.
       WHY HERE AND NOWHERE ELSE, recorded so it is not re-litigated (operator ruling, 2026-08-25):
       ship already reads GitHub for the open-child check, so the audit's four calls
@@ -625,7 +625,7 @@ tasks:
           line lists exactly the cards whose write failed and no held one; a run with holds and no
           failures prints no FAILED line at all;
         - no line of the combined stdout+stderr of any of these runs contains the substring
-          "gh-sync: SKIP" — the assertion that protects post-merge-sweep.sh's worktree gate;
+          "gh-sync: SKIP" — the assertion that protects post-merge-sweep.py's worktree gate;
         - the milestone is still PATCHed closed;
         - REGRESSION GUARD for REQ-10: after cmd_status(feat_dir, "Review", ...), the parent and
           every recorded sub-issue receive a review-station write;
@@ -692,7 +692,7 @@ tasks:
 
          CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No isatty() branch, no
          default-on-no-TTY, no stdin read: no script in .claude/skills/harness/bin/ calls input()
-         today, and ship is already invoked with captured output by post-merge-sweep.sh, so a TTY
+         today, and ship is already invoked with captured output by post-merge-sweep.py, so a TTY
          prompt would be both a first for the codebase and unanswerable from the sweep.
 
          Without --yes, abandon must:
@@ -1037,7 +1037,7 @@ tasks:
            parent_origin is created" with what ship now does — closes the milestone, and lands
            every recorded card at the done station, children first, skipping any card that still
            has an open child and naming that child. State the two summary literals ship prints,
-           gh-sync: HELD and gh-sync: FAILED, and that post-merge-sweep.sh declines the worktree
+           gh-sync: HELD and gh-sync: FAILED, and that post-merge-sweep.py declines the worktree
            removal on the second — the mirror still never gates a GitHub write, and the worktree is
            not one.
         4. The `open` row: remove "recorded with its parent_origin".

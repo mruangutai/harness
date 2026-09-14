@@ -98,7 +98,7 @@ Two remaining items are pm's work at plan time, not user decisions:
 - **The `ship` Done write is NEVER COMMITTED.** `main` at HEAD reads `Review` for FEAT-40,
   the main working tree reads `Review`, the worktree copy reads `Done`. A grep of the flow
   for `git add` / `git commit` after `ship` returns zero hits.
-- `post-merge-sweep.sh` is NOT the cause. Line 163 resolves the feature dir to the main
+- `post-merge-sweep.py` is NOT the cause. Line 163 resolves the feature dir to the main
   checkout on purpose, citing FEAT-35's `Review / pr:null` divergence. FEAT-40 broke
   because `ship` was hand-run with the worktree's path.
 - Nothing enforces `plan.yaml`'s approval reset. `check-state.sh:134-139` only reads

@@ -447,7 +447,7 @@ def case6():
     check("case6_presence_worktree_owner_survives",
           "def worktree_owner(" in resolver,
           "harness_boundary.worktree_owner is gone — it answers which checkout owns a PATH")
-    sweep = read_text(bin_rel + "post-merge-sweep.sh") or ""
+    sweep = read_text(bin_rel + "post-merge-sweep.py") or ""
     check("case6_presence_main_checkout_resolver_survives",
           "_resolve_main_checkout_root" in sweep,
           "post-merge-sweep._resolve_main_checkout_root is gone — it asks git which linked "
@@ -473,7 +473,7 @@ def case7():
     pat = re.compile(r"(?<!`)python3 (?!-I )(-c |- )(?=[\'\"$]|<<)")
     scripts = [f for f in git_ls_files()
                if f.startswith(".claude/skills/harness/bin/") and f.endswith(".sh")]
-    check("case7_scripts_found", len(scripts) >= 9,
+    check("case7_scripts_found", len(scripts) >= 8,
           f"only {len(scripts)} gate scripts scanned — the glob stopped matching")
     naked = []
     for rel in scripts:
@@ -490,7 +490,7 @@ def case7():
                if guarded.search(line))
     safe_hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
                     if "python3 -c" in line and "sys.path.pop(0)" in line)
-    check("case7_the_scan_can_see_the_invocations", hits >= 16 and safe_hits >= 3,
+    check("case7_the_scan_can_see_the_invocations", hits >= 15 and safe_hits >= 3,
           f"found {hits} isolated launches and {safe_hits} safe-python launches")
 
 

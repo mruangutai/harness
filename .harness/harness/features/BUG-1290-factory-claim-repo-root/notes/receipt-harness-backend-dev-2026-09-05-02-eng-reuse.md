@@ -45,7 +45,7 @@ than re-implementing them. No edits made; BRIEF.md, plan.yaml, and every file un
 - T-01 step 4's fixture-tree extension: the intent says "Extend `build_features_root()`" by
   name (`tests/unit/test-factory-claim.py:336-374`), reusing its existing `write_yaml`/
   `write_json` helpers rather than hand-building a parallel tree. Correct reuse, no finding.
-- The out-of-scope segment derivations named in the BRIEF (`post-merge-sweep.sh:163`,
+- The out-of-scope segment derivations named in the BRIEF (`post-merge-sweep.py:163`,
   `quarantine.py:109`, `worktree_terminal.py:107-129`, `feature_schema.py:231`) each already
   implement their own segment logic independently of `feature-worktree.py:resolve_repo` and of
   each other — a real duplication in the tree, but explicitly SETTLED as out of scope for this

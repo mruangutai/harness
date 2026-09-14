@@ -114,7 +114,7 @@ Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`
 ### One function is deliverable — none of these is really bash
 
 Every `.sh` site already runs `python3`, and **four already import a shared harness module**:
-`bash-write-guard.sh`, `check-domain.sh`, `check-state.sh`, `post-merge-sweep.sh`. The precedent
+`bash-write-guard.sh`, `check-domain.sh`, `check-state.sh`, `post-merge-sweep.py`. The precedent
 for a shared import exists; it was simply not used for this.
 
 ### The problem has already been hit and patched privately

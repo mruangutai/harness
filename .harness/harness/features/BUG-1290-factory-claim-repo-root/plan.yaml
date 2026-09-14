@@ -484,7 +484,7 @@ tasks:
          candidate's own resolved root, so the existing no_plan reason keeps naming the exact path that
          was tried.
       5. Update the construction site at :341 accordingly.
-      Touch no other segment derivation: post-merge-sweep.sh:163, quarantine.py:109,
+      Touch no other segment derivation: post-merge-sweep.py:163, quarantine.py:109,
       worktree_terminal.py:107-129 and feature_schema.py:231 stay exactly as they are.
       This task edits no test file. Both integration cases its verify runs, (F) and (H), were moved onto
       REPO's own segment by T-02, so tests/integration/test-factory-integration.py goes green here only

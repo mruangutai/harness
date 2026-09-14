@@ -40,7 +40,7 @@ BRIEF SC-06) exactly, word for word:**
   `recovery-required` arm (`:1375`→`_build_entry_recovery_notice:1380`) never refuses regardless of
   era, and its own era check (`:1380`) is membership alone within that value-filtered call.
 - `merge-gate.py:138` — membership alone (this cycle's fix).
-- `post-merge-sweep.sh:223` — `if entry is None and feature_id in …: continue` (swept normally) vs.
+- `post-merge-sweep.py:223` — `if entry is None and feature_id in …: continue` (swept normally) vs.
   `elif entry not in {opened, …}` (retained) — **keyed on the recorded VALUE**, era only bypasses
   retention for the absent case. This is D-08's literal text ("POST-MERGE RETENTION … keys on the
   RECORDED VALUE, not on era membership") and SC-06's literal text, not re-raised as a defect.

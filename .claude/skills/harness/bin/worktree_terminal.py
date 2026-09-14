@@ -1,7 +1,7 @@
 """worktree_terminal.py — the shared eligibility predicate over standing worktrees (FEAT-34 T-01).
 
 A library with NO SIDE EFFECTS and NO ARGV HANDLING. It is imported by check-state.py's INV-29
-and by post-merge-sweep.sh; nothing else may duplicate this logic (D-02) — one predicate the gate
+and by post-merge-sweep.py; nothing else may duplicate this logic (D-02) — one predicate the gate
 and the hook cross, so they can never disagree about what is eligible.
 
 Public surface, and nothing wider: `CLASSES`, `classify(root)` and `classify_all(root)` (D-10).
@@ -209,7 +209,7 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     can raise its own exception type — is the part a reader needs to see at the call site.
 
     THE PyYAML-ABSENT FALLBACK IS NOT DEFENSIVE PADDING; IT IS A MEASURED REGRESSION FIX.
-    post-merge-sweep.sh runs `python3 -I`, and isolated mode deliberately ignores user
+    post-merge-sweep.py runs `python3 -I`, and isolated mode deliberately ignores user
     site-packages — where PyYAML is installed on a stock macOS setup. This module read only JSON
     until T-07 and so had NO third-party dependency; moving the station into plan.yaml gave the
     sweep one it cannot satisfy. Measured: every worktree classified "unresolved: landed plan.yaml

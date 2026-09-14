@@ -21,8 +21,8 @@ already substantively disclosed elsewhere in the record. Zero high+.
    (`WARNING - station committed nowhere` / `WARNING - station recorded but NOT committed`) —
    read both bodies at source, asymmetry is deliberate and correct: unwritten is unrecoverable,
    uncommitted is not. `test-gh-sync.py:3218-3245`'s `_GATE_LITERALS = re.findall(r'if "([^"]+)"
-   in combined:', open(post-merge-sweep.sh).read())` genuinely reads the literals out of the
-   sweep — I ran the regex myself against `post-merge-sweep.sh` and it yields exactly
+   in combined:', open(post-merge-sweep.py).read())` genuinely reads the literals out of the
+   sweep — I ran the regex myself against `post-merge-sweep.py` and it yields exactly
    `["gh-sync: SKIP", "gh-sync: FAILED"]` (lines 192, 206); the F-01 fixture drives both
    `_record_station` failure branches (unlink, garbled YAML) and asserts one of those literals
    appears. Not retyped, not vacuous.

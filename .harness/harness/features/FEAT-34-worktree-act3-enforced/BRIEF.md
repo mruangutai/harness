@@ -413,7 +413,7 @@ graded evidence.
 
 ## Amendment 3 (2026-08-24) — the sweep's own location must never decide which copy it acts on
 
-**Measured, not feared.** `post-merge-sweep.sh` used to build `feat_dir` from the same root it
+**Measured, not feared.** `post-merge-sweep.py` used to build `feat_dir` from the same root it
 locates its sibling scripts under. That root can BE a linked worktree carrying its own divergent,
 never-landed copy of the same feature id — and `os.path.isdir(feat_dir)` then finds that copy and
 proceeds. **No SKIP branch is ever reached**, so `gh-sync.py ship` reads and writes the wrong
@@ -487,7 +487,7 @@ deliberately refuses to make a criterion because a fixture can fake it and that 
   afterwards. **Red proof, demonstrated failing before the fix:** an implementation composing `--id`
   from the resolved landed feature id passes (a), passes every clause of `SC-01` and every clause of
   `SC-05`, and fails (b) and (c) — `feature-worktree.py remove`'s GATE 1 exits 3, "not a linked
-  worktree". This is also `D-02`'s guarantee stated as a criterion: `post-merge-sweep.sh:150` already
+  worktree". This is also `D-02`'s guarantee stated as a criterion: `post-merge-sweep.py:150` already
   derives the id from the record's own path, and the gate must not disagree with the hook.
   verify: automated        evidence: integration
 

@@ -55,7 +55,7 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 
 | commit | claim | measured |
 |---|---|---|
-| 787c7fa (F-01) | test added with fix | **holds** — `git show --stat` shows `gh-sync.py` (+23/-3) and `test-gh-sync.py` (+48) in the same commit; new block reads gate literals out of `post-merge-sweep.sh` via regex rather than retyping them |
+| 787c7fa (F-01) | test added with fix | **holds** — `git show --stat` shows `gh-sync.py` (+23/-3) and `test-gh-sync.py` (+48) in the same commit; new block reads gate literals out of `post-merge-sweep.py` via regex rather than retyping them |
 | 8c2972e (F-02) | test added with fix | **holds** — `plan-merge.py` and `test-plan-merge.py` both touched in this commit; six hostile-value cases added |
 | dee7225 (F-03) | test added with fix, "mutated the regex back to prove discriminates" | **holds** — `plan-sign-gate.py` and `test-plan-sign-gate.py` both touched; message documents a mutation-back proof for the fallback case (not independently re-run by me, accepted as commit-message evidence per cycle-0's own standard for this class of claim) |
 | 6eda94d (F-04) | test added with fix | **holds** — `check-domain.sh` and `test-check-domain.py` both touched; case 8 added under `run_t09` |
@@ -70,7 +70,7 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 - `_record_station` (gh-sync.py:571-631): both failure prints (absent plan.yaml at :618, non-zero
   `set-feature-station` exit at :627-628) read `gh-sync: FAILED —`. Test drives both branches
   (`test-gh-sync.py`, the F-01 block) and asserts the gate literal is present, read dynamically
-  via `_GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:', open(...post-merge-sweep.sh...).read())`
+  via `_GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:', open(...post-merge-sweep.py...).read())`
   — genuinely reads the gate's own literals, not a retyped copy.
 - `_commit_terminal_station` (gh-sync.py:649-700): both failure branches (`git status` failure,
   `git commit` failure) print `gh-sync: WARNING -`, neither gate word. Asserted by the pre-existing

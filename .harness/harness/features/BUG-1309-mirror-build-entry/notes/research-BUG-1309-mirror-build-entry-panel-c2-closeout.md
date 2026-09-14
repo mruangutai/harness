@@ -15,15 +15,15 @@ and now has an owner, `T-13`. `approval:` is byte-identical. Nothing here gates 
 | 3 | scope | med | `PF-98762207d33d7c905df8a1c0c410c33a` | `D-12.because` amended |
 | 4 | should-not-exist | info | `PF-67da25de71e5be289b53782778feed02` | `D-12.choice` amended |
 
-- **F4, the anchor.** `D-12` now cites the retention test at `post-merge-sweep.sh:228` (the `elif`
+- **F4, the anchor.** `D-12` now cites the retention test at `post-merge-sweep.py:228` (the `elif`
   over the allow-set) and says plainly that `:222` is only the `entry =` read that feeds it. Block
-  bounds `:221-228` kept. Re-derived at source (`post-merge-sweep.sh:214-232`), not from plan prose.
+  bounds `:221-228` kept. Re-derived at source (`post-merge-sweep.py:214-232`), not from plan prose.
 - **F3, DEC-174.** The foreclosure claim is **dropped, not reworded.** `because:` now stands on two
   feet: DEC-217's Over clause, plus the structural fact that the surface admits no import at all. It
   states explicitly that DEC-174's *"library a gate calls"* clause (`DECISIONS.md:4377-4380`, read)
   **sanctions** the extraction shape and only makes the cutover main-session-direct — a price, never
   a bar.
-- **F1, the recurrence count.** True set is **two** (`post-merge-sweep.sh:29-293`,
+- **F1, the recurrence count.** True set is **two** (`post-merge-sweep.py:29-293`,
   `bash-write-guard.sh:42`). `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62` are
   counter-examples — comment *"THE DECISION LIVES IN A FILE, NOT A HEREDOC"* and `exec` a sibling
   `.py`. Corrected in `notes/…-unit-ruling.md` at the head, the anchor bullet, the Recommendation
@@ -61,7 +61,7 @@ in the DEC-174 carve-out, `depends_on: [T-07]`, `status: ready`, `traces: [REQ-0
   at `test-post-merge-sweep.py:886-905` — `("FEAT-9001-fixture-non-era", "not-applicable", True,
   True)` — no registration change, no duplicated loop, T-07's eight names untouched.
 - **Reachability, in the task text:** the sweep re-reads `github.sync` from the main checkout's
-  `.harness/harness.json` at `post-merge-sweep.sh:214-215` at merge time, while `"not-applicable"` is
+  `.harness/harness.json` at `post-merge-sweep.py:214-215` at merge time, while `"not-applicable"` is
   written at Build entry by the sync-not-enabled skip (D-09) — so a project that flips sync on
   between Build entry and merge arrives at `:228` with `"not-applicable"` recorded.
 - **No red-first claim.** The production code already handles this state, so the row is green on
@@ -101,7 +101,7 @@ alteration mints a different id.
 ## Open questions
 
 - **Q1 (non-blocking).** Raise the conversion of the two surviving heredoc-hosted gates
-  (`post-merge-sweep.sh`, `bash-write-guard.sh`) as a backlog chore, or accept the shape where it
+  (`post-merge-sweep.py`, `bash-write-guard.sh`) as a backlog chore, or accept the shape where it
   stands? Either answer leaves `D-12` intact. The repo-wide DEC-217 sibling is withdrawn.
 - **Q2 (non-blocking, harness defect, second cycle running).** `validate-digest.py` refuses a plan
   reviewer's envelope during a re-panel of an already-approved plan (`review_sha: none`,

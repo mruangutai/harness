@@ -12,7 +12,7 @@ right depth or is a briefing-row, not an apply.
 ### 1. [HIGHEST VALUE] Terminal build-entry set restated as two independent Python literals — `fold-in`
 
 - **File/line:** `.claude/skills/harness/bin/merge-gate.py:135` and
-  `.claude/skills/harness/bin/post-merge-sweep.sh:228` (the embedded Python).
+  `.claude/skills/harness/bin/post-merge-sweep.py:228` (the embedded Python).
 - **Summary:** Both sites independently spell the literal
   `{"opened", "not-applicable", "recovered-terminal"}` — "what counts as a terminal, safe
   build-entry outcome" — as an inline frozenset, with no shared name between them.
@@ -25,7 +25,7 @@ right depth or is a briefing-row, not an apply.
 - **Alternative:** add one module-level constant next to `BUILD_ENTRY_ERA_EXEMPT` in
   `feature_schema.py` (e.g. `BUILD_ENTRY_TERMINAL_STATES = frozenset({"opened",
   "not-applicable", "recovered-terminal"})`), and have `merge-gate.py:135` and
-  `post-merge-sweep.sh:228` reference it instead of the inline set literal. Both files already
+  `post-merge-sweep.py:228` reference it instead of the inline set literal. Both files already
   `import feature_schema` for `BUILD_ENTRY_ERA_EXEMPT`/`recovery_command_for`, so this is a
   same-shape, mechanical, behavior-preserving change — no test asserts the raw string text, every
   existing case exercises the constant's *membership behaviour*, so nothing needs to move. Does

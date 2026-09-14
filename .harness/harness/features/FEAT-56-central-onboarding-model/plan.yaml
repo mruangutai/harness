@@ -771,7 +771,7 @@ tasks:
       fallback; run --check-product-configs."
 
       Finally, keep the file's own anchors honest: it is read by
-      tests/integration/test-post-merge-sweep.py and bin/post-merge-sweep.sh by SECTION, not by
+      tests/integration/test-post-merge-sweep.py and bin/post-merge-sweep.py by SECTION, not by
       line number, after T-03 re-anchors them, so do not add a line-numbered self-citation.
 
   - id: T-02
@@ -895,14 +895,14 @@ tasks:
       - tests/integration/test-check-state.py
       - tests/integration/test-hooks-install.py
       - tests/integration/test-post-merge-sweep.py
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
     verify: |
       python3 tests/integration/test-layout-migration.py &&
       python3 tests/integration/test-hooks-install.py &&
       python3 tests/integration/test-post-merge-sweep.py &&
       grep -qF "read from that repository's own harness.json" tests/integration/test-check-state-records.py &&
       ! grep -qF 'SKILL.md:73' tests/integration/test-post-merge-sweep.py &&
-      ! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.sh
+      ! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.py
     intent: |
       The audit named fifteen test cases as resting on the old install behaviour. Most do not: they
       grade a script or a temp clone, and the per-clone install step SURVIVES narrowed to the
@@ -932,7 +932,7 @@ tasks:
 
       AMENDED - re-anchored, because a line citation into SKILL.md rots on the first edit:
       4. tests/integration/test-post-merge-sweep.py at ~783-785 and
-         .claude/skills/harness/bin/post-merge-sweep.sh at ~68-69 both cite
+         .claude/skills/harness/bin/post-merge-sweep.py at ~68-69 both cite
          "harness-init SKILL.md:73/:78" for why core.hooksPath is relative per worktree. T-01
          renumbers those lines. Replace each line citation with the SECTION heading citation -
          harness-init SKILL.md, the per-clone step section - keeping the surrounding sentence and

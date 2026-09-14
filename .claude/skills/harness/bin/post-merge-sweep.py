@@ -1,32 +1,47 @@
-#!/usr/bin/env bash
-# post-merge-sweep.sh — the entire body of the post-merge git hook (FEAT-34 T-03).
-#
-# Invocable directly, by its absolute path — the tracked `.claude/skills/harness/hooks/post-merge`
-# shim (T-11, out of scope here) execs this script, but this script never assumes that shim ran
-# it and never reads anything the shim would have set up.
-#
-# ARGS
-#   $1          git's post-merge squash flag (0 or 1). IGNORED (D-01): post-merge is never told
-#               which ref merged, and one `git pull` can land several merges, so the sweep runs
-#               over every eligible worktree of the repository regardless of what $1 says.
-#   --dry-run   print what the sweep would do, change nothing, exit 0. Safe in any tree — this
-#               is the flag the mandated verify uses.
-#
-# The script NEVER exits non-zero for a skipped or declined record (a post-merge hook that fails
-# makes git print an error after an otherwise successful pull) — every branch below prints and
-# continues, and the process itself always exits 0.
-set -u
+#!/usr/bin/env python3
+"""Post-merge worktree sweep — ship terminal features, then remove their worktrees.
 
-DRY_RUN=0
-for _arg in "$@"; do
-  if [ "$_arg" = "--dry-run" ]; then
-    DRY_RUN=1
-  fi
-done
+The tracked `.claude/skills/harness/hooks/post-merge` shim execs this file. Git's
+post-merge squash flag is deliberately ignored; `--dry-run` reports every action
+without changing a worktree (FEAT-34).
 
-BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WAS A .sh (issue #1674). The Python policy previously lived in an isolated
+heredoc behind a shell argument parser. This native entry point preserves that
+import boundary and makes the lifecycle policy visible to Python tooling.
+"""
+import os as _bootstrap_os
+import site as _bootstrap_site
+import sys as _bootstrap_sys
 
-POST_MERGE_SWEEP_BIN_DIR="$BIN_DIR" POST_MERGE_SWEEP_DRY_RUN="$DRY_RUN" python3 -I - <<'PYEOF'
+_bootstrap_bin = _bootstrap_os.path.dirname(
+    _bootstrap_os.path.abspath(__file__))
+_bootstrap_dry_run = any(
+    argument == "--dry-run" for argument in _bootstrap_sys.argv[1:])
+_bootstrap_os.environ["POST_MERGE_SWEEP_BIN_DIR"] = _bootstrap_bin
+_bootstrap_os.environ["POST_MERGE_SWEEP_DRY_RUN"] = (
+    "1" if _bootstrap_dry_run else "0")
+
+# The heredoc interpreter used `python3 -I`. Remove the invoking directory,
+# PYTHONPATH and user-site entries before the unchanged body performs imports,
+# then let that body insert the trusted bin directory at its original boundary.
+_bootstrap_pythonpath = {
+    _bootstrap_os.path.realpath(entry)
+    for entry in (_bootstrap_os.environ.get("PYTHONPATH") or "").split(
+        _bootstrap_os.pathsep)
+    if entry
+}
+_bootstrap_user_sites = _bootstrap_site.getusersitepackages()
+if isinstance(_bootstrap_user_sites, str):
+    _bootstrap_user_sites = [_bootstrap_user_sites]
+_bootstrap_unsafe = _bootstrap_pythonpath | {
+    _bootstrap_os.path.realpath(_bootstrap_bin),
+    _bootstrap_os.path.realpath(_bootstrap_os.getcwd()),
+    *(_bootstrap_os.path.realpath(entry) for entry in _bootstrap_user_sites),
+}
+_bootstrap_sys.path[:] = [
+    entry for entry in _bootstrap_sys.path
+    if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
+]
 import json
 import os
 import subprocess
@@ -127,27 +142,29 @@ def _print_proc_output(proc):
             sys.stdout.write(stream if stream.endswith("\n") else stream + "\n")
 
 
-def _handle_record(rec, main_checkout_root, cwd_real):
+def _record_is_actionable(rec, cwd_real):
+    """Reject records the sweep must leave untouched, reporting only named refusals."""
     path = rec["path"]
-
     if rec["klass"] == "unresolved":
         print(f"post-merge-sweep: SKIP {path} — unresolved: {rec['reason']}")
-        return
+        return False
     if rec["klass"] != "terminal":
-        # exempt_absent: never landed under this name at all — nothing to act on, nothing to
-        # report either; classify() already omitted every non-terminal, non-exempt status.
-        return
+        # exempt_absent: never landed under this name at all.
+        return False
 
-    # SELF-EXCLUSION, REQ-08. `git worktree remove` exits 0 from inside the tree it deletes
-    # (check-state.py:1173 already carries a comment about this same mechanical fact), so an
-    # unguarded sweep would delete its own working directory mid-run. Compared by realpath, not
-    # by string equality of the raw path, in case of a symlinked WORKTREES_SEGMENT ancestor.
+    # SELF-EXCLUSION, REQ-08. Compared by realpath so a symlinked ancestor cannot
+    # let the sweep delete its own working directory mid-run.
     path_real = os.path.realpath(path)
     if cwd_real == path_real or cwd_real.startswith(path_real + os.sep):
         print(f"post-merge-sweep: SKIP {path} — the sweep declined to act on this record "
               f"because it is running inside it")
-        return
+        return False
+    return True
 
+
+def _feature_context(rec, main_checkout_root):
+    """Resolve the removal command and landed feature directory for one record."""
+    path = rec["path"]
     feature_id = rec["feature_id"]
     repo_segment = rec["repo"]
     wt_id = os.path.basename(path.rstrip(os.sep))
@@ -156,85 +173,83 @@ def _handle_record(rec, main_checkout_root, cwd_real):
     if repo_arg is None:
         print(f"post-merge-sweep: SKIP {path} — could not resolve --repo for segment "
               f"{repo_segment!r}")
-        return
+        return None
 
-    # The feature dir ON THE LOCAL DEFAULT BRANCH: a real filesystem directory under
-    # `main_checkout_root` — resolved SEPARATELY from the BIN_DIR-derived root that locates the
-    # bin scripts (see `_resolve_main_checkout_root`'s docstring for why the two must never be
-    # fused) — never origin/<default_branch> (that ref is only as fresh as the last fetch, which
-    # reproduces the same hole one level out).
-    feat_dir = os.path.join(main_checkout_root, ".harness", repo_segment, "features", feature_id)
+    # This is the feature dir on the LOCAL DEFAULT BRANCH, never the worktree's
+    # divergent copy and never origin/<default_branch>.
+    feat_dir = os.path.join(
+        main_checkout_root, ".harness", repo_segment, "features", feature_id)
     if not os.path.isdir(feat_dir):
         print(f"post-merge-sweep: SKIP {path} — landed feature dir not found at {feat_dir} "
               f"on the local default branch")
-        return
+        return None
+    return feature_id, repo_arg, wt_id, feat_dir
 
-    if DRY_RUN:
-        print(f"post-merge-sweep: DRY-RUN would ship {feature_id} then remove {wt_id} ({path})")
-        return
 
-    # ORDER, D-04: ship FIRST, remove only if that recorded the terminal status.
+def _ship_allows_removal(path, feat_dir):
+    """Ship first; require its positive output contract before removing evidence."""
     ship = subprocess.run(
         ["python3", os.path.join(BIN_DIR, "gh-sync.py"), "ship", feat_dir],
         capture_output=True, text=True,
     )
     _print_proc_output(ship)
-
-    # THE POSITIVE-SIGNAL GATE. gh-sync.py exits 0 on its own SKIP() branches (github.sync not
-    # enabled, github.repo unpinned, gh missing/unauthenticated, no recorded milestone) WITHOUT
-    # writing anything — an unconditional "exited 0 -> remove" would delete the checkout that is
-    # the only remaining evidence the status was never recorded. skip() always prints the exact
-    # line "gh-sync: SKIP — <reason>" before it exits, so that string's ABSENCE from the
-    # combined stdout+stderr, together with exit 0, is what this gate treats as positive
-    # evidence the write actually ran — never the exit code by itself.
     combined = (ship.stdout or "") + (ship.stderr or "")
     if ship.returncode != 0:
         print(f"post-merge-sweep: SKIP removal of {path} — gh-sync ship exited "
               f"{ship.returncode}")
-        return
+        return False
     if "gh-sync: SKIP" in combined:
         print(f"post-merge-sweep: SKIP removal of {path} — gh-sync ship reported SKIP, "
               f"which is not proof the terminal status was recorded")
-        return
-    # T-04, the same gate at the new terminal write. `ship` now lands every recorded card at
-    # the done station instead of closing issues, and it is best-effort per card (DEC-146):
-    # one card's write can fail while the rest succeed, and the run still exits 0. It prints
-    # "gh-sync: FAILED <k> of <n> — ..." naming exactly those cards. That card did not reach
-    # Done, so its ticket stays open and NOTHING downstream reports it — the standing worktree
-    # is again the only remaining evidence.
-    #
-    # HELD is deliberately NOT in this gate. A held card is a healthy run's designed outcome —
-    # a parent waiting on a child that is genuinely unfinished — and keeping a worktree for
-    # every hold would accumulate worktrees during normal operation.
+        return False
+    # FAILED means at least one card never reached Done. HELD deliberately remains
+    # healthy: keeping a worktree for every open child would accumulate normal residue.
     if "gh-sync: FAILED" in combined:
         print(f"post-merge-sweep: SKIP removal of {path} — gh-sync ship reported FAILED, so at "
               f"least one card never reached the done station")
-        return
+        return False
+    return True
 
+
+def _read_build_receipt(main_checkout_root, feat_dir):
+    """Return mirror enablement and the feature receipt document."""
+    with open(os.path.join(
+            main_checkout_root, ".harness", "harness.json")) as stream:
+        sync_enabled = bool((json.load(stream).get("github") or {}).get("sync"))
+    with open(os.path.join(feat_dir, "feature.json")) as stream:
+        feature_doc = json.load(stream)
+    return sync_enabled, feature_doc
+
+
+def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
+    """Require the local Build-entry receipt when the GitHub mirror is enabled."""
     try:
-        with open(os.path.join(main_checkout_root, ".harness", "harness.json")) as f:
-            sync_enabled = bool((json.load(f).get("github") or {}).get("sync"))
-        with open(os.path.join(feat_dir, "feature.json")) as f:
-            feature_doc = json.load(f)
+        sync_enabled, feature_doc = _read_build_receipt(
+            main_checkout_root, feat_dir)
     except (OSError, json.JSONDecodeError) as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
-        return
-    if sync_enabled:
-        entry = (feature_doc.get("github") or {}).get("build_entry")
-        if entry is None and feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-            print(f"post-merge-sweep: {feature_id} predates the build-entry receipt "
-                  f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so the worktree is removed normally. "
-                  f"Its terminal receipt is created only by an explicit operator-approved gh-sync.py "
-                  f"recover-terminal {os.path.realpath(feat_dir)} --yes.")
-        elif entry not in {"opened", "not-applicable", "recovered-terminal"}:
-            value = entry or "absent"
-            print(f"post-merge-sweep: SKIP removal of {path} — {feature_id} records "
-                  f"github.build_entry={value}, so no Build entry receipt exists. The worktree stays "
-                  f"until gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes and ship both succeed.")
-            return
+        return False
+    if not sync_enabled:
+        return True
 
-    # NO FORCE FLAG. feature-worktree.py remove already declines a dirty tree at exit 4 and an
-    # unlanded artifact at exit 5; those refusals print and the sweep moves to the next record.
+    entry = (feature_doc.get("github") or {}).get("build_entry")
+    if entry is None and feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        print(f"post-merge-sweep: {feature_id} predates the build-entry receipt "
+              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so the worktree is removed normally. "
+              f"Its terminal receipt is created only by an explicit operator-approved gh-sync.py "
+              f"recover-terminal {os.path.realpath(feat_dir)} --yes.")
+        return True
+    if entry not in {"opened", "not-applicable", "recovered-terminal"}:
+        value = entry or "absent"
+        print(f"post-merge-sweep: SKIP removal of {path} — {feature_id} records "
+              f"github.build_entry={value}, so no Build entry receipt exists. The worktree stays "
+              f"until gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes and ship both succeed.")
+        return False
+    return True
+
+
+def _remove_worktree(path, repo_arg, wt_id):
+    """Run the existing non-force removal and report whether it preserved evidence."""
     remove = subprocess.run(
         ["python3", os.path.join(BIN_DIR, "feature-worktree.py"), "remove",
          "--repo", repo_arg, "--id", wt_id],
@@ -246,6 +261,25 @@ def _handle_record(rec, main_checkout_root, cwd_real):
               f"the standing checkout is the evidence")
     else:
         print(f"post-merge-sweep: removed {path}")
+
+
+def _handle_record(rec, main_checkout_root, cwd_real):
+    path = rec["path"]
+    if not _record_is_actionable(rec, cwd_real):
+        return
+    context = _feature_context(rec, main_checkout_root)
+    if context is None:
+        return
+    feature_id, repo_arg, wt_id, feat_dir = context
+
+    if DRY_RUN:
+        print(f"post-merge-sweep: DRY-RUN would ship {feature_id} then remove {wt_id} ({path})")
+        return
+    if not _ship_allows_removal(path, feat_dir):
+        return
+    if not _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
+        return
+    _remove_worktree(path, repo_arg, wt_id)
 
 
 def main():
@@ -291,4 +325,3 @@ except Exception as e:
     print(f"post-merge-sweep: ERROR: {e}")
     _code = 0
 sys.exit(_code)
-PYEOF

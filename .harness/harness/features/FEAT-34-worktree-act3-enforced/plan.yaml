@@ -39,7 +39,7 @@ lanes:
       lane: team
       agent: harness-backend-dev
       reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
-    - surface: .claude/skills/harness/bin/post-merge-sweep.sh
+    - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: team
       agent: harness-backend-dev
       reason: D-07. DEC-174's stated test at DECISIONS.md:4709 is that the artifact under change is the artifact doing the checking, and a post-merge sweep checks nothing - it fires after the merge and performs two writes, so it cannot refuse anything and falls outside the enforcement category. The grant corroborates the lane rather than setting it - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
@@ -111,11 +111,11 @@ decisions:
     dec: none
 
   - id: D-07
-    choice: post-merge-sweep.sh and its test are team, not main-session-direct. No DEC-174 amendment is written by this feature and nothing joins the enforcement enumeration.
+    choice: post-merge-sweep.py and its test are team, not main-session-direct. No DEC-174 amendment is written by this feature and nothing joins the enforcement enumeration.
     because: DEC-174's own stated test, in the table at DECISIONS.md:4709, is that the artifact under change is the artifact doing the checking. A post-merge hook checks nothing - it fires after the merge has already happened and performs two writes, record the terminal status and remove the checkout, so it cannot refuse anything. That is the same functional test amendment 4 applied when dispatch-guard.sh joined at DECISIONS.md:4887, on the evidence that it refuses dispatches. A sweep that ACTS fails it. DEC-196 amendment 4 does not govern - read in context at DECISIONS.md:6550 its subject is a Claude Code PostToolUse Write/Edit hook, a different mechanism, and the sentence was not written about a git hook. The cost, named rather than argued away - the hook deletes directories, so it is destructive, but destructive is not CIRCULAR. A broken post-merge hook fails loudly at merge time; a broken gate hides its own breakage, and only the second is what DEC-174 exists to prevent. The category decides, the hook falls outside it, so the enumeration is untouched.
     dec: DEC-174
   - id: D-08
-    choice: The tracked hooks directory is .claude/skills/harness/hooks/, holding one file, post-merge, a shim that execs post-merge-sweep.sh. This resolves the brief's Q1.
+    choice: The tracked hooks directory is .claude/skills/harness/hooks/, holding one file, post-merge, a shim that execs post-merge-sweep.py. This resolves the brief's Q1.
     because: this is a design choice with nothing to look up - check-domain.sh --resolve at 9165162 prints NOBODY for .githooks/post-merge, .claude/hooks/post-merge and .claude/skills/harness/hooks/post-merge alike, so no existing grant picks a winner. .claude/skills/harness/ is chosen because it is already the tree every harness executable resolves under - settings.snippet.json points all seven hook entries at CLAUDE_PROJECT_DIR/.claude/skills/harness/bin/, so an initialised project provably carries this tree, and a new repository-root .githooks/ would be a second harness-owned location competing with the one that exists. Rejected alternative, recorded so a future scan does not re-suggest it - .claude/hooks/, because Claude Code's own hooks are settings.json entries and not a directory, so the name would assert a relationship that does not exist. The accepted cost is that core.hooksPath takes over hook resolution for the WHOLE clone, not just this one hook, which is exactly why REQ-13 requires the setup step to state what it displaced.
     dec: DEC-179
   - id: D-09
@@ -129,7 +129,7 @@ decisions:
       point, classify_all(root), not in check-state.sh. classify_all returns classify(root)
       for the harness checkout plus classify(owner_root) for every repository declared in
       fleet.yaml, resolved through factory_config.workspace_path. check-state.sh's INV-29
-      and post-merge-sweep.sh both keep calling one module. The failure posture is three-way
+      and post-merge-sweep.py both keep calling one module. The failure posture is three-way
       and settles REQ-04's no-exception clause - fleet.yaml failing to load is a blocking
       violation, a declared repository whose checkout directory does not exist produces no
       record, and a declared repository whose checkout exists but cannot be enumerated
@@ -186,7 +186,7 @@ decisions:
     dec: DEC-174
   - id: D-11
     choice: >-
-      The post-merge sweep is HARNESS-CHECKOUT-ONLY for this feature. post-merge-sweep.sh
+      The post-merge sweep is HARNESS-CHECKOUT-ONLY for this feature. post-merge-sweep.py
       keeps calling worktree_terminal.classify(root); it does not call classify_all. REQ-07 is
       read as scoped to the checkout whose merge fired the hook. A served repository's terminal
       worktree stays reported-not-removed, by INV-29, until a future feature gives fleet repos
@@ -195,7 +195,7 @@ decisions:
       three facts measured at 4c7b650 make classify_all at the sweep a no-op rather than a
       fix. First, no served checkout carries .claude/skills/harness/hooks, and the shim resolves
       its root from its own file location, so a merge in a served repository fires no harness hook
-      and REQ-07's own trigger never occurs there. Second, post-merge-sweep.sh:163 resolves the
+      and REQ-07's own trigger never occurs there. Second, post-merge-sweep.py:163 resolves the
       landed feature directory under the harness main checkout, while a served repository's feature
       directories live in that repository's own .harness/<repo>/features, so every served-repo
       record would take the :164 SKIP. Third, D-03's gh-sync.py ship invocation has no parameter
@@ -224,7 +224,7 @@ tasks:
     intent: |
       Create .claude/skills/harness/bin/worktree_terminal.py, a library with no side
       effects and no argv handling. It is imported by check-state.sh's INV-29 and by
-      post-merge-sweep.sh; nothing else may duplicate this logic.
+      post-merge-sweep.py; nothing else may duplicate this logic.
 
       Export CLASSES = ("terminal", "exempt_absent", "unresolved") and one function:
 
@@ -397,7 +397,7 @@ tasks:
           only the harness's records passes every other case and fails this one.
 
   - id: T-03
-    title: Add post-merge-sweep.sh, the hook body that records terminal status then removes
+    title: Add post-merge-sweep.py, the hook body that records terminal status then removes
     traces: [REQ-07, REQ-08, REQ-11]
     change_type: logic
     execution_mode: team
@@ -405,11 +405,11 @@ tasks:
     depends_on: [T-01]
     status: done
     files:
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
     verify: |
-      bash -n .claude/skills/harness/bin/post-merge-sweep.sh && bash .claude/skills/harness/bin/post-merge-sweep.sh --dry-run
+      bash -n .claude/skills/harness/bin/post-merge-sweep.py && bash .claude/skills/harness/bin/post-merge-sweep.py --dry-run
     intent: |
-      Create .claude/skills/harness/bin/post-merge-sweep.sh, executable, the entire body of
+      Create .claude/skills/harness/bin/post-merge-sweep.py, executable, the entire body of
       the post-merge git hook. The tracked hook file itself is a shim that execs this
       script; that shim's location is the brief's Q1 and is deliberately NOT part of this
       task. This script must be invocable directly so its behaviour is testable without
@@ -459,7 +459,7 @@ tasks:
         reproduces the same hole one level out.
 
   - id: T-04
-    title: Test post-merge-sweep.sh on both merge shapes, the self-exclusion guard, and the per-feature record
+    title: Test post-merge-sweep.py on both merge shapes, the self-exclusion guard, and the per-feature record
     traces: [REQ-07, REQ-08, REQ-11]
     change_type: logic
     execution_mode: team
@@ -475,7 +475,7 @@ tasks:
       other harness test scripts: a results list of (name, bool, detail), PASS or FAIL per
       line, exit 1 if any failed.
 
-      The test installs post-merge-sweep.sh as .git/hooks/post-merge in its own throwaway
+      The test installs post-merge-sweep.py as .git/hooks/post-merge in its own throwaway
       repositories. It therefore does NOT depend on how a real clone sets core.hooksPath -
       that is the brief's Q1 and is out of this task. Stub gh on PATH so no network call is
       made, and have the stub log every invocation to a file the assertions read.
@@ -794,9 +794,9 @@ tasks:
       - resolve the repository root from its own location rather than from the caller's cwd -
         a git hook runs with cwd at the top of the working tree for a normal merge, but that
         is not guaranteed for every invocation, so derive the root from $0;
-      - exec .claude/skills/harness/bin/post-merge-sweep.sh, passing "$@" through unchanged so
+      - exec .claude/skills/harness/bin/post-merge-sweep.py, passing "$@" through unchanged so
         git's squash flag reaches the sweep, which per T-03's contract ignores it;
-      - if post-merge-sweep.sh is absent or not executable, print one line naming the missing
+      - if post-merge-sweep.py is absent or not executable, print one line naming the missing
         path and exit 0. A post-merge hook that exits non-zero makes git print an error after a
         successful pull, and a missing sweep is a broken tree, not a broken merge. INV-29 is
         what turns the resulting missed removal into a refusal.
@@ -883,7 +883,7 @@ tasks:
 
       Fixtures are REAL git clones, built with git clone from a throwaway origin repository
       that carries a .claude/skills/harness/hooks/post-merge shim and a
-      .claude/skills/harness/bin/post-merge-sweep.sh. Stub gh on PATH so no case makes a
+      .claude/skills/harness/bin/post-merge-sweep.py. Stub gh on PATH so no case makes a
       network call, and have the stub log every invocation to a file the assertions read.
 
       Cases, each its own assertion - never a file-global count, never one combined substring:

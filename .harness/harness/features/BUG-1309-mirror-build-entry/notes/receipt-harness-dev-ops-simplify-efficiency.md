@@ -63,7 +63,7 @@ or is an accepted one-shot cost. Zero other findings.
 3. **`feature_schema.py`'s `BUILD_ENTRY_ERA_EXEMPT`** (module-level frozen set, ~76 string
    literals) and `RUNS_AGENT_EXEMPT` precedent it sits beside: both are literal Python data,
    no computation, no I/O at import time. Not a cost site regardless of the four import call
-   sites (`merge-gate.py`, `gh-sync.py`, `post-merge-sweep.sh`, `check-state.sh`) — the set
+   sites (`merge-gate.py`, `gh-sync.py`, `post-merge-sweep.py`, `check-state.sh`) — the set
    itself is free; only the `jsonschema` import riding along with it (finding 1) costs
    anything.
 

@@ -120,7 +120,7 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
   never cwd. Unchanged by this bug. SUPPLIES.
 - No new refusal path for an unknown repository: `factory_config.repo_entry` and candidate step 4
   already fail closed. BOUNDS the change.
-- Out of scope, per the grilling note: migrating `post-merge-sweep.sh:163`, `quarantine.py:109`,
+- Out of scope, per the grilling note: migrating `post-merge-sweep.py:163`, `quarantine.py:109`,
   `worktree_terminal.py:107-129`, `feature_schema.py:231` onto the new resolver; landing
   `.harness/kaya-ai/features/FEAT-04-...` on `main`; populating FEAT-04's `feature.json`
   `factory.issues` map. The one adjacent surface this change FORCES is the layout detector's reader

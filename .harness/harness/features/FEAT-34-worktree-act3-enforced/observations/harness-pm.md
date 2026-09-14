@@ -23,7 +23,7 @@
   A premise that no longer reproduces is not automatically falsified - look for the repair's trace.
 - 2026-08-24: shrinking a blocking open question beats raising it whole. Q1 (where the tracked
   hooks dir lives) looked like it blocked the entire hook half. Putting the hook BODY in
-  .claude/skills/harness/bin/post-merge-sweep.sh - granted, testable by a test that installs it
+  .claude/skills/harness/bin/post-merge-sweep.py - granted, testable by a test that installs it
   itself - left only the tracked shim and the core.hooksPath install unspecifiable. Q1 went from
   blocking 3 SCs to blocking 1.
 - 2026-08-24: FEAT-34 resume. The default Bash cwd for this pm spawn WAS the worktree (pwd + git rev-parse --show-toplevel both returned the FEAT-34 worktree), so check-state.sh and check-plan-routes.py measured the right tree; the orchestrator hit the opposite. Verify cwd rather than trusting either claim.
@@ -31,4 +31,4 @@
 - 2026-08-24: FEAT-34 plan-fix. A plan verify that greps a runner run can be vacuous because the runner rejects the ARG FORM first: `run-unit-tests.sh integration` (bare positional) exits 2 at :33-36 before either checker runs, so `grep -c KIND-DRIFT` printed 0 on every tree. The flag is `--kind`; `--check-kinds` runs both checkers and no tests. Always run a plan verify against a deliberately wrong copy of the tree before writing it.
 - 2026-08-24: FEAT-34 D-10. `classify(root)` over one `git worktree list` cannot serve a "every repository" requirement when the other repos are separate git repositories (feature-worktree.py dest_for joins WORKTREES_SEGMENT to owner_root only). A green per-repo unit test looks like coverage and is not. Check whether the TEST calls the function once per repo or once total.
 - 2026-08-24: FEAT-34 REQ-07 scope question — the brief's own Open Questions section (Q1) said REQ-07..REQ-09 were written neutral on the fleet-repository dimension, which settled a "is this a defect?" question that two tiers had framed as code-vs-test. Reading the brief's Q/A sections before the requirement text would have been faster.
-- 2026-08-24: a one-word "fix" (classify -> classify_all at post-merge-sweep.sh:234) was measurably a no-op: the served repo has no hooks dir, and feat_dir resolves under the harness main checkout only. Checking whether the proposed fix would actually change behaviour is what bounded severity.
+- 2026-08-24: a one-word "fix" (classify -> classify_all at post-merge-sweep.py:234) was measurably a no-op: the served repo has no hooks dir, and feat_dir resolves under the harness main checkout only. Checking whether the proposed fix would actually change behaviour is what bounded severity.

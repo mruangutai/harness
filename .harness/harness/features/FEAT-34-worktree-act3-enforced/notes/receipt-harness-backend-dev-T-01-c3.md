@@ -30,7 +30,7 @@ now derives the main checkout from **porcelain order**, not from a comparison to
 `_worktree_paths(root)` preserves porcelain order, so `classify` skips index 0 unconditionally
 and iterates the rest. No second skip on `root` was added — per the dispatch's settled
 consequence, when `root` is itself a linked worktree it now becomes a genuine classified record
-(D-10/T-06/`post-merge-sweep.sh`'s existing workaround all presuppose this).
+(D-10/T-06/`post-merge-sweep.py`'s existing workaround all presuppose this).
 
 `worktree_terminal.py:185-207` (`classify`) is the only place changed; the stale
 `os.path.realpath(path) == root_real` comparison and its now-obsolete local `root_real` are
@@ -94,9 +94,9 @@ PASS: (n) repository with no linked worktrees yields no records and does not rai
 ```
 
 ### `python3 .claude/skills/harness/bin/test-post-merge-sweep.py`
-Exit 0. All PASS (a) through (g), no FAIL. `post-merge-sweep.sh:184`'s `classify(root)` call site
+Exit 0. All PASS (a) through (g), no FAIL. `post-merge-sweep.py:184`'s `classify(root)` call site
 consumes the changed interface; unaffected, since its `root` there is resolved as described in
-`post-merge-sweep.sh`'s own `_resolve_repo_root()` (a workaround for this same defect — see
+`post-merge-sweep.py`'s own `_resolve_repo_root()` (a workaround for this same defect — see
 residual finding below).
 
 ### `.claude/skills/harness/bin/check-state.sh`
@@ -121,17 +121,17 @@ with a comment stating the porcelain-order rule and explicitly warning that comp
 is wrong when `root` is itself a linked worktree.
 
 ## Residual finding — out of scope, reported not fixed
-`post-merge-sweep.sh:42-59`'s `_resolve_repo_root()` carries a comment describing itself as a
+`post-merge-sweep.py:42-59`'s `_resolve_repo_root()` carries a comment describing itself as a
 WORKAROUND for this exact defect (resolving root to the main checkout before calling `classify`
 so root's own worktree "still sees that worktree as a genuine record ... rather than having
 classify() silently drop it"). That workaround is now redundant — `classify` handles this
-correctly on its own — but per the dispatch's explicit boundary, `post-merge-sweep.sh` and its
+correctly on its own — but per the dispatch's explicit boundary, `post-merge-sweep.py` and its
 comment are out of scope for this task and were not touched.
 
 ## Files touched
 - `.claude/skills/harness/bin/worktree_terminal.py` — the one-hunk fix in `classify`, plus the
   corrected block comment. No other function touched.
 
-No other files written. `test-worktree-terminal.py`, `check-state.sh`, `post-merge-sweep.sh`,
+No other files written. `test-worktree-terminal.py`, `check-state.sh`, `post-merge-sweep.py`,
 `plan.yaml`, `BRIEF.md`, `feature.json`, `STATE.md` were read only, never edited. Tree left dirty;
 no `git add`, `commit`, `worktree remove`, or `gh` command was run.

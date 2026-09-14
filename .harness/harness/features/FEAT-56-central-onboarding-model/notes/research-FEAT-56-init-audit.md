@@ -78,7 +78,7 @@ checkout and refuses on identity/dirty (`factory_workspace.py:1-38`).
 | `bin/merge-settings.py:35-36, 164-165` | no | comments about prose counts in `SKILL.md` and the HARD-GATE consequence |
 | `bin/gh-sync.py:254-255` | **yes** | skip message "run /harness-init --upgrade to record it" (`github.repo` unpinned) — a product's repo pin now lives in the product's config |
 | `bin/layout_migration.py:121-125` | **yes** | the APPLICABLE marker's rationale: "harness-init installs the whole bin/ into product repos" |
-| `bin/post-merge-sweep.sh:68-69` | no | cites `harness-init SKILL.md:73/:78` as the reason a relative `hooksPath` resolves per-worktree |
+| `bin/post-merge-sweep.py:68-69` | no | cites `harness-init SKILL.md:73/:78` as the reason a relative `hooksPath` resolves per-worktree |
 
 **Instructional (routes a session into init):** `.claude/commands/harness.md:12` (**yes** — "BRIEF.md
 missing" routes to `/harness-init`); `.claude/commands/harness-plan.md:18` (**yes** — routes when a
@@ -216,7 +216,7 @@ decision — and #206 has not been amended since 2026-08-10.
    `.harness/features/<FEAT>/`; `harness-brief/SKILL.md:95` still cites the retired INV-20. Fix these
    in the same pass or a reviewer will read them as regressions.
 8. **Line-anchored citations into `SKILL.md` rot on the first edit** — `test-post-merge-sweep.py:784`
-   and `post-merge-sweep.sh:69` both cite `SKILL.md:73/:78`. Prefer re-anchoring them to a stable
+   and `post-merge-sweep.py:69` both cite `SKILL.md:73/:78`. Prefer re-anchoring them to a stable
    heading over re-numbering.
 
 ## Open questions

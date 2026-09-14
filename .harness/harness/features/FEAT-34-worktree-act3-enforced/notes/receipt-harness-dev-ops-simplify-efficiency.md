@@ -2,7 +2,7 @@
 
 FLAG-ONLY. No edits applied, no git mutation performed. Two findings, both real network-I/O
 waste in `check-state.sh`'s INV-30 (T-08, unreviewed `main-session-direct`), weighted first per
-dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.sh` (T-03) are measured clean.
+dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.py` (T-03) are measured clean.
 
 ## Method
 
@@ -23,7 +23,7 @@ dispatch. `worktree_terminal.py` (T-01/T-02) and `post-merge-sweep.sh` (T-03) ar
 - `classify_all(root)` (INV-29, T-01/T-02) timed directly: **0.236s**, 5 worktree records, all
   `exempt_absent`, no fleet repos declared. Subprocess count: 1 `git worktree list` + ~2 per
   worktree (`git status --porcelain`, `git ls-tree`) ≈ 11 subprocesses total.
-- `post-merge-sweep.sh 0 --dry-run` timed directly: **0.238s, 0.226s** across two runs, zero
+- `post-merge-sweep.py 0 --dry-run` timed directly: **0.238s, 0.226s** across two runs, zero
   terminal records in this tree (no gh calls on this path — dry-run and no terminal worktrees).
 - This repo's own `github.sync` is `true` and `github.repo` is set (`.harness/harness.json`),
   so INV-30's network path is the live path here, not a hypothetical.
@@ -89,7 +89,7 @@ call: fix cycle before ship
   to the real work (one `git worktree list` per repo, a bounded few `git` calls per worktree),
   and this repo declares no fleet repos so cross-repo fan-out is untested here but the mechanism
   is linear in worktree/fleet-repo count, not obviously wasteful.
-- `post-merge-sweep.sh`: 0.226-0.238s in front of a human waiting on `git merge`, negligible.
+- `post-merge-sweep.py`: 0.226-0.238s in front of a human waiting on `git merge`, negligible.
   Its ship-then-remove path (real gh-sync + feature-worktree calls on a genuine terminal record)
   is necessary work, not waste — not measured further since this tree has no terminal worktree to
   exercise that path against.
@@ -172,7 +172,7 @@ DIGEST:
     - "gh api --paginate milestones: 0.475s"
     - "gh auth status under simulated slow network (unroutable proxy, 3s test timeout): blocked full 3.003s, confirmed no fast-fail"
     - "worktree_terminal.classify_all: 0.236s, ~11 subprocesses, 5 worktree records"
-    - "post-merge-sweep.sh --dry-run: 0.226s / 0.238s across 2 runs"
+    - "post-merge-sweep.py --dry-run: 0.226s / 0.238s across 2 runs"
     - "run-unit-tests.sh --kind integration (addendum, full 25-script run, all 46 UNIT+INTEGRATION scripts confirmed disjoint by set comparison): real 287.16s / user 82.82s / sys 41.85s, exit 0"
 findings:
   - id: F1

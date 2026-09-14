@@ -22,7 +22,7 @@ against it. Do NOT reuse this pin after any commit.
 - THE DEFECT IS REAL, all four links read by me at the pin, not inherited: worktree_terminal.py:248-251
   sets resolved_id to the LANDED name, :271-275 emits it as feature_id with path still SHORT;
   check-state.sh:1326-1329 composes --id from feature_id; feature-worktree.py:56-59 joins it and
-  :207-214 exits 3; post-merge-sweep.sh:150 uses basename(path) — verified-at 513c4a4
+  :207-214 exits 3; post-merge-sweep.py:150 uses basename(path) — verified-at 513c4a4
 - T-10's verify cannot go red: the loop discards via `|| true` and the tail greps 3 skill files, not
   16 agents, then pipes to `wc -l` — plan.yaml:750 read by me — verified-at 513c4a4
 - BRIEF.md:246 and :359 read NOT YET RE-SIGNED against :449 — read by me — verified-at 513c4a4

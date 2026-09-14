@@ -41,7 +41,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-state.sh
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and its own invariant is the artifact doing the checking
-    - surface: .claude/skills/harness/bin/post-merge-sweep.sh
+    - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: main-session-direct
       reason: DEC-174 enforcement carve-out - the post-merge hook driver decides whether evidence of a failed ship is destroyed
     - surface: .claude/skills/harness/bin/merge-gate.sh and merge-gate.py
@@ -97,7 +97,7 @@ decisions:
     dec: none
   - id: D-06
     choice: The Build refusal lives in gh-sync.py cmd_start_task, which every task start already runs, and refuses with exit 2 rather than skipping with exit 0.
-    because: start-task is the one chokepoint every team and main-session task passes through at build time, and skip exits 0, which is exactly the signal post-merge-sweep.sh already documents as unsafe to read as success.
+    because: start-task is the one chokepoint every team and main-session task passes through at build time, and skip exits 0, which is exactly the signal post-merge-sweep.py already documents as unsafe to read as success.
     dec: DEC-174
   - id: D-07
     choice: The merge refusal is a new registered PreToolUse Bash gate, merge-gate.sh plus merge-gate.py, modelled on gh-close-gate; it decides on the LOCAL feature.json receipt alone and FAILS OPEN on a GitHub read failure - when the head branch cannot be resolved through gh it falls back to the local current branch, denies only if that resolves to a feature owing a receipt, and otherwise allows the merge at exit 0 with one stderr line saying it could not verify and why.
@@ -119,8 +119,8 @@ decisions:
       and BUILD_ENTRY_ERA_EXEMPT membership, and gh-sync.py's record_build_entry, load_recorded and
       save_recorded normalization, the skip record guard, _build_entry_preflight and the two
       recover-terminal report helpers - each asserted as a decision table the subprocess suites do not
-      enumerate. T-07's retention branch gets NO unit test: post-merge-sweep.sh executes it inside a
-      python3 -I - heredoc fed on stdin (post-merge-sweep.sh:29-293), so nothing can import it, and its
+      enumerate. T-07's retention branch gets NO unit test: post-merge-sweep.py executes it inside a
+      python3 -I - heredoc fed on stdin (post-merge-sweep.py:29-293), so nothing can import it, and its
       only unit-reachable input is the era set, which T-11 covers. That cell stays discharged by
       tests/integration/test-post-merge-sweep.py plus T-10's end-to-end case, and its DISPOSITION is
       D-12: the unit kind there is NOT-APPLICABLE, never an owed test recorded as a gap.
@@ -146,10 +146,10 @@ decisions:
     because: |
       DECISIONS.md:4360-4363 places the test file of each gate inside the carve-out and states that
       the category governs and the enumeration only records it. Case (e) of that file runs a real git
-      merge through the tracked core.hooksPath post-merge shim and executes post-merge-sweep.sh end to
+      merge through the tracked core.hooksPath post-merge shim and executes post-merge-sweep.py end to
       end (test-hooks-install.py:388-432), which is the same subject this plan's own lanes row already
       routes main-session-direct for tests/integration/test-post-merge-sweep.py. --resolve grants team
-      for check-state.sh and post-merge-sweep.sh themselves, which is exactly why the carve-out rows in
+      for check-state.sh and post-merge-sweep.py themselves, which is exactly why the carve-out rows in
       this plan override it, so a team grant cannot settle the question. The narrower reading is
       required because the wider one would pull tests/integration/test-gh-sync.py and
       test-validate-feature-json.py into the carve-out, and this plan's signed lanes rows place both in
@@ -162,8 +162,8 @@ decisions:
       it carries it across exactly three nodes: T-07's eight named cases, T-10's red-proof, and
       T-13's "not-applicable" case, which closes the one member of the retention allow-set none of
       T-07's eight cases reaches.
-      WHY IT IS UNOWNABLE, at source: post-merge-sweep.sh runs its ENTIRE Python body inside ONE
-      heredoc, python3 -I - fed on stdin, opened at post-merge-sweep.sh:29 and closed at :293, so
+      WHY IT IS UNOWNABLE, at source: post-merge-sweep.py runs its ENTIRE Python body inside ONE
+      heredoc, python3 -I - fed on stdin, opened at post-merge-sweep.py:29 and closed at :293, so
       the retention arm - the sync_enabled block at :221-228, whose retention test is the elif at
       :228 - is not importable, and NO tests/unit/** file can reach it without first extracting the
       body into a module. THE RETENTION TEST IS :228, the elif over the allow-set; :222 is only the
@@ -386,7 +386,7 @@ panel:
     defect and NOT a reader outcome, the same class the cycle-1 sentence above records.
     Cycle 2''s four summaries are the digest findings table''s finding column UNALTERED,
     which includes finding 2''s off-by-two citation of the sweep''s github.sync re-read
-    as post-merge-sweep.sh:216-217 when it is :214-215 (:216-217 is the feature.json
+    as post-merge-sweep.py:216-217 when it is :214-215 (:216-217 is the feature.json
     read); the lead re-derived that at source and the correction lives here and in
     the fix text, never inside the finding, because any alteration mints a different
     id.'
@@ -505,7 +505,7 @@ panel:
       \ claim is false, so the repo-wide DEC-217 sibling its Q1 recommends should\
       \ not be written on that evidence. `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62`\
       \ say *\"THE DECISION LIVES IN A FILE, NOT A HEREDOC\"* and exec `.py` files\
-      \ \u2014 counter-examples, not instances. Only `post-merge-sweep.sh:29-293`\
+      \ \u2014 counter-examples, not instances. Only `post-merge-sweep.py:29-293`\
       \ and `bash-write-guard.sh:42` feed Python on stdin."
     disposition: resolved
     resolved_by: .harness/harness/features/BUG-1309-mirror-build-entry/notes/research-BUG-1309-mirror-build-entry-unit-ruling.md
@@ -516,7 +516,7 @@ panel:
       than what was proven: `"not-applicable"`, the third member of the retention
       allow-set, is exercised by none of T-07''s eight cases nor by T-10''s red-proof.
       Reachable when `github.sync` flips on between Build entry and merge (the sweep
-      re-reads `sync` at `post-merge-sweep.sh:216-217`).'
+      re-reads `sync` at `post-merge-sweep.py:216-217`).'
     disposition: resolved
     resolved_by: T-13
   - id: PF-98762207d33d7c905df8a1c0c410c33a
@@ -532,7 +532,7 @@ panel:
   - id: PF-67da25de71e5be289b53782778feed02
     severity: info
     reader: should-not-exist
-    summary: D-12 pins the retention test to `post-merge-sweep.sh:222`; the `elif`
+    summary: D-12 pins the retention test to `post-merge-sweep.py:222`; the `elif`
       is at `:228` and `:222` is the `entry =` read. Second inaccurate "verified at
       source" claim in the same note.
     disposition: resolved
@@ -800,18 +800,18 @@ tasks:
       On success, and as the last statement of the successful path,
       record_build_entry(feat_dir, "recovered-terminal"). If gh is unavailable the existing
       skip() funnel fires: nothing is recorded, the field stays absent, the feature stays
-      non-terminal, and post-merge-sweep.sh keeps the worktree (T-07). Do NOT special-case that.
+      non-terminal, and post-merge-sweep.py keeps the worktree (T-07). Do NOT special-case that.
 
       THE MESSAGE. In cmd_ship, the existing
         skip("no recorded milestone - nothing to close")
       becomes an actionable line naming both the cause and the fix, still through skip() and
-      still exit 0 so post-merge-sweep.sh's positive-signal gate keeps reading it as
+      still exit 0 so post-merge-sweep.py's positive-signal gate keeps reading it as
       not-proof-of-a-terminal-write:
         skip("no recorded milestone - this feature never completed a Build entry, so there is
         nothing to close. Run gh-sync.py recover-terminal <feature-dir> --yes to create the
         terminal receipt, then ship again.")
       with <feature-dir> interpolated as the real absolute path. Keep the literal prefix
-      "gh-sync: SKIP" that skip() emits: post-merge-sweep.sh greps for that exact substring.
+      "gh-sync: SKIP" that skip() emits: post-merge-sweep.py greps for that exact substring.
 
       Tests, written first and confirmed failing, in tests/integration/test-gh-sync.py against
       the fake gh.
@@ -920,7 +920,7 @@ tasks:
         open performs the forbidden act, so the word cannot appear even as a description.
 
         Use refuse(), NOT skip(): skip exits 0, and an exit-0 refusal is the exact signal
-        post-merge-sweep.sh already documents as unsafe to read as success.
+        post-merge-sweep.py already documents as unsafe to read as success.
       - "recovery-required": print ONE line to stderr and CONTINUE. This is the settled policy: a
         recorded temporary environmental mirror failure gates the merge, never Build. WHICH line is
         printed is decided FIRST by the era set, because T-05 ALLOWS the merge for an era feature and
@@ -1663,13 +1663,13 @@ tasks:
     traces: [REQ-09, REQ-02]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 enforcement carve-out - post-merge-sweep.sh is the post-merge hook driver and decides whether the last evidence of a failed ship is destroyed
+    execution_reason: DEC-174 enforcement carve-out - post-merge-sweep.py is the post-merge hook driver and decides whether the last evidence of a failed ship is destroyed
     depends_on:
     - T-03
     - T-06
     status: done
     files:
-      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/post-merge-sweep.py
       - tests/integration/test-post-merge-sweep.py
     verify: |
       out=$(python3 tests/integration/test-post-merge-sweep.py) || exit 1
@@ -1685,7 +1685,7 @@ tasks:
       exits cleanly for another reason would delete the evidence.
 
       Add ONE positive check to the same function, placed AFTER the existing returncode gate
-      (post-merge-sweep.sh:188-191), the "gh-sync: SKIP" gate (:192-195) and the "gh-sync: FAILED"
+      (post-merge-sweep.py:188-191), the "gh-sync: SKIP" gate (:192-195) and the "gh-sync: FAILED"
       gate (:206-209), and BEFORE the feature-worktree.py remove call (:213-217), keeping their
       order and their messages unchanged. The block runs only when the project's
       .harness/harness.json github.sync is true; when it is false the sweep removes as it does
@@ -1735,7 +1735,7 @@ tasks:
       AND FOR THE ERA CORPUS, SETTLED BULLET 8 IS DELIVERED BY THE GATES THAT ALREADY EXIST, not by
       this new check: a legacy feature under recovery while GitHub is unavailable records no
       milestone, so its ship prints "gh-sync: SKIP" or "gh-sync: FAILED" and the PRE-EXISTING gates
-      at post-merge-sweep.sh:192-195 and :206-209 keep the worktree and return BEFORE the new
+      at post-merge-sweep.py:192-195 and :206-209 keep the worktree and return BEFORE the new
       build-entry block - and therefore before the era gate inside it - is ever reached. The new
       check is the BACKSTOP for the one case those gates miss: a ship that exits cleanly having
       printed neither line, which is the shape every case below fakes.
@@ -1745,7 +1745,7 @@ tasks:
       Build refusal, T-05's merge deny and T-06's INV-37 all read that ONE symbol; a second
       definition anywhere - a literal list, a re-derived glob, a copy in this script - is a DEFECT.
       Reach it the way this file already reaches its siblings: sys.path.insert(0, BIN_DIR) is
-      already done at post-merge-sweep.sh:37, so add "import feature_schema" to the existing import
+      already done at post-merge-sweep.py:37, so add "import feature_schema" to the existing import
       block at :38-40.
 
       Read the JSON with json.load and treat an unreadable or unparseable feature.json as a
@@ -1897,7 +1897,7 @@ tasks:
       already-merged sync-enabled feature whose mirror was never opened is recovered by
       gh-sync.py recover-terminal --yes, which creates the milestone and the parent and source
       issues only, never historical task sub-issues, and records recovered-terminal; while
-      GitHub is unavailable that recovery stays non-terminal and post-merge-sweep.sh keeps the
+      GitHub is unavailable that recovery stays non-terminal and post-merge-sweep.py keeps the
       worktree. check-state.sh INV-37 reports a sync-enabled feature carrying no receipt even
       when its station is terminal and its task statuses are absent, bounded by a frozen
       era-exempt set.
@@ -1927,7 +1927,7 @@ tasks:
     - REQ-02
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: "DEC-174 carve-out (D-11) - case (e) of test-hooks-install.py runs the tracked post-merge shim and post-merge-sweep.sh end to end, so it is a hook's own test; the category governs (DECISIONS.md:4360-4363)"
+    execution_reason: "DEC-174 carve-out (D-11) - case (e) of test-hooks-install.py runs the tracked post-merge shim and post-merge-sweep.py end to end, so it is a hook's own test; the category governs (DECISIONS.md:4360-4363)"
     depends_on: [T-07]
     status: done
     files:
@@ -1941,7 +1941,7 @@ tasks:
       echo VERIFY-PASS
     intent: |
       tests/integration/test-hooks-install.py case case_sc14_end_to_end_and_red_proof is RED at HEAD
-      and THE PRODUCTION CODE IS CORRECT. Do not touch post-merge-sweep.sh. The criterion this case
+      and THE PRODUCTION CODE IS CORRECT. Do not touch post-merge-sweep.py. The criterion this case
       grades is FEAT-34's SC-14, not one of this BRIEF's - BUG-1309's success criteria end at SC-10 -
       and the id stays in the case and assertion names because it is how a reader finds them in the
       test file. Do not weaken what that FEAT-34 criterion grades: that the tracked core.hooksPath
@@ -1952,7 +1952,7 @@ tasks:
       with _commit_feature(clone, f"FEAT-90-{label}-thing", "Done", milestone=9001). _commit_feature
       (:176-194) writes github = {"milestone": ...} and no build_entry, while _bootstrap_origin
       (:128-144) writes harness.json with github.sync true. T-07's retention branch
-      (post-merge-sweep.sh:221-233) therefore KEEPS the worktree - sync enabled, build_entry absent,
+      (post-merge-sweep.py:221-233) therefore KEEPS the worktree - sync enabled, build_entry absent,
       and the synthetic name FEAT-90-e-green-thing can never be in
       feature_schema.BUILD_ENTRY_ERA_EXEMPT. The fixture predates the field. Measured at plan time:
       exactly one FAIL in this file, the (e-green) SC-14 assertion, whole file 4.6s.
@@ -2083,7 +2083,7 @@ tasks:
       absent plan.yaml and BE-04's unparseable plan.yaml are unreachable (a valid plan.yaml is always
       written), BE-06's status done is not among its stations, BE-08's multi-task plan is unreachable
       (one task), BE-09's empty tasks list is unreachable (one task), and BE-10 is a property of the set
-      rather than of the function. BE-10 is also what post-merge-sweep.sh:223 and gh-sync.py:1361 both
+      rather than of the function. BE-10 is also what post-merge-sweep.py:223 and gh-sync.py:1361 both
       branch on, and what the stale merge fixture in tests/integration/test-hooks-install.py turned on -
       the SC-14 that fixture grades is FEAT-34's criterion, not this BRIEF's, which ends at SC-10. Do
       NOT assert the set's size or full membership: the comment at feature_schema.py:222-225 makes it a
@@ -2264,7 +2264,7 @@ tasks:
       echo VERIFY-PASS
     intent: |
       Close the one member of the post-merge sweep's retention allow-set that no test reaches.
-      This task is TEST-ONLY - change nothing in .claude/skills/harness/bin/post-merge-sweep.sh,
+      This task is TEST-ONLY - change nothing in .claude/skills/harness/bin/post-merge-sweep.py,
       and change no existing case.
 
       THE CASE, literally: a merged feature whose feature.json records
@@ -2292,7 +2292,7 @@ tasks:
       feature_schema.BUILD_ENTRY_ERA_EXEMPT cannot contain - a real feature directory name is IN
       that frozen set and would silently invert the case.
 
-      THE BRANCH UNDER TEST is the elif at post-merge-sweep.sh:228 - elif entry not in the set
+      THE BRANCH UNDER TEST is the elif at post-merge-sweep.py:228 - elif entry not in the set
       opened, not-applicable, recovered-terminal - and specifically its "not-applicable" member.
       :222 is only the entry = read that feeds that test, and :223 is the era-exempt gate above
       it. The row asserts the FALSE arm of :228 for a recorded "not-applicable", which falls
@@ -2300,7 +2300,7 @@ tasks:
 
       WHY THE STATE IS REACHABLE, and not dead code. The sweep re-reads the project's
       github.sync from the MAIN CHECKOUT's .harness/harness.json at merge time
-      (post-merge-sweep.sh:214-215), whereas "not-applicable" is written at Build entry by the
+      (post-merge-sweep.py:214-215), whereas "not-applicable" is written at Build entry by the
       sync-not-enabled skip (D-09). A project that flips github.sync ON between Build entry and
       merge therefore arrives at :228 with "not-applicable" recorded under enabled sync. That is
       the state this row pins, and it is why the case belongs in the sync-enabled table rather
@@ -2310,7 +2310,7 @@ tasks:
       already handles this state correctly, so the row is GREEN the moment it is written - this
       is a coverage gap found by panel c2, not a bug. Prove it discriminates instead, and record
       the proof in the return - temporarily delete the "not-applicable" member from the allow-set
-      literal at post-merge-sweep.sh:228, re-run the bed, confirm the new row alone reddens while
+      literal at post-merge-sweep.py:228, re-run the bed, confirm the new row alone reddens while
       the eight T-07 rows stay green, then RESTORE the literal and re-run to confirm the file is
       byte-identical to HEAD and the bed is fully green. A row no mutation can redden is vacuous
       and must be reported rather than kept.

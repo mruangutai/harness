@@ -53,7 +53,7 @@ Failure scenario: any of the 78 frozen era-exempt directories — including BUG-
 first real `open`, hits a transient `gh` failure, records `recovery-required`; `gh-sync.py`
 `_build_entry_recovery_notice` (`:1379-1386`) prints to the operator "its merge is not refused";
 the operator merges and is denied. Two of the other four readers of the set
-(`check-state.sh:2002`, `post-merge-sweep.sh:223`) implement the unconditional rule, which is why
+(`check-state.sh:2002`, `post-merge-sweep.py:223`) implement the unconditional rule, which is why
 this reads as `merge-gate.py` deviating rather than the decision record being stale.
 
 **M3 (lead, adequacy) — the test that would have caught M2 does not exist, in either direction.**

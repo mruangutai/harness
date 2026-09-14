@@ -2,7 +2,7 @@
 
 ## BLUF
 
-`_resolve_repo_root()` in `post-merge-sweep.sh` no longer derives the repository root from
+`_resolve_repo_root()` in `post-merge-sweep.py` no longer derives the repository root from
 `git worktree list --porcelain` run with `cwd=os.getcwd()`. It now derives root purely from the
 sweep script's OWN on-disk location — `BIN_DIR` walked up the same four path segments
 (`.claude/skills/harness/bin`) the T-11 shim already walks from its own location. The caller's cwd
@@ -13,7 +13,7 @@ longer change what root resolves to. This closes the defect the operator measure
 
 ## What changed
 
-`.claude/skills/harness/bin/post-merge-sweep.sh`:
+`.claude/skills/harness/bin/post-merge-sweep.py`:
 - `_resolve_repo_root()` rewritten: no `subprocess`/`git worktree list` call at all. `root =
   os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_DIR))))`, returning `None`
   only if that path is not a directory (a broken installation, never a cwd property).
@@ -34,7 +34,7 @@ they're handed, and `classify` skips porcelain index 0 rather than keying on `ro
 
 Command:
 ```
-bash -n .claude/skills/harness/bin/post-merge-sweep.sh && bash .claude/skills/harness/bin/post-merge-sweep.sh --dry-run
+bash -n .claude/skills/harness/bin/post-merge-sweep.py && bash .claude/skills/harness/bin/post-merge-sweep.py --dry-run
 ```
 
 Output:
@@ -59,7 +59,7 @@ Cross-checked verbatim against `plan.yaml` T-03's `verify:` block — identical 
 
 ## Files touched
 
-- `.claude/skills/harness/bin/post-merge-sweep.sh`
+- `.claude/skills/harness/bin/post-merge-sweep.py`
 
 ## Scope discipline
 

@@ -188,7 +188,7 @@ printed remedy that does not destroy another feature's work.
 - **DEC-183 SUPPLIES** the required `integration` CI job that runs `check-plan-routes.py` over every
   live plan.
 - **DEC-187 SUPPLIES** the exclusion of the `functional` test kind.
-- `post-merge-sweep.sh` is not in DEC-174's enumeration and carries zero refusals, but it DELETES
+- `post-merge-sweep.py` is not in DEC-174's enumeration and carries zero refusals, but it DELETES
   worktrees and a run lives in one. It is main-session-direct for that reason.
 - **This must not be built while another feature's build is live.** Changing the dispatch gate hits
   every in-flight agent mid-run.

@@ -79,7 +79,7 @@ required kind carries a null `cmd`.
   type(exc).__name__ != "MissingDependency": ... else: doc = _scan_top_level_status(...)`
   (`worktree_terminal.py:213-221`) — has no deterministic, environment-independent test. The only
   thing that exercises it is `test-post-merge-sweep.py` invoking the real `-I`-isolated
-  `post-merge-sweep.sh` as a subprocess, and that only actually raises `ImportError` **on this
+  `post-merge-sweep.py` as a subprocess, and that only actually raises `ImportError` **on this
   machine**, because PyYAML happens to live in user site-packages here (confirmed:
   `python3 -I -c "import yaml"` → `ModuleNotFoundError`). A machine with PyYAML in system or venv
   site-packages would silently skip this path with zero test failure to flag the gap. **Failure

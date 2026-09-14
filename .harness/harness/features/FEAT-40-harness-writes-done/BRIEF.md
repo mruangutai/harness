@@ -130,7 +130,7 @@ it, once per feature. And no harness command in the mirror closes an issue direc
   new entry, with DEC-138 amendment 7's parent table struck in the same act.
   verify: automated      evidence: integration
 - SC-15: A `ship` run in which a card's `Done` write failed prints a line beginning
-  `gh-sync: FAILED ` naming that card, and `post-merge-sweep.sh` leaves the feature's worktree
+  `gh-sync: FAILED ` naming that card, and `post-merge-sweep.py` leaves the feature's worktree
   standing. A run in which cards were only held prints no `FAILED` line and the worktree is removed.
   No output of any `ship` run contains the substring `gh-sync: SKIP` unless `ship` genuinely skipped.
   verify: automated      evidence: integration
@@ -170,7 +170,7 @@ card: a `BoardError` prints one stderr line, the run continues, and the exit sta
 tickets close and some silently do not.
 
 **An earlier draft of this brief said that had "no gate downstream". Measured, that was wrong.**
-`post-merge-sweep.sh:180-195` already declines to remove the worktree when `ship`'s combined output
+`post-merge-sweep.py:180-195` already declines to remove the worktree when `ship`'s combined output
 contains the literal `gh-sync: SKIP`, on its own stated reason that an exit code is never positive
 evidence the write ran and that the standing checkout is "the only remaining evidence". A downstream
 reader exists; it was simply not reading anything this feature emits.

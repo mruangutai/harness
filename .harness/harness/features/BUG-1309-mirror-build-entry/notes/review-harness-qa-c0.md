@@ -41,7 +41,7 @@ Both non-zero discovery, both green. `matrix_ok: true`.
   correctly resolving this feature by branch and reading it as era-exempt, exit 0. Same corpus fact as
   above: all 75 live features are era-exempt, so **no live "deny" is currently reachable** — the deny
   path is proven only by the fixtures in `test-merge-gate.py`.
-- **`post-merge-sweep.sh`**: NOT run live (it mutates/removes worktrees on a real merge — out of
+- **`post-merge-sweep.py`**: NOT run live (it mutates/removes worktrees on a real merge — out of
   scope for a read-only audit and explicitly forbidden). Its retention branch is confirmed via
   `tests/integration/test-post-merge-sweep.py`'s 8 T-07 cases + T-13, all `ok`, inside the 50-file/
   exit-0 integration run above.

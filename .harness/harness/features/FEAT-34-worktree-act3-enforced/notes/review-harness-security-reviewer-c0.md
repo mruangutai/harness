@@ -18,7 +18,7 @@ unchanged by this diff), so the sweep's own snapshot is advisory, not authoritat
 **1. Arbitrary code execution via the git hook — assessed, not a new finding.**
 `core.hooksPath` (set by `harness-init/SKILL.md`'s per-clone step, prose not scoped-in code) makes
 `.claude/skills/harness/hooks/post-merge` (36 lines, pure `$0`-derived path resolution, no logic)
-exec `post-merge-sweep.sh` on every `git merge`/`pull` — including ones a human runs directly in a
+exec `post-merge-sweep.py` on every `git merge`/`pull` — including ones a human runs directly in a
 terminal, outside Claude's own tool-permission gating. This is a genuinely new *automatic-trigger*
 surface (previously, harness scripts in this same `bin/` tree only ran when Claude's own
 PreToolUse/PostToolUse hooks fired via `settings.snippet.json`, i.e. mediated by an agent's Bash
@@ -35,7 +35,7 @@ signer to confirm the "no Claude-mediation" property was in view when D-08 was s
 like it wasn't stated in those terms.
 
 **2. Shell injection / word-splitting — none found.**
-`post-merge-sweep.sh`'s heredoc passes exactly two values through the shell layer
+`post-merge-sweep.py`'s heredoc passes exactly two values through the shell layer
 (`POST_MERGE_SWEEP_BIN_DIR`, `POST_MERGE_SWEEP_DRY_RUN`, both script-derived, not attacker input);
 everything downstream is Python `subprocess.run([...])` list-argv (`git worktree list`,
 `git config`, `gh-sync.py ship`, `feature-worktree.py remove`, `gh api`). `check-state.sh`'s
@@ -46,7 +46,7 @@ full diff) but only against three hardcoded constant command strings lifted verb
 segments used to build `feature-worktree.py remove --repo/--id` guidance strings are always drawn
 from real, existing `git worktree list` paths or from `git ls-tree` names of the landed default
 branch (git disallows `.`/`..` tree entries), so there is no path-traversal vector into the
-constructed `feat_dir` (`worktree_terminal.classify`, `post-merge-sweep.sh:_handle_record`).
+constructed `feat_dir` (`worktree_terminal.classify`, `post-merge-sweep.py:_handle_record`).
 
 **3. Destructive filesystem action — bounded, tested, fails toward inaction.**
 Removal only happens after (a) `gh-sync.py ship` exits 0 with no `"gh-sync: SKIP"` in its combined
@@ -68,7 +68,7 @@ not merely asserted.
 precedent at `check-state.sh:1205`) — not re-filed.
 
 **5. Data exposure in logs/output — none new.**
-`post-merge-sweep.sh` echoes `gh-sync.py ship`'s stdout/stderr verbatim into the hook's own output
+`post-merge-sweep.py` echoes `gh-sync.py ship`'s stdout/stderr verbatim into the hook's own output
 (visible after a `git pull`), but `gh-sync.py cmd_ship` (unchanged by this diff) only ever prints
 milestone/PR/parent-issue numbers and status strings — no credentials, no verbose `gh` internals.
 Grepped the full 41-file diff for secret-shaped strings (`ghp_`, `github_pat`, `-----BEGIN`,

@@ -18,7 +18,7 @@ the OMP host feeds the accidental cwd straight back in as `HARNESS_PROJECT_DIR`.
   `worktree_terminal.py:112,:113,:301`; **tests that bind by attribute**
   `test-gh-cost-log.py:40,:45,:52`, `test-factory-claim.py:54`, `test-factory-config.py:780`.
   `_repo_root_from_script` → `context-watch.py:79`. `_root_from` → `dispatch-guard.sh:95`.
-  `_resolve_repo_root` → `post-merge-sweep.sh:227` plus prose at `:67,:80,:86`. `wayfind.root` →
+  `_resolve_repo_root` → `post-merge-sweep.py:227` plus prose at `:67,:80,:86`. `wayfind.root` →
   `wayfind.py:57`. All are in T-04, T-02, T-08, T-09, T-18.
 - **A test seam already exists for 7 of 9 gates** — `CHECK_DOMAIN_BIN`, `BASH_WRITE_GUARD_BIN`,
   `CHECK_STATE_BIN`, `CHECK_PLAN_ROUTES_BIN`, `DISPATCH_GUARD_BIN`, `VALIDATE_DIGEST_BIN`,
