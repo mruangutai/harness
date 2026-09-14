@@ -73,7 +73,7 @@ def _resolver_invocation(root, manifest_root):
     if os.path.isfile(owner_check_domain):
         return owner_check_domain, None
     env = os.environ.copy()
-    env["HARNESS_PROJECT_DIR"] = manifest_root
+    env[harness_boundary.PROJECT_DIR_ENV] = manifest_root
     return CHECK_DOMAIN, env
 
 

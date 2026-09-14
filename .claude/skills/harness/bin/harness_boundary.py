@@ -52,6 +52,7 @@ RE_RUN_IDENTITY = re.compile(
 # fail-open recorded at check-plan-routes.py:489-495: $HOME/.harness holds two backup
 # tarballs and no team-config.yaml, so the bare-directory probe resolved $HOME as a root.
 MARKER = os.path.join(".harness", "team-config.yaml")
+PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 
 
 def root_from_script(bin_dir):
@@ -75,12 +76,12 @@ def resolve_root(bin_dir, strict=True):
     both candidates when `strict`, else return the derived root anyway.
     """
     derived = root_from_script(bin_dir)
-    override = os.environ.get("HARNESS_PROJECT_DIR")
+    override = os.environ.get(PROJECT_DIR_ENV)
     if override:
         if os.path.isfile(os.path.join(override, MARKER)):
             return os.path.abspath(override)
         print(
-            f"harness_boundary: discarding HARNESS_PROJECT_DIR={override!r} — it does "
+            f"harness_boundary: discarding {PROJECT_DIR_ENV}={override!r} — it does "
             f"not carry {MARKER}. Falling back to the derived root {derived!r}.",
             file=sys.stderr,
         )
