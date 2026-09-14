@@ -34,11 +34,11 @@ info-level, pre-existing.
 ### 3. Data exposure — CLEAN
 Grepped the full changed surface (`gh-sync.py`, `merge-gate.py`, `feature_schema.py`,
 `check-state.sh`, `post-merge-sweep.py`, `bash-write-guard.py`, `check-domain.py`,
-`check-fixture-secrets.sh`) for token/credential/secret-shaped strings. Nothing writes a `gh`
+`check-fixture-secrets.py`) for token/credential/secret-shaped strings. Nothing writes a `gh`
 auth token, a PR body, or an issue payload into `feature.json`, a log, a note, or a receipt.
 `record_build_entry`/`save_recorded` write only the four literal enum strings
 (`opened`/`recovery-required`/`not-applicable`/`recovered-terminal`) into `feature.json`'s
-`github.build_entry`. The only "secret"-shaped string found was `check-fixture-secrets.sh`'s own
+`github.build_entry`. The only "secret"-shaped string found was `check-fixture-secrets.py`'s own
 test fixture literal `ghp_ABCDEFGH12345678`, used to prove the secret-scrub pattern still
 matches — not a real credential.
 

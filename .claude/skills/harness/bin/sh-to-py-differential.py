@@ -913,6 +913,62 @@ def merge_gitignore_corpus(scratch):
     return _gitignore_cases(scratch, _gitignore_fixtures(scratch))
 
 
+def _fixture_scrub_file(scratch, name, body):
+    path = os.path.join(scratch, name)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(body)
+    return path
+
+
+def _fixture_scrub_files(scratch):
+    return {
+        "clean": _fixture_scrub_file(
+            scratch, "clean.jsonl", '{"event": "tool_call"}\n'),
+        "clean spaced": _fixture_scrub_file(
+            scratch, "clean spaced.jsonl", '{"event": "tool_result"}\n'),
+        "anthropic": _fixture_scrub_file(
+            scratch, "anthropic.jsonl",
+            '{"key": "sk-ant-api03-AbCdEfGh12345678-XyZ99900112233"}\n'),
+        "project": _fixture_scrub_file(
+            scratch, "project.jsonl", "sk-proj-AbCdEfGh-1234-5678-XyZ9\n"),
+        "aws": _fixture_scrub_file(
+            scratch, "aws.txt", "AKIA" + "A" * 16 + "\n"),
+        "pem": _fixture_scrub_file(
+            scratch, "pem.txt", "-----BEGIN PRIVATE KEY-----\n"),
+        "github": _fixture_scrub_file(
+            scratch, "github.txt", "GH_TOKEN=ghp_ABCDEFGH12345678\n"),
+        "pin": _fixture_scrub_file(
+            scratch, "pin.txt", "credential_pin=xyz\n"),
+        "users": _fixture_scrub_file(
+            scratch, "users.jsonl", '{"cwd": "/Users/alice/project"}\n'),
+        "home": _fixture_scrub_file(
+            scratch, "home.jsonl", '{"cwd": "/home/bob/project"}\n'),
+        "combined": _fixture_scrub_file(
+            scratch, "combined.jsonl",
+            '{"cwd": "/Users/alice/project", "key": "gho_ABCDEFGH12345678"}\n'),
+    }
+
+
+def fixture_secret_scrub_corpus(scratch):
+    """Usage, clean, every secret branch, home paths and missing-file cases."""
+    files = _fixture_scrub_files(scratch)
+    dirty = ("anthropic", "project", "aws", "pem", "github", "pin",
+             "users", "home", "combined")
+    cases = [
+        {"label": "missing file arguments prints usage"},
+        {"label": "one clean file", "argv": [files["clean"]]},
+        {"label": "multiple clean files include spaced path",
+         "argv": [files["clean"], files["clean spaced"]]},
+        {"label": "missing input file is blocked",
+         "argv": [os.path.join(scratch, "missing.jsonl")]},
+    ]
+    cases.extend(
+        {"label": f"{name} violation", "argv": [files[name]]}
+        for name in dirty
+    )
+    return cases
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -976,6 +1032,8 @@ def corpus(tool, scratch, impl):
         return [{"argv": a} for a in cases]
     if tool == "merge-gitignore":
         return merge_gitignore_corpus(scratch)
+    if tool == "check-fixture-secrets":
+        return fixture_secret_scrub_corpus(scratch)
     if tool == "check-state":
         # Takes NO arguments: the shell wrapper passes only $root and $_selfdir to
         # the interpreter and never forwards "$@". Stray args must stay ignored.

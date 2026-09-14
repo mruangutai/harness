@@ -10,15 +10,15 @@ pipeline.
 All four satisfied, no scope creep, no omission:
 
 1. **Key pattern hyphenation** — `sk-ant-|sk-[A-Za-z0-9-]{16,}` added exactly as proposed
-   (`check-fixture-secrets.sh:41`). Confirmed by test + RED-proof: reverting to the original
+   (`check-fixture-secrets.py:41`). Confirmed by test + RED-proof: reverting to the original
    `sk[-_][A-Za-z0-9]{8}` shape silently passes the exact key that escaped before (`sk-ant-red`
    test, both `test-check-fixture-secrets.py` and live run).
 2. **Identity check rebound to the capture** — `$(whoami)` replaced with
-   `/Users/[^/…]+/|/home/[^/…]+/` (`check-fixture-secrets.sh:47`), independent of invoker.
+   `/Users/[^/…]+/|/home/[^/…]+/` (`check-fixture-secrets.py:47`), independent of invoker.
 3. **Positive controls preserved** — run once before any file check, against synthetic values
    shaped like each pattern; extended with a RED-proof (`run_positive_control_red_proof`) that a
    broken pattern refuses to run at all (exit 2) rather than reporting false-clean.
-4. **Reusable, checked-in helper** — standalone `check-fixture-secrets.sh` + dedicated
+4. **Reusable, checked-in helper** — standalone `check-fixture-secrets.py` + dedicated
    15-case `test-check-fixture-secrets.py`, registered in `run-unit-tests.py`'s `UNIT_SCRIPTS`
    (single-line diff, exact name, no typo) and consistent with `harness.json`'s
    `test_kinds.unit.detect` glob (not added to `integration.detect`, correctly — see
@@ -49,7 +49,7 @@ verify blocks at the new helper explicitly.
 
 ### must_fix — SECRET_PATTERN's `sk-[A-Za-z0-9-]{16,}` branch is unanchored and false-positives on ordinary kebab-case prose
 
-`check-fixture-secrets.sh:41`. The alternative is a bare substring match: any text containing
+`check-fixture-secrets.py:41`. The alternative is a bare substring match: any text containing
 literal `sk-` followed by 16+ further `[A-Za-z0-9-]` characters trips `BLOCKED`, regardless of
 what precedes the `sk-`. English/technical compound words ending `-sk` (`task-`, `risk-`,
 `desk-`, `disk-`, `ask-`, `mask-`, `kiosk-`, `whisk-`, `brisk-`) followed by a longer hyphenated
@@ -79,7 +79,7 @@ quality gap in the implementation of an accepted proposal, not a Stage-1 spec de
 
 ### should_fix (med) — positive controls only self-verify 2 of the pattern's 6 alternation branches
 
-`check-fixture-secrets.sh:59-75`. Both `control_secret` and `control_home` are hardcoded to the
+`check-fixture-secrets.py:59-75`. Both `control_secret` and `control_home` are hardcoded to the
 exact two shapes #981 fixed (`sk-ant-…`, `/Users/…`). `AKIA…`, `-----BEGIN`, `github_pat`/`ghp`/
 `gho`/`xox[abp]`, and `credential_pin` have no runtime self-check at all — a future hand-edit
 that broke, say, the `AKIA` branch (malformed escaping, a merge that shifts alternation grouping)
@@ -124,7 +124,7 @@ DIGEST:
   severity_max: high
   findings: 3
   must_fix:
-    - "check-fixture-secrets.sh:41 — SECRET_PATTERN's sk-[A-Za-z0-9-]{16,} branch is an
+    - "check-fixture-secrets.py:41 — SECRET_PATTERN's sk-[A-Za-z0-9-]{16,} branch is an
        unanchored substring match; false-positives on kebab-case words ending -sk (task-,
        risk-, desk-, ask-, disk-, mask-) followed by a long hyphenated tail, demonstrated live
        against the shipped pattern. Anchor with (^|[^A-Za-z0-9]) or equivalent."
@@ -137,7 +137,7 @@ DIGEST:
       question: >-
         FEAT-44's plan.yaml still carries the original two-blind-spot inline sweep. Is there
         appetite for a follow-up pointing any future captured-artifact verify: block at the new
-        check-fixture-secrets.sh explicitly, so the fix actually gets reused rather than
+        check-fixture-secrets.py explicitly, so the fix actually gets reused rather than
         re-copied?
       blocking: false
   files_touched: []
