@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-38..41: the FEAT-59 proportional-flow invariants.
+"""check-state.py INV-38..41: the FEAT-59 proportional-flow invariants.
 
 INV-38 brief-perspectives (SC-10): a by-perspective BRIEF has every perspective discharged by
 a tagged SC and every SC tagged with a declared perspective; the old shape is untouched.
@@ -7,7 +7,7 @@ INV-39 cycles-budget (SC-15): cycles_used <= max_total_cycles, and a raise above
 harness.json default is a recorded budget_decisions entry (DEC-157).
 INV-40 judgement-ledger (SC-21): mission, re-gate and succession each leave a judgements[]
 entry; a record that predates the ledger is NOTED, never failed.
-INV-41 sc-repo-wide (SC-16): an SC that invokes check-state.sh / check-domain.sh with no
+INV-41 sc-repo-wide (SC-16): an SC that invokes check-state.py / check-domain.sh with no
 feature-scoped argument is refused.
 
 Every case is a fixture tree under tmp; nothing reads the live corpus. Each rule carries a
@@ -72,7 +72,7 @@ A fixture.
 
 ## Success criteria
 
-- SC-01: `bash .claude/skills/harness/bin/check-state.sh` exits 0.
+- SC-01: `bash .claude/skills/harness/bin/check-state.py` exits 0.
 
 ## Approval
 
@@ -372,24 +372,24 @@ def case_inv41():
     MSG = "repository-wide state is a merge-time check, not a feature criterion (SC-16)"
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.sh` exits 0."))
+        "`bash .claude/skills/harness/bin/check-state.py` exits 0."))
     v = _violations(out, "INV-41")
-    results.append(("(41.a) an unscoped check-state.sh invocation is a VIOLATION naming the SC",
+    results.append(("(41.a) an unscoped check-state.py invocation is a VIOLATION naming the SC",
                     len(v) == 1 and "SC-02" in v[0] and MSG in v[0], out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.sh --feature FEAT-TEST` exits 0."))
+        "`bash .claude/skills/harness/bin/check-state.py --feature FEAT-TEST` exits 0."))
     results.append(("(41.b) `--feature` scopes it — silent",
                     not _lines(out, "INV-41"), out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.sh` reports no row naming "
+        "`bash .claude/skills/harness/bin/check-state.py` reports no row naming "
         ".harness/harness/features/FEAT-TEST."))
     results.append(("(41.c) the feature directory path scopes it — silent",
                     not _lines(out, "INV-41"), out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`check-state.sh` refuses a new BRIEF with an untagged SC."))
+        "`check-state.py` refuses a new BRIEF with an untagged SC."))
     results.append(("(41.d) naming the script as a subject is a mention, not an invocation",
                     not _lines(out, "INV-41"), out[:400]))
 
@@ -404,12 +404,12 @@ def case_inv41():
                     len(v) == 1 and "check-domain.sh" in v[0], out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "the reviewer runs `check-state.sh` and it exits 0."))
+        "the reviewer runs `check-state.py` and it exits 0."))
     results.append(("(41.g) a bare span the SC RUNS is an invocation",
                     len(_violations(out, "INV-41")) == 1, out[:400]))
 
     _, out = _check(_in_era(), _brief_with_sc02(
-        "`bash .claude/skills/harness/bin/check-state.sh` has no VIOLATION row naming FEAT-TEST."))
+        "`bash .claude/skills/harness/bin/check-state.py` has no VIOLATION row naming FEAT-TEST."))
     results.append(("(41.h) the feature id in the SC text scopes it — silent",
                     not _lines(out, "INV-41"), out[:400]))
     return results

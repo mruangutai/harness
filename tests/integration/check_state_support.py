@@ -1,7 +1,7 @@
 """Fixture vocabulary shared by the test-check-state-*.py files.
 
 Split out of tests/integration/test-check-state.py (issue #1527): that one file ran the
-whole check-state.sh corpus serially and set the integration pool's wall clock on its
+whole check-state.py corpus serially and set the integration pool's wall clock on its
 own. The cases moved into six sibling files by invariant family; every builder more than
 one of those files uses lives here, unchanged, so the fixture shape stays defined once.
 
@@ -21,7 +21,7 @@ import sys
 # Overridable so a fix can be proven RED against a reverted copy — the same
 # VALIDATE_DIGEST_BIN escape test-validate-digest.py uses.
 SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".claude", "skills", "harness", "bin"), "check-state.sh"
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".claude", "skills", "harness", "bin"), "check-state.py"
 )
 
 # THE MARKER IS READ FROM THE RESOLVER ITSELF, never spelled again here: a fixture that
@@ -52,10 +52,10 @@ def feature_yaml(parent_line):
 
 
 def _root_env(tmp, env=None, **extra):
-    """The environment that points check-state.sh at the fixture `tmp` — and the MARKER
+    """The environment that points check-state.py at the fixture `tmp` — and the MARKER
     without which the pointer is discarded (FEAT-42 T-12).
 
-    BOTH NAMES. check-state.sh now resolves through harness_boundary.resolve_root, which
+    BOTH NAMES. check-state.py now resolves through harness_boundary.resolve_root, which
     reads HARNESS_PROJECT_DIR and no other name; the reverted sha-3952814 copy this suite is
     diffed against read HARNESS first and the host-owned name second. Both set to one value
     is the only spelling under which the two copies resolve the same root.

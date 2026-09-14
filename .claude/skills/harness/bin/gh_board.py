@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The ONE implementation of the harness board's station rule (FEAT-18, T-02).
 
-Two consumers follow: `gh-sync.py` writes stations, `check-state.sh`'s INV-26 compares them.
+Two consumers follow: `gh-sync.py` writes stations, `check-state.py`'s INV-26 compares them.
 Two copies of this logic is precisely the drift this feature exists to remove, so everything
 about "which station is this at, and what should it be" lives here and nowhere else.
 
@@ -95,7 +95,7 @@ def derive_station(plan_doc):
     THE `board` PARAMETER IS GONE. Its only two uses were the two `board["stations"][...]`
     indexings this function no longer performs, and a parameter the body never reads would
     contradict this docstring's own claim that `plan.yaml` is the sole input. Both call sites —
-    check-state.sh's INV-26 and board_lifecycle — drop the argument. The station names are
+    check-state.py's INV-26 and board_lifecycle — drop the argument. The station names are
     spelled here as the lowercase literals they now are; the board's COLUMN name is derived
     later, once, by factory_config.station_column, and only when a value is actually written.
 
@@ -143,7 +143,7 @@ def project(plan_doc, rec):
 
     - Each task sub-issue gets its own task's station, VERBATIM AND WITH NO EXCEPTION. A task at
       the ready station projects to the ready station. The old ready-to-backlog exception —
-      carried from check-state.sh's `_EXPECT` comment on the grounds that `gh-sync open` lands
+      carried from check-state.py's `_EXPECT` comment on the grounds that `gh-sync open` lands
       every sub-issue in backlog — is DELETED by D-11. T-10's one-time board pass settles the
       consequence.
 

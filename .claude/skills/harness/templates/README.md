@@ -31,6 +31,6 @@ gate. dev-ops fills it only with a command it has actually run (the relevant onb
 ## Versioning
 
 Every template carries `schema_version`. The template in this repository moves ahead while an
-instantiated file stays where it is; `bin/check-state.sh` reports the gap and the operator runs
+instantiated file stays where it is; `bin/check-state.py` reports the gap and the operator runs
 `/harness-init --upgrade` against the clone that holds it, which merges new entries while preserving
 per-project values — `domain` globs and `test_kinds.*.cmd` above all. Those are never clobbered.

@@ -820,7 +820,7 @@ def _verify_reset(text, verb):
     """Refuse rather than write a task change under a signature the splice could not void.
 
     `_verify_signature`'s rule from the other direction, same exit 5: the RELOADED value is
-    what check-state.sh and the operator read, so it — not the splice's own report — decides
+    what check-state.py and the operator read, so it — not the splice's own report — decides
     whether APPROVAL-RESET is true. Proven before this check (review F3): a flow-style approval
     printed the receipt, exited 0 and reloaded as approved."""
     got = _approval_status(_reload_or_refuse(text.encode("utf-8")))
@@ -1323,7 +1323,7 @@ def cmd_set_feature_station(args):
 #
 # FINDING IDENTITY IS panel_findings.finding_id, imported. The validator lead never assigns a
 # PF- id (it holds no Bash); pm used to run the helper by hand and transcribe. record-panel
-# computes it from the digest's reader and summary, once, in the one place check-state.sh's
+# computes it from the digest's reader and summary, once, in the one place check-state.py's
 # INV-32 and approval.rulings agree on.
 FINDING_KINDS = ("substance", "form", "proportionality")
 PROPORTIONALITY_SCOPES = ("task", "mission")

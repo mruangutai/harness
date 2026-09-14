@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
+"""check-state.py at session entry: INV-9, INV-21, INV-24, INV-28, INV-30.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). The hook registration
 INV-9 requires, the mirrored feature with no recorded parent (INV-21), factory claims
@@ -126,7 +126,7 @@ def case_e():
 
     Asserted through the invariant rather than the parser: this fixture has a validator
     run and NO `review_sha`, so a correct parse MUST report INV-6. Pre-fix the run
-    vanished and check-state.sh said nothing at all — which is why a parser-level
+    vanished and check-state.py said nothing at all — which is why a parser-level
     assertion would be the weaker test.
     """
     with tempfile.TemporaryDirectory() as tmp:
@@ -397,7 +397,7 @@ def case_r():
     `if cfg:`, so an absent harness.json left the name unbound and every later consumer
     raised NameError. A crash exits 1 — the same code a real violation exits — so /harness
     entry reported "violations found" for a missing config, with a traceback where the
-    diagnosis should be. check-state.sh's own header records the identical shape being
+    diagnosis should be. check-state.py's own header records the identical shape being
     fixed once already, for a bad _selfdir.
 
     Found while landing DEC-182, because a plan.yaml fixture legitimately carries none.
@@ -580,7 +580,7 @@ def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
     Nothing shares these — deliberately (D-02): check-domain.sh measures a write payload,
-    check-state.sh measures a file on disk, and merging the mechanisms is what let a
+    check-state.py measures a file on disk, and merging the mechanisms is what let a
     malformed file pass unread once already. What is NOT deliberate is the two drifting
     apart in silence, where check-domain blocks at 201 lines while check-state warns at
     251 and no reader can tell which number is the budget.
@@ -596,7 +596,7 @@ def case_o():
     # having opened the real file instead.
     dom = open(os.environ.get("CHECK_DOMAIN_BIN")
                or os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
-    # SCRIPT, not a hard-coded "check-state.sh". This case reads source rather than running
+    # SCRIPT, not a hard-coded "check-state.py". This case reads source rather than running
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
     # it never opened, which is the failure mode the override exists to expose.
@@ -688,7 +688,7 @@ def case_o():
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
                   f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
-    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.sh and "
+    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.py and "
           f"HANDOFF.md agree on every duplicated budget, key and heading")
     if not ok_all:
         for c in checks:
@@ -908,7 +908,7 @@ def case_inv30_silent_on_closed_milestone():
 
 def case_inv30_silent_offline():
     """SC-12 clause three, and it is TWO claims, not one: no INV-30 line AND no error. This
-    grades the INV-26 offline posture the design copies deliberately — `check-state.sh` runs
+    grades the INV-26 offline posture the design copies deliberately — `check-state.py` runs
     before every commit, so an unreachable network must never become a red gate."""
     with tempfile.TemporaryDirectory() as tmp:
         _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])

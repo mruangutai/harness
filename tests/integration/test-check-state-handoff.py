@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-17: the handoff notes' shape.
+"""check-state.py INV-17: the handoff notes' shape.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). Case (g) (a missing
 handoff is reported, never a crash), FEAT-54's `## Done when` corpus, FEAT-31 T-14's
@@ -27,7 +27,7 @@ def case_g():
     The F-02 conversion renamed the parsed phase value to `_phase` and left one
     reference to the deleted regex match object `pm_`. Used once, assigned nowhere —
     so the moment INV-17's condition was TRUE (a feature past `plan` with no
-    `handoff-<prev>.md`), check-state.sh raised NameError and exited 1.
+    `handoff-<prev>.md`), check-state.py raised NameError and exited 1.
 
     Two reasons that is worse than it looks. Exit 1 is what a real violation exits, so
     /harness entry reported "violations found" for a typo. And the crash aborted every
@@ -143,7 +143,7 @@ def case_g():
 #
 # ON THE ASSERTION TEXT, and this is a deliberate divergence from the task wording.
 # The task says to assert "an INV-17 line". The shape message carries NO `INV-17`
-# token — check-state.sh:1366 prints it as `  VIOLATION  <feat>: notes/<file> fails
+# token — check-state.py:1366 prints it as `  VIOLATION  <feat>: notes/<file> fails
 # the shape (...)` — and the task ALSO says to report through the same bad.append
 # path with the SAME message shape. Adding the token to make the word "INV-17"
 # literally greppable would change the shape the task told me to preserve, so these
@@ -503,7 +503,7 @@ def case_t14_red():
     fixture: original 1, mutant 0.
 
     THE MUTANT LIVES BESIDE THE ORIGINAL, NOT IN THE FIXTURE, and that is not
-    tidiness. check-state.sh imports harness_yaml from its own directory, so a copy
+    tidiness. check-state.py imports harness_yaml from its own directory, so a copy
     placed in the tmpdir dies on import and exits non-zero — a code indistinguishable
     from a real finding, which is a green-looking proof that measured nothing. FEAT-30
     Q3 and the FEAT-31 behind-gate proof were both this trap."""

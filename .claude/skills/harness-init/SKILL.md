@@ -43,7 +43,7 @@ These prerequisites and the per-checkout hooks step belong to this harness check
 product repository. They register hooks and invoke scripts under `.claude/skills/harness/bin/` here;
 a product repository has no `bin/`, so hooks installed there would point at files that do not exist.
 Nothing distributes `bin/` any more (DEC-113). The enforcing hooks are registered in this harness
-checkout's `.claude/settings.json`, resolve this checkout's manifest, and `check-state.sh` INV-9 and
+checkout's `.claude/settings.json`, resolve this checkout's manifest, and `check-state.py` INV-9 and
 INV-31 grade this checkout against the step on every run.
 ```bash
 .agents/skills/harness/bin/merge-settings.py . \
@@ -98,7 +98,7 @@ harness directory will do to it:
 into `.claude/skills/harness/hooks/` or they stop firing — say that too, rather than leaving them
 to discover it at the next merge.
 
-**A clone that skipped this step is caught, not left silent.** `check-state.sh`'s **INV-31** reports
+**A clone that skipped this step is caught, not left silent.** `check-state.py`'s **INV-31** reports
 an uninstalled merge hook on every run — separately for a `core.hooksPath` that does not resolve
 here, and for a `post-merge` that is missing or not executable. That matters because this document
 is read once, at onboarding, and an already-onboarded clone never comes back to it: a doc step
@@ -215,12 +215,12 @@ a separate root. It is the one exception to the disjointness rule above, and it 
 ### 6. Verify, then warn about the restart
 
 ```bash
-.agents/skills/harness/bin/check-state.sh                 # this harness checkout
+.agents/skills/harness/bin/check-state.py                 # this harness checkout
 .agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
 python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
 ```
 
-`check-state.sh` must exit 0. The fleet check reads every declared member and must also exit 0. Either
+`check-state.py` must exit 0. The fleet check reads every declared member and must also exit 0. Either
 will fail if the settings merge was skipped; these are real failures, not noise to talk past.
 
 Then say this, explicitly, as the last thing — **but only if agent definitions were installed or

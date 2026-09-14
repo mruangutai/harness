@@ -70,7 +70,7 @@ declares `reader`, and the SC tag is `(reader)`.
 ## Success criteria — each one discharges a perspective
 
 **SCs derive from the perspectives, never the other way round.** A perspective no SC discharges is
-an unverified promise; an SC that discharges no perspective is scope creep. `check-state.sh`
+an unverified promise; an SC that discharges no perspective is scope creep. `check-state.py`
 INV-38 refuses both at write.
 
 **User-mandated outcomes are binding — and never sufficient.** Translate each into a proper SC-NN
@@ -141,7 +141,7 @@ symbol), or `uat` (a step the user executes).
 - **An SC quantifies over more than the work can touch.** "No surviving document asserts X" cannot
   be discharged by a task whose `files:` names one file. Narrow the criterion or widen the work —
   at signature.
-- **An SC asserts repository-wide state.** A `verify:` running `check-state.sh` or
+- **An SC asserts repository-wide state.** A `verify:` running `check-state.py` or
   `check-domain.sh` with no feature-scoped argument grades the whole tree, and other features'
   debris turns it red (DEC-231). Repository hygiene is a merge-time check; INV-41 refuses it.
 - **An SC graded on file CONTENT does not say to read the pinned sha.** A plain read cannot tell
@@ -190,5 +190,5 @@ unbounded, is a `plan` mission wearing the wrong label: return it with the reaso
 | "I need a clearer word for this" | Find what it is already called. A synonym in a brief is drift in the build |
 | "The criterion is unmeetable, I'll reword it" | That is deciding the verdict first. Narrow the scope with the user, or ship it unmet |
 | "This decision blocks us, list it as a constraint" | Check first. Most cited decisions supply the mechanism rather than forbid it |
-| "`check-state.sh` exits 0 is the cleanest SC" | It grades every feature in the tree. Scope it to this one or it is a merge-time check |
+| "`check-state.py` exits 0 is the cleanest SC" | It grades every feature in the tree. Scope it to this one or it is a merge-time check |
 | "I'm not sure this is a patch; I'll write the full plan to be safe" | Ask one question with your recommendation. The heavier lane is the expensive default, not the safe one |

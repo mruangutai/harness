@@ -205,7 +205,7 @@ for _statuses, _want in ((("done", "building", "done"), "building"),
           _got == _want and _got != factory_config.station_column(_want), _got)
 
 # The board parameter is GONE, not merely unused: a two-argument call must fail loudly rather
-# than be tolerated, or check-state.sh and board_lifecycle could keep passing a board forever.
+# than be tolerated, or check-state.py and board_lifecycle could keep passing a board forever.
 try:
     gh_board.derive_station(plan("done"), full_board())
     check("derive_station rejects a second board argument", False, "accepted two arguments")
@@ -433,7 +433,7 @@ check("project: each task card gets its own task's station",
       _p[11] == "building" and _p[12] == "ready" and _p[13] == "done", repr(_p))
 
 # --- THE DELETED EXCEPTION (D-11). A task at ready projects to READY, never to backlog. This
-# --- is the rule the old check-state.sh _EXPECT comment carried on the grounds that gh-sync
+# --- is the rule the old check-state.py _EXPECT comment carried on the grounds that gh-sync
 # --- open lands every sub-issue in backlog. It is gone, and T-10 settles the consequence.
 _p = gh_board.project(_plan("ready", "ready"), _rec(issues={"T-01": 21, "T-02": 22}))
 check("project: a ready task projects to ready, NOT to backlog",

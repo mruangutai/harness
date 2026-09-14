@@ -362,7 +362,7 @@ def run_t12():
     # converted script". The user ruled: REMOVE IT, honour the signature.
     #
     # What that costs is EARLIER detection, not correctness — measured before deciding:
-    # a malformed state.yaml written during a grant is still refused by check-state.sh
+    # a malformed state.yaml written during a grant is still refused by check-state.py
     # at the next /harness entry, naming the same keys, by a session that can read it.
     # One bad file to delete, against a crude reader living on forever in a write guard.
     #

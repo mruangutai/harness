@@ -1293,7 +1293,7 @@ def case_20():
     one probes `.harness/team-config.yaml` and another probes something else, they resolve
     different roots on the same tree and no gate notices.
 
-    check-state.sh is a NAMED EXCEPTION, not an oversight. Measured by review: it has no
+    check-state.py is a NAMED EXCEPTION, not an oversight. Measured by review: it has no
     derived fallback at all — `cd "$root"` with an invalid CLAUDE_PROJECT_DIR fails and it
     silently reports on the cwd. That is a real defect, it is a DEC-174 carve-out file, and
     it is unrelated to #133, so it is filed separately rather than fixed here. Encoding it
@@ -1477,7 +1477,7 @@ def case_20():
         NOT THE GUARANTEE — case (21) is, because it tests the behaviour and cannot be
         walked around by spelling the probe differently. Four drafts of this case were each
         defeated by a rewrite; that is the ceiling of source-text scanning, not a bug in
-        draft five. check-state.sh is a CODED exception, not prose: it genuinely has no root
+        draft five. check-state.py is a CODED exception, not prose: it genuinely has no root
         probe (verified — 0 matches), which is issue #156, and encoding it here keeps this
         assertion honest rather than quietly passing on a file that has the very defect the
         case is about.
@@ -1514,7 +1514,7 @@ def case_20():
 
 
 def _inv_project(td, features):
-    """A fixture project with N feature dirs and a stub check-state.sh.
+    """A fixture project with N feature dirs and a stub check-state.py.
 
     `features` is a list of (dir_name, station, brief_text, plan_text_or_None). A plan of
     None writes NO plan.yaml at all — that is the FEAT-34 shape, the one that actually got
@@ -1533,7 +1533,7 @@ def _inv_project(td, features):
     binp = os.path.join(td, ".claude", "skills", "harness", "bin")
     os.makedirs(binp, exist_ok=True)
     # The LIVE set. Only these three exist in this fixture's gate script.
-    with open(os.path.join(binp, "check-state.sh"), "w") as f:
+    with open(os.path.join(binp, "check-state.py"), "w") as f:
         f.write("#!/bin/bash\n# INV-1 something\n# INV-2 another\n# INV-3 a third\n")
     for name, station, brief, plan in features:
         fd = os.path.join(td, ".harness", "harness", "features", name)
@@ -1562,11 +1562,11 @@ def case_26():
     MEASURED 2026-08-23, and this case exists because the main session shipped the gap it
     is closing. FEAT-26's plan.yaml used `INV-28` sixteen times and FEAT-34's BRIEF used it
     eight times. Both were unbuilt, both were signed or about to be, and NOTHING saw it —
-    not check-state.sh, not this checker, not two review rounds. It was found by a human
+    not check-state.py, not this checker, not two review rounds. It was found by a human
     reading a task list.
 
     The instruction given to pm at the time was "do not infer the next free number from the
-    highest in the file". Correct, and half a check: it names check-state.sh and says
+    highest in the file". Correct, and half a check: it names check-state.py and says
     nothing about the signed-but-unbuilt plans of other in-flight features. A number is
     free only when BOTH halves agree, and only one half was mechanised.
 
@@ -1612,7 +1612,7 @@ def case_26():
         check("case_26c_a_feature_with_a_BRIEF_and_NO_plan_still_collides",
               ok, f"exit {r.returncode}: {out[:400]!r}")
 
-    # (d) A number ALREADY LIVE in check-state.sh is a REFERENCE, not a claim. Two features
+    # (d) A number ALREADY LIVE in check-state.py is a REFERENCE, not a claim. Two features
     #     citing INV-2 are discussing an invariant that exists; that must stay clean or the
     #     check fires on every plan that mentions an existing rule.
     with tempfile.TemporaryDirectory() as td:

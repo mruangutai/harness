@@ -15,7 +15,7 @@ FINDING_RE = re.compile(r"^finding:(.+)#(F-\d+|PF-\d+)$")
 APPROVAL_RE = re.compile(r"^approval:(.+)#([^#\n]+)$")
 PERSPECTIVE_RE = re.compile(r"^brief-perspective:(.+)#([^#\n]+)$")
 # The BRIEF shape FEAT-59 introduced (SC-10): `## Done when — by perspective` followed by
-# `**<name>**` lines. The same heading regex check-state.sh INV-38 uses, so the two agree
+# `**<name>**` lines. The same heading regex check-state.py INV-38 uses, so the two agree
 # on which BRIEFs are by-perspective.
 BY_PERSPECTIVE_HEADING = "Done when — by perspective"
 BY_PERSPECTIVE_RE = re.compile(r"^##\s+Done when\s*[—–-]+\s*by perspective\s*$", re.I)

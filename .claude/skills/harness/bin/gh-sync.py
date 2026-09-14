@@ -691,7 +691,7 @@ def _commit_terminal_station(feat_dir):
     DEFECT ONE OF FEAT-41 T-10, AND IT WAS MEASURED IN THE FIELD RATHER THAN REASONED ABOUT.
     `cmd_ship` recorded the terminal station as its last statement and left it UNCOMMITTED, so
     the default branch read a non-terminal station while the board read the done column. That
-    is precisely the INV-26 violation check-state.sh reported against FEAT-40 and issue 842.
+    is precisely the INV-26 violation check-state.py reported against FEAT-40 and issue 842.
     FEAT-40 has since merged and the violation closed itself, so the finding is gone — but the
     defect that produced it was still here, and would produce the next one.
 
@@ -1547,7 +1547,7 @@ def cmd_status(feat_dir, station, repo, board):
         plan_doc = _status_plan_doc(feat_dir)
         tasks = (plan_doc or {}).get("tasks") or []
         # THE NOT-STARTED STATION, NOT THE DEAD WORD (FEAT-41 T-16). This read `or "pending"`,
-        # a live default T-04's migration missed because T-04 grepped check-state.sh and the
+        # a live default T-04's migration missed because T-04 grepped check-state.py and the
         # plan corpus, never this file. An absent status reads as `ready`, exactly as
         # gh_board.derive_station and project treat it.
         all_done = bool(tasks) and all(

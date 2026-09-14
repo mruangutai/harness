@@ -1,12 +1,12 @@
 """worktree_terminal.py — the shared eligibility predicate over standing worktrees (FEAT-34 T-01).
 
-A library with NO SIDE EFFECTS and NO ARGV HANDLING. It is imported by check-state.sh's INV-29
+A library with NO SIDE EFFECTS and NO ARGV HANDLING. It is imported by check-state.py's INV-29
 and by post-merge-sweep.sh; nothing else may duplicate this logic (D-02) — one predicate the gate
 and the hook cross, so they can never disagree about what is eligible.
 
 Public surface, and nothing wider: `CLASSES`, `classify(root)` and `classify_all(root)` (D-10).
 `classify` covers ONE repository at `root`; `classify_all` is the cross-repository entry point
-check-state.sh's INV-29 calls — it returns `classify(root)` for the harness checkout plus
+check-state.py's INV-29 calls — it returns `classify(root)` for the harness checkout plus
 `classify(owner_root)` for every repository declared in fleet.yaml. Everything else here is
 implementation detail that stays private.
 """
@@ -73,7 +73,7 @@ def _worktree_list_raw(root):
 
 def _worktree_paths(root):
     """Enumerate worktrees of the repository at `root`. Reuses the exact parsing shape
-    check-state.sh already uses at :1117-:1135 — blank-line separated porcelain records,
+    check-state.py already uses at :1117-:1135 — blank-line separated porcelain records,
     `worktree <path>` opens each — rather than a second parser."""
     ok, stdout = _worktree_list_raw(root)
     if not ok:
@@ -443,7 +443,7 @@ def classify(root):
 
     # The first porcelain entry is always the main checkout, even when `root` is itself a
     # linked worktree — a repository with no linked worktrees returns itself, so the
-    # derivation is total (check-state.sh:1138-1143, INV-25's precedent). Skipping it by
+    # derivation is total (check-state.py:1138-1143, INV-25's precedent). Skipping it by
     # comparing realpath(path) against realpath(root) is WRONG when root IS a linked
     # worktree: the main checkout still appears in the porcelain output and would never be
     # skipped, so it would be misclassified as an unresolved linked worktree instead. Index
@@ -471,7 +471,7 @@ def classify_all(root):
     give it: classify runs ONE `git worktree list` with cwd=root, and feature-worktree.py's
     dest_for joins WORKTREES_SEGMENT only to a resolved owner_root, so a served repository's
     worktrees live inside a DIFFERENT git repository that a git worktree list in the harness
-    checkout can never report. classify_all is the only function check-state.sh's INV-29 calls.
+    checkout can never report. classify_all is the only function check-state.py's INV-29 calls.
 
     Returns classify(root) for the harness checkout, plus classify(owner_root) for every
     repository declared in fleet.yaml, one combined list sorted by path. See the module

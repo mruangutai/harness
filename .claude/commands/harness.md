@@ -9,7 +9,7 @@ never do the feature's work yourself.
 
 ## 0. Gate
 
-Run `.claude/skills/harness/bin/check-state.sh`. Violations are surfaced to the user before
+Run `.claude/skills/harness/bin/check-state.py`. Violations are surfaced to the user before
 anything spawns — except when this clone has no `.harness/` at all; that condition routes to the
 `harness-init` skill. A repository not in `.harness/factory/fleet.yaml`, with a `harness.json` not
 readable at its default branch, or with no central tree `<control-plane>/.harness/<segment>/` routes

@@ -251,7 +251,7 @@ class RulingsTest(FeatureRecordCase):
 class SetMissionTest(FeatureRecordCase):
     """set-mission writes `mission` AND its `kind: mission` judgement in one locked write
     (SC-01, SC-21), so the ledger can never show a mission with no entry deciding it —
-    which is the state check-state.sh INV-40 refuses."""
+    which is the state check-state.py INV-40 refuses."""
 
     MISSION = ["--by", "harness-orchestrator", "--reason", "known-cause bug, ~130 lines"]
 

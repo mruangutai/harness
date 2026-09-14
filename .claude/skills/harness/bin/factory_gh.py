@@ -396,7 +396,7 @@ def project_item_stations(owner, number, field_name):
 # read made cost scale with lifetime board history instead of with work in flight.
 #
 # MEASURED 2026-09-09, board 3: 918 items, `items(first: 100)` is at GitHub's ceiling, so the
-# read took 10 SEQUENTIAL `gh` processes at ~0.8-1.1s each — 11.25s of check-state.sh's 14.3s,
+# read took 10 SEQUENTIAL `gh` processes at ~0.8-1.1s each — 11.25s of check-state.py's 14.3s,
 # paid on every pre-commit run, against 14 non-terminal features carrying zero mirrored issues.
 # The board had 474 items three weeks earlier: this is a cost that grows with history, because a
 # card stays on the board after its issue closes.

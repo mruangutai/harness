@@ -145,7 +145,7 @@ def run_post():
              f"exit {r.returncode}: {r.stderr.strip()[:100]}")
 
     # THE COMMENT BUDGET CASE IS DELETED, not rewritten. T-06 removed the check from both
-    # check-domain.sh and check-state.sh because JSON has no comments, so it could never
+    # check-domain.sh and check-state.py because JSON has no comments, so it could never
     # fire — and a check that cannot fire is a check a reader trusts. A case asserting a
     # budget that no longer exists would pass by never triggering it, which is the
     # vacuous-assertion shape this suite exists to catch.

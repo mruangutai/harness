@@ -531,16 +531,16 @@ def test_require_or_die_survives_a_missing_harness_boundary():
     """require_or_die()'s root-resolution is used for exactly one thing: best-effort
     unlink of the PyYAML bootstrap marker (`_marker_path`, reached only inside
     `if yaml is not None:`). That cleanup must not be able to abort every caller of
-    require_or_die() — including check-state.sh, the canonical pre-commit state
+    require_or_die() — including check-state.py, the canonical pre-commit state
     checker — when harness_boundary.py (a DIFFERENT module) is missing or its
     resolve_root() raises.
 
     Regression: FEAT-42 T-05 added a lazy `import harness_boundary` inside
     require_or_die(). In an isolated bin/ carrying only harness_yaml.py (no
-    harness_boundary.py — check-state.sh's own u.7/x.5 fixtures build exactly this),
+    harness_boundary.py — check-state.py's own u.7/x.5 fixtures build exactly this),
     that import raised ModuleNotFoundError UNCAUGHT, so require_or_die() crashed with
     a raw traceback and exit 1 instead of returning normally — exit 1 is
-    NON-BLOCKING, and worse, check-state.sh never reached its own later, PROPERLY
+    NON-BLOCKING, and worse, check-state.py never reached its own later, PROPERLY
     guarded INV-25/INV-27 checks at all. Fail-open, same class as the module-level
     import T-05 already fixed for bash-write-guard.sh/check-domain.sh, one caller
     later."""
@@ -687,7 +687,7 @@ def test_duplicate_key_is_catchable_as_a_parse_error():
     defeating the very handler each had just added.
 
     Finding 5: the message must also carry DEC-156's guidance, because removing
-    check-state.sh's dedicated scan dropped that wording from the codebase entirely
+    check-state.py's dedicated scan dropped that wording from the codebase entirely
     while a comment claimed it was preserved.
     """
     import harness_yaml as hy

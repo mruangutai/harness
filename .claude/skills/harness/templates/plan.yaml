@@ -52,7 +52,7 @@ approval:
   # agent's write of this mapping. Any change to the task set resets this to pending.
   # Only the main session may add approval.rulings, through sign-approval --overrule.
   # Each ruling names a PF- id present in panel.findings and carries who: <operator>,
-  # date: YYYY-MM-DD, and a one-clause reason. check-state.sh REFUSES an absent id as a
+  # date: YYYY-MM-DD, and a one-clause reason. check-state.py REFUSES an absent id as a
   # stale risk acceptance: rewording creates a new content-hash id, so an old ruling stops
   # applying and the operator is asked again.
   status: pending                # pending | approved

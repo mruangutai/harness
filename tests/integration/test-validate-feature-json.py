@@ -235,7 +235,7 @@ def case_accepted_runs_item_code_grade_n_a():
 
 
 def case_rejected_runs_item_code_grade_other_value():
-    """The enum is CLOSED, and it agrees with check-state.sh's exact-match test: a
+    """The enum is CLOSED, and it agrees with check-state.py's exact-match test: a
     document must never be schema-invalid and gate-exempt at once, in either direction.
     `graded` is rejected here and fires INV-6 there.
 
@@ -255,7 +255,7 @@ def case_rejected_runs_item_code_grade_other_value():
 
 def case_rejected_runs_item_code_grade_case_variant():
     """`N_A` is the exact divergence the panel asked about (Q2): it must fail BOTH layers,
-    since check-state.sh no longer case-folds. Non-vacuous for the same reason as above."""
+    since check-state.py no longer case-folds. Non-vacuous for the same reason as above."""
     doc = full_doc()
     doc["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS",
                     "agent": "harness-validator-lead", "code_grade": "N_A"}]

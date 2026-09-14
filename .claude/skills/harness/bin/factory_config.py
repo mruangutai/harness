@@ -382,7 +382,7 @@ def station_names(board):
     The accessor every other module uses instead of reaching into board["stations"] itself, so a
     later change to the declaration's container shape lands here and nowhere else. Before FEAT-41
     T-01 eight non-test modules subscripted board["stations"] directly, and turning that mapping
-    into a list took check-state.sh down (issue #1033)."""
+    into a list took check-state.py down (issue #1033)."""
     return tuple(board["stations"])
 
 
@@ -484,7 +484,7 @@ def _main():
     parser.add_argument("--fleet", default=None, help="path to fleet.yaml (default: FLEET_PATH)")
     parser.add_argument("--show", action="store_true", help="print the resolved fleet as JSON")
     # This makes a network read (product_config_report -> product_config -> file_at_ref, once
-    # per declared repo). check-state.sh runs at every /harness door and before every commit and
+    # per declared repo). check-state.py runs at every /harness door and before every commit and
     # deliberately makes no network call, so nothing about this flag is wired into it — the same
     # precedent as the board-audit reachability cost, ruled once-at-onboarding rather than on
     # every run.

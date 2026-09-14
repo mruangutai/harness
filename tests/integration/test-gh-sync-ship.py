@@ -296,7 +296,7 @@ def main():
 
     # ---- DEFECT ONE: the terminal station write is COMMITTED ---------------------------------
     # It used to be left in the working tree, so the default branch read a non-terminal station
-    # while the board read the done column — the INV-26 violation check-state.sh reported against
+    # while the board read the done column — the INV-26 violation check-state.py reported against
     # FEAT-40 and issue 842. This asserts the file is CLEAN AGAINST HEAD after a successful ship,
     # which is the property the violation's absence actually depends on.
     with tempfile.TemporaryDirectory() as tmpC:

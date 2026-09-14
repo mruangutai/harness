@@ -257,7 +257,7 @@ def test_strips_inline_ok_stale_marker_on_a_row():
     `<!-- ok-stale -->` survived regeneration byte-identical. That was correct while
     the propagation checker existed. DEC-188 struck the checker whole, and a live
     plant then proved the emitter was a revival vector — the marker propagated
-    through regeneration while check-state.sh and the whole unit suite stayed green.
+    through regeneration while check-state.py and the whole unit suite stayed green.
     Now the hand-written RULING must survive and the dead marker must not."""
     name = "test_strips_inline_ok_stale_marker_on_a_row"
     try:

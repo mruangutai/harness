@@ -1033,7 +1033,7 @@ if _run_domain and not _no_parser:
 #                 bound, and a report issued immediately after the write still lands
 #                 before the next reader loads the file.
 #
-# check-state.sh sweeps the same budgets at /harness entry — the backstop for a session
+# check-state.py sweeps the same budgets at /harness entry — the backstop for a session
 # where this hook is not registered at all, which INV-9 now also asserts against.
 # ---------------------------------------------------------------------------
 
@@ -1291,7 +1291,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
     # them. Measured consequence: one logical file present in main plus four worktrees
     # produced five byte-identical findings, 20 lines of stderr, zero paths — and a
     # reviewer received another agent's transient fixture, unattributable, in their own
-    # session. check-state.sh already does this correctly.
+    # session. check-state.py already does this correctly.
     def _head(text):
         # THE DISPLAY PATH IS NOT THE MATCH PATH (review of PR #152). `rel` is
         # worktree-stripped so the patterns match, and for a state file the stripped form
@@ -1378,7 +1378,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             _doc = _hy.load_str(content, display or rel)
         except Exception:
             # UNPARSEABLE IS NOT THIS RULE'S FINDING. check-plan-routes.py refuses a malformed
-            # plan before signature and check-state.sh refuses it again at entry; reporting it
+            # plan before signature and check-state.py refuses it again at entry; reporting it
             # a third time here would put one defect in three voices.
             _doc = None
         if isinstance(_doc, dict):
@@ -1411,7 +1411,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # the 48-entry array. Counting it fired the cap on the only legitimately unbounded
         # part of the file, and both remedies were wrong: delete real history, or raise a
         # number that is wrong again at 60 runs. `journal_lines` lives in feature_schema so
-        # this gate and check-state.sh's INV-23 cannot drift on the definition.
+        # this gate and check-state.py's INV-23 cannot drift on the definition.
         problems = []
         try:
             import feature_schema as _fs_budget
@@ -1531,10 +1531,10 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # INV-16 sweeps this at entry; this denies it at write, while the author can
         # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
         # the sweep landing, so entry-time alone demonstrably does not deter.
-        # KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.sh; the
-        # MECHANISM deliberately does not (D-02). check-state.sh sweeps existing files
+        # KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.py; the
+        # MECHANISM deliberately does not (D-02). check-state.py sweeps existing files
         # and reports; this denies at write. Since T-12 the duplicate here is caught by
-        # the LOADER RAISING, while check-state.sh still scans — same vocabulary, two
+        # the LOADER RAISING, while check-state.py still scans — same vocabulary, two
         # mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
         # is what let a malformed file pass with its keys silently unread.
         ALLOWED = {"schema_version", "run_id", "run_uid", "feature", "squad", "host",
@@ -1553,7 +1553,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # that introduced it, with no D-NN and no signature; the goal-check caught it.
         #
         # What is given up is EARLIER detection, not correctness — measured, not assumed: a
-        # malformed state.yaml written during a grant is still refused by check-state.sh at
+        # malformed state.yaml written during a grant is still refused by check-state.py at
         # the next /harness entry, naming the same offending keys, by a session that can
         # actually read it. One bad file to delete, against a crude reader living on forever
         # in a write guard.
@@ -1729,7 +1729,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # (DEC-154's "checkpoint, not a notebook" upsert). A prefix/equality compare like the
         # digest guard's would refuse every legitimate checkpoint update, so this checks
         # identity instead of content: run_id is the one field every checkpoint in this run
-        # carries unchanged from its first write (CHECKPOINT_KEYS in check-state.sh), so a
+        # carries unchanged from its first write (CHECKPOINT_KEYS in check-state.py), so a
         # PRIOR file whose run_id disagrees with THIS write's run_id is not an upsert of this
         # run at all — it is a different run's checkpoint about to be silently destroyed.
         if absolute_path is not None:
@@ -2315,9 +2315,9 @@ else:
     #
     # THE COST, STATED RATHER THAN DISCOVERED: an agent that writes content byte-identical
     # to what is already committed is no longer reported here. That write introduces no
-    # uncommitted change, and the committed corpus is check-state.sh's sweep, not this
+    # uncommitted change, and the committed corpus is check-state.py's sweep, not this
     # one — INV-23 reported both STATE.md files above on every run while this hook stayed
-    # silent about them until a worktree appeared. Two gates, two scopes: check-state.sh
+    # silent about them until a worktree appeared. Two gates, two scopes: check-state.py
     # owns what is committed, this hook owns what a Bash command just wrote.
     #
     # ABSORBING, deliberately, and it fails OPEN to today's behaviour. If git cannot be

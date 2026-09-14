@@ -77,7 +77,7 @@ def _resolve_main_checkout_root(root):
     the landed one — FEAT-35's `Review / pr:null` vs `Done / pr:812` divergence).
 
     `root` is always a valid checkout of the repository (main or linked) — INV-25's own
-    precedent (check-state.sh:1138-1143, `worktree_terminal.classify`'s docstring): the first
+    precedent (check-state.py:1138-1143, `worktree_terminal.classify`'s docstring): the first
     porcelain entry is always the main checkout, even queried from inside a linked worktree, and
     a repository with no linked worktrees returns itself. Running `git worktree list` with
     `cwd=root` therefore stays exactly as cwd-independent as
@@ -139,7 +139,7 @@ def _handle_record(rec, main_checkout_root, cwd_real):
         return
 
     # SELF-EXCLUSION, REQ-08. `git worktree remove` exits 0 from inside the tree it deletes
-    # (check-state.sh:1173 already carries a comment about this same mechanical fact), so an
+    # (check-state.py:1173 already carries a comment about this same mechanical fact), so an
     # unguarded sweep would delete its own working directory mid-run. Compared by realpath, not
     # by string equality of the raw path, in case of a symlinked WORKTREES_SEGMENT ancestor.
     path_real = os.path.realpath(path)

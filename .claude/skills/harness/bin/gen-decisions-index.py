@@ -204,7 +204,7 @@ def build_index(text, existing_rows):
         # propagation checker, struck whole under DEC-188 — it now means nothing, and
         # a generator that faithfully preserved one would let a future author revive
         # dead syntax no gate can object to. Measured before this changed: a planted
-        # marker propagated through regeneration while check-state.sh and the whole
+        # marker propagated through regeneration while check-state.py and the whole
         # unit suite stayed green. Stripping on read and never writing closes that.
         ruling = prose
 

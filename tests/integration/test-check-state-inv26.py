@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-26: the project board must agree with the plan.
+"""check-state.py INV-26: the project board must agree with the plan.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). Cases (v) and (w) —
 the board/plan comparison and the ABANDONED terminal state — every `gh` call answered by
@@ -97,7 +97,7 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     # TWO SHAPES, dispatched on the subcommand. FEAT-29 T-02 replaced INV-26's
     # `gh project item-list` read with ONE targeted `gh api graphql` query
     # (factory_gh.project_item_stations). A fake serving only the item-list shape makes that
-    # call raise, check-state.sh's bare except swallows it, and INV-26 goes SILENT — every
+    # call raise, check-state.py's bare except swallows it, and INV-26 goes SILENT — every
     # assertion here then passes vacuously, which is issue #588's shape inside the one
     # invariant this fixture exists to test. Six named cases went red on exactly that.
     # The item-list shape is KEPT: it costs nothing and any caller still on the old read
@@ -114,7 +114,7 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     # records. Issue #1541 replaced INV-26's whole-board read with a BY-ISSUE one
     # (gh_board.board_stations_for -> factory_gh.issue_stations), whose response is keyed by
     # `i<number>` alias under `repository`. A fake serving only the two older shapes answers
-    # that query with `repository: null`, the read raises, check-state.sh's bare except
+    # that query with `repository: null`, the read raises, check-state.py's bare except
     # swallows it, and every assertion here passes vacuously again — which is exactly how
     # this was caught: fourteen named cases went red at once.
     #

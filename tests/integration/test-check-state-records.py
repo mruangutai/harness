@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.sh INV-32, INV-33, INV-36 and INV-37: the validator run record.
+"""check-state.py INV-32, INV-33, INV-36 and INV-37: the validator run record.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). A plan approved with
 no complete panel result (INV-32, plus BUG-1071's era guard), a review_sha that is stale
@@ -253,7 +253,7 @@ def _inv33_repo(tmp):
     """A real git repository at `tmp`, onboarded, with a validator run recorded.
 
     THE VALIDATOR RUN AND THE harness.json ARE BOTH REQUIRED, and neither is decoration:
-    check-state.sh exits 1 with "project not onboarded" before ANY invariant runs, so a bare
+    check-state.py exits 1 with "project not onboarded" before ANY invariant runs, so a bare
     directory would exit non-zero while printing no invariant line at all — and these cases
     would then be unfalsifiable.
     """
@@ -275,7 +275,7 @@ def _inv33_commit(tmp, message="c"):
 def _inv33_set_sha(feat_dir, sha, validator_run=True):
     """Append the pin to the fixture's feature.json as TEXT.
 
-    make_fixture writes that file in YAML (harness_yaml is what check-state.sh reads it with),
+    make_fixture writes that file in YAML (harness_yaml is what check-state.py reads it with),
     so a json.load round-trip raises — measured, not guessed. Appending keys is also the only
     edit that leaves the builder's own shape untouched.
 
@@ -363,7 +363,7 @@ def case_inv33c_terminal_is_silent():
     Same construction as (inv33.a) — the pinned bytes genuinely DIFFER — but the feature sits at
     a terminal station, in the place T-07 leaves it: plan.yaml's own top-level status.
 
-    WHAT THIS CASE DOES AND DOES NOT PROVE. Against an unmodified check-state.sh it passes
+    WHAT THIS CASE DOES AND DOES NOT PROVE. Against an unmodified check-state.py it passes
     VACUOUSLY, because nothing emits INV-33 at all, so its green there is worth nothing. Its
     DISCRIMINATING run is against an implementation that already reports (inv33.a) but carries no
     terminal scope, where it must be RED. That run belongs in the receipt.
@@ -528,7 +528,7 @@ def case_inv32_patch_mission_exempts_only_one_task():
 def case_inv32_undated_approval_fails():
     """An approved plan with NO approval.date cannot be placed in an era, and that is a
     VIOLATION, not a note (panel finding F1). Warning here was a fail-open on a
-    fail-closed invariant: nothing else in check-state.sh or harness_yaml requires the
+    fail-closed invariant: nothing else in check-state.py or harness_yaml requires the
     key, so omitting one line bought permanent silence from INV-32. The message must name
     approval.date, not the panel, because that is the defect and the remedy."""
     _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date=None),

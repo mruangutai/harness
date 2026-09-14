@@ -545,23 +545,23 @@ def _marker_path(root):
 
 
 def require_or_die():
-    """For check-state.sh and the plain .py scripts. No bootstrap escape
+    """For check-state.py and the plain .py scripts. No bootstrap escape
     (D-06) — this gates the orchestrator, not a write, so a hard block here
     costs no recovery path."""
     if yaml is not None:
         # The resolved root is used for exactly one thing below: best-effort
         # unlink of the PyYAML bootstrap marker. That cleanup must never be able
-        # to abort THIS caller's caller — check-state.sh, the canonical
+        # to abort THIS caller's caller — check-state.py, the canonical
         # pre-commit state checker, calls require_or_die() near its own top
-        # (check-state.sh:35), BEFORE its own later, properly guarded INV-25/
+        # (check-state.py:35), BEFORE its own later, properly guarded INV-25/
         # INV-27 checks ever run. A missing harness_boundary.py (ImportError) or
         # a root the resolver cannot verify (resolve_root's own strict raise) is
         # a DIFFERENT module's problem, not a reason to deny PyYAML availability
         # for every downstream consumer including checks that exist to REPORT
         # exactly that kind of breakage. Confirmed live: an isolated bin/
-        # carrying only harness_yaml.py (no harness_boundary.py — check-state.sh's
+        # carrying only harness_yaml.py (no harness_boundary.py — check-state.py's
         # own u.7/x.5 fixtures build exactly this) made this raise UNCAUGHT,
-        # so require_or_die() died with a raw traceback before check-state.sh
+        # so require_or_die() died with a raw traceback before check-state.py
         # ever reached its guarded `import harness_boundary as _hb` at :1080 to
         # report the INV-25 CANNOT RUN violation that fixture exists to prove.
         # Fail-open, the same class T-05 already fixed one caller earlier for

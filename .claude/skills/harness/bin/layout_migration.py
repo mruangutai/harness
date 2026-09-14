@@ -98,7 +98,7 @@ READER_TABLE = [
     Row("features", ".agents/skills/harness/bin/factory_config.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".agents/skills/harness/bin/check-state.sh",
+    Row("features", ".agents/skills/harness/bin/check-state.py",
         r'os\.path\.join\(H, "features"',  # balance: )
         r'os\.path\.join\(H, [^,)]+, "features"'),
     # factory_config.py's own docs-path row was removed here (FEAT-42 T-04): the root
@@ -118,7 +118,7 @@ READER_TABLE = [
 
 # The one positive control for applicability (D-04, amended post-review): a root
 # without this marker is not the harness CONTROL PLANE and the scan is NOT
-# APPLICABLE. The first marker was check-state.sh's own path — wrong, because any copy or
+# APPLICABLE. The first marker was check-state.py's own path — wrong, because any copy or
 # worktree of the control plane carries every reader file, and only the control plane carries the fleet declaration.
 # Onboarding installs no bin/ into a product repository at all: that marker gave every
 # onboarded product "applicable" with no layout evidence and went cannot-verify forever.
@@ -223,7 +223,7 @@ def _reader_formset(root, row):
 
 def scan(root, table=None):
     """Judge every surface of the enum at `root`. Returns a Result; never prints,
-    never exits — check-state.sh composes INV-27's wording from this object and must
+    never exits — check-state.py composes INV-27's wording from this object and must
     not re-parse CLI text."""
     table = READER_TABLE if table is None else table
     validate_table(table)
@@ -276,7 +276,7 @@ def scan(root, table=None):
 
 def blame(rep):
     """THE ONE BLAME POLICY (issue #379): which readers a finding names, with their
-    form-set tags. Both call sites — render() below and check-state.sh's INV-27 —
+    form-set tags. Both call sites — render() below and check-state.py's INV-27 —
     compose from this, so CI and session entry can never name different readers for
     the same tree. A reader is blamed when its form-set is itself defective (both,
     neither, unreadable) or disagrees with a single evidence shape; on a MIXED
@@ -299,7 +299,7 @@ def blame_text(rep):
 
 def cause_text(rep, root):
     """The one wording per CANNOT_VERIFY cause, module-owned so render() and
-    check-state.sh's INV-27 cannot drift a clause apart (the cause table used to
+    check-state.py's INV-27 cannot drift a clause apart (the cause table used to
     live twice). An unrecognised cause returns a loud sentence rather than nothing."""
     if rep.cause == "unreadable":
         return "a coupled reader could not be read"

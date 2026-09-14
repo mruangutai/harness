@@ -340,14 +340,14 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 20
 # FEAT-21 SC-10 (issue #387): CI/session-entry PARITY, pinned against the REAL gate.
-# The first draft of this case hand-mirrored check-state.sh's INV-27 composition in a
+# The first draft of this case hand-mirrored check-state.py's INV-27 composition in a
 # helper — and a copy cannot detect drift in the thing it copies: dropping a blamed
-# reader inside check-state.sh left the case green while reddening the integration
+# reader inside check-state.py left the case green while reddening the integration
 # suite. THERE IS NO SECOND MIRROR HERE: the session-entry side is the actual
-# check-state.sh run against a fixture tree, and the CI side is layout_migration's
+# check-state.py run against a fixture tree, and the CI side is layout_migration's
 # render() over a scan of the SAME tree. If either call site grows its own filtering
 # or wording, the named reader sets diverge and this reddens.
-_CHECK_STATE = os.path.join(HERE, "check-state.sh")
+_CHECK_STATE = os.path.join(HERE, "check-state.py")
 ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
 
 
@@ -359,7 +359,7 @@ def _parity(label, build_kwargs, extra=None):
             f.write('{"github": {"sync": false, "repo": null}}')
         if extra:
             extra(tmp)
-        # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.sh resolves its root through
+        # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.py resolves its root through
         # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name and
         # honours it only when .harness/team-config.yaml is readable underneath. With only the
         # host-owned name set, the gate resolved to the LIVE checkout, reported nothing about

@@ -25,6 +25,7 @@ a skipped one -- a proof that can silently cover nothing is worse than no proof.
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,12 +34,17 @@ BIN = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(BIN, "..", "..", "..", ".."))
 
 
-def corpus(tool, scratch):
-    """Argument vectors to run. Real repository inputs plus the edge cases.
+def corpus(tool, scratch, impl):
+    """Cases to run. Real repository inputs plus the edge cases.
 
-    Edge cases are not decoration: argument handling is the part that moves from
-    shell into Python, so usage errors, missing paths and directory expansion are
+    A case is `{"argv": [...], "cwd": <dir>, "isolate": bool}`. Edge cases are not
+    decoration: argument handling and root resolution are the parts that move from
+    shell into Python, so usage errors, working directory and the refusal path are
     precisely where a conversion goes wrong. Exit 2 paths matter as much as exit 0.
+
+    `isolate` copies bin/ to a scratch tree with NO harness marker above it and runs
+    the copy there. That is the only way to reach the "no root could be resolved"
+    branch, which is a refusal the real tree can never produce.
     """
     if tool == "check-expertise":
         exp = os.path.join(ROOT, ".harness", "expertise")
@@ -65,20 +71,42 @@ def corpus(tool, scratch):
         empty = os.path.join(scratch, "empty.md")
         open(empty, "w", encoding="utf-8").close()
         cases.append([empty])
-        return cases
+        return [{"argv": a} for a in cases]
+    if tool == "check-state":
+        # Takes NO arguments: the shell wrapper passes only $root and $_selfdir to
+        # the interpreter and never forwards "$@". Stray args must stay ignored.
+        # The wrapper also cd's to the root, so the answer must not depend on cwd --
+        # that is the property most likely to break when the cd moves into Python.
+        return [
+            {"argv": []},
+            {"argv": [], "cwd": os.path.join(ROOT, ".claude", "skills", "harness", "bin")},
+            {"argv": [], "cwd": os.path.join(ROOT, ".harness")},
+            {"argv": [], "cwd": scratch},                       # outside the repo entirely
+            {"argv": ["--nonsense", "extra"]},                  # ignored, not an error
+            {"argv": [], "isolate": True},                      # no root -> refuse, exit 2
+        ]
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")
 
 
-def run(path, argv, scratch):
-    p = subprocess.run([path] + argv, capture_output=True, text=True, cwd=ROOT)
-    # Absolute paths leak two roots that differ between capture and verify: the
-    # checkout (harmless but noisy) and the scratch dir (a fresh mkdtemp each run).
-    # Without scrubbing both, every synthetic case reports a false difference and
-    # the proof reddens for a reason that has nothing to do with the conversion.
+def run(impl, case, scratch):
+    argv, cwd = case.get("argv", []), case.get("cwd", ROOT)
+    if case.get("isolate"):
+        # Copy the bin dir somewhere with no harness marker above it. shutil.copytree
+        # keeps the relative layout the script resolves its siblings through.
+        iso = os.path.join(scratch, "isolated")
+        if not os.path.exists(iso):
+            shutil.copytree(BIN, iso)
+        impl, cwd = os.path.join(iso, os.path.basename(impl)), iso
+    p = subprocess.run([impl] + argv, capture_output=True, text=True, cwd=cwd)
+    # Absolute paths leak roots that differ between capture and verify: the checkout
+    # (harmless but noisy) and the scratch dir (a fresh mkdtemp each run). Without
+    # scrubbing both, synthetic cases report false differences and the proof reddens
+    # for reasons unrelated to the change, which teaches you to ignore it.
     def scrub(s):
         return s.replace(ROOT, "<ROOT>").replace(scratch, "<SCRATCH>")
-    return {"argv": [scrub(a) for a in argv], "exit": p.returncode,
-            "stdout": scrub(p.stdout), "stderr": scrub(p.stderr)}
+    return {"case": {"argv": [scrub(a) for a in argv], "cwd": scrub(cwd),
+                     "isolate": bool(case.get("isolate"))},
+            "exit": p.returncode, "stdout": scrub(p.stdout), "stderr": scrub(p.stderr)}
 
 
 def main():
@@ -90,7 +118,7 @@ def main():
         raise SystemExit(f"{impl} does not exist")
 
     with tempfile.TemporaryDirectory() as scratch:
-        results = [run(impl, argv, scratch) for argv in corpus(tool, scratch)]
+        results = [run(impl, case, scratch) for case in corpus(tool, scratch, impl)]
 
     if mode == "capture":
         with open(store, "w", encoding="utf-8") as fh:
@@ -113,7 +141,11 @@ def main():
         diffs = [k for k in ("exit", "stdout", "stderr") if b[k] != a[k]]
         if diffs:
             bad += 1
-            print(f"FAIL {' '.join(b['argv']) or '<no args>'}: differs in {', '.join(diffs)}")
+            desc = ' '.join(b['case']['argv']) or '<no args>'
+            if b['case'].get('isolate'):
+                desc += ' [isolated: no harness root]'
+            desc += f" (cwd {b['case']['cwd']})"
+            print(f"FAIL {desc}: differs in {', '.join(diffs)}")
             for k in diffs:
                 print(f"  --- {k} before ---\n{b[k]!r}\n  --- {k} after ---\n{a[k]!r}")
     print(f"{len(results) - bad}/{len(results)} cases byte-identical")

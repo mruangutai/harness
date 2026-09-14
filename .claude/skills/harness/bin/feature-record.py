@@ -19,7 +19,7 @@ VERBS
                 that is not a file under the feature's own directory.
   set-mission   write mission: patch | plan (SC-01) AND append the `kind: mission` judgement
                 deciding it, from --by / --reason, in the same locked write — so a mission
-                never exists without the entry check-state.sh INV-40 demands (SC-21).
+                never exists without the entry check-state.py INV-40 demands (SC-21).
   propose-rework read-only: print {rounds, minutes, basis} — the baseline ruling the main
                 session shows the operator at signature (patch: 1 round; plan: tasks/3,
                 floor 2, cap max_total_cycles; minutes = rounds x budgets.rework_round_minutes).
@@ -225,7 +225,7 @@ def cmd_raise_cycles(args):
 
 
 def cmd_set_mission(args):
-    # THE MISSION AND ITS JUDGEMENT ARE ONE WRITE. check-state.sh INV-40 refuses a `mission`
+    # THE MISSION AND ITS JUDGEMENT ARE ONE WRITE. check-state.py INV-40 refuses a `mission`
     # whose last `kind: mission` entry decides something else; writing the two separately
     # would let this CLI produce exactly that state between its own two calls.
     record = _judgement(args.by, "mission", args.mission, args.reason)
