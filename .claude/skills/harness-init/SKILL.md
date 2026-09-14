@@ -48,7 +48,7 @@ INV-31 grade this checkout against the step on every run.
 ```bash
 .agents/skills/harness/bin/merge-settings.py . \
   --template .agents/skills/harness/templates/settings.snippet.json
-.agents/skills/harness/bin/merge-gitignore.sh .
+.agents/skills/harness/bin/merge-gitignore.py .
 .agents/skills/harness/bin/merge-settings.py . --check   # must exit 0 before you go on
 python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING          # the 7th prerequisite
 python3 -c 'import jsonschema' 2>/dev/null && echo OK || echo MISSING   # the 8th prerequisite
@@ -245,7 +245,7 @@ fleet member, run it in that member's checkout and land its merged `harness.json
 .agents/skills/harness/bin/upgrade-config.py .
 .agents/skills/harness/bin/merge-settings.py . \
   --template .agents/skills/harness/templates/settings.snippet.json
-.agents/skills/harness/bin/merge-gitignore.sh .
+.agents/skills/harness/bin/merge-gitignore.py .
 ```
 
 - `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
@@ -257,8 +257,8 @@ fleet member, run it in that member's checkout and land its merged `harness.json
   is more comment than data — every `domain` glob is justified in prose beside it. Round-tripping it
   would silently delete the reasoning that makes the harness's only write-scope guarantee auditable.
   `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
-- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.sh .`** (it is in the
-  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.sh --check` reads
+- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.py .`** (it is in the
+  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.py --check` reads
   its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
   project** until it is re-run. The script is idempotent and preserves the project's own rules. Skipping
   it means the write hooks' bootstrap marker lands untracked, dirtying the tree, and a dirty tree halts

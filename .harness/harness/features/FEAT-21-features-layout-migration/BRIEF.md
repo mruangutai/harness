@@ -52,7 +52,7 @@ own commit.
   detector derives harness's segment from `harness.json` independently of the fleet, so the
   post-move scan raises no undeclared segment. Re-adding a fleet entry would be a decision, not a
   convenience.
-- `factory_claim.py`, the shipped `templates/gitignore.snippet`, `merge-gitignore.sh` and
+- `factory_claim.py`, the shipped `templates/gitignore.snippet`, `merge-gitignore.py` and
   informational prose — unit 9, landing anytime. `gh-sync.py` and `validate-feature-json.py` were
   on this list and have moved into scope: both fail **silently** after the move, and the BRIEF's own
   severity ordering puts silent above loud. The two `.github/workflows/tests.yml` texts move with

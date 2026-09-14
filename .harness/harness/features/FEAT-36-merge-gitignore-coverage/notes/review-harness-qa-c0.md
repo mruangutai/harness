@@ -4,7 +4,7 @@
 
 ## Scope and matrix
 
-Assessed changed files: `.agents/skills/harness/bin/test-merge-gitignore.py`, `.agents/skills/harness/bin/run-unit-tests.py`, `.harness/harness.json`. Inspected intentionally unchanged `.agents/skills/harness/bin/merge-gitignore.sh` for the behavioral contract.
+Assessed changed files: `.agents/skills/harness/bin/test-merge-gitignore.py`, `.agents/skills/harness/bin/run-unit-tests.py`, `.harness/harness.json`. Inspected intentionally unchanged `.agents/skills/harness/bin/merge-gitignore.py` for the behavioral contract.
 
 T-01 is `change_type: feature` (`plan.yaml:41-57`), so `test_matrix.feature.always` requires **unit** and **integration** (`.harness/harness.json:40-44`); no UI interaction-flow predicate is present and AI evals are not required. The task verify command exactly matches the dispatched command (`plan.yaml:55-57`):
 

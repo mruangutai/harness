@@ -1756,7 +1756,7 @@ the brief pending and init says so plainly.
 
 ### Merging is a script, and the fixture found two real defects in it
 
-`.claude/settings.json` and `.gitignore` are **merged by `merge-settings.py` / `merge-gitignore.sh`**,
+`.claude/settings.json` and `.gitignore` are **merged by `merge-settings.py` / `merge-gitignore.py`**,
 never hand-edited. Target projects have their own hooks — kaya-ai has five — and a hand-merge into a file
 you do not own is exactly where one of the three silent-failure entries goes missing. Both are idempotent
 and both take `--check`. Hook presence is matched on **script basename**, not the literal command string,

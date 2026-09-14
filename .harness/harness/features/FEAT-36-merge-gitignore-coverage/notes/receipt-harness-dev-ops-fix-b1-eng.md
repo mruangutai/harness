@@ -6,11 +6,11 @@
 
 - Edited only `.agents/skills/harness/bin/test-merge-gitignore.py` in implementation scope.
 - The strengthened assertion extracts `line[len("  - "):]` from every stderr line beginning `  - `, compares that set to `set(RULES[1:])`, and reports sorted `missing` and `unexpected` set differences.
-- No production defect was established; `.agents/skills/harness/bin/merge-gitignore.sh` was not edited.
+- No production defect was established; `.agents/skills/harness/bin/merge-gitignore.py` was not edited.
 
 ## Discriminating RED evidence
 
-A disposable controlled mutant was copied from the production script to `/tmp/fix-b1-mutant/bin/merge-gitignore.sh`, supplied its normal relative snippet fixture, and was diff-confirmed to add exactly this diagnostic output before its check-mode exit:
+A disposable controlled mutant was copied from the production script to `/tmp/fix-b1-mutant/bin/merge-gitignore.py`, supplied its normal relative snippet fixture, and was diff-confirmed to add exactly this diagnostic output before its check-mode exit:
 
 ```text
   - .claude/worktrees/NOT-THE-RULE
@@ -19,7 +19,7 @@ A disposable controlled mutant was copied from the production script to `/tmp/fi
 Command (exit **1**):
 
 ```sh
-MERGE_GITIGNORE_BIN=/tmp/fix-b1-mutant/bin/merge-gitignore.sh python3 .agents/skills/harness/bin/test-merge-gitignore.py
+MERGE_GITIGNORE_BIN=/tmp/fix-b1-mutant/bin/merge-gitignore.py python3 .agents/skills/harness/bin/test-merge-gitignore.py
 ```
 
 Relevant result:

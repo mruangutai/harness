@@ -640,7 +640,7 @@ tasks:
 
       Bare names with no directory component - settings.snippet.json, harness.json,
       team-config.yaml, BRIEF.md, plan.yaml, PLAN.md, STATE.md, DESIGN.md, gitignore.snippet,
-      .gitignore, bin/merge-settings.py, bin/merge-gitignore.sh - are template FILENAMES in the
+      .gitignore, bin/merge-settings.py, bin/merge-gitignore.py - are template FILENAMES in the
       left-hand column, not paths the rule matches. Leave them exactly as they are; prefixing a
       column of template names would make the table say something false.
 

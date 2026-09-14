@@ -97,7 +97,7 @@ Survivors and their justifications:
   and fixtures. It cannot detect a legacy layout without spelling it.
 - `check-plan-routes.py:226,:431,:463`, `gh-sync.py:730` — narratives of past defects or explicit
   legacy/migrated contrasts; historical by content.
-- `merge-gitignore.sh:6`, `test-factory-claim.py:5`, `test-factory-integration.py:668` — the factory
+- `merge-gitignore.py:6`, `test-factory-claim.py:5`, `test-factory-integration.py:668` — the factory
   lane and onboarded-product layout, deferred to unit 9 by the BRIEF's Out section.
 - `test-validate-digest.py` (9 sites), `test-harness-yaml-corpus.py:232` — synthetic fixture strings
   fed to parsers; no file is opened at those paths.

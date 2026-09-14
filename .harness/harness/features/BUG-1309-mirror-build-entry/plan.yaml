@@ -1277,7 +1277,7 @@ tasks:
          because none does. gh-sync.py open takes the "github.repo is not pinned" skip at
          gh-sync.py:247 and records nothing; /harness-init --upgrade is not a slash command but a
          MODE of the harness-init skill that runs upgrade-config.py, merge-settings.py and
-         merge-gitignore.sh, and upgrade-config.py merges the shipped template whose github block
+         merge-gitignore.py, and upgrade-config.py merges the shipped template whose github block
          is sync false / repo null, so it cannot pin a repo either. The repo is pinned only by the
          fresh-onboarding mirror interview or by hand. THIS REASON MUST THEREFORE CARRY NO "open"
          TOKEN IN ANY FORM - the same rule the era line at step 5 carries, and what makes the two

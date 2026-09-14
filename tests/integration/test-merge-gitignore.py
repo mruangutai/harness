@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Behavioral coverage for merge-gitignore.sh through its real process boundary."""
+"""Behavioral coverage for merge-gitignore.py through its real process boundary."""
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(_anchor_bin)
-SCRIPT = Path(os.environ.get("MERGE_GITIGNORE_BIN", HERE / "merge-gitignore.sh")).resolve()
+SCRIPT = Path(os.environ.get("MERGE_GITIGNORE_BIN", HERE / "merge-gitignore.py")).resolve()
 SNIPPET = HERE.parent / "templates" / "gitignore.snippet"
 RULES = [
     line

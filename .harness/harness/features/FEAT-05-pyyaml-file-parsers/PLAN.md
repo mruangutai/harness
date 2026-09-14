@@ -50,15 +50,15 @@ the dispatch's citations lands on the right paragraph:
 
 - **D-01: the `.harness/.pyyaml-bootstrap` ignore rule lands in BOTH
   `.claude/skills/harness/templates/gitignore.snippet` AND this repo's own `.gitignore`, and the
-  upgrade path names a `merge-gitignore.sh` re-run.** Verified at source: `gitignore.snippet:7` ignores
+  upgrade path names a `merge-gitignore.py` re-run.** Verified at source: `gitignore.snippet:7` ignores
   only `.harness/features/*/runs/**` under `.harness/`, and `:4-6` states everything else there is
   committed on purpose; this repo's own `.gitignore:1-20` carries the same rule set and no marker line.
-  `merge-gitignore.sh:6-9` states a dirty tree halts a team run with `BLOCKED`. So an untracked marker
+  `merge-gitignore.py:6-9` states a dirty tree halts a team run with `BLOCKED`. So an untracked marker
   file dirties the tree and **deadlocks the next team run on every checkout that pulls this** — the
-  marker is written by the very hook that fires when the run starts. `merge-gitignore.sh` reads its rule
+  marker is written by the very hook that fires when the run starts. `merge-gitignore.py` reads its rule
   list from the snippet and is idempotent (`:44-51`), so an existing checkout recovers by re-running it;
   that re-run must be named in the upgrade path, not left to be discovered. *Trade-off accepted:* the
-  snippet's rule count changes, so `merge-gitignore.sh --check` goes red on every already-initialised
+  snippet's rule count changes, so `merge-gitignore.py --check` goes red on every already-initialised
   project until it is re-run. That is the intended loud signal, not a regression.
   *Rejected — `$TMPDIR` for the marker.* It dodges the gitignore change entirely, but a tmp clear or a
   reboot silently re-grants the escape. A permanent bypass by neglect is precisely the failure mode
@@ -703,7 +703,7 @@ correct build, and would fail the task for succeeding.
 
 **Must land before T-12.** The first converted hook on a PyYAML-less checkout writes the marker, and an
 untracked marker dirties the tree, and a dirty tree halts the next team run with `BLOCKED`
-(`merge-gitignore.sh:6-9`).
+(`merge-gitignore.py:6-9`).
 
 1. Add `.harness/.pyyaml-bootstrap` to `.claude/skills/harness/templates/gitignore.snippet`, inside the
    `# --- harness ---` block (currently `:1-14`), with a one-line comment naming it the one-session
@@ -712,13 +712,13 @@ untracked marker dirties the tree, and a dirty tree halts the next team run with
    self-hosted, its harness rules sit at `:1-20`, and it carries no such line today. Two files, one
    rule; omitting either is the deadlock.
 3. Name the upgrade path in the `harness-init` `--upgrade` section: an existing checkout that pulls this
-   change must re-run `.claude/skills/harness/bin/merge-gitignore.sh .`. It is idempotent (`:44-51`),
+   change must re-run `.claude/skills/harness/bin/merge-gitignore.py .`. It is idempotent (`:44-51`),
    and it reads its rule list from the snippet, so `--check` will correctly go red on every
    already-initialised project until it is re-run.
 
 verify: `grep -c 'pyyaml-bootstrap' .claude/skills/harness/templates/gitignore.snippet .gitignore` →
 `1` for each file (0 for each at `37a8a66` — discriminating); then
-`.claude/skills/harness/bin/merge-gitignore.sh . --check; echo $?` → **0**.
+`.claude/skills/harness/bin/merge-gitignore.py . --check; echo $?` → **0**.
 
 ### T-11 — the seventh prerequisite in `harness-init`'s HARD GATE
 
@@ -745,7 +745,7 @@ Edit `.claude/skills/harness-init/SKILL.md`:
    self-reports `MISSING` from inside its own environment on first invocation, which is the same code
    path the bootstrap escape already needs. That makes the init gate an early warning rather than a
    thing that can be silently wrong.
-5. Add the T-10 step-3 `merge-gitignore.sh` re-run to the `--upgrade` section.
+5. Add the T-10 step-3 `merge-gitignore.py` re-run to the `--upgrade` section.
 
 **Do not add `requirements.txt`, `pyproject.toml` or `package.json`** at repo root. None exists today
 (verified at `37a8a66`), and adding one would be the first dependency manifest in a files-only repo,

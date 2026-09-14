@@ -21,7 +21,7 @@ Stage 1 completed before any code-quality judgment.
 - REQ-03 / SC-03: absent and partial targets are separate and require every canonical rule exactly once; the partial fixture retains unrelated content (`test-merge-gitignore.py:75-97`).
 - REQ-04 / SC-04: first-run bytes are captured and required unchanged after the second merge (`test-merge-gitignore.py:100-110`).
 - REQ-05 / SC-05: an absolute project root is invoked from a sibling caller directory outside both project and utility; the project target must exist and the caller target must not (`test-merge-gitignore.py:113-123`).
-- D-01 / SC-06 inspection: calls cross the real process seam (`test-merge-gitignore.py:18-23`); the exact filename is in `INTEGRATION_SCRIPTS` and absent from `UNIT_SCRIPTS` (`run-unit-tests.py:17-18`), and the exact repository path is in `test_kinds.integration.detect` (`.harness/harness.json:118-122`). Base and review resolve `merge-gitignore.sh` to the identical blob `4610430764205c16a627edc9764a37dcb54af75c`; the pinned diff has no production-utility hunk. The original receipt records the controlled red, untouched-real 7/7 pass, and identical utility hash (`notes/receipt-harness-dev-ops-T-01-c0.md`, “Test-first evidence”).
+- D-01 / SC-06 inspection: calls cross the real process seam (`test-merge-gitignore.py:18-23`); the exact filename is in `INTEGRATION_SCRIPTS` and absent from `UNIT_SCRIPTS` (`run-unit-tests.py:17-18`), and the exact repository path is in `test_kinds.integration.detect` (`.harness/harness.json:118-122`). Base and review resolve `merge-gitignore.py` to the identical blob `4610430764205c16a627edc9764a37dcb54af75c`; the pinned diff has no production-utility hunk. The original receipt records the controlled red, untouched-real 7/7 pass, and identical utility hash (`notes/receipt-harness-dev-ops-T-01-c0.md`, “Test-first evidence”).
 - D-02 and scope: the only c1 executable delta stabilizes an existing required-matrix mutation fixture; it adds no unrelated behavioral coverage and changes no production guard. Feature records are review/verification bookkeeping. No provider, Anthropic/Claude compatibility, unrelated production utility, or undocumented merge behavior changed.
 
 Spec violations: none (`scope_creep: 0`, `omission: 0`, `mismatch: 0`).
@@ -39,7 +39,7 @@ Spec violations: none (`scope_creep: 0`, `omission: 0`, `mismatch: 0`).
 
 - Severity: `med`; owner: Engineering / `harness-dev-ops`; disposition: advisory follow-up, non-blocking.
 - Failure scenario: if `--check` regresses to emit `.claude/worktrees/NOT-THE-RULE` while `.claude/worktrees/` is missing, `rule in result.stderr` passes, so the suite accepts a fabricated diagnostic that does not name the exact rule an operator must add.
-- Evidence: substring membership remains at `test-merge-gitignore.py:69-71`; production emits one exact bullet per missing rule at `merge-gitignore.sh:55-62`. The c1 rework did not touch this test, so continuity—not resolution—is the correct disposition.
+- Evidence: substring membership remains at `test-merge-gitignore.py:69-71`; production emits one exact bullet per missing rule at `merge-gitignore.py:55-62`. The c1 rework did not touch this test, so continuity—not resolution—is the correct disposition.
 - Recommended later action: compare the exact emitted bullet-rule set with `RULES[1:]`, rejecting missing and extra/fabricated bullets.
 
 ## Stage 2 — code quality: PASS with advisory
@@ -51,7 +51,7 @@ Stage 2 began only after Stage 1 passed. The test stays at the process/filesyste
 - **Dismissed — F-01 fix as scope creep:** it repairs a false failure in the feature's mandatory all-kinds verification and neither expands unrelated coverage nor alters unrelated production behavior.
 - **Dismissed — `PYTHONDONTWRITEBYTECODE` might still read an old cache:** the mutation fixture's bin directory is freshly created, receives only copied source files, and its baseline subprocesses cannot write bytecode; there is no fixture-local cache to read after mutation.
 - **Dismissed — SC-05 needs an unbounded filesystem side-effect sweep:** the approved plan specifically requires the requested project target to change and the unrelated caller to gain no `.gitignore`; the case pins both. Auditing arbitrary undocumented side effects would exceed the weakest sufficient contract.
-- **Scoped out:** QA execution and matrix verdict, security audit, and UI audit, per dispatch. Production error-path changes are also absent because `merge-gitignore.sh` is byte-identical.
+- **Scoped out:** QA execution and matrix verdict, security audit, and UI audit, per dispatch. Production error-path changes are also absent because `merge-gitignore.py` is byte-identical.
 
 ## Final disposition
 

@@ -1,6 +1,6 @@
 # QA gate — T-01: PASS
 
-**Conclusion:** The pinned change adds seven red-capable real-process cases, registers them as integration-only, and leaves `merge-gitignore.sh` byte-identical. The required matrix commands passed with no runner configuration or kind-drift finding.
+**Conclusion:** The pinned change adds seven red-capable real-process cases, registers them as integration-only, and leaves `merge-gitignore.py` byte-identical. The required matrix commands passed with no runner configuration or kind-drift finding.
 
 ## Scope and matrix
 
@@ -43,6 +43,6 @@ MERGE_GITIGNORE_BIN=/tmp/feat36-merge-gitignore-mutant.sh python3 .agents/skills
 
 returned exit **1** with this changed-surface transcript: six PASS cases; `FAIL check_complete_is_read_only:`; `6 passed; 1 failed`. The wrapper was removed immediately. This proves the complete-check assertion can redden under its intended controlled mutant, rather than merely passing vacuously.
 
-Git history contains exactly one commit in range, `ac8533876… [harness:t-01] cover merge-gitignore behavior`; its changed-path list contains the new test, runner, config, and feature records, but not `merge-gitignore.sh`. More strongly, both base and target resolve `.agents/skills/harness/bin/merge-gitignore.sh` to identical tree object `4610430764205c16a627edc9764a37dcb54af75c`. There is therefore no production edit whose ordering could violate test-first; the red-capable test and untouched-production history satisfy the audit.
+Git history contains exactly one commit in range, `ac8533876… [harness:t-01] cover merge-gitignore behavior`; its changed-path list contains the new test, runner, config, and feature records, but not `merge-gitignore.py`. More strongly, both base and target resolve `.agents/skills/harness/bin/merge-gitignore.py` to identical tree object `4610430764205c16a627edc9764a37dcb54af75c`. There is therefore no production edit whose ordering could violate test-first; the red-capable test and untouched-production history satisfy the audit.
 
 No files besides this QA artifact were modified.

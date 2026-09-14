@@ -11,7 +11,7 @@
   - `.agents/skills/harness/bin/run-unit-tests.py` — only the test registry is changed.
   - `.harness/harness.json` — only the integration-test detector is changed.
 - Relevant unchanged file inspected at the pinned SHA:
-  - `.agents/skills/harness/bin/merge-gitignore.sh` — production utility is unchanged; the diff therefore does not alter its terminal messages or interaction behavior.
+  - `.agents/skills/harness/bin/merge-gitignore.py` — production utility is unchanged; the diff therefore does not alter its terminal messages or interaction behavior.
 - Authority inspected: `.harness/harness/features/FEAT-36-merge-gitignore-coverage/BRIEF.md` and `plan.yaml`; both define executable coverage and registry work, not visual spacing, colour, interaction, accessibility, or theme requirements.
 
 No fidelity, state, accessibility, focus/keyboard, or dark/light parity audit applies. Findings: none; must-fix items: none.

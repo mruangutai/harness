@@ -9,7 +9,7 @@ T-01 adds real-subprocess integration coverage for every REQ-01..REQ-05 outcome.
 Before authoring the test, the utility hash was:
 
 ```text
-86cfff73c88a2baa1c74d2e516e3608e38954fef1c9e4ef344113b011e425c12  .agents/skills/harness/bin/merge-gitignore.sh
+86cfff73c88a2baa1c74d2e516e3608e38954fef1c9e4ef344113b011e425c12  .agents/skills/harness/bin/merge-gitignore.py
 ```
 
 Controlled-mutant command (the wrapper delegates to the real utility but turns a successful `--check` into exit 1):
@@ -55,7 +55,7 @@ PASS explicit_project_root_ignores_caller_cwd
 stderr was empty; exit status was `0`. The post-real-run utility hash was byte-identical:
 
 ```text
-86cfff73c88a2baa1c74d2e516e3608e38954fef1c9e4ef344113b011e425c12  .agents/skills/harness/bin/merge-gitignore.sh
+86cfff73c88a2baa1c74d2e516e3608e38954fef1c9e4ef344113b011e425c12  .agents/skills/harness/bin/merge-gitignore.py
 ```
 
 Named coverage maps to requirements: preservation (REQ-01); complete and incomplete read-only `--check`, including every missing-rule name (REQ-02); absent and partial targets with each canonical rule once (REQ-03); second-merge byte identity (REQ-04); and absolute explicit-root behavior from an unrelated cwd (REQ-05). Each case invokes the selected `MERGE_GITIGNORE_BIN` through `subprocess`; ordinary execution resolves the real utility relative to this test file.
@@ -90,6 +90,6 @@ The all-kinds transcript contained no `MISCONFIGURED` or `KIND-DRIFT` finding; t
 
 ## Scope record
 
-- Production changed: no; `.agents/skills/harness/bin/merge-gitignore.sh` is byte-identical before and after.
+- Production changed: no; `.agents/skills/harness/bin/merge-gitignore.py` is byte-identical before and after.
 - Touched paths: `.agents/skills/harness/bin/test-merge-gitignore.py`, `.agents/skills/harness/bin/run-unit-tests.py`, `.harness/harness.json`, and this receipt.
 - Cycles: `0`.

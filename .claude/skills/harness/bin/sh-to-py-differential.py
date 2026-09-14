@@ -849,6 +849,70 @@ def inject_expertise_corpus(scratch):
     )
 
 
+def _gitignore_root(scratch, name, body=None):
+    root = os.path.join(scratch, name)
+    os.makedirs(root)
+    if body is not None:
+        with open(os.path.join(root, ".gitignore"), "wb") as fh:
+            fh.write(body)
+    return root
+
+
+def _gitignore_rules():
+    snippet = os.path.join(BIN, "..", "templates", "gitignore.snippet")
+    with open(snippet, "r", encoding="utf-8") as fh:
+        return [
+            line for line in fh.read().splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+
+
+def _gitignore_fixtures(scratch):
+    rules = _gitignore_rules()
+    complete = _gitignore_root(
+        scratch, "gitignore-complete",
+        ("existing\n" + "\n".join(rules) + "\n").encode())
+    partial = _gitignore_root(
+        scratch, "gitignore-partial",
+        ("existing\n" + rules[0] + "\n").encode())
+    absent = _gitignore_root(scratch, "gitignore-absent")
+    no_newline = _gitignore_root(
+        scratch, "gitignore-no-newline", b"existing-without-newline")
+    unexpected = _gitignore_root(scratch, "gitignore-unexpected-mode")
+    expanded = _gitignore_root(scratch, "gitignore-expanded-output")
+    expanded_cwd = os.path.join(scratch, "gitignore-expanded-cwd")
+    os.makedirs(expanded_cwd)
+    open(os.path.join(expanded_cwd, "visible.pyc"), "w").close()
+    return complete, partial, absent, no_newline, unexpected, expanded, expanded_cwd
+
+
+def _gitignore_cases(scratch, fixtures):
+    complete, partial, absent, no_newline, unexpected, expanded, expanded_cwd = fixtures
+    return [
+        {"label": "missing root prints usage"},
+        {"label": "nonexistent root prints usage",
+         "argv": [os.path.join(scratch, "missing-root")]},
+        {"label": "complete check is read-only",
+         "argv": [complete, "--check"]},
+        {"label": "partial check reports each missing rule",
+         "argv": [partial, "--check"]},
+        {"label": "absent target receives rules", "argv": [absent]},
+        {"label": "nonempty target without newline preserves append bytes",
+         "argv": [no_newline]},
+        {"label": "unexpected mode still performs merge",
+         "argv": [unexpected, "--unexpected", "ignored"]},
+        {"label": "unquoted success diagnostics preserve glob expansion",
+         "argv": [expanded], "cwd": expanded_cwd},
+        {"label": "missing snippet reports its resolved path",
+         "argv": [absent], "isolate": True},
+    ]
+
+
+def merge_gitignore_corpus(scratch):
+    """Usage, check, append, idempotence-input, cwd and snippet cases."""
+    return _gitignore_cases(scratch, _gitignore_fixtures(scratch))
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -910,6 +974,8 @@ def corpus(tool, scratch, impl):
         open(empty, "w", encoding="utf-8").close()
         cases.append([empty])
         return [{"argv": a} for a in cases]
+    if tool == "merge-gitignore":
+        return merge_gitignore_corpus(scratch)
     if tool == "check-state":
         # Takes NO arguments: the shell wrapper passes only $root and $_selfdir to
         # the interpreter and never forwards "$@". Stray args must stay ignored.

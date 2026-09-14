@@ -29,7 +29,7 @@ sc_evidence:
   - {id: SC-03, evidence: ".agents/skills/harness/bin/test-merge-gitignore.py:86-108"}
   - {id: SC-04, evidence: ".agents/skills/harness/bin/test-merge-gitignore.py:111-120"}
   - {id: SC-05, evidence: ".agents/skills/harness/bin/test-merge-gitignore.py:123-136"}
-  - {id: SC-06, evidence: ".agents/skills/harness/bin/run-unit-tests.py:18; .harness/harness.json test_kinds.integration.detect; git diff 0fa8f33..be27d99 -- merge-gitignore.sh (empty)"}
+  - {id: SC-06, evidence: ".agents/skills/harness/bin/run-unit-tests.py:18; .harness/harness.json test_kinds.integration.detect; git diff 0fa8f33..be27d99 -- merge-gitignore.py (empty)"}
 open_questions: []
 files_touched:
   - .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-qa-c3.md

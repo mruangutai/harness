@@ -19,4 +19,4 @@ Exit status: 0
 
 ## Scope
 
-Only the test case and this receipt were changed in this run. A clean `git diff --quiet -- .agents/skills/harness/bin/merge-gitignore.sh ':(glob)**/*registry*'` check confirms the production utility and registry paths are untouched.
+Only the test case and this receipt were changed in this run. A clean `git diff --quiet -- .agents/skills/harness/bin/merge-gitignore.py ':(glob)**/*registry*'` check confirms the production utility and registry paths are untouched.

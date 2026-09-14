@@ -59,7 +59,7 @@ load at `4b5dbb23` (`ParserError` at line 28 col 11, `main_session.writes` flow 
 inline `##` comment) — and T-05's `verify:` never loads it. Same argument for the other four templates:
 none is orphaned — `harness.json` (two destinations + `upgrade-config` + `test-suite-layout.py:111`),
 `BRIEF.md` (T-05, instantiated per feature), `settings.snippet.json` (`SKILL.md:43` step 1, which
-survives), `gitignore.snippet` (`merge-gitignore.sh:26`). *Disposition: keep the file, and add to T-05
+survives), `gitignore.snippet` (`merge-gitignore.py:26`). *Disposition: keep the file, and add to T-05
 that line 28 is repaired (quote the two `## Approval` scalars) with `yaml.safe_load` in its verify.*
 
 **2. The knowledge the six surviving steps must produce — all six destinations are stated.**

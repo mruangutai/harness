@@ -14,7 +14,7 @@ pin a repo, so it cannot clear the deny either.** What I read, in the worktree a
 - `.claude/commands/` holds only `harness.md`, `harness-plan.md`, `harness-ship.md`,
   `harness-grilling.md` — `--upgrade` is a MODE of the harness-init skill, whose `## --upgrade`
   section (`.claude/skills/harness-init/SKILL.md:327-336`) runs exactly `upgrade-config.py`,
-  `merge-settings.py`, `merge-gitignore.sh`.
+  `merge-settings.py`, `merge-gitignore.py`.
 - `upgrade-config.py` never touches `github.repo` (grep for `repo` returns only prose/docstring);
   it merges the shipped template, whose block is `"sync": false, "repo": null`
   (`.claude/skills/harness/templates/harness.json:166-169`).

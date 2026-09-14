@@ -15,7 +15,7 @@ The earlier stacked PR #833 is historical only. This extraction keeps FEAT-36 se
 | SC-03 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-03; absent and partial targets contain every rule exactly once |
 | SC-04 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-04; second merge is byte-identical |
 | SC-05 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-05; explicit project root changes only the requested target |
-| SC-06 | PASS | inspection | `runs/goal-check-c2-product/digest.md` SC-06; integration registration is correct and `merge-gitignore.sh` remains byte-identical |
+| SC-06 | PASS | inspection | `runs/goal-check-c2-product/digest.md` SC-06; integration registration is correct and `merge-gitignore.py` remains byte-identical |
 
 No criterion declares UAT, and no waiver was used.
 

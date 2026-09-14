@@ -9,7 +9,7 @@ exactly one file in a product repository — that repository's own harness.json,
 | `harness.json` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` for the control plane; a fleet member's own copy on its default branch | `harness-init` for the control plane; `harness-add-repo` for a fleet member, then `dev-ops` fills `test_kinds.cmd` | configure or register |
 | `team-config.yaml` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` only; a product repository never carries one | `harness-init`, seeding `# SEED` globs from detection | configure |
 | `BRIEF.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/BRIEF.md` | `/harness-plan` drafts; `harness-pm` owns thereafter | plan |
-| `gitignore.snippet` | `.gitignore` | `harness-init` via `bin/merge-gitignore.sh` | init — **appended**, never overwritten |
+| `gitignore.snippet` | `.gitignore` | `harness-init` via `bin/merge-gitignore.py` | init — **appended**, never overwritten |
 | `plan.yaml` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/plan.yaml` | `harness-pm` | first planning pass, not init |
 | `PLAN.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/PLAN.md` | `harness-pm` | **superseded by `plan.yaml` (DEC-182)** — never instantiated for a new feature; kept because features planned before DEC-182 keep their `PLAN.md` until they ship |
 | `STATE.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |

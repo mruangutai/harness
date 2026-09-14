@@ -17,13 +17,13 @@
 - `.agents/skills/harness/bin/run-unit-tests.py` — adds only `test-merge-gitignore.py` to the integration registry.
 - `.harness/harness.json` — adds/reorders integration detector entries only.
 - `.agents/skills/harness/bin/test-bash-write-guard.py` — MF-01 test-fixture reliability correction only.
-- `.agents/skills/harness/bin/merge-gitignore.sh` — relevant production CLI inspected and confirmed unchanged across the pins.
+- `.agents/skills/harness/bin/merge-gitignore.py` — relevant production CLI inspected and confirmed unchanged across the pins.
 - Authority/provenance: `BRIEF.md`, `plan.yaml`, `notes/receipt-harness-dev-ops-review-fix-eng.md`, the c0 UI/code-review notes, and the c0 review-validator digest.
 
 ## Prior-finding dispositions
 
 - **c0 F-01 / MF-01 — resolved; no UI concern.** The corrected pin sets `PYTHONDONTWRITEBYTECODE=1` for both isolated hook subprocesses so the equal-size mutation cannot reuse stale bytecode (`test-bash-write-guard.py`, `_both_routes`). This changes test reliability, not guard output or interaction. The fix receipt records the required `(2, 2)` mutation result and green rerun; QA owns gate confirmation.
-- **c0 F-02 — remains a `med` advisory; no UI reclassification.** `test-merge-gitignore.py` still uses `rule in result.stderr`, so a fabricated longer diagnostic can satisfy the assertion. This is a test-strength issue, not a changed user-facing diagnostic: `merge-gitignore.sh` is unchanged. The existing recommendation to compare exact emitted bullet rules remains appropriately advisory in the code-review/engineering lane.
+- **c0 F-02 — remains a `med` advisory; no UI reclassification.** `test-merge-gitignore.py` still uses `rule in result.stderr`, so a fabricated longer diagnostic can satisfy the assertion. This is a test-strength issue, not a changed user-facing diagnostic: `merge-gitignore.py` is unchanged. The existing recommendation to compare exact emitted bullet rules remains appropriately advisory in the code-review/engineering lane.
 
 ## UI disposition
 

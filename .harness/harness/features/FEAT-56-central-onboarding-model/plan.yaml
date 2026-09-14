@@ -943,7 +943,7 @@ tasks:
       5. tests/integration/test-merge-settings.py - case_matchers, case_agent_specs,
          case_no_duplicate_write grade merge-settings.py, which stays live for the control-plane
          clone. Its docstring clause "a gate harness-init calls HARD" remains true.
-      6. tests/integration/test-merge-gitignore.py - all seven named cases grade merge-gitignore.sh.
+      6. tests/integration/test-merge-gitignore.py - all seven named cases grade merge-gitignore.py.
          Measured at 4b5dbb23: the file contains no /harness-init reference at all.
       7. tests/integration/test-upgrade-config.py - measured at 4b5dbb23: no /harness-init
          reference. If the T-02 remedy strings turn out to be asserted anywhere here, amend the

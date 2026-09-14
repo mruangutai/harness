@@ -496,7 +496,7 @@ not found" with no explanation.
 
 ### Step 1 is a hard gate
 
-If `merge-settings.py` or `merge-gitignore.sh` cannot run, **init stops there.** Observed in testing
+If `merge-settings.py` or `merge-gitignore.py` cannot run, **init stops there.** Observed in testing
 (DEC-112): with the scripts denied, a run hand-replicated the `.gitignore` half, skipped the settings
 half, and continued to step 5 — producing a finished-looking project with **no domain enforcement**. A
 half-installed init does not announce itself, which makes it worse than a refused one.
@@ -859,7 +859,7 @@ The repo has **none**, yet the commit policy depends on ignoring `.harness/featu
 Without it, run dirs dirty the working tree — and the git-failure-mode rule halts a team with
 `BLOCKED` on a dirty tree, so **the harness's own artifacts would deadlock the next run.** Add the
 rule here and to the onboarding template `templates/gitignore.snippet`, which `/harness-init` merges
-into the target repository via `bin/merge-gitignore.sh`. Reconcile the dirty-tree
+into the target repository via `bin/merge-gitignore.py`. Reconcile the dirty-tree
 halt with a **whitelist**: harness-owned paths and in-progress staged work do not count as dirty.
 
 ### Detail: #16 — `.harness/README.md`
@@ -964,7 +964,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
 | `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-222). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
 | `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-222): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |
-| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
+| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.py`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |
 | `.claude/skills/harness/bin/inject-expertise.py` | **new** — `SubagentStart` hook that injects an agent's Expertise |

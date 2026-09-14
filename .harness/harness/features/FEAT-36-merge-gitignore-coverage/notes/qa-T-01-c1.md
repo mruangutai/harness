@@ -30,6 +30,6 @@ The prescribed command exited 0 (156.44s aggregate). Standalone discovery/execut
 - SC-03: `:76-98` / named absent and partial cases.
 - SC-04: `:101-110` / named `second_merge_is_byte_identical`.
 - SC-05: `:113-126` / named `explicit_project_root_ignores_caller_cwd`.
-- SC-06: inspection: `run-unit-tests.py:18` registers the test as integration; this SC-05-only diff does not alter `merge-gitignore.sh`.
+- SC-06: inspection: `run-unit-tests.py:18` registers the test as integration; this SC-05-only diff does not alter `merge-gitignore.py`.
 
 must_fix: none.

@@ -33,7 +33,7 @@ literal `.harness/harness/features/...` (D-01's prose form). Survivors outside `
 `harness-init/SKILL.md`: `check-plan-routes.py`, `check-state.sh`, `gh-sync.py` (each one stale
 historical/explanatory comment, true as written, not agent-facing write instructions — see low
 findings below); `layout_fixtures.py`/`layout_migration.py` (the detector's own legacy-pattern
-table, meant to carry the literal); `merge-gitignore.sh`, `test-factory-claim.py`,
+table, meant to carry the literal); `merge-gitignore.py`, `test-factory-claim.py`,
 `test-factory-integration.py` (named unit-9 survivors, already ruled sanctioned); `test-validate-
 feature-json.py` (the named `FEAT-99-x` display-path survivor, already ruled);
 `test-harness-yaml-corpus.py` (untouched by this diff — checked, its one occurrence at line 232 is

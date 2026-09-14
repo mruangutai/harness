@@ -187,7 +187,7 @@ decisions:
     choice: >-
       gh-sync.py's root derivation and validate-feature-json.py's discovery glob are PULLED FORWARD
       out of unit 9 into this atomic commit, alongside test-factory-cli.py's module-scope plan read.
-      The rest of unit 9 - factory_claim.py, templates/gitignore.snippet, merge-gitignore.sh and
+      The rest of unit 9 - factory_claim.py, templates/gitignore.snippet, merge-gitignore.py and
       informational prose - stays in unit 9 and is untouched here, with ONE named exception: the
       comment in .github/workflows/tests.yml that describes what the pulled-forward
       validate-feature-json.py sweep globs. That comment is informational prose by form, but it
@@ -712,7 +712,7 @@ tasks:
         untouched and say so in the receipt; if any case requires the path to resolve or to be
         granted, move that one.
 
-      Do NOT touch test-factory-claim.py, test-factory-integration.py or merge-gitignore.sh. Map 336
+      Do NOT touch test-factory-claim.py, test-factory-integration.py or merge-gitignore.py. Map 336
       places them in unit 9, landing anytime, and the detector deliberately does not read them -
       editing them here would redden a state the sequence sanctions or grow scope the review cannot
       hold. The verify allows their literals to survive. validate-feature-json.py and
