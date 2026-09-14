@@ -73,7 +73,7 @@ Reverted (`return True  # MUTATION PROBE` replaced back with the real line). Has
 
 `task: T-03`
 Command (verbatim, cross-checked against `plan.yaml` T-03 line 265-266 — matches this dispatch's
-quoted string exactly): `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+quoted string exactly): `.claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Expected count set BEFORE running (per dispatch instruction): PASS count must go UP from the
 baseline 160.
@@ -113,7 +113,7 @@ the LEAVE LIST.
 - Did not rewrite T-03's stale `intent:` paragraph in `plan.yaml` — flagged as an open_question,
   not edited.
 - Did not touch `check-state.sh`, `CLAUDE.md`, `.harness/notes/**`, `.harness/logs/**`,
-  `factory_gh.py`, `gh-sync.py`, `run-unit-tests.sh`, or `test-factory-gh.py` — all on the LEAVE
+  `factory_gh.py`, `gh-sync.py`, `run-unit-tests.py`, or `test-factory-gh.py` — all on the LEAVE
   LIST, none needed touching for this scope change.
 - Did not run `check-state.sh` and made no live `gh` call, per dispatch instruction.
 

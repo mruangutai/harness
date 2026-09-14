@@ -19,7 +19,7 @@ that does not bind to the instruction; a real (if narrow) evasion mutant leaves 
    43 distinct `FEAT-*`/`BUG-*` IDs appear in its output (`note`/`INV-32` lines name them), and
    BUG-1080's own feature is among the referenced set (15 mentions). A substantial, non-trivial
    corpus, clean.
-4. **`run-unit-tests.sh`**: exit 0, **zero literal `FAIL` result lines** (checked with an anchored
+4. **`run-unit-tests.py`**: exit 0, **zero literal `FAIL` result lines** (checked with an anchored
    regex, not a bare substring — the raw log has 31 lines containing the substring "FAIL" but
    every one is inside a descriptive test name like "a FAILING invocation" or "ship FAILED", never
    a standalone result token). 1064 `PASS` script-summary lines.
@@ -143,7 +143,7 @@ all." As written, two of the three new schema cases would not catch a broken or 
 
 ## Q-E — Anything the remedy broke that cycle 0 had passed?
 
-None found. Full `run-unit-tests.sh` clean rerun (§4) covers this — no regressions across the
+None found. Full `run-unit-tests.py` clean rerun (§4) covers this — no regressions across the
 1064-script sweep, and the diff (`git diff --stat a2fb6c0b..e9b11035`, 4 files, +100/-3) touches
 only additive test cases, the SKILL.md paragraph, and the exact-match tightening already ruled
 correct in cycle 0. `check-state.sh`'s clean 43-feature sweep (§3) is itself a regression check
@@ -169,7 +169,7 @@ DIGEST:
     - { kind: unit, state: satisfied, cmd: "python3 .claude/skills/harness/bin/test-check-state.py", named_tests: 164 }
     - { kind: unit, state: satisfied, cmd: "python3 .claude/skills/harness/bin/test-validate-feature-json.py", named_tests: 65 }
     - { kind: integration, state: satisfied, cmd: "bash .claude/skills/harness/bin/check-state.sh", named_tests: 1 }
-    - { kind: integration, state: satisfied, cmd: "bash .claude/skills/harness/bin/run-unit-tests.sh", named_tests: 1064 }
+    - { kind: integration, state: satisfied, cmd: "bash .claude/skills/harness/bin/run-unit-tests.py", named_tests: 1064 }
   coverage_gaps:
     - "case_inv6_producer_is_documented binds to string-presence anywhere in SKILL.md, not to the step-6 instruction specifically (Q-B, demonstrated with a real adversarial mutant)"
     - "rejected_runs_item_code_grade_other_value and rejected_runs_item_code_grade_case_variant are vacuous re: the code_grade enum specifically — pass under both a widened and a removed enum because an incidental agent-missing confound in the fixture keeps problems != [] true regardless (Q-D)"

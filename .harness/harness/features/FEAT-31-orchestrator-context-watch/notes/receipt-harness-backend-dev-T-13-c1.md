@@ -16,7 +16,7 @@ ever — confirmed by inspection: the only filesystem writes anywhere in the fil
 `(747992, 747992, 1)` and that neither triple contains `1494870`.
 
 Registered nowhere (`UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS`, `test_kinds` all untouched) and named
-so it can never match `run-unit-tests.sh`'s `test-*.py` drift-detector glob (D-17).
+so it can never match `run-unit-tests.py`'s `test-*.py` drift-detector glob (D-17).
 
 ## TDD
 
@@ -91,7 +91,7 @@ $ ls .claude/skills/harness/bin/test-verify-context-watch-live.py 2>/dev/null; t
 `ls` reported nothing (file does not exist), its own exit `1`. Exit status of the `test`: `0`
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Full output captured and grepped for `MISCONFIGURED`: zero matches. Tail of output:
 ```
@@ -178,25 +178,25 @@ this task specifically.
   it) and is not vacuous; also confirmed the alternation itself works on this box rather than
   assuming it.
 - **Line 7's** `ls`/`test` half can only fail if I mis-name the file — it is a naming guard, cheap
-  and real. Its `run-unit-tests.sh --kind unit` half is a shared-suite check: it is capable of
+  and real. Its `run-unit-tests.py --kind unit` half is a shared-suite check: it is capable of
   reporting `MISCONFIGURED` for an unrelated reason (see Hazard note below), which would not be my
   defect, and I did not observe that condition on this run.
 
 ## Hazard: T-17's concurrent `test-context-watch-hook.py`
 
 Per the dispatch, T-17 (the operator's, concurrent) may register a new
-`test-context-watch-hook.py` in the same `bin/` dir mid-run. My `run-unit-tests.sh --kind unit`
+`test-context-watch-hook.py` in the same `bin/` dir mid-run. My `run-unit-tests.py --kind unit`
 run above (39/39 + 55/55 checks, zero `MISCONFIGURED`) reflects the tree's state at the time I ran
 it; I did not see that file present. If a later run surfaces `MISCONFIGURED` naming
 `test-context-watch-hook.py`, that is T-17's create-then-register window, not a defect in this
-task's deliverable — and I did not edit `run-unit-tests.sh` to guard against it, per the
+task's deliverable — and I did not edit `run-unit-tests.py` to guard against it, per the
 boundary.
 
 ## Boundaries respected
 
 - Only `.claude/skills/harness/bin/verify-context-watch-live.py` was created. `git status
   --porcelain` shows it as the only new file attributable to me; all other dirty/untracked paths
-  (`context-watch.py`, `run-unit-tests.sh`, `test-context-watch.py`, `harness.json`, `STATE.md`,
+  (`context-watch.py`, `run-unit-tests.py`, `test-context-watch.py`, `harness.json`, `STATE.md`,
   `plan.yaml`, other agents' receipts, `test-context-watch-cli.py`) are untouched by me — confirmed
   by `git status --porcelain` before writing this receipt.
 - Python 3 standard library only (`argparse`, `json`, `os`, `re`, `shutil`, `subprocess`, `sys`,
@@ -204,7 +204,7 @@ boundary.
 - No import of `context-watch.py` anywhere (confirmed by the same `ast` walk — zero `Import`/
   `ImportFrom` nodes name it).
 - Not registered in `UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS`, or any `test_kinds` entry (I made no
-  edit to `run-unit-tests.sh` or `harness.json` at all).
+  edit to `run-unit-tests.py` or `harness.json` at all).
 - Did not touch `STATE.md`.
 - Did not commit; tree left dirty for the operator, as instructed.
 

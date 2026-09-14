@@ -11,14 +11,14 @@ unresolvable from where it stood — it holds no Bash. I do, so I took the measu
 
 In the working tree (held dirt present):
 
-    run-unit-tests.sh --kind unit          -> exit 0
-    run-unit-tests.sh --kind integration   -> exit 1, one script red: test-gen-decisions-index.py
+    run-unit-tests.py --kind unit          -> exit 0
+    run-unit-tests.py --kind integration   -> exit 1, one script red: test-gen-decisions-index.py
                                               (test-factory-integration.py PASS)
 
 In a clean throwaway worktree checked out at the graded commit `8d7b273`, with no working-tree
 drift present at all:
 
-    run-unit-tests.sh --kind integration   -> exit 0, all 12 scripts PASS,
+    run-unit-tests.py --kind integration   -> exit 0, all 12 scripts PASS,
                                               including test-gen-decisions-index.py
 
 So the red is **entirely** the uncommitted working-tree edit to `.harness/harness/docs/DECISIONS.md`

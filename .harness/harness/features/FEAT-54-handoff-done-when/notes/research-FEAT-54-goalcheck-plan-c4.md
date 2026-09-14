@@ -53,7 +53,7 @@ build's non-baselined notes; the 141-path baseline is untouched (T-05 `status: d
 re-run today: `ok 141`, every path on disk, none carrying the section). 60-line cap: kept by T-04
 and T-07 verbatim. Per-section caps: T-03(h)/T-06(h)/SC-14 unchanged, word for word. Token/latency
 saving: claimed nowhere. Permanent release gate: `--kind all` cannot reach `tests/manual/`
-(`run-unit-tests.sh:25-27`), asserted by T-12(c). **Re-admissions: 0.**
+(`run-unit-tests.py:25-27`), asserted by T-12(c). **Re-admissions: 0.**
 
 ## 3. Preservation
 
@@ -79,7 +79,7 @@ saving: claimed nowhere. Permanent release gate: `--kind all` cannot reach `test
   `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS`", now "under `tests/manual/`, covered by neither runner
   glob, proved by running the real runner with `--kind all` over a fixture tree." Same claim,
   and now gradable: the old mechanism named machinery that does not exist at HEAD
-  (`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`/`KIND-DRIFT`: 0 occurrences in `run-unit-tests.sh`, which
+  (`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`/`KIND-DRIFT`: 0 occurrences in `run-unit-tests.py`, which
   selects by glob at `:25-27` and reads no test kinds). The amendment strengthens the evidence
   without widening the claim.
 
@@ -100,9 +100,9 @@ and `tests/manual/test-oops.py` all come back **FORBIDDEN**, so the harness disc
 | `tests/integration/test-check-state.py` (T-06 `files`, T-07 verify) | allowed | "Extend" · EXISTS ✔ | `HANDOFF_GOOD` fixture `:2089`, shape/cap cases `:2138,:2153` ✔ |
 | `.claude/skills/harness/bin/check-state.sh` (T-07 `files`, SC-04/07/08) | allowed | "extend the INV-17 pass" · EXISTS ✔ | `HANDOFF_HEADINGS` at `:1059` and read exactly twice, `:1199` (`miss`) and `:1219` (empty-body loop) ✔ — all three anchors exact, no fourth reader; SC-08's two exempt sites ✔ ("Measured at cf51dce" `:1185` + "All 74 carry the four headings…" `:1188`; "…nothing under any of them passed" `:1203`) |
 | `.harness/harness.json` (T-05, T-09 `files`) | allowed | T-05 "Add two keys" · EXISTS, and **T-05 already landed** (`status: done`) — both keys present, verify re-runs green | `_panel_era_start_note` register key ✔; 8 kinds, all with `exclude` ✔; `handoff_comprehension` absent ✔ (T-09 adds it); `eval`/`ui`/`component`/`typecheck` `cmd: null` ✔ (BRIEF `## Verification gaps` true) |
-| `tests/manual/probe-handoff-comprehension.py` (T-09 `files`/verify, SC-09, D-04) | **allowed** — `probe-*` is forbidden only under `bin/`; the `tests/` sweep matches `test-*.py`/`test_*.py`/`*_test.py` only (`suite_layout.py:20-28`) | "Create" · ABSENT ✔ | `tests/manual/probe-omp-session-accessor.py` exemplar EXISTS ✔ with `runner_note` ✔ and the credentials/never-in-CI docstring ✔ (but see F-02); `test-suite-layout.py:105` forbids an ACTIVE kind detecting `tests/manual` ✔; `code_grade.py:458-472` `_is_test_path` counts `locally_run` at bar 3 (`:488`) ✔; `run-unit-tests.sh --check-layout` EXISTS ✔ and exits 0 at HEAD, 2 on a planted bin test (layout suite case "planted") ✔ |
+| `tests/manual/probe-handoff-comprehension.py` (T-09 `files`/verify, SC-09, D-04) | **allowed** — `probe-*` is forbidden only under `bin/`; the `tests/` sweep matches `test-*.py`/`test_*.py`/`*_test.py` only (`suite_layout.py:20-28`) | "Create" · ABSENT ✔ | `tests/manual/probe-omp-session-accessor.py` exemplar EXISTS ✔ with `runner_note` ✔ and the credentials/never-in-CI docstring ✔ (but see F-02); `test-suite-layout.py:105` forbids an ACTIVE kind detecting `tests/manual` ✔; `code_grade.py:458-472` `_is_test_path` counts `locally_run` at bar 3 (`:488`) ✔; `run-unit-tests.py --check-layout` EXISTS ✔ and exits 0 at HEAD, 2 on a planted bin test (layout suite case "planted") ✔ |
 | `tests/integration/test-run-unit-tests-kinds.py` (T-12 `files`/verify) | allowed | "Create … a NEW file" · ABSENT ✔ | — |
-| `tests/integration/test-run-unit-tests-layout.py` (T-12 verify + style model) | allowed | read-only, "do NOT modify" · EXISTS ✔ | `^PASS planted` emitted: **corroborated, 1 line** on a live run; `tree()` at `:15-23` builds `.harness/team-config.yaml` + copies `run-unit-tests.sh`, `harness_boundary.py`, `suite_layout.py`, `run_pool.py` + one test per kind — exactly as T-12(c) describes ✔; all four copied files EXIST ✔ |
+| `tests/integration/test-run-unit-tests-layout.py` (T-12 verify + style model) | allowed | read-only, "do NOT modify" · EXISTS ✔ | `^PASS planted` emitted: **corroborated, 1 line** on a live run; `tree()` at `:15-23` builds `.harness/team-config.yaml` + copies `run-unit-tests.py`, `harness_boundary.py`, `suite_layout.py`, `run_pool.py` + one test per kind — exactly as T-12(c) describes ✔; all four copied files EXIST ✔ |
 | `.claude/skills/harness/templates/HANDOFF.md` (T-08 `files`/verify, refusal messages) | allowed | "add a fifth section" · EXISTS ✔ | header comment "Four sections, all required, ~60 lines total" `:4` ✔ (so T-08's `! grep -i 'four sections'` conjunct is RED today) |
 | `.claude/skills/harness/SKILL.md` (T-08 `files`/verify) | allowed | "Rewrite it" · EXISTS ✔ | seam paragraph "Four sections, ~60 lines, shape-gated at write" `:311` ✔ verbatim |
 | `.harness/harness/docs/DECISIONS.md` (T-10 `files`/verify) | allowed | "Amend DEC-159 in place" · EXISTS ✔ | "**The handoff: working memory, not summary.**" `:3698` ✔; grilling artifact `.harness/notes/grilling-handoff-done-when-2026-09-02.md` EXISTS ✔; next free id — see F-04 |
@@ -110,7 +110,7 @@ and `tests/manual/test-oops.py` all come back **FORBIDDEN**, so the harness disc
 | `.harness/harness/features/FEAT-54-.../notes/` + `notes/handoff-plan.md` (T-11 `files`/verify) | allowed | "append a section" · both EXIST ✔ | baseline read with `.get(...,[])` ✔; note is NOT in the 141 ✔ |
 | `notes/review-<reviewer>-*.md` (SC-04) | n/a | reviewer-authored at review · template path ✔ | pm/reviewer per-feature `notes/` convention ✔ |
 | `.claude/skills/harness/templates/harness.json` (D-06, T-01) | allowed | read-only · EXISTS ✔ | `integration.detect` equals the repo value byte-for-byte ✔ |
-| `tests/unit/test-*.py`, `tests/integration/test-*.py` (SC-09, D-04, D-06) | allowed | globs · both directories populated ✔ | `run-unit-tests.sh:25-27` selects exactly these two ✔ |
+| `tests/unit/test-*.py`, `tests/integration/test-*.py` (SC-09, D-04, D-06) | allowed | globs · both directories populated ✔ | `run-unit-tests.py:25-27` selects exactly these two ✔ |
 | `.harness/harness/features/*/notes/handoff-*.md` (REQ-07, SC-11) | n/a | corpus glob | 141 matches at the base and **0** carrying `## Done when` — re-derived today ✔ |
 | `bin/test-check-{domain,state}.py`, `bin/test-handoff-done-when.py`, `bin/probe-handoff-comprehension.py` | FORBIDDEN | — | appear ONLY at `plan.yaml:139,142,148,160` (`lanes:`), the known unwritable defect — excluded by dispatch, not re-raised |
 

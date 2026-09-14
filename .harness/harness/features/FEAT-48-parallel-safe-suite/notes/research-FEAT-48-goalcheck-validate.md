@@ -13,13 +13,13 @@ executing the criterion's own declared method in this worktree today; file conte
 |SC-01|**met**|automated (integration)|`python3 bin/test-check-domain.py` → exit 0; `md5sum`+`stat -f %m` on `bin/feature_schema.py` identical before/after (`7df7ef56…`, mtime `1788333510`); the three schema cases print `ok`, including *a CRASHING schema module DENIES the write* which still asserts `returncode==2` and `"CRASHED" in r.stderr` (`git show 8e7f56dc:.claude/skills/harness/bin/test-check-domain.py:1491-1498`)|
 |SC-02|**met**|inspection|`git show 8e7f56dc:…/notes/measurements-parallel-suite.md` — `control method: isolated bin copy`, `control broken reads 4968`, `post-fix broken reads 0`. Control is capable of the hazard: `git show ea6f51f:…/test-check-domain.py:1482` is `open(fs,"w")` on the live module. Neither FAILS IF clause fires|
 |SC-03|**unmet**|automated (unit)|`git show 8e7f56dc:…/test-suite-independence.py` holds **no assertions at all** — no injection-idiom case, no mutant-beside-original, no PID-named variant, no clean control, no live-tree case asserting `discovered>=50` or an inline-recomputed root, no root-refusal case; `tempfile` is imported at `:9` and never used. See below|
-|SC-04|**met**|automated (unit)|`run-unit-tests.sh --kind unit` → exit 0, emits `PASS test-suite-independence.py`; the block above it prints `root <worktree>`, `discovered 63`, `ok …`|
+|SC-04|**met**|automated (unit)|`run-unit-tests.py --kind unit` → exit 0, emits `PASS test-suite-independence.py`; the block above it prints `root <worktree>`, `discovered 63`, `ok …`|
 |SC-05|**met**|inspection|measurements note `## Ten consecutive runs`: ten `run <i> exit 0 <wall>s` lines (46.84–53.16s), plus a non-empty `tree condition:` line. Corroborated, not substituted: my own `--kind all` today exited 0 with no `FAIL` and no `MUTATED`|
 |SC-06|**met**|inspection|note records `pool: 8 workers, 63 files, 48.13s wall`. **Re-taken by me:** `pool: 8 workers, 63 files, 44.02s wall`, exit 0. 44.02s ≤ 120s; both worker count and wall time are printed|
 |SC-07|**met**|automated (integration)|`--check-kinds` → exit 0, agreement line, no `-----` block, no file verdict; `--kind bogus` → exit 2 with the legal-kinds message; `--kind unit` 33 blocks/33 files, `--kind integration` 30 blocks/30 files, exit 0. Failing-file→1 established by composition (see caveats)|
 |SC-08|**met**|automated (integration)|`bin/test-run-pool.py` → 11/11 `ok`, incl. *completion order is not input order*: `p_order != s_order and set(p_order)==set(s_order)`, where `s_order` is the `--workers 1` run and therefore the input order (`as_completed` over one worker yields submission order). All three clauses ride that one check|
 |SC-09|**met**|inspection|`git show 8e7f56dc:.harness/harness/docs/DECISIONS.md:6563-6614` = DEC-211, **573 words**, stating private-copy isolation, the derived-scope invariant, the runtime snapshot with its watched-set reason, the literal worker rule `min(8, max(2, os.cpu_count() or 2))`, and change-based selection **REJECTED** with three reasons (coverage becomes a function of the diff; the floor is one file most diffs reach; bash→test forks are not statically knowable). `gen-decisions-index.py --stdout \| diff -` → identical, re-run by me|
-|SC-10|**met**|automated (integration)|`test-run-pool.py` asserts clean/direct/**subprocess**/creation in one conjunction plus `MUTATED keep.txt`, `MUTATED .mutant-x.sh` (paths relative to DIR) and empty+missing DIR → exit 2; all `ok`. `__pycache__` non-report **re-derived by me** in a tempdir: a rewritten *and* a newly created `.pyc` under the watched dir land on disk while the pool exits 0 with no `MUTATED` line. Invocation line is exactly `exec python3 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"` (`run-unit-tests.sh:151`)|
+|SC-10|**met**|automated (integration)|`test-run-pool.py` asserts clean/direct/**subprocess**/creation in one conjunction plus `MUTATED keep.txt`, `MUTATED .mutant-x.sh` (paths relative to DIR) and empty+missing DIR → exit 2; all `ok`. `__pycache__` non-report **re-derived by me** in a tempdir: a rewritten *and* a newly created `.pyc` under the watched dir land on disk while the pool exits 0 with no `MUTATED` line. Invocation line is exactly `exec python3 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"` (`run-unit-tests.py:151`)|
 
 ## SC-03 — why unmet, and the lane
 
@@ -47,10 +47,10 @@ DEC-174 makes that file `main-session-direct`, so the fix is a main-session step
 
 ## Caveats on met grades — advisory, not gating
 
-- **SC-07's failing-file clause is composed, not gated.** No test drives `run-unit-tests.sh`
+- **SC-07's failing-file clause is composed, not gated.** No test drives `run-unit-tests.py`
   end-to-end with a deliberately failing file, and `test-run-unit-tests-kinds.py` is unchanged and
   covers only `--check-kinds`/unknown-kind. I proved the missing link myself:
-  `HARNESS_TEST_WORKERS=0 run-unit-tests.sh --kind unit` → exit 2, i.e. the `exec`ed pool's status
+  `HARNESS_TEST_WORKERS=0 run-unit-tests.py --kind unit` → exit 2, i.e. the `exec`ed pool's status
   is the runner's, and `test-run-pool.py` asserts rc 1 for a failing file.
 - **Six file-shaped verdict lines are duplicated** (`test-expertise-merge`, `test-feature-worktree`,
   `test-observations-merge`, `test-panel-findings`, `test-plan-merge`, `test-quarantine` each print

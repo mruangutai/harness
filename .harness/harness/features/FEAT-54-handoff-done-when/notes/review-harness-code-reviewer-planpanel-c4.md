@@ -27,8 +27,8 @@ Recommend PASS with one med finding to carry forward as an implementer warning, 
 | Mechanism | Cited at | Exists? |
 |---|---|---|
 | `suite_layout.violations` | `suite_layout.py:6-34` | Yes, read in full |
-| `run-unit-tests.sh --check-layout` | — | Yes (`:18-19,32-38`) |
-| two suite globs | `run-unit-tests.sh:25-27` | Yes, exact — the `case "$KIND" in` unit/integration/all branches |
+| `run-unit-tests.py --check-layout` | — | Yes (`:18-19,32-38`) |
+| two suite globs | `run-unit-tests.py:25-27` | Yes, exact — the `case "$KIND" in` unit/integration/all branches |
 | `test-suite-layout.py:101-102` / `:105` | — | Yes, exact — `:101-102` loop pins BOTH unit and integration `detect` byte-for-byte to `templates/harness.json`; `:105` forbids an active kind's `detect` naming `tests/manual` |
 | `code_grade.py:458-472` / `:488` | `_is_test_path`, bar-3 claim | Yes, exact — file is `code_grade.py` (underscore), not `code-grade.py` (hyphen, a separate CLI file) — dispatch's spelling is correct, worth noting the two coexist |
 | `check-state.sh:1059/:1199/:1219` | `HANDOFF_HEADINGS` | Yes, exact, exactly two readers confirmed |
@@ -53,14 +53,14 @@ pattern (confirmed above) and its three cases are reachable and discriminating a
 |---|---|---|
 | D-04: registration grades the probe at bar 3 via `_is_test_path` | TRUE | `code_grade.py:458-472,488` |
 | D-04: must be `locally_run`, never `active`, because `:105` forbids an active kind detecting `tests/manual` | TRUE | `test-suite-layout.py:105` exact |
-| D-06: placement under `tests/unit` is the whole registration | TRUE | `run-unit-tests.sh:25` glob |
+| D-06: placement under `tests/unit` is the whole registration | TRUE | `run-unit-tests.py:25` glob |
 | D-06: `integration.detect` is the single glob `tests/integration/**`, no per-file list | TRUE | `.harness/harness.json:285` |
 | D-06: `test-suite-layout.py:101-102` pins that value byte-for-byte to `templates/harness.json` | TRUE | exact, loop covers both `unit` and `integration` |
 
 SC-09's two acceptance clauses (rerunnable on demand; absent from normal suites) survive unchanged
 in substance and are now gradable — confirmed independently by reading D-04/T-09/T-12 together: the
 old mechanism (`UNIT_SCRIPTS`/`KIND-DRIFT`) is provably absent (0 occurrences, corroborated by my own
-read of `run-unit-tests.sh` in full — it globs and reads no test kinds at all), and the new mechanism
+read of `run-unit-tests.py` in full — it globs and reads no test kinds at all), and the new mechanism
 (`test_kinds.handoff_comprehension` + `--kind all` over a fixture) is real, present, and exercised by
 T-12's own new test.
 

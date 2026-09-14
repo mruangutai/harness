@@ -21,7 +21,7 @@
 | kind | cmd | rc | ^FAIL count | result |
 |---|---|---|---|---|
 | unit (task verify, part 1) | `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-workspace.py` | **0** | **0** | satisfied — `38/38 checks passed.` |
-| unit (task verify, part 2 / standing kind cmd) | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | **0** | satisfied — 31/31 unit files PASS, including `test-factory-workspace.py` (exit 0, 38/38) inline in the run |
+| unit (task verify, part 2 / standing kind cmd) | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** | satisfied — 31/31 unit files PASS, including `test-factory-workspace.py` (exit 0, 38/38) inline in the run |
 
 Both commands captured to files and their exit status read from `$?` into a variable, not inferred from tail output. `grep -c '^FAIL '` run independently over each full log; zero both times.
 
@@ -49,7 +49,7 @@ Real-behaviour vs. seam, by name:
 | SC-02 | satisfied | "BUG-240 ignored-only dirt: not refused" (real git) |
 | SC-03 | satisfied | "BUG-240 self checkout: refused when clean, naming the self-checkout condition" (Recorder + stubbed `_control_plane_root`) |
 | SC-04 | satisfied | "BUG-240 existing checkout: refresh order is fetch, checkout default, reset --hard" (Recorder, (B)-block) for the refresh-order half; pre-existing case (A) ("missing checkout: first call is clone") for the clone-still-works half |
-| SC-05 | satisfied | `run-unit-tests.sh --kind unit` exit 0, captured above |
+| SC-05 | satisfied | `run-unit-tests.py --kind unit` exit 0, captured above |
 
 SC-06 is `verify: inspection` — that is the code reviewer's determination, not asserted here.
 

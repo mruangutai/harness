@@ -2,7 +2,7 @@
 
 **Measured at `fd8728c`, which is HEAD.** The dispatch's pin `91884f9` is its parent;
 `git diff --name-status 91884f9 fd8728c` = `feature.json` alone, no source. Every source verdict
-below therefore holds at both. Suite at HEAD: `run-unit-tests.sh --kind all` rc=0, **0 FAIL**,
+below therefore holds at both. Suite at HEAD: `run-unit-tests.py --kind all` rc=0, **0 FAIL**,
 1582 ok/PASS. `check-state.sh` rc=1, 4 VIOLATION lines, **0 naming FEAT-24** (the four are the
 paused FEAT-25/26/27 dirs).
 
@@ -269,7 +269,7 @@ never that it is *true*.
 
 **SC-13 — clause 1 met, clause 2 not_met. Reported separately, never averaged.**
 - **Clause 1 (met):** registered script count = **28** at HEAD — `UNIT_SCRIPTS` 16 +
-  `INTEGRATION_SCRIPTS` 12, `run-unit-tests.sh:17-18`, my own count, matching the panel's 28/28
+  `INTEGRATION_SCRIPTS` 12, `run-unit-tests.py:17-18`, my own count, matching the panel's 28/28
   before. No test file removed. **The instrument's blindness, confirmed:** this very diff deleted two
   named cases (`every_repo_declares_its_own_board`, `kaya_ai_is_paired_with_board_2`,
   `test-no-distribution.py:293-298`) and the count stayed 28, because counting FILES cannot see a

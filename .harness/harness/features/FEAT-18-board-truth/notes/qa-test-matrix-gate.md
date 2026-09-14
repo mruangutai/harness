@@ -32,8 +32,8 @@ This matches what actually shipped — no Phase-1/Phase-2 delta to report.
 
 | kind | state | cmd | result |
 |---|---|---|---|
-| unit | satisfied | `run-unit-tests.sh --kind unit` | exit 0, all scripts PASS including `test-gh-board.py` (17 cases), `test-branch-create-gate.py` (8/8), `test-check-plan-routes.py` (case_25a–e) |
-| integration | satisfied | `run-unit-tests.sh --kind integration` | exit 0, all scripts PASS including `test-gh-sync.py`, `test-check-state.py`, `test-check-plan-routes.py` (drift detector clean, both `test-gh-sync.py` and `test-check-plan-routes.py` present in `INTEGRATION_SCRIPTS`, not moved between arrays) |
+| unit | satisfied | `run-unit-tests.py --kind unit` | exit 0, all scripts PASS including `test-gh-board.py` (17 cases), `test-branch-create-gate.py` (8/8), `test-check-plan-routes.py` (case_25a–e) |
+| integration | satisfied | `run-unit-tests.py --kind integration` | exit 0, all scripts PASS including `test-gh-sync.py`, `test-check-state.py`, `test-check-plan-routes.py` (drift detector clean, both `test-gh-sync.py` and `test-check-plan-routes.py` present in `INTEGRATION_SCRIPTS`, not moved between arrays) |
 | functional | not applicable (case a — matrix does not require it) | `cmd: null`, `status: excluded` (DEC-187) | soft skip, signed |
 | component | not applicable (case b — no `change_type` in this diff requires it) | `cmd: null`, `unresolved` | soft skip |
 | ui | not applicable (case b) | `cmd: null`, `unresolved` | soft skip |
@@ -51,7 +51,7 @@ excluded under a signed decision (DEC-187). `component`, `ui`, `eval`, `typechec
 
 - T-01: `python3 test-check-plan-routes.py && python3 check-plan-routes.py` → all cases PASS,
   live-corpus scan exits 0, `0 violation(s)`.
-- T-02: `python3 test-gh-board.py && run-unit-tests.sh --kind unit` → both exit 0 (T-02's files are
+- T-02: `python3 test-gh-board.py && run-unit-tests.py --kind unit` → both exit 0 (T-02's files are
   a DEC-174 leave-list item — I ran the standing task verify, wrote and edited nothing there).
 - T-03: `python3 test-gh-sync.py` → PASS, part of the integration run above.
 - T-04: `python3 test-check-state.py` → PASS, part of the integration run above (T-04 is also

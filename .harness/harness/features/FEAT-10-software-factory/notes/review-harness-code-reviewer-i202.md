@@ -12,17 +12,17 @@ executed.** Severity high. One additional non-blocking finding (med) on Expertis
 ## 1. Gate-invocation sweep — CLEAN
 
 - `git grep -n 'check-docs' 835b297 -- .github/` → **zero hits.** `.github/workflows/tests.yml`
-  calls only `run-unit-tests.sh --kind integration`; its two comment mentions of a checker
+  calls only `run-unit-tests.py --kind integration`; its two comment mentions of a checker
   (lines 4, 69) name `check-state.sh`, not `check-docs.sh` — verified directly, correcting an
   earlier misreading on my part.
-- `run-unit-tests.sh` and `deploy.sh` at the SHA — no `check-docs` reference.
+- `run-unit-tests.py` and `deploy.sh` at the SHA — no `check-docs` reference.
 - Whole-tree `git grep -n 'check-docs' 835b297`, triaged: every hit is inside a strike record
   (`DECISIONS.md`, `DECISIONS-INDEX.md`), an Expertise file (§2 below), or `.harness/features/**`
   historical artifacts. None is a live invocation.
 - Ran `bash .claude/skills/harness/bin/check-state.sh` and `bash
-  .claude/skills/harness/bin/run-unit-tests.sh` in a detached worktree pinned at `835b297`:
+  .claude/skills/harness/bin/run-unit-tests.py` in a detached worktree pinned at `835b297`:
   `check-state.sh` exits 0, zero `INV-10` mentions, only informational notes belonging to unrelated
-  in-flight features (FEAT-11/12, out of scope). `run-unit-tests.sh` — every test file `PASS`,
+  in-flight features (FEAT-11/12, out of scope). `run-unit-tests.py` — every test file `PASS`,
   97/97 on the integration-suite tail, no `test-check-docs.py` remnant.
 - `python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff -
   docs/harness/DECISIONS-INDEX.md` → zero diff.

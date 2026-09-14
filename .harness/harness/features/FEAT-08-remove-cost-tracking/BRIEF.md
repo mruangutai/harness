@@ -79,7 +79,7 @@ else answers it either.
   18 files at `ae2443d`, so this is not an already-empty absence-grep.
   verify: automated        evidence: command
 - SC-02: `.claude/skills/harness/bin/cost-report.py` and `.claude/skills/harness/bin/test-cost-report.py`
-  do not exist, and `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 — which also proves its
+  do not exist, and `.claude/skills/harness/bin/run-unit-tests.py` exits 0 — which also proves its
   drift detector (`:9-24`, exits 2 on an unlisted `test-*.py`) is satisfied rather than merely
   bypassed.
   verify: automated        evidence: unit
@@ -136,7 +136,7 @@ else answers it either.
   verify: inspection
 - SC-10: `.claude/skills/harness/bin/check-docs.sh` exits 0.
   verify: automated        evidence: command
-- SC-11: `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 with every listed script passing —
+- SC-11: `.claude/skills/harness/bin/run-unit-tests.py` exits 0 with every listed script passing —
   run as a whole, not per-task. FEAT-07 reddened its build on a cap enforced by a unit test that no
   task's `verify:` invoked; every task here that touches `bin/`, either `harness.json`, either
   template, or `DECISIONS-INDEX.md` carries this clause in its own `verify:`.
@@ -172,7 +172,7 @@ else answers it either.
 ## Verification gaps — stated where the signature is taken (DEC-163)
 
 Read from `test_kinds` in `.harness/harness.json` at `ae2443d`. **Exactly one kind has a runner:**
-`unit` → `run-unit-tests.sh`, detecting `.claude/skills/harness/bin/test-*.py` among others. Every
+`unit` → `run-unit-tests.py`, detecting `.claude/skills/harness/bin/test-*.py` among others. Every
 other kind — `functional`, `integration`, `component`, `ui`, `eval`, `typecheck` — has `cmd: null` and
 resolves to a soft skip.
 

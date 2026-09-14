@@ -17,13 +17,13 @@ single-assertion contract. No other file touched.
 
 ## Verify
 
-Invocation 1: `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`
+Invocation 1: `.claude/skills/harness/bin/run-unit-tests.py --kind integration`
 Observed exit code: **0**
 `test-harness-yaml.py` ran within this suite (it is registered in `INTEGRATION_SCRIPTS`); its
 `test_exactly_one_guarded_import_in_the_tree` line reported `ok` and the file reported
 `PASS test-harness-yaml.py`.
 
-Invocation 2: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+Invocation 2: `.claude/skills/harness/bin/run-unit-tests.py --kind unit`
 Observed exit code: **0**
 
 ## Confirmations
@@ -33,7 +33,7 @@ Observed exit code: **0**
 - Assertion 1 remains exact-set equality (`==`), preserving D-12's original teeth at its correct
   (yaml-scoped) boundary.
 - `feature_schema.py`, `validate-feature-json.py`, `feature-schema.json`,
-  `test-validate-feature-json.py`, `run-unit-tests.sh`, `harness_yaml.py`, `check-domain.py`,
+  `test-validate-feature-json.py`, `run-unit-tests.py`, `harness_yaml.py`, `check-domain.py`,
   `check-state.sh`, `bash-write-guard.py`, `validate-digest.py` were not opened for editing.
 - No commit made (orchestrator holds the pen per DEC-153).
 

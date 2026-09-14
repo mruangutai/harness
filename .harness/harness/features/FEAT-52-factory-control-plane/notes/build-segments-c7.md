@@ -86,7 +86,7 @@ python3 -c "import yaml;d=yaml.safe_load(open('.harness/harness/features/FEAT-52
 1. **T-02's checker must stay RED until T-12.** Its own verify runs only the test file, deliberately —
    a verify asserting a by-construction red is unsatisfiable the moment the anchoring lands.
 2. **Registration is asymmetric.** `test-check-instruction-paths.py` and `test-anchor-directions.py`
-   go in `UNIT_SCRIPTS` in `run-unit-tests.sh` and **nowhere else**; adding either to
+   go in `UNIT_SCRIPTS` in `run-unit-tests.py` and **nowhere else**; adding either to
    `harness.json`'s `test_kinds.integration.detect` trips the KIND-DRIFT cross-check. The three
    already-registered test files get no new registration at all.
 3. **Never hand-edit `.claude/agents/*.md`** — generated output; `sync-agent-adapters.py --check` in

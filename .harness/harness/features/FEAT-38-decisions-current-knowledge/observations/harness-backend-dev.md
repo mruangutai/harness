@@ -22,7 +22,7 @@
   worktree session, verify with `bash`/`git status` in the SAME worktree before trusting the
   tool's own "success" report — do not assume `edit`/`write` and `bash` share a filesystem view.
 - 2026-08-29: T-24 atomic deletion of check-decision-claims.py/test-check-decision-claims.py plus
-  the single INTEGRATION_SCRIPTS array-entry removal in run-unit-tests.sh landed clean in one step;
+  the single INTEGRATION_SCRIPTS array-entry removal in run-unit-tests.py landed clean in one step;
   verify block exited 0 first try. Noticed `git status --porcelain` also showed an unrelated
   concurrent `M` on plan.yaml (T-27's DECISIONS.md task flipped to done) and an untracked
   `.harness/logs/2026-08-29.md` from shared worktree/tooling activity — neither touched by me,

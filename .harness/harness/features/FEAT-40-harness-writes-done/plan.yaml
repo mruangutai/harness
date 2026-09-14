@@ -335,7 +335,7 @@ tasks:
       - .claude/skills/harness/bin/post-merge-sweep.py
       - .claude/skills/harness/bin/test-post-merge-sweep.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-post-merge-sweep.py'
@@ -652,7 +652,7 @@ tasks:
       - .claude/skills/harness/bin/test-validate-feature-json.py
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-validate-feature-json.py'
@@ -753,7 +753,7 @@ tasks:
       - .claude/skills/harness/bin/test-gh-sync.py
       - .claude/skills/harness/templates/plan.yaml
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       test -z "$(grep -rl 'Closes #' .claude/skills/harness/bin/ .claude/skills/harness/templates/)"
@@ -794,11 +794,11 @@ tasks:
     files:
       - .claude/skills/harness/bin/gh-close-gate.py
       - .claude/skills/harness/bin/test-gh-close-gate.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/settings.json
       - .harness/harness.json
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-close-gate.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-run-unit-tests-kinds.py'
@@ -880,8 +880,8 @@ tasks:
       All of these must be shown failing against a tree without the script.
 
       REGISTER THE TEST in two places or the suite refuses to run: add "test-gh-close-gate.py" to
-      INTEGRATION_SCRIPTS in .claude/skills/harness/bin/run-unit-tests.sh, and add the same path to
-      the integration kind's detect glob list in .harness/harness.json. run-unit-tests.sh's drift
+      INTEGRATION_SCRIPTS in .claude/skills/harness/bin/run-unit-tests.py, and add the same path to
+      the integration kind's detect glob list in .harness/harness.json. run-unit-tests.py's drift
       detector exits 2 on an unregistered test-*.py, and its kind cross-check compares the two
       lists.
 
@@ -897,7 +897,7 @@ tasks:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
       grep -q "INV-31" .claude/skills/harness/bin/check-state.sh
@@ -1178,7 +1178,7 @@ tasks:
 
       RUN IT:
         1. Confirm the suite is green:
-           .agents/skills/harness/bin/run-unit-tests.sh --kind all
+           .agents/skills/harness/bin/run-unit-tests.py --kind all
            It must exit 0 with no FAIL line, and test-gh-sync.py, test-check-state.py and
            test-post-merge-sweep.py must each report PASS. One trap, measured 2026-08-25: if
            test-validate-digest.py fails saying "returned with children in flight", that is stale
@@ -1216,7 +1216,7 @@ tasks:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
     verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      out=$(.agents/skills/harness/bin/run-unit-tests.py --kind all 2>&1); rc=$?
       test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       ! grep -qi 'close.task' .claude/skills/harness/bin/gh-sync.py

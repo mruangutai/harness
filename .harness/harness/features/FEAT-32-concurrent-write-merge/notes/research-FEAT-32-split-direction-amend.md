@@ -56,12 +56,12 @@ HEAD (verified by diff).
 
 ## Item 3 — Q5 recorded as a stated limitation (T-10, `plan.yaml:1448-1465`)
 
-Ran `run-unit-tests.sh --kind integration` with `CLAUDE_PROJECT_DIR` at the worktree root: exit 0,
+Ran `run-unit-tests.py --kind integration` with `CLAUDE_PROJECT_DIR` at the worktree root: exit 0,
 **221** lines matching `^PASS |^FAIL |ERROR` (identical to the 62f861c baseline), **218** beginning
 `PASS `, **0** beginning `FAIL`, **3** containing `ERROR` (all inside test names). Of those, **16**
 are script-level `^PASS test-*.py` lines covering only **14** distinct scripts:
 `test-feature-worktree.py:867` and `test-expertise-merge.py:338` each print a summary line spelled
-exactly like the runner's `echo "PASS $s"` (`run-unit-tests.sh:62`). **202** lines are case-level,
+exactly like the runner's `echo "PASS $s"` (`run-unit-tests.py:62`). **202** lines are case-level,
 emitted by 3 of the 14 scripts (`test-check-plan-routes.py:82` also prints per case). So the count
 tracks three scripts' case granularity, not how many tests ran. No assertion, `verify:`, threshold
 or recorded number was changed; BRIEF.md SC-14 untouched.

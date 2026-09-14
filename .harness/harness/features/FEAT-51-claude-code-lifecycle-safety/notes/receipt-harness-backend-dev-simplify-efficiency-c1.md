@@ -6,7 +6,7 @@ did **not** copy that pattern: it imports `inflight_registry` (which drags in `h
 `tempfile`/`shutil`/`zlib`/`bz2`/`lzma`) unconditionally for every `Write`/`Edit`/`NotebookEdit`
 by a governed agent, not only when the target is actually a canonical artifact. Measured
 +16–24 ms on an already-known-heavy per-write hook. One finding, report-only (DEC-174). No
-findings in `quarantine.py` or `run-unit-tests.sh`.
+findings in `quarantine.py` or `run-unit-tests.py`.
 
 **findings_count: 1**
 
@@ -96,7 +96,7 @@ met in the shipped code.
   internally (`inflight_registry.py:274-282`) — one redundant `re.fullmatch` per matching
   invocation. A compiled-regex `fullmatch` on a short path is low-single-digit microseconds;
   this is far below "hot-path milliseconds" and not worth a finding.
-- **`run-unit-tests.sh`** (writable): the diff only appends `"test-quarantine.py"` to the
+- **`run-unit-tests.py`** (writable): the diff only appends `"test-quarantine.py"` to the
   existing `INTEGRATION_SCRIPTS` array literal — no new work added to any run, and per the
   dispatch's own framing a deliberate full-suite run at this boundary step is evidence, not
   waste. No finding.

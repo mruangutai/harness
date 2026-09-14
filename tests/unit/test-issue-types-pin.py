@@ -10,7 +10,7 @@ documentation task (T-11 writes DECISIONS.md, T-12 writes github-mirror.md) does
 assertion into that file would make T-02's gate unpassable for a reason that has nothing to do
 with T-02.
 
-run-unit-tests.sh globs tests/unit/test-*.py, so this file runs in the STANDING unit suite
+run-unit-tests.py globs tests/unit/test-*.py, so this file runs in the STANDING unit suite
 forever (D-08): T-12's own verify stops running the moment review_sha pins, but the duplicated
 row does not stop existing, and this is what keeps it honest after that.
 

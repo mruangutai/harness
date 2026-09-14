@@ -16,7 +16,7 @@ scope alive.
 | `python3 .claude/skills/harness/bin/test-factory-claim.py` | 0.09s (real) |
 | `python3 .claude/skills/harness/bin/test-factory-integration.py` | 6.54s (real) |
 | `python3 .claude/skills/harness/bin/test-layout-migration.py` | 0.51s (real) |
-| `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | 3.878s (total, `time`) |
+| `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | 3.878s (total, `time`) |
 
 test-factory-claim.py: 120/120 checks. test-factory-integration.py: 106/106 checks.
 test-layout-migration.py: through case 22, PASS.

@@ -94,7 +94,7 @@ All measured at `513c4a4` unless noted.
   `gen-decisions-index.py` and `test-gen-decisions-index.py` → `harness-backend-dev harness-dev-ops`.
   Nothing is `main-session-direct`, and `gen-decisions-index.py` is NOT in DEC-174 amendment 4's
   enforcement enumeration.
-- `test-gen-decisions-index.py` is registered in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`.
+- `test-gen-decisions-index.py` is registered in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`.
 - **Anchor rot is REAL and mechanically detectable — measured, not assumed.**
   `DECISIONS.md` carries **35** `file:line` anchors across **23** distinct files, plus 13
   backticked commands. Two stale referents found in one shell loop:

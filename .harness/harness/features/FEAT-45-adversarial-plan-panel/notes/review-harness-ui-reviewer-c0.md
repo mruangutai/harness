@@ -40,7 +40,7 @@ the operator interface here):
 Not reviewed as UI (data/bookkeeping, no design contract applies): `plan.yaml`/`BRIEF.md`/
 `STATE.md`/`feature.json` for FEAT-45 itself, all `notes/`, `receipts/`, `observations/` files,
 `panel_findings.py` (prints one id string, no formatting concerns), the `test-*.py` files
-(developer-only), `sync-agent-adapters.py`, `run-unit-tests.sh`.
+(developer-only), `sync-agent-adapters.py`, `run-unit-tests.py`.
 
 ## Findings
 

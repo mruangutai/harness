@@ -106,7 +106,7 @@ REQ-07→T-09,T-10; REQ-08→T-10,T-11,T-12,T-15,T-16,T-17; REQ-09→T-13,T-14,T
 T-09..T-17 traces ≥1 REQ. Every SC is reachable: SC-01→T-10; SC-02→T-11; SC-03→T-02+T-09;
 SC-04→T-12,T-15,T-16 (+T-05..T-08); SC-05→T-04; SC-06/07→suites; SC-08→T-09+T-14; SC-10→T-12;
 SC-11→T-11; SC-12→T-10; SC-13→T-13,T-14; SC-14→T-17. Both `automated` kinds are ACTIVE in
-`.harness/harness.json`: `unit` — `.agents/skills/harness/bin/run-unit-tests.sh --kind unit`
+`.harness/harness.json`: `unit` — `.agents/skills/harness/bin/run-unit-tests.py --kind unit`
 (`:284-289`); `integration` — the same script `--kind integration` (`:319-324`). No SC rests on a null
 kind (`component`, `ui`, `typecheck` unresolved; `functional`, `eval` excluded). *Disposition: PASS,
 with one advisory the BRIEF already discloses — SC-01, SC-02, SC-10 and SC-13's first two clauses are

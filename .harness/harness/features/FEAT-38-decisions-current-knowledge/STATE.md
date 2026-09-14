@@ -85,7 +85,7 @@ None blocking. Seven residual findings are carried to the operator as proposed b
 - **B-41** — three `### DEC-NNN addendum` sub-headings survive in `DECISIONS.md` (DEC-124, DEC-125,
   DEC-141). A sibling construct to the abolished amendment, present at the original base `7ebfc9e`
   and outside this feature's approved scope. FEAT-46's triage is the natural home.
-- **B-42** — `run-unit-tests.sh --check-kinds` asserts only one direction and would NOT have caught
+- **B-42** — `run-unit-tests.py --check-kinds` asserts only one direction and would NOT have caught
   the naive-union defect it was cited as guarding. Pre-existing; ranked first on irreversibility.
 - **B-43** — four test scripts print their own `PASS <script>` line byte-identically to the runner's
   own marker, so any log-based tally over-counts. It produced a false "61" in this run's reporting.

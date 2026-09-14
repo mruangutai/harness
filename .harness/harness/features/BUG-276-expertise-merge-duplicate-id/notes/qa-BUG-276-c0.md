@@ -44,8 +44,8 @@ T-02 exists specifically to cover this. Floor: {unit, integration}. Both require
 - T-02 verify block (verbatim): **exit 0**. Integration suite bare run: 220 PASS, 0 FAIL. All
   three named case27 markers present and PASS. Standalone CLI-drive assertion (real subprocess,
   temp tree, exit 11, `AMBIGUOUS TARGET`/`id=P-02` in combined stdout+stderr) passed.
-- `run-unit-tests.sh --kind unit`: **exit 0**, 520 PASS, 0 FAIL.
-- `run-unit-tests.sh --kind integration`: **exit 0**, 1513 PASS, 0 FAIL.
+- `run-unit-tests.py --kind unit`: **exit 0**, 520 PASS, 0 FAIL.
+- `run-unit-tests.py --kind integration`: **exit 0**, 1513 PASS, 0 FAIL.
 - No `FAIL ` lines anywhere in either standing-runner output — nothing pre-existing red, no
   regression, nothing to attribute.
 

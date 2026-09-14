@@ -38,7 +38,7 @@ The string was cross-checked against plan.yaml lines 657-662: identical.
 1. `grep -c orchestrator_context_warn_tokens .harness/harness/docs/DECISIONS.md` → **3**, exit **0**.
 2. `grep -c ... DECISIONS-INDEX.md` → **1**, exit **0**.
 3. `python3 .claude/skills/harness/bin/test-gen-decisions-index.py` → exit **0**, all cases `ok`.
-Also: `run-unit-tests.sh --check-kinds` exit **0**; `gen-decisions-index.py --stdout | diff -` clean
+Also: `run-unit-tests.py --check-kinds` exit **0**; `gen-decisions-index.py --stdout | diff -` clean
 (index is a mechanical regeneration, DEC-141's law).
 
 ## Two things the next reader needs

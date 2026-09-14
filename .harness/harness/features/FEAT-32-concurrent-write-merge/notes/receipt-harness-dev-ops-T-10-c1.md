@@ -26,7 +26,7 @@ append a duplicate."
 
 ## Files touched
 
-- `.claude/skills/harness/bin/run-unit-tests.sh:18` — appended `"test-harness-merge.py"
+- `.claude/skills/harness/bin/run-unit-tests.py:18` — appended `"test-harness-merge.py"
   "test-plan-merge.py" "test-observations-merge.py" "test-inflight-registry.py"
   "test-dispatch-guard.py"` to `INTEGRATION_SCRIPTS`. `UNIT_SCRIPTS` (:17), drift detector, and
   everything else in the file: byte-unchanged (confirmed via `git diff` — single-line diff only).

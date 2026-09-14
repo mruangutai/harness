@@ -99,7 +99,7 @@ depends on a reader not "fixing" the code to match a plausible-sounding but wron
    - `python3 test-board-station.py` → all 13 PASS, exit 0.
    - Red-first claim reproduced in isolation (not by editing the shipped file): the pre-fix logic
      path for the 4301-digit case raises `ValueError` uncaught, matching "rc6=1."
-   - `bash run-unit-tests.sh --kind unit` → exit 0. `--kind integration` → exit 0.
+   - `bash run-unit-tests.py --kind unit` → exit 0. `--kind integration` → exit 0.
    - T-02, T-03, T-05 `verify:` clauses read from `plan.yaml` via `yaml.safe_load` and executed
      **verbatim** with `bash -c <exact string>` (no manual retyping, no abbreviation) — all three
      print their GREEN sentinel and exit 0.

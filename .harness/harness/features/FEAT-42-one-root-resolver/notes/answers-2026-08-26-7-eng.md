@@ -8,7 +8,7 @@ it is the operator's; where a question needs the operator, I say so and it trave
 
 The two statements describe the SAME suite under TWO states of `.harness/.inflight-claims.json`.
 
-- **Registry empty.** `run-unit-tests.sh --kind all` at a1658c2: `SUITE_EXIT=0`, **zero** `FAIL`
+- **Registry empty.** `run-unit-tests.py --kind all` at a1658c2: `SUITE_EXIT=0`, **zero** `FAIL`
   lines, 1013 result lines, 57 script verdicts. `test-validate-digest.py` reports `PASS` at output
   line 1482. I started that run with `cat .harness/.inflight-claims.json` showing `{}`, and the run
   reached `test-validate-digest.py` before my dispatch placed any claim.

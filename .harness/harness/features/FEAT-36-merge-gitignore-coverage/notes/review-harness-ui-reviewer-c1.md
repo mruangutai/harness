@@ -14,7 +14,7 @@
 ## Files inspected at the review pin
 
 - `.agents/skills/harness/bin/test-merge-gitignore.py` — standalone process/filesystem test; no rendered or interactive product surface.
-- `.agents/skills/harness/bin/run-unit-tests.sh` — adds only `test-merge-gitignore.py` to the integration registry.
+- `.agents/skills/harness/bin/run-unit-tests.py` — adds only `test-merge-gitignore.py` to the integration registry.
 - `.harness/harness.json` — adds/reorders integration detector entries only.
 - `.agents/skills/harness/bin/test-bash-write-guard.py` — MF-01 test-fixture reliability correction only.
 - `.agents/skills/harness/bin/merge-gitignore.sh` — relevant production CLI inspected and confirmed unchanged across the pins.

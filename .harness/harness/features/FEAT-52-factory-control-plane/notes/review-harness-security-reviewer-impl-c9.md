@@ -15,7 +15,7 @@ dynamically disproven as currently exploitable).
 | `check-instruction-paths.py` (new, 128 ln) | doc linter, CI-gated | audited — read-only, no runtime write-authorization role, clean |
 | `inflight_registry.py` (+8/-1) | adds `feature-root` CLI verb, thin wrapper over unchanged `feature_root()` | audited — clean |
 | `check-domain.py`, `harness_boundary.py` | **write-authorization boundary named in scope** | confirmed **byte-identical, zero diff** in this range (`git diff --stat` empty for both) |
-| `run-unit-tests.sh` (+2), `.github/workflows/tests.yml` (+18) | CI gating | audited — both correctly read the real exit code, no silent-pass pattern |
+| `run-unit-tests.py` (+2), `.github/workflows/tests.yml` (+18) | CI gating | audited — both correctly read the real exit code, no silent-pass pattern |
 | `test-anchor-directions.py`, `test-check-instruction-paths.py`, `test-inflight-registry.py` (+66, pre-existing file), `test-inject-expertise.py` (+19/-4), `test-check-domain.py` (+42, pre-existing file) | test coverage | ran directly (not just read) — see Evidence |
 | `DECISIONS.md` (+64, DEC-212), `DECISIONS-INDEX.md` (+1) | design record | audited — documents and accepts the exit-0 fail-open contract for `inject-expertise.sh`, cites the two rejected alternatives (granting the shell-less leads `Bash`; a second injected value), matches shipped code |
 | `.omp/agents/*.md` (16 files), `.claude/agents/*.md` (16 mirrors) | **SC-07 claims no write-grant widened — verified adversarially, not read** | every diff hunk reviewed by hand; zero new writable-path claims; see Evidence |

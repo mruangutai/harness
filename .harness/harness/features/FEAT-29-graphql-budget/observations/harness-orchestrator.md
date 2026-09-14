@@ -128,9 +128,9 @@
   double-counting it is wrong. Ask for "send-backs issued inside this run" explicitly in the dispatch.
 
 - 2026-08-19: **I cited a PASS count for four dispatches before checking what it counted.**
-  `grep -c '^PASS '` on `run-unit-tests.sh` output returned 139/160/164/172 and I reported those as
+  `grep -c '^PASS '` on `run-unit-tests.py` output returned 139/160/164/172 and I reported those as
   suite sizes. The runner emits exactly ONE `PASS <script>` line per script (18 for `--kind unit`,
-  `run-unit-tests.sh:58-67`); every other match came from individual scripts printing their own
+  `run-unit-tests.py:58-67`); every other match came from individual scripts printing their own
   `PASS` lines. A second measurer summing per-script totals got 806 on the same suite. The DELTA was
   always sound (+8 = eight new checks) and no decision turned on the absolute — but I put an
   unexamined number into a commit message and three dispatches. Before citing a count, run the

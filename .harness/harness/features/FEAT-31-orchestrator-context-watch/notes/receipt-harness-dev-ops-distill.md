@@ -18,9 +18,9 @@ Worktree vs main checkout: both `.harness/expertise/harness-dev-ops.md` and
 **Repository G-03 was falsified — measured, not assumed.** It claimed an unregistered
 `test-*.py` script is "invisible to [the drift detector], not caught by it." I created a scratch
 `test-zzz-scratch-probe.py` in `.claude/skills/harness/bin/` and ran
-`run-unit-tests.sh --check-kinds`: it printed `MISCONFIGURED: ... is not in run-unit-tests.sh's
+`run-unit-tests.py --check-kinds`: it printed `MISCONFIGURED: ... is not in run-unit-tests.py's
 explicit script list` and exited 2 — the opposite of the claim. Additionally, reading the current
-`run-unit-tests.sh`, the T-12 KIND-DRIFT cross-check (arrays vs `harness.json`'s
+`run-unit-tests.py`, the T-12 KIND-DRIFT cross-check (arrays vs `harness.json`'s
 `test_kinds.integration.detect`) now runs on every invocation, closing the other half of the class
 G-03 warned about. **Dropped G-03** — deleted (no drop op in the tool; done via direct Edit, see
 below). Scratch probe file was removed immediately after the measurement; confirmed via

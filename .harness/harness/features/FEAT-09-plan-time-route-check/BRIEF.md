@@ -69,7 +69,7 @@ build phase never discovers routing again.
   stanza, and both legal tokens named — so a planner reading only the template writes a routable
   plan.
   verify: automated      evidence: unit
-- SC-10: The whole unit suite passes with the new test file registered in `run-unit-tests.sh`, and
+- SC-10: The whole unit suite passes with the new test file registered in `run-unit-tests.py`, and
   the runner's drift detector accepts it rather than exiting 2 on an unlisted test.
   verify: automated      evidence: unit
 - SC-11: The plan-time route rule has exactly one home in the rule layer —
@@ -86,7 +86,7 @@ build phase never discovers routing again.
 
 - `functional`, `integration`, `component`, `ui`, `eval` and `typecheck` all carry `cmd: null` in
   `.harness/harness.json`. Every SC above rests on `unit`, whose runner exists
-  (`run-unit-tests.sh`) and whose `detect` glob `.claude/skills/harness/bin/test-*.py` matches the
+  (`run-unit-tests.py`) and whose `detect` glob `.claude/skills/harness/bin/test-*.py` matches the
   surface this feature changes — so no SC rests on a null kind.
 - What no runner proves: that a planning agent, given the new rule, actually runs the checker before
   handing a plan back. That is behaviour, not code. It rests on SC-11's inspection and on the next

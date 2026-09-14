@@ -17,27 +17,27 @@ LINE1_EXIT=0
 Final line names the count as the plan's comment requires: "15 of 15 cases passed".
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 LINE2_EXIT=1
 ```
 The raw exit of line 2 is **1**, not 0 — but that is `test-harness-yaml-corpus.py` failing on a
 **pre-existing, unrelated** fixture: `.harness/harness/features/FEAT-31-orchestrator-context-watch
 /notes/recovered-draft-14task-does-not-parse.yaml`, committed at `ae89da4` (title says it does not
 parse) — nothing under my `files:` (confirmed via `git log -1` on that path, and `git diff
---stat HEAD` shows the only files I created are `context-watch.py`'s test and `run-unit-tests.sh`'s
+--stat HEAD` shows the only files I created are `context-watch.py`'s test and `run-unit-tests.py`'s
 one-line append; `context-watch.py` itself is T-01's, untouched by me). The plan's own comments for
 line 2 name two conditions, not "exit 0" — matching how T-01's receipt separated a pipe's exit from
 the script's own exit for the same reason. Both are independently asserted below, not inferred from
 the raw exit:
 
 ```
-$ test "$(bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1 | grep -c MISCONFIGURED)" = "0"
+$ test "$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1 | grep -c MISCONFIGURED)" = "0"
 TRAP1_EXIT=0   # NO line containing MISCONFIGURED — satisfied
-$ test "$(bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1 | grep -cx 'PASS test-context-watch.py')" = "1"
+$ test "$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1 | grep -cx 'PASS test-context-watch.py')" = "1"
 TRAP2_EXIT=0   # the line "PASS test-context-watch.py" appears exactly once — satisfied
 ```
 
-`echo "$CLAUDE_PROJECT_DIR"` printed empty. `run-unit-tests.sh:3`'s `cd
+`echo "$CLAUDE_PROJECT_DIR"` printed empty. `run-unit-tests.py:3`'s `cd
 "${CLAUDE_PROJECT_DIR:-$(pwd)}"` therefore fell back to `$(pwd)`, which was this worktree
 (`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-31`) — confirmed, not assumed, by
 Trap 2's result: `grep -cx` found the PASS line exactly once, which is only possible if the suite
@@ -52,7 +52,7 @@ against the main checkout.
 `test-harness-yaml-corpus.py` fails the WHOLE `--kind unit` (and therefore `--kind all`) run because
 it scans `.harness` for every `*.yaml`/`*.yml` and finds
 `notes/recovered-draft-14task-does-not-parse.yaml`, a deliberately-invalid file committed as
-recovery evidence at `ae89da4`. This means `run-unit-tests.sh --kind unit`'s current overall exit is
+recovery evidence at `ae89da4`. This means `run-unit-tests.py --kind unit`'s current overall exit is
 `1` for reasons that have nothing to do with T-02, T-01, T-03, or T-11 — any CI step gating on that
 exit alone will report red today, feature-wide, independent of this task. Not touching it: it is
 outside my two `files:` and outside my domain to judge whether the corpus scanner should exclude
@@ -79,7 +79,7 @@ outside my two `files:` and outside my domain to judge whether the corpus scanne
     fail-opens by dropping both unmeasured rows instead of surfacing them — asserted to differ from
     the original, then asserted to shrink the row **count** from 4 to 2 (a count, not an exit
     status, per D-08).
-- `.claude/skills/harness/bin/run-unit-tests.sh` (append) — added `"test-context-watch.py"` to
+- `.claude/skills/harness/bin/run-unit-tests.py` (append) — added `"test-context-watch.py"` to
   `UNIT_SCRIPTS` (one element; `context-watch.py` and its test never fork a subprocess, so unit is
   correct per the file header's own split rule and DEC-197).
 
@@ -89,4 +89,4 @@ anywhere in the run is the pre-existing, unrelated `test-harness-yaml-corpus.py`
 ## Files touched
 
 - `.claude/skills/harness/bin/test-context-watch.py` (created)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one-element array append)
+- `.claude/skills/harness/bin/run-unit-tests.py` (one-element array append)

@@ -11,7 +11,7 @@ Validate phase closed. `review_sha` is pinned at `e2c800f1`, tree clean. The c4 
 returned FAIL with two `must_fix`; both were fixed in one cycle and independently confirmed resolved
 at c5 (`notes/review-harness-code-reviewer-c5.md`, `notes/review-harness-qa-c5.md`). MF-1: the DEC-217
 `DECISIONS-INDEX.md` row carried hand-written tags no regeneration reproduces, which reddened
-`run-unit-tests.sh --kind integration` and falsified SC-06's byte-identity clause — regenerated, one
+`run-unit-tests.py --kind integration` and falsified SC-06's byte-identity clause — regenerated, one
 row moved, ruling text unchanged. MF-2: the plan-mode `code_grade` assertion retyped `n_a` instead of
 deriving it, against SC-03's own words — it now probes `_pending_plan_review_error` across
 `CODE_GRADE_VALUES` and keeps the single member that rule accepts, and reds loudly when zero or many

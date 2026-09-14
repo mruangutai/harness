@@ -50,7 +50,7 @@ Verified at source, not accepted from the BRIEF/plan text alone:
 - **SC-06 roster stays at 16/16**, verified by direct count (`find .omp/agents -maxdepth 1 -name
   'harness-*.md' | wc -l` → 16, same for `.claude/agents`) and by `test-plan-panel.py` case 5, live.
 - **SC-08 registration:** `test-panel-findings.py` and `test-plan-panel.py` are both in
-  `run-unit-tests.sh`'s `UNIT_SCRIPTS` (confirmed via `:raw` read, not the truncated display); ran
+  `run-unit-tests.py`'s `UNIT_SCRIPTS` (confirmed via `:raw` read, not the truncated display); ran
   both live, 9/9 and 24/24. Neither name appears in `harness.json`'s `integration.detect` explicit
   list, so the KIND-DRIFT self-check stays clean. `D-15`'s `TEAMS_EXPECTED = 3` bump is present and
   correctly commented as the FEAT-06 SC-05 point-in-time exception, not a re-signature.
@@ -134,7 +134,7 @@ noting it because SC-16's first live `/harness-plan` is exactly where this would
 
 No other fail-open branches found in `panel_findings.py` (identity hashing only, no gating logic),
 `sync-agent-adapters.py` (7-line additive diff, dead code path per its own comment, confirmed by
-diff), `run-unit-tests.sh` (registration only, confirmed both new files present via `:raw` read),
+diff), `run-unit-tests.py` (registration only, confirmed both new files present via `:raw` read),
 or `test-harness-yaml-corpus.py` (comment + constant change matches D-15 exactly). `panel_findings.py`
 CLI hard-fails (exit 2) on empty reader / whitespace-only summary — correctly fail-closed.
 

@@ -98,7 +98,7 @@ with line anchors is in `notes/research-FEAT-22-docs-boundary.md`.
 
 ## Success Criteria
 
-**Which runner produces each `evidence:` kind was measured, not inferred.** `run-unit-tests.sh:17-18`
+**Which runner produces each `evidence:` kind was measured, not inferred.** `run-unit-tests.py:17-18`
 holds two explicit arrays, and the array — not `harness.json`'s `detect` glob — decides what actually
 executes. `test-layout-migration.py` is in `UNIT_SCRIPTS`; `test-check-domain.py` and
 `test-gen-decisions-index.py` are both in `INTEGRATION_SCRIPTS`, even though both also match the

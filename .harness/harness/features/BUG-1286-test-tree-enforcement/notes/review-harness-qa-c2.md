@@ -66,7 +66,7 @@ None is "only reached incidentally."
 
 ## B-3's assertion — verified, not accepted on report
 `check("violations() has exactly one non-test caller repository-wide", set(_violations_callers(...))
-== {".claude/skills/harness/bin/run-unit-tests.sh"}, ...)` (`test-suite-layout.py:173-176`).
+== {".claude/skills/harness/bin/run-unit-tests.py"}, ...)` (`test-suite-layout.py:173-176`).
 
 Read `_violations_callers`/`_is_violations_invocation` verbatim (`test-suite-layout.py:145-170`):
 filters to `git ls-files`-tracked, non-`tests/`-prefixed, `SOURCE_EXTENSIONS`-only
@@ -76,7 +76,7 @@ zero-arg mention).
 
 Ran the **real, unmodified** functions (loaded by `exec`-ing the actual test file source with `check`
 stubbed, so no reimplementation risk) against:
-- the live repo → returns exactly `['.claude/skills/harness/bin/run-unit-tests.sh']`, matching the
+- the live repo → returns exactly `['.claude/skills/harness/bin/run-unit-tests.py']`, matching the
   assertion — today's PASS is real, not vacuous.
 - a synthetic git-tracked repo with `caller.py` (`x = suite_layout.violations(".")`, a genuine
   argument-carrying call) and `prose.md` (text reading `"...called with an argument like

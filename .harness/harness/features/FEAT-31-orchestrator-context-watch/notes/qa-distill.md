@@ -3,7 +3,7 @@
 ## Relayed candidates — dispositions
 
 1. **PASS-line count quoted upward, mixed-granularity.** ACCEPTED but re-homed to
-   **repository tier**, not craft — it is a fact about *this* file (`run-unit-tests.sh:136,139`),
+   **repository tier**, not craft — it is a fact about *this* file (`run-unit-tests.py:136,139`),
    not a portable rule. Craft P-13 already carries the general "state provenance/granularity/
    convention" lesson from an earlier round; adding this instance to craft would be a duplicate
    story per the "no instance lists" rule. Landed as repo `G-04`.

@@ -30,8 +30,8 @@ half-migrated.
 |---|---|
 | `check-state.sh` | exit 0 |
 | `check-plan-routes.py` | `0 violation(s) across 8 plan(s)` |
-| `run-unit-tests.sh --kind unit` | 75 PASS, 0 FAIL |
-| `run-unit-tests.sh --kind integration` | 80 PASS, 0 FAIL |
+| `run-unit-tests.py --kind unit` | 75 PASS, 0 FAIL |
+| `run-unit-tests.py --kind integration` | 80 PASS, 0 FAIL |
 | qa gate (blocking) | `matrix_ok: true` |
 | review panel | `severity_max: med`, `must_fix: []` — below the `high` bar, no fix cycle owed |
 

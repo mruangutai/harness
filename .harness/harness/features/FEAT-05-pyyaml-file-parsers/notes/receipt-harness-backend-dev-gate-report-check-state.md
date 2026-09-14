@@ -45,7 +45,7 @@ this run), so the invalid `team-config.yaml:18` YAML does not affect it — conf
 
 ## Unrelated context (not part of this gate, reported per task instructions)
 
-`run-unit-tests.sh` overall suite is red: `test-harness-yaml.py` fails on
+`run-unit-tests.py` overall suite is red: `test-harness-yaml.py` fails on
 `test_manifest_domains_matches_the_regex_walk_on_the_real_manifest` — parse error at
 `.harness/team-config.yaml:18` ("while parsing a flow sequence... expected ',' or ']', but got
 '<scalar>'"). This predates this task and is the known blocker named in the dispatch; not fixed

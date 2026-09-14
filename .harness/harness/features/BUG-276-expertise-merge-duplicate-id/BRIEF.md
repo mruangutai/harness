@@ -92,7 +92,7 @@ loss months later, if at all.
 ## Verification gaps
 
 - None. Both kinds these criteria rest on — `unit` and `integration` — are `active` in
-  `.harness/harness.json` with real runners (`run-unit-tests.sh --kind unit` / `--kind integration`),
+  `.harness/harness.json` with real runners (`run-unit-tests.py --kind unit` / `--kind integration`),
   and both suites already reach the changed code.
 
 ## Approval

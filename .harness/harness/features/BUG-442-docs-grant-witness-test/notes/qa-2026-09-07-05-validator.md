@@ -32,12 +32,12 @@ sibling change had reddened it; it is clean.
 
 - **integration** — **satisfied**. Detect (`tests/integration/**`) matches the changed file. Test
   exists FOR this change (both new tests registered, ran, printed `ok`). Ran
-  `.agents/skills/harness/bin/run-unit-tests.sh --kind integration`: **exit 0**, `^FAIL ` count
+  `.agents/skills/harness/bin/run-unit-tests.py --kind integration`: **exit 0**, `^FAIL ` count
   **0**, pass-marker lines (`ok`/`PASS`/"N/N checks passed") **3466** across every sub-script
   (`test-check-domain.py`, `test-gh-sync.py`, `test-harness-yaml.py` at line 1323, etc. — full log
   `artifact://` from this run's bash output, not re-pasted here).
 - **unit** — satisfied (floor not obligated, but green). Ran
-  `.agents/skills/harness/bin/run-unit-tests.sh --kind unit`: **exit 0**, `^FAIL ` count **0**, every
+  `.agents/skills/harness/bin/run-unit-tests.py --kind unit`: **exit 0**, `^FAIL ` count **0**, every
   sub-script printed its own `exit 0` header and `N/N checks passed` where applicable.
 - All other matrix rows (`functional`, `eval` — excluded DEC-187; `component`, `ui`, `typecheck` —
   unresolved, not in bugfix's `when`) are **not applicable** to this task.

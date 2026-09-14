@@ -13,7 +13,7 @@ line; the DECISIONS.md fold introduces no new ruling.
    (FEAT-38's own addition, absent from main) correctly survived. No registration that should have
    survived was dropped; no phantom entry was resurrected. **Only `unit`/`integration`/etc. `detect`
    arrays were touched — every other `test_kinds` key is byte-identical branch vs final.**
-2. **`.claude/skills/harness/bin/run-unit-tests.sh` — PASS.** `UNIT_SCRIPTS`: branch=27, dropped
+2. **`.claude/skills/harness/bin/run-unit-tests.py` — PASS.** `UNIT_SCRIPTS`: branch=27, dropped
    `test-context-watch.py` correctly → final=26. `INTEGRATION_SCRIPTS`: branch=28, main=25 (⊆
    branch), union=28, minus the same two deleted files → final=26. At the final pin, `harness.json`'s
    declared integration set is set-equal to `INTEGRATION_SCRIPTS` in **both** directions (verified in
@@ -51,7 +51,7 @@ have been lost") — synthesis in service of a stated acceptance criterion, not 
 The dispatch's contract states the `test_kinds.integration` resolution was "Reported 28 -> 27." No
 single consistent counting method produces that pair. Glob-inclusive (as the field is actually
 written): 29 → 27 (drop of 2, matching the two deleted files exactly). Script-only, excluding the
-`tests/integration/**` glob entry (as `run-unit-tests.sh`'s array is naturally counted): 28 → 26. The
+`tests/integration/**` glob entry (as `run-unit-tests.py`'s array is naturally counted): 28 → 26. The
 reported figure mixes a script-only "before" (28) with a glob-inclusive "after" (27), understating the
 real drop (2 files, not 1). The *final state* is correct either way — I verified it three independent
 ways above — but the number as reported would mislead anyone auditing "did exactly the intended files
@@ -59,7 +59,7 @@ drop."
 
 ## Advisory, non-blocking: `--check-kinds` is one-directional
 
-Read `run-unit-tests.sh`'s KINDCHECK block directly (not run): it asserts every `INTEGRATION_SCRIPTS`
+Read `run-unit-tests.py`'s KINDCHECK block directly (not run): it asserts every `INTEGRATION_SCRIPTS`
 name is declared in `harness.json`, and no `UNIT_SCRIPTS` name is declared there — array → declared,
 one direction only. It never asserts the reverse (declared ⊆ union of the two arrays). A future merge
 that resurrects a `harness.json` entry for a deleted test file, without also adding it to either bash

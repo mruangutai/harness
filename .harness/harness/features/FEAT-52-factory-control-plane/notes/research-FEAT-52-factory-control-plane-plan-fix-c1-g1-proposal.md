@@ -136,7 +136,7 @@ tasks:
         is not the resolved root. Assert exit 2 and assert stderr contains BOTH the declared
         value and the resolved one.
 
-      Register nothing new in run-unit-tests.sh: test-dispatch-guard.py is already in
+      Register nothing new in run-unit-tests.py: test-dispatch-guard.py is already in
       INTEGRATION_SCRIPTS, so the kind cross-check and the file-presence check both stay green.
 
   - id: T-19

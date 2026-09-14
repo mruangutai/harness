@@ -136,9 +136,9 @@ Three things this plan depends on that are **not tasks**, because no agent domai
 - change_type: config
 - traces: REQ-08, D-04
 - files:
-  - create `.claude/skills/harness/bin/run-unit-tests.sh`
+  - create `.claude/skills/harness/bin/run-unit-tests.py`
   - edit `.harness/harness.json` (`test_kinds.unit.cmd`, `test_kinds.unit.detect`)
-- intent: `run-unit-tests.sh` is `set -uo pipefail`, `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"`, and holds
+- intent: `run-unit-tests.py` is `set -uo pipefail`, `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"`, and holds
   an **explicit list** of test scripts to run in order — `test-validate-digest.py`, `test-gh-sync.py`
   — executing each and collecting failures rather than stopping at the first.
   - **It STREAMS each child's stdout and stderr through, unfiltered and unbuffered.** This is the
@@ -155,7 +155,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     `harness-verification-rules:44` rather than FAIL-ing the person who last touched source. Exit 0
     only if all listed scripts passed; exit 1 if any assertion failed.
   - In `.harness/harness.json`: set `test_kinds.unit.cmd` to
-    `.claude/skills/harness/bin/run-unit-tests.sh`, and append
+    `.claude/skills/harness/bin/run-unit-tests.py`, and append
     `|.claude/skills/harness/bin/test-*.py` to `test_kinds.unit.detect`. The existing globs
     (`tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py`) resolve to `[]` in this repo (verified)
     because both scripts are hyphenated and live under the hidden `.claude/` tree, so qa's detect
@@ -163,7 +163,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     `harness-verification-rules:44` — **not** `missing → FAIL`, correcting the reviewed plan's
     rationale by one word. Leave `exclude` unchanged. Do not touch any other key.
 - verify:
-  - `.claude/skills/harness/bin/run-unit-tests.sh` (after `chmod +x`) → exit 0, output names both
+  - `.claude/skills/harness/bin/run-unit-tests.py` (after `chmod +x`) → exit 0, output names both
     scripts PASS **and contains `ALL PASSED` emitted by `test-gh-sync.py` itself** — the streaming
     proof, not just the runner's summary.
     `observed @f929d44: exit 127` (file absent — not a discriminating receipt; the streaming half is
@@ -172,7 +172,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     → prints both `test-validate-digest.py` and `test-gh-sync.py`.
     `observed @f929d44: exit 0, printed []` — the discriminating receipt for the harness.json half.
   - `touch .claude/skills/harness/bin/test-orphan.py`, then
-    `.claude/skills/harness/bin/run-unit-tests.sh 2>&1 | grep -c MISCONFIGURED` → **≥1** with
+    `.claude/skills/harness/bin/run-unit-tests.py 2>&1 | grep -c MISCONFIGURED` → **≥1** with
     `${PIPESTATUS[0]}` = **2**, the line naming `test-orphan.py`. The `2>&1` is deliberate: it checks
     the **stderr** half of MF-3's streaming requirement, which a stdout-only check would miss. Then
     delete the file and confirm `git status --porcelain` no longer mentions it.
@@ -250,7 +250,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     and **0 would mean the list GET was wrongly extracted**).
   - `! grep -q '"gh"' .claude/skills/harness/bin/wayfind.py` → exit 0.
     `observed @f929d44: exit 1` (matches `:69`, `:86`, `:173`).
-  - `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0.
+  - `.claude/skills/harness/bin/run-unit-tests.py` → exit 0.
     `observed @f929d44: exit 127` (T-01 not landed — not discriminating).
 
 ### T-03 — `open` creates one sub-issue per `T-NN` under one recorded parent
@@ -348,7 +348,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     exactly what would drop it and make SC-03's parent distinction undecidable again. Assert on the
     file text, not only on the in-memory `rec`.
 - verify:
-  - `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0, with `ok` lines for
+  - `.claude/skills/harness/bin/run-unit-tests.py` → exit 0, with `ok` lines for
     "parent created and recorded", "three sub-issues attached to the parent", "attach uses internal
     id not number", "--parent adopts", "re-run open creates nothing", "recorded-not-attached task is
     attached on re-run", "pre-existing parent survives per-task saves", "parent title carries the
@@ -405,7 +405,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   closed` becomes the positive regression guard **`absorbed #12 #14 NOT closed`**. Do not delete
   either assertion; a dropped assertion loses the guard.
 - verify:
-  - `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with `ok` lines for "close-task closes
+  - `.claude/skills/harness/bin/run-unit-tests.py` → exit 0 with `ok` lines for "close-task closes
     exactly one issue" and "absorbed #12 #14 NOT closed".
     `observed @f929d44:` today's suite exits 0 and `grep -cF` was run for both labels against its
     output — **0** and **0** (today's output carries the two labels being inverted instead:
@@ -487,7 +487,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   text; missing `--reason-file` → exit 1; an **empty** reason file → exit 1 and **zero** gh calls;
   issues recorded with `milestone: none` → exit 0, subs PATCHed, and **no** call whose URL contains
   `milestones/None`; `sync: false` → SKIP exit 0.
-- verify: `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with `ok` lines for "abandon closes
+- verify: `.claude/skills/harness/bin/run-unit-tests.py` → exit 0 with `ok` lines for "abandon closes
   3 subs not_planned", "abandon closes the milestone", **"abandon leaves an adopted parent open"**,
   **"abandon closes a created parent not_planned"**, **"abandon leaves a parent with no recorded
   origin open"**, "abandon
@@ -554,7 +554,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   Also assert: `--body-file` posts once via `--body-file` (on an adopted parent, so the comment's
   unconditionality is what is being checked); ship without `--body-file` posts nothing; `--body-file`
   naming an empty file exits 1 with zero gh calls.
-- verify: `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with `ok` lines for **"ship closes a
+- verify: `.claude/skills/harness/bin/run-unit-tests.py` → exit 0 with `ok` lines for **"ship closes a
   created parent completed"**, **"ship leaves an adopted parent open"**, **"ship leaves a parent with
   no recorded origin open"**, **"ship closes the milestone regardless of parent origin"**, "ship
   --body-file posts once", "ship without --body-file posts nothing", "ship with an empty body file
@@ -568,7 +568,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   `:186` was the assertion's second line; the label is at `:185`), which this task must keep passing.
   The suite was run with `python3 .claude/skills/harness/bin/test-gh-sync.py` on a tree byte-identical
   to `f929d44` under `.claude/skills/harness/bin/**` (`git diff --stat` empty, re-run this cycle at
-  `a8fce12`), the same equivalence `## Verify receipts` relies on; `run-unit-tests.sh` itself does not
+  `a8fce12`), the same equivalence `## Verify receipts` relies on; `run-unit-tests.py` itself does not
   exist until T-01 lands. Discriminating on every line.
 
 ### T-07 — INV-21: a mirrored feature with no recorded parent
@@ -578,7 +578,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
 - files:
   - edit `.claude/skills/harness/bin/check-state.sh`
   - create `.claude/skills/harness/bin/test-check-state.py`
-  - edit `.claude/skills/harness/bin/run-unit-tests.sh` (add the new script to the explicit list)
+  - edit `.claude/skills/harness/bin/run-unit-tests.py` (add the new script to the explicit list)
 - intent: in `check-state.sh`'s embedded python block, after the INV-20 block (`:342`) and before
   INV-13 (`:366`), add **INV-21 at warn level** (`warn.append`, never `bad`): when `harness.json`
   `github.sync` is true (`cj` is already in scope there), then for each
@@ -598,7 +598,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   - `python3 .claude/skills/harness/bin/test-check-state.py` → exit 0, three cases pass.
     `observed @f929d44: exit 2` (file absent — not discriminating). Discriminating receipt:
     `grep -c 'INV-21' .claude/skills/harness/bin/check-state.sh` is **0** today and must be ≥1 after.
-  - `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 (the new script is listed, so the orphan
+  - `.claude/skills/harness/bin/run-unit-tests.py` → exit 0 (the new script is listed, so the orphan
     check does not fire; an unlisted one would exit **2**). `observed @f929d44: exit 127`.
   - `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh` → its output contains **no**
     `INV-21` line in this repo (`github.sync` is false), and its **exit code is unchanged from the

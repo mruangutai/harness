@@ -7,7 +7,7 @@
 - Created `.claude/skills/harness/bin/test-context-watch-cli.py` — integration test, drives
   `context-watch.py` as a real subprocess for both cases. Imports nothing from `context-watch.py`.
 - Appended `"test-context-watch-cli.py"` to `INTEGRATION_SCRIPTS` in
-  `.claude/skills/harness/bin/run-unit-tests.sh` (line 18) — the only change to that file, a
+  `.claude/skills/harness/bin/run-unit-tests.py` (line 18) — the only change to that file, a
   single-element append, all 14 prior entries preserved byte-for-byte (`git diff` confirms one
   line changed).
 
@@ -65,7 +65,7 @@ Exit status: `0`
 **Line 2** — `test "$(python3 .claude/skills/harness/bin/test-context-watch-cli.py | grep -cE '^[0-9]+ of [0-9]+ cases passed$')" = "1"`
 `grep -c` output: `1`. Exit status: `0`
 
-**Line 3** — `bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration`
+**Line 3** — `bash .claude/skills/harness/bin/run-unit-tests.py --kind integration`
 Full output is long (69 test files' worth); confirmed via grep:
 - `PASS test-context-watch-cli.py` present (last line of the run).
 - `MISCONFIGURED` count in output: `0`.
@@ -73,8 +73,8 @@ Exit status: `0`
 
 ## RED proof I ran before registering
 
-Before the `run-unit-tests.sh` append, ran `bash run-unit-tests.sh --kind integration` and got:
-`MISCONFIGURED: .claude/skills/harness/bin/test-context-watch-cli.py is not in run-unit-tests.sh's
+Before the `run-unit-tests.py` append, ran `bash run-unit-tests.py --kind integration` and got:
+`MISCONFIGURED: .claude/skills/harness/bin/test-context-watch-cli.py is not in run-unit-tests.py's
 explicit script list`, exit 2 — confirming the drift detector fires as the intent describes, and
 that my one-line append is what turns it green.
 
@@ -96,4 +96,4 @@ preserved RED proof for line 3).
 
 files_touched:
 - .claude/skills/harness/bin/test-context-watch-cli.py
-- .claude/skills/harness/bin/run-unit-tests.sh
+- .claude/skills/harness/bin/run-unit-tests.py

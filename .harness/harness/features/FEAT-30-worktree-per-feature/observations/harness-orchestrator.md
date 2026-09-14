@@ -69,7 +69,7 @@
   with it.
 
 - 2026-08-20: a runner's own drift detector turns a half-landed task set into a broken tree.
-  `run-unit-tests.sh` globs `bin/test-*.py` and exits 2 on any file absent from its explicit arrays,
+  `run-unit-tests.py` globs `bin/test-*.py` and exits 2 on any file absent from its explicit arrays,
   so the moment T-01 created a test file every `--kind` exited 2, and stayed that way until T-08
   registered it. Committing a partial lane there would have shipped a suite runner that cannot run.
   The window was invisible from the task list; only invoking the runner showed it.

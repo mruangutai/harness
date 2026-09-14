@@ -5,7 +5,7 @@ SC-19 number drift) and one live-board observation that is expected transient st
 
 ## Suite
 
-`.claude/skills/harness/bin/run-unit-tests.sh --kind all`, run to completion (not truncated by the
+`.claude/skills/harness/bin/run-unit-tests.py --kind all`, run to completion (not truncated by the
 120s foreground timeout — ran in background to full exit):
 
 - **46 of 46 scripts PASS, 0 FAIL, 0 MISCONFIGURED, exit 0.** Confirmed, matches the dispatch's
@@ -16,7 +16,7 @@ SC-19 number drift) and one live-board observation that is expected transient st
 - `check-state.sh` exits 0. Live re-run right now shows exactly 1 VIOLATION, and it names
   FEAT-34's unsigned BRIEF.md — unrelated to this feature, matching migration-harness.md's and
   T-11's verify's exact claim (`grep -c '^  VIOLATION'` = 1, no line contains `FEAT-33`).
-- `test-board-lifecycle.py` is correctly registered in `run-unit-tests.sh:17` `UNIT_SCRIPTS` (the
+- `test-board-lifecycle.py` is correctly registered in `run-unit-tests.py:17` `UNIT_SCRIPTS` (the
   mandatory one-line edit T-04 calls out — an unregistered `test-*.py` would exit 2 MISCONFIGURED
   and was checked, not assumed).
 

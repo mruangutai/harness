@@ -111,7 +111,7 @@ No defined-but-unregistered case found among the seven named. All ran green in t
    `test-bash-write-guard.py:905`'s `changed != source`), which rules out vacuous-pass-by-identical-
    mutant, but does not close the disclosed limit itself.
 3. **Not rerun per task constraint**: `test-check-state.py`, `test-run-unit-tests-kinds.py`,
-   `check-state.sh`, and both full `run-unit-tests.sh --kind {unit,integration}` invocations (SC-08,
+   `check-state.sh`, and both full `run-unit-tests.py --kind {unit,integration}` invocations (SC-08,
    SC-09, SC-10, SC-11's exit-0 clause) — accepted as reported ground truth (exit 0) per the
    dispatch, not independently measured by me. Note: `check-state.sh` was inadvertently run once by
    me while probing SC-11's own evidence formula; it exited 0 with zero `FEAT-50` violation rows,

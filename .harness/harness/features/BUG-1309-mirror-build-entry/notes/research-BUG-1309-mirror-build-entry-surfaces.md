@@ -39,7 +39,7 @@ wrong are recorded below as CONTENT, never line numbers.
   `gh-close-gate.py`, `plan-sign-gate.py` (`.claude/settings.json`) and the same four in
   `harness-hooks.ts`'s `firstBlock([...])`. BUG-1132 is the recorded cost of registering in one and
   not the other.
-- `run-unit-tests.sh` discovers by glob (`tests/unit/test-*.py`, `tests/integration/test-*.py`), so
+- `run-unit-tests.py` discovers by glob (`tests/unit/test-*.py`, `tests/integration/test-*.py`), so
   a new test file needs no registration. `tests/unit/omp-hooks.test.ts` is executed by
   `tests/unit/test-omp-hooks.py`, which shells out to `bun`.
 - `feature_schema.py` needs no change: it loads `feature-schema.json` and has no per-field code.

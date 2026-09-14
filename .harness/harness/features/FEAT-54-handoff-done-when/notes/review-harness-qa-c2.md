@@ -18,8 +18,8 @@ Diff-inferred change types: `logic`, `cross_module` (one new parser imported by 
 
 | Kind | State | Configured command run | Discovery | Exit/outcome |
 |---|---|---|---:|---|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 25 files | 0; all executed files passed |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 44 files | 0; all executed files passed |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 25 files | 0; all executed files passed |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 44 files | 0; all executed files passed |
 | handoff_comprehension | locally-run, not executed | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a; credentialled probe prohibited here |
 
 The unit transcript names `test-handoff-done-when.py` exit 0 and `test-probe-handoff-comprehension.py` exit 0 (`Ran 6 tests`, `OK`). The integration runner's 44-file non-empty bucket includes the named `test-check-domain.py`, `test-check-state.py`, and `test-run-unit-tests-kinds.py`; the overall command exited 0. `matrix_ok: false` because a required high-risk authority leg lacks permanent regression coverage despite both required kinds being green.

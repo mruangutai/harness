@@ -141,7 +141,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-quarantine.py
       lane: team
       agent: harness-dev-ops
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-dev-ops
     - surface: .claude/skills/harness/bin/test-orchestrator-playbook.py
@@ -523,11 +523,11 @@ tasks:
     files:
       - .claude/skills/harness/bin/quarantine.py
       - .claude/skills/harness/bin/test-quarantine.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       python3 .agents/skills/harness/bin/test-quarantine.py &&
-      .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      .agents/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Write test-quarantine.py first and record its failures before writing quarantine.py.
       Then create .claude/skills/harness/bin/quarantine.py, a stdlib-only CLI with three
@@ -573,9 +573,9 @@ tasks:
 
       Register the new file in BOTH lists that must agree or the suite exits 2 before
       running a test: append test-quarantine.py to INTEGRATION_SCRIPTS at :31 of
-      run-unit-tests.sh, and append the literal
+      run-unit-tests.py, and append the literal
       .agents/skills/harness/bin/test-quarantine.py to test_kinds.integration.detect in
-      .harness/harness.json. The cross-check at :98 to :131 of run-unit-tests.sh compares
+      .harness/harness.json. The cross-check at :98 to :131 of run-unit-tests.py compares
       the two as sets and uses the .agents spelling as its prefix, so the .claude spelling
       fails it. Change nothing else in either file.
 
@@ -943,7 +943,7 @@ tasks:
       SC-09 grades the DEC-210 entry's CONTENT and declares verify automated with evidence
       integration. Nothing in the plan asserts that content today, so an entry that omits
       the plan-sign-gate.py half would ship graded met. This task is the assertion. It adds
-      NO new test file, so neither run-unit-tests.sh INTEGRATION_SCRIPTS nor
+      NO new test file, so neither run-unit-tests.py INTEGRATION_SCRIPTS nor
       harness.json test_kinds.integration.detect changes, and it does not touch
       DECISIONS.md or DECISIONS-INDEX.md, so no index regeneration is owed here.
       change_type is scaffolding because the deliverable IS the guard - no production
@@ -1077,7 +1077,7 @@ tasks:
       change the fail-open POSTURE, which is D-13 and is deliberate.
 
       SCOPE, AND THE ONE PERMITTED SOURCE EDIT. The deliverable is test cases, in the two
-      existing test files, which are both in run-unit-tests.sh INTEGRATION_SCRIPTS (D-09).
+      existing test files, which are both in run-unit-tests.py INTEGRATION_SCRIPTS (D-09).
       check-domain.py and plan-sign-gate.py are in files for ONE bounded reason: the handler
       must ENCLOSE the registry CALLS and not the import alone, or case A below is
       unreachable. T-03 and T-07 describe the try around the import with the calls written

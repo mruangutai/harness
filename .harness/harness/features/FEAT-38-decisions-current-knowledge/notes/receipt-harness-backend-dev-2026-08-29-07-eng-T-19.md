@@ -3,7 +3,7 @@
 ## Task
 
 Register `test-check-decision-anchors.py` and `test-check-decision-claims.py` (bare names) in
-`INTEGRATION_SCRIPTS` in `.claude/skills/harness/bin/run-unit-tests.sh`. T-18 (harness.json
+`INTEGRATION_SCRIPTS` in `.claude/skills/harness/bin/run-unit-tests.py`. T-18 (harness.json
 integration detect, 30 entries) had already landed.
 
 ## Change made
@@ -13,15 +13,15 @@ bare-name style, nothing else in the file touched.
 
 ## Environment defect encountered and recovered
 
-The FIRST edit attempt (via the edit tool, path `.claude/skills/harness/bin/run-unit-tests.sh`
+The FIRST edit attempt (via the edit tool, path `.claude/skills/harness/bin/run-unit-tests.py`
 relative to worktree cwd) landed in the MAIN checkout
-(`/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/run-unit-tests.sh`), confirmed by
+(`/Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/run-unit-tests.py`), confirmed by
 `git -C <main> diff` showing the change and `git -C <worktree> diff` showing nothing — exactly the
 documented defect. Recovery: restored main via `git show HEAD:<path>` piped to a plain file copy
 (md5sum-verified identical to HEAD, never a git write command), confirmed
 `git -C <main> status --porcelain -- <path>` empty, then redid the edit with `python3` string-replace
 against the fully-qualified absolute worktree path
-(`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-38-decisions-current-knowledge/.claude/skills/harness/bin/run-unit-tests.sh`).
+(`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-38-decisions-current-knowledge/.claude/skills/harness/bin/run-unit-tests.py`).
 Confirmed after: `git -C <worktree> status --porcelain` shows the file modified,
 `git -C <main> status --porcelain -- <path>` shows nothing.
 
@@ -36,7 +36,7 @@ printf '%s\n' "$OUT" | grep -q 'KIND-DRIFT' && { echo 'KIND-DRIFT fired'; exit 1
 
 **This is a false positive, not a real KIND-DRIFT.** Grepped the captured output for the literal
 runtime drift message `^KIND-DRIFT:` (the format the runner's own cross-check prints to stderr on a
-real mismatch) — zero matches. The real drift check ran clean; `run-unit-tests.sh` proceeded to
+real mismatch) — zero matches. The real drift check ran clean; `run-unit-tests.py` proceeded to
 execute every script and printed hundreds of PASS lines, which could not happen had the actual
 KIND-DRIFT exit-2 path fired (it exits before running any test). The literal substring `KIND-DRIFT`
 that the naive `grep -q` matched instead comes from `test-run-unit-tests-kinds.py`'s OWN legitimate
@@ -72,7 +72,7 @@ No other script printed a FAIL line anywhere in the full output below (grepped `
 across all 1967 lines — 584 PASS lines total, exactly 4 FAIL lines, all four listed above). Nothing
 else to report upward from the suite body itself.
 
-## Complete verbatim runner output (1967 lines, `bash run-unit-tests.sh --kind integration 2>&1`)
+## Complete verbatim runner output (1967 lines, `bash run-unit-tests.py --kind integration 2>&1`)
 
 ok    lead, block-style members + bare empty key
 ok    lead, fully inline lists
@@ -2042,13 +2042,13 @@ ok - test_unreadable_target_exits_two_not_zero
 ok - test_checker_source_never_uses_shell_true
 PASS test-check-decision-claims.py
 
-## `git -C <worktree> diff -- .claude/skills/harness/bin/run-unit-tests.sh` (verbatim)
+## `git -C <worktree> diff -- .claude/skills/harness/bin/run-unit-tests.py` (verbatim)
 
 ```diff
-diff --git a/.claude/skills/harness/bin/run-unit-tests.sh b/.claude/skills/harness/bin/run-unit-tests.sh
+diff --git a/.claude/skills/harness/bin/run-unit-tests.py b/.claude/skills/harness/bin/run-unit-tests.py
 index 4d048cb..ec12b83 100755
---- a/.claude/skills/harness/bin/run-unit-tests.sh
-+++ b/.claude/skills/harness/bin/run-unit-tests.sh
+--- a/.claude/skills/harness/bin/run-unit-tests.py
++++ b/.claude/skills/harness/bin/run-unit-tests.py
 @@ -28,7 +28,7 @@ BIN_DIR=".claude/skills/harness/bin"
  # #160 records is one populated kind doing two jobs while test_kinds.integration sat null,
  # so INV-20 could never see the hole and the qa matrix could not tell the two apart.
@@ -2064,7 +2064,7 @@ Only the two array additions — nothing else in the file touched.
 
 ## Main checkout confirmation
 
-`git -C /Users/molchairuangutai/GitHub/harness status --porcelain -- .claude/skills/harness/bin/run-unit-tests.sh`
+`git -C /Users/molchairuangutai/GitHub/harness status --porcelain -- .claude/skills/harness/bin/run-unit-tests.py`
 prints nothing — main carries none of this change (verified after the mid-task recovery described
 above, and again at receipt time).
 

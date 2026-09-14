@@ -25,7 +25,7 @@ lanes:
     - surface: .claude/skills/harness/bin/expertise-merge.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-dev-ops
     - surface: .harness/harness.json
@@ -1371,13 +1371,13 @@ tasks:
     depends_on: [T-02, T-03, T-04, T-06, T-07]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       set -u
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1) || { echo "$out"; exit 1; }
       for f in test-harness-merge.py test-plan-merge.py test-observations-merge.py \
                test-inflight-registry.py test-dispatch-guard.py; do
         echo "$out" | grep -q "^PASS $f$" || { echo "$f did not run or did not pass"; echo "$out"; exit 1; }
@@ -1402,7 +1402,7 @@ tasks:
       here matches BOTH globs on purpose and resolves to integration. Cite DEC-197 in the commit
       message; do not restate its reasoning in either file.
 
-      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array. Append
+      1. .claude/skills/harness/bin/run-unit-tests.py, the INTEGRATION_SCRIPTS array. Append
          test-harness-merge.py, test-plan-merge.py, test-observations-merge.py,
          test-inflight-registry.py and test-dispatch-guard.py. All five fork real subprocesses and
          real concurrent children, which is the principle that array encodes - do not put any of them

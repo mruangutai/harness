@@ -16,7 +16,7 @@ Before reading any source: SC-01/03/05/08/09 → automated presence/absence chec
 `harness.json` `test_matrix`: `logic` → `always: [unit]`. `config` → `always: []`. `scaffolding` → `always: []`.
 Change types: T-01/T-03/T-04/T-05/T-06/T-09/T-10 = `logic` (→ requires `unit`); T-02/T-07 = `config` (→ nothing); T-08 = `scaffolding` (→ nothing).
 
-`test_kinds.unit.cmd` = `run-unit-tests.sh --kind unit`, which runs only `UNIT_SCRIPTS` (`run-unit-tests.sh:17`). `test_kinds.integration.cmd` runs only `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:18`). Per-task binding table — the script that actually executes the changed file, and under which `--kind`:
+`test_kinds.unit.cmd` = `run-unit-tests.py --kind unit`, which runs only `UNIT_SCRIPTS` (`run-unit-tests.py:17`). `test_kinds.integration.cmd` runs only `INTEGRATION_SCRIPTS` (`run-unit-tests.py:18`). Per-task binding table — the script that actually executes the changed file, and under which `--kind`:
 
 | Task | change_type | Changed file(s) | Binding test | Array | Bound by floor (`unit`)? |
 |---|---|---|---|---|---|
@@ -31,8 +31,8 @@ Change types: T-01/T-03/T-04/T-05/T-06/T-09/T-10 = `logic` (→ requires `unit`)
 **Finding: the floor (`logic` → `unit` only) does not execute the binding suite for T-03, T-04, T-05, 6 of T-06's 8 files, or T-10's gh-sync half.** Detection (the `unit.detect` glob matches `test-*.py` generally) is not execution — exactly the trap named in the dispatch. `integration` is the kind that actually binds these changes, and I added it as required and ran it:
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit    → exit 0, 97 PASS
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration → exit 0, 89 PASS
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit    → exit 0, 97 PASS
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration → exit 0, 89 PASS
 ```
 Named PASS lines for every task's binding file, confirmed in the raw output: `test-check-state.py`, `test-check-domain.py`, `test-check-plan-routes.py`, `test-bash-write-guard.py`, `test-harness-yaml.py`, `test-validate-digest.py`, `test-gh-sync.py` (integration); `test-layout-migration.py`, `test-no-distribution.py`, `test-factory-cli.py`, `test-validate-feature-json.py` (unit).
 
@@ -48,7 +48,7 @@ Scratch copy: `/private/tmp/.../scratchpad/bin-probe/` (copied from `.claude/ski
 
 **(b) deferral half — qualified the `plan_docs` dict key with its segment, left the station-mirror lookup (`_feat = os.path.basename(_fp)`) unchanged.** Mutation diff confirmed applied. Ran full suite: **exit 1**, named cases went RED: `case (q/inv5)`, `(v.1)`, `(v.4)`, `(v.5)`, `(v.6)`, `(v.8)`, `(v.12)` — all INV-26 station-mirror cases. This is the correct, reassuring result: **the deferral half IS pinned** — qualifying the key the way D-08 forbids is caught, by name, by the existing suite. No finding here.
 
-Net: one real finding — (a) is unpinned. **The no-authoring constraint, measured, not assumed:** `check-domain.py --resolve` on `.claude/skills/harness/bin/check-state.sh` returns `harness-backend-dev harness-dev-ops` — not me; on my own artifact path it returns `harness-orchestrator harness-qa`. `tests/` does not exist in this repository (`ls tests` → No such file or directory). `run-unit-tests.sh`'s drift detector (lines 41-55) exits 2 on any `bin/test-*.py` not in its explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays, so a file I could write under `tests/**` would match `unit`'s `detect` glob but run under no `cmd` — a green gate over a test that never executes. All findings below are therefore returned as precise specs, not code. Precise remedy for (a), since I hold no write to `bin/**`: add a case to `test-check-state.py` (joins `INTEGRATION_SCRIPTS`, already there) that stages two features under **different segment names** (e.g. `harness` and `other-repo`), runs `check-state.sh`, and asserts a finding line for each names its own **discovered** path prefix (`.harness/harness/features/FEAT-A/...` vs `.harness/other-repo/features/FEAT-B/...`), not a bare `.harness/features/FEAT-A/...`. Mutation that would prove it non-vacuous: exactly probe (a) above — revert `fpath()` to a bare basename; the new case must go RED where none does today. This subsumes Job 4's live-mechanism point (see below) — one fixture change serves both.
+Net: one real finding — (a) is unpinned. **The no-authoring constraint, measured, not assumed:** `check-domain.py --resolve` on `.claude/skills/harness/bin/check-state.sh` returns `harness-backend-dev harness-dev-ops` — not me; on my own artifact path it returns `harness-orchestrator harness-qa`. `tests/` does not exist in this repository (`ls tests` → No such file or directory). `run-unit-tests.py`'s drift detector (lines 41-55) exits 2 on any `bin/test-*.py` not in its explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays, so a file I could write under `tests/**` would match `unit`'s `detect` glob but run under no `cmd` — a green gate over a test that never executes. All findings below are therefore returned as precise specs, not code. Precise remedy for (a), since I hold no write to `bin/**`: add a case to `test-check-state.py` (joins `INTEGRATION_SCRIPTS`, already there) that stages two features under **different segment names** (e.g. `harness` and `other-repo`), runs `check-state.sh`, and asserts a finding line for each names its own **discovered** path prefix (`.harness/harness/features/FEAT-A/...` vs `.harness/other-repo/features/FEAT-B/...`), not a bare `.harness/features/FEAT-A/...`. Mutation that would prove it non-vacuous: exactly probe (a) above — revert `fpath()` to a bare basename; the new case must go RED where none does today. This subsumes Job 4's live-mechanism point (see below) — one fixture change serves both.
 
 ## Job 3 — the vacuity regression: does anything catch zero-discovery?
 
@@ -71,7 +71,7 @@ Two classes, per the dispatch's own framing, confirmed against the file evidence
 | SC-01 | `layout_migration.py` re-run at pin: exit 0, `examined 21 feature dir(s)` (non-zero) |
 | SC-02 | inspection — `notes/layout-boundary-2026-08-14.md`, both captures present with commit sha, verbatim, matches BRIEF wording exactly |
 | SC-03 | `check-state.sh` re-run at pin: exit 0, 0 INV-27 lines |
-| SC-04 | `run-unit-tests.sh --kind unit`/`--kind integration`, all six named suites PASS (shown above) |
+| SC-04 | `run-unit-tests.py --kind unit`/`--kind integration`, all six named suites PASS (shown above) |
 | SC-05 | `test -e .harness/features` → absent (exit 1); `git ls-files .harness/features` → empty |
 | SC-06 | `check-domain.py --resolve` on post-move receipt path → `harness-backend-dev`/`harness-dev-ops`; pre-move shape → `NOBODY` (both re-run) |
 | SC-07 | `git grep -l '\.harness/features/' -- .claude/agents .claude/commands .claude/skills` minus sanctioned exceptions → empty (re-run) |

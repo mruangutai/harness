@@ -27,7 +27,7 @@ route" premise is false. See `## Re-adjudication (loop-back)`. Final severity: M
 
 **Re-ran, not trusted:** `check-state.sh` (exit 0, 0 VIOLATION, 32 INV-32 notes, all 32 "pre-era",
 0 undated — matches author's claim exactly); `test-check-state.py` (155 ok / 0 FAIL, exit 0);
-full `run-unit-tests.sh` all kinds (grepped the complete output for `FAIL <script>` — none exist,
+full `run-unit-tests.py` all kinds (grepped the complete output for `FAIL <script>` — none exist,
 only descriptive test-name text containing the word "FAILS"/"FAILED"; exit 0); the FEAT-40
 backfill date, independently, via `git log --all -S'status: approved'` and `git show --stat` on
 `2938a5c` — confirmed author date **2026-08-25**, and confirmed via diff that this commit is the

@@ -109,7 +109,7 @@ Hooks (always run MAIN's copy): `bash-write-guard.py`, `branch-create-gate.py`,
 
 Scripts (invoked by path, so the copy that runs decides): `check-plan-routes.py`,
 `check-state.sh`, `factory_config.py`, `gen-decisions-index.py`, `harness_yaml.py`,
-`inflight_registry.py`, `run-unit-tests.sh`, `validate-feature-json.py`, `wayfind.py`.
+`inflight_registry.py`, `run-unit-tests.py`, `validate-feature-json.py`, `wayfind.py`.
 
 ### One function is deliverable — none of these is really bash
 

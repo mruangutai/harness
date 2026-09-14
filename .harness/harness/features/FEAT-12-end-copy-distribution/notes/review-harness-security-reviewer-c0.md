@@ -102,7 +102,7 @@ out of this feature's scope per the dispatch, and I am not re-scoping it.
   either way. Unchanged by this diff (`factory_workspace.py` has an empty diff in range;
   `factory_config.py`'s diff is docstring-only — `git diff 687fd3e..d543809 --
   .../factory_config.py` shown above). Not a new finding; actor already controls the value.
-- `upgrade-config.py`, `run-unit-tests.sh`, `test-upgrade-config.py`: diffs are user-facing message
+- `upgrade-config.py`, `run-unit-tests.py`, `test-upgrade-config.py`: diffs are user-facing message
   text and a test-registration line only (`git diff` output inspected directly). No logic change.
 - Re-swept the full 22-file set (not just the prose subset), including the two deletions
   (`deploy.sh`, 287 lines; `harness-deploy.md`, 121 lines): `git diff 687fd3e..d543809 -- <all 22

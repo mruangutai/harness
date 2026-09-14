@@ -38,8 +38,8 @@ requested: the floor binds 8/12 tasks, and the two tasks doing the heaviest veri
 
 | kind | state | cmd | evidence |
 |---|---|---|---|
-| unit | **satisfied** | `run-unit-tests.sh --kind unit` | 10/10 scripts PASS (verified `grep -cE "^PASS test-"`), 508/508 checks summed from each script's own tally (13+15+10+33+82+56+30+147+77+45), 0 FAIL, exit 0 (isolated worktree) |
-| integration | **satisfied** | `run-unit-tests.sh --kind integration` | 14/14 scripts PASS (matches `INTEGRATION_SCRIPTS` array length), incl. `test-check-state.py` and `test-factory-integration.py` (97/97 checks — the only script that prints a numeric tally), 0 FAIL, exit 0 (isolated worktree) |
+| unit | **satisfied** | `run-unit-tests.py --kind unit` | 10/10 scripts PASS (verified `grep -cE "^PASS test-"`), 508/508 checks summed from each script's own tally (13+15+10+33+82+56+30+147+77+45), 0 FAIL, exit 0 (isolated worktree) |
+| integration | **satisfied** | `run-unit-tests.py --kind integration` | 14/14 scripts PASS (matches `INTEGRATION_SCRIPTS` array length), incl. `test-check-state.py` and `test-factory-integration.py` (97/97 checks — the only script that prints a numeric tally), 0 FAIL, exit 0 (isolated worktree) |
 | functional | **excluded (signed DEC-187)** | `cmd: null`, matrix removes the kind rather than leaving it unresolved | not a soft skip by absent tooling — a config-level ruling; not re-litigated per dispatch |
 | component/ui/eval/typecheck | not applicable (soft skip) | `cmd: null`, `status: unresolved`, no surface in this diff (no TS/TSX, no UI, no model-behaviour change) | genuinely absent tooling + no diff surface |
 

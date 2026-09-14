@@ -26,8 +26,8 @@ misconfigured.
 
 | kind | cmd | files | `^FAIL ` lines | exit |
 |---|---|---|---|---|
-| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 28 | 0 | 0 |
-| integration | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 46 | 0 | 0 |
+| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 28 | 0 | 0 |
+| integration | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 46 | 0 | 0 |
 
 Runner's own exit captured into a variable before any pipe; `grep -c '^FAIL '` run over the
 full captured output, not `tail`. Matches the main session's claim (28/0, 46/0) — independently

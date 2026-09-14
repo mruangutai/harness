@@ -47,7 +47,7 @@ lanes:
       lane: team
       agent: harness-backend-dev
       reason: D-07. Amendment 4 extends the enumeration to the test file of each ENUMERATED gate; the sweep is not one, so its test is not one either. The grant corroborates the lane rather than setting it - check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-dev-ops
       reason: check-domain.py --resolve at 9165162 prints harness-backend-dev harness-dev-ops
@@ -510,12 +510,12 @@ tasks:
     status: done
     files:
       - .harness/harness.json
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       set -e
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+      bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
       for f in test-worktree-terminal.py test-post-merge-sweep.py; do
-        grep -qF "\"$f\"" .claude/skills/harness/bin/run-unit-tests.sh || { echo "NOT REGISTERED in INTEGRATION_SCRIPTS: $f"; exit 1; }
+        grep -qF "\"$f\"" .claude/skills/harness/bin/run-unit-tests.py || { echo "NOT REGISTERED in INTEGRATION_SCRIPTS: $f"; exit 1; }
         grep -qF ".claude/skills/harness/bin/$f" .harness/harness.json || { echo "NOT REGISTERED in test_kinds.integration.detect: $f"; exit 1; }
       done
       echo REGISTERED-BOTH
@@ -527,11 +527,11 @@ tasks:
          23 pipe-separated entries, 22 of them literal filenames under
          .claude/skills/harness/bin/ and one the tests/integration/** glob. Add each new
          file as an explicit literal path in the same form as the existing 22.
-      2. .claude/skills/harness/bin/run-unit-tests.sh line 18, INTEGRATION_SCRIPTS. Measured
+      2. .claude/skills/harness/bin/run-unit-tests.py line 18, INTEGRATION_SCRIPTS. Measured
          at 9165162: 22 entries, and the two sets are identical today with no KIND-DRIFT.
          Add both new filenames.
 
-      Both edits or neither. run-unit-tests.sh:110 and :115 report KIND-DRIFT when the two
+      Both edits or neither. run-unit-tests.py:110 and :115 report KIND-DRIFT when the two
       lists disagree, and :48 through :61 print MISCONFIGURED and exit 2 for a file under
       BIN_DIR that is missing from the script list. Both new files ARE under BIN_DIR, so
       the trap here is loud rather than silent - which is why they were placed there.
@@ -539,8 +539,8 @@ tasks:
       The verify above must exit 0 and print REGISTERED-BOTH on its last line.
 
       WHY THAT VERIFY AND NOT A GREP OVER A TEST RUN. The earlier form,
-      run-unit-tests.sh integration piped to grep -c, was VACUOUS and measured so at 9165162:
-      "integration" as a bare positional hits the else branch at run-unit-tests.sh:33-36,
+      run-unit-tests.py integration piped to grep -c, was VACUOUS and measured so at 9165162:
+      "integration" as a bare positional hits the else branch at run-unit-tests.py:33-36,
       prints the usage line and exits 2 BEFORE the drift detector at :48-61 or the kind
       cross-check at :82-120 runs at all, so grep -c prints 0 on every tree including a
       wrong one. --kind is the flag the script accepts; --check-kinds runs both checkers and
@@ -872,7 +872,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-hooks-install.py
       - .harness/harness.json
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-hooks-install.py
     intent: |
@@ -914,7 +914,7 @@ tasks:
       REGISTRATION, both enumerations or neither, exactly as T-05 does for its two files - add
       test-hooks-install.py to .harness/harness.json test_kinds.integration.detect as an
       explicit literal path, and to INTEGRATION_SCRIPTS in
-      .claude/skills/harness/bin/run-unit-tests.sh. This task depends on T-05 so the two edits
-      to those files never race. run-unit-tests.sh reports KIND-DRIFT when the two lists
+      .claude/skills/harness/bin/run-unit-tests.py. This task depends on T-05 so the two edits
+      to those files never race. run-unit-tests.py reports KIND-DRIFT when the two lists
       disagree and prints MISCONFIGURED with exit 2 for a file under BIN_DIR missing from the
       script list; this file IS under BIN_DIR, so the trap is loud rather than silent.

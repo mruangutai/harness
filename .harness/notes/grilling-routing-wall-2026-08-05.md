@@ -77,5 +77,5 @@ All at `ae2443d`.
   "ROUTING WALL, third recurrence" — dev-ops granted neither `.gitignore` nor `templates/**` nor
   `harness-init/SKILL.md`. FEAT-04 T-09/T-10 and FEAT-03 Q13 are the same wall. It cost a real
   ESCALATE at FEAT-04 run 10, $16, with the lead attributing it to its own dispatch error.
-- **Gates green at `ae2443d`:** `run-unit-tests.sh` exit 0, `check-docs.sh` exit 0,
+- **Gates green at `ae2443d`:** `run-unit-tests.py` exit 0, `check-docs.sh` exit 0,
   `check-state.sh` zero violations.

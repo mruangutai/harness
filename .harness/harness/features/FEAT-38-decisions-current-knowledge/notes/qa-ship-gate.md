@@ -18,7 +18,7 @@ absent.
 
 | Task | change_type | matrix `always` | Resolution | Evidence |
 |---|---|---|---|---|
-| T-24 | `logic` | `unit` | **satisfied** (as non-regression; see finding below) — floor also discharged by **integration**, added because the diff edits `run-unit-tests.sh`'s own registration array and deletes an integration-registered file, so integration is the kind whose tooling actually reaches this change | unit: `run-unit-tests.sh --kind unit` → 27/27 scripts, 0 FAIL, none touch this diff (confirmed: no `UNIT_SCRIPTS` entry names `run-unit-tests.sh` or the deleted checker). integration: `run-unit-tests.sh --kind integration` (part of full suite) + `--check-kinds` run standalone (exit 0, "arrays and detect agree") + `test-check-decision-anchors.py` run directly (8 named `ok -` cases, exit 0) |
+| T-24 | `logic` | `unit` | **satisfied** (as non-regression; see finding below) — floor also discharged by **integration**, added because the diff edits `run-unit-tests.py`'s own registration array and deletes an integration-registered file, so integration is the kind whose tooling actually reaches this change | unit: `run-unit-tests.py --kind unit` → 27/27 scripts, 0 FAIL, none touch this diff (confirmed: no `UNIT_SCRIPTS` entry names `run-unit-tests.py` or the deleted checker). integration: `run-unit-tests.py --kind integration` (part of full suite) + `--check-kinds` run standalone (exit 0, "arrays and detect agree") + `test-check-decision-anchors.py` run directly (8 named `ok -` cases, exit 0) |
 | T-25 | `config` | `[]` (empty — a real pass) | **satisfied**, floor is empty; added integration as extra evidence since the edit is to `test_kinds.integration.detect` | `--check-kinds` exit 0 after the edit; full suite green |
 | T-27 | `docs` | `[]` (empty — a real pass) | **satisfied** | no test kind owed; DECISIONS.md prose edit only |
 | T-28 | `docs` | `[]` (empty — a real pass) | **satisfied** | task's own verify (index regeneration diff) is the evidence, not a standing kind |
@@ -26,8 +26,8 @@ absent.
 
 **Finding (non-blocking, reported not fixed):** T-24 is declared `logic`, so the matrix floor
 names `unit`. No `UNIT_SCRIPTS` entry exercises this specific change — the actual change (edit
-one array line in `run-unit-tests.sh`, `git rm` two files) is by this repo's own structural split
-(issue #160: in-process vs forking) an **integration**-shaped edit; `run-unit-tests.sh` forks
+one array line in `run-unit-tests.py`, `git rm` two files) is by this repo's own structural split
+(issue #160: in-process vs forking) an **integration**-shaped edit; `run-unit-tests.py` forks
 subprocesses, so anything testing it belongs under `--kind integration` by convention, never
 `--kind unit`. The unit suite's green run is real evidence of *no regression*, not of *presence
 for this change*. I did not fail the gate on this because (a) the diff-warranted addition of
@@ -41,7 +41,7 @@ design for no gain. Recorded here rather than silently marked satisfied.
 ## 3. Suite run (measured in Python, not shell grep)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh > /tmp/qa38_suite.out 2>&1; rc=$?
+$ bash .claude/skills/harness/bin/run-unit-tests.py > /tmp/qa38_suite.out 2>&1; rc=$?
 RC=0
 ```
 - `FAIL ` lines (python `startswith('FAIL ')` over the captured file): **0**
@@ -65,7 +65,7 @@ $ shasum -a 256 .claude/skills/harness/bin/test-check-decision-anchors.py
 $ git show 99bb52c:.claude/skills/harness/bin/test-check-decision-anchors.py | shasum -a 256
 7a4e0ba1afcb20b4b2dad6bad297441535fe3ca96284ebad7ded941b363674fa  -
 ```
-All four digests match the expected values given in the dispatch — exact match. `run-unit-tests.sh`
+All four digests match the expected values given in the dispatch — exact match. `run-unit-tests.py`
 line 31's `INTEGRATION_SCRIPTS` array and `harness.json`'s `test_kinds.integration.detect` string
 both still contain the literal substring `test-check-decision-anchors.py` (checked with Python
 substring containment on the actual field values, not the grep-hazard shell), and neither contains
@@ -109,8 +109,8 @@ Empty — confirmed absent from the reviewed tree itself (`8a7c75c`), not merely
   `test_malformed_anchor_extension_reports_line_and_exits_one`,
   `test_zero_anchors_exits_zero_and_says_so`, `test_unreadable_target_exits_two_not_zero`,
   `test_default_file_is_dev_null_readable_zero_anchors`, `test_live_authority_anchors_all_resolve`).
-- **MISCONFIGURED detector (`run-unit-tests.sh:60-74`) and KIND-DRIFT detector (`:76-140`)
-  unmodified by T-24**: `git diff 7ebfc9e..8a7c75c -- .claude/skills/harness/bin/run-unit-tests.sh`
+- **MISCONFIGURED detector (`run-unit-tests.py:60-74`) and KIND-DRIFT detector (`:76-140`)
+  unmodified by T-24**: `git diff 7ebfc9e..8a7c75c -- .claude/skills/harness/bin/run-unit-tests.py`
   shows exactly **one hunk**, touching only line 31 (the `INTEGRATION_SCRIPTS` array literal,
   which the diff shows only *adding* `"test-check-decision-anchors.py"` — its earlier removal of
   `"test-check-decision-claims.py"` at 7ebfc9e nets to nothing visible in a squashed range-diff

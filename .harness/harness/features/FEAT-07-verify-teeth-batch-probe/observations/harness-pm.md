@@ -14,7 +14,7 @@
 - 2026-08-04: `check-domain.py` blocked the artifact path the dispatch named
   (`notes/goalcheck-harness-pm-c0.md`); `harness-pm`'s grant is `notes/research-FEAT-*.md`. A dispatch
   naming an artifact path is not evidence the path is in my grant.
-- 2026-08-04: `./run-unit-tests.sh 2>&1 | tail -20; echo $?` reports TAIL's exit status and discards
+- 2026-08-04: `./run-unit-tests.py 2>&1 | tail -20; echo $?` reports TAIL's exit status and discards
   `test-validate-digest.py`'s output entirely (it is first in `SCRIPTS`). Redirect to a file, then
   grep — the piped form silently loses the evidence for every automated SC.
 - 2026-08-04: `bash-write-guard.py` rejects shell REDIRECTS and `rm` whose target is a shell VARIABLE,

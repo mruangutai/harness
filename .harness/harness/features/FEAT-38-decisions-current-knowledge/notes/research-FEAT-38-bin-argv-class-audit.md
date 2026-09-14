@@ -31,13 +31,13 @@ Verdict precedence within a multi-site file: TEXT-DERIVED-ARGV > FIXED-LITERAL-A
 ## The decisive case — a whole command string stored in configuration
 
 `.harness/harness.json`'s `test_kinds.<kind>.cmd` holds a complete command line
-(`.agents/skills/harness/bin/run-unit-tests.sh --kind integration`). Q1 catches any script that
+(`.agents/skills/harness/bin/run-unit-tests.py --kind integration`). Q1 catches any script that
 reads that field and executes it. **Every reader of `test_kinds` under `bin/` was found and judged;
 none executes a `cmd`:**
 
-- `run-unit-tests.sh:108` reads `test_kinds.integration.detect` — a pipe-separated glob string, not
+- `run-unit-tests.py:108` reads `test_kinds.integration.detect` — a pipe-separated glob string, not
   `cmd` — and only set-compares it against its own two literal bash arrays (lines 30-31). The
-  scripts it actually runs come from those arrays (`run-unit-tests.sh:149`,
+  scripts it actually runs come from those arrays (`run-unit-tests.py:149`,
   `python3 "$BIN_DIR/$s"`). Nothing parsed reaches `argv`.
 - `test-run-unit-tests-kinds.py:61-66` writes a mutated `detect` into a fixture and drives
   `["bash", RUNNER, "--check-kinds"]` (line 47) — argv all literal.
@@ -72,7 +72,7 @@ it, outside `bin/`.
 | harness_yaml.py | NO-EXECUTION | the single match at line 231 is a comment about a hook subprocess exit code; the loader itself never spawns a process and never evaluates its input |
 | inflight_registry.py | TEXT-DERIVED-ARGV | line 159 runs ["ps", "-o", "lstart=", "-p", str(pid)]; on the _omp_claim_live path pid is claim.get("supervisor_pid") read from the registry JSON parsed at line 54 (line 178, then _process_start_time at 182). The executable is literal and pid is int-validated at line 131, so the exposure is narrow, but the value's provenance is a parsed .json |
 | post-merge-sweep.py | TEXT-DERIVED-ARGV | line 215 runs feature-worktree.py remove --repo repo_arg --id wt_id; repo_arg comes from _repo_arg_for_segment (line 152), which returns either the literal "harness" or a name read out of the parsed fleet.yaml via factory_config.load_fleet at lines 110-118 |
-| run-unit-tests.sh | FIXED-LITERAL-ARGV | line 149 runs python3 "$BIN_DIR/$s" where s iterates the two literal arrays at lines 30-31, and line 101 runs python3 -I - with the KINDCHECK heredoc from its own source. It parses test_kinds.integration.detect at line 108 but only set-compares it; no parsed value reaches argv |
+| run-unit-tests.py | FIXED-LITERAL-ARGV | line 149 runs python3 "$BIN_DIR/$s" where s iterates the two literal arrays at lines 30-31, and line 101 runs python3 -I - with the KINDCHECK heredoc from its own source. It parses test_kinds.integration.detect at line 108 but only set-compares it; no parsed value reaches argv |
 | test-bash-write-guard.py | FIXED-LITERAL-ARGV | the harness at line 185 runs [GUARD] with the JSON payload on STDIN, never in argv; the isolated-tree variants (240, 445, 490, 495) build the executable path by os.path.join off a tempdir this file creates |
 | test-board-lifecycle.py | FIXED-LITERAL-ARGV | line 398 runs [sys.executable, SCRIPT] + args and line 415 runs [sys.executable, "-c", code]; SCRIPT is a module constant, args are caller literals, and code is an f-string from this file's own source |
 | test-board-station.py | FIXED-LITERAL-ARGV | line 120 runs [sys.executable, SCRIPT] + args with SCRIPT a module constant and args supplied literally by each case; the fake gh binary is injected through the FACTORY_GH and GH_SYNC_GH env vars, not argv |
@@ -88,7 +88,7 @@ it, outside `bin/`.
 | test-dispatch-guard.py | FIXED-LITERAL-ARGV | line 48 runs [GUARD] with the payload on stdin, line 302 builds the mutant path by os.path.join off this file's own tempdir, and the git fixture calls (347-358) are literal argv |
 | test-expertise-merge.py | FIXED-LITERAL-ARGV | line 81 run_apply runs [sys.executable, CLI, "apply", "--file", file_path, "--entries", entries_path] where both paths are fixture files this file created; the Popen race at 140 and 146 reuses the same construction. The ast.literal_eval calls at 268-269 evaluate a cap tuple, not a command |
 | test-factory-claim.py | NO-EXECUTION | in-process by design; the three matches (4, 393, 933) are docstring and comment prose stating that nothing here spawns a subprocess, and the file has no execution call site |
-| test-factory-cli.py | NO-EXECUTION | the single match at line 9 is docstring prose about why run-unit-tests.sh classifies this file as unit; there is no execution call site |
+| test-factory-cli.py | NO-EXECUTION | the single match at line 9 is docstring prose about why run-unit-tests.py classifies this file as unit; there is no execution call site |
 | test-factory-config.py | NO-EXECUTION | the single match at line 10 is docstring prose stating nothing here spawns a subprocess; no execution call site exists |
 | test-factory-decompose.py | NO-EXECUTION | the two matches (4, 33) are docstring and comment prose asserting this tool is exercised in-process; no execution call site exists |
 | test-factory-gh.py | NO-EXECUTION | all 92 matches are ATTRIBUTE ASSIGNMENTS of the form fgh.subprocess.run = fake plus the saved original at line 64; a grep for subprocess.run( or subprocess.Popen( as a CALL returns zero hits, so this file never spawns anything |

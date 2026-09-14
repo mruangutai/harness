@@ -9,7 +9,7 @@ dispatch the `review` team to harness-validator-lead. All three PLAN tasks are `
 
 ## Trust
 
-- The qa gate is GREEN at the graded commit: `run-unit-tests.sh --kind unit` exit 0 and
+- The qa gate is GREEN at the graded commit: `run-unit-tests.py --kind unit` exit 0 and
   `--kind integration` exit 0, all 12 scripts PASS, measured by me in a throwaway worktree checked
   out at 8d7b273 with no working-tree drift — notes/gate-measurement-2026-08-19.md — verified-at 8d7b273
 - The exit 1 seen in the working tree is entirely held dirt: uncommitted `.harness/harness/docs/DECISIONS.md`

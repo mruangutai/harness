@@ -185,8 +185,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 505 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 696 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 505 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 696 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }

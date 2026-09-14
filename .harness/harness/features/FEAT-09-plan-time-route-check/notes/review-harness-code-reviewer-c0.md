@@ -164,10 +164,10 @@ is the right asymmetry, not a bug.
 
 ## What I did not re-litigate
 
-`run-unit-tests.sh`'s `SCRIPTS` array: confirmed the FEAT-08/FEAT-09 concurrency hazard PLAN.md
+`run-unit-tests.py`'s `SCRIPTS` array: confirmed the FEAT-08/FEAT-09 concurrency hazard PLAN.md
 describes did not fire — base `47ed11f` already has `test-cost-report.py` removed (FEAT-08 merged
 first per `git log`), and the diff here is a clean one-element append (12→13 entries, `git diff
---numstat` = one line changed). `run-unit-tests.sh`, `test-check-domain.py`, `test-check-plan-routes.py`
+--numstat` = one line changed). `run-unit-tests.py`, `test-check-domain.py`, `test-check-plan-routes.py`
 all pass locally (32 named checks total across the two new/changed test files, plus 12 unrelated
 scripts), and `check-docs.sh` exits 0. DECISIONS.md's new DEC-179 entry and the DECISIONS-INDEX.md row
 are accurate against the diff (cites `check-plan-routes.py:52-57` and `check-domain.py:61-69`

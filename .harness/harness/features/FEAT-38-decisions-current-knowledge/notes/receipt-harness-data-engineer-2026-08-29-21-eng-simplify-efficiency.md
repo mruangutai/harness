@@ -5,7 +5,7 @@ Read-only. No writes to `plan.yaml` or `BRIEF.md`. No full unit suite (`--kind a
 ## Measured wall-clocks (verbatim)
 
 ```
-$ time bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ time bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
 ... (222 PASS lines, exit 0)
 real    2m37.699s
 user    1m28.796s
@@ -14,7 +14,7 @@ EXIT:0
 ```
 
 ```
-$ time bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+$ time bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 real    0m0.201s
 user    0m0.126s
@@ -67,11 +67,11 @@ real    0m0.037s
 | Task | Command(s) | Measured/estimated cost |
 |---|---|---|
 | T-18 | `python3 - <<'PY'` inline json.load of `.harness/harness.json` | ~0.04s (interpreter start dominates) |
-| T-19 | `grep` x2 on run-unit-tests.sh + `bash "$R" --kind integration` + 2 greps on captured output | **157.7s** (measured) — see Finding EFF-01 |
+| T-19 | `grep` x2 on run-unit-tests.py + `bash "$R" --kind integration` + 2 greps on captured output | **157.7s** (measured) — see Finding EFF-01 |
 | T-20 | `git cat-file -e` x2, `git ls-files --error-unmatch` x2 | milliseconds each, negligible |
 | T-21 | `git show 48bbe7e:D \| grep -c`, `grep -q` x1, `gen-decisions-index.py --stdout >/dev/null` | ~0.05–0.1s, negligible |
-| T-24 | `grep` x2 on run-unit-tests.sh + `bash "$R" --kind integration` + 2 greps on captured output | **157.7s** (measured) — see Finding EFF-01 |
-| T-25 | `python3 - <<'PY'` json.load of harness.json + `bash run-unit-tests.sh --check-kinds` | ~0.04s + 0.2s = ~0.24s. Already the cheap pattern. |
+| T-24 | `grep` x2 on run-unit-tests.py + `bash "$R" --kind integration` + 2 greps on captured output | **157.7s** (measured) — see Finding EFF-01 |
+| T-25 | `python3 - <<'PY'` json.load of harness.json + `bash run-unit-tests.py --check-kinds` | ~0.04s + 0.2s = ~0.24s. Already the cheap pattern. |
 | T-26 | `git ls-files --error-unmatch` x2, `test -e` x2, `test -f`, one unscoped `git grep -l` sweep | sub-second; the sweep is a single grep over the tree, not timed separately (not in scope list) but structurally one call, not repeated |
 | T-27 | `git show 48bbe7e:D \| grep -c`, 2 more greps on D, loop of 6 `grep -qE` for headings | sub-second, all single-pass greps on one file |
 | T-28 | `sed -n` extraction, 5 greps on the extracted block, `gen-decisions-index.py --stdout \| diff` | **~0.05s** measured for the generator; sed/grep/diff on a single small file — negligible |
@@ -85,11 +85,11 @@ real    0m0.037s
 end to end to extract exactly two facts from the captured output: no `^KIND-DRIFT:` line
 (`plan.yaml:1749`), and `PASS test-check-decision-anchors.py` present (`plan.yaml:1750`).
 
-Read `run-unit-tests.sh:96-140`: the KIND-DRIFT cross-check runs on *every* invocation — `--kind
+Read `run-unit-tests.py:96-140`: the KIND-DRIFT cross-check runs on *every* invocation — `--kind
 integration`, `--kind all`, and `--check-kinds` — as the identical code path, before any test
 dispatch. `--check-kinds` (measured 0.201s real / 0.38s wall) exits right after that check
-(`run-unit-tests.sh:142-145`) and asserts nothing else. The runner's own per-script step
-(`run-unit-tests.sh:148-157`) is `python3 "$BIN_DIR/$s"; echo PASS/FAIL $s` — exactly what a direct
+(`run-unit-tests.py:142-145`) and asserts nothing else. The runner's own per-script step
+(`run-unit-tests.py:148-157`) is `python3 "$BIN_DIR/$s"; echo PASS/FAIL $s` — exactly what a direct
 `python3 .claude/skills/harness/bin/test-check-decision-anchors.py` (measured 0.365s, exit 0) checks
 by its own exit code, with no output-string parsing needed.
 
@@ -133,14 +133,14 @@ correctly by T-25 (`plan.yaml:1810`).
   enumeration plus 72 greps against a worst-case (empty) note. Negligible — does not matter at any
   scale this note will reach. Not a finding.
 - **`.harness/harness.json` re-parsing across T-18/T-19/T-24/T-25`**: parsed directly by T-18, T-25,
-  and internally by the KIND-DRIFT check inside every `run-unit-tests.sh` invocation (T-19, T-24,
+  and internally by the KIND-DRIFT check inside every `run-unit-tests.py` invocation (T-19, T-24,
   T-25's `--check-kinds`) — up to 5 parses of a 10,710-byte file across the whole sequence, each
   measured at ~0.037s (dominated by Python interpreter startup, not JSON size). Total ≈0.19s spread
   across independently-scheduled tasks run by different agents at different times, not one pass that
   could feed several. Not a finding.
 - **`DECISIONS.md` re-reads across T-27/T-28**: each is a single grep/sed pass over one file,
   sub-millisecond-class per call. Not a finding.
-- **`run-unit-tests.sh`'s own text re-read (grep for registered/deregistered strings) across
+- **`run-unit-tests.py`'s own text re-read (grep for registered/deregistered strings) across
   T-18/T-19/T-24/T-25**: each is a single `grep` over a script file of a few hundred lines —
   negligible, not the cost driver; the cost driver is the *execution* the same commands trigger
   (EFF-01/EFF-02), not the text reads.

@@ -69,7 +69,7 @@ at 51 and failed with `G-04 is 51 words — cap is 50; a rule, not a story`.
 ## The fourth instance (new, unfiled by either panel half)
 
 T-05 step 7 said to replace `test-check-plan-routes.py`'s `case_13` with an assertion that
-`run-unit-tests.sh` "contains neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS`". That file lands in
+`run-unit-tests.py` "contains neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS`". That file lands in
 `tests/integration/`, which is not a record prefix, so the assertion is itself a live file naming the
 deleted mechanism: the task would have broken the next task's gate in order to assert something. The
 negative clause is struck; only the positive glob property remains, and the reason is D-02's own —

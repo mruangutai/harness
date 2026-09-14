@@ -18,7 +18,7 @@ git ls-tree -r --name-only 1497d104 | grep test-anchor-directions
 ```
 
 `suite_layout.violations()` run over a tree materialised **from `1497d104`** returns exactly the two
-pre-remediation messages (`test-shaped file remains under bin: …`). `run-unit-tests.sh` reads the
+pre-remediation messages (`test-shaped file remains under bin: …`). `run-unit-tests.py` reads the
 filesystem and exits 2 before any test (`:34-43`), so in CI or any fresh clone of this branch **no
 kind runs at all**. Locally `--check-layout` exits 0 only because of the uncommitted deletion — the
 exact tree-versus-ref trap the last two cycles were graded on. The `bin/` blobs are also **stale**:

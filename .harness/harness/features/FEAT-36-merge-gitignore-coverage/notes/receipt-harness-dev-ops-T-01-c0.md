@@ -62,13 +62,13 @@ Named coverage maps to requirements: preservation (REQ-01); complete and incompl
 
 ## Registration and planned verification
 
-`test-merge-gitignore.py` was added only to `INTEGRATION_SCRIPTS` in `.agents/skills/harness/bin/run-unit-tests.sh` and as the explicit `.agents/skills/harness/bin/test-merge-gitignore.py` member of `test_kinds.integration.detect` in `.harness/harness.json`. It was deliberately not added to `UNIT_SCRIPTS`; the existing unit catch-all remains overlapped while the explicit integration detector and runner cross-check establish authoritative integration classification.
+`test-merge-gitignore.py` was added only to `INTEGRATION_SCRIPTS` in `.agents/skills/harness/bin/run-unit-tests.py` and as the explicit `.agents/skills/harness/bin/test-merge-gitignore.py` member of `test_kinds.integration.detect` in `.harness/harness.json`. It was deliberately not added to `UNIT_SCRIPTS`; the existing unit catch-all remains overlapped while the explicit integration detector and runner cross-check establish authoritative integration classification.
 
 The plan's T-01 `verify:` scalar was checked verbatim against, and executed as:
 
 ```sh
 python3 .agents/skills/harness/bin/test-merge-gitignore.py &&
-.agents/skills/harness/bin/run-unit-tests.sh --kind all
+.agents/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 Exit status: `0` (145.18 seconds). The captured transcript showed no `MISCONFIGURED` or `KIND-DRIFT` line. Relevant literal output from the direct and all-kinds stages:
@@ -91,5 +91,5 @@ The all-kinds transcript contained no `MISCONFIGURED` or `KIND-DRIFT` finding; t
 ## Scope record
 
 - Production changed: no; `.agents/skills/harness/bin/merge-gitignore.sh` is byte-identical before and after.
-- Touched paths: `.agents/skills/harness/bin/test-merge-gitignore.py`, `.agents/skills/harness/bin/run-unit-tests.sh`, `.harness/harness.json`, and this receipt.
+- Touched paths: `.agents/skills/harness/bin/test-merge-gitignore.py`, `.agents/skills/harness/bin/run-unit-tests.py`, `.harness/harness.json`, and this receipt.
 - Cycles: `0`.

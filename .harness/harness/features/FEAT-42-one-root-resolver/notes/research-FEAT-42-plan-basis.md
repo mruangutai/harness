@@ -24,7 +24,7 @@ the OMP host feeds the accidental cwd straight back in as `HARNESS_PROJECT_DIR`.
   `CHECK_STATE_BIN`, `CHECK_PLAN_ROUTES_BIN`, `DISPATCH_GUARD_BIN`, `VALIDATE_DIGEST_BIN`,
   `INJECT_EXPERTISE_BIN`. Missing on `test-branch-create-gate.py:25` and `test-gh-close-gate.py:15`;
   T-14 and T-15 add it first, because without it am.4's proof cannot be run at all.
-- **`run-unit-tests.sh` has a drift detector** (`:47-60`): a `test-*.py` under `bin/` that is not in
+- **`run-unit-tests.py` has a drift detector** (`:47-60`): a `test-*.py` under `bin/` that is not in
   the arrays exits 2. That is why T-01 and T-02 verify their own file directly and T-03 registers
   both before any later task runs the suite. `unit`'s detect glob already matches, so
   `.harness/harness.json` needs no edit.

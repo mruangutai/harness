@@ -147,7 +147,7 @@ Cross-checked verbatim against `plan.yaml` T-04's `verify:` block — identical 
 - `python3 .claude/skills/harness/bin/test-worktree-terminal.py` — exit `0`, 34/34 PASS
   (`grep -c "^PASS"` on the same run = 34; last line `T02_EXIT=0`). Unaffected by this dispatch's
   scope — run to confirm no regression.
-- `.claude/skills/harness/bin/run-unit-tests.sh --check-kinds` — output
+- `.claude/skills/harness/bin/run-unit-tests.py --check-kinds` — output
   `check-kinds: the script arrays and test_kinds.integration.detect agree.`, exit `0`. No
   KIND-DRIFT, no MISCONFIGURED.
 - `.claude/skills/harness/bin/check-state.sh` — exit `0`. Output contains only `note`-severity

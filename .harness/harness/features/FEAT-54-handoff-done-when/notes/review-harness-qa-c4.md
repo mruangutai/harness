@@ -16,8 +16,8 @@ Plan change types are `logic` (T-01/02/03/04/06/07/12), `config` (T-05), `docs` 
 
 Both configured commands were run from repository root with only `HARNESS_AGENT_TYPE` unset to prevent the documented governed-agent identity leak; the command portion is byte-for-byte the configured `test_kinds.<kind>.cmd`.
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0; runner reported `pool: 8 workers, 25 files`; non-zero discovery; it executed both FEAT-54 unit files.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0; runner reported `pool: 8 workers, 44 files`; non-zero discovery; it executed all three FEAT-54 integration files.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0; runner reported `pool: 8 workers, 25 files`; non-zero discovery; it executed both FEAT-54 unit files.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0; runner reported `pool: 8 workers, 44 files`; non-zero discovery; it executed all three FEAT-54 integration files.
 
 No assertion, import, collection, syntax, load, or discovery failure occurred. Required-kind states are therefore `unit: satisfied` and `integration: satisfied`; `matrix_ok: true`.
 
@@ -87,8 +87,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

@@ -15,7 +15,7 @@ diff warrants sits outside it.
 
 ## Full suite (observed, not inferred)
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh` (no flag — runs unit+integration together),
+`bash .claude/skills/harness/bin/run-unit-tests.py` (no flag — runs unit+integration together),
 output captured to file, exit code read from `$?` immediately after, `FAIL ` count from a Python
 scan of the captured file (never grep, never a tail):
 - **Exit code observed: `0`.**
@@ -24,7 +24,7 @@ scan of the captured file (never grep, never a tail):
 
 ## `--check-kinds`
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds` → **exit `0`**,
+`bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds` → **exit `0`**,
 `"check-kinds: the script arrays and test_kinds.integration.detect agree."` Mechanical half of
 conflict resolutions 1 and 2 holds.
 
@@ -71,8 +71,8 @@ untouched by this reconciliation and not implicated.
 ## `.agents/skills` vs `.claude/skills` — **claim holds, no defect**
 
 `.agents` is a tracked symlink (`.agents/skills -> ../.claude/skills`); `os.path.realpath()` on both
-`test_kinds.*.cmd`'s `.agents/skills/...run-unit-tests.sh` and the `detect`/dispatch spelling
-`.claude/skills/...run-unit-tests.sh` resolve to the byte-identical file. The configured `cmd`
+`test_kinds.*.cmd`'s `.agents/skills/...run-unit-tests.py` and the `detect`/dispatch spelling
+`.claude/skills/...run-unit-tests.py` resolve to the byte-identical file. The configured `cmd`
 resolves and runs (proven above — it's the exact command used for the full-suite and
 `--check-kinds` runs). Not a BLOCKED-class gate defect.
 

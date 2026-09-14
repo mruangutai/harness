@@ -17,7 +17,7 @@ structure, not duplication.
 
 ## Analysis
 
-The DEC-174 sentence states the three-real-gates fact **twice**: once at 4308 ("`run-unit-tests.sh`,
+The DEC-174 sentence states the three-real-gates fact **twice**: once at 4308 ("`run-unit-tests.py`,
 `check-docs.sh` and `check-state.sh` were green") and again at 4316-4317 ("Those three real gates
 were green while:"). This is the shape the skill asks me to hunt for — same fact, different
 spelling, one passage.

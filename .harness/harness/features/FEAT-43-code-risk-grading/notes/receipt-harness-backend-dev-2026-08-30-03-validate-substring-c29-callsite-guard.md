@@ -156,7 +156,7 @@ $ echo $?
 ### F. Unit test suite
 
 ```
-$ HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ... PASS test-gate-policy.py [last of the run] ...
 $ echo $?
 0

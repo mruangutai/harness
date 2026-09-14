@@ -13,7 +13,7 @@
 - 2026-08-25: two reviewers cited board_lifecycle.py:120 for audit's exit 4; the real site is
   cmd_audit at :906-914 and :120 is docstring prose describing reconcile. A line anchor into a file
   with a 200-line module docstring lands in the narration, not the code.
-- 2026-08-25: FEAT-40 — five task verifies opened with `run-unit-tests.sh --kind all` while six unit
+- 2026-08-25: FEAT-40 — five task verifies opened with `run-unit-tests.py --kind all` while six unit
   scripts were already red at cc84b29 through no act of the feature; the runner cannot select scripts
   (:24-40), so the tasks were unmarkable. Remedy: a baseline set of tolerated FAIL names plus a
   per-task `PASS <owned script>` clause (D-12, T-11). The clause that matters is the owned-script one.

@@ -71,8 +71,8 @@ when non-empty; INV-27's CANNOT_VERIFY session-entry line similarly moved from `
 
 | Command | Exit |
 |---|---|
-| `run-unit-tests.sh --kind unit` | 0 |
-| `run-unit-tests.sh --kind integration` | 0 (includes `test-check-domain.py`,
+| `run-unit-tests.py --kind unit` | 0 |
+| `run-unit-tests.py --kind integration` | 0 (includes `test-check-domain.py`,
   `test-validate-digest.py`, `test-check-expertise.py` meta-gates) |
 | `check-state.sh` live against the real repo | 0 (notes only, no INV-27 findings — real tree is
   clean/migrated so INV-27 never fires; consistent with expectation) |
@@ -80,7 +80,7 @@ when non-empty; INV-27's CANNOT_VERIFY session-entry line similarly moved from `
 ## 6. Mutation re-proof (worktree `.claude/worktrees/qa-c3-probe` @ d15daa3, per DEC-153)
 
 Mutated `layout_fixtures.STUB[".harness/team-config.yaml"]["legacy"]` to equal its `"migrated"`
-value (collapsing the distinguishing evidence). `run-unit-tests.sh --kind all` in the worktree:
+value (collapsing the distinguishing evidence). `run-unit-tests.py --kind all` in the worktree:
 exit 1, 5 named failures including `test-layout-migration.py` cases 3/8/12/15/18 and
 `test-check-state.py` x.3. Restored with `git checkout --`; `git status --porcelain` confirmed
 clean before `git worktree remove`. The binding demonstrated at 6296149 carries at d15daa3 despite

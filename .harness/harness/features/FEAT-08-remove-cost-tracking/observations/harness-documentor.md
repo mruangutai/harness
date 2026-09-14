@@ -233,7 +233,7 @@ reading. Same bytes checked either way.
     .claude/skills/harness/bin/check-docs.sh        exit 0   "checked 45 superseded pattern(s)
                                                               across 207 file(s). no stale
                                                               statements found."
-    .claude/skills/harness/bin/run-unit-tests.sh    exit 0   12 PASS lines, zero FAIL
+    .claude/skills/harness/bin/run-unit-tests.py    exit 0   12 PASS lines, zero FAIL
 
 ### Observations
 

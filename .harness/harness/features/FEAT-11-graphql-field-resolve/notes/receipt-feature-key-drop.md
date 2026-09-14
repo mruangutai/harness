@@ -112,9 +112,9 @@ operator_rulings_2026_08_10: 'Q1 AMENDED. SC-01''s "single-digit GraphQL points 
   and blocks a legal in-domain write. DEC-174 carve-out: fixed directly, never dispatched.'
 peer_feature_collision:
   peer: FEAT-12-end-copy-distribution
-  shared_surface: .claude/skills/harness/bin/run-unit-tests.sh
+  shared_surface: .claude/skills/harness/bin/run-unit-tests.py
   ship_phase_measurement: 'MEASURED before every commit, not assumed: git status --porcelain
-    stayed clean over run-unit-tests.sh and all four DEC-174 carve-out files throughout.
+    stayed clean over run-unit-tests.py and all four DEC-174 carve-out files throughout.
     FEAT-12 landed nothing into this tree, so T-01''s verify means what the plan measured.
     Unrelated held dirt appeared mid-run (harness-handoff/SKILL.md, team-config.yaml,
     test-harness-yaml.py, .harness/logs/2026-08-10.md, the untracked FEAT-12 dir)

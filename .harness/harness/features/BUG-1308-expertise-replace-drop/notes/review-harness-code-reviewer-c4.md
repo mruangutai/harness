@@ -141,7 +141,7 @@ worktree untouched)
   (all 26 cases, including case18's real 2.03s lock-hold and case25/26's VL-06 exploits).
 - `python3 tests/integration/test-gen-decisions-index.py` @ pin: 14/14 ok, exit 0.
 - In this worktree (HEAD `ac6c9c5b` = `b70d57b4` + a feature.json pin-bump only, diff-confirmed):
-  `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit`: **0
+  `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit`: **0
   `^FAIL `**, 28 files. `--kind integration`: **0 `^FAIL `**, 46 files, 86.86s. (The unit-kind file
   count differing from earlier cycles' reported 74 is the already-known, already-accepted
   caller-dependent discovery-count variance — not re-raised.)

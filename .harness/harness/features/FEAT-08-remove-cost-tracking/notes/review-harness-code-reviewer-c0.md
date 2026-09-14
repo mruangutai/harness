@@ -13,7 +13,7 @@ and unrelated dirty files (`perf-review-agent-workflow-2026-08-04.md`, `2026-08-
 in a path I reviewed. No `[harness:human]` commits in range. **The tree I reviewed is the pinned
 bytes**, confirmed by re-reading source files via `git show 942505e:<path>` throughout, not the
 working tree, except where I first proved the two trees identical (`git diff 942505e HEAD -- <path>`
-exit 0) before running live commands (`check-state.sh`, `run-unit-tests.sh`, `check-docs.sh`,
+exit 0) before running live commands (`check-state.sh`, `run-unit-tests.py`, `check-docs.sh`,
 `gen-decisions-index.py --stdout`).
 
 ## Verdict: PASS
@@ -31,7 +31,7 @@ files were untouched.
 **Mechanically re-verified, not relayed** (all commands run by me against the pinned tree or a tree
 proven identical to it):
 - SC-01: `grep -rln --exclude-dir=worktrees -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11 .claude/ docs/ .harness/harness.json .harness/team-config.yaml .harness/README.md` → exactly `DECISIONS.md`, `BUILD.md`, `DECISIONS-INDEX.md`, `SPEC.md`. Matches A-4's amended four-survivor set exactly.
-- SC-03/SC-11: `check-state.sh` exits 0 (zero `bad`, only pre-existing unrelated `note` lines); `run-unit-tests.sh` exits 0, twelve `PASS` lines (thirteen minus the deleted `test-cost-report.py`), drift detector satisfied not bypassed.
+- SC-03/SC-11: `check-state.sh` exits 0 (zero `bad`, only pre-existing unrelated `note` lines); `run-unit-tests.py` exits 0, twelve `PASS` lines (thirteen minus the deleted `test-cost-report.py`), drift detector satisfied not bypassed.
 - SC-04: confirmed by reading `validate-digest.py`'s `SCHEMAS["orchestrator"]` — `cost_usd` gone, five required fields.
 - SC-05/SC-07: `grep -c max_total_cycles` → `:2` for both configs (byte-identical, untouched per D-10); `grep -c -e cost_model -e per_feature_usd -e per_run_usd -e warn_at_fraction -e _budgets_note` → `:0` for both.
 - SC-08/SC-09: `gen-decisions-index.py --stdout | diff - DECISIONS-INDEX.md` exits 0 (hand-written DEC-148 ruling prose survives regeneration); `grep -c 'RULING PENDING'` → 0; DEC-178 entry (**`docs/harness/DECISIONS.md:4881`**, `grep -n '^## DEC-178'`) present once, contains all six required elements (reason, watchdog dropped + why, DEC-148 partial supersession, historical figures kept + 67-measurement, briefing line not replaced + backlog, `cost_usd` removed not aliased) and **no** `**Supersedes DEC-148**` line (D-05 compliance, confirmed by grep).

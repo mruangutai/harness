@@ -19,7 +19,7 @@ member can apply it — it goes to the lead's docket as an open question, not a 
    full): this is a manual/pre-commit boundary check, not a hook in `.claude/settings.json`
    — confirmed by grep, `check-state.sh` is absent from the hooks block. A boundary-step full
    read is not waste per the skill's own carve-out. Not a finding.
-5. `run-unit-tests.sh`'s new kind-drift cross-check subprocess (one `python3 -` heredoc per
+5. `run-unit-tests.py`'s new kind-drift cross-check subprocess (one `python3 -` heredoc per
    suite invocation, before any test runs): one process spawn per suite run, not per tool
    call. At the suite's own stated ~15s runtime this is immaterial. Not a finding.
 6. The blind-spot footer's second full corpus read (~0.39s of ~0.80s) — already dispositioned

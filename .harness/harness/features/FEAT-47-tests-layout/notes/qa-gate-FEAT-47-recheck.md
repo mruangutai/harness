@@ -63,7 +63,7 @@ python3 tests/manual/suite-census.py verdict-lines \
 been re-derived against the current tree; none of the ~20 files the prior gate found drifted
 (`test-check-domain.py`, `test-gh-sync.py`, `test-check-state.py`, `test-harness-boundary.py`,
 `test-orchestrator-playbook.py`, `test-factory-config.py`, etc.) show a mismatch now. Full suite
-cross-check: `run-unit-tests.sh --kind unit` (21 files) and `--kind integration` (43 files) both exit
+cross-check: `run-unit-tests.py --kind unit` (21 files) and `--kind integration` (43 files) both exit
 0 with zero `FAIL`/`not ok` lines outside self-tests — 21 + 43 = 64, consistent with dispatch's
 "prior full runner passed 64 files."
 
@@ -134,11 +134,11 @@ DIGEST:
   kinds:
     - kind: unit
       state: satisfied
-      cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit"
+      cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit"
       named_tests: 21
     - kind: integration
       state: satisfied
-      cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration"
+      cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration"
       named_tests: 43
     - kind: omp_session_accessor
       state: locally-run

@@ -473,7 +473,7 @@ def case7():
     pat = re.compile(r"(?<!`)python3 (?!-I )(-c |- )(?=[\'\"$]|<<)")
     scripts = [f for f in git_ls_files()
                if f.startswith(".claude/skills/harness/bin/") and f.endswith(".sh")]
-    check("case7_scripts_found", len(scripts) >= 4,
+    check("case7_scripts_found", len(scripts) >= 3,
           f"only {len(scripts)} gate scripts scanned — the glob stopped matching")
     naked = []
     for rel in scripts:
@@ -491,7 +491,7 @@ def case7():
                if guarded.search(line))
     safe_hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
                     if "python3 -c" in line and "sys.path.pop(0)" in line)
-    check("case7_the_scan_can_see_the_invocations", hits >= 5 and safe_hits == 0,
+    check("case7_the_scan_can_see_the_invocations", hits >= 3 and safe_hits == 0,
           f"found {hits} isolated launches and {safe_hits} safe-python launches")
 
 

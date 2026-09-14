@@ -15,7 +15,7 @@ invalidates the panel's verdict, so it is now or as briefing rows.
 - Build is complete: all nine tasks `status: done` — `plan.yaml:106,277,330,389,439,499,532,588,646`
   — verified-at e53f252b
 - The blocking gate passes at the code tip: `env -u HARNESS_AGENT_TYPE bash
-  .agents/skills/harness/bin/run-unit-tests.sh` exits 0 over 106 files, run by this orchestrator
+  .agents/skills/harness/bin/run-unit-tests.py` exits 0 over 106 files, run by this orchestrator
   both before and after the simplify apply — `runs/2026-09-09-02-qa-gate-validator/digest.md`
   (operative verdict is the LAST anchor, line 216 PASS) — verified-at ce1fd115
 - `e53f252b` changes no path outside the feature directory relative to `ce1fd115` — `git diff

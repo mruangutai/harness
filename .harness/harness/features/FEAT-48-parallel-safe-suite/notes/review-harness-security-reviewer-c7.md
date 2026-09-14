@@ -10,7 +10,7 @@ narrowing of the pre-existing exposure. Full file set from the dispatch was read
 |---|---|---|
 | `isolated_bin.py` | IN | new temp/copy primitive |
 | `run_pool.py` | IN | new subprocess/env/temp-scan surface |
-| `run-unit-tests.sh` | IN | argv/env wiring to the pool |
+| `run-unit-tests.py` | IN | argv/env wiring to the pool |
 | `test-suite-independence.py` | IN | new AST scanner, `--scan-dir` argv, `os.walk` |
 | `test-run-pool.py` | IN | drives `run_pool.py` argv/env, incl. a `sh -c` fixture |
 | `test-check-domain.py`, `test-check-state.py`, `test-feature-worktree.py`, `test-check-fixture-secrets.py`, `test-validate-digest.py`, `test-bash-write-guard.py` | IN | all six adopt `isolated_bin()`/`tempfile.mkdtemp()` |
@@ -49,17 +49,17 @@ it writes into is ever attacker-predictable or pre-existing.
 and range-checked (`>0`); a bad value is a loud `exit 2`, never passed to a shell or used as a
 path. `--mutation-check DIR` (`run_pool.py:66-73`) is `os.path.abspath()`'d and validated with
 `os.path.isdir` before use — not shell-interpolated, only fed to `os.walk`/`os.stat`. The script
-paths on argv in `run-unit-tests.sh` are a fixed, hardcoded bash array (`UNIT_SCRIPTS`/
+paths on argv in `run-unit-tests.py` are a fixed, hardcoded bash array (`UNIT_SCRIPTS`/
 `INTEGRATION_SCRIPTS`), never taken from environment or caller argv; `"${SCRIPTS[@]/#/$BIN_DIR/}"`
 is bash parameter expansion feeding a Python argv array via `exec python3 … -- "${SCRIPTS[@]…}"`
-(`run-unit-tests.sh:148`) — no shell is invoked a second time, so string-concatenation here is
+(`run-unit-tests.py:148`) — no shell is invoked a second time, so string-concatenation here is
 not an injection vector. `$BIN_DIR` itself is the literal `.claude/skills/harness/bin`, never
 env-derived. `test-suite-independence.py`'s `--scan-dir` (`test-suite-independence.py:153-160`)
 is `os.path.abspath()`'d and only ever fed to `os.walk`/`ast.parse` for a local developer/CI
 invocation — no remote/untrusted-input reachability.
 
 **Data exposure via captured stdout/stderr.** Compared byte-for-byte against
-`git show d135364e:.claude/skills/harness/bin/run-unit-tests.sh`: the pre-diff runner already
+`git show d135364e:.claude/skills/harness/bin/run-unit-tests.py`: the pre-diff runner already
 executed `python3 "$BIN_DIR/$s"` with **no output redirection**, so every test's stdout/stderr —
 including anything a test prints from its own environment — already streamed straight to the
 CI/terminal log. `run_pool.py:46-48` captures the same two streams (merged) and reprints them

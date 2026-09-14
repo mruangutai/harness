@@ -175,7 +175,7 @@ Two things were measured rather than assumed:
 - **Every current entry carries 0 or 1 `Chose:` blocks.** A one-ruling check keyed on `Chose:`
   count is mechanical today and passes all 90 clause-bearing entries, so it is redundant during the
   migration and load-bearing after it — exactly as the omnibus finding predicted.
-- `check-decision-anchors.py` is invoked by **nothing**. `run-unit-tests.sh` and `harness.json`
+- `check-decision-anchors.py` is invoked by **nothing**. `run-unit-tests.py` and `harness.json`
   register `test-check-decision-anchors.py`, the test. Issue #133's shape on `DEC-205`'s own clause.
 - `gen-decisions-index.py` is the only non-test parser of DEC ids (6 `DEC-\d+` regexes);
   `check-expertise.sh` has one more.

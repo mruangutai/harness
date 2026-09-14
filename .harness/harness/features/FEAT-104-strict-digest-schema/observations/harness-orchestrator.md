@@ -76,7 +76,7 @@
   each found the SAME residual (a declared-key type error still printing under the "undeclared step
   key" head) from opposite directions, qa by live probe and eng by reading. Two lenses agreeing on a
   finding neither was asked for is worth more than either alone.
-- 2026-09-10: FEAT-104 c10. Counting `^FAIL ` lines to grade run-unit-tests.sh is DEFEATED here:
+- 2026-09-10: FEAT-104 c10. Counting `^FAIL ` lines to grade run-unit-tests.py is DEFEATED here:
   tests/unit/test-factory-claim-mutation.py reprints 4 `FAIL BUG-1290 ...` lines as its own success
   output between `MUTANT ACTIVE` and `MUTATION PROOF`, at exit 0. My own expertise P-01 says to count
   those lines; the runner's exit status is the only reliable signal, and the FAIL census needs a

@@ -33,8 +33,8 @@ feature's change and must be shown to pass — labelled supplementary/added belo
 
 | kind | state | cmd | exit | discovery | summary |
 |---|---|---|---|---|---|
-| unit (required) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 28 files | `pool: 8 workers, 28 files, 3.12s wall`; `test-factory-claim.py`: **125/125 checks passed** |
-| integration (added, diff warrants it) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 46 files | `pool: 8 workers, 46 files, 80.54s wall`; `test-factory-integration.py` (exit 0, 16.17s): **131/131 checks passed**; `test-layout-migration.py` (exit 0, 1.83s): **28/28 checks passed** |
+| unit (required) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 28 files | `pool: 8 workers, 28 files, 3.12s wall`; `test-factory-claim.py`: **125/125 checks passed** |
+| integration (added, diff warrants it) | **satisfied** | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 46 files | `pool: 8 workers, 46 files, 80.54s wall`; `test-factory-integration.py` (exit 0, 16.17s): **131/131 checks passed**; `test-layout-migration.py` (exit 0, 1.83s): **28/28 checks passed** |
 
 Both diff-touched integration test files are confirmed present in the 46-file sweep and both green —
 not a bare exit code, the per-file PASS lines were grepped out of the run.
@@ -113,7 +113,7 @@ This send-back closes the one gap left open above: the three-arm fixture control
 immediately after with `rm -rf` and confirmed gone. `env -u HARNESS_AGENT_TYPE` on every invocation
 (project Expertise G-07). Ran the single test file directly (`python3 tests/unit/test-factory-claim.py`)
 in each copy — this is the same standalone invocation the prior cycle used for its own baseline
-re-derivation, not the `run-unit-tests.sh` kind command; the matrix/kind resolution from earlier in
+re-derivation, not the `run-unit-tests.py` kind command; the matrix/kind resolution from earlier in
 this note is unchanged and not re-run.
 
 ### Arm A — remove the fixture dependency `5g` names

@@ -68,7 +68,7 @@ both before ruling this, per the task's explicit invitation to review table stru
 
 ## 5. Other small edits scanned for user-facing text
 
-`check-domain.py` (comment-only, strips a stale `am.1` amendment reference), `run-unit-tests.sh`
+`check-domain.py` (comment-only, strips a stale `am.1` amendment reference), `run-unit-tests.py`
 (one array entry added), `.harness/harness.json` (one glob entry added) — none touch a message a
 human reads as rendered/terminal output. Looked, nothing to report.
 

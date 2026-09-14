@@ -149,7 +149,7 @@ none of the guard's business.
 - SC-09: `check-domain.py --resolve` and the write path agree on the base for the same product path:
   the resolver names the persona the guard permits, and names nobody for a path the guard refuses.
   verify: automated        evidence: integration
-- SC-10: The whole suite is green after the change — `run-unit-tests.sh` exits 0 — so the new base
+- SC-10: The whole suite is green after the change — `run-unit-tests.py` exits 0 — so the new base
   logic has not disturbed the shape phase, the post-mode sweep or the bootstrap escape.
   verify: automated        evidence: integration
 - SC-11: The operator, reading the decision record after the change, can state exactly which
@@ -181,7 +181,7 @@ none of the guard's business.
 ## Verification gaps
 
 - `test-check-domain.py` is claimed by `harness.json`'s `unit` detect glob
-  (`.claude/skills/harness/bin/test-*.py`) but is executed from `run-unit-tests.sh`'s
+  (`.claude/skills/harness/bin/test-*.py`) but is executed from `run-unit-tests.py`'s
   `INTEGRATION_SCRIPTS`. Every criterion above names `evidence: integration`, which is the bucket
   that actually runs it. `--kind unit` would report green without executing a single case here.
   The detect/runner disagreement is pre-existing and is raised for the backlog, not fixed here.

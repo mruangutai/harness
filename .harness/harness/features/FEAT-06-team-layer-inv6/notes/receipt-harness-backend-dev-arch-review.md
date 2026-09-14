@@ -75,7 +75,7 @@ harness_yaml.PLACEHOLDER_UNSET)`) rather than as a literal, or have check (6) ex
 `test-team-catalog.py` itself from the scanned set. Neither is in T-07's intent as written.
 
 **5. T-01 / T-09 / T-11 verify commands, run at 635ef14:**
-- T-01 (1) `run-unit-tests.sh` → exit 0 **already true today** (non-discriminating, but harmless —
+- T-01 (1) `run-unit-tests.py` → exit 0 **already true today** (non-discriminating, but harmless —
   an AND with genuinely-red conjuncts).
 - T-01 (2) `grep -rn '"none","null","n/a"' bin/ | wc -l` → `1` **already true today**
   (non-discriminating on its own; see finding 4 above for how it goes stale).
@@ -120,7 +120,7 @@ evidence`):**
 | SC-08 | yes | yes | same — `build.yaml` absent |
 | SC-09 | yes | yes | `grep -n build SKILL.md \| grep -i DEC-118` → exit 1 |
 | SC-10 | yes | **yes, with a fix** | `grep -c '^| .*\*\*build\*\*' SPEC.md` → 0; check (7) itself needs markup-stripping (finding 2) |
-| SC-11 | **no** | yes | `run-unit-tests.sh` → exit 0 **already**, vacuously (no unregistered script exists yet); becomes discriminating only as a side effect of T-07 adding one |
+| SC-11 | **no** | yes | `run-unit-tests.py` → exit 0 **already**, vacuously (no unregistered script exists yet); becomes discriminating only as a side effect of T-07 adding one |
 | SC-12 | n/a (inspection) | yes | a reviewer-read claim over PLAN's `execution_mode`/`reason` fields, not a command |
 | SC-13 | n/a (uat) | yes | user judgement, not testable |
 | SC-14 | yes | **yes, with care** | `grep -c -i test_matrix SKILL.md` → 0; single-line predicate risk, finding 3 |

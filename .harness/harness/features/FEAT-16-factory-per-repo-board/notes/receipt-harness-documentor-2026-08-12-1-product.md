@@ -67,7 +67,7 @@ own string.
 - `test-gen-decisions-index.py` — 9/9 ok, including
   `test_committed_index_is_complete_and_within_budget` (30-word ruling cap, 260-line index budget)
   and `test_committed_index_matches_a_fresh_regeneration`.
-- `run-unit-tests.sh` — every suite `PASS`, no `FAIL` line anywhere in the output.
+- `run-unit-tests.py` — every suite `PASS`, no `FAIL` line anywhere in the output.
 
 ## Content claims and where they were checked, not assumed
 

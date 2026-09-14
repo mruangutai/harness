@@ -20,7 +20,7 @@ the "numbers go stale after the first deletion" trap did not apply.
 - `python3 .claude/skills/harness/bin/test-gh-sync.py`: rc=0, zero `FAIL` lines.
 - Pinned line `an unusable board config is a loud failure, not a skipped station write` — still
   present as `ok` (line 98 of output).
-- `bash .claude/skills/harness/bin/run-unit-tests.sh --kind all`: rc=0. `grep -c FAIL` on the full
+- `bash .claude/skills/harness/bin/run-unit-tests.py --kind all`: rc=0. `grep -c FAIL` on the full
   output returned 4, but all 4 are `ok`-prefixed lines whose *test name* contains the substring
   "FAIL" (e.g. `ok    FAIL over an escalating member is rejected`) — zero actual `FAIL`-prefixed
   result lines. Suite fully green.

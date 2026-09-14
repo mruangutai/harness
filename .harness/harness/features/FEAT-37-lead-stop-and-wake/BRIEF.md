@@ -336,7 +336,7 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
   anyway, as this plan's own evidence discipline: a gate's behaviour is downstream of that diff, and
   `check-plan-routes.py` reads domain grants and nothing else, so it prints `OK T-04` regardless.
 - **`test_kinds.unit` supplies the runner**: its `detect` glob already matches
-  `.claude/skills/harness/bin/test-*.py`, and `run-unit-tests.sh`'s `UNIT_SCRIPTS` array is where a
+  `.claude/skills/harness/bin/test-*.py`, and `run-unit-tests.py`'s `UNIT_SCRIPTS` array is where a
   new file is registered — its drift detector fails the suite on any `test-*.py` in neither array.
 - **`gen-decisions-index.py` supplies the index check**; the hand-written half of a row survives
   regeneration verbatim.

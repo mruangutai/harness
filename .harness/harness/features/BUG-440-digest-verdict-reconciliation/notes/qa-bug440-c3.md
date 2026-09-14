@@ -79,7 +79,7 @@ fix_confined_to_tests_and_contract_docs` — same reasoning as cycle-2: evaluate
 feature diff (which is not test-confined at T-01), so this leg stays inert; `integration` is
 independently required regardless because `tests/integration/test-check-state.py` matches
 `test_kinds.integration.detect` (`tests/integration/**`) AND is directly globbed by
-`run-unit-tests.sh --kind integration`'s own `SCRIPTS=(tests/integration/test-*.py)` (confirmed by
+`run-unit-tests.py --kind integration`'s own `SCRIPTS=(tests/integration/test-*.py)` (confirmed by
 reading the script, not inferred from the glob alone). `match_bug_class` stays inert (repository
 Expertise G-08 — no taxonomy entry resolves for any diff yet). **matrix_ok: true.** The restructure
 did not change how many changed units are gate-bound: the same one script (`check-state.sh`, 0-diff)

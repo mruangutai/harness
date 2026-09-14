@@ -16,8 +16,8 @@ Plan change types are logic (T-01/02/03/04/06/07/12), config (T-05), docs (T-08/
 
 Commands were run from repository root with only `HARNESS_AGENT_TYPE` unset; the command portions are exactly `test_kinds.<kind>.cmd`.
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0; `pool: 8 workers, 25 files`; non-zero discovery and execution.
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` — exit 0; `pool: 8 workers, 44 files`; non-zero discovery and execution.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0; `pool: 8 workers, 25 files`; non-zero discovery and execution.
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` — exit 0; `pool: 8 workers, 44 files`; non-zero discovery and execution.
 - `python3 tests/unit/test-handoff-done-when.py` — exit 0; 54/54 printed named assertions.
 - `python3 tests/unit/test-probe-handoff-comprehension.py` — exit 0; `Ran 7 tests`; the captured actual argv assertion requires `argv.count("--no-tools") == 1` and rejects `--auto-approve` (`tests/unit/test-probe-handoff-comprehension.py:71-80`).
 - `python3 tests/integration/test-check-domain.py` — exit 0; 41/41 printed FEAT-54 handoff outcomes.
@@ -66,8 +66,8 @@ DIGEST:
   failures: 1
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

@@ -4,11 +4,11 @@
 
 T-13 delivered. `.claude/skills/harness/bin/test-hooks-install.py` created, 27/27 cases PASS,
 exit 0 — the only automated evidence for SC-08, SC-13 (all three clauses) and SC-14. Registered
-in both `.harness/harness.json` `test_kinds.integration.detect` and `run-unit-tests.sh`
+in both `.harness/harness.json` `test_kinds.integration.detect` and `run-unit-tests.py`
 `INTEGRATION_SCRIPTS` (T-05's precedent honoured — both, not one). Both named RED PROOFS (case
 (d) and case (e)) were run and demonstrably fail for the reason the plan names, not an incidental
 one. `test-post-merge-sweep.py` and `test-worktree-terminal.py` are unmodified and stay green.
-`check-state.sh` is exit 0 / zero VIOLATION lines. `run-unit-tests.sh` reports **no KIND-DRIFT and
+`check-state.sh` is exit 0 / zero VIOLATION lines. `run-unit-tests.py` reports **no KIND-DRIFT and
 no MISCONFIGURED** — but the full suite's exit code is 1, from one PRE-EXISTING failure in
 `test-validate-digest.py` unrelated to any of my three files (open_question below, non-blocking
 for this task).
@@ -17,7 +17,7 @@ for this task).
 
 - `.claude/skills/harness/bin/test-hooks-install.py` (new)
 - `.harness/harness.json` — one literal path appended to `test_kinds.integration.detect`
-- `.claude/skills/harness/bin/run-unit-tests.sh` — one literal path appended to
+- `.claude/skills/harness/bin/run-unit-tests.py` — one literal path appended to
   `INTEGRATION_SCRIPTS`
 
 `git status --porcelain` confirms no other file was touched.
@@ -134,9 +134,9 @@ prints for this exact condition, not a crash or an unrelated error.
 
 ## Registration
 
-`INTEGRATION_SCRIPTS` (`run-unit-tests.sh:18`) and `test_kinds.integration.detect`
+`INTEGRATION_SCRIPTS` (`run-unit-tests.py:18`) and `test_kinds.integration.detect`
 (`.harness.json:119`) both now carry `test-hooks-install.py`, an explicit literal path matching
-the form of every existing entry. Verified by running `run-unit-tests.sh` in full (below) — no
+the form of every existing entry. Verified by running `run-unit-tests.py` in full (below) — no
 KIND-DRIFT, no MISCONFIGURED, both of which would fire loudly (exit 2, before any test runs) on a
 one-sided registration.
 
@@ -153,7 +153,7 @@ FAIL lines, `EXIT=0` printed, and I did not touch this file or its test.
 **`python3 .claude/skills/harness/bin/test-worktree-terminal.py`** — measured **34 PASS / 0 FAIL**,
 exit code `0` — matches the dispatch's stated figure exactly.
 
-**`.claude/skills/harness/bin/run-unit-tests.sh`** (full run, all 45 unit + integration scripts,
+**`.claude/skills/harness/bin/run-unit-tests.py`** (full run, all 45 unit + integration scripts,
 `$?` captured directly, no pipe): exit code **`1`**. Grep for `KIND-DRIFT` and `MISCONFIGURED`
 across the entire run: **zero matches at the top level** — the only lines containing those tokens
 are `test-run-unit-tests-kinds.py`'s own synthetic test cases exercising the drift detector by

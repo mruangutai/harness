@@ -20,7 +20,7 @@ graded tree carries only committed content, no live team-authored edit.
 ## 2. Full suite
 
 ```
-env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh; echo "SUITE_EXIT=$?"
+env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py; echo "SUITE_EXIT=$?"
 ```
 → `pool: 8 workers, 106 files, 76.37s wall` · `ALL PASSED` · `SUITE_EXIT=0`.
 
@@ -30,8 +30,8 @@ above, this is NOT a red signal; graded on `SUITE_EXIT=0` alone, which is clean.
 
 ## 3. Per-kind commands (test_matrix floor for `change_type: logic`)
 
-- `unit` (active): `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` → `pool: 8 workers, 36 files, 2.33s wall`, `UNIT_EXIT=0`. **satisfied** (regression gate; see coverage gap below).
-- `integration` (active): `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` → `pool: 8 workers, 70 files, 75.89s wall`, `ALL PASSED`, `INTEGRATION_EXIT=0`. **satisfied** — every new automated criterion for T-01/T-04/T-05/T-06/T-07/T-08 lives here.
+- `unit` (active): `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` → `pool: 8 workers, 36 files, 2.33s wall`, `UNIT_EXIT=0`. **satisfied** (regression gate; see coverage gap below).
+- `integration` (active): `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` → `pool: 8 workers, 70 files, 75.89s wall`, `ALL PASSED`, `INTEGRATION_EXIT=0`. **satisfied** — every new automated criterion for T-01/T-04/T-05/T-06/T-07/T-08 lives here.
 - `component`, `ui`, `typecheck`: `cmd: null`, status `unresolved` in `.harness/harness.json` — not obligated by `change_type: logic`, no predicate fires. **not applicable.**
 - `functional`, `eval`: status `excluded`, signed DEC-187. **not applicable.**
 - `omp_session_accessor`, `handoff_comprehension`, `issue_types_live`: `locally_run`. This diff does not touch any of these three kinds' `detect` surface (schema/digest/CLI code, not session-accessor/handoff-prompt/issue-type surfaces). **not applicable — no recorded run required.**

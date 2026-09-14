@@ -9,7 +9,7 @@
 `.harness/logs/` + `.harness/notes/` — `STATE.md`, `feature.json`, review/answer/handoff notes, the
 ship-review doc (`.md` + `.html`), and two observations logs. **Zero of the eight source files this
 feature shipped are touched** — no `layout_migration.py`, `check-state.sh`, `tests.yml`,
-`run-unit-tests.sh`, or either test file appears in this delta. This is bookkeeping-and-distillation
+`run-unit-tests.py`, or either test file appears in this delta. This is bookkeeping-and-distillation
 only: close-out notes, expertise distillation, ship-review authoring. Scoping OUT per S1's own
 instruction — no mechanism changed, so there is nothing here for this role to exploit-model against.
 

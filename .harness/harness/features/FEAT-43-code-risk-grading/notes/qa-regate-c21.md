@@ -8,8 +8,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 29 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 28 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 29 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 28 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-14, test: "test-code-grade-cli.py:test_bars_follow_test_kinds (unchanged since c18, re-confirmed by suite exit 0)" }
@@ -44,8 +44,8 @@ type is **unchanged** from c18/c19. Matrix requires `unit` + `integration`, both
 
 | kind | required | command | state | count | vs baseline (c13-r01: 29/29, 28/28) |
 |---|---|---|---|---|---|
-| unit | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | satisfied | 29/29 scripts, 0 fail, exit 0 | matches |
-| integration | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | satisfied | 28/28 scripts, 0 fail, exit 0 | matches |
+| unit | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | satisfied | 29/29 scripts, 0 fail, exit 0 | matches |
+| integration | matrix: cross_module.always | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | satisfied | 28/28 scripts, 0 fail, exit 0 | matches |
 | functional | excluded (DEC-187) | n/a | soft skip | n/a | n/a |
 
 Raw logs: `/tmp/qa_unit_c21.log` (1443 lines), `/tmp/qa_integration_c21.log` (1908 lines). Dedup

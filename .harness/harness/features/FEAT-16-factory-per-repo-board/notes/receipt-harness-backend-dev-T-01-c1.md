@@ -54,7 +54,7 @@ in `test-factory-config.py` standalone, and the full unit suite below.
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Verbatim stdout+stderr (captured to a file, exit code appended as the last line — no lines

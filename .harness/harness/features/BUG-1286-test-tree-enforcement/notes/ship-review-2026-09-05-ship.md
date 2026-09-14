@@ -67,8 +67,8 @@ so the measurement is sound — only the provenance token is wrong. Remedy: one 
 
 **B-3 · SC-16 UNMET · unproven, not wrong ·** the criterion's decisive clause is that
 `violations()` has exactly one caller. I verified by `git grep` at the reviewed revision that it
-does — `run-unit-tests.sh:33`, alone. But no unit assertion pins that repository-wide; the nearest
-one counts lines *inside* `run-unit-tests.sh` and would stay green if a second caller appeared
+does — `run-unit-tests.py:33`, alone. But no unit assertion pins that repository-wide; the nearest
+one counts lines *inside* `run-unit-tests.py` and would stay green if a second caller appeared
 elsewhere. Remedy: one caller-count assertion.
 
 ## The budget, and a doctrine question you should settle

@@ -86,7 +86,7 @@ hardcoded fallback, not a bare duplicate. The same shape (`try: RE_STATE_YAML =
 harness_boundary.RE_STATE_YAML; except Exception: RE_STATE_YAML = re.compile(...)`) would have
 kept the single source of truth without weakening the fail-open guarantee. As shipped, the two
 copies can only be kept honest by the new `run_bug1106_shared_pattern_consistency` test, which
-*is* wired into `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` (verified) and does run — so this is a
+*is* wired into `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` (verified) and does run — so this is a
 real but low-priority design nit, not a live risk.
 
 ## Verified sound

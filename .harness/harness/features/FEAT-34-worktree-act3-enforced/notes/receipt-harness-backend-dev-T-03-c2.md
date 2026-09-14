@@ -55,7 +55,7 @@ worktree; the main-checkout root is the actual `harness` checkout.
 | `python3 .claude/skills/harness/bin/test-hooks-install.py` | 29 PASS, exit 0 (unchanged) |
 | `python3 .claude/skills/harness/bin/test-worktree-terminal.py` | 34 PASS, exit 0 (unchanged) |
 | `.claude/skills/harness/bin/check-state.sh` | exit 0, zero `violation` lines (only pre-existing `note` lines, unrelated to this change) |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | exit 0, zero `^FAIL` lines, run twice independently for confirmation (2973-line and 2404-line full outputs) |
+| `.claude/skills/harness/bin/run-unit-tests.py` | exit 0, zero `^FAIL` lines, run twice independently for confirmation (2973-line and 2404-line full outputs) |
 
 ## `classify(root)` — which value it receives, and why
 
@@ -71,7 +71,7 @@ only place that needed the second value.
 
 ## Open questions
 
-- None blocking. Advisory: today's `run-unit-tests.sh` also exercises
+- None blocking. Advisory: today's `run-unit-tests.py` also exercises
   `test-validate-digest.py` inside the same process tree as three concurrent full runs;
   one of the three interleaved runs showed a transient 8/14 hook-case failure in that
   file, not reproduced standalone (14/14) or in either of the other two full runs

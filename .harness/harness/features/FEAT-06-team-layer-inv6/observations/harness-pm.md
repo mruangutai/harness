@@ -39,7 +39,7 @@
   (mtime 14:37); a verify command I had executed at exit 0 became exit 1 mid-run. Re-executing the
   anchor command at FINAL state — not trusting the earlier receipt — is what caught it. A plan
   amendment reads a moving target unless the code is committed first.
-- 2026-08-04 (amend): `run-unit-tests.sh` 0, `check-state.sh` 0 and `check-docs.sh` 0 all ran green
+- 2026-08-04 (amend): `run-unit-tests.py` 0, `check-state.sh` 0 and `check-docs.sh` 0 all ran green
   AFTER the `filter:` key was deleted from `build.yaml`. No gate reads team-file field content
   beyond what `test-team-catalog.py`'s ten checks name, so an approved EMF-2 fix was removed
   silently — the same unguarded-copy class this feature exists to close.

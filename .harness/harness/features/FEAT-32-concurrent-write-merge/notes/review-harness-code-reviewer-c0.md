@@ -144,7 +144,7 @@ must_fix given it is unverified.
   manifest-read failures (`check-domain.py`'s `_approval_entries`, `:409-441`) fail open with a
   named stderr line, matched by existing tests (cases 9/10a/10b in `test-check-domain.py`) — not
   re-reported.
-- **Suite.** Re-ran `run-unit-tests.sh --kind integration` at HEAD (== 5107efb for every file this
+- **Suite.** Re-ran `run-unit-tests.py --kind integration` at HEAD (== 5107efb for every file this
   review covers): exit 0, 0 lines matching `^FAIL `. Not re-run for `--kind unit` (nothing in scope
   touches `UNIT_SCRIPTS`).
 - **Docs/records (SC-12, SC-18, D-10's three-artifact fix).** `harness-spec-driven/SKILL.md:15-18`
@@ -152,7 +152,7 @@ must_fix given it is unverified.
   instructs a bare write. `harness-pm.md`, `harness-orchestrator.md`, and
   `templates/plan.yaml:24-25` all now name the main session as sole signer, consistent with
   `team-config.yaml`'s `main_session.writes` entries. `.gitignore` covers both
-  `.harness/.inflight-claims.json` and `.harness/**/*.lock`; `run-unit-tests.sh` and
+  `.harness/.inflight-claims.json` and `.harness/**/*.lock`; `run-unit-tests.py` and
   `harness.json`'s `integration.detect` both register all five new test files.
 
 ## Not re-litigated (per dispatch)

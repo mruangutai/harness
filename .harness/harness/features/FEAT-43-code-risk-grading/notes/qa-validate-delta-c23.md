@@ -162,7 +162,7 @@ one applies.
   not merely present.
 - **`unit` kind: not cleanly applicable at face value, and I am not going to paper over that.**
   `test-validate-digest.py` is explicitly bucketed `INTEGRATION_SCRIPTS` in
-  `.agents/skills/harness/bin/run-unit-tests.sh:31` (an explicit literal-path list that overrides the
+  `.agents/skills/harness/bin/run-unit-tests.py:31` (an explicit literal-path list that overrides the
   generic `test-*.py` glob `unit` would otherwise match, per the file's own DEC-187/kind-drift
   comments) — so the one test defending this bug class runs under `--kind integration`, not `--kind
   unit`. The delta has no separate application-logic file a `unit`-kind test would apply to (four

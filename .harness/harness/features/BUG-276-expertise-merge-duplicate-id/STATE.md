@@ -26,7 +26,7 @@ deliberately stopped after the panel returned and did NOT run ship.**
   GRADE 1 at ABC 47.9); **`_assert_case27_ambiguous` GRADE 3** (cyc 6 / cog 5 / ABC 25.2, bar 3);
   `_check_proposal_duplicate_ids` GRADE 4 (bar 4, production, untouched). `PASSING: 3`.
   **No grade-1 function remains in the graded range.**
-- SUITES: `run-unit-tests.sh` bare is `--kind all`, so BOTH trees ran: **exit 0, `^FAIL ` count 0**,
+- SUITES: `run-unit-tests.py` bare is `--kind all`, so BOTH trees ran: **exit 0, `^FAIL ` count 0**,
   80 files, 86.6s; `test-expertise-merge.py (exit 0, 11.02s)` inside it. Standalone the file reports
   219 PASS / 0 FAIL — the SAME 219 as before the refactor, so no check was dropped.
 - **MUTATION PROOF — THE INHERITED `UNVERIFIED` IS NOW CLOSED for case27.** c0 measured

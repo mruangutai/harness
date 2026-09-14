@@ -175,10 +175,10 @@ decisions:
   - id: D-06
     choice: >-
       Task verifies invoke a new test file directly with python3 until T-08 registers it, and only
-      tasks ordered after T-08 call run-unit-tests.sh. No task ordered before T-08 may invoke
-      run-unit-tests.sh, and that is an ordering requirement rather than a preference.
+      tasks ordered after T-08 call run-unit-tests.py. No task ordered before T-08 may invoke
+      run-unit-tests.py, and that is an ordering requirement rather than a preference.
     because: >-
-      run-unit-tests.sh runs a drift detector over the union of its two arrays, so an unregistered
+      run-unit-tests.py runs a drift detector over the union of its two arrays, so an unregistered
       new test file makes the runner fail; a verify routed through the runner before registration
       would report a failure that is not the task's. The consequence is a runner-red window: from
       the moment T-01 lands until T-08 lands the full suite is red and no mid-build qa gate can
@@ -205,7 +205,7 @@ decisions:
     dec: DEC-174
   - id: D-08
     choice: >-
-      SC-09's baseline is the SUITE baseline and nothing else: at eeabc59, run-unit-tests.sh
+      SC-09's baseline is the SUITE baseline and nothing else: at eeabc59, run-unit-tests.py
       --kind unit and --kind integration each pass with zero FAIL lines and zero ERROR lines,
       re-observed unchanged at HEAD during the simplify pass with 269 PASS, 0 FAIL, 0 ERROR and
       exit 0. Separately, and explicitly NOT part of SC-09 and owned by no task: an operator-run
@@ -1171,11 +1171,11 @@ tasks:
     depends_on: [T-02, T-06]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       set -u
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1) || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^PASS test-feature-worktree.py$' || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^PASS test-expertise-merge.py$' || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
@@ -1189,7 +1189,7 @@ tasks:
     intent: |
       Two edits, both registrations. No logic changes anywhere.
 
-      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array at line 18.
+      1. .claude/skills/harness/bin/run-unit-tests.py, the INTEGRATION_SCRIPTS array at line 18.
          Append test-feature-worktree.py and test-expertise-merge.py. Both fork real scripts and
          real git repositories, which is the principle that array encodes - do not put either in
          UNIT_SCRIPTS. Change nothing else in the file, and do not touch the drift detector.
@@ -1229,7 +1229,7 @@ tasks:
       grep -q 'feature-worktree.py' .claude/skills/harness/SKILL.md || { echo "the playbook does not name the CLI"; exit 1; }
       grep -q 'feature-worktree.py' .claude/commands/harness.md || { echo "the command does not name the CLI"; exit 1; }
       grep -q 'git -C' .claude/agents/harness-orchestrator.md || { echo "the orchestrator is not told how to address its worktree"; exit 1; }
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh 2>&1) || { echo "$out"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.py 2>&1) || { echo "$out"; exit 1; }
       echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
       exit 0
     intent: |
@@ -1324,14 +1324,14 @@ tasks:
         exit 1
       fi
       python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >/dev/null 2>&1 || exit 1
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >/dev/null 2>&1 || exit 1
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >/dev/null 2>&1 || exit 1
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration >/dev/null 2>&1 || exit 1
       exit 0
     intent: |
       Add cases to .claude/skills/harness/bin/test-feature-worktree.py. NO OTHER FILE CHANGES, and
-      no new test file - this file is already registered in run-unit-tests.sh's INTEGRATION_SCRIPTS
+      no new test file - this file is already registered in run-unit-tests.py's INTEGRATION_SCRIPTS
       and in harness.json's integration.detect by T-08, so a third file would have to be registered
-      in BOTH places or run-unit-tests.sh exits 2 MISCONFIGURED on its drift detector. Do not create
+      in BOTH places or run-unit-tests.py exits 2 MISCONFIGURED on its drift detector. Do not create
       one.
 
       THIS TASK OWNS SC-01b, which the operator amended to automated / integration on 2026-08-20.

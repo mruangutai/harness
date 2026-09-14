@@ -48,11 +48,11 @@ Exit captured in a variable, never through a pipe, for both:
 
 | Kind | cmd | exit | `grep -c '^FAIL '` | registered scripts | discovery |
 |---|---|---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | `0` | `0` | 17 | 741+ counted case-assertions across the 12 of 17 scripts that emit an `N/N passed` line (5 report differently but still `PASS`) |
-| integration | `run-unit-tests.sh --kind integration` | `0` | `0` | 12 | 201+ counted case-assertions across 6 of 12 scripts reporting `N/N`; all 12 `PASS` |
+| unit | `run-unit-tests.py --kind unit` | `0` | `0` | 17 | 741+ counted case-assertions across the 12 of 17 scripts that emit an `N/N passed` line (5 report differently but still `PASS`) |
+| integration | `run-unit-tests.py --kind integration` | `0` | `0` | 12 | 201+ counted case-assertions across 6 of 12 scripts reporting `N/N`; all 12 `PASS` |
 
 Every one of the 17 `UNIT_SCRIPTS` and 12 `INTEGRATION_SCRIPTS` entries (as literally read from
-`run-unit-tests.sh` lines 17–18) printed `PASS <name>`, none `FAIL`. Non-zero discovery confirmed
+`run-unit-tests.py` lines 17–18) printed `PASS <name>`, none `FAIL`. Non-zero discovery confirmed
 both directions — this is not a sweep over an empty set.
 
 `test-inject-expertise.py`: 13 case-**functions** in the file (`grep -c '^def case'`), but the run
@@ -62,15 +62,15 @@ the same file.
 
 `test-check-expertise.py` (dispatch: "+6"): 22/22 cases pass standalone and under
 `--kind integration`. Runs under **integration**, not unit — it is in `INTEGRATION_SCRIPTS`, not
-`UNIT_SCRIPTS` (`run-unit-tests.sh:17–18`). This matches T-03's own `verify:` block, which greps
-`run-unit-tests.sh --kind integration` output for `^PASS test-check-expertise.py$`.
+`UNIT_SCRIPTS` (`run-unit-tests.py:17–18`). This matches T-03's own `verify:` block, which greps
+`run-unit-tests.py --kind integration` output for `^PASS test-check-expertise.py$`.
 
 ## 3. Matrix obligation vs. what ran, per changed task
 
 | Task | Files | `change_type` | matrix `always` | Satisfied by |
 |---|---|---|---|---|
 | T-01 | `.harness/team-config.yaml` | `config` | `[]` | nothing required; only T-01's inline one-shot `verify:` |
-| T-02 | `inject-expertise.sh`, `test-inject-expertise.py`, `run-unit-tests.sh` | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit) |
+| T-02 | `inject-expertise.sh`, `test-inject-expertise.py`, `run-unit-tests.py` | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit) |
 | T-03 | `check-expertise.sh`, `test-check-expertise.py` | `cross_module` | `[unit, integration]` | `PASS test-check-expertise.py` runs under **integration** only — see below |
 | T-07 | `test-inject-expertise.py` (case13) | `logic` | `[unit]` | `PASS test-inject-expertise.py` (unit), case13 present, `os.symlink` present |
 | T-04/05/06 | SPEC.md, README.md, expertise files, SKILL.md | `docs` | `[]` | nothing required |
@@ -95,8 +95,8 @@ ALL-GRANTS-OK
 exit 0, all 16 agents × repo-tier + craft-tier + two edge cases (second segment, two-segment
 depth-reject).
 
-**This block is not registered anywhere in `run-unit-tests.sh`.** `grep -n check-domain
-run-unit-tests.sh` matches only a comment (line 14) and the unrelated `test-check-domain.py` entry
+**This block is not registered anywhere in `run-unit-tests.py`.** `grep -n check-domain
+run-unit-tests.py` matches only a comment (line 14) and the unrelated `test-check-domain.py` entry
 in `INTEGRATION_SCRIPTS` (line 18) — never T-01's loop. `test-check-domain.py` itself: exactly one
 hit for `repository` (`grep -c repository test-check-domain.py` = 1), and it is a comment about "a
 product repository" in an unrelated PAIR-B discussion, not a repository-tier test case.

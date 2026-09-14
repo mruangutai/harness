@@ -123,11 +123,11 @@ Their worktree-boundary cases resolve paths against the current directory. **Alw
 the repository root.** I nearly reported a red suite off the first reading; the cwd was the whole
 difference. Their true pre-state, before you touch anything, is fully green.
 
-Related, and it will bite you if you run a suite mid-sequence: **`run-unit-tests.sh` exits 2 for
+Related, and it will bite you if you run a suite mid-sequence: **`run-unit-tests.py` exits 2 for
 every kind while an unregistered `test-*.py` sits in `bin/`** — a deliberate drift detector at
-`run-unit-tests.sh:41-56`. That window is entirely inside my lane (T-01 opens it, T-08 closes it) and
+`run-unit-tests.py:41-56`. That window is entirely inside my lane (T-01 opens it, T-08 closes it) and
 I will not hand you a tree with it open. If you ever see `MISCONFIGURED: … is not in
-run-unit-tests.sh's explicit script list`, it is a registration gap, not a test failure.
+run-unit-tests.py's explicit script list`, it is a registration gap, not a test failure.
 
 ## Two operator rulings bind these tasks. Do not re-derive them.
 
@@ -168,7 +168,7 @@ from `validator` fails it, and the failure message talks about the qa gate, whic
 it has anything to do with the worktree text you just added.
 
 Insert outside lines 50-61 and this cannot fire. **The good news: T-09's own `verify:` catches it
-anyway** — it runs `run-unit-tests.sh` with no `--kind`, which defaults to `all`, and greps for
+anyway** — it runs `run-unit-tests.py` with no `--kind`, which defaults to `all`, and greps for
 `^FAIL `. So the plan already protects you here; this note only tells you what the failure MEANS if
 you see it, so you do not go hunting in the wrong file.
 
@@ -218,7 +218,7 @@ the invocation as a script file. Do not weaken a `verify:` to get past it.
   `test_kinds.integration.detect` globs (`harness-qa-gate/SKILL.md:57`, with `:74` making "nothing
   found" a FAIL). T-04's test files — `test-check-domain.py`, `test-bash-write-guard.py` — are NOT in
   that detect list, though both genuinely run under `--kind integration`
-  (`run-unit-tests.sh:18`). So a gate reading the glob literally reports "integration missing" on a
+  (`run-unit-tests.py:18`). So a gate reading the glob literally reports "integration missing" on a
   correctly-tested task. Full analysis and the exact wording to hand the grader are in
   `notes/orchestrator-M17-build-baseline-exact.md`. Pass it on when you re-delegate, or it costs a
   cycle to discover and another to argue away.

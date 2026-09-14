@@ -78,7 +78,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-handoff-done-when.py
       lane: main-session-direct
       reason: 'DEC-174 — the test of that gate logic'
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: 'DEC-174 — the suite runner is a required check on main (DEC-183)'
     - surface: .claude/skills/harness/templates/HANDOFF.md
@@ -114,7 +114,7 @@ decisions:
     because: 'the feature dir is derivable from the note own path, so resolution needs no configuration; an absent target file is unresolved rather than skipped, which is the whole point of real resolution'
     dec: none
   - id: D-04
-    choice: the comprehension benchmark is persisted as tests/manual/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, under neither of the two directories run-unit-tests.sh globs (tests/unit and tests/integration) so --kind all cannot execute it, and absent from test_matrix
+    choice: the comprehension benchmark is persisted as tests/manual/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, under neither of the two directories run-unit-tests.py globs (tests/unit and tests/integration) so --kind all cannot execute it, and absent from test_matrix
     because: 'registration is what grades the probe as TEST code: code_grade._is_test_path counts a locally_run kind''s detect matches at the lighter complexity bar 3 instead of grading a probe script as production code (code_grade.py:458-472), so a persisted but unregistered probe is graded at the production bar; the kind must be locally_run and never active because tests/unit/test-suite-layout.py:105 requires that no ACTIVE kind''s detect names tests/manual; and locally_run keeps it rerunnable at review without making a nondeterministic model run a release gate'
     dec: DEC-201
   - id: D-05
@@ -122,7 +122,7 @@ decisions:
     because: 'the existing handoff and CLAUDE.md messages already explain the rule and name the template, and DEC-100b requires naming the offending item rather than leaving the author to guess'
     dec: DEC-100b
   - id: D-06
-    choice: the new test file tests/unit/test-handoff-done-when.py is a UNIT test by placement — run-unit-tests.sh selects the unit suite by the glob tests/unit/test-*.py — and no per-file entry is added to test_kinds.integration.detect
+    choice: the new test file tests/unit/test-handoff-done-when.py is a UNIT test by placement — run-unit-tests.py selects the unit suite by the glob tests/unit/test-*.py — and no per-file entry is added to test_kinds.integration.detect
     because: it spawns no subprocess, which is exactly the criterion separating tests/unit from tests/integration, and placement under tests/unit is the whole of its registration because the runner globs that directory; the integration half has no per-file subject left at HEAD — test_kinds.integration.detect is the single directory glob tests/integration/** which cannot match a file under tests/unit, and tests/unit/test-suite-layout.py:101-102 pins that value byte-for-byte to templates/harness.json, so editing it to name a file would redden that assertion
     dec: none
   - id: D-07
@@ -156,7 +156,7 @@ tasks:
     intent: |
       Create tests/unit/test-handoff-done-when.py, a stdlib-only self-checking script in the
       style of the other test-*.py files under tests/unit/ (named cases, one printed line per
-      case, exit 1 on any failure). PLACEMENT IS REGISTRATION: run-unit-tests.sh selects the unit
+      case, exit 1 on any failure). PLACEMENT IS REGISTRATION: run-unit-tests.py selects the unit
       suite by the glob tests/unit/test-*.py, so a file dropped in that directory is registered by
       being there, and no runner edit registers anything. Do NOT add any per-file entry to
       test_kinds.integration.detect: that value is the directory glob tests/integration/**, it
@@ -652,7 +652,7 @@ tasks:
       assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
       assert k['exclude']=='.claude/worktrees/**', k
       assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'
-      print('ok')" && bash .claude/skills/harness/bin/run-unit-tests.sh --check-layout
+      print('ok')" && bash .claude/skills/harness/bin/run-unit-tests.py --check-layout
     intent: |
       Persist the comprehension benchmark so review can rerun it, without letting it into any
       normal test run.
@@ -683,7 +683,7 @@ tasks:
          under tests/manual/, a directory neither of the runner's two suite globs
          (tests/unit/test-*.py, tests/integration/test-*.py) covers, so --kind all cannot execute
          it. Under .claude/skills/harness/bin/ it would instead be a layout violation:
-         suite_layout.violations() reports any probe-* left there and run-unit-tests.sh exits 2 on
+         suite_layout.violations() reports any probe-* left there and run-unit-tests.py exits 2 on
          any violation, which is why the probe is persisted under tests/manual/ and not beside the
          gate scripts. The kind stays locally_run rather than active because
          tests/unit/test-suite-layout.py:105 requires that no ACTIVE kind's detect names
@@ -816,7 +816,7 @@ tasks:
     traces: [REQ-10]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — test-run-unit-tests-kinds.py is run-unit-tests.sh''s own test, and the suite runner is a required check on main (DEC-183)'
+    execution_reason: 'DEC-174 — test-run-unit-tests-kinds.py is run-unit-tests.py''s own test, and the suite runner is a required check on main (DEC-183)'
     depends_on: [T-09]
     status: done
     files:
@@ -829,14 +829,14 @@ tasks:
       printf 'ok\n'
     intent: |
       Create tests/integration/test-run-unit-tests-kinds.py, a NEW file. Placement IS registration:
-      run-unit-tests.sh globs tests/integration/test-*.py, so no runner edit and no test_kinds edit
+      run-unit-tests.py globs tests/integration/test-*.py, so no runner edit and no test_kinds edit
       registers it. Do NOT modify tests/integration/test-run-unit-tests-layout.py or
       .claude/skills/harness/bin/suite_layout.py in this task: weakening either is forbidden, and
       this task needs neither touched.
 
       The obligation under REQ-10 is to assert the comprehension probe's registration and its
       absence from the normal suites. The machinery the pre-FEAT-47 draft of this task named — an
-      inline heredoc inside run-unit-tests.sh that cross-checked each probe against the declared test
+      inline heredoc inside run-unit-tests.py that cross-checked each probe against the declared test
       kinds and printed a drift line per unregistered probe, plus two shell arrays naming the scripts
       each suite ran — does not exist: the runner selects suites by glob and reads no test kinds at
       all. So the registration claim is asserted against .harness/harness.json directly, and the
@@ -862,11 +862,11 @@ tasks:
           discriminates rather than being ever-green.
       (c) --kind all CANNOT EXECUTE THE PROBE. Build a fixture root under
           tempfile.TemporaryDirectory in the shape of test-run-unit-tests-layout.py's tree():
-          .harness/team-config.yaml, plus run-unit-tests.sh, harness_boundary.py, suite_layout.py
+          .harness/team-config.yaml, plus run-unit-tests.py, harness_boundary.py, suite_layout.py
           and run_pool.py copied into <tmp>/.claude/skills/harness/bin, one passing test-*.py under
           tests/unit and one under tests/integration. Add tests/manual/probe-handoff-comprehension.py
           to that fixture, a file that prints a unique sentinel string and exits 1. Run the
-          fixture's run-unit-tests.sh with --kind all and assert exit 0, both fixture tests' output
+          fixture's run-unit-tests.py with --kind all and assert exit 0, both fixture tests' output
           present, and the sentinel ABSENT: the probe sits under neither globbed directory, so
           --kind all cannot execute it. Assert also that --check-layout over that same fixture exits
           0, so a probe under tests/manual is not a layout violation — while the identical file

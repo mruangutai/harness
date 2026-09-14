@@ -88,7 +88,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed here dies 
 | B-5 | bug | A subagent job exits 1 with `Subagent called yield with null data` while emitting a complete, conformant fenced return whose artifact is present and correct on disk. Observed twice in this feature (pm in `5-product`, code-reviewer in `6-validator`). Routing on job status alone would discard valid PASSes |
 | B-6 | chore | `notes/red-demonstrations-2026-09-05.md` carries no cross-reference to the two SC-06 mutation transcripts, which live in `notes/qa-2026-09-05-6.md`. A reader following SC-06's literal wording finds only the one fail-open FAIL line. One line fixes it |
 | B-7 | chore | BRIEF SC-08's prose calls the two surviving `"PASS test-" not in p.stdout` occurrences "cases 2 and 4". Measured, they are at `:93` and `:121`, and `:121` is the *git enumeration failure* case. SC-08's actual pin — narrow clause absent, generic count exactly 2 — holds; only the prose anchor is wrong |
-| B-8 | enhancement | DEC-174's enumeration still does not name `run-unit-tests.sh`, so its carve-out over both gate test files rests on an Advisor ruling by category rather than on the text. An explicit non-goal of this feature; amending it is your call |
+| B-8 | enhancement | DEC-174's enumeration still does not name `run-unit-tests.py`, so its carve-out over both gate test files rests on an Advisor ruling by category rather than on the text. An explicit non-goal of this feature; amending it is your call |
 
 ## Next steps, and who owns them
 

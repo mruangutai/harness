@@ -19,8 +19,8 @@ cycle's diff. Baseline reproduces cleanly; SC-08 is disclosed-false by exactly o
 
 | check | expected | observed |
 |---|---|---|
-| `run-unit-tests.sh --kind unit` | exit 0, 505 PASS | **matches**: exit 0, 505 `^PASS ` lines, 0 `^FAIL `. 31 scripts declared in `UNIT_SCRIPTS`, all 31 seen as script-level `PASS <name>.py` markers (one extra `.py`-suffixed line, `case_floor_inflight_registry.py`, is a subcase name, not a 32nd script) — full discovery, no shrinkage. 20.6s wall. |
-| `run-unit-tests.sh --kind integration` | exit 0, 819 PASS | **matches**: exit 0, 819 `^PASS ` lines, 0 `^FAIL `. 28 scripts declared in `INTEGRATION_SCRIPTS`, all 28 seen as script-level `PASS <name>.py` markers, set-equal both directions (`declared == seen`). 3m11s wall. |
+| `run-unit-tests.py --kind unit` | exit 0, 505 PASS | **matches**: exit 0, 505 `^PASS ` lines, 0 `^FAIL `. 31 scripts declared in `UNIT_SCRIPTS`, all 31 seen as script-level `PASS <name>.py` markers (one extra `.py`-suffixed line, `case_floor_inflight_registry.py`, is a subcase name, not a 32nd script) — full discovery, no shrinkage. 20.6s wall. |
+| `run-unit-tests.py --kind integration` | exit 0, 819 PASS | **matches**: exit 0, 819 `^PASS ` lines, 0 `^FAIL `. 28 scripts declared in `INTEGRATION_SCRIPTS`, all 28 seen as script-level `PASS <name>.py` markers, set-equal both directions (`declared == seen`). 3m11s wall. |
 | `check-state.sh` | exit 0, 0 violations, 0 tracebacks | **matches**: exit 0, `grep -ic violation` = 0, `grep -ic traceback` = 0. 14.9s wall. |
 | gated HIGH code-grade records | 0, new `code-grade.py --base 7c4f0bd --head 39477a5` | **matches**: 107 `RESULT: PASS`, 8 `RESULT: FAIL`, all 8 at `GRADE: 2`/`SEVERITY: med` — zero at grade 3/HIGH. Qualnames: `_verify_spliced`, `_task_status_line`, `cmd_sign_approval.transform`, `denies`, `_t09_symlink`, `_t09_case_fold`, `case_set_task_station_one_line`, `case_f02_sign_approval_cannot_write_an_unparseable_signature` (two of these — `_t09_symlink`, `_t09_case_fold` — are this cycle's own new fixture functions, gated at grade 2 for their own size, not HIGH). |
 
@@ -29,7 +29,7 @@ declared and discovered this run, up from the "29 of 56" the handoff cites — t
 count itself grew across the rebase/migration. Both kinds' declared sets were fully discovered
 (no glob shrinkage), confirmed above by set-equality, not by exit code alone.
 
-**Suite-owner note:** I was the sole process executing `run-unit-tests.sh`/`check-state.sh` in this
+**Suite-owner note:** I was the sole process executing `run-unit-tests.py`/`check-state.sh` in this
 worktree for the full ~3.5 minutes; no other job of mine touched the tree during either run.
 
 ## 2. Mutation re-run 1 — `_I` case-fold patterns (check-domain.py)
@@ -250,8 +250,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 505 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 819 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 505 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 819 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }

@@ -47,7 +47,7 @@ after such a file lands will see it and redden. But the mechanism that "carries"
 basename-only by construction (D-01), so it structurally can **never** flag `.harness/tools/test_dir/gen.py`
 as a violation — the production guard lets it through silently, forever. REQ-09's word "refused by the
 guard" is therefore true only in the sense of "the unit suite reddens on the next run", not in the sense
-of "the runtime pre-check (`run-unit-tests.sh --check-layout`) refuses it before any test executes"
+of "the runtime pre-check (`run-unit-tests.py --check-layout`) refuses it before any test executes"
 (REQ-01's stronger guarantee, which this residual class does not get). The plan's own text is honest
 about this — BRIEF's residual bullet and case 11's closing sentence both say "reddens the unit suite",
 never "refused by the guard" for this specific class — so I read this as accurately disclosed rather than

@@ -73,8 +73,8 @@ note and not affected by this fix cycle (T-05 files are untouched between `6126a
 
 | kind | required? | runner state | command | exit | result |
 |---|---|---|---|---|---|
-| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | **satisfied** — 36 files, 4 `^FAIL ` lines, all `test-factory-claim-mutation.py`'s own mutation-proof output (§4) |
-| integration | qa-added (not floor) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | **satisfied** — 70 files, 0 `^FAIL ` lines; F1/F2/F3 cases all pass (§5) |
+| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **satisfied** — 36 files, 4 `^FAIL ` lines, all `test-factory-claim-mutation.py`'s own mutation-proof output (§4) |
+| integration | qa-added (not floor) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **satisfied** — 70 files, 0 `^FAIL ` lines; F1/F2/F3 cases all pass (§5) |
 | functional | no | excluded (DEC-187) | — | — | **not_applicable** — repo has no service-API third bucket; unit/integration already split the suite, and this diff adds nothing under `tests/functional/` |
 | component | no | unresolved | — | — | **not_applicable** — not named by `logic`/`docs`/`scaffolding`; diff adds/changes no `*.spec.tsx`/`*.stories.tsx` |
 | ui | no | unresolved | — | — | **not_applicable** — not named by matrix; diff touches no `tests/e2e/**`/`*.e2e.spec.ts`, no interaction flow |
@@ -90,7 +90,7 @@ note and not affected by this fix cycle (T-05 files are untouched between `6126a
 
 ## 4. Complete canonical suite (worktree pinned to `99035a9c`)
 
-`env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh` (no `--kind`
+`env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py` (no `--kind`
 filter), from the worktree root:
 - Exit status captured to a variable: `FULL_EXIT=0`.
 - `106 files`, `pool: 8 workers`, wall time `75.54s` (runner's own report).

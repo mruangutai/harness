@@ -34,7 +34,7 @@ principle about what counts as duplication, not specific to this repo's team-YAM
 Gotcha G-07.** Two tasks running the identical full-suite command in their verify blocks is not
 automatically redundant work: each run is that task's own proof its own registration didn't
 regress a drift invariant (the KIND-DRIFT boundary DEC-174 exists for). This generalizes beyond
-this repo's specific `run-unit-tests.sh` to any CI/verify setup where two independent changes each
+this repo's specific `run-unit-tests.py` to any CI/verify setup where two independent changes each
 re-run a shared full check as their own drift-proof.
 
 **No other self-derived candidates.** Re-scanned the simplification receipt's three doc-duplication

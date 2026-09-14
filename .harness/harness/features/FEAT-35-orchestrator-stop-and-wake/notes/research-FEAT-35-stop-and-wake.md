@@ -68,5 +68,5 @@ is killed at ~600s, stop-and-wake does not fix the death — it only removes the
 `test_kinds.eval` has `cmd: null`, and the three playbook tasks are `change_type: ai_behavior`
 (the matrix requires `eval`), so that requirement soft-skips. Nothing can execute a markdown
 playbook, so the text assertions in T-05 plus SC-05's real run are what actually carry conformance.
-A new `bin/test-*.py` must be registered in `run-unit-tests.sh`'s explicit script list or its drift
+A new `bin/test-*.py` must be registered in `run-unit-tests.py`'s explicit script list or its drift
 detector exits 2 for the whole suite — which is why T-05 is one task over two files.

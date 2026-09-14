@@ -51,9 +51,9 @@ likewise. `check-plan-routes.py` on this plan: `OK T-01`..`OK T-05`, 0 violation
 | AC-08 tracked-vs-untracked coverage | SC-11 `BRIEF.md:103-105` | T-01 case 2 `plan.yaml:196-197`, T-02 case 5 `plan.yaml:257-258` | delivered |
 | AC-09 audit at `review_sha`, complete, explained | SC-12 `BRIEF.md:106-112` | T-03 `plan.yaml:261-308`, T-04 `plan.yaml:309-339` | delivered |
 | AC-10 DEC-213 + index state the invariant | SC-13 `BRIEF.md:113-117` | T-05 `plan.yaml:340-397` | delivered |
-| AC-11 product discovery + mutation scope unchanged | SC-14/15/16 `BRIEF.md:118-131` | T-01 case 9 + `plan.yaml:222`; `run-unit-tests.sh` in no task's `files:` | delivered |
+| AC-11 product discovery + mutation scope unchanged | SC-14/15/16 `BRIEF.md:118-131` | T-01 case 9 + `plan.yaml:222`; `run-unit-tests.py` in no task's `files:` | delivered |
 
-`run-unit-tests.sh:47` re-verified as the sole `run_pool.py --mutation-check "$BIN_DIR"` line, so
+`run-unit-tests.py:47` re-verified as the sole `run_pool.py --mutation-check "$BIN_DIR"` line, so
 SC-15's pin is live rather than rotted.
 
 ## 4. The FEAT-44 `.ts` classification — delivered, carried through every touching site
@@ -70,7 +70,7 @@ The consumer at `tests/manual/probe-omp-session-accessor.py:54-55` is in no task
 ## 5. The four out-of-scope entries — no drift
 
 No task redesigns product-checkout discovery (`plan.yaml:222`, SC-14); nothing touches the mutation
-snapshot — `run-unit-tests.sh` appears in no `lanes:` row (`plan.yaml:8-31`) and no task's `files:`,
+snapshot — `run-unit-tests.py` appears in no `lanes:` row (`plan.yaml:8-31`) and no task's `files:`,
 and SC-15 freezes its scope; no support module is renamed — `layout_fixtures.py` explicitly stays and
 needs no exception (`plan.yaml:384-385`, D-04 `plan.yaml:82-89`); implementation not begun (§1).
 

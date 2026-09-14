@@ -99,17 +99,17 @@ case 4 and only case 4 (the two checks inside it), confirming the flock branch i
 the stale-lock case pass and every other case is flock-independent, as the dispatch predicted.
 `assert m != s, "USE_FLOCK assignment not found BY NAME"` was left intact (not weakened).
 
-## `run-unit-tests.sh --check-kinds`
+## `run-unit-tests.py --check-kinds`
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
-MISCONFIGURED: .claude/skills/harness/bin/test-harness-merge.py is not in run-unit-tests.sh's
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+MISCONFIGURED: .claude/skills/harness/bin/test-harness-merge.py is not in run-unit-tests.py's
 explicit script list
 (exit 2)
 ```
 
 Expected and legitimate per the dispatch: registering the new test is T-10's job, not T-02's.
-Did not edit `run-unit-tests.sh` or `.harness/harness.json`.
+Did not edit `run-unit-tests.py` or `.harness/harness.json`.
 
 ## Assertions — by name, not by count
 

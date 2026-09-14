@@ -73,7 +73,7 @@ specific to the stale-lock-recovery contract, not a broad breakage.
 
 ## `--check-kinds`
 ```
-MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.sh's explicit script list
+MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.py's explicit script list
 ```
 Exit 2. Pre-existing, named in the dispatch as the main session's T-07, out of this task's domain
 and files. `test-expertise-merge.py` needed no registration — already in `INTEGRATION_SCRIPTS`.

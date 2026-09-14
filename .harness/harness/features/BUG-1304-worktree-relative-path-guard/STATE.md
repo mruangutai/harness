@@ -9,7 +9,7 @@
 
 VALIDATE IS CLOSED AND THE FEATURE IS SHIP-READY at `review_sha` **c5869301**. Panel PASS with
 `must_fix: []` and `severity_max: med`; goal-check PASS with all TWELVE criteria met; blocking qa
-gate PASS; SIMPLIFY PASS and empty; `check-state.sh` exit 0, zero violations; `run-unit-tests.sh
+gate PASS; SIMPLIFY PASS and empty; `check-state.sh` exit 0, zero violations; `run-unit-tests.py
 --kind all` exit 0, 0 `^FAIL `, 73 files discovered — the SAME 73 as the pre-build baseline, so the
 green is not a discovery collapse. UAT DOES NOT APPLY: BRIEF.md carries ZERO `verify: uat` criteria,
 so `gates.uat: blocking_when_uat_criteria_exist` is satisfied vacuously; pm confirmed it explicitly

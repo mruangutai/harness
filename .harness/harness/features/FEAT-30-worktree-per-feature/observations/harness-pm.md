@@ -12,7 +12,7 @@
   locally on purpose because that phase's import of harness_boundary is absorbing rather than
   fail-closed. Pattern worth keeping: when a lead cites "line X and line Y", grep the constant's own
   module comment for a list of deliberate non-consumers before believing the count.
-- 2026-08-20: run-unit-tests.sh runs a drift detector over the UNION of its two script arrays, so
+- 2026-08-20: run-unit-tests.py runs a drift detector over the UNION of its two script arrays, so
   merely CREATING a new bin/test-*.py file reddens the runner until it is registered. That makes
   "register in a later task with a depends_on edge" a decision about every intermediate verify, not
   just about CI visibility. Recorded as D-06 in the plan.

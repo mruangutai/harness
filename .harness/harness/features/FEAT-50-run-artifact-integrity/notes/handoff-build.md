@@ -33,7 +33,7 @@ those seven files. Before T-08 can record `done`, pm must amend one token in its
   `bash-write-guard.py` while this note was being written, so re-measure it yourself rather
   than trusting any count — `git status --porcelain`, 2026-08-31 — UNVERIFIED beyond that moment
 - **UNVERIFIED**: the full unit and integration matrix after T-08. The only baseline is a
-  `run-unit-tests.sh` exit 0 captured while T-01 was mid-apply, so it is not a clean pre-image.
+  `run-unit-tests.py` exit 0 captured while T-01 was mid-apply, so it is not a clean pre-image.
   Re-run both suites once the main session's tasks land.
 - **UNVERIFIED**: `check-state.sh` at any point in this phase. SC-11 is ungraded.
 

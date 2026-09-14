@@ -9,7 +9,7 @@ authored nothing, wrote only this note. `matrix_ok: true`.
 ```
 $ git rev-parse HEAD
 9f87c48dae0ced97e7655dffb9daddeba4708324   (== pinned review_sha, confirmed — not assumed)
-$ .claude/skills/harness/bin/run-unit-tests.sh   (from repo root, one invocation, issue #36 avoided)
+$ .claude/skills/harness/bin/run-unit-tests.py   (from repo root, one invocation, issue #36 avoided)
 exit=0
 ```
 **Tree state at run time, checked not assumed:** `git status --porcelain .claude/` is clean — every
@@ -17,7 +17,7 @@ path the suite scans under `.claude/` is byte-identical to the pin. The only dir
 `.harness/` (`feature.yaml` modified, four notes untracked — this dispatch's own run-recording),
 which is inside `dirty_tree_whitelist`. The suite ran effectively at the pin.
 Counted directly from the captured output, not relayed: **13** `PASS <script>` lines (matches the
-`SCRIPTS` array at `run-unit-tests.sh:6` exactly, position-checked); **281** `ok` case lines;
+`SCRIPTS` array at `run-unit-tests.py:6` exactly, position-checked); **281** `ok` case lines;
 0 actual failures — a `grep -c FAIL` hit **2**, both false positives inside test-description text
 (`"FAIL over an escalating member is rejected"`, `"...valid real FAIL after a template echo..."`), not
 failing assertions. `test-team-catalog.py`: **10/10** checks. **These figures match the segment's
@@ -32,7 +32,7 @@ requires** — confirmed independently, matches PLAN's own Q7 note.
 
 | kind | state | cmd | named tests |
 |---|---|---|---|
-| unit | **satisfied** | `.claude/skills/harness/bin/run-unit-tests.sh` | 13 scripts, 281 ok, 0 fail; `test-check-state.py` (T-01 fixtures), `test-team-catalog.py` (T-07, 10 checks), `test-harness-yaml-corpus.py` (T-05) |
+| unit | **satisfied** | `.claude/skills/harness/bin/run-unit-tests.py` | 13 scripts, 281 ok, 0 fail; `test-check-state.py` (T-01 fixtures), `test-team-catalog.py` (T-07, 10 checks), `test-harness-yaml-corpus.py` (T-05) |
 | functional/integration/component/ui/eval/typecheck | not applicable | `cmd: null` in `test_kinds` | not required by any task's change_type here regardless |
 
 `bugfix.when: {kind:__bug_class__, if:match_bug_class}` — T-01's fix is a pure string-comparison

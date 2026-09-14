@@ -3,16 +3,16 @@
 ## Headline
 
 **BLOCKED.** Every individual test script in scope passes when invoked directly, but the
-standing gate command — `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` (and
+standing gate command — `.agents/skills/harness/bin/run-unit-tests.py --kind unit` (and
 `--kind integration`, and `--check-kinds`) — **exits 2 before running a single test**, at
 this exact pinned SHA, because this branch's own merge reintroduced three dangling test
 registrations for files main already deleted. `matrix_ok: false`. This is a NEW finding this
 cycle — not one of the carried c0/c1 advisories, and not a re-report of the main session's
-listed evidence (none of which claims a full `run-unit-tests.sh` run).
+listed evidence (none of which claims a full `run-unit-tests.py` run).
 
 ## The break — independently verified, not inferred from the test's own print
 
-`run-unit-tests.sh` (in this diff's 66-file scope) lists, at the pin:
+`run-unit-tests.py` (in this diff's 66-file scope) lists, at the pin:
 - `UNIT_SCRIPTS`: `"test-context-watch.py"`
 - `INTEGRATION_SCRIPTS`: `"test-context-watch-cli.py"`, `"test-context-watch-hook.py"`
 
@@ -21,11 +21,11 @@ None of the three files exist in the worktree (`ls` → all three `No such file 
 `abd63c9` **"T-04: retire the Claude-only context-watch path, all seven artifacts"**,
 2026-08-29, an ancestor of both `main` (= merge-base `ba338d8`) and the pin `70fd441`.
 
-Provenance, walked by hand: `git diff <(git show ba338d8:.../run-unit-tests.sh)
-<(git show 70fd441:.../run-unit-tests.sh)` shows these three names ADDED between merge-base
+Provenance, walked by hand: `git diff <(git show ba338d8:.../run-unit-tests.py)
+<(git show 70fd441:.../run-unit-tests.py)` shows these three names ADDED between merge-base
 and pin — i.e. **absent on `main`, present only because of this branch**. `git log
-main..70fd441 -- run-unit-tests.sh` names two commits: `5178bb1` (T-09), `fc42462`
-(T-10/T-12), and the merge commit `5685a3a` itself. `git show 751c078:.../run-unit-tests.sh`
+main..70fd441 -- run-unit-tests.py` names two commits: `5178bb1` (T-09), `fc42462`
+(T-10/T-12), and the merge commit `5685a3a` itself. `git show 751c078:.../run-unit-tests.py`
 (the branch tip immediately before the merge) already carries all three stale names — the
 branch forked before `abd63c9` landed on `main`, and the later `main`-into-branch merge kept
 the branch's stale array instead of picking up `main`'s cleanup, because the branch's own
@@ -33,14 +33,14 @@ T-09/T-10/T-12 commits touched the same array lines.
 
 Reran the exact standing commands myself (not trusting any prior report):
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 KIND-DRIFT: test-context-watch-cli.py is in INTEGRATION_SCRIPTS but absent from test_kinds.integration.detect
 KIND-DRIFT: test-context-watch-hook.py is in INTEGRATION_SCRIPTS but absent from test_kinds.integration.detect
 EXIT=2
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration   # same two lines, EXIT=2
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds        # same two lines, EXIT=2
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind integration   # same two lines, EXIT=2
+$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds        # same two lines, EXIT=2
 ```
-Read the script (`run-unit-tests.sh:55-138`): the drift detector and the kind cross-check
+Read the script (`run-unit-tests.py:55-138`): the drift detector and the kind cross-check
 both run over the **union** of both arrays, unconditionally, before any `--kind` dispatch —
 by the file's own comment, deliberately so a kind can't be used to dodge the check. So this
 is not a corner the matrix can route around: **zero tests run through the canonical entry
@@ -68,8 +68,8 @@ the matrix itself does not add `integration`. I add it anyway (floor, not ceilin
 
 | kind | required by | state | cmd | raw result |
 |---|---|---|---|---|
-| unit (standing) | logic floor | **BLOCKED** (misconfigured) | `run-unit-tests.sh --kind unit` | exit 2, 0 tests, 2× `KIND-DRIFT` |
-| integration (standing) | qa-added floor | **BLOCKED** (misconfigured) | `run-unit-tests.sh --kind integration` | exit 2, 0 tests, 2× `KIND-DRIFT` |
+| unit (standing) | logic floor | **BLOCKED** (misconfigured) | `run-unit-tests.py --kind unit` | exit 2, 0 tests, 2× `KIND-DRIFT` |
+| integration (standing) | qa-added floor | **BLOCKED** (misconfigured) | `run-unit-tests.py --kind integration` | exit 2, 0 tests, 2× `KIND-DRIFT` |
 | unit — direct invocation, per script | — | satisfied | see below | all green |
 
 Direct-invocation counts, run myself, standing in for the broken aggregator:
@@ -177,7 +177,7 @@ in passing via `test-plan-panel.py`'s case 9 output above (still green).
 
 ## open_questions
 
-- { id: Q1, question: "run-unit-tests.sh's standing --kind unit/--kind integration/--check-kinds commands all exit 2 (KIND-DRIFT) at the pinned SHA because this branch's merge reintroduced test-context-watch.py/-cli.py/-hook.py registrations for files main already deleted in abd63c9. Every individual required script passes standalone, but the canonical gate entry point does not run at all. Does this block the ship, or does dev-ops get one more pass to drop the three stale array entries before re-pin?", blocking: true }
+- { id: Q1, question: "run-unit-tests.py's standing --kind unit/--kind integration/--check-kinds commands all exit 2 (KIND-DRIFT) at the pinned SHA because this branch's merge reintroduced test-context-watch.py/-cli.py/-hook.py registrations for files main already deleted in abd63c9. Every individual required script passes standalone, but the canonical gate entry point does not run at all. Does this block the ship, or does dev-ops get one more pass to drop the three stale array entries before re-pin?", blocking: true }
 - { id: Q2, question: "bash-write-guard denied me both writing a same-directory mutant copy of check-state.sh and later removing my own leftover scratch file (.check-state-sev-mutant.sh, top-level of the worktree, untracked, empty diff-noise) — 'outside your domain' on both a create and its own cleanup. I could not complete a live source-mutation proof for INV-32 myself; substituted direct fixture re-derivation + reading the suite's own internal mutation case. Should QA hold a scoped perturbation-write grant, or should this class of proof route to a persona that already has one (repeats prior Q-01)?", blocking: false }
 - { id: Q3, question: "validate-digest.py's post-signature plan-review-mode rejection (_pinned_feature_review_error) and 3 of 4 _skipped_member_error branches are unexercised by the added suite (only the happy path is a case()). I hand-verified all four reject correctly, so this is coverage, not a defect — but it is exactly the shape the dispatch asked me to interrogate. Worth a follow-up case addition before signature, or accepted as-is?", blocking: false }
 

@@ -83,7 +83,7 @@ retyped copy). Output:
 PASS
 ```
 
-## Gate (b) — `run-unit-tests.sh --kind unit`
+## Gate (b) — `run-unit-tests.py --kind unit`
 
 All 10 unit scripts reported `PASS` (`test-harness-yaml-corpus.py`, `test-render-brief.py`,
 `test-team-catalog.py`, `test-factory-cli.py`, `test-factory-gh.py`, `test-factory-config.py`,
@@ -91,7 +91,7 @@ All 10 unit scripts reported `PASS` (`test-harness-yaml-corpus.py`, `test-render
 `test-factory-land.py`). `test-factory-gh.py`'s own line: `119/119 checks passed.`
 Overall exit code: 0.
 
-## Gate (c) — `run-unit-tests.sh --kind integration`
+## Gate (c) — `run-unit-tests.py --kind integration`
 
 All 12 integration scripts reported `PASS` (`test-validate-digest.py`, `test-gh-sync.py`,
 `test-check-state.py`, `test-check-expertise.py`, `test-gen-decisions-index.py`,

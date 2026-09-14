@@ -24,7 +24,7 @@ I independently re-derived the same 11 logical groups the first run named and co
 `factory_gh.py`/`factory_workspace.py` = `api` (external `subprocess.run` to `gh`/`git`);
 `factory_decompose.py`/`factory_claim.py`/`factory_land.py` = `cross_module` (compose
 `factory_config`+`factory_gh`+`factory_cli`+`harness_yaml`); `factory_cli.py`/`factory_config.py`
-= `logic`; `run-unit-tests.sh` = `scaffolding`; `.harness/harness.json` = `config`;
+= `logic`; `run-unit-tests.py` = `scaffolding`; `.harness/harness.json` = `config`;
 `docs/harness/DECISIONS*.md` = `docs`. Added for this run: `check-state.sh` (T-08, INV-24) =
 `logic` — `unit` always, no new kind requirement it wasn't already binding.
 
@@ -38,8 +38,8 @@ orientation note; not re-derived from a different source, same conclusion.
 
 | Kind | Required by | State | cmd | Exit | Named-test result |
 |---|---|---|---|---|---|
-| `unit` | every group (`api`, `cross_module`, `logic`) | **satisfied** | `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 10/10 registered `UNIT_SCRIPTS` PASS, 0 FAIL. Includes all 7 new factory unit tests (`test-factory-cli.py`, `test-factory-gh.py`, `test-factory-config.py`, `test-factory-workspace.py`, `test-factory-decompose.py`, `test-factory-claim.py`, `test-factory-land.py`) |
-| `integration` | `cross_module`×3 and `feature`-shaped groups (`always`) | **satisfied** | `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 14/14 registered `INTEGRATION_SCRIPTS` PASS, 0 FAIL, including `test-factory-integration.py` and T-08's `test-check-state.py` (8 named `(s) INV-24` cases, all `ok`) |
+| `unit` | every group (`api`, `cross_module`, `logic`) | **satisfied** | `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 10/10 registered `UNIT_SCRIPTS` PASS, 0 FAIL. Includes all 7 new factory unit tests (`test-factory-cli.py`, `test-factory-gh.py`, `test-factory-config.py`, `test-factory-workspace.py`, `test-factory-decompose.py`, `test-factory-claim.py`, `test-factory-land.py`) |
+| `integration` | `cross_module`×3 and `feature`-shaped groups (`always`) | **satisfied** | `.claude/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 14/14 registered `INTEGRATION_SCRIPTS` PASS, 0 FAIL, including `test-factory-integration.py` and T-08's `test-check-state.py` (8 named `(s) INV-24` cases, all `ok`) |
 | `functional` | api×2 + cross_module×3 in the OLD matrix; **removed** from both `always` lists under DEC-187 | **not selected — soft skip** | `null`, `status: excluded`, `excluded_because` real, `signed: DEC-187` | n/a | n/a — rule 1: excluded + signed decision id means neither `cmd` nor `detect` is read. Not a finding |
 | `component`, `ui`, `eval`, `typecheck` | not required — no `frontend`, no `ai_behavior` change_type in this diff; `typecheck` is not present in `test_matrix` at all | not selected — soft skip | `null`, `status: unresolved` | n/a | rule 3: no change_type present in this diff puts these in an `always`/`when` list that fires, so `cmd`/`detect`/`status` are not read and they are not findings. **Correction to my own first pass**: `typecheck` is not-selected because no matrix entry ever names it (rule 3), not because the diff has no `.ts`/`.tsx` — it does: `.claude/skills/harness/bin/omp-reviewer-guard.check.ts` is untracked in this tree, but is unrelated OMP-porting scope, not FEAT-10's (see note below), and even if it were FEAT-10's, `typecheck` still would not bind since no `always`/`when` selects it |
 
@@ -48,14 +48,14 @@ and `factory_workspace.py` are classified `api` precisely because every function
 or `git`, so the predicate is true and `integration` is required for them independently of the
 `cross_module` `always` list already requiring it for the other three groups.
 
-Both commands run by me, verbatim, exit status captured directly (not relayed): `run-unit-tests.sh
+Both commands run by me, verbatim, exit status captured directly (not relayed): `run-unit-tests.py
 --kind unit` → exit 0 (10/10 registered files PASS — a file count, not a total case count); 
-`run-unit-tests.sh --kind integration` → exit 0 (14/14 registered files PASS — likewise a file
+`run-unit-tests.py --kind integration` → exit 0 (14/14 registered files PASS — likewise a file
 count).
 
 **Denominator note (my own P-04):** `config`, `docs` and `scaffolding` all carry `always: []` in
 the matrix. The `.harness/harness.json` edit that unblocks this gate, and the
-`docs/harness/DECISIONS*.md` and `run-unit-tests.sh` changes, are themselves bound by zero required
+`docs/harness/DECISIONS*.md` and `run-unit-tests.py` changes, are themselves bound by zero required
 kinds — advisory, not a finding; the gate's floor for THIS diff rests entirely on the 5 api/cross_module
 groups plus T-08's logic group.
 

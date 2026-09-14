@@ -20,7 +20,7 @@ The exact `git diff --name-only df63193..1ac1bd03fc73c004fdde4b684ac8a18d3bd43f2
 - `.claude/skills/harness/bin/code-grade.py`
 - `.claude/skills/harness/bin/code_grade.py`
 - `.claude/skills/harness/bin/gate_policy.py`
-- `.claude/skills/harness/bin/run-unit-tests.sh`
+- `.claude/skills/harness/bin/run-unit-tests.py`
 - `.claude/skills/harness/bin/test-check-plan-routes.py`
 - `.claude/skills/harness/bin/test-code-grade-cli.py`
 - `.claude/skills/harness/bin/test-code-grade.py`

@@ -125,8 +125,8 @@ main-session-direct, so the carve-out and the orchestrator-owned files are legal
 
 Runners: `unit` and `integration` are both active in `.harness/harness.json` `test_kinds`.
 `test-validate-feature-json.py` is registered in `UNIT_SCRIPTS` and `test-gh-sync.py` /
-`test-check-state.py` in `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:17-18`). **No new test file is
-needed**, so the drift detector at `run-unit-tests.sh:41-42` cannot be tripped. No surface this
+`test-check-state.py` in `INTEGRATION_SCRIPTS` (`run-unit-tests.py:17-18`). **No new test file is
+needed**, so the drift detector at `run-unit-tests.py:41-42` cannot be tripped. No surface this
 feature touches is covered by a `cmd: null` kind, so the BRIEF records no verification gap.
 
 Highest existing invariant in `check-state.sh` is **INV-27**, so the new one is **INV-28**. INV-21's

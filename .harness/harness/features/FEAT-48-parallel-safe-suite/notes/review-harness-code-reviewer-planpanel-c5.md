@@ -83,9 +83,9 @@ checks performed:
 - **T-04's verify**: traced each of the five `run_pool.py` legs (attribution, worker-count env
   override, clean/edit/new mutation-check legs, empty-dir refusal) against `run_pool.py`'s own
   spec in T-04's intent — each assertion matches an explicit behavioral commitment in the intent
-  text, none references anything a predecessor task removes. `run-unit-tests.sh`'s root resolution
+  text, none references anything a predecessor task removes. `run-unit-tests.py`'s root resolution
   is confirmed CWD-independent (`_SELF_BIN` derives from `BASH_SOURCE[0]`, not CWD —
-  `run-unit-tests.sh:10-11`), so running it from the verify block's tempdir CWD is safe.
+  `run-unit-tests.py:10-11`), so running it from the verify block's tempdir CWD is safe.
 - **T-06's verify**: all five regexes over `measurements-parallel-suite.md` match literal line
   formats T-06's own intent instructs the doer to write verbatim (`control method:`, `control
   broken reads`, `post-fix broken reads`, `pool: … wall`, `tree condition:`).

@@ -92,7 +92,7 @@ pin; the task's literal `verify:` (four greps + suites) passes. Read `factory_gh
 
 ## Verification performed
 
-- `bash run-unit-tests.sh --kind unit` at `d4951c2`: 10/10 suites PASS, no failures.
+- `bash run-unit-tests.py --kind unit` at `d4951c2`: 10/10 suites PASS, no failures.
 - `python3 test-factory-integration.py`: 97/97 PASS.
 - Task `verify:`'s four greps re-run directly: all four conditions hold (`issue_board_item_id`
   defined; zero `factory_gh.project_items` in decompose/land; exactly one in claim).

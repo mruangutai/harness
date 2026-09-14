@@ -1655,10 +1655,10 @@ tasks:
     depends_on: [T-02, T-04, T-06, T-07]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/skills/harness/bin/check-state.sh
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --kind all \
+      bash .claude/skills/harness/bin/run-unit-tests.py --kind all \
         && bash .claude/skills/harness/bin/check-state.sh
     intent: |
       THIS TASK EDITS NOTHING. Its files list names the two runners it executes, not files
@@ -1675,10 +1675,10 @@ tasks:
       checker, and both are named in the issue's own success definition.
 
       RUN, IN THIS ORDER, FROM THE REPOSITORY ROOT, AND BOTH MUST EXIT 0:
-        bash .claude/skills/harness/bin/run-unit-tests.sh --kind all
+        bash .claude/skills/harness/bin/run-unit-tests.py --kind all
         bash .claude/skills/harness/bin/check-state.sh
       The runner's own usage line records the accepted argument set
-      (run-unit-tests.sh:23); "--kind all" selects tests/unit/test-*.py plus
+      (run-unit-tests.py:23); "--kind all" selects tests/unit/test-*.py plus
       tests/integration/test-*.py, which is every suite in the repository, and the runner
       exits 2 on a layout violation before it runs anything. check-state.sh takes no
       arguments and resolves its own root; 0 means every invariant holds, 1 means

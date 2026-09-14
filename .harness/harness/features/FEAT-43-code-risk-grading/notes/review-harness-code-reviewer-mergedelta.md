@@ -15,17 +15,17 @@ combination checks all pass.
 `.claude/skills/harness/bin/test-*.py` covers `test-code-grade.py`/`test-gate-policy.py`, and
 neither name appears in `integration.detect`'s explicit list (verified by direct grep).
 
-**(b) `run-unit-tests.sh` `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`.** No `context-watch` entries in
-either array (`run-unit-tests.sh:30-31`, raw read). `test-code-grade.py` and `test-gate-policy.py`
+**(b) `run-unit-tests.py` `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`.** No `context-watch` entries in
+either array (`run-unit-tests.py:30-31`, raw read). `test-code-grade.py` and `test-gate-policy.py`
 sit in `UNIT_SCRIPTS`; `test-code-grade-cli.py` sits in `INTEGRATION_SCRIPTS`.
 
 **Subtle half — kind-drift check, run directly, not adopted:**
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --check-kinds
+$ .agents/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 EXIT STATUS: 0
 ```
-This is the script's own built-in comparator (`run-unit-tests.sh:82-131`): every
+This is the script's own built-in comparator (`run-unit-tests.py:82-131`): every
 `INTEGRATION_SCRIPTS` name must appear as the literal path in `integration.detect`, and no
 `UNIT_SCRIPTS` name may appear there. Exit 0 over the merged config proves every FEAT-43 test is
 registered in the kind whose detect glob actually matches it — matrix coverage is not silently

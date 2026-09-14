@@ -14,8 +14,8 @@ misleading, not decision-wrong, when the local record is HELD during a remote-re
 
 | kind | cmd | exit | discovered |
 |---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 33 files, all PASS (no FAIL/ERROR lines) |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 50 files, all PASS; `test-merge-gate.py` exit 0, 19/19 `ok`, `ALL PASSED` |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 33 files, all PASS (no FAIL/ERROR lines) |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 50 files, all PASS; `test-merge-gate.py` exit 0, 19/19 `ok`, `ALL PASSED` |
 
 Both runs `env -u HARNESS_AGENT_TYPE`ed per repo Expertise G-07. Non-empty discovered set on both
 (not an exit-0-over-nothing false pass). **matrix_ok: true.**

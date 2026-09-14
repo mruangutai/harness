@@ -13,12 +13,12 @@ The `approval:` block was never reset and is byte-identical to the original — 
 signature taken at 14 tasks from one re-affirmed at 18.** Nothing else records that difference.
 
 Plan commit at re-affirmation: `33d894e`. Task count 18, plan 1,550 lines, `safe_load` clean,
-`run-unit-tests.sh --kind all` exit 0 with zero FAIL lines, measured in this worktree.
+`run-unit-tests.py --kind all` exit 0 with zero FAIL lines, measured in this worktree.
 
 ## Build order is constrained, not advisory
 
 **T-18, then T-17, then T-12.** T-17 appends `test-context-watch-hook.py` to `INTEGRATION_SCRIPTS` in
-`run-unit-tests.sh` — the same file T-12 edits. Until T-18 adds the matching path to
+`run-unit-tests.py` — the same file T-12 edits. Until T-18 adds the matching path to
 `test_kinds.integration.detect`, `absent from detect` is 1, which reds T-11's already-recorded PASS
 and makes T-12's own `--check-kinds` exit 2, failing both required `tests.yml` steps for every kind.
 

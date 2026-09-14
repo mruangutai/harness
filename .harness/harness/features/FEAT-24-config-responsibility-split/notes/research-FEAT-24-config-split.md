@@ -116,13 +116,13 @@ Amendments 1 and 2 are T-10; 3,4,5 ride in the task that edits the file (G-13).
   wrong reason. Named in T-02, T-03.
 - **Two fake-gh variables.** `factory_gh.run_gh` reads `FACTORY_GH`; `gh-sync.py` reads
   `GH_SYNC_GH`. A test setting one leaves the other hitting the real network. Named in T-04.
-- **Registration list.** `run-unit-tests.sh:17-18` holds explicit `UNIT_SCRIPTS` /
+- **Registration list.** `run-unit-tests.py:17-18` holds explicit `UNIT_SCRIPTS` /
   `INTEGRATION_SCRIPTS` arrays; an unregistered new test file fails the whole run's drift check.
   No new test file is added by this plan, so no registration change is needed.
 
 ## Baselines, observed at `ada8e99` with the plan pending
 
-- **Registered test scripts (SC-13's "no test file removed"):** `run-unit-tests.sh:17` holds **16**
+- **Registered test scripts (SC-13's "no test file removed"):** `run-unit-tests.py:17` holds **16**
   `UNIT_SCRIPTS`, `:18` holds **12** `INTEGRATION_SCRIPTS`, **28 total**. This plan adds no script,
   so the number must be 28 at the merge commit.
 - **`gh_board.py` quoted station names:** 3 at `ada8e99`. Must be 0 after T-04.

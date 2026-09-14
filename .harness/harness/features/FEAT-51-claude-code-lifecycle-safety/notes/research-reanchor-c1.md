@@ -44,7 +44,7 @@ boundary. **Requirements left standing, unedited, per dispatch.**
 | T-03 | cases through `case()` + `_env` | `case()` `:41` carries no `session_id`; `_env` `:22` is right for env only |
 | T-03 | branch after `domain_check()`, before the shape phase | that position now sits **ahead** of FEAT-41's plan.yaml route denial. Moved to immediately after `:1678`, before the mode split at `:1680` — recorded as **D-11** |
 | T-03 | grade the canonical case on `plan.yaml` | non-discriminating: already exit 2 for every author. Regraded on `BRIEF.md`, plus a case pinning the route-denial text for `plan.yaml` |
-| T-04 | `.claude/...test-quarantine.py` into `integration.detect` | the cross-check (`run-unit-tests.sh:98-131`) uses the `.agents` spelling as its prefix, so the `.claude` spelling fails it |
+| T-04 | `.claude/...test-quarantine.py` into `integration.detect` | the cross-check (`run-unit-tests.py:98-131`) uses the `.agents` spelling as its prefix, so the `.claude` spelling fails it |
 | T-05 | add `case9_claude_code_suspension` | `case9_plan_yaml_write_is_a_verb_not_an_edit` is **taken** (FEAT-41, `:129`) → `case10_...`; and the override is `PLAYBOOK_PATH` / `TEAM_PLAYBOOK_PATH`, not `TEAM_PLAYBOOK_DEFAULT` (`:34` is the default) |
 | T-05 | "add a passage beside the dispatch step" | `harness-team/SKILL.md:126-130` already tells a lead to *expect the refusal to recur*. This feature supersedes that clause; it must be rewritten, not doubled |
 | T-06 | `DEC-208` | taken; `DEC-209` is free (0 tokens in `DECISIONS.md` at `ad93d43e`) |

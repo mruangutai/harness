@@ -15,8 +15,8 @@ authored beyond this note and a disposable git worktree (below) needed for the r
 | dispatch guard | `python3 .../test-dispatch-guard.py` | **42/42 PASS** | 42/42 | ✅ exact |
 | validate-digest | `python3 .../test-validate-digest.py` | CLI cases pass, T-09: **24/24 + 2/2 template, ALL PASSED** | "all passed" | ✅ |
 | omp hooks (bun) | `python3 .../test-omp-hooks.py` (bun test) | **24 pass / 0 fail** | 20→24 | ✅ exact |
-| unit suite | `run-unit-tests.sh --kind unit` | exit 0, **0 `FAIL` lines** across the full log; 417 `PASS <script>` lines (one per script, not per case — G-04) | 977→986 PASS/0 FAIL | ⚠️ no-fail confirmed; the specific 977→986 case-total is **not independently reproducible** from this script's own output convention (mixed `N of N`/`N/N`/bare-`ok` per-script formats, no cross-script aggregator) — same limitation c0 hit and declined to total. Treat the failure-count half of the claim (0 FAIL) as verified; the case-total half as unverified, not contradicted |
-| integration suite | `run-unit-tests.sh --kind integration` | exit 0, **569 `PASS` lines, 0 `FAIL` lines** | not named by fixer, but required by the `cross_module` floor | ✅ — matrix requirement satisfied independently of the fixer's claim list |
+| unit suite | `run-unit-tests.py --kind unit` | exit 0, **0 `FAIL` lines** across the full log; 417 `PASS <script>` lines (one per script, not per case — G-04) | 977→986 PASS/0 FAIL | ⚠️ no-fail confirmed; the specific 977→986 case-total is **not independently reproducible** from this script's own output convention (mixed `N of N`/`N/N`/bare-`ok` per-script formats, no cross-script aggregator) — same limitation c0 hit and declined to total. Treat the failure-count half of the claim (0 FAIL) as verified; the case-total half as unverified, not contradicted |
+| integration suite | `run-unit-tests.py --kind integration` | exit 0, **569 `PASS` lines, 0 `FAIL` lines** | not named by fixer, but required by the `cross_module` floor | ✅ — matrix requirement satisfied independently of the fixer's claim list |
 | `check-omp-port.py` | direct | `OMP port surface: ok`, exit 0 | "ok" | ✅ |
 | `check-state.sh` | direct | exit 0, all `note`-level, unrelated to this diff (same pre-existing housekeeping items c0 saw) | exit 0 | ✅ |
 
@@ -133,8 +133,8 @@ through `dispatch-guard.py` and `validate-digest.py`'s existing coverage).
 
 | Kind | Required? | State | Evidence |
 |---|---|---|---|
-| `unit` | always | **satisfied** | `run-unit-tests.sh --kind unit` exit 0, 0 FAIL lines (table above) |
-| `integration` | always | **satisfied** | `run-unit-tests.sh --kind integration` exit 0, 569 PASS / 0 FAIL |
+| `unit` | always | **satisfied** | `run-unit-tests.py --kind unit` exit 0, 0 FAIL lines (table above) |
+| `integration` | always | **satisfied** | `run-unit-tests.py --kind integration` exit 0, 569 PASS / 0 FAIL |
 
 **`matrix_ok: true`.**
 
@@ -167,8 +167,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "run-unit-tests.sh --kind unit", named_tests: n/a }
-    - { kind: integration, state: satisfied, cmd: "run-unit-tests.sh --kind integration", named_tests: n/a }
+    - { kind: unit, state: satisfied, cmd: "run-unit-tests.py --kind unit", named_tests: n/a }
+    - { kind: integration, state: satisfied, cmd: "run-unit-tests.py --kind integration", named_tests: n/a }
   coverage_gaps:
     - "hook-level (harness-hooks.ts) crash-reconciliation cross-feature isolation — c0's Q1, still open, neither fix commit touched it"
     - "validate-digest.py's held-child gate has no end-to-end test with a real OMP/recycled-pid claim — only live_children is covered in isolation (4b)"

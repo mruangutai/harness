@@ -36,7 +36,7 @@ test-check-state.py` → **no output**. SC-01's amended command returns exactly,
 | SC | Verdict | token | scope | Sufficiency finding |
 |---|---|---|---|---|
 | SC-01 | met | **FAIL** | **FAIL** | The clean illustration. All five tokens are **compound**; MF-1 sat *inside* the scope path and was invisible to every one (`cost vs budget`, plain English) → **token**. MF-3 (`.harness/expertise/`) is *outside* the stated path entirely → **scope**. Met on a method that cannot detect the class it exists to detect. |
-| SC-02 | met | OK | OK | Sufficient. `run-unit-tests.sh:9-24` exits 2 on any unlisted `test-*.py`, so a reinstated `test-cost-report.py` fails the same command — the absence claim is actively policed, not merely observed. |
+| SC-02 | met | OK | OK | Sufficient. `run-unit-tests.py:9-24` exits 2 on any unlisted `test-*.py`, so a reinstated `test-cost-report.py` fails the same command — the absence claim is actively policed, not merely observed. |
 | SC-03 | met | OK | **FAIL** | **False-negative-producing, the opposite direction from SC-01.** Repo-wide, so unrelated in-flight state can fail it. Already visible: its output's only content is 8 `note` lines, one of which is FEAT-08's own orphaned `goalcheck-product` run dir — nothing to do with cost. Hazard dormant only because FEAT-09 is in a worktree (Q6). |
 | SC-04 | met | OK | OK | Sufficient. The detector was **red at `ae2443d`** for the missing required field, per its own comment (`test-validate-digest.py:765-769`) — a passing green that only the deletion can produce. |
 | SC-05 | **not_met (wording)** | OK | **FAIL** | Line-granularity diff used as proxy for a semantic claim → **false positive**. Clause 1 met; clause 2 literally fails on one line. Intent fully satisfied. |

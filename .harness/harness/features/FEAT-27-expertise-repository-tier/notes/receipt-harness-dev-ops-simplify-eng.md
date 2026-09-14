@@ -51,7 +51,7 @@ N is a `.harness/team-config.yaml` / directory-layout governance question, not s
 `inject-expertise.sh` can or should decide unilaterally — noted for the record, not flagged as a
 defect.
 
-**Unit-suite registration — `run-unit-tests.sh`:**
+**Unit-suite registration — `run-unit-tests.py`:**
 
 | Run | wall time |
 |---|---|

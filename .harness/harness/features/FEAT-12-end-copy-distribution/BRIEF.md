@@ -76,7 +76,7 @@ what the factory clones.
 - SC-02: `test-check-plan-routes.py` still passes every case after the registry is deleted —
   including case 20, whose `$HOME`-shaped trap builds its **own** synthetic `registry.json` in a
   temp directory and therefore must not have depended on the real one. That script is in
-  `INTEGRATION_SCRIPTS`, so `run-unit-tests.sh --kind integration` is the command that runs it.
+  `INTEGRATION_SCRIPTS`, so `run-unit-tests.py --kind integration` is the command that runs it.
   verify: automated      evidence: integration
 - SC-02b: `~/.harness/registry.json` does not exist, while the two `global-harness-*-backup-2026-08-10.tgz`
   archives beside it do. No test kind may assert this — a test that reads `$HOME` is machine-dependent
@@ -209,18 +209,18 @@ what the factory clones.
   the worktrees: they are outside all three of T-02's globs and SC-04 is worded against
   `.claude/skills/`, which they are not under.
 - **Pre-existing red suite, not this feature's.** Observed at `c4fea5d` on 2026-08-10 with the
-  operator's #202 change staged: `run-unit-tests.sh --kind unit` exits 0, but `--kind integration`
+  operator's #202 change staged: `run-unit-tests.py --kind unit` exits 0, but `--kind integration`
   exits 1 on `test-gen-decisions-index.py`, with two failures —
   `test_row_per_distinct_dec_matches_authority` (expected one fence-guarded `DEC-83` duplicate,
   found none, because `DEC-83` was struck) and `test_committed_index_is_complete_and_within_budget`
   (`DEC-188`'s row summary is 37 words against a 30-word cap). Separately,
   `gen-decisions-index.py --stdout` emits nothing and reports `ORPHAN: DEC-104`. All three are the
-  in-flight #202 strike, not FEAT-12. Three task verifies here call `run-unit-tests.sh` and cannot
+  in-flight #202 strike, not FEAT-12. Three task verifies here call `run-unit-tests.py` and cannot
   pass until #202's index regeneration lands. Repairing them is #202's work and is out of scope.
   **SUPERSEDED at `835b297`.** The observation above is what was measured at `c4fea5d` and stays on
   the record, but it no longer describes the tree. #202 landed as
   `835b297 [harness:human] #202: the propagation checker is struck, not deprecated`, and at that
-  commit the operator re-measured: `run-unit-tests.sh` exits 0 with 85 distinct test files passing
+  commit the operator re-measured: `run-unit-tests.py` exits 0 with 85 distinct test files passing
   and none failing; `test-gen-decisions-index.py` reports all 8 cases `ok`, including the two
   recorded failing above; and `gen-decisions-index.py --stdout` emits the index normally, starting
   `<!-- index-contract v1 -->`, with no ORPHAN. **There is no red-suite dependency left. Nothing in

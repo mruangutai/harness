@@ -98,7 +98,7 @@
   `review-harness-code-reviewer-c0.md`'s headline claims "spec compliance clean across all 8 files",
   but its Stage 1 enumerates SEVEN: `layout_migration.py`, `test-layout-migration.py`,
   `check-state.sh`, `test-check-state.py`, `tests.yml`, `DECISIONS.md`, `DECISIONS-INDEX.md`.
-  `run-unit-tests.sh` — the registration file that decides whether the new test file runs at all,
+  `run-unit-tests.py` — the registration file that decides whether the new test file runs at all,
   i.e. this feature's own subject — is absent, confirmed by grep over the whole notes directory.
   It is NOT uncovered in the panel's union: security described it (`review-harness-security-reviewer-c0.md:88`,
   "one-line array addition (test registration)") and qa executed through it with both registration
@@ -113,7 +113,7 @@
   defines 17 top-level names TWICE — `case_m`(528/1662) … `case_x`(1585/2719). Python binds the
   last, so the executing `case_x` is the one WITHOUT the `layout_fixtures` import: the #382
   consolidation the commit is named for never took effect in this file. 84 `ok`, exit 0. No gate in
-  the repo detects a shadowed duplicate definition — `run-unit-tests.sh`'s drift detector checks
+  the repo detects a shadowed duplicate definition — `run-unit-tests.py`'s drift detector checks
   file REGISTRATION, never in-file redefinition.
 
 - 2026-08-14: THE ORIENTATION SUMMARY WAS RIGHT ABOUT THE DEFECT AND WRONG ABOUT THE REMEDY, and

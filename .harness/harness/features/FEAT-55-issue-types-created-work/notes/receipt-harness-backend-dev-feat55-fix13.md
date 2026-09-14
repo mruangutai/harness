@@ -94,7 +94,7 @@ with their absence from the `--base/--head` report above, and out of this task's
 
 ### 3. Unit driver
 
-`env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh`: rc captured in
+`env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py`: rc captured in
 a variable = **0**; `^FAIL ` line count = **0**.
 
 ### 5. `git status --porcelain`

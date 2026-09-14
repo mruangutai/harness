@@ -3,7 +3,7 @@
 **BLUF: nothing-found.** The new `run_documented_contract_cases` section costs ~18.5ms of a
 measured 19.0s suite (~0.10%) — every candidate waste it contains (redundant file reads, an
 extra module load) is under 1ms in absolute terms. This is a one-shot CI/build gate
-(`INTEGRATION_SCRIPTS` in `run-unit-tests.sh`), not a per-session or per-write hook, so even a
+(`INTEGRATION_SCRIPTS` in `run-unit-tests.py`), not a per-session or per-write hook, so even a
 generous 10x safety margin on the measurement leaves nothing worth an edit. The three markdown
 subjects carry no runtime cost at all.
 
@@ -43,7 +43,7 @@ Decomposed (throwaway probe in `/tmp`, never inside the worktree):
   memoized reader would save a fraction of a millisecond in a 19-second suite. Declining to flag
   this, per the skill's own worked example, is the correct outcome here.
 - **Lifecycle placement:** one-shot CI/build gate. `test-validate-digest.py` is registered in
-  `INTEGRATION_SCRIPTS` in `.claude/skills/harness/bin/run-unit-tests.sh` (confirmed by grep
+  `INTEGRATION_SCRIPTS` in `.claude/skills/harness/bin/run-unit-tests.py` (confirmed by grep
   against prior review receipts in this feature's own notes tree, e.g.
   `review-harness-qa-c1.md:43-44`, `qa-test-matrix-c1.md:51-52` — both read the array directly,
   not the `detect` glob). It runs under `--kind integration`, invoked by the qa test-matrix gate

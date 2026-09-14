@@ -23,7 +23,7 @@
 
 - 2026-08-19: Measuring the design tension BEFORE dispatching pm changed the shape of the question.
   The user framed three routes for where a new CI assertion registers; one grep of
-  `run-unit-tests.sh` line 18 showed `test-check-plan-routes.py` and `test-check-domain.py` are
+  `run-unit-tests.py` line 18 showed `test-check-plan-routes.py` and `test-check-domain.py` are
   ALREADY in `INTEGRATION_SCRIPTS`, and `git diff` showed FEAT-27 touches only the `UNIT_SCRIPTS`
   line. That turned "which route" from speculative into priced, and the dispatch carried the
   measurement instead of asking pm to re-derive it. Cost: two Bash calls.

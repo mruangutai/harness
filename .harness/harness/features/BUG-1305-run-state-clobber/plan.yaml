@@ -197,7 +197,7 @@ panel:
     readers:
     - scope
     - should-not-exist
-    summary: BRIEF Constraints forbids a project-wide suite while T-08 mandates run-unit-tests.sh
+    summary: BRIEF Constraints forbids a project-wide suite while T-08 mandates run-unit-tests.py
       --kind unit and --kind integration, both repo-wide globs, and SC-07 is graded
       on their results.
     disposition: open
@@ -1052,8 +1052,8 @@ tasks:
       carry forward. Record it under the same heading, distinguished from the pairs above as INTENDED and
       DISCLOSED. Any OTHER newly refused write is a failure.
 
-      SUITES. Run BOTH - `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` and
-      `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` - and record each one exit code
+      SUITES. Run BOTH - `.claude/skills/harness/bin/run-unit-tests.py --kind unit` and
+      `.claude/skills/harness/bin/run-unit-tests.py --kind integration` - and record each one exit code
       and its failure lines verbatim. Read the runner failure accounting before quoting a pass: count
       the FAIL-prefixed lines rather than trusting an exit code alone, and say which of the two you relied
       on. The verify below runs the six touched test files, because a full-suite run under

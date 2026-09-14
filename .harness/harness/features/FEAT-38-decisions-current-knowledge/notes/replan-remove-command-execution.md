@@ -72,7 +72,7 @@ Five tracked files outside the feature dir reference the checker
 |---|---|
 | `.claude/skills/harness/bin/check-decision-claims.py` | the redesign itself |
 | `.claude/skills/harness/bin/test-check-decision-claims.py` | 17 marker occurrences; the `python3`-is-refused case becomes an unknown-kind case |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | registration only — name may stay if the script keeps its name |
+| `.claude/skills/harness/bin/run-unit-tests.py` | registration only — name may stay if the script keeps its name |
 | `.harness/harness.json` | registration only — same |
 | `.harness/harness/docs/DECISIONS.md` | 11 markers rewritten to the new grammar, **plus the prose below** |
 

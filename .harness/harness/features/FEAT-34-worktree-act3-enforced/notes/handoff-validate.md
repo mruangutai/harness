@@ -45,7 +45,7 @@ against it. Do NOT reuse this pin after any commit.
   run and reverted byte-identically — verified-at 513c4a4
 - Do NOT cite 15.6s as the integration suite's cost — falsified; 235-236s sole-runner twice, cause
   unattributed — verified-at 513c4a4
-- Do NOT run two suites at once — concurrent run-unit-tests.sh produces transient failures that are
+- Do NOT run two suites at once — concurrent run-unit-tests.py produces transient failures that are
   indistinguishable from real ones — verified-at 513c4a4
 - Do NOT trust a carried residual's stated premise — Q6 arrived INVERTED; two more claims failed
   re-derivation this phase — verified-at 513c4a4

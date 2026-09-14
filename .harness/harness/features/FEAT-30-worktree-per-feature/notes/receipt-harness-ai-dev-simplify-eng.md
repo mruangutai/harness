@@ -53,7 +53,7 @@ stated once each" as license to copy identical prose into all three.
   `check-state.sh:1366` (`for m in bad: print(f"  VIOLATION  {m}")`) that violation text is
   free-form and not guaranteed to name a feature id, so a code regression could in principle
   surface as an untagged VIOLATION. The compensating control is present but implicit rather
-  than named as such: the suite half ("run-unit-tests.sh --kind unit and --kind integration ...
+  than named as such: the suite half ("run-unit-tests.py --kind unit and --kind integration ...
   zero FAIL/ERROR") is the hard zero that catches code-level regressions in
   `harness_boundary.py`/`check-domain.py`, leaving the check-state half to catch only
   feature/process-state violations, which are the ones that do carry the feature id in practice.

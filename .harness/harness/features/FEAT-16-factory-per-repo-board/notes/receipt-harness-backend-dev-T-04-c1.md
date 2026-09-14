@@ -53,7 +53,7 @@ RED: the fixture is unloadable by the old direct reads, not a vacuous pass. Then
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Verbatim stdout+stderr (captured to a file, `EXIT=0` appended as the last line — no lines edited,

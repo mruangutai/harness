@@ -28,7 +28,7 @@ My reading rests on one sentence, `DECISIONS.md:4377-4378`: *"A module a gate im
 
 ## SC audit (SC-01..SC-05)
 
-Every SC carries exactly one `verify:`; both `automated` kinds are active with real commands (`harness.json test_kinds.unit`, `test_kinds.integration`, `status: active`, `cmd` = `run-unit-tests.sh --kind unit|integration`), and `tests/unit/**`/`tests/integration/**` match the files touched.
+Every SC carries exactly one `verify:`; both `automated` kinds are active with real commands (`harness.json test_kinds.unit`, `test_kinds.integration`, `status: active`, `cmd` = `run-unit-tests.py --kind unit|integration`), and `tests/unit/**`/`tests/integration/**` match the files touched.
 
 **Two SCs a broken implementation could still pass:**
 - **SC-02 — `med`.** Its words are "exits non-zero and leaves the target file byte-identical". A `plan-merge` that refused *every* apply passes it, and so does exit 9 (`--file` never resolved, `plan-merge.py:52`), which is the fixture not being built. T-02 case (a) pins exit 5 + `ILLEGAL PLAN` + `T-99` and case (b) the paired allow, so the *task* is discriminating while the *criterion* is not — a later reviewer grading SC-02 on its own text can green a deny-everything build. SC-01+SC-03 exclude deny-everything on the READ route only; no SC pairs an allow on the WRITE route.

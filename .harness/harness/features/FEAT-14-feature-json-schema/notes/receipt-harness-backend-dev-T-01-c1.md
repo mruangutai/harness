@@ -3,7 +3,7 @@
 ## Verify clause, as run verbatim
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Cross-checked against `plan.yaml` T-01's `verify:` — identical string. Matches, not `BLOCKED`.
@@ -36,7 +36,7 @@ machine (not trusted from BRIEF.md's line).
 - `.claude/skills/harness/bin/feature_schema.py` (new)
 - `.claude/skills/harness/bin/validate-feature-json.py` (new)
 - `.claude/skills/harness/bin/test-validate-feature-json.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one-line edit: `test-validate-feature-json.py`
+- `.claude/skills/harness/bin/run-unit-tests.py` (one-line edit: `test-validate-feature-json.py`
   added to `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS`)
 
 Nothing else. `.harness/features/FEAT-14-feature-json-schema/feature.yaml` and `STATE.md` show

@@ -608,6 +608,87 @@ def merge_gate_corpus(scratch):
     ]
 
 
+def _write_runner_modules(bin_dir):
+    with open(os.path.join(bin_dir, "suite_layout.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write(
+            "import os\n"
+            "def violations(root):\n"
+            "    return ['unit layout broken', 'integration layout broken'] "
+            "if os.environ.get('LAYOUT_MODE') == 'bad' else []\n")
+    with open(os.path.join(bin_dir, "run_pool.py"), "w",
+              encoding="utf-8") as fh:
+        fh.write(
+            "import json, os, sys\n"
+            "def main(argv=None):\n"
+            "    args = sys.argv[1:] if argv is None else argv\n"
+            "    print(json.dumps(args))\n"
+            "    return int(os.environ.get('POOL_EXIT', '0'))\n"
+            "if __name__ == '__main__':\n"
+            "    raise SystemExit(main())\n")
+
+
+def _write_runner_tests(root):
+    for kind, names in (
+            ("unit", ("test-alpha.py", "test-zeta.py")),
+            ("integration", ("test-beta.py",))):
+        directory = os.path.join(root, "tests", kind)
+        os.makedirs(directory)
+        for name in names:
+            with open(os.path.join(directory, name), "w",
+                      encoding="utf-8") as fh:
+                fh.write("raise SystemExit(0)\n")
+
+
+def _run_unit_fixture(scratch):
+    root = os.path.join(scratch, "run-unit-root")
+    harness = os.path.join(root, ".harness")
+    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(harness)
+    os.makedirs(bin_dir)
+    with open(os.path.join(harness, "team-config.yaml"), "w",
+              encoding="utf-8") as fh:
+        fh.write("teams: []\n")
+    _write_runner_modules(bin_dir)
+    _write_runner_tests(root)
+    return root
+
+
+def run_unit_tests_corpus(scratch):
+    """Argument, layout, selection, pool and root cases for the suite runner."""
+    project_override = "HARNESS" + "_PROJECT_DIR"
+    root = _run_unit_fixture(scratch)
+    root_env = {project_override: root}
+    return [
+        {"label": "default runs both kinds", "env": root_env},
+        {"label": "unit kind selects unit scripts",
+         "argv": ["--kind", "unit"], "env": root_env},
+        {"label": "integration kind selects integration scripts",
+         "argv": ["--kind", "integration"], "env": root_env},
+        {"label": "missing kind value defaults to all",
+         "argv": ["--kind"], "env": root_env},
+        {"label": "extra kind arguments remain ignored",
+         "argv": ["--kind", "unit", "unexpected"], "env": root_env},
+        {"label": "layout-only exits without pool",
+         "argv": ["--check-layout"], "env": root_env},
+        {"label": "layout findings refuse before pool",
+         "argv": ["--kind", "unit"],
+         "env": {**root_env, "LAYOUT_MODE": "bad"}},
+        {"label": "unknown kind refuses",
+         "argv": ["--kind", "functional"], "env": root_env},
+        {"label": "unexpected first argument refuses",
+         "argv": ["unexpected"], "env": root_env},
+        {"label": "pool exit status is preserved",
+         "argv": ["--kind", "integration"],
+         "env": {**root_env, "POOL_EXIT": "7"}},
+        {"label": "cwd-independent suite selection",
+         "argv": ["--kind", "unit"], "cwd": scratch, "env": root_env},
+        {"label": "unconfigured isolated copy refuses",
+         "argv": ["--check-layout"], "isolate": True,
+         "env": {project_override: None}},
+    ]
+
+
 def post_merge_sweep_corpus(scratch):
     """Safe dry-run, argument, cwd and broken-installation sweep cases."""
     with open(os.path.join(scratch, "harness_boundary.py"), "w",
@@ -696,6 +777,8 @@ def corpus(tool, scratch, impl):
         return gh_close_gate_corpus(scratch)
     if tool == "merge-gate":
         return merge_gate_corpus(scratch)
+    if tool == "run-unit-tests":
+        return run_unit_tests_corpus(scratch)
     if tool == "post-merge-sweep":
         return post_merge_sweep_corpus(scratch)
     raise SystemExit(f"no corpus defined for {tool!r} -- add one before converting it")

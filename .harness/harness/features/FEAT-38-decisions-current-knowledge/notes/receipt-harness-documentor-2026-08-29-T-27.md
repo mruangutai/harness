@@ -39,12 +39,12 @@ whole diff below is mine.
 -
 -<!-- claim: grep -F "violation(s) across" .claude/skills/harness/bin/check-plan-routes.py :: violation(s) across {processed} plan(s) -->
 -
--<!-- claim: grep -F "run-unit-tests.sh" .github/CODEOWNERS :: run-unit-tests.sh  @mruangutai -->
+-<!-- claim: grep -F "run-unit-tests.py" .github/CODEOWNERS :: run-unit-tests.py  @mruangutai -->
 -
 -<!-- claim: grep -F "WORKTREES_SEGMENT = " .claude/skills/harness/bin/harness_boundary.py :: WORKTREES_SEGMENT = ".claude/worktrees" -->
 -
 -<!-- claim: grep -F "ALLOWED_FIRST_TOKENS = " .claude/skills/harness/bin/check-decision-claims.py :: ALLOWED_FIRST_TOKENS = {"git", "grep"} -->
--<!-- claim: grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.sh :: test-check-decision-claims.py -->
+-<!-- claim: grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.py :: test-check-decision-claims.py -->
 -
 ```
 

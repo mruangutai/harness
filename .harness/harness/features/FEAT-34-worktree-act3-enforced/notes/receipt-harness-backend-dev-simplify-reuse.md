@@ -111,7 +111,7 @@ Alternative: a `worktree_test_fixtures.py` (or extend `layout_fixtures.py`'s own
 holding `repo()`, `commit_feature()`, `add_wt()`, `extract_resolved_root()`,
 `assert_resolved_root_in_fixture()`, `stub_gh()`, `sweep_env()` once, imported by all three
 suites — mirroring the exact pattern `layout_fixtures.py` already established and that
-`run-unit-tests.sh`'s own drift detector already knows to skip (non-`test-*.py` fixture
+`run-unit-tests.py`'s own drift detector already knows to skip (non-`test-*.py` fixture
 modules are excluded from the file-naming scan per layout_fixtures.py's own docstring).
 
 severity: med

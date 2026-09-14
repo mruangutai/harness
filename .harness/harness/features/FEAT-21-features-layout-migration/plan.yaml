@@ -248,7 +248,7 @@ tasks:
       - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
       u=$(mktemp); ru=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >"$u" 2>&1 || ru=$?
       grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "the layout suite did not run"; cat "$u"; exit 1; }
       grep -qi 'parity' "$u" || { echo "no parity case ran"; cat "$u"; exit 1; }
       exit "$ru"
@@ -689,7 +689,7 @@ tasks:
         opens a REAL feature's plan.yaml, joined as os.path.join(_HERE, "..", "..", "..", "..",
         ".harness", "features", "FEAT-10-software-factory", "plan.yaml"), and reads it as an
         independent source of truth for a dash codepoint. It is in UNIT_SCRIPTS in
-        run-unit-tests.sh, so after the move the import raises FileNotFoundError, the whole unit
+        run-unit-tests.py, so after the move the import raises FileNotFoundError, the whole unit
         suite dies, and T-09's own suite check fails. Insert the literal harness segment: ".harness",
         "harness", "features", "FEAT-10-software-factory". The literal, not the wildcard - this is a
         concrete file path being opened, which is D-01's prose side. Change nothing else in the file;
@@ -1068,9 +1068,9 @@ tasks:
       if grep -q 'INV-27' "$s"; then echo "INV-27 finding present"; cat "$s"; exit 1; fi
       test "$sc" = 0
       u=$(mktemp); ru=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >"$u" 2>&1 || ru=$?
       i=$(mktemp); ri=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >"$i" 2>&1 || ri=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration >"$i" 2>&1 || ri=$?
       grep -c '^PASS ' "$u"; grep -c '^PASS ' "$i"
       grep -q '^PASS test-check-state\.py$' "$i" || { cat "$i"; exit 1; }
       grep -q '^PASS test-check-plan-routes\.py$' "$i" || { cat "$i"; exit 1; }

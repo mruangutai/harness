@@ -68,7 +68,7 @@ cites a T-NN", which does not prove a successor acts on it. It is a UAT step, or
 
 ## Two mechanical constraints any plan must carry
 
-- A new `test-*.py` under `bin/` forces an edit to `run-unit-tests.sh` (drift detector, lines 17-51) —
+- A new `test-*.py` under `bin/` forces an edit to `run-unit-tests.py` (drift detector, lines 17-51) —
   and if it is an integration test, a second edit to `test_kinds.integration.detect` in
   `.harness/harness.json`, which is an explicit pipe-separated file list, not a glob.
 - CI is `ubuntu-latest` with no `~/.claude/projects`, and zero existing tests read it. Every fixture

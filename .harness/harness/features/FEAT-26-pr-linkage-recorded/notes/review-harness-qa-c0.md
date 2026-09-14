@@ -17,7 +17,7 @@ drop — 21 of 22 registered integration scripts ran.
 
 ## Per-kind results (Phase 2, against `bad32441dfc0`)
 
-- **unit** — `run-unit-tests.sh --kind unit`: 19/19 scripts discovered and run, all green
+- **unit** — `run-unit-tests.py --kind unit`: 19/19 scripts discovered and run, all green
   (rc=0). Includes `test-validate-feature-json.py` (T-01's file, 5/5 new cases:
   `accepted_source_issues_list_of_integers`, `rejected_source_issues_non_integer`,
   `rejected_source_issues_quoted_number`, `rejected_undeclared_sibling_of_source_issues`,

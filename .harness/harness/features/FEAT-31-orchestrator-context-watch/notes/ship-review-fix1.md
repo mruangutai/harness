@@ -14,7 +14,7 @@ can move until your tasks land.
 **Your two blockers are cleared.** T-16 and T-18 are done and I verified both myself rather than
 taking the lead's word: `.claude/settings.json` is zero-diff so D-24 holds, and `harness.json`
 changed in exactly one key. **T-17 is unblocked, and T-07 has already made its edit to
-`run-unit-tests.sh`, so that file is settled — append only when you get there.**
+`run-unit-tests.py`, so that file is settled — append only when you get there.**
 
 ## What was wrong, and why every gate missed it
 

@@ -46,7 +46,7 @@ overturning the first costs a re-run, the second costs a fix cycle.
 
 ### 1. The blocking gate is green at the commit, red in the working tree
 
-`run-unit-tests.sh --kind integration` **exits 1 in this working tree.** One script is red:
+`run-unit-tests.py --kind integration` **exits 1 in this working tree.** One script is red:
 `test-gen-decisions-index.py`, because the uncommitted `.harness/harness/docs/DECISIONS.md` in your
 tree disagrees with a fresh regeneration of the decisions index. That file belongs to another
 workstream, is absent from FEAT-25's diff, and no file this feature touched participates.
@@ -130,7 +130,7 @@ this is everything that survived.
 | B-10 | chore | The mirror created parent issue **#539** rather than adopting the effort's execution record **#498** — nothing on disk named an adoptable parent. Milestone #16, sub-issues #540/#541/#542, all closed. You may want them linked by hand. |
 | B-11 | chore | Two feature directories share the id FEAT-25 (`claim-feature-root`, `expertise-repository-tier`). Mechanically safe — lookups use the full slug — but every human "FEAT-25" reference is ambiguous. Nothing allocates ids (#323). |
 | B-12 | chore | `.harness/expertise/` has a craft/repository split, but the repository tier does not exist in this tree. A member correctly evicted a repo-specific fact this feature and it had nowhere to land. The split will keep evicting repo knowledge until the second tier is built. |
-| B-13 | chore | `test-bash-write-guard.py` and `test-check-domain.py` are cwd-sensitive — exit 1 from inside `bin/`, 0 from the repository root — and `run-unit-tests.sh` inherits the caller's cwd. A gate measured from the wrong directory reads three reds and misattributes them. |
+| B-13 | chore | `test-bash-write-guard.py` and `test-check-domain.py` are cwd-sensitive — exit 1 from inside `bin/`, 0 from the repository root — and `run-unit-tests.py` inherits the caller's cwd. A gate measured from the wrong directory reads three reds and misattributes them. |
 | B-14 | chore | `check-domain.py --post` flags historical `STATE.md` files inside a temporary worktree as live violations, so any worktree probe emits spurious blocking output. |
 | B-15 | chore | No member wrote an observation log this feature, so **every** distilled entry traces to a lead's recall rather than a member's own record. Memory quality is currently a function of one relay. Nothing requires members to log. |
 | B-16 | chore | pm removed from its own memory the rule "a source reading is not admissible evidence for a `verify: automated` criterion — name the passing test or return it not met", while the reading that rule embodies is the open question in section 2 above. If you rule strict, re-add it. |

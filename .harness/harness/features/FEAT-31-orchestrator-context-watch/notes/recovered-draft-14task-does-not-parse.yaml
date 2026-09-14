@@ -27,7 +27,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-validate-feature-json.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
       reason: not in DEC-174's enumeration and the domain guard grants it; see D-07
@@ -124,7 +124,7 @@ decisions:
     dec: DEC-174
 
   - id: D-07
-    choice: Registering a new test file in run-unit-tests.sh's UNIT_SCRIPTS or
+    choice: Registering a new test file in run-unit-tests.py's UNIT_SCRIPTS or
       INTEGRATION_SCRIPTS array is TEAM lane, not enforcement layer.
     because: It is absent from DEC-174's enumeration and check-domain.py --resolve grants it
       to harness-backend-dev and harness-dev-ops; it selects which tests run and asserts no
@@ -402,13 +402,13 @@ tasks:
     status: pending
     files:
       - .claude/skills/harness/bin/test-context-watch.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create .claude/skills/harness/bin/test-context-watch.py and append its filename to the
-      UNIT_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.sh. Change nothing else
-      in run-unit-tests.sh. The drift detector at its lines 17-51 fails the whole suite if a
+      UNIT_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.py. Change nothing else
+      in run-unit-tests.py. The drift detector at its lines 17-51 fails the whole suite if a
       test-*.py under bin/ is in neither array, so the registration is not optional.
 
       Follow the reporting shape the other test-*.py files in that directory use: a report
@@ -588,10 +588,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-validate-feature-json.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Extend .claude/skills/harness/bin/test-validate-feature-json.py, which is already
-      registered in run-unit-tests.sh UNIT_SCRIPTS, with cases for the diff-scoped agent_id
+      registered in run-unit-tests.py UNIT_SCRIPTS, with cases for the diff-scoped agent_id
       rule. Do not create a new test file. Follow the reporting shape already in that file.
 
       Build a real throwaway git repository under tempfile.mkdtemp() for each case: git init,
@@ -788,7 +788,7 @@ tasks:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       python3 .claude/skills/harness/bin/test-check-state.py
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Add cases to .claude/skills/harness/bin/test-check-state.py proving the widened INV-17
       is load-bearing. Follow the fixture and reporting conventions already in that file; the
@@ -875,13 +875,13 @@ tasks:
     status: pending
     files:
       - .claude/skills/harness/bin/test-context-watch-integration.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       Create .claude/skills/harness/bin/test-context-watch-integration.py, append its filename
-      to the INTEGRATION_SCRIPTS array in run-unit-tests.sh, and append its path to
+      to the INTEGRATION_SCRIPTS array in run-unit-tests.py, and append its path to
       test_kinds.integration.detect in .harness/harness.json, which is an explicit
       pipe-separated file list. Change nothing else in either file. Every fixture is built
       under tempfile.mkdtemp() and every root is passed explicitly. NOTHING in this file may

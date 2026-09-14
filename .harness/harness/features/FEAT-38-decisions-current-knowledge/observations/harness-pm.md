@@ -13,7 +13,7 @@
 - 2026-08-29: check-docs.sh does not exist in this tree, yet issue #78 rests two load-bearing claims
   on it (its stale-marker registry, and it exiting 0 as a verification). An old ticket's named script
   is worth an `ls` before any requirement is written against it.
-- 2026-08-29: run-unit-tests.sh cross-checks every INTEGRATION_SCRIPTS name against harness.json's
+- 2026-08-29: run-unit-tests.py cross-checks every INTEGRATION_SCRIPTS name against harness.json's
   integration detect and exits 2 with KIND-DRIFT if absent. The two files are in DIFFERENT lanes
   (backend-dev, dev-ops), so registering a new test script is necessarily two tasks, and the config
   side must land first or the whole suite exits 2. The runner-side task's verify must assert the
@@ -29,11 +29,11 @@
 - 2026-08-29 (FEAT-38): dispatch gloss ("one renumbered after a collision and two partly struck") was unsupported by any receipt; only the span collision was. Stated what the record supports and dropped the rest.
 - 2026-08-29 (FEAT-38 goal-check at 48bbe7e): check-domain denied an Edit whose hash-line section header was a BARE filename — it resolved against cwd, not the file just read. Re-issuing with the absolute path in the header passed. Also: the prior goal-check's "Ten of the fifteen" over a twelve-id list was a word error, list right; 15-3=12.
 - 2026-08-29: FEAT-38 S2 replan. check-plan-routes.py takes a FILE, not a feature dir: passed the dir it dies with IsADirectoryError at line 397 and exits 1, which reads as a gate failure rather than a bad argument. Pass plan.yaml.
-- 2026-08-29: run-unit-tests.sh KIND-DRIFT is one-directional per kind (lines 121-130): an INTEGRATION_SCRIPTS name absent from detect is flagged, a detect entry with no array entry is not. That asymmetry decides deregistration ORDER (runner side first) and it is NOT the mirror-image of the registration reason.
+- 2026-08-29: run-unit-tests.py KIND-DRIFT is one-directional per kind (lines 121-130): an INTEGRATION_SCRIPTS name absent from detect is flagged, a detect entry with no array entry is not. That asymmetry decides deregistration ORDER (runner side first) and it is NOT the mirror-image of the registration reason.
 - 2026-08-29: a done task whose product is being deleted has no legal status to say so (only pending/building/done). Turning its verify into a two-sided reversal check - product existed at the landed sha, absent at final state - makes it mechanically legible and keeps the record honest.
 - 2026-08-29: FEAT-38 replan. A removal sequence's ordering rationale is only as good as its
   enumeration of the gates the INTERMEDIATE state trips. Two drafts of T-24/T-25 reasoned carefully
-  about run-unit-tests.sh's KIND-DRIFT cross-check and never named the MISCONFIGURED file-presence
+  about run-unit-tests.py's KIND-DRIFT cross-check and never named the MISCONFIGURED file-presence
   detector 30 lines above it, which fires on any on-disk test-*.py in neither script array - so the
   three-step order took the whole suite to exit 2 for the interval. When I write an ordering
   argument, list every gate that reads the surfaces being changed, then say what each does in each

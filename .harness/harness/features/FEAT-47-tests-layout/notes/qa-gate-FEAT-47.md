@@ -37,10 +37,10 @@ the signed BRIEF (SC-01/02, SC-04, SC-10, SC-07, SC-03, SC-09) — this is not q
   kinds, `.claude/` absent from both, `tests/manual` absent from every active `detect`, runner
   delegates to `suite_layout` exactly once. Ran directly: **11/11 PASS**.
 - `tests/integration/test-run-unit-tests-layout.py` (47 lines, new): drives the real
-  `run-unit-tests.sh` against a fixture root — clean layout, `--kind unit`/`--kind integration` on a
+  `run-unit-tests.py` against a fixture root — clean layout, `--kind unit`/`--kind integration` on a
   clean tree, `--bogus`/`--kind nonsense` refused, and all four violations reproduced through
   `--check-layout` with per-violation message assertions. Ran directly: **9/9 PASS**.
-- `run-unit-tests.sh --check-layout` and `--bogus` against the real tree: exit 0 / exit 2 as
+- `run-unit-tests.py --check-layout` and `--bogus` against the real tree: exit 0 / exit 2 as
   specified.
 - SC-03 (route grants): `tests/integration/test-check-domain.py:1857-1878` carries the eleven named
   assertions the plan specifies (3 grants × 2 kinds, 3 denials, 1 bin-denial, 1 worktree-parity);
@@ -137,11 +137,11 @@ DIGEST:
   kinds:
     - kind: unit
       state: satisfied
-      cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit"
+      cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit"
       named_tests: 20
     - kind: integration
       state: satisfied
-      cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration"
+      cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration"
       named_tests: 40
   coverage_gaps:
     - "SC-05 sole-implementation sweep (T-05 intent step 2b: exemption list, positive control, >=90 floor, 3-shape red proof) is absent from tests/unit/test-suite-layout.py"

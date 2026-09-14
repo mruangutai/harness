@@ -125,7 +125,7 @@ a finding it has today.
 ## Verification gaps
 
 - None for this surface. `integration` has a real runner
-  (`.agents/skills/harness/bin/run-unit-tests.sh --kind integration`) whose detect glob
+  (`.agents/skills/harness/bin/run-unit-tests.py --kind integration`) whose detect glob
   `tests/integration/**` matches the file this feature's tests live in, so no criterion above rests
   on a `cmd: null` kind.
 

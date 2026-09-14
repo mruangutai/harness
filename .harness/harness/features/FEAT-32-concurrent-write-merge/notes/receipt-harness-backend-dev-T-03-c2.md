@@ -84,8 +84,8 @@ copy, then the full suite (99 assertions now, cases 1-11) ran clean. Overall exi
 ## `--check-kinds`
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
-MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.sh's explicit script list
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.py's explicit script list
 EXIT_CODE=2
 ```
 

@@ -7,7 +7,7 @@ Verdict: PASS. All three `verify:` clauses ran individually with the outputs bel
 Output: (none)
 Exit: 0
 
-## 2. `grep -c 'test-cost-report' .claude/skills/harness/bin/run-unit-tests.sh`
+## 2. `grep -c 'test-cost-report' .claude/skills/harness/bin/run-unit-tests.py`
 
 Output:
 ```
@@ -15,7 +15,7 @@ Output:
 ```
 Exit: 1 (expected per task instructions — 0 matches, grep -c exits 1 on zero matches; the printed `0` is the evidence, not the exit status)
 
-## 3. `.claude/skills/harness/bin/run-unit-tests.sh` (whole suite)
+## 3. `.claude/skills/harness/bin/run-unit-tests.py` (whole suite)
 
 Output (tail):
 ```
@@ -28,7 +28,7 @@ Exit: 0
 
 ```
 D  .claude/skills/harness/bin/cost-report.py
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
 D  .claude/skills/harness/bin/test-cost-report.py
 ```
 

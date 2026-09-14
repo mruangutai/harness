@@ -35,8 +35,8 @@ nothing.
 
 | kind/suite | exit | discriminated count | vs. c1 baseline |
 |---|---|---|---|
-| `run-unit-tests.sh --kind unit` | 0 | 33 files, pool all PASS; `^FAIL ` count = 4 | 33 files — matches; the 4 FAIL lines are `test-factory-claim-mutation.py`'s own deliberate BUG-1290 mutation-proof red output inside a script that itself exits 0/PASS — confirmed by reading context (line 1258-1268), not unrelated regression |
-| `run-unit-tests.sh --kind integration` | 0 | 49 files, pool all PASS; `^FAIL ` count = 0 | 49 files — matches |
+| `run-unit-tests.py --kind unit` | 0 | 33 files, pool all PASS; `^FAIL ` count = 4 | 33 files — matches; the 4 FAIL lines are `test-factory-claim-mutation.py`'s own deliberate BUG-1290 mutation-proof red output inside a script that itself exits 0/PASS — confirmed by reading context (line 1258-1268), not unrelated regression |
+| `run-unit-tests.py --kind integration` | 0 | 49 files, pool all PASS; `^FAIL ` count = 0 | 49 files — matches |
 | tests/unit/test-plan-depends-on.py | 0 | 12/12 | 12 — matches |
 | tests/unit/test-harness-yaml-corpus.py | 0 | 16/16 | 16 — matches |
 | tests/unit/test-factory-claim.py | 0 | 133/133 | 133 — matches |

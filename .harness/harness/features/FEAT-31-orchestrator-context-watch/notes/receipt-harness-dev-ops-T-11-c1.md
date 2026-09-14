@@ -3,7 +3,7 @@
 ## Task
 FEAT-31 T-11: close the test-kind misclassification class by appending explicit paths
 to `test_kinds.integration.detect` in `.harness/harness.json`, matching every entry in
-`run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` array.
+`run-unit-tests.py`'s `INTEGRATION_SCRIPTS` array.
 
 Cross-checked the dispatch's quoted `verify:` byte-for-byte against `plan.yaml`'s T-11
 block (loaded via `harness_yaml.load_file`, not read whole) — identical. No mismatch.
@@ -11,7 +11,7 @@ block (loaded via `harness_yaml.load_file`, not read whole) — identical. No mi
 ## Re-derived counts at HEAD e5f88c4 (not trusted from the intent paragraph, which is stale
 at 7299669)
 
-- `run-unit-tests.sh` `INTEGRATION_SCRIPTS`: **14** entries (measured directly, printed
+- `run-unit-tests.py` `INTEGRATION_SCRIPTS`: **14** entries (measured directly, printed
   below), not the intent's stale "12".
 - `test_kinds.integration.detect` before edit named **6** explicit bin paths
   (`test-check-state.py`, `test-factory-integration.py`, `test-gh-sync.py`,
@@ -48,7 +48,7 @@ import json, re
 d = json.load(open('.harness/harness.json'))
 ig = [g.strip() for g in d['test_kinds']['integration']['detect'].split('|')]
 base = set(g.rsplit('/', 1)[-1] for g in ig)
-src = open('.claude/skills/harness/bin/run-unit-tests.sh').read()
+src = open('.claude/skills/harness/bin/run-unit-tests.py').read()
 ints = re.findall(r'\"([^\"]+)\"', re.search(r'INTEGRATION_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
 units = re.findall(r'\"([^\"]+)\"', re.search(r'UNIT_SCRIPTS=\((.*?)\)\n', src, re.S).group(1))
 miss = [n for n in ints if n not in base]
@@ -138,7 +138,7 @@ Exit code: **0**.
   key set is a controlled surface and I stayed inside it.
 - **DEC-174** (@4663, am.1–am.4): the harness plans its own work but never executes changes
   to its own enforcement layer (hooks/validators/gate scripts). This is why T-12 — the
-  `--check-kinds` cross-check in `run-unit-tests.sh` that would make this class
+  `--check-kinds` cross-check in `run-unit-tests.py` that would make this class
   structurally impossible to reopen — is main-session-direct and explicitly out of my
   reach; I did the data half only, per the scope fence.
 
@@ -146,7 +146,7 @@ Exit code: **0**.
 
 Without T-12's cross-check landing, this data fix is durable only until the next new
 `test-*.py` bin script is added and someone forgets to update both this `detect` string
-and `run-unit-tests.sh`'s arrays by hand (per Expertise gotcha G-03, already known). I have
-not treated this as a reason to touch `run-unit-tests.sh` — that is explicitly fenced off
+and `run-unit-tests.py`'s arrays by hand (per Expertise gotcha G-03, already known). I have
+not treated this as a reason to touch `run-unit-tests.py` — that is explicitly fenced off
 to T-12/main-session — and raise it only as an `open_question` per the dispatch's
 instruction.

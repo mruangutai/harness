@@ -1,8 +1,8 @@
 # research — FEAT-40 — the red suite baseline, and three T-09 gaps
 
-**BLUF.** Five task verifies (`T-04`..`T-08`) open with `run-unit-tests.sh --kind all`, which exits 1
+**BLUF.** Five task verifies (`T-04`..`T-08`) open with `run-unit-tests.py --kind all`, which exits 1
 if any script fails. Six scripts fail at `cc84b29` in this worktree, all six in `UNIT_SCRIPTS`, none
-of this feature's making. The runner cannot select individual scripts (`run-unit-tests.sh:24-40`), so
+of this feature's making. The runner cannot select individual scripts (`run-unit-tests.py:24-40`), so
 those five tasks can never be marked done as written. The remedy is a new first task, **T-11**, that
 repairs exactly one script — the only failing one any later task edits — and records the rest as an
 enumerated, diagnosed baseline the five verifies compare against, plus one owned-script `PASS`
@@ -13,7 +13,7 @@ assertion per task so a green result still discriminates.
 Measured by me at `cc84b29` in
 `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-40-harness-writes-done`, with
 `HARNESS_PROJECT_DIR` set to that worktree. `UNIT_SCRIPTS` ran to completion: **18 PASS, 6 FAIL, 24
-total** — the array's full length (`run-unit-tests.sh:17`). Independently reproduced in the main
+total** — the array's full length (`run-unit-tests.py:17`). Independently reproduced in the main
 session's own `--kind unit` run at the same sha, same six names, same order.
 
 | script | failing cases | root cause, one line, as far as the output shows |

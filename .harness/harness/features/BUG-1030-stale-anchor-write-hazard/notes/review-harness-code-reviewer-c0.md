@@ -53,7 +53,7 @@ S1-S4 list) against source and tests.
   --stat` over the range touches no skill/playbook path (**executed**).
 - **S4** (DEC-199 amendment) — correctly left as an unshipped, approval-gated open question, not
   fabricated as done.
-- `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays register every new/changed test
+- `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays register every new/changed test
   file (`test-feature-json-merge.py` added to `UNIT_SCRIPTS`; `test-gh-sync.py`/`test-factory-decompose.py`
   already present) and `test-omp-hooks.py` (already registered) shells out to `bun test
   omp-hooks.test.ts`, so the six new edit-route cases run inside the real gate, not just standalone

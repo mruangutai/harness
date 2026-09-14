@@ -43,7 +43,7 @@ line changes per entry.
 ### 2a. Which changed units does the green suite bind?
 
 Ran the live suite in place (worktree = pin for every path checked): `bash
-.claude/skills/harness/bin/run-unit-tests.sh`, `RC=0`. Counted in Python against the actual
+.claude/skills/harness/bin/run-unit-tests.py`, `RC=0`. Counted in Python against the actual
 `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` literals (not a bare `PASS ` regex — that overcounts: one
 script, `test-inflight-registry.py`, prints an internal case line `PASS
 case_floor_inflight_registry.py` that itself matches the naive per-script marker regex, inflating a
@@ -58,7 +58,7 @@ Per changed file:
 
 | File | Bound by | Evidence |
 |---|---|---|
-| `run-unit-tests.sh` (T-24 array edit) | `test-run-unit-tests-kinds.py` `case_1_green_on_the_real_tree` — invokes `--check-kinds` against the REAL config and REAL arrays and asserts zero KIND-DRIFT lines; this is the one case in the suite that exercises the actual current arrays, not a synthetic copy. Also self-checked by the runner's own inline drift detector (unmodified, confirmed at gate item 7 and re-read directly here at lines 60-74). | direct |
+| `run-unit-tests.py` (T-24 array edit) | `test-run-unit-tests-kinds.py` `case_1_green_on_the_real_tree` — invokes `--check-kinds` against the REAL config and REAL arrays and asserts zero KIND-DRIFT lines; this is the one case in the suite that exercises the actual current arrays, not a synthetic copy. Also self-checked by the runner's own inline drift detector (unmodified, confirmed at gate item 7 and re-read directly here at lines 60-74). | direct |
 | `check-decision-claims.py` + test (T-24, deleted) | none, by design — Contract 3. Confirmed absent from the reviewed tree (`git ls-tree -r 635cd3ba \| grep check-decision-claims` → `[]`, re-derived independently of the gate record). | n/a, accepted |
 | `gen-decisions-index.py` (dead-code apply + earlier T-06/T-10 work) | `test-gen-decisions-index.py`, run directly: `PASS`. SC-06's dead-code claim independently re-verified: no `AMEND_HEADING_RE`/`AMEND_BOLD_RE`/`SUPERSESSION_VERB_RE`/`BODY_SUPERSESSION_RE`/`compute_amendments`/`format_amendment_span`/`compute_supersession_target` anywhere in the file at the pin (grepped directly against the worktree copy, not the outer-repo trap above). | direct |
 | `test-gen-decisions-index.py` SC-07 case | `test_no_amendment_construct_survives_in_the_authority` — see mutation proof below | direct, mutation-proved |
@@ -99,7 +99,7 @@ a plain temp-dir copy was used instead, consistent with the constraint):
 All three SC-08 observations independently re-derived (not copied from the gate record), all
 three pass.
 
-### 2c. Discovery count re-derivation (`run-unit-tests.sh`'s own registration edit)
+### 2c. Discovery count re-derivation (`run-unit-tests.py`'s own registration edit)
 
 Covered in 2a: 55/55 against the literal `UNIT_SCRIPTS`+`INTEGRATION_SCRIPTS` union, non-zero,
 matches `len(UNIT_SCRIPTS)=27 + len(INTEGRATION_SCRIPTS)=28`. Re-derived at `635cd3ba` directly
@@ -142,7 +142,7 @@ unprotected, by design, going forward:
 
 ## Verdicts on the full shared file set (Contract-aware, no pre-emptive skips)
 
-- `run-unit-tests.sh` — looked, one array-line change, bound by `test-run-unit-tests-kinds.py`
+- `run-unit-tests.py` — looked, one array-line change, bound by `test-run-unit-tests-kinds.py`
   case_1 against the real tree. No finding.
 - `check-decision-claims.py` + test — looked, confirmed deleted from the reviewed tree
   independently. No finding (Contract 3).

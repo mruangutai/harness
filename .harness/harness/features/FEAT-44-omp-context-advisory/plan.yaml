@@ -469,13 +469,13 @@ tasks:
       - .claude/skills/harness/bin/test-context-watch-hook.py
       - .claude/skills/harness/references/context-check.md
       - .claude/settings.json
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       git grep -q contextSnapshot -- .omp/extensions/harness-hooks.ts; ctl=$?
-      git grep -In context-watch -- .claude/settings.json .harness/harness.json .claude/skills/harness/bin/run-unit-tests.sh .claude/skills/harness/SKILL.md; refs=$?
+      git grep -In context-watch -- .claude/settings.json .harness/harness.json .claude/skills/harness/bin/run-unit-tests.py .claude/skills/harness/SKILL.md; refs=$?
       n=$(git ls-files ".claude/skills/harness/bin/*context-watch*" ".claude/skills/harness/references/context-check.md" | wc -l | tr -d " ")
-      .agents/skills/harness/bin/run-unit-tests.sh --check-kinds; kinds=$?
+      .agents/skills/harness/bin/run-unit-tests.py --check-kinds; kinds=$?
       python3 .claude/skills/harness/bin/test-run-unit-tests-kinds.py; cross=$?
       test "$ctl" = 0 && test "$refs" = 1 && test "$n" = 0 && test "$kinds" = 0 && test "$cross" = 0
     intent: |
@@ -501,7 +501,7 @@ tasks:
       trailing comma.
 
       Move the two test registries. The physically tracked file is
-      .claude/skills/harness/bin/run-unit-tests.sh: git ls-files tracks .agents/skills as a
+      .claude/skills/harness/bin/run-unit-tests.py: git ls-files tracks .agents/skills as a
       symlink to .claude/skills, so the .agents path that harness.json's cmd invokes resolves
       to the same inode and a human edits the .claude path. In that file:
         line 30, UNIT_SCRIPTS: remove test-context-watch.py.
@@ -523,7 +523,7 @@ tasks:
       because it is coupled to the playbook wording rather than to the deletion.
 
       Run the full suite once by hand after this task, with
-      .agents/skills/harness/bin/run-unit-tests.sh, and read its printed FAIL lines rather
+      .agents/skills/harness/bin/run-unit-tests.py, and read its printed FAIL lines rather
       than only its exit code. It is deliberately NOT in the verify above: measured at
       7ebfc9e it takes about 170s, past the 60s a verify may spend. SC-07's green-suite half
       is discharged by the qa gate, whose integration runner is that same script.

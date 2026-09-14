@@ -29,7 +29,7 @@ Both T-01 and T-02 are `change_type: bugfix`. `always: []`; three `when` legs:
 ## 2. Kind run — verbatim command, actual result
 
 ```
-env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 Exit **0**. Pool: 49 files, 74.46s wall. `test-check-domain.py` ran as file 1 of the pool: exit 0,
 55.98s. Full-log counts (`test-check-domain.py`'s own section only, lines 2700-3182 of the captured

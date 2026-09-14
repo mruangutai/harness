@@ -36,8 +36,8 @@ and stay unmeasured rather than guessed. This path is opt-in / default-off
 a default run. Not flaggable — it is the feature's own deliberate instrumentation, correctly
 gated.
 
-**`run-unit-tests.sh`'s new array entry** (`test-gh-cost-log.py` appended to `UNIT_SCRIPTS`,
-`run-unit-tests.sh:17`, one line). Timed standalone: `python3 test-gh-cost-log.py` → 35/35 PASS,
+**`run-unit-tests.py`'s new array entry** (`test-gh-cost-log.py` appended to `UNIT_SCRIPTS`,
+`run-unit-tests.py:17`, one line). Timed standalone: `python3 test-gh-cost-log.py` → 35/35 PASS,
 **0.061s** wall (re-measured, matches a prior 0.062s run). Against the ~4.2-4.7s unit-kind suite
 this is ~1.3-1.5% — not worth flagging, and is exactly what registering a new `test-*.py` in
 `UNIT_SCRIPTS` is supposed to cost (P-03/G-03: the array entry, not a glob, is what keeps the

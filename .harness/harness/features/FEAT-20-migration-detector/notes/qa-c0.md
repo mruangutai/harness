@@ -33,8 +33,8 @@ From `harness.json` `test_matrix`: `logic.always=[unit]`, `cross_module.always=[
 
 | kind | state | cmd | named tests |
 |---|---|---|---|
-| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | `test-layout-migration.py` — 18 cases, exit 0 |
-| integration | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` | `test-check-state.py` — cases (x.1)-(x.5), exit 0 |
+| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | `test-layout-migration.py` — 18 cases, exit 0 |
+| integration | satisfied | `.claude/skills/harness/bin/run-unit-tests.py --kind integration` | `test-check-state.py` — cases (x.1)-(x.5), exit 0 |
 | functional | excluded (`DEC-187`) | null | — |
 | component | unresolved | null | not required by this matrix |
 | ui | unresolved | null | not required by this matrix |
@@ -58,7 +58,7 @@ assertion logic from `plan.yaml`'s `verify:` blocks was run verbatim against tho
 
 `git diff --name-only 88b1182..11cb644` (20 paths) against `plan.yaml`'s `lanes:` 8-row closed set
 (`layout_migration.py`, `test-layout-migration.py`, `check-state.sh`, `test-check-state.py`,
-`run-unit-tests.sh`, `.github/workflows/tests.yml`, `docs/harness/DECISIONS.md`,
+`run-unit-tests.py`, `.github/workflows/tests.yml`, `docs/harness/DECISIONS.md`,
 `docs/harness/DECISIONS-INDEX.md`): **all 8 present, all 8 in the diff, no path outside that set is
 a code/production/decision file.** `git diff --diff-filter=R --name-status 88b1182..11cb644` is
 **empty** — no renames.
@@ -166,8 +166,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 18 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 5 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 18 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 5 }
     - { kind: functional, state: excluded, cmd: null, named_tests: 0 }
     - { kind: component, state: not_required, cmd: null, named_tests: 0 }
     - { kind: ui, state: not_required, cmd: null, named_tests: 0 }

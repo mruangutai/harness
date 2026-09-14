@@ -72,7 +72,7 @@ a plan with no top-level status is not reported.
 ## Q2 — the deferral gets an instrument: PB-01
 
 New `## Proposed backlog` section in BRIEF.md, above `## Approval`. **PB-01 — case selection for
-`run-unit-tests.sh`**: recovers ~150 s of the ~298 s, deferred because it edits the test harness
+`run-unit-tests.py`**: recovers ~150 s of the ~298 s, deferred because it edits the test harness
 whose KIND CROSS-CHECK T-08 and T-13 already touch. Proposed only — the main session opens it as an
 issue at ship acceptance. T-10's intent now cites PB-01 instead of "belongs in the backlog", and says
 the 298 s is accepted, not permanent. No GitHub issue was opened.

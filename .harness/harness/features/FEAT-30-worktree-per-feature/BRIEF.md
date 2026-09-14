@@ -222,7 +222,7 @@ resting on it can never be met and never fails loudly — a gate that looks real
 
 - `functional`, `component`, `ui`, `eval` and `typecheck` all have `cmd: null`. **No criterion above
   rests on any of them.** Every `automated` criterion is pinned to `integration`, which runs via
-  `run-unit-tests.sh --kind integration`.
+  `run-unit-tests.py --kind integration`.
 - **11 of 12 criteria are `automated`, and NONE is `uat`.** SC-01b was the single `uat` criterion
   until the operator's 2026-08-20 instruction; it is now `automated / integration` and owned by
   T-10. Its former reason — four live orchestrators contending for one account budget — named

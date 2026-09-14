@@ -230,7 +230,7 @@ untouched pre-cycle-2 `gh-sync.py`) and **273 after** (this cycle's rewired
 9 fixtures now exercising the real locked-writer path instead of a destination check
 that did not exist before this feature.
 
-### bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+### bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 
 ```
 check-kinds: the script arrays and test_kinds.integration.detect agree.
@@ -253,7 +253,7 @@ fixtures, widened the fix1-atomicity leftover-file exclusion by one filename),
 
 Untouched this cycle: `feature_json_write.py`, `feature-json-merge.py` (no defect found;
 mutation-tested, not edited — restored byte-identical after the mutation probe),
-`run-unit-tests.sh` (cycle-1's registration only, no further change), every DEC-174 file,
+`run-unit-tests.py` (cycle-1's registration only, no further change), every DEC-174 file,
 `feature_schema.py`, `feature-schema.json`.
 
 ## The DEC-199 gap vs. the incident — restated plainly, per the dispatch's own framing

@@ -12,9 +12,9 @@ up, not a `FAIL`.
 
 ## Gate run
 
-`.claude/skills/harness/bin/run-unit-tests.sh` — exit 0, **13/13 scripts PASS** (matches the corrected
+`.claude/skills/harness/bin/run-unit-tests.py` — exit 0, **13/13 scripts PASS** (matches the corrected
 count; `PLAN.md:312`'s "14 PASS" is stale per the task brief, confirmed by reading `SCRIPTS` array —
-13 entries at `run-unit-tests.sh:6`). Full run: `grep -c "^PASS "` on the runner's own output = **32**
+13 entries at `run-unit-tests.py:6`). Full run: `grep -c "^PASS "` on the runner's own output = **32**
 (13 script-level `PASS` lines + 19 case-level lines from `test-check-plan-routes.py`, which itself
 prints `PASS test-check-plan-routes.py` as its 13th script-level line — 19 of those 32 are new named
 cases: 16 of the 17 numbered cases emit one named check each, case 17 splits into 3, so 16+3=19).
@@ -29,14 +29,14 @@ one `DEVIATION T-01 ... but declared main-session-direct` line, naming T-01 as p
 
 **Required kinds** (`.harness/harness.json` `test_matrix`): T-01, T-02 are `change_type: logic` →
 requires `unit`, present (`test-check-domain.py`, `test-check-plan-routes.py`, both in-diff, both
-registered in `run-unit-tests.sh:6`, both passing). T-03, T-04 are `change_type: docs` → matrix
-requires nothing; their own `verify:` (greps + `run-unit-tests.sh` + `check-docs.sh`) passed directly.
+registered in `run-unit-tests.py:6`, both passing). T-03, T-04 are `change_type: docs` → matrix
+requires nothing; their own `verify:` (greps + `run-unit-tests.py` + `check-docs.sh`) passed directly.
 
 ```
 matrix_ok: true
 suite: pass
 failures: 0
-kinds: [{ kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh", named_tests: 32 }]
+kinds: [{ kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py", named_tests: 32 }]
 ```
 
 ## SC evidence

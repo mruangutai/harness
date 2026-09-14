@@ -52,7 +52,7 @@ value here — `info` is.
    `git grep -n "cost-report" 942505e -- .claude/ docs/ .harness/`. Every hit is in `docs/harness/{DECISIONS,SPEC,BUILD,DECISIONS-INDEX}.md`
    (sanctioned survivors, A-4) or in feature-history Markdown (`BRIEF.md`, `PLAN.md`, `STATE.md`,
    `feature.yaml`, `logs/`) — no live code, agent definition, or skill file references it.
-   `run-unit-tests.sh`'s `SCRIPTS` array no longer names `test-cost-report.py`, and both the script
+   `run-unit-tests.py`'s `SCRIPTS` array no longer names `test-cost-report.py`, and both the script
    and its test are deleted (`git show 942505e` — files absent). No commits land between the pin and
    current HEAD that touch `bin/` (confirmed empty, above), so the pin and the current tree agree on
    this surface.

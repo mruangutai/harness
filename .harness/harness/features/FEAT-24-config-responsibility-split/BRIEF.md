@@ -113,7 +113,7 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
 - SC-12: `check-state.sh` completes and reports INV-26 as a violation, rather than aborting or
   reporting clean, when the board declaration is unusable.
   verify: automated      evidence: integration
-- SC-13: The full suite passes at the merge commit — `run-unit-tests.sh --kind all` green — and no
+- SC-13: The full suite passes at the merge commit — `run-unit-tests.py --kind all` green — and no
   test file was removed to achieve it, asserted by comparing the registered script count before
   and after.
   verify: automated      evidence: unit

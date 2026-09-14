@@ -137,7 +137,7 @@ per DEC-174, confirmed by the dispatch's own constraints), so no `verify:` block
 | integration | yes (cross_module reading; `test-check-state.py` is in `INTEGRATION_SCRIPTS`, not `UNIT_SCRIPTS`, despite unit's broad `detect` glob also matching it) | `test-check-state.py` | **satisfied**, 161/161, the six `case_inv6_*` cases directly and non-vacuously exercise the fix |
 
 `matrix_ok: true` — both required kinds are present, named to real scripts that actually run them
-(verified against `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays, not just the
+(verified against `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays, not just the
 `detect` glob), and green.
 
 ## Verdict for this lens

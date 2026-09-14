@@ -22,9 +22,9 @@ kinds green regardless of which label applies (SC-07's task, T-04, is independen
 
 | kind | required by (bugfix ∪ measured cross_module) | state | command | result |
 |---|---|---|---|---|
-| unit | yes | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | **exit 0**, 418 `^PASS ` lines incl. `bun test` `42 pass / 0 fail / 71 expect() calls` for `omp-hooks.test.ts` |
-| integration | yes (cross_module) / only via SC-07 trace under bugfix | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | **exit 0**, 590 `^PASS ` lines, `test-omp-session-accessor.py` `7/7 checks passed` inline |
-| `--check-kinds` | drift cross-check | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --check-kinds` | `check-kinds: the script arrays and test_kinds.integration.detect agree.` exit 0 |
+| unit | yes | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | **exit 0**, 418 `^PASS ` lines incl. `bun test` `42 pass / 0 fail / 71 expect() calls` for `omp-hooks.test.ts` |
+| integration | yes (cross_module) / only via SC-07 trace under bugfix | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | **exit 0**, 590 `^PASS ` lines, `test-omp-session-accessor.py` `7/7 checks passed` inline |
+| `--check-kinds` | drift cross-check | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --check-kinds` | `check-kinds: the script arrays and test_kinds.integration.detect agree.` exit 0 |
 | `check-omp-port.py` | cited by dispatch | satisfied | ran inside the unit suite | `18/18 cases passed`, `PASS test-check-omp-port.py` |
 | `check-state.sh` | cited by dispatch | satisfied | `bash .claude/skills/harness/bin/check-state.sh` | exit 0, 538 lines, **all `note`, zero `violation`/`error`** lines; explicit `INV-17 FEAT-44...exempt` note confirms the DEC-174 direct edits to `.harness.json`/`DECISIONS.md` are recognized deviations-by-design, not flagged |
 | typecheck | null cmd, disclosed gap | **BLOCKED (soft, pre-recorded)** | n/a | `test_kinds.typecheck.cmd` is `null`; this is the standing dev-ops gap named in BRIEF's Verification gaps, not new to this feature |
@@ -80,7 +80,7 @@ secret-shaped string in the repo carries its own (larger) risk. Non-blocking obs
 | SC-04 | **met** | `:585-602`, each of the 4 negative conditions its own `test()` |
 | SC-05 | **met (as amended)** | `:575-583` (healthy, no `isError` key), `:612-625` (blocked non-wake, `isError:true`, no advisory) — amendment text in BRIEF.md is consistent with what the code can actually produce |
 | SC-06 | **met** | `:511-517`; independently recomputed 223029/200000=1.1151→"1.12", 223029/150000=1.4869→"1.49", both match |
-| SC-07 | **met** | 7/7 retired files confirmed deleted (`git diff --name-status` = exactly 7 `D` lines matching the plan's list); `context-watch` absent from `.claude/settings.json`, `.harness/harness.json`, both `run-unit-tests.sh` copies, `SKILL.md`; `--check-kinds` exits 0; both suites green |
+| SC-07 | **met** | 7/7 retired files confirmed deleted (`git diff --name-status` = exactly 7 `D` lines matching the plan's list); `context-watch` absent from `.claude/settings.json`, `.harness/harness.json`, both `run-unit-tests.py` copies, `SKILL.md`; `--check-kinds` exits 0; both suites green |
 | SC-08 | **met** | `SKILL.md:50-60` names the disk read + injection mechanism, no retired file, cites DEC-198/199/201; `test-orchestrator-playbook.py` `case4_presence_reads_your`/`case4_presence_appends_one`/`case4_absence_claude_sidecar_probe`/`case4_absence_hardcoded_threshold_numeral` all PASS live |
 | SC-09 | **met** | DEC-198 (`:6863-6886`), DEC-201 (`:7147-7176`), DEC-159 (`:4114-4132`) each carry an "Amendment" section, none struck; DEC-198 does not claim the config key is absent (explicitly states it IS present at `:169`); DEC-201's amendment states the accessor as measured on one build; `gen-decisions-index.py --stdout` diffs **clean** against the committed index (re-run, confirmed) |
 | SC-10 | **evidence exists, but the boundary claim is false — see Part 2 finding F-1** | `:651-660` |
@@ -162,17 +162,17 @@ that subagent's own **nested** transcript path (regex-matched, not substring-mat
 never skips**: if `omp` is absent or the probe file is missing, case1 fails and the script returns
 non-zero rather than exiting 0 on a vacuous "nothing to check." Confirmed it is registered where the
 gate that actually runs would find it: present in `INTEGRATION_SCRIPTS` in
-`.claude/skills/harness/bin/run-unit-tests.sh`, present in `test_kinds.integration.detect`'s glob
+`.claude/skills/harness/bin/run-unit-tests.py`, present in `test_kinds.integration.detect`'s glob
 (both verified directly, not assumed), and `--check-kinds` reports agreement. **This is not defect #4
 wearing a different hat** — the real-binary test is discoverable and gated.
 
 ### Discovery counts (T-04 moved two registries; confirming the sweep didn't shrink silently)
 
-`git diff --no-color -U0 -- run-unit-tests.sh`: `UNIT_SCRIPTS` **27 → 26** (removed
+`git diff --no-color -U0 -- run-unit-tests.py`: `UNIT_SCRIPTS` **27 → 26** (removed
 `test-context-watch.py`, matching the deleted file), `INTEGRATION_SCRIPTS` **27 → 26** (removed
 `test-context-watch-cli.py` and `test-context-watch-hook.py`, added `test-omp-session-accessor.py`:
 27 − 2 + 1 = 26). Both counts move by exactly the number of files T-04 deleted / T-01,T-03 added —
-**no unexplained drop**. `run-unit-tests.sh --check-kinds` independently confirms the array/glob pair
+**no unexplained drop**. `run-unit-tests.py --check-kinds` independently confirms the array/glob pair
 agree with 0 exit. `check-state.sh`'s sweep (538 lines, all `note`) surfaced no new violation class
 from the registry move.
 
@@ -214,8 +214,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 418 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 590 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 418 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 590 }
     - { kind: typecheck, state: not_applicable, cmd: null }
   coverage_gaps:
     - "SC-10: no test constructs tokens === resolved threshold exactly, so the `>` vs `>=` boundary is unexercised (F-1)"
@@ -226,7 +226,7 @@ DIGEST:
     - { id: SC-04, test: "omp-hooks.test.ts:585-602" }
     - { id: SC-05, test: "omp-hooks.test.ts:575-583, 612-625" }
     - { id: SC-06, test: "omp-hooks.test.ts:511-517" }
-    - { id: SC-07, test: "git diff --name-status 7ebfc9e..21e97ed (7 D lines), run-unit-tests.sh --check-kinds" }
+    - { id: SC-07, test: "git diff --name-status 7ebfc9e..21e97ed (7 D lines), run-unit-tests.py --check-kinds" }
     - { id: SC-08, test: "test-orchestrator-playbook.py case4_presence_reads_your / case4_presence_appends_one" }
     - { id: SC-09, test: "gen-decisions-index.py --stdout diff (clean); DECISIONS.md:6863-6886,7147-7176,4114-4132" }
     - { id: SC-10, test: "omp-hooks.test.ts:651-660 — present but boundary-blind, see F-1" }

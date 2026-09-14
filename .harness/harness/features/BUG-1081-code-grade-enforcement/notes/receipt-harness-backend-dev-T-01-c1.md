@@ -150,13 +150,13 @@ green after each restore.
 ## Final verify (verbatim commands from T-01)
 
 ```
-.agents/skills/harness/bin/run-unit-tests.sh --kind unit
+.agents/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 Exit status: **0**. `grep -c "^FAIL "` on captured output: **0**. `test-code-grade.py` present
 in the run (`PASS test-code-grade.py` at line 1435 of the captured log).
 
 ```
-.agents/skills/harness/bin/run-unit-tests.sh --kind integration
+.agents/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 Exit status: **0**. `grep -c "^FAIL "` on captured output: **0**. `test-code-grade-cli.py`
 present in the run (`PASS test-code-grade-cli.py` at line 1946 of the captured log).

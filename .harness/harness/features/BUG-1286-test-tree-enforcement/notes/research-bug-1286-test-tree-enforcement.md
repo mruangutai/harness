@@ -65,7 +65,7 @@ real root must report the path.
 
 ## Facts that shaped the plan
 
-- The runner already checks layout before dispatch — `run-unit-tests.sh:33-42` prints
+- The runner already checks layout before dispatch — `run-unit-tests.py:33-42` prints
   `MISCONFIGURED:` per line and exits 2 before any `tests/*/test-*.py` runs. **No runner edit is
   needed**; the ordering guarantee is a test assertion, not a code change.
 - `harness.json` `test_kinds.unit.detect` already globs `**/*.test.*|**/*_test.*|**/test_*.py`

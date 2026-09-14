@@ -9,7 +9,7 @@ harness-orchestrator) is exactly the prefix shape the clause exists to exclude, 
 prefix-comparison implementation would pass the case. The behaviour is correct — needs a test, not a
 code fix.
 
-Suite receipt for every automated SC: `./.claude/skills/harness/bin/run-unit-tests.sh` from the
+Suite receipt for every automated SC: `./.claude/skills/harness/bin/run-unit-tests.py` from the
 worktree → **exit 0**, 13 scripts PASS, 0 FAIL (`--resolve` block 10/10, route-check 19/19 cases).
 
 ## Verdicts
@@ -25,7 +25,7 @@ worktree → **exit 0**, 13 scripts PASS, 0 FAIL (`--resolve` block 10/10, route
 | 07 | met | automated | `:91` explicit `UNRESOLVED-GLOB` line; `:96` exit status equal to the same plan with the task removed. |
 | **08** | **unmet** | automated | **UNPROVEN** — see below. |
 | 09 | met | automated | `:116,117,118`; template carries `## Lanes` (`templates/PLAN.md:7`), both tokens (`:55,:56`), the stanza field (`:64`). |
-| 10 | met | automated | Suite exit 0 — the drift detector (`run-unit-tests.sh:9-21`) runs first and would exit 2; registration fixtured at `test-check-plan-routes.py:126`, present in `SCRIPTS` (`run-unit-tests.sh:6`). |
+| 10 | met | automated | Suite exit 0 — the drift detector (`run-unit-tests.py:9-21`) runs first and would exit 2; registration fixtured at `test-check-plan-routes.py:126`, present in `SCRIPTS` (`run-unit-tests.py:6`). |
 | 11 | met | inspection | `git diff 47ed11f -- .claude/agents/harness-pm.md` → 0 lines at HEAD. Single rule-layer home: `.claude/skills/harness-spec-driven/SKILL.md:38-40` (the run-the-checker mandate, with the token forms at `:28-32`). A grep of `.claude/skills/` + `.claude/agents/` for `execution_mode` / `main-session-direct` finds no second normative statement — only `templates/PLAN.md`, which SC-09 requires. |
 | 12 | met | automated | `:135` `DEVIATION` line; `:136` plan still exits 0. |
 

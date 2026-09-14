@@ -32,12 +32,12 @@ after the pin. Working tree clean; nothing written outside this note.
 | SC-05 **"names which is which"** | **unmet-behaviour** | fixture: two `high` findings, `PF-aaaaaaaa` resolved + `PF-bbbbbbbb` overruled | check-state prints **zero** lines mentioning `FEAT-INV32` or `PF-`. Both dispositions read identically (silence) — the criterion's stated falsifier |
 | SC-06 | met | `test-plan-panel.py` case 5 + `git ls-tree c745d3a:.omp/agents` / `:.claude/agents` | 16 and 16. Content checked: `git diff --name-status <base> c745d3a -- .omp/agents .claude/agents` shows only `M harness-validator-lead.md` — no add, no delete, membership unchanged |
 | SC-07 | met | `_inv32_basic_checks[0]`, re-run directly | `panel_marker=False` → rc 1, `INV-32: FEAT-INV32 plan is approved with no complete panel result recorded.` |
-| SC-08 | met | `run-unit-tests.sh --kind unit` | EXIT=0, 1461 lines, no `^FAIL`/`not ok`, ` 0 fail`. Runner NAMES both added files: `PASS test-panel-findings.py` (9/9), `PASS test-plan-panel.py` (24/24); both are in `UNIT_SCRIPTS` (`run-unit-tests.sh:30`) |
+| SC-08 | met | `run-unit-tests.py --kind unit` | EXIT=0, 1461 lines, no `^FAIL`/`not ok`, ` 0 fail`. Runner NAMES both added files: `PASS test-panel-findings.py` (9/9), `PASS test-plan-panel.py` (24/24); both are in `UNIT_SCRIPTS` (`run-unit-tests.py:30`) |
 | SC-09 | met | `git show c745d3a07c2accd8395c9df7a25d911d40dc2c09:.harness/harness/docs/DECISIONS.md` and `...:DECISIONS-INDEX.md` | DEC-206 "wrapped non-harness reader" @7416, DEC-207 "plan-phase gate" @7445, each naming its precedent and citing FEAT-45 as origin. Index identity: `diff <(gen-decisions-index.py --stdout) <(git show <sha>:...INDEX.md)` → identical, tree untouched |
 | SC-10 | met | `git show c745d3a07c2accd8395c9df7a25d911d40dc2c09:.claude/commands/harness-plan.md` | `Target state` bullet: "under DEC-176 all findings enter the ONE batched review pass rather than opening a separate pre-signature fix dispatch"; the whole file diff at the pin is 1 line |
 | SC-11 | deferred-to-live-run | `verify: uat` — not agent-settleable | criterion's own words: "**On a live plan, the operator judges** each of the three readers to have earned its spawn" |
 | SC-12 | deferred-to-live-run | `verify: uat` | "**On a live plan** whose panel raises nothing at `high`, **the operator** reaches the signature with no extra step" |
-| SC-13 identity stability | met | `run-unit-tests.sh --kind unit` → `test-panel-findings.py` | case2 normalization-only ⇒ same id; case3 one-character change ⇒ different id; case4 different readers ⇒ different ids |
+| SC-13 identity stability | met | `run-unit-tests.py --kind unit` → `test-panel-findings.py` | case2 normalization-only ⇒ same id; case3 one-character change ⇒ different id; case4 different readers ⇒ different ids |
 | SC-13 stale overrule refused | met | fixture with ruling on `PF-cafebabe` absent from findings | `VIOLATION INV-32: FEAT-INV32 STALE OVERRIDE PF-cafebabe: a reworded finding gets a NEW content-hash id...` |
 | SC-14 | met | `test-plan-panel.py` cases 4a/4b | persona `fable-advisor` ∉ the 16 `.omp/agents/harness-*.md`; `outputs: []` (`plan-panel.yaml:15,18`) |
 | SC-15 (two separate checks) | met | `test-plan-panel.py` cases 8a and 8b, persona read from the team file | `.omp/agents/harness-validator-lead.md:15` `- fable-advisor`; `sync-agent-adapters.py:74` `"fable-advisor"` in `SPAWNS["harness-validator-lead"]` |
@@ -76,7 +76,7 @@ after the pin. Working tree clean; nothing written outside this note.
   D-13's mandated marker mutant; the result is in the table. Adding `_inv32_plan(finding=open_finding)`
   to that tuple is a one-line change that makes it permanent.
 - **SC-04/05/07/13/17 declare `evidence: unit`, but their assertions live in `test-check-state.py`,
-  which is in `INTEGRATION_SCRIPTS`** (`run-unit-tests.sh:31`). The tests exist, run and pass; only
+  which is in `INTEGRATION_SCRIPTS`** (`run-unit-tests.py:31`). The tests exist, run and pass; only
   the declared kind and the actual kind disagree. Not a proof failure — recorded so it is not
   rediscovered.
 

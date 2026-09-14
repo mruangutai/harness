@@ -48,7 +48,7 @@ so BLOCKED rather than FAIL.
 genuinely unsatisfiable with the current tooling. Per the digest contract this forces
 `VERDICT != PASS`; per the state table, a null `cmd` is `misconfigured → BLOCKED`, never `FAIL`.
 
-## `run-unit-tests.sh --kind unit` at the pin — real run, not a self-report
+## `run-unit-tests.py --kind unit` at the pin — real run, not a self-report
 
 Exit 0. 21/21 scripts `PASS`, including `PASS test-orchestrator-playbook.py` — verified live, not
 assumed. That script's own output shows all 8 named cases (`case1`..`case8`, with `case6` split
@@ -122,7 +122,7 @@ commit-path owner). The six INV-26 board-lag violations are accepted, not findin
 
 | SC | test |
 |---|---|
-| SC-01 | `.claude/skills/harness/bin/test-orchestrator-playbook.py` cases 1–3, run via `run-unit-tests.sh --kind unit`; independently re-verified via `grep -c` against `git show e0ae67152:...SKILL.md` |
+| SC-01 | `.claude/skills/harness/bin/test-orchestrator-playbook.py` cases 1–3, run via `run-unit-tests.py --kind unit`; independently re-verified via `grep -c` against `git show e0ae67152:...SKILL.md` |
 | SC-02 | same script, cases 4–6 |
 | SC-03 | not mine — `verify: inspection`, reviewer's note |
 | SC-04 | same script, cases 7–8; independently re-verified via `grep -c` |

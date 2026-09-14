@@ -34,7 +34,7 @@ value" clause. These were measured before any edit:
 | T-07 | `grep -c -e 'context budget the org exists to protect' -e 'Timestamps, same cause' .claude/skills/harness-team/SKILL.md` | `2` |
 
 **Gate baselines, at the working tree as of commit `b5f20af`** — deliberately not stated as "at
-`ae2443d`", because one of the three is not a property of the SHA: `run-unit-tests.sh` exit 0
+`ae2443d`", because one of the three is not a property of the SHA: `run-unit-tests.py` exit 0
 (`10/10 checks passed`, all 13 scripts PASS); `check-docs.sh` exit 0; `check-state.sh` exit 0 with
 zero violations — see trap 2 for why that last one carries two readings and not one.
 
@@ -68,7 +68,7 @@ POSITIVE count that must still match. A pure absence-grep passes on a file that 
 
 **T-01** — `python3 .claude/skills/harness/bin/test-validate-digest.py` exits 0; AND
 `grep -c cost_usd .claude/skills/harness/bin/validate-digest.py` returns 0; AND
-the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 (this task touches
+the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0 (this task touches
 `bin/` — the whole-suite clause is mandatory, per SC-11).
 
 **T-02** — `python3 .claude/skills/harness/bin/test-check-state.py` exits 0; AND
@@ -76,7 +76,7 @@ the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 (thi
 stands (67 historical `state.yaml` with `cost:` blocks still present — this is SC-03's command);
 AND `grep -n 'INV-11' .claude/skills/harness/bin/check-state.sh` returns nothing; AND
 `grep -n 'CHECKPOINT_KEYS' -A 12 .claude/skills/harness/bin/check-state.sh | grep -c '"cost"'`
-returns 1; AND the WHOLE unit suite `run-unit-tests.sh` exits 0 (touches `bin/`, SC-11).
+returns 1; AND the WHOLE unit suite `run-unit-tests.py` exits 0 (touches `bin/`, SC-11).
 
 *(Second clause: apply trap 2 only if it exits 1.)*
 
@@ -97,7 +97,7 @@ the square' .claude/skills/harness/SKILL.md` returns 3 — the over-removal guar
 that makes this `verify:` discriminating in both directions; AND
 `grep -c -e 'DEC-157' -e 'max_total_cycles' .claude/skills/harness/SKILL.md` is unchanged from its
 pre-edit value (capture it before editing and state both numbers in the receipt); AND the WHOLE
-unit suite `.claude/skills/harness/bin/run-unit-tests.sh` exits 0; AND
+unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0; AND
 `.claude/skills/harness/bin/check-docs.sh` exits 0.
 
 *(Pre-edit values supplied above: `8` and `3`. Re-capture if anything touches the file first.)*
@@ -107,7 +107,7 @@ unit suite `.claude/skills/harness/bin/run-unit-tests.sh` exits 0; AND
 `grep -c 'DEC-116' .claude/skills/harness-team/SKILL.md` is at least 1 (the no-`Bash` tier rule
 survived the rewrite); AND `grep -c -e 'context budget the org exists to protect' -e 'Timestamps,
 same cause' .claude/skills/harness-team/SKILL.md` returns 2 — the over-removal guard; AND the
-WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.sh` exits 0; AND
+WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0; AND
 `.claude/skills/harness/bin/check-docs.sh` exits 0.
 
 **T-08** — `grep -c max_cost_usd .claude/skills/harness/teams/build.yaml
@@ -118,7 +118,7 @@ evidence, never the exit status); AND
 `python3 -c "import yaml,sys;[yaml.safe_load(open(p)) for p in
 ['.claude/skills/harness/teams/build.yaml','.claude/skills/harness/teams/review.yaml']]"` exits 0;
 AND `python3 .claude/skills/harness/bin/test-team-catalog.py` exits 0 — the test that reads these
-files; AND the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.sh` exits 0; AND
+files; AND the WHOLE unit suite `.claude/skills/harness/bin/run-unit-tests.py` exits 0; AND
 `.claude/skills/harness/bin/check-state.sh` exits 0.
 
 *(Last clause: apply trap 2 only if it exits 1.)*

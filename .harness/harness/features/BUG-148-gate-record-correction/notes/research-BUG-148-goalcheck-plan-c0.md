@@ -83,7 +83,7 @@ beside it." No task change is needed if he agrees.
   so they add no independent measurement; the only independent grade of the prose is SC-06 (uat).
   Acceptable for prose, but the panel should not read four inspection criteria as four checks.
 - **F-5 (info) — SC-04 is a regression guard, not evidence of the correction.** Ran, from the
-  worktree at `41c16c7`, pre-correction: `bash .agents/skills/harness/bin/run-unit-tests.sh --kind
+  worktree at `41c16c7`, pre-correction: `bash .agents/skills/harness/bin/run-unit-tests.py --kind
   integration` → `EXIT=0`; and directly, `python3 tests/integration/test-gen-decisions-index.py` →
   `ok - test_committed_index_matches_a_fresh_regeneration`,
   `ok - test_no_amendment_construct_survives_in_the_authority`, exit 0. Both already green, as

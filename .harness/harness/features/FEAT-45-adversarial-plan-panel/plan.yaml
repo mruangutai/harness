@@ -88,7 +88,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-plan-panel.py
       lane: team
       agent: harness-dev-ops
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-dev-ops
     - surface: .claude/skills/harness/bin/sync-agent-adapters.py
@@ -211,7 +211,7 @@ decisions:
     dec: DEC-117
   - id: D-12
     choice: >-
-      run-unit-tests.sh is NOT enforcement-path, so a test file's registration rides the same
+      run-unit-tests.py is NOT enforcement-path, so a test file's registration rides the same
       team task that authors it.
     because: >-
       It gates no write and adjudicates nothing. Splitting authoring from registration would
@@ -994,7 +994,7 @@ tasks:
       it; it is the same branch.
 
       Register nothing -- test-check-state.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh, and its name is already an explicit entry in harness.json's
+      run-unit-tests.py, and its name is already an explicit entry in harness.json's
       integration.detect, so adding cases needs no registration change and moving it would
       trip the runner's own KIND-DRIFT check.
 
@@ -1009,10 +1009,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/panel_findings.py
       - .claude/skills/harness/bin/test-panel-findings.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-panel-findings.py \
-        && OUT="$(bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit)" \
+        && OUT="$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit)" \
         && printf '%s\n' "$OUT" | grep -q 'test-panel-findings.py' \
         && A="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary 'T-04 traces REQ-99, which does not exist')" \
         && B="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary '  t-04   TRACES   req-99, which does not exist  ')" \
@@ -1057,7 +1057,7 @@ tasks:
         an empty reader exits 2, and a whitespace-only summary exits 2
         a unicode summary round-trips without raising
 
-      Then register it in run-unit-tests.sh by appending the literal string
+      Then register it in run-unit-tests.py by appending the literal string
       test-panel-findings.py to the UNIT_SCRIPTS array. Do NOT add it to
       INTEGRATION_SCRIPTS and do NOT touch harness.json: the runner's KIND-DRIFT check
       requires that no UNIT_SCRIPTS name appears in harness.json's integration.detect, so
@@ -1131,16 +1131,16 @@ tasks:
     # CONTENT edges: the test opens all three files. T-11 is a CONTENT edge: case 8 asserts
     # the canonical spawns: list and the SPAWNS map agree, both of which T-06 and T-11 write.
     # T-09 is FALSE FOR CONTENT and kept as a WRITE-LOCK: both tasks append to
-    # run-unit-tests.sh's UNIT_SCRIPTS array, plan tasks have no mutates_repo primitive, and
+    # run-unit-tests.py's UNIT_SCRIPTS array, plan tasks have no mutates_repo primitive, and
     # depends_on is the only serializer available. Delete it and two tasks race on one file.
     depends_on: [T-02, T-03, T-04, T-09, T-11]
     status: done
     files:
       - .claude/skills/harness/bin/test-plan-panel.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .claude/skills/harness/bin/test-plan-panel.py \
-        && OUT="$(bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit)" \
+        && OUT="$(bash .claude/skills/harness/bin/run-unit-tests.py --kind unit)" \
         && printf '%s\n' "$OUT" | grep -q 'test-plan-panel.py' \
         && python3 - <<'EOF'
       t = open('.claude/skills/harness/bin/test-plan-panel.py', encoding='utf-8').read()
@@ -1221,7 +1221,7 @@ tasks:
       verify therefore greps for no persona name at all -- it greps for spawns and SPAWNS, the
       two allowlists, because the MECHANISM is what this case grades and the name is data.
 
-      Then register it in run-unit-tests.sh by appending the literal string
+      Then register it in run-unit-tests.py by appending the literal string
       test-plan-panel.py to the UNIT_SCRIPTS array. Do not touch INTEGRATION_SCRIPTS or
       harness.json, for the same KIND-DRIFT reason as T-09.
 

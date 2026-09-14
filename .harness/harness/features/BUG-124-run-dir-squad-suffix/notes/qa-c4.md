@@ -42,8 +42,8 @@ paths run the identical file.
 |---|---|---|---|
 | task-scoped, T-01 `verify:` | `python3 tests/unit/test-harness-boundary.py` | 0 | 60/60 `PASS`, `ALL PASS` |
 | task-scoped, T-02 `verify:` | `python3 tests/integration/test-dispatch-guard.py` | 0 | 69/69 `PASS` |
-| `unit` kind (`test_kinds.unit.cmd`) | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 0 `^FAIL ` lines, 1491 log lines |
-| `integration` kind (`test_kinds.integration.cmd`) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 0 `^FAIL ` lines, 3914 log lines |
+| `unit` kind (`test_kinds.unit.cmd`) | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 0 `^FAIL ` lines, 1491 log lines |
+| `integration` kind (`test_kinds.integration.cmd`) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 0 `^FAIL ` lines, 3914 log lines |
 
 Both configured per-kind commands were exercised directly this cycle (not merely the two
 task-scoped files), closing cycle 1's bounded-evidence caveat now that sibling worktrees are no
@@ -51,7 +51,7 @@ longer a stated constraint here.
 
 ## 3. Full sweep + discovery volume vs. baseline
 
-`env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh`, run by me, captured
+`env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py`, run by me, captured
 exit status (not tail-read), `^FAIL ` counted by grep, not inferred from the final line:
 
 - **`RUNNER_EXIT=0`**

@@ -45,7 +45,7 @@ close a record gap, not to hand work forward.
   `xargs`. It is REQ-03's only mechanism — `notes/ship-review-2026-08-12.md`
 - **`classify`'s `shared` outcome is unreachable**, so the branch handling it in `bash-write-guard.py`
   is dead code new in that diff — `notes/ship-review-2026-08-12.md`
-- **One unreproduced gate failure.** `run-unit-tests.sh` exited 1 once and returned 0 on the three
+- **One unreproduced gate failure.** `run-unit-tests.py` exited 1 once and returned 0 on the three
   runs after it. No cause found — `notes/ship-review-2026-08-12.md`
 - **`--kind unit` runs neither guard suite nor `test-check-state.py`**, despite all three matching the
   unit detect glob. Backlog — `notes/ship-review-2026-08-12.md`

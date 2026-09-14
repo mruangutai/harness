@@ -4347,7 +4347,7 @@ Raised by the user after a day of building FEAT-05 through the harness: *"my sen
 be using harness to build harness."* Substantially accepted, with the boundary drawn narrower than the
 full claim.
 
-**The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.sh`, `check-docs.sh` and
+**The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.py`, `check-docs.sh` and
 `check-state.sh` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
 all: `--check` was never a supported mode. Before argv validation landed at `ffbdbfa1` (2026-08-05),
 an unrecognized argument fell through to the WRITE path, so that exit 0 was a regeneration of
@@ -5048,7 +5048,7 @@ restored at one remove, and it is accepted rather than unnoticed.
 The control that remains is a human reading the `.github/` diff, and **nothing requires one — nor
 can anything, on this repo as it stands.** `required_pull_request_reviews` on `main` is null: one
 required context, `enforce_admins` on, zero required reviewers. CODEOWNERS covering `/.github/` and
-`run-unit-tests.sh` is committed and **deliberately not enforced**, because enabling
+`run-unit-tests.py` is committed and **deliberately not enforced**, because enabling
 `require_code_owner_reviews` would make every PR to `main` permanently unmergeable — measured, not
 predicted: `mruangutai` is the sole collaborator and therefore the only possible code owner, GitHub
 forbids authors approving their own pull requests, and `enforce_admins: true` removes the bypass.
@@ -5156,7 +5156,7 @@ project-specific `python` kind, and reshaped four change types — and is broken
 `bugfix.always` names `__bug_class__`, a predicate placeholder that exists in no `test_kinds` and can
 therefore never resolve. Ungoverned tailoring is what this entry replaces.
 
-**Applied here: this repository excludes `functional`.** `run-unit-tests.sh` splits its suite on one
+**Applied here: this repository excludes `functional`.** `run-unit-tests.py` splits its suite on one
 stated principle from issue #160 — does this depend on behaviour observed in another process? —
 between `tests/unit/` and `tests/integration/`. There is no third bucket, this repository ships no
 service API, and pointing `functional` at either directory would double-count files the other kind
@@ -5679,7 +5679,7 @@ detect globs overlap for no test file, so no mechanical classifier is needed tod
 remains the enforcement for any future overlap.
 
 **What forced it.** Eight of twelve `INTEGRATION_SCRIPTS` entries were absent from
-`integration.detect`, so `run-unit-tests.sh` ran them as integration while the qa matrix read them as
+`integration.detect`, so `run-unit-tests.py` ran them as integration while the qa matrix read them as
 unit — and every `evidence: integration` claim resting on one of those files was false. The fix was
 to name each file in `integration.detect`, which left it matching **both** globs. That fix meant
 something only if this precedence was real, so the rule had to stop being folklore before the fix
@@ -6179,7 +6179,7 @@ written into the local receipt — and reaches no approval-gated artifact.
 **That row's wording is pinned, character for character, across two files.** The identical row is
 written into `.claude/skills/harness/references/github-mirror.md`'s read-back table, and
 `tests/unit/test-issue-types-pin.py` asserts in the standing unit suite that both files carry it and
-that the two copies are identical — so a later drift in either copy reddens `run-unit-tests.sh`
+that the two copies are identical — so a later drift in either copy reddens `run-unit-tests.py`
 rather than passing unnoticed once a `review_sha` has pinned.
 
 **The fourth purpose's surface is WIDER here than the superseded bound left it, and that is a

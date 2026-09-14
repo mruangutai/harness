@@ -28,7 +28,7 @@ state it.
 - `bin/test-plan-panel.py` — read header + all `subprocess.run` call sites
   (`check-domain.py --resolve <path>`); list-form argv, fixed binary, paths sourced from the
   team file's own declared outputs, not attacker input.
-- `bin/run-unit-tests.sh` — diffed; exactly two new literal strings appended to
+- `bin/run-unit-tests.py` — diffed; exactly two new literal strings appended to
   `UNIT_SCRIPTS`. No new code path.
 - `bin/sync-agent-adapters.py` — diffed; exactly one new literal string
   (`"fable-advisor"`) appended to the `SPAWNS["harness-validator-lead"]` list, plus a comment.

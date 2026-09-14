@@ -182,7 +182,7 @@ FINAL_RC=0
 
 ## Full suite
 
-`run-unit-tests.sh --kind all`: `rc=0`, `FAIL` line count = **0**, `ok`/`PASS` line count = **1578**
+`run-unit-tests.py --kind all`: `rc=0`, `FAIL` line count = **0**, `ok`/`PASS` line count = **1578**
 (prior pin measured 1365 at `b0604c3`; part of the 213-line increase is a counting-method change —
 this run's `grep -cE "^(ok|PASS)"` adds one line per `PASS <file>` summary line the prior grep did
 not count — plus T-05's five new cases and the fixes landed since. Not reconciled line-by-line; the

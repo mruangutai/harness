@@ -110,7 +110,7 @@ to `config`/`scaffolding`. Reporting the rejection rather than silently picking 
 
 ## Verify
 
-Command (verbatim from `plan.yaml`): `.claude/skills/harness/bin/run-unit-tests.sh --kind all`
+Command (verbatim from `plan.yaml`): `.claude/skills/harness/bin/run-unit-tests.py --kind all`
 
 Ran in background (full-repo suite), completed exit code 0. Tail of output (last 80 lines,
 piped through `tail -80` per my own invocation) shows unrelated suites (inflight-registry,

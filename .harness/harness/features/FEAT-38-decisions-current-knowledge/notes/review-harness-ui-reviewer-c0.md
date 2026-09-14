@@ -46,7 +46,7 @@ surface is reviewable, not an optional extra), I audited the two new checkers ag
   `examined N X(s), M failed` summary shape `check-plan-routes.py` already prints
   (`{total_violations} violation(s) across {processed} plan(s)`, `examined {n} feature dir(s); ...`).
   No drift from house convention.
-- **`run-unit-tests.sh`**: diff here only appends the two new test module names to
+- **`run-unit-tests.py`**: diff here only appends the two new test module names to
   `INTEGRATION_SCRIPTS`; the PASS/FAIL message format itself is untouched by this diff — not a
   reviewable change.
 - **`gen-decisions-index.py` HEADER/usage string**: confirmed via targeted diff — neither the

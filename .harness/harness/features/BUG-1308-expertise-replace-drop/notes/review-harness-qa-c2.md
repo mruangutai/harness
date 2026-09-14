@@ -4,7 +4,7 @@
 
 ## Suites at the pin (`env -u HARNESS_AGENT_TYPE`, `EXPERTISE_MERGE_BIN` unset)
 - unit: exit 0, `^FAIL ` count 0, 28 files — matches orchestrator measurement.
-- integration (`run-unit-tests.sh --kind integration`, no separate integration runner exists): exit 0, `^FAIL ` count 0, 46 files — matches orchestrator measurement. slowest: test-check-state.py 61.6s.
+- integration (`run-unit-tests.py --kind integration`, no separate integration runner exists): exit 0, `^FAIL ` count 0, 46 files — matches orchestrator measurement. slowest: test-check-state.py 61.6s.
 
 ## Cycle-1 findings, reproduced at the pin (sandbox: disposable worktree `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/qa-sandbox-c2` removed after use; probes ran from `/tmp/qasb` against copies of `git show 48d2285b:.claude/skills/harness/bin/{expertise-merge,harness_merge}.py`)
 - **VL-01 CLOSED (as originally scoped):** `add`/`replace` entry with literal `\n`/`\r` + forged `## Gotchas`/`- G-16:` → exit 12 `MALFORMED OPS ... entry must be a single line`, file sha unchanged. Confirmed both in my own sandbox and via the suite's own case21/u17.

@@ -61,7 +61,7 @@ opposite gradability, opposite conclusion.
 
 **Cost of SC-16:** one third re-signature; the `## Approval` note grows a fourth clause and the date
 moves again. **No engineering cost** — the behaviour is implemented, the test exists, and it is
-registered in both integration enumerations (`harness.json:119` and `run-unit-tests.sh:18`, both
+registered in both integration enumerations (`harness.json:119` and `run-unit-tests.py:18`, both
 verified). No task changes, no re-approval of the task set.
 
 **Cost of no SC-16:** the only evidence for a failure mode that destroyed the sole carrier of a

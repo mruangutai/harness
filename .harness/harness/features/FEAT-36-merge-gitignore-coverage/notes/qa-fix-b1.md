@@ -9,8 +9,8 @@ DIGEST:
   matrix_ok: true
   must_fix: []
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 23 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 23 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 23 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 23 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-02, test: ".agents/skills/harness/bin/test-merge-gitignore.py:62-83" }
@@ -27,9 +27,9 @@ The live B-1 diff changes only `.agents/skills/harness/bin/test-merge-gitignore.
 ## Executions
 
 - `python3 .agents/skills/harness/bin/test-merge-gitignore.py`: exit 0; 7 named cases passed, 0 failed.
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind unit`: exit 0; 23 registered scripts passed, 0 failed.
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind integration`: exit 0; 23 registered scripts passed, including `test-merge-gitignore.py` with 7/0 named behavioral cases.
-- Literal plan verify matched `plan.yaml:56-57` exactly and passed: `python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.sh --kind all`; direct 7/0, then 46 registered scripts (23 unit + 23 integration) passed.
+- `.agents/skills/harness/bin/run-unit-tests.py --kind unit`: exit 0; 23 registered scripts passed, 0 failed.
+- `.agents/skills/harness/bin/run-unit-tests.py --kind integration`: exit 0; 23 registered scripts passed, including `test-merge-gitignore.py` with 7/0 named behavioral cases.
+- Literal plan verify matched `plan.yaml:56-57` exactly and passed: `python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.py --kind all`; direct 7/0, then 46 registered scripts (23 unit + 23 integration) passed.
 
 No execution emitted `MISCONFIGURED`, a runner `KIND-DRIFT:` finding, no-tests condition, or load/import/collection/syntax error. Thus neither configured required kind silently matched zero tests.
 

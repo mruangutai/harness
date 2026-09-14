@@ -16,7 +16,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-instruction-paths.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a gate script joins the category on the day it becomes a gate
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: registering a gate test file is part of the same enforcement-layer edit
     - surface: .claude/skills/harness-handoff/SKILL.md
@@ -144,11 +144,11 @@ tasks:
          both halves in one case and name the direction each protects: exit 0 alone is also what a path
          outside every base returns, so the allow half on its own is passed by a guard that stopped
          adjudicating. Do NOT register test-check-domain.py anywhere new - it is already in
-         run-unit-tests.sh's INTEGRATION_SCRIPTS and already named in harness.json's
+         run-unit-tests.py's INTEGRATION_SCRIPTS and already named in harness.json's
          test_kinds.integration.detect, and adding it again trips the KIND-DRIFT cross-check.
 
       Do NOT register the test file anywhere new. test-inflight-registry.py is already in
-      run-unit-tests.sh's INTEGRATION_SCRIPTS and already named in harness.json's
+      run-unit-tests.py's INTEGRATION_SCRIPTS and already named in harness.json's
       test_kinds.integration.detect; adding it again trips the KIND-DRIFT cross-check.
 
   - id: T-02
@@ -162,7 +162,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/check-instruction-paths.py
       - .claude/skills/harness/bin/test-check-instruction-paths.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .agents/skills/harness/bin/test-check-instruction-paths.py
     intent: |
@@ -289,7 +289,7 @@ tasks:
           harness-wayfinding.
         - A positional path outside the scope exits 2.
 
-      REGISTRATION. Append "test-check-instruction-paths.py" to UNIT_SCRIPTS in run-unit-tests.sh.
+      REGISTRATION. Append "test-check-instruction-paths.py" to UNIT_SCRIPTS in run-unit-tests.py.
       Do NOT add it to test_kinds.integration.detect in harness.json: the KIND-DRIFT cross-check
       fails when a UNIT_SCRIPTS name appears there, and unit.detect's glob
       .claude/skills/harness/bin/test-*.py already matches it.
@@ -784,7 +784,7 @@ tasks:
         is not the resolved root. Assert exit 2 and assert stderr contains BOTH the declared
         value and the resolved one.
 
-      Register nothing new in run-unit-tests.sh: test-dispatch-guard.py is already in
+      Register nothing new in run-unit-tests.py: test-dispatch-guard.py is already in
       INTEGRATION_SCRIPTS, so the kind cross-check and the file-presence check both stay green.
 
   - id: T-10
@@ -1069,7 +1069,7 @@ tasks:
       4. WHAT THIS CASE MUST NOT DO. It must not execute the hook: this is a text scan of the
          script's source, not a behavioural run, and running it proves nothing about branches that
          did not fire. It must not edit inject-expertise.sh. And it must not register the test file
-         anywhere new - test-inject-expertise.py is already registered in run-unit-tests.sh and
+         anywhere new - test-inject-expertise.py is already registered in run-unit-tests.py and
          already named in harness.json's test_kinds detect, so adding it again trips the KIND-DRIFT
          cross-check. Keep every existing case in the file passing.
   - id: T-15
@@ -1077,12 +1077,12 @@ tasks:
     traces: [REQ-02, REQ-04, REQ-06]
     change_type: logic
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, a new gate test file registered in run-unit-tests.sh is enforcement layer the moment the gate is wired, the same route T-02 and T-12 take for these same two surfaces
+    execution_reason: DEC-174 carve-out, a new gate test file registered in run-unit-tests.py is enforcement layer the moment the gate is wired, the same route T-02 and T-12 take for these same two surfaces
     depends_on: [T-12]
     status: done
     files:
       - .claude/skills/harness/bin/test-anchor-directions.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .agents/skills/harness/bin/test-anchor-directions.py
     intent: |
@@ -1218,7 +1218,7 @@ tasks:
         - remove the temp root at the end, on the failure path too.
       A `git show` failure for any listed path is a hard failure naming that path, not a skip.
 
-      REGISTRATION. Append "test-anchor-directions.py" to UNIT_SCRIPTS in run-unit-tests.sh, next
+      REGISTRATION. Append "test-anchor-directions.py" to UNIT_SCRIPTS in run-unit-tests.py, next
       to test-check-instruction-paths.py. SC-04 and SC-11 both declare evidence: unit, and the
       kind is a property of which array the script name sits in. Do NOT add it to
       test_kinds.integration.detect in harness.json: the KIND-DRIFT cross-check fails when a

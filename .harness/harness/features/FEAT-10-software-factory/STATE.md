@@ -23,7 +23,7 @@
   `check-state.sh` and `test-check-state.py` were never opened for edit and are in no commit.
 
 - **THREE GATES RE-MEASURED BY ME AT THE SETTLED TREE, BEFORE THE COMMIT, NOT INHERITED.**
-  `run-unit-tests.sh` exit 0 — **22 test files PASS, 0 FAIL** (the 22 is FILE-level; a bare
+  `run-unit-tests.py` exit 0 — **22 test files PASS, 0 FAIL** (the 22 is FILE-level; a bare
   `grep -c "^PASS"` returns 85 by counting sub-case lines). `check-docs.sh` exit 0 — 62 patterns
   across 317 files. `check-state.sh` exit 0 — **zero violations**, only notes, including the
   expected INV-22. Both checkers were re-run AFTER the last write, not before it.

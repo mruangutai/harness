@@ -14,7 +14,7 @@ surface a regression this feature introduced.
 
 ## Measurements
 
-1. Full suite, `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh --kind
+1. Full suite, `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py --kind
    integration`: **exit 0**, `pool: 8 workers, 46 files` (`/tmp/integration_full.log`), **zero**
    `^FAIL ` lines anywhere in the 3336-line raw capture. `test-plan-merge.py`: `exit 0, 10.15s`.
    (Caution for future measurement: the bash-tool's own captured/artifact echo of this same
@@ -22,7 +22,7 @@ surface a regression this feature introduced.
    file — redirect to a real file and read that, don't trust the tool-returned capture for a
    suite this size.)
 
-2. Same full suite, `HARNESS_AGENT_TYPE=harness-code-reviewer bash …/run-unit-tests.sh --kind
+2. Same full suite, `HARNESS_AGENT_TYPE=harness-code-reviewer bash …/run-unit-tests.py --kind
    integration`: **exit 1**, **15** `^FAIL ` lines (`/tmp/integration_agenttype.log`), all
    attributed to `test-plan-merge.py` (13 case-level `FAIL` lines over sign-approval mechanics,
    plus the file's own summary line printed **twice** — `run_pool.py`'s per-result emit has a
@@ -55,7 +55,7 @@ surface a regression this feature introduced.
 
 Not directly observed (both agents' actual shell environments are gone), but the mechanism above is
 sufficient and reproducible on demand: whichever of the two agents happened to run
-`run-unit-tests.sh` from a shell where `HARNESS_AGENT_TYPE` was still exported (a real, ordinary
+`run-unit-tests.py` from a shell where `HARNESS_AGENT_TYPE` was still exported (a real, ordinary
 condition for a Harness subagent's Bash tool) got the leak; the one running from a clean shell did
 not. This matches this repo's own repository-tier QA expertise (`G-07`), already on file before this
 review. No scratch-worktree or untracked-file interference from the panel's concurrent activity was

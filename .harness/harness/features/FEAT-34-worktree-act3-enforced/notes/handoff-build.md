@@ -21,7 +21,7 @@ commits, pin `review_sha`, `gh-sync.py status <dir> Review`, panel, goal-check, 
 - NO CYCLE spent on the qa FAIL, deliberately; cycles_used stays 6. DEC-157 = rework only, and
   T-07/T-08/T-09 were never executed — first-pass forward work — verified-at 4c7b650
 - Suites measured by me: sweep 47, hooks-install 29, worktree-terminal 34, each exit 0;
-  check-state.sh exit 0; run-unit-tests.sh exit 0, zero ^FAIL — verified-at 4c7b650
+  check-state.sh exit 0; run-unit-tests.py exit 0, zero ^FAIL — verified-at 4c7b650
 - REQ-07's repository scope was left OPEN BY THE BRIEF: BRIEF.md:237-239 — "REQ-07 through REQ-09
   are written to be satisfied by either." REQ-07 (:73-74) has no repo quantifier — verified-at 4c7b650
 - `classify`->`classify_all` at post-merge-sweep.py:234 is a NO-OP THAT LOOKS GREEN: no served

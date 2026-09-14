@@ -102,7 +102,7 @@ gate_status:
     gate went from exit 1 to exit 0 on that write.'
   plan_approval: PASS — Mike Ruangutai, 2026-08-09
   qa_gate: 'PASS. RE-MEASURED BY ME at the settled tree immediately before the commit:
-    run-unit-tests.sh exit 0, 22 test files PASS, 0 FAIL. The 22 is FILE-level; a
+    run-unit-tests.py exit 0, 22 test files PASS, 0 FAIL. The 22 is FILE-level; a
     bare `grep -c "^PASS"` returns 85 by counting sub-case lines. CAVEATS: green is
     FILE-level not mutation-bound, and `functional` is EXCLUDED BY SIGNED DECISION
     (DEC-187), not satisfied.'

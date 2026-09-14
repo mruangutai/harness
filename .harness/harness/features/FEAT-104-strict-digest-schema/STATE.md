@@ -73,7 +73,7 @@ Every entry below is now also a briefing backlog row; the `B-N` id is what the o
   `mktemp -d` probe was refused by `bash-write-guard` for the SECOND consecutive cycle (writing only
   `/tmp`) while qa and ui executed live probes. It reported the refusal rather than working around
   it — guard working, reviewer correct. Guarantee read-only panels a scratch-write route?
-- Q16 (**B-22**, harness defect, verified by me): a `^FAIL ` census over `run-unit-tests.sh` is
+- Q16 (**B-22**, harness defect, verified by me): a `^FAIL ` census over `run-unit-tests.py` is
   defeated by `test-factory-claim-mutation.py` reprinting 4 `FAIL  BUG-1290 …` lines at exit 0.
 - Q17 (**B-23**, harness defect): "the tree must be clean" is unsatisfiable for an agent writing its
   own artifact — only `runs/**` is gitignored. Scope such clauses to tracked modifications.

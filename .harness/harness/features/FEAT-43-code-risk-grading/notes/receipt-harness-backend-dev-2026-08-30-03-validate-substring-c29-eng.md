@@ -133,7 +133,7 @@ EXIT=0
 ### 5. `--kind unit` gate — the gate the merge turned red
 
 ```
-$ HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ HARNESS_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ...
 PASS test-validate-feature-json.py
 ...

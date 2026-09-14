@@ -141,7 +141,7 @@ lanes:
       reason: >-
         Resolved because it contains the string Building at :336. That is a comment about plan
         status values, not a board read. Not a reader.
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       resolve: harness-backend-dev
       reason: >-
         Resolved because its UNIT_SCRIPTS and INTEGRATION_SCRIPTS arrays are an explicit

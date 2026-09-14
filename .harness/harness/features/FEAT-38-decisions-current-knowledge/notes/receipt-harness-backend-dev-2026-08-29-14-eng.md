@@ -118,10 +118,10 @@ T-20 VERIFY RC=0
 `ALLOWED_FIRST_TOKENS` marker matches again (Item A). Separately,
 `test-check-decision-anchors.py`: **8/8 `ok -`, exit 0.**
 
-## 3. `run-unit-tests.sh` (from worktree, captured to a variable, `grep`'d — never piped to head/tail)
+## 3. `run-unit-tests.py` (from worktree, captured to a variable, `grep`'d — never piped to head/tail)
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh > /tmp/run-unit-tests.out 2>&1
+$ bash .claude/skills/harness/bin/run-unit-tests.py > /tmp/run-unit-tests.out 2>&1
 RC=0
 $ grep -c '^FAIL' /tmp/run-unit-tests.out
 0

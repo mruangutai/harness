@@ -10,7 +10,7 @@ assertion kills a real second-caller mutant. No must_fix. Two informational note
 `suite_layout.py` (full, both at `bb3a31ed` and its parent, diffed line-by-line),
 `tests/unit/test-suite-layout.py` (B-3's new lines 145-176, plus the case-numbered fixtures cases
 1-11 for registry/D-01/D-04/self-ownership coverage), `tests/integration/test-run-unit-tests-layout.py`,
-`tests/manual/suite-census.py`, `run-unit-tests.sh`, `plan.yaml` D-01–D-04, `BRIEF.md` REQ/SC list,
+`tests/manual/suite-census.py`, `run-unit-tests.py`, `plan.yaml` D-01–D-04, `BRIEF.md` REQ/SC list,
 `qa-tree-audit.md`, `qa-audit-sha-correction.md`, `feature.json`, and every c1-cycle receipt/review
 note under `notes/` that discusses D-03, the registry-scoping backlog item, and QA-1
 (toplevel-mismatch coverage gap) so I would not re-litigate already-dispositioned items.
@@ -100,7 +100,7 @@ implicit via a shared local variable. No arbitrary fragmentation found.
 
 ## B-3 — discriminating power: PASS, with one low-severity note
 Built a scratch fixture (own tempdir, git-tracked copy of `suite_layout.py` + a stand-in
-`run-unit-tests.sh` caller) and ran `_violations_callers`/`_is_violations_invocation` unmodified
+`run-unit-tests.py` caller) and ran `_violations_callers`/`_is_violations_invocation` unmodified
 against it:
 - **Mutation: added a second real caller** (`scripts/rogue.py` calling
   `suite_layout.violations(...)`) → the caller set grew to two entries, failing the

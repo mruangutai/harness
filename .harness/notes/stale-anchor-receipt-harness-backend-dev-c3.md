@@ -147,7 +147,7 @@ named check.
 ## Non-goals honored
 
 `gh-sync.py`, `feature_json_write.py`, `feature_schema.py`, `feature-schema.json`,
-`run-unit-tests.sh`, every DEC-174 file, and all real `.harness/*/features/*/feature.json`
+`run-unit-tests.py`, every DEC-174 file, and all real `.harness/*/features/*/feature.json`
 files were not touched. `.agents/skills/harness/bin/factory_decompose.py` (the duplicate copy
 under `.agents/`) was left as-is — out of the stated scope (`.claude/skills/harness/bin/`
 only); its own drift from this fix is a separate, unscoped concern.

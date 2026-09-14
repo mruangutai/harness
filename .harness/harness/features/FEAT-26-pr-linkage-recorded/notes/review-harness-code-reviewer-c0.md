@@ -106,4 +106,4 @@ substring check on the joined text) so a future regression is actually caught.
 ## Test runs performed (targeted only, per dispatch)
 - `python3 .claude/skills/harness/bin/test-gh-sync.py` → `ALL PASSED`
 - `python3 .claude/skills/harness/bin/test-check-state.py` → exit 0, all INV-28 lines `ok`
-- Confirmed both scripts are wired into `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` (not dead).
+- Confirmed both scripts are wired into `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` (not dead).

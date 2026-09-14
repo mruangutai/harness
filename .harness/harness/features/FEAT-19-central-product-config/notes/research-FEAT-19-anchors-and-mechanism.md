@@ -60,7 +60,7 @@ so the row above is the new baseline with its command, not an attempt to reprodu
 | `.harness/harness.json` | harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/product_config.py` | harness-backend-dev harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/test-product-config.py` | harness-backend-dev harness-dev-ops | 0 |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | harness-backend-dev harness-dev-ops | 0 |
+| `.claude/skills/harness/bin/run-unit-tests.py` | harness-backend-dev harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/upgrade-config.py` | harness-backend-dev harness-dev-ops | 0 |
 | `.claude/skills/harness/bin/gh_board.py` | harness-backend-dev harness-dev-ops | 0 |
 | `docs/harness/DECISIONS.md`, `DECISIONS-INDEX.md` | harness-documentor | 0 |
@@ -123,7 +123,7 @@ Each gets its own success criterion.
 - `harness-init/SKILL.md` is 286 lines with nine numbered steps.
 - Nothing in `check-state.sh` enumerates `.harness/`'s children, so adding `products/` trips no
   inventory invariant. `dirty_tree_whitelist` is `.harness/**`, which already covers it.
-- `run-unit-tests.sh` keeps explicit `UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays with a drift
+- `run-unit-tests.py` keeps explicit `UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays with a drift
   detector over their union: a new test file unregistered there fails the whole run.
 
 ## Open — for the eng-lead architecture review that runs after this plan

@@ -117,7 +117,7 @@ printed `EXIT_STATUS=0`).
 ## Notes for the reviewer / T-03
 
 - `worktree_owner` is untouched — no lines inside its body were edited.
-- `run-unit-tests.sh` was not touched, per the task's own instruction; that file's drift
+- `run-unit-tests.py` was not touched, per the task's own instruction; that file's drift
   detector currently does not know about `test-harness-boundary.py` and T-03 owns wiring it
   in.
 - `resolve_root`'s `strict` parameter defaults to `True`, matching the intent's signature

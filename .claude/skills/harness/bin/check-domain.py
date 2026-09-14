@@ -2052,7 +2052,7 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
     # THE BASENAME IS THE ONE THAT EXISTS BESIDE THIS SCRIPT. A refusal naming a file that is
     # not there is unusable — the very failure the reason clause exists to prevent. This script
     # and the writer live in the same bin directory, and the invariant that keeps them together
-    # is that both are named in run-unit-tests.sh's own script list.
+    # is that both are named in run-unit-tests.py's own script list.
     _writer = "plan-merge.py"
     # WHEN A LINK IS THE ROUTE, THE DENIAL NAMES WHERE THE WRITE LANDS (FEAT-41 H-01). Refusing
     # `notes/innocent.md` with no further explanation reads as a malfunction, which is the one

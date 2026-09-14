@@ -8,8 +8,8 @@ The plan’s `logic` tasks require unit; `T-08` (`cross_module`) requires unit a
 
 | Kind | Exact configured command | Exit | Named discovery |
 |---|---|---:|---:|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 29 explicit `UNIT_SCRIPTS` entries |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 28 explicit `INTEGRATION_SCRIPTS` entries |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 29 explicit `UNIT_SCRIPTS` entries |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 28 explicit `INTEGRATION_SCRIPTS` entries |
 
 The runner’s always-on registration/kind-drift cross-check also passed on both invocations. The integration command completed in 247.08 seconds.
 

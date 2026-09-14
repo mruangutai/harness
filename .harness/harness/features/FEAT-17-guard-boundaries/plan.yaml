@@ -121,7 +121,7 @@ decisions:
       new module gets no test file of its own.
     because: >-
       Nothing is stranded - r6 is clean - but its commit 52d8334 is not an ancestor of main, so a tag
-      is what keeps it recoverable; run-unit-tests.sh keeps explicit script arrays whose drift
+      is what keeps it recoverable; run-unit-tests.py keeps explicit script arrays whose drift
       detector fails the whole run on an unregistered test file, and behavioural coverage through
       both guards is stronger evidence than a unit test of the extracted functions.
     dec: none

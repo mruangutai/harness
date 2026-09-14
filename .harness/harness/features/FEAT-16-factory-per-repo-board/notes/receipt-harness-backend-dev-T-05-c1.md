@@ -81,13 +81,13 @@ uncommitted T-02 diff (this task never had a grant to touch that file and didn't
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 **Correction on the exit code.** The first run captured output through `| tee <file>; echo "EXIT=$?"`
 — in this shell that reports `tee`'s own exit status, not the runner's, so `EXIT=0` from that run
 was not an observed measurement of the thing that matters. Re-ran as
-`run-unit-tests.sh --kind integration > <file> 2>&1; echo "REAL_EXIT=$?"` — the redirect form,
+`run-unit-tests.py --kind integration > <file> 2>&1; echo "REAL_EXIT=$?"` — the redirect form,
 where `$?` is the runner's own status — and got `REAL_EXIT=0`, observed directly this time.
 
 Verbatim stdout+stderr in full, exit code appended as the last line — no lines edited, curated, or

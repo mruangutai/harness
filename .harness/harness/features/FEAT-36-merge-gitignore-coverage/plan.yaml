@@ -23,7 +23,7 @@ decisions:
   - id: D-01
     choice: >-
       The behavioral test executes merge-gitignore.sh as a real subprocess and is registered as
-      integration evidence in both run-unit-tests.sh and harness.json.
+      integration evidence in both run-unit-tests.py and harness.json.
     because: >-
       The observable contract includes process exit status, stderr, filesystem writes and caller cwd;
       DEC-187 classifies real-script subprocess coverage as integration, and DEC-197 requires an
@@ -50,12 +50,12 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-merge-gitignore.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
       - .claude/skills/harness/bin/merge-gitignore.sh
     verify: |
       python3 .claude/skills/harness/bin/test-merge-gitignore.py &&
-      .claude/skills/harness/bin/run-unit-tests.sh --kind all
+      .claude/skills/harness/bin/run-unit-tests.py --kind all
     intent: |
       Deliver SC-01 through SC-06 and all five traced requirements in one test-first task.
 
@@ -86,7 +86,7 @@ tasks:
       correction that turns that case green, and report the original failure in the receipt. Do not
       change provider handling, Anthropic support, Claude Code compatibility, or unrelated utilities.
 
-      Register test-merge-gitignore.py in INTEGRATION_SCRIPTS in run-unit-tests.sh and add its exact
+      Register test-merge-gitignore.py in INTEGRATION_SCRIPTS in run-unit-tests.py and add its exact
       path to test_kinds.integration.detect in .harness/harness.json. Do not add it to UNIT_SCRIPTS;
       unit.detect already overlaps by its catch-all pattern, and DEC-197 makes the explicit integration
       path authoritative. Preserve the runner's drift detector and kind cross-check. The verification

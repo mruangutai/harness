@@ -140,22 +140,22 @@ PLAN.md **except one is missing entirely**:
 
 - **T-04 (`upgrade-config.py`) — MISSING.** The task requires creating
   `.claude/skills/harness/bin/test-upgrade-config.py` with three named tests and adding
-  it to `run-unit-tests.sh`'s `SCRIPTS` array. **Neither exists.** `ls
-  .claude/skills/harness/bin/test-*.py` and `run-unit-tests.sh`'s `SCRIPTS` array both
+  it to `run-unit-tests.py`'s `SCRIPTS` array. **Neither exists.** `ls
+  .claude/skills/harness/bin/test-*.py` and `run-unit-tests.py`'s `SCRIPTS` array both
   confirm the file was never created, in any commit in the diff range. `upgrade-config.py`
   itself *was* converted (`harness_yaml.load_str` at `:99`/`:124`), so there is
   production code with **zero** regression coverage — the exact shape the matrix exists
-  to prevent. `run-unit-tests.sh` exits 0 / 11 suites, not the 12 the plan implies.
+  to prevent. `run-unit-tests.py` exits 0 / 11 suites, not the 12 the plan implies.
   **State: missing (FAIL) for T-04's `logic` requirement.**
 - **T-06, T-07, T-12, T-14, T-17** — all have their named tests present and running
-  (confirmed by grep against the diff and a live `run-unit-tests.sh` pass). T-07's tests
+  (confirmed by grep against the diff and a live `run-unit-tests.py` pass). T-07's tests
   (case_e/case_f) cover only the part of the script that was actually converted (see
   BLUF) — adequate for what they assert, silent on the 7 unconverted call sites.
   T-02/T-03 (harness_yaml.py itself) — 9/9 tests present and green.
 
 ## Suite run — real numbers
 
-`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh`, run 3 times:
+`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py`, run 3 times:
 
 ```
 exit=0, exit=0, exit=0 (no flake across 3 runs)
@@ -227,7 +227,7 @@ Neither is discharged in two separate setups. Adequate.
    issue #11's own defect class, alive in the script that closed issue #11. A second
    reproduction: `parent: "40"` (quoted) false-positives INV-21. State that would
    satisfy every current verify command while this is true: exactly the state
-   observed — `run-unit-tests.sh` exit 0, `check-state.sh` exit 0/0 violations on
+   observed — `run-unit-tests.py` exit 0, `check-state.sh` exit 0/0 violations on
    this repo's real (unquoted) data, run-inventory diff clean — because none of
    those signals depend on the unconverted fields or exercise a quoted value.
 2. **[high]** T-04's `test-upgrade-config.py` and its `SCRIPTS` registration were never
@@ -257,7 +257,7 @@ DIGEST:
   failures: 0
   matrix_ok: false
   kinds:
-    - { kind: unit, state: satisfied, cmd: "CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh", named_tests: 11 }
+    - { kind: unit, state: satisfied, cmd: "CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py", named_tests: 11 }
     - { kind: unit, state: missing, cmd: "test-upgrade-config.py (never created, T-04)", named_tests: 0 }
   coverage_gaps:
     - "check-state.sh: phase:/state.yaml status:-cost:-host:/feature.yaml github: block still raw regex, never routed through harness_yaml"
@@ -276,7 +276,7 @@ DIGEST:
     - { id: SC-09, test: ".harness/features/FEAT-05-pyyaml-file-parsers/notes/uat-bootstrap-escape-expiry.md (U-05)" }
     - { id: SC-10, test: ".harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-harness-backend-dev-typed-value-sweep.md" }
     - { id: SC-11, test: ".claude/skills/harness/bin/test-gh-sync.py (label audit)" }
-    - { id: SC-12, test: "live run: run-unit-tests.sh, 11/11 PASS, exit 0" }
+    - { id: SC-12, test: "live run: run-unit-tests.py, 11/11 PASS, exit 0" }
     - { id: SC-13, test: "substance verified independently; PLAN's required second artifact absent" }
     - { id: SC-14, test: ".claude/skills/harness/bin/test-harness-yaml-corpus.py" }
   open_questions:

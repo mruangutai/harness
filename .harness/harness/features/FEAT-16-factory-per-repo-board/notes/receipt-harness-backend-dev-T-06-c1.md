@@ -60,7 +60,7 @@ future loader (per-repo board required, top-level board rejected), satisfying th
 ## Verify — run exactly as specified
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Exit code: 0. Full output captured; relevant summary lines (verbatim):

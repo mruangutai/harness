@@ -126,7 +126,7 @@ cannot fail.
   `RE_STATE_MD`, `RE_CLAUDE_MD` and nothing else), and so is the observation log. Adding either
   changes nothing — #628's 191-line file parsed cleanly. A shape gate is not the fix and is not
   proposed.
-- **A new test file must be registered or the runner refuses to run.** `run-unit-tests.sh` runs a
+- **A new test file must be registered or the runner refuses to run.** `run-unit-tests.py` runs a
   drift detector over the union of its two arrays and exits 2 MISCONFIGURED on any unregistered
   `test-*.py` in `bin/`, and `harness.json` `test_kinds.integration.detect` is an explicit
   pipe-separated list, so a file absent from it is invisible to the kind even once the runner runs
@@ -218,10 +218,10 @@ file class it owns.
 FEAT-31 is claimed disjoint. Checked at `feat/FEAT-31-orchestrator-context-watch` tip `7299669`:
 its ten tasks touch `context-watch.py`, `test-context-watch.py`, `test-context-watch-cli.py`,
 `upgrade-config.py`, `test-upgrade-config.py`, `check-state.sh`, `test-check-state.py`,
-`.claude/skills/harness/templates/harness.json`, plus `run-unit-tests.sh`, `.harness/harness.json`,
+`.claude/skills/harness/templates/harness.json`, plus `run-unit-tests.py`, `.harness/harness.json`,
 `DECISIONS.md` and `DECISIONS-INDEX.md`. **Logically disjoint: true** — no file whose behaviour
 this feature changes appears there. **Textually disjoint: false** — the last four are shared
-registration and record surfaces, so both features append to `run-unit-tests.sh`'s
+registration and record surfaces, so both features append to `run-unit-tests.py`'s
 `INTEGRATION_SCRIPTS`, to `harness.json`'s `integration.detect` list, and to the decisions record.
 Whichever lands second rebases those four; each is an append, none is a rewrite.
 
@@ -240,7 +240,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   `SubagentStop` half of that risk is already discharged: `validate-digest.py` selects a
   persona-specific schema from the returning agent's own name and a live orchestrator return was
   rejected against the `orchestrator` schema, which is only reachable when `agent_type` is present.
-- **Every `verify:` in this plan pins its own checkout.** `run-unit-tests.sh` begins
+- **Every `verify:` in this plan pins its own checkout.** `run-unit-tests.py` begins
   `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"`, so a verify run with that variable pointing at another
   checkout measures the wrong tree and reports zero matched lines. Each of the 15 `verify:` blocks
   therefore opens with `cd "$(git rev-parse --show-toplevel)"` and exports `CLAUDE_PROJECT_DIR="$PWD"`
@@ -352,7 +352,7 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   **Every observation of the runner, before and after, exports `CLAUDE_PROJECT_DIR` to the checkout
   being measured** — the runner `cd`s to that variable, so an unpinned run measures another tree.
   **Baseline RE-OBSERVED at `62f861c`, BRIEF pending, before any work** (superseding the `5d9b428`
-  observation, which FEAT-30's two added runner files had made stale): `run-unit-tests.sh --kind unit`
+  observation, which FEAT-30's two added runner files had made stale): `run-unit-tests.py --kind unit`
   exited 0 with **179** lines matching `^PASS |^FAIL |ERROR`, **zero** beginning `FAIL`, and **zero**
   containing `ERROR`; `--kind integration` exited 0 with **221** such lines, **zero** beginning `FAIL`,
   and **three** containing `ERROR`. (Unit is unchanged from `5d9b428`; integration moved from 93 to 221

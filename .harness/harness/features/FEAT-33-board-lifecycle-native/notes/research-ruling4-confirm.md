@@ -22,7 +22,7 @@ The merge (`git diff --stat 46ee87c 57e18ca`) touched exactly four files: `featu
 | `test-check-state.py:1333` five-key `_board` literal | HOLDS |
 | `test-check-state.py:1616` Icebox/Primed/WIP/Shipped map | HOLDS |
 | `feature-schema.json:32` status enum | HOLDS (seven values, incl. `Abandoned`) |
-| `run-unit-tests.sh:17` `UNIT_SCRIPTS` | HOLDS |
+| `run-unit-tests.py:17` `UNIT_SCRIPTS` | HOLDS |
 | `factory_config.py:41,:134` · `factory_claim.py:302` · `factory_decompose.py:393` | untouched by the merge |
 
 **Nothing had MOVED.** One citation was imprecise rather than stale and is tightened: the plan and
@@ -54,8 +54,8 @@ of ` :: ` verbatim (its docstring, `:12-14`), so regeneration cannot flatten am.
   the heading the operator reads at signature; the breakage is latent (a `FleetError` naming
   `github.board.stations`, reachable only if a `factory_*` command runs against kaya-ai between
   the two merges) and loud. Signing ratifies a stated departure; nothing new is needed to decide it.
-- **FEAT-31 on `run-unit-tests.sh` — does NOT block, and it is not the operator's.** Settled from
-  the tree: FEAT-31 is `Done` and merged, and `run-unit-tests.sh:17` already lists
+- **FEAT-31 on `run-unit-tests.py` — does NOT block, and it is not the operator's.** Settled from
+  the tree: FEAT-31 is `Done` and merged, and `run-unit-tests.py:17` already lists
   `test-context-watch.py`. Among live features only FEAT-33's `T-04` writes that file (FEAT-26's
   eight tasks do not).
 - **`SPEC.md:1868` — does NOT block.** It is genuinely falsified: `feature-schema.json:32`

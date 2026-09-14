@@ -19,7 +19,7 @@ have a runner. Neither mentions the CI job. So:
 - What changes is WHERE the live half runs: an agent runs it on demand, never `tests.yml`.
 
 **AND THERE IS A HARD CONSTRAINT THE PLAN MUST RESOLVE, not restate.**
-`.claude/skills/harness/bin/run-unit-tests.sh:40-51` is a drift detector: any `test-*.py` under
+`.claude/skills/harness/bin/run-unit-tests.py:40-51` is a drift detector: any `test-*.py` under
 `bin/` that appears in neither `UNIT_SCRIPTS` nor `INTEGRATION_SCRIPTS` fails the ENTIRE suite with
 `MISCONFIGURED`, whichever `--kind` is being run. That closes both easy doors:
 
@@ -89,10 +89,10 @@ Verified at ddeebb5 by classifying both filenames against `.harness/harness.json
 
 The cause: `test_kinds.unit.detect` includes the glob
 `.claude/skills/harness/bin/test-*.py`, which matches everything; `test_kinds.integration.detect`
-is an EXPLICIT filename list, and T-07 never adds itself to it. So `run-unit-tests.sh --kind
+is an EXPLICIT filename list, and T-07 never adds itself to it. So `run-unit-tests.py --kind
 integration` would run the file while the qa matrix reads it as a unit test.
 
-This is SILENT. `run-unit-tests.sh`'s drift detector reads its own two arrays and never reads
+This is SILENT. `run-unit-tests.py`'s drift detector reads its own two arrays and never reads
 `harness.json`, so nothing catches the disagreement.
 
 Fix: add `.harness/harness.json` to T-07's `files:` and its intent, appending the filename to
@@ -133,14 +133,14 @@ reaches it. The "skip loudly" alternative A-1 offered is the WEAKER door and sho
 green suite that verified nothing — this repository's most-filed defect shape.
 
 **C-2 — F-1 is EIGHT files, not one, and the operator has ruled on the class.** Eight of the
-twelve entries in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` are absent from
+twelve entries in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` are absent from
 `test_kinds.integration.detect`, so each classifies as `unit` via that kind's catch-all
 `.claude/skills/harness/bin/test-*.py`. `test-upgrade-config.py` is among the eight and T-05
 already edits it.
 
 RULING D-4: **fix all eight, AND add a check so the two lists cannot disagree silently again.**
 Not the instance, not the eight alone. The check is the point: today
-`run-unit-tests.sh`'s drift detector reads its own two arrays and NEVER reads `harness.json`, so a
+`run-unit-tests.py`'s drift detector reads its own two arrays and NEVER reads `harness.json`, so a
 mismatch between the arrays and `test_kinds` is invisible to every gate. Whatever form the check
 takes, it must be able to go RED — assert the mismatch is DETECTED, not that a command exited
 non-zero.
@@ -179,7 +179,7 @@ Carry them forward in your return; do not resolve them yourself.
   BY gates rather than a hook or gate script, and DEC-174 am.4's list is non-exhaustive. This
   decides D-4's `execution_mode`. `check-domain.py --resolve` grants `.harness/harness.json` to
   `harness-dev-ops` and T-03 already edits it as `team`. The sibling question was raised for
-  `run-unit-tests.sh` in an earlier round and never answered.
+  `run-unit-tests.py` in an earlier round and never answered.
 - **Q-B: is "explicit list beats catch-all glob" written down anywhere?** Four files already sit in
   both `unit.detect` and `integration.detect` and are treated as integration, so precedent is
   clear — but the dead round could find it STATED nowhere, and there is no programmatic classifier.

@@ -6,7 +6,7 @@ comment/prose-only edit with zero runtime effect. `findings: []`.
 
 ## What I measured
 
-- **`run-unit-tests.sh`** — T-24 removed exactly one entry (`test-check-decision-claims.py`)
+- **`run-unit-tests.py`** — T-24 removed exactly one entry (`test-check-decision-claims.py`)
   from `INTEGRATION_SCRIPTS` (line 31). Read the full kind-selection path (lines 33-53):
   `--kind` selects a plain array slice or concatenation, no duplication, nothing runs twice.
   The drift detector still runs over the union (by design, per its own comment) and the

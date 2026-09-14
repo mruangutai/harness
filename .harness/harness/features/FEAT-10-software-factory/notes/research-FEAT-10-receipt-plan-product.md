@@ -72,7 +72,7 @@ All ten were executed by loading `plan.yaml` and running each `verify:` string v
 
 Ten of ten fail before the work exists, which is the point: each one is discriminating. Three
 drafts were rejected during this run because they passed at `914b6fd` and would therefore have
-proved nothing — the bare `run-unit-tests.sh --kind unit` for T-02 through T-07 (exit 0 today,
+proved nothing — the bare `run-unit-tests.py --kind unit` for T-02 through T-07 (exit 0 today,
 `10/10 checks passed`), the bare `--kind integration` for T-08 (exit 0 today, `ALL PASS`), and the
 index-diff plus check-docs pair for T-09 (exit 0 today). Each was replaced with a clause naming
 the artifact the task creates. The runner output is redirected to a file and grepped rather than
@@ -120,7 +120,7 @@ nothing in the plan depends on the answer.
 ```
 $ bash .claude/skills/harness/bin/check-domain.py --resolve <path>
 .claude/skills/harness/bin/factory_gh.py      -> harness-backend-dev, harness-dev-ops
-.claude/skills/harness/bin/run-unit-tests.sh  -> harness-backend-dev, harness-dev-ops
+.claude/skills/harness/bin/run-unit-tests.py  -> harness-backend-dev, harness-dev-ops
 .claude/skills/harness/bin/check-state.sh     -> harness-backend-dev, harness-dev-ops
 .harness/factory/fleet.yaml                   -> NOBODY
 docs/harness/DECISIONS.md                     -> harness-documentor
@@ -216,8 +216,8 @@ the same misconfiguration that justifies T-10 for `integration` would have silen
 ```
 $ python3 -c "... test_kinds['unit'] ..."
 unit        detect= tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py|.claude/skills/harness/bin/test-*.py
-            cmd= run-unit-tests.sh --kind unit        hits: 16
-integration detect= tests/integration/**              cmd= run-unit-tests.sh --kind integration   hits: 0
+            cmd= run-unit-tests.py --kind unit        hits: 16
+integration detect= tests/integration/**              cmd= run-unit-tests.py --kind integration   hits: 0
 ```
 
 `unit` already matches every `bin/test-*.py`, so it needs no widening. Checked rather than assumed.
@@ -255,4 +255,4 @@ T-11's, which is new):
 
 Eleven of eleven fail before the work exists, which is the point: each is discriminating. T-11's
 fails because `test-factory-cli.py` does not exist, so the `PASS test-factory-cli.py` grep finds
-nothing — a bare `run-unit-tests.sh --kind unit` exits 0 today and would have proved nothing.
+nothing — a bare `run-unit-tests.py --kind unit` exits 0 today and would have proved nothing.

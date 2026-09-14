@@ -32,7 +32,7 @@
   that cannot execute passes for free. It has to be paired with a capture on the no-raise branch
   and a check of `str(exc)`.
 
-- 2026-08-18: full suite is 28 files (`run-unit-tests.sh:17-18`, 16 unit + 12 integration). At this
+- 2026-08-18: full suite is 28 files (`run-unit-tests.py:17-18`, 16 unit + 12 integration). At this
   commit exactly two are pre-cleared red — `test-no-distribution.py` (operator's, T-07 fixture) and
   `test-check-state.py` (red by design until T-05's `derive_station()` arity lands by hand). Any
   third FAIL line is a new defect, and saying so explicitly in the dispatch is what stops a member
@@ -44,7 +44,7 @@
   `.git/logs/refs/heads/...` (G-06): HEAD is on the feature branch at `2e60cc2`, and the dispatch's
   pin `6baa39b` is its immediate PARENT. The one commit between them is a record/handoff commit
   ("the build seam handoff, and the feature reaches zero violations of its own"), no code. qa
-  measured `run-unit-tests.sh --kind all` at `b0604c3` as rc=0, zero FAIL, 1365 ok, and
+  measured `run-unit-tests.py --kind all` at `b0604c3` as rc=0, zero FAIL, 1365 ok, and
   `b0604c3 → 6baa39b → 2e60cc2` are all record commits. So the expected red set for this run is
   **EMPTY, rc=0** — deciding that BEFORE the member's number arrives is what stops "expected" from
   meaning "whatever came back".

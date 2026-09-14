@@ -8,7 +8,7 @@
 - Full-diff UI extension census: no changed `html`, `css`, `scss`, `tsx`, `jsx`, `vue`, `svelte`, or `less` files.
 - Shared changed files inspected at the pinned SHA:
   - `.agents/skills/harness/bin/test-merge-gitignore.py` — standalone subprocess/filesystem behavioral test; no rendered surface.
-  - `.agents/skills/harness/bin/run-unit-tests.sh` — only the test registry is changed.
+  - `.agents/skills/harness/bin/run-unit-tests.py` — only the test registry is changed.
   - `.harness/harness.json` — only the integration-test detector is changed.
 - Relevant unchanged file inspected at the pinned SHA:
   - `.agents/skills/harness/bin/merge-gitignore.sh` — production utility is unchanged; the diff therefore does not alter its terminal messages or interaction behavior.

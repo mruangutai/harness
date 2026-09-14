@@ -7,7 +7,7 @@ verbatim, and every probed SC binds a named test that can be shown to redden by 
 
 - `HEAD` = `de4b76a0` on `feat/FEAT-27-expertise-repository-tier`, one bookkeeping commit ahead
   of `2117a46` (`git log`: `de4b76a` → bookkeeping → `2117a46` [t-03] → `6edb911` [t-02]).
-- `git diff --stat 2117a46 -- inject-expertise.sh test-inject-expertise.py run-unit-tests.sh
+- `git diff --stat 2117a46 -- inject-expertise.sh test-inject-expertise.py run-unit-tests.py
   check-expertise.sh test-check-expertise.py` is **empty**. The graded surface's working copy
   equals the pinned commit. Proceeded.
 
@@ -15,8 +15,8 @@ verbatim, and every probed SC binds a named test that can be shown to redden by 
 
 | Task | change_type | Required kinds | Command | Exit | Result |
 |---|---|---|---|---|---|
-| T-02 | logic | `unit` | `run-unit-tests.sh --kind unit` | 0 | 137 PASS / 0 FAIL, `PASS test-inject-expertise.py` named |
-| T-03 | cross_module | `unit`, `integration` | `run-unit-tests.sh --kind integration` | 0 | 90 PASS / 0 FAIL, `PASS test-check-expertise.py` named |
+| T-02 | logic | `unit` | `run-unit-tests.py --kind unit` | 0 | 137 PASS / 0 FAIL, `PASS test-inject-expertise.py` named |
+| T-03 | cross_module | `unit`, `integration` | `run-unit-tests.py --kind integration` | 0 | 90 PASS / 0 FAIL, `PASS test-check-expertise.py` named |
 
 T-03's `verify:` also runs `check-expertise.sh .harness/expertise/` live: exit 0, `ADVISORY` lines
 present (29 of them, e.g. `harness-backend-dev.md:63: G-03 names '.claude/'`). Both tasks' `verify:`
@@ -24,14 +24,14 @@ blocks match the dispatch's carried-verbatim text exactly — no mismatch.
 
 **`matrix_ok: true`.** `cross_module → always: [unit, integration]` is unconditional
 (`harness.json:22-27`); `logic → always: [unit]`. The stale `integration.detect` glob (does not
-list `test-check-expertise.py`) is confirmed **non-gating**: `run-unit-tests.sh:18`
+list `test-check-expertise.py`) is confirmed **non-gating**: `run-unit-tests.py:18`
 `INTEGRATION_SCRIPTS` registers `test-check-expertise.py`, and the live `--kind integration` run
 printed `PASS test-check-expertise.py`. The runner is the authority for what executes; the glob is
 stale prose only. Reported per the dispatch's ruling — not fixed, `harness.json` out of scope.
 
 ## No weakened assertions
 
-- `run-unit-tests.sh` diff (`253287f..2117a46`) is a **pure append** — `test-inject-expertise.py`
+- `run-unit-tests.py` diff (`253287f..2117a46`) is a **pure append** — `test-inject-expertise.py`
   added to `UNIT_SCRIPTS`, nothing dropped or reordered.
 - `test-check-expertise.py` diff is a **pure append** — one line removed is the old
   `sys.exit(1 if run() else 0)`, replaced by a wrapper that runs both `run()` (unchanged, all 9

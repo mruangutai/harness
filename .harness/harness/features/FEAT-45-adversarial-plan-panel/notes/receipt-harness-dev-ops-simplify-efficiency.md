@@ -52,11 +52,11 @@ minimal fixtures (no network, no real repo) — this is the mutation-kill discri
 (`inv32-red`: deletes the marked region, confirms the check goes silent), explicitly the kind
 of boundary evidence the skill says is not waste ("deliberate full-suite runs... are the
 evidence the boundary exists"). Total new suite-time contribution across all three:
-**~3.0s**, added to a runner (`run-unit-tests.sh`) that already executes 53 scripts
+**~3.0s**, added to a runner (`run-unit-tests.py`) that already executes 53 scripts
 sequentially. Not flagged — this is normal test cost for a new module, and the runner's
 sequential (non-parallel) execution is pre-existing, unchanged by this diff.
 
-`run-unit-tests.sh`'s own diff: two `UNIT_SCRIPTS` array entries appended
+`run-unit-tests.py`'s own diff: two `UNIT_SCRIPTS` array entries appended
 (`test-panel-findings.py`, `test-plan-panel.py`); zero structural change.
 
 ## 4. `panel_findings.py` CLI — invocation pattern

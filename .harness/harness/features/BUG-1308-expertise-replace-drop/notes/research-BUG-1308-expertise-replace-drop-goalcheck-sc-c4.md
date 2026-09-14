@@ -15,7 +15,7 @@ at `ac6c9c5b` (a plan.yaml re-pin); no graded file differs.
 
 | Suite | Command (from worktree root) | Exit | `^FAIL ` | Files |
 |---|---|---|---|---|
-| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | **0** | 28 |
+| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | **0** | 28 |
 | integration | same, `--kind integration` | **0** | **0** | 46 |
 
 Counted with `grep -c '^FAIL '`, never a tail read (G-08). Named files run directly:

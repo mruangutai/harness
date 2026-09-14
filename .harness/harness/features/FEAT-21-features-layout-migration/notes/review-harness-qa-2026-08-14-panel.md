@@ -11,13 +11,13 @@ Run in a disposable worktree (`.claude/worktrees/qa-panel-b1d3925`, checked out 
 after use — never the live tree).
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit         → exit 0, 15/15 suites PASS (706 ok)
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration  → exit 0, 12/12 suites PASS (634 ok)
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit         → exit 0, 15/15 suites PASS (706 ok)
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration  → exit 0, 12/12 suites PASS (634 ok)
 ```
 
 `b1d3925` touches exactly one file: `test-layout-migration.py` (61+/64-, no production source). That
 file is `T-01`'s binding suite, `change_type: logic` per `plan.yaml:241`, and is listed in
-`UNIT_SCRIPTS` (`run-unit-tests.sh:17`) — unchanged by this commit. So the per-task binding table qa
+`UNIT_SCRIPTS` (`run-unit-tests.py:17`) — unchanged by this commit. So the per-task binding table qa
 built at the prior pin (`notes/qa-c0.md` Job 1) still holds exactly: floor (`logic` → `unit` only)
 does not execute the binding suites for T-03/T-04/T-05/6-of-8-T-06/T-10's gh-sync half, because
 `unit.cmd` runs only `UNIT_SCRIPTS` while those suites sit in `INTEGRATION_SCRIPTS`. Confirmed still
@@ -146,7 +146,7 @@ scoped to the case-20 assertions specifically (which use `tempfile.mkdtemp()` fi
 
 | SC | Test |
 |---|---|
-| SC-04 | `run-unit-tests.sh --kind unit`/`--kind integration`, 15+12 suites PASS at `b1d3925` |
+| SC-04 | `run-unit-tests.py --kind unit`/`--kind integration`, 15+12 suites PASS at `b1d3925` |
 | SC-10 | `test-layout-migration.py`, case 20 `parity` — PASS at `b1d3925`; SOUNDNESS independently verified above (six-of-seven count, both mutation halves) |
 | SC-01/03/05/06/08/09/13/14 | unchanged; see `notes/qa-c0.md` for the full table — none touched by this range's three bookkeeping commits or by `b1d3925`'s test-only edit |
 | SC-02/07/11/12 | inspection-only per `BRIEF.md:163-164`; no runner covers them, unaffected by this pin |

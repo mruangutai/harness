@@ -62,7 +62,7 @@ layout_migration.py, check-state.sh diffs); no dirty-tree reads needed.
   every string constant in `layout_fixtures.py`; every one has equal `(`/`)` counts) — the docstring's
   claim is true, and currently non-load-bearing for case_20 specifically (would matter only if
   PREDICATES-shaped text were later added to the module).
-- `run-unit-tests.sh` drift detector (`:42`, `for f in "$BIN_DIR"/test-*.py`) globs only `test-*.py`,
+- `run-unit-tests.py` drift detector (`:42`, `for f in "$BIN_DIR"/test-*.py`) globs only `test-*.py`,
   correctly excluding `layout_fixtures.py`. Not a gap: both importers of the module
   (`test-layout-migration.py`, `test-check-state.py`) are registered scripts, so a broken
   `layout_fixtures.py` surfaces as an import failure in either, not silently.

@@ -13,7 +13,7 @@ Three things this build leaves open, all filed:
 - **SC-11 is deliberately `not_met`.** It is the operator's own run against board 2.
 
 ## Trust
-- `run-unit-tests.sh --kind all`: **46 scripts PASS, 801 individual PASS lines, 0 FAIL, exit 0** —
+- `run-unit-tests.py --kind all`: **46 scripts PASS, 801 individual PASS lines, 0 FAIL, exit 0** —
   measured independently three times (builder, main session, both qa seats).
 - Task counts, parsed rather than grepped: `api 1, bugfix 3, config 6, docs 4, feature 5,
   logic 3` = 22. The main session's grep said 27 and was wrong.

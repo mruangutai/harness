@@ -33,13 +33,13 @@ loud pass/fail signal (see §2).
 
 Command (unit):
 ```
-cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 rc=0. `^FAIL ` count = 0. State: **satisfied**.
 
 Command (integration):
 ```
-cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 rc=0. `^FAIL ` count = 0. `^ok ` row count (across the whole integration bucket, all files) = 2071.
 State: **satisfied**.
@@ -129,10 +129,10 @@ All four classifications match the plan's stated design exactly.
 ## Commands run, verbatim, with exit codes
 
 ```
-cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
   rc=0, ^FAIL count=0
 
-cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+cd <worktree> && env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration
   rc=0, ^FAIL count=0, ^ok count=2071
 
 cd <worktree> && env -u HARNESS_AGENT_TYPE CHECK_DOMAIN_BIN=/tmp/qa_prefix_bin/check-domain.py python3 tests/integration/test-check-domain.py

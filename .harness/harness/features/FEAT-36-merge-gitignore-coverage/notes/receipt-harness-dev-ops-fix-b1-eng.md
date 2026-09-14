@@ -52,7 +52,7 @@ PASS explicit_project_root_ignores_caller_cwd
 7 passed; 0 failed
 ```
 
-`plan.yaml` specifies the broader `python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.sh --kind all`; per operator constraint, the second command was not run.
+`plan.yaml` specifies the broader `python3 .agents/skills/harness/bin/test-merge-gitignore.py && .agents/skills/harness/bin/run-unit-tests.py --kind all`; per operator constraint, the second command was not run.
 
 ## Production byte identity
 

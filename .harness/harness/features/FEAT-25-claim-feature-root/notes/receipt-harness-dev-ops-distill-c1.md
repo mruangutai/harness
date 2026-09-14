@@ -23,7 +23,7 @@
    distilled as a gotcha about auditing diffs, not a claim about that specific run.
 
 2. **Accepted (G-12).** Verified against my own `receipt-harness-dev-ops-simplify-efficiency-c1.md`:
-   the `run-unit-tests.sh --kind unit` row reports `3.878s (total, time)` with no exit code beside
+   the `run-unit-tests.py --kind unit` row reports `3.878s (total, time)` with no exit code beside
    it, and no ok-count is given for that suite (only the three underlying `.py` files got ok-counts).
    Self-derived gap, worth a standing rule: report exit code and ok-count alongside any timing used
    as evidence.

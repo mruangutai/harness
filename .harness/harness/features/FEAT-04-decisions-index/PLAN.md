@@ -185,12 +185,12 @@ names:
    the whole index untrustworthy, so it is a hard error rather than a warning.
 
 Then, as a numbered step of this task and not a footnote: **edit
-`.claude/skills/harness/bin/run-unit-tests.sh` and add `"test-gen-decisions-index.py"` to the
-`SCRIPTS` array.** The runner's drift detector (`run-unit-tests.sh`, the `MISCONFIGURED` branch)
+`.claude/skills/harness/bin/run-unit-tests.py` and add `"test-gen-decisions-index.py"` to the
+`SCRIPTS` array.** The runner's drift detector (`run-unit-tests.py`, the `MISCONFIGURED` branch)
 exits 2 on any `test-*.py` under `bin/` absent from that list, so skipping this step makes the whole
 unit gate exit 2 rather than running.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?` → output
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?` → output
 contains `FAIL test-gen-decisions-index.py` and no `MISCONFIGURED` line, and the exit code is 1 — the
 red state. Exit 2 means the SCRIPTS edit was missed; exit 0 means the tests are not testing anything.
 
@@ -314,7 +314,7 @@ Row: `- DEC-NN @<line> [tags] refs: <graph> :: <ruling>`.
 A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 ```
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?` → exit 0,
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?` → exit 0,
 output contains `PASS test-gen-decisions-index.py`, contains
 `SKIP test_committed_index_is_complete_and_within_budget` (the index does not exist yet), and contains
 no `MISCONFIGURED` line. The unit gate is green from this task onward; the one unrun assertion is
@@ -404,7 +404,7 @@ and are keyed positionally to the enclosing heading, **DEC-145** (`:3493`), whos
 as amended through am.2.
 
 verify: `grep -c 'RULING PENDING' docs/harness/DECISIONS-INDEX.md` → `0`, and
-`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+`CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-gen-decisions-index.py` **and no `SKIP` line in the output** — test 5 now has a complete
 index to assert against, and the absent skip line is the proof it actually ran.
 

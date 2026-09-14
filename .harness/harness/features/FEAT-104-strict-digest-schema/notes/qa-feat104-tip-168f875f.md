@@ -51,8 +51,8 @@ surface (see §3).
 
 | kind | required? | runner state | command | exit | result / reason |
 |---|---|---|---|---|---|
-| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | **satisfied** — 36 files, 2.25s wall |
-| integration | qa-added | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | **satisfied** — 70 files, 69.84s wall; F1/F3 cases pass (§5) |
+| unit | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **satisfied** — 36 files, 2.25s wall |
+| integration | qa-added | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **satisfied** — 70 files, 69.84s wall; F1/F3 cases pass (§5) |
 | functional | no | excluded (DEC-187) | — | — | **not_applicable** — repo has no third bucket; diff adds nothing under `tests/functional/` |
 | component | no | unresolved | — | — | **not_applicable** — diff touches no `*.spec.tsx`/`*.stories.tsx` |
 | ui | no | unresolved | — | — | **not_applicable** — diff touches no `tests/e2e/**`, no interaction flow |
@@ -64,7 +64,7 @@ surface (see §3).
 
 ## 4. Complete canonical suite at `168f875f` (re-run required — check-state.sh/its test differ at the tip)
 
-`env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh` (no `--kind`), from
+`env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py` (no `--kind`), from
 the worktree root, exit captured into a variable (not through a pipe):
 
 - `FULL_EXIT=0`. `pool: 8 workers, 106 files, 72.66s wall`.
@@ -277,8 +277,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 36 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 70 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
     - { kind: functional, state: not_applicable, cmd: none }
     - { kind: component, state: not_applicable, cmd: none }
     - { kind: ui, state: not_applicable, cmd: none }

@@ -102,7 +102,7 @@ settled fact.** Amendment 2 holding for `SubagentStop` does not depend on resolv
 ## Assignment 2 — re-scope
 
 `git diff --stat 340e18a..9da3986` (19 files, 1309+/56-): `bin/` scripts (`harness_yaml.py`,
-`check-state.sh`, `gh-sync.py`, `upgrade-config.py`, `run-unit-tests.sh`), their test files,
+`check-state.sh`, `gh-sync.py`, `upgrade-config.py`, `run-unit-tests.py`), their test files,
 `.harness` feature process artifacts (BRIEF/feature.yaml/notes/receipts), `team-config.yaml`. No
 HTML/CSS/component/`DESIGN.md`. **`in_scope: false` still holds.**
 

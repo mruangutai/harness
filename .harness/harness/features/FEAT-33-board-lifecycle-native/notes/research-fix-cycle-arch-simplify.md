@@ -33,7 +33,7 @@ edge, not two remedies.
   test cases assert `createProjectV2` is *not* in any argv when the project exists.
 - **L2 — resolved without retyping and without touching the runner.** Verified at my own tier:
   `harness.json:40-49` requires `unit`+`integration` for `feature`; `integration.detect`
-  (`:119`) is `tests/integration/**` plus six explicit filenames; `run-unit-tests.sh:18` is a
+  (`:119`) is `tests/integration/**` plus six explicit filenames; `run-unit-tests.py:18` is a
   14-name array — both byte-identical in worktree and main. And the discriminating check the digests
   did not run: **`harness-qa-gate` SKILL.md line 60 — "Presence is not satisfied by an unrelated
   existing test."** So the gate genuinely FAILs, not merely under-covers. **New D-12:** integration
@@ -74,7 +74,7 @@ by T-05's DECLARATION class).
 The 153s-vs-73s measurement is real and the cost is named in D-14 rather than hidden: `--kind all`
 exceeds the 60-second verify guideline by minutes, per task, per iteration. It is still the right
 trade — M1 spans both kinds, `harness.json:121` declares the integration cmd as exactly
-`run-unit-tests.sh --kind integration` so a per-script verify forks a second spelling of the
+`run-unit-tests.py --kind integration` so a per-script verify forks a second spelling of the
 authority, and a direct script call skips the `MISCONFIGURED` drift detector (`:41-55`) that is the
 only thing catching the unregistered new test file this plan adds. The reader's own convention
 caveat was the right instinct.
@@ -93,7 +93,7 @@ item 0, so "fifth primitive" still points at `project_workflows`.
 
 ## Corrected in the record
 
-The `run-unit-tests.sh` "positional KIND" claim appears in **neither** artifact, so nothing needed
+The `run-unit-tests.py` "positional KIND" claim appears in **neither** artifact, so nothing needed
 fixing there. Confirmed at `:23-27`: `--kind` is accepted, `all` is the default, and a bare
 positional exits 2.
 
@@ -119,7 +119,7 @@ mine.**
 ## Open for the tier above
 
 1. **Blocking — the operator's.** DEC-186 amend-to-four (bounded to `/harness-init`) or drop REQ-02.
-2. **Non-blocking.** T-04 still adds one line to `run-unit-tests.sh`'s `UNIT_SCRIPTS`, a contended
+2. **Non-blocking.** T-04 still adds one line to `run-unit-tests.py`'s `UNIT_SCRIPTS`, a contended
    file. The dispatch said not to plan an edit there; I read that as scoping to the L2 remedy (which
    it does — D-12 edits no array) and kept the registration, because the drift detector at `:41-55`
    makes an unregistered `test-*.py` exit 2 `MISCONFIGURED` and break **every** verify in the plan at

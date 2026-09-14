@@ -14,8 +14,8 @@ From the approved BRIEF and `plan.yaml`, before inspecting implementation, expec
 
 | Kind | Exact configured command | Result | Discovery and changed-contract evidence |
 |---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0 | 24 files discovered; `test-handoff-done-when.py` ran and all 32 named cases passed, including `five authority`, `four authorities accepted`, and `all authorities required`. |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0 | 44 files discovered; zero failed scripts. `test-check-state.py` ran and all 11 FEAT-54 cases passed; the registered integration bucket includes the repaired `test-check-domain.py`. |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0 | 24 files discovered; `test-handoff-done-when.py` ran and all 32 named cases passed, including `five authority`, `four authorities accepted`, and `all authorities required`. |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0 | 44 files discovered; zero failed scripts. `test-check-state.py` ran and all 11 FEAT-54 cases passed; the registered integration bucket includes the repaired `test-check-domain.py`. |
 
 Narrow discovery/execution confirmation: `python3 tests/integration/test-check-domain.py` exited 0 and printed all 22 named FEAT-54 handoff cases, including `handoff five Authority`. This establishes that the changed file executes and that the relevant case is not merely present on disk.
 

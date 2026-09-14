@@ -13,12 +13,12 @@ T-09 (`panel_findings.py` + its test) is the only task in the delta's `files:`, 
 logic` → floor = `unit` only (`always: [unit]`, no `when` clause fires for `logic`).
 `test-panel-findings.py` matches `test_kinds.unit.detect`
 (`.claude/skills/harness/bin/test-*.py`) and is explicitly listed in `UNIT_SCRIPTS` in
-`run-unit-tests.sh` (not merely glob-matched — confirmed by name in the array, per P-14).
+`run-unit-tests.py` (not merely glob-matched — confirmed by name in the array, per P-14).
 `matrix_ok: true`.
 
 ## Suite corroboration — re-run live at the pin, not restated
 
-`.agents/skills/harness/bin/run-unit-tests.sh --kind unit` (direct run, no pipe): **rc=0**,
+`.agents/skills/harness/bin/run-unit-tests.py --kind unit` (direct run, no pipe): **rc=0**,
 `grep -c '^FAIL '` = **0**, `grep -cE '^(PASS|FAIL)( |$)'` = **433**, `grep -c 'KIND-DRIFT'` =
 **0**. Matches the orchestrator's reported numbers exactly. (First attempt through `tee` reported
 `PIPESTATUS[0]=1` with the identical 0-FAIL/433-line log — a pipeline-capture artifact of my own
@@ -89,7 +89,7 @@ c4 delta updated D-05 and one other task-intent paragraph (`:773`, now correctly
 match. Ran T-09's literal verify clause at the pin: it **fails** (`rc=1`, `test 11 -eq "${#A}"`
 false, actual length 35) — confirms the lead's pre-read exactly. Not a live gate: nothing
 re-executes a `done` task's `verify:` clause automatically (no reference to task-level `verify`
-execution found in `check-state.sh`/`validate-digest.py`/`run-unit-tests.sh`), so this cannot
+execution found in `check-state.sh`/`validate-digest.py`/`run-unit-tests.py`), so this cannot
 redden CI or block a future run. It is stale historical narrative on a completed task, not
 executable — hence IMPROVEMENT not DEFECT, but worth a follow-up sweep since a human reading
 `T-09` cold would be actively misled.

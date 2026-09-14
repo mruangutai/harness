@@ -60,7 +60,7 @@ remaining script that builds a command line from document or config text.
 - **`DECISIONS.md:6290` is self-referential** — it asserts `ALLOWED_FIRST_TOKENS = {"git", "grep"}`,
   the constant the deletion removes. It must be deleted, not translated.
 - **Blast radius outside the feature dir is 5 tracked files** — `check-decision-claims.py`,
-  `test-check-decision-claims.py`, `run-unit-tests.sh`, `.harness/harness.json`, `DECISIONS.md`
+  `test-check-decision-claims.py`, `run-unit-tests.py`, `.harness/harness.json`, `DECISIONS.md`
   (`git grep -ln check-decision-claims 48bbe7e`, feature-dir notes excluded).
 - **The anchor checker is not in the same risk class** — `check-decision-anchors.py:111` builds a
   literal `["git", "ls-files"]` argv; no document text reaches any subprocess.

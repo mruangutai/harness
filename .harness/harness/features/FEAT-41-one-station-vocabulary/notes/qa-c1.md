@@ -93,8 +93,8 @@ Change types present: `config`×4 (T-01,T-08,T-09,T-11), `cross_module`×4 (T-02
 
 | kind | required by | state | evidence |
 |---|---|---|---|
-| unit | logic/api/bugfix/cross_module `always` | satisfied | `run-unit-tests.sh --kind unit`, 505 PASS (given) |
-| integration | cross_module `always` | satisfied | `run-unit-tests.sh --kind integration`, 816 PASS (given) |
+| unit | logic/api/bugfix/cross_module `always` | satisfied | `run-unit-tests.py --kind unit`, 505 PASS (given) |
+| integration | cross_module `always` | satisfied | `run-unit-tests.py --kind integration`, 816 PASS (given) |
 | api's conditional `integration` | not triggered | n/a | T-03 (`plan-merge.py`) touches no DB/external service |
 | bugfix's `__bug_class__` | not triggered | n/a | no `bug_class` field on T-10/T-14 |
 | component / ui / eval / typecheck | not required | not applicable | independently re-confirmed: `git diff --name-only <base> <pin>` (171 files) has **zero** matches against `*.spec.tsx`/`*.stories.(tsx\|ts)`, `tests/e2e/**`/`*.e2e.spec.ts`, `evals/**`, or any `.ts`/`.tsx` — checked myself, not accepted from the BRIEF |
@@ -103,7 +103,7 @@ No `ai-dev` evals exist in this feature, stated explicitly: no task carries `cha
 ai_behavior`, and the `eval` kind's `detect` glob has zero matches in the diff. `matrix_ok: true`.
 
 **Note on unit/integration classification (info, not a finding):** this project's unit/integration
-split is by subprocess-forking behavior (documented in `run-unit-tests.sh`'s own comments), not by
+split is by subprocess-forking behavior (documented in `run-unit-tests.py`'s own comments), not by
 testing-pyramid semantics — several `cross_module`/`api`/`bugfix` tasks' only dedicated test
 (`test-plan-merge.py`, `test-gh-sync.py`, `test-check-state.py`) is bucketed `integration` because
 it forks a subprocess to exercise a CLI, not because it is architecturally "more integrated." The
@@ -157,8 +157,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 505 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 816 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 505 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 816 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }

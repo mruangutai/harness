@@ -3,7 +3,7 @@
 Task IDs: T-01 (code_grade.py), T-07 (gate_policy.py), T-09 (check-plan-routes.py).
 Verify commands overridden per operator authorization
 (`.harness/harness/features/FEAT-43-code-risk-grading/answers/Q6-cycle-20-remediation-authorization.md`):
-ran the three focused test files directly instead of `run-unit-tests.sh --kind unit/integration`.
+ran the three focused test files directly instead of `run-unit-tests.py --kind unit/integration`.
 
 ## What changed
 

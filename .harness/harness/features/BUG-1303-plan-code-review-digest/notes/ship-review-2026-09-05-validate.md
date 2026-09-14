@@ -72,7 +72,7 @@ this one. No success criterion declares `verify: uat`, so **no user acceptance t
 the feature's whole surface is a test suite and three documents.
 
 **Gates, all run by me at the pin:** digest-validator suite exit 0, zero `FAIL` lines, `ALL PASSED` ·
-`test-config-shape-matrix.py` 19/19 · `run-unit-tests.sh --kind integration` exit 0 over 46 files ·
+`test-config-shape-matrix.py` 19/19 · `run-unit-tests.py --kind integration` exit 0 over 46 files ·
 index regeneration byte-identical · `check-state.sh` exit 0 with zero violations · working tree clean.
 
 **Budgets.** 6 rework cycles of 8. **19 runs of a budget of 20** — informational only, and worth a

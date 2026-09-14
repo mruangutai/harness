@@ -154,7 +154,7 @@ keeps the wake it was addressed to from being dropped.
   verify: automated      evidence: unit
 - SC-07: All seven retired artifacts are absent from `git ls-files` at `review_sha`, no
   `context-watch` reference survives in `.claude/settings.json`, `.harness/harness.json`,
-  `run-unit-tests.sh` or the playbook, `run-unit-tests.sh --check-kinds` exits 0, and the unit and
+  `run-unit-tests.py` or the playbook, `run-unit-tests.py --check-kinds` exits 0, and the unit and
   integration suites are green.
   verify: automated      evidence: integration
 - SC-08: Read at `git show <review_sha>:.claude/skills/harness/SKILL.md`, step 5 describes the disk

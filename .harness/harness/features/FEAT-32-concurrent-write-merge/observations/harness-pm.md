@@ -8,7 +8,7 @@
   the command carries no write pattern it recognises. That is #627 reproduced by accident while
   planning the feature that adds three more such CLIs. Recorded in the BRIEF as a stated bound, not
   designed around.
-- 2026-08-21: `run-unit-tests.sh --kind integration` prints three lines containing the word `ERROR`
+- 2026-08-21: `run-unit-tests.py --kind integration` prints three lines containing the word `ERROR`
   inside a test's own NAME (gh-sync expected-output cases). A baseline written as "zero ERROR lines"
   is therefore false at HEAD. Write the baseline as "no line BEGINNING `FAIL`, exit 0" instead.
 - 2026-08-21: `check-plan-routes.py <plan>` prints one line per task and a global summary; running

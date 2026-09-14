@@ -58,7 +58,7 @@ best-effort either — `harness-spec-driven` is in `harness-pm`'s `skills:` prel
 (`harness-pm.md:8-12`), so it loads at every spawn rather than depending on someone opening a file.
 
 **Does not pay back, and this is the sharp limit:** the **fifth** recurrence happened *during this
-feature* — the `run-unit-tests.sh` collision — and the checker cannot see that class by design,
+feature* — the `run-unit-tests.py` collision — and the checker cannot see that class by design,
 because it is a tool the plan USES, not a path a task WRITES. So the control covers the recurrences
 it was scoped from and not the most recent one.
 

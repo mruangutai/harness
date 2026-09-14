@@ -91,8 +91,8 @@ it. Fix is cheap: add a fifth pair to T-08's list and to SC-07's FAILS-if enumer
 reconcile at signature)
 
 BRIEF Constraints: "Focused tests only. No formatter, no linter, no build, no **project-wide suite**."
-T-08 instructs "Run BOTH — `run-unit-tests.sh --kind unit` and `run-unit-tests.sh --kind integration`."
-Verified at source (`run-unit-tests.sh:26-29`): `--kind unit` → `SCRIPTS=(tests/unit/test-*.py)`,
+T-08 instructs "Run BOTH — `run-unit-tests.py --kind unit` and `run-unit-tests.py --kind integration`."
+Verified at source (`run-unit-tests.py:26-29`): `--kind unit` → `SCRIPTS=(tests/unit/test-*.py)`,
 `--kind integration` → `SCRIPTS=(tests/integration/test-*.py)` — both are **repo-wide globs**, not
 scoped to this feature's four touched files. This is not an implementer error: **SC-07 itself requires
 it** ("every refusal asserted by the harness `unit` and `integration` suites at `c369fb1f` is still

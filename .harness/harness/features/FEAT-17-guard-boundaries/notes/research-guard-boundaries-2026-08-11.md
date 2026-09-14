@@ -122,7 +122,7 @@ named files already carry.
 
 ## No dedicated test file for the new module
 
-Deliberate. `run-unit-tests.sh:17-45` keeps explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays and
+Deliberate. `run-unit-tests.py:17-45` keeps explicit `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays and
 a drift detector over their union that fails the WHOLE run on an unregistered `test-*.py` (G-08).
 The module is exercised BEHAVIOURALLY through both guards' existing suites, which is stronger
 evidence than a unit test of the extracted functions (P-13).
@@ -131,7 +131,7 @@ evidence than a unit test of the extracted functions (P-13).
 
 `test-check-domain.py` and `test-bash-write-guard.py` match `harness.json`'s `unit` detect glob
 (`.claude/skills/harness/bin/test-*.py`) but sit in `INTEGRATION_SCRIPTS`, so
-`run-unit-tests.sh --kind unit` does NOT execute them. Every SC resting on those two files therefore
+`run-unit-tests.py --kind unit` does NOT execute them. Every SC resting on those two files therefore
 declares `evidence: integration`, whose `cmd` does run them, and each task's `verify:` invokes the
 test file directly. Recorded as a BRIEF verification gap and as a non-blocking open question; no
 `harness.json` change is in this feature's scope.

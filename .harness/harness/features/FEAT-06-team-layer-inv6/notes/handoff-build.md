@@ -22,7 +22,7 @@ for anything below.
 - SC-14 measured both ways: `test_matrix` lines 0→2, 8-line window 0→7 hits — verified-at 9f87c48
 - SC-15's three legs agree; `SPEC.md:1978` carries exactly ONE `∥`-bearing brace group, so T-07
   check (9) parses unambiguously — verified-at 9f87c48
-- All gates green at the orchestrator's own tier, not on report: `run-unit-tests.sh` 0,
+- All gates green at the orchestrator's own tier, not on report: `run-unit-tests.py` 0,
   `check-docs.sh` 0, `check-state.sh` zero VIOLATIONs — verified-at 071e313
 - **SC-05's premise, verified at source TWICE**: `test-harness-yaml-corpus.py:180-181` asserts
   `n > 0` per root; the `2` at `:174-175` is an f-string LABEL, not a comparison — verified-at 071e313

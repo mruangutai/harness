@@ -26,8 +26,8 @@ already meets in full.
 
 | kind | required | cmd (exact) | result |
 |---|---|---|---|
-| unit | yes (cross_module floor) | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0; four by-design `^FAIL ` lines, all `test-factory-claim-mutation.py` (`BUG-1290 5a/5b/5c`, `5b` twice) — matches baseline exactly |
-| integration | yes (cross_module floor) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 1; **exactly six** failing cases, **all** `test-check-plan-routes.py`, **all** the same `MANIFEST`/`DEVIATION … team-config.yaml differs` reason — D-14 |
+| unit | yes (cross_module floor) | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0; four by-design `^FAIL ` lines, all `test-factory-claim-mutation.py` (`BUG-1290 5a/5b/5c`, `5b` twice) — matches baseline exactly |
+| integration | yes (cross_module floor) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 1; **exactly six** failing cases, **all** `test-check-plan-routes.py`, **all** the same `MANIFEST`/`DEVIATION … team-config.yaml differs` reason — D-14 |
 
 Both run with `env -u HARNESS_AGENT_TYPE`.
 
@@ -146,7 +146,7 @@ banner. Verified all four independently, not sampled.
 | `tests/integration/test-sync-command-adapters.py` | Self-exercising: ran clean (6/6) as part of the pinned integration run |
 | `tests/integration/test-check-omp-port.py` | Self-exercising: ran clean as part of the pinned integration run; `case_live_tree_passes` binds `check-omp-port.py`'s existence check to the **real** four doors, not only fixtures — so SC-13's door assertion genuinely binds the live tree |
 | `.omp/commands/harness-plan.md`, `.omp/commands/harness-ship.md` (the F2 content fix) | **Structurally present only.** No test reads or greps either file's delegation target. Confirmed correct here by direct inspection at the pin; unguarded against regression (§3) |
-| Four regenerated `.claude/commands/` adapters | **Bound for existence** (`check-omp-port.py` live-tree case) and **manually confirmed for byte-parity** against canonical (this review, `cmp`) — but `sync-command-adapters.py --check` against the **live** tree is not itself wired into any standing `test_kinds` command; only fixture-driven `--check` invocations are part of the automated gate. A hand-edit to a live adapter would be caught only by someone re-running `--check` by hand, as this review and T-14's own verify block both did, not by `run-unit-tests.sh` |
+| Four regenerated `.claude/commands/` adapters | **Bound for existence** (`check-omp-port.py` live-tree case) and **manually confirmed for byte-parity** against canonical (this review, `cmp`) — but `sync-command-adapters.py --check` against the **live** tree is not itself wired into any standing `test_kinds` command; only fixture-driven `--check` invocations are part of the automated gate. A hand-edit to a live adapter would be caught only by someone re-running `--check` by hand, as this review and T-14's own verify block both did, not by `run-unit-tests.py` |
 
 ## Findings summary
 

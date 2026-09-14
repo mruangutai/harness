@@ -26,7 +26,7 @@ I independently re-ran or re-derived every orchestrator measurement rather than 
 | 60 discovered test files | `find` with D-03's exact prunes → **60** | ✅ |
 | 193 DECISIONS.md headings, last DEC-210 | `grep -c '^## DEC-'` → **193**, tail → `DEC-210` | ✅ |
 | all 193 carry the em-dash | `grep -c '^## DEC-[0-9]* — '` → **193** | ✅ |
-| `run-unit-tests.sh` serial loop, one occurrence | `grep -n '"\${SCRIPTS\[@\]}"'` → **line 148, sole hit** (distinct from `ALL_SCRIPTS`/`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`, all present at :49-51,:58,:64,:99-100) | ✅ |
+| `run-unit-tests.py` serial loop, one occurrence | `grep -n '"\${SCRIPTS\[@\]}"'` → **line 148, sole hit** (distinct from `ALL_SCRIPTS`/`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`, all present at :49-51,:58,:64,:99-100) | ✅ |
 | no 9th live-tree mutation site (`test-quarantine.py`) | Read the file: `HERE`/`__file__` builds only the CLI-under-test path (read-only subprocess target); every fixture write goes through `fixture_root()` → `tempfile.mkdtemp(prefix="quarantine-test-")` at `test-quarantine.py:93`. Zero live-tree writes. | ✅ |
 | T-02 derivation post-amend | Executed the actual `absorbed`/`run_set` code from `plan.yaml:467-475` against the live tree → `absorbed=['.../test-bash-write-guard.py']`, `run_set=['test-bash-write-guard.py','test-check-state.py','test-feature-worktree.py']` | ✅ |
 | `check-plan-routes.py` 7 DEVIATION / 0 VIOLATION / exit 0 | Ran it → identical 7 lines (T-01,T-02,T-03,T-04,T-05,T-06,T-07), 0 violations, exit 0 | ✅ |
@@ -73,8 +73,8 @@ itself satisfiable — it is structurally identical to T-01's ownership-check sh
   contract text (`"----- <basename> …"`, `"PASS <basename>"`, `"pool: <n> workers, <k> files…"`).
   Satisfiable.
 - **T-05**: phrase-presence + word-floor + index-regen check; independent of amends. Satisfiable.
-- **T-06**: literal-substring and regex checks against `run-unit-tests.sh` and the measurements
-  note; independent of amends; `BIN_DIR`, the drift detector (`run-unit-tests.sh:60-74`), and
+- **T-06**: literal-substring and regex checks against `run-unit-tests.py` and the measurements
+  note; independent of amends; `BIN_DIR`, the drift detector (`run-unit-tests.py:60-74`), and
   `--check-kinds` (`:39`) all still exist in the shape the plan assumes. Satisfiable.
 - **T-07**: retained-for-record; same ownership-check shape as T-01, never dispatched.
   Satisfiable in principle.
@@ -200,7 +200,7 @@ fallback (hand-sync) is known-good and named.
 
 | # | reader | sev | c5 summary (abbrev.) | disposition | file:line (now) |
 |---|---|---|---|---|---|
-| 1 | goalcheck | med | no criterion fails if #1053's symptom persists | **still open, mitigated** — Advisor Q2 shows SC-05's ten `--kind all` runs DO exercise `test-gh-sync.py` (`run-unit-tests.sh:31`, `INTEGRATION_SCRIPTS`), so F-07's literal "no criterion fails" is too strong; but whether #1053 formally *closes* on FEAT-48 remains an explicit operator call (Advisor Q6) | `BRIEF.md:127-131`; `run-unit-tests.sh:31` |
+| 1 | goalcheck | med | no criterion fails if #1053's symptom persists | **still open, mitigated** — Advisor Q2 shows SC-05's ten `--kind all` runs DO exercise `test-gh-sync.py` (`run-unit-tests.py:31`, `INTEGRATION_SCRIPTS`), so F-07's literal "no criterion fails" is too strong; but whether #1053 formally *closes* on FEAT-48 remains an explicit operator call (Advisor Q6) | `BRIEF.md:127-131`; `run-unit-tests.py:31` |
 | 2 | goalcheck | low | `os.getpid()` census drift, two doers see different SITE text | still open, unaddressed | `plan.yaml:180` (was `:167`) |
 | 3 | goalcheck | low | chmod/utime-only or subdir site is census-invisible, scan-visible | still open, unaddressed | `plan.yaml:161-165`-equiv, `:185` (boundary clause) |
 | 4 | goalcheck | low | 250s census over live tree, sibling-agent edit fabricates SITE line | still open, unaddressed | `plan.yaml:169` |

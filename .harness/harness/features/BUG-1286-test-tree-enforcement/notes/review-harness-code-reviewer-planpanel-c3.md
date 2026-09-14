@@ -14,8 +14,8 @@ must_fix.**
    `[T-01, T-02]`. Listed order T-01..T-05 is a valid topological sort — every dependency
    precedes its dependent in file order. Clean.
 3. **Verify clauses vs. task-completion file state**, all five re-read against the pinned code:
-   - T-01 `python3 tests/unit/test-suite-layout.py && run-unit-tests.sh --check-layout` —
-     `--check-layout` already exists at HEAD (`run-unit-tests.sh:16-17,40`), non-vacuous (it
+   - T-01 `python3 tests/unit/test-suite-layout.py && run-unit-tests.py --check-layout` —
+     `--check-layout` already exists at HEAD (`run-unit-tests.py:16-17,40`), non-vacuous (it
      invokes the real `violations(ROOT)` against the real checkout, which must clear the new
      clause after T-01 seeds `DOCUMENTED_EXCEPTIONS` with the one live FEAT-44 entry — the other
      8 outside-tree matches are Markdown/JSONL, excluded by `SOURCE_EXTENSIONS`). The pre-existing
@@ -37,7 +37,7 @@ must_fix.**
      not actively detected", …)` — resolves exactly.
    - SC-09 → `tests/integration/test-layout-migration.py:62` — `import layout_fixtures as lf` —
      resolves exactly.
-   - SC-15 → `run-unit-tests.sh:47` — `exec python3 "$BIN_DIR/run_pool.py" --mutation-check
+   - SC-15 → `run-unit-tests.py:47` — `exec python3 "$BIN_DIR/run_pool.py" --mutation-check
      "$BIN_DIR" -- …` — resolves exactly, file is 47 lines total, sole `run_pool.py` invocation.
    All three anchors are live at the pinned tip; none rotted. Every other SC's `verify:`/`evidence:`
    pairing matches a task deliverable that actually produces that evidence (unit SCs → T-01 cases,
@@ -95,7 +95,7 @@ a defect.
 D-05 deliberately keeps FEAT-44's `evidence/probe-session-accessors.ts` as the registry's one live
 entry rather than adding a synthetic exception, and the plan states the consequence plainly: if
 that evidence file is ever archived/removed, `DOCUMENTED_EXCEPTIONS`' self-policing clause
-("documented exception is no longer tracked") fires on **every** `run-unit-tests.sh` invocation
+("documented exception is no longer tracked") fires on **every** `run-unit-tests.py` invocation
 repo-wide (`--check-layout` and the full run both go through `violations()` first), and only
 `harness-backend-dev`/`harness-dev-ops` can edit `suite_layout.py` to clear it — not whoever
 performed the archival. That is a broad, blocking blast radius (every test run, every kind) from a
@@ -130,7 +130,7 @@ rather than a finding.
 | # | Severity | Summary | Concrete consequence |
 |---|---|---|---|
 | 1 | low | T-03's `--against` output contract doesn't state whether the row/TOTAL block still prints under comparison mode | A spec-compliant "diff-only" reading of the same text makes T-04's own `verify:` fail on a correct note, forcing rework |
-| 2 | med | D-05's accepted archival landmine (judgment b) | Archiving FEAT-44's evidence file reddens every `run-unit-tests.sh` invocation repo-wide until a backend-dev/dev-ops edit, though the archiver need not hold that grant |
+| 2 | med | D-05's accepted archival landmine (judgment b) | Archiving FEAT-44's evidence file reddens every `run-unit-tests.py` invocation repo-wide until a backend-dev/dev-ops edit, though the archiver need not hold that grant |
 | 3 | info | SC-06 exact-equality (judgment a) | None — verified correct and appropriately scoped, recorded for the record |
 | 4 | info | `harness.json` detect residual (judgment c) | None gating — disclosed, measured, empty today; flagged as an open question for explicit operator awareness |
 

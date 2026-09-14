@@ -87,7 +87,7 @@ $ (verify block from plan.yaml T-05, verbatim)
 harness_yaml change moved the gate
 ```
 (51 "before" FAILs collapse to mostly PASS "after"; `diff` exits non-zero; verify's own
-`|| { echo "harness_yaml change moved the gate"; exit 1; }` fires; `bash run-unit-tests.sh` is
+`|| { echo "harness_yaml change moved the gate"; exit 1; }` fires; `bash run-unit-tests.py` is
 never reached.)
 
 **Root cause, confirmed:** `git show 3952814:$B/check-plan-routes.py > /tmp/f42-cpr-old.py` places
@@ -243,7 +243,7 @@ iterates, per its own inline warning about tests defined but never called.
 
 ### `--kind all`, run to completion, failures enumerated BY CASE NAME
 
-Invocation: `bash .claude/skills/harness/bin/run-unit-tests.sh --kind all` from the worktree root,
+Invocation: `bash .claude/skills/harness/bin/run-unit-tests.py --kind all` from the worktree root,
 run to completion (no timeout, ~several minutes), exit 1, 3092 `ok`/`PASS` lines, 12 `FAIL` lines:
 
 ```
@@ -301,7 +301,7 @@ harness_yaml change moved the gate
 ```
 `diff` between the before/after `test-check-plan-routes.py` runs is non-empty (dozens of PASS lines
 only in "after"), so the verify's own `|| { echo "harness_yaml change moved the gate"; exit 1; }`
-fires and `bash run-unit-tests.sh --kind all` inside the verify is never reached by the verify script
+fires and `bash run-unit-tests.py --kind all` inside the verify is never reached by the verify script
 itself (I ran it separately, above, to get the full case-name enumeration). `task_verify: fail`, same
 root cause cycle 0 identified and I did not re-litigate: `check-plan-routes.py`'s restored copy is
 placed at a bare `/tmp` path (`git show 3952814:$B/check-plan-routes.py > /tmp/f42-cpr-old.py`)

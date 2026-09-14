@@ -10,7 +10,7 @@ skipped sub-cases, or tree-dependent census volume. Sections §0/§1/§3/§4/§5
 Three of the 29 `INTEGRATION_SCRIPTS` — `test-worktree-terminal.py`, `test-post-merge-sweep.py`,
 `test-hooks-install.py` — report their own sub-cases as `PASS: <name>` (**colon**, no space after
 `PASS`). Every other script in both arrays that emits sub-case lines uses `PASS <name>` (**space**,
-no colon) or `ok - <name>`/`ok    <name>`. `run-unit-tests.sh` itself (line 152) emits `PASS
+no colon) or `ok - <name>`/`ok    <name>`. `run-unit-tests.py` itself (line 152) emits `PASS
 <script>.py` (space) once per script.
 
 - Cycle 1's `585` = `grep -c '^PASS '` (**space-anchored** — the runner's own convention). Verified
@@ -76,7 +76,7 @@ exits.
 mkdir -p /tmp/feat38-base && git archive 2557950 | tar -x -C /tmp/feat38-base
 ```
 
-`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays in `run-unit-tests.sh` are byte-identical to the pin
+`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays in `run-unit-tests.py` are byte-identical to the pin
 (confirmed by diff of the two array lines — expected, since neither the runner nor any test/source
 file is in the delta, per §0).
 
@@ -94,7 +94,7 @@ The corrected per-script census at `/tmp/feat38-base` is **row-for-row identical
 including `34`/`52`/`29` for the three colon-convention scripts. `^PASS ` sum = 556 (+29 markers =
 585); `^PASS:` sum = 115; combined `^PASS` (unanchored) = 700.
 
-**Direct full-suite cross-check** (not just the per-script sum), `run-unit-tests.sh --kind
+**Direct full-suite cross-check** (not just the per-script sum), `run-unit-tests.py --kind
 integration`, output captured to a file (never piped through `head`/`tail`), at both trees:
 
 | tree | `grep -cE '^PASS '` | `grep -cE '^PASS:'` | `grep -cE '^PASS'` (unanchored) | `FAIL` | exit |
@@ -202,7 +202,7 @@ DIGEST:
   sc_evidence: []
   cycles_used: 1
   open_questions:
-    - { id: Q1, question: "run-unit-tests.sh's own printed PASS-line total is ambiguous across `^PASS`/`^PASS `/`^PASS:` conventions used by different test scripts (repo Expertise G-04 already flags this; ship-review B-15 independently hit it for the combined total). Should the runner print an unambiguous, single-convention aggregate (e.g. its own per-script marker count only, or a script-emitted `N passed` line normalized to one format) so future gate cycles stop producing apparent regressions that are really regex drift?", blocking: false }
+    - { id: Q1, question: "run-unit-tests.py's own printed PASS-line total is ambiguous across `^PASS`/`^PASS `/`^PASS:` conventions used by different test scripts (repo Expertise G-04 already flags this; ship-review B-15 independently hit it for the combined total). Should the runner print an unambiguous, single-convention aggregate (e.g. its own per-script marker count only, or a script-emitted `N passed` line normalized to one format) so future gate cycles stop producing apparent regressions that are really regex drift?", blocking: false }
   files_touched: []
   expertise_update: []
 artifact: .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/qa-2026-08-29-11-validator-c2.md

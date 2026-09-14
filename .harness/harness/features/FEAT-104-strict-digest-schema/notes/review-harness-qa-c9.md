@@ -152,8 +152,8 @@ DIGEST:
   headline: "matrix_ok=true, ADOPTED from same-pin evidence (provenance independently verified by md5 across 168f875f vs. current HEAD 71040f1c — bookkeeping-only delta); logic.always=[unit] is the whole floor, satisfied, integration is qa-added and satisfied (re-ran both myself: 12/12 T-06, 34/34+55/55+10/10 T-04/T-01/T-08); F1 and F3 witnesses independently confirmed by direct execution and by reading the discriminating assertion code; run-state-schema.json guards traced and shown fail-closed with a non-tautological DECLARED cross-check (reasoned, not mutation-proven — DEC-174 forbids mutation in this dispatch); F2 decline independently re-traced through the stop-hook (validates with the REAL raw persona for every new return) and confirmed to leave no coverage hole for new returns, only a residual non-gating regression-protection gap on the at-rest sweep's deliberate historical-compat exemption."
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 36 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 70 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
     - { kind: functional, state: not_applicable, cmd: none }
     - { kind: component, state: not_applicable, cmd: none }
     - { kind: ui, state: not_applicable, cmd: none }

@@ -4,7 +4,7 @@
 
 STOP at the signature gate. Do NOT dispatch build until `BRIEF.md` and `PLAN.md` both carry
 `status: approved`, AND Q1 (feature.yaml `pending`) is answered — it decides whether T-02 may
-touch `run-unit-tests.sh:6` at all. When both clear: segment 1 is **T-01 alone**,
+touch `run-unit-tests.py:6` at all. When both clear: segment 1 is **T-01 alone**,
 main-session direct under DEC-174 (`PLAN.md:130-166`), never through a team run. Then T-02 to
 eng-lead (`PLAN.md:168-234`), then T-03/T-04 main-session direct.
 
@@ -14,8 +14,8 @@ eng-lead (`PLAN.md:168-234`), then T-03/T-04 main-session direct.
   `PLAN.md:116-120` — verified-at ae2443d
 - No task's `files:` names any path on the 12-path FEAT-08 do-not-touch list — seven paths across
   T-01..T-04, `PLAN.md:131, :169, :237, :263` — verified-at ae2443d
-- `run-unit-tests.sh:6` collides with FEAT-08 T-05 — `FEAT-08/PLAN.md:243, :250-252` vs
-  `run-unit-tests.sh:6` — verified-at ae2443d by me, not relayed on trust
+- `run-unit-tests.py:6` collides with FEAT-08 T-05 — `FEAT-08/PLAN.md:243, :250-252` vs
+  `run-unit-tests.py:6` — verified-at ae2443d by me, not relayed on trust
 - `check-domain.py --resolve` with stdin closed exits 0 printing nothing today (fail-OPEN); that
   is why D-02 makes `NOBODY` a literal token — `check-domain.py:26` `payload=$(cat)` — UNVERIFIED
   end-to-end by me; pm reports confirming it. Re-run before acting on T-01.

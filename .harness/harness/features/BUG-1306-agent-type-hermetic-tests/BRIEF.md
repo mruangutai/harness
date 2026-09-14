@@ -47,7 +47,7 @@ merely quiet.
 - **Blocks (bounds the solution):** the Advisor's settled ruling (`runs/2026-09-05-02-validator/
   digest.md`) confines the fix to `tests/integration/test-plan-merge.py` — no shared
   `tests/integration/` helper, no tree-wide env-discipline lint, no central scrub in
-  `run_pool.py` or `run-unit-tests.sh`, and no change to `plan-merge.py`.
+  `run_pool.py` or `run-unit-tests.py`, and no change to `plan-merge.py`.
 - The operator's grilling note (`.harness/notes/grilling-six-residual-bugs-2026-09-05.md`)
   out-scopes unrelated cleanup, redesigns and compatibility shims.
 - Operator-set cap: eight build/review cycles for this flow; the Advisor may extend, twenty is the
@@ -88,7 +88,7 @@ a failure of the change.
 
 ## Verification gaps
 
-- The `integration` kind has a runner (`run-unit-tests.sh --kind integration`), but that runner
+- The `integration` kind has a runner (`run-unit-tests.py --kind integration`), but that runner
   goes through `run_pool.py`, which spawns each file as a subprocess that inherits the ambient
   environment. A green run through the runner therefore does not by itself prove hermeticity; the
   direct `python3 tests/integration/test-plan-merge.py` invocation named in SC-01 and SC-03 is the

@@ -10,7 +10,7 @@ All twelve PLAN tasks are `done` and every task's own `verify:` passed at its co
 
 - All four project gates are green together — `validate-feature-json.py` rc 0 over 17 files,
   `check-plan-routes.py` `0 violation(s) across 10 plan(s)`, `check-state.sh` rc 0 with zero
-  violations, full `run-unit-tests.sh` rc 0 — verified-at 3abaedd, run by me, not relayed.
+  violations, full `run-unit-tests.py` rc 0 — verified-at 3abaedd, run by me, not relayed.
 - INV-17 emits exactly one exemption note, for FEAT-15, naming three suppressed stems — `check-state.sh` output — verified-at 3abaedd.
 - No `feature.yaml` survives under `.harness/features/`; all 17 are `feature.json` — `ls` — verified-at 3abaedd.
 - The prohibited-tool window is CLOSED; `gh-sync.py`, `factory_claim.py` and `factory_decompose.py`

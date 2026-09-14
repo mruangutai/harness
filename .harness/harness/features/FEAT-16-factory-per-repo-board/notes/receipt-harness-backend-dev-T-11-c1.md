@@ -18,12 +18,12 @@ top-level or per-repo board, so this is the only helper that needed migration.
 
 Command (verbatim from plan T-11 and this dispatch):
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Run with the exit code captured directly off the suite (not off `tail`):
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit > <scratch>/t11-verify2.txt 2>&1
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit > <scratch>/t11-verify2.txt 2>&1
 $ echo "SUITE_EXIT=$?"
 SUITE_EXIT=0
 ```

@@ -47,19 +47,19 @@ D-06) — **not a coverage defect**, per the closed list. `functional/integratio
 typecheck` all `cmd: null`; BRIEF `## Verification gaps` states no SC rests on a null kind — confirmed,
 none of the 7 unit-evidence SCs needs them. No `ai_behavior` task exists; no eval required, none run.
 
-- unit: **satisfied** — cmd `.claude/skills/harness/bin/run-unit-tests.sh`, ran clean, exit 0.
+- unit: **satisfied** — cmd `.claude/skills/harness/bin/run-unit-tests.py`, ran clean, exit 0.
 - functional/integration/component/ui/eval/typecheck: **not applicable** (cmd null, no SC depends on them) — soft skip.
 
 `matrix_ok: true`.
 
 ## Receipts run myself (not trusted from digests)
 
-- `run-unit-tests.sh` exit 0; all 3 scripts (`test-validate-digest.py`, `test-gh-sync.py`,
+- `run-unit-tests.py` exit 0; all 3 scripts (`test-validate-digest.py`, `test-gh-sync.py`,
   `test-check-state.py`) PASS; every `ok` label above present in the streamed output.
 - **Streaming confirmed by reading the script**: `python3 "$BIN_DIR/$s"` with no redirection/capture;
   runner's own PASS/FAIL line prints after.
 - **MISCONFIGURED path proven live**: touched `test-orphan.py`, ran the runner with `2>&1` split —
-  exit 2, `MISCONFIGURED: .../test-orphan.py is not in run-unit-tests.sh's explicit script list` on
+  exit 2, `MISCONFIGURED: .../test-orphan.py is not in run-unit-tests.py's explicit script list` on
   stderr, stdout empty. Deleted the probe; `git status --porcelain` no longer mentions it.
 - **`detect` glob**: resolves to `test-check-state.py`, `test-gh-sync.py`, `test-validate-digest.py` —
   matches (T-07 added a third file after T-01 landed; not a regression of T-01's receipt).

@@ -12,7 +12,7 @@
 
 ## Source identities
 
-| State | test-bash-write-guard.py | bash-write-guard.py | check-domain.py | harness_boundary.py | harness_yaml.py | test-merge-gitignore.py | run-unit-tests.sh | harness.json |
+| State | test-bash-write-guard.py | bash-write-guard.py | check-domain.py | harness_boundary.py | harness_yaml.py | test-merge-gitignore.py | run-unit-tests.py | harness.json |
 |---|---|---|---|---|---|---|---|---|
 | before | 5f494142 | 0b1bbb89 | c6b581e | de9689e | a5c5367 | 06507a2 | b688261 | ca29860 |
 | after | a4ff275 | 0b1bbb89 | c6b581e | de9689e | a5c5367 | 06507a2 | b688261 | ca29860 |
@@ -23,7 +23,7 @@ Candidate HEAD remained `9403fca5252dbe6e5527aa20de3d5d9d3e5f8b1d`; only `.agent
 
 ```sh
 python3 .agents/skills/harness/bin/test-merge-gitignore.py &&
-.agents/skills/harness/bin/run-unit-tests.sh --kind all
+.agents/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 Exit code: **0** (149.70s). Summary: direct merge-gitignore program `7 passed; 0 failed`; all-kinds runner reported `PASS test-bash-write-guard.py` with ONE IMPLEMENTATION passing `(2, 2)` and `27/27` worktree-boundary cases, then `PASS test-merge-gitignore.py`; no runner failures.

@@ -87,9 +87,9 @@ touch that file.
 | kind | state | cmd | result |
 |---|---|---|---|
 | unit | satisfied | `python3 tests/unit/test-config-shape-matrix.py` | rc=0, `19/19 cases passed` |
-| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | rc=0, 0 `^FAIL ` lines, 27 files, 2.12s wall |
+| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | rc=0, 0 `^FAIL ` lines, 27 files, 2.12s wall |
 | integration | satisfied | `python3 tests/integration/test-validate-digest.py` | rc=0, 0 `^FAIL ` lines, `ALL PASSED.`, 24s |
-| integration (SC-06 regression class) | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | rc=0, 0 `^FAIL ` lines, 46 files, 80.44s wall |
+| integration (SC-06 regression class) | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | rc=0, 0 `^FAIL ` lines, 46 files, 80.44s wall |
 
 ## Contract figures — agreement / DISAGREEMENT with orchestrator's cited measurements
 
@@ -99,7 +99,7 @@ touch that file.
   within plausible machine-load variance, not a correctness signal, but flagged per instruction to
   report any disagreement loudly rather than silently rounding).
 - `test-config-shape-matrix.py`: orchestrator cited 19/19. **I got 19/19.** AGREEMENT.
-- `run-unit-tests.sh --kind integration`: orchestrator cited exit 0, zero `^FAIL `, 46 files, 60.9s.
+- `run-unit-tests.py --kind integration`: orchestrator cited exit 0, zero `^FAIL `, 46 files, 60.9s.
   **I got exit 0 (captured via `rc=$?` immediately), zero `^FAIL `, 46 files — AGREEMENT on verdict
   and file count, DISAGREEMENT on wall time (80.44s vs 60.9s cited)**. Slowest scripts this run:
   `test-check-state.py` 78.14s, `test-gh-sync.py` 59.00s, `test-check-domain.py` 58.78s — consistent
@@ -147,11 +147,11 @@ DIGEST:
   kinds:
     - { kind: unit, state: satisfied, cmd: "python3 tests/unit/test-config-shape-matrix.py", named_tests: 19 }
     - { kind: integration, state: satisfied, cmd: "python3 tests/integration/test-validate-digest.py", named_tests: 1 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 46 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 46 }
   exit_statuses:
     - { cmd: "python3 tests/integration/test-validate-digest.py", rc: 0, fail_lines: 0, wall_s: 24, verdict_agreement: true, timing_agreement: false }
     - { cmd: "python3 tests/unit/test-config-shape-matrix.py", rc: 0, cases: "19/19", agreement: true }
-    - { cmd: "run-unit-tests.sh --kind integration", rc: 0, fail_lines: 0, files: 46, wall_s: 80.44, verdict_agreement: true, timing_agreement: false }
+    - { cmd: "run-unit-tests.py --kind integration", rc: 0, fail_lines: 0, files: 46, wall_s: 80.44, verdict_agreement: true, timing_agreement: false }
   sc_evidence:
     - { id: SC-03, test: "tests/integration/test-validate-digest.py::_derive_plan_mode_code_grade — no longer hardcodes n_a; mutation-proven red-capable this cycle" }
     - { id: SC-06, test: "tests/integration/test-gen-decisions-index.py::test_committed_index_matches_a_fresh_regeneration — green, DEC-217 row now idempotent" }

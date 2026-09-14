@@ -854,7 +854,7 @@ def run_resolve():
           r.stdout.split() == ["harness-dev-ops"], f"got {r.stdout.split()!r}")
 
     # (b) a doubly-granted path returns BOTH, sorted
-    r = resolve(".agents/skills/harness/bin/run-unit-tests.sh")
+    r = resolve(".agents/skills/harness/bin/run-unit-tests.py")
     check("(b) --resolve: a doubly-granted path returns both grantees",
           sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
           f"got {r.stdout.split()!r}")

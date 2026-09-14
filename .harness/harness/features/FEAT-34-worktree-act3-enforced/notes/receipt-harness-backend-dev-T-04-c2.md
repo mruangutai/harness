@@ -59,7 +59,7 @@ PASS**, 0 FAIL, exit 0 (was 41 pre-rework; +6 new case-(i) assertions).
 | `python3 .claude/skills/harness/bin/test-hooks-install.py` | 29 PASS / exit 0 (unchanged) |
 | `python3 .claude/skills/harness/bin/test-worktree-terminal.py` | 34 PASS / exit 0 (unchanged) |
 | `.claude/skills/harness/bin/check-state.sh` | exit 0, zero violations |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | exit 0, zero `^FAIL` — run twice (background, no pipe on `$?`): `.../run-unit-tests.sh > /tmp/rut2.out 2>&1` exit 0; `.../run-unit-tests.sh > /tmp/rut3.out 2>/tmp/rut3.err; echo $? > /tmp/rut3.exit` → `0` |
+| `.claude/skills/harness/bin/run-unit-tests.py` | exit 0, zero `^FAIL` — run twice (background, no pipe on `$?`): `.../run-unit-tests.py > /tmp/rut2.out 2>&1` exit 0; `.../run-unit-tests.py > /tmp/rut3.out 2>/tmp/rut3.err; echo $? > /tmp/rut3.exit` → `0` |
 
 ## Open questions
 

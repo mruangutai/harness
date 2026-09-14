@@ -36,7 +36,7 @@ Read `.harness/harness.json` directly (not re-run). The matrix operates at **kin
 granularity, not per-assertion discriminating power: `bugfix.always: [unit]`, plus a
 `__bug_class__`-conditioned kind. `test-gh-sync.py` is a `unit`-kind file
 (`detect: .../test-gh-sync.py` is covered generally under the unit glob via
-`.claude/skills/harness/bin/test-*.py`) and it ran green under `run-unit-tests.sh --kind unit`.
+`.claude/skills/harness/bin/test-*.py`) and it ran green under `run-unit-tests.py --kind unit`.
 The matrix asks "does a unit test exist and pass for this change type" — it is satisfied by
 presence, and says nothing about whether any specific assertion inside that file discriminates a
 specific reader mutation. So no, the matrix does not independently escalate this: `matrix_ok: true`

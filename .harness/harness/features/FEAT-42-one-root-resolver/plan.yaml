@@ -50,7 +50,7 @@ lanes:
     - surface: .claude/skills/harness/bin/post-merge-sweep.py
       lane: main-session-direct
       reason: not in the am.4 enumeration and refuses nothing, but it DELETES worktrees and this build lives in one
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: the suite runner; a wrong cd on line 3 runs every gate against the wrong checkout and still exits 0, which no gate can see
     - surface: .claude/skills/harness-zero-micro-management/**
@@ -182,7 +182,7 @@ tasks:
       (see test-no-distribution.py): a module-level failures list, a check(name, cond, detail)
       helper, plain functions named case_N_..., and a main that exits 1 if failures. It must be
       runnable directly with python3 and must not need pytest. Do not register it in
-      run-unit-tests.sh — T-03 does that, and until then the drift detector will refuse the suite,
+      run-unit-tests.py — T-03 does that, and until then the drift detector will refuse the suite,
       which is why this task's verify runs your file directly.
 
       Cases required, each one named so the receipt can cite it:
@@ -241,7 +241,7 @@ tasks:
 
       Write .claude/skills/harness/bin/test-wayfind.py in the sibling idiom (failures list,
       check(name, cond, detail), case_N_ functions, exits 1 on failure, no pytest). Do not register
-      it in run-unit-tests.sh — T-03 does that. Required case, named wayfind_directory_probe: build
+      it in run-unit-tests.py — T-03 does that. Required case, named wayfind_directory_probe: build
       a tmp tree with a real MARKER-carrying root, a child directory holding a bare .harness
       directory with NO team-config.yaml in it, and a start point below that child; assert cfg()
       resolves against the real root and not the decoy. Add a second case asserting cfg() dies with
@@ -253,7 +253,7 @@ tasks:
       before writing the fix.
 
   - id: T-03
-    title: Move run-unit-tests.sh off the env chain and register the two new test files
+    title: Move run-unit-tests.py off the env chain and register the two new test files
     traces: [REQ-01, REQ-02, REQ-08]
     change_type: config
     execution_mode: main-session-direct
@@ -261,17 +261,17 @@ tasks:
     depends_on: [T-01, T-02]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
-      grep -q "HARNESS_PROJECT_DIR" $B/run-unit-tests.sh && { echo "chain survives"; exit 1; }
+      grep -q "HARNESS_PROJECT_DIR" $B/run-unit-tests.py && { echo "chain survives"; exit 1; }
       for t in test-harness-boundary.py test-wayfind.py; do
-        grep -q "$t" $B/run-unit-tests.sh || { echo "$t unregistered"; exit 1; }
+        grep -q "$t" $B/run-unit-tests.py || { echo "$t unregistered"; exit 1; }
       done
-      bash $B/run-unit-tests.sh --check-kinds || exit 1
-      ( cd /tmp && bash "$OLDPWD/$B/run-unit-tests.sh" --kind unit > /tmp/f42-t03-away.txt 2>&1 )
-      bash $B/run-unit-tests.sh --kind unit > /tmp/f42-t03-here.txt 2>&1
+      bash $B/run-unit-tests.py --check-kinds || exit 1
+      ( cd /tmp && bash "$OLDPWD/$B/run-unit-tests.py" --kind unit > /tmp/f42-t03-away.txt 2>&1 )
+      bash $B/run-unit-tests.py --kind unit > /tmp/f42-t03-here.txt 2>&1
       A=$(grep -cE '^(PASS|FAIL)' /tmp/f42-t03-away.txt)
       H=$(grep -cE '^(PASS|FAIL)' /tmp/f42-t03-here.txt)
       # grep -c writes 0 on no match, so equal counts alone are satisfied by a suite that
@@ -282,7 +282,7 @@ tasks:
       test "$A" = "$H" || { echo "cwd changed the suite: $A away vs $H here"; exit 1; }
       echo T-03-OK
     intent: |
-      Two edits to .claude/skills/harness/bin/run-unit-tests.sh, and nothing else in the file.
+      Two edits to .claude/skills/harness/bin/run-unit-tests.py, and nothing else in the file.
 
       1. Line 3 is currently cd "${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". Replace it
       with a cd to the root that harness_boundary resolves from THIS SCRIPT's own location. The file
@@ -329,7 +329,7 @@ tasks:
       B=.claude/skills/harness/bin
       grep -rn "harness_root" $B/ && { echo "harness_root survives"; exit 1; }
       grep -q "HARNESS_PROJECT_DIR" $B/factory_config.py && { echo "chain survives"; exit 1; }
-      bash $B/run-unit-tests.sh --kind all || exit 1
+      bash $B/run-unit-tests.py --kind all || exit 1
       echo T-04-OK
     intent: |
       DELETE the function harness_root() at .claude/skills/harness/bin/factory_config.py:44-58. It
@@ -419,7 +419,7 @@ tasks:
       grep -v "$X" /tmp/f42-t05-after.txt > /tmp/f42-t05-after-cmp.txt
       grep -q "^PASS $X" /tmp/f42-t05-after.txt || { echo "$X does not pass against the live tree"; exit 1; }
       diff /tmp/f42-t05-before-cmp.txt /tmp/f42-t05-after-cmp.txt || { echo "harness_yaml change moved the gate"; exit 1; }
-      bash $B/run-unit-tests.sh --kind all || exit 1
+      bash $B/run-unit-tests.py --kind all || exit 1
       echo T-05-OK
     intent: |
       Three independent chain sites, all resolving to the same replacement.

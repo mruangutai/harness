@@ -29,7 +29,7 @@ new exception-guarded file read of tracked repo content); examined; no exploitab
    - Confirmed live: `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-suite-layout.py` — `PASS
      violations() has exactly one non-test caller repository-wide` and `PASS b14: unreadable
      tracked sources are reported, not raised`, exit 0. The real ROOT today has zero unreadable
-     tracked sources (the exact-equality check against `{"run-unit-tests.sh"}` passed), so no live
+     tracked sources (the exact-equality check against `{"run-unit-tests.py"}` passed), so no live
      exploit exists.
 
 2. **Subprocess invocations, both files** — `git ls-files`, `git init -b main -q`, `git add -A`,
@@ -70,5 +70,5 @@ None. `must_fix: []`.
 
 Diff touches only the two named test files (confirmed via `git diff --stat 54f01854..ac8dd671`,
 8 paths total, six of which are feature-lifecycle artifacts with no code content). No production
-code path (`suite_layout.py`, `run-unit-tests.sh`, `code_grade.py`) is touched by this diff —
+code path (`suite_layout.py`, `run-unit-tests.py`, `code_grade.py`) is touched by this diff —
 read-only per the dispatch's carve-out list, and `git diff --stat` confirms none of them appear.

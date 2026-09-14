@@ -48,7 +48,7 @@ unbroken on single physical lines.
 
 - `python3 .claude/skills/harness/bin/gen-decisions-index.py` — run **unconditionally** after the
   body edit. Exit 0.
-- `bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds` — **exit 0**
+- `bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds` — **exit 0**
   ("the script arrays and test_kinds.integration.detect agree").
 
 ## Facts verified at source, not assumed
@@ -100,7 +100,7 @@ falsified clause **1**, `mid-flight` **0**, `context-size` **0**, `context-watch
 `turn-count` 1, `STRUCK|am.N` 0. The verify block therefore genuinely fails at HEAD on four counts,
 so the working-tree state is caused by this task's edit and by nothing else. Working tree now:
 1 / 1 / **0** / 2 / 1 / 1 / 2 / 0; `test-gen-decisions-index.py` exit 0 (9 ok);
-`run-unit-tests.sh --check-kinds` exit 0. `git diff -U1` shows **one** hunk on `DECISIONS.md`, so
+`run-unit-tests.py --check-kinds` exit 0. `git diff -U1` shows **one** hunk on `DECISIONS.md`, so
 no neighbouring entry was touched.
 
 **Every factual claim in the new prose checked against source:**

@@ -5,7 +5,7 @@ drafted plan is graded against; BRIEF.md is derived from it and is not a substit
 
 ---
 
-run-unit-tests.sh: deleting `fails += ` leaves a test block printing FAIL while the suite exits 0.
+run-unit-tests.py: deleting `fails += ` leaves a test block printing FAIL while the suite exits 0.
 Residual from PR #149 (W4), annotated in code, not structurally fixed. tests/integration/test-check-domain.py
 main() aggregates now 21 independent blocks via 21 hand-written `fails += run_x()` lines with a
 comment claiming an assertion exists that does not. Deleting the 9 characters `fails += ` from any
@@ -25,7 +25,7 @@ Option 2 is named as the only one catching both directions, though it is the onl
 test-runner-testing code.
 
 Scope: test-check-domain.py has the 21 blocks; other bin/ suites use different shapes and should be
-checked before generalizing; run-unit-tests.sh itself keys off subprocess exit codes (a separate,
+checked before generalizing; run-unit-tests.py itself keys off subprocess exit codes (a separate,
 already-sound layer per this session's live investigation).
 
 ---

@@ -42,7 +42,7 @@ housekeeping), no `bad`/violation output. Confirms T-02's removal of the `cost_m
 check landed before this edit (D-02) — the repo does not fail check-state after stripping
 `cost_model` from `.harness/harness.json`.
 
-**5. `.claude/skills/harness/bin/run-unit-tests.sh`**
+**5. `.claude/skills/harness/bin/run-unit-tests.py`**
 Exit: 0. `test-upgrade-config.py` and `test-team-catalog.py` (named in the dispatch as readers of
 these config shapes) both report `PASS` within the full run. Full suite: `ALL PASSED` / all listed
 scripts `PASS`.

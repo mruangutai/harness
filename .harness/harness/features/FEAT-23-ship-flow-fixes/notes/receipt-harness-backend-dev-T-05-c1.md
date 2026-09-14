@@ -63,7 +63,7 @@ all pass
 ```
 Exit code: **0**.
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit` (and separately `--kind all`):
+`bash .claude/skills/harness/bin/run-unit-tests.py --kind unit` (and separately `--kind all`):
 exit **0**, `PASS test-board-station.py` present in both runs.
 
 ## Task's `verify:` — full clause, re-run after the work — verbatim final line
@@ -100,7 +100,7 @@ Exit code: **0**.
    `board-station: ERROR - `, and both the issue number and station appear in it.
 
 4. **`UNIT_SCRIPTS` registration**: `"test-board-station.py"` appended to the array in
-   `.claude/skills/harness/bin/run-unit-tests.sh` (one-line edit, no other array touched).
+   `.claude/skills/harness/bin/run-unit-tests.py` (one-line edit, no other array touched).
    `INTEGRATION_SCRIPTS` untouched. `.harness/harness.json` untouched.
 
 ## Case 1 assertion strength
@@ -116,7 +116,7 @@ fail this second check even if it happened to exit 0.
 
 - `.claude/skills/harness/bin/board-station.py` (new)
 - `.claude/skills/harness/bin/test-board-station.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one-line `UNIT_SCRIPTS` edit)
+- `.claude/skills/harness/bin/run-unit-tests.py` (one-line `UNIT_SCRIPTS` edit)
 
 ## Bounds respected
 

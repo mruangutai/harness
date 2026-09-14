@@ -10,7 +10,7 @@ writing it. No agent in this feature may do it.
 
 After the fix lands, in this order:
 
-1. Re-run `run-unit-tests.sh` (13 scripts) and `test-check-domain.py`.
+1. Re-run `run-unit-tests.py` (13 scripts) and `test-check-domain.py`.
 2. **Re-pin `review_sha`** — the fix lands a new source commit, so the current pin `4918d06` goes
    stale the moment it does. One pin, taken after.
 3. A DELTA review of the fix — ask the user whether a one-line change warrants the full four-wide

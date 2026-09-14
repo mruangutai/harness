@@ -215,8 +215,8 @@ tasks:
       and this plan's audits were taken against a different tree.
 
       ALSO CAPTURE BOTH SUITES, in a section headed SUITES, immediately after PRE-MOVE:
-        .claude/skills/harness/bin/run-unit-tests.sh --kind unit
-        .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+        .claude/skills/harness/bin/run-unit-tests.py --kind unit
+        .claude/skills/harness/bin/run-unit-tests.py --kind integration
       Record, for each, every line matching ^PASS test- or ^FAIL test- and the exit code. This is a
       VERBATIM CAPTURE, not a gate: record what you see, including any FAIL, and do not fix
       anything here. It exists because SC-07 and SC-08 are stated as after-the-move claims about
@@ -560,7 +560,7 @@ tasks:
       entry-for-entry, and :185 asserts list(mine) == expected_mine — EXACT LIST EQUALITY, not a
       subset and not a set comparison. T-02 adds a ninth grant to the manifest, so mine gains an
       entry the fixture does not have and the assertion fails. The file runs in the INTEGRATION
-      suite (run-unit-tests.sh:18).
+      suite (run-unit-tests.py:18).
       ADD THE NINTH ENTRY, ".harness/*/docs/**", AS THE SECOND ELEMENT of that list — immediately
       after "docs/**" and before "README.md". The index is not free: the assertion compares order,
       and T-02 pins the manifest insertion to the same position, immediately after the
@@ -610,8 +610,8 @@ tasks:
       u=$(mktemp); i=$(mktemp)
       B=.claude/skills/harness/bin
       P='docs/harness|"docs", ?"harness"'
-      $B/run-unit-tests.sh --kind unit >"$u" 2>&1 || true
-      $B/run-unit-tests.sh --kind integration >"$i" 2>&1 || true
+      $B/run-unit-tests.py --kind unit >"$u" 2>&1 || true
+      $B/run-unit-tests.py --kind integration >"$i" 2>&1 || true
       grep -q '^PASS test-layout-migration\.py$' "$u" || { cat "$u"; exit 1; }
       for s in test-check-domain test-check-state; do
         grep -q "^PASS $s\.py$" "$i" || { echo "$s did not pass"; cat "$i"; exit 1; }
@@ -811,7 +811,7 @@ tasks:
       TWO STANDING CASES TO ADD, because two success criteria would otherwise rest on a shell
       command in this plan rather than on a test, which is not automated evidence at goal-check.
 
-      1. In test-check-domain.py (integration suite, run-unit-tests.sh:18), pin that
+      1. In test-check-domain.py (integration suite, run-unit-tests.py:18), pin that
          check-domain.py --resolve .harness/harness/docs/SPEC.md names harness-documentor. This
          also closes FEAT-21 ship-review row B-10 for the docs surface: it turns a pair someone
          measured once by hand into a case that runs on every push.
@@ -819,7 +819,7 @@ tasks:
          the LIVE tree for the docs path; once its subject moves it IS this pin. Do not add a
          duplicate case beside it. Give the repointed case a label containing harness/docs and
          rewrite its comment as instructed above.
-      2. In test-layout-migration.py (unit suite, run-unit-tests.sh:17), append a case that scans
+      2. In test-layout-migration.py (unit suite, run-unit-tests.py:17), append a case that scans
          the REAL repository root and asserts BOTH surfaces read CLEAN with evidence migrated, and
          that the doc-root count is non-zero. Case 1 already scans the real root and asserts
          non-zero feature-dir and reader-file counts, so the precedent and the helper both exist;
@@ -1067,8 +1067,8 @@ tasks:
         || { cat "$d"; exit 1; }
       test "$rd" = 0 || { cat "$d"; exit 1; }
       B=.claude/skills/harness/bin
-      $B/run-unit-tests.sh --kind unit || { echo "unit suite red on the committed tree"; exit 1; }
-      $B/run-unit-tests.sh --kind integration || { echo "integration suite red on the committed tree"; exit 1; }
+      $B/run-unit-tests.py --kind unit || { echo "unit suite red on the committed tree"; exit 1; }
+      $B/run-unit-tests.py --kind integration || { echo "integration suite red on the committed tree"; exit 1; }
       c=$(mktemp); git show --name-only --format= HEAD >"$c"
       grep -q 'FEAT-22-docs-layout-migration' "$c" && { echo "the cluster commit swept the feature dir"; exit 1; }
       grep -qx '\.harness/harness/docs/SPEC\.md' "$c" || { echo "HEAD is not the cluster commit"; exit 1; }
@@ -1116,8 +1116,8 @@ tasks:
       asserts the two suites, which are what SC-07 and SC-08 name.
 
       THEN run BOTH suites and require each to exit 0, before committing anything:
-        .claude/skills/harness/bin/run-unit-tests.sh --kind unit
-        .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+        .claude/skills/harness/bin/run-unit-tests.py --kind unit
+        .claude/skills/harness/bin/run-unit-tests.py --kind integration
       This is the only point in the feature where the whole suite is expected green: T-05 runs with
       test-gen-decisions-index.py FAILing on the stale committed index, and the regeneration above
       is what clears it. If either suite is red, the cluster does NOT get committed — find the

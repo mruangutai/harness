@@ -45,7 +45,7 @@
   the code I review.
 
 - 2026-08-19: the FIX-01 dispatch reached me carrying "it reached me as exit 0" for a red
-  integration suite. I read run-unit-tests.sh:57-71 during the in-flight wait: it counts
+  integration suite. I read run-unit-tests.py:57-71 during the in-flight wait: it counts
   failures and `exit 1` when any script fails. So the runner is correct and the false green was
   pure narration — someone reported a status they never observed. Worth separating: a tool that
   lies needs a fix, a narrator that lies needs evidence discipline, and the remedy differs.
@@ -97,7 +97,7 @@
 
 - 2026-08-19: two of four readers reported case counts that did not survive my own count
   ("14 base + 20 extra" vs my 9 `case()` registrations and 22 `record()` calls; "16 scripts" vs
-  run-unit-tests.sh:17's 17). Neither error changed a finding, which is exactly why it is
+  run-unit-tests.py:17's 17). Neither error changed a finding, which is exactly why it is
   dangerous — a wrong number attached to a correct conclusion is the form that propagates, because
   nothing about the conclusion invites re-checking the number.
 

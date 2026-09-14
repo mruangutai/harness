@@ -14,7 +14,7 @@ is keyed on the right thing, and whether the fail-closed default is actually clo
 
 ## Trust
 
-- claim - 161 ok / 0 FAIL, gate exit 0 with 0 violations, full `run-unit-tests.sh` exit 0
+- claim - 161 ok / 0 FAIL, gate exit 0 with 0 violations, full `run-unit-tests.py` exit 0
   with zero FAIL lines - verified-at a2fb6c0b - source: this build ran all three.
 - claim - the six cases were red first - verified-at a2fb6c0b - source: pre-fix run gave
   exit 1 with exactly 2 FAIL, both the exemption cases; the four guard cases passed before

@@ -29,7 +29,7 @@ classified every hit:
 **No entry I found sits in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` and reads the real tree.** The
 discriminator that makes T-07's and T-11's real-tree reads non-violating is structural, not a fact
 about today's tree: they are `verify:` blocks on plan **tasks**, executed once at build time by
-the executor, not test files registered in `run-unit-tests.sh`'s arrays — so they cannot redden
+the executor, not test files registered in `run-unit-tests.py`'s arrays — so they cannot redden
 `test-check-state.py` when a concurrent feature writes a pre-sweep note, which is the exact failure
 mode PF-570b9c87 named. **CORROBORATES** goal-check §3(a)'s table and its per-site verdicts.
 

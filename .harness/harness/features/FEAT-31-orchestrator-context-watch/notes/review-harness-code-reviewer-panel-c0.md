@@ -14,7 +14,7 @@ live in production right now.
 
 All Python (`.py`, 16 files: `context-watch.py`, `context-watch-hook.py`, `feature_schema.py`,
 `upgrade-config.py`... and their `test-*.py`/`verify-*.py` siblings), 2 shell (`check-state.sh`,
-`run-unit-tests.sh`), JSON config (`.claude/settings.json`, `feature-schema.json`,
+`run-unit-tests.py`), JSON config (`.claude/settings.json`, `feature-schema.json`,
 `harness.json` x2), Markdown/YAML feature-process artifacts (`BRIEF.md`, `plan.yaml`, `STATE.md`,
 `feature.json`, everything under `notes/`, `observations/`), and two docs
 (`DECISIONS.md`, `DECISIONS-INDEX.md`). One `.html` — `notes/ship-review-fix1.html` — is a

@@ -178,7 +178,7 @@ riding inside a `verify: automated` tag.
 
 ## Confirmations run (evidence, not findings)
 
-- `test-validate-feature-json.py` (34 cases), `run-unit-tests.sh --kind unit`, `--kind
+- `test-validate-feature-json.py` (34 cases), `run-unit-tests.py --kind unit`, `--kind
   integration`: all green at HEAD, run directly.
 - `gen-decisions-index.py --stdout` vs `docs/harness/DECISIONS-INDEX.md`: byte-for-byte match
   (`diff <(...) ...`, no file write) — SC-14's base assertion holds even though qa separately

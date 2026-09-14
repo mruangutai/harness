@@ -39,8 +39,8 @@ authoring segment's ruling — I re-derived it from the same two files rather th
 
 | kind | state | cmd | exit | evidence |
 |---|---|---|---|---|
-| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | full run captured; grepped for FAIL/ERROR/Traceback outside `PASS`/`ok` lines — none found; ends `PASS test-validate-feature-json.py` |
-| integration | satisfied | `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | `test-factory-integration.py`: 106/106 checks passed, ends `PASS test-factory-integration.py`. Grep for FAIL/ERROR/Traceback surfaced only the suite's own deliberate PyYAML-bootstrap-failure **simulation case** output (`case_19c_zero_feature_project_is_not_an_error` passes immediately after), not a live failure (G-02) |
+| unit | satisfied | `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | full run captured; grepped for FAIL/ERROR/Traceback outside `PASS`/`ok` lines — none found; ends `PASS test-validate-feature-json.py` |
+| integration | satisfied | `.claude/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | `test-factory-integration.py`: 106/106 checks passed, ends `PASS test-factory-integration.py`. Grep for FAIL/ERROR/Traceback surfaced only the suite's own deliberate PyYAML-bootstrap-failure **simulation case** output (`case_19c_zero_feature_project_is_not_an_error` passes immediately after), not a live failure (G-02) |
 | component | skipped-with-reason | `cmd: null` in `harness.json`, status `unresolved` | n/a | not qa's to close — dev-ops has not run detection; no rendered surface in this feature |
 | ui | skipped-with-reason | `cmd: null`, status `unresolved` | n/a | same; no `.tsx`/`.ts` files in any task |
 | eval | skipped-with-reason | `cmd: null`, status `unresolved` | n/a | same; no `ai_behavior` change_type in this feature |
@@ -90,8 +90,8 @@ feature's diff, not a finding.
 | SC-02 | `test-factory-config.py` case (8b) |
 | SC-04 | `test-factory-claim.py` P1-P4, `test-factory-decompose.py` T-03, `test-factory-land.py` T-04, `test-factory-integration.py` case (H) |
 | SC-05 | `test-no-distribution.py` `kaya_ai_is_paired_with_board_2` + siblings |
-| SC-08 | `run-unit-tests.sh --kind unit` exit 0 (this run) |
-| SC-09 | `run-unit-tests.sh --kind integration` exit 0 (this run) |
+| SC-08 | `run-unit-tests.py --kind unit` exit 0 (this run) |
+| SC-09 | `run-unit-tests.py --kind integration` exit 0 (this run) |
 | SC-13 | `test-factory-claim.py` P6 — mutation-killed for the general defect, open question on the narrower BRIEF wording (parked, not re-run) |
 
 ## Authoring

@@ -82,9 +82,9 @@ probe (it exercises the guard end-to-end through the exact launch block that cha
 ## Full-project sweep re-investigated (automated post-hoc check fired again)
 
 The delivery harness's own post-hoc check flagged `suite: pass` against an independent
-`run-unit-tests.sh` sweep exiting 1 — the identical class of complaint cycle 1 investigated and
+`run-unit-tests.py` sweep exiting 1 — the identical class of complaint cycle 1 investigated and
 recorded in its Addendum. I re-ran the full sweep MYSELF, twice, from this worktree at `c06c483c`
-(`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh`), rather than accepting
+(`env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py`), rather than accepting
 either the automated flag or the cycle-1 finding on faith:
 
 - **Both runs: exit 1, identical failing file set, deterministic this time** (unlike cycle 1's own

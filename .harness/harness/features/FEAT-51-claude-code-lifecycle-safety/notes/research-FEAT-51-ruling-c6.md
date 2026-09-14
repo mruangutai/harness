@@ -77,8 +77,8 @@ file is green; (b) keep only the exit code, dropping the stderr half → `not_me
 cannot separate a deliberate fall-through from a swallow; (c) bare `except` body that prints nothing →
 the four stderr assertions red; widen the handler → both negative controls return exit 0.
 `verify: automated`, `evidence: integration` — verified myself, not taken on faith: `integration` is
-`status: active` with `cmd .agents/skills/harness/bin/run-unit-tests.sh --kind integration`, its
-`detect` names **both** files, and both are in `run-unit-tests.sh` `INTEGRATION_SCRIPTS` (D-09).
+`status: active` with `cmd .agents/skills/harness/bin/run-unit-tests.py --kind integration`, its
+`detect` names **both** files, and both are in `run-unit-tests.py` `INTEGRATION_SCRIPTS` (D-09).
 
 ## Gate results — exact
 

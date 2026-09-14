@@ -100,7 +100,7 @@ by SC-12's withdrawal.
 | SC-06 | T-04 | adopt/discard/list CLI + sha256 no-op proof |
 | SC-07 | T-02, T-03, T-07 | OMP discrimination cases (case 33, check-domain OMP label, plan-sign-gate OMP label); the `check-omp-port.py`/`.omp/agents/*.md`/`--kind` clauses are pre-existing invariants outside all 21 target files — correctly not owned by any task, verified directly at SC-grading time, not a gap |
 | SC-08 | T-05 | content + reviewer inspection (verify: inspection) |
-| SC-09 | T-06 + T-08 | T-06 writes the entry, T-08 supplies the per-clause assertions in `run-unit-tests.sh` `INTEGRATION_SCRIPTS` — see finding below |
+| SC-09 | T-06 + T-08 | T-06 writes the entry, T-08 supplies the per-clause assertions in `run-unit-tests.py` `INTEGRATION_SCRIPTS` — see finding below |
 | SC-10 | T-05 (conduct) | verify: uat, operator-run, correctly unowned by any task's automated verify |
 | SC-11 | T-07 | exact match to T-07's four/nine labels |
 | SC-13 | T-10 | exact match, one-to-one |

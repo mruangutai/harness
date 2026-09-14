@@ -15,7 +15,7 @@ no member persona holding it.
 - `gen-decisions-index.py --check` fell through to the WRITE path on 2026-08-03 and exited 0 having regenerated the index; argv validation landed later at `ffbdbfa1` — `git show 99b380e3:.claude/skills/harness/bin/gen-decisions-index.py:371`, `git log -S` — verified-at 41c16c7, independently confirmed by both panel readers
 - T-01 and T-02 route to granted lanes — `check-plan-routes.py` exit 0, "OK T-01 granted to harness-documentor / OK T-02 granted to harness-orchestrator" — verified-at 63f7fc97, re-run after the rulings landed
 - The operator's three rulings are applied and the ruled findings read `resolved` — `plan.yaml` `decisions:` D-05 and `panel.findings[].disposition` — verified-at 63f7fc97
-- SC-04's integration suite is green pre-correction and reddens only if the index is not regenerated — `bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` exit 0 — verified-at 41c16c7 by pm, NOT re-run by the orchestrator
+- SC-04's integration suite is green pre-correction and reddens only if the index is not regenerated — `bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` exit 0 — verified-at 41c16c7 by pm, NOT re-run by the orchestrator
 - The panel record in `plan.yaml` `panel:` satisfies INV-32 — `check-state.sh` reports no INV-32 finding against this feature — verified-at 41c16c7
 
 ## Dead ends

@@ -61,7 +61,7 @@ Clause by clause:
 - **`check-omp-port.py` exits 0.** ✅
 - **`.omp/agents/harness-*.md`** — 16 files enumerated one by one; 15 declare `blocking: true`,
   the sixteenth is `harness-orchestrator.md`, the criterion's own exception. ✅
-- **Both suites.** `run-unit-tests.sh --kind unit` → **exit 0**, no `FAIL` lines. `--kind integration`
+- **Both suites.** `run-unit-tests.py --kind unit` → **exit 0**, no `FAIL` lines. `--kind integration`
   → **exit 1**, and the failure set is exactly `test-check-plan-routes.py`'s `6 FAILURE(S)`
   (`case_04`, `case_05`, `case_15`, `case_17`, `case_19d`, `case_19d2`) plus the one script-level
   `FAIL test-check-plan-routes.py` line = the contract's seven. `diff` of the two `team-config.yaml`

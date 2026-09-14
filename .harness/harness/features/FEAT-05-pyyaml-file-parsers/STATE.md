@@ -11,7 +11,7 @@ Phase `build` COMPLETE 2026-08-03. **All 17 tasks landed.** `review_sha` should 
 before the panel runs — `225cc98` was the baseline when the orchestrator was stood down, and
 twelve commits have landed since.
 
-**Three gates green:** `run-unit-tests.sh` 0 (11 suites), `check-docs.sh` 0, `check-state.sh` 0.
+**Three gates green:** `run-unit-tests.py` 0 (11 suites), `check-docs.sh` 0, `check-state.sh` 0.
 Every `.harness/**/*.yaml` parses. **Corrected 2026-09-06 under BUG-148:** the fourth entry logged
 on 2026-08-03, `gen-decisions-index.py --check` 0, was no gate at all — `--check` was never a
 supported mode, and before argv validation landed at `ffbdbfa1` (2026-08-05) an unrecognized
@@ -40,7 +40,7 @@ runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244
 - **T-02 RED as designed, and it is why the corpus defect was found at all.** It surfaced the invalid
   corpus on its first run, and it named the file and the parse error rather than failing opaquely, which
   is what made it chase-able instead of dismissable as an expected RED. Nine named tests,
-  `run-unit-tests.sh` exit 1, no `MISCONFIGURED`, 9 pre-existing suites PASS.
+  `run-unit-tests.py` exit 1, no `MISCONFIGURED`, 9 pre-existing suites PASS.
 - **T-03.** `harness_yaml.py`, now **9 of 9 green**.
 - **T-05.** `cost-report.py` annotated per D-04, no conversion, no `import harness_yaml`.
 - **The corpus repair.** Three `feature.yaml` files, receipt at
@@ -121,7 +121,7 @@ parsed.)
 
 - `verify: unit`. Walks every `.harness/**/*.yaml`, `safe_load`s each, **fails naming file, line and
   column**.
-- **It MUST be listed in `run-unit-tests.sh`'s `SCRIPTS` array.** A test the runner does not invoke
+- **It MUST be listed in `run-unit-tests.py`'s `SCRIPTS` array.** A test the runner does not invoke
   gates nothing — issue #5's exact failure mode.
 - **It must be shown RED against a deliberately malformed fixture, then GREEN on the repaired
   corpus.** An always-green validity gate is indistinguishable from no gate.

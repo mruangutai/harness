@@ -2,12 +2,12 @@
 
 - 2026-08-05: The do-not-touch list I was handed for the concurrent feature (12 paths) was
   derived from the OTHER feature's grilling artifact, not from its PLAN. It was incomplete:
-  `run-unit-tests.sh` is edited by FEAT-08 T-05 (`FEAT-08/PLAN.md:243, :250-252`) and appears on
+  `run-unit-tests.py` is edited by FEAT-08 T-05 (`FEAT-08/PLAN.md:243, :250-252`) and appears on
   no list. My lead found it by opening the peer feature's PLAN.md directly. Lesson shape: with two
   features in flight, the collision surface is the peer's PLAN `files:` union, not the grilling
   artifact's prose — the artifact predates the plan by definition.
 
-- 2026-08-05: `run-unit-tests.sh:6` is a single-line array that nearly every task's `verify:` in
+- 2026-08-05: `run-unit-tests.py:6` is a single-line array that nearly every task's `verify:` in
   both plans rides on as a whole-suite check. A one-line shared file with N writers and a drift
   detector that `exit 2`s is a maximally bad collision surface: the failure is not local to the
   colliding task, it reddens every other task in both features.

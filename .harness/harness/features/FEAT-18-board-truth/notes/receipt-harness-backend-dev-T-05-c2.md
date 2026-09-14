@@ -128,13 +128,13 @@ verify exit: 0
 
 `task_verify: pass`.
 
-## Note on `run-unit-tests.sh`
+## Note on `run-unit-tests.py`
 
 Not touched — registering `test-branch-create-gate.py` there is a declared `main-session-direct`
 step per the dispatch. The new test was run directly with `python3
 .claude/skills/harness/bin/test-branch-create-gate.py`, not through the runner. Running
-`run-unit-tests.sh` in this state would report `MISCONFIGURED: ... test-branch-create-gate.py is
-not in run-unit-tests.sh's explicit script list` — expected, transient, not a finding.
+`run-unit-tests.py` in this state would report `MISCONFIGURED: ... test-branch-create-gate.py is
+not in run-unit-tests.py's explicit script list` — expected, transient, not a finding.
 
 ## Files touched
 - `.claude/skills/harness/bin/branch-create-gate.py` (re-applied deletion, byte-identical to c1)

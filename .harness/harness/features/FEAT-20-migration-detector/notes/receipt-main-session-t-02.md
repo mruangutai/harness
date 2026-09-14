@@ -26,6 +26,6 @@ in layout_migration.py, documented as load-bearing at the table.
 
 ## Verify, run as plan.yaml spells it
 
-run-unit-tests.sh --kind unit -> 0 with 'PASS test-layout-migration.py';
+run-unit-tests.py --kind unit -> 0 with 'PASS test-layout-migration.py';
 --kind integration -> 0 with 'PASS test-check-state.py'. Live gate at this commit:
 exit 0, zero INV-27 lines.

@@ -93,7 +93,7 @@ update when #350's restructure lands. Named in `D-05` rather than smoothed over.
 | `.claude/skills/harness/bin/gh-sync.py` | T-01 only | **NOT a collision.** The #453 writer is a new file; `gh-sync.py` is untouched by T-05 and T-06 |
 | `.harness/harness.json` | none | **NOT a collision.** Resolved anyway (below) because the dispatch asked; the plan writes nothing there |
 | `.harness/harness/docs/DECISIONS.md` | T-04 only | Both decisions land in the **same** documentor task, so one entry-and-regenerate pass, no race |
-| `run-unit-tests.sh` | T-05 only | Registration of the new test file is in the SAME task as the file (G-08) |
+| `run-unit-tests.py` | T-05 only | Registration of the new test file is in the SAME task as the file (G-08) |
 
 ## Which bucket the new test goes in — decided by the DETECT globs, not by taste (P-02)
 
@@ -120,7 +120,7 @@ across the range.
 |---|---|
 | `.claude/skills/harness/bin/board-station.py` | `harness-backend-dev` / `harness-dev-ops` |
 | `.claude/skills/harness/bin/test-board-station.py` | `harness-backend-dev` / `harness-dev-ops` |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | `harness-backend-dev` / `harness-dev-ops` |
+| `.claude/skills/harness/bin/run-unit-tests.py` | `harness-backend-dev` / `harness-dev-ops` |
 | `.claude/commands/harness-plan.md` | `NOBODY` → `main-session-direct` |
 | `.harness/harness.json` | `harness-dev-ops` — **resolved, then ruled out of scope**, not assumed |
 | `.harness/factory/fleet.yaml` | `NOBODY` — **resolved, then ruled out of scope** |
@@ -143,25 +143,25 @@ exit=1
 
 ## T-05 — conjunct 2, the registration grep, proved SEPARATELY
 
-Conjunct 1 exits first, so this was run on its own against the real `run-unit-tests.sh`:
+Conjunct 1 exits first, so this was run on its own against the real `run-unit-tests.py`:
 
 ```
-$ grep -qF "test-board-station.py" .claude/skills/harness/bin/run-unit-tests.sh
+$ grep -qF "test-board-station.py" .claude/skills/harness/bin/run-unit-tests.py
 RED: not registered (exit 1 path taken)
 ```
 
 ## T-05 — conjunct 3, the drift detector, proved by MUTATION
 
-The clause ends with `bash run-unit-tests.sh --kind unit`. Green-by-default is the FEAT-22 failure
+The clause ends with `bash run-unit-tests.py --kind unit`. Green-by-default is the FEAT-22 failure
 shape, so it was mutated rather than assumed. The detector runs over the **union** of both buckets
-(`run-unit-tests.sh:36-39`), so `--kind unit` catches an unregistered integration file too — and
+(`run-unit-tests.py:36-39`), so `--kind unit` catches an unregistered integration file too — and
 `--kind unit` costs **2.8s measured**, against 52.5s for the integration bucket.
 
 ```
 unmutated                                              rc=0
 one on-disk test file removed from the arrays          rc=2
   MISCONFIGURED: .claude/skills/harness/bin/test-gh-board.py is not in
-  run-unit-tests.sh's explicit script list
+  run-unit-tests.py's explicit script list
 ```
 
 Mutation applied by piping the real script through `sed` while `BIN_DIR` still pointed at the real

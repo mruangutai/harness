@@ -195,10 +195,10 @@ verdict for the hook path and for `--resolve`. Its own green cannot vouch for it
 
 ## Which runner produces which evidence kind — measured, because the glob disagrees
 
-`harness.json` `test_kinds` and `run-unit-tests.sh` do **not** agree, and the runner is what
-executes. `run-unit-tests.sh:17-18` holds two explicit arrays:
+`harness.json` `test_kinds` and `run-unit-tests.py` do **not** agree, and the runner is what
+executes. `run-unit-tests.py:17-18` holds two explicit arrays:
 
-| Suite | `harness.json` detect | `run-unit-tests.sh` array | Kind an SC must declare |
+| Suite | `harness.json` detect | `run-unit-tests.py` array | Kind an SC must declare |
 |---|---|---|---|
 | `test-layout-migration.py` | `unit` (the `test-*.py` glob) | `UNIT_SCRIPTS` | **unit** |
 | `test-check-domain.py` | `unit` (the same glob) | `INTEGRATION_SCRIPTS` | **integration** |
@@ -304,7 +304,7 @@ absent.
 
 ### Verified mechanics
 
-- `run-unit-tests.sh:57-60` runs each script with stdout inherited, and BOTH sides print a per-case
+- `run-unit-tests.py:57-60` runs each script with stdout inherited, and BOTH sides print a per-case
   label on PASS: `test-check-domain.py` emits `ok    <label>` (integration half) and
   `test-layout-migration.py` emits `ok   - case 1: real root exits 0` and siblings (unit half). So
   both of T-05's label greps for `harness/docs` in runner output are real checks, not dead ones.
@@ -395,7 +395,7 @@ INTERVAL it was quantified over was not. It read "From the move until T-09 regen
 the INTEGRATION SUITE is red on exactly one script... unit green."
 
 That is the state **after T-04 and T-05 land**, not from the move. Measured against the runner's own
-script lists (`run-unit-tests.sh:17-18`), T-04's six files split three unit
+script lists (`run-unit-tests.py:17-18`), T-04's six files split three unit
 (`test-team-catalog`, `test-no-distribution`, `test-factory-config`) and three integration
 (`test-harness-yaml`, `test-validate-digest`, `test-gen-decisions-index`); T-05's five split four
 integration and one unit. So between T-02 and T-05 the unit suite is red too and integration is red
@@ -451,7 +451,7 @@ Run against the tree at `0f12f14` before any migration:
 
 - Both suites are **green, zero FAILs** at baseline. So T-05's "exactly one integration FAIL" is a
   state only this migration can produce.
-- `run-unit-tests.sh` inherits each script's stdout (`:58-65`), so case labels do reach the captured
+- `run-unit-tests.py` inherits each script's stdout (`:58-65`), so case labels do reach the captured
   output — T-05's `grep -qi 'harness/docs'` assertions can fire at all.
 - Those greps return **zero hits in both suites pre-migration**, so they cannot pass by accident.
   The existing labels carry `docs/harness/**`, which does not contain `harness/docs`.

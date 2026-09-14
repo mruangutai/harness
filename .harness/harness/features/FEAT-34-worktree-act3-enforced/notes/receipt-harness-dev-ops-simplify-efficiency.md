@@ -93,7 +93,7 @@ call: fix cycle before ship
   Its ship-then-remove path (real gh-sync + feature-worktree calls on a genuine terminal record)
   is necessary work, not waste — not measured further since this tree has no terminal worktree to
   exercise that path against.
-- `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` diff: all three new test files
+- `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` diff: all three new test files
   (`test-worktree-terminal.py`, `test-post-merge-sweep.py`, `test-hooks-install.py`) are added to
   the array the runner actually executes — confirmed by reading the array literal, not
   `harness.json`'s detect globs. Not an efficiency finding (correctness/reuse territory), noted
@@ -105,7 +105,7 @@ The operator supplied the observation that `harness.json`'s `unit.detect` glob
 (`.claude/skills/harness/bin/test-*.py`) and `integration.detect`'s explicit enumeration both match
 all three new test files. Answered directly, per-question:
 
-**Q1 — which array actually runs them.** Read `run-unit-tests.sh:17-18` (`UNIT_SCRIPTS` /
+**Q1 — which array actually runs them.** Read `run-unit-tests.py:17-18` (`UNIT_SCRIPTS` /
 `INTEGRATION_SCRIPTS` literals, not the detect globs). All three names
 (`test-worktree-terminal.py`, `test-post-merge-sweep.py`, `test-hooks-install.py`) appear only in
 `INTEGRATION_SCRIPTS`. Cross-checked programmatically: `set(UNIT_SCRIPTS) & set(INTEGRATION_SCRIPTS)
@@ -113,7 +113,7 @@ all three new test files. Answered directly, per-question:
 shared name). `--kind unit` cannot select them; `--kind integration` is the only kind that runs them.
 
 **Q2 — does the double glob-match cause a double run.** No. Measured directly by running
-`.claude/skills/harness/bin/run-unit-tests.sh --kind integration` to completion (held the SOLE
+`.claude/skills/harness/bin/run-unit-tests.py --kind integration` to completion (held the SOLE
 Q8 permit for this dispatch; ran once, alone):
 `real 287.16s / user 82.82s / sys 41.85s`, exit 0, all 25 `INTEGRATION_SCRIPTS` entries reporting
 `PASS <script>`, including the three new files — `test-worktree-terminal.py` and
@@ -123,16 +123,16 @@ Q8 permit for this dispatch; ran once, alone):
 once per name across the run (tracked live via `ps -g <pgid>` at ~3-4s intervals throughout — no
 repeat sightings of any of the three names). A file's selection is governed exclusively by
 `SCRIPTS=("${UNIT_SCRIPTS[@]}")` / `SCRIPTS=("${INTEGRATION_SCRIPTS[@]}")` per `--kind`
-(`run-unit-tests.sh:23-26`) — the detect globs in `harness.json` are never read by this script at
-all except by the kind-cross-check (`run-unit-tests.sh:82-116`), which only asserts agreement
+(`run-unit-tests.py:23-26`) — the detect globs in `harness.json` are never read by this script at
+all except by the kind-cross-check (`run-unit-tests.py:82-116`), which only asserts agreement
 between `INTEGRATION_SCRIPTS` and `integration.detect`'s explicit paths and never touches
 `unit.detect`. A `qa` pass running `--kind unit` then `--kind integration` back to back therefore
 executes each of the 46 listed scripts exactly once, total.
 
 **Q3 — why the double glob-match is harmless.** Array membership, not glob matching, decides what
-`run-unit-tests.sh` executes. The `unit.detect` glob's `test-*.py` catch-all exists to feed
+`run-unit-tests.py` executes. The `unit.detect` glob's `test-*.py` catch-all exists to feed
 `qa`'s diff-scan classifier (which kind must run given which files changed in a diff) — a
-different consumer entirely from `run-unit-tests.sh`'s own selection logic. Two files can match
+different consumer entirely from `run-unit-tests.py`'s own selection logic. Two files can match
 the same detect glob without ever running twice, because the glob only ever decides "is this kind
 required", never "run this specific file". The one place that WOULD matter — a name present in
 both `UNIT_SCRIPTS` and `INTEGRATION_SCRIPTS` — is independently confirmed empty above. **Measured
@@ -149,7 +149,7 @@ CI cost. Flagged as measured, not diagnosed further (out of this angle's scope).
   findings rest on direct wall-clock timing of the actual runtime code paths (`gh`, `classify_all`,
   the sweep script), which is more precise for a hot-path cost question than a pytest pass/fail
   count would be, and P-16 applies. The addendum above is the one exception — the operator's
-  question is specifically about `run-unit-tests.sh`'s own execution behavior, which only running
+  question is specifically about `run-unit-tests.py`'s own execution behavior, which only running
   it settles.
 
 ```yaml
@@ -164,7 +164,7 @@ DIGEST:
   files_touched: []
   expertise_update: []
   test_kinds_written: []
-  suite_note: "ran run-unit-tests.sh --kind integration once (SOLE Q8 permit, held alone, per addendum): real 287.16s / user 82.82s / sys 41.85s, exit 0, all 25 INTEGRATION_SCRIPTS PASS including the 3 new files. --kind unit not run — UNIT_SCRIPTS/INTEGRATION_SCRIPTS confirmed disjoint by direct set comparison, so a separate unit run cannot re-execute any of the 3 new files and was not needed to answer the addendum's question"
+  suite_note: "ran run-unit-tests.py --kind integration once (SOLE Q8 permit, held alone, per addendum): real 287.16s / user 82.82s / sys 41.85s, exit 0, all 25 INTEGRATION_SCRIPTS PASS including the 3 new files. --kind unit not run — UNIT_SCRIPTS/INTEGRATION_SCRIPTS confirmed disjoint by direct set comparison, so a separate unit run cannot re-execute any of the 3 new files and was not needed to answer the addendum's question"
   measurements:
     - "check-state.sh baseline (pre-diff, 9165162): 11.414s wall clock"
     - "check-state.sh post-diff (513c4a4): 14.935s / 11.315s / 12.177s across 3 runs"
@@ -173,7 +173,7 @@ DIGEST:
     - "gh auth status under simulated slow network (unroutable proxy, 3s test timeout): blocked full 3.003s, confirmed no fast-fail"
     - "worktree_terminal.classify_all: 0.236s, ~11 subprocesses, 5 worktree records"
     - "post-merge-sweep.py --dry-run: 0.226s / 0.238s across 2 runs"
-    - "run-unit-tests.sh --kind integration (addendum, full 25-script run, all 46 UNIT+INTEGRATION scripts confirmed disjoint by set comparison): real 287.16s / user 82.82s / sys 41.85s, exit 0"
+    - "run-unit-tests.py --kind integration (addendum, full 25-script run, all 46 UNIT+INTEGRATION scripts confirmed disjoint by set comparison): real 287.16s / user 82.82s / sys 41.85s, exit 0"
 findings:
   - id: F1
     file: .claude/skills/harness/bin/check-state.sh

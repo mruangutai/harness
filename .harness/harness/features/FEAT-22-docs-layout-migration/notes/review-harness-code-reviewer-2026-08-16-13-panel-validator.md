@@ -20,7 +20,7 @@ Range measured, not quoted: `git rev-list --count 0f12f14..e26e628` = **5**,
 
 - **SC-06** (index byte-identical): ran `gen-decisions-index.py --stdout | diff -` against the
   committed file → **IDENTICAL**.
-- **SC-07/SC-08** (both suites green): ran `run-unit-tests.sh --kind unit` and `--kind integration`
+- **SC-07/SC-08** (both suites green): ran `run-unit-tests.py --kind unit` and `--kind integration`
   directly, twice more via a background loop (4 total integration runs) → 0 `FAIL` lines every time
   but one (see the Info item below).
 - **SC-09** (CI Layout gate's two real constraints): ran `layout_migration.py` myself → exit 0,
@@ -90,7 +90,7 @@ Range measured, not quoted: `git rev-list --count 0f12f14..e26e628` = **5**,
 
 3. **[info, non-blocking]** One integration-suite run (out of six executed across this review)
    showed `test-check-domain.py` not present in the `PASS` set via a `re.findall` scripted check;
-   five other executions (direct run, `run-unit-tests.sh --kind integration` ×2 in-session, ×2 more
+   five other executions (direct run, `run-unit-tests.py --kind integration` ×2 in-session, ×2 more
    via a background loop, plus one more direct `python3 test-check-domain.py`) were clean. Not
    reproduced; suspected mechanism is resource contention across back-to-back subprocess-heavy
    suite runs (several `hook()` calls carry `timeout=20`) rather than a real flake in the code under

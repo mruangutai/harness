@@ -12,8 +12,8 @@ The current repair diff touches logic and unit/integration tests; `logic.always`
 
 | Kind | State | Exact command | Exit | Discovery |
 |---|---|---|---:|---:|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 25 files (`pool: 8 workers, 25 files`) |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 44 files (`pool: 8 workers, 44 files`) |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 25 files (`pool: 8 workers, 25 files`) |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 44 files (`pool: 8 workers, 44 files`) |
 | handoff_comprehension | locally-run, not executed | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a |
 
 The unit runner executed `test-handoff-done-when.py` (44 named checks) and `test-probe-handoff-comprehension.py` (6 unittest cases). The integration runner executed the real `test-check-domain.py` and `test-check-state.py` repair cases. There were zero test assertion, import, load, collection, or syntax failures.

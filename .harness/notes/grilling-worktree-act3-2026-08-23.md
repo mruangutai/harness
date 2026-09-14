@@ -114,7 +114,7 @@ real and turns a correctness check into an availability dependency: slow, and br
 
 ## Facts the validator panel corrected — the main session had these WRONG
 
-- **The registration trap is NOT silent for `bin/`.** `run-unit-tests.sh:48-61` prints
+- **The registration trap is NOT silent for `bin/`.** `run-unit-tests.py:48-61` prints
   `MISCONFIGURED` and exits 2 before running anything, and integration's `cmd` is that script. The
   trap is open ONLY for a test file placed outside `BIN_DIR` — which is the live risk for SC-06,
   SC-07 and SC-08, because they grade a hook and an install step rather than a bin script.

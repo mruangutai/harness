@@ -7,7 +7,7 @@ Read-only run. No source file edited, no file created except this receipt. No gi
 ## 1. Working tree, unfiltered (`git status --porcelain`)
 
 ```
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
  M .harness/harness/features/FEAT-23-ship-flow-fixes/feature.json
  M .harness/harness/features/FEAT-23-ship-flow-fixes/observations/harness-orchestrator.md
 ?? .claude/skills/harness/bin/board-station.py
@@ -23,7 +23,7 @@ Read-only run. No source file edited, no file created except this receipt. No gi
 ?? .harness/harness/features/FEAT-23-ship-flow-fixes/notes/receipt-harness-backend-dev-T-05-c1.md
 ```
 
-Note: 3 files here are *modified* (`M`), not just untracked — `.claude/skills/harness/bin/run-unit-tests.sh`,
+Note: 3 files here are *modified* (`M`), not just untracked — `.claude/skills/harness/bin/run-unit-tests.py`,
 `.harness/harness/features/FEAT-23-ship-flow-fixes/feature.json`, and
 `.harness/harness/features/FEAT-23-ship-flow-fixes/observations/harness-orchestrator.md`. These are
 consistent with T-05's work (registering `test-board-station.py` in the drift detector) plus normal
@@ -57,9 +57,9 @@ Command (verbatim, from `plan.yaml`):
 ```
 B=.claude/skills/harness/bin/board-station.py
 T=.claude/skills/harness/bin/test-board-station.py
-R=.claude/skills/harness/bin/run-unit-tests.sh
+R=.claude/skills/harness/bin/run-unit-tests.py
 test -f "$B" || { echo "T-05: $B does not exist"; exit 1; }
-grep -qF "test-board-station.py" "$R" || { echo "T-05: the new test file is not registered in run-unit-tests.sh; the drift detector fails the WHOLE run and would redden every other task"; exit 1; }
+grep -qF "test-board-station.py" "$R" || { echo "T-05: the new test file is not registered in run-unit-tests.py; the drift detector fails the WHOLE run and would redden every other task"; exit 1; }
 out=$(python3 "$T" 2>&1); rc=$?
 say() { printf '%s\n' "$out"; }
 say | grep -qF "PASS  board-station moves the named issue to the named station" || { echo "T-05: the station-write case did not pass or did not run"; exit 1; }
@@ -109,7 +109,7 @@ shows above.
 ## 5. Full suite, both buckets
 
 ```
-cd /Users/molchairuangutai/GitHub/harness && bash .claude/skills/harness/bin/run-unit-tests.sh --kind all
+cd /Users/molchairuangutai/GitHub/harness && bash .claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 Exit code: `0`.

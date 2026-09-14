@@ -16,9 +16,9 @@ review panel, then pm's goal-check on all 14 SCs.
 - Ten of eighteen tasks are done: T-01, T-02, T-03, T-06, T-07, T-08, T-11, T-13, T-16, T-18 — `plan.yaml` statuses and issues #642/#643/#644/#647/#648/#649/#652/#654/#660/#662 closed — verified-at b2f7c73
 - Both standing `context-watch.py` defects are FIXED, not merely claimed: discovery now returns 105 rows, matching an independent glob count of 105 orchestrator sidecars — `runs/fix1-eng/digest.md` plus my own recomputation — verified-at b2f7c73
 - SC-01's live half is DISCHARGED: `verify-context-watch-live.py a7783f0ec41e6a8c6` prints tool and independent recomputation both at current 696,472 / peak 696,472 / entries 669, and that peak matches `BRIEF.md:43` to the token — verified-at b2f7c73
-- Unit 76 of 76 and integration 10 of 10, both exit 0, zero MISCONFIGURED — `run-unit-tests.sh --kind unit|integration` — verified-at b2f7c73
+- Unit 76 of 76 and integration 10 of 10, both exit 0, zero MISCONFIGURED — `run-unit-tests.py --kind unit|integration` — verified-at b2f7c73
 - The operator's T-17 is UNBLOCKED: T-16 landed the library with `.claude/settings.json` zero-diff (D-24 holds), and T-18 landed the `detect` path — key-by-key diff of `harness.json` showed exactly one key changed — verified-at b2f7c73
-- `run-unit-tests.sh` has THREE writers, not the two on the record: T-07 (landed, one entry appended, nothing removed, order preserved) plus the operator's T-17 and T-12 — `git diff` of the arrays — verified-at b2f7c73
+- `run-unit-tests.py` has THREE writers, not the two on the record: T-07 (landed, one entry appended, nothing removed, order preserved) plus the operator's T-17 and T-12 — `git diff` of the arrays — verified-at b2f7c73
 - Q-CHECKCOUNT is CLOSED and benign: 78 static `check(` sites versus 76 executed, and the two unexecuted are lines 668-669 inside case J's `INCONCLUSIVE` branch, dead precisely because the mutation applied — `sys.settrace` line trace — verified-at b2f7c73
 - cycles_used is 4 of 10; runs 9 of 20 and runs are INFORMATIONAL only (INV-22, `harness.json` `_max_total_runs_rationale`) — `feature.json` — verified-at b2f7c73
 - Three of ten requirements are exclusively main-session-direct — REQ-04 (T-15), REQ-09 (T-14), REQ-10 (T-10, T-14) — so the goal-check CANNOT pass until the operator's six tasks land — `plan.yaml` `traces:` — verified-at b2f7c73

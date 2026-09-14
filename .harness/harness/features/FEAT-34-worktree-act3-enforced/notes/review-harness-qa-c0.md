@@ -9,7 +9,7 @@ treated as flaky per the panel's own rule, and reported honestly below, not hidd
 `test_matrix.logic.always = [unit]`, `test_matrix.config.always = []`, `test_matrix.docs.always =
 []`. All 13 tasks are `change_type: logic` except T-05/T-13 (`config`) and T-10/T-12 (`docs`).
 `logic` only obligates `unit` — but `.harness/harness.json`'s `unit.detect` glob
-(`.../bin/test-*.py`) and `run-unit-tests.sh`'s explicit-list split (issue #160, `UNIT_SCRIPTS`
+(`.../bin/test-*.py`) and `run-unit-tests.py`'s explicit-list split (issue #160, `UNIT_SCRIPTS`
 vs `INTEGRATION_SCRIPTS`) together route every one of this feature's new test files into
 `integration` because they fork real subprocesses (git, gh stubs) — so `integration` is the kind
 that actually carries this feature's coverage, and the brief's own SCs correctly cite
@@ -19,21 +19,21 @@ gaps section of the brief.
 
 | kind | state | cmd | named tests |
 |---|---|---|---|
-| unit | n/a (no new file routes here) | `run-unit-tests.sh --kind unit` | — |
-| integration | **satisfied** | `run-unit-tests.sh --kind integration` | `test-worktree-terminal.py` (19+ cases incl. classify_all i/j/k/l), `test-post-merge-sweep.py` (a-i incl. linked-worktree case), `test-hooks-install.py` (SC-08/13/14), `test-check-state.py` (INV-29 a-f, INV-30 a-c) |
+| unit | n/a (no new file routes here) | `run-unit-tests.py --kind unit` | — |
+| integration | **satisfied** | `run-unit-tests.py --kind integration` | `test-worktree-terminal.py` (19+ cases incl. classify_all i/j/k/l), `test-post-merge-sweep.py` (a-i incl. linked-worktree case), `test-hooks-install.py` (SC-08/13/14), `test-check-state.py` (INV-29 a-f, INV-30 a-c) |
 | inspection (SC-09) | **satisfied** | manual grep | all 16 `.claude/agents/harness-*.md` preload `harness-handoff`; `harness-handoff/SKILL.md:82` carries "One act is never yours... removing a worktree" — verified directly, not by re-trusting T-10's own verify string |
 
 `--check-kinds` (the drift + cross-check detector) passes: `test-worktree-terminal.py`,
 `test-post-merge-sweep.py`, `test-hooks-install.py` are all registered in both
-`INTEGRATION_SCRIPTS` (`run-unit-tests.sh:19`) and `test_kinds.integration.detect`
+`INTEGRATION_SCRIPTS` (`run-unit-tests.py:19`) and `test_kinds.integration.detect`
 (`.harness/harness.json`) — T-05 and T-13's registration verified directly, not by trusting their
 own `verify:` string.
 
 ## Suite execution — I am sole runner, evidence below
 
-- `ps` checked clean before every run of mine. No `run-unit-tests.sh`/`test-*.py` of ANY kind was
+- `ps` checked clean before every run of mine. No `run-unit-tests.py`/`test-*.py` of ANY kind was
   live before either of my two full runs.
-- Run 1: `run-unit-tests.sh --kind integration`, wall clock **236s**, **exit 1** —
+- Run 1: `run-unit-tests.py --kind integration`, wall clock **236s**, **exit 1** —
   `test-validate-digest.py` case `[hook] F1.3 unquoted apostrophe must not fuse list entries`
   failed (`stderr should mention 'worst member verdict'`). This file is untouched by this
   feature's diff (`git log` shows its last touch is commit `9ad8f35`, FEAT-32, well before
@@ -43,7 +43,7 @@ own `verify:` string.
   all 25 scripts PASS including the three new ones and `test-check-state.py`.
 - **Conclusion on the F1.3 failure: a genuine flake, not a diff defect.** It is unrelated code,
   it failed once and passed on immediate isolated re-run and inside the full-suite re-run, and I
-  am the confirmed sole runner for both attempts (no concurrent `run-unit-tests.sh` of mine or
+  am the confirmed sole runner for both attempts (no concurrent `run-unit-tests.py` of mine or
   anyone else's). Reported rather than suppressed, per the instruction to re-run alone and say so.
 - **Q15 (wall clock, prior open question): reproduces, consistently.** Two clean solo runs, no
   concurrent load either time, both land at ~235-236s against the script's own documented ~15.6s
@@ -53,7 +53,7 @@ own `verify:` string.
   not resolved by this note, but no longer merely "attributed to unrelated load and not accepted
   as fact." It should be escalated as a real perf question, separate from correctness.
 - One benign observation, not an injection: mid-run I twice saw a *different* process pair
-  (`bash .agents/skills/harness/bin/run-unit-tests.sh` / a child `test-*.py`) appear transiently
+  (`bash .agents/skills/harness/bin/run-unit-tests.py` / a child `test-*.py`) appear transiently
   in `ps`. Path prefix is `.agents/`, not this worktree's `.claude/`, so it is not one of this
   panel's runs and not this checkout — noted for completeness, not acted on, and it was gone by
   the time each of my own runs started.

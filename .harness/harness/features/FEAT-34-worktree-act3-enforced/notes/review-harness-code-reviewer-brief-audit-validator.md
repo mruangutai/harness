@@ -69,7 +69,7 @@ correction. `:1132`/`:1148` match the "no removal guidance / prints `remove <pat
 pair. `SKILL.md:321`/`:325` match the act-3 prose and the exit-0-from-inside fact.
 `harness-team` `SKILL.md:90` mentions worktrees, never removal — confirmed. `feature-worktree.py:287`
 is the `rev-parse {default_branch}:{rel}` call; `resolve_repo` returns `default_branch` per repo —
-confirmed. `run-unit-tests.sh:18` is `INTEGRATION_SCRIPTS=(...)`, `:110-115` is the two `KIND-DRIFT`
+confirmed. `run-unit-tests.py:18` is `INTEGRATION_SCRIPTS=(...)`, `:110-115` is the two `KIND-DRIFT`
 branches — confirmed.
 
 Only `harness-orchestrator.md` preloads the bare `harness` skill among all 16 agents (grepped every

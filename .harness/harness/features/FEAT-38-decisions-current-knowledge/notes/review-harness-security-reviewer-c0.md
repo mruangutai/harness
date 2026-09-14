@@ -29,10 +29,10 @@ surface."*
 1. `test-check-decision-claims.py` carries `test_live_authority_claims_all_hold` (`:1358-1394`), which runs
    `check-decision-claims.py --file <repo>/.harness/harness/docs/DECISIONS.md` — the **live** document, not a
    fixture (by design, per the file's own docstring: it "guards the AUTHORITY itself").
-2. `test-check-decision-claims.py` is registered in `INTEGRATION_SCRIPTS` at `run-unit-tests.sh:31` (confirmed
+2. `test-check-decision-claims.py` is registered in `INTEGRATION_SCRIPTS` at `run-unit-tests.py:31` (confirmed
    by parsing the array at the pin: `'test-check-decision-claims.py' in names → True`), and mirrored in
    `.harness/harness.json`'s `integration.detect` glob.
-3. `.github/workflows/tests.yml` runs `run-unit-tests.sh --kind integration` in the **"Integration suite"**
+3. `.github/workflows/tests.yml` runs `run-unit-tests.py --kind integration` in the **"Integration suite"**
    step, triggered `on: pull_request` (every branch toward `main`) and `on: push` (`main` only) — confirmed by
    reading the workflow at the pin.
 
@@ -76,7 +76,7 @@ adding content to this file. The vulnerability does not depend on that conventio
   `permissions:` block narrows the default token, which is a hardening gap but not itself exploitable by this
   diff's content — noted, not rated as its own finding since it's pre-existing workflow shape, not new in this
   diff.
-- **Swept scripts** (`check-domain.py`, `check-state.sh`, `run-unit-tests.sh`, `board_lifecycle.py`,
+- **Swept scripts** (`check-domain.py`, `check-state.sh`, `run-unit-tests.py`, `board_lifecycle.py`,
   `check-plan-routes.py`, `factory_decompose.py`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`,
   `upgrade-config.py`, `validate-digest.py`, and the touched `test-*.py`): diffed every changed line across the
   full sweep for `curl|wget|eval|os.system|shell=True|` command substitution `` `...` ``/`$(...)`, and
@@ -109,7 +109,7 @@ DIGEST:
   severity_max: high
   findings: 1
   must_fix:
-    - "check-decision-claims.py:76,99-104 — the {\"git\",\"grep\"} first-token allowlist does not prevent RCE: `git -c core.fsmonitor=\"<shell command>\" status` (or any index-touching git subcommand) executes the config value via a shell-invoked hook, first token still 'git'. Confirmed by direct reproduction. Reachable via test_live_authority_claims_all_hold (test-check-decision-claims.py:1358-1394), registered in run-unit-tests.sh INTEGRATION_SCRIPTS and run by .github/workflows/tests.yml's Integration suite step on every `pull_request`. A PR adding one claim marker to DECISIONS.md gets arbitrary code executed in the CI runner on every push to that PR, unmerged, unreviewed."
+    - "check-decision-claims.py:76,99-104 — the {\"git\",\"grep\"} first-token allowlist does not prevent RCE: `git -c core.fsmonitor=\"<shell command>\" status` (or any index-touching git subcommand) executes the config value via a shell-invoked hook, first token still 'git'. Confirmed by direct reproduction. Reachable via test_live_authority_claims_all_hold (test-check-decision-claims.py:1358-1394), registered in run-unit-tests.py INTEGRATION_SCRIPTS and run by .github/workflows/tests.yml's Integration suite step on every `pull_request`. A PR adding one claim marker to DECISIONS.md gets arbitrary code executed in the CI runner on every push to that PR, unmerged, unreviewed."
   threat_model:
     - { boundary: "PR content (DECISIONS.md) -> CI Integration suite -> check-decision-claims.py -> subprocess.run(argv)", stride: T, mitigated: false }
     - { boundary: "check-decision-claims.py argv -> git binary -> `-c core.fsmonitor=` hook -> shell", stride: E, mitigated: false }

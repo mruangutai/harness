@@ -103,10 +103,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_product_config.py
       - .claude/skills/harness/bin/test-factory-product-config.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      grep -q test-factory-product-config.py .claude/skills/harness/bin/run-unit-tests.sh \
-        && .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      grep -q test-factory-product-config.py .claude/skills/harness/bin/run-unit-tests.py \
+        && .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create .claude/skills/harness/bin/factory_product_config.py, the ONLY resolver of which
       config file answers for a given session root. Every future consumer takes its config from
@@ -304,7 +304,7 @@ tasks:
         - the LIVE kaya config in this repository, located as
           os.path.join(factory_config.harness_root(), ".harness", "products", "kaya-ai",
           "harness.json") — NOT a path relative to the process working directory, which is correct
-          only under run-unit-tests.sh and wrong under a direct invocation. Assert: every value in
+          only under run-unit-tests.py and wrong under a direct invocation. Assert: every value in
           that file's test_kinds is a MAPPING (a string sibling would break every consumer that
           iterates the object); every kind named in any change type's always list exists in that
           file's own test_kinds; every when clause names either an existing kind or a predicate
@@ -342,7 +342,7 @@ tasks:
             - one refusal branch (a checkout registered nowhere) exits 2 with EMPTY stdout, the
               diagnostic going to stderr, per factory_cli.run's contract
 
-      Finally register the new file in .claude/skills/harness/bin/run-unit-tests.sh by appending
+      Finally register the new file in .claude/skills/harness/bin/run-unit-tests.py by appending
       "test-factory-product-config.py" to the UNIT_SCRIPTS array. The runner's drift detector runs
       over the union of both arrays and fails the WHOLE run on an unregistered test file, so this
       registration belongs in this task and not a later one.

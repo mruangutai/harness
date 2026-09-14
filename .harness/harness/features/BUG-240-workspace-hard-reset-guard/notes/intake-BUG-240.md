@@ -47,7 +47,7 @@ goal-check caught it.
 > - A checkout with only ignored files present is NOT refused -- ignored dirt is not work.
 > - The computed path resolving to the harness repo is refused even when clean.
 > - A genuinely clean scratch checkout still refreshes exactly as today.
-> - run-unit-tests.sh exits 0.
+> - run-unit-tests.py exits 0.
 
 ## Evidence from the read-only scout (main session, this session, at HEAD)
 

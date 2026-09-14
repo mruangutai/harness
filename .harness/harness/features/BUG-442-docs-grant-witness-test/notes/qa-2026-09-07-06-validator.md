@@ -35,13 +35,13 @@ chain's own exit code, which was captured directly as `0`).
 **Exit 0. `^ok ` count = 24. `^FAIL ` count = 0.** Matches the prior segment's f9f2d392 numbers
 exactly, now measured at the pin.
 
-## Full unit runner: `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.sh`
+## Full unit runner: `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py`
 
 **Exit 0** (captured via `rc=$?` immediately after the command, not read from tail). **`^FAIL `
 count = 0** over the whole log. **`^ok ` count = 2829.** Confirms the prior segment's f9f2d392
 measurement of "0 FAIL over 2829 ok" exactly.
 
-## Integration kind: `... run-unit-tests.sh --kind integration`
+## Integration kind: `... run-unit-tests.py --kind integration`
 
 **Exit 0** (via `rc=$?`). **`^FAIL ` count = 0.** `^ok ` count = 2067 (includes `test-harness-yaml.py`'s
 own 24 as a subset alongside every other integration script's cases). Confirms green.

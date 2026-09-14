@@ -61,12 +61,12 @@
   `test-gen-decisions-index.py:406-408` (`test_committed_index_is_complete_and_within_budget`), plus
   a 20-non-whitespace-char floor (`:404`) and a 260-line file budget (`:378`). None of it is stated
   in the index's own header, and neither `gen-decisions-index.py` nor `check-docs.sh` sees it — so an
-  over-long ruling passes generator-diff and check-docs and only reddens `run-unit-tests.sh`.
+  over-long ruling passes generator-diff and check-docs and only reddens `run-unit-tests.py`.
   Measure with the gate's counter, not your own: the count is
   `len(strip_ruling_prose(ruling).split())` — a naive whitespace split, so a standalone em dash is a
   token and backticked spans are one token each. DEC-175's ruling read 32 by that counter (31
   non-dash words); dropping the trailing "(`dev-ops` `suite` excluded — residue)" parenthetical
-  landed it at 27. Rule: after editing any index ruling, run `run-unit-tests.sh`, not just the
+  landed it at 27. Rule: after editing any index ruling, run `run-unit-tests.py`, not just the
   generator diff.
 
 ## SC-07 / S1 artifact — state-binding rule on the SPEC §8.1 eng-devs bullet (2026-08-04)
@@ -135,7 +135,7 @@ dev-ops context line appears as `+`/`-`. `git diff --stat -- docs/harness/SPEC.m
   **Observed:** detector 1 (dev-ops fail/REJECTED) = 1, exit 0 (was 0); dev-ops `task_verify` = 2;
   eng-devs fail/REJECTED = 1 (UNCHANGED); `no-task` = 0 (grep exit 1, no match); index
   `gen-decisions-index.py --stdout | diff` exit 0; `check-docs.sh` exit 0, 45 patterns across
-  186 files; `run-unit-tests.sh` exit 0, ALL PASSED. No DECISIONS.md propagation entry was
+  186 files; `run-unit-tests.py` exit 0, ALL PASSED. No DECISIONS.md propagation entry was
   demanded, so the pre-authorized FAIL path was not taken.
   **Diff shape:** `git diff -U0 -- docs/harness/SPEC.md` shows TWO hunks / 7 insertions /
   3 deletions, but only the second (`@@ -1064,2 +1068,2 @@`, 2 in / 2 out) is mine — the first
@@ -144,7 +144,7 @@ dev-ops context line appears as `+`/`-`. `git diff --stat -- docs/harness/SPEC.m
   dirty tree, `git diff --stat` alone does NOT bound your own edit; read the hunk headers.
   Post-edit widths 1066-1072 = 80/76/96/98/88/77/57, inside the file's observed max of 100;
   lines 1070-1072 were not re-flowed.
-  **Gap flagged, not edited:** `run-unit-tests.sh` asserts `dev-ops suite: fail + PASS stays
+  **Gap flagged, not edited:** `run-unit-tests.py` asserts `dev-ops suite: fail + PASS stays
   accepted` (D-03) while the same pair is rejected for an eng dev. §8.1's dev-ops bullet says only
   "(TDD-exempt work reports `n/a`)" and never states that its `suite` is ungated, so a dev-ops
   author reasoning by analogy from the eng-devs bullet is misled. Outside this dispatch's one

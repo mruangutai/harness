@@ -9,7 +9,7 @@ cases against b4659cd (not the caller's expected four/five), tree diff clean.
 
 1. `git show b4659cd:.../inject-expertise.sh | diff - .../inject-expertise.sh` → **empty, exit
    0.** RED baseline tree matches ada8e99 pin, no ESCALATE needed.
-2. `run-unit-tests.sh --kind unit` → exit 0, **16/16** script-level PASS (`grep -c
+2. `run-unit-tests.py --kind unit` → exit 0, **16/16** script-level PASS (`grep -c
    '^PASS test-'`), no `^FAIL `. `--kind integration` → exit 0, **12/12** script-level PASS, no
    `^FAIL `. No drift-detector exit 2. No pre-existing suite failure.
 3. `check-expertise.sh .harness/expertise/` → exit 0, all 15 files `OK`, no `^ADVISORY ` line.
@@ -44,7 +44,7 @@ pre-edit read-out lines.
   5a/5b, 7a/7b, 9a/9b, 12×4 values) = **18 total assertions**, all PASS post-edit. Shape follows
   `test-check-expertise.py`: plain python3, `INJECT_EXPERTISE_BIN` env override, temp dirs per
   case, printed PASS/FAIL, `sys.exit(1)` on any fail.
-- `run-unit-tests.sh:17` — `"test-inject-expertise.py"` appended to `UNIT_SCRIPTS`.
+- `run-unit-tests.py:17` — `"test-inject-expertise.py"` appended to `UNIT_SCRIPTS`.
 
 ## STEP 2b — hermeticity decision
 
@@ -113,13 +113,13 @@ The dispatch's quoted verify was byte-`diff`'d against `plan.yaml`'s T-02 `verif
 - **Final line: `PASS test-inject-expertise.py`**
 
 `git status --porcelain` re-run and diffed against STEP 1 snapshot: **exactly my three files**
-— `inject-expertise.sh` (M), `run-unit-tests.sh` (M), `test-inject-expertise.py` (??) — added.
+— `inject-expertise.sh` (M), `run-unit-tests.py` (M), `test-inject-expertise.py` (??) — added.
 Nothing else changed; no tidy/revert performed on the pre-existing FEAT-26/FEAT-27 dirt noted
 in STEP 1.
 
 ## Full-suite sanity (script-level PASS/FAIL lines only, `grep -c '^PASS test-'`)
 
-`run-unit-tests.sh --kind unit` → exit 0, **17/17** script-level PASS (16 pre-existing +
+`run-unit-tests.py --kind unit` → exit 0, **17/17** script-level PASS (16 pre-existing +
 `test-inject-expertise.py`), 0 `^FAIL `. `--kind integration` → exit 0, **12/12** script-level
 PASS, 0 `^FAIL `. Drift detector did not fire (exit 2 not observed on either run) —
 `test-inject-expertise.py` is registered in `UNIT_SCRIPTS` in the same change as its creation,

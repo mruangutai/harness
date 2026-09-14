@@ -60,6 +60,6 @@ BRIEF criteria, the layout_fixtures.py exclusion) was left alone.
   subprocess) — different implementations for different consumers, justified by D-03
   (DEC-193 forbids a git subprocess on the governed-write path); not a duplication, a deliberate
   split.
-- `run-unit-tests.sh`'s drift detector (union-of-arrays check) is exercised by T-08's verify as-is,
+- `run-unit-tests.py`'s drift detector (union-of-arrays check) is exercised by T-08's verify as-is,
   not hand-rolled a second time; the harness.json `detect`-list check in T-08's verify has no
   existing equivalent script to reuse — confirmed by grep, no finding.

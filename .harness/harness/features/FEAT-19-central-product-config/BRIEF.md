@@ -304,7 +304,7 @@ cheap moment. Every place that names it also names the tool with it: never a bar
   verify: automated      evidence: integration
   (The `integration` evidence is `test-check-state.py`, which runs against fixture trees. A pass
   on **this** repository is the pre-commit `check-state.sh` run and is cited separately.)
-- SC-11: The new resolver is registered in `run-unit-tests.sh`'s script arrays, so its tests
+- SC-11: The new resolver is registered in `run-unit-tests.py`'s script arrays, so its tests
   actually run rather than existing unread.
   verify: automated      evidence: unit
 - SC-12: The operator can point the factory at kaya and see, in one command's output, which

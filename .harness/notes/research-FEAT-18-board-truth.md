@@ -37,7 +37,7 @@ start-of-task move) is derivable and is recorded as D-04, not raised as a questi
    `.claude/skills/harness/SKILL.md` and `.claude/skills/harness/templates/harness.json` both
    resolve to **NOBODY**, so both edits are declared main-session-direct steps (DEC-179), not
    mid-run rejected writes.
-9. **All four test files this feature touches are already registered** in `run-unit-tests.sh`
+9. **All four test files this feature touches are already registered** in `run-unit-tests.py`
    (`test-gh-sync.py`, `test-check-state.py`, `test-check-plan-routes.py` in `INTEGRATION_SCRIPTS`).
    A NEW `test-gh-board.py` is not, and G-08 says an unregistered file fails the WHOLE run — T-02
    registers it in the same task.

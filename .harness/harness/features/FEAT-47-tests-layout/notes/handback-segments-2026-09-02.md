@@ -84,7 +84,7 @@ What follows is only what the plan cannot tell you, because it was true after th
 | T-02 | line 431 | Derive the integration set from `git ls-files -- '.claude/skills/harness/bin/test-*.py'` at current HEAD and run the plan's own `comm -23` reconciliation before moving anything. Assert the floor **and** the per-file rename record; never a count |
 | T-03 | line 578 | Derive the unit set as the tracked remainder after T-02's moves, plus the bun suite and its two `.jsonl` fixtures. Anchor recipe is T-02's, verbatim |
 | T-04 | line 684 | None. One `git mv` plus header repair |
-| T-05 | line 716 | Capture the **current** contents of the two bash arrays in `run-unit-tests.sh` before deleting them, and derive D-16's line-exemption census by running `suite-census.py`. Write both test files first and watch them fail |
+| T-05 | line 716 | Capture the **current** contents of the two bash arrays in `run-unit-tests.py` before deleting them, and derive D-16's line-exemption census by running `suite-census.py`. Write both test files first and watch them fail |
 | T-07 | line 1262 | Re-run the two-glob token sweep at build time — the 28-file snapshot in the plan is not the set, and the cycle-2 panel's `critical` was exactly this enumeration going stale. Run **after** T-05 |
 | T-06 | line 1110 | Read `DECISIONS.md`'s last heading for the next free number; no number is pinned anywhere in the plan. Backfill the `dec: pending-T-06` fields, regenerate the index, re-run the residue census |
 

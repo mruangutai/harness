@@ -4,14 +4,14 @@
 
 **FAIL — 14 of 15 met; one criterion, SC-08, carries a false `evidence:` label and cannot be
 discharged as signed.** B1 (the DEC-213 layout violation) is **CLOSED**: `72a6a757` deletes the two
-stale `bin/` carriers (168 deletions, deletions only), `run-unit-tests.sh --check-layout` exits **0**,
+stale `bin/` carriers (168 deletions, deletions only), `run-unit-tests.py --check-layout` exits **0**,
 and `git diff --stat 72a6a757 -- . ':(exclude).harness'` is empty, so the tracked source I graded IS
 the pinned tree. The user's amendment `7ca27941` is BRIEF-only and changes exactly the eight
 `evidence: unit` → `integration` lines plus the approval date to 2026-09-02.
 
 **The one gap is the same defect class the amendment fixed, on a criterion the amendment did not
 list.** SC-08 declares `evidence: unit`; its only carrier is
-`tests/integration/test-check-instruction-paths.py:79-86` (`case_workflow_gate`). `run-unit-tests.sh:27`
+`tests/integration/test-check-instruction-paths.py:79-86` (`case_workflow_gate`). `run-unit-tests.py:27`
 selects `tests/unit/test-*.py` for `--kind unit`, and `harness.json` `unit.detect` is
 `tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py` — the hyphenated name matches none of the
 non-directory globs. **The `unit` kind never executes SC-08's assertions.** No `tests/unit/` file
@@ -41,7 +41,7 @@ Suites I ran at the pin (tracked source identical to `72a6a757`): `test-check-in
 16 PASS, `test-anchor-directions.py` 7 PASS, `test-inject-expertise.py` 21 ok,
 `test-inflight-registry.py` 126 ok, `test-dispatch-guard.py` 48 ok, `test-check-domain.py` 301 ok,
 `test-gen-decisions-index.py` 14 ok — every one exit 0, zero `FAIL`/`not ok` lines.
-`run-unit-tests.sh --check-layout` exit 0. Each runner's failure accounting checked before citing its
+`run-unit-tests.py --check-layout` exit 0. Each runner's failure accounting checked before citing its
 exit code (e.g. `test-check-instruction-paths.py:92-93` raises on any false row).
 
 ## REQ coverage — complete

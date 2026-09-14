@@ -86,7 +86,7 @@ that would fail loudly if it went stale.
 
 ## Check 4 — task `verify:` hand-rolling an existing bin script: **no finding**
 
-T-01's verify runs the real test file plus `run-unit-tests.sh --check-layout`; T-02's runs the
+T-01's verify runs the real test file plus `run-unit-tests.py --check-layout`; T-02's runs the
 integration test file; T-03's runs the new subcommand directly; T-04's runs `tree-audit --against`
 against the note it just wrote; T-05's runs `gen-decisions-index.py --stdout | diff` plus
 `check-decision-anchors.py`. Each verify invokes the real instrument rather than reimplementing a

@@ -21,7 +21,7 @@ Everything measured in the **FEAT-31 worktree at 7299669** unless stated otherwi
 
 ## The eight, enumerated and measured at 7299669 (D-4a)
 
-`INTEGRATION_SCRIPTS` in `run-unit-tests.sh` holds **12**; `test_kinds.integration.detect` names
+`INTEGRATION_SCRIPTS` in `run-unit-tests.py` holds **12**; `test_kinds.integration.detect` names
 **4** of them (`test-check-state.py`, `test-factory-integration.py`, `test-gh-sync.py`,
 `test-check-plan-routes.py`). The **8 absent**, each therefore classified `unit` by
 `unit.detect`'s catch-all `.claude/skills/harness/bin/test-*.py`:
@@ -49,7 +49,7 @@ T-10 (already explicit) are in scope; no other task creates or moves a test file
 
 ## D-4(b) — the check, and why it can go red on the *mismatch*
 
-T-12 puts the cross-check **inside `run-unit-tests.sh`** with a `--check-kinds` mode.
+T-12 puts the cross-check **inside `run-unit-tests.py`** with a `--check-kinds` mode.
 The rule is a **set comparison, not a classifier**: every `INTEGRATION_SCRIPTS` name must be an
 explicit literal path in `integration.detect`; no `UNIT_SCRIPTS` name may be. That deliberately
 avoids depending on Q-B's unwritten precedence rule.
@@ -172,7 +172,7 @@ SC-14's `verify: automated      evidence: integration` line, SC-15 and `## Appro
   passed. A plan.yaml that "looks right" is not a plan.yaml that parses.
 - D-06 is **not** contradicted by D-19. Its stated basis is that an array append changes no gate
   rule; T-02 and T-07 stay `team` on exactly that basis. T-12 changes what the runner *rejects*,
-  which D-06 never covered. The `lanes:` row for `run-unit-tests.sh` now records both lanes by edit
+  which D-06 never covered. The `lanes:` row for `run-unit-tests.py` now records both lanes by edit
   kind.
 - `lanes.resolved_at` moved `6f651f1` → `7299669`: all 14 pre-existing rows were re-resolved with
   `check-domain.py --resolve` and every one was unchanged; 2 rows added.

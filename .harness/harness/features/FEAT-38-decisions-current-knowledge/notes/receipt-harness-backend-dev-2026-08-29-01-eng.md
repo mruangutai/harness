@@ -25,21 +25,21 @@ EXIT_STATUS=0
 ## 2. git status --porcelain
 ```
 D  .claude/skills/harness/bin/check-decision-claims.py
- M .claude/skills/harness/bin/run-unit-tests.sh
+ M .claude/skills/harness/bin/run-unit-tests.py
 D  .claude/skills/harness/bin/test-check-decision-claims.py
  M .harness/harness/features/FEAT-38-decisions-current-knowledge/plan.yaml
 ?? .harness/logs/2026-08-29.md
 ```
-The two `M`/`D`/`D` entries for `run-unit-tests.sh` and the two deleted files are mine, as
+The two `M`/`D`/`D` entries for `run-unit-tests.py` and the two deleted files are mine, as
 required. The `plan.yaml` modification (T-27's DECISIONS.md task status flipped `pending`→`done`)
 and the untracked `.harness/logs/2026-08-29.md` are NOT mine — I never opened either path; they are
 concurrent sibling/tooling activity in the shared worktree, out of my `files:` scope, left
 untouched. This receipt file and the observations-log entry are the only other paths I write, both
 allowed.
 
-## 3. numstat on run-unit-tests.sh
+## 3. numstat on run-unit-tests.py
 ```
-1	1	.claude/skills/harness/bin/run-unit-tests.sh
+1	1	.claude/skills/harness/bin/run-unit-tests.py
 ```
 1 insertion + 1 deletion (whole-array-line replace, since the array is one physical line). Removed
 line ended in:
@@ -63,7 +63,7 @@ adb9a648cfd167e30c66b34e40e4efd0dfb89ed9958ac21f62a84282299ccb77  check-decision
 Both retained files match `99bb52c` exactly — untouched.
 
 ## 5. Retained registration
-`run-unit-tests.sh:31` `INTEGRATION_SCRIPTS` array still ends `... "test-check-decision-anchors.py")`
+`run-unit-tests.py:31` `INTEGRATION_SCRIPTS` array still ends `... "test-check-decision-anchors.py")`
 — `test-check-decision-anchors.py` remains registered; `test-check-decision-claims.py` is gone from
 the array.
 

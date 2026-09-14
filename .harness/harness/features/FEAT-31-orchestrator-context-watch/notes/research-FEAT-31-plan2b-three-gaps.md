@@ -66,14 +66,14 @@ operator alongside SC-10, recorded as **D-16**, mirroring D-12's established pat
 narrowed criterion in a key **no validator reads** — invisible at exactly the gate that should catch
 it. D-12 is how this plan already records a no-task UAT routing.
 
-**T-10 needs no new registration.** `test-check-state.py` is already in `run-unit-tests.sh`'s
+**T-10 needs no new registration.** `test-check-state.py` is already in `run-unit-tests.py`'s
 `INTEGRATION_SCRIPTS` and already listed in `test_kinds.integration.detect`. Reusing the gate's paired
-test is also what DEC-174 am.4 requires. So the drift detector at `run-unit-tests.sh:41-51` and the qa
+test is also what DEC-174 am.4 requires. So the drift detector at `run-unit-tests.py:41-51` and the qa
 matrix both already see it, and no new `test-*.py` file is created.
 
 ## GAP 3 — the premise misread the plan, and the real open item is now settled on evidence
 
-**There is no PreToolUse anywhere in the plan.** D-06 is about whether editing `run-unit-tests.sh` is
+**There is no PreToolUse anywhere in the plan.** D-06 is about whether editing `run-unit-tests.py` is
 a team task — nothing to do with hooks. **D-13 already says PostToolUse + exit 2**, adopting probe
 Finding 1 verbatim, and D-14 puts `settings.json` in the operator's hands. The dispatch's `Task|Agent`
 / `additionalContext` / `systemMessage` description matches no text in this file.

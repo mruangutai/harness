@@ -16,10 +16,10 @@ nothing committed, HEAD still `0a120c6`.
 | 181 | `grep -F "budget is 300" .claude/skills/harness/bin/check-domain.py` | `budget is 300` | MANDATORY 3. Claimed against `check-domain.py`'s own `feature.json` message, never against another decision |
 | 183 | `grep -F "name: Plan-route gate" .github/workflows/tests.yml` | `name: Plan-route gate` | the promotion IS the step existing in the workflow |
 | 183 | `grep -F "violation(s) across" .claude/skills/harness/bin/check-plan-routes.py` | `violation(s) across {processed} plan(s)` | the entry quotes the checker's final line as the thing the step parses for M; the f-string is that line |
-| 183 | `grep -F "run-unit-tests.sh" .github/CODEOWNERS` | `run-unit-tests.sh  @mruangutai` (two spaces) | entry says CODEOWNERS covering `run-unit-tests.sh` is committed; file existence + ownership row |
+| 183 | `grep -F "run-unit-tests.py" .github/CODEOWNERS` | `run-unit-tests.py  @mruangutai` (two spaces) | entry says CODEOWNERS covering `run-unit-tests.py` is committed; file existence + ownership row |
 | 193 | `grep -F "WORKTREES_SEGMENT = " .claude/skills/harness/bin/harness_boundary.py` | `WORKTREES_SEGMENT = ".claude/worktrees"` | one of the two legitimate locations, spelled in the one shared resolver both write routes use |
 | 205 | `grep -F "ALLOWED_FIRST_TOKENS = " .claude/skills/harness/bin/check-decision-claims.py` | `ALLOWED_FIRST_TOKENS = {"git", "grep"}` | the safety boundary the entry states as part of the rule |
-| 205 | `grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.sh` | `test-check-decision-claims.py` | "a checker re-runs every marker in the suite" — registration is what makes that true |
+| 205 | `grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.py` | `test-check-decision-claims.py` | "a checker re-runs every marker in the suite" — registration is what makes that true |
 
 **No command contains a line number.** Every anchor is a content string or a whole-file path;
 `150`, `300`, `80`, `81`, `12`, `10` are budgets, a grep cap and a line COUNT, never `file:NNN`.

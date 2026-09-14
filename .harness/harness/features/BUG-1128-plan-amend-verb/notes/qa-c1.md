@@ -14,8 +14,8 @@ of items 1–7; all seven addressed below. Items 2, 5, 6, 7 check out clean.
 | claim | author said | observed (this run, fe5c5b57 pin) |
 |---|---|---|
 | `test-plan-merge.py` | 218 PASS / 0 FAIL | **matches** — exit 0, 218 PASS, 0 FAIL |
-| `run-unit-tests.sh --kind unit` | exit 0, 0 FAIL | **exit 0, 517 PASS, 0 FAIL — but `test-plan-merge.py` is not a member of `UNIT_SCRIPTS` and never ran** (see Matrix below) |
-| `run-unit-tests.sh --kind integration` | (not separately claimed) | exit 0, 850 PASS, 0 FAIL, `test-plan-merge.py` present |
+| `run-unit-tests.py --kind unit` | exit 0, 0 FAIL | **exit 0, 517 PASS, 0 FAIL — but `test-plan-merge.py` is not a member of `UNIT_SCRIPTS` and never ran** (see Matrix below) |
+| `run-unit-tests.py --kind integration` | (not separately claimed) | exit 0, 850 PASS, 0 FAIL, `test-plan-merge.py` present |
 | `check-state.sh`: exactly one violation, `INV-26` on `BUG-1081` | — | **exit 0, zero `violation`-severity lines at all** (script's own legend: "Exit 0 = all invariants hold"). All 737 printed lines are `note`-level, informational; zero `INV-26` hits. This is repo-wide state that moves independently of this diff (other sessions landed commits since the build's 58742037 measurement) — not attributable to this diff, but the specific count/id the author cited does not reproduce now |
 | red-first: 204 PASS / 9 failing before the verb existed | — | **cannot be established from the record.** `git log --oneline -- test-plan-merge.py` shows the entire BUG-1128 diff (both files) landed in **one commit**, `fe5c5b57`. No earlier commit in this range shows a pre-verb red state. The claim rests on the author's own narrative, not on anything the repository records |
 
@@ -29,7 +29,7 @@ every prior feature's gate in this repo).
 **Floor: `unit`, required, always.** The diff touches exactly two files:
 `plan-merge.py` and `test-plan-merge.py`. `test-plan-merge.py` matches `unit`'s `detect` glob
 (`.claude/skills/harness/bin/test-*.py`) — but glob match is not the same as running. Checked
-`run-unit-tests.sh`'s explicit script arrays directly: `test-plan-merge.py` is a member of
+`run-unit-tests.py`'s explicit script arrays directly: `test-plan-merge.py` is a member of
 **`INTEGRATION_SCRIPTS` only** (line 31), never `UNIT_SCRIPTS` (line 30) — by design, per the
 suite's own stated principle (`test_kinds.functional.excluded_because`): in-process vs.
 forking-subprocess is the unit/integration split, and `test-plan-merge.py` is explicitly
@@ -47,8 +47,8 @@ project's own convention tests only via subprocess.
 
 ```
 kinds:
-  - { kind: unit, state: missing, cmd: ".../run-unit-tests.sh --kind unit", named_tests: 0 }
-  - { kind: integration, state: satisfied (not required by matrix), cmd: ".../run-unit-tests.sh --kind integration", named_tests: 1 }
+  - { kind: unit, state: missing, cmd: ".../run-unit-tests.py --kind unit", named_tests: 0 }
+  - { kind: integration, state: satisfied (not required by matrix), cmd: ".../run-unit-tests.py --kind integration", named_tests: 1 }
 ```
 
 ## Adequacy — code paths vs. the ten cases

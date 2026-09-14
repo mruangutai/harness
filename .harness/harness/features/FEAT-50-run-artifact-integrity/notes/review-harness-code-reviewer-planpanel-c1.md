@@ -5,7 +5,7 @@ anchor nit, and both cycle-0 `high` findings CLOSED on verified evidence.** Trac
 (REQ-01..09 union, no orphan, no phantom trace), `depends_on` is acyclic and its one asymmetry is
 harmless, and every anchor I re-measured at 5d12e68 — some 20+ line citations across
 `check-domain.py`, `bash-write-guard.py`, `validate-digest.py`, `check-state.sh`,
-`feature-worktree.py`, `test-validate-digest.py`, `run-unit-tests.sh` — was accurate to the byte
+`feature-worktree.py`, `test-validate-digest.py`, `run-unit-tests.py` — was accurate to the byte
 except one. This is an unusually well-grounded amendment.
 
 ## Findings

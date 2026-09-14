@@ -54,7 +54,7 @@ so the block was genuinely red first. `gen-decisions-index.py` prints nothing on
 was separately checked for `RULING PENDING` (none) and the row-text diff (`grep -v` on `::` text)
 showed only `@line` anchor shifts plus the DEC-203 ruling correction.
 
-Nothing wider was run — no `bin/run-unit-tests.sh`, no formatter, no linter: `tests/unit/test-issue-types-pin.py` is
+Nothing wider was run — no `bin/run-unit-tests.py`, no formatter, no linter: `tests/unit/test-issue-types-pin.py` is
 deliberately red until T-12 lands.
 
 ## Facts checked against code, not transcribed

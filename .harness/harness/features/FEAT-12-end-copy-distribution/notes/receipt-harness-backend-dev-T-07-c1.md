@@ -22,7 +22,7 @@ Pre-checks (matching claims in `intent:`):
 (not piped) as instructed
 
 ```
-test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
+test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
 ```
 
 Observed:

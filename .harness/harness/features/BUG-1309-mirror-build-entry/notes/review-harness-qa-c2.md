@@ -21,8 +21,8 @@ G-08 — contributes nothing, does not shrink the floor set by `feature`.)
 
 | kind | state | command | observed |
 |---|---|---|---|
-| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0, 33 files, pool summary "33 files, 2.23s wall" — all named PASS |
-| integration | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0 (job bg_23, 70.44s wall); 3949-line log, no FAIL lines |
+| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0, 33 files, pool summary "33 files, 2.23s wall" — all named PASS |
+| integration | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0 (job bg_23, 70.44s wall); 3949-line log, no FAIL lines |
 
 `ai_behavior`, `ui`, `component`, `functional`, `typecheck` are not implicated by this diff (no
 production surface of those kinds touched) — not applicable, consistent with the standing

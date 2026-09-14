@@ -330,7 +330,7 @@ tasks:
       tests/integration/test-check-instruction-paths.py: a module-level RESULTS list, a
       check(name, ok, detail="") helper that appends and prints "PASS - " or "FAIL - " plus the
       name, a main() that runs the cases and raises SystemExit(1) if any row is false, and the
-      standard __main__ guard. tests/integration/test-*.py is what run-unit-tests.sh --kind
+      standard __main__ guard. tests/integration/test-*.py is what run-unit-tests.py --kind
       integration globs, so the filename must keep that shape.
 
       WHY THIS FILE EXISTS: FEAT-41 D-14 migrated the station CLI argument to lowercase and left

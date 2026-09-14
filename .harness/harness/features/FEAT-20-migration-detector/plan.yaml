@@ -26,7 +26,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       reason: co-changes with check-state.sh, in the same diff a human reads
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: >-
         --resolve answers harness-backend-dev and harness-dev-ops, but the only edit is
@@ -69,7 +69,7 @@ decisions:
   - id: D-02
     choice: >-
       Building the detector is main-session-direct. The module, its unit test, check-state.sh,
-      test-check-state.py and the run-unit-tests.sh registration are all built by hand. Only the CI
+      test-check-state.py and the run-unit-tests.py registration are all built by hand. Only the CI
       step is dispatched, to harness-dev-ops.
     because: >-
       check-state.sh computes a gate verdict from the module's return value, which FEAT-18 already
@@ -142,18 +142,18 @@ tasks:
     files:
       - .claude/skills/harness/bin/layout_migration.py
       - .claude/skills/harness/bin/test-layout-migration.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       u=$(mktemp); ru=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >"$u" 2>&1 || ru=$?
       cat "$u"
       grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "the new suite did not run at all"; exit 1; }
       exit "$ru"
     intent: |
       Create layout_migration.py, an importable module plus a thin CLI, and
       test-layout-migration.py, its in-process unit suite. Register
-      "test-layout-migration.py" in the UNIT_SCRIPTS array of run-unit-tests.sh in this same
-      task: run-unit-tests.sh runs a drift detector over the union of both arrays and an
+      "test-layout-migration.py" in the UNIT_SCRIPTS array of run-unit-tests.py in this same
+      task: run-unit-tests.py runs a drift detector over the union of both arrays and an
       unregistered test file fails the WHOLE run.
 
       WRITE THE TESTS FIRST AND RUN THEM RED BEFORE THE MODULE EXISTS OR IS COMPLETE. Record
@@ -486,8 +486,8 @@ tasks:
       - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
       u=$(mktemp); i=$(mktemp); ru=0; ri=0
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >"$i" 2>&1 || ri=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration >"$i" 2>&1 || ri=$?
       cat "$u" "$i"
       grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "unit suite did not run test-layout-migration.py"; exit 1; }
       grep -q '^PASS test-check-state\.py$' "$i" || { echo "integration suite did not run test-check-state.py"; exit 1; }

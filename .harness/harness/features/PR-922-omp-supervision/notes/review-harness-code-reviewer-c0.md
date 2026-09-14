@@ -29,7 +29,7 @@ is undeclared scope that also breaks silently.
 | OMP hook tests: 20 passed | **reproduced** — `bun test ./.claude/skills/harness/bin/omp-hooks.test.ts` → 20 pass, 0 fail |
 | inflight registry checks: 88 passed | **reproduced** — `python3 test-inflight-registry.py` → 88/88 |
 | dispatch guard checks: 42 passed | **reproduced** — `python3 test-dispatch-guard.py` → 42/42 |
-| full unit suite, adapter drift, OMP port check, canonical state checker passed | **reproduced** — `run-unit-tests.sh` exits 0 (all scripts including the three above PASS); `sync-agent-adapters.py --check` exits 0; `check-omp-port.py` prints `ok`; `check-state.sh` exits 0 (only advisory `note` lines, no `VIOLATION`) |
+| full unit suite, adapter drift, OMP port check, canonical state checker passed | **reproduced** — `run-unit-tests.py` exits 0 (all scripts including the three above PASS); `sync-agent-adapters.py --check` exits 0; `check-omp-port.py` prints `ok`; `check-state.sh` exits 0 (only advisory `note` lines, no `VIOLATION`) |
 | Deferred ship evidence (GitHub Building→Review→Done→auto-close) | out of scope by the PR's own framing — not graded |
 
 ### must_fix

@@ -10,8 +10,8 @@ That one ruling needs the operator, so this returns ESCALATE rather than PASS.
 Every `verify: automated` SC is bound to case output I produced at `434307a`, not to qa's bindings
 at `11cb644`. Both suites re-run by me, in this tree, at the pin:
 
-- `run-unit-tests.sh --kind unit` → exit 0; `PASS test-layout-migration.py`; all 18 case labels `ok`.
-- `run-unit-tests.sh --kind integration` → exit 0; `PASS test-check-state.py`; `(x.1)`–`(x.5)` all `ok`.
+- `run-unit-tests.py --kind unit` → exit 0; `PASS test-layout-migration.py`; all 18 case labels `ok`.
+- `run-unit-tests.py --kind integration` → exit 0; `PASS test-check-state.py`; `(x.1)`–`(x.5)` all `ok`.
 - I read the **assertion bodies** for every SC-bearing case in `test-layout-migration.py` and
   `test-check-state.py:case_x`, not the labels (P-09). Each label names the verb it actually invokes.
 - Live detector on the real root: `python3 .claude/skills/harness/bin/layout_migration.py .` →

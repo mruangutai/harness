@@ -7,7 +7,7 @@ DIGEST:
   cycles_used: 2
   members:
     - { step: probe, persona: harness-dev-ops, verdict: PASS, headline: "check-domain.py's shape gate catches this exact corruption (exit 2, 'not valid JSON'); the hole is a silent zero-path in the OMP bridge's edit routing, untested end-to-end", files_touched: [".harness/harness/features/FEAT-44-omp-context-advisory/notes/receipt-harness-dev-ops-devopsprobe.md"] }
-    - { step: build-c1, persona: harness-backend-dev, verdict: PASS, headline: "locked schema-validated feature.json writer shipped; gh-sync rewiring declined on a blocker that did not exist", files_touched: [".claude/skills/harness/bin/feature_json_write.py", ".claude/skills/harness/bin/feature-json-merge.py", ".claude/skills/harness/bin/test-feature-json-merge.py", ".claude/skills/harness/bin/run-unit-tests.sh"] }
+    - { step: build-c1, persona: harness-backend-dev, verdict: PASS, headline: "locked schema-validated feature.json writer shipped; gh-sync rewiring declined on a blocker that did not exist", files_touched: [".claude/skills/harness/bin/feature_json_write.py", ".claude/skills/harness/bin/feature-json-merge.py", ".claude/skills/harness/bin/test-feature-json-merge.py", ".claude/skills/harness/bin/run-unit-tests.py"] }
     - { step: build-c2, persona: harness-backend-dev, verdict: PASS, headline: "gh-sync.py's three write sites on the locked writer, _atomic_write deleted, ratchet's dirty-base case now under test", files_touched: [".claude/skills/harness/bin/gh-sync.py", ".claude/skills/harness/bin/test-gh-sync.py", ".claude/skills/harness/bin/test-feature-json-merge.py"] }
     - { step: build-c3, persona: harness-backend-dev, verdict: PASS, headline: "factory_decompose.write_factory rewired; last unlocked Python writer of feature.json closed", files_touched: [".claude/skills/harness/bin/factory_decompose.py", ".claude/skills/harness/bin/test-factory-decompose.py"] }
   must_fix: []
@@ -19,7 +19,7 @@ DIGEST:
     - .claude/skills/harness/bin/test-gh-sync.py
     - .claude/skills/harness/bin/factory_decompose.py
     - .claude/skills/harness/bin/test-factory-decompose.py
-    - .claude/skills/harness/bin/run-unit-tests.sh
+    - .claude/skills/harness/bin/run-unit-tests.py
     - .harness/notes/analysis-stale-anchor-write-hazard.md
   branch: fix/stale-anchor-write-hazard
   open_questions:
@@ -279,7 +279,7 @@ Untouched by this fix.
 | `test-gh-sync.py` | ALL PASSED |
 | `test-feature-json-merge.py` | 37/37 |
 | `test-harness-merge.py` | 18/18 |
-| `run-unit-tests.sh` (full, `--kind` defaults to `all`) | **exit 0, `FAIL` count = 0** |
+| `run-unit-tests.py` (full, `--kind` defaults to `all`) | **exit 0, `FAIL` count = 0** |
 
 New cases were confirmed RED first, failing as `TypeError: unexpected keyword argument` — red for
 the intended reason. Both directions are pinned: C4-1 (creation with `feat_id` succeeds,

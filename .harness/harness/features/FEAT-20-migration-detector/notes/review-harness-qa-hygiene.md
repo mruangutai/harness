@@ -1,7 +1,7 @@
 # QA gate — PR #385 (detector hygiene) at a714bd0
 
 ## BLUF
-FAIL. The suite is green (all 27 registered test files pass, `run-unit-tests.sh --kind all`
+FAIL. The suite is green (all 27 registered test files pass, `run-unit-tests.py --kind all`
 exit 0; `check-state.sh` exit 0, no INV-27 line — the real repo tree is unmigrated so both
 surfaces are CLEAN) but the green is a false signal: `test-check-state.py` contains **17
 duplicated top-level `def`s** spanning a whole shadowed block, lines 528–1661, re-pasted
@@ -25,10 +25,10 @@ dead copy to promote — deleting the executing copy (:2719) to "keep the #382 r
 delete INV-27 test coverage outright, not fix it.
 
 ## 1. Suites + live gate
-- `run-unit-tests.sh --kind all`: exit 0. All 15 unit + 12 integration scripts print
+- `run-unit-tests.py --kind all`: exit 0. All 15 unit + 12 integration scripts print
   `PASS <file>`, 106/106 checks in `test-factory-integration.py`'s own tally, no `FAIL` or
   `MISCONFIGURED` line anywhere in the log. `test-check-state.py` and `test-layout-migration.py`
-  both `PASS` — the drift detector (registration check) at the top of `run-unit-tests.sh` also
+  both `PASS` — the drift detector (registration check) at the top of `run-unit-tests.py` also
   passed, so no stray `test-*.py` is unregistered.
 - `test-check-plan-routes.py` is part of the `all` run above (case_01–case_25j2 all `ok`/`PASS`).
 - Live gate entry point: `git ls-files '*check-state.sh'` and `find . -name check-state.sh` both
@@ -107,7 +107,7 @@ main-session-direct`, DEC-174 carve-out) touching the test files themselves, so 
 is the floor — and unit presence is nominally there (test files exist, registered, green) but
 **the diff's own advertised behavior change (#382's case_x consolidation) never executed**, and
 nothing in the suite would have caught a shadowed duplicate definition (Python raises no error
-on redefinition; `run-unit-tests.sh`'s drift detector only checks *files*, not in-file
+on redefinition; `run-unit-tests.py`'s drift detector only checks *files*, not in-file
 duplicate `def`s). That is a hole in the floor itself, not just a gap above it.
 
 ## SC evidence

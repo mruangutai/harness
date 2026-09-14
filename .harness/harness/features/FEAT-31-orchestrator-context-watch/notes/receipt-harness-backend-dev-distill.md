@@ -73,7 +73,7 @@ either (`diff` exit 0, both files).
   judged Candidate C weaker than the two accepted candidates and let it die per the skill's own rule
   ("nothing weaker, it dies").
 - Also considered and left out (own log, not strong enough to clear the six-spawns-from-now bar
-  given no free slot): T-01's `run-unit-tests.sh --kind unit` exit-1-from-an-unrelated-fixture
+  given no free slot): T-01's `run-unit-tests.py --kind unit` exit-1-from-an-unrelated-fixture
   observation (adjacent to existing G-04, not sufficiently distinct); T-08's grep-prefix-collision
   observation (too narrow/single-incident to generalize past what P-08/P-12 already cover).
 

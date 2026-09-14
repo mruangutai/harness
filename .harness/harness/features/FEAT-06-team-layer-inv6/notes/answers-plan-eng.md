@@ -59,7 +59,7 @@ form that now definitely exists. They were only ever moot on the other branch.
 
 ### Q5 — pm's DEC-174 carve-out extension KEPT; the three `bin/` test files are main-session-direct
 
-`bin/test-check-state.py`, `bin/run-unit-tests.sh` and the new `bin/test-team-catalog.py` are
+`bin/test-check-state.py`, `bin/run-unit-tests.py` and the new `bin/test-team-catalog.py` are
 **not** routed to backend-dev, despite backend-dev holding `bin/**`.
 
 Reason the user accepted: a test *for* `check-state.sh` is part of what makes that gate green, and

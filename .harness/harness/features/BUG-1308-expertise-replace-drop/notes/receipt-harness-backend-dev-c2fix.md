@@ -127,15 +127,15 @@ untouched by that single hunk boundary, not by re-reading their bodies.
 
 ## Acceptance #6 — both suites, from the worktree root
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .agents/skills/harness/bin/run-unit-tests.py --kind unit
 pool: 8 workers, 28 files, 2.12s wall
 exit 0, ^FAIL  count: 0
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .agents/skills/harness/bin/run-unit-tests.py --kind integration
 pool: 8 workers, 46 files, 62.30s wall
 exit 0, ^FAIL  count: 0
 ```
 28/46 discovered files match the pin exactly — no discovery regression. (No separate
-`run-integration-tests.sh` exists; `run-unit-tests.sh --kind integration` is the actual runner, per
+`run-integration-tests.sh` exists; `run-unit-tests.py --kind integration` is the actual runner, per
 the bin directory listing.)
 
 ## Acceptance #7 — git state

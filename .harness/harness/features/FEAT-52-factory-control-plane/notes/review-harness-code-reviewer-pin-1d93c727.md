@@ -67,7 +67,7 @@ fabricating results):
   classic "unbound array" gotcha applies to a never-assigned array, not one initialized empty) — no
   reachable path found that would violate the never-exits-nonzero contract SC-02 requires.
 
-One informational item, not gating: `.claude/skills/harness/bin/run-unit-tests.sh` picks up two
+One informational item, not gating: `.claude/skills/harness/bin/run-unit-tests.py` picks up two
 blank lines with no other change (line 14-15) — cosmetic debris, most likely from the rebase this
 task's dispatch named as in-scope. No behavioral effect; not worth a cycle to clean up.
 

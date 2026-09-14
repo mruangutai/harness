@@ -117,7 +117,7 @@ on it stayed empty throughout — verified before and after).
 
 | # | Measurement | Command | Exit | Observed | Verdict |
 |---|---|---|---|---|---|
-| 1 | `--kind unit` gate | `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | zero `FAIL` lines across the full run (grepped the complete log for `FAIL`: none) | **CONFIRMS** exit 0, zero failures |
+| 1 | `--kind unit` gate | `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | zero `FAIL` lines across the full run (grepped the complete log for `FAIL`: none) | **CONFIRMS** exit 0, zero failures |
 | 2 | Five focused FEAT-43 suites | `python3 test-code-grade.py` / `test-code-grade-cli.py` / `test-gate-policy.py` / `test-check-plan-routes.py` / `test-validate-digest.py` (run individually, `.claude/skills/harness/bin`) | **0** each | `PASS test-code-grade`; `PASS test-code-grade-cli`; `ok` lines through gate-policy; `ALL PASS` (check-plan-routes); `18/18 ... ALL PASSED.` (validate-digest) | **CONFIRMS** all five exit 0 |
 | 3 | Engine self-grade | `python3 code-grade.py code_grade.py --json` | **0** | parsed JSON: `len(records) == 53`, `sum(grade<4) == 0`, `ungraded == []` | **CONFIRMS** 53 functions, 0 below grade 4 |
 | 4 | Range gate `6d6d1ce..HEAD` | `python3 code-grade.py --base 6d6d1ce --head HEAD --json` | **0** | `len(records) == 206`; blocking (`grade < bar and grade != 2`) `== 0`; `grade == 2` count `== 12`; `ungraded == []` | **CONFIRMS** 206 gated, 0 blocking |

@@ -79,8 +79,8 @@ refused colon-prefix attempt planted nothing. Final file passes `check-expertise
   re-raised.
 
 ## Test suites (env -u HARNESS_AGENT_TYPE, from worktree root)
-`run-unit-tests.sh --kind unit`: 0 `^FAIL ` lines (`test-expertise-ops.py` cases u1-u22 all PASS).
-`run-unit-tests.sh --kind integration`: 0 `^FAIL ` lines (`test-expertise-merge.py` cases 1-26
+`run-unit-tests.py --kind unit`: 0 `^FAIL ` lines (`test-expertise-ops.py` cases u1-u22 all PASS).
+`run-unit-tests.py --kind integration`: 0 `^FAIL ` lines (`test-expertise-merge.py` cases 1-26
 incl. 25/26 target-grammar all PASS; case8 cap-agreement check also PASS).
 
 ## git status --porcelain (worktree root, this session)

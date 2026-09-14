@@ -134,12 +134,12 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
 - **`integration`'s `detect` is almost entirely an explicit file enumeration.** Measured at
   `3ed95a4`: 23 pipe-separated entries, of which 22 are literal filenames under
   `.claude/skills/harness/bin/` and one is the `tests/integration/**` glob;
-  `run-unit-tests.sh:18`'s `INTEGRATION_SCRIPTS` holds the same 22, so the two sides agree today.
+  `run-unit-tests.py:18`'s `INTEGRATION_SCRIPTS` holds the same 22, so the two sides agree today.
   Any new test file this feature adds must be registered in both. **The trap is loud, not silent,
-  for anything under `BIN_DIR`** (`run-unit-tests.sh:5`): `:48-61` prints `MISCONFIGURED` and exits
+  for anything under `BIN_DIR`** (`run-unit-tests.py:5`): `:48-61` prints `MISCONFIGURED` and exits
   2 before running a thing, and `integration`'s `cmd` is that script. The trap is open **only for a
   test file placed outside `BIN_DIR`** — the live risk here, because SC-06, SC-07 and SC-08 grade a
-  git hook and an install step that may not live in `bin/`. `run-unit-tests.sh:110-115` reports
+  git hook and an install step that may not live in `bin/`. `run-unit-tests.py:110-115` reports
   `KIND-DRIFT` when the two lists disagree.
 
 **Out of scope, ruled by the operator:**

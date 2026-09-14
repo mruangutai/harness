@@ -55,12 +55,12 @@ readers (not written by this dispatch) and this dispatch's own receipt is the fi
 
 Suite run:
 ```
-env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh
+env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py
 ```
 `suite_exit: 0`
 `fail_lines: 0` (count of `^FAIL ` lines in captured stdout+stderr)
 Runner tail: "pool: 8 workers, 80 files, 65.49s wall" — final line is the pool summary of
-`run-unit-tests.sh` itself, not a single script's "N/N checks passed" tail; multiple constituent
+`run-unit-tests.py` itself, not a single script's "N/N checks passed" tail; multiple constituent
 scripts individually report e.g. `PASS - 18/18 checks passed`, `9/9 checks passed`,
 `28/28 checks passed.`, `all checks passed.`, `18/18 reviewer severity_max enum checks passed.`
 — all green, zero `^FAIL ` lines anywhere in the captured log.

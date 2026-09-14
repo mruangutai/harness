@@ -180,7 +180,7 @@ reviewer needs to re-run it. Restored `factory_claim.py`; `sha256sum` matched th
 Fix cycle against T-01's approved file set; re-ran T-01's own `verify:` verbatim, from the worktree
 root:
 ```
-bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit &&
+bash .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
 python3 .claude/skills/harness/bin/test-factory-integration.py &&
 grep -q 'def issue_board_item_id' .claude/skills/harness/bin/factory_gh.py &&
 ! grep -q 'factory_gh\.project_items' .claude/skills/harness/bin/factory_decompose.py &&
@@ -193,8 +193,8 @@ scripts, no FAIL lines) is the same output already shown under "Final gates" bel
 ## Final gates (worktree root)
 
 ```
-bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit         # exit 0, 610/610 checks, 10/10 scripts
-bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration  # exit 0, 97/97 checks
+bash .claude/skills/harness/bin/run-unit-tests.py --kind unit         # exit 0, 610/610 checks, 10/10 scripts
+bash .claude/skills/harness/bin/run-unit-tests.py --kind integration  # exit 0, 97/97 checks
 git status --porcelain -- .claude/skills/harness/bin/
 ```
 ```

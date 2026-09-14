@@ -6,7 +6,7 @@ Resolved against `.harness/team-config.yaml` at `ae2443d`, by reading the lines,
 
 | Surface | Lane | Grant |
 |---|---|---|
-| `.claude/skills/harness/bin/**` — the new checker, its test, `run-unit-tests.sh` | `harness-backend-dev` / `harness-dev-ops` | `team-config.yaml:155`, `:197` |
+| `.claude/skills/harness/bin/**` — the new checker, its test, `run-unit-tests.py` | `harness-backend-dev` / `harness-dev-ops` | `team-config.yaml:155`, `:197` |
 | `.claude/skills/harness/bin/check-domain.py` | **main session, DEC-174 carve-out** | deviation from the row above — D-03 |
 | `.claude/skills/harness/templates/PLAN.md` | **main session** (declared step) | ungranted — nothing in `team-config.yaml` names `templates/**` |
 | `.claude/skills/harness-spec-driven/SKILL.md` | **main session** (declared step) | ungranted — nothing names `.claude/skills/harness-*/SKILL.md` |
@@ -21,7 +21,7 @@ script T-02 creates.
 ## Concurrency — one shared surface with FEAT-08
 
 Every path in the table above is this feature's alone, with ONE exception:
-`.claude/skills/harness/bin/run-unit-tests.sh` is a **shared surface with the in-flight FEAT-08**,
+`.claude/skills/harness/bin/run-unit-tests.py` is a **shared surface with the in-flight FEAT-08**,
 and both features edit the same line. T-02 here APPENDS `"test-check-plan-routes.py"` to the
 `SCRIPTS` array at `:6`; `FEAT-08/PLAN.md:243,250-252` REMOVES `"test-cost-report.py"` from that
 same array at that same line, asserting the other twelve entries are left unchanged.
@@ -29,7 +29,7 @@ same array at that same line, asserting the other twelve entries are left unchan
 Whichever lands second, if it writes a remembered array rather than re-reading `:6`, drops the
 other's edit. The result is not a quiet merge artefact: either the drift detector (`:9-22`) finds an
 unlisted `test-*.py` and exits 2, or the runner invokes a listed-but-deleted script and FAILs.
-Because `run-unit-tests.sh` is the FEAT-07 whole-suite rider in nearly every `verify:` of BOTH
+Because `run-unit-tests.py` is the FEAT-07 whole-suite rider in nearly every `verify:` of BOTH
 plans, **every remaining task in both features then reddens for an unrelated reason** — the red-suite
 window FEAT-07 D-02 exists to prevent.
 
@@ -155,7 +155,7 @@ date: 2026-08-05
     stdin still exits 2; (h) with no `--resolve` in argv, an in-domain Write payload on stdin still
     exits 0.
   change_type: logic
-  verify: `python3 -c "import subprocess,os;B='.claude/skills/harness/bin/check-domain.py';q=lambda p:sorted(subprocess.run([B,'--resolve',p],stdin=os.pipe()[0],capture_output=True,text=True,timeout=10).stdout.split());assert q('.harness/harness.json')==['harness-dev-ops'];assert q('.claude/skills/harness/bin/run-unit-tests.sh')==['harness-backend-dev','harness-dev-ops'];assert q('.claude/skills/harness-spec-driven/SKILL.md')==['NOBODY'];print('OK')" && python3 .claude/skills/harness/bin/test-check-domain.py && .claude/skills/harness/bin/run-unit-tests.sh`
+  verify: `python3 -c "import subprocess,os;B='.claude/skills/harness/bin/check-domain.py';q=lambda p:sorted(subprocess.run([B,'--resolve',p],stdin=os.pipe()[0],capture_output=True,text=True,timeout=10).stdout.split());assert q('.harness/harness.json')==['harness-dev-ops'];assert q('.claude/skills/harness/bin/run-unit-tests.py')==['harness-backend-dev','harness-dev-ops'];assert q('.claude/skills/harness-spec-driven/SKILL.md')==['NOBODY'];print('OK')" && python3 .claude/skills/harness/bin/test-check-domain.py && .claude/skills/harness/bin/run-unit-tests.py`
     — expected: `OK`, then every `PASS`, exit 0.
   traces: REQ-04, REQ-05, D-02, D-03
   execution_mode: main-session-direct — reason: DEC-174 carve-out. `check-domain.py` is a registered
@@ -165,7 +165,7 @@ date: 2026-08-05
   status: pending
 
 - T-02: Add `check-plan-routes.py`, its test, and register the test in the unit runner
-  files: `.claude/skills/harness/bin/check-plan-routes.py`, `.claude/skills/harness/bin/test-check-plan-routes.py`, `.claude/skills/harness/bin/run-unit-tests.sh`
+  files: `.claude/skills/harness/bin/check-plan-routes.py`, `.claude/skills/harness/bin/test-check-plan-routes.py`, `.claude/skills/harness/bin/run-unit-tests.py`
   intent: `check-plan-routes.py` takes one or more PLAN.md paths as argv (defaulting to
     `.harness/features/*/PLAN.md` when given none) and, for each, extracts task blocks with the
     regex `^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)` under `re.M|re.S` — copied
@@ -196,7 +196,7 @@ date: 2026-08-05
     (8) `check-plan-routes.py`'s own source contains the string `check-domain.py`; (9) that source
     contains no `fnmatch`; (10) `templates/PLAN.md` contains `## Lanes`;
     (11) it contains `execution_mode: team`; (12) it contains `execution_mode: main-session-direct`;
-    (13) `run-unit-tests.sh`'s `SCRIPTS` array lists `test-check-plan-routes.py`; (14) a task with
+    (13) `run-unit-tests.py`'s `SCRIPTS` array lists `test-check-plan-routes.py`; (14) a task with
     granted paths that declares `main-session-direct` produces a `DEVIATION` line; (15) that same
     plan still exits 0; (16) that source contains no `glob_to_re` — a separate named case from (9),
     because one case asserting two strings is one fixture for two clauses; (17) the BEHAVIOURAL
@@ -208,10 +208,10 @@ date: 2026-08-05
     prefix comparison on the text before `/**` answers False for that path and would report it
     ungranted, so this case fails on any reimplementation regardless of what its variables are
     named. It is the exact bug `check-domain.py:190-197` records.
-    Add `"test-check-plan-routes.py"` to the `SCRIPTS` array in `run-unit-tests.sh` in the same
-    task — the runner's drift detector (`run-unit-tests.sh:9-21`) exits 2 on any `test-*.py` under
+    Add `"test-check-plan-routes.py"` to the `SCRIPTS` array in `run-unit-tests.py` in the same
+    task — the runner's drift detector (`run-unit-tests.py:9-21`) exits 2 on any `test-*.py` under
     `bin/` that is not listed, so omitting it fails the whole suite rather than skipping one file.
-    **HARD CONSTRAINT — `run-unit-tests.sh` is shared with FEAT-08 (see `## Concurrency`).**
+    **HARD CONSTRAINT — `run-unit-tests.py` is shared with FEAT-08 (see `## Concurrency`).**
     `FEAT-08/PLAN.md:243` puts this same file in its T-03 `files:`, and `:250-252` removes
     `"test-cost-report.py"` from the SAME `SCRIPTS` array on the SAME line `:6`. The `SCRIPTS` edit
     here is therefore an **append that must preserve whatever entries are present at land time**:
@@ -220,9 +220,9 @@ date: 2026-08-05
     FEAT-08's removal, after which either the drift detector (`:9-22`) exits 2 on an unlisted
     `test-*.py` or the runner invokes the deleted-but-listed `test-cost-report.py` and FAILs. Either
     way the whole suite goes red and every other task's `verify:` in BOTH features reddens for an
-    unrelated reason. Change nothing else in `run-unit-tests.sh`.
+    unrelated reason. Change nothing else in `run-unit-tests.py`.
   change_type: logic
-  verify: `python3 .claude/skills/harness/bin/test-check-plan-routes.py && .claude/skills/harness/bin/run-unit-tests.sh && python3 .claude/skills/harness/bin/check-plan-routes.py .harness/features/FEAT-09-plan-time-route-check/PLAN.md`
+  verify: `python3 .claude/skills/harness/bin/test-check-plan-routes.py && .claude/skills/harness/bin/run-unit-tests.py && python3 .claude/skills/harness/bin/check-plan-routes.py .harness/features/FEAT-09-plan-time-route-check/PLAN.md`
     — expected: the new test's own output, then every `PASS` including
     `PASS test-check-plan-routes.py`, then for this plan **zero violations and exactly one
     `DEVIATION` line naming T-01**, exit 0.
@@ -249,7 +249,7 @@ date: 2026-08-05
     the same three strings the greps below check; the greps are the land-time gate, the cases are
     what the goal-check cites for SC-09.
   change_type: docs
-  verify: `grep -q '^## Lanes' .claude/skills/harness/templates/PLAN.md && grep -q 'execution_mode: team' .claude/skills/harness/templates/PLAN.md && grep -q 'execution_mode: main-session-direct' .claude/skills/harness/templates/PLAN.md && grep -q 'check-plan-routes.py' .claude/skills/harness/templates/PLAN.md && [ "$(grep -c '' .claude/skills/harness/templates/PLAN.md)" -lt 80 ] && .claude/skills/harness/bin/run-unit-tests.sh && .claude/skills/harness/bin/check-docs.sh`
+  verify: `grep -q '^## Lanes' .claude/skills/harness/templates/PLAN.md && grep -q 'execution_mode: team' .claude/skills/harness/templates/PLAN.md && grep -q 'execution_mode: main-session-direct' .claude/skills/harness/templates/PLAN.md && grep -q 'check-plan-routes.py' .claude/skills/harness/templates/PLAN.md && [ "$(grep -c '' .claude/skills/harness/templates/PLAN.md)" -lt 80 ] && .claude/skills/harness/bin/run-unit-tests.py && .claude/skills/harness/bin/check-docs.sh`
     — expected: exit 0; today the first grep alone exits 1.
   traces: REQ-01, REQ-06, D-05, D-07
   execution_mode: main-session-direct — reason: `.claude/skills/harness/templates/**` is granted to
@@ -273,7 +273,7 @@ date: 2026-08-05
     discovers it, three features running. The checker answers it now." Do NOT restate the rule in
     `.claude/agents/harness-pm.md` (D-06). The file is 110 lines today; keep it under 140.
   change_type: docs
-  verify: `grep -q 'check-plan-routes.py' .claude/skills/harness-spec-driven/SKILL.md && grep -q 'execution_mode' .claude/skills/harness-spec-driven/SKILL.md && grep -q '## Lanes' .claude/skills/harness-spec-driven/SKILL.md && [ "$(grep -c '' .claude/skills/harness-spec-driven/SKILL.md)" -lt 140 ] && .claude/skills/harness/bin/run-unit-tests.sh && .claude/skills/harness/bin/check-docs.sh`
+  verify: `grep -q 'check-plan-routes.py' .claude/skills/harness-spec-driven/SKILL.md && grep -q 'execution_mode' .claude/skills/harness-spec-driven/SKILL.md && grep -q '## Lanes' .claude/skills/harness-spec-driven/SKILL.md && [ "$(grep -c '' .claude/skills/harness-spec-driven/SKILL.md)" -lt 140 ] && .claude/skills/harness/bin/run-unit-tests.py && .claude/skills/harness/bin/check-docs.sh`
     — expected: exit 0; today the first grep alone exits 1.
   traces: REQ-01, REQ-02, REQ-06, D-01, D-06
   execution_mode: main-session-direct — reason: `.claude/skills/harness-*/SKILL.md` is granted to
@@ -296,7 +296,7 @@ date: 2026-08-05
 | SC-07 | 2 | 2 | T-02 cases 6, 7 |
 | SC-08 | 4 | 4 | T-02 cases 8, 9, 16, 17 — case 17 is behavioural, not a source grep |
 | SC-09 | 3 | 3 | T-02 cases 10, 11, 12 |
-| SC-10 | 2 | 2 | T-02 case 13, plus `run-unit-tests.sh` in every task's `verify:` |
+| SC-10 | 2 | 2 | T-02 case 13, plus `run-unit-tests.py` in every task's `verify:` |
 | SC-11 | 2 | 2 | inspection — the rule's single `file:line` in `harness-spec-driven/SKILL.md`, and an empty `git diff` for `.claude/agents/harness-pm.md` over the feature branch |
 | SC-12 | 2 | 2 | T-02 cases 14, 15 |
 
@@ -309,7 +309,7 @@ date: 2026-08-05
 | T-02 | `python3 .claude/skills/harness/bin/check-plan-routes.py` | `can't open file … No such file or directory` | zero-violation summary, exit 0 |
 | T-03 | the four greps | exit 1 at `grep -q '^## Lanes'` | exit 0 |
 | T-04 | `grep -q 'check-plan-routes.py' …SKILL.md` | exit 1 | exit 0 |
-| all | `run-unit-tests.sh` | exit 0, 13 `PASS` — **green today, so non-discriminating alone**; it is the FEAT-07 whole-suite guard, paired with a discriminating probe in every `verify:` | exit 0, 14 `PASS` |
+| all | `run-unit-tests.py` | exit 0, 13 `PASS` — **green today, so non-discriminating alone**; it is the FEAT-07 whole-suite guard, paired with a discriminating probe in every `verify:` | exit 0, 14 `PASS` |
 | all | `check-docs.sh` | exit 0 | exit 0 |
 | T-02 case 17 (new) | the real matcher via the hook: a `harness-eng-lead` Write payload for `.harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md` (and a deeper `…/1-eng/deep/notes.md`) | **exit 0 — granted** by `matches()` through `team-config.yaml:278` | unchanged; case 17 asserts `check-plan-routes.py` reports it OK, i.e. reproduces this answer |
 | T-02 case 17 (new) | `python3 -c "print('.harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md'.startswith('.harness/features/*/runs/*-eng'))"` — the naive prefix comparison the case exists to catch | **`False`** — a prefix matcher calls the granted path ungranted, so the two answers differ and the case discriminates | unchanged; a reimplementation making case 17 pass would have to be the real matcher |

@@ -32,7 +32,7 @@ their lead. T-05 depends_on T-03.
 
 - Do not merge or rebase `chore/744-never-wait-for-a-lead`; D-03 rules absorb-and-abandon and T-01
   rewrites the exact 5 lines f5194d2 inserts — plan.yaml D-03 — verified-at 569d417
-- Do not write a DEC-174 amendment 5 for run-unit-tests.sh; D-08 rules T-05 does not make it a gate
+- Do not write a DEC-174 amendment 5 for run-unit-tests.py; D-08 rules T-05 does not make it a gate
   — plan.yaml D-08 — verified-at 569d417
 - Do not plan the leads' wait pattern or the fabricated-completion incident; both are OUT by
   operator ruling — notes/answers-2026-08-23-01.md — verified-at 569d417

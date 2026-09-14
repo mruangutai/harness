@@ -19,7 +19,7 @@ All four satisfied, no scope creep, no omission:
    shaped like each pattern; extended with a RED-proof (`run_positive_control_red_proof`) that a
    broken pattern refuses to run at all (exit 2) rather than reporting false-clean.
 4. **Reusable, checked-in helper** — standalone `check-fixture-secrets.sh` + dedicated
-   15-case `test-check-fixture-secrets.py`, registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS`
+   15-case `test-check-fixture-secrets.py`, registered in `run-unit-tests.py`'s `UNIT_SCRIPTS`
    (single-line diff, exact name, no typo) and consistent with `harness.json`'s
    `test_kinds.unit.detect` glob (not added to `integration.detect`, correctly — see
    classification check below).

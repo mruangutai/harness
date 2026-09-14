@@ -9,13 +9,13 @@ T-06 satisfies its signed intent. Its existing implementation in `.claude/skills
 Signed verifier:
 
 ```sh
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Authoritative operator evidence:
 
 ```sh
-PATH=/opt/homebrew/bin:$PATH .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+PATH=/opt/homebrew/bin:$PATH .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 The authoritative invocation exited **0**. This closes T-06's signed verifier. No command was run during this closeout.

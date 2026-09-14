@@ -16,8 +16,8 @@ surface touched). Floor = `{unit, integration}`, both required unconditionally.
 
 | kind | state | cmd | result |
 |---|---|---|---|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0, 33 files, all PASS |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0, 50 files, all PASS (`test-merge-gate.py` independently confirmed via `run_pool.py -- tests/integration/test-merge-gate.py`: 25 `ok` lines + `ALL PASSED`) |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0, 33 files, all PASS |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0, 50 files, all PASS (`test-merge-gate.py` independently confirmed via `run_pool.py -- tests/integration/test-merge-gate.py`: 25 `ok` lines + `ALL PASSED`) |
 
 `matrix_ok: true`.
 

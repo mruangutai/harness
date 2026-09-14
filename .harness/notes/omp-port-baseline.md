@@ -29,7 +29,7 @@ No credentials, raw transcripts, absolute home paths, or machine-specific sessio
 Command:
 
 ```bash
-bash .claude/skills/harness/bin/run-unit-tests.sh && \
+bash .claude/skills/harness/bin/run-unit-tests.py && \
   bash .claude/skills/harness/bin/check-state.sh
 ```
 
@@ -188,7 +188,7 @@ omp config get modelRoles
 omp config get task.maxRecursionDepth
 
 # Deterministic gates
-bash .claude/skills/harness/bin/run-unit-tests.sh
+bash .claude/skills/harness/bin/run-unit-tests.py
 bash .claude/skills/harness/bin/check-state.sh
 
 # Model-mediated discovery and lifecycle probes

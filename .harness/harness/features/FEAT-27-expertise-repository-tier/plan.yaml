@@ -193,10 +193,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/inject-expertise.sh
       - .claude/skills/harness/bin/test-inject-expertise.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       set -u
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1)
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1)
       echo "$out"
       echo "$out" | grep -q '^PASS test-inject-expertise.py$' || exit 1
       echo "$out" | grep -q '^FAIL ' && exit 1
@@ -362,7 +362,7 @@ tasks:
       Do not renumber cases 1-8; the BRIEF cites case 3 by ordinal.
 
       PART 3 — registration. Add "test-inject-expertise.py" to the UNIT_SCRIPTS array in
-      .claude/skills/harness/bin/run-unit-tests.sh. The runner has a drift detector that exits 2 on
+      .claude/skills/harness/bin/run-unit-tests.py. The runner has a drift detector that exits 2 on
       any test-*.py not present in one of its two arrays, which would redden every other task's
       verify, so this must land in the same commit as the test file.
 
@@ -380,7 +380,7 @@ tasks:
       - .claude/skills/harness/bin/test-check-expertise.py
     verify: |
       set -u
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1)
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1)
       echo "$out"
       echo "$out" | grep -q '^PASS test-check-expertise.py$' || exit 1
       echo "$out" | grep -q '^FAIL ' && exit 1
@@ -755,7 +755,7 @@ tasks:
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
       set -u
-      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1)
+      out=$(.claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1)
       echo "$out"
       echo "$out" | grep -q '^PASS test-inject-expertise.py$' || exit 1
       echo "$out" | grep -q '^FAIL ' && exit 1
@@ -833,5 +833,5 @@ tasks:
       one, because it reads as coverage. In that outcome SC-11 is not_met and says so.
 
       Do not renumber or alter cases 1-12; the BRIEF cites case 3 by ordinal. Add case13() to the
-      call list in main() after case12(). Do not touch run-unit-tests.sh — the file is already
+      call list in main() after case12(). Do not touch run-unit-tests.py — the file is already
       registered in UNIT_SCRIPTS.

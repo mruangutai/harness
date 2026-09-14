@@ -179,7 +179,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   what catches a gate that passes while discovering nothing.
   verify: automated        evidence: integration
   command, once per kind with `unit` then `integration` and its own baseline:
-  `out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind unit); rc=$?; test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -q '^FAIL ' && test "$(printf '%s\n' "$out" | wc -l)" -ge 1463`
+  `out=$(.claude/skills/harness/bin/run-unit-tests.py --kind unit); rc=$?; test "$rc" -eq 0 && ! printf '%s\n' "$out" | grep -q '^FAIL ' && test "$(printf '%s\n' "$out" | wc -l)" -ge 1463`
 - SC-11: `bash .claude/skills/harness/bin/check-state.sh` exits 0, AND no violation row names
   `FEAT-50` — in particular no `INV-32` row, which is what binds FEAT-50's own approval to carry
   a complete `panel:` result. BOTH clauses bind. The exit-0 clause is the operator's stated
@@ -290,7 +290,7 @@ Every criterion names its own evidence command. No criterion rests on "the suite
   SHORT-form worktree now resolves to it where it previously fell back. The module's inline
   basename loop is gone, no other function in it changes, and every pre-existing
   `test-inflight-registry.py` case passes unchanged. Declared `integration` because
-  `test-inflight-registry.py` is an `INTEGRATION_SCRIPTS` entry (`run-unit-tests.sh:31`) while
+  `test-inflight-registry.py` is an `INTEGRATION_SCRIPTS` entry (`run-unit-tests.py:31`) while
   `test-harness-boundary.py` is a `UNIT_SCRIPTS` one: one criterion cannot declare both kinds, and
   a single `unit` claim over both files would rest half its assertions on a kind that never ran
   them.

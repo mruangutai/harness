@@ -12,14 +12,14 @@ nothing. No `cross_module`/`config`/`api` task in this plan, so no extra kind is
 
 | kind | state | cmd | evidence |
 |---|---|---|---|
-| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind all` | rc=0; below |
+| unit | **satisfied** | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind all` | rc=0; below |
 
 `matrix_ok: true`.
 
 ## 1. Suite actually runs and can report red
 
 ```
-env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind all > /tmp/bug1304-unit.log 2>&1; rc=$?
+env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind all > /tmp/bug1304-unit.log 2>&1; rc=$?
 ```
 `rc=0`. `grep -c '^FAIL ' /tmp/bug1304-unit.log` → **0**. `grep -c 'checks passed' /tmp/bug1304-unit.log`
 → **20**, matching the baseline of 20 exactly (no discovery-count drop, no silent coverage

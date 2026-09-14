@@ -93,7 +93,7 @@ resource leaks, or copy-paste divergence to report beyond the Stage 1 finding ab
 
 ## Other observations (non-gating)
 
-- `run-unit-tests.sh` registration verified: `test-answers-provenance.py` appears exactly once in
+- `run-unit-tests.py` registration verified: `test-answers-provenance.py` appears exactly once in
   `UNIT_SCRIPTS`, so it actually runs under the gate (checked, not assumed — Expertise G-04).
 - The three-rung-ladder language newly added to `SPEC.md` step 3 is not invented — it matches
   pre-existing, untouched text elsewhere in the same file (`SPEC.md:234-237`, `:2196-2200`) and in

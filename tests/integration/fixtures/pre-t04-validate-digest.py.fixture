@@ -1672,7 +1672,7 @@ def _resolve_run_unit_tests_bin(payload):
     A NAMED FEATURE MUST RESOLVE TO ITS OWN CHECKOUT, OR NOT AT ALL (code review of
     #1185). check_artifact_file's owner_root/feature_root pattern falls back to
     owner_root on any lookup failure, and that is safe THERE because a wrong root
-    means the specific run digest simply 404s, loudly. run-unit-tests.sh is a static,
+    means the specific run digest simply 404s, loudly. run-unit-tests.py is a static,
     always-present path: a wrong-root fallback here never 404s, it just silently
     re-runs the suite against the WRONG checkout and reports that mismatched result as
     though it verified the claim — reproducing #919's exact failure mode inside the
@@ -1699,7 +1699,7 @@ def _resolve_run_unit_tests_bin(payload):
     if not base:
         return None
     return os.path.join(base, ".claude", "skills", "harness", "bin",
-                        "run-unit-tests.sh")
+                        "run-unit-tests.py")
 
 
 def _reverify_suite(run_bin):
@@ -1748,7 +1748,7 @@ def check_qa_matrix_claim(agent, text, payload):
     if result.returncode == 0:
         return 0
     print(f"{agent} reported VERDICT: PASS with suite: pass and matrix_ok: true, but "
-          f"an independent re-run of run-unit-tests.sh at this checkout exited "
+          f"an independent re-run of run-unit-tests.py at this checkout exited "
           f"{result.returncode} — the gate reported evidence it did not have (issue "
           f"#919). Re-run the suite yourself, fix what fails, and return again once "
           f"it is genuinely green. Tail of the independent run:", file=sys.stderr)

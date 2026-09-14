@@ -11,7 +11,7 @@ such rather than deleted.
 No duplicate decision numbers. Every `DEC-NNN` reference in the body resolves to a real decision.
 Index membership is complete in both directions — no row without a body, no body without a row.
 
-`check-docs.sh`, `gen-decisions-index.py --check`, `check-state.sh` and `run-unit-tests.sh` all
+`check-docs.sh`, `gen-decisions-index.py --check`, `check-state.sh` and `run-unit-tests.py` all
 exit 0. **Everything below is invisible to all four**, which is the point of auditing by hand.
 
 ## CONFIRMED — five index rows describe superseded rules as live

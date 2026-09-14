@@ -49,7 +49,7 @@ exactly once in the whole file, inside `discharged_at_cycle_5:`.
 `sequencing_note:` records the panel's 5(d) answer as its finding of record: **no plan gate and no
 task verify between T-01 and T-12 invokes the standing unit suite**, but the guarantee is not
 plan-encoded — `tests/unit/test-issue-types-pin.py` is deliberately red until T-11/T-12 land,
-`run-unit-tests.sh` globs `tests/unit/test-*.py`, `gates.qa_gate` is blocking, and T-12 is
+`run-unit-tests.py` globs `tests/unit/test-*.py`, `gates.qa_gate` is blocking, and T-12 is
 `main-session-direct` with no ordering rule relative to the qa segment; a premature qa run fails the
 only blocking gate with a `loop_back` no squad may own under DEC-174. Deliberately **not** expressed
 as a task, decision or `depends_on`: build-phase segment ordering is the orchestrator's

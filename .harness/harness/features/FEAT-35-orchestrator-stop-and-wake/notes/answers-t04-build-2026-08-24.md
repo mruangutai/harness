@@ -51,7 +51,7 @@ opening it made a true state visible. That was the right call.
 - **Q5** (no DEC-NN collision guard, though `check-plan-routes.py` guards INV-NN as of `3df18d3`):
   this feature is the second instance — FEAT-26 and FEAT-35 both computed "next free is 200" and
   merge order decided it. The main session will file it. **It is not fixed here.**
-- **Q6** (D-08 versus `run-unit-tests.sh` being a step of the required `integration` job at
+- **Q6** (D-08 versus `run-unit-tests.py` being a step of the required `integration` job at
   `.github/workflows/tests.yml:81` and `:87`): pre-existing DEC-174 enumeration gap, out of scope,
   already recorded in the plan.
 

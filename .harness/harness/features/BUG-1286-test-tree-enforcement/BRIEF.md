@@ -62,7 +62,7 @@ tests exactly as they do today, and the governing decision says what the code no
   discovery; broadening runtime mutation snapshots; renaming non-test support modules merely because
   tests import them.
 - Unchanged surfaces, committed: `.harness/harness.json` `test_kinds` and `test_matrix`; the runtime
-  mutation snapshot's bin-only scope; `run-unit-tests.sh`'s kind selection and exit codes.
+  mutation snapshot's bin-only scope; `run-unit-tests.py`'s kind selection and exit codes.
 
 ## Success Criteria
 
@@ -145,13 +145,13 @@ tests exactly as they do today, and the governing decision says what the code no
 - SC-14: `git diff` at `review_sha` changes no byte of `.harness/harness.json`.
   verify: inspection
 - SC-15: The runtime mutation snapshot's scope is not widened: at `review_sha`,
-  `.claude/skills/harness/bin/run-unit-tests.sh` still carries exactly one `run_pool.py` invocation
+  `.claude/skills/harness/bin/run-unit-tests.py` still carries exactly one `run_pool.py` invocation
   (line 47 at HEAD `1977ebd6`) whose `--mutation-check` argument is `"$BIN_DIR"`, naming the bin
   directory alone and no broader tree.
   verify: inspection
 - SC-16: A product checkout is reached by neither control: the predicate's repository-wide clause is
   inert on a root whose own index does not carry the predicate at that exact relative path, and
-  `violations()` still has exactly one caller, Harness's own `run-unit-tests.sh` — the condition
+  `violations()` still has exactly one caller, Harness's own `run-unit-tests.py` — the condition
   DEC-189 records, that a product repo under the fleet's `workspace_root` is worked on from a
   harness-rooted session where harness's hooks fire and never the product's, is what makes that
   single caller decisive.

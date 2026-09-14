@@ -26,12 +26,12 @@ predicate is an unresolvable placeholder, no bug-class taxonomy entry fires for 
 ## 2. State per required kind
 
 - **unit — satisfied.** `tests/unit/test-suite-layout.py` (diff-added, 11 new cases) run inside the
-  `unit` bucket by `run-unit-tests.sh --kind unit`. Named evidence: cases 1–11, e.g. `case 1: rogue
+  `unit` bucket by `run-unit-tests.py --kind unit`. Named evidence: cases 1–11, e.g. `case 1: rogue
   tracked file reported exactly once`, `case 11 behavioural: positive control offender is detected`,
   `case 11 hygiene: every running-kind detect pattern is certified` (all PASS, see run log below).
 - **integration — satisfied.** `tests/integration/test-run-unit-tests-layout.py` (diff-added, 5 new
   git-backed cases) run both directly and inside the full `integration` bucket
-  (`run-unit-tests.sh --kind integration`, 1240/0 across 46 files, includes this file). Named
+  (`run-unit-tests.py --kind integration`, 1240/0 across 46 files, includes this file). Named
   evidence: `git tracked rogue refused before sentinels`, `git three tracked rogues reported in
   sorted path order`, `git enumeration failure refused before sentinels`, `git untracked rogue is
   not reported and both sentinels run`, `git clean tree runs both sentinels` — all PASS.
@@ -40,10 +40,10 @@ predicate is an unresolvable placeholder, no bug-class taxonomy entry fires for 
 
 | Command | Exit | PASS | FAIL | Notes |
 |---|---|---|---|---|
-| `run-unit-tests.sh --kind unit` | 0 | 341 | 0 | 27 files — **corroborates** orchestrator's 341/0/27 exactly |
+| `run-unit-tests.py --kind unit` | 0 | 341 | 0 | 27 files — **corroborates** orchestrator's 341/0/27 exactly |
 | `python3 tests/integration/test-run-unit-tests-layout.py` | 0 | 14 | 0 | **corroborates** orchestrator's 14/0 exactly |
-| `run-unit-tests.sh --check-layout` | 0 | — | — | silent/clean, no `MISCONFIGURED:` lines |
-| (extra, G-04) `run-unit-tests.sh --kind integration` | 0 | 1240 | 0 | 46 files, full bucket bind confirmed (own-command binding, not just detect-glob match) |
+| `run-unit-tests.py --check-layout` | 0 | — | — | silent/clean, no `MISCONFIGURED:` lines |
+| (extra, G-04) `run-unit-tests.py --kind integration` | 0 | 1240 | 0 | 46 files, full bucket bind confirmed (own-command binding, not just detect-glob match) |
 
 All four run with `env -u HARNESS_AGENT_TYPE` (repo Expertise G-07: with it set, `test-plan-merge.py`
 fails 11 checks unrelated to this diff). `$?` captured directly, no pipe.
@@ -64,7 +64,7 @@ just of correctness — **verdict: satisfied.**
   `CANDIDATE_CORPUS` (:473-479) but *selects* using the live matcher
   (`code_grade._is_test_path`, `suite_layout.is_test_shaped`) against `test_kinds_cfg` loaded from
   the real `harness.json` (`repo_cfg["test_kinds"]`, not a copied/hardcoded value). It is not
-  hardcoded to a path. The control is **not** silently skipping: my own `run-unit-tests.sh --kind
+  hardcoded to a path. The control is **not** silently skipping: my own `run-unit-tests.py --kind
   unit` run shows `PASS case 11 behavioural: positive control offender is detected` (not the
   `INAPPLICABLE` print path at line 524-526), i.e. a candidate qualified and the assertion fired and
   passed for real. The control's subject (`.harness/tools/test_dir/gen.py`) is exactly the

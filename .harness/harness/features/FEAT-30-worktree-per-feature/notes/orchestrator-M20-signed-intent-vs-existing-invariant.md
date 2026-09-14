@@ -6,7 +6,7 @@ blocking**, because T-08's own `verify:` greps for `^FAIL ` and will not pass wh
 
 ## The failure
 
-    .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    .claude/skills/harness/bin/run-unit-tests.py --kind integration
       -> exit 1, scriptPASS=15, scriptFAIL=1
     FAIL test_exactly_one_guarded_import_in_the_tree: unexpected guarded-import file(s)
          outside the allowed set: {'feature-worktree.py'}
@@ -119,7 +119,7 @@ in one line. `--kind unit` is exit 0 and unaffected throughout.
 T-08 returned `verdict: FAIL` with the note *"registrations correct, integration PASS 90 to 198;
 verify red on out-of-scope test-harness-yaml.py"* — the same conclusion I reached by measurement,
 arrived at separately. **And the run did NOT make the undeclared edit**: the tree outside the feature
-directory holds only `run-unit-tests.sh` and `harness.json` modified, plus the four new files. The
+directory holds only `run-unit-tests.py` and `harness.json` modified, plus the four new files. The
 squad correctly refused to fix a file the plan does not give it.
 
 That is the right behaviour and worth recording as such: the cheap wrong move was available and was
@@ -127,7 +127,7 @@ not taken.
 
 ## Consequence for the phase
 
-T-10's `verify:` ends with both `run-unit-tests.sh --kind unit` and `--kind integration` gated on
+T-10's `verify:` ends with both `run-unit-tests.py --kind unit` and `--kind integration` gated on
 exit 0, so **T-10 will FAIL for this same inherited reason regardless of its own quality.** T-10 must
 therefore be graded on its own merits — its red proof and its concurrency assertions — separately
 from the inherited redness.

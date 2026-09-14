@@ -136,7 +136,7 @@ that a legitimate unrelated edit reddening the clause is correct behaviour.
 **The new property the pin introduces, stated plainly:** a legitimate unrelated edit to any of the
 three sentinel files before T-01 builds will redden T-01's verify. What keeps that from happening is
 already recorded and already the lead's — `feature.yaml` `peer_feature_collision` has
-`overlap_files: none` for FEAT-12, with only `run-unit-tests.sh` shared. This is a note, not a new
+`overlap_files: none` for FEAT-12, with only `run-unit-tests.py` shared. This is a note, not a new
 question.
 
 ## 4. MF-2b — the freeze now has teeth, in rendered form

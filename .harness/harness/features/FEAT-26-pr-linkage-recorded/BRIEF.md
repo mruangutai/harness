@@ -107,7 +107,7 @@ anything on GitHub.
 
 None. Both kinds these criteria rest on — `unit` and `integration` — are `status: active` with a
 real `cmd` in `.harness/harness.json` `test_kinds`, and all three test files this feature touches
-are already registered in `run-unit-tests.sh`'s explicit lists. No surface here is covered only by
+are already registered in `run-unit-tests.py`'s explicit lists. No surface here is covered only by
 a `cmd: null` kind.
 
 ## Constraints

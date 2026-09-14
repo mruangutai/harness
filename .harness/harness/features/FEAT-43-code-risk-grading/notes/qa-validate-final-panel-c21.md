@@ -8,10 +8,10 @@ what the diff actually carries — no delta to report as a finding.
 ## 1. Test-matrix gate — commands run by me, quoted, with exit status
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit
 EXIT=0   29/29 unit scripts PASS (script-level `PASS <name>.py` lines counted: 29; confirmed list
          includes test-code-grade.py, test-gate-policy.py)
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration
 EXIT=0   32/32 integration scripts PASS (includes test-validate-digest.py, test-code-grade-cli.py,
          test-check-plan-routes.py, test-hooks-install.py — see B8 below)
 ```
@@ -126,7 +126,7 @@ $ git -C <worktree> diff --name-only 7ccfae8dd7644bc3aaea612dabf4317c0d804f99..1
 Confirmed empty — the diff touches none of the surfaces `test-hooks-install.py` exercises.
 
 **Additional evidence, not requested but observed in the course of the required integration run**:
-`test-hooks-install.py` ran as part of my own `run-unit-tests.sh --kind integration` invocation
+`test-hooks-install.py` ran as part of my own `run-unit-tests.py --kind integration` invocation
 **in this worktree** (not the main checkout) and **passed**, including its `(e-green) SC-14` case
 by name — no failure of any kind. I did not separately invoke the file (per the acceptance
 constraint); this is the incidental result of running the full integration kind once. I take this as

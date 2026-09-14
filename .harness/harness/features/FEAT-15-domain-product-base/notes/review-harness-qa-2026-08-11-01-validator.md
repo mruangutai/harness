@@ -80,10 +80,10 @@ SC-11's claim ("no live harness file loses a route") holds as measured at e05752
 ## (5) Suite and matrix
 
 - `python3 .claude/skills/harness/bin/test-check-domain.py` at e057525: **exit 0**, 98/98.
-- `bash .claude/skills/harness/bin/run-unit-tests.sh` (no `--kind`, the full run) at e057525:
+- `bash .claude/skills/harness/bin/run-unit-tests.py` (no `--kind`, the full run) at e057525:
   **exit 0**, includes `test-check-domain.py`'s 98 cases plus `test-factory-integration.py`
   (97/97) and `test-no-distribution.py`.
-- **Confirmed, not just repeated from the BRIEF:** `bash .claude/skills/harness/bin/run-unit-tests.sh
+- **Confirmed, not just repeated from the BRIEF:** `bash .claude/skills/harness/bin/run-unit-tests.py
   --kind unit` exits 0 (`ALL PASS`) and its output contains **zero** mention of check-domain —
   `test-check-domain.py` is claimed by `harness.json`'s `unit` detect glob
   (`.claude/skills/harness/bin/test-*.py`) but is actually run only under `--kind integration`'s
@@ -104,7 +104,7 @@ SC-11's claim ("no live harness file loses a route") holds as measured at e05752
 - SC-05/SC-06: `(a)+(b) PAIR` / `(c)` fleet cases.
 - SC-07: enumerated above — the diff table.
 - SC-09: `T-04 resolve PAIR` case.
-- SC-10: `run-unit-tests.sh` exit 0, confirmed above.
+- SC-10: `run-unit-tests.py` exit 0, confirmed above.
 - SC-13: Pair C — but see the vacuity finding in (2): the product-base assertions inside Pair C
   are exit-0-only and cannot alone rule out a NO-VERDICT product branch; mutant (a) happened to be
   caught, but not by a negative control within Pair C itself.

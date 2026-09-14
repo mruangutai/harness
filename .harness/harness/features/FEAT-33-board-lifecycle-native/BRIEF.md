@@ -212,9 +212,9 @@ ground, then kaya-ai board 2.
   anchor above (`:113`, `:127`, `:134`, `:141`, `:148`) still resolves.
 - **The `integration` kind is active but its `detect` is a closed filename list, and that dictated where
   the new tests go.** `test_kinds.integration.detect` (`harness.json:119`) is `tests/integration/**`
-  plus **22** explicit filenames, and `run-unit-tests.sh:18` `INTEGRATION_SCRIPTS` is a matching
+  plus **22** explicit filenames, and `run-unit-tests.py:18` `INTEGRATION_SCRIPTS` is a matching
   **22**-name array — **re-counted at `46ee87c`, where the earlier draft said six and fourteen; both
-  numbers were wrong and are corrected here.** `git diff origin/main -- run-unit-tests.sh` is empty
+  numbers were wrong and are corrected here.** `git diff origin/main -- run-unit-tests.py` is empty
   against `main` at `e3392fd`, so FEAT-31 has still landed nothing here. A new `test-board-lifecycle.py` therefore can **never** be selected as
   `integration`, and the qa gate does not accept an unrelated passing test as coverage
   (`harness-qa-gate` SKILL.md: *"Presence is not satisfied by an unrelated existing test"*). Every
@@ -645,7 +645,7 @@ board. That is the one thing it copies from the factory lane.
   Nothing about that makes either plan wrong, and the two build in separate worktrees; **whichever
   builds second re-derives its line anchors by symbol** — `T-22`'s intent now says so explicitly.
   Which of the two builds first is a scheduling call, not a change to either plan.
-  `run-unit-tests.sh`, `check-state.sh`, `check-domain.py`, `harness.json` and `DECISIONS.md` all have
+  `run-unit-tests.py`, `check-state.sh`, `check-domain.py`, `harness.json` and `DECISIONS.md` all have
   other writers. **Measured at `46ee87c`:** `git diff --name-only origin/main...HEAD` returns only
   files under `features/FEAT-33-board-lifecycle-native/`, and the same command at `57e18ca` returns
   the same set, so none of those merges landed on a surface this plan reads in a way this branch has
@@ -659,7 +659,7 @@ board. That is the one thing it copies from the factory lane.
   `_EXPECT` (`:1184` → `:1234`), `check-state.sh`'s `load_board` call (`:1147` → `:1197`),
   `factory_decompose.py`'s ready write (`:411` → `:414`), `_apply_parent_rule` (gh_board.py → 
   `gh-sync.py:177`), and the `integration` list counts (six/fourteen → 22/22). What this plan
-  still touches with another writer, and must rebase against: **one line of `run-unit-tests.sh`**
+  still touches with another writer, and must rebase against: **one line of `run-unit-tests.py`**
   (registering `test-board-lifecycle.py` in `UNIT_SCRIPTS`, which the drift detector at `:41-55` makes
   mandatory — an unregistered `test-*.py` exits 2 `MISCONFIGURED` and breaks every `verify:` in this
   plan at once), `DECISIONS.md`, and `harness.json` — but `harness.json` is now touched by **T-02

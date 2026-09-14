@@ -27,8 +27,8 @@ bookkeeping write itself, not code. No other drift. This run is against the pin 
 
 | kind/suite | exit | count | vs. segment baseline |
 |---|---|---|---|
-| `run-unit-tests.sh --kind unit` | 0 | 33 files, pool all PASS | 33 — matches |
-| `run-unit-tests.sh --kind integration` | 0 | 49 files, pool all PASS | 49 — matches |
+| `run-unit-tests.py --kind unit` | 0 | 33 files, pool all PASS | 33 — matches |
+| `run-unit-tests.py --kind integration` | 0 | 49 files, pool all PASS | 49 — matches |
 | tests/unit/test-plan-depends-on.py | 0 | 12/12 | 12 — matches |
 | tests/integration/test-plan-merge.py | 0 | 298 `PASS` lines incl. bug201/bug201a/bug201b | new suite, n/a |
 | tests/unit/test-harness-yaml-corpus.py | 0 | 16/16 | 16 — matches |

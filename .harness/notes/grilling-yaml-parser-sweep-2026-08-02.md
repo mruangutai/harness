@@ -15,7 +15,7 @@ sweep, not as its point.
 
 **Feature 2 is BLOCKED ON Feature 1 and must not be planned in parallel.** `validate-digest.py`
 cannot `import yaml` until Feature 1's init gate makes PyYAML a guaranteed prerequisite, and both
-features edit `bin/` and `run-unit-tests.sh`. Plan and ship Feature 1 first.
+features edit `bin/` and `run-unit-tests.py`. Plan and ship Feature 1 first.
 
 ## Settled
 

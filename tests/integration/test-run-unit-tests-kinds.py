@@ -47,7 +47,7 @@ def tree():
     bin_dir = root / ".claude/skills/harness/bin"
     bin_dir.mkdir(parents=True)
     for name in (
-            "run-unit-tests.sh", "harness_boundary.py", "run_identity.py",
+            "run-unit-tests.py", "harness_boundary.py", "run_identity.py",
             "suite_layout.py", "run_pool.py"):
         shutil.copy2(ROOT / ".claude/skills/harness/bin" / name, bin_dir / name)
     for kind in ("unit", "integration"):
@@ -64,7 +64,7 @@ def tree():
 def run(root, *args):
     env = dict(os.environ, HARNESS_PROJECT_DIR=str(root))
     return subprocess.run(
-        [str(root / ".claude/skills/harness/bin/run-unit-tests.sh"), *args],
+        [str(root / ".claude/skills/harness/bin/run-unit-tests.py"), *args],
         cwd=root, env=env, text=True, capture_output=True, timeout=60)
 
 

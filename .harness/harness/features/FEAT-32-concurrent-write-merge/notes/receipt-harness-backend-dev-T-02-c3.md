@@ -113,17 +113,17 @@ exit=1
 All 16 other checks (18 total, including the new symlink check) still pass — case 4 and only
 case 4 is flock-dependent, unchanged from cycles 1-2.
 
-## `run-unit-tests.sh --check-kinds`
+## `run-unit-tests.py --check-kinds`
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
-MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.sh's
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.py's
 explicit script list
 (exit 2)
 ```
 
 Same outcome as cycle 2, predicted by the dispatch. `test-dispatch-guard.py` is T-07's file, not
-mine; registration is T-10's job. Did not touch `run-unit-tests.sh` or `.harness/harness.json`.
+mine; registration is T-10's job. Did not touch `run-unit-tests.py` or `.harness/harness.json`.
 
 ## Correction to the cycle-2 receipt
 
@@ -146,7 +146,7 @@ receipt to fix.)
 - Only `.claude/skills/harness/bin/test-harness-merge.py` changed —
   `git status --porcelain -- .claude/skills/harness/bin/harness_merge.py` shows only the
   pre-existing untracked `??`, no modification.
-- Did not touch `test-expertise-merge.py`, `run-unit-tests.sh`, `.harness/harness.json`, or any
+- Did not touch `test-expertise-merge.py`, `run-unit-tests.py`, `.harness/harness.json`, or any
   DEC-174 surface.
 - `cp -R` → `python3 -c "shutil.copytree(...)"` substitution reused and declared per cycle 1-2
   precedent.

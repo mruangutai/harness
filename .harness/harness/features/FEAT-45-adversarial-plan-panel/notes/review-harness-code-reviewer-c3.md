@@ -153,7 +153,7 @@ reject an unrecorded one — matches SC-17, no new fail-open found. `panel_findi
 ## Test suite corroboration — independently re-run, not restated
 
 - `test-validate-digest.py` at this pin: **ALL PASSED** (fresh run, not trusted from the record).
-- `run-unit-tests.sh --kind unit` at this pin: 433 `^PASS |^FAIL ` lines, **0** `^FAIL `, **0**
+- `run-unit-tests.py --kind unit` at this pin: 433 `^PASS |^FAIL ` lines, **0** `^FAIL `, **0**
   `KIND-DRIFT` — matches the shared context's reported numbers exactly, confirmed by direct re-run.
 - Neither run exercises either new gap above: `_check_plan_feature_binding` only tests a feature WITH
   a recorded, *differing* branch (never the branch-absent case); `check_hook_feature_dir` only tests

@@ -201,11 +201,11 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   `12f74ea8`, issue-free). No task in this revision touches `factory_config.py`, so the re-take is
   expected to reproduce that result — but the grade of record is the one taken at the new pin.
   verify: automated        evidence: unit
-- SC-06: `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` exits 0 at `<review_sha>`.
+- SC-06: `.agents/skills/harness/bin/run-unit-tests.py --kind unit` exits 0 at `<review_sha>`.
   Graded at `<review_sha>` only: T-17 rewrites `tests/unit/test-no-distribution.py`, so this is the
   standing gate over the revision's own diff and no earlier grade is retained.
   verify: automated        evidence: unit
-- SC-07: `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` exits 0 at
+- SC-07: `.agents/skills/harness/bin/run-unit-tests.py --kind integration` exits 0 at
   `<review_sha>`, with no case reporting a skip for a missing skill anchor. Graded at
   `<review_sha>` only: T-14 and T-17 add and rewrite integration suites, so this is the standing
   gate over the revision's own diff and no earlier grade is retained.

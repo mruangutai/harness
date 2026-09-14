@@ -77,7 +77,7 @@ the dispatch.
 **Bounded-evidence note (mandatory):** I ran the two task-scoped files directly
 (`python3 tests/unit/test-harness-boundary.py`, `python3 tests/integration/test-dispatch-guard.py`),
 per instruction, **not** the configured `test_kinds` gate commands
-(`.agents/skills/harness/bin/run-unit-tests.sh --kind unit|integration`), which are broader (they walk
+(`.agents/skills/harness/bin/run-unit-tests.py --kind unit|integration`), which are broader (they walk
 the full `tests/unit/**`/`tests/integration/**` trees, not just these two files, and additionally
 enforce plan-merge/layout checks the standalone scripts don't run). Four sibling BUG flows are live
 in other worktrees, so the project-wide sweep was correctly withheld. The two states below rest on
@@ -218,16 +218,16 @@ No live-manifest count/content pin found anywhere in either file.
   +115/-0; `git show e7994376 --stat` shows the opposite: integration +183, unit +115). Noted for the
   record; did not affect grading since I read both files directly.
 
-## Addendum — full-project `run-unit-tests.sh --kind integration` sweep investigated (not part of this gate's evidence)
+## Addendum — full-project `run-unit-tests.py --kind integration` sweep investigated (not part of this gate's evidence)
 
 An automated post-hoc check on this yield reported that an independent re-run of the full
-`.agents/skills/harness/bin/run-unit-tests.sh` sweep exited 1, contradicting `suite: pass`. I
+`.agents/skills/harness/bin/run-unit-tests.py` sweep exited 1, contradicting `suite: pass`. I
 investigated directly rather than either capitulating or ignoring it, since my dispatch explicitly
 told me **not** to run this project-wide sweep as evidence (four sibling BUG worktrees are live and
 the sweep walks the whole `tests/unit|integration` tree, not the diff). Findings:
 
 1. **Non-deterministic across two identical invocations.** I ran
-   `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` twice in immediate succession,
+   `.agents/skills/harness/bin/run-unit-tests.py --kind integration` twice in immediate succession,
    same env, same worktree, same command. First run: exit 0, no failures. Second run: exit 1, with
    `FAIL sweep/clean-tracked RED: the mutant reported no more than the original, so case A does not
    discriminate the fix from its absence` inside `test-check-domain.py`, plus a cluster of `no

@@ -110,8 +110,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 28 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 46 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 28 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 46 }
   coverage_gaps:
     - "CLI-level (subprocess) VL-06 grammar case covers only `add`; `replace`/`drop` proven at resolver level (unit) but not through the CLI boundary — backlog/chore/low"
     - "No case pins acceptance or rejection of unicode-digit ids in target grammar (ENTRY_RE is not re.ASCII-scoped) — backlog/enhancement/low"

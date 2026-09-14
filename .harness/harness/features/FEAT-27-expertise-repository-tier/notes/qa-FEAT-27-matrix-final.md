@@ -17,7 +17,7 @@ two files swept.
 | T-04 | docs | `[]` | n/a | — | discharged by design; T-04's own `verify:` re-run below as corroboration |
 | T-05 | docs | `[]` | n/a | — | discharged by design; T-05's own `verify:` re-run below |
 | T-06 | docs | `[]` | n/a | — | discharged by design; T-06's own `verify:` re-run below |
-| **T-07** | **logic** | **unit** | `run-unit-tests.sh --kind unit` | **0** | `PASS test-inject-expertise.py`, 19/19, 0 FAIL lines in full captured output |
+| **T-07** | **logic** | **unit** | `run-unit-tests.py --kind unit` | **0** | `PASS test-inject-expertise.py`, 19/19, 0 FAIL lines in full captured output |
 
 **Full-suite re-run, this session, at `252fa72`:**
 - `--kind unit`: exit 0. 17/17 `test-*.py` scripts report `PASS <name>`, `grep -c '^FAIL '` = 0 over
@@ -35,7 +35,7 @@ two files swept.
 | SC | Method | Evidence |
 |---|---|---|
 | SC-01 | bound (mutation, carried) | `test-inject-expertise.py:84-105` case1; unchanged since `2117a46` per `git diff --stat 2117a46 252fa72` (append-only, +25/-0, all of it case13) |
-| SC-02 | bound by an executing assertion, **standing-suite gap disclosed** | T-01's own `verify:` (`plan.yaml:110-125`), re-run by me this session: `ALL-GRANTS-OK`, exit 0, all 16 agents' repo-tier and craft `--resolve` checks pass. **Gap**: this loop lives only in the task's one-shot `verify:`, not in `test-check-domain.py` — nothing in `run-unit-tests.sh` re-runs it, so a future regression on any of the 16 grants is not caught by the standing suite |
+| SC-02 | bound by an executing assertion, **standing-suite gap disclosed** | T-01's own `verify:` (`plan.yaml:110-125`), re-run by me this session: `ALL-GRANTS-OK`, exit 0, all 16 agents' repo-tier and craft `--resolve` checks pass. **Gap**: this loop lives only in the task's one-shot `verify:`, not in `test-check-domain.py` — nothing in `run-unit-tests.py` re-runs it, so a future regression on any of the 16 grants is not caught by the standing suite |
 | SC-03 | rests on inspection (by design) | T-04's `verify:` re-run by me: `MIGRATION-OK`. It checks all 16 adjudicated entries (11 moved + 5 stayed) but as one combined presence-and-absence boolean per entry, not the 32 separately-reported assertions SC-03's text describes — corroborating, not a literal match to the SC's own phrasing |
 | SC-04 | bound (mutation, carried) | `test-check-expertise.py` `run_extra` case1 + case2's 9 non-FEAT token classes; file unchanged since `2117a46` (`git diff --stat` empty) |
 | SC-05 | bound (mutation, carried) | `run_extra` case6 (abspath) |
@@ -149,7 +149,7 @@ item 4 — would have stayed green under exactly the mutant SC-11 requires case1
 ## Coverage gaps (net across both rounds)
 
 - SC-02 / T-01's 10 non-fixtured repository-tier grants: automated and passing, but living only in a
-  one-shot task `verify:`, not in the standing `run-unit-tests.sh` suite — a future regression on any
+  one-shot task `verify:`, not in the standing `run-unit-tests.py` suite — a future regression on any
   of the 16 grants (or the 10 not covered by `COLLECT_FIXTURE`) will not be caught automatically.
 - `[ -r ]` guard's *documented* half (non-matching glob) — still unpinned as its own case (carried
   from the T-02/T-03 round; T-07 pinned the *other* half, deliberately, per its own intent text).

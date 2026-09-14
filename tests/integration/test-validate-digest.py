@@ -2045,7 +2045,7 @@ artifact: a.md
 
 
 def _bug919_stub_script(root, exit_code):
-    """A fast run-unit-tests.sh stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
+    """A fast run-unit-tests.py stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
     minutes; this proves the wiring (which script ran, what its exit code did) instead."""
     path = os.path.join(root, "stub-run-unit-tests-%d.sh" % exit_code)
     with open(path, "w") as f:
@@ -2157,7 +2157,7 @@ def run_bug919_qa_matrix_cases():
 
 def run_bug919_resolve_fallback_case():
     """Code review of #1185, Finding 1 (high): a named feature whose worktree lookup
-    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.sh
+    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.py
     is a static, always-present path, so a wrong-root substitution here never 404s; it
     just silently re-runs the suite against the wrong checkout and reports that
     mismatched result as though it verified the claim."""

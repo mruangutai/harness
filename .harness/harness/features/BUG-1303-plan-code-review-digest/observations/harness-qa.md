@@ -1,7 +1,7 @@
 # Observations - harness-qa
 
 - 2026-09-05: BUG-1303 build qa gate — `bugfix.always: [unit]` floor unmet (missing) because the
-  whole change's test surface is `tests/integration/test-validate-digest.py`; `run-unit-tests.sh`'s
+  whole change's test surface is `tests/integration/test-validate-digest.py`; `run-unit-tests.py`'s
   unit bucket only globs `tests/unit/test-*.py`, never picks it up. Same shape as BUG-1128's open
   matrix gap, still unresolved in `.harness/harness.json` (`_matrix_provenance` has no `bugfix`
   entry). Guard discrimination itself (16 per-persona lines + both synthetic group lines,

@@ -102,7 +102,7 @@ itself is re-run here.
 
 ### SC-06 — `met` (automated, re-run)
 
-`run-unit-tests.sh --kind unit` → **exit 0**, `pool: 8 workers, 34 files, 2.23s wall`.
+`run-unit-tests.py --kind unit` → **exit 0**, `pool: 8 workers, 34 files, 2.23s wall`.
 Four `^FAIL ` lines appear (lines 957–962 of the run log) and **all four are inside
 `test-factory-claim-mutation.py`'s by-design mutant output** — that file's own banner is
 `----- test-factory-claim-mutation.py (exit 0, 0.35s) -----` and its verdict line is
@@ -110,7 +110,7 @@ Four `^FAIL ` lines appear (lines 957–962 of the run log) and **all four are i
 
 ### SC-07 — `met` (automated, re-run)
 
-`run-unit-tests.sh --kind integration` → **exit 0**, `pool: 8 workers, 49 files, 69.30s wall`.
+`run-unit-tests.py --kind integration` → **exit 0**, `pool: 8 workers, 49 files, 69.30s wall`.
 Grepped the whole run for a skip tied to a skill anchor: **no non-PASS skip/anchor line**;
 `test-check-decision-anchors.py` passes including `ok - test_live_authority_anchors_all_resolve`,
 and `PASS - product clone can read anchored systematic-debugging skill`. No case reports a skip for

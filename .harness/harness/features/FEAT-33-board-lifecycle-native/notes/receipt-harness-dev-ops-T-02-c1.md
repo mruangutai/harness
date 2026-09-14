@@ -2,7 +2,7 @@
 
 ## Verdict
 
-PASS. `.claude/skills/harness/bin/run-unit-tests.sh --kind all` exits 0, zero real FAIL
+PASS. `.claude/skills/harness/bin/run-unit-tests.py --kind all` exits 0, zero real FAIL
 lines. All nine files named in T-02 ran and PASSed, including the three integration-kind
 ones (test-gh-sync.py, test-check-state.py, test-factory-integration.py).
 
@@ -123,7 +123,7 @@ exit-code-equal. Full captures saved at:
 ## Verify
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind all
+.claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 Exit code 0. Zero lines matching `^FAIL `. All 14 grep hits for the substring "FAIL" are
 `ok`-prefixed lines whose test *names* contain the word "FAIL" (e.g. "FAIL over an

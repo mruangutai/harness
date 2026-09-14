@@ -275,9 +275,9 @@ tasks:
       - .claude/skills/harness/bin/feature_schema.py
       - .claude/skills/harness/bin/validate-feature-json.py
       - .claude/skills/harness/bin/test-validate-feature-json.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Write a JSON Schema (draft 2020-12) at
       .claude/skills/harness/bin/feature-schema.json describing a harness feature's
@@ -445,7 +445,7 @@ tasks:
         unavailable, asserting it returns a non-empty list (never []) whose single
         line carries REQUIRED and the install command.
 
-      REGISTER THE NEW TEST FILE in .claude/skills/harness/bin/run-unit-tests.sh, in
+      REGISTER THE NEW TEST FILE in .claude/skills/harness/bin/run-unit-tests.py, in
       the UNIT_SCRIPTS array, NOT INTEGRATION_SCRIPTS. The runner has a drift detector
       that fails the whole run on any unregistered test-*.py, and the integration
       kind's detect globs in harness.json name only test-check-state.py and
@@ -537,7 +537,7 @@ tasks:
       `integration`, which is this job's id, so a second job emits a context nobody
       requires and a job name renames the required one.
         - "Unit suite", before the existing integration step, whose run is
-          .claude/skills/harness/bin/run-unit-tests.sh --kind unit, with the same
+          .claude/skills/harness/bin/run-unit-tests.py --kind unit, with the same
           CLAUDE_PROJECT_DIR env block the integration step carries. THIS IS THE POINT
           OF THE TASK, not a tidy-up: T-01's test-validate-feature-json.py is a UNIT
           script, SC-07 is the only proof of REQ-06, and the required job runs
@@ -812,7 +812,7 @@ tasks:
       no sync, no decompose, no claim, whether by hand or from a script. Scope it exactly:
       the prohibition is on running these tools against real feature directories. Their
       fixture-based suites are NOT prohibited and are expected to run - T-05's own verify
-      clause runs run-unit-tests.sh, which exercises test-gh-sync.py and the factory tests
+      clause runs run-unit-tests.py, which exercises test-gh-sync.py and the factory tests
       against tempfile fixtures, and that stays legal.
       WHY, verified rather than inferred: gh-sync.py load_recorded (lines 255-256) returns
       the EMPTY record when the file it looks for is missing, and its own docstring
@@ -849,7 +849,7 @@ tasks:
           bad.append('test-harness-yaml-corpus.py names feature.yaml %d times, expected exactly 4 '
                      '(the three preserved path:line citations plus the FEAT-05 sentence); the '
                      'historical marker must not add a fifth' % n)
-      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh'],
+      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.py'],
                          capture_output=True, text=True)
       if r.returncode != 0:
           bad.append('unit runner exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))
@@ -939,10 +939,10 @@ tasks:
       corpus does not carry yet, and gh-sync.py treats a missing file as an empty record
       and re-files issues that already exist (its own docstring, lines 236-243). Running
       their fixture-based suites is NOT prohibited and is required: this task's own verify
-      clause runs run-unit-tests.sh, which exercises test-gh-sync.py and the factory tests
+      clause runs run-unit-tests.py, which exercises test-gh-sync.py and the factory tests
       against tempfile fixtures.
 
-      Every one of these files is already registered in run-unit-tests.sh; add no new
+      Every one of these files is already registered in run-unit-tests.py; add no new
       test file in this task.
 
   - id: T-06
@@ -970,7 +970,7 @@ tasks:
                 '.claude/skills/harness/bin/test-validate-digest.py'):
           n = open(f).read().count('feature.yaml')
           if n: bad.append('%s still names feature.yaml %d time(s)' % (f, n))
-      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh', '--kind', 'integration'],
+      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.py', '--kind', 'integration'],
                          capture_output=True, text=True)
       if r.returncode != 0:
           bad.append('integration suite exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))
@@ -1385,7 +1385,7 @@ tasks:
       T-05 created, not merely that it carries the right keys.
 
       Then run, and report the output of, each of: the validator with no arguments,
-      check-state.sh, run-unit-tests.sh with no kind filter, and check-plan-routes.py
+      check-state.sh, run-unit-tests.py with no kind filter, and check-plan-routes.py
       over every live plan. The validator, the unit runner and the route checker must all
       exit 0. check-state.sh must NOT be judged by its exit code, and NOT against any
       violation list written at plan time. The bar is that its violation set does not GROW
@@ -1633,7 +1633,7 @@ tasks:
               bad.append('the route check examined %s plan(s) - a checker that looks at nothing '
                          'reports no violations and passes every check anyone would run'
                          % m.group(2))
-      t = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh', '--kind', 'unit'],
+      t = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.py', '--kind', 'unit'],
                          capture_output=True, text=True)
       if t.returncode: bad.append('unit suite exited %d:\n%s' % (t.returncode, t.stdout[-2000:]))
       print('\n'.join(bad) if bad else 'OK')
@@ -1740,7 +1740,7 @@ tasks:
                          'value; the notes on disk are lowercase, so this passes on a '
                          'case-insensitive filesystem and fails on Linux CI. Naming the hazard in '
                          'a comment is required by the intent and is not a finding' % stem)
-      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh', '--kind', 'integration'],
+      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.py', '--kind', 'integration'],
                          capture_output=True, text=True)
       if r.returncode:
           bad.append('integration suite exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))

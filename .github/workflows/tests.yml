@@ -83,13 +83,13 @@ jobs:
       - name: Unit suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+        run: .agents/skills/harness/bin/run-unit-tests.py --kind unit
 
       # Integration kind measured at 12 scripts, ~15s.
       - name: Integration suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+        run: .agents/skills/harness/bin/run-unit-tests.py --kind integration
 
       # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
       # arguments: the CLI sweeps every .harness/*/features/*/feature.{json,yaml,yml} file
@@ -102,7 +102,7 @@ jobs:
 
       # THE ROUTE CHECK, PROMOTED (issue #133, DEC-183). `check-plan-routes.py` worked from the
       # day it shipped and NOTHING mechanical ran it: not this workflow, not check-state.py, not
-      # one of the 7 hook registrations in settings.json — `run-unit-tests.sh` runs its TEST, never
+      # one of the 7 hook registrations in settings.json — `run-unit-tests.py` runs its TEST, never
       # the checker. Its sole invocation was one sentence in harness-spec-driven/SKILL.md telling a
       # planner to remember. This step is the mechanism; the sentence stays, because plan time is
       # still when a violation is cheap to fix.

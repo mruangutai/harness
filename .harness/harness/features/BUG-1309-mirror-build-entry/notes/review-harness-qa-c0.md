@@ -23,8 +23,8 @@ every number below is freshly measured in this session.
 
 | kind | cmd | exit | discovered |
 |---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` (env -u HARNESS_AGENT_TYPE) | 0 | 33 files, 531 `PASS`/`ok` lines, 0 `FAIL` |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 50 files, 3611 `ok`/`PASS` lines, 0 `FAIL`/`not ok` |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` (env -u HARNESS_AGENT_TYPE) | 0 | 33 files, 531 `PASS`/`ok` lines, 0 `FAIL` |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 50 files, 3611 `ok`/`PASS` lines, 0 `FAIL`/`not ok` |
 
 Both non-zero discovery, both green. `matrix_ok: true`.
 
@@ -135,8 +135,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 33 }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 50 }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 33 }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 50 }
   coverage_gaps:
     - "check-state.sh INV-37's 'open' remedy message (the non-terminal, no-done-task branch) is asserted only through the pure recovery_command_for() unit check, never through captured check-state.sh stdout — the recover-terminal sibling branch IS asserted against captured output"
   sc_evidence:

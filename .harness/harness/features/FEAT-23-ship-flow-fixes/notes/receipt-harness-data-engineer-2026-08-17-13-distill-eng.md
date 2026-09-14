@@ -75,7 +75,7 @@ correction).
 ## `suite:` truthfulness — verbatim
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh > <scratchpad>/feat23-de-suite.log 2>&1
+$ bash .claude/skills/harness/bin/run-unit-tests.py > <scratchpad>/feat23-de-suite.log 2>&1
 EXIT: 0
 $ grep -c "^PASS" <scratchpad>/feat23-de-suite.log
 197

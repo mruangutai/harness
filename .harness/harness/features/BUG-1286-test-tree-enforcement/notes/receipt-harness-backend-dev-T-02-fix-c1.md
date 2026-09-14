@@ -34,7 +34,7 @@ naming them are in sorted path order."
 
 Nothing else in the case changed: the `check(...)` call, its message argument
 (`p.stderr`), and the surrounding lines 100-112 are byte-identical apart from line 107.
-Cases 1, 2, 4, 5 and `suite_layout.py` / `run-unit-tests.sh` were not touched.
+Cases 1, 2, 4, 5 and `suite_layout.py` / `run-unit-tests.py` were not touched.
 
 ## Step 1 — green run, unmodified, BEFORE the fix would have looked identical
 
@@ -61,7 +61,7 @@ this step.
 - In the COPY ONLY: rewrote the `ROOT = Path(__file__).resolve().parents[2]` line to a
   literal absolute path pointing at this worktree
   (`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1286-test-tree-enforcement`),
-  so the probe's `run()` still exercises the real `run-unit-tests.sh` / `suite_layout.py`
+  so the probe's `run()` still exercises the real `run-unit-tests.py` / `suite_layout.py`
   in this worktree.
 - In the COPY ONLY: inserted one line immediately after case 3's
   `misconfigured = [...]` build: `misconfigured = misconfigured[::-1]` — forcing the

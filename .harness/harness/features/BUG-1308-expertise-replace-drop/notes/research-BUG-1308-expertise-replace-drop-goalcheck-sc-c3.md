@@ -15,8 +15,8 @@ Every automated criterion was RUN at this pin, not carried forward. Content read
 
 | Suite | Command | Exit | `^FAIL ` | Files |
 |---|---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | **0** | 28 |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | **0** | 46 |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | **0** | 28 |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | **0** | 46 |
 
 Counted with `grep -c '^FAIL '`, never a tail read (G-08). Named files run directly:
 `tests/unit/test-expertise-ops.py` exit 0 / 102 PASS; `tests/integration/test-expertise-merge.py`

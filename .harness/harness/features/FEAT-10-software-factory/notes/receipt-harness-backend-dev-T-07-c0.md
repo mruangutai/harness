@@ -4,7 +4,7 @@
 
 PASS. `factory_land.py` opens a pull request and stops, exactly as T-07's intent specifies.
 `test-factory-land.py` is test-first (RED confirmed on `ModuleNotFoundError` before any
-production code existed), 45/45 checks green, registered in `run-unit-tests.sh`.
+production code existed), 45/45 checks green, registered in `run-unit-tests.py`.
 
 ## Baseline (before this task)
 
@@ -30,7 +30,7 @@ Captured at `/tmp/v-t07-integration.txt`.
 Command (character-exact from plan.yaml:1369):
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t07.txt 2>&1; s=$?; grep -q "^PASS test-factory-land.py$" /tmp/v-t07.txt && [ "$s" -eq 0 ]
+.claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/v-t07.txt 2>&1; s=$?; grep -q "^PASS test-factory-land.py$" /tmp/v-t07.txt && [ "$s" -eq 0 ]
 ```
 
 Result: **RESULT=0** (verify command's own compound exit), **exit_status=0** (the suite's own
@@ -129,7 +129,7 @@ second git invocation path, exactly what R-04 forbids.
 
 - `.claude/skills/harness/bin/factory_land.py` (new)
 - `.claude/skills/harness/bin/test-factory-land.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` — one-line append to `UNIT_SCRIPTS` on line 58
+- `.claude/skills/harness/bin/run-unit-tests.py` — one-line append to `UNIT_SCRIPTS` on line 58
   only (`"test-factory-claim.py")` → `"test-factory-claim.py" "test-factory-land.py")`).
   `INTEGRATION_SCRIPTS` (line 59) untouched by this task; it already carried held dirt
   (`test-gen-omp-agents.py`, `test-omp-reviewer-guard.py`) from unrelated work before this task

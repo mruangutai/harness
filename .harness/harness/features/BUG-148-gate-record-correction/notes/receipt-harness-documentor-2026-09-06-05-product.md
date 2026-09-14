@@ -10,7 +10,7 @@ Two repo files changed, both named in T-01 `files:`. Nothing staged, committed o
 2026-08-03`), verbatim including markup and line breaks:
 
 ```markdown
-**The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.sh`, `check-docs.sh` and
+**The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.py`, `check-docs.sh` and
 `check-state.sh` were green, and the fourth gate recorded that day, `gen-decisions-index.py --check`,
 was no gate at all: `--check` was never a supported mode. Before argv validation landed at commit
 `ffbdbfa1` (2026-08-05, "perf(140): validate argv so `--help` stops rewriting the index"), `main()`
@@ -22,7 +22,7 @@ or the other. The read-only form is
 real gates were green while:
 ```
 
-The prior text (2 lines) claimed `Every gate was green — run-unit-tests.sh, check-docs.sh,
+The prior text (2 lines) claimed `Every gate was green — run-unit-tests.py, check-docs.sh,
 check-state.sh, gen-decisions-index.py --check — while:`. The sentence still ends `while:`, so the
 three defect bullets read as its continuation; heading, bullets, the *Self-hosting caught none of
 these* paragraph and the carve-out table are untouched. No dated sub-section, no `**Amendment` line,

@@ -87,7 +87,7 @@ misdescribe the mechanism itself, only slightly oversells the reason for avoidin
 | Q3 | low | no | (i)/(j) assert exit code only; a reimplementation exiting 2 from a *different* resolve-branch failure site while still leaking the env var would pass green. Add a stderr-contains-`BLOCKED` assertion, matching this suite's own (c)/(d) convention. |
 | Q5 | info | no | Comment's stated reason for rejecting an argv-based mode check is stronger than the code supports (`settings.json` registers zero args, so no real collision exists today). Mechanism description itself is accurate. |
 
-Gates checked and independently re-run in the worktree (not read from the claim): `run-unit-tests.sh`
+Gates checked and independently re-run in the worktree (not read from the claim): `run-unit-tests.py`
 → 32/32 PASS lines across all 13 scripts including `test-check-domain.py`'s 10/10 `--resolve` cases;
 `check-docs.sh` → exit 0; `check-state.sh` → exit 0; `gen-decisions-index.py --check` → exit 0. All
 four match the evidence handed to me.

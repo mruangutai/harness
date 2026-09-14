@@ -81,7 +81,7 @@ echo VERIFY-OK
 
 Output: `VERIFY-OK`
 
-## Full suite — `run-unit-tests.sh --kind all`
+## Full suite — `run-unit-tests.py --kind all`
 
 Ran to completion (exit 0). 41 scripts (19 unit + 22 integration), every one printed `PASS
 <script>` — grep confirms 0 lines matching `^FAIL ` across the whole log. `test-validate-feature-json.py`

@@ -12,8 +12,8 @@ Before source access, BRIEF/plan required unit coverage for Done-when shape, typ
 
 | Kind | State | Exact command | Exit | Discovery |
 |---|---|---|---:|---:|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 25 files (`pool: 8 workers, 25 files`) |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 44 files (`pool: 8 workers, 44 files`) |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 25 files (`pool: 8 workers, 25 files`) |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 44 files (`pool: 8 workers, 44 files`) |
 | handoff_comprehension | locally-run, not executed | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a |
 
 No assertion, import, load, collection, or syntax failure occurred. The integration output includes all 33 FEAT-54 `test-check-domain.py` results and all 14 FEAT-54 `test-check-state.py` results in their preserved order.

@@ -6,7 +6,7 @@ reviewed: 37a8a66..340e18a (18 commits, pinned)
 **Headline:** `upgrade-config.py` calls `harness_yaml.load_str` at two live call sites but never
 imports `harness_yaml` — every real invocation of `--check`/`--upgrade` crashes with `NameError`,
 reproduced live against this repo; the required regression test for this exact script
-(`test-upgrade-config.py`, 3 tests, T-04) was never created, so `run-unit-tests.sh` is green with
+(`test-upgrade-config.py`, 3 tests, T-04) was never created, so `run-unit-tests.py` is green with
 nothing capable of catching it. Separately, `check-state.sh` converts only 3 of the census's 10
 designated CONVERT sites — 7 hand-rolled YAML regex reads (`phase:`, `status:`, `cost:`, `host:`,
 the `github:` block) ship unconverted, contradicting REQ-01 and SC-03's own answer key, and one of
@@ -93,7 +93,7 @@ closes as not-a-defect.
 - **SC-08 MET (unit level)** — `harness_yaml.py:307-319`, `require_or_bootstrap`'s grant path writes a `json.dumps`-built `systemMessage` to stdout, once, only on the "marker absent" branch (verified: the "present, identity matches" branch returns at line 273, before this code). No competing stdout writer anywhere in `check-domain.py` or `bash-write-guard.py` (grepped). UAT (hand-run) originally caught D-14b failing, then confirmed fixed; I independently re-derived the fix's shape from source, not from the disposition note's say-so.
 - **SC-09 MET** — UAT (`uat-bootstrap-escape-expiry.md`) ran U-05 against three genuinely distinct transcript UUIDs; block on session mismatch confirmed.
 - **SC-10 NOT MET** — see finding #4 below.
-- **SC-12 MET, mechanically, but arithmetic exposes the gap** — `run-unit-tests.sh` exits 0, 11 suites, all pass, at-or-above the 9-file baseline. But the plan itself commits to **three** `SCRIPTS` additions across this feature: T-02's `test-harness-yaml.py`, T-04's `test-upgrade-config.py`, and SC-14's `test-harness-yaml-corpus.py` — 9 + 3 = 12 expected, and `run-unit-tests.sh:6`'s `SCRIPTS` array has **11**. The missing entry is `test-upgrade-config.py`, and it names itself: this is the exact test that would have caught finding #1.
+- **SC-12 MET, mechanically, but arithmetic exposes the gap** — `run-unit-tests.py` exits 0, 11 suites, all pass, at-or-above the 9-file baseline. But the plan itself commits to **three** `SCRIPTS` additions across this feature: T-02's `test-harness-yaml.py`, T-04's `test-upgrade-config.py`, and SC-14's `test-harness-yaml-corpus.py` — 9 + 3 = 12 expected, and `run-unit-tests.py:6`'s `SCRIPTS` array has **11**. The missing entry is `test-upgrade-config.py`, and it names itself: this is the exact test that would have caught finding #1.
 - **SC-13 MET, by direct execution, not by re-diffing the receipt file** — `check-state.sh`'s own run against this repo produces the same violation-free result described as baseline; I did not byte-diff `receipt-baseline-run-inventory.md` against a freshly generated post-change listing.
 - **SC-14 MET** — `test-harness-yaml-corpus.py` is in the `SCRIPTS` array and passed 8/8, including the four named negative fixtures (team-config.yaml space-`#`, FEAT-04/05 `: ` in prose, FEAT-03 backtick, duplicate key).
 
@@ -115,7 +115,7 @@ NameError: name 'harness_yaml' is not defined
 T-04 also required calling `harness_yaml.require_or_die()` once at entry — absent too, so a
 PyYAML-less machine gets this same crash instead of the loud, actionable message REQ-03/REQ-04
 promise everywhere else. T-04's required `test-upgrade-config.py` (3 named tests) was never
-created and never added to `run-unit-tests.sh`'s `SCRIPTS` array — the arithmetic in SC-12 above
+created and never added to `run-unit-tests.py`'s `SCRIPTS` array — the arithmetic in SC-12 above
 names the gap directly. REQ-06 explicitly says the conversion must not "trade a silent fail-open for
 a new crash"; this is that crash, and it is not even silent.
 
@@ -206,7 +206,7 @@ mandated, which is worth a durable record.
   stripped (bare date stays `str`), int/bool resolvers preserved.
 - D-13's `read:` tightening and D-08's `str()`-coercion of every `manifest_domains` glob: read at
   source (`harness_yaml.py:129-142`), matches the decision text.
-- `run-unit-tests.sh` and `check-state.sh` re-run by me directly (not cited from a prior run):
+- `run-unit-tests.py` and `check-state.sh` re-run by me directly (not cited from a prior run):
   11/11 suites PASS, `check-state.sh` exit 0.
 - Reverse trace of every file in the diff stat not otherwise covered by the six-script sweep (agents,
   skills, docs, `team-config.yaml`, two other features' `feature.yaml`) — see Stage 1 section above.

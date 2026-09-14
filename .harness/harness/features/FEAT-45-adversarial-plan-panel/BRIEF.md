@@ -119,7 +119,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   check. Falsified if the check passes such a state.
   verify: automated      evidence: unit
 - SC-08: Every test file this feature adds is executed by the project's own runner invocation
-  (`run-unit-tests.sh --kind unit`), not only standalone. Falsified if the file exists and the runner
+  (`run-unit-tests.py --kind unit`), not only standalone. Falsified if the file exists and the runner
   never names it, which leaves the assertion permanently unrun.
   verify: automated      evidence: unit
 - SC-09: `git show <review_sha>:.harness/harness/docs/DECISIONS.md` carries one entry per REQ-11
@@ -276,7 +276,7 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
 - The plan sequence is PROSE today, in `.claude/commands/harness-plan.md`'s `**Target state:**`
   bullet. That is the trigger site REQ-10 acts on, and nothing enforces its composition now.
 - `integration`'s `detect` in `.harness/harness.json` is an explicit file enumeration, and
-  `run-unit-tests.sh` names its scripts in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays. A new test
+  `run-unit-tests.py` names its scripts in `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays. A new test
   file is invisible to both unless it is registered — SC-08.
 
 **Out of scope, settled by the operator in the grilling artifact:**

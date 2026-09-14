@@ -22,7 +22,7 @@ content with no parent, no wake and no adoption, and `apply` prints `APPLIED` at
 
 - **Candidate 1, a new `PreToolUse` Bash gate — rejected.** It needs a new `settings.json` entry
   (`--resolve` answers NOBODY, so that surface joins as `main-session-direct`) plus a new test file
-  that must be appended to **both** `run-unit-tests.sh` `INTEGRATION_SCRIPTS` and `harness.json`
+  that must be appended to **both** `run-unit-tests.py` `INTEGRATION_SCRIPTS` and `harness.json`
   `test_kinds.integration.detect` — surfaces that are `team`/`harness-dev-ops` while the gate is
   `main-session-direct`, which is exactly the stranding D-08 already records. It buys nothing
   candidate 3 does not: same hook event, same tokenizer, one more file to keep in step.
@@ -80,7 +80,7 @@ routes happen to satisfy. **The mutation that turns it red:** delete the `quaran
 the two-rule decision at the foot of `plan-sign-gate.py` (or point the suite at a pre-change copy
 via `PLAN_SIGN_GATE_BIN`, which `test-plan-sign-gate.py:22` already reads) — the orphan `apply`,
 `set-task-station` and `adopt` calls then return exit 0 instead of 2. `evidence: integration` is
-correct: the assertions land in `test-plan-sign-gate.py`, which is in `run-unit-tests.sh`
+correct: the assertions land in `test-plan-sign-gate.py`, which is in `run-unit-tests.py`
 `INTEGRATION_SCRIPTS` at `:31` and in `harness.json` `test_kinds.integration.detect` (verified, 29
 entries). SC-04 gained four lines saying it is silent about the `Bash` route and pointing at SC-11.
 No REQ added or reworded.

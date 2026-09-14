@@ -19,14 +19,14 @@ No other task touches an Expertise file (confirmed: `plan.yaml` contains no refe
 tree, `git grep -n UNIT_SCRIPTS -e INTEGRATION_SCRIPTS -e check-kinds` (excluding the same three record
 prefixes T-06's residue mode excludes, and excluding the sources c1 already found and this plan already
 fixes) also matches:
-- `.harness/harness/expertise/harness-dev-ops.md:13` — G-10, "WHEN `run-unit-tests.sh`'s
+- `.harness/harness/expertise/harness-dev-ops.md:13` — G-10, "WHEN `run-unit-tests.py`'s
   `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` arrays are touched by a merge from `main` DO run `--check-kinds`
   immediately after..."
 - `.harness/harness/expertise/harness-pm.md:3` — P-01, "WHEN a criterion declares `evidence: unit` DO
-  confirm the file holding its assertions is in run-unit-tests.sh's `UNIT_SCRIPTS` and not
+  confirm the file holding its assertions is in run-unit-tests.py's `UNIT_SCRIPTS` and not
   `INTEGRATION_SCRIPTS`..."
 - `.harness/harness/expertise/harness-qa.md:8` — G-05, "WHEN a feature branch's later merge-from-main
-  reintroduces run-unit-tests.sh's `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` entries... DO expect the
+  reintroduces run-unit-tests.py's `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` entries... DO expect the
   KIND-DRIFT union check to exit 2..."
 
 All three are git-tracked (confirmed via `git ls-files`), all three sit under
@@ -140,7 +140,7 @@ real, if narrow, gap.
 - `goalcheck_path` does not exist — expected pre-signature, recorded rather than treated as satisfied.
 - Neither this plan nor FEAT-48 has executed. All soundness claims above are against plan **text** (this
   plan's and FEAT-48's) plus the **current tree** state (git-verified directly, not hand-traced), never
-  against a running suite, `suite_layout.py`, `suite-census.py`, or the rewritten `run-unit-tests.sh`,
+  against a running suite, `suite_layout.py`, `suite-census.py`, or the rewritten `run-unit-tests.py`,
   none of which exist yet.
 - I did not independently re-derive every `dec:` field's eventual correctness beyond DEC-207 itself
   (e.g. D-05/D-06/D-07/D-17's citations to DEC-187/DEC-197/DEC-174/DEC-145, which are pre-existing

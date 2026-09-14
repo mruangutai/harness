@@ -26,7 +26,7 @@ goal-check, then ship-refresh and distillation, then the briefing.
   without; 4 are the amended expected set and 2 are exactly what the batch edits — verified-at c14ed96
 - Every remaining SPEC and BUILD hit carries the `DEC-178` marker, so SC-14 holds and those two files
   survive for the reason SC-14 itself states — verified-at c14ed96
-- Gates green: `run-unit-tests.sh` 0 (**twelve** scripts now), `check-docs.sh` 0, `check-state.sh` 0
+- Gates green: `run-unit-tests.py` 0 (**twelve** scripts now), `check-docs.sh` 0, `check-state.sh` 0
   with zero violations — all three re-run by me — verified-at c14ed96
 - **$370.53 is the last measurable figure**, taken at `3503d1d` immediately before T-03 deleted
   `cost-report.py`. Everything after is unmeasurable BY DESIGN — verified-at 3503d1d

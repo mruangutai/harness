@@ -21,8 +21,8 @@ disposed at `note` severity, matching the dispatch's framing.
 
 | check | expected | observed |
 |---|---|---|
-| `run-unit-tests.sh --kind unit` | exit 0, 505 PASS, 0 FAIL | **matches**: exit 0, 505 lines matching `^PASS ` (33 scripts, all green), 0 `^FAIL ` |
-| `run-unit-tests.sh --kind integration` | exit 0, 816 PASS, 0 FAIL | **matches**: exit 0, 816 `PASS`-prefixed lines (28 scripts, all green), 0 `not ok`/`^FAIL `, `test-bash-write-guard.py` line 766 `PASS` |
+| `run-unit-tests.py --kind unit` | exit 0, 505 PASS, 0 FAIL | **matches**: exit 0, 505 lines matching `^PASS ` (33 scripts, all green), 0 `^FAIL ` |
+| `run-unit-tests.py --kind integration` | exit 0, 816 PASS, 0 FAIL | **matches**: exit 0, 816 `PASS`-prefixed lines (28 scripts, all green), 0 `not ok`/`^FAIL `, `test-bash-write-guard.py` line 766 `PASS` |
 | `check-state.sh` | exit 0, 0 VIOLATION, 0 traceback | **matches**: exit 0, `grep -c VIOLATION` = 0, `grep -ic traceback` = 0 |
 | `code-grade.py --base 9f2a070 --head fc08375` | 0 gated HIGH, 6 gated grade-2 | **matches**: 105 PASS, 6 `RESULT: FAIL` all at `GRADE: 2` (`_verify_spliced`, `_task_status_line`, `cmd_sign_approval.transform`, `denies`, `case_set_task_station_one_line`, `case_f02_sign_approval_cannot_write_an_unparseable_signature`) — none gated HIGH |
 
@@ -42,8 +42,8 @@ bugfix×2. Resolved against `.harness/harness.json`'s matrix:
 
 | kind | required by | state | evidence |
 |---|---|---|---|
-| unit | logic/api/bugfix (`always`), cross_module (`always`) | **satisfied** | `run-unit-tests.sh --kind unit`, 505 PASS |
-| integration | cross_module (`always`) | **satisfied** | `run-unit-tests.sh --kind integration`, 816 PASS |
+| unit | logic/api/bugfix (`always`), cross_module (`always`) | **satisfied** | `run-unit-tests.py --kind unit`, 505 PASS |
+| integration | cross_module (`always`) | **satisfied** | `run-unit-tests.py --kind integration`, 816 PASS |
 | api's `integration` (`touches_db_or_external`) | not triggered | n/a | T-03 (plan-merge.py) touches no DB/external service |
 | bugfix's `__bug_class__` (`match_bug_class`) | not triggered | n/a | no `bug_class` field on any task |
 | component / ui / eval | not required | **not applicable** | 171-file diff (base..pin) has zero matches for `*.spec.tsx`/`*.stories.(tsx\|ts)`, `tests/e2e/**`/`*.e2e.spec.ts`, `evals/**` |
@@ -189,8 +189,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 505 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 816 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 505 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 816 }
     - { kind: component, state: not_applicable, cmd: null }
     - { kind: ui, state: not_applicable, cmd: null }
     - { kind: eval, state: not_applicable, cmd: null }

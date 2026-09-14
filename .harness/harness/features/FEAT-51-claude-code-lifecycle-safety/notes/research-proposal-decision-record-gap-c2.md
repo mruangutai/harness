@@ -36,7 +36,7 @@ tasks:
       SC-09 grades the DEC-209 entry's CONTENT and declares verify automated with evidence
       integration. Nothing in the plan asserts that content today, so an entry that omits
       the plan-sign-gate.py half would ship graded met. This task is the assertion. It adds
-      NO new test file, so neither run-unit-tests.sh INTEGRATION_SCRIPTS nor
+      NO new test file, so neither run-unit-tests.py INTEGRATION_SCRIPTS nor
       harness.json test_kinds.integration.detect changes, and it does not touch
       DECISIONS.md or DECISIONS-INDEX.md, so no index regeneration is owed here.
       change_type is scaffolding because the deliverable IS the guard - no production

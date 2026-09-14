@@ -10,7 +10,7 @@ control exit 1
 control broken reads 4968
 live feature_schema.py bytes equal true
 live feature_schema.py mtime equal true
-post-fix command: bash .claude/skills/harness/bin/run-unit-tests.sh --kind all, with concurrent live feature_schema.py polling
+post-fix command: bash .claude/skills/harness/bin/run-unit-tests.py --kind all, with concurrent live feature_schema.py polling
 post-fix exit 0
 post-fix broken reads 0
 ```
@@ -24,7 +24,7 @@ post-fix broken reads 0
 Command for every run:
 
 ```text
-bash .claude/skills/harness/bin/run-unit-tests.sh --kind all
+bash .claude/skills/harness/bin/run-unit-tests.py --kind all
 ```
 
 ```text

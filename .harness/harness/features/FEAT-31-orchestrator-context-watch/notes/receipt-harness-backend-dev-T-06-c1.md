@@ -82,7 +82,7 @@ Exit status: `0`
 ```
 Exit status: `0` (29 of 29 cases satisfies `-ge 19`)
 
-### Line 3: `bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+### Line 3: `bash .claude/skills/harness/bin/run-unit-tests.py --kind unit`
 
 Full output is long (60.7KB, many unrelated unit scripts); the line that
 matters:
@@ -99,7 +99,7 @@ suite (would print `FAIL` lines and exit 1 on any regression); line 2 is a
 numeric floor comparison that reds on any count below 19 (measured
 starting floor was 15 before this task; this run adds 14 new `check()`
 calls for D–G, landing at 29); line 3 is the full unit-kind runner and
-reds if `run-unit-tests.sh` reports anything other than `PASS
+reds if `run-unit-tests.py` reports anything other than `PASS
 test-context-watch.py` for this script. I did not find any of the three
 assertions to be structurally incapable of failing.
 

@@ -11,7 +11,7 @@ Run the independent validate phase against `review_sha: b86ce66a`. Validate ever
 - Ten consecutive full runs exited 0; exact timings and tree condition are in `notes/measurements-parallel-suite.md`.
 - The isolated pre-fix control observed 4,968 broken reads without changing live `feature_schema.py`; the post-fix live poll observed zero.
 - `test-suite-independence.py` discovers 63 tests and reports zero live-tree mutations. Its pinned `ea6f51f` red proof finds all ten historical sites.
-- `test-run-pool.py`, `run-unit-tests.sh --check-kinds`, and the decision-index generator all pass.
+- `test-run-pool.py`, `run-unit-tests.py --check-kinds`, and the decision-index generator all pass.
 - `check-state.sh` reports only unrelated FEAT-51 lifecycle violations plus expected board lag before Review was written. FEAT-48's six board mismatches were then cleared by `gh-sync.py status ... review`.
 - Build implementation commit and pinned review SHA: `b86ce66a`.
 
@@ -28,6 +28,6 @@ Run the independent validate phase against `review_sha: b86ce66a`. Validate ever
 - `.claude/skills/harness/bin/test-suite-independence.py`
 - `.claude/skills/harness/bin/run_pool.py`
 - `.claude/skills/harness/bin/test-run-pool.py`
-- `.claude/skills/harness/bin/run-unit-tests.sh`
+- `.claude/skills/harness/bin/run-unit-tests.py`
 - `.harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md`
 - `.harness/harness/docs/DECISIONS.md` DEC-211

@@ -13,7 +13,7 @@ Breakdown by category:
 | TS test suite | 1 | `.claude/skills/harness/bin/omp-hooks.test.ts` |
 | JSONL fixtures | 2 | `omp-session-anchored.fixture.jsonl`, `omp-session-anchorless.fixture.jsonl` |
 | Python test/policy scripts | 8 | 3 added/modified, 5 deleted (`context-watch*`, `test-context-watch*`, `verify-context-watch-live.py`) |
-| Shell | 1 | `run-unit-tests.sh` |
+| Shell | 1 | `run-unit-tests.py` |
 | JSON config | 2 | `.claude/settings.json`, `.harness/harness.json` |
 | Markdown — process/skill docs | 2 | `SKILL.md` (step 5 rewrite), deleted `references/context-check.md` |
 | Markdown — decision records | 2 | `DECISIONS.md`, `DECISIONS-INDEX.md` |

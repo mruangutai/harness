@@ -187,7 +187,7 @@ Run:
 
 ```bash
 # Complete suite
-bash .agents/skills/harness/bin/run-unit-tests.sh
+bash .agents/skills/harness/bin/run-unit-tests.py
 
 # Provider-neutral surface and adapter drift
 python3 .agents/skills/harness/bin/check-omp-port.py

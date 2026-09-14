@@ -56,7 +56,7 @@ with measurement attached (below), not inferred from the call graph.
 
 ## Suite
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind all` — rc=0, zero `FAIL` lines,
+`bash .claude/skills/harness/bin/run-unit-tests.py --kind all` — rc=0, zero `FAIL` lines,
 wall-clock ≈78s (`1:18.36 total` per `time`). This full-suite run is a deliberate boundary-step
 run (this is the last build step before `review_sha` pins), not waste — consistent with the
 dispatch's framing, not flagged.

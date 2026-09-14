@@ -8,7 +8,7 @@
 - Review SHA: `ce29a059e37af5133ae5b4f87df6f622ed966a92`
 - Changed-file census:
   - `.agents/skills/harness/bin/test-merge-gitignore.py` — in scope: new subprocess, environment, temporary-filesystem, and captured-output behavior.
-  - `.agents/skills/harness/bin/run-unit-tests.sh` — inspected: only registers the new test in `INTEGRATION_SCRIPTS` (`:17`); no new input or privilege logic.
+  - `.agents/skills/harness/bin/run-unit-tests.py` — inspected: only registers the new test in `INTEGRATION_SCRIPTS` (`:17`); no new input or privilege logic.
   - `.harness/harness.json` — inspected: only adds the exact test path to integration detection (`:119`); no secrets or runtime authorization change.
 - Relevant unchanged utility: `.agents/skills/harness/bin/merge-gitignore.sh` — inspected to trace the process and filesystem contract; the pinned diff does not modify it.
 - Authority inspected: `BRIEF.md` REQ-01–REQ-05 / SC-01–SC-06 and `plan.yaml` T-01, D-01, D-02.

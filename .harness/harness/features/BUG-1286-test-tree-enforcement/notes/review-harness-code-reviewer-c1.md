@@ -106,7 +106,7 @@ Read BRIEF.md (325 lines) and plan.yaml D-01..D-06 (lines 33-174) in full.
   index row states the repository-wide invariant. SC-13 holds.
 - SC-14 (`harness.json` unchanged): `git diff 1977ebd6..9adbce6b -- .harness/harness.json` → 0
   lines. Confirmed.
-- SC-15 (mutation-snapshot scope unchanged): `run-unit-tests.sh` diff is empty; pinned blob line 47
+- SC-15 (mutation-snapshot scope unchanged): `run-unit-tests.py` diff is empty; pinned blob line 47
   is still `run_pool.py --mutation-check "$BIN_DIR" -- ...`. Confirmed.
 
 ## Stage 2 — code quality / fail-open hunt
@@ -157,7 +157,7 @@ committed `.harness/tools/test_rogue.py`, **no** copy of `suite_layout.py`):
 g in got)`) only checks that one prefix, so it stays green while `violations()` is demonstrably not
 a clean result for the exact fixture SC-16 constructs.
 
-No production impact: `violations()` has exactly one real caller (`run-unit-tests.sh` on Harness's
+No production impact: `violations()` has exactly one real caller (`run-unit-tests.py` on Harness's
 own root, per D-03/SC-16, where self-ownership and the registry's tracked-check always agree).
 Rated MED: real, demonstrated, contradicts the loose framing of SC-16's opening sentence ("reached
 by neither control") even though SC-16's own more precise text (about "the clause") stays literally
@@ -173,7 +173,7 @@ and claims a probe showed it staying green under a reversed line order. I re-ran
 with a genuine production mutation (not a hand-edited variable): copied the real `suite_layout.py`
 into a scratch git fixture, changed exactly one line, `for rel in sorted(tracked):` →
 `for rel in sorted(tracked, reverse=True):`, committed three rogue files, and invoked the actual
-`run-unit-tests.sh` subprocess. Result: `MISCONFIGURED:` lines print in reverse order (c, b, a), and
+`run-unit-tests.py` subprocess. Result: `MISCONFIGURED:` lines print in reverse order (c, b, a), and
 applying integration case 3's exact check expression against that real output gives
 `ordered = ['.harness/c/...', '.harness/b/...', '.harness/a/...']`, `sorted(rogue_paths) =
 ['.harness/a/...', ...]`, **`ordered == sorted(rogue_paths)` is `False`** — the check reddens
@@ -200,7 +200,7 @@ Ran `python3 tests/unit/test-suite-layout.py` directly at pinned-sha content: 28
 matches the orchestrator's 341/0/27 claim for this file's slice. Did not independently re-run the
 full 27-file/341-check suite or the 14-check integration suite in full, but exercised the specific
 integration scenarios discussed above via direct subprocess invocation of the real
-`run-unit-tests.sh`, all consistent with the stated 14/0 result.
+`run-unit-tests.py`, all consistent with the stated 14/0 result.
 
 ## Not spent
 

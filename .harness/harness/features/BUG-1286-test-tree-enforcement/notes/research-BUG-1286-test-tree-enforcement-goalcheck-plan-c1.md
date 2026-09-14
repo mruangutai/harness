@@ -81,7 +81,7 @@ sentence makes the live entry load-bearing (`BRIEF.md:85-86`). The consumer refe
 
 No task redesigns product-checkout discovery (`harness.json` is frozen by SC-13 and T-01 forbids
 editing it, `plan.yaml:207`); nothing touches the runtime mutation snapshot, whose scope is
-`run-unit-tests.sh:47`'s `--mutation-check "$BIN_DIR"`, named in no task's `files:`; nothing renames
+`run-unit-tests.py:47`'s `--mutation-check "$BIN_DIR"`, named in no task's `files:`; nothing renames
 a support module — `layout_fixtures.py` is explicitly left in place (`plan.yaml:366-367`); and no
 task edits `suite_layout.py`'s behaviour before approval (§1, negative 2).
 
@@ -114,7 +114,7 @@ against `review_sha`" requires an instrument.
    `tests/manual/test-*.py` IS refused today by the unchanged `tests/` clause
    (`suite_layout.py:26-28`), so the criterion must say which manual shape it means.
 4. **SC-13 names no grading target.** "the mutation snapshot's scope" (`BRIEF.md:103-104`) leaves an
-   inspection reader to find it; the surface is `run-unit-tests.sh:47`. Name the file and the
+   inspection reader to find it; the surface is `run-unit-tests.py:47`. Name the file and the
    argument in the criterion.
 5. **The BRIEF does not record that SC-06 and SC-08 are discharged by pre-existing checks.** Only
    the predecessor note does (`research-BUG-1286-plan-review-application-c1.md:69-74`). A goal-check

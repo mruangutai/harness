@@ -54,7 +54,7 @@ are both routed correctly in both sites this time).
   `context-watch.py`'s logic **by design** — the file's own header states it must never import
   or copy from `context-watch.py` so it can serve as an independent oracle. Two authoritative
   statements here is the point, not a defect. Left alone.
-- `run-unit-tests.sh`'s new kind-drift heredoc (T-12) is a single check comparing two existing
+- `run-unit-tests.py`'s new kind-drift heredoc (T-12) is a single check comparing two existing
   representations (the bash arrays vs. `test_kinds.integration.detect`); it does not duplicate a
   rule that has a home elsewhere. Left alone.
 - Did not re-litigate `_measured_sizes` (D-11/D-01, already reviewed), D-23's positional

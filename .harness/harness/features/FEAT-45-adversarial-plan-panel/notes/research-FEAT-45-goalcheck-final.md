@@ -22,7 +22,7 @@ this note and `/tmp/fc45/`.
 **The c0 grade was taken at `c745d3a`, which predates the `main` merge `5685a3a`** (416 files,
 +55224/−5741 between them). Nothing carried over as "presumably still fine"; every criterion below
 was re-run at this pin. `.agents/skills → ../.claude/skills` is a symlink inside the worktree; I
-`cmp`-verified `run-unit-tests.sh` and `check-state.sh` are byte-identical through both paths, so the
+`cmp`-verified `run-unit-tests.py` and `check-state.sh` are byte-identical through both paths, so the
 suites ran the tracked scripts.
 
 ## The table — all seventeen
@@ -47,7 +47,7 @@ suites ran the tracked scripts.
 | **SC-05** roll-up | met | both clauses graded separately above, against the same two-high record | neither clause rests on the other's fixture |
 | **SC-06** | met | `git ls-tree --name-only d78f393a:.omp/agents` / `:.claude/agents`, + `test-plan-panel.py` case 5 | 16 and 16, same names. Membership: `git diff --name-status ba338d8 d78f393a -- .omp/agents .claude/agents` → only `M harness-validator-lead.md`, no add, no delete |
 | **SC-07** | met | my own fixture: `panel` key absent entirely | rc=1, `VIOLATION INV-32: FEAT-INV32 plan is approved with no complete panel result recorded.` (`check-state.sh:181-182`) |
-| **SC-08** | met | `run-unit-tests.sh --kind unit` from the worktree — see the volume block below | Files this feature **adds** (`git diff --diff-filter=A ba338d8 d78f393a -- '.claude/skills/harness/bin/test-*.py'`) are exactly `test-panel-findings.py` and `test-plan-panel.py`. Both are in `UNIT_SCRIPTS` (`run-unit-tests.sh:30`) and both are **named** in the run: `PASS test-panel-findings.py`, `PASS test-plan-panel.py` |
+| **SC-08** | met | `run-unit-tests.py --kind unit` from the worktree — see the volume block below | Files this feature **adds** (`git diff --diff-filter=A ba338d8 d78f393a -- '.claude/skills/harness/bin/test-*.py'`) are exactly `test-panel-findings.py` and `test-plan-panel.py`. Both are in `UNIT_SCRIPTS` (`run-unit-tests.py:30`) and both are **named** in the run: `PASS test-panel-findings.py`, `PASS test-plan-panel.py` |
 | **SC-09** | met | `git show d78f393a:.harness/harness/docs/DECISIONS.md`, `:DECISIONS-INDEX.md` | One entry per REQ-11 carve-out, each naming its precedent: **DEC-206** "A harness lead may wrap a non-harness panel reader…" — *"a precedent needing a signature because the reader's return is structurally unvalidated"*; **DEC-207** "A gate may grade a specification before any code exists…" — *"A gate MAY fire in the plan phase, before any code exists"*. Both cite `FEAT-45-adversarial-plan-panel` as origin. Index **regenerated, not eyeballed**: `gen-decisions-index.py --stdout` output is byte-identical to `git show d78f393a:…DECISIONS-INDEX.md`; DECISIONS.md and the index are both byte-identical between pin and worktree, so the regeneration is against the pin's content |
 | **SC-10** | met | `git show d78f393a:.claude/commands/harness-plan.md` | `Target state` bullet: *"under DEC-176 all findings enter the ONE batched review pass rather than opening a separate pre-signature fix dispatch"* — routes in, introduces no separate dispatch |
 | **SC-11** | deferred-to-live-run | `verify: uat` — not agent-settleable | criterion's own words: *"**On a live plan, the operator judges** each of the three readers to have earned its spawn"* |
@@ -67,8 +67,8 @@ runner was collecting **zero** tests while exiting in a way that looked survivab
 
 | Measure | Value |
 |---|---|
-| exit status of `run-unit-tests.sh --kind unit` | **0** |
-| registered scripts in `UNIT_SCRIPTS` (`run-unit-tests.sh:30`) | **30** |
+| exit status of `run-unit-tests.py --kind unit` | **0** |
+| registered scripts in `UNIT_SCRIPTS` (`run-unit-tests.py:30`) | **30** |
 | script-result lines (`^PASS test-…` / `^FAIL test-…`) | **32** (31 distinct labels — `test-panel-findings.py` prints its own summary line *and* the runner prints one; `test-code-grade` is an internal case label, not a script) |
 | `^FAIL ` lines | **0** |
 | `not ok` lines | **0** |
@@ -111,7 +111,7 @@ operator's ruling that cycle 10 is preserved.
 ## Advisories — recorded, not graded, not fix proposals
 
 1. **SC-04, SC-05, SC-07, SC-13 and SC-17 declare `evidence: unit`, but their assertions live in
-   `test-check-state.py`, which sits in `INTEGRATION_SCRIPTS`** (`run-unit-tests.sh:31`), unchanged
+   `test-check-state.py`, which sits in `INTEGRATION_SCRIPTS`** (`run-unit-tests.py:31`), unchanged
    since c0. This is **not** a proof failure: the assertions exist, and I ran them
    (`test-check-state.py` → exit 0, 147 lines, 0 `FAIL`, `ok - INV-32 plan panel fixtures, including
    inv32-red`), plus every direction independently through my own fixtures. It is a mislabel in the

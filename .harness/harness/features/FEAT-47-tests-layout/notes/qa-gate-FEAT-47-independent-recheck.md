@@ -20,8 +20,8 @@ now passes.
 
 | Check | Command | Result |
 |---|---|---|
-| unit kind | `run-unit-tests.sh --kind unit` | exit 0, pool 22 files |
-| integration kind | `run-unit-tests.sh --kind integration` | exit 0, pool 43 files |
+| unit kind | `run-unit-tests.py --kind unit` | exit 0, pool 22 files |
+| integration kind | `run-unit-tests.py --kind integration` | exit 0, pool 43 files |
 | directory-driven total | 22 + 43 | **65 files**, matches dispatch's stated ground truth |
 | strict verdict-line census | `suite-census.py verdict-lines --baseline notes/research-tests-layout.md --deleted test-run-unit-tests-kinds.py --strict` | **65/65 lines, all `expected==actual` or correctly reported `new` (test-suite-independence.py, test-suite-layout.py), exit 0** |
 | migration conservation law | `suite-census.py migration --floor 58 --base origin/main --deleted test-run-unit-tests-kinds.py` | `base test count: 64`, **exit 0** — the `test-config-shape-matrix.py` gap from the prior recheck's Q2 is closed (file now carries `RM` migration to `tests/unit/`) |
@@ -32,7 +32,7 @@ now passes.
 | SC-06 detect equality | `test_kinds.unit.detect` / `.integration.detect` vs template | byte-equal both; no `.claude/` path in either |
 | SC-07 decisions index | `gen-decisions-index.py --stdout` vs committed `DECISIONS-INDEX.md` | byte-identical |
 | SC-08 manual exclusion | printed `test_kinds` table | no kind's `detect` glob names `tests/manual/`; only `unit`/`integration` are `status: active` |
-| D-15 mutation-check argument | `grep run_pool.py --mutation-check` in `run-unit-tests.sh` | `--mutation-check "$BIN_DIR"`, exactly one non-loop invocation line — carried forward correctly |
+| D-15 mutation-check argument | `grep run_pool.py --mutation-check` in `run-unit-tests.py` | `--mutation-check "$BIN_DIR"`, exactly one non-loop invocation line — carried forward correctly |
 | T-07 Expertise repair | `git diff HEAD` on all 5 touched Expertise files | each entry substantively rewritten to the new layout mechanism (directory-is-kind), none content-gutted; `harness-qa.md` itself now correctly cites `--check-layout` |
 | CODEOWNERS | `git diff HEAD -- .github/CODEOWNERS` | rewritten to name both kinds and the layout guard, still pinned to the one file |
 
@@ -73,11 +73,11 @@ DIGEST:
   kinds:
     - kind: unit
       state: satisfied
-      cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit"
+      cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit"
       named_tests: 22
     - kind: integration
       state: satisfied
-      cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration"
+      cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration"
       named_tests: 43
     - kind: omp_session_accessor
       state: locally-run
@@ -85,8 +85,8 @@ DIGEST:
       named_tests: 0
   coverage_gaps: []
   sc_evidence:
-    - { id: SC-01, test: "tests/manual/suite-census.py verdict-lines --strict — 65/65 files matched/new, exit 0; run-unit-tests.sh --kind unit exit 0" }
-    - { id: SC-02, test: "same verdict-lines run; run-unit-tests.sh --kind integration exit 0" }
+    - { id: SC-01, test: "tests/manual/suite-census.py verdict-lines --strict — 65/65 files matched/new, exit 0; run-unit-tests.py --kind unit exit 0" }
+    - { id: SC-02, test: "same verdict-lines run; run-unit-tests.py --kind integration exit 0" }
     - { id: SC-03, test: "check-domain.py --resolve over 6 seats × 2 paths, live route — matches BRIEF's eleven-verdict shape" }
     - { id: SC-04, test: "tests/integration/test-run-unit-tests-layout.py — 9/9 PASS" }
     - { id: SC-05, test: "tests/unit/test-suite-layout.py — 18/18 PASS incl. floor + 3-shape red proof" }

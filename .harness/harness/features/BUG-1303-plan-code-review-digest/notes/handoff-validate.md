@@ -18,7 +18,7 @@ dispatched at either.
   rejection branch rather than an early return — `notes/review-harness-code-reviewer-c5.md` —
   verified-at e2c800f1
 - Digest-validator suite exit 0, zero `^FAIL `, `ALL PASSED`; `test-config-shape-matrix.py` 19/19;
-  `run-unit-tests.sh --kind integration` exit 0 over 46 files — orchestrator ran all three, exit
+  `run-unit-tests.py --kind integration` exit 0 over 46 files — orchestrator ran all three, exit
   status captured in a variable — verified-at e2c800f1
 - `gen-decisions-index.py --stdout | diff -q -` is silent at exit 0, so SC-06's idempotence clause is
   now true; it was FALSE at the superseded pin 59c5de97 — orchestrator run — verified-at e2c800f1

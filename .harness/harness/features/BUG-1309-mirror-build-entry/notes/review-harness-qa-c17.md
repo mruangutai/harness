@@ -26,8 +26,8 @@ __bug_class__ if match_bug_class]`.
 
 | kind | state | cmd | result |
 |---|---|---|---|
-| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` (`env -u HARNESS_AGENT_TYPE`) | exit 0, 531 PASS / 0 FAIL |
-| integration | satisfied (added, floor) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0, 1649 PASS / 0 FAIL, incl. `test-merge-gate.py` exit 0 |
+| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` (`env -u HARNESS_AGENT_TYPE`) | exit 0, 531 PASS / 0 FAIL |
+| integration | satisfied (added, floor) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0, 1649 PASS / 0 FAIL, incl. `test-merge-gate.py` exit 0 |
 
 `matrix_ok: true`. Both gates ran to completion and reported no failures — a gate that did not run
 would be reported here as `n/a`/BLOCKED; neither did that.

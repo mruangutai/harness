@@ -36,14 +36,14 @@ present, `P-02:` present, checker exit 0. Verified by dry run.
       printf '%s\n' "$OUT" | grep -q 'KIND-DRIFT' && { echo 'KIND-DRIFT fired'; exit 1; }
 ```
 
-My own measurement of `bash run-unit-tests.sh --kind integration 2>&1` (160 s, runner exit 1):
+My own measurement of `bash run-unit-tests.py --kind integration 2>&1` (160 s, runner exit 1):
 **6 bare `KIND-DRIFT` matches, 0 matches for `^KIND-DRIFT:`.** All six are passing-case labels from
 `test-run-unit-tests-kinds.py`, the suite *for* the drift detector — e.g. `ok    case 2: a
 KIND-DRIFT line NAMES test-check-state.py`. The clause therefore fires on green, and the block
 exits 1 while both required lines are present (`PASS test-check-decision-anchors.py`, `PASS
 test-check-decision-claims.py` both observed). The real detector prints at column 0 —
 `print("KIND-DRIFT: %s is in INTEGRATION_SCRIPTS…", file=sys.stderr)`,
-`run-unit-tests.sh:112,123,128`. **Replacement line, verbatim:**
+`run-unit-tests.py:112,123,128`. **Replacement line, verbatim:**
 
 ```
       printf '%s\n' "$OUT" | grep -q '^KIND-DRIFT:' && { echo 'KIND-DRIFT fired'; exit 1; }

@@ -1023,12 +1023,12 @@ tasks:
       - .claude/skills/harness/bin/test-plan-sign-gate.py
       - .claude/settings.json
       - .agents/skills/harness/templates/settings.snippet.json
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
     verify: |
       python3 .claude/skills/harness/bin/test-plan-sign-gate.py
       python3 -c "import json;d=json.load(open('.harness/harness.json'));assert '.claude/skills/harness/bin/test-plan-sign-gate.py' in d['test_kinds']['integration']['detect'].split('|')"
-      grep -q 'test-plan-sign-gate.py' .claude/skills/harness/bin/run-unit-tests.sh
+      grep -q 'test-plan-sign-gate.py' .claude/skills/harness/bin/run-unit-tests.py
       python3 -c "import json;d=json.load(open('.claude/settings.json'));print('plan-sign-gate' in json.dumps(d))" | grep True
     intent: |
       Make DEC-120 mechanical: an agent may ask for a signature, and be refused; only the main
@@ -1063,10 +1063,10 @@ tasks:
       and add the same entry to .agents/skills/harness/templates/settings.snippet.json.
 
       REGISTERING THE TEST IS TWO EDITS, NOT ONE, and missing the second is a loud failure on
-      every subsequent test run. Add test-plan-sign-gate.py to run-unit-tests.sh's
+      every subsequent test run. Add test-plan-sign-gate.py to run-unit-tests.py's
       INTEGRATION_SCRIPTS array - integration, because SC-07 declares evidence: integration - AND
       add the explicit literal path .claude/skills/harness/bin/test-plan-sign-gate.py to
-      test_kinds.integration.detect in .harness/harness.json. run-unit-tests.sh's KIND CROSS-CHECK
+      test_kinds.integration.detect in .harness/harness.json. run-unit-tests.py's KIND CROSS-CHECK
       circa 76-131 requires every INTEGRATION_SCRIPTS name to appear as PREFIX + name among
       detect's pipe-separated entries, where PREFIX is the literal .claude/skills/harness/bin/
       (:115). It runs on EVERY invocation, for every kind, and exits 2. The prefix in that block's

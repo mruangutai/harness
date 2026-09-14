@@ -9,7 +9,7 @@ is outside every dev's domain. **BLOCKED on that one line — not on this module
 ## Verify — exact invocation, verbatim
 
 ```
-CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?
+CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?
 ```
 
 Tail of the real run (9 pre-existing suites all `PASS`, confirmed above this excerpt):

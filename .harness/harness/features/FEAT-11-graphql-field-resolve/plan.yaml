@@ -38,7 +38,7 @@ lanes:
       agent:
         - harness-backend-dev
         - harness-dev-ops
-      note: verbatim output of check-domain.py --resolve on this exact path, exit 0, re-run at c1d161706ab4867c00078b966e1969203ee6ca92. Same pick, same reason. This file is in INTEGRATION_SCRIPTS at run-unit-tests.sh:18, not UNIT_SCRIPTS at :17, so the task verify must run it explicitly. git diff between the earlier resolution SHA bd295b0e9c5824a0050a3ad2e1f07086de94b57e and HEAD is empty over team-config.yaml and all three surfaces, so the resolution did not move.
+      note: verbatim output of check-domain.py --resolve on this exact path, exit 0, re-run at c1d161706ab4867c00078b966e1969203ee6ca92. Same pick, same reason. This file is in INTEGRATION_SCRIPTS at run-unit-tests.py:18, not UNIT_SCRIPTS at :17, so the task verify must run it explicitly. git diff between the earlier resolution SHA bd295b0e9c5824a0050a3ad2e1f07086de94b57e and HEAD is empty over team-config.yaml and all three surfaces, so the resolution did not move.
 
 decisions:
   - id: D-01
@@ -74,7 +74,7 @@ tasks:
       - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
       set -o pipefail
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/feat11-unit.log 2>&1 || { echo "FAIL unit suite"; tail -60 /tmp/feat11-unit.log; exit 1; }
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/feat11-unit.log 2>&1 || { echo "FAIL unit suite"; tail -60 /tmp/feat11-unit.log; exit 1; }
       python3 .claude/skills/harness/bin/test-factory-integration.py > /tmp/feat11-integration.log 2>&1 || { echo "FAIL test-factory-integration.py"; tail -60 /tmp/feat11-integration.log; exit 1; }
       test "$(grep -c '"field-list"' .claude/skills/harness/bin/test-factory-integration.py)" = 0 || { echo "FAIL: the fake gh still answers project field-list, so a surviving old-shape call would pass silently"; exit 1; }
       test "$(grep -c '"project", "view"' .claude/skills/harness/bin/test-factory-integration.py)" = 0 || { echo "FAIL: the fake gh still answers project view, so a surviving old-shape call would pass silently"; exit 1; }
@@ -363,7 +363,7 @@ tasks:
       factory_claim through a whole-CLI fake gh, so project_field_options and project_field_set reach
       that fake for real. It breaks by construction exactly like the Part B cases: after your change
       they issue ["api", "graphql", ...], which matches no handler and falls through to the
-      unhandled-argv error at :227. It is in INTEGRATION_SCRIPTS (run-unit-tests.sh:18), not
+      unhandled-argv error at :227. It is in INTEGRATION_SCRIPTS (run-unit-tests.py:18), not
       UNIT_SCRIPTS (:17), so a unit-only run cannot see the break - that is why the verify runs it
       explicitly.
 
@@ -439,7 +439,7 @@ tasks:
       unit exits 0 in 0.7s, and test-factory-integration.py alone exits 0 in 5.5s with 97/97 checks.
       --kind all is inside the 60s task-verify budget by 5 seconds on this machine, which is not a
       margin worth spending; the targeted pair covers the same three files this task edits in ~6s.
-      The drift detector at run-unit-tests.sh:42-55 still runs over the UNION on the --kind unit
+      The drift detector at run-unit-tests.py:42-55 still runs over the UNION on the --kind unit
       call, so an unregistered new test file is still caught. This task adds no new test FILE, so
       no registration edit is owed. Note what neither form covers: the detector catches an
       unregistered NEW file, never an existing registered file that broke - which is precisely why

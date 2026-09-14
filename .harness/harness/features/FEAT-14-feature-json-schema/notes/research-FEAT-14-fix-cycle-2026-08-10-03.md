@@ -26,7 +26,7 @@ tight: **T-04 = 50, T-08 = 49** (cap 50, `>50` fails).
 | MF-1 | **Addressed.** Adopted the advisory: `bin/feature_schema.py` imported **in process** by `check-domain.py` (D-03 rewritten), so a checker that cannot run is an `except ImportError` branch that appends to `problems` → **exit 2**, and messages go through the existing `_head()` naming the real target. New **SC-16** states the acceptance behaviourally (valid payload + unavailable checker → exit 2, not 1; real path, not a tempfile; one message per sweep). Asserted in T-06's `test-check-domain.py` cases. |
 | MF-2 | **Addressed.** T-06's false "shares the bootstrap escape" comment replaced with the verified facts above, including the explicit instruction not to extend the `state.yaml` `_no_parser` fail-open. |
 | MF-3 | **Addressed.** Three distinct CLI exit codes in T-01: `0` valid, `1` a file failed validation, `3` the checker could not run. SC-07's test asserts **exactly 3**, and neither 0 nor 1. Distinct codes survive the module adoption because T-03/T-04/T-07/T-08 all read `returncode` from the CLI. |
-| MF-4 | **Addressed.** Prohibition now spans **T-04 → T-08** (the reviewer's window), scoped to invoking `gh-sync.py` / `factory_decompose.py` / `factory_claim.py` **against the live `.harness/features/` corpus** — fixture-based suites stay legal, so T-05's own `run-unit-tests.sh` verify is not contradicted. Cites `gh-sync.py:255-256` and `:236-243`. |
+| MF-4 | **Addressed.** Prohibition now spans **T-04 → T-08** (the reviewer's window), scoped to invoking `gh-sync.py` / `factory_decompose.py` / `factory_claim.py` **against the live `.harness/features/` corpus** — fixture-based suites stay legal, so T-05's own `run-unit-tests.py` verify is not contradicted. Cites `gh-sync.py:255-256` and `:236-243`. |
 | MF-5 | **Addressed.** Receipt renamed `notes/receipt-feature-key-drop.md` (no date; same-line change, free). Never overwritten. Resume semantics pinned so "exactly 14" stays runnable: already-reduced file → skip and count; receipt present but file unreduced → recompute and compare, identical means proceed with the rewrite, different means STOP. |
 | MF-6 | **Addressed.** T-03 adds a `--kind unit` step to the **same** `integration` job (the required context is that job's id; no new job, no `name:` key), and amends `tests.yml`'s now-false comment that the unit kind "would have caught none of the defects". Verify asserts `--kind unit` present and `jobs == ['integration']`. |
 | MF-7 | **Addressed in T-01, costing T-08 nothing.** The validator dispatches by extension: `.json` → `json.load`, else `harness_yaml.load_file`. A YAML-but-not-JSON `.json` file is rejected. T-08's existing `validator exit` check therefore proves JSON validity for all fourteen for free. |
@@ -120,12 +120,12 @@ write. In-file precedent: `check-domain.py:139` already defers `harness_yaml` fo
 
 ## 2. `--kind unit` at HEAD — green, measured on the committed tree
 
-`run-unit-tests.sh --kind unit` → **exit 0, 10 scripts PASS, 0 FAIL, 0 SKIP**, run from a
+`run-unit-tests.py --kind unit` → **exit 0, 10 scripts PASS, 0 FAIL, 0 SKIP**, run from a
 `git worktree add --detach` at **`96d5d5c`** (main HEAD, clean tree). The detached run was necessary:
-the session working tree carries uncommitted edits to `run-unit-tests.sh` and three of its test files,
+the session working tree carries uncommitted edits to `run-unit-tests.py` and three of its test files,
 and CI evaluates the committed tree. Both runs produced an **identical** PASS set (md5 of the sorted
 PASS lines matches), so the uncommitted edits change nothing here. `--kind unit` exists at `96d5d5c`
-(`run-unit-tests.sh:23`), so MF-6 does not put an unrecognised flag on a required job.
+(`run-unit-tests.py:23`), so MF-6 does not put an unrecognised flag on a required job.
 **Not a permanent property:** this is green for the suite *before* T-01/T-02 add theirs, and those
 need a real `jsonschema`. Re-check immediately before T-03 lands.
 

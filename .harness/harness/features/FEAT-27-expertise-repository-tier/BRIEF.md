@@ -209,7 +209,7 @@ DEC-187 and is not used here.
 
 One narrower gap, recorded because it shapes where evidence comes from: `integration.detect` in
 `harness.json` does not list `test-check-domain.py` or `test-check-expertise.py`, even though
-`run-unit-tests.sh --kind integration` runs both. The runner is the authority for what executes, so the
+`run-unit-tests.py --kind integration` runs both. The runner is the authority for what executes, so the
 `evidence: integration` criteria above are genuinely exercised; the detection glob is stale.
 `harness.json` belongs to unit 5 this cycle, so it is raised as an open question rather than fixed here.
 

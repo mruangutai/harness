@@ -1,7 +1,7 @@
 # QA re-run — BUG-1308 T-02 acceptance (independent, read-only)
 
 **T-02's four named acceptance commands are all green in isolation. But an independent
-full-suite run of `run-unit-tests.sh` in this same worktree exits 1 — a real, reproduced,
+full-suite run of `run-unit-tests.py` in this same worktree exits 1 — a real, reproduced,
 unrelated failure in `test-anchor-directions.py` — so this cannot be signed off PASS.**
 
 Verified `plan.yaml` T-02 `verify:` block (lines 525-530) byte-for-byte against the dispatched
@@ -55,10 +55,10 @@ prior session's reported accidental edit-and-revert of the stale main-checkout c
 trace.
 
 
-## 5. Independent full-suite check (`run-unit-tests.sh`), discovered mid-gate
+## 5. Independent full-suite check (`run-unit-tests.py`), discovered mid-gate
 
 A separate automated check rejected an initial `VERDICT: PASS` submission from this session,
-citing an independent re-run of `run-unit-tests.sh` exiting 1. Re-running it directly (read-only,
+citing an independent re-run of `run-unit-tests.py` exiting 1. Re-running it directly (read-only,
 no fix attempted) confirms: **exit 1**, isolated to one failing script out of ~74:
 
 ```

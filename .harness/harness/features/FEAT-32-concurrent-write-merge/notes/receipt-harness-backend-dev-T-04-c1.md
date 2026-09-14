@@ -86,14 +86,14 @@ Never taken across 20 trials, same as T-03's finding: `PASS  case7: informationa
 lock branch was taken in 0/20 trials`. The 10-second `LOCK_TIMEOUT_SECONDS` makes the loser wait
 rather than refuse at this trial count and this machine's speed.
 
-## `run-unit-tests.sh --check-kinds`
+## `run-unit-tests.py --check-kinds`
 
 ```
-MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.sh's explicit script list
+MISCONFIGURED: .claude/skills/harness/bin/test-dispatch-guard.py is not in run-unit-tests.py's explicit script list
 ```
 Exit 2. Pre-existing, from the main session's own T-07, not mine — my new
 `test-observations-merge.py` is equally unregistered; registering both is T-10's job
-(dev-ops), per the dispatch. Did not edit `run-unit-tests.sh` or `.harness/harness.json`.
+(dev-ops), per the dispatch. Did not edit `run-unit-tests.py` or `.harness/harness.json`.
 
 ## Design decisions made (reversible, recorded here, not escalated)
 

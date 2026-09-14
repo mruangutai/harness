@@ -54,11 +54,11 @@ read as "found satisfied" when the truer statement is "leg didn't fire."
 
 | kind | state | cmd | exit | discovery | tally |
 |---|---|---|---|---|---|
-| `unit` (required, `touches_runtime_code`) | **satisfied** | `run-unit-tests.sh --kind unit` | 0 | 28 files | `grep -c '^FAIL '` = 3, all inside `test-factory-claim-mutation.py`'s own `MUTANT ACTIVE` block (`BASELINE 3/3 ok` → `MUTATION PROOF: 3/3 cases reddened`) — expected reddening, not a real failure |
-| `integration` (not required this cycle; run anyway) | satisfied | `run-unit-tests.sh --kind integration` | 0 | 46 files | `grep -c '^FAIL '` = 0; both changed files present and executed: `----- test-factory-integration.py (exit 0, 15.08s) -----` / `PASS`, `----- test-layout-migration.py (exit 0, 1.68s) -----` / `PASS` |
+| `unit` (required, `touches_runtime_code`) | **satisfied** | `run-unit-tests.py --kind unit` | 0 | 28 files | `grep -c '^FAIL '` = 3, all inside `test-factory-claim-mutation.py`'s own `MUTANT ACTIVE` block (`BASELINE 3/3 ok` → `MUTATION PROOF: 3/3 cases reddened`) — expected reddening, not a real failure |
+| `integration` (not required this cycle; run anyway) | satisfied | `run-unit-tests.py --kind integration` | 0 | 46 files | `grep -c '^FAIL '` = 0; both changed files present and executed: `----- test-factory-integration.py (exit 0, 15.08s) -----` / `PASS`, `----- test-layout-migration.py (exit 0, 1.68s) -----` / `PASS` |
 
 ```
-$ env -u HARNESS_AGENT_TYPE run-unit-tests.sh --kind unit
+$ env -u HARNESS_AGENT_TYPE run-unit-tests.py --kind unit
 ...
 ----- test-factory-claim-mutation.py (exit 0, 0.49s) -----
 BASELINE 3/3 ok
@@ -73,7 +73,7 @@ EXIT=0
 ```
 
 ```
-$ env -u HARNESS_AGENT_TYPE run-unit-tests.sh --kind integration
+$ env -u HARNESS_AGENT_TYPE run-unit-tests.py --kind integration
 ...
 ----- test-factory-integration.py (exit 0, 15.08s) -----
 ...PASS test-factory-integration.py

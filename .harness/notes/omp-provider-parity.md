@@ -87,7 +87,7 @@ Claude Code directly demonstrated:
 All commands passed:
 
 ```bash
-bash .agents/skills/harness/bin/run-unit-tests.sh
+bash .agents/skills/harness/bin/run-unit-tests.py
 python3 .agents/skills/harness/bin/check-omp-port.py
 bash .agents/skills/harness/bin/check-state.sh
 python3 -m compileall -q .agents/skills/harness/bin

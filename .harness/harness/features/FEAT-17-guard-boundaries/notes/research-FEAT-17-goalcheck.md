@@ -24,9 +24,9 @@ No guard, test, plan or BRIEF file differs between the two commits, so every ver
 
 ## Run evidence (`evidence: integration`)
 
-`bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration` — **runner exit 0**, all 12
+`bash .claude/skills/harness/bin/run-unit-tests.py --kind integration` — **runner exit 0**, all 12
 `INTEGRATION_SCRIPTS` reported `PASS`. `--kind unit` would not have executed any of the three
-(`run-unit-tests.sh:17-18`). The three suites executed, by their own summary lines:
+(`run-unit-tests.py:17-18`). The three suites executed, by their own summary lines:
 `test-check-domain.py` — `8/8 worktree-boundary cases passed`, plus `30/30 post-mode`, `14/14 hook`;
 `test-bash-write-guard.py` — `22/22 worktree-boundary cases passed`;
 `test-check-state.py` — `PASS`, with cases `(u.1)`–`(u.6)` each printed `ok`.

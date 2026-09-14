@@ -120,7 +120,7 @@ No new Stage-2 finding beyond the advisory in MF-2(c) above (explicitly not a `m
 - `python3 tests/integration/test-validate-digest.py`: exit 0, 0 `^FAIL ` lines, `ALL PASSED.`,
   24.91s (contract cited ~19s; timing variance only, same shape — no disagreement in substance).
 - `python3 tests/unit/test-config-shape-matrix.py`: 19/19, exit 0.
-- `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` (env -u HARNESS_AGENT_TYPE, `rc`
+- `.agents/skills/harness/bin/run-unit-tests.py --kind integration` (env -u HARNESS_AGENT_TYPE, `rc`
   captured immediately): exit 0, 46 files, wall 62.35s, 0 `^FAIL ` lines (grepped the full captured
   output). Contract cited 60.9s — consistent.
 - `gen-decisions-index.py --stdout | diff -q - DECISIONS-INDEX.md`: silent, exit 0.

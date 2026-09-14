@@ -105,7 +105,7 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
 ## Verification gaps
 
 - None new. Both kinds this brief rests on have runners: `unit` and `integration` are
-  `.agents/skills/harness/bin/run-unit-tests.sh --kind <kind>` in `.harness/harness.json`, and both
+  `.agents/skills/harness/bin/run-unit-tests.py --kind <kind>` in `.harness/harness.json`, and both
   select real files on this surface (`tests/unit/**`, `tests/integration/**`).
 
 ## Approval

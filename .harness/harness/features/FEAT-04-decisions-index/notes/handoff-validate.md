@@ -20,7 +20,7 @@ issues. On a fix instruction, route it to the owning lead and count a cycle — 
 - `review_sha` is `363b539`, RE-PINNED from `bdfa3ab`, which held neither T-09's nor T-10's edit
   — `feature.yaml review_sha` — verified-at 363b539
 - Gates green, all run by me not taken on report: `check-docs.sh` exit 0 at 45 patterns across 106
-  files; `run-unit-tests.sh` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
+  files; `run-unit-tests.py` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
   `check-state.sh` exit 0 — verified-at b621be6
 - Index is 170 rows / 190 lines / 0 `RULING PENDING` / 0 rows over the 30-word cap — measured by me
   — verified-at 363b539

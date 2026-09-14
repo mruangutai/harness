@@ -34,7 +34,7 @@ edits, the frozen anchor file, `shell=True` sites, and the trickiest NO-EXECUTIO
 
 | file | table verdict | what I checked | result |
 |---|---|---|---|
-| `run-unit-tests.sh` | FIXED-LITERAL-ARGV | line 149 `python3 "$BIN_DIR/$s"` (loop over the two literal bash arrays), line 101 `python3 -I - <<'KINDCHECK'` heredoc — both exact at the cited lines; `detect` is only set-compared (lines 108-130), never placed in argv | **correct** |
+| `run-unit-tests.py` | FIXED-LITERAL-ARGV | line 149 `python3 "$BIN_DIR/$s"` (loop over the two literal bash arrays), line 101 `python3 -I - <<'KINDCHECK'` heredoc — both exact at the cited lines; `detect` is only set-compared (lines 108-130), never placed in argv | **correct** |
 | `check-decision-anchors.py` | FIXED-LITERAL-ARGV | line 111 `subprocess.run(["git", "ls-files"], ...)` — both elements literal, wrapped in try/except that exits 2 (fail-closed) on failure | **correct** |
 | `check-domain.py` | FIXED-LITERAL-ARGV | line 1478 `_subprocess.run(["git", "-C", _checkout] + _argv, ...)` — `_argv` is one of two literal lists (1476-1477), `_checkout` from the worktree sweep | **correct** |
 | `test-run-unit-tests-kinds.py` | FIXED-LITERAL-ARGV | line 47 `subprocess.run(["bash", RUNNER, "--check-kinds"], ...)` — the mutated `detect` value travels via a fixture `harness.json` path in `HARNESS_JSON`, never into this argv | **correct** |
@@ -119,7 +119,7 @@ All measured fresh in Python against `git show <sha>:<path>` content at `review_
   `feature.yaml` anchors; against `review_sha` content → `examined 20 anchor(s), 0 failed`, exit 0;
   against `review_sha` content plus one fabricated anchor appended in-memory → `examined 21 anchor(s), 1
   failed`, exit 1 — all three reproduced live — **met**.
-- **SC-10**: ran the full `run-unit-tests.sh` myself — **exit 0, zero lines starting `FAIL`**, 55/55
+- **SC-10**: ran the full `run-unit-tests.py` myself — **exit 0, zero lines starting `FAIL`**, 55/55
   registered `test-*.py` scripts present in the bin dir and named in the union of both arrays (drift
   detector's own precondition independently confirmed clean) — **met**.
 - **SC-12**: front matter no longer contains "APPEND-ONLY"; `harness-documentor.md` P-01 rewritten from
@@ -135,7 +135,7 @@ All measured fresh in Python against `git show <sha>:<path>` content at `review_
   discrepancies either direction** — **met**.
 - **SC-18**: `check-decision-anchors.py` / `test-check-decision-anchors.py` at `review_sha` hashed
   `sha256` and compared byte-for-byte against `99bb52c` — **identical**, hashes match the two given in
-  the dispatch exactly; both names present in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` and in
+  the dispatch exactly; both names present in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` and in
   `harness.json`'s `integration.detect` — **met**. Not re-reported per Contract 2 (the stale-docstring
   gap is already on the backlog).
 
@@ -143,7 +143,7 @@ No criterion's stated evidence failed to establish it once re-derived.
 
 ## Code quality — the rest of the changed surface
 
-**`run-unit-tests.sh`** — read in full. The MISCONFIGURED drift detector sweeps `test-*.py` under
+**`run-unit-tests.py`** — read in full. The MISCONFIGURED drift detector sweeps `test-*.py` under
 `BIN_DIR` with no `nullglob`; an empty directory would leave the literal glob pattern as the loop
 variable, fail the membership check, and **exit 2 loudly** rather than silently pass — this is the
 inverse of a fail-open gate, by design. The KIND-DRIFT python block treats a missing/unparseable
@@ -152,7 +152,7 @@ also loud, never a skip. Both are exactly what their own comments claim, verifie
 branches, not by reading the comments. **Looked, nothing to report.**
 
 **`check-decision-claims.py` + `test-check-decision-claims.py`** — deleted, confirmed absent from
-`git ls-tree`, from both `run-unit-tests.sh` arrays, and from `harness.json`'s detect field (SC-14/15
+`git ls-tree`, from both `run-unit-tests.py` arrays, and from `harness.json`'s detect field (SC-14/15
 above). **Looked, nothing to report** (the deletion is the point of T-24; nothing survives to review).
 
 **`gen-decisions-index.py` + `test-gen-decisions-index.py`** — the SIMPLIFY apply (3-tuple →
@@ -222,7 +222,7 @@ already, independently, cites. Not a defect. **Looked, nothing to report** beyon
 
 | area | verdict |
 |---|---|
-| `run-unit-tests.sh` | reviewed, clean |
+| `run-unit-tests.py` | reviewed, clean |
 | `check-decision-claims.py` + test (deleted) | confirmed fully absent, three ways |
 | `gen-decisions-index.py` + test | reviewed, clean, SIMPLIFY apply verified non-dangling |
 | `check-decision-anchors.py` + test (frozen) | byte-identical confirmed, not re-reviewed per Contract 2 |

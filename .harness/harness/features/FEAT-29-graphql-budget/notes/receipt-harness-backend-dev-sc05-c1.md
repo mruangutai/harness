@@ -49,14 +49,14 @@ PASS  OFF, FAILING: exactly one subprocess call (the real call only, neither cou
 ## Task verify (verbatim from dispatch, cross-checked against plan.yaml:286-287 — match)
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 **Predicted count, before running:** file had 175 `PASS ` lines pre-edit (re-measured myself, not
 copied — matches dispatcher's figure). Adding 4 new checks predicts 179.
 
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind unit   # post-edit, pre-mutation
+$ .claude/skills/harness/bin/run-unit-tests.py --kind unit   # post-edit, pre-mutation
 exit=0
 $ grep -c '^PASS ' <log>
 179
@@ -65,7 +65,7 @@ Prediction confirmed: 175 -> 179, +4, matching the 4 checks added. `task_verify:
 
 Also ran (per dispatch instruction, not part of the declared `verify:`):
 ```
-$ .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .claude/skills/harness/bin/run-unit-tests.py --kind integration
 exit=0
 106/106 checks passed.
 PASS test-factory-integration.py

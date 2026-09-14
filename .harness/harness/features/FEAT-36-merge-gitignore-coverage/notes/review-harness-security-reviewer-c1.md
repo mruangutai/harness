@@ -18,7 +18,7 @@ The pinned diff contains 43 paths.
 
 - `.agents/skills/harness/bin/test-merge-gitignore.py` — new environment-selected executable, list-form subprocess argv, captured output, canonical repository input, and temporary-filesystem writes.
 - `.agents/skills/harness/bin/test-bash-write-guard.py` — changed isolated child-process environment and copied/mutated temporary fixture; no production hook change.
-- `.agents/skills/harness/bin/run-unit-tests.sh` — fixed test registration only; no new shell interpolation, input parsing, or privilege decision.
+- `.agents/skills/harness/bin/run-unit-tests.py` — fixed test registration only; no new shell interpolation, input parsing, or privilege decision.
 - `.harness/harness.json` — fixed integration-detection literal only; no command, credential, authorization, or network change.
 
 ### Feature control records — scoped in for configuration integrity and disclosure

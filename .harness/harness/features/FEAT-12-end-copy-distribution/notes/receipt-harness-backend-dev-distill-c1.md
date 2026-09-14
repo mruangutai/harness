@@ -88,7 +88,7 @@ reference. Dropped.
 
 ## Suite run (no source touched this run, but re-run to give a real suite result)
 
-`.claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-distill-suite.log 2>&1`
+`.claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-distill-suite.log 2>&1`
 
 **Exit: 0. PASS count: 104. FAIL count: 0.**
 
@@ -161,10 +161,10 @@ only length. File: 69 → 67 lines (budget 150).
 
 No source touched this cycle (Expertise-file-only edit). Re-ran the suite anyway for `suite:`
 contract truthfulness (`suite: n/a` with `VERDICT: PASS` is rejected per DEC-173) —
-`.claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-distill-c2-suite.log 2>&1`.
+`.claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-distill-c2-suite.log 2>&1`.
 **Exit: 0. PASS count: 104. FAIL count: 0.** Note this does not validate the word-count fix itself:
 cycle 1's identical suite was green while the 53-word entries sat in the tree, so
-`run-unit-tests.sh` does not gate Expertise-file format — the re-run establishes `suite: pass`
+`run-unit-tests.py` does not gate Expertise-file format — the re-run establishes `suite: pass`
 truthfully, nothing more. `check-expertise.sh` was not run (carve-out stands); the word/line counts
 above were derived by running the checker's own tokenizer logic against the file directly, not
 eyeballed. Re-grepped for `FEAT-\d+|T-\d+|#\d+` across the whole file post-edit: zero hits

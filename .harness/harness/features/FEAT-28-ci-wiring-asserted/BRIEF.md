@@ -115,12 +115,12 @@ workflow points at a test that asserts what the citation claims.
   `gen-decisions-index.py` rather than hand-edited.
   verify: inspection
 - SC-08: The guard asserts its own wiring into the required context: that its host file
-  `test-check-plan-routes.py` is listed in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`, and that the
-  `Integration suite` step in the workflow invokes `run-unit-tests.sh --kind integration`
+  `test-check-plan-routes.py` is listed in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`, and that the
+  `Integration suite` step in the workflow invokes `run-unit-tests.py --kind integration`
   (`case_26k`). A guard nothing runs is this repository's most-repeated defect, and it is the one
   failure mode the guard would otherwise be blind to.
   verify: automated      evidence: integration
-- SC-09: The full suite still passes end to end — `.claude/skills/harness/bin/run-unit-tests.sh`
+- SC-09: The full suite still passes end to end — `.claude/skills/harness/bin/run-unit-tests.py`
   exits 0, including its drift detector.
   verify: automated      evidence: integration
 - SC-10: A guarded step switched OFF without being deleted is reported too. With the `Unit suite`
@@ -137,13 +137,13 @@ reading its exit code and its per-case output**, not by the existence of a stand
 FEAT-25 flagged that the token alone is ambiguous and that ambiguity is still open, so every
 `automated` SC above is graded by running
 `python3 .claude/skills/harness/bin/test-check-plan-routes.py` (SC-09 by
-`.claude/skills/harness/bin/run-unit-tests.sh`) and reading the named `case_26…` line, not by
+`.claude/skills/harness/bin/run-unit-tests.py`) and reading the named `case_26…` line, not by
 observing that a case exists. What `evidence: integration` names — the CI job id and required
 context, not a test-kind classification — is spelled out under `## Constraints` below.
 
 ## Verification gaps
 
-- `integration` has a runner (`run-unit-tests.sh --kind integration`, 12 scripts), so no SC here
+- `integration` has a runner (`run-unit-tests.py --kind integration`, 12 scripts), so no SC here
   rests on a null kind.
 - **The `Integration suite` step cannot protect itself, and no SC claims otherwise.** The assertion
   reaches CI only through `tests.yml:81`. Delete that step and the job still runs its remaining
@@ -176,7 +176,7 @@ context, not a test-kind classification — is spelled out under `## Constraints
   branch-protection context (`tests.yml:32`). It is not a claim about which test kind classifies
   the file: the two `detect` lists in `harness.json` both match `test-check-plan-routes.py`, so no
   kind is asserted anywhere in this brief. The assertion reaches the required context because
-  `test-check-plan-routes.py` is listed in `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:18`) and is
+  `test-check-plan-routes.py` is listed in `INTEGRATION_SCRIPTS` (`run-unit-tests.py:18`) and is
   executed by the `Integration suite` step (`tests.yml:81`) — the guard is hosted as new cases
   inside that existing file, so there is no separate `test-ci-wiring.py` to go looking for. Those
   three anchors re-derived at `de4b76a`; T-02 edits comments in the same workflow, so re-derive

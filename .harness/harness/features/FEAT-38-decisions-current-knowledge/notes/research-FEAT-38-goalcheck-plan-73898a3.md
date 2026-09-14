@@ -70,7 +70,7 @@ feature is not a requirement of this feature.
 - **SC-14 — keep.** Its third clause (`git grep -l check-decision-claims` with the three dated-record
   pathspecs excluded) is the *only* thing in the plan proving no sixth reference site exists.
   Measured at the pin: exactly 5 tracked files, matching the recorded blast radius.
-- **SC-15 — keep.** Not a restatement. `run-unit-tests.sh` exits 2 when its `INTEGRATION_SCRIPTS`
+- **SC-15 — keep.** Not a restatement. `run-unit-tests.py` exits 2 when its `INTEGRATION_SCRIPTS`
   array and `harness.json`'s `integration` detect disagree, and a one-sided deregistration is
   invisible to a single-file absence search.
 - **SC-16 — keep; the only one of the five that serves the stated goal.** Without it the feature

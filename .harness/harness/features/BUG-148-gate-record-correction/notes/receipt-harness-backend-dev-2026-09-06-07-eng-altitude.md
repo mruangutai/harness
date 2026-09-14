@@ -11,7 +11,7 @@ finding survives — (b), (c), (d) each checked out clean, evidence below. `ALTI
 Read both corrected passages (`DECISIONS.md:4308-4317`, `STATE.md:13-19` post-edit) against
 DEC-205 ("An entry states current truth directly... it does not append a dated sub-section").
 
-- **DEC-174** (`DECISIONS.md`): "`run-unit-tests.sh`, `check-docs.sh` and `check-state.sh` were
+- **DEC-174** (`DECISIONS.md`): "`run-unit-tests.py`, `check-docs.sh` and `check-state.sh` were
   green, and the fourth gate recorded that day, `gen-decisions-index.py --check`, was no gate at
   all: `--check` was never a supported mode..." — states the fact plainly, zero self-reference to
   the correction event. This is DEC-205's rule applied correctly: the entry reads as if it always

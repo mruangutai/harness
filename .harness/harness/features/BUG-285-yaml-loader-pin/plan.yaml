@@ -25,7 +25,7 @@ decisions:
     dec: none
   - id: D-03
     choice: change_type is bugfix on all three tasks, and the required kind is now unit, with integration retained for the two test-side tasks.
-    because: RE-DERIVED, not carried forward, after the scope amendment of 2026-09-11. The amended scope edits .claude/skills/harness/bin/factory_decompose.py, which is outside tests, is not a markdown contract file and is not under .harness, so DEC-217's touches_runtime_code predicate is now TRUE and the unit kind is demanded - harness.json test_matrix.bugfix carries unit when touches_runtime_code, and the unit kind is active with cmd .agents/skills/harness/bin/run-unit-tests.sh --kind unit. The companion predicate fix_confined_to_tests_and_contract_docs is now FALSE, so the matrix no longer demands integration by itself; T-01 and the standing 1c case keep the integration kind anyway because DEC-35 requires the diff to carry the test exercising the change and both of those tests live under tests/integration. DEC-213 selects the kind by directory, so T-03's new pin must live under tests/unit to satisfy the unit demand, under a file name not already used in tests/integration.
+    because: RE-DERIVED, not carried forward, after the scope amendment of 2026-09-11. The amended scope edits .claude/skills/harness/bin/factory_decompose.py, which is outside tests, is not a markdown contract file and is not under .harness, so DEC-217's touches_runtime_code predicate is now TRUE and the unit kind is demanded - harness.json test_matrix.bugfix carries unit when touches_runtime_code, and the unit kind is active with cmd .agents/skills/harness/bin/run-unit-tests.py --kind unit. The companion predicate fix_confined_to_tests_and_contract_docs is now FALSE, so the matrix no longer demands integration by itself; T-01 and the standing 1c case keep the integration kind anyway because DEC-35 requires the diff to carry the test exercising the change and both of those tests live under tests/integration. DEC-213 selects the kind by directory, so T-03's new pin must live under tests/unit to satisfy the unit demand, under a file name not already used in tests/integration.
     dec: DEC-217
   - id: D-04
     choice: The able-to-fail proof is a throwaway mutation probe against a COPY of gh-sync.py in a tempdir, recorded as a transcript, never committed as a test.
@@ -105,7 +105,7 @@ decisions:
       worktree and only these two exercise load_recorded - -open calls it directly in its
       reader-contract block at :350-474, -record reaches it through the record subcommand. Both
       verify blocks stay well under 60s - measured in this worktree on 2026-09-11 at 6cb113f4,
-      run-unit-tests.sh --kind unit is 2.4s over 36 files, test-gh-sync-open.py is 10.6s and
+      run-unit-tests.py --kind unit is 2.4s over 36 files, test-gh-sync-open.py is 10.6s and
       test-gh-sync-record.py is 8.8s.
     dec: DEC-217
   - id: D-08
@@ -347,7 +347,7 @@ decisions:
       is the exact defect class BUG-285 exists to close: a second copy that can DRIFT. What stops
       it is not discipline but a detector - T-05's parity rows feed the SAME bytes to BOTH readers
       and assert the values read are EQUAL, so a change to either copy alone reddens
-      run-unit-tests.sh --kind unit. A duplicate with a behavioural equality detector is a
+      run-unit-tests.py --kind unit. A duplicate with a behavioural equality detector is a
       different risk from a duplicate with only a comment, and that is what makes option three
       acceptable where it otherwise would not be.
       WHAT THIS FALSIFIES AND WHERE IT IS AMENDED. D-06's enumeration, D-09's pre-change figure,
@@ -570,7 +570,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_decompose.py
     verify: |
-      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
       env -u HARNESS_AGENT_TYPE python3 tests/integration/test-factory-decompose.py
       env -u HARNESS_AGENT_TYPE python3 -c "
       import sys, os, io, json, tempfile, contextlib
@@ -890,7 +890,7 @@ tasks:
       your DIGEST must quote the output.
 
       HOW THE UNIT RUNNER IN YOUR VERIFY IS GRADED. The first verify command,
-      run-unit-tests.sh --kind unit, is GRADED ON EXIT STATUS ONLY, and that status is captured into
+      run-unit-tests.py --kind unit, is GRADED ON EXIT STATUS ONLY, and that status is captured into
       a shell variable ON THE COMMAND'S OWN LINE - never read from $? after a pipe, because $? after
       a pipe reports the pipe's last stage, and that has already produced one wrong measurement on
       this feature. Baseline measured in this worktree on 2026-09-11 at 6cb113f4: exit 0, 36 files,
@@ -917,7 +917,7 @@ tasks:
       - tests/unit/test-factory-decompose-loader.py
     verify: |
       env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-decompose-loader.py
-      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Add ONE new unit test file, tests/unit/test-factory-decompose-loader.py, pinning that
       load_factory parses feature.json as JSON and that it now distinguishes an ABSENT record from a
@@ -1054,7 +1054,7 @@ tasks:
           lines beginning FAIL, asserted directly rather than inferred from the exit code, because a
           runner that counts a failure only when a detail string is non-empty can exit 0 while
           printing FAIL lines. Your own file prints no such line when green.
-        - run-unit-tests.sh --kind unit: GRADED ON EXIT STATUS ONLY. Baseline measured in this
+        - run-unit-tests.py --kind unit: GRADED ON EXIT STATUS ONLY. Baseline measured in this
           worktree on 2026-09-11 at 6cb113f4: exit 0, 36 files, 2.4s wall - and FOUR lines beginning
           "FAIL " on that GREEN run, because one unit test deliberately reddens its own cases to
           prove its mutant is live (the block printing "MUTANT ACTIVE" and "MUTATION PROOF: 3/3 cases
@@ -1104,7 +1104,7 @@ tasks:
           print('FAIL: refusal message unusable: ' + msg)
       sys.exit(0 if ok else 1)
       "
-      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
       env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-open.py
       env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-record.py
     intent: |
@@ -1253,7 +1253,7 @@ tasks:
 
       Pre-change baselines, measured in this worktree on 2026-09-11 at 6cb113f4, and how each command
       is graded:
-        - run-unit-tests.sh --kind unit: exit 0, 36 files, 2.4s wall. GRADED ON EXIT STATUS ONLY. It
+        - run-unit-tests.py --kind unit: exit 0, 36 files, 2.4s wall. GRADED ON EXIT STATUS ONLY. It
           prints FOUR lines beginning "FAIL " on a GREEN run, because one unit test deliberately
           reddens its own cases to prove its mutant is live (the block printing "MUTANT ACTIVE" and
           "MUTATION PROOF: 3/3 cases reddened"). Do NOT assert a FAIL-line count for this command and
@@ -1289,7 +1289,7 @@ tasks:
       - tests/unit/test-feature-json-readers.py
     verify: |
       env -u HARNESS_AGENT_TYPE python3 tests/unit/test-feature-json-readers.py
-      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit
       env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-open.py
       env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-record.py
     intent: |
@@ -1325,7 +1325,7 @@ tasks:
       because gh-sync.py is hyphen-named and cannot be imported (D-16). A second copy of a coercion rule
       is the exact defect class BUG-285 exists to close, so it is acceptable ONLY because this file
       feeds the SAME bytes to BOTH readers and asserts the VALUES they read are EQUAL - a change to
-      either copy alone reddens run-unit-tests.sh --kind unit. Say that, in one comment, in the file.
+      either copy alone reddens run-unit-tests.py --kind unit. Say that, in one comment, in the file.
 
       SHAPE. Copy the harness of tests/unit/test-factory-cli.py - its anchor block at lines 11-15
       that puts .claude/skills/harness/bin on sys.path, its check(name, cond, detail) helper at
@@ -1471,7 +1471,7 @@ tasks:
       measurement on this feature.
 
       Baselines measured in this worktree on 2026-09-11 at 6cb113f4, and how each command is graded:
-        - run-unit-tests.sh --kind unit: exit 0, 36 files, 2.4s wall. GRADED ON EXIT STATUS ONLY. It
+        - run-unit-tests.py --kind unit: exit 0, 36 files, 2.4s wall. GRADED ON EXIT STATUS ONLY. It
           prints FOUR lines beginning "FAIL " on a GREEN run, because one unit test deliberately
           reddens its own cases to prove its mutant is live (the block printing "MUTANT ACTIVE" and
           "MUTATION PROOF: 3/3 cases reddened"). Do NOT assert a FAIL-line count for this command and

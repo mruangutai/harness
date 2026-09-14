@@ -64,7 +64,7 @@ identifiers per the distill skill's rule format (no `FEAT-NN`, `T-NN`, `DEC-NNN`
 
 ## Verification run
 
-Full unit suite (`.claude/skills/harness/bin/run-unit-tests.sh`): 106/106 checks passed,
+Full unit suite (`.claude/skills/harness/bin/run-unit-tests.py`): 106/106 checks passed,
 `PASS test-factory-integration.py` as the final line; all 16 scripts in the bucket exited 0
 (re-run in full to report `suite: pass` truthfully — no source was touched, only the new
 Expertise file and this receipt).

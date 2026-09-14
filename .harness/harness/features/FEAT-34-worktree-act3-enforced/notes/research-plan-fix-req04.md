@@ -55,7 +55,7 @@ Fixed: the trailing paragraph now reads `unresolved` = prefix matching MORE THAN
 
 ## Defect 3 — T-05's verify was vacuous. Confirmed and replaced with a demonstrably discriminating one.
 
-`run-unit-tests.sh integration` — bare positional — hits the else branch at `:33-36`, prints usage
+`run-unit-tests.py integration` — bare positional — hits the else branch at `:33-36`, prints usage
 and **exits 2 before** the drift detector (`:48-61`) or the kind cross-check (`:82-120`) runs.
 `grep -c` printed `0` on the real tree. New verify: `--check-kinds` plus two explicit presence
 greps, expecting exit 0 and `REGISTERED-BOTH`.

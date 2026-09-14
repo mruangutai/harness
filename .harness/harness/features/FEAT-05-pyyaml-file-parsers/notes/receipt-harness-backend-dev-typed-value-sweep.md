@@ -107,7 +107,7 @@ Quote the key to keep it a string.
 
 ## Verification
 
-- `run-unit-tests.sh` exit 0, 12 suites (T-04's mandated `test-upgrade-config.py` now exists — it
+- `run-unit-tests.py` exit 0, 12 suites (T-04's mandated `test-upgrade-config.py` now exists — it
   never did, which is how F-03's NameError shipped).
 - The T-17 assertion is discriminating in both directions, shown above.
 - No consumer of a parsed value anywhere in `bin/` is left un-classified: 19 rows, recounted at the

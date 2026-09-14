@@ -4,7 +4,7 @@
 `review_sha` (`c472a02`). Not BLOCKED on the pin.
 
 T-03 `verify:` cross-checked against `plan.yaml` line 286-287: signed text is exactly
-`.claude/skills/harness/bin/run-unit-tests.sh --kind unit`. Matches the dispatch verbatim. Not
+`.claude/skills/harness/bin/run-unit-tests.py --kind unit`. Matches the dispatch verbatim. Not
 BLOCKED on the verify string.
 
 ## 1. Per-kind results, first-party, at the pin
@@ -14,8 +14,8 @@ exported outside a temp root.
 
 | kind | cmd | exit | scripts run | pass | fail |
 |---|---|---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | 0 | 18 | 18 | 0 |
-| integration | `run-unit-tests.sh --kind integration` | 0 | 12 | 12 | 0 |
+| unit | `run-unit-tests.py --kind unit` | 0 | 18 | 18 | 0 |
+| integration | `run-unit-tests.py --kind integration` | 0 | 12 | 12 | 0 |
 
 `.harness/logs/gh-cost-2026-08-19.jsonl` byte size: **39504 before both runs → 39504 after
 `--kind unit` → 39504 after `--kind integration`. Unchanged across both.** Consistent with the
@@ -79,7 +79,7 @@ promised never to write. Confirmed live by (b): nothing catches it.
 
 | kind | state | cmd | named tests |
 |---|---|---|---|
-| unit | **satisfied** | `run-unit-tests.sh --kind unit` | `test-gh-cost-log.py` (35/35, all new for T-03), `test-factory-gh.py` (part of the same run, exercises the `run_gh` wrap site) |
+| unit | **satisfied** | `run-unit-tests.py --kind unit` | `test-gh-cost-log.py` (35/35, all new for T-03), `test-factory-gh.py` (part of the same run, exercises the `run_gh` wrap site) |
 | integration | **satisfied, per the operator's signed ruling** | n/a — ruled inapplicable/pre-satisfied by amendment | BRIEF.md SC-05 `evidence: unit`; ruling recorded plan.yaml lines 84-97 |
 
 Grading against the ruling as instructed, not re-litigating: the operator ruled the integration read

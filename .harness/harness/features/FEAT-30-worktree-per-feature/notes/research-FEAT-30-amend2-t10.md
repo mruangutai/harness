@@ -24,7 +24,7 @@ taken mid-write of that same run. There was no gap to close.
   the suite to go red. This is criterion 9 satisfied by a fixture, not a claim.
 - **T-08 needed no change, and that is the right answer.** T-10 adds cases to
   `test-feature-worktree.py`, a file T-08 already registers in BOTH places. Verified at HEAD:
-  `run-unit-tests.sh` builds `ALL_SCRIPTS` as the union (`:39`) and exits 2 MISCONFIGURED on an
+  `run-unit-tests.py` builds `ALL_SCRIPTS` as the union (`:39`) and exits 2 MISCONFIGURED on an
   unlisted `bin/test-*.py` (`:52-53`); `--kind integration` selects `INTEGRATION_SCRIPTS` only
   (`:31`); `integration.detect` (`harness.json:119`) is an explicit four-file list. T-08's intent
   names the array by name and forbids `UNIT_SCRIPTS`, and edits `integration.detect` — so the

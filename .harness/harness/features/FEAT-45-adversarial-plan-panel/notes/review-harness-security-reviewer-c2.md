@@ -18,7 +18,7 @@ In scope (mechanism/enforcement code, read in full):
 - `test-validate-digest.py`, `test-check-state.py`, `test-panel-findings.py`, `test-plan-panel.py`, `test-harness-yaml-corpus.py` — test files; used to confirm coverage gaps (see finding 2), not independently gated
 
 Out of scope, no security surface (docs/templates/planning artifacts, grep'd for secrets — none found):
-`.claude/commands/harness-plan.md`, `DECISIONS.md`, `DECISIONS-INDEX.md`, `sync-agent-adapters.py` (+7, test-registry constant only), `run-unit-tests.sh` (+4, test-name array only), all of `.harness/harness/features/FEAT-45-adversarial-plan-panel/{BRIEF.md,STATE.md,feature.json,plan.yaml,notes/*,observations/*}` and `grilling-*.md` (this feature's own planning trail, not mechanism).
+`.claude/commands/harness-plan.md`, `DECISIONS.md`, `DECISIONS-INDEX.md`, `sync-agent-adapters.py` (+7, test-registry constant only), `run-unit-tests.py` (+4, test-name array only), all of `.harness/harness/features/FEAT-45-adversarial-plan-panel/{BRIEF.md,STATE.md,feature.json,plan.yaml,notes/*,observations/*}` and `grilling-*.md` (this feature's own planning trail, not mechanism).
 
 ## Finding 1 — HIGH — half one (re-review, SEC-01's own fix)
 

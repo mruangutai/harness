@@ -2,7 +2,7 @@
 
 **VERDICT: PASS.** The blocking `qa_gate` (`harness.json` `gates.qa_gate: blocking`) is satisfied:
 `unit` is the only matrix-required kind across all ten PLAN tasks, it is fully present and green, and
-`run-unit-tests.sh`'s own drift detector confirms the new script (`test-team-catalog.py`) is
+`run-unit-tests.py`'s own drift detector confirms the new script (`test-team-catalog.py`) is
 registered, not orphaned.
 
 ## Anchor
@@ -10,11 +10,11 @@ registered, not orphaned.
 ```
 $ git rev-parse HEAD
 9f87c48dae0ced97e7655dffb9daddeba4708324
-$ .claude/skills/harness/bin/run-unit-tests.sh; echo "exit=$?"
+$ .claude/skills/harness/bin/run-unit-tests.py; echo "exit=$?"
 ```
 Ran from repo root in one invocation (issue #36 avoided). Full output, counted directly (`grep -c`
 against the captured run, not eyeballed): **13** scripts (the `SCRIPTS` array at
-`run-unit-tests.sh:6`), each printing `PASS <name>`; **281** individual `ok` case lines; **0** `FAIL`
+`run-unit-tests.py:6`), each printing `PASS <name>`; **281** individual `ok` case lines; **0** `FAIL`
 lines anywhere; terminal line `exit=0`. `test-team-catalog.py`'s own
 block: **10/10 checks passed**, one line per SC it covers (SC-01, SC-02, SC-04, SC-07 ×2, SC-08,
 SC-09, SC-10, SC-14, SC-15). `test-harness-yaml-corpus.py`: **12/12**, including the SC-06
@@ -122,7 +122,7 @@ routing table. This is not a `BLOCKED`; it is the expected shape of this feature
 | SC-08 | `test-team-catalog.py` check (4) | |
 | SC-09 | `test-team-catalog.py` check (5) | |
 | SC-10 | `test-team-catalog.py` check (7) | |
-| SC-11 | `run-unit-tests.sh` exit 0, `test-team-catalog.py` present in `SCRIPTS` and output | |
+| SC-11 | `run-unit-tests.py` exit 0, `test-team-catalog.py` present in `SCRIPTS` and output | |
 | SC-12 | inspection — main-session-direct execution reasons stated per-task in PLAN.md (`carve-out` T-01/T-05/T-07; `domain-ungranted` T-02/T-04/T-06/T-09/T-10/T-11; `squad-dispatched` T-08) — not my job to adjudicate, flagged for pm/validator-lead | |
 | SC-13 | uat — not mine | |
 | SC-14 | `test-team-catalog.py` check (8) | |

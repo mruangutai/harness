@@ -58,7 +58,7 @@ T-01/T-02 (module), though T-08 writes its prose into the template.
   (plan.yaml:386-387). That constant is a four-item list at `check-state.sh:1059` and is still read at
   :1199 and :1219. As written the criterion is unmeetable-by-design; narrow it or change T-07.
 - **F-04 (medium) SC-09 names a kind that cannot carry it.** `evidence: unit` (BRIEF.md:108), but the
-  probe-registration check lives in `run-unit-tests.sh` itself (:76-83) and its test file
+  probe-registration check lives in `run-unit-tests.py` itself (:76-83) and its test file
   `test-run-unit-tests-kinds.py` is in INTEGRATION_SCRIPTS; no UNIT_SCRIPTS file asserts SC-09. Also "makes
   no model call" is not observable from a `--dry-run` exit 0 — nothing asserts network silence.
 - **F-05 (medium) SC-07 has no author.** It demands a mutation experiment (remove the resolution entry

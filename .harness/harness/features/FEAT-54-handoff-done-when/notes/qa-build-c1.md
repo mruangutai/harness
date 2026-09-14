@@ -8,10 +8,10 @@
 
 | Kind | Exact configured command | Result | Discovery |
 |---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | exit 0 | 24 files; `test-handoff-done-when.py` discovered; 32 named cases passed |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | exit 0 | 44 files; zero failed scripts; `test-check-state.py` discovered and passed |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | exit 0 | 24 files; `test-handoff-done-when.py` discovered; 32 named cases passed |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | exit 0 | 44 files; zero failed scripts; `test-check-state.py` discovered and passed |
 
-`HARNESS_AGENT_TYPE` was unset around both invocations because the repository environment otherwise contaminates the suite; command arguments and selection were unchanged. The full integration runner's captured output did not retain `test-check-domain.py`'s very large successful output, so its discovery is established by the runner's `tests/integration/test-*.py` glob (`run-unit-tests.sh:25-27`) and a separate direct run: `python3 tests/integration/test-check-domain.py` exited 0 with all 22 FEAT-54 handoff cases named. A separate direct `python3 tests/integration/test-check-state.py` exited 0 with all 11 FEAT-54 cases named.
+`HARNESS_AGENT_TYPE` was unset around both invocations because the repository environment otherwise contaminates the suite; command arguments and selection were unchanged. The full integration runner's captured output did not retain `test-check-domain.py`'s very large successful output, so its discovery is established by the runner's `tests/integration/test-*.py` glob (`run-unit-tests.py:25-27`) and a separate direct run: `python3 tests/integration/test-check-domain.py` exited 0 with all 22 FEAT-54 handoff cases named. A separate direct `python3 tests/integration/test-check-state.py` exited 0 with all 11 FEAT-54 cases named.
 
 ## Corrective assertion assessment
 

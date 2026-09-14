@@ -20,7 +20,7 @@ Ran `.claude/skills/harness/bin/check-state.sh`. Exit 1, with 3 VIOLATION lines,
 matching the expected caveat exactly). `grep -i "INV-10\|check-docs"` over the full output: zero
 matches. No error invoking the deleted `check-docs.sh`.
 
-**2. `run-unit-tests.sh` — 97/97, every suite PASS — VERIFIED, with one clarification.**
+**2. `run-unit-tests.py` — 97/97, every suite PASS — VERIFIED, with one clarification.**
 Exit 0, zero `FAIL` lines. **"97/97" is `test-factory-integration.py`'s own internal check count**
 (its last line reads `97/97 checks passed.`), not a grand total across all 22 suites — the runner
 itself never emits an aggregate total. Confirmed this is not a fresh coincidence:
@@ -132,7 +132,7 @@ before/after — confirmed).
   file).
 
 **M2/M3 verdict: this IS a real gap in the automated suite — a missing or spurious row in the
-committed index is currently invisible to `run-unit-tests.sh`.** But it is **pre-existing, not
+committed index is currently invisible to `run-unit-tests.py`.** But it is **pre-existing, not
 introduced by this diff**: I pulled the pre-change test at `c4fea5d` and it had exactly the same
 shape — regenerate into tmp, compare row *count* to `distinct`, never diff against `REAL_INDEX`
 content. The manual command in claim 3

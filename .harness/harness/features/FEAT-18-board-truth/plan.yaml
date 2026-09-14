@@ -57,7 +57,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-check-state.py
       lane: main-session-direct
       reason: co-changes with check-state.sh, in the same diff a human reads
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: >-
         --resolve answers harness-backend-dev and harness-dev-ops, but the only edit is
@@ -338,11 +338,11 @@ tasks:
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/test-gh-board.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .harness/harness.json
       - .claude/skills/harness/templates/harness.json
     verify: |
-      python3 .claude/skills/harness/bin/test-gh-board.py && .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      python3 .claude/skills/harness/bin/test-gh-board.py && .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create .claude/skills/harness/bin/gh_board.py - the ONE implementation of the harness board's
       station rule. Two consumers follow in T-03 and T-04; two copies of this logic is the drift
@@ -367,7 +367,7 @@ tasks:
       integration has an explicit detect list naming tests/integration/**, test-check-state.py and
       test-factory-integration.py. Add .claude/skills/harness/bin/test-gh-sync.py and
       .claude/skills/harness/bin/test-check-plan-routes.py to that same pipe-separated list.
-      Both files are already run by run-unit-tests.sh --kind integration, so this changes nothing
+      Both files are already run by run-unit-tests.py --kind integration, so this changes nothing
       about what executes; what it changes is that the kind four of this feature's criteria cite as
       their evidence now DETECTS the files those criteria are proven on. A runner that matches zero
       files on the surface being changed is a gate that proves nothing, and INV-20 reads the same
@@ -425,7 +425,7 @@ tasks:
       not rediscover it live.
 
       Create .claude/skills/harness/bin/test-gh-board.py and REGISTER it in
-      .claude/skills/harness/bin/run-unit-tests.sh's UNIT_SCRIPTS array in this same task - the
+      .claude/skills/harness/bin/run-unit-tests.py's UNIT_SCRIPTS array in this same task - the
       runner keeps explicit script arrays and its drift detector fails the WHOLE run on an
       unregistered test file, which would redden every other task's verify.
 

@@ -117,7 +117,7 @@ Feature 2 (DEC-172), which is blocked on this feature and is not planned here.
   names. (Issue #12 is filed as unverified — this criterion is falsifiable whether or not the defect is
   real.)
   verify: inspection
-- SC-12: `.claude/skills/harness/bin/run-unit-tests.sh` exits 0, with at least the pre-change baseline
+- SC-12: `.claude/skills/harness/bin/run-unit-tests.py` exits 0, with at least the pre-change baseline
   of 9 test files reporting `PASS`, 0 reporting `FAIL`, and 0 `skip` lines — measured on this branch
   before any conversion work.
   verify: automated        evidence: unit
@@ -243,7 +243,7 @@ conversion.
 
 **SC-14 (new).** `verify: unit`. A test under `.claude/skills/harness/bin/` walks every
 `.harness/**/*.yaml`, calls `yaml.safe_load` on each, and fails naming file, line and column for any
-that does not load. It is listed in `run-unit-tests.sh`'s `SCRIPTS` array — otherwise it gates
+that does not load. It is listed in `run-unit-tests.py`'s `SCRIPTS` array — otherwise it gates
 nothing, which was issue #5's exact failure mode. Proof it is a real gate: it must be shown RED
 against a deliberately malformed fixture, then GREEN on the repaired corpus.
 

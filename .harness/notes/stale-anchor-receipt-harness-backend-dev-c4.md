@@ -121,7 +121,7 @@ were removed. Untouched by this fix — `gh-sync.py` was not edited at all, and
 - `python3 .claude/skills/harness/bin/test-gh-sync.py` — **ALL PASSED.**
 - `python3 .claude/skills/harness/bin/test-feature-json-merge.py` — **37/37 checks passed.**
 - `python3 .claude/skills/harness/bin/test-harness-merge.py` — **18/18 checks passed.**
-- `bash .claude/skills/harness/bin/run-unit-tests.sh` — **exit 0, 0 `FAIL` lines** (captured to
+- `bash .claude/skills/harness/bin/run-unit-tests.py` — **exit 0, 0 `FAIL` lines** (captured to
   a log and grepped for `^FAIL `: zero matches, 1038 `PASS`-prefixed script names printed).
 
 ## DEC-174 boundary

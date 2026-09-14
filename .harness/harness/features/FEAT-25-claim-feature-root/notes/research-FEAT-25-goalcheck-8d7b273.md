@@ -13,7 +13,7 @@ the operator to execute.
 ## The gate — judged, not inherited
 
 The orchestrator's attribution is **correct, and I confirmed it without a worktree**. Run from the
-repository root, of the twelve scripts in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`, exactly one
+repository root, of the twelve scripts in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`, exactly one
 exits nonzero: `test-gen-decisions-index.py`, whose only failure is
 `test_committed_index_matches_a_fresh_regeneration` disagreeing about DEC-196's refs/tags row.
 `.harness/harness/docs/DECISIONS.md` and `DECISIONS-INDEX.md` are both absent from

@@ -14,8 +14,8 @@ Diff-inferred types are `logic`, `cross_module`, `config` with `touches_config_s
 
 | Kind | State | Command | Exit | Discovery |
 |---|---|---|---:|---:|
-| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 24 files |
-| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 44 files |
+| unit | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 24 files |
+| integration | satisfied | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 44 files |
 | handoff_comprehension | locally-run, not executed in this review | `tests/manual/probe-handoff-comprehension.py` | n/a | n/a |
 
 The manual probe is absent from `test_matrix`; per the dispatch and SC-09 it was assessed through integration coverage, not nondeterministically executed. `tests/integration/test-run-unit-tests-kinds.py:21-40,69-98` positively checks the real registration, discriminates removal/empty detect, proves `--kind all` executes non-empty unit and integration controls, and proves the manual probe does not execute.
@@ -45,7 +45,7 @@ The manual probe is absent from `test_matrix`; per the dispatch and SC-09 it was
 - **Severity:** high
 - **Concrete failure scenario:** entering Harness at the pinned commit runs `check-state.sh`, receives exit 1, and blocks orchestration before this feature can be treated as state-clean. SC-04 is therefore false even though the new Done-when-specific corpus portion emits no line.
 - **Evidence:** exact required command above; first output line names missing `.harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-validate.md`; SC-04 contract at `BRIEF.md:89-101` requires exit 0.
-- **Owner lane:** **Main direct corpus/state reconciliation**. If the remedy changes `.claude/skills/harness/bin/check-state.sh`, `handoff_done_when.py`, gate tests, or `run-unit-tests.sh`, it is **Main direct mutation under DEC-174**.
+- **Owner lane:** **Main direct corpus/state reconciliation**. If the remedy changes `.claude/skills/harness/bin/check-state.sh`, `handoff_done_when.py`, gate tests, or `run-unit-tests.py`, it is **Main direct mutation under DEC-174**.
 
 ## Test-first audit
 

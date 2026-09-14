@@ -121,10 +121,10 @@ assignment).
 
 **T-05's block**: `$B` is set at the very top (`B=.claude/skills/harness/bin`, line 2 of the
 block) before any use. All five files it references exist at the pin, as does
-`run-unit-tests.sh`. Ran the whole block against the unbuilt pin: it fails with `integration FAILs
+`run-unit-tests.py`. Ran the whole block against the unbuilt pin: it fails with `integration FAILs
 are not the one expected` — a controlled, named assertion failure, not a load/import/collection
 error. This is the expected state (nothing is built yet), **and it is also a real measurement**:
-running the block executes both `run-unit-tests.sh --kind unit` and `--kind integration` for real
+running the block executes both `run-unit-tests.py --kind unit` and `--kind integration` for real
 against the pin, and the failure text (`grep -cE '^FAIL test-' "$i"` != 1, i.e. it measured 0) means
 **both suites carry zero `FAIL` lines at `0f12f14` today** — independently corroborating T-01's
 stated pre-move baseline (0 FAIL in each, 15 PASS unit / 12 PASS integration).
@@ -194,7 +194,7 @@ DIGEST:
   coverage_gaps: []
   open_questions: []
   must_fix:
-    - { id: F-02, severity: high, area: "test-harness-yaml.py:81-96 COLLECT_FIXTURE['harness-documentor']", note: "Exact-list-equality assertion against the real .harness/team-config.yaml, reached through harness_yaml.manifest_domains() (the file's own docstring: reconstructs check-domain.py:105-126's grant-collection logic). MEASURED LIVE by simulating T-02's team-config.yaml edit and calling manifest_domains(): the returned 'mine' list for harness-documentor gains '.harness/*/docs/**', breaking the fixture's exact match. Runs in the integration suite (run-unit-tests.sh:18). No task updates COLLECT_FIXTURE -- not T-02, not T-04 (which edits this same file for an unrelated path fix at :686 only), not T-05, not T-06. T-05's own verify would correctly block on the resulting second integration FAIL, but no task is assigned to fix the cause." }
+    - { id: F-02, severity: high, area: "test-harness-yaml.py:81-96 COLLECT_FIXTURE['harness-documentor']", note: "Exact-list-equality assertion against the real .harness/team-config.yaml, reached through harness_yaml.manifest_domains() (the file's own docstring: reconstructs check-domain.py:105-126's grant-collection logic). MEASURED LIVE by simulating T-02's team-config.yaml edit and calling manifest_domains(): the returned 'mine' list for harness-documentor gains '.harness/*/docs/**', breaking the fixture's exact match. Runs in the integration suite (run-unit-tests.py:18). No task updates COLLECT_FIXTURE -- not T-02, not T-04 (which edits this same file for an unrelated path fix at :686 only), not T-05, not T-06. T-05's own verify would correctly block on the resulting second integration FAIL, but no task is assigned to fix the cause." }
   findings:
     - { id: F-01, severity: low, area: T-01 RED STATES prose, note: "'eleven files plus test-gen-decisions-index.py' (plan.yaml:272-273) reads as naming a 12th file; test-gen-decisions-index.py is already one of T-04's six inside the eleven. Recoverable from context (it reds a second time for a different, later-clearing reason), not a build-blocking ambiguity." }
   census:
@@ -213,7 +213,7 @@ DIGEST:
     sed_T10_standalone_shape_matches: true
   hunt5b:
     all_figures_reproduced: true
-  baseline_corroboration: "run-unit-tests.sh executed for real via T-05's verify at the pin: 0 FAIL lines in both unit and integration, corroborating T-01's stated pre-move baseline."
+  baseline_corroboration: "run-unit-tests.py executed for real via T-05's verify at the pin: 0 FAIL lines in both unit and integration, corroborating T-01's stated pre-move baseline."
   files_touched: [/Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-22-docs-layout-migration/notes/review-harness-qa-2026-08-15-planpanel.md]
   expertise_update: []
 artifact: /Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-22-docs-layout-migration/notes/review-harness-qa-2026-08-15-planpanel.md

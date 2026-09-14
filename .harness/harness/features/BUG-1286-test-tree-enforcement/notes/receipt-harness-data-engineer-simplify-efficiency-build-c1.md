@@ -26,7 +26,7 @@ cross-contamination.
 
 ## Required suite measurements
 
-1. `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+1. `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py --kind unit`
    - exit: **0** (own `$?`, captured directly)
    - `^PASS ` count: **341**
    - `^FAIL ` count: **0**
@@ -86,7 +86,7 @@ own guidance.
   subprocess, no filesystem I/O, no compiled-regex construction at import time; only tuple
   literals (`RESTRICTED_NAME_PATTERNS`, `AGNOSTIC_NAME_PATTERNS`, `SOURCE_EXTENSIONS`,
   `DOCUMENTED_EXCEPTIONS`). Since this file is on the runner's path (imported by
-  `run-unit-tests.sh` on every invocation), this was checked deliberately. Zero added startup
+  `run-unit-tests.py` on every invocation), this was checked deliberately. Zero added startup
   cost. No finding.
 - **`violations()` internal duplication** — confirmed exactly one `tracked_paths(root)` call per
   `violations()` invocation (line 132 of `suite_layout.py`); no per-call repetition inside

@@ -19,14 +19,14 @@ nothing; the floor is `unit`, always.
 
 **Diff-warranted addition: `integration`.** `tests/integration/test-validate-digest.py` is itself
 part of the diff (`git diff --stat`: +255/-0 there) and matches `test_kinds.integration.detect`
-(`tests/integration/**`); `run-unit-tests.sh` (current version, line 28) runs it via a directory
+(`tests/integration/**`); `run-unit-tests.py` (current version, line 28) runs it via a directory
 glob `tests/integration/test-*.py` under `--kind integration`. Per P-05 (a test added/changed
 alongside the code demonstrates it exercises this change), `integration` is required in addition
 to the matrix floor.
 
 | kind | required by | state | evidence |
 |---|---|---|---|
-| `unit` | `bugfix.always` | **missing** | No file under `tests/unit/` is in the diff (`git diff --name-only` confirmed zero `tests/unit/*` entries). `run-unit-tests.sh --kind unit` only globs `tests/unit/test-*.py` (script line 27) — `test-validate-digest.py` lives in `tests/integration/` and is never a member of that bucket. There is no unit-kind test, old or new, that exercises persona-doc/schema agreement; the entire mechanism is integration-shaped by construction (it reads multiple `.md` files across two trees). This is the **same shape BUG-1128's qa gate flagged** (`notes/qa-c1.md:22-46,200-202`): a bugfix confined to a surface this project's own convention tests only via one non-`unit` kind cannot satisfy `bugfix.always: [unit]`, and that open question (a `_matrix_provenance` carve-out) was never resolved — `_matrix_provenance` (`.harness.json:236-265`) still has no `bugfix` entry. Reporting `missing`, not waving it past, for consistency with that precedent. |
+| `unit` | `bugfix.always` | **missing** | No file under `tests/unit/` is in the diff (`git diff --name-only` confirmed zero `tests/unit/*` entries). `run-unit-tests.py --kind unit` only globs `tests/unit/test-*.py` (script line 27) — `test-validate-digest.py` lives in `tests/integration/` and is never a member of that bucket. There is no unit-kind test, old or new, that exercises persona-doc/schema agreement; the entire mechanism is integration-shaped by construction (it reads multiple `.md` files across two trees). This is the **same shape BUG-1128's qa gate flagged** (`notes/qa-c1.md:22-46,200-202`): a bugfix confined to a surface this project's own convention tests only via one non-`unit` kind cannot satisfy `bugfix.always: [unit]`, and that open question (a `_matrix_provenance` carve-out) was never resolved — `_matrix_provenance` (`.harness.json:236-265`) still has no `bugfix` entry. Reporting `missing`, not waving it past, for consistency with that precedent. |
 | `integration` | diff-warranted (P-05) | **satisfied** | `env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-digest.py`: **exit 0**, **`^FAIL ` count: 0**, final line **`ALL PASSED.`** — matches BRIEF SC-01's `c369fb1f` baseline (exit 0, zero FAIL, `ALL PASSED.`, 18.9s) with no regression, now at 19.0s. |
 | `docs` (T-04) | `docs.always: []` | n/a by matrix | T-04 covered by its own inspection `verify:` per plan.yaml; nothing further required |
 

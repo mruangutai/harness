@@ -110,7 +110,7 @@ so direct tasks cannot all be run before the one dispatch.
   Tradeoff accepted: "retired" is proven only for the eng half and only as text. Stated in the
   BRIEF's Verification gaps rather than papered over.
 
-- **D-05: the DEC-174 carve-out is extended to `bin/test-check-state.py`, `bin/run-unit-tests.sh`
+- **D-05: the DEC-174 carve-out is extended to `bin/test-check-state.py`, `bin/run-unit-tests.py`
   and the new `bin/test-team-catalog.py`. THE USER KEPT THIS (Q5) — not re-litigated.**
   Rationale accepted by the user: a test *for* `check-state.sh` is part of what makes that gate
   green, and the carve-out exists because green gates cannot vouch for the code that produces them
@@ -314,7 +314,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     untouched.
   change_type: bugfix
   verify: >
-    `.claude/skills/harness/bin/run-unit-tests.sh` exits 0, AND
+    `.claude/skills/harness/bin/run-unit-tests.py` exits 0, AND
     `grep -rn '"none", "null", "n/a"' .claude/skills/harness/bin/ | wc -l` returns exactly `1`
     (the definition in `harness_yaml.py`) — and it must STILL return `1` after T-07 lands a new file
     in that same directory, which is true **only because** T-07 check (6) constructs its search
@@ -596,7 +596,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
   depends_on: T-02, T-04, T-06, T-08, T-11
   files:
     - .claude/skills/harness/bin/test-team-catalog.py
-    - .claude/skills/harness/bin/run-unit-tests.sh
+    - .claude/skills/harness/bin/run-unit-tests.py
   intent: >
     New script following the same shape as the other `bin/test-*.py` (a `check(name, cond, detail)`
     helper, a `fails`/`ran` counter, exit 1 on any failure), parsing every YAML with
@@ -672,14 +672,14 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     `.claude/skills/harness/bin/test-check-state.py` contains `review_sha: none` at least twice and
     `review_sha: 1ce886a` at least once — so T-01's deliverable cannot be silently omitted by a
     later edit, not just by the original executor.
-    Then add `"test-team-catalog.py"` to the `SCRIPTS` array at `run-unit-tests.sh:6`. The drift
+    Then add `"test-team-catalog.py"` to the `SCRIPTS` array at `run-unit-tests.py:6`. The drift
     detector at `:9` fails the runner on any `test-*.py` not in that list, so this is mandatory.
     All ten assertions run against the real repo tree, as the other catalog-style tests in `bin/`
     do; use the `_fixture` helper only if the SPEC parsing needs a negative case.
   change_type: logic
   verify: >
     `python3 .claude/skills/harness/bin/test-team-catalog.py` exits 0 and its output names **ten**
-    checks, AND `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 with `test-team-catalog.py`
+    checks, AND `.claude/skills/harness/bin/run-unit-tests.py` exits 0 with `test-team-catalog.py`
     named in its output.
   traces: REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-08, D-03, D-04, D-08
   feature: FEAT-06

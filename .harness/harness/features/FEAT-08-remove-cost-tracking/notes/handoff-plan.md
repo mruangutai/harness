@@ -16,7 +16,7 @@ S1 loosens the gates before S2 (T-03, T-04) removes the machinery.
 - The supersession marker is GENERATED from the superseding decision's TITLE or a body line starting `**Supersedes DEC-NN` — `gen-decisions-index.py:24, :232-237, :284, :324-326`; pm's proposed DEC-178 title returns `None`, DEC-83 control returns `DEC-82` — verified-at ae2443d
 - All 67 run `state.yaml` files carry a `cost:` block, so `cost` must STAY in `CHECKPOINT_KEYS` (`check-state.sh:344`) — allowed, never required — verified-at ae2443d
 - `check-state.sh:258-259` hard-fails when `harness.json` has no `cost_model.rates`; stripping the config before loosening the checker makes the repo an instant violation — pm's finding, `PLAN.md` D-02 — verified-at ae2443d
-- Gates green: `run-unit-tests.sh` 0, `check-docs.sh` 0, `check-state.sh` zero violations, `gen-decisions-index.py --stdout | diff -` 0 — verified-at ae2443d
+- Gates green: `run-unit-tests.py` 0, `check-docs.sh` 0, `check-state.sh` zero violations, `gen-decisions-index.py --stdout | diff -` 0 — verified-at ae2443d
 - The validate panel is FOUR-WIDE by user ruling — `feature.yaml` `validate_panel` — verified-at ae2443d
 
 ## Dead ends

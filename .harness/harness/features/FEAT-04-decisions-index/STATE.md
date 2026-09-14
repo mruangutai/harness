@@ -16,7 +16,7 @@
 - **The deliverable is complete and green.** `docs/harness/DECISIONS-INDEX.md`: 170 rows, 190 lines
   (cap 260), 0 `RULING PENDING`, 0 rows over the 30-word ruling cap. Measured by me at `363b539`.
 - gates at `b621be6`, all run by me: `check-docs.sh` exit 0 at 45 patterns across 106 files;
-  `run-unit-tests.sh` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
+  `run-unit-tests.py` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
   `check-state.sh` exit 0; `test-gen-decisions-index.py` direct, exit 0, all six cases `ok`.
 - **SC-01's count moved and that is correct.** Its prose pins 169 rows at `f723194`; the operative
   clause is "counted at run time rather than against a frozen number", and `DEC-170` landed mid-build.

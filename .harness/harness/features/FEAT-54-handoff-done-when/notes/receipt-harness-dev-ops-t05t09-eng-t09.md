@@ -26,20 +26,20 @@ tree currently has zero violations.
   **not** under `bin/` — consistent with `suite_layout.py` forbidding probe-shaped files in
   `bin/` regardless of `test_kinds` status. `omp_session_accessor`'s `test_kinds` entry
   (`.harness/harness.json:277-283`) points `detect`/`cmd` at `tests/manual/…`.
-- `run-unit-tests.sh` (current, post-`139f6afe` "move tests to directory-based suites") has no
+- `run-unit-tests.py` (current, post-`139f6afe` "move tests to directory-based suites") has no
   `KINDCHECK` heredoc / `UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` at all — it delegates layout
   enforcement entirely to `suite_layout.violations()` before running `run_pool.py`. Several of this
   feature's own research notes (`notes/research-FEAT-54-goalcheck-plan-c2.md:147`,
   `notes/review-harness-code-reviewer-planpanel-c0.md:41-45`) still describe the pre-migration
   `KINDCHECK`/`UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` shape at length; the plan's D-04/T-09 text
-  ("run-unit-tests.sh's probe-drift check requires exactly this shape and exits 2 on any other")
+  ("run-unit-tests.py's probe-drift check requires exactly this shape and exits 2 on any other")
   reads as written against that same stale mental model, not the live `suite_layout.py` gate.
 
 ## Why I did not implement anyway
 
 Writing the probe at the plan-specified path would turn a currently-green test
 (`test-suite-layout.py`'s `"real layout is valid"`) red, and would make
-`run-unit-tests.sh` exit 2 on `MISCONFIGURED: test-shaped file remains under bin: …` — a failure
+`run-unit-tests.py` exit 2 on `MISCONFIGURED: test-shaped file remains under bin: …` — a failure
 directly *caused* by the two files this task is scoped to (not a pre-existing red I could
 attribute to another script), which the dispatch's own "Drift check" step is explicit I must not
 paper over. My write scope is exactly the two named files; resolving this needs either a third

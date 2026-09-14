@@ -10,7 +10,7 @@ verbatim, exit 0.
 
 ```
 set -u
-out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1)
+out=$(.claude/skills/harness/bin/run-unit-tests.py --kind integration 2>&1)
 echo "$out"
 echo "$out" | grep -q '^PASS test-check-expertise.py$' || exit 1
 echo "$out" | grep -q '^FAIL ' && exit 1
@@ -32,13 +32,13 @@ candidate; rule on it (issue 340)`).
 ## STEP 1 — baseline
 
 1. `git show b4659cd:...check-expertise.sh | diff - <working>` → **empty**, no drift.
-2. `run-unit-tests.sh --kind integration` pre-change: exit 0, 106/106 checks in
+2. `run-unit-tests.py --kind integration` pre-change: exit 0, 106/106 checks in
    test-factory-integration.py, and every `PASS <name>` line present incl.
    `PASS test-check-expertise.py`; **zero `^FAIL ` lines**.
 3. `check-expertise.sh .harness/expertise/` pre-change: exit 0, all 15 files `OK`, **no**
    `^ADVISORY ` line (scan didn't exist yet).
 4. `git status --porcelain` baseline: T-02's dirt only (`inject-expertise.sh`,
-   `run-unit-tests.sh` modified; `test-inject-expertise.py` untracked) plus unrelated
+   `run-unit-tests.py` modified; `test-inject-expertise.py` untracked) plus unrelated
    FEAT-24/25/26 dirs and FEAT-27 STATE/feature.json/plan.yaml/notes/observations churn from
    other in-flight sessions. Not mine, left untouched.
 
@@ -86,7 +86,7 @@ Overall: 9/22 extra cases passed pre-change, 13 failed. Split against the pre-de
 
 ## STEP 4 — post-change state
 
-- `run-unit-tests.sh --kind integration`: exit 0, all `PASS`, zero `FAIL`, including
+- `run-unit-tests.py --kind integration`: exit 0, all `PASS`, zero `FAIL`, including
   `PASS test-check-expertise.py` (32/32: 10 base + 22 extra, all `ok`).
 - Verify command: exit 0 as reported above.
 - `git status --porcelain` after minus baseline: exactly

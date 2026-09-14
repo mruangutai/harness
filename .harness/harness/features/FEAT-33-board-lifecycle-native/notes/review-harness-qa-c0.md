@@ -28,13 +28,13 @@ feature×8` (=27) is confirmed wrong: it double-matched `change_type:` inside ta
 
 ## Suite — measured myself, not trusted
 
-- `run-unit-tests.sh --kind all`, run to completion in the background (not truncated): **46 scripts
+- `run-unit-tests.py --kind all`, run to completion in the background (not truncated): **46 scripts
   reported PASS, 801 individual `PASS` lines, 0 `FAIL` lines, exit 0.** Grepped for
   MISCONFIGURED/ImportError/Traceback/MODULE_NOT_FOUND: zero real hits (only test *names* asserting
   absence of a traceback). This exactly matches the qa segment's own numbers — independently
   reproduced, not copied.
 - `test-board-lifecycle.py` alone: 99 `PASS` lines, exit 0, and it is registered in
-  `run-unit-tests.sh`'s `UNIT_SCRIPTS` (confirmed by the fact it ran at all under `--kind unit`).
+  `run-unit-tests.py`'s `UNIT_SCRIPTS` (confirmed by the fact it ran at all under `--kind unit`).
 
 ## `check-state.sh` — the live discrepancy
 

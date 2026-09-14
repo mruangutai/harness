@@ -361,11 +361,11 @@ tests, these names:**
    a standing test, so SC-04 cannot silently rot after ship.
 
 Then, as a numbered step of this task and not a footnote: **edit
-`.claude/skills/harness/bin/run-unit-tests.sh` and add `"test-harness-yaml.py"` to the `SCRIPTS`
+`.claude/skills/harness/bin/run-unit-tests.py` and add `"test-harness-yaml.py"` to the `SCRIPTS`
 array.** The runner's drift detector exits **2** on any `test-*.py` under `bin/` absent from that list,
 so skipping this makes the whole unit gate exit 2 rather than run.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?` → output
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?` → output
 contains `FAIL test-harness-yaml.py`, contains no `MISCONFIGURED` line, and the exit code is **1** — the
 red state. Exit 2 means the `SCRIPTS` edit was missed; exit 0 means the tests test nothing.
 
@@ -426,7 +426,7 @@ lifecycle:
 (`:33`), so it can delete the marker and re-trigger the escape. The escape expires by construction on
 the honest path; a deliberate deletion sits inside the trust boundary DEC-85 already accepts.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?` → exit **0**,
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?` → exit **0**,
 output contains `PASS test-harness-yaml.py` and no `MISCONFIGURED` line.
 
 ### T-04 — convert `upgrade-config.py`
@@ -450,10 +450,10 @@ two call sites at `:176-177`.
 Create `.claude/skills/harness/bin/test-upgrade-config.py` with three tests: names extracted from the
 real `.harness/team-config.yaml` equal the pre-change list (inlined as a fixture); `schema_version`
 returns an `int`; a manifest whose `name:` value is all digits is returned as `str`, not `int` (D-08).
-**Add `"test-upgrade-config.py"` to `run-unit-tests.sh`'s `SCRIPTS` array** — same exit-2 drift trap
+**Add `"test-upgrade-config.py"` to `run-unit-tests.py`'s `SCRIPTS` array** — same exit-2 drift trap
 as T-02.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?` → exit 0 with
 `PASS test-upgrade-config.py`; and
 `grep -cE 're\.(search|findall|match|finditer|sub|split|compile)' .claude/skills/harness/bin/upgrade-config.py`
 → **0** (2 at `37a8a66` — discriminating).
@@ -513,7 +513,7 @@ whose `github:` block carries a **trailing `#` comment** on `parent:` and `miles
 correctly (the #11 defect class, in this file); and a `feature.yaml` with **no** `github:` block returns
 the all-`None` default rather than raising.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?` → exit 0 with
 `PASS test-gh-sync.py`; and
 `grep -nE 're\.(search|findall|match|finditer)' .claude/skills/harness/bin/gh-sync.py` → exactly the 5
 markdown lines `128 135 153 157 159` and nothing in the `176-196` range (6 hits in that range at
@@ -563,7 +563,7 @@ Extend `.claude/skills/harness/bin/test-check-state.py` with three tests:
 3. `test_date_shaped_run_id_stays_str` — a run whose `id:` is the bare scalar `2026-07-31` joins to its
    run directory as `"2026-07-31"`, not a `datetime.date` (SC-10, D-08).
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-check-state.py`; then `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/check-state.sh;
 echo $?` → the exit code and violation count recorded at T-01 step 2, unchanged (SC-02); then produce
 the **post-change** run inventory — the same per-feature `id / squad / verdict` listing, emitted from
@@ -608,7 +608,7 @@ Write the walk out as a table in
 — one row per consumer: `file:line`, the key, the parsed type, the use class, the action taken. That
 receipt is SC-10's inspection evidence and the reviewer's checklist.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0; and a
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0; and a
 `python3 - <<'PY'` script asserting **two mechanically decidable** properties — (a) walking every
 `feature.yaml` and `state.yaml` in this repo through `harness_yaml.load_file`, **no** value anywhere in
 any parsed tree is a `datetime.date` or `datetime.datetime` (this is the resolver strip, provable from
@@ -806,7 +806,7 @@ produced by an allow-all escape or a block-all fail-closed, and only a real mani
 pair); a `state.yaml` Write with a duplicate top-level key is blocked with the DEC-156 message; and a
 `state.yaml` Write with malformed YAML is blocked with the parse-error message.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-check-domain.py`; and
 `grep -nE 're\.(search|findall|match|finditer|sub|split|compile)'
 .claude/skills/harness/bin/check-domain.py` → exactly 7 hits at `157 182 248 263 275 300 321` (10 at
@@ -834,7 +834,7 @@ message text.
 
 The RECOVERY NOTE in T-12 applies here unchanged.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-check-domain.py` (the same test file, unchanged, is the equivalence proof); and
 ``grep -cE "python3 -c '|python3 - .*<<'PY'" .claude/skills/harness/bin/check-domain.py`` → **1**
 (**4** at `37a8a66` — discriminating; a bare `grep -c python3` returns 5 and is wrong, because `:232`
@@ -877,7 +877,7 @@ Extend `.claude/skills/harness/bin/test-bash-write-guard.py` with SC-06's paired
 context. Both are required — either alone is also produced by an allow-all escape or a block-all
 fail-closed.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-bash-write-guard.py`; and
 `grep -nE 're\.(search|findall|match|finditer|sub|split|compile)'
 .claude/skills/harness/bin/bash-write-guard.py` → exactly 5 hits at `112 185 278 298 306` (7 at
@@ -895,7 +895,7 @@ The same 2-to-1 merge, at lower priority (~17ms). Merge `:24` and `:48` into one
 `HOOK_PAYLOAD` once. Behaviour identical, including the `harness-dev-ops` exemption at `:33`, the
 `harness-*` prefix filter and every exit-2 message. The T-14 RECOVERY NOTE applies unchanged.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-bash-write-guard.py` (the same unchanged test file is the equivalence proof); and
 ``grep -cE "python3 -c '|python3 - .*<<'PY'" .claude/skills/harness/bin/bash-write-guard.py`` → **1**
 (**2** at `37a8a66` — discriminating; a bare `grep -c 'python3 '` returns 3, because `:98` is a
@@ -984,14 +984,14 @@ that with a re-run of an already-green assertion.** Add to `.claude/skills/harne
 `on:` (YAML 1.1 resolves it to `True`, not the string `"on"`) is denied as an **unknown key, named in
 the message**, and does not raise inside the `ALLOWED` comparison at `check-domain.py:281-284`. Only
 the hook-side `str()` coercion this task applies makes it pass. No `SCRIPTS` edit is needed — the file
-is already in `run-unit-tests.sh`.
+is already in `run-unit-tests.py`.
 
 **Do not re-run T-08's sweep script as this task's evidence.** Both properties it asserts (no
 `datetime` in any parsed tree; every `manifest_domains` glob is `str`) are module-level and already
 green after T-08, so it passes whether or not the hooks were touched — non-discriminating here, by the
 same standard applied throughout this plan.
 
-verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with
+verify: `CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py` → exit 0 with
 `PASS test-check-domain.py`, including
 `test_yaml_truthy_top_level_key_is_reported_by_name` (absent and therefore failing before this task —
 discriminating); and
@@ -1085,7 +1085,7 @@ main-session steps as a post-build tidy-up; T-12 is blocked on T-10.
 Per `.harness/harness.json` `test_matrix`: `logic` → `always: [unit]`, and `config`/`docs`/`scaffolding`
 → `always: []`. Eleven of the seventeen tasks are `logic` and each carries unit tests, which is why the
 test names are specified in the tasks rather than left to the implementer. `unit`'s runner is
-`.claude/skills/harness/bin/run-unit-tests.sh` and its detect glob covers `bin/test-*.py`, so every test
+`.claude/skills/harness/bin/run-unit-tests.py` and its detect glob covers `bin/test-*.py`, so every test
 this feature writes is inside the gate. **The `SCRIPTS` array in that runner must be edited in the same
 task that adds a test file** — its drift detector exits **2**, which reads as a broken gate rather than
 a failing test.

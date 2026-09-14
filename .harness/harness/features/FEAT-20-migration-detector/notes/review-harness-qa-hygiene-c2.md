@@ -50,7 +50,7 @@ report at both sites, so the earlier divergence is not merely unreproduced here,
 foreclosed by the M-1 fix (one shared function, no second filter).
 
 ## 4. Suites and gates — every exit code separately
-- `run-unit-tests.sh --kind all`: **exit 0**. 27/27 registered `test-*.py` files `PASS`, includes
+- `run-unit-tests.py --kind all`: **exit 0**. 27/27 registered `test-*.py` files `PASS`, includes
   `test-check-state.py` and `test-layout-migration.py`; `test-factory-integration.py` 106/106; no
   `FAIL`/`MISCONFIGURED` line; drift detector (unregistered file check) green.
 - `test-check-domain.py`: **exit 0**, 14/14.

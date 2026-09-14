@@ -12,7 +12,7 @@ to the wrong checkout).
 
 ## Trust
 
-- `run-unit-tests.sh --kind all` at 61f0a0e: exit 0, 57 files, 3139 case verdicts, zero failures.
+- `run-unit-tests.py --kind all` at 61f0a0e: exit 0, 57 files, 3139 case verdicts, zero failures.
   CI `integration` agreed on the PR, 2m49s.
 - The #556 proof is real and is the strong one: the same command from the repository root and from
   `bin/` gives a byte-identical verdict set after normalising tmpdir paths — case-level diff of 0

@@ -14,7 +14,7 @@ operator.
 
 | SC | verify (BRIEF) | verdict | evidence |
 |---|---|---|---|
-| SC-01 | automated / integration | met | `run-unit-tests.sh --kind integration` rc=0 at `490c37c`; `ok    ship records feature.json status Done` |
+| SC-01 | automated / integration | met | `run-unit-tests.py --kind integration` rc=0 at `490c37c`; `ok    ship records feature.json status Done` |
 | SC-02 | automated / integration | met | same run: `ok    abandon records feature.json status Abandoned`, plus the discriminating `ok    abandon with no milestone but WITH issues still records status Abandoned` (`test-gh-sync.py:729`) |
 | SC-03 | automated / integration | met | same run: `ok` on `ship closes the milestone regardless of parent origin`, `ship leaves an adopted parent open`, `ship closes a created parent completed`, `ship --body-file posts once`, `ship without --body-file posts nothing`; `ALL PASSED`, 12/12 scripts |
 | SC-04 | uat | **deferred** | `BRIEF.md:149-152` |
@@ -23,7 +23,7 @@ operator.
 | SC-07 | inspection | met | `harness/SKILL.md`: qa anchor :57 < `SIMPLIFY, the last build step` :59 < pin anchor :75; `harness-plan.md:20` orders `squad plans, … simplify … eng-lead reviews architecture` |
 | SC-08 | inspection | met | zero `validator` occurrences in `harness-simplify/SKILL.md`; `grep -ni simplif harness/SKILL.md` returns only :59 and :67, both inside the step region, so no other build-playbook step mentions the pass at all; the region's two `validator` hits are the prohibition ("Never dispatched to the validator lead") and the unrelated INV-6 pin sentence; zero `validator` in `harness-plan.md` |
 | SC-09 | inspection | met | `DECISIONS.md:5970` (DEC-195), `:6049` (DEC-196); `gen-decisions-index.py --stdout \| diff -q - DECISIONS-INDEX.md` clean; rows at `DECISIONS-INDEX.md:213-214` |
-| SC-10 | automated / unit | met | `run-unit-tests.sh --kind unit` rc=0 at `490c37c`; all seven required labels `PASS` (`unit` log lines 836-843) incl. no-board, outside-root, sync-off, BoardError, non-BoardError, usage exit 2 |
+| SC-10 | automated / unit | met | `run-unit-tests.py --kind unit` rc=0 at `490c37c`; all seven required labels `PASS` (`unit` log lines 836-843) incl. no-board, outside-root, sync-off, BoardError, non-BoardError, usage exit 2 |
 | SC-11 | inspection | met | `harness-plan.md:10` kickoff marker precedes the sequence line :20; names `board-station.py` by path :11; `no ticket is named` :14; `git diff b7ae135 490c37c -- .claude/commands/harness-plan.md` shows the sequence line's only change is the SC-07 simplify insertion, both anchors byte-identical |
 | SC-12 | inspection | met | `DECISIONS.md:6053-6060` (rule, cited by symbol), `:6072-6079` (no stations map, names closed issue 350 and that it has no implementing ticket) |
 | SC-13 | uat | **deferred** | `BRIEF.md:149-152` |

@@ -46,7 +46,7 @@ second place. The file should also stop asserting a safeguard it does not have.
   falsified and any follow-up starts from measurement. This ticket excludes them; whether to
   propagate the mechanism to them is a separate ticket, not a silent widening of this one.
 - **The outer layer SUPPLIES the exit-code contract and does not change.**
-  `.agents/skills/harness/bin/run-unit-tests.sh` execs `run_pool.py`, which runs each test script as
+  `.agents/skills/harness/bin/run-unit-tests.py` execs `run_pool.py`, which runs each test script as
   a subprocess and keys off its exit code. That layer is already sound; nothing in it is touched.
 - **The print convention is load-bearing and must be preserved.** Every per-case verdict line starts
   at column 0 with `ok    ` or `FAIL  `; every detail or continuation line is indented. Counting

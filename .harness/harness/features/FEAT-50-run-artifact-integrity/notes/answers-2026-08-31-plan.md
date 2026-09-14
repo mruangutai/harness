@@ -32,8 +32,8 @@ in this phase. Deliverables are `BRIEF.md` and `plan.yaml`, both left
    `check-state.sh`) and the zero-test-collection fix in the test runner.
 3. **New deterministic regressions** for all three issues.
 4. **Canonical commands must exit 0**:
-   `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`,
-   `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`, and
+   `.claude/skills/harness/bin/run-unit-tests.py --kind unit`,
+   `.claude/skills/harness/bin/run-unit-tests.py --kind integration`, and
    `.claude/skills/harness/bin/check-state.sh`.
    See the open question below — the third does not hold today, for a reason
    unrelated to these issues.

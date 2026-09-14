@@ -27,7 +27,7 @@ in plan order T-27 → T-24 → T-25 / T-28, with T-29 after T-24.
   `grep -qE '^(KIND-DRIFT|MISCONFIGURED):'` — the anchoring extended to the second detector —
   and T-19's own `intent:` discloses that in full. Read it before assuming the signed text landed.
 - The removal order is measured, not reasoned. The three-step order took the whole suite to
-  exit 2 across the interval via the MISCONFIGURED detector at `run-unit-tests.sh:60-74`;
+  exit 2 across the interval via the MISCONFIGURED detector at `run-unit-tests.py:60-74`;
   T-24 now merges the array edit and both deletions into one step — probe receipt
   `notes/receipt-harness-backend-dev-2026-08-29-21-eng-drift-probe.md` — verified-at 6be3de5
   by harness-backend-dev in a disposable /tmp copy, NOT re-run by me.

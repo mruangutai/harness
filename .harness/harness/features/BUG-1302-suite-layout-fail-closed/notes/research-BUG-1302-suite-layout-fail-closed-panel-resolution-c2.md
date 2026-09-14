@@ -8,9 +8,9 @@ BRIEF still carries SC-01..SC-10 (10 criteria; none added, none removed).
 ## PANEL-1 — PF-fc35850348334fa161835c8a8d817636 — med — should-not-exist — resolved by T-05
 
 Applied, by the **producible-state route**, not the escape hatch. The reader's and the lead's route
-holds at source: `tree()` copies `run-unit-tests.sh` into the temp tree
+holds at source: `tree()` copies `run-unit-tests.py` into the temp tree
 (`tests/integration/test-run-unit-tests-layout.py:15-23`) and `run()` executes that copy (`:45-47`),
-so the runner is mutable in place inside case 2. `run-unit-tests.sh` runs `set -uo pipefail` without
+so the runner is mutable in place inside case 2. `run-unit-tests.py` runs `set -uo pipefail` without
 `-e` and performs its layout check at the `layout_out=` line (`:33`), after `cd "$_ROOT"` (`:9`), so a
 `python3 tests/integration/test-integration.py` line inserted immediately before it prints
 `PASS test-integration.py` on stdout and the refusal still exits 2 at `:41` with the MISCONFIGURED

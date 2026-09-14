@@ -81,7 +81,7 @@ payload. No transcription near-miss found. One residual imprecision → F-03.
   pin — the sole deletion in that file). Substance true (an exception removed = strengthening),
   identifier false. Remedy: replace `main` with `check_artifact_file` in note `:9`.
 - **F-02 — Advisory · Advisor-bound.** Unit suite figure stale (leg 4). Remedy: re-run
-  `run-unit-tests.sh --kind unit` at the pin and restate note `:37` with the seam label, or state
+  `run-unit-tests.py --kind unit` at the pin and restate note `:37` with the seam label, or state
   the sha at which it was observed.
 - **F-03 — Advisory · cycle-18-eligible.** `BRIEF.md:385` requires each disclosed class be stated
   "with the test that pins its message"; for class 2 the note quotes the message verbatim but names

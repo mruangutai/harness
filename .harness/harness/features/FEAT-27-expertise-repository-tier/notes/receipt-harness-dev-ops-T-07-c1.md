@@ -74,7 +74,7 @@ Output: empty. Exit 0.
 ## verify: — run exactly as specified in the plan
 ```
 set -u
-out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1)
+out=$(.claude/skills/harness/bin/run-unit-tests.py --kind unit 2>&1)
 echo "$out"
 echo "$out" | grep -q '^PASS test-inject-expertise.py$' || exit 1
 echo "$out" | grep -q '^FAIL ' && exit 1

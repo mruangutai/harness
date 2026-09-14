@@ -11,8 +11,8 @@ content was read with `git show <review_sha>:<path>`, never the working tree (G-
 
 | Suite | Command | Exit | `^FAIL ` lines | Files |
 |---|---|---|---|---|
-| unit | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 0 | 0 | 28 |
-| integration | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 0 | 0 | 46 |
+| unit | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 0 | 0 | 28 |
+| integration | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 0 | 0 | 46 |
 
 Counted with `grep -c '^FAIL '`, not a tail read (G-08). Matches the contract exactly.
 Named files run directly: `test-expertise-ops.py` exit 0 (69 `PASS` assertions),

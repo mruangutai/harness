@@ -9,7 +9,7 @@ the only real caller.
 ### What I examined
 
 Read verbatim: `suite_layout.py` full diff (+116, `git diff 1977ebd6..9adbce6b --
-.claude/skills/harness/bin/suite_layout.py`), `run-unit-tests.sh` in full, `suite-census.py` in
+.claude/skills/harness/bin/suite_layout.py`), `run-unit-tests.py` in full, `suite-census.py` in
 full (plus its diff, to separate new `tree-audit` code from pre-existing FEAT-47 code),
 `tests/integration/test-run-unit-tests-layout.py` in full, `tests/unit/test-suite-layout.py`
 imports/fixtures/case-11 region, plan.yaml D-01–D-06, and the DECISIONS.md/DECISIONS-INDEX.md diff
@@ -24,10 +24,10 @@ to test whether the guard's fail-open branch is reachable through the real entry
 `argv` with `cwd=root`, no `shell=True`, no string interpolation of any value into a command
 string — confirmed by grep across all four target files plus `suite-census.py`'s new
 `_vocabulary_paths`: every subprocess call in the diff is list-form. `cwd=root` is caller-supplied
-(from `run-unit-tests.sh`'s own `harness_boundary.resolve_root()`, not attacker input) and is not
+(from `run-unit-tests.py`'s own `harness_boundary.resolve_root()`, not attacker input) and is not
 shell-interpreted by `subprocess.run`. PATH-based resolution of the `git` binary is a real, generic
 property of every `git`-shelling script in this codebase (`code_grade.py`, `suite-census.py`'s
-pre-existing `migration`/`residue`, `run-unit-tests.sh` itself) — not introduced or widened by this
+pre-existing `migration`/`residue`, `run-unit-tests.py` itself) — not introduced or widened by this
 diff, and not exploitable without an attacker who can already plant a binary earlier on a trusted
 developer's `PATH`, i.e. no privilege the attacker doesn't already have (P-02). 20s timeout: on
 expiry, `TimeoutExpired` is caught and re-raised as `LookupError`, which is appended to `out` as a
@@ -73,14 +73,14 @@ direct empirical grounds, not just reading the code:
   violation, so the allowlist can't be silently widened).
 - I did not accept the sign-off on paper alone. I built a throwaway rootless tree (no `.git`) with
   `.claude/` copied in, planted a tracked-shaped rogue (`.harness/test_rogue.py`), and ran the real
-  entrypoint, `run-unit-tests.sh --check-layout`, against it directly (not `violations()` in
-  isolation). Result: `run-unit-tests.sh: no harness root could be resolved ... — refusing to run`,
+  entrypoint, `run-unit-tests.py --check-layout`, against it directly (not `violations()` in
+  isolation). Result: `run-unit-tests.py: no harness root could be resolved ... — refusing to run`,
   exit 2, in *both* the clean and the rogue-planted case. `harness_boundary.resolve_root()` refuses
   to even start before `suite_layout.violations()` is ever called on a root lacking `.git`. So the
   fail-open branch D-03 accepts is real in the Python API (`suite_layout.violations()` called
   directly, which is exactly what the unit-test fixtures do) but **unreachable through the only
   real caller** (plan.yaml D-03's own claim: "`violations()` still has exactly one caller,
-  Harness's own `run-unit-tests.sh`"), which independently refuses first. This closes the gap
+  Harness's own `run-unit-tests.py`"), which independently refuses first. This closes the gap
   between "signed as acceptable" and "verified to not bite in production."
 - Residual, correctly out of my remit: the guard's *source* (`suite_layout.py`,
   `DOCUMENTED_EXCEPTIONS`) is itself repo-tracked code that a malicious or careless commit could
@@ -121,7 +121,7 @@ ordering constraint, one by execution.
 ```yaml
 VERDICT: PASS
 DIGEST:
-  headline: "No exploitable defect; the one fail-open branch (rootless-git precondition, D-03) is signed off and empirically unreachable via the only real caller, run-unit-tests.sh."
+  headline: "No exploitable defect; the one fail-open branch (rootless-git precondition, D-03) is signed off and empirically unreachable via the only real caller, run-unit-tests.py."
   in_scope: true
   scope_reason: "Diff adds a guard that shells to git and reads the tracked-file index (input it did not author), and is itself a fail-open/fail-closed integrity control (STRIDE Tampering/Repudiation) even absent network/auth/user-input surface."
   severity_max: info

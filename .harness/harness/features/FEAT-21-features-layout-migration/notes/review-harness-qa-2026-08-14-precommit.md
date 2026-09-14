@@ -79,8 +79,8 @@ name travelled to the new location. Nothing remains at the old path.
 ## JOB 3 — suite confirmation + adequacy
 
 **Confirmation run** (once, not eleven investigations):
-- `run-unit-tests.sh --kind unit`: exit **0**, **97 PASS**, 0 FAIL.
-- `run-unit-tests.sh --kind integration`: exit **0**, **89 PASS**, 0 FAIL. Named suites present and
+- `run-unit-tests.py --kind unit`: exit **0**, **97 PASS**, 0 FAIL.
+- `run-unit-tests.py --kind integration`: exit **0**, **89 PASS**, 0 FAIL. Named suites present and
   green: `test-check-state.py`, `test-check-plan-routes.py`, `test-gh-sync.py`,
   `test-validate-digest.py`, `test-check-domain.py`, `test-bash-write-guard.py`,
   `test-harness-yaml.py`, `test-factory-integration.py`.
@@ -101,7 +101,7 @@ restored green. None of the three plan-cited assertions is vacuous.
 
 ## SC evidence
 
-- SC-01/SC-03/SC-04: `run-unit-tests.sh --kind unit`/`--kind integration` exit 0, PASS counts above.
+- SC-01/SC-03/SC-04: `run-unit-tests.py --kind unit`/`--kind integration` exit 0, PASS counts above.
 - SC-05: `find .harness -maxdepth 1 -iname 'features'` — empty; `.harness/features` absent (Job 2).
 - SC-13: `test-gh-sync.py::migrated_depth`, `test-validate-feature-json.py::case_migrated_depth_discovery_scans_the_segment_layout` — both PASS in the live suite and both mutation-proven above.
 - SC-14: `test-check-plan-routes.py::case_22a_unreadable_feature_dir_exits_2`'s added conjunct, `test-validate-feature-json.py::case_migrated_depth`'s conjunct 2 — both mutation-proven above; the third message (the CI workflow error string) is form-checked only, per the plan's own scoping, not by a suite — unmeasured by design, not a gap.

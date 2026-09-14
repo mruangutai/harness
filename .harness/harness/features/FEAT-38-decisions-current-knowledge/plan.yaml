@@ -957,7 +957,7 @@ tasks:
       runner list at the bottom of the file.
 
       The test suite is the home rather than the generator or check-state.sh, for three reasons: it
-      runs by default because test-gen-decisions-index.py is in run-unit-tests.sh's
+      runs by default because test-gen-decisions-index.py is in run-unit-tests.py's
       INTEGRATION_SCRIPTS, it can be shown to redden, and it lets the generator drop its amendment
       code entirely instead of keeping the regexes alive purely to police them. A check-state.sh
       refusal was considered and refused: it would put a documentation convention on the enforcement
@@ -1395,7 +1395,7 @@ tasks:
       reporting exactly the three feature.yaml anchors and exiting 1. That transcript is what proves
       the checker catches real rot rather than passing over an empty extraction.
 
-      Registration is T-18's and T-19's. Do not edit run-unit-tests.sh or harness.json here.
+      Registration is T-18's and T-19's. Do not edit run-unit-tests.py or harness.json here.
 
   - id: T-18
     title: Register the two new checkers in the harness test-kind config
@@ -1446,13 +1446,13 @@ tasks:
       The detect value is a single PIPE-SEPARATED STRING, not a list. Append to the string; do not
       convert the field to a list and do not reorder what is there.
 
-      Why this task exists separately and why it must land BEFORE T-19: run-unit-tests.sh runs a
+      Why this task exists separately and why it must land BEFORE T-19: run-unit-tests.py runs a
       KIND-DRIFT check that fails with exit 2 if any name in its INTEGRATION_SCRIPTS array is absent
       from this file's integration detect. .harness/harness.json is harness-dev-ops's and
-      run-unit-tests.sh is harness-backend-dev's, so the two halves are in different lanes and cannot
+      run-unit-tests.py is harness-backend-dev's, so the two halves are in different lanes and cannot
       be one task. Registering the runner side first makes the whole suite exit 2.
 
-      This task's verify deliberately does NOT invoke run-unit-tests.sh, for that same reason: at the
+      This task's verify deliberately does NOT invoke run-unit-tests.py, for that same reason: at the
       moment this task completes, the runner side has not landed yet. It asserts the config directly.
 
       Change nothing else in the file. In particular do not add a cmd to any kind whose cmd is null -
@@ -1468,11 +1468,11 @@ tasks:
     depends_on: [T-18]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
-      R=.claude/skills/harness/bin/run-unit-tests.sh
-      git show 48bbe7e:.claude/skills/harness/bin/run-unit-tests.sh \
+      R=.claude/skills/harness/bin/run-unit-tests.py
+      git show 48bbe7e:.claude/skills/harness/bin/run-unit-tests.py \
         | grep -q 'test-check-decision-claims.py' || exit 1
       grep -q 'test-check-decision-anchors.py' "$R" || exit 1
       grep -q 'test-check-decision-claims.py' "$R" && exit 1
@@ -1524,7 +1524,7 @@ tasks:
       traces REQ-07 only; the deregistration itself is T-24's and traces REQ-10.
 
       Add test-check-decision-anchors.py and test-check-decision-claims.py to the
-      INTEGRATION_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.sh. Bare script names,
+      INTEGRATION_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.py. Bare script names,
       matching the style of the existing entries in that array - it is not a list of paths.
 
       They belong in INTEGRATION_SCRIPTS rather than UNIT_SCRIPTS because they exercise a real file
@@ -1538,8 +1538,8 @@ tasks:
       be read as one.
 
       THE VERIFY IS THE CHEAP PAIR RATHER THAN A SUITE RUN, AND THAT CHANGED 2026-08-29. It runs
-      run-unit-tests.sh --check-kinds, which exercises BOTH of the runner's detectors - the
-      MISCONFIGURED file-presence detector (run-unit-tests.sh:60-74) and the KIND-DRIFT cross-check
+      run-unit-tests.py --check-kinds, which exercises BOTH of the runner's detectors - the
+      MISCONFIGURED file-presence detector (run-unit-tests.py:60-74) and the KIND-DRIFT cross-check
       (:96-140) - and exits before running a single test, and then invokes
       test-check-decision-anchors.py directly. That pair yields exactly the two facts this task can
       own - the name registered with no drift, and the registered checker actually running and
@@ -1641,7 +1641,7 @@ tasks:
         skip.
       Do not use shell=True anywhere in the test either.
 
-      Registration is T-18's and T-19's. Do not edit run-unit-tests.sh or harness.json here.
+      Registration is T-18's and T-19's. Do not edit run-unit-tests.py or harness.json here.
 
   - id: T-21
     title: Add claim markers to the folded entries whose facts a command can check
@@ -1823,12 +1823,12 @@ tasks:
     depends_on: [T-19, T-27]
     status: done
     files:
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/skills/harness/bin/check-decision-claims.py
       - .claude/skills/harness/bin/test-check-decision-claims.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
-      R=.claude/skills/harness/bin/run-unit-tests.sh
+      R=.claude/skills/harness/bin/run-unit-tests.py
       grep -q 'test-check-decision-claims.py' "$R" && { echo 'still registered'; exit 1; }
       grep -q 'test-check-decision-anchors.py' "$R" || exit 1
       for f in check-decision-claims.py test-check-decision-claims.py; do
@@ -1853,8 +1853,8 @@ tasks:
       files - took the WHOLE test suite to exit 2 for the entire interval between the first step and
       the last, and this plan's own ordering rationale analysed the wrong detector.
 
-      WHY, AND IT IS THE SECOND DETECTOR. run-unit-tests.sh has TWO independent detectors and both
-      run ahead of the --check-kinds early exit at run-unit-tests.sh:142. The one the earlier draft
+      WHY, AND IT IS THE SECOND DETECTOR. run-unit-tests.py has TWO independent detectors and both
+      run ahead of the --check-kinds early exit at run-unit-tests.py:142. The one the earlier draft
       reasoned about is the KIND-DRIFT cross-check (:96-140). The one it never named is the
       MISCONFIGURED file-presence detector (:60-74), which loops over the test-*.py files in BIN_DIR
       against the union of both script arrays and exits 2 on any file ON DISK that is in neither.
@@ -1875,7 +1875,7 @@ tasks:
       DO THREE THINGS AND LAND THEM TOGETHER, IN ONE STEP.
 
       1. Remove the single string "test-check-decision-claims.py" from the INTEGRATION_SCRIPTS array
-         in .claude/skills/harness/bin/run-unit-tests.sh. Leave "test-check-decision-anchors.py" in
+         in .claude/skills/harness/bin/run-unit-tests.py. Leave "test-check-decision-anchors.py" in
          place. Change nothing else: not UNIT_SCRIPTS, not the kind dispatch, not either detector.
       2. git rm .claude/skills/harness/bin/check-decision-claims.py
       3. git rm .claude/skills/harness/bin/test-check-decision-claims.py
@@ -1907,7 +1907,7 @@ tasks:
 
       THIS TASK DEPENDS ON T-27 FOR A DIFFERENT REASON, AND THAT REASON STILL STANDS. Measured at
       48bbe7e and byte-identical at 99bb52c, exactly five tracked files outside this feature's folder
-      mention check-decision-claims: the two deleted here, run-unit-tests.sh (this task),
+      mention check-decision-claims: the two deleted here, run-unit-tests.py (this task),
       .harness/harness.json (T-25, excluded above) and DECISIONS.md (T-27, two claim markers).
       .harness/harness/docs is not one of the excluded pathspecs, so with T-27 unrun that clause
       exits 1 naming a file this task must not touch. T-28's edits are not in the sweep's path, which
@@ -1958,7 +1958,7 @@ tasks:
           print('MISSING:', need); sys.exit(1)
       print('detect entries:', len(det))
       PY
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds || exit 1
+      bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds || exit 1
     intent: |
       Remove the explicit literal path .claude/skills/harness/bin/test-check-decision-claims.py from
       the integration test kind's detect value in .harness/harness.json. KEEP
@@ -1971,16 +1971,16 @@ tasks:
 
       T-24 MUST HAVE LANDED FIRST, AND THE ORDERING ARGUMENT IS DERIVED ONCE, IN T-24's INTENT. It is
       deliberately NOT restated here: an earlier draft derived the same asymmetry independently in
-      both tasks and the two derivations already cited run-unit-tests.sh differently, which is the
+      both tasks and the two derivations already cited run-unit-tests.py differently, which is the
       drift this feature exists to remove. Read it there. The short form: with T-24 landed, the
       runner's arrays and the files on disk are consistent, and this edit closes the last remaining
       side so the two lists agree again. This side first would leave INTEGRATION_SCRIPTS naming a
-      test absent from detect, which the integration rule at run-unit-tests.sh:121-125 flags, and the
+      test absent from detect, which the integration rule at run-unit-tests.py:121-125 flags, and the
       runner would exit 2 for every kind before running a single test.
 
       The verify asserts both halves - the removed name absent, the retained name present - and then
-      runs run-unit-tests.sh --check-kinds, which runs the MISCONFIGURED file-presence detector
-      (run-unit-tests.sh:60-74) and the KIND-DRIFT cross-check (:96-140) and exits without running
+      runs run-unit-tests.py --check-kinds, which runs the MISCONFIGURED file-presence detector
+      (run-unit-tests.py:60-74) and the KIND-DRIFT cross-check (:96-140) and exits without running
       any test. That is the cheap, direct gate for exactly the failure this ordering exists to avoid,
       and it is not the same observation as an absence search over one file: an absence search sees
       one side, --check-kinds sees both lists and the tree.
@@ -2229,7 +2229,7 @@ tasks:
       THE DECISIVE CASE, AND THE NOTE MUST SHOW IT WAS CAUGHT RATHER THAN CONCLUDE THE CLASS IS
       EMPTY: a whole command string stored in configuration. .harness/harness.json's test_kinds
       entries hold a cmd value such as
-      .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+      .agents/skills/harness/bin/run-unit-tests.py --kind integration
       and Q1 already catches any script that reads that field and executes it, because the
       executable is then not a literal in the reading script's own source. Find the readers of a
       test_kinds cmd, judge each one, and name the field and the reading site in the note. The verify

@@ -36,7 +36,7 @@ Scoped OUT, with reason:
 - `.claude/skills/harness/bin/feature_schema.py`, `feature-schema.json` — the new `agent` field is
   validated as a non-empty string and used only in an f-string error message, never as a path
   component or shell argument. No surface.
-- `.claude/skills/harness/bin/run-unit-tests.sh` — CI/dev script; the new kind-cross-check heredoc
+- `.claude/skills/harness/bin/run-unit-tests.py` — CI/dev script; the new kind-cross-check heredoc
   reads `.harness/harness.json` via `HARNESS_JSON` env var passed to Python `os.environ`, not
   shell-interpolated into source; no untrusted input (repo config only).
 - All `test-*.py` additions — verified each isolates itself with `tempfile`/fixture dirs; grepped

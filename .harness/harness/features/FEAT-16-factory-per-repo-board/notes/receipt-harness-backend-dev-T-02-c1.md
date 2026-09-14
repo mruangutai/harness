@@ -81,7 +81,7 @@ migrated fixture (113 total, up from 96).
 
 Command:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Full verbatim stdout+stderr is long (741 lines); the load-bearing lines for this task:

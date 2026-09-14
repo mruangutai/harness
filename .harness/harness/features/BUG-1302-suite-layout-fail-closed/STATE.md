@@ -17,7 +17,7 @@ merged, shipped or PR'd.
 
 ## Open Questions
 
-- The `run-unit-tests.sh` carve-out question is unchanged: DEC-174 does not enumerate it by name and
+- The `run-unit-tests.py` carve-out question is unchanged: DEC-174 does not enumerate it by name and
   the Advisor ruled its carve-out binds both gate test files by category. Amending DEC-174's
   enumeration is an explicit non-goal of this feature and remains an operator question.
 - The B-6 hard-failure remedy and its fixture-maintenance red stand as the Advisor's recommended

@@ -7,7 +7,7 @@
 Reviewed the immutable range `0fa8f336e55dc57bca09a9f7df0524a35195ee7e..be27d99454352e581fdf7cbace20fb52d0f45133` against approved REQ-01–REQ-05, SC-01–SC-06, plan task T-01, and the operator ruling. The substantive union has no working-tree delta from the pin; the only tracked feature-tree delta from the pin is a one-line `feature.json` trace/status edit, which was excluded from the committed review surface.
 
 - `.agents/skills/harness/bin/test-merge-gitignore.py` — **in scope:** new subprocess, inherited environment, explicit path/cwd handling, temporary files, and captured output.
-- `.agents/skills/harness/bin/run-unit-tests.sh` — **in scope:** the new test becomes runner-reachable and inherits the runner environment; the only pinned change is its fixed-name integration registration.
+- `.agents/skills/harness/bin/run-unit-tests.py` — **in scope:** the new test becomes runner-reachable and inherits the runner environment; the only pinned change is its fixed-name integration registration.
 - `.harness/harness.json` — **in scope:** the exact test path is added to integration detection; no command, secret, privilege, or externally supplied value is added.
 - `.agents/skills/harness/bin/merge-gitignore.sh` — **in scope, unchanged:** exact-range `git diff --exit-code` was clean. Its filesystem and diagnostic behavior was assessed because the new test executes it, but the fixtures add no new production reachability.
 - `notes/operator-ruling-rendered-review-scope.md` — **assessed, no security surface:** repository-authored scope evidence only; no executable content or sensitive value. The ruled-out renderer contrast issue is neither security-relevant nor an FEAT-36 gate.

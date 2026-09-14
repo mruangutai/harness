@@ -123,7 +123,7 @@ task deletes, except the three red/green TDD pairs, which are point-in-time by c
 the intended TDD shape and is stated in each intent ("expected state at the end of this task is
 RED"); it means those three verifies must not be re-run at `review_sha`. T-05's baseline verify
 (141 paths, none carrying the section) survives T-09 because T-09's intent requires the two keys
-byte-identical. T-09's `! grep -q probe-handoff-comprehension run-unit-tests.sh` survives T-12,
+byte-identical. T-09's `! grep -q probe-handoff-comprehension run-unit-tests.py` survives T-12,
 which writes a different file. T-08's `! grep -rqi 'four sections'` is scoped to the two docs it
 edits. **No cross-task contradiction.**
 
@@ -144,7 +144,7 @@ carries **0** `FEAT-52` occurrences; see F-05.
 | INV-17 handoff glob | `check-state.sh:1197` (`glob(... "notes","handoff-*.md")`) | present |
 | 60-line cap / `_handoff_exempt` / parsed config `cj` | `check-state.sh:1228`,`:1231`; `:1075`; `:980-986` | all present |
 | `check-domain.py` `RE_HANDOFF` branch of `shape_problems`, at the `"handoff shape (DEC-159)"` head | `check-domain.py:1511` (branch), `:1527` (`_head("handoff shape (DEC-159).")`) | present, exact string |
-| `run-unit-tests.sh` KINDCHECK heredoc, "spanned :111-163 when this task was written" | `run-unit-tests.sh:111` (`python3 -I - <<'KINDCHECK'`) and `:163` (`KINDCHECK`) | **unmoved** — the plan's own advice to locate by delimiter still holds |
+| `run-unit-tests.py` KINDCHECK heredoc, "spanned :111-163 when this task was written" | `run-unit-tests.py:111` (`python3 -I - <<'KINDCHECK'`) and `:163` (`KINDCHECK`) | **unmoved** — the plan's own advice to locate by delimiter still holds |
 | `code_grade.py:468-471` defaults `exclude` to none (panel finding PF-9183) | `code_grade.py:469` (`for pattern in _patterns(kind.get("exclude", ""))`) | inside the cited span; claim true — all 8 kinds at HEAD carry `exclude` |
 | `harness.json test_kinds` — 8 kinds; `omp_session_accessor` `locally_run`; `eval`/`ui`/`component`/`typecheck` `cmd: null` | `.harness/harness.json` parsed | confirmed; `handoff_done_when_baseline` absent as expected (T-05 adds it), `_panel_era_start_note` present (T-05's stated register model) |
 | 141 notes at `b7956fc4`, 0 carrying `## Done when` (REQ-07, T-05, D-01, D-08) | `git ls-tree -r b7956fc4` filtered → **141**; `git show` each → **0** with the section | both exact |

@@ -159,7 +159,7 @@ it, once per feature. And no harness command in the mirror closes an issue direc
 - `component`, `ui` and `eval` carry `cmd: null` in `.harness/harness.json`. This feature touches
   none of those surfaces, so no criterion rests on them.
 - `test-gh-sync.py` is detected by both the `unit` and `integration` globs and is run from the
-  `integration` bucket by `run-unit-tests.sh`. Every `verify:` in the plan runs `--kind all` so the
+  `integration` bucket by `run-unit-tests.py`. Every `verify:` in the plan runs `--kind all` so the
   bucket split cannot silently skip an assertion.
 
 ## The failure mode this brief settles, and the premise it had wrong

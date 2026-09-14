@@ -88,7 +88,7 @@ declining is cheap and *not* revisited — backlog items under a shipped feature
   — same surface, so **`team` / `harness-dev-ops`**. `inject-expertise.sh` is not one of DEC-174's
   four enforcement scripts, so the carve-out does not fire. `change_type: logic` (`test_matrix` has
   no tests-only type; `logic` → `unit`, matching T-02).
-- **Verify:** T-02's shape verbatim — `run-unit-tests.sh --kind unit`, require
+- **Verify:** T-02's shape verbatim — `run-unit-tests.py --kind unit`, require
   `^PASS test-inject-expertise.py$`, no `^FAIL `.
 - **Case 13 — unreadable repository-tier file.** Assert the hook exits 0, emits **no** repository
   header for that segment, and writes nothing to stderr.

@@ -20,7 +20,7 @@ committed diff before scoping:
 
 - **Agent delivery (12):** `.claude/agents/{harness-ai-dev,harness-backend-dev,harness-code-reviewer,harness-data-engineer,harness-dev-ops,harness-frontend-dev}.md`; `.omp/agents/{harness-ai-dev,harness-backend-dev,harness-code-reviewer,harness-data-engineer,harness-dev-ops,harness-frontend-dev}.md`.
 - **Guidance (3):** `.claude/skills/harness-code-review/SKILL.md`; `.claude/skills/harness-code-risk-grading/SKILL.md`; `.harness/glossary.md`.
-- **Runtime/enforcement (6):** `.claude/skills/harness/bin/{check-plan-routes.py,code-grade.py,code_grade.py,gate_policy.py,run-unit-tests.sh,validate-digest.py}`.
+- **Runtime/enforcement (6):** `.claude/skills/harness/bin/{check-plan-routes.py,code-grade.py,code_grade.py,gate_policy.py,run-unit-tests.py,validate-digest.py}`.
 - **Targeted tests (5):** `.claude/skills/harness/bin/{test-check-plan-routes.py,test-code-grade-cli.py,test-code-grade.py,test-gate-policy.py,test-validate-digest.py}`.
 - **Configuration/contract (3):** `.harness/harness.json`; `.harness/harness/features/FEAT-43-code-risk-grading/answers/Q1-t09-owner-resolver.md`; `.harness/harness/features/FEAT-43-code-risk-grading/plan.yaml`.
 - **Evidence outputs (19):** `notes/qa-build-qa{,-rerun}.md`; `notes/receipt-harness-backend-dev-{T-01-c0,T-01-c1,T-02-c0,T-02-c1,T-06-c0,T-07-c0,T-07-c1,simplify-apply,simplify-efficiency,simplify-reuse}.md`; `notes/receipt-harness-dev-ops-{T-03-c0,T-03-c1,simplify-altitude,simplify-simplification}.md`; `notes/research-T-10-t10-product.md`; `notes/ship-review-t06-eng.{html,md}` (all under the feature directory).

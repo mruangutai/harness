@@ -71,7 +71,7 @@ security-reviewer 1 — sums to 11. Well under the 40-line repository budget per
 | `.claude/skills/harness/bin/check-expertise.sh` | harness-backend-dev, harness-dev-ops |
 | `.claude/skills/harness/bin/test-inject-expertise.py` | harness-backend-dev, harness-dev-ops |
 | `.claude/skills/harness/bin/test-check-expertise.py` | harness-backend-dev, harness-dev-ops |
-| `.claude/skills/harness/bin/run-unit-tests.sh` | harness-backend-dev, harness-dev-ops |
+| `.claude/skills/harness/bin/run-unit-tests.py` | harness-backend-dev, harness-dev-ops |
 | `.harness/team-config.yaml` | **NOBODY** |
 | `.harness/harness/expertise/<any agent>.md` | **NOBODY** (this is #372) |
 | `.harness/expertise/harness-<agent>.md` | that agent, and only that agent |
@@ -116,7 +116,7 @@ therefore non-discriminating; it now greps `-i` for `of thirteen files`.
   `fleet.yaml`/`harness.json` are no-touch this cycle. Resolved as D-01 (glob every present tier,
   label each by segment).
 - `integration.detect` in `harness.json` does not list `test-check-domain.py` or
-  `test-check-expertise.py`, although `run-unit-tests.sh --kind integration` runs both. Cannot be
+  `test-check-expertise.py`, although `run-unit-tests.py --kind integration` runs both. Cannot be
   fixed here (`harness.json` is unit 5's). Raised as an open question.
 - An undeclared `.harness/<seg>/expertise/` directory would be injected by the glob. `layout_migration`
   solves the same problem for features and docs by checking fleet-declared segments; the hook must not

@@ -29,7 +29,7 @@ Not reopened.
 | SC-07 | met | automated/unit | positive `bin/test-factory-gh.py:1393-1404` (names GraphQL, 5000, reset ISO, REST's own usage); discriminator `:1435-1436` asserts the headline ABSENT for an unrelated exit-1. **Caveat, Q1** |
 | SC-08 | **unmet — genuinely-wrong** | inspection | corrections 1+2 met in the grilling note. The ABSENCE clause fails — see below |
 | SC-09 | **unmet — genuinely-wrong** | inspection | at the pin, `CLAUDE.md` carries **no rule at all**; the working-tree rule cites no cost figure |
-| SC-10 | met | automated/integration | `run-unit-tests.sh --kind unit` exit 0, 18 scripts; `--kind integration` exit 0, 12 scripts; zero FAIL lines. Run by me at the pin's source tree |
+| SC-10 | met | automated/integration | `run-unit-tests.py --kind unit` exit 0, 18 scripts; `--kind integration` exit 0, 12 scripts; zero FAIL lines. Run by me at the pin's source tree |
 
 ## SC-08 — the absence claim fails, and I ran the search
 

@@ -64,7 +64,7 @@ GREEN both before and after".
 > contract. The entry also carries "exclude": ".claude/worktrees/**", exactly the value
 > omp_session_accessor carries: all 8 existing kinds declare exclude, and a kind without it is the
 > odd one out in the mapping. Do NOT add it to test_matrix and do NOT add the probe to UNIT_SCRIPTS
-> or INTEGRATION_SCRIPTS: run-unit-tests.sh's probe-drift check requires exactly this shape and exits
+> or INTEGRATION_SCRIPTS: run-unit-tests.py's probe-drift check requires exactly this shape and exits
 > 2 on any other.
 
 Re-verified at source, not taken on trust: `.harness/harness.json` holds **8** kinds, every one
@@ -72,7 +72,7 @@ carrying `exclude`; `omp_session_accessor.exclude == ".claude/worktrees/**"`.
 
 **T-09 verify** — still a literal `|` block (`plan.yaml:669`), one line added at `:688`, every other
 clause byte-identical including the trailing
-`! grep -q 'probe-handoff-comprehension' .claude/skills/harness/bin/run-unit-tests.sh`:
+`! grep -q 'probe-handoff-comprehension' .claude/skills/harness/bin/run-unit-tests.py`:
 > assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
 > **assert k['exclude']=='.claude/worktrees/\*\*', k**
 > assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'

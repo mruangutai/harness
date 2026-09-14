@@ -55,7 +55,7 @@ the one finding that should hold up signature. Everything else is advisory.
 - **SC-06** — two shapes (`$1=0` ff, `$1=1` squash+commit) asserted separately, matches
   the grilling note's own measurement verbatim. Needs a new `test-*.py`; **must be
   registered in both `test_kinds.integration.detect`** (re-derived at HEAD: 22 explicit
-  file entries + 1 glob) **and `run-unit-tests.sh:18`'s `INTEGRATION_SCRIPTS`** (re-derived:
+  file entries + 1 glob) **and `run-unit-tests.py:18`'s `INTEGRATION_SCRIPTS`** (re-derived:
   22 entries, and the 22 sets are identical today — no `KIND-DRIFT` currently). The BRIEF
   names this cost explicitly. **OK, contingent on the plan round doing the registration**
   — flagged as a live risk, not a defect in the BRIEF.
@@ -101,7 +101,7 @@ the one finding that should hold up signature. Everything else is advisory.
 `check-state.sh:22` (`root=...`), `:1076` (`git worktree list --porcelain`), `:1086-1094`
 (record walk), `:1132`/`:1148` (no-removal-guidance comment / removal-guidance line) —
 all resolve to the cited content. `feature-worktree.py:287` (`rev-parse
-{default_branch}:{rel}`) resolves. `run-unit-tests.sh:18` (`INTEGRATION_SCRIPTS`) and
+{default_branch}:{rel}`) resolves. `run-unit-tests.py:18` (`INTEGRATION_SCRIPTS`) and
 `:110-115` (`KIND-DRIFT`) resolve. `SKILL.md:321` ("Removed at a terminal state...") and
 `:325` ("Act 3 is never yours...") resolve. `harness-team` SKILL.md `:90` (worktree
 branch-from-local note, no removal) resolves. No wrong ranges found this pass.
@@ -109,6 +109,6 @@ branch-from-local note, no removal) resolves. No wrong ranges found this pass.
 ## Registration-trap count
 
 `harness.json` `test_kinds.integration.detect`: 22 explicit `test-*.py` entries + 1 glob.
-`run-unit-tests.sh` `INTEGRATION_SCRIPTS`: 22 entries. **The two sets are identical
+`run-unit-tests.py` `INTEGRATION_SCRIPTS`: 22 entries. **The two sets are identical
 today** — confirmed by diff, no `KIND-DRIFT`. Any new file this feature adds needs both
 edits or it silently matches zero files.

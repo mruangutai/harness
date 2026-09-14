@@ -138,7 +138,7 @@ lets it override a provable identity match.
 - `bun test ./.claude/skills/harness/bin/omp-hooks.test.ts` → **24/24 pass, 0 fail** (matches claimed 20→24)
 - `python3 test-dispatch-guard.py` → **42/42 pass**
 - `python3 test-validate-digest.py` → **ALL PASSED** (24/24 T-09 cases + 2/2 template cases)
-- `bash run-unit-tests.sh` → **exit 0**, no `FAIL` lines in two independent full runs
+- `bash run-unit-tests.py` → **exit 0**, no `FAIL` lines in two independent full runs
 - `python3 check-omp-port.py` → `OMP port surface: ok`, exit 0
 - `bash check-state.sh` → exit 0, only advisory `note` lines (pre-existing, unrelated to this PR)
 - `python3 sync-agent-adapters.py --check` → exit 0

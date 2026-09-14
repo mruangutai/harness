@@ -95,7 +95,7 @@ helper 60 lines below it. A new case written from the module docstring alone sil
 repo. **Owner:** DEC-174 carve-out.
 
 **F11 · `.claude/skills/harness/bin/test-harness-yaml.py:20-22`** — "CLAUDE_PROJECT_DIR overrides when
-the caller has already resolved it (run-unit-tests.sh does)". **Truth:** `run-unit-tests.sh` contains
+the caller has already resolved it (run-unit-tests.py does)". **Truth:** `run-unit-tests.py` contains
 no occurrence of `PROJECT_DIR` at all (verified). The parenthetical was already false before this
 feature; FEAT-42 makes the whole sentence false. The same two-name `REPO_ROOT` chain survives in five
 test harnesses — `test-harness-yaml.py:22`, `test-harness-yaml-corpus.py:59`,

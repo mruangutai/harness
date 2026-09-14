@@ -25,8 +25,8 @@ running it is a floor-exceeding addition the diff clearly warrants, not a matrix
 
 | kind | state | cmd | discovered | result |
 |---|---|---|---|---|
-| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 33 files, 1291 `ok`/`PASS` lines (incl. `test-omp-hooks.py`: bun test, 56 pass / 0 fail) | exit 0, zero FAIL |
-| integration (added) | satisfied | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 50 files | exit 0, zero FAIL/ERROR across 3951 output lines |
+| unit | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | 33 files, 1291 `ok`/`PASS` lines (incl. `test-omp-hooks.py`: bun test, 56 pass / 0 fail) | exit 0, zero FAIL |
+| integration (added) | satisfied | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | 50 files | exit 0, zero FAIL/ERROR across 3951 output lines |
 | `test-merge-gate.py` (within integration) | satisfied | same runner | **18/18** `ok` lines, `ALL PASSED`, exit 0 | pass |
 | `test-gh-sync.py` (adjacent, requested) | satisfied | same runner | **322** `ok` lines in its block, exit 0 (48.86s) | pass |
 | `test-omp-hooks.py` (adjacent, requested) | satisfied | same runner (unit kind) | **56 pass / 0 fail** (bun test) | exit 0 |

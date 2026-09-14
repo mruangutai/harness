@@ -282,7 +282,7 @@ SC-10 is what proves it.
 ## Verification gaps
 
 - `test-check-domain.py` and `test-bash-write-guard.py` match `harness.json`'s `unit` detect glob
-  (`.claude/skills/harness/bin/test-*.py`) but live in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`,
+  (`.claude/skills/harness/bin/test-*.py`) but live in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`,
   so `--kind unit` does NOT execute them. Every SC above marked `automated` — that is all of them
   except SC-09, which is `inspection` — therefore declares `evidence: integration`, whose command
   does run them. Nothing here rests on `--kind unit`. The
@@ -301,7 +301,7 @@ SC-10 is what proves it.
   subprocess.
 - **Known-adjacent, deliberately not tasked.** Two findings sit next to this feature's surface and
   carry no task here; they go to the operator as backlog. (1) Both guard suites sit in
-  `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` despite matching the `unit` detect glob, so
+  `run-unit-tests.py`'s `INTEGRATION_SCRIPTS` despite matching the `unit` detect glob, so
   `--kind unit` never runs them — the same gap the verification note below records. (2) A relative
   operand on the Bash route is resolved against the harness root rather than the agent's working
   directory. Neither is a regression this feature introduces and neither blocks any criterion above.

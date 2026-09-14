@@ -84,7 +84,7 @@ scope by design.
    - AFTER (my edited script, restored): exit `1`, 1349 lines (`/tmp/cs-after2.txt`).
    - `diff /tmp/cs-before.txt /tmp/cs-after2.txt` → **empty, exit 0**. No output-volume
      change; my edit is comment-only as intended.
-4. **Unit tests:** `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.sh --kind unit` → **exit 0**. Exactly 4 `^FAIL ` lines, all from
+4. **Unit tests:** `env -u HARNESS_AGENT_TYPE .claude/skills/harness/bin/run-unit-tests.py --kind unit` → **exit 0**. Exactly 4 `^FAIL ` lines, all from
    `tests/unit/test-factory-claim-mutation.py` (BUG-1290 5a/5b/5b/5c) — the documented
    by-design failures. No FAIL lines from any other file.
 5. **git status --porcelain:** shows only `.claude/skills/harness/bin/check-state.sh`,
@@ -107,7 +107,7 @@ scope by design.
    to the prior dispatch's recorded values (exit 1, 1349 lines). Discovery volume
    unchanged; not a FAIL.
 9. **Unit tests (re-run):** `env -u HARNESS_AGENT_TYPE
-   .claude/skills/harness/bin/run-unit-tests.sh --kind unit` → **exit 0**. Same 4
+   .claude/skills/harness/bin/run-unit-tests.py --kind unit` → **exit 0**. Same 4
    `^FAIL ` lines from `test-factory-claim-mutation.py` (BUG-1290 5a/5b/5b/5c), no
    other-file FAILs.
 10. **git status --porcelain (re-run):** `.harness/harness.json` (mine, string 3 now

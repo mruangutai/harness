@@ -12,7 +12,7 @@ Scope: `git -C .claude/worktrees/harness/FEAT-45-adversarial-plan-panel diff 1d3
   inv32-red mutation)
 - `test-team-catalog.py` (pre-existing, unchanged by this diff — read as the reuse baseline)
 - `test-harness-yaml-corpus.py`'s diff (`TEAMS_EXPECTED` 2→3, comment rewrite)
-- `sync-agent-adapters.py`'s `SPAWNS` addition and `run-unit-tests.sh`'s `UNIT_SCRIPTS` append
+- `sync-agent-adapters.py`'s `SPAWNS` addition and `run-unit-tests.py`'s `UNIT_SCRIPTS` append
 - `plan-panel.yaml`, `.omp/agents/harness-validator-lead.md`, `.claude/agents/harness-validator-lead.md`
 - `harness-spec-driven/SKILL.md`'s panel-transcription passage
 - grepped the whole worktree for `hashlib|sha256\(` and for a second `\s+`/`.lower()`/`.strip()`
@@ -70,7 +70,7 @@ second `\s+`-collapse/`.lower()`/`.strip()` normalization:
   a directory-tree file-hasher for an unrelated purpose (detecting incidental file drift during a
   decompose run), pre-dating this feature and untouched by it.
 
-`sync-agent-adapters.py`'s `SPAWNS["harness-validator-lead"]` addition and `run-unit-tests.sh`'s
+`sync-agent-adapters.py`'s `SPAWNS["harness-validator-lead"]` addition and `run-unit-tests.py`'s
 `UNIT_SCRIPTS` append both extend pre-existing lists in place, using the pre-existing convention
 (no new enumeration mechanism introduced). `test-harness-yaml-corpus.py`'s `TEAMS_EXPECTED`
 2→3 change is a constant bump with rationale, not a new fixture. None of these are findings.

@@ -25,13 +25,13 @@ notes-only and carries no code to grade)
 
 - **unit** — required (`touches_runtime_code` fires: the feature diff touches
   `factory_claim.py`/`factory_config.py`/`feature-worktree.py`/`layout_migration.py` in earlier
-  tasks T-03/T-04). **satisfied** — `run-unit-tests.sh --kind unit` exit 0, 29/29 script rows
+  tasks T-03/T-04). **satisfied** — `run-unit-tests.py --kind unit` exit 0, 29/29 script rows
   `PASS`, 0 `FAIL test-*` rows, including `test-factory-claim.py` and
   `test-factory-claim-mutation.py`.
 - **integration** — the `bugfix` `when` predicate `fix_confined_to_tests_and_contract_docs` does
   NOT fire for the feature as a whole (production changed in T-03/T-04), but SC-07/SC-09 name
   `tests/integration/test-factory-integration.py` and `test-layout-migration.py` as their own
-  verification surface, so I add it per floor-not-ceiling. **satisfied** — `run-unit-tests.sh
+  verification surface, so I add it per floor-not-ceiling. **satisfied** — `run-unit-tests.py
   --kind integration` exit 0, 46 files, all `PASS` (confirmed via two separate runs; `grep -n
   "factory-integration"` shows `test-factory-integration.py (exit 0, 50.49s)` ... `PASS
   test-factory-integration.py`).
@@ -50,8 +50,8 @@ notes-only and carries no code to grade)
   exit 0.
 - `env -u HARNESS_AGENT_TYPE python3 tests/unit/test-factory-claim-mutation.py` → `BASELINE 3/3 ok`
   … `MUTATION PROOF: 3/3 cases reddened` … `KEY-COLLAPSE PROOF: FAIL BUG-1290 5b printed`, exit 0.
-- `run-unit-tests.sh --kind unit` → exit 0, 29 script rows all `PASS`.
-- `run-unit-tests.sh --kind integration` → exit 0, 46 files, all `PASS` (two independent runs; the
+- `run-unit-tests.py --kind unit` → exit 0, 29 script rows all `PASS`.
+- `run-unit-tests.py --kind integration` → exit 0, 46 files, all `PASS` (two independent runs; the
   second was truncated by my own 180s tool timeout partway through a re-verification pass, but the
   first run completed cleanly to its pool summary and both are consistent for every line captured).
 - Production identity: `git diff --stat c488218e 72a97b99 -- .agents/ .claude/skills/ bin/` →
@@ -100,7 +100,7 @@ worktree, restored and `git status --porcelain`-confirmed clean immediately afte
   tests/unit/test-factory-claim-mutation.py` exited **1** (captured directly, not inferred from
   `main()`'s source).
 - **4b. Does the unit RUNNER surface that failure?** OBSERVED: re-applied the same neutering edit,
-  ran `run-unit-tests.sh --kind unit` — it printed `----- test-factory-claim-mutation.py (exit 1,
+  ran `run-unit-tests.py --kind unit` — it printed `----- test-factory-claim-mutation.py (exit 1,
   0.28s) -----` and `FAIL test-factory-claim-mutation.py`, and the runner's own exit code went to
   **1**. The new arm is NOT invisible to CI. Restored; verified clean; re-ran to confirm the file
   and the runner are both green again.
@@ -135,7 +135,7 @@ directed test-only fix that already landed at `fb9a4ac4`. No violation to report
 
 - **enhancement** — `test-factory-claim-mutation.py`'s diagnostic `FAIL  BUG-1290 5x: ...` print
   lines (emitted deliberately, inside its own exit-0 `PASS`-scored row) are byte-identical in shape
-  to a real script-level failure line. Anyone auditing `run-unit-tests.sh --kind unit` output with a
+  to a real script-level failure line. Anyone auditing `run-unit-tests.py --kind unit` output with a
   bare `grep '^FAIL '` — rather than the file/row-scoped grep this gate used — will over-count
   failures. Confirmed the current state produces exactly 4 such lines at this pin; not gating
   (the runner's own PASS/FAIL-per-script accounting is what governs exit code, and that is correct

@@ -45,14 +45,14 @@ defect.
 
 | kind | required? | runner (`cmd`) | command | exit | verdict |
 |---|---|---|---|---|---|
-| `unit` | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | `0` (36 files) | **satisfied** |
-| `integration` | not mechanically required by matrix for `logic`; added by qa, warranted by the diff | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | `0` (70 files) | **satisfied** — every new automated SC (§3) binds here |
+| `unit` | yes (`logic.always`) | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind unit` | `0` (36 files) | **satisfied** |
+| `integration` | not mechanically required by matrix for `logic`; added by qa, warranted by the diff | active | `env -u HARNESS_AGENT_TYPE bash .agents/skills/harness/bin/run-unit-tests.py --kind integration` | `0` (70 files) | **satisfied** — every new automated SC (§3) binds here |
 | `functional` | no | excluded, DEC-187 | — | — | not applicable |
 | `eval` | no | excluded, DEC-187 | — | — | not applicable |
 | `component`, `ui`, `typecheck` | no | `cmd: null`, unresolved | — | — | not applicable — no `.ts`/`.tsx`/`e2e/**` file in the diff |
 | `omp_session_accessor`, `handoff_comprehension`, `issue_types_live` | no | `locally_run` | — | — | not applicable — diff touches none of these kinds' `detect` surface (`tests/manual/probe-*.py`); no recorded run required |
 
-Full suite (`run-unit-tests.sh` with no `--kind`, 106 files, 73.09s): `FULL_SUITE_EXIT=0`, `ALL
+Full suite (`run-unit-tests.py` with no `--kind`, 106 files, 73.09s): `FULL_SUITE_EXIT=0`, `ALL
 PASSED`. Judged by exit status only, per the dispatch's constraint —
 `tests/unit/test-factory-claim-mutation.py`'s own `FAIL ` mutation-proof lines are present in this
 run's raw output and are not miscounted as a red signal.

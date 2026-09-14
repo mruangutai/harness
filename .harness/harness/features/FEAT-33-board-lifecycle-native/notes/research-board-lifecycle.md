@@ -92,7 +92,7 @@ Consequences, both measured:
 
 | path | verdict |
 |---|---|
-| `.claude/skills/harness/bin/**` (gh-sync, gh_board, factory_config, factory_gh, run-unit-tests.sh, new bins and tests) | `harness-dev-ops` |
+| `.claude/skills/harness/bin/**` (gh-sync, gh_board, factory_config, factory_gh, run-unit-tests.py, new bins and tests) | `harness-dev-ops` |
 | `.harness/harness.json` | `harness-dev-ops` |
 | `.harness/harness/docs/DECISIONS.md`, `DECISIONS-INDEX.md` | `harness-documentor` |
 | `.claude/skills/harness-init/SKILL.md` | **NOBODY** |

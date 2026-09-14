@@ -17,11 +17,11 @@ Unchanged from c1: `cross_module → {unit, integration} always` (T-01), `bugfix
 {unit, integration}.**
 
 ```
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+$ .agents/skills/harness/bin/run-unit-tests.py --kind unit
 exit=0   grep -c '^FAIL ' = 0
 34 scripts run (distinct "PASS <name>.py" lines) — non-zero discovery, not an empty sweep.
 
-$ .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+$ .agents/skills/harness/bin/run-unit-tests.py --kind integration
 exit=1   grep -c '^FAIL ' = 7
 ```
 
@@ -88,7 +88,7 @@ worktree writes:
 `check_artifact_path_traversal` is called from `_check_bug1081_enforcement`
 (`test-validate-digest.py:2668-2678`), now the **10th** of what was 9 unconditional calls at
 c1 (c1's total including `_check_review_repository`'s 3 was 12; now 13). `test-validate-digest.py`
-remains registered under `INTEGRATION_SCRIPTS` only in `run-unit-tests.sh` (confirmed by reading
+remains registered under `INTEGRATION_SCRIPTS` only in `run-unit-tests.py` (confirmed by reading
 the array directly, not the `detect` glob) — so it **is** exercised by the standing
 `--kind integration` gate and **does** feed the exit code / `^FAIL ` count. It collapses into
 the same single `ok    code-grade and review-policy gates` line as the other 12 checks — c1's

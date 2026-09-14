@@ -81,7 +81,7 @@ warning) did not.
 ## Gates — verbatim exit codes and pass/total lines
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 ...
 81 of 81 cases passed
 PASS test-context-watch.py
@@ -93,7 +93,7 @@ only hits were `ok`-prefixed test *names* that mention "KIND-DRIFT" as their sub
 matter, from `test-run-unit-tests-kinds.py`, not actual drift findings).
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind integration
 ...
 22 of 22 cases passed
 PASS test-context-watch-hook.py
@@ -105,7 +105,7 @@ INTEGRATION_EXIT=0
 Zero `FAIL`/`MISCONFIGURED`/actual `KIND-DRIFT`-finding lines observed.
 
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 CHECK_KINDS_EXIT=0
 ```
@@ -122,7 +122,7 @@ $ python3 .claude/skills/harness/bin/test-context-watch.py
 81 of 81 cases passed          # exit 0
 $ test "$(python3 .../test-context-watch.py | grep -oE '^[0-9]+ of' | head -1 | cut -d' ' -f1)" -ge 22
 # 81 -ge 22: true
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+$ bash .claude/skills/harness/bin/run-unit-tests.py --kind unit
 # no line containing MISCONFIGURED: confirmed (grep exit 1 = no match)
 ```
 

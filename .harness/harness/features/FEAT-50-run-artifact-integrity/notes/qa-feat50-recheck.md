@@ -40,7 +40,7 @@ config never resolves to a concrete kind (no `_matrix_provenance` entry for `bug
 project-specific bug-class kind exists in `test_kinds`) — treated as not-applicable, floor is `unit`
 only. `docs.always = []`.
 
-Both required buckets are exercised, using `run-unit-tests.sh`'s own `UNIT_SCRIPTS`/
+Both required buckets are exercised, using `run-unit-tests.py`'s own `UNIT_SCRIPTS`/
 `INTEGRATION_SCRIPTS` binding (verified by grep, not inferred):
 - **unit**: `test-harness-boundary.py` (binds `harness_boundary.py`, a changed file) — ran, `ALL
   PASS`.
@@ -48,7 +48,7 @@ Both required buckets are exercised, using `run-unit-tests.sh`'s own `UNIT_SCRIP
   `test-inflight-registry.py`, `test-run-unit-tests-kinds.py`, `test-check-state.py` — all changed
   or change-adjacent files, all ran green.
 
-`matrix_ok: true`. (Full multi-kind `run-unit-tests.sh` was NOT run, per the dispatch's stated
+`matrix_ok: true`. (Full multi-kind `run-unit-tests.py` was NOT run, per the dispatch's stated
 non-goal; the targeted scripts above are the binding evidence.)
 
 ## Item 3 — the five red/mutant cases: each genuinely constructs and diverges

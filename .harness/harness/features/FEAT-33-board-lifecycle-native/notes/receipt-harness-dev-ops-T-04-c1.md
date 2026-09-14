@@ -2,7 +2,7 @@
 
 **Verdict: built and green.** `board_lifecycle.py provision` exists, TDD RED→GREEN confirmed for
 every new case, all three disaster-guard/anti-vacuum properties proven to redden against the
-exact mutants the plan warns about, and `run-unit-tests.sh --kind all` is clean on every file
+exact mutants the plan warns about, and `run-unit-tests.py --kind all` is clean on every file
 this task owns. One flagged plan gap (below) — worked around minimally and read-only, not
 silently.
 
@@ -10,7 +10,7 @@ silently.
 - `.claude/skills/harness/bin/board_lifecycle.py` (new)
 - `.claude/skills/harness/bin/test-board-lifecycle.py` (new)
 - `.claude/skills/harness/bin/test-factory-integration.py` (added case (J) + one new stub branch)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (added `"test-board-lifecycle.py"` to `UNIT_SCRIPTS`, the one mandated line)
+- `.claude/skills/harness/bin/run-unit-tests.py` (added `"test-board-lifecycle.py"` to `UNIT_SCRIPTS`, the one mandated line)
 
 ## `provision`, step by step
 1. Resolve root via `factory_config.harness_root()`; resolve the board via `_resolve_board`:
@@ -103,8 +103,8 @@ as acceptable. I did not ask-and-block on this because it is cheap and reversibl
 new mutation, isolated to one private function) — but it does touch the single-seam framing in
 `factory_gh.py`'s own docstring, which is the lead's call to ratify or not.
 
-## `run-unit-tests.sh --kind all` — exact result
-Command run verbatim: `.claude/skills/harness/bin/run-unit-tests.sh --kind all`.
+## `run-unit-tests.py --kind all` — exact result
+Command run verbatim: `.claude/skills/harness/bin/run-unit-tests.py --kind all`.
 Exit code: 1 (one failure — not mine, see below). No `MISCONFIGURED` line (drift detector and
 kind cross-check both clean). `test-board-lifecycle.py`: **PASS** (20/20 checks).
 `test-factory-integration.py`: **PASS** (120/120 checks, including the two new `(J)` checks and

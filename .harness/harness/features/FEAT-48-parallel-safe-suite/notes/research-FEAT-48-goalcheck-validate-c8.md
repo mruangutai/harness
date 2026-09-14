@@ -8,7 +8,7 @@ SC-03 asks for behaviourally is proven at this sha (all ten sites hit individual
 six red proofs discriminating). One operator signature on remedy (B) below closes the feature; no
 build work is outstanding.
 
-Provenance: `git diff 8e7f56dc..e64e863e` leaves `test-check-domain.py`, `run-unit-tests.sh`,
+Provenance: `git diff 8e7f56dc..e64e863e` leaves `test-check-domain.py`, `run-unit-tests.py`,
 `DECISIONS.md` and `notes/measurements-parallel-suite.md` untouched, so evidence for SC-01/02/04/07/09
 carries across the range legitimately. The three code files are byte-identical between `e64e863e` and
 this working tree (`git diff --stat e64e863e -- <3 files>` empty), so behaviour I executed is the pin's.
@@ -21,13 +21,13 @@ All runs used `env -u HARNESS_AGENT_TYPE`.
 |SC-01|**MET**|automated (integration)|`test-check-domain.py` exit 0; `feature_schema.py` mtime_ns/size/sha256 identical before and after (`1788333510516825193 / 15881 / 943ef7a7…`) — never written, not restored; crashing-checker case still asserts the write is DENIED. Orchestrator measurement at this sha; file unchanged in range, not re-derived|
 |SC-02|**MET**|inspection|`git show e64e863e:…/notes/measurements-parallel-suite.md` — `control method: isolated bin copy`, `control broken reads 4968` (>0), `post-fix broken reads 0`. Unaffected by this commit: the hazard lives in `test-check-domain.py`, unchanged in range. Neither FAILS IF fires|
 |SC-03|**UNMEETABLE-AS-WRITTEN**|automated (unit)|Half one MET and gated: `test-suite-independence.py:207-219` (at pin) asserts `live_root == expected` (root recomputed by an independent marker walk inside the case), `len(files) >= 50` and `not live_findings`; `main()` calls `run_self_tests()` at `:250`, before the scan, and returns 1 on any self-failure at `:256`. Half two is asserted by no CI-run gate — see the ruling below|
-|SC-04|**MET**|automated (unit)|`run-unit-tests.sh --kind unit` exit 0, 33 files, emits `PASS test-suite-independence.py`. Re-taken by me: exit 0, 33 blocks, 0 `FAIL`, `pool: 8 workers, 33 files, 13.78s wall`|
+|SC-04|**MET**|automated (unit)|`run-unit-tests.py --kind unit` exit 0, 33 files, emits `PASS test-suite-independence.py`. Re-taken by me: exit 0, 33 blocks, 0 `FAIL`, `pool: 8 workers, 33 files, 13.78s wall`|
 |SC-05|**MET**|inspection|**Re-taken post-rewrite by me** — see "SC-05/SC-06 sufficiency" below. Ten consecutive `--kind all`, all exit 0, zero `FAIL`, zero `MUTATED`: 78.47, 48.21, 48.85, 49.36, 49.45, 49.26, 47.94, 47.60, 48.56, 54.19s, all at 8 workers / 63 files. Tree condition: sibling c8 panel agents writing `.harness/harness/features/FEAT-48-*/notes/*` throughout (four untracked notes appeared across the ten); nothing wrote `.claude/skills/harness/bin/` — run 1's 78.47s is that concurrent load|
 |SC-06|**MET**|inspection|Every one of eleven runs printed both numbers; worst wall time 78.47s ≤ 120s against the 247s serial baseline. `pool: 8 workers, 63 files, 48.21s wall` is representative|
 |SC-07|**MET**|automated (integration)|`--check-kinds` exit 0, prints `check-kinds: the script arrays and test_kinds.integration.detect agree.`, runs no test; `--kind bogus` exit 2 with the legal-kinds message; `--kind unit` 33 blocks / 33 files, `--kind integration` 30 blocks / 30 files, both exit 0 — one runner block and one runner verdict per file. Failing-file→1 remains composed, not gated (caveat below)|
 |SC-08|**MET**|automated (integration)|`test-run-pool.py` 12/12 `ok` at the pin, incl. *completion order is not input order* — `p_order != s_order and set(p_order) == set(s_order)`, where `s_order` is the `--workers 1` run (`test-run-pool.py:63-67`)|
 |SC-09|**MET**|inspection|DEC-211 at the pin carries all five required items including change-based test selection REJECTED with reason; `gen-decisions-index.py --stdout` byte-identical (`cmp`) to `DECISIONS-INDEX.md`. Orchestrator measurement; `DECISIONS.md` unchanged in range|
-|SC-10|**MET**|automated (integration)|`test-run-pool.py:78-92` asserts clean / direct / **subprocess** / creation with `MUTATED keep.txt` and `MUTATED .mutant-x.sh` (paths relative to DIR); `:109` asserts empty+missing DIR → exit 2 — all against the **new** `snapshot()`. `__pycache__` non-report **re-derived by me at this sha**: a rewritten `.pyc`, a newly created `.pyc` and a loose top-level `.pyc` all land on disk while the pool exits 0 with no `MUTATED`. Invocation clause holds verbatim: `run-unit-tests.sh:148` is `--mutation-check "$BIN_DIR"`|
+|SC-10|**MET**|automated (integration)|`test-run-pool.py:78-92` asserts clean / direct / **subprocess** / creation with `MUTATED keep.txt` and `MUTATED .mutant-x.sh` (paths relative to DIR); `:109` asserts empty+missing DIR → exit 2 — all against the **new** `snapshot()`. `__pycache__` non-report **re-derived by me at this sha**: a rewritten `.pyc`, a newly created `.pyc` and a loose top-level `.pyc` all land on disk while the pool exits 0 with no `MUTATED`. Invocation clause holds verbatim: `run-unit-tests.py:148` is `--mutation-check "$BIN_DIR"`|
 
 ## The five c7 findings, reconciled at `e64e863e`
 
@@ -143,7 +143,7 @@ T-06-shaped `main-session-direct` edit) keeps the durable record honest. Nothing
 ## Caveats on MET grades — advisory, not gating
 
 - **SC-07's failing-file clause is composed, not gated** (unchanged from c7): no test drives
-  `run-unit-tests.sh` end-to-end with a deliberately failing file. The link holds —
+  `run-unit-tests.py` end-to-end with a deliberately failing file. The link holds —
   `test-run-pool.py` asserts rc 1 for a failing file, and the runner `exec`s the pool at :148, so the
   pool's status is the runner's.
 - **Duplicate file-shaped verdict lines persist** (35 verdict lines over 33 unit blocks, 36 over 30

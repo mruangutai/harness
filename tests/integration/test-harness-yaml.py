@@ -25,7 +25,7 @@ if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
 # Repo root: four levels above .agents/skills/harness/bin. CLAUDE_PROJECT_DIR
-# overrides when the caller has already resolved it (run-unit-tests.sh does).
+# overrides when the caller has already resolved it (run-unit-tests.py does).
 REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )

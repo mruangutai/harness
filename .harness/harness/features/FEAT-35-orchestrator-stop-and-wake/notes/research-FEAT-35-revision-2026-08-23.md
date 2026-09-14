@@ -33,7 +33,7 @@ cost of the boundary.
 
 ## Evidence D-08 rests on, all re-derived at `569d417` in this worktree
 
-- `run-unit-tests.sh` is already a CI step, twice: `.github/workflows/tests.yml:81` (`--kind unit`)
+- `run-unit-tests.py` is already a CI step, twice: `.github/workflows/tests.yml:81` (`--kind unit`)
   and `:87` (`--kind integration`). T-05 neither creates nor promotes it.
 - T-05's edit is one basename into `UNIT_SCRIPTS`, so gate status is identical before and after —
   and am.4's rule fires on **the day** a script becomes a gate (`DECISIONS.md:4877-4880`).

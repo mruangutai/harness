@@ -24,7 +24,7 @@ Computable from the glob string alone — no repository state, no `git ls-files`
   and empties the check still cannot pass silently.
 
 **Why the rule is right for this repository** (checked, not assumed): `unit.cmd` is
-`run-unit-tests.sh --kind unit` (`.harness/harness.json:271`) and the excluded `functional` kind's
+`run-unit-tests.py --kind unit` (`.harness/harness.json:271`) and the excluded `functional` kind's
 `excluded_because` (`:279`) records that this runner splits its suite by the `tests/unit` and
 `tests/integration` directories. A `unit.detect` root outside `tests/` is therefore unrunnable here by
 construction. I found no legitimate counter-case; I do not believe the rule is wrong.

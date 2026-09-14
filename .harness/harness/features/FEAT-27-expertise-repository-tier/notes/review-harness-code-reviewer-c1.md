@@ -53,7 +53,7 @@ Built a full fixture under `.harness/harness/expertise/harness-qa.md`-shaped pat
 ran the real script against it: `FAIL ... 42 lines — over the 40-line budget` (42 = title line +
 41 body lines) — the checker does flag it. **But** this control is a documented manual step
 (`harness-distill/SKILL.md:31`, `harness-curate/SKILL.md` steps 1/4), not a wired gate:
-`run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` runs `test-check-expertise.py` (the tool's own unit
+`run-unit-tests.py`'s `INTEGRATION_SCRIPTS` runs `test-check-expertise.py` (the tool's own unit
 tests) but nothing runs `check-expertise.sh` against real `.harness/**/expertise/*.md` content as
 part of any automated check. A distiller who skips or misreads the step still lands a file whose
 tail silently vanishes at every spawn thereafter, with the file itself claiming (via the checker,

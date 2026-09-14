@@ -14,13 +14,13 @@ Result: commit `56c9c07`, working copy healthy (git index materialized so `check
 finding). Baseline copy also tarred to `/tmp/feat38-probe-baseline.tgz` for state-4's reset.
 
 All commands below run with `cwd=/tmp/feat38-probe`, invoking
-`bash .claude/skills/harness/bin/run-unit-tests.sh …`. No command touches the real worktree.
+`bash .claude/skills/harness/bin/run-unit-tests.py …`. No command touches the real worktree.
 
 ## Predictions (written before any state past 0 was run)
 
 - **State 0** (no edits): exit 0, `check-kinds: ... agree.` on stdout. This just confirms the copy is
   healthy.
-- **State 1** (T-24 only — array entry removed from `run-unit-tests.sh`, files left on disk,
+- **State 1** (T-24 only — array entry removed from `run-unit-tests.py`, files left on disk,
   `harness.json` untouched): predict **exit 2** on both `--check-kinds` and `--kind integration`,
   because `test-check-decision-claims.py` is still on disk under `BIN_DIR` and the file-presence
   detector (lines 61-74) iterates `$BIN_DIR/test-*.py` and checks membership in `ALL_SCRIPTS`
@@ -56,7 +56,7 @@ independent of when `harness.json` is edited) stays green throughout.
 ## Measured results
 ### State 0 — baseline
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 EXIT=0
 ```
@@ -65,12 +65,12 @@ Matches prediction. Copy is healthy — no fix needed.
 ### State 1 — T-24 only (array entry removed, files still on disk, harness.json untouched)
 (a) `--check-kinds`:
 ```
-MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.sh's explicit script list
+MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.py's explicit script list
 STATE1a_EXIT=2
 ```
 (b) `--kind integration` (output captured to a shell variable, not piped):
 ```
-MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.sh's explicit script list
+MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.py's explicit script list
 STATE1b_EXIT=2
 ```
 `^MISCONFIGURED:` count = 1, `^KIND-DRIFT:` count = 0, `^PASS test-check-decision-anchors\.py$` count = 0.
@@ -80,8 +80,8 @@ every kind, before any test runs. This is the mechanism the plan's ordering rati
 
 ### State 2 — + T-25 (path also removed from harness.json's detect; files still on disk)
 ```
-$ bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
-MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.sh's explicit script list
+$ bash .claude/skills/harness/bin/run-unit-tests.py --check-kinds
+MISCONFIGURED: .claude/skills/harness/bin/test-check-decision-claims.py is not in run-unit-tests.py's explicit script list
 STATE2_EXIT=2
 ```
 **Matches prediction exactly — unchanged from state 1.** Editing harness.json cannot satisfy the

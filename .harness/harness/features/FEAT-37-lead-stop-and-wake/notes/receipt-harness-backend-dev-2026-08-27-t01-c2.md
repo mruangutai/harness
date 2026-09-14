@@ -31,7 +31,7 @@ $ cd "$(git rev-parse --show-toplevel)"
 $ python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --self-check; sc=$?
 $ python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook; pb=$?
 $ python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group coverage; cv=$?
-$ .claude/skills/harness/bin/run-unit-tests.sh --check-kinds; ck=$?
+$ .claude/skills/harness/bin/run-unit-tests.py --check-kinds; ck=$?
 $ echo "selfcheck=$sc playbook=$pb coverage=$cv checkkinds=$ck"
 selfcheck=0 playbook=1 coverage=1 checkkinds=0
 T01_PASS
@@ -74,7 +74,7 @@ zero-match branch, nothing on the matched-selection path.
 
 ## What did not change
 
-- `run-unit-tests.sh` — diffed against cycle 1: identical one-line `UNIT_SCRIPTS` addition, no
+- `run-unit-tests.py` — diffed against cycle 1: identical one-line `UNIT_SCRIPTS` addition, no
   further edits this cycle.
 - `BOUND_SITES` — still exactly `[DECISIONS_PATH, INFLIGHT_REGISTRY_PATH]`.
 - No `.claude/skills/harness-team/SKILL.md`, `.claude/skills/harness/SKILL.md`,

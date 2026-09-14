@@ -76,11 +76,11 @@ reverses ten features of growth in one pass and makes the next ten impossible.
   baseline/HEAD question the operator already closed by measurement and instructed us not to
   re-raise.**
 - **PRECONDITION — the `unit` suite must be green before T-03 lands, and it is.** Measured
-  2026-08-10: `run-unit-tests.sh --kind unit` exits **0**, 10 scripts PASS, 0 FAIL, 0 SKIP — run from
+  2026-08-10: `run-unit-tests.py --kind unit` exits **0**, 10 scripts PASS, 0 FAIL, 0 SKIP — run from
   a detached worktree at `96d5d5c` (main HEAD) with a clean tree, because the session's working tree
   carried uncommitted edits to the runner and to three of its test files and a working-tree green
   would not be the green CI evaluates. The `--kind unit` flag itself exists at `96d5d5c`
-  (`run-unit-tests.sh:23`), so MF-6 puts a flag on the required `integration` job that the committed
+  (`run-unit-tests.py:23`), so MF-6 puts a flag on the required `integration` job that the committed
   runner accepts. **This green is not a permanent property**: it is green for the suite as it stands
   *before* this feature's own tests exist, and T-01/T-02 add suites that need a real `jsonschema`.
   Re-check it immediately before T-03 lands; if it has gone red for a pre-existing reason, record
@@ -507,11 +507,11 @@ call because its citations ARE the evidence, not an illustration of it.
 - `functional`, `component`, `ui`, `eval` and `typecheck` have `cmd: null` in
   `.harness/harness.json` — no runner. **No SC above rests on any of them**, and this feature
   touches none of those surfaces (no UI, no LLM behaviour, no database path). No gap applies.
-- New test files must be registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS` array, not
+- New test files must be registered in `run-unit-tests.py`'s `UNIT_SCRIPTS` array, not
   `INTEGRATION_SCRIPTS`: the `integration` kind's `detect` globs name only `test-check-state.py` and
   `test-factory-integration.py`, so a new file registered there would match no detect glob and the
   qa gate would see it as covering nothing. SC-04, SC-05, SC-08, SC-13, SC-14, SC-16 and SC-18 name
-  `integration` because the command that proves them is `run-unit-tests.sh --kind integration`,
+  `integration` because the command that proves them is `run-unit-tests.py --kind integration`,
   which is what the required CI job runs; their assertions live in `test-check-state.py` and
   `test-check-domain.py`, both listed in the runner's `INTEGRATION_SCRIPTS`.
 - **The required CI job does not run the new unit suite as it stands, and T-03 fixes that.**

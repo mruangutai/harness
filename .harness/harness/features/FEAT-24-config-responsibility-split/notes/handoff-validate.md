@@ -15,7 +15,7 @@ session's subcommands, not mine.** No PR is open and nothing is merged.
   derived to `Review` — `plan.yaml`, `feature.json` — verified-at 0c11e23
 - **FEAT-24's own `check-state.sh` violations: ZERO.** The four remaining all belong to paused
   FEAT-25/26/27 dirs — verified-at 0c11e23
-- Full suite: zero FAIL lines, exit 0 — `run-unit-tests.sh --kind all` — verified-at 0c11e23
+- Full suite: zero FAIL lines, exit 0 — `run-unit-tests.py --kind all` — verified-at 0c11e23
 - pm's goal-check: **7 met, 5 partial, 1 split, nothing broken behaviourally.** Partial always means
   evidence durability, never behaviour — `runs/2026-08-19-11-product/digest.md` — verified-at 0c11e23
 - **SC-06 was closed after the panel FAILed it** and I mutation-proved the fix myself by neutering

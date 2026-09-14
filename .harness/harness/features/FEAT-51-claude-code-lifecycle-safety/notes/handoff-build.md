@@ -18,7 +18,7 @@ against BRIEF's twelve SCs, and the CEO briefing. Merge, PR and ship acceptance 
 ## Trust
 
 - Nine of nine tasks at station `done`, each with its declared `verify:` passing; T-04, T-06 and T-08 I re-ran at my own tier — `plan.yaml` read with `yaml.safe_load` — verified-at 6db25ba2 and later
-- `run-unit-tests.sh --kind unit` exit 0, 519 PASS, 0 FAIL — captured the runner's own status in a variable, counted `^FAIL ` lines — verified-at the pre-SIMPLIFY tip
+- `run-unit-tests.py --kind unit` exit 0, 519 PASS, 0 FAIL — captured the runner's own status in a variable, counted `^FAIL ` lines — verified-at the pre-SIMPLIFY tip
 - `--kind integration` exit 1, 742 PASS, **7 FAIL, all the `test-check-plan-routes.py` manifest-DEVIATION family** — same method — verified-at the pre-SIMPLIFY tip
 - Those 7 are caused **solely** by T-03's approved route line: `diff` of the main and worktree `team-config.yaml` returns exactly that route plus its comment and nothing else, and `_manifest_deviation`'s own docstring records that a route change deviating is intended. Removing the other cause moved 9 → 7 exactly — I ran the diff and both suites myself — verified-at 344f3c84..HEAD
 - The deviation is **not** an environment artifact: `HARNESS_PROJECT_DIR` pointed at the worktree changes nothing, because the checker resolves routes against the *owner* manifest, which is what the hook consults — probed myself — verified-at the pre-SIMPLIFY tip
@@ -34,7 +34,7 @@ against BRIEF's twelve SCs, and the CEO briefing. Merge, PR and ship acceptance 
 - Do not route the seven to a fix cycle or to pm. There is no in-worktree remedy and no plan change closes them; they are gate-placement debt for the operator's ruling — the validator lead reached the same conclusion independently — verified-at 2026-09-01-03-validator
 - Do not dispatch a squad for `check-domain.py`, `validate-digest.py`, `inflight_registry.py`, `plan-sign-gate.py`/`.sh`, their test files, or the two playbooks. DEC-174 holds them main-session-direct and `check-plan-routes.py` records four of them as declared deviations — verified-at 0bc57c88
 - Do not commit before re-running both kinds yourself. The SIMPLIFY apply touched a test file and its baseline claim has not been independently confirmed — this note's own Trust section — verified-at now
-- Do not treat a green `run-unit-tests.sh` tail as a green suite. Its last line is the last script's own `N/N checks passed`; count `^FAIL ` lines and capture the runner's exit status in a variable — cost this feature one false report already — verified-at 2026-09-01-01-eng
+- Do not treat a green `run-unit-tests.py` tail as a green suite. Its last line is the last script's own `N/N checks passed`; count `^FAIL ` lines and capture the runner's exit status in a variable — cost this feature one false report already — verified-at 2026-09-01-01-eng
 - Do not assume an editor write landed in this worktree. A repo-relative write resolved against the **main checkout** twice in this feature, silently, because both copies were byte-identical; use absolute paths and check `git -C /Users/molchairuangutai/GitHub/harness status --porcelain` after — measured twice, both instances cleaned — verified-at now
 
 ## Working set

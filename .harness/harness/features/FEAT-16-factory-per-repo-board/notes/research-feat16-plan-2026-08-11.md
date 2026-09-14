@@ -154,7 +154,7 @@ reviewer corrected its own A-9 and the mitigation is kept either way).
   instead, which is where a chosen-not-accidental ordering belongs.
 
 **A-4's trap, resolved by measurement, and the operator's framing was slightly off:** `--kind all`
-**is** runnable (`run-unit-tests.sh:33` accepts `all` and it is the default), but it is the `cmd` of
+**is** runnable (`run-unit-tests.py:33` accepts `all` and it is the default), but it is the `cmd` of
 **no** entry in `.harness/harness.json`'s `test_kinds` — so no criterion could cite its output.
 T-08 therefore carries two clauses in one literal `|` block, `--kind unit` and `--kind integration`,
 which map 1:1 onto SC-08 and SC-09.

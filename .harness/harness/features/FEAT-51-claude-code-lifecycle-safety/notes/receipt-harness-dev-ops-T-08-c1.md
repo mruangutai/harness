@@ -86,6 +86,6 @@ The `plan.yaml` line is the orchestrator's own station bump (`status: ready` →
 on T-08), confirmed via `git diff` — not written by me, and I wrote no other file.
 
 Main checkout (`git -C /Users/molchairuangutai/GitHub/harness status --porcelain`): dirty, but with
-changes unrelated to this task (`run-unit-tests.sh`, `harness.json`, several other features' notes
+changes unrelated to this task (`run-unit-tests.py`, `harness.json`, several other features' notes
 and logs) — pre-existing from other concurrent work in that checkout, not touched by me; I performed
 zero writes there. The rig lived entirely under `mktemp -d` (outside both trees) and was deleted.

@@ -15,7 +15,7 @@ No `must_fix`. `severity_max: low`.
   (a quoted `"7"`, a bool `true`).** Concrete scenario: a future edit makes
   `factory_decompose.py`'s copy accept a negative-signed digit string (`"-5"` → `-5`) while
   `gh-sync.py:512-524`'s `_opt_int` is untouched and still returns `None` for it (`"-5".isdigit()` is
-  `False`) — `run-unit-tests.sh --kind unit` stays green, because none of T-05's 12 fixed inputs
+  `False`) — `run-unit-tests.py --kind unit` stays green, because none of T-05's 12 fixed inputs
   contains a negative, floating, or otherwise-shaped wrong-typed value. D-16's own justification for
   accepting the duplicate ("what stops it is not discipline but a detector … a change to either copy
   alone reddens the suite") is true only within the tested input set, not in general. Not gating: both

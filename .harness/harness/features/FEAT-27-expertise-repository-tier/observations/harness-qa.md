@@ -74,7 +74,7 @@
   byte-identical). Re-confirmed the standing adequacy gap independently: T-01 is `change_type:
   config` (matrix `always: []`), so the matrix itself never obligates a kind for the 16
   repository-tier grants — SC-02's only regression pin is T-01's inline one-shot `verify:` block
-  (ran it directly, `ALL-GRANTS-OK`, exit 0), which is not in `run-unit-tests.sh`'s
+  (ran it directly, `ALL-GRANTS-OK`, exit 0), which is not in `run-unit-tests.py`'s
   UNIT_SCRIPTS/INTEGRATION_SCRIPTS arrays and `test-check-domain.py` has exactly one
   case-insensitive hit on "repository" — a comment about "a product repository", zero actual
   repository-tier test cases. This is a matrix-compliant gap, not a matrix violation, and it is

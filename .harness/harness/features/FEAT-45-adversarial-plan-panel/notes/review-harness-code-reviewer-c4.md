@@ -25,7 +25,7 @@ three at the pin (`git show bdd5666:<path>`).
   omission: nothing else in this narrow delta needed touching for D-05 to hold.
 
 **Suite corroboration**, re-run directly at the pin (not restated from the dispatch):
-`test-panel-findings.py` 9/9 PASS; `run-unit-tests.sh --kind unit` rc=0, 0 `^FAIL `, matches
+`test-panel-findings.py` 9/9 PASS; `run-unit-tests.py --kind unit` rc=0, 0 `^FAIL `, matches
 main's reported 433-line, no-KIND-DRIFT numbers. `code-grade.py --base 302ae9d --head bdd5666`:
 `PASSING: 0`, exit 0, no `SEVERITY`/`RESULT: FAIL` lines — the delta touches no function whose
 shape changed (a literal `8`→`32` inside an unchanged control-flow body), so nothing gates on
@@ -105,7 +105,7 @@ part of the 3-file functional delta).
 task's `verify:` shell text — its ~1800 python lines are static analysis over `plan.yaml`'s
 structure and cross-file greps; the only place `verify` appears is a corpus test asserting the
 YAML field exists and is a string (`test-harness-yaml.py:637`), never that it's *true*.
-`run-unit-tests.sh` runs the registered test **scripts** (`test-panel-findings.py`, which is
+`run-unit-tests.py` runs the registered test **scripts** (`test-panel-findings.py`, which is
 correctly updated and green), not the plan's prose `verify:` field. No invariant, hook, or QA-gate
 mechanism in this repo replays a `done` task's `verify:` clause. I ran T-09's literal verify
 clause by hand at the pin as ground truth (not to prove a gate — to confirm the premise): it

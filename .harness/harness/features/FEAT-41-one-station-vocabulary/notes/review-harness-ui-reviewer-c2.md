@@ -187,7 +187,7 @@ encoding, no rendered theme.
   who may call a verb, not what its output says; out of my lens.
 - Did not run the full unit/integration suites (QA's exclusive domain per the dispatch's
   serialization rule) — all measurements above are single-script invocations against
-  hand-built `$TMPDIR` fixtures, never `run-unit-tests.sh` or any `test-*.py`.
+  hand-built `$TMPDIR` fixtures, never `run-unit-tests.py` or any `test-*.py`.
 
 ```yaml
 VERDICT: PASS

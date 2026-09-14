@@ -27,7 +27,7 @@ $ git diff --stat 340e18a..9da3986
  .claude/skills/harness/bin/check-state.sh          |  88 +++++--
  .claude/skills/harness/bin/gh-sync.py              |   7 +-
  .claude/skills/harness/bin/harness_yaml.py         |  35 ++-
- .claude/skills/harness/bin/run-unit-tests.sh       |   2 +-
+ .claude/skills/harness/bin/run-unit-tests.py       |   2 +-
  .claude/skills/harness/bin/test-check-domain.py    |  26 ++
  .claude/skills/harness/bin/test-gh-sync.py         |  44 ++++
  .claude/skills/harness/bin/test-upgrade-config.py  | 157 +++++++++++
@@ -167,7 +167,7 @@ parse call, nothing that could raise a harness-logic bug is inside it.
 ## 5. Regression coverage — one real gap (bash-write-guard.py untested), one weak assertion
 
 - `check-domain.py` HAS regression tests for the two shapes cycle 0 named (`test-check-domain.py`,
-  +26 lines), registered and run via `run-unit-tests.sh`. But the directory-as-manifest assertion is
+  +26 lines), registered and run via `run-unit-tests.py`. But the directory-as-manifest assertion is
   weaker than it reads:
   ```python
   t12("F-01: a manifest that is a DIRECTORY does not crash the guard",

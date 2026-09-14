@@ -67,7 +67,7 @@ floors, not equalities, and every task only adds cases, so correct delivery cann
 Three real problems: **F-07** (SC-08's five case names do not exist in the file), **F-10** (SC-13's
 `examined 45 feature dir(s)` is 46 today, and SC-13's own file-argument command prints no `examined`
 line at all — verified), **F-02b** (SC-15 declares `evidence: unit` while half its command,
-`test-inflight-registry.py`, is in `INTEGRATION_SCRIPTS`, `run-unit-tests.sh:31`).
+`test-inflight-registry.py`, is in `INTEGRATION_SCRIPTS`, `run-unit-tests.py:31`).
 
 ## Findings
 
@@ -87,7 +87,7 @@ line at all — verified), **F-02b** (SC-15 declares `evidence: unit` while half
   feature's REQs do not require, and SC-15 pins only the ambiguity fallback, not the resolve-where-it
   -previously-fell-back case, so a consumer relying on the old fallback breaks with no criterion red.
 - **F-02b · low · verification.** SC-15 declares `evidence: unit`; `test-inflight-registry.py` is an
-  `INTEGRATION_SCRIPTS` entry (`run-unit-tests.sh:31`). Consequence: the qa gate looks for unit
+  `INTEGRATION_SCRIPTS` entry (`run-unit-tests.py:31`). Consequence: the qa gate looks for unit
   evidence and half of SC-15's assertions are not in that kind, so the criterion can be graded met
   on evidence the declared kind never ran.
 - **F-03 · med · dead remedy.** T-03 says "inside the `if _run_domain:` block, positioned so it runs

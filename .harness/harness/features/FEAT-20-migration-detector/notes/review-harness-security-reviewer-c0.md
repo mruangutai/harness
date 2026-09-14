@@ -85,7 +85,7 @@ credential. No secrets found.
 - Test files (`test-layout-migration.py`, `test-check-state.py` case_x) use only
   `tempfile.TemporaryDirectory()` fixtures, no `subprocess`/`shell=True`/`eval`/`exec`,
   no committed credentials.
-- `run-unit-tests.sh` change is a one-line array addition (test registration), no
+- `run-unit-tests.py` change is a one-line array addition (test registration), no
   security surface.
 - `DECISIONS.md`/`DECISIONS-INDEX.md` changes are prose-only.
 

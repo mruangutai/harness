@@ -8,13 +8,13 @@ Zero send-back cycles (`cycles: 0`).
 
 ## Commands run (worktree root, pinned SHA 56abf27, diff base 6dfbf7c)
 
-1. `bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+1. `bash .claude/skills/harness/bin/run-unit-tests.py --kind unit`
    exit 0. 10 scripts, all PASS: test-harness-yaml-corpus.py 13/13,
    test-render-brief.py 15/15, test-team-catalog.py 10/10, test-factory-cli.py 33/33,
    **test-factory-gh.py 153/153**, test-factory-config.py 56/56, test-factory-workspace.py 30/30,
    **test-factory-decompose.py 175/175**, **test-factory-claim.py 95/95**,
    **test-factory-land.py 56/56**.
-2. `bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration`
+2. `bash .claude/skills/harness/bin/run-unit-tests.py --kind integration`
    exit 0. test-validate-digest.py, test-gh-sync.py, **test-check-state.py**,
    test-check-expertise.py, test-gen-decisions-index.py, test-bash-write-guard.py,
    test-check-domain.py, test-harness-yaml.py, test-upgrade-config.py, test-check-plan-routes.py,

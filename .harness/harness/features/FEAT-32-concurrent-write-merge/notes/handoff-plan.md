@@ -32,4 +32,4 @@ T-10 (gated on T-07), then the documentor segment T-13 → T-17 (gated on T-08, 
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/feature.json`
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/STATE.md`
 - `.claude/skills/harness/teams/build.yaml`
-- `.claude/skills/harness/bin/run-unit-tests.sh` (`--check-kinds` before every commit)
+- `.claude/skills/harness/bin/run-unit-tests.py` (`--check-kinds` before every commit)

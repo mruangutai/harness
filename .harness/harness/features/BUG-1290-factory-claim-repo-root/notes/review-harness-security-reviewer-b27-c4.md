@@ -21,7 +21,7 @@ body, not inferred — so a failing captured verdict cannot itself leak text pas
 The one scenario worth naming explicitly: `test-factory-claim-mutation.py`'s `_run_suite()` executes
 `test-factory-claim.py` **in-process via `runpy.run_path`, inside the mutation window** (`factory_claim.
 factory_config`/`_BlockerCache` is swapped before the call). I checked whether that "later caller in
-the same process" is reachable from the real unit runner: `run-unit-tests.sh` delegates to
+the same process" is reachable from the real unit runner: `run-unit-tests.py` delegates to
 `run_pool.py`, whose `run_one()` (`run_pool.py:59-63`) calls `subprocess.run([sys.executable, path], …)`
 — **each `tests/unit/test-*.py` file is its own fresh interpreter process.** There is no shared
 process for a mutation to leak into; the only files that ever run in the SAME process as the

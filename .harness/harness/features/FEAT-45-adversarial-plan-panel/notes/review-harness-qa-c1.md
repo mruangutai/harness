@@ -26,11 +26,11 @@ verbatim), so it is run as a diff-warranted addition, per the "matrix is a floor
 
 | kind | required | cmd | rc | discovered | notes |
 |---|---|---|---|---|---|
-| unit | yes (floor) | `run-unit-tests.sh --kind unit` | 0 | **29** scripts, 0 FAIL | unchanged from c0's 29 |
-| integration | diff-warranted | `run-unit-tests.sh --kind integration` | 0 | **27** scripts (31 PASS lines incl. 4 scripts that print two internal `PASS` lines each), 0 FAIL | unchanged from c0's 27 |
+| unit | yes (floor) | `run-unit-tests.py --kind unit` | 0 | **29** scripts, 0 FAIL | unchanged from c0's 29 |
+| integration | diff-warranted | `run-unit-tests.py --kind integration` | 0 | **27** scripts (31 PASS lines incl. 4 scripts that print two internal `PASS` lines each), 0 FAIL | unchanged from c0's 27 |
 
 `test-panel-findings.py` and `test-plan-panel.py` are both literal entries in
-`UNIT_SCRIPTS` (`run-unit-tests.sh:30`); `test-check-state.py` is a literal entry in
+`UNIT_SCRIPTS` (`run-unit-tests.py:30`); `test-check-state.py` is a literal entry in
 `INTEGRATION_SCRIPTS` (`:31`) — all three are list-bound, not merely glob-matched. Both
 sweeps: exit 0, zero `^FAIL` lines (`grep -c` confirmed on raw output), matching the shape of
 a real pass rather than an empty-set vacuity (non-zero discovery counts reported above, not
@@ -108,7 +108,7 @@ discovery. Still advisory (`med`), still does not gate `advisory_unless_high`.
 SC-01→`test-plan-panel.py` 1a/1b/1c · SC-02→case 2 · SC-03→case 3 (proxy, see M5) ·
 SC-04→`check-state.sh` INV-32 check 1 + `test-check-state.py` no-panel/inv32-red ·
 SC-05→`test-check-state.py` ruling-unattributed · SC-06→case 5 · SC-07→INV-32 check 1 ·
-SC-08→`run-unit-tests.sh` drift detector · SC-13→`panel_findings.py` hash + stale-ruling ·
+SC-08→`run-unit-tests.py` drift detector · SC-13→`panel_findings.py` hash + stale-ruling ·
 SC-14→case 4a/4b · SC-15→case 8a/8b · SC-17→reader-missing/reader-skipped + inv32-red +
 **new**: `case_inv32_unrated_severity_fails_closed` (M1/M3's remedy).
 
@@ -140,8 +140,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 29 }
-    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 27 }
+    - { kind: unit, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 29 }
+    - { kind: integration, state: satisfied, cmd: ".claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 27 }
   coverage_gaps:
     - "SC-03's second falsification direction (double-run overwrite) — M5, advisory, unchanged since c0"
     - "test-plan-panel.py: 21 of 24 wiring checks are string/structural-presence, not runtime-behavioural (adequacy fact, not new since c0)"
@@ -153,7 +153,7 @@ DIGEST:
     - { id: SC-05, test: "test-check-state.py ruling-unattributed" }
     - { id: SC-06, test: "test-plan-panel.py case 5" }
     - { id: SC-07, test: "check-state.sh INV-32 check 1" }
-    - { id: SC-08, test: "run-unit-tests.sh drift detector" }
+    - { id: SC-08, test: "run-unit-tests.py drift detector" }
     - { id: SC-13, test: "panel_findings.py hash + test-check-state.py stale-ruling" }
     - { id: SC-14, test: "test-plan-panel.py case 4a/4b" }
     - { id: SC-15, test: "test-plan-panel.py case 8a/8b" }

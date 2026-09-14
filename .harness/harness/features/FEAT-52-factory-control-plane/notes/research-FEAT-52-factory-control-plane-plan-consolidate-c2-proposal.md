@@ -12,7 +12,7 @@ lanes:
     - surface: .claude/skills/harness/bin/check-instruction-paths.py
       lane: main-session-direct
       reason: DEC-174 carve-out, a gate script joins the category on the day it becomes a gate
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: main-session-direct
       reason: registering a gate test file is part of the same enforcement-layer edit
     - surface: .claude/skills/harness-handoff/SKILL.md
@@ -130,7 +130,7 @@ tasks:
          - no --feature: return 1, a message naming the missing option, nothing on stdout.
 
       Do NOT register the test file anywhere new. test-inflight-registry.py is already in
-      run-unit-tests.sh's INTEGRATION_SCRIPTS and already named in harness.json's
+      run-unit-tests.py's INTEGRATION_SCRIPTS and already named in harness.json's
       test_kinds.integration.detect; adding it again trips the KIND-DRIFT cross-check.
 
   - id: T-02
@@ -144,7 +144,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/check-instruction-paths.py
       - .claude/skills/harness/bin/test-check-instruction-paths.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       python3 .agents/skills/harness/bin/test-check-instruction-paths.py
     intent: |
@@ -222,7 +222,7 @@ tasks:
           harness-wayfinding.
         - A positional path outside the scope exits 2.
 
-      REGISTRATION. Append "test-check-instruction-paths.py" to UNIT_SCRIPTS in run-unit-tests.sh.
+      REGISTRATION. Append "test-check-instruction-paths.py" to UNIT_SCRIPTS in run-unit-tests.py.
       Do NOT add it to test_kinds.integration.detect in harness.json: the KIND-DRIFT cross-check
       fails when a UNIT_SCRIPTS name appears there, and unit.detect's glob
       .claude/skills/harness/bin/test-*.py already matches it.
@@ -716,7 +716,7 @@ tasks:
         is not the resolved root. Assert exit 2 and assert stderr contains BOTH the declared
         value and the resolved one.
 
-      Register nothing new in run-unit-tests.sh: test-dispatch-guard.py is already in
+      Register nothing new in run-unit-tests.py: test-dispatch-guard.py is already in
       INTEGRATION_SCRIPTS, so the kind cross-check and the file-presence check both stay green.
 
   - id: T-10

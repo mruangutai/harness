@@ -41,8 +41,8 @@ suites re-run against the current pin-identical tree — see §2):
 
 | kind | required? | state | cmd | exit | files | provenance |
 |---|---|---|---|---|---|---|
-| unit | yes (template floor) | active | `run-unit-tests.sh --kind unit` | 0 | 36 | **MEASURED** |
-| integration | yes (qa-added) | active | `run-unit-tests.sh --kind integration` | 0 | 70 | **MEASURED** |
+| unit | yes (template floor) | active | `run-unit-tests.py --kind unit` | 0 | 36 | **MEASURED** |
+| integration | yes (qa-added) | active | `run-unit-tests.py --kind integration` | 0 | 70 | **MEASURED** |
 | functional | no | excluded (DEC-187) | null | — | — | not_applicable |
 | component | no | unresolved (cmd null) | null | — | — | not_applicable |
 | ui | no | unresolved (cmd null) | null | — | — | not_applicable |
@@ -55,7 +55,7 @@ suites re-run against the current pin-identical tree — see §2):
 Both re-run with `env -u HARNESS_AGENT_TYPE` per instruction (avoids the known false-regression, repo
 Expertise G-07).
 
-**unit** — `bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit`
+**unit** — `bash .claude/skills/harness/bin/run-unit-tests.py --kind unit`
 - `rc=0`, `pool: 8 workers, 36 files` → **36 = 168f875f baseline, no drop, no unexplained excess.**
 - Nonzero-exit file blocks: **0**. Raw `grep -c '^FAIL '` = 4, all four inside
   `----- test-factory-claim-mutation.py (exit 0, ...) -----`, which itself ends `PASS
@@ -63,7 +63,7 @@ Expertise G-07).
   printing `FAIL BUG-1290 ...` tokens for 3 reddened cases inside an overall-passing script.
   **Real failing-file count: 0.**
 
-**integration** — `bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration`
+**integration** — `bash .claude/skills/harness/bin/run-unit-tests.py --kind integration`
 - `rc=0`, `pool: 8 workers, 70 files, 73.21s wall` → **70 = 168f875f baseline, no drop, no excess.**
 - Nonzero-exit file blocks: **0**. `grep -c '^FAIL '`: **0**.
 
@@ -156,8 +156,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 36 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 70 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70 }
     - { kind: functional, state: not_applicable, cmd: null, named_tests: 0 }
     - { kind: component, state: not_applicable, cmd: null, named_tests: 0 }
     - { kind: ui, state: not_applicable, cmd: null, named_tests: 0 }

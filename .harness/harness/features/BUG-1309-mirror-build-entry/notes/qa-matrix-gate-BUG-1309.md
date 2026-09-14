@@ -7,7 +7,7 @@ Three independent reasons, any one of which fails the matrix on its own:
 1. **A real regression in the standing suite.** `tests/integration/test-hooks-install.py`
    case `case_sc14_end_to_end_and_red_proof`, sub-case `(e-green) SC-14: the terminal
    feature's worktree is gone after a real merge...` is RED. Command:
-   `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind
+   `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind
    integration` → exit 1; this is the only `FAIL` line in a 3941-line run. Root cause traced
    to source, not inferred: T-07's diff to `post-merge-sweep.py` (git diff shown below)
    retains a merged worktree whenever `github.sync` is true and `feature.json` lacks
@@ -84,8 +84,8 @@ Three independent reasons, any one of which fails the matrix on its own:
 
 ## Every test run, named, with counts
 
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` → **exit 0**, pool: 8 workers, 31 files, all `PASS`, including `test-omp-hooks.py` (56 pass / 0 fail via `bun test`) and `test-config-shape-matrix.py` (19/19, unaffected by this feature's schema change — it self-tests the harness.json matrix declaration, not per-feature schemas).
-- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` → **exit 1**, pool: 8 workers, 50 files, wall 74.9s. Exactly one `FAIL`: `test-hooks-install.py` (see §1). Every other file `PASS`, including the full set of named contract cases:
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` → **exit 0**, pool: 8 workers, 31 files, all `PASS`, including `test-omp-hooks.py` (56 pass / 0 fail via `bun test`) and `test-config-shape-matrix.py` (19/19, unaffected by this feature's schema change — it self-tests the harness.json matrix declaration, not per-feature schemas).
+- `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` → **exit 1**, pool: 8 workers, 50 files, wall 74.9s. Exactly one `FAIL`: `test-hooks-install.py` (see §1). Every other file `PASS`, including the full set of named contract cases:
   - `test-validate-feature-json.py`: T-01's 8 new cases, `ALL PASS`.
   - `test-gh-sync.py`: 316 `ok` / 0 `FAIL`, all 8 T-02 cases, all 7 T-03 cases, all 5 T-04 cases present as `ok`.
   - `test-merge-gate.py`: `exit 0`, all 14 T-05 cases `ok`, `ALL PASSED`.

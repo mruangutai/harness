@@ -29,7 +29,7 @@ findings:
   - reader: goalcheck
     severity: med
     summary: "No criterion would fail if issue #1053's own symptom persisted; SC-05's ten runs are declared non-probative by the BRIEF and nothing asserts test-gh-sync.py passes N consecutive 8-worker runs"
-    pointer: "BRIEF.md:127-131; run-unit-tests.sh:31; plan.yaml:262-272 (D-11's third and fourth uncovered classes)"
+    pointer: "BRIEF.md:127-131; run-unit-tests.py:31; plan.yaml:262-272 (D-11's third and fourth uncovered classes)"
     disposition: open
   - reader: goalcheck
     severity: low

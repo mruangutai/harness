@@ -21,7 +21,7 @@ the fixture and schema rulings all re-derived unchanged.
 
 | It says | Measured | How |
 |---|---|---|
-| 55 python tests, 28 unit / 27 integration | **58**, **31** unit / 27 integration at `56a30a0` (56, 29/27 at `ea6f51f`), no duplicates, no overlap | parse both arrays out of `run-unit-tests.sh`, compare to `glob('bin/test-*.py')` |
+| 55 python tests, 28 unit / 27 integration | **58**, **31** unit / 27 integration at `56a30a0` (56, 29/27 at `ea6f51f`), no duplicates, no overlap | parse both arrays out of `run-unit-tests.py`, compare to `glob('bin/test-*.py')` |
 | 40 non-test `.py` helpers stay | **43** at `56a30a0` (42 at `ea6f51f`; `panel_findings.py` is the addition) | `glob('*.py')` minus `test-*` and `probe-*` |
 | 3 live references to `bin/test-` paths | **6**, unchanged — FEAT-45's three files name none | see the table under *Live references* |
 
@@ -112,13 +112,13 @@ as *the artifact's* directory it becomes `BIN_DIR`; where it uses it as *the tes
 | `.harness/harness.json` `test_kinds.{unit,integration}.detect` | names `bin/` paths and 27 literal files |
 | `test-no-distribution.py:98-105` `ALLOW_LIST` | exactly two entries, both `bin/` paths; a stale entry un-exempts a moved file and case 2 goes red |
 | `test-code-grade-cli.py:45-47,71-93` | its synthetic repo's `unit.detect` and fixture path model the old layout |
-| `test-check-plan-routes.py:162-167` `case_13` | asserts `run-unit-tests.sh` **lists** this test — dies with the arrays |
+| `test-check-plan-routes.py:162-167` `case_13` | asserts `run-unit-tests.py` **lists** this test — dies with the arrays |
 | `test-check-domain.py:1749-1757` | docstring names `tests/**` as product code that resolves to NOBODY; false once it is control-plane |
 | `.github/CODEOWNERS:22-27` | comment explains the ownership by the array mechanism |
 
 **Not touched, deliberately:** `DECISIONS.md` carries **zero** line anchors into any file this
 feature moves or edits (measured: 2 path-form mentions of moved files, both anchorless; 0 anchors
-into `run-unit-tests.sh`, `harness_boundary.py`, `team-config.yaml`, `harness.json`), so the
+into `run-unit-tests.py`, `harness_boundary.py`, `team-config.yaml`, `harness.json`), so the
 anchor-rot check is not in play. Historical notes and receipts under `.harness/` stay as written.
 
 ## Baseline census — re-derived at `56a30a0`, all 58 files `rc=0`
@@ -229,7 +229,7 @@ claiming "12 scripts, ~15s" for integration is stale by 15 scripts; out of scope
 - The census tool is `tests/manual/suite-census.py`, created by T-05 (this line named a different
   filename before the plan settled on that one). Without it the per-file proof is a 25-line inline
   script pasted into two verifies.
-- `run-unit-tests.sh --check-kinds` becomes `--check-layout`, keeping the millisecond mode that
+- `run-unit-tests.py --check-kinds` becomes `--check-layout`, keeping the millisecond mode that
   makes the guard's own cases cheap. The argument-parser regression cases in the deleted
   `test-run-unit-tests-kinds.py` (case 5) are absorbed by the new integration test, not dropped.
 - **Parallel safety is a separate note.** The 247s serial baseline, the per-worker measurements and

@@ -29,7 +29,7 @@ as c1. Mode A does not apply; this is a filesystem-invariant/CLI feature (repo-t
 - `suite_layout.violations('.')` (direct call, post-decomposition `violations()` at line 203,
   delegating through `_unit_integration_findings` → `_runner_selection_findings` →
   `_bin_planted`/`_bin_planted_findings` → `_tracked_scan` → `_registry_findings`) → `[]`.
-- `bash .claude/skills/harness/bin/run-unit-tests.sh --check-layout` → empty stdout/stderr, exit 0.
+- `bash .claude/skills/harness/bin/run-unit-tests.py --check-layout` → empty stdout/stderr, exit 0.
 - `python3 tests/manual/suite-census.py tree-audit` → same 85-row body as c1 (9 `out-of-vocabulary`,
   1 `documented-exception`, 75 `in-tests-tree`), final line **`TOTAL 85 OUTSIDE 9 VIOLATIONS 0`**,
   byte-identical to the orchestrator's claim and to c1's recorded output.

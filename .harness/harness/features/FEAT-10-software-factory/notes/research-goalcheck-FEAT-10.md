@@ -11,7 +11,7 @@ demonstrated **by evidence of that criterion's own declared method**. A clause w
 assertion of its declared method makes the criterion unmet. A clause asserted but not exhaustively
 stays met with the narrowness named. The three non-SC-06 unmets are all the first case.
 
-**Suites re-run by me, unpiped.** `run-unit-tests.sh --kind unit` exit 0, `--kind integration` exit
+**Suites re-run by me, unpiped.** `run-unit-tests.py --kind unit` exit 0, `--kind integration` exit
 0. All seven `test-factory-*.py` files report `PASS`, `test-factory-integration.py` reports `PASS`,
 zero `FAIL` lines in either log. `check-docs.sh` exit 0, unpiped, `no stale statements found`.
 BRIEF counts re-derived here, not inherited: 20 SC ids, 15 `evidence: unit`, 3 `evidence:

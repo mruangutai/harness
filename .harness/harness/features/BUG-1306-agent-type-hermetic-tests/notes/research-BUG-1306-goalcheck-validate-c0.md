@@ -51,7 +51,7 @@ item the code reviewer filed as `F-INFO-01` (severity `info`), and I concur with
 ## Could the bug return unnoticed?
 
 **Yes — and this is the one real gap.** SC-01 is a *manual* invocation. CI
-(`.github/workflows/tests.yml` → `run-unit-tests.sh`) runs with no `HARNESS_AGENT_TYPE` set, so a
+(`.github/workflows/tests.yml` → `run-unit-tests.py`) runs with no `HARNESS_AGENT_TYPE` set, so a
 future edit deleting line 41 keeps CI green and reddens only for a governed agent — exactly the
 pre-fix condition this bug describes. qa's governed full-kind runner sweep
 (cited-from `notes/review-harness-qa-c0.md:61-79`) was a one-off measurement, not a standing gate.

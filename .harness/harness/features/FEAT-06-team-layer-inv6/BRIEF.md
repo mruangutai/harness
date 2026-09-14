@@ -93,7 +93,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   its own enforcement layer. CLAUDE.md names `check-domain.py`, `bash-write-guard.py`,
   `validate-digest.py`, `check-state.sh`, `check-docs.sh`. The mission extends it to
   `bin/test-harness-yaml-corpus.py`; pm extended it further (D-05) to `bin/test-check-state.py`,
-  `bin/run-unit-tests.sh` and the new `bin/test-team-catalog.py` — **the user KEPT that extension**
+  `bin/run-unit-tests.py` and the new `bin/test-team-catalog.py` — **the user KEPT that extension**
   (Q5). Not re-litigated.
 - **The routing wall (measured at `635ef14`).** No agent domain grants write on
   `.claude/skills/harness/teams/**`, `.claude/skills/harness/SKILL.md` or
@@ -189,7 +189,7 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   by T-08's verify, but it is not matched by `test_kinds.unit.detect` — `…/bin/test-*.py` — so it
   is not evidence the unit runner can produce.)
   verify: automated        evidence: unit
-- SC-11: `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 across the full script list,
+- SC-11: `.claude/skills/harness/bin/run-unit-tests.py` exits 0 across the full script list,
   including any test script this feature adds — the drift detector at `:9` sees no unregistered
   `test-*.py`.
   verify: automated        evidence: unit
@@ -224,12 +224,12 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
 ## Verification gaps
 
 Read from `.harness/harness.json` `test_kinds`: **`unit` is the only kind with a runner**
-(`cmd: .claude/skills/harness/bin/run-unit-tests.sh`). `functional`, `integration`, `component`,
+(`cmd: .claude/skills/harness/bin/run-unit-tests.py`). `functional`, `integration`, `component`,
 `ui`, `eval` and `typecheck` all carry `cmd: null`. No SC above rests on a null kind.
 
 - **The whole-repo state-check diff has no runner.** SC-03 is `inspection` for that reason, not by
   preference: `test-check-state.py` only runs `check-state.sh` against throwaway temp roots
-  (`:160-167`) and `run-unit-tests.sh` runs only the scripts listed at `:6`. **What is therefore
+  (`:160-167`) and `run-unit-tests.py` runs only the scripts listed at `:6`. **What is therefore
   NOT proven by a test: that the INV-6 rewrite leaves every other invariant's verdict unchanged on
   the real tree.** It is carried by a human-read before/after diff captured ahead of T-01.
 - **Markdown behaviour has no runner.** SC-09, SC-10, SC-14 and SC-15 assert that `SKILL.md` and

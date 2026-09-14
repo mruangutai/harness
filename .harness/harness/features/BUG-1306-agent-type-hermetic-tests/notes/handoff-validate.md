@@ -31,7 +31,7 @@ INV-35 being line-based (bug — worked around here by rewording, not fixed in t
 - Do not re-pin again or re-run the panel; the pin is current, plan.yaml has not moved since it, and INV-33 is green — .harness/harness/features/BUG-1306-agent-type-hermetic-tests/feature.json — verified-at 6b2ef992
 - Do not edit `plan-merge.py`, add a shared `tests/integration/` helper, a second test file, a runner scrub, or a tree-wide env lint — plan.yaml D-01, D-03, D-04 — verified-at 6b2ef992
 - Do not "fix" the SC-04 / D-02 line numbers on the branch: BRIEF and plan are approval-gated and only the main session signs — .harness/harness/features/BUG-1306-agent-type-hermetic-tests/BRIEF.md ## Approval — verified-at 6b2ef992
-- Do not treat a green `run-unit-tests.sh --kind integration` as hermeticity evidence; `run_pool.py` passes ambient env through, so only the direct invocation measures it — notes/review-harness-qa-c0.md — verified-at 6b2ef992
+- Do not treat a green `run-unit-tests.py --kind integration` as hermeticity evidence; `run_pool.py` passes ambient env through, so only the direct invocation measures it — notes/review-harness-qa-c0.md — verified-at 6b2ef992
 - Do not record run dir `2026-09-05-05-validator`; its own state.yaml reads `status: superseded` and its record moved to `2026-09-05-06-validator` — runs/2026-09-05-05-validator/state.yaml — verified-at 6b2ef992
 
 ## Working set

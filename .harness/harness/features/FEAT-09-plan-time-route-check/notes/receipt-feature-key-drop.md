@@ -194,7 +194,7 @@ tasks:
   T-04: DONE
 trigger_gap:
   finding: 'NOTHING MECHANICAL INVOKES check-plan-routes.py. Verified by grep: check-state.sh
-    0 hits, check-docs.sh 0, settings.json 0 hooks, and run-unit-tests.sh runs only
+    0 hits, check-docs.sh 0, settings.json 0 hooks, and run-unit-tests.py runs only
     the TEST. The sole invocation is a SENTENCE — harness-spec-driven/SKILL.md:39
     telling harness-pm to run it. So FEAT-09 moves routing from build-time discovery
     to plan-time detection ONLY FOR PLANNERS THAT RUN THE SCRIPT. That is prose-only

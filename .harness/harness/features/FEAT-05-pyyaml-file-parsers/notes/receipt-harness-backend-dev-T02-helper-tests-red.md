@@ -1,13 +1,13 @@
 # Receipt — T-02 helper tests, RED — harness-backend-dev
 
 **BLUF:** `.claude/skills/harness/bin/test-harness-yaml.py` created with the nine named T-02 tests,
-`run-unit-tests.sh`'s `SCRIPTS` array updated, and the full suite verified RED (exit 1, no
+`run-unit-tests.py`'s `SCRIPTS` array updated, and the full suite verified RED (exit 1, no
 `MISCONFIGURED`, all 9 pre-existing suites still PASS). `harness_yaml.py` was NOT created — that's T-03.
 
 ## Verify — exact invocation, run twice, second run pasted verbatim (elision marked)
 
 ```
-CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.sh; echo $?
+CLAUDE_PROJECT_DIR=$(pwd) .claude/skills/harness/bin/run-unit-tests.py; echo $?
 ```
 
 ```
@@ -102,6 +102,6 @@ pre-existing suites report `PASS`. No `MISCONFIGURED` line anywhere in the outpu
 ## Files touched
 
 - `.claude/skills/harness/bin/test-harness-yaml.py` (new)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (SCRIPTS array)
+- `.claude/skills/harness/bin/run-unit-tests.py` (SCRIPTS array)
 - `.harness/features/FEAT-05-pyyaml-file-parsers/notes/receipt-harness-backend-dev-T02-helper-tests-red.md` (this file)
 - `.harness/features/FEAT-05-pyyaml-file-parsers/observations/harness-backend-dev.md` (new)

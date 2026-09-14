@@ -39,8 +39,8 @@ lanes:
 
 decisions:
   - id: D-01
-    choice: Host the CI-wiring predicate as new cases inside test-check-plan-routes.py rather than a new bin/test-ci-wiring.py registered in run-unit-tests.sh
-    because: run-unit-tests.sh line 41-56 exits 2 for any bin/test-*.py absent from both arrays, so a new file forces its registration line into the SAME PR that FEAT-27 is editing UNIT_SCRIPTS in; the alternative costs a merge wait plus a forced write into a live feature's file, and its only gain is a filename that describes the test. Cost accepted on this side - the assertion lives in a file whose name does not name it, and discoverability rests on reciprocal comments, the mechanism that has already rotted three times in tests.yml
+    choice: Host the CI-wiring predicate as new cases inside test-check-plan-routes.py rather than a new bin/test-ci-wiring.py registered in run-unit-tests.py
+    because: run-unit-tests.py line 41-56 exits 2 for any bin/test-*.py absent from both arrays, so a new file forces its registration line into the SAME PR that FEAT-27 is editing UNIT_SCRIPTS in; the alternative costs a merge wait plus a forced write into a live feature's file, and its only gain is a filename that describes the test. Cost accepted on this side - the assertion lives in a file whose name does not name it, and discoverability rests on reciprocal comments, the mechanism that has already rotted three times in tests.yml
     dec: none
   - id: D-02
     choice: Scope the Layout gate step and the integration job's container ban into the same predicate as the Plan-route gate
@@ -124,7 +124,7 @@ tasks:
            e. "step missing: Layout gate" if no step has name == "Layout gate"; if present, one
               behaviour check that its run body contains 'exit "$rc"' (tests.yml line 233).
            f. "step missing: Unit suite" if no step has name == "Unit suite"; if present, one
-              behaviour check that its run body contains "run-unit-tests.sh --kind unit"
+              behaviour check that its run body contains "run-unit-tests.py --kind unit"
               (tests.yml lines 75-79). It is a separate step from Integration suite on purpose,
               and FEAT-14/T-03 put the unit kind inside the required context precisely so the
               schema-refusal proof runs there; deleting it makes that proof unreachable while the
@@ -227,11 +227,11 @@ tasks:
          the same three things listed below, per mutation. They exist because a gate can be
          switched off without being deleted, and 26b-26h see only deletion.
          case_26k asserts the guard's OWN wiring, which nothing else can see: read
-         run-unit-tests.sh as text and assert "test-check-plan-routes.py" appears inside the
+         run-unit-tests.py as text and assert "test-check-plan-routes.py" appears inside the
          INTEGRATION_SCRIPTS array assignment, and assert the parsed step named "Integration suite"
-         has a run body containing "run-unit-tests.sh --kind integration". A guard nothing runs is
+         has a run body containing "run-unit-tests.py --kind integration". A guard nothing runs is
          this repository's most-repeated defect. Prove it can fail by running the same two checks
-         against a copy of the run-unit-tests.sh text with the filename removed, and a deep copy of
+         against a copy of the run-unit-tests.py text with the filename removed, and a deep copy of
          the document with the Integration suite step's run body replaced - never the real files.
          Five behaviours in item 2d means FIVE mutant cases: 26c exit capture, 26d missing-summary
          exit, 26j missing-examined exit, 26e examined-zero exit, 26f final exit rc. A single
@@ -274,7 +274,7 @@ tasks:
          nothing as a range. Keep the file's existing tone: state what a deletion would cost, not
          what the code does.
 
-      Do not touch run-unit-tests.sh. This file is already in INTEGRATION_SCRIPTS (line 18), which
+      Do not touch run-unit-tests.py. This file is already in INTEGRATION_SCRIPTS (line 18), which
       is the array the required integration context runs.
 
   - id: T-02

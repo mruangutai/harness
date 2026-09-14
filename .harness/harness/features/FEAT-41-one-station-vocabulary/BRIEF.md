@@ -246,7 +246,7 @@ Proposed only. These become GitHub issues when the main session accepts the ship
 build, and not opened by an agent. The row exists so a deferral has an instrument instead of
 living in prose that nothing ever reads again.
 
-- **PB-01 — case selection for `run-unit-tests.sh`.** Let a `verify:` name the cases it needs
+- **PB-01 — case selection for `run-unit-tests.py`.** Let a `verify:` name the cases it needs
   instead of running a whole test file. `test-gh-sync.py` costs 149 s and this plan runs it in
   full three times (T-06, T-07 and T-10), about 447 s, against a 60-second-per-verify guideline.
   Recovers roughly 300 s on a plan of this shape and takes future verifies back under the guideline.

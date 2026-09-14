@@ -95,6 +95,6 @@ REQ-01→T-01; REQ-02→T-01; REQ-03→T-02; REQ-04→T-05,T-06,T-07,T-08; REQ-0
 eight tasks trace ≥1 REQ. SC-01,02,09→T-01; SC-03→T-02; SC-04's fifteen files = T-05(4)+T-06(3)+T-07(7)+T-08(1),
 all fifteen present; SC-05→T-04; SC-06/07→suite (T-02,T-03,T-04); SC-08→T-06+T-02. Every
 `verify: automated` names an active non-null kind in `.harness/harness.json`: `unit`
-(`run-unit-tests.sh --kind unit`) for SC-05/06, `integration` (`--kind integration`) for SC-02/07/08.
+(`run-unit-tests.py --kind unit`) for SC-05/06, `integration` (`--kind integration`) for SC-02/07/08.
 No SC rests on a null kind (`component`, `ui`, `eval`, `typecheck`, `functional` all `cmd: null`).
 *Disposition: coverage passes; no orphan to report.*

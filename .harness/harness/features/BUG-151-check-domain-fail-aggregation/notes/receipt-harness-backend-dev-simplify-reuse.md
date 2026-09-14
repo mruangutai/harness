@@ -24,7 +24,7 @@ tree already carries in importable form.
 - Sweep for `startswith("FAIL")` / `startswith('FAIL')` repo-wide — no hits outside the new code.
 - Sweep for a `run_`-prefix discovery idiom (`globals().items()` filtered by `startswith("run_")`)
   repo-wide — no hits outside the new code.
-- `.claude/skills/harness/bin/run-unit-tests.sh` (the only other place a "block of tests failed"
+- `.claude/skills/harness/bin/run-unit-tests.py` (the only other place a "block of tests failed"
   aggregation rule could plausibly already live) — its pass/fail signal is each script's process
   exit code via `run_pool.py --mutation-check`, not a printed-line convention. No FAIL-line counting
   rule to duplicate.
@@ -44,8 +44,8 @@ None.
    silence the live run for its ~24s+ duration and defeat the reason this safeguard exists. Not a
    finding — `_AggTee` delivers a distinct, previously-absent capability, not a restatement of one.
 
-2. **The column-0 `FAIL`/`ok` counting convention vs. `run-unit-tests.sh` or another test's own
-   aggregation.** `run-unit-tests.sh` aggregates by process exit code through `run_pool.py`, never
+2. **The column-0 `FAIL`/`ok` counting convention vs. `run-unit-tests.py` or another test's own
+   aggregation.** `run-unit-tests.py` aggregates by process exit code through `run_pool.py`, never
    by scanning printed text for a `FAIL` prefix. No other file in the tree parses `FAIL` lines by
    column-0 prefix for a self-check. `_aggregation_verdict`'s zeroness-agreement rule (D-01) is
    novel to this change; there is nothing existing to import instead.

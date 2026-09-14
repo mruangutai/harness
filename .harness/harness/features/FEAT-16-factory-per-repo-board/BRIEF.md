@@ -91,9 +91,9 @@ second requirement no task can serve.
   `Backlog,Plan,Ready,Building,Review,Done,` (trailing comma from `tr`, run and pasted, not
   constructed).
   verify: inspection
-- SC-08: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` exits 0 on the finished feature.
+- SC-08: `.claude/skills/harness/bin/run-unit-tests.py --kind unit` exits 0 on the finished feature.
   verify: automated      evidence: unit
-- SC-09: `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` exits 0 on the finished
+- SC-09: `.claude/skills/harness/bin/run-unit-tests.py --kind integration` exits 0 on the finished
   feature.
   verify: automated      evidence: integration
 - SC-10: The feature's diff changes none of the four DEC-174 carve-out scripts. Mechanically:

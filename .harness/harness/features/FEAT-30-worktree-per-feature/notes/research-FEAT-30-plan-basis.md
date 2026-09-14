@@ -4,7 +4,7 @@
 of the 12 criteria mapped, `check-plan-routes.py` exit 0. Two things the dispatch did not name and the
 plan now carries: `check-domain.py`'s shape phase holds a **second and third** fixed-segment
 assumption that the `<repo>/<id>` layout silently breaks, and the two new test files must be
-registered before any verify may route through `run-unit-tests.sh`.
+registered before any verify may route through `run-unit-tests.py`.
 
 ## The finding that changed the shape of REQ-08 (measured this run, at eeabc59)
 
@@ -47,11 +47,11 @@ that the checker cannot validate laning: `.claude/skills/harness/bin/**` resolve
 
 ## The registration trap, re-measured
 
-- `run-unit-tests.sh:18` `INTEGRATION_SCRIPTS` — 12 explicit entries at eeabc59.
+- `run-unit-tests.py:18` `INTEGRATION_SCRIPTS` — 12 explicit entries at eeabc59.
 - `.harness/harness.json` `test_kinds.integration.detect` — `tests/integration/**` plus **four**
   explicit files (`test-check-state.py`, `test-factory-integration.py`, `test-gh-sync.py`,
   `test-check-plan-routes.py`). Not a wildcard over `bin/test-*.py`. Confirmed by reading the file.
-- `run-unit-tests.sh:38-40` runs a drift detector over the UNION of both arrays, so a new
+- `run-unit-tests.py:38-40` runs a drift detector over the UNION of both arrays, so a new
   `test-*.py` that exists but is unregistered makes the RUNNER fail. That is why D-06 exists: every
   verify before T-08 invokes its test file directly with `python3`, and only T-09 and T-08 call the
   runner.

@@ -6,7 +6,7 @@
   covering test exists, so the stale glob DOES feed the step-4 presence check. The ruling still
   holds, but the correct footing is `:96` ("a runner that silently matched nothing has told you the
   glob is wrong") keyed on the RUNNER's discovery, plus `:73` defining `satisfied` as "at least one
-  named test ran, none failed" — named tests, not globs. `run-unit-tests.sh --kind integration`
+  named test ran, none failed" — named tests, not globs. `run-unit-tests.py --kind integration`
   discovers and runs `test-check-expertise.py`, so neither the FAIL at `:74` nor the BLOCKED at
   `:76`/`:96` fires. Lesson: when a dispatch hands me a ruling to relay, re-derive its mechanism
   before passing it down, because the member inherits my error and cannot see past it.

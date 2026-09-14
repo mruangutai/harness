@@ -95,7 +95,7 @@ under `.claude/skills/harness/bin/` at the pin for `test_kinds` and for `"cmd"`/
 substrings (Python string search, not shell grep), and separately checked `.github/workflows/tests.yml`
 and the `.claude`/`.github` hook surfaces:
 
-- **`run-unit-tests.sh:108`** reads only `test_kinds.integration.detect` (a pipe-separated glob),
+- **`run-unit-tests.py:108`** reads only `test_kinds.integration.detect` (a pipe-separated glob),
   set-compares it against its own two literal bash arrays, and runs only what those arrays name
   (`python3 "$BIN_DIR/$s"`, `:149`). Nothing parsed from `detect` reaches argv.
 - **`check-state.sh`** reads `cj` (parsed `harness.json`) for `test_kinds`-scoped INV checks; zero
@@ -138,19 +138,19 @@ question, correctly not gated here.
   **zero** `check-decision-claims` references, and **zero** `ALLOWED_FIRST_TOKENS`/
   `ALLOWED_GIT_SUBCOMMANDS` self-references (the grilling note's own pre-flight fact — verified
   independently, not taken on trust).
-- `run-unit-tests.sh`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` bash arrays: no
+- `run-unit-tests.py`'s `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` bash arrays: no
   `test-check-decision-claims.py` entry in either. `.harness/harness.json`'s `test_kinds.integration.detect`
   gained exactly one entry (`test-check-decision-anchors.py`) and lost none — consistent with T-25's
   scope.
 - **No surviving path found** by which `DECISIONS.md` text, or any other parsed document, reaches a
-  subprocess argv, `eval`, or a shell — directly, via the index generator, via `run-unit-tests.sh`,
+  subprocess argv, `eval`, or a shell — directly, via the index generator, via `run-unit-tests.py`,
   via a hook, or via CI.
 
 ## 3. Sweep of the shared file set — explicit verdict per area
 
 | Area | Verdict | What I measured |
 |---|---|---|
-| `run-unit-tests.sh` (T-24, array entry) | **Nothing to report.** | Confirmed no claims-test entry remains in either bash array; `detect` string is set-compared only, never executed (re-derived above). |
+| `run-unit-tests.py` (T-24, array entry) | **Nothing to report.** | Confirmed no claims-test entry remains in either bash array; `detect` string is set-compared only, never executed (re-derived above). |
 | `check-decision-claims.py` + test (T-24, deleted) | **Deletion verified complete** (§2). | Accepted, signed cost per Contract 3 — not re-reported as a gap. |
 | `gen-decisions-index.py` (T-06/T-10 + SIMPLIFY) | **Nothing to report.** | Read the full 311-line file at the pin: pure regex text transform over `DECISIONS.md` (heading/ref/tag extraction), writes only to the fixed literal `INDEX_PATH` or stdout. No `subprocess`/`eval`/`os.system`/`shell=` anywhere — it is correctly absent from the 70-file candidate enumeration. The diff (`164` lines changed) removes the amendment/supersession regex machinery (`AMEND_HEADING_RE`, `SUPERSESSION_VERB_RE`, `compute_amendments`) to match DECISIONS.md's new no-amendment shape; no new parsing surface introduced. |
 | `check-decision-anchors.py` + test (RETAINED, frozen) | **Frozen and verified byte-identical to `99bb52c`** — sha256 `adb9a648cf…` and `7a4e0ba1af…`, both match the dispatch's pinned hashes exactly (measured, not assumed). Per Contract 2, not re-reviewed for content or re-reported for its stale docstring reference. |

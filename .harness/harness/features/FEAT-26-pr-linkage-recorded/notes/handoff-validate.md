@@ -15,7 +15,7 @@ Three things it leaves open, all filed or recorded rather than carried:
   `pr: null` and INV-28 names it. That is REQ-04 working, not a defect.
 
 ## Trust
-- `run-unit-tests.sh --kind all` at merge: **45 scripts PASS, 0 FAIL, exit 0**.
+- `run-unit-tests.py --kind all` at merge: **45 scripts PASS, 0 FAIL, exit 0**.
 - Goal-check: **11 of 11 signed criteria MET, 0 NOT MET, 0 UNVERIFIABLE**, each row citing a
   command run in the worktree or a `file:line` read.
 - `check-state.sh` at merge: one violation, FEAT-34's unsigned BRIEF — a different flow.

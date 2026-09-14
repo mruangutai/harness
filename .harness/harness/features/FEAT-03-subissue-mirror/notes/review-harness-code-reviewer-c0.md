@@ -20,7 +20,7 @@ that was correct, but `e68ba00`'s own commit appended a `runs:` entry to the sam
 block to `:75-78` in the very commit that lands the citation. Values unchanged, line number stale by
 2 — a docs-accuracy nit, not an SC-10 violation.
 
-`run-unit-tests.sh` re-run live, independent of the digests: **exit 0**, all three scripts PASS,
+`run-unit-tests.py` re-run live, independent of the digests: **exit 0**, all three scripts PASS,
 `ALL PASSED` from `test-gh-sync.py`. `check-docs.sh` exit 0, 45 patterns / 73 files. Every
 discriminating grep in PLAN's verify blocks re-run directly against the working tree, not taken on
 the digests' word (SC-06's four, D-01's regression guard, the `"gh"` literal, `amendment 7`) — all
@@ -32,8 +32,8 @@ match the expected post-task values.
 
 Every change traces to a task/`REQ`/`D`. Walked T-01 through T-08 against the diff line by line:
 
-- **T-01** (`run-unit-tests.sh`, `harness.json`): streams child stdout/stderr unfiltered
-  (`run-unit-tests.sh:26`, bare `python3 "$BIN_DIR/$s"`, no capture/tee/redirect), exit 2 for an
+- **T-01** (`run-unit-tests.py`, `harness.json`): streams child stdout/stderr unfiltered
+  (`run-unit-tests.py:26`, bare `python3 "$BIN_DIR/$s"`, no capture/tee/redirect), exit 2 for an
   unlisted `test-*.py` via the untouched glob drift-detector, exit 0/1 otherwise. `harness.json`
   diff is exactly the two specified keys, `exclude` byte-identical. Matches D-04/T-01 exactly.
 - **T-02** (`gh_issues.py`, `wayfind.py`): five functions as specified, argv builders only. Carve-out

@@ -39,9 +39,9 @@ else this reader checked, including six file:line anchors, matches the tree.**
   (`HANDOFF_HEADINGS`), :1199 (`miss = …`), :1219 (heading-body loop) all correct; check-domain.py's
   `"handoff shape (DEC-159)."` head at :1512-1527 correct; `_root()` (check-domain.py:128) and the
   `sys.path.insert` / `import harness_yaml` sibling pattern (check-state.sh:38,51-52) both exist as
-  T-04/T-07 assume; `cj` (check-state.sh:980) exists; the `KINDCHECK` heredoc (run-unit-tests.sh
+  T-04/T-07 assume; `cj` (check-state.sh:980) exists; the `KINDCHECK` heredoc (run-unit-tests.py
   :111-163) matches T-12's post-c2 anchor exactly; `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS`
-  (run-unit-tests.sh:30-31) already list `test-check-domain.py`/`test-check-state.py`/
+  (run-unit-tests.py:30-31) already list `test-check-domain.py`/`test-check-state.py`/
   `test-run-unit-tests-kinds.py` as the plan assumes.
 
 ## Finding

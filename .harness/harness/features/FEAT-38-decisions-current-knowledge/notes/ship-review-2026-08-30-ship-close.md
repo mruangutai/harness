@@ -25,7 +25,7 @@ measured against your **local** `main`, which is itself **2 ahead and 19 behind 
 The 19 upstream commits are **FEAT-44** (the OMP-native context advisory, PRs #982 and #995).
 Three files conflict:
 
-- `.claude/skills/harness/bin/run-unit-tests.sh` — both features registered new test scripts
+- `.claude/skills/harness/bin/run-unit-tests.py` — both features registered new test scripts
 - `.harness/harness.json` — both edited `test_kinds`
 - `.harness/harness/docs/DECISIONS-INDEX.md` — **generated**; FEAT-44 regenerated it after amending
   DEC-198, DEC-201 and DEC-159. It should be regenerated, never hand-merged.

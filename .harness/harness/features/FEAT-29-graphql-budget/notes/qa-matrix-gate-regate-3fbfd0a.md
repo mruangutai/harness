@@ -10,8 +10,8 @@ unreverted probe is gone; nothing landed from mine either (see §3).
 
 ## Verify string cross-check
 
-Caller's string: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`
-plan.yaml T-03 `verify:` (literal): `.claude/skills/harness/bin/run-unit-tests.sh --kind unit\n`
+Caller's string: `.claude/skills/harness/bin/run-unit-tests.py --kind unit`
+plan.yaml T-03 `verify:` (literal): `.claude/skills/harness/bin/run-unit-tests.py --kind unit\n`
 **Match** (trailing newline is YAML block-scalar formatting, not a content difference). No BLOCKED.
 
 ## 1. Delta claim — verified, not assumed
@@ -89,8 +89,8 @@ not resolved by me.
 `gh_cost_log`/`HARNESS_GH_COST_LOG`/`measured(`: **zero matches in all four.** No file matched by
 `test_kinds.integration.detect` contains any test covering T-03's change.
 
-**(b) array membership**: `run-unit-tests.sh:17` — `test-gh-cost-log.py` is the 18th (last) entry
-in `UNIT_SCRIPTS`. `run-unit-tests.sh:18` — `INTEGRATION_SCRIPTS` does not contain it. So the file
+**(b) array membership**: `run-unit-tests.py:17` — `test-gh-cost-log.py` is the 18th (last) entry
+in `UNIT_SCRIPTS`. `run-unit-tests.py:18` — `INTEGRATION_SCRIPTS` does not contain it. So the file
 that DOES drive both wrap sites (§1) only ever executes under `--kind unit`; `--kind integration`
 never runs it, regardless of what it tests.
 

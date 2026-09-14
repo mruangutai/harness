@@ -86,7 +86,7 @@ neither is general: (1) T-03's `verify:` block in `plan.yaml` greps ok-line TEXT
 (`hasok "case 22: ..."`), which fails regardless of exit code if case 22 reddens; (2) the same
 verify's `k -ge 41` ok-line-count threshold would ALSO catch a case-18 regression, because a failed
 case prints `FAIL - ` instead of `ok   - `, decrementing the count independently of exit status. But
-`run-unit-tests.sh:59-66` — the actual CI/QA gate for `--kind unit` — routes purely on
+`run-unit-tests.py:59-66` — the actual CI/QA gate for `--kind unit` — routes purely on
 `python3 "$s"; status=$?`, with no line-count or text check at all. So the general CI gate has no
 backstop, and a future regression to any of case 18's three assertions (or the 3 in
 test-check-state.py) would go undetected there indefinitely. **Severity: med, advisory** — real,

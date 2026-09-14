@@ -123,13 +123,13 @@ tasks:
 
       1. DECISIONS.md, DEC-174, the EVIDENCE SENTENCE ONLY. At 41c16c7 it is lines 4308-4309 and
          reads: "The evidence, all from 2026-08-03 and all on this repo. Every gate was green -
-         run-unit-tests.sh, check-docs.sh, check-state.sh, gen-decisions-index.py --check - while:"
+         run-unit-tests.py, check-docs.sh, check-state.sh, gen-decisions-index.py --check - while:"
          (the file spells the command names and the bold lead-in with its own backtick and asterisk
          markup; re-read the region before editing, since line numbers move). Rewrite that sentence
          so it states current truth. It MUST, after the edit:
            - keep the bold lead-in naming the date, and keep the sentence ending with "while:" so the
              three-bullet defect list that follows still reads as its continuation;
-           - name only run-unit-tests.sh, check-docs.sh and check-state.sh as the gates that were
+           - name only run-unit-tests.py, check-docs.sh and check-state.sh as the gates that were
              green, because those three were;
            - say of gen-decisions-index.py --check, using these EXACT contiguous phrases, which this
              task's verify greps after collapsing whitespace and stripping backticks, asterisks and
@@ -187,11 +187,11 @@ tasks:
     intent: |
       One edit, in .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md.
 
-      At 41c16c7 lines 14-15 read: "All four gates green: run-unit-tests.sh 0 (11 suites),
+      At 41c16c7 lines 14-15 read: "All four gates green: run-unit-tests.py 0 (11 suites),
       check-docs.sh 0, check-state.sh 0, gen-decisions-index.py --check 0. Every .harness slash-star
       yaml parses." (the file carries backtick and asterisk markup; re-read the two lines before
       editing). Rewrite them IN PLACE so they say:
-        - three gates were green, naming run-unit-tests.sh 0 with its 11 suites, check-docs.sh 0 and
+        - three gates were green, naming run-unit-tests.py 0 with its 11 suites, check-docs.sh 0 and
           check-state.sh 0, and keep the sentence that every .harness YAML file parses - both claims
           are true and are not what this feature corrects;
         - that the fourth entry, gen-decisions-index.py --check 0, is corrected on 2026-09-06 under

@@ -100,7 +100,7 @@ alternative — accept the revocation — moves every harness doc and CI edit in
   governed write from a fixture root.
 - `workspace_path()` is called, never restated: `factory_config.workspace_path(fleet, name)` for each
   `fleet["repos"][].name`.
-- `test-check-domain.py` is already registered in `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS`, so no
+- `test-check-domain.py` is already registered in `run-unit-tests.py`'s `INTEGRATION_SCRIPTS`, so no
   new file and no new registration (G-08 does not fire).
 
 ## 5. Fail-closed repair path — confirmed, no deadlock
@@ -210,7 +210,7 @@ execution_reason: carve-out (check-domain.py is named in CLAUDE.md's DEC-174 lis
   inexpressible under prefix inference; the fix revokes documentor's and dev-ops's routes to live
   files and turns a required CI check red. Operator's call before signature.
 - **Q2 (not blocking).** `harness.json`'s `unit` detect glob (`...bin/test-*.py`) claims
-  `test-check-domain.py`, but `run-unit-tests.sh` runs it from `INTEGRATION_SCRIPTS`. Every SC here
+  `test-check-domain.py`, but `run-unit-tests.py` runs it from `INTEGRATION_SCRIPTS`. Every SC here
   names `evidence: integration`, which is the bucket that actually executes it. The detect/runner
   disagreement is pre-existing and belongs in the backlog.
 - **Q3 (not blocking).** `bash-write-guard.py` has its own outside-repo rule and is untouched here,

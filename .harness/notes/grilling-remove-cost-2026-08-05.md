@@ -48,7 +48,7 @@ All at `ae2443d`.
 - **The sweep is 18 files**, unchanged since the ticket was filed:
   `grep -rln -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11` over `.claude/`,
   `docs/`, `harness.json` and `team-config.yaml`.
-- **`cost-report.py` is 439 lines; `test-cost-report.py` is 94.** `run-unit-tests.sh:6` lists the
+- **`cost-report.py` is 439 lines; `test-cost-report.py` is 94.** `run-unit-tests.py:6` lists the
   test in `SCRIPTS`, and the script has a drift detector that fails when a `test-*.py` exists outside
   that list — so **both must be deleted together**, or the runner breaks.
 - **INV-11 sites in `check-state.sh`:** the rule at `:369-373` ("run is complete but has no cost:
@@ -75,11 +75,11 @@ All at `ae2443d`.
   tradeoffs and context expense, not the budget line — do not edit those.
 - **`check-state.sh` and `validate-digest.py` are inside the DEC-174 carve-out**, so their edits are
   direct, tests run explicitly, a human reading the diff. `cost-report.py`, `test-cost-report.py`,
-  `run-unit-tests.sh` and `harness.json` are granted to `harness-backend-dev`
+  `run-unit-tests.py` and `harness.json` are granted to `harness-backend-dev`
   (`team-config.yaml:155`) and `harness-dev-ops` (`:197`); `docs/**` to `harness-documentor`
   (`:116`). `.claude/skills/harness/SKILL.md`, `.claude/skills/harness-team/SKILL.md`,
   `.claude/agents/*.md` and `teams/*.yaml` are granted to nobody — declared main-session steps.
-- **Gates green at `ae2443d`:** `run-unit-tests.sh` exit 0, `check-docs.sh` exit 0,
+- **Gates green at `ae2443d`:** `run-unit-tests.py` exit 0, `check-docs.sh` exit 0,
   `check-state.sh` zero violations.
 - **The strongest evidence for the removal is FEAT-07 itself:** it finished at $702.82 against a
   $550 budget produced by the orchestrator's own arithmetic, and the meter could not see the eight

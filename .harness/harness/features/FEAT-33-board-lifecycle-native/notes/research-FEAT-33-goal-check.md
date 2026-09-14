@@ -16,7 +16,7 @@
 > | SC-11 | NOT MET | not_met | unchanged — `uat`, awaiting the operator's own run |
 
 Graded against the working tree at `e8a6058` + fix cycle c1 (uncommitted). Suite and gate re-run by
-me, not read off a report: `run-unit-tests.sh` exit **0**, `grep -c '^FAIL'` = **0**,
+me, not read off a report: `run-unit-tests.py` exit **0**, `grep -c '^FAIL'` = **0**,
 `test-board-lifecycle.py` PASS (line 1248 of the captured log); `check-state.sh` exit **0**,
 `grep -c '^  VIOLATION'` = **0** (condition: FEAT-34's BRIEF signature is uncommitted — the 0 depends
 on it).
@@ -103,7 +103,7 @@ renamed titles — stated in the report), and the points are recorded (436) but 
 ## Smaller record defects, none of them gaps in proof
 
 - **Evidence-kind mislabel on three SCs.** SC-13, SC-14 and SC-17 declare `evidence: unit`, and
-  their assertions live in `test-gh-sync.py`, which `run-unit-tests.sh:18` registers as
+  their assertions live in `test-gh-sync.py`, which `run-unit-tests.py:18` registers as
   **integration**. Assertions exist and run; the label is wrong.
 - **SC-20's "once the status is Done" clause is untestable and the test says so** — the terminal
   exemption `continue`s before the per-task comparison, so no status-Done fixture can produce an

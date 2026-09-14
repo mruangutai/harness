@@ -64,11 +64,11 @@ code always preserves the original gh text and never mentions "GraphQL budget ex
 ## `task_verify` — run exactly, verbatim from plan.yaml T-04
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Captured exit status into a variable (not read from `tail`), and counted `^FAIL ` lines across
-the full output, per the dispatch's warning about `run-unit-tests.sh`'s own trailing
+the full output, per the dispatch's warning about `run-unit-tests.py`'s own trailing
 `N/N checks passed` line masking a red suite:
 
 ```

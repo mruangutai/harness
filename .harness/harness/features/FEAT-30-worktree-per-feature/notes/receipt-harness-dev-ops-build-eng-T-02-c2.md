@@ -103,6 +103,6 @@ concurrent work per the dispatch's own note. No file under my write scope change
 
 ## Not done here
 
-No change to `feature-worktree.py` or `test-feature-worktree.py`. `run-unit-tests.sh` not invoked
+No change to `feature-worktree.py` or `test-feature-worktree.py`. `run-unit-tests.py` not invoked
 (D-06). Nothing staged or committed. `harness_boundary.py`, `check-domain.py`,
 `bash-write-guard.py`, and their test files untouched.

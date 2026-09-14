@@ -84,7 +84,7 @@ Observed exit status: `0`.
 - `.claude/skills/harness/bin/test-wayfind.py`: new, in the sibling idiom
   (`test-no-distribution.py`) — module-level `failures`, `check(name, cond, detail)`,
   plain `case_N_...` functions, `main` exits 1 on failure, runnable directly with
-  `python3`, no pytest. Not registered in `run-unit-tests.sh` — T-03 owns that, per its
+  `python3`, no pytest. Not registered in `run-unit-tests.py` — T-03 owns that, per its
   own intent (see notes below).
 
 ## Decisions recorded (reversible, mine to make)
@@ -109,10 +109,10 @@ Observed exit status: `0`.
 
 ## Notes for the reviewer / T-03
 
-- Confirmed by reading `run-unit-tests.sh` and `harness.json:105` (per this task's
+- Confirmed by reading `run-unit-tests.py` and `harness.json:105` (per this task's
   instructions — not touched): the unit-test detect glob at `harness.json:105` already
   includes `.claude/skills/harness/bin/test-*.py`, so `test-wayfind.py` needs no new glob
-  entry. `run-unit-tests.sh` itself was not touched, per this task's file scope; the T-01
+  entry. `run-unit-tests.py` itself was not touched, per this task's file scope; the T-01
   receipt already flags that its own drift detector does not yet know about
   `test-harness-boundary.py`, and the same applies here — T-03 owns wiring both in.
 - `harness_boundary.py` was not modified by this task; only imported.

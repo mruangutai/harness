@@ -138,7 +138,7 @@ Two remaining items are pm's work at plan time, not user decisions:
   and the historical FEAT-32 receipts (which record what was true and are not callers):
   `test-plan-merge.py` (13 refs), `check-domain.py` (3), `test-observations-merge.py` (2),
   `harness-orchestrator.md` (2), and one each in `DECISIONS.md`, `harness.json`,
-  `test-check-domain.py`, `run-unit-tests.sh`, `harness_yaml.py`, `expertise-merge.py` and
+  `test-check-domain.py`, `run-unit-tests.py`, `harness_yaml.py`, `expertise-merge.py` and
   `harness-spec-driven/SKILL.md`.
 - 37 `feature.json` on disk carry a `status` key; the schema lists it in `required` with
   `additionalProperties: false`.

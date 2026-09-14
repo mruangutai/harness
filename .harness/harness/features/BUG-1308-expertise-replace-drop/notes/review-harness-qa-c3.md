@@ -127,10 +127,10 @@ assurance is bounded to the known universe as of this Python.
 Run from worktree root, `env -u HARNESS_AGENT_TYPE` (Expertise G-07 — without it `test-plan-merge.py`
 false-fails, unrelated to this diff).
 
-- **unit**: `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit`
+- **unit**: `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit`
   → exit **0**, `^FAIL ` count **0**, **28 files** (`pool: 8 workers, 28 files, 3.66s wall`) — matches baseline.
 - **integration**: no `run-integration-tests.sh` exists; used
-  `run-unit-tests.sh --kind integration` per the fallback instruction
+  `run-unit-tests.py --kind integration` per the fallback instruction
   → exit **0**, `^FAIL ` count **0**, **46 files** (`pool: 8 workers, 46 files, 86.98s wall`) — matches baseline.
 - `test-expertise-ops.py` (unit): exit 0, 0.08s — includes u17 (20 sub-cases) and u18 (20 sub-cases), all PASS.
 - `test-expertise-merge.py` (integration): exit 0, 10.51s — includes case21 (38 sub-checks) and case22

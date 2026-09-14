@@ -184,13 +184,13 @@ findings:
     reader: should-not-exist
     severity: info
     summary: "Standing question answered: nothing in this plan should not be built, and the census re-verification at 047f6914 confirms the derived-scope design absorbed a real rebase without a single plan edit — a 60th test file, a 193rd decision and a new zero-write test file falsified zero sentences"
-    pointer: "plan.yaml:472-473; run-unit-tests.sh:148; test-quarantine.py:93"
+    pointer: "plan.yaml:472-473; run-unit-tests.py:148; test-quarantine.py:93"
     disposition: open
   - id: PF-e69c81bad62702c3e661936347e706c4
     reader: goalcheck
     severity: med
     summary: "No criterion would fail if issue #1053's own symptom persisted; SC-05's ten runs are declared non-probative by the BRIEF and nothing asserts test-gh-sync.py passes N consecutive 8-worker runs"
-    pointer: "BRIEF.md:127-131; run-unit-tests.sh:31; plan.yaml:262-272"
+    pointer: "BRIEF.md:127-131; run-unit-tests.py:31; plan.yaml:262-272"
     disposition: open
   - id: PF-e2842b1b847c003d6ef308c31b0f40b2
     reader: code-reviewer

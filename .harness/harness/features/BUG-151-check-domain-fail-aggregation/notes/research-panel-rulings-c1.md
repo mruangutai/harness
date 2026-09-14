@@ -2,7 +2,7 @@
 
 **Both rulings are in the plan and the panel is transcribed. `approval.status` stays `pending`,
 `status: plan`, no new task ids, no source code touched.** The layout-gate question was **CHECKED**,
-not merely specified: `run-unit-tests.sh --check-layout` exits 0 with
+not merely specified: `run-unit-tests.py --check-layout` exits 0 with
 `tests/integration/_bug151_baseline.py` present.
 
 ## What changed
@@ -55,8 +55,8 @@ not merely specified: `run-unit-tests.sh --check-layout` exits 0 with
 - T-01 `intent` line count **85 → 56**; still contains `_AggTee`, `_aggregation_verdict`,
   `run_bug151_selfcheck_cases` and cases (a)–(f) (each verified present).
 - Layout gate, CHECKED in the worktree: scratch `tests/integration/_bug151_baseline.py` created →
-  `.claude/skills/harness/bin/run-unit-tests.sh --check-layout` → **exit 0, no output**; the flag is
-  real (`run-unit-tests.sh:20,33-45` runs `suite_layout.violations` before the early exit). Scratch
+  `.claude/skills/harness/bin/run-unit-tests.py --check-layout` → **exit 0, no output**; the flag is
+  real (`run-unit-tests.py:20,33-45` runs `suite_layout.violations` before the early exit). Scratch
   removed; `git status --porcelain` shows only the pre-existing untracked feature dir.
 - `check-plan-routes.py <plan.yaml>` → `0 violation(s)`, exit 0.
 

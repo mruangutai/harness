@@ -283,7 +283,7 @@
     "unit": {
       "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
-      "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind unit",
+      "cmd": ".agents/skills/harness/bin/run-unit-tests.py --kind unit",
       "status": "active"
     },
     "functional": {
@@ -291,7 +291,7 @@
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
       "cmd": null,
       "status": "excluded",
-      "excluded_because": "this repository ships no service API, and run-unit-tests.sh splits its suite by the tests/unit and tests/integration directories. There is no third bucket; pointing functional at either would double-count files the other kind already runs.",
+      "excluded_because": "this repository ships no service API, and run-unit-tests.py splits its suite by the tests/unit and tests/integration directories. There is no third bucket; pointing functional at either would double-count files the other kind already runs.",
       "signed": "DEC-187"
     },
     "omp_session_accessor": {
@@ -318,7 +318,7 @@
     "integration": {
       "detect": "tests/integration/**",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
-      "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind integration",
+      "cmd": ".agents/skills/harness/bin/run-unit-tests.py --kind integration",
       "status": "active"
     },
     "component": {

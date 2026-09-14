@@ -36,9 +36,9 @@ suite.
 
 | Command | Exit | Notes |
 |---|---|---|
-| `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` | **0** | re-run fresh, matches orchestrator's independent re-run |
+| `.claude/skills/harness/bin/run-unit-tests.py --kind unit` | **0** | re-run fresh, matches orchestrator's independent re-run |
 | T-03's verify heredoc (`.github/workflows/tests.yml` + `.harness/harness.json` checks) | **0**, output `OK` | |
-| `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` | **0** | baseline before/after mutation work, E1 fix confirmed live |
+| `.claude/skills/harness/bin/run-unit-tests.py --kind integration` | **0** | baseline before/after mutation work, E1 fix confirmed live |
 
 `suite: pass`, `failures: 0`.
 
@@ -46,7 +46,7 @@ suite.
 
 `change_type: logic` (T-01) → `always: [unit]` per `harness.json:6-9`. Satisfied:
 `test-validate-feature-json.py`, 19 case functions (listed below), registered in
-`UNIT_SCRIPTS` (`run-unit-tests.sh:17`), not `INTEGRATION_SCRIPTS`.
+`UNIT_SCRIPTS` (`run-unit-tests.py:17`), not `INTEGRATION_SCRIPTS`.
 `change_type: config` (T-03) → `harness.json:68-70` `config.always: []`, nothing required; the
 work is CI wiring, verified by the plan's own heredoc, exit 0. `matrix_ok: true`.
 
@@ -133,7 +133,7 @@ the schema stops closing the top level to `phase`.
 
 Each mutant was applied, run, and restored **before the next was applied** (sequential, per
 dispatch instruction — no batching). Full-suite green re-confirmed after all five
-(`run-unit-tests.sh --kind unit` exit 0, `git status --porcelain .claude/skills/harness/bin/`
+(`run-unit-tests.py --kind unit` exit 0, `git status --porcelain .claude/skills/harness/bin/`
 empty).
 
 **M5 added beyond the dispatch's four, measured not reasoned (closing an advisor-flagged gap):**

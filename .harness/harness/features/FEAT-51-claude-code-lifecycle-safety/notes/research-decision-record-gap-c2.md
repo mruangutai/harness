@@ -29,7 +29,7 @@ and runs `test-gen-decisions-index.py` — all three are green over an entry tha
 T-06's `verify:` and `files:` cannot be edited, so the assertion cannot live in T-06.
 
 T-08 adds two functions to `.claude/skills/harness/bin/test-gen-decisions-index.py` (integration,
-already registered — no `run-unit-tests.sh` / `harness.json` change, no `DECISIONS.md` edit, so no
+already registered — no `run-unit-tests.py` / `harness.json` change, no `DECISIONS.md` edit, so no
 index regeneration is owed). It follows the precedent already in that file at `:829`,
 `test_no_amendment_construct_survives_in_the_authority`, which guards the **live** authority rather
 than a fixture. Region sliced `## DEC-209` → next `^##\s+DEC-\d+` through the file's own fence

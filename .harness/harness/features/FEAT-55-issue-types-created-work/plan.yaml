@@ -96,7 +96,7 @@ decisions:
     because: DEC-205 ended the amendment-sub-section convention even though DEC-138's own history used it.
     dec: DEC-205
   - id: D-08
-    choice: 'the eighth read-back purpose is written into DEC-203''s own copy of the enumerated list AND into the table in .claude/skills/harness/references/github-mirror.md, in identical wording, as ONE row covering only the reads THIS feature introduces - the capability-and-declared-names query, the node identifier of an issue whose number Harness already recorded locally read immediately before a type-apply, and the type read-back the probe makes under its explicit create opt-in. The pre-existing identifier reads gh_issues.internal_id_args makes for sub-issue attach and detach are NOT in the pinned row: they are stated ONCE, as prose, in DEC-138''s own paragraph in .harness/harness/docs/DECISIONS.md and in no second file, under no character-for-character pin. Whatever text remains duplicated is guarded by a STANDING assertion - tests/unit/test-issue-types-pin.py, written by T-01 and run forever by run-unit-tests.sh - which fails both when a copy is MISSING the row and when the two copies DRIFT, and not by a task verify that stops running once review_sha pins.'
+    choice: 'the eighth read-back purpose is written into DEC-203''s own copy of the enumerated list AND into the table in .claude/skills/harness/references/github-mirror.md, in identical wording, as ONE row covering only the reads THIS feature introduces - the capability-and-declared-names query, the node identifier of an issue whose number Harness already recorded locally read immediately before a type-apply, and the type read-back the probe makes under its explicit create opt-in. The pre-existing identifier reads gh_issues.internal_id_args makes for sub-issue attach and detach are NOT in the pinned row: they are stated ONCE, as prose, in DEC-138''s own paragraph in .harness/harness/docs/DECISIONS.md and in no second file, under no character-for-character pin. Whatever text remains duplicated is guarded by a STANDING assertion - tests/unit/test-issue-types-pin.py, written by T-01 and run forever by run-unit-tests.py - which fails both when a copy is MISSING the row and when the two copies DRIFT, and not by a task verify that stops running once review_sha pins.'
     because: 'the two lists are separately maintained copies of one set, and one row is what keeps them from drifting. The row is bounded to the reads this feature introduces - one capability query answering both halves of the first clause, the node-id lookup a type-apply needs, and the probe''s opt-in read-back - so what is duplicated character for character is exactly what REQ-09 asks the record to state and no more. The retroactive enumeration of the pre-existing gh_issues.internal_id_args reads (gh-sync.py:974 and :1215, factory_gh.py:981, verified at eb9d044e) is OUT of the pinned row: it is record hygiene REQ-09 does not ask this feature for, it made every future rewording a two-file lockstep edit forever, and it dragged SC-11''s inspection reviewer into grading sub-issue attach and detach claims inside an issue-types change. DEC-138''s write-only reading of the mirror is still false without a mention of it, so it survives as one unpinned prose sentence in DECISIONS.md alone - the weakest form that keeps the record honest and the form that costs no duplication. The duplication that does remain is guarded by a standing unit assertion rather than by a task verify, because a drift guard that expires when this feature''s gate passes leaves the row unprotected for exactly as long as the row exists.'
     dec: DEC-203
   - id: D-09
@@ -421,7 +421,7 @@ panel:
       T-01 and T-12 invokes the standing unit suite: plan.yaml carries no gates: key
       and every task''s verify names specific files. But the guarantee is NOT plan-encoded.
       tests/unit/test-issue-types-pin.py is deliberately red until T-11 and T-12 land;
-      harness.json test_kinds.unit.cmd runs run-unit-tests.sh, which globs tests/unit/test-*.py
+      harness.json test_kinds.unit.cmd runs run-unit-tests.py, which globs tests/unit/test-*.py
       and so picks that file up; every test_matrix change_type carries unit in always;
       gates.qa_gate is blocking; and T-12 is main-session-direct (DEC-174 carve-out)
       with no ordering rule relative to the qa segment. If qa runs before T-12 lands,
@@ -567,7 +567,7 @@ tasks:
           exists to catch. Assert presence first, per file, then equality. Do not hard-code the
           row's full text in the test as a third copy to compare against - the pin is that the two
           FILES agree, and a third copy is a third thing to keep in lockstep.
-          run-unit-tests.sh globs tests/unit/test-*.py, so this file runs in the STANDING unit suite
+          run-unit-tests.py globs tests/unit/test-*.py, so this file runs in the STANDING unit suite
           forever, which is the whole point (D-08): T-12's verify stops running the moment
           review_sha pins, and the duplicated row does not stop existing.
 
@@ -1744,7 +1744,7 @@ tasks:
          The wording is pinned because T-12 writes the identical row into github-mirror.md and
          tests/unit/test-issue-types-pin.py (T-01) asserts FOREVER, in the standing unit suite,
          that both files carry it and that the two copies are identical - so a later drift reddens
-         run-unit-tests.sh rather than passing unnoticed once review_sha has pinned.
+         run-unit-tests.py rather than passing unnoticed once review_sha has pinned.
       4. Regenerate the index with
          python3 .claude/skills/harness/bin/gen-decisions-index.py so DECISIONS-INDEX.md
          matches. The generator preserves everything right of " :: " verbatim and derives

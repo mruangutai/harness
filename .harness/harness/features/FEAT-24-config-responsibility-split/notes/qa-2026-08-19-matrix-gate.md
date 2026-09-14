@@ -53,7 +53,7 @@ already governs this file. `SC-03` and `SC-12` cannot be marked met until this l
 Everything else pre-ruled GREEN was re-confirmed live and holds: T-01, T-02, T-04 (I additionally
 ran T-04's verify myself — it passes in full, including the four non-reader positive controls and
 the gh-sync/board-station loud-exit cases), T-08, T-09, T-10, `gen-decisions-index.py --stdout`
-byte-identity, and the full suite (`run-unit-tests.sh --kind all` → `rc=0`, zero `FAIL` lines,
+byte-identity, and the full suite (`run-unit-tests.py --kind all` → `rc=0`, zero `FAIL` lines,
 1365 `ok` lines).
 
 ## Task 1 — detect table
@@ -64,7 +64,7 @@ byte-identity, and the full suite (`run-unit-tests.sh --kind all` → `rc=0`, ze
 match only `unit`'s glob (`.claude/skills/harness/bin/test-*.py`) and appear in **no** integration
 entry — confirmed.
 
-A second, systemic fact this exposed: `run-unit-tests.sh`'s real `INTEGRATION_SCRIPTS` array has
+A second, systemic fact this exposed: `run-unit-tests.py`'s real `INTEGRATION_SCRIPTS` array has
 **12** scripts, not 4 — it also runs `test-check-domain.py`, `test-bash-write-guard.py`,
 `test-check-expertise.py`, `test-gen-decisions-index.py`, `test-harness-yaml.py`,
 `test-upgrade-config.py`, `test-merge-settings.py`, `test-validate-digest.py` under `--kind
@@ -192,13 +192,13 @@ by T-07/T-09's live `gh api` checks, both pre-ruled GREEN.
 | SC-10 | T-04's non-reader grep (4 files, positive-controlled) + `test-factory-config.py`/`test-gh-board.py`/`test-gh-sync.py` behavioural cases | met |
 | SC-11 | `gen-decisions-index.py --stdout` byte-identity (pre-ruled), T-10 verify (pre-ruled) | met |
 | SC-12 | T-05's `INV-26 reports a violation...` / `INV-26 completes the gate...` cases | **unmet — no test exists** |
-| SC-13 | `run-unit-tests.sh --kind all` (confirmed rc=0, 1365 ok, zero FAIL) + `git diff --diff-filter=D --name-only ada8e99..b0604c3` (empty — no file deleted) + `run-unit-tests.sh` itself absent from the diff (registration arrays unchanged) | met, both halves |
+| SC-13 | `run-unit-tests.py --kind all` (confirmed rc=0, 1365 ok, zero FAIL) + `git diff --diff-filter=D --name-only ada8e99..b0604c3` (empty — no file deleted) + `run-unit-tests.py` itself absent from the diff (registration arrays unchanged) | met, both halves |
 
 ## One more matrix note — T-05's unit kind is detected but never executed
 
 `test-check-state.py` matches `unit`'s detect glob (`.claude/skills/harness/bin/test-*.py`), so
 `matrix_ok` stays `true` on the "nothing detecting" trigger the dispatch defines. But
-`run-unit-tests.sh`'s `UNIT_SCRIPTS` array never lists it — it is registered only in
+`run-unit-tests.py`'s `UNIT_SCRIPTS` array never lists it — it is registered only in
 `INTEGRATION_SCRIPTS` — so `--kind unit` executes nothing over `check-state.sh`. Detected, not
 executed (P-14). Not a `matrix_ok` violation under the dispatch's own definition, but worth saying
 out loud rather than leaving silent.

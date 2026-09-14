@@ -153,8 +153,8 @@ DIGEST:
   change_type: "mixed — plan.yaml tasks mostly `logic` (floor: unit); c11's own 2-file fix delta is `bugfix` (touches_runtime_code fires unit; fix_confined_to_tests_and_contract_docs does not fire integration by the letter, but integration is ADDED as clearly warranted since the regression case lives there)"
   required_kinds: [unit, integration]
   kinds:
-    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 36, provenance: ADOPTED, source: "run 15 same-pin report" }
-    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 70, provenance: ADOPTED, source: "run 15 same-pin report" }
+    - { kind: unit, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 36, provenance: ADOPTED, source: "run 15 same-pin report" }
+    - { kind: integration, state: satisfied, cmd: ".agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 70, provenance: ADOPTED, source: "run 15 same-pin report" }
     - { kind: integration_focused, state: satisfied, cmd: "python3 tests/integration/test-check-domain.py", named_tests: 13, provenance: MEASURED, source: "run just now, env -u HARNESS_AGENT_TYPE, exit 0" }
   coverage_gaps: ["Q14: type-wrong value on a declared step key routes into the wrong remedy message; no test asserts correct behavior for this case"]
   sc_evidence:

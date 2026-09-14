@@ -42,7 +42,7 @@ approval:
       approved_by: operator (Mike Ruangutai), via main session
       changed: T-03 files gains two entries; T-07 verify gains the positive-control assertions
       why_t03: >-
-        Verified at source, not relayed. run-unit-tests.sh:41 loops every test-*.py under BIN_DIR
+        Verified at source, not relayed. run-unit-tests.py:41 loops every test-*.py under BIN_DIR
         and exits 2 for any not in its explicit arrays, over the union REGARDLESS of --kind. T-03
         creates test-gh-cost-log.py, so without registering it every task's verify goes red, not
         only T-03's. And test-factory-gh.py asserts on calls[0]; cost logging injects
@@ -195,7 +195,7 @@ tasks:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Add a function project_item_stations(owner, number, field_name) to factory_gh.py that returns
       a list of dicts, one per board item, each carrying exactly two keys: "content" (a dict with
@@ -263,7 +263,7 @@ tasks:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/test-gh-board.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       In gh_board.py, change board_stations(board, repo) at line 122 so that its single data call is
       factory_gh.project_item_stations(board["owner"], board["number"], board["station_field"])
@@ -304,10 +304,10 @@ tasks:
       - .claude/skills/harness/bin/test-gh-cost-log.py
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/gh-sync.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
       - .claude/skills/harness/bin/test-factory-gh.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       Create gh_cost_log.py exposing record(argv, graphql_before, graphql_after, returncode) and a
       context manager measured(argv) that reads the GraphQL counter before and after a call and
@@ -374,7 +374,7 @@ tasks:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       In factory_gh.py, when run_gh returns a non-zero exit and the combined stdout and stderr
       contain either "API rate limit exceeded" or "was submitted too quickly" or "rate limit", do

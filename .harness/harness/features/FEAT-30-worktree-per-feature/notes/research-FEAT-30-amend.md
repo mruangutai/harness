@@ -71,7 +71,7 @@ requires the suite to go red**.
 
 **Mechanical consequences, both discharged rather than left.** T-10 adds **no new test file** — it
 extends `test-feature-worktree.py`, which T-08 already registers in `INTEGRATION_SCRIPTS` and in
-`harness.json integration.detect`. That is deliberate: `run-unit-tests.sh:41-55` exits 2
+`harness.json integration.detect`. That is deliberate: `run-unit-tests.py:41-55` exits 2
 MISCONFIGURED for any `bin/test-*.py` absent from either array, and `integration.detect` is an
 explicit pipe list. A third file would have needed both, and T-08 is not reopened.
 

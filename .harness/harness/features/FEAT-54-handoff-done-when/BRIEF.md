@@ -64,7 +64,7 @@ Decisions that bind, by number:
 - DEC-159 SUPPLIES the contract being amended (four sections, write-time shape gate, INV-17 corpus
   scan) and DEC-160 SUPPLIES the 60-line cap. This feature extends the first and keeps the second.
 - DEC-174 BLOCKS squad execution on the gate scripts and their tests: `check-domain.py`,
-  `check-state.sh`, `test-check-domain.py`, `test-check-state.py`, `run-unit-tests.sh` and any module
+  `check-state.sh`, `test-check-domain.py`, `test-check-state.py`, `run-unit-tests.py` and any module
   those gates import are main-session-direct, whatever the domain resolver grants.
 - DEC-179 BLOCKS a second matcher: pointer resolution has one implementation, reached by both gates.
 - DEC-163 BLOCKS resting a criterion on a test kind whose `cmd` is null.
@@ -136,7 +136,7 @@ Decisions that bind, by number:
   and `detect` and `cmd` both `tests/manual/probe-handoff-comprehension.py`, asserted positively
   against the real config and shown to discriminate against a mutant config whose entry is
   emptied or removed; and the probe sits under `tests/manual/`, covered by neither of the two
-  globs `run-unit-tests.sh` selects suites by (`tests/unit/test-*.py`,
+  globs `run-unit-tests.py` selects suites by (`tests/unit/test-*.py`,
   `tests/integration/test-*.py`), proved by running the real runner with `--kind all` over a
   fixture tree holding the probe and observing it never executes.
   verify: automated        evidence: integration

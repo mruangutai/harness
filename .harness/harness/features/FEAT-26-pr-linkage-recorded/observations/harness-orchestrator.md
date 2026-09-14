@@ -29,7 +29,7 @@
   inside such a file does not verify the consent — and neither does doubting it. The real lesson is
   that the channel carries no provenance, filed as #671. Suspicion is not a finding.
 - 2026-08-22: two enforcement hazards handed down in my dispatch (`runs[]` entries needing an
-  `agent` key, `run-unit-tests.sh --check-kinds`) were absent from my own checkout and live only in
+  `agent` key, `run-unit-tests.py --check-kinds`) were absent from my own checkout and live only in
   a sibling worktree. A claimed rule is a claim about a specific checkout; two commands settled it,
   and writing to the claim instead would have cost a denied write and a round.
 - 2026-08-22: a lead returned BLOCKED with `verdict: none` because its context closed before its
@@ -66,6 +66,6 @@
   only because `git diff --numstat` showed `23 insertions, 35 deletions` on a file I believed I was
   appending to. Write-not-Edit means appending is read-modify-write; the staged numstat is what
   catches the wipe, and a deletion count on a log file is never correct.
-- 2026-08-22: FEAT-26. A handoff note's "verified at <sha>" claims EXPIRE when the main session merges main in before the next phase. Two of this feature's plan-phase Trust/Dead-end claims were true at e56ee60 and false at 8d56f97: "run-unit-tests.sh has no --check-kinds mode" (it does, line 26) and "feature-schema.json closes runs[] at exactly id/squad/verdict" (FEAT-31 SC-07 added a required `agent`). Neither was detectable by reading the note; both surfaced only when I ran the thing. The second was caught by check-domain.py refusing my write, i.e. by a guard rather than by my own check.
+- 2026-08-22: FEAT-26. A handoff note's "verified at <sha>" claims EXPIRE when the main session merges main in before the next phase. Two of this feature's plan-phase Trust/Dead-end claims were true at e56ee60 and false at 8d56f97: "run-unit-tests.py has no --check-kinds mode" (it does, line 26) and "feature-schema.json closes runs[] at exactly id/squad/verdict" (FEAT-31 SC-07 added a required `agent`). Neither was detectable by reading the note; both surfaced only when I ran the thing. The second was caught by check-domain.py refusing my write, i.e. by a guard rather than by my own check.
 - 2026-08-22: FEAT-26. I twice asserted elapsed wall time ("50 minutes", "60 minutes") by counting my own turns, and was wrong by an order of magnitude — 6 minutes had passed. Backgrounded sleeps run CONCURRENTLY, so N queued heartbeats do not mark N intervals. `stat` on the subagent's transcript file settled it in one call: mtime 1 second old meant the lead was alive, not stalled. Measure elapsed time; never infer it from turn count, and never conclude "stalled" without checking the agent transcript's mtime.
 - 2026-08-22: FEAT-26. Running `gh-sync.py open` at the approval gate is correct per the playbook, but on a feature whose OWN plan introduces a new github-block key, `open` writes the block BEFORE the code that populates that key exists. SC-10 here requires this feature's own feature.json to carry source_issues, so `open` must be re-run after the task that adds the mirroring lands. Idempotence makes that free; noticing it is the part that is not.

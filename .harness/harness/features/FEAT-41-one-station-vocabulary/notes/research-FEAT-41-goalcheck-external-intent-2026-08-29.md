@@ -89,7 +89,7 @@ PB-04's "recording job, not a fresh derivation" is false for the new entry.
 | SC-05 | **PROVES the wrong thing** — names `plan-write.py`, T-09 forbids it (finding 3) |
 | SC-08 | **PARTIAL PROXY.** Eleven readers claimed, five given a failing-first case |
 | SC-09 | **METHOD MISMATCH.** Clause 1 (`git show <review_sha>:…`) is properly inspection at a pinned ref. Clause 2, "a full run of `check-state.sh` reports no INV-26 line" — the load-bearing regression bound — is a **command result** graded as inspection, discharged by a receipt paste |
-| SC-11 | **PROXY at plan level.** No task verify runs `run-unit-tests.sh` in full; rests entirely on the qa gate |
+| SC-11 | **PROXY at plan level.** No task verify runs `run-unit-tests.py` in full; rests entirely on the qa gate |
 | SC-13 | **PROVES, but weaker than its task.** SC-13's stated grep is `_EXPECT` alone — precisely the blind grep T-06's own intent warns leaves `_st26` at `:1526` live. Met by T-06's stronger two-name verify, not by the criterion as written |
 
 REQ coverage: all seven REQs have ≥1 tracing task; no orphan REQ, no orphan task. The revision's claim

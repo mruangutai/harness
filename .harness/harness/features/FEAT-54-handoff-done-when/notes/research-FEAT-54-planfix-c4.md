@@ -10,9 +10,9 @@ byte-identical. **The escalation tripwire did not fire.**
 
 The rule applied: `test-*.py` / `*.test.*` / `probe-*` may not be pinned under
 `.claude/skills/harness/bin/` (`suite_layout.py:29-33`, run on every runner invocation,
-`run-unit-tests.sh:31-40`). Subprocess-driving test → `tests/integration/`; in-process →
+`run-unit-tests.py:31-40`). Subprocess-driving test → `tests/integration/`; in-process →
 `tests/unit/`; credentialled probe → `tests/manual/`. **Placement is registration**
-(`run-unit-tests.sh:24-28` globs the two directories); no runner edit registers anything.
+(`run-unit-tests.py:24-28` globs the two directories); no runner edit registers anything.
 
 ## The ten items
 
@@ -20,18 +20,18 @@ The rule applied: `test-*.py` / `*.test.*` / `probe-*` may not be pinned under
 |---|---|---|---|
 |1|D-04 `choice`,`because`|probe → `tests/manual/probe-handoff-comprehension.py`; "in neither array" → under neither globbed directory, so `--kind all` cannot execute it; false `because` clause replaced|registration now buys the bar-3 test-code grading (`code_grade.py:458-472`) and must be `locally_run` not `active` because `tests/unit/test-suite-layout.py:105` forbids an active kind detecting `tests/manual`. `locally_run`, `test_matrix` absence and `exclude: .claude/worktrees/**` kept (PF-1e45eb3a, PF-9183266)|
 |2|D-06 `choice`,`because`|test → `tests/unit/test-handoff-done-when.py`; restated against the glob|"spawns no subprocess" IS the unit criterion|
-|3|T-01 `files`,`verify`,`intent`|→ `tests/unit/`; `run-unit-tests.sh` **removed** from `files`|see verdict below|
+|3|T-01 `files`,`verify`,`intent`|→ `tests/unit/`; `run-unit-tests.py` **removed** from `files`|see verdict below|
 |4|T-02 `verify`|path only|`handoff_done_when.py` is a module, stays under `bin/`|
 |5|T-03 `files`,`verify`,`intent`|→ `tests/integration/test-check-domain.py`|drives `check-domain.py` in a subprocess; file already exists there, so "extend" is true again|
 |6|T-04 `verify`|path only|same target|
 |7|T-06 `files`,`verify`,`intent`|→ `tests/integration/test-check-state.py`; intent changed by a single path substitution|case (g) and the tail paragraph (PF-570b9c87 ruling) byte-identical|
 |8|T-07 `verify`|path only (line 2 of the block)|same target|
-|9|T-09 `files`,`verify`,`intent`|→ `tests/manual/probe-handoff-comprehension.py`, incl. the `detect`/`cmd` assertions; final conjunct `! grep probe… run-unit-tests.sh` replaced by `run-unit-tests.sh --check-layout`|the old grep was already-passing at HEAD and non-discriminating; `--check-layout` exits 2 iff the probe lands under `bin/`, so it grades this task's actual choice|
+|9|T-09 `files`,`verify`,`intent`|→ `tests/manual/probe-handoff-comprehension.py`, incl. the `detect`/`cmd` assertions; final conjunct `! grep probe… run-unit-tests.py` replaced by `run-unit-tests.py --check-layout`|the old grep was already-passing at HEAD and non-discriminating; `--check-layout` exits 2 iff the probe lands under `bin/`, so it grades this task's actual choice|
 |10|T-12 `files`,`verify`,`intent`|**rewritten** → new `tests/integration/test-run-unit-tests-kinds.py`|see verdict below|
 
 ## The four verdicts asked for
 
-- **T-01 `files`: `run-unit-tests.sh` is dead weight — removed.** Placement under `tests/unit/`
+- **T-01 `files`: `run-unit-tests.py` is dead weight — removed.** Placement under `tests/unit/`
   is the whole registration, so editing the runner registers nothing; keeping it in `files:`
   would license a doer to edit a required-check script for no effect.
 - **T-12: NEW FILE, not an extension of `tests/integration/test-run-unit-tests-layout.py`.**

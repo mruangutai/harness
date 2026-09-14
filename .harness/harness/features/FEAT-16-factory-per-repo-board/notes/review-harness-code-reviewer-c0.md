@@ -96,7 +96,7 @@ Read every task's landed diff against its intent text. No divergence found:
   `mruangutai/kaya-ai` exactly as specified, retains the DEC-174 am.1 comment; the capture file's
   figures (211 items, 118/82/11/0/0/0, the three historic option ids) match what SC-03 and D-07
   require, precondition explicitly reported. Empirically re-ran both unit and integration suites at
-  this pin — `run-unit-tests.sh --kind unit` and `--kind integration` both exit 0, confirming SC-08/
+  this pin — `run-unit-tests.py --kind unit` and `--kind integration` both exit 0, confirming SC-08/
   SC-09 still hold.
 - **T-10** (docs, target 4 below).
 - **SC-10** (inspection): the diff's own file list settles it — `git diff --stat a7c429c..ec195ec`

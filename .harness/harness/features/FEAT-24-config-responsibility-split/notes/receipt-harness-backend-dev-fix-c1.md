@@ -85,7 +85,7 @@ is the empirical proof the stub fired regardless of the reasoning above.
 - Restored `factory_config.py`; sha256 after restore matches the recorded pre-mutation hash exactly.
 - Re-ran the suite: `79/79 checks passed.`
 
-## Full-suite red set (`.claude/skills/harness/bin/run-unit-tests.sh`, run from the worktree)
+## Full-suite red set (`.claude/skills/harness/bin/run-unit-tests.py`, run from the worktree)
 
 The runner itself exits 1 when any file fails (confirmed by reading its tail: `if [ "$failures"
 -gt 0 ]; then exit 1; fi`), and the run's own captured exit code was `exit=1` — not 0. That is
@@ -93,7 +93,7 @@ expected given the reds below; it does not indicate a run that failed to execute
 
 Every FAIL line in the run, with the file it belongs to (the runner prints each file's own
 `PASS test-X.py` / `FAIL test-X.py` header AFTER that file's case lines, so a block's file is
-identified by the header that follows it — confirmed against `run-unit-tests.sh`'s loop, which
+identified by the header that follows it — confirmed against `run-unit-tests.py`'s loop, which
 prints the header once per script after running it):
 
 **test-no-distribution.py** (pre-cleared, operator's):
@@ -110,7 +110,7 @@ prints the header once per script after running it):
 - `FAIL - (v.12) the same fixture with an EMPTY factory.issues still fires — the exemption keys on recorded issues, not the block`
 
 **Flagging, not filing under "expected":** the dispatch's pre-clearance names `check-state.sh` (the
-gate *script*) as red by design pending T-05's `derive_station()` arity fix. `run-unit-tests.sh`
+gate *script*) as red by design pending T-05's `derive_station()` arity fix. `run-unit-tests.py`
 never runs `check-state.sh` — it runs `test-check-state.py`, a different file, and the dispatch
 does not name that file. I checked whether my two changed files could be the cause:
 `grep -n "factory_gh\|factory_config\|file_at_ref\|product_config" test-check-state.py` returns
@@ -142,7 +142,7 @@ clause-(a) tightening; the red set was byte-identical both times.
 
 ## Open question
 - Q1 (non-blocking): the dispatch pre-clears `check-state.sh` red-by-design pending T-05, but
-  `run-unit-tests.sh` runs `test-check-state.py` (a different file) and that file shows 7 case
+  `run-unit-tests.py` runs `test-check-state.py` (a different file) and that file shows 7 case
   failures. My changed files are not referenced by any of those cases (grep evidence above), so
   they are not caused by this fix cycle. Is `test-check-state.py`'s red the same pre-cleared
   `derive_station()`-arity gap as `check-state.sh`, or a fourth, separately-tracked red?

@@ -15,7 +15,7 @@ The diff is two files, +510/-0: `plan-merge.py` (+206) and `test-plan-merge.py` 
 
 ## Trust
 
-- claim - 218 PASS / 0 FAIL on `test-plan-merge.py`, full `run-unit-tests.sh` exit 0 with zero
+- claim - 218 PASS / 0 FAIL on `test-plan-merge.py`, full `run-unit-tests.py` exit 0 with zero
   FAIL lines - verified-at 58742037 - source: this build ran both.
 - claim - red first - verified-at 58742037 - source: before the verb existed the suite was 204
   PASS / 9 failing new assertions, and every pre-existing case passed throughout.

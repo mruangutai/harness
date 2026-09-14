@@ -23,9 +23,9 @@ untracked panel note files (this one included). Both Stage 1
   `board_lifecycle.py`, `check-domain.py`, `check-plan-routes.py`, `check-state.sh`,
   `factory_claim.py`, `factory_config.py`, `factory_decompose.py`, `factory_land.py`,
   `feature-schema.json`, `gh-sync.py`, `gh_board.py`, `harness_boundary.py`, `harness_yaml.py`,
-  `plan-merge.py`, `plan-sign-gate.py`/`.sh`, `run-unit-tests.sh`, `worktree_terminal.py`) has a
+  `plan-merge.py`, `plan-sign-gate.py`/`.sh`, `run-unit-tests.py`, `worktree_terminal.py`) has a
   matching test file **also changed in the same diff** (`6ddcac3..64f42ef8`) — cross-referenced
-  the two diff-stat lists directly, no gaps. `run-unit-tests.sh`'s own one-line change (adding
+  the two diff-stat lists directly, no gaps. `run-unit-tests.py`'s own one-line change (adding
   `test-plan-merge.py`/`test-plan-sign-gate.py` to `INTEGRATION_SCRIPTS`) is exercised end to end
   by the 819-PASS integration run itself, which is the strongest form of proof for a kind-wiring
   change. Presence of a matching test file is not by itself proof of behavioural coverage — see
@@ -138,7 +138,7 @@ no later commit falsified the word it greps: **T-14's own `verify:` block no lon
   `test-factory-config.py`'s positive assertion of the six-station declaration on the same line.
 - SC-02's retired-spelling absence check (T-13, `plan.yaml:1318`,
   `grep -n "Icebox\|Drafted\|Primed\|Shipped" test-check-state.py`): re-ran, exit 1 — confirmed.
-- T-08's `test_kinds.integration.detect` / `run-unit-tests.sh` membership assertions
+- T-08's `test_kinds.integration.detect` / `run-unit-tests.py` membership assertions
   (`plan.yaml:1029-1031`): re-ran both independently — confirmed true (first attempt via a bash
   one-liner produced a false negative from a shell quoting collision between the outer `-c` quotes
   and Python's own single-quoted literal, not a real defect — re-ran via heredoc and got the

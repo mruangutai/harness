@@ -17,7 +17,7 @@ must_fix, repaired in three of the four files it named and missed in a fourth no
 ## The unmet requirement — REQ-07
 
 `.harness/harness/expertise/harness-pm.md:17` at `43fd04b9`, gotcha **G-08**: *"…DO account for two
-run-unit-tests.sh gates: a per-kind one-directional KIND-DRIFT cross-check against harness.json
+run-unit-tests.py gates: a per-kind one-directional KIND-DRIFT cross-check against harness.json
 detect, and a file-presence check flagging any on-disk test file in neither script array."*
 
 Both named gates were deleted by this feature. The file is repository-tier Expertise for this
@@ -32,7 +32,7 @@ the criterion cannot see its own requirement's residue. That is a disclosure wor
 #979, not a reason to soften the verdict.
 
 Remedy: rewrite G-08 to the directory-is-kind mechanism (`suite_layout.violations()` /
-`run-unit-tests.sh --check-layout`), inside `.harness/harness/expertise/harness-pm.md`. One entry,
+`run-unit-tests.py --check-layout`), inside `.harness/harness/expertise/harness-pm.md`. One entry,
 one edit. Then re-run `tests/manual/suite-census.py residue --ref <new sha>` (unchanged result — it
 never saw this line) and re-read the file: the sweep is not the check here, a reader is.
 
@@ -45,8 +45,8 @@ false about this tree, but it is advice against exactly what DEC-213 chose. Not 
 
 | SC | Verdict | Method | Evidence |
 |---|---|---|---|
-| SC-01 | met | automated | `suite-census.py verdict-lines --strict` exit 0; all 23 `tests/unit` rows `expected==actual`, per-file `exit=0`. Set equality is structural: `run-unit-tests.sh:25` builds `SCRIPTS` from the `tests/unit/test-*.py` glob itself |
-| SC-02 | met | automated | same run, all 43 `tests/integration` rows matched, per-file `exit=0`; `run-unit-tests.sh:26` |
+| SC-01 | met | automated | `suite-census.py verdict-lines --strict` exit 0; all 23 `tests/unit` rows `expected==actual`, per-file `exit=0`. Set equality is structural: `run-unit-tests.py:25` builds `SCRIPTS` from the `tests/unit/test-*.py` glob itself |
+| SC-02 | met | automated | same run, all 43 `tests/integration` rows matched, per-file `exit=0`; `run-unit-tests.py:26` |
 | SC-03 | met | automated | `test-check-domain.py:1861-1874` asserts each verdict individually (3 seats × 2 dirs granted, 3 seats denied `tests/unit`, qa denied `bin/*.sh`); replicated live via `check-domain.py --resolve` over 6 seats × 3 paths |
 | SC-04 | met | automated | `tests/integration/test-run-unit-tests-layout.py` 9/9 PASS, exit 0 — empty-unit, empty-integration, duplicate, planted, plus clean-tree and argv refusals |
 | SC-05 | met | automated | `tests/unit/test-suite-layout.py` 21/21 PASS, exit 0 — discovery floor, sweep, both positive controls, 3-shape red proof, `runner delegates layout once` |

@@ -142,7 +142,7 @@ T-02's verify block (cross-checked verbatim against `plan.yaml:367-388` — matc
 T-02 GREEN
 ```
 
-Full suite (`run-unit-tests.sh`): every listed test file reports `PASS`, `test-factory-config.py`
+Full suite (`run-unit-tests.py`): every listed test file reports `PASS`, `test-factory-config.py`
 reports `81/81 checks passed`, `test-factory-integration.py` reports `106/106 checks passed`.
 Grepped the full output for `^FAIL` (a line whose FIRST token is literally `FAIL`) — **zero
 matches**. Occurrences of the bare word `FAIL` elsewhere are ok-line labels describing fixtures
@@ -289,7 +289,7 @@ T-02's `verify:` block, cross-checked verbatim against `plan.yaml:367-388` (unch
 T-02 GREEN
 ```
 
-Full suite (`run-unit-tests.sh`): exit `0`. `grep -c "^FAIL"` on the full combined stdout+stderr:
+Full suite (`run-unit-tests.py`): exit `0`. `grep -c "^FAIL"` on the full combined stdout+stderr:
 `0`. `test-factory-config.py` reports `83/83 checks passed`, `test-factory-integration.py`
 reports `106/106 checks passed`.
 

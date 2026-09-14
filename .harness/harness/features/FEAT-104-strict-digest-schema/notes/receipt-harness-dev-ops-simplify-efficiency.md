@@ -72,7 +72,7 @@ as v2 runs accumulate, and even a worst-case sweep of a few hundred v2 runs woul
 `test-check-state.py` (3 new undeclared-key cases): 0.596s wall. Both dominated by real
 subprocess hook launches (~80-100ms each, the same interpreter-startup floor as #1) — inherent to
 exercising the real binary, not duplicated whole-suite runs. `test-validate-digest.py`'s existing
-`_bug919_stub_script` pattern (already present, unmodified by this diff) stubs `run-unit-tests.sh`
+`_bug919_stub_script` pattern (already present, unmodified by this diff) stubs `run-unit-tests.py`
 rather than invoking the real multi-minute suite — the new cases added under this diff use the
 same existing infrastructure and introduce no new full-suite re-run. Not run in full (4000+
 lines, no evidence of waste to justify the wall-clock cost of running it here).

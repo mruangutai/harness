@@ -21,8 +21,8 @@ of `test_kinds.ui/component/eval` has a `cmd` and none of the nine tasks' change
 
 | kind | cmd | exit | result | notes |
 |---|---|---|---|---|
-| unit | `run-unit-tests.sh --kind unit` | **0** | satisfied | 519 `PASS` lines, 0 `FAIL` |
-| integration | `run-unit-tests.sh --kind integration` | **1** | satisfied (accepted) | 742 `PASS` lines, **7 FAIL** |
+| unit | `run-unit-tests.py --kind unit` | **0** | satisfied | 519 `PASS` lines, 0 `FAIL` |
+| integration | `run-unit-tests.py --kind integration` | **1** | satisfied (accepted) | 742 `PASS` lines, **7 FAIL** |
 
 Integration FAIL lines, verbatim:
 ```

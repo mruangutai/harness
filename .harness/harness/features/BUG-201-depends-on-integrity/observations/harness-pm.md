@@ -7,7 +7,7 @@
   the BRIEF's recorded `af859ee8` baseline instead. Check the resolve before planning any
   note-authoring task.
 - 2026-09-06: BUG-201 — `plan-merge.py` has no `--help` on `check-plan-routes.py` (it prints
-  `ERROR: --help does not exist` and needs a plan path), and `run-unit-tests.sh` takes only
+  `ERROR: --help does not exist` and needs a plan path), and `run-unit-tests.py` takes only
   `--kind unit|integration|all` with no per-file flag, so a single-file `verify:` must be
   `python3 tests/<kind>/test-<name>.py` directly.
 - 2026-09-06: BUG-201 — the write route needed NO new code: `plan-merge.py:_schema_error` already

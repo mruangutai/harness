@@ -23,7 +23,7 @@ inferred. Recommend **FAIL** on assertion completeness for SC-01 and SC-03(d); e
   yet, so this leg is inert.
 - The `integration` kind is *also* satisfied here independently: the diff's own test file lives at
   `tests/integration/**`, matching `test_kinds.integration.detect`, whose bound command is
-  `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` (`harness.json:315`) — the standing
+  `.agents/skills/harness/bin/run-unit-tests.py --kind integration` (`harness.json:315`) — the standing
   per-kind command, not merely T-01's own scoped verify. I did not execute that full command (it would
   run the entire `tests/integration/**` bucket, outside this dispatch's scope); the scoped proof required
   by this dispatch — `python3 tests/integration/test-check-state.py` directly — is SC-06 below and is

@@ -27,7 +27,7 @@ low/defence-in-depth.
   inline calls).
 - `check-state.sh`'s new INV-21 block (pure regex read of `feature.yaml`, no subprocess, no new
   surface).
-- `run-unit-tests.sh`, `test-gh-sync.py` (fake-`gh` harness), `test-check-state.py`.
+- `run-unit-tests.py`, `test-gh-sync.py` (fake-`gh` harness), `test-check-state.py`.
 - `.harness/harness.json`, `docs/harness/DECISIONS.md` diffs (config/doc only, no executable
   surface).
 - PLAN.md `## Decisions` (D-01..D-06), BRIEF.md SC-01..SC-13/Constraints/Out-of-scope, to separate

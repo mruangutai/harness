@@ -40,7 +40,7 @@ that evidence; the diff between the two over the three product paths is empty.
 | SC-01 | inspection | **met** | `"Every gate was green"` absent from the `## DEC-174`..`## DEC-175` region; the four required facts each grepped separately, each present |
 | SC-02 | inspection | **met** | FEAT-05 `STATE.md` reads `Three gates green:`; all five required facts present separately, including the 2026-09-06 correction date |
 | SC-03 | inspection | **met** | one hunk, wholly inside DEC-174's evidence paragraph; heading, defect bullets and carve-out table appear only as context |
-| SC-04 | automated | **met** | `run-unit-tests.sh --kind integration` exit **0**, **0** `FAIL` lines, both named index tests `ok` |
+| SC-04 | automated | **met** | `run-unit-tests.py --kind integration` exit **0**, **0** `FAIL` lines, both named index tests `ok` |
 | SC-05 | inspection | **met** | outside this feature's own directory, exactly the three allowed paths changed |
 | SC-06 | uat | **met** | split attribution — see point 1 above |
 

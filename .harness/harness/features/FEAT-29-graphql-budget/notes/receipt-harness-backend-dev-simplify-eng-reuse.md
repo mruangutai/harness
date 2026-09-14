@@ -9,7 +9,7 @@ confirmed byte-identical (39504 bytes) before and after this pass — no live `g
 ## Scope reviewed
 
 `git diff bee6234..8c7d7bc` across `factory_gh.py`, `gh_board.py`, `gh_cost_log.py` (new),
-`gh-sync.py`, `run-unit-tests.sh`, and the three test files
+`gh-sync.py`, `run-unit-tests.py`, and the three test files
 (`test-factory-gh.py`, `test-gh-board.py`, `test-gh-cost-log.py`). Checked for: constants/helpers
 restated where an importable one exists; duplicated fake-`gh` test scaffolding across the three
 test files; residue from superseded amendments (amendment 5 flipped the recorder default
@@ -81,6 +81,6 @@ at read time) and 39504 bytes after (re-checked before writing this receipt) —
 
 This is a read-only review with no `T-NN` task and no `verify:` command of its own. As
 confirmation nothing in the tree is broken while forming the finding above, ran the full unit
-suite: `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` — exit 0, 18/18 scripts PASS,
+suite: `.claude/skills/harness/bin/run-unit-tests.py --kind unit` — exit 0, 18/18 scripts PASS,
 including `test-gh-cost-log.py` at 35/35 checks. `.harness/logs/gh-cost-2026-08-19.jsonl` stayed
 at 39504 bytes across the run (re-checked after).

@@ -10,7 +10,7 @@ own message says not to.
 Exit codes are asserted EXACTLY (2 blocks, 0 passes — DEC-100: only exit 2 blocks, so
 "nonzero" would let a crash read as a rejection).
 
-Issue #1527 split that one 5370-line file into six by surface, because run-unit-tests.sh
+Issue #1527 split that one 5370-line file into six by surface, because run-unit-tests.py
 parallelises by FILE and a single serial run of subprocess cases set the suite's floor.
 Everything here is used by two or more of those six; a fixture used by one lives with it.
 Nothing in this module runs a case: `drive()` IS the former main(), parameterised on the

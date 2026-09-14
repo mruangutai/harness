@@ -289,7 +289,7 @@ lanes:
       reason: >-
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops and DEC-174 does
         NOT override it: it is the library's own test, not a gate's. It is a UNIT script in
-        run-unit-tests.sh, so cases added here are evidence of kind unit, not integration.
+        run-unit-tests.py, so cases added here are evidence of kind unit, not integration.
     - surface: .claude/skills/harness/bin/bash-write-guard.py
       lane: main-session-direct
       reason: >-
@@ -662,7 +662,7 @@ tasks:
       it does not claim three when two remain.
 
       Register nothing. test-validate-digest.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh and is already an explicit entry in harness.json's integration.detect, so
+      run-unit-tests.py and is already an explicit entry in harness.json's integration.detect, so
       adding cases needs no registration change and moving it would trip the runner's KIND-DRIFT
       check.
 
@@ -1004,7 +1004,7 @@ tasks:
       must not fire there, because has_shape_rules() does not carry RE_RUN_DIGEST and the POST
       route would only ever compare the landed file with itself.
 
-      Register nothing. test-check-domain.py is already in INTEGRATION_SCRIPTS in run-unit-tests.sh
+      Register nothing. test-check-domain.py is already in INTEGRATION_SCRIPTS in run-unit-tests.py
       and is already an explicit entry in harness.json's integration.detect, so adding cases needs
       no registration change and moving it would trip the runner's KIND-DRIFT check.
 
@@ -1252,7 +1252,7 @@ tasks:
       raising AmbiguousWorktree with both names in the message. Assert on returned VALUES, not
       truthiness: None and a checkout path are the two answers a caller branches on.
 
-      Register nothing. test-harness-boundary.py is already in UNIT_SCRIPTS in run-unit-tests.sh,
+      Register nothing. test-harness-boundary.py is already in UNIT_SCRIPTS in run-unit-tests.py,
       so cases added here are evidence of kind unit; moving it would trip the runner's KIND-DRIFT
       check.
   - id: T-09
@@ -1461,7 +1461,7 @@ tasks:
       than hand-rolling a second subprocess path.
 
       Register nothing. test-bash-write-guard.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh:31 and is already an explicit entry in harness.json's integration.detect,
+      run-unit-tests.py:31 and is already an explicit entry in harness.json's integration.detect,
       so cases added here are evidence of kind integration and no registration change is needed;
       moving it would trip the runner's KIND-DRIFT check.
 
@@ -1632,6 +1632,6 @@ tasks:
       byte-identical. Reuse the empty-red case's mutant helper rather than writing a second one.
 
       Register nothing. test-validate-digest.py is already in INTEGRATION_SCRIPTS in
-      run-unit-tests.sh and is already an explicit entry in harness.json's integration.detect, so
+      run-unit-tests.py and is already an explicit entry in harness.json's integration.detect, so
       cases added here are evidence of kind integration; moving it would trip the runner's
       KIND-DRIFT check.

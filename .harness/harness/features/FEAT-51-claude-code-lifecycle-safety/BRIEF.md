@@ -134,7 +134,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
 - SC-07: The OMP path is unchanged, and the check can go red. For a claim with `runtime: omp` and a
   live supervisor pid, the quarantine verdict is allow at both the registry level and the hook level
   even when no session matches; `check-omp-port.py` exits 0; every `.omp/agents/harness-*.md` except
-  `harness-orchestrator.md` still declares `blocking: true`; and `run-unit-tests.sh --kind
+  `harness-orchestrator.md` still declares `blocking: true`; and `run-unit-tests.py --kind
   integration` and `--kind unit` both pass. Discrimination is demonstrated: removing the runtime
   condition from the quarantine predicate turns the OMP case red.
   verify: automated        evidence: integration
@@ -157,7 +157,7 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   `plan.yaml`'s write route is `plan-merge.py` through `Bash`. Naming only `check-domain.py`, or
   resting `plan.yaml`'s coverage on FEAT-41's editor route denial, is `not_met`: that is the belief
   SC-11 exists to overturn, and an entry asserting it would understate the contract that shipped.
-  Asserted in the suite by `test-gen-decisions-index.py`, which is in `run-unit-tests.sh`
+  Asserted in the suite by `test-gen-decisions-index.py`, which is in `run-unit-tests.py`
   `INTEGRATION_SCRIPTS`, not only by a one-off command; each clause is its own assertion, because a
   whole-region search for two script names is satisfied by the one that is present. The check can
   go red: an entry carrying `check-domain.py` but no `plan-sign-gate.py` fails the suite.

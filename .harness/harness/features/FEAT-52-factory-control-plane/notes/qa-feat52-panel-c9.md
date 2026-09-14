@@ -99,9 +99,9 @@ trigger as scoped to configuration a *gate script reads* (e.g. `team-config.yaml
 workflow orchestration, so I do not read it as tripping the `integration` floor; flagging this
 reading as an open question rather than asserting it silently.
 
-- `run-unit-tests.sh --kind unit` (scoped): **exit 0.** Includes `test-check-instruction-paths.py`,
+- `run-unit-tests.py --kind unit` (scoped): **exit 0.** Includes `test-check-instruction-paths.py`,
   `test-inject-expertise.py`-class scripts, `test-anchor-directions.py`, all UNIT_SCRIPTS.
-- `run-unit-tests.sh` (unscoped, full): **exit 1**, but the **only** failures are the six
+- `run-unit-tests.py` (unscoped, full): **exit 1**, but the **only** failures are the six
   pre-briefed `test-check-plan-routes.py` sub-cases, each printing the identical
   `DEVIATION <worktree>/.harness/team-config.yaml differs from <main checkout>/...` line — the
   known, out-of-scope environmental drift. No other `FAIL` line appears anywhere in the log.

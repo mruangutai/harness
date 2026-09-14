@@ -90,13 +90,13 @@
   worth knowing before designing a measurement: an orchestrator's shell measurements must run
   through pipes and command substitution, never through temp files. The rewrite cost one tool call.
 
-- 2026-08-21: `run-unit-tests.sh --kind integration` exceeds a 2-minute foreground Bash timeout in
+- 2026-08-21: `run-unit-tests.py --kind integration` exceeds a 2-minute foreground Bash timeout in
   this checkout. Do not put it in a foreground call while a lead is in flight; the call is killed
   at 143 and the turn is spent for nothing.
 
 - 2026-08-21: A correction ruled by the operator is not necessarily a correction that is SUFFICIENT.
   R5(b) ruled "pin `CLAUDE_PROJECT_DIR`" for the plan's verify blocks, and that is right for the
-  one `run-unit-tests.sh` invocation (`plan.yaml:1009`) because `run-unit-tests.sh:3` is
+  one `run-unit-tests.py` invocation (`plan.yaml:1009`) because `run-unit-tests.py:3` is
   `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"`. But ~20 other verify blocks invoke
   `python3 .claude/skills/harness/bin/test-*.py` by RELATIVE path, and nothing in the runner reads
   that variable on their behalf — they depend on the process cwd, so the pin does not fix them.

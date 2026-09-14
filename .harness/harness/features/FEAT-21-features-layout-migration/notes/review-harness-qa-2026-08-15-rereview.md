@@ -105,12 +105,12 @@ reachability both hold; semantics unchanged by the flatten.**
 ## JOB 4 — suites and re-measured numbers
 
 **Suite confirmation, run once:**
-- `run-unit-tests.sh --kind unit` → exit **0**. 15/15 suites `PASS test-*.py`, 0 `FAIL`. 97
+- `run-unit-tests.py --kind unit` → exit **0**. 15/15 suites `PASS test-*.py`, 0 `FAIL`. 97
   `PASS <case>` lines (case-level), 706 `ok` lines (case-level, other convention). **No movement**
   from the precommit round's "97 unit" figure — same number, same convention
   (`review-harness-qa-2026-08-14-precommit.md` used the 97 count; the panel's "706 ok" is the
   same suite counted the other way — both conventions checked here and both match exactly).
-- `run-unit-tests.sh --kind integration` → exit **0**. 12/12 suites PASS, 0 FAIL, 89 `PASS`
+- `run-unit-tests.py --kind integration` → exit **0**. 12/12 suites PASS, 0 FAIL, 89 `PASS`
   lines, 634 `ok` lines. **No movement** — matches the panel's "12/12 suites (634 ok)" exactly.
 
 **`tests.yml` re-measured numbers, verified independently at `4a98cc4`:**

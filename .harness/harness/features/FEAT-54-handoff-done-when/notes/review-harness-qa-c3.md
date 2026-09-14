@@ -14,8 +14,8 @@ The plan's logic tasks require `unit`. The shared module/two-gate seam warrants 
 
 | Kind | Configured command | Discovery | Exit/outcome |
 |---|---|---:|---|
-| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 25 files | 0, satisfied |
-| integration | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 44 files | 0, satisfied |
+| unit | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 25 files | 0, satisfied |
+| integration | `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 44 files | 0, satisfied |
 
 Both commands ran once from the exact repository root with `CLAUDE_PROJECT_DIR` set to that root. Unit executed `test-handoff-done-when.py` and `test-probe-handoff-comprehension.py`; integration executed `test-check-domain.py`, `test-check-state.py`, and `test-run-unit-tests-kinds.py`. No assertion, import, collection, syntax, or load failure occurred.
 
@@ -69,8 +69,8 @@ DIGEST:
   failures: 1
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
   coverage_gaps: []
   sc_evidence:
     - { id: SC-01, test: "tests/integration/test-check-domain.py:4033-4042" }

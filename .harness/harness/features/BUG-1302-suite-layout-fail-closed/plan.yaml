@@ -12,15 +12,15 @@ lanes:
   rows:
     - surface: tests/unit/test-suite-layout.py
       lane: main-session-direct
-      reason: DEC-174 carve-out, the test file of the run-unit-tests.sh gate
+      reason: DEC-174 carve-out, the test file of the run-unit-tests.py gate
     - surface: tests/integration/test-run-unit-tests-layout.py
       lane: main-session-direct
-      reason: DEC-174 carve-out, the test file of the run-unit-tests.sh gate
+      reason: DEC-174 carve-out, the test file of the run-unit-tests.py gate
 
 decisions:
   - id: D-01
     choice: Every implementation task in this plan runs main-session-direct, and the DEVIATION line check-plan-routes.py prints for the two test files is accepted as designed audit trail.
-    because: run-unit-tests.sh is a gate and DEC-174 reaches the test file of each, so the blanket tests wildcard granted to backend-dev, dev-ops and qa does not apply.
+    because: run-unit-tests.py is a gate and DEC-174 reaches the test file of each, so the blanket tests wildcard granted to backend-dev, dev-ops and qa does not apply.
     dec: DEC-174
   - id: D-02
     choice: B-6 is fixed by converting the INAPPLICABLE else branch into a hard check failure whose detail names both remedies, not by synthesising a positive control independent of the live test_kinds config.
@@ -84,7 +84,7 @@ tasks:
     traces: [REQ-02, REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.py gate
     depends_on: []
     status: done
     files:
@@ -145,7 +145,7 @@ tasks:
     traces: [REQ-01, REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.py gate
     depends_on: [T-01]
     status: done
     files:
@@ -212,7 +212,7 @@ tasks:
     traces: [REQ-03, REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.py gate
     depends_on: [T-02]
     status: done
     files:
@@ -277,7 +277,7 @@ tasks:
     traces: [REQ-04, REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.py gate
     depends_on: [T-03]
     status: done
     files:
@@ -338,7 +338,7 @@ tasks:
     traces: [REQ-05, REQ-06]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, tests/integration/test-run-unit-tests-layout.py is the test file of the run-unit-tests.sh gate
+    execution_reason: DEC-174 carve-out, tests/integration/test-run-unit-tests-layout.py is the test file of the run-unit-tests.py gate
     depends_on: []
     status: done
     files:
@@ -370,12 +370,12 @@ tasks:
       for a fix it cannot distinguish.
 
       Instead keep the rogue TRACKED and force the integration sentinel to run BEFORE the layout
-      refusal, by mutating the runner copy the fixture already owns: tree() copies run-unit-tests.sh
+      refusal, by mutating the runner copy the fixture already owns: tree() copies run-unit-tests.py
       into the temp tree and run() executes THAT copy, so the runner is mutable in place inside the
       case. In case 2 only, after git_commit(r, "rogue") and before run(r, "--kind", "all"), insert
       the line
           python3 tests/integration/test-integration.py
-      into r/".claude/skills/harness/bin/run-unit-tests.sh" immediately BEFORE the line that begins
+      into r/".claude/skills/harness/bin/run-unit-tests.py" immediately BEFORE the line that begins
       layout_out= , leaving every other line of that script untouched. Under that state the runner
       prints PASS test-integration.py on stdout and then refuses, so p.returncode == 2 holds, the
       MISCONFIGURED line naming .harness/tools/test_rogue.py holds, and stdout carries

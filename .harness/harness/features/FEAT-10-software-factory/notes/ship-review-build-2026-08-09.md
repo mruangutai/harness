@@ -106,7 +106,7 @@ signature anyway.
   records this as a double-write hazard producing two issues per task, and defers it to you.
   Creating a milestone, a parent issue and twelve sub-issues is not cheaply reversible, so I left it.
 - **Nothing is committed, and I recommend you commit by explicit pathspec if you do.** Two reasons.
-  First, `run-unit-tests.sh` is a file this feature changed *and* one that already carried unrelated
+  First, `run-unit-tests.py` is a file this feature changed *and* one that already carried unrelated
   uncommitted work, so its change cannot be isolated. Second — and I did not expect this — **two
   staged deletions appeared in the index during this session**
   (`.claude/commands/harness-grill.md`, `.claude/commands/harness-wayfind.md`). They are not this

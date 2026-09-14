@@ -12,7 +12,7 @@ met with named, discriminating evidence. **SC-05 is unmet as declared**: its sec
 live working tree (`CLAUDE_PROJECT_DIR or os.getcwd()`), not the pin, so a dirty read path would
 have made every check-(1)..(10) row evidence for something other than the pinned diff. It is clean.
 
-`.claude/skills/harness/bin/run-unit-tests.sh` → **exit 0**, 13 scripts, output saved and cited by
+`.claude/skills/harness/bin/run-unit-tests.py` → **exit 0**, 13 scripts, output saved and cited by
 line below as `unit.txt:N`.
 
 ## The SC-05 ruling — UNMET as declared
@@ -80,7 +80,7 @@ Independently re-derived, not relayed. `.harness/team-config.yaml`'s only releva
 | T-04 | `teams/build.yaml` | domain-ungranted | no grant | yes |
 | T-05 | `test-harness-yaml-corpus.py` | carve-out | `bin/**` granted; mission extension binds | yes |
 | T-06 | `harness/SKILL.md` | domain-ungranted | no grant; not one of CLAUDE.md's five | yes |
-| T-07 | `test-team-catalog.py`, `run-unit-tests.sh` | carve-out | `bin/**` granted; D-05 binds | yes |
+| T-07 | `test-team-catalog.py`, `run-unit-tests.py` | carve-out | `bin/**` granted; D-05 binds | yes |
 | T-08 | `docs/**` | squad-dispatched | granted at `:116` | yes |
 | T-09 | `harness-team/SKILL.md` | domain-ungranted | no grant | yes |
 | T-10 | `teams/gate-probe.yaml` | domain-ungranted | no grant | yes |

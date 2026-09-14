@@ -98,7 +98,7 @@ T-01(vii) dev     task_verify OMITTED          PASS  -> digest ok, exit 0   [CHA
 an unknown key is ignored and `no-task` is already accepted. `(vi)` is its detector partner — an
 acceptance clause with no rejection partner is the vacuous shape this feature exists to remove.
 
-**T-01(iv) `run-unit-tests.sh` — NOT RE-RUN.** The dispatch withholds the gate scripts from this
+**T-01(iv) `run-unit-tests.py` — NOT RE-RUN.** The dispatch withholds the gate scripts from this
 pass. The receipts table records it as not-re-run and cites the architecture reviewer's observed
 green (`notes/receipt-harness-backend-dev-arch-review.md:165-166`) rather than restating it as a
 fresh run.
@@ -166,7 +166,7 @@ grep -q 'task_verify: n/a' harness-tdd-enforcement/SKILL.md -> exit 1
   T-01 step (7) now carries.
 - The arch reviewer's own `suite:` value is NOT persisted — `runs/arch-review-eng/state.yaml:72-80`
   records only persona, verdict and artifact. I therefore cite its receipt line 166
-  ("`run-unit-tests.sh` (full suite): green") for the claim that a non-task dispatch has a truthful
+  ("`run-unit-tests.py` (full suite): green") for the claim that a non-task dispatch has a truthful
   `suite` answer. That is the fact D-07 rests on for scoping the remedy to `task_verify` alone, and
   it is inference from that receipt rather than a read of the literal field.
 
@@ -300,7 +300,7 @@ every base claim in the table holds — and the paragraph now names all four pat
 
 Nothing outside the three items changed. The LEAVE list, D-07's shape, the seven collation criteria
 and both `## Approval` blocks are untouched. No gate script was run — `check-docs.sh`,
-`check-state.sh`, `check-domain.py` and `run-unit-tests.sh` are all withheld by dispatch; every
+`check-state.sh`, `check-domain.py` and `run-unit-tests.py` are all withheld by dispatch; every
 command above is `grep`, `awk` or `git status`. Nothing was written under `runs/`.
 
 **My own return block was piped through the validator, as the dispatch mandates** — the one piece of

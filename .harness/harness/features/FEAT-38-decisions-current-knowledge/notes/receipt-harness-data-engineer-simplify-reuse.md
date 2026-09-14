@@ -2,7 +2,7 @@
 
 **BLUF: `findings: []`.** No restated constant/helper/regex and no newly-hand-rolled check found
 in the code surface this feature actually touched. The one lockstep-spelling risk named in the
-dispatch (`.harness/harness.json` detect globs vs. `run-unit-tests.sh`'s script arrays) is already
+dispatch (`.harness/harness.json` detect globs vs. `run-unit-tests.py`'s script arrays) is already
 enforced by a standing mechanism, not left to drift.
 
 ## What I read
@@ -24,12 +24,12 @@ The four with real code delta:
 - `check-decision-anchors.py` — new file this diff, but **frozen by contract** (SC-18, byte-identical
   to `99bb52c`); any REUSE finding against it is out of scope by the dispatch's own terms and I did
   not evaluate it as a candidate.
-- `run-unit-tests.sh` — one `INTEGRATION_SCRIPTS` entry removed (T-24, the deleted claims test).
+- `run-unit-tests.py` — one `INTEGRATION_SCRIPTS` entry removed (T-24, the deleted claims test).
 - `.harness/harness.json` — one `test_kinds.integration.detect` pipe-entry removed (T-25, same test).
 
 ## The lockstep check named in the dispatch
 
-`run-unit-tests.sh:76-140` already carries a standing "KIND CROSS-CHECK" (FEAT-31 T-12) that
+`run-unit-tests.py:76-140` already carries a standing "KIND CROSS-CHECK" (FEAT-31 T-12) that
 re-derives `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` at every invocation and asserts set-membership
 against `harness.json`'s `test_kinds.integration.detect` pipe-list — every `INTEGRATION_SCRIPTS`
 name must appear as `.claude/skills/harness/bin/<name>` in `detect`, no `UNIT_SCRIPTS` name may.
@@ -37,12 +37,12 @@ It runs on every `--kind`, including `all` (`:94-95`'s own comment states why). 
 of two spellings the feature must remember to keep in sync by hand — the sync is mechanically
 enforced, so T-24 (bash array) and T-25 (`harness.json` detect) removing the same entry in the same
 commit pair is exactly the case the check exists to catch a *miss* on, and I confirmed no third
-spelling exists: `tests.yml` only ever invokes `run-unit-tests.sh --kind unit`/`--kind integration`
+spelling exists: `tests.yml` only ever invokes `run-unit-tests.py --kind unit`/`--kind integration`
 (`.github/workflows/tests.yml:86,92`) and never re-lists script names itself.
 Verified empirically, not just read: `python3 -c 'json.load(...)'` over `.harness/harness.json`'s
-`detect` string, and a plain substring check over `run-unit-tests.sh`'s full text — neither
+`detect` string, and a plain substring check over `run-unit-tests.py`'s full text — neither
 contains `claims` or `decision-claims` anywhere; `check-decision-anchors.py`'s test **is**
-registered in both (`run-unit-tests.sh` text contains `test-check-decision-anchors.py`; `harness.json`
+registered in both (`run-unit-tests.py` text contains `test-check-decision-anchors.py`; `harness.json`
 lists it too). No stale reference, no third untracked list.
 
 ## ROW_RE / ROW_LOOKALIKE_RE — the named single-sourcing check

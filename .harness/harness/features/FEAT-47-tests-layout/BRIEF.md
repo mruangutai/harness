@@ -115,7 +115,7 @@ Cited by number, each labelled by what it does to this feature.
   tree, so the move does not blind it — but its own root derivation is the one anchor in the
   migrated set that is not a `sys.path` insert, and T-03 repairs it by name. `run_pool.py
   --mutation-check` enforces the same property at runtime on every run, and the flag sits on the
-  single invocation line in `run-unit-tests.sh` that this feature rewrites. Carrying it forward is
+  single invocation line in `run-unit-tests.py` that this feature rewrites. Carrying it forward is
   a requirement of the rewrite, asserted in T-05's verify: dropping it leaves a green suite that
   has stopped checking.
 
@@ -128,7 +128,7 @@ one whose first whitespace-delimited token, trailing colon stripped, is `ok`, `P
 which begins `not ok`; three suites print `PASS: (e) …`, so a literal first-token reading would
 score them 0 against non-zero rows and redden a correct tree.
 
-- SC-01: From the new layout, `run-unit-tests.sh --kind unit` exits 0, and the set of basenames in
+- SC-01: From the new layout, `run-unit-tests.py --kind unit` exits 0, and the set of basenames in
   its tally lines equals exactly the set of `test-*.py` files present in `tests/unit/` — set
   equality against the directory, never a count, so a file the runner silently skips and a name it
   reports without a file both go red. Each migrated unit file emits exactly the verdict-line count
@@ -168,7 +168,7 @@ score them 0 against non-zero rows and redden a correct tree.
   sweep (both regexes plus the fragment list return zero over all 104) — so a discovery returning
   nothing cannot read as a clean sweep; and the sweep is proven
   able to fail against a planted reimplementation in each of three spellings, not one.
-  Separately, exactly one non-comment line of `run-unit-tests.sh` names `suite_layout`, so the
+  Separately, exactly one non-comment line of `run-unit-tests.py` names `suite_layout`, so the
   runner delegates rather than re-deriving. What this does NOT detect is stated in Verification
   gaps, and the earlier claim that any second copy anywhere would falsify this criterion is
   withdrawn as unsupportable.
@@ -227,7 +227,7 @@ score them 0 against non-zero rows and redden a correct tree.
 Read against `test_kinds` in `.harness/harness.json` at `56a30a0`; FEAT-45 did not change that file.
 
 - Every `verify: automated` criterion above rests on `unit` or `integration`. Both have a live
-  runner (`run-unit-tests.sh --kind <kind>`), so no criterion here is carried by a soft skip.
+  runner (`run-unit-tests.py --kind <kind>`), so no criterion here is carried by a soft skip.
   SC-07, SC-09 and SC-10 are `inspection` and rest on named instruments — three
   `tests/manual/suite-census.py` modes, each with its exit status asserted — not on any test kind.
 - `component`, `ui`, `eval` and `typecheck` have `cmd: null`, and `functional` is excluded by
@@ -243,7 +243,7 @@ Read against `test_kinds` in `.harness/harness.json` at `56a30a0`; FEAT-45 did n
   as a slash path or as joined components, beside a listing call — under any filename. It does NOT
   detect a reimplementation that receives the two directories as parameters, or assembles either
   name from a variable defined elsewhere, and it does not sweep shell at
-  all: `run-unit-tests.sh` is exempted because its own directory globs ARE discovery rather than
+  all: `run-unit-tests.py` is exempted because its own directory globs ARE discovery rather than
   the predicate, and only its delegation (one non-comment `suite_layout` line) is asserted. What
   carries the rest is not a check: the runner is one file, pinned by `.github/CODEOWNERS`, and its
   four violation cases are driven end-to-end in SC-04. A semantically-equivalent second predicate

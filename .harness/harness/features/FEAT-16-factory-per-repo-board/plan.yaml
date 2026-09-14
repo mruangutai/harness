@@ -179,7 +179,7 @@ tasks:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       In factory_config.py, extract the existing board validation in load_fleet into a module-level
       helper, def _validate_board(board, where, path), that raises FleetError with the SAME message
@@ -257,7 +257,7 @@ tasks:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/test-factory-claim.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       factory_claim._main currently reads owner, board_number, station_field and stations once from
       fleet["board"], validates the three station options against that one board, and then either
@@ -353,7 +353,7 @@ tasks:
       - .claude/skills/harness/bin/factory_decompose.py
       - .claude/skills/harness/bin/test-factory-decompose.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       factory_decompose._main takes --repo as a required argument and already calls
       factory_config.repo_entry(fleet, args.repo) at step 1, so the repository is known before any
@@ -397,7 +397,7 @@ tasks:
       - .claude/skills/harness/bin/factory_land.py
       - .claude/skills/harness/bin/test-factory-land.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       factory_land._main takes --repo as a required argument and already resolves the repos entry
       before anything else. In step 5, replace the four reads of fleet["board"] - owner, number,
@@ -433,7 +433,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       test-factory-integration.py writes fleet declarations carrying a fleet-level board block and
       drives the tools end to end as real processes. Move each of those fleet fixtures to the new
@@ -478,7 +478,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       This task is FIXTURE-ONLY and is bounded by DEC-174. You must not edit
       .claude/skills/harness/bin/check-domain.py, and you must not change any assertion, any expected
@@ -653,8 +653,8 @@ tasks:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit &&
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit &&
+      .claude/skills/harness/bin/run-unit-tests.py --kind integration
     intent: |
       This task is the LAST code task and it verifies BOTH suites, not one. Its change reaches
       test-check-domain.py and test-factory-integration.py, which run in the integration kind and
@@ -717,7 +717,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       This file already reads .harness/factory/fleet.yaml in case3 and asserts fleet membership under
       DEC-174 am.1. Add a NEW case function named case5 - case4 already exists and is taken - built
@@ -847,7 +847,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/test-factory-workspace.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.py --kind unit
     intent: |
       This file builds its fleet as a Python dict rather than as YAML text, writes it to a temporary
       path and passes --fleet to factory_workspace._main, which calls factory_config.load_fleet. The

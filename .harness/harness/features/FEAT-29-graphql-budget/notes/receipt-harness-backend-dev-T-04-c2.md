@@ -105,10 +105,10 @@ fix above is incomplete.
 ## `task_verify` — run exactly, verbatim from plan.yaml T-04
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
-Captured exit status into a variable, counted `^FAIL ` lines separately (`run-unit-tests.sh:51-54`
+Captured exit status into a variable, counted `^FAIL ` lines separately (`run-unit-tests.py:51-54`
 can exit 2 with MISCONFIGURED before any test runs, printing no `FAIL` line — exit status is the
 only thing that catches that):
 

@@ -11,21 +11,21 @@ which never contained FEAT-38). Change types present: `logic`/`cross_module` (ne
 satisfies test-first pairing per P-05; changes to `gen-decisions-index.py`, `check-domain.py`,
 `check-state.sh`, `gh-sync.py`, `harness_yaml.py`, `plan-merge.py`, `board_lifecycle.py`,
 `factory_decompose.py`, `check-plan-routes.py`, `upgrade-config.py`, `validate-digest.py`,
-`run-unit-tests.sh`), `config` (`harness.json`, `fleet.yaml`, `.gitignore`, `tests.yml` — matrix
+`run-unit-tests.py`), `config` (`harness.json`, `fleet.yaml`, `.gitignore`, `tests.yml` — matrix
 requires nothing), `docs` (SPEC/BUILD/DECISIONS/SKILL files — matrix requires nothing). No `api`,
 `frontend`, `bugfix`, or `ai_behavior` change type present. Required floor: **unit + integration**
 only (both `active`, non-null cmd). Added no kind beyond the floor — nothing in the diff warrants one.
 `matrix_ok: true`, `must_fix: []`.
 
 ## Full suite (step 2)
-`bash .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat38-suite.log 2>&1; echo EXIT=$?`
+`bash .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat38-suite.log 2>&1; echo EXIT=$?`
 → **EXIT=0**, captured immediately, not piped. Python count over the file: **0 lines begin `FAIL `**.
 
 ## `--check-kinds` (step 3)
 `EXIT=0`; stdout: `check-kinds: the script arrays and test_kinds.integration.detect agree.`
 
 ## Discovery (step 4)
-Runner echoes exactly one `PASS <script>` per array entry (`run-unit-tests.sh:152`). Restricting the
+Runner echoes exactly one `PASS <script>` per array entry (`run-unit-tests.py:152`). Restricting the
 Python scan to lines matching `^PASS (test-\S+\.py)$` where the name is a member of `UNIT_SCRIPTS` ∪
 `INTEGRATION_SCRIPTS`: **55 distinct scripts PASS-reported** (28 unit + 27 integration, no overlap,
 none missing). A separate `--kind integration` run independently reproduces **27 distinct

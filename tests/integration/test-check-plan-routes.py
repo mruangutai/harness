@@ -3,7 +3,7 @@
 
 Fixtures are written under tempfile.mkdtemp() so no repo state is touched.
 Each case invokes the real script as a subprocess against a fixture PLAN.md,
-and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
+and against the repo's own templates/PLAN.md, run-unit-tests.py and source
 for the static/textual checks (cases 8-13, 16).
 """
 import os as _anchor_os, sys as _anchor_sys
@@ -168,7 +168,7 @@ def case_10_11_12():
 
 def case_13():
     """(13): the runner discovers this file from the integration directory."""
-    runner = os.path.join(BIN_DIR, "run-unit-tests.sh")
+    runner = os.path.join(BIN_DIR, "run-unit-tests.py")
     with open(runner) as f:
         src = f.read()
     check("case_13_runner_discovers_integration_directory",

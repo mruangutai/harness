@@ -24,7 +24,7 @@ native-correct. cycles_used 1 of 10. Terminus: signature, then a build phase.
 - Q1 (BLOCKING, operator): confirm the harness-first departure. T-01 lands kaya-ai's master
   config before the harness validator widens. Both reviewers independently verified no ordering
   is atomic, so the window is unavoidable, latent and loud; the rollback gap is now fixed.
-- Q2 (operator/main session): T-04 registers the new test file in run-unit-tests.sh UNIT_SCRIPTS,
+- Q2 (operator/main session): T-04 registers the new test file in run-unit-tests.py UNIT_SCRIPTS,
   which is mandatory because the drift detector runs over the union and exits 2 MISCONFIGURED on
   any unregistered test-*.py. FEAT-31 writes the same file and neither plan carries an ordering
   constraint against the other. Who sequences them?

@@ -130,8 +130,8 @@ Cheap, well-scoped fix: validate `target` against `ENTRY_RE`'s id pattern in
 
 - `python3 tests/unit/test-expertise-ops.py`: 0 `^FAIL`, ends `PASS test-expertise-ops.py`.
 - `python3 tests/integration/test-expertise-merge.py`: 0 `^FAIL`, ends `PASS test-expertise-merge.py`.
-- `bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit`: 0 `^FAIL ` lines, 74 files.
-- `bash .agents/skills/harness/bin/run-unit-tests.sh --kind integration`
+- `bash .agents/skills/harness/bin/run-unit-tests.py --kind unit`: 0 `^FAIL ` lines, 74 files.
+- `bash .agents/skills/harness/bin/run-unit-tests.py --kind integration`
   (`run-integration-tests.sh` does not exist at this path): 0 `^FAIL ` lines, 46 files, 62.89s wall.
 - `python3 .claude/skills/harness/bin/code-grade.py --base $(git merge-base origin/main pin) --head pin`:
   78 functions graded, 4 `RESULT: FAIL` (all `SEVERITY: med`, all `GRADE: 2`), 0 high/critical, 0

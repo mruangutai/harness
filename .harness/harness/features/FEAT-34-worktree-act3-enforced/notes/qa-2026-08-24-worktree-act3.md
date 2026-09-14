@@ -20,7 +20,7 @@ done`, `change_type: logic`), not an accepted gap — the brief's two accepted g
 | `test-hooks-install.py` | 0 | 29 | 0 |
 | `test-worktree-terminal.py` | 0 | 34 | 0 |
 | `check-state.sh` | 0 | — | 0 `VIOLATION` lines |
-| `run-unit-tests.sh` (full, no `--kind`) | 0 | all listed scripts `PASS`, incl. the 3 new files | 0 `^FAIL` lines, no `KIND-DRIFT`, no `MISCONFIGURED` |
+| `run-unit-tests.py` (full, no `--kind`) | 0 | all listed scripts `PASS`, incl. the 3 new files | 0 `^FAIL` lines, no `KIND-DRIFT`, no `MISCONFIGURED` |
 
 T-05's verify (extended to all three files, verbatim + `test-hooks-install.py` added myself since
 T-05's own verify predates that file):
@@ -28,7 +28,7 @@ T-05's own verify predates that file):
 check-kinds: the script arrays and test_kinds.integration.detect agree.
 REGISTERED-ALL-THREE
 ```
-`test-hooks-install.py` confirmed in BOTH `INTEGRATION_SCRIPTS` (run-unit-tests.sh:18) and
+`test-hooks-install.py` confirmed in BOTH `INTEGRATION_SCRIPTS` (run-unit-tests.py:18) and
 `test_kinds.integration.detect` (harness.json:119).
 
 ## THE ACTUAL QUESTION — vantage point
@@ -97,13 +97,13 @@ behaviour dressed up as red proofs.
 ## Registration (T-05 + T-13's extension)
 
 Both enumerations agree for all three new files — confirmed by direct grep and by
-`run-unit-tests.sh --check-kinds`, not by re-stating the plan's own claim.
+`run-unit-tests.py --check-kinds`, not by re-stating the plan's own claim.
 
 ## matrix_ok
 
 **false.** `change_type: logic` (T-06, `status: done`) requires `unit` at minimum per
 `test_matrix`; this project's convention buckets subprocess-fork tests as `integration`
-(`run-unit-tests.sh` comments cite issue #160), which is fine in general — but for T-06's own
+(`run-unit-tests.py` comments cite issue #160), which is fine in general — but for T-06's own
 artifact (`check-state.sh`'s INV-29 addition) NO test file in either bucket exercises it. That is a
 genuinely uncovered row, not a bucketing technicality: `test-check-state.py` is the file the signed
 brief names as SC-01..SC-05's evidence, it is unmodified in this diff, and it is main-session-direct

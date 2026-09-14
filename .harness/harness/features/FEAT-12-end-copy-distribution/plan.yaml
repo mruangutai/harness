@@ -131,7 +131,7 @@ decisions:
     dec: none
   - id: D-05
     choice: A new unit test, test-no-distribution.py, carries the absence claims, and every absence assertion in it is paired with a presence assertion.
-    because: DEC-169 - an absence check proves only that the wrong words are gone, and a grep that was going to pass anyway proves nothing. It also has to be registered in run-unit-tests.sh UNIT_SCRIPTS in the same task, because the drift detector fails the whole run on an unregistered test file.
+    because: DEC-169 - an absence check proves only that the wrong words are gone, and a grep that was going to pass anyway proves nothing. It also has to be registered in run-unit-tests.py UNIT_SCRIPTS in the same task, because the drift detector fails the whole run on an unregistered test file.
     dec: DEC-169
   - id: D-06
     choice: >-
@@ -514,7 +514,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/deploy.sh
     verify: |
-      test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
+      test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
     intent: |
       Delete the file .claude/skills/harness/bin/deploy.sh. It is 287 lines and it is the only
       writer of ~/.harness/registry.json and the only mechanism that copies harness skills, agents
@@ -524,7 +524,7 @@ tasks:
       any path containing deploy returns exactly deploy.sh and .claude/commands/harness-deploy.md.
       Do not spend time looking for deploy tests; there are none to delete.
 
-      run-unit-tests.sh and .github/workflows/tests.yml contain zero references to deploy, so no
+      run-unit-tests.py and .github/workflows/tests.yml contain zero references to deploy, so no
       runner registration changes here.
 
       Do not edit any other file in this task. The Python modules that mention deploy.sh in comments
@@ -598,7 +598,7 @@ tasks:
       - .claude/skills/harness/bin/wayfind.py
       - .claude/skills/harness/bin/factory_config.py
     verify: |
-      test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
+      test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.py > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
     intent: |
       Remove every reference to deploy.sh, /harness-deploy and the deploy registry from these six
       modules. Two of the edits change behaviour and four are comments; do all six.
@@ -821,9 +821,9 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
-      python3 .claude/skills/harness/bin/test-no-distribution.py && .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/feat12-t13.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t13.log; grep -c '^FAIL \|MISCONFIGURED' /tmp/feat12-t13.log; exit $s
+      python3 .claude/skills/harness/bin/test-no-distribution.py && .claude/skills/harness/bin/run-unit-tests.py --kind unit > /tmp/feat12-t13.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t13.log; grep -c '^FAIL \|MISCONFIGURED' /tmp/feat12-t13.log; exit $s
     intent: |
       Write .claude/skills/harness/bin/test-no-distribution.py, following the structure of the
       existing test-*.py scripts in the same directory: no pytest, a main that runs numbered cases,
@@ -893,9 +893,9 @@ tasks:
         for a different feature's decisions and produced no output at all, so a whole-file diff here
         would fail for a reason that has nothing to do with FEAT-12.
 
-      Register the new file in run-unit-tests.sh by appending "test-no-distribution.py" to the
+      Register the new file in run-unit-tests.py by appending "test-no-distribution.py" to the
       UNIT_SCRIPTS array on line 17. This registration is mandatory and belongs in this same task:
-      run-unit-tests.sh has a drift detector that exits 2 on ANY test-*.py under bin/ that is not in
+      run-unit-tests.py has a drift detector that exits 2 on ANY test-*.py under bin/ that is not in
       one of the two arrays, which fails the whole run and reddens every other task's verify.
 
       Do not add the file to INTEGRATION_SCRIPTS as well; the drift detector scans the union, so one

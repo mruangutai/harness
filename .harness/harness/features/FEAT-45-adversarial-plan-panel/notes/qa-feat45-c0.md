@@ -17,8 +17,8 @@ mutation-tested RED with no vacuity and no crash-not-caught; both suite invocati
 | T-06 | config | .omp/…validator-lead.md, .claude/…(generated) | `spawns:` list entry (data) + prose section, no logic | agree |
 | T-07 | logic | check-state.sh | new INV-32 python-heredoc pass, real branching | agree |
 | T-08 | logic | test-check-state.py | 9 new test cases incl. mutation proof | agree |
-| T-09 | logic | panel_findings.py, its test, run-unit-tests.sh | new hashing module + CLI | agree |
-| T-10 | logic | test-plan-panel.py, run-unit-tests.sh | new wiring-assertion test | agree |
+| T-09 | logic | panel_findings.py, its test, run-unit-tests.py | new hashing module + CLI | agree |
+| T-10 | logic | test-plan-panel.py, run-unit-tests.py | new wiring-assertion test | agree |
 | T-11 | config | sync-agent-adapters.py | **checked closely** — diff (`git diff 1d3e5db..HEAD`) is exactly one list-literal string append (`"fable-advisor",`) plus a comment; zero new functions, branches or control flow touched. Consumed unconditionally by pre-existing `bootstrap_one()`. Data change in a `.py` file, not logic. | agree — not under-declared |
 | T-12 | logic | test-harness-yaml-corpus.py | constant `2`→`3` inside an existing `check()` condition + comment rewrite | agree |
 
@@ -33,20 +33,20 @@ Declared change_types in this plan: `docs` (T-01,03,04), `config` (T-02,05,06,11
 
 | Kind | Required by floor? | `cmd` | State | Result |
 |---|---|---|---|---|
-| unit | yes (logic tasks) | `run-unit-tests.sh --kind unit`, `status: active` | active, ran, green | satisfied |
-| integration | no (no cross_module task) | `run-unit-tests.sh --kind integration`, `status: active` | ran anyway (T-08's `test-check-state.py` lives there), green | satisfied (extra, above floor) |
+| unit | yes (logic tasks) | `run-unit-tests.py --kind unit`, `status: active` | active, ran, green | satisfied |
+| integration | no (no cross_module task) | `run-unit-tests.py --kind integration`, `status: active` | ran anyway (T-08's `test-check-state.py` lives there), green | satisfied (extra, above floor) |
 | functional/component/ui/eval/typecheck | no | n/a to this diff | not applicable | soft skip, matches BRIEF's own "Verification gaps" |
 
 `matrix_ok: true`. No kind is `missing` or `blocked`.
 
 ## 3. Suite runs (rc captured immediately, `^FAIL ` counted, never a tail read)
 
-- `run-unit-tests.sh` (all): `rc=0`, `grep -c '^FAIL ' = 0`. 1012 `PASS`-labelled lines,
+- `run-unit-tests.py` (all): `rc=0`, `grep -c '^FAIL ' = 0`. 1012 `PASS`-labelled lines,
   56 registered scripts (29 unit + 27 integration) all discovered and executed — confirmed
   `test-panel-findings.py`, `test-plan-panel.py`, `test-check-state.py`,
   `test-harness-yaml-corpus.py` all appear in the log (lines 19, 1433/1461, 2001).
   Full output: `artifact://163`.
-- `run-unit-tests.sh --kind unit`: `rc=0`, `grep -c '^FAIL ' = 0`. All four target files
+- `run-unit-tests.py --kind unit`: `rc=0`, `grep -c '^FAIL ' = 0`. All four target files
   present.
 
 No discovery shrinkage; no KIND-DRIFT failure (would have exited 2 before any script ran).
@@ -116,7 +116,7 @@ All `verify: automated` SCs (01–08, 13–15, 17) have a locatable assertion:
 - SC-01→`test-plan-panel.py` cases 1a/1b/1c · SC-02→case 2 · SC-03→case 3 ·
   SC-04→`check-state.sh` INV-32 check 1 + `test-check-state.py` no-panel/inv32-red ·
   SC-05→`test-check-state.py` ruling-unattributed · SC-06→case 5 · SC-07→INV-32 check 1 ·
-  SC-08→`run-unit-tests.sh`'s own drift detector (general mechanism, exits 2 before any
+  SC-08→`run-unit-tests.py`'s own drift detector (general mechanism, exits 2 before any
   script if a `test-*.py` is unregistered — not feature-specific but load-bearing) ·
   SC-13→`panel_findings.py` hash + stale-ruling case · SC-14→case 4a/4b ·
   SC-15→case 8a/8b · SC-17→reader-missing/reader-skipped cases + inv32-red.

@@ -68,9 +68,9 @@ $ python3 <WT>/.claude/skills/harness/bin/test-check-decision-claims.py | grep l
 ok - test_live_authority_claims_all_hold
 ```
 
-## `run-unit-tests.sh` — measured, not the stated baseline
+## `run-unit-tests.py` — measured, not the stated baseline
 ```
-$ out=$(bash <WT>/.claude/skills/harness/bin/run-unit-tests.sh 2>&1); echo $?
+$ out=$(bash <WT>/.claude/skills/harness/bin/run-unit-tests.py 2>&1); echo $?
 exit: 0
 $ echo "$out" | grep -c '^FAIL'
 0
@@ -184,9 +184,9 @@ ok - test_live_authority_claims_all_hold
 exit: 0
 ```
 
-### `run-unit-tests.sh` — no override, measured
+### `run-unit-tests.py` — no override, measured
 ```
-$ out=$(bash <WT>/.claude/skills/harness/bin/run-unit-tests.sh 2>&1); echo $?
+$ out=$(bash <WT>/.claude/skills/harness/bin/run-unit-tests.py 2>&1); echo $?
 exit: 0
 $ echo "$out" | grep -c '^FAIL'
 0
@@ -204,6 +204,6 @@ Empty. Neither file was touched.
 - Both live-authority cases observed RED on `examined == 0`, FAIL line quoted verbatim above — yes.
 - Both observed green again with no override — yes.
 - No assertion weakened; test files unmodified (no defect exposed) — yes.
-- `run-unit-tests.sh` exit 0, 0 FAIL — yes, measured above.
+- `run-unit-tests.py` exit 0, 0 FAIL — yes, measured above.
 - `DECISIONS.md`/`DECISIONS-INDEX.md` diffstat empty — yes, stated explicitly.
 - Nothing committed — yes.

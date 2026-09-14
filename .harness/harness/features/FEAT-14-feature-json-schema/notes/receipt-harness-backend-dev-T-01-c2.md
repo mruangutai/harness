@@ -86,7 +86,7 @@ docs/harness/org.html:2
 
 `test-harness-yaml-corpus.py` shows `4` — matches P's pinned count exactly. None of the four
 T-01-owned tracked-adjacent files (`feature-schema.json`, `feature_schema.py`,
-`test-validate-feature-json.py`, `run-unit-tests.sh`) appear in this list.
+`test-validate-feature-json.py`, `run-unit-tests.py`) appear in this list.
 `docs/harness/DECISIONS*` hits (`DECISIONS-INDEX.md:5`, `DECISIONS.md:50`) are the BRIEF's other
 pinned carve-out, per T-08's own `skips docs/harness/DECISIONS*` clause — not mine to touch.
 
@@ -98,7 +98,7 @@ five return no matches**:
 --- .claude/skills/harness/bin/feature_schema.py ---
 --- .claude/skills/harness/bin/validate-feature-json.py ---
 --- .claude/skills/harness/bin/test-validate-feature-json.py ---
---- .claude/skills/harness/bin/run-unit-tests.sh ---
+--- .claude/skills/harness/bin/run-unit-tests.py ---
 ```
 
 (no lines printed under any of the five headers — confirms the literal is gone from
@@ -114,7 +114,7 @@ T-08 at all).
 ## Verify clause, re-run verbatim
 
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Ran twice this cycle: once against the first (adjacency-flawed) rewording, then discarded that
@@ -139,7 +139,7 @@ move the gate.
 - `.claude/skills/harness/bin/validate-feature-json.py` (new, c1; docstring reworded, c2 — this
   cycle's only edit)
 - `.claude/skills/harness/bin/test-validate-feature-json.py` (new, c1)
-- `.claude/skills/harness/bin/run-unit-tests.sh` (one-line edit, c1: `test-validate-feature-json.py`
+- `.claude/skills/harness/bin/run-unit-tests.py` (one-line edit, c1: `test-validate-feature-json.py`
   added to `UNIT_SCRIPTS`)
 - `.harness/features/FEAT-14-feature-json-schema/notes/receipt-harness-backend-dev-T-01-c1.md` (new, c1)
 - `.harness/features/FEAT-14-feature-json-schema/notes/receipt-harness-backend-dev-T-01-c2.md` (new, this cycle)

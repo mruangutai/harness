@@ -5,7 +5,7 @@
 ## What I read
 
 `.claude/skills/harness/bin/context-watch.py` (full 779-line diff, new file), `context-watch-hook.py`,
-`verify-context-watch-live.py`, `feature_schema.py`'s new `RUNS_AGENT_EXEMPT` block, `run-unit-tests.sh`'s
+`verify-context-watch-live.py`, `feature_schema.py`'s new `RUNS_AGENT_EXEMPT` block, `run-unit-tests.py`'s
 kind-drift addition, and the `DECISIONS.md`/`DECISIONS-INDEX.md` diffs for DEC-159's amendment and the new
 DEC-198 entry.
 
@@ -28,7 +28,7 @@ DEC-198 entry.
   second opinion (no import from context-watch.py, by design, to avoid comparing a function to
   itself). Anchoring semantics, not redundancy.
 - **`feature_schema.py`'s `RUNS_AGENT_EXEMPT` map** — D-23, already settled, not re-litigated.
-- **`run-unit-tests.sh`'s inline Python kind-drift heredoc** — verbose but load-bearing (T-12,
+- **`run-unit-tests.py`'s inline Python kind-drift heredoc** — verbose but load-bearing (T-12,
   flag-only per dispatch); no simpler equivalent found that preserves the "set comparison with no
   glob classifier" property the comments say was deliberately chosen.
 - **DEC-198 / DEC-159 amendment prose** — dense but not duplicative; each paragraph states a distinct

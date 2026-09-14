@@ -103,7 +103,7 @@ explicit instruction not to act on the result.
 4. Real tree: `check-omp-port.py` → `OMP port surface: ok`, exit 0.
    `sync-command-adapters.py --check` → exit 0, no output. ✅
 5. Both project suites re-run on the real tree via
-   `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.sh --kind <kind>`:
+   `env -u HARNESS_AGENT_TYPE .agents/skills/harness/bin/run-unit-tests.py --kind <kind>`:
    - **unit**: exit 0. Exactly FOUR `^FAIL ` lines, all in `tests/unit/test-factory-claim-mutation.py`
      (BUG-1290 5a / 5b / 5b-dup / 5c):
      - `FAIL  BUG-1290 5a: served non-harness repository reaches its own segment's blocker verdict, not no_plan`

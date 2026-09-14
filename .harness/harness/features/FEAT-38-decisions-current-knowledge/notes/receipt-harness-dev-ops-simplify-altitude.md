@@ -1,13 +1,13 @@
 # SIMPLIFY — ALTITUDE angle — FEAT-38-decisions-current-knowledge
 
-Diff `7ebfc9eb9c..8a7c75c4e5`, code surface only (`run-unit-tests.sh`, `gen-decisions-index.py`,
+Diff `7ebfc9eb9c..8a7c75c4e5`, code surface only (`run-unit-tests.py`, `gen-decisions-index.py`,
 `harness.json`, `tests.yml`, `check-domain.py`, `board_lifecycle.py`; `check-decision-anchors.py`
 frozen and untouched). Read-only. **One finding rises above the leave bar; everything else checked
 is clean or already has a named compensating mechanism.**
 
 ## Q1 — Residue of the deleted claims checker in any caller?
 
-Checked `run-unit-tests.sh` (T-24, `INTEGRATION_SCRIPTS` array), `harness.json` (T-25,
+Checked `run-unit-tests.py` (T-24, `INTEGRATION_SCRIPTS` array), `harness.json` (T-25,
 `test_kinds.integration.detect`), `tests.yml`, `check-domain.py`, `board_lifecycle.py` for any
 surviving branch, special case, or literal referencing `check-decision-claims` /
 `check_decision_claims`. **None found anywhere on the code surface** — both registration sites
@@ -18,11 +18,11 @@ sweeps (T-12/T-13), not claims residue. **`leave`** — clean removal, nothing t
 
 ## Q2 — One authoritative statement of the registered-test-script list, or several that can drift?
 
-Two, by design, with a named compensating control already in place: `run-unit-tests.sh:30-31`'s
+Two, by design, with a named compensating control already in place: `run-unit-tests.py:30-31`'s
 `UNIT_SCRIPTS`/`INTEGRATION_SCRIPTS` bash arrays, and `harness.json`'s `test_kinds.*.detect` globs.
-`tests.yml` restates neither — it only calls `run-unit-tests.sh --kind {unit,integration}`, so it
+`tests.yml` restates neither — it only calls `run-unit-tests.py --kind {unit,integration}`, so it
 is not a third site. The two arrays and `harness.json` are reconciled by a standing KIND-DRIFT
-cross-check (`run-unit-tests.sh:76-140`, `FEAT-31 T-12`), which fails closed (exit 2) on any name
+cross-check (`run-unit-tests.py:76-140`, `FEAT-31 T-12`), which fails closed (exit 2) on any name
 present on one side and absent from the other, runs on every invocation including `--check-kinds`,
 and is itself exercised by `test-run-unit-tests-kinds.py`. This is exactly the "several statements
 that can drift" pattern the angle asks about, but the compensating control is already built,

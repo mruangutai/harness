@@ -13,8 +13,8 @@ from the clean worktree at the pinned SHA.
 | OMP hook tests (20) | `python3 .claude/skills/harness/bin/test-omp-hooks.py` (bun test, absolute path — relative path fails, see note) | pass | 20 pass / 0 fail | 20 passed | ✅ |
 | inflight registry checks (88) | `python3 .agents/skills/harness/bin/test-inflight-registry.py` | pass | 88/88 | 88 passed | ✅ |
 | dispatch guard checks (42) | `python3 .agents/skills/harness/bin/test-dispatch-guard.py` | pass | 42/42 | 42 passed | ✅ |
-| Full unit suite | `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` | pass | exit 0, every registered script `ALL PASS`/`N/N cases passed`, no failures | "passed" | ✅ |
-| Full integration suite (superset incl. the two above, run via the standing harness) | `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` | pass | exit 0, 27/27 registered scripts pass, incl. `88/88` and `42/42` inline | "passed" | ✅ — 3rd attempt; see note |
+| Full unit suite | `.agents/skills/harness/bin/run-unit-tests.py --kind unit` | pass | exit 0, every registered script `ALL PASS`/`N/N cases passed`, no failures | "passed" | ✅ |
+| Full integration suite (superset incl. the two above, run via the standing harness) | `.agents/skills/harness/bin/run-unit-tests.py --kind integration` | pass | exit 0, 27/27 registered scripts pass, incl. `88/88` and `42/42` inline | "passed" | ✅ — 3rd attempt; see note |
 | Adapter drift check | `python3 .agents/skills/harness/bin/sync-agent-adapters.py --check` | pass | exit 0, silent (no drift) | "passed" | ✅ |
 | OMP port check | `python3 .claude/skills/harness/bin/check-omp-port.py` + `test-check-omp-port.py` | pass | `OMP port surface: ok`; 17/17 and 18/18 cases | "passed" | ✅ |
 | Canonical state checker | `.claude/skills/harness/bin/check-state.sh` | pass | exit 0, output is all `note`-level pre-existing housekeeping items (unrelated STATE.md/glossary findings, none touching this diff) | "passed" | ✅ |
@@ -89,8 +89,8 @@ the correct and only per-project entry matching this shape (`.harness/harness.js
 
 | Kind | Required by `cross_module`? | State | Evidence |
 |---|---|---|---|
-| `unit` | always | **satisfied** | `run-unit-tests.sh --kind unit` exit 0, all scripts pass (table above) |
-| `integration` | always | **satisfied** | `run-unit-tests.sh --kind integration` exit 0, 27/27 scripts pass, incl. the two PR-named counts reproduced inline (table above) |
+| `unit` | always | **satisfied** | `run-unit-tests.py --kind unit` exit 0, all scripts pass (table above) |
+| `integration` | always | **satisfied** | `run-unit-tests.py --kind integration` exit 0, 27/27 scripts pass, incl. the two PR-named counts reproduced inline (table above) |
 
 Both required kinds are `status: active` in `.harness/harness.json:104-123` with real, executed
 `cmd`s (not `null`) — neither is `misconfigured` or `not applicable`. No `when` clause applies to

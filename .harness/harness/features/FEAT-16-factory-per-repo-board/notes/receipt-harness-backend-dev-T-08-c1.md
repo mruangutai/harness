@@ -130,11 +130,11 @@ $ grep -n 'def station(' .claude/skills/harness/bin/factory_config.py
 (no output — exit 1)
 ```
 
-## Verify — clause 1: `run-unit-tests.sh --kind unit`
+## Verify — clause 1: `run-unit-tests.py --kind unit`
 
 Invocation:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind unit
+.claude/skills/harness/bin/run-unit-tests.py --kind unit
 ```
 
 Verbatim output (final run, on the final files, after the mutation-proof restore):
@@ -902,11 +902,11 @@ PASS test-validate-feature-json.py
 
 Exit code: 0
 
-## Verify — clause 2: `run-unit-tests.sh --kind integration`
+## Verify — clause 2: `run-unit-tests.py --kind integration`
 
 Invocation:
 ```
-.claude/skills/harness/bin/run-unit-tests.sh --kind integration
+.claude/skills/harness/bin/run-unit-tests.py --kind integration
 ```
 
 Verbatim output (final run, on the final files, after the mutation-proof restore):

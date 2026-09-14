@@ -65,7 +65,7 @@ lanes:
     - surface: .claude/skills/harness/bin/test-inflight-registry.py
       lane: team
       agent: harness-backend-dev
-    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+    - surface: .claude/skills/harness/bin/run-unit-tests.py
       lane: team
       agent: harness-backend-dev
     - surface: .harness/harness/docs/DECISIONS.md
@@ -152,18 +152,18 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/test-lead-stop-and-wake.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/run-unit-tests.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --self-check; sc=$?
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook; pb=$?
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group coverage; cv=$?
-      .claude/skills/harness/bin/run-unit-tests.sh --check-kinds; ck=$?
+      .claude/skills/harness/bin/run-unit-tests.py --check-kinds; ck=$?
       echo "selfcheck=$sc playbook=$pb coverage=$cv checkkinds=$ck"
       test "$sc" -eq 0 -a "$pb" -eq 1 -a "$cv" -eq 1 -a "$ck" -eq 0 && echo T01_PASS || echo T01_FAIL
     intent: |
       Create .claude/skills/harness/bin/test-lead-stop-and-wake.py, a stdlib-only Python 3 test, and
-      register it in run-unit-tests.sh. It guards three invariants of FEAT-37. It must FAIL today —
+      register it in run-unit-tests.py. It guards three invariants of FEAT-37. It must FAIL today —
       nothing it guards has shipped yet — and that failing state is the proof it discriminates.
 
       Repo root. Derive it from os.path.abspath(__file__) with four os.path.join ".." hops up from
@@ -363,7 +363,7 @@ tasks:
       .claude/skills/harness/SKILL.md.
 
       REGISTRATION. Append the string test-lead-stop-and-wake.py to the UNIT_SCRIPTS array, which is
-      line 17 of .claude/skills/harness/bin/run-unit-tests.sh at 8fc87f8 - find it by the array name,
+      line 17 of .claude/skills/harness/bin/run-unit-tests.py at 8fc87f8 - find it by the array name,
       not the number - after test-orchestrator-playbook.py. Change
       nothing else in that file. The runner's drift detector fails the suite on any test-*.py in
       neither array, so this registration is mandatory. harness.json test_kinds.unit already detects

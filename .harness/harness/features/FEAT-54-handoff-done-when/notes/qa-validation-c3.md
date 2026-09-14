@@ -16,8 +16,8 @@ Both commands ran exactly once from the absolute worktree with `CLAUDE_PROJECT_D
 
 | Kind | Configured command | Discovery | Exit |
 |---|---|---:|---:|
-| unit | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.sh --kind unit` | 25 files | 0 |
-| integration | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.sh --kind integration` | 44 files | 0 |
+| unit | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.py --kind unit` | 25 files | 0 |
+| integration | `env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-54-handoff-done-when .agents/skills/harness/bin/run-unit-tests.py --kind integration` | 44 files | 0 |
 
 The unit transcript includes 54 named PASS assertions from `test-handoff-done-when.py`. The integration transcript includes the changed `test-check-domain.py` and `test-check-state.py`, with all focused FEAT-54 cases green. Discovery was non-vacuous in both kinds.
 
@@ -55,8 +55,8 @@ DIGEST:
   failures: 0
   matrix_ok: true
   kinds:
-    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.sh --kind unit", named_tests: 25 }
-    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.sh --kind integration", named_tests: 44 }
+    - { kind: unit, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.py --kind unit", named_tests: 25 }
+    - { kind: integration, state: satisfied, cmd: "env -u HARNESS_AGENT_TYPE CLAUDE_PROJECT_DIR=<absolute-worktree> .agents/skills/harness/bin/run-unit-tests.py --kind integration", named_tests: 44 }
     - { kind: handoff_comprehension, state: locally-run, cmd: "tests/manual/probe-handoff-comprehension.py", named_tests: 0 }
   coverage_gaps: []
   sc_evidence:

@@ -107,7 +107,7 @@ Measured at `ba338d8` unless noted.
   "~18 depth climbs" figure below understates it; each moved file needs an anchor edit.
 - **~18 tests derive repo root from their own depth** (four-level climb from `bin/`);
   16 use a literal four-level `..` chain. All shift with the move.
-- **CI is unaffected.** `tests.yml` invokes `run-unit-tests.sh --kind unit|integration`,
+- **CI is unaffected.** `tests.yml` invokes `run-unit-tests.py --kind unit|integration`,
   never paths. It installs bun and system python3 plus pyyaml/jsonschema, and references
   **no `secrets.*`**.
 - `.agents/skills` is a **symlink** to `.claude/skills` (same inode), so a repo-root
@@ -121,7 +121,7 @@ Measured at `ba338d8` unless noted.
   "the skill ships with its tests" no longer argues for `bin/`.
 - **Execution is main-session-direct.** AGENTS.md's DEC-174 carve-out: harness may plan
   its own enforcement-layer work but must not execute it through the enforcement path
-  being changed. This touches `harness_boundary.py`, `run-unit-tests.sh`, `team-config.yaml`
+  being changed. This touches `harness_boundary.py`, `run-unit-tests.py`, `team-config.yaml`
   and `harness.json`.
 
 ## For pm

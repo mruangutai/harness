@@ -25,7 +25,7 @@ Status: DRAFT (Phase 1 blind derivation, written before opening plan/hand-downs/
 
 ## Named traps from BRIEF §Verification gaps (to re-check at HEAD, not just cite)
 
-1. New unit test files must be registered in `run-unit-tests.sh`'s `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS` — the integration kind's `detect` globs only match `test-check-state.py` / `test-factory-integration.py`, so misregistration makes the file invisible to the matrix.
+1. New unit test files must be registered in `run-unit-tests.py`'s `UNIT_SCRIPTS`, not `INTEGRATION_SCRIPTS` — the integration kind's `detect` globs only match `test-check-state.py` / `test-factory-integration.py`, so misregistration makes the file invisible to the matrix.
 2. The required CI job (`tests.yml`'s `integration` job) must itself run `--kind unit` (T-03) or SC-01/02/03/06/07/09/12/17 (all unit-evidence) have no mechanical runner on the branch-protected context.
 3. `check-state.sh` is expected red between T-06 and T-08 by construction (glob names `feature.json` while corpus still `feature.yaml`) — accepted, not a live concern at HEAD.
 
@@ -46,8 +46,8 @@ plan-signing commit, so this is the correct range (not `3abaedd..HEAD`, which wo
 
 | check | result |
 |---|---|
-| `run-unit-tests.sh --kind unit` | rc 0, 12 scripts, 36/36 cases in `test-validate-feature-json.py` PASS |
-| `run-unit-tests.sh --kind integration` | rc 0, 12 scripts (incl. `test-check-domain.py`, `test-check-state.py` 58 `ok`/0 `FAIL`) |
+| `run-unit-tests.py --kind unit` | rc 0, 12 scripts, 36/36 cases in `test-validate-feature-json.py` PASS |
+| `run-unit-tests.py --kind integration` | rc 0, 12 scripts (incl. `test-check-domain.py`, `test-check-state.py` 58 `ok`/0 `FAIL`) |
 | `check-state.sh` | rc 0, **zero** VIOLATION lines, one INV-17 exemption note naming FEAT-15 |
 | `check-plan-routes.py` | `0 violation(s) across 10 plan(s)`, rc 0 |
 | `gen-decisions-index.py --stdout` vs `DECISIONS-INDEX.md` | byte-for-byte, `diff` exit 0 |
@@ -198,8 +198,8 @@ since fixing it means editing `tests.yml` outside this feature's scope.
 
 | kind | declared | actually ran | exit | honest for this diff? |
 |---|---|---|---|---|
-| unit | active, cmd set | `run-unit-tests.sh --kind unit`, 12 scripts | 0 | yes — `logic`/`cross_module` tasks (T-01, T-05) require it and it ran |
-| integration | active, cmd set | `run-unit-tests.sh --kind integration`, 12 scripts | 0 | yes — `cross_module`(T-05), `config`(T-03,T-04,T-08) via SC-04/05/08/13/14/16/18 all named `integration` and their assertions live in `test-check-state.py`/`test-check-domain.py`, both registered `INTEGRATION_SCRIPTS` (confirmed by reading `run-unit-tests.sh`, not the `harness.json` `detect` glob, which names only 2 of the 12 — the `detect` glob is NOT what the `cmd` actually runs, so it is not misleading in practice but is itself a latent trap if anyone starts trusting `detect` for kind membership) |
+| unit | active, cmd set | `run-unit-tests.py --kind unit`, 12 scripts | 0 | yes — `logic`/`cross_module` tasks (T-01, T-05) require it and it ran |
+| integration | active, cmd set | `run-unit-tests.py --kind integration`, 12 scripts | 0 | yes — `cross_module`(T-05), `config`(T-03,T-04,T-08) via SC-04/05/08/13/14/16/18 all named `integration` and their assertions live in `test-check-state.py`/`test-check-domain.py`, both registered `INTEGRATION_SCRIPTS` (confirmed by reading `run-unit-tests.py`, not the `harness.json` `detect` glob, which names only 2 of the 12 — the `detect` glob is NOT what the `cmd` actually runs, so it is not misleading in practice but is itself a latent trap if anyone starts trusting `detect` for kind membership) |
 | functional | excluded (DEC-187) | n/a | n/a | yes — no service API in this diff, matches the exclusion's stated reason |
 | component | unresolved, cmd null | not run | n/a | **not applicable** — diff touches no `.tsx`; soft skip, honest |
 | ui | unresolved, cmd null | not run | n/a | **not applicable** — no UI surface in this diff (confirmed: zero `.tsx`/`.jsx`/frontend paths in the 110-file diff); soft skip, honest |

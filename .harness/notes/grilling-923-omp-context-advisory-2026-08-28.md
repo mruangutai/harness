@@ -139,7 +139,7 @@ All at `7ebfc9e` (`origin/main`, PR #922 merged) unless noted.
 - **Mechanical guards that actually move**, all of which must change in the same commit:
   `case4_presence_host_context_signal` in `test-orchestrator-playbook.py` (a regex requiring the
   phrase `host's current-session context signal` in `SKILL.md` — this is what the step 5 rewrite
-  invalidates), `run-unit-tests.sh:17-18` (three registered test scripts), and `harness.json`'s
+  invalidates), `run-unit-tests.py:17-18` (three registered test scripts), and `harness.json`'s
   integration `detect` list (names the context-watch test files explicitly). Re-verify each anchor
   at source before editing; two of the three line numbers handed to pm were already stale.
 - **The module/cutover split is established precedent, from this very mechanism's original build.**

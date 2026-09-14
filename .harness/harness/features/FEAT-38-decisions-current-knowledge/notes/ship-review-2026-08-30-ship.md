@@ -162,7 +162,7 @@ B-11 moot, B-10 superseded, B-9 absorbed into the plan as T-29.**
 | B-12 | chore | SC-04 has no automated gate over `.harness/harness/docs/` |
 | B-13 | chore | `test_kinds.unit.detect`'s catch-all and `integration.detect`'s explicit paths both match the three logic test files |
 | B-14 | chore | One unexplained transient in `test-gen-decisions-index.py`; not reproduced in 7 subsequent runs |
-| B-15 | chore | `run-unit-tests.sh`'s `PASS` total is ambiguous across the conventions different scripts use. **Bit me again**: a script-level count read 1001 where the true figure is 55. Worth one normalized aggregate line |
+| B-15 | chore | `run-unit-tests.py`'s `PASS` total is ambiguous across the conventions different scripts use. **Bit me again**: a script-level count read 1001 where the true figure is 55. Worth one normalized aggregate line |
 | B-16 | bug | `plan-merge.py` is add-only (exit 7 on a changed value), so a task `status:` transition has **no route through it**, and it exits 8 creating a plan that carries an approval mapping. **Confirmed live this phase** — I had to write every status flip with a line-addressed `sed` |
 | B-17 | chore | The plan's T-05 intent maps `DEC-137 → DEC-162` as a successor that carries its glossary half. It does not |
 | B-18 | chore | `docs` and `config` floor at zero required test kinds, so most tasks carried no required test |

@@ -53,7 +53,7 @@ rows above are byte-identical there (`:116`, `:155`, `:197` re-read, not recalle
   (`:155`) and `harness-dev-ops` (`:197`) — rationale: DEC-174's compensating control is a human
   reading the diff, and the diff only vouches for itself if it contains the test that proves it;
   splitting the halves also opens a red-suite window in which every *other* task's `verify:` fails for
-  an unrelated reason, because `test-validate-digest.py` is first in `run-unit-tests.sh:6`'s `SCRIPTS`
+  an unrelated reason, because `test-validate-digest.py` is first in `run-unit-tests.py:6`'s `SCRIPTS`
   list. One task eliminates the window rather than documenting it; tradeoffs: the main session does
   work a member is granted, and the deviation is recorded here because the PLAN template (lines 9-11)
   requires a `## Decisions` entry for any departure from a `team-config.yaml` convention.
@@ -488,7 +488,7 @@ date: 2026-08-04
     `harness-qa` digests carrying `VERDICT: FAIL`, not `PASS`. `grep -n "matrix_ok: false"` returns
     nothing. So step (6) turns no currently-green fixture red. Re-checked at `4091b36`, where the
     file is byte-identical to `3bfedc9` (`git diff --stat 3bfedc9 4091b36 -- <file>` is empty).
-    Run `.claude/skills/harness/bin/run-unit-tests.sh` from the repo root (issue #36: it aborts from
+    Run `.claude/skills/harness/bin/run-unit-tests.py` from the repo root (issue #36: it aborts from
     anywhere else) and read the diff before committing. Validator and fixtures land in one commit —
     SC-11.
   change_type: logic
@@ -520,7 +520,7 @@ date: 2026-08-04
         `VERDICT: PASS` -> must exit 1, reason naming `matrix_ok`. The BOOLEAN half (D-05); a gate
         keyed on the string `fail` leaves this at exit 0, so this clause is what catches that error.
         Carries NEITHER new field — qa gains neither (SC-05).
-    (iv) `.claude/skills/harness/bin/run-unit-tests.sh` exits 0. Regression clause only — RE-RUN on
+    (iv) `.claude/skills/harness/bin/run-unit-tests.py` exits 0. Regression clause only — RE-RUN on
         this revision and green at `4091b36` (`10/10 checks passed`, `PASS test-team-catalog.py`,
         exit 0), and it must be green after.
     (v) dev, `tests_added: 1`, `suite: pass`, `blocked_on: none`, `task_verify: pass`,
@@ -1083,7 +1083,7 @@ no longer does. Every row below was RE-EXECUTED at `4091b36` on this revision.
 | T-01(i) | **RE-RUN, shape changed** dev-ops digest, `task: T-01` + `suite: n/a` + `task_verify: n/a` + `PASS` -> `validate-digest.py harness-dev-ops` | `digest ok`, exit 0 | yes — must become exit 1 |
 | T-01(ii) | **RE-RUN, shape changed** dev digest, `task: T-01` + `suite: fail` + `task_verify: pass` + `PASS` -> `harness-backend-dev` | `digest ok`, **exit 0** | yes — the Q2 fold |
 | T-01(iii) | **RE-RUN** qa digest, `suite: pass` + `matrix_ok: false` + `PASS` -> `harness-qa` | `digest ok`, **exit 0** | yes — the boolean half. Carries neither new field (SC-05) |
-| T-01(iv) | **RE-RUN THIS REVISION** `run-unit-tests.sh` from the repo root | `10/10 checks passed`, `PASS test-team-catalog.py`, **exit 0** | no — regression clause. **This row was NOT re-run on the previous revision and cited a prior green; it is a fresh run now, so nothing in this table is carried over** |
+| T-01(iv) | **RE-RUN THIS REVISION** `run-unit-tests.py` from the repo root | `10/10 checks passed`, `PASS test-team-catalog.py`, **exit 0** | no — regression clause. **This row was NOT re-run on the previous revision and cited a prior green; it is a fresh run now, so nothing in this table is carried over** |
 | T-01(v) | **NEW (D-07 redirect)** dev, `task` OMITTED + `task_verify: pass` + `PASS` -> `harness-backend-dev` | `digest ok`, **exit 0** | yes — proves `task` is REQUIRED, plus SC-18(b)'s hint branch |
 | T-01(vi) | **NEW (D-07 redirect)** dev, `task: bogus` + `PASS` -> `harness-backend-dev` | `digest ok`, **exit 0** | yes — proves `task` is CONSTRAINED. Verified in the interpreter that a `re.Pattern` falls through every existing branch silently, so without step (3) this stays exit 0 |
 | T-01(vii) | **RE-RUN, shape changed** dev, `task: T-01` + omitting ONLY `task_verify` + `PASS` | `digest ok`, **exit 0** | yes — SC-01's rejection and SC-18(a)'s hint assertion in one run |
