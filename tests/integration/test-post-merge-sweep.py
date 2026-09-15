@@ -938,46 +938,55 @@ def case_t07_build_entry_receipt():
     return results
 
 
-# GRADE-2 REASON: case_duplicate_receipt_inputs keeps the two strict artifact variants in
-# one shared lifecycle so their identical retain-the-worktree contract cannot drift.
+def _write_duplicate_artifact(repo, feature, duplicate_feature):
+    if duplicate_feature:
+        path = os.path.join(
+            repo, ".harness", "harness", "features", feature, "feature.json")
+        content = (
+            '{"feature_id":"' + feature + '","branch":"other",'
+            '"branch":"feature/test","github":{"build_entry":"opened"}}')
+    else:
+        path = os.path.join(repo, ".harness", "harness.json")
+        content = (
+            '{"github":{"sync":false},"github":{"sync":true,'
+            '"repo":"acme/repo-x","board":null}}')
+    with open(path, "w") as stream:
+        stream.write(content)
+
+
+def _duplicate_receipt_failure(duplicate_feature):
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        feature = "FEAT-9001-fixture-non-era"
+        _commit_feature(repo, feature, "Done", milestone=9)
+        _write_duplicate_artifact(repo, feature, duplicate_feature)
+        subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "set duplicate"], cwd=repo,
+            capture_output=True)
+        dest = _add_wt(repo, feature)
+        _, gh_env = _stub_gh(tmp)
+        _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
+        run = subprocess.run(
+            [sweep], cwd=repo, capture_output=True, text=True,
+            env=_sweep_env(repo, gh_env))
+        if os.path.isdir(dest):
+            return None
+        artifact = "feature.json" if duplicate_feature else "harness.json"
+        return (
+            f"duplicate {artifact} keys keep the worktree",
+            False,
+            f"stdout={run.stdout!r} dest={dest}",
+        )
+
+
 def case_duplicate_receipt_inputs():
     failures = []
     for duplicate_feature in (False, True):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = _bootstrap_repo(os.path.join(tmp, "R"))
-            sweep = _install_fixture_bin(repo)
-            feature = "FEAT-9001-fixture-non-era"
-            _commit_feature(repo, feature, "Done", milestone=9)
-            if duplicate_feature:
-                feature_path = os.path.join(
-                    repo, ".harness", "harness", "features", feature, "feature.json")
-                with open(feature_path, "w") as stream:
-                    stream.write(
-                        '{"feature_id":"' + feature + '","branch":"other",'
-                        '"branch":"feature/test","github":{"build_entry":"opened"}}')
-            else:
-                config_path = os.path.join(repo, ".harness", "harness.json")
-                with open(config_path, "w") as stream:
-                    stream.write(
-                        '{"github":{"sync":false},"github":{"sync":true,'
-                        '"repo":"acme/repo-x","board":null}}')
-            subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
-            subprocess.run(
-                ["git", "commit", "-qm", "set duplicate"], cwd=repo,
-                capture_output=True)
-            dest = _add_wt(repo, feature)
-            _, gh_env = _stub_gh(tmp)
-            _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
-            run = subprocess.run(
-                [sweep], cwd=repo, capture_output=True, text=True,
-                env=_sweep_env(repo, gh_env))
-            if not os.path.isdir(dest):
-                artifact = "feature.json" if duplicate_feature else "harness.json"
-                failures.append((
-                    f"duplicate {artifact} keys keep the worktree",
-                    False,
-                    f"stdout={run.stdout!r} dest={dest}",
-                ))
+        failure = _duplicate_receipt_failure(duplicate_feature)
+        if failure:
+            failures.append(failure)
     return failures
 
 

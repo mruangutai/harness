@@ -829,20 +829,52 @@ teams:
     return fails
 
 
+def _assert_typed_view_resolution():
+    root = fixture("""schema_version: 1
+teams:
+  - name: fixture
+    members:
+      - name: harness-zeta
+        domain:
+          - { path: .harness/typed/**, upsert: true }
+      - name: harness-alpha
+        domain:
+          - { path: .harness/typed/**, upsert: true }
+      - name: harness-flattened-trap
+        domain:
+          - { path: .harness/elsewhere/**, upsert: true }
+shared:
+  - { path: .harness/typed/** }
+""")
+    result = subprocess.run(
+        [HOOK, "--resolve", ".harness/typed/owned.txt"],
+        capture_output=True, text=True, timeout=10, env=_env(root),
+        stdin=subprocess.DEVNULL)
+    expected = [
+        "harness-alpha",
+        "harness-zeta",
+        "SHARED .harness/typed/**",
+    ]
+    if result.stdout.splitlines() != expected:
+        raise AssertionError(
+            "typed view did not preserve owner association and shared order: "
+            f"{result.stdout.splitlines()!r}")
+
+
 # --- FEAT-09 / DEC-179: `--resolve <path>`. Eight cases, one per clause of T-01's
 # intent. The two stdin cases are the reason this mode exists at all: both were
 # MEASURED on the pre-change tree — an open pipe blocked indefinitely, and closed
 # stdin exited 0 printing nothing, which is a fail-open answer indistinguishable
 # from a clean resolve.
-# GRADE-2 REASON: run_resolve keeps the resolver's ordered owner/shared output and its
-# closed/open-stdin parity in one visible contract; splitting them would hide drift.
+# GRADE-2 REASON: run_resolve keeps the existing ordered resolver and stdin parity
+# contract together; the new typed-view assertion is isolated to avoid adding branches.
 def run_resolve():
     fails = 0
 
-    def resolve(path, stdin_mode="closed", timeout=10, root=ROOT):
+    def resolve(path, stdin_mode="closed", timeout=10):
         kw = {"stdin": subprocess.DEVNULL} if stdin_mode == "closed" else {"stdin": os.pipe()[0]}
         r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
-                           timeout=timeout, env=_env(root), **kw)
+                           timeout=timeout, env=_env(ROOT), **kw)
         return r
 
     def check(name, ok, detail=""):
@@ -864,32 +896,7 @@ def run_resolve():
           sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
           f"got {r.stdout.split()!r}")
 
-    view_root = fixture("""schema_version: 1
-teams:
-  - name: fixture
-    members:
-      - name: harness-zeta
-        domain:
-          - { path: .harness/typed/**, upsert: true }
-      - name: harness-alpha
-        domain:
-          - { path: .harness/typed/**, upsert: true }
-      - name: harness-flattened-trap
-        domain:
-          - { path: .harness/elsewhere/**, upsert: true }
-shared:
-  - { path: .harness/typed/** }
-""")
-    r = resolve(".harness/typed/owned.txt", root=view_root)
-    expected_view = [
-        "harness-alpha",
-        "harness-zeta",
-        "SHARED .harness/typed/**",
-    ]
-    if r.stdout.splitlines() != expected_view:
-        check("(b2) --resolve: typed view preserves two owners, excludes an unrelated role, "
-              "then emits the shared glob", False,
-              f"got {r.stdout.splitlines()!r}")
+    _assert_typed_view_resolution()
 
     # (c) NOBODY is a LITERAL EMITTED TOKEN, not silence
     r_nobody = resolve(".agents/skills/harness-spec-driven/SKILL.md")
