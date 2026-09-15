@@ -112,8 +112,6 @@ def _empty_factory():
 def load_factory(feat_dir):
     path = os.path.join(feat_dir, "feature.json")
     factory = _empty_factory()
-    # BUG-285: artifact_accessors.load_feature_json is the public feature.json boundary.
-    # This reader only converts the validated factory record into its local output shape.
     try:
         doc = artifact_accessors.load_feature_json(path)
     except artifact_accessors.FeatureJsonError as e:
