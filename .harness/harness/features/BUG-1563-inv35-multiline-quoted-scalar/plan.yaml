@@ -4,19 +4,56 @@ approval:
   date: '2026-09-15'
   approved_by: operator
   status: approved
-status: review
+status: building
 source_issues: [1563]
 
+panel:
+  last_run: plan-upgrade-product
+  cycle: 1
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Scope and architecture review passed with no findings.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Independent scope challenge found one informational residue and no removable
+      work.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: No user-facing surface; DESIGN.md and prototype are not required.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Both declared perspectives passed against the operator's stated intent.
+  findings:
+  - id: PF-7e6d83071485b8469399e400d5517723
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02 and SC-03 duplicate the three integration-proven INV-35 outcomes
+      under tests/unit solely to satisfy the unit-kind detect surface, but the operator's
+      no-waiver constraint and hard matrix make that duplicate the minimum required
+      scope.
+    disposition: open
+    scope: task
 lanes:
   resolved_at: f5ffdcf4fbfee2f2c044fcd046253df65bc40550
   rows:
-    - surface: .claude/skills/harness/bin/check-state.sh
-      lane: main-session-direct
-      reason: DEC-174 places the state gate outside self-hosted execution, declared at plan time under DEC-179.
-    - surface: tests/integration/test-check-state-plans.py
-      lane: main-session-direct
-      reason: DEC-174 places a gate's own test with the gate, declared at plan time under DEC-179.
-
+  - surface: .claude/skills/harness/bin/check-state.sh
+    lane: main-session-direct
+    reason: DEC-174 places the state gate outside self-hosted execution, declared
+      at plan time under DEC-179.
+  - surface: tests/integration/test-check-state-plans.py
+    lane: main-session-direct
+    reason: DEC-174 places a gate's own test with the gate, declared at plan time
+      under DEC-179.
+  - surface: tests/unit/test-check-state-inv35.py
+    lane: main-session-direct
+    reason: DEC-174 places every test that directly vouches for a gate with the gate,
+      declared at plan time under DEC-179.
 decisions: []
 
 tasks:
@@ -35,3 +72,18 @@ tasks:
       python3 tests/integration/test-check-state-plans.py
     intent: |
       Work test-first: add regression cases that fail against the pre-change checker, then correct INV-35. Accept valid multiline single-quoted and double-quoted YAML scalars when #<digit> appears on a later physical line inside the quoted value. Retain INV-35 findings for genuinely unquoted values, including notes: close out #217. Keep all existing INV-35 cases passing, make no schema or public-interface change, and do not broaden plan parsing beyond the quote-state behavior required for these outcomes.
+  - id: T-02
+    title: Add focused INV-35 unit-kind behavior coverage
+    traces: [SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps every test that directly vouches for check-state.sh outside self-hosted execution; DEC-179 requires that carve-out to be declared main-session-direct at plan time.
+    depends_on: [T-01]
+    status: building
+    files:
+      - tests/unit/test-check-state-inv35.py
+    verify: |
+      python3 tests/unit/test-check-state-inv35.py
+    intent: |
+      Create tests/unit/test-check-state-inv35.py as the smallest focused behavioral test of the real .claude/skills/harness/bin/check-state.sh needed to close the configured unit-kind matrix gap. Invoke the real checker against isolated temporary Harness fixtures; do not copy or reimplement its INV-35 scanner. Assert independently that multiline double-quoted and multiline single-quoted notes values containing #217 on a continuation line produce no INV-35 output, and that the unquoted value notes: close out #217 produces an INV-35 finding naming #217. Make the test exit nonzero if any one outcome differs, and demonstrate that this same focused test fails against the pre-T-01 checker before it passes against the completed checker. Do not change check-state.sh, tests/integration/test-check-state-plans.py, or broaden coverage beyond these three cases.
+

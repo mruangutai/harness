@@ -3,18 +3,16 @@
 ## Current
 
 - feature: BUG-1563-inv35-multiline-quoted-scalar
-- run: `validate-validator` FAIL — canonical digest at `.harness/harness/features/BUG-1563-inv35-multiline-quoted-scalar/runs/validate-validator/digest.md`
-- squad: none
-- status: awaiting operator decision in Review
-- mission: patch; the signed two-file scope is now insufficient for the configured test-matrix gate
-- review pin: `c1e85b64d9871e07bdf3b6994ab8e4ee7a36ba11`
-- GitHub mirror: build entry `opened`; milestone #70, parent #1701, and T-01 sub-issue #1702 are recorded and remain at Review
-- delivered behavior: code review, security review, UI scoping, goalcheck, the exact integration command, both SCs, and fail-first evidence all passed
-- sole blocker: QA finding V-01 says bugfixes touching runtime code require unit-kind coverage under `.harness/harness.json`; T-01 owns only `.claude/skills/harness/bin/check-state.sh` and `tests/integration/test-check-state-plans.py`, and no unit test currently covers INV-35
-- finding classification: scope change — any honest remedy requires at least one `tests/unit/` file outside the approved two-file patch; the validator's T-01 ownership label cannot expand the signed task
-- recommendation: upgrade from patch to plan, re-grill the minimum unit-test seam, preserve main-session-direct handling for any gate-own-test surface under DEC-174, and spend the existing one-round rework ruling only after the amended scope is approved
-- cycles_used: 2 of 10; the signed one-round / 45-minute product rework allowance is not yet spent because no fix run started
+- plan upgrade: signed by the operator on 2026-09-15 with 1 round / 45 minutes and decision record `notes/answers-upgrade-plan.md`
+- GitHub mirror: parent #1701; T-01 #1702 done; T-02 #1703 attached; plan station `building`
+- active work: T-02 `Add focused INV-35 unit-kind behavior coverage`, station `building`
+- execution route: main-session-direct under DEC-174/179; no Harness lead or member may mutate the test
+- only implementation file: `tests/unit/test-check-state-inv35.py`; no production or integration-test change is authorized
+- required behavior: the focused test invokes the real `.claude/skills/harness/bin/check-state.sh` against isolated temporary Harness fixtures; multiline single- and double-quoted `notes` with continuation-line `#217` are silent, while unquoted `notes: close out #217` produces an INV-35 finding naming `#217`
+- proof: demonstrate this same focused test fails against the pre-T-01 checker, then passes against the completed checker; direct command is `python3 tests/unit/test-check-state-inv35.py`
+- completion receipt needed: RED and GREEN command evidence, commit SHA with `[harness:t-02]`, and confirmation that only the planned file changed
+- cycles_used: 2 of 10; this is the one signed rework round
 
 ## Open Questions
 
-- Q1 (blocking): Authorize upgrading BUG-1563 from the signed two-file patch to a plan that adds the minimum matrix-required unit coverage, while preserving DEC-174 main-session-direct routing for enforcement-layer files? Recommendation: yes; do not waive or weaken the hard test matrix.
+- None.

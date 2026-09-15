@@ -2,7 +2,7 @@
   "feature_id": "BUG-1563-inv35-multiline-quoted-scalar",
   "branch": "feat/BUG-1563-inv35-multiline-quoted-scalar",
   "pr": null,
-  "review_sha": "c1e85b64d9871e07bdf3b6994ab8e4ee7a36ba11",
+  "review_sha": "none",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
@@ -33,6 +33,15 @@
       "started_at": "2026-09-15T12:58:56+00:00",
       "ended_at": "2026-09-15T13:15:52+00:00",
       "tokens": null
+    },
+    {
+      "id": "plan-upgrade-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T13:23:08+00:00",
+      "ended_at": "2026-09-15T13:47:06+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -56,22 +65,45 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "The patch cannot enter a fix run until the operator decides whether to broaden the signed scope for matrix-required unit coverage; recommend upgrade plan."
+    },
+    {
+      "at": "2026-09-15T13:22:38+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "Operator authorized the minimum plan upgrade for matrix-required unit coverage in notes/answers-upgrade-plan.md; DEC-174 remains binding."
+    },
+    {
+      "at": "2026-09-15T13:22:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator approved upgrading the scope to plan for the minimum matrix-required unit coverage; proceed without weakening the gate."
+    },
+    {
+      "at": "2026-09-15T13:22:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "replan",
+      "reason": "Validate finding V-01 is a scope change; operator approved the minimum plan upgrade before any fix run."
     }
   ],
-  "mission": "patch",
+  "mission": "plan",
   "rework": {
     "rounds": 1,
     "wall_clock_minutes": 45,
-    "decision": "BRIEF.md"
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1563-inv35-multiline-quoted-scalar/.harness/harness/features/BUG-1563-inv35-multiline-quoted-scalar/notes/answers-upgrade-plan.md"
   },
   "github": {
     "milestone": 70,
     "parent": 1701,
     "attached": [
-      "T-01"
+      "T-01",
+      "T-02"
     ],
     "issues": {
-      "T-01": 1702
+      "T-01": 1702,
+      "T-02": 1703
     },
     "source_issues": [
       1563
