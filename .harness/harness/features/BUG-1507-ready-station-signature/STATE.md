@@ -3,13 +3,13 @@
 ## Current
 
 - feature: BUG-1507-ready-station-signature
-- run: VALIDATE PASSED at `ac5e24e5` — panel `must_fix: []`, `severity_max: med`, all four readers
-  ran. Returned to the main session, which owns PR open, CI watch, merge and `gh-sync.py ship`
-- squad: none — the orchestrator's build+validate mission is complete
-- status: in_review (panel clean; awaiting the main session's PR and merge)
-- station: `review` (plan.yaml line 3), written by `gh-sync.py status <feature-dir> review`
-- review_sha: `df9ccd0147748bd6e7dd4cd8eab4add301a1ba21` (re-pinned; zero code-path delta from the reviewed `ac5e24e5`)
-- mirror: milestone #64, parent #1517, sub-issues #1518-#1522, all six at the review station
+- run: terminal record correction after PR #1523 merged
+- squad: none
+- status: done
+- station: `done` (`plan.yaml` line 3)
+- pull request: #1523 merged; source issue #1507 closed as completed
+- review_sha: `df9ccd0147748bd6e7dd4cd8eab4add301a1ba21`
+- mirror receipt: milestone #64, parent #1517, sub-issues #1518-#1522
 - cycles_used: 3 of 10 · runs: 10 of 20
 
 Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and `runs/*/digest.md`):
