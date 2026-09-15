@@ -1214,14 +1214,23 @@ def _classification_document(path):
     return document, []
 
 
+def _expanded_task_paths(root, path):
+    if not glob.has_magic(path):
+        return [path]
+    return [
+        os.path.relpath(match, root)
+        for match in sorted(glob.glob(os.path.join(root, path)))
+    ]
+
+
 def _task_files(root, plan_relative):
     plan = artifact_accessors.load_plan(os.path.join(root, plan_relative))
     task_files = {}
     for task in plan["tasks"]:
         paths = []
         for entry in task.get("files", []):
-            path = entry.get("path") if isinstance(entry, dict) else entry
-            paths.append(str(path).split("#", 1)[0])
+            path = str(entry.get("path") if isinstance(entry, dict) else entry).split("#", 1)[0]
+            paths.extend(_expanded_task_paths(root, path))
         task_files[str(task["id"])] = paths
     return task_files
 

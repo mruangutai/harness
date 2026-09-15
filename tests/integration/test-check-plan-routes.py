@@ -2055,6 +2055,22 @@ def case_canonical_reader_route_guards():
     check("canonical_reader_task_files_must_name_source",
           any("task files omit" in line for line in findings), repr(findings))
 
+def case_canonical_reader_glob_route_guard():
+    """A task file glob names each matching canonical-reader source."""
+    mod = cpr()
+    candidate = _reader_fixture_candidate()
+    document = {"schema": "canonical-reader-classification/1",
+                "scanned_files": ["fixture.py"],
+                "rows": [_classification_row(candidate)]}
+    with tempfile.TemporaryDirectory() as td:
+        open(os.path.join(td, "fixture.py"), "w").close()
+        write_plan(td, (PLAN_YAML % "fixture*.py").replace("T-01", "T-02"), name="plan.yaml")
+        task_files = mod._task_files(td, "plan.yaml")
+        findings = mod.reader_classification_findings(
+            [candidate], ["fixture.py"], document, task_files)
+        check("canonical_reader_task_file_glob_names_source",
+              not any("task files omit" in line for line in findings), repr(findings))
+
 
 def case_canonical_reader_second_state_reader():
     """The one-reader state.yaml exemption becomes a violation on the second reader."""
@@ -2348,6 +2364,7 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_exemption_guards,
     case_canonical_reader_inventory_guards,
     case_canonical_reader_route_guards,
+    case_canonical_reader_glob_route_guard,
     case_canonical_reader_second_state_reader,
     case_canonical_reader_live_baseline,
     case_canonical_reader_task_postconditions,
