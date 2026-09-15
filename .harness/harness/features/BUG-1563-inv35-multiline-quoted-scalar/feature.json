@@ -141,6 +141,13 @@
       "kind": "regate",
       "decision": "revalidate",
       "reason": "V-01 is addressed by T-02 unit-kind coverage, EFF-01 is resolved, focused proof is green, simplify confirms no remaining finding, and review_sha is pinned to 9fd79689e24353ac81689bb5227b8aa752e536ea."
+    },
+    {
+      "at": "2026-09-15T14:37:44+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "ship",
+      "reason": "Operator accepted ship at pinned SHA 9fd79689e24353ac81689bb5227b8aa752e536ea and kept backlog item B-1 in notes/answers-ship-decision.md."
     }
   ],
   "mission": "plan",
