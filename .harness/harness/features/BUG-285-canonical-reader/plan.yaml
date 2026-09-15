@@ -507,7 +507,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-07]
-    status: ready
+    status: done
     files:
       - path: .harness/harness/docs/DECISIONS.md
         quote: "The enforcement layer, enumerated:"
