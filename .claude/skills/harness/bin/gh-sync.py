@@ -286,8 +286,8 @@ def load_config(root):
     if not os.path.isfile(p):
         skip("no .harness/harness.json — project not onboarded")
     try:
-        cfg = json.load(open(p))
-    except Exception as e:
+        cfg = artifact_accessors.load_harness_json(p)
+    except artifact_accessors.ArtifactAccessError as e:
         skip(f"harness.json unreadable ({e})")
     g = cfg.get("github") or {}
     if not g.get("sync"):
@@ -318,8 +318,8 @@ def _feature_station(feat_dir):
     """
     path = os.path.join(feat_dir, "plan.yaml")
     try:
-        doc = harness_yaml.load_file(path)
-    except Exception:
+        doc = artifact_accessors.load_plan(path)
+    except harness_yaml.YamlParseError:
         return None
     if not isinstance(doc, dict):
         return None
@@ -404,9 +404,8 @@ def parse_tasks(feat_dir):
     """
     yml = os.path.join(feat_dir, "plan.yaml")
     if os.path.isfile(yml):
-        import harness_yaml
         try:
-            doc = harness_yaml.load_plan(yml)
+            doc = artifact_accessors.load_plan(yml)
         except harness_yaml.YamlParseError as e:
             die(f"{yml} does not load: {e}")
         out = []
@@ -473,7 +472,7 @@ def parse_source_issues(feat_dir):
     path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(path):
         return []
-    doc = harness_yaml.load_file(path)
+    doc = artifact_accessors.load_plan(path)
     if not isinstance(doc, dict):
         return []
     si = doc.get("source_issues")
@@ -770,13 +769,9 @@ def _record_pr(feat_dir, repo, pr_arg=None):
     """
     path = os.path.join(feat_dir, "feature.json")
     try:
-        with open(path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
+        doc = artifact_accessors.load_feature_json(path)
+    except feature_json_write.FeatureJsonError:
         print(f"gh-sync: {path} could not be read — pr not recorded")
-        return
-    if not isinstance(doc, dict):
-        print(f"gh-sync: {path} is not a JSON mapping — pr not recorded")
         return
     existing = doc.get("pr")
     if isinstance(existing, int) and not isinstance(existing, bool):
@@ -802,8 +797,9 @@ def _record_pr(feat_dir, repo, pr_arg=None):
                   f"(gh pr list failed: {(r.stderr or r.stdout).strip()[:200]})")
             return
         try:
-            found = json.loads(r.stdout)
-        except (ValueError, TypeError):
+            found = artifact_accessors.parse_gh_json(
+                r.stdout, "merged pull request list")
+        except artifact_accessors.ArtifactAccessError:
             found = None
         if not isinstance(found, list) or not found:
             print(f"gh-sync: no merged pull request found on branch {branch}")
@@ -1066,7 +1062,8 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
                         "-f", f"title={brief['feat']}", "-f", f"description={desc}"],
                        capture_output=True, text=True)
     if r.returncode == 0:
-        rec["milestone"] = json.loads(r.stdout)["number"]
+        rec["milestone"] = artifact_accessors.parse_gh_json(
+            r.stdout, "milestone create response")["number"]
         print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
         _BUILD_ENTRY["remote_written"] = True
     else:
@@ -2114,7 +2111,8 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         ok, raw = gh_try(sub_issues_args(repo, num))
         if not ok:
             raise RuntimeError(raw)
-        kids = json.loads(raw) if raw and raw.strip() else []
+        kids = artifact_accessors.parse_gh_json(
+            raw, "sub-issues response") if raw and raw.strip() else []
         numbers = sorted(int(k["number"]) for k in kids
                          if isinstance(k, dict) and k.get("number") is not None)
         # THE DISCOVERED CHILDREN ARE FETCHED HERE, because here is the first moment they are

@@ -30,6 +30,7 @@ import json
 import os
 import sys
 
+import artifact_accessors
 import factory_cli
 import factory_gh
 import harness_boundary
@@ -309,17 +310,12 @@ def product_config(fleet, repo_name):
             f"could not read {repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref}: {e}",
         ) from e
     try:
-        doc = json.loads(raw)
-    except (ValueError, TypeError) as e:
+        doc = artifact_accessors.load_harness_json(text=raw, context=human_path)
+    except artifact_accessors.ArtifactAccessError as e:
         raise FleetError(
             "product config invalid", human_path,
             f"{repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref} does not parse as JSON",
         ) from e
-    if not isinstance(doc, dict):
-        raise FleetError(
-            "product config invalid", human_path,
-            f"{repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref} must parse to a JSON mapping",
-        )
 
     _product_config_memo[memo_key] = doc
     return doc

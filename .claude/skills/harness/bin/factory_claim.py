@@ -28,6 +28,7 @@ import os
 import re
 import sys
 
+import artifact_accessors
 import factory_cli
 import factory_config
 import factory_gh
@@ -108,7 +109,7 @@ class _BlockerCache:
         if key not in self._plans:
             path = self.plan_path(repo, feature)
             try:
-                plan = harness_yaml.load_plan(path)
+                plan = artifact_accessors.load_plan(path)
             except harness_yaml.YamlParseError as exc:
                 plan = None
                 if os.path.isfile(path):
@@ -150,8 +151,8 @@ class _BlockerCache:
             root = factory_config.features_root(repo)
             path = os.path.join(root, feature, "feature.json")
             try:
-                doc = harness_yaml.load_file(path)
-            except harness_yaml.YamlParseError:
+                doc = artifact_accessors.load_feature_json(path)
+            except artifact_accessors.ArtifactAccessError:
                 doc = None
             issues = {}
             if isinstance(doc, dict):

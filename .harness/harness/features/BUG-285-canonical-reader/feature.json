@@ -128,6 +128,33 @@
       "ended_at": "2026-09-15T02:31:33+00:00",
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-15-t02-manifest-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-15T02:32:49+00:00",
+      "ended_at": "2026-09-15T02:41:33+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t03-resume2-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T02:41:33+00:00",
+      "ended_at": "2026-09-15T02:49:40+00:00",
+      "tokens": null
+    },
+    {
+      "id": "2026-09-15-t02-verify-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T02:49:41+00:00",
+      "ended_at": "2026-09-15T02:53:57+00:00",
+      "tokens": null
     }
   ],
   "judgements": [

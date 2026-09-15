@@ -46,6 +46,7 @@ file, 9 destination, 6 lock). python3 stdlib only.
 """
 import argparse
 import json
+import artifact_accessors
 import os
 import re
 import sys
@@ -322,10 +323,10 @@ def _budgets_for(feature_json):
         candidate = os.path.join(here, ".harness", "harness.json")
         if os.path.isfile(candidate):
             try:
-                with open(candidate, encoding="utf-8") as handle:
-                    budgets = (json.load(handle) or {}).get("budgets")
+                doc = artifact_accessors.load_harness_json(candidate)
+                budgets = doc.get("budgets")
                 return budgets if isinstance(budgets, dict) else {}
-            except (OSError, ValueError):
+            except artifact_accessors.ArtifactAccessError:
                 return {}
         parent = os.path.dirname(here)
         if parent == here:

@@ -13,6 +13,8 @@ from pathlib import Path
 
 import yaml
 
+import artifact_accessors
+
 TO_OMP_TOOL = {
     "Read": "read",
     "Glob": "glob",
@@ -140,11 +142,9 @@ def parse_legacy_frontmatter(raw: str, path: Path) -> dict:
 
 
 def parse_canonical(path: Path) -> tuple[dict, str]:
-    raw, body = split_document(path.read_text(encoding="utf-8"), path)
-    data = yaml.safe_load(raw)
-    if not isinstance(data, dict):
-        raise ValueError(f"{path}: frontmatter must be a mapping")
-    return data, body
+    data, body = artifact_accessors.load_frontmatter(
+        path.read_text(encoding="utf-8"), str(path))
+    return data, body + "\n"
 
 
 def render(meta: dict, body: str) -> str:

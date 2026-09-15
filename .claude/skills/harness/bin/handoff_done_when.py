@@ -4,7 +4,9 @@
 from pathlib import Path, PurePosixPath
 import re
 import stat
-import yaml
+
+import artifact_accessors
+import harness_yaml
 
 SECTION = "## Done when"
 LEGAL_PREFIXES = ("plan-task:", "brief-sc:", "finding:", "approval:", "brief-perspective:")
@@ -124,8 +126,9 @@ def _resolve_plan(pointer, match, feature_dir, root):
     target = feature_dir / "plan.yaml"
     task_id = match.group(1)
     try:
-        doc = yaml.safe_load(_read_target(target, root))
-    except (ValueError, yaml.YAMLError) as exc:
+        _read_target(target, root)
+        doc = artifact_accessors.load_plan(target)
+    except (ValueError, harness_yaml.YamlParseError) as exc:
         return _unresolved(pointer, target, exc)
     tasks = doc.get("tasks", []) if isinstance(doc, dict) else []
     ok = any(isinstance(task, dict) and task.get("id") == task_id
@@ -254,7 +257,9 @@ RESOLVERS = {
 
 
 def _plan_task(match, feature_dir, root):
-    doc = yaml.safe_load(_read_target(feature_dir / "plan.yaml", root))
+    target = feature_dir / "plan.yaml"
+    _read_target(target, root)
+    doc = artifact_accessors.load_plan(target)
     tasks = doc.get("tasks", []) if isinstance(doc, dict) else []
     return next((task for task in tasks
                  if isinstance(task, dict) and task.get("id") == match.group(1)), None)

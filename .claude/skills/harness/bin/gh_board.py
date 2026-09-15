@@ -16,9 +16,9 @@ from here: its callers exit non-zero, and this module's callers must not (D-02 â
 is loud on stderr and the run continues).
 """
 
-import json
 import os
 
+import artifact_accessors
 import factory_config
 import factory_gh
 
@@ -66,9 +66,8 @@ def load_board(root):
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path) as f:
-            cfg = json.load(f)
-    except (OSError, ValueError):
+        cfg = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError:
         return None
     if not isinstance(cfg, dict):
         return None

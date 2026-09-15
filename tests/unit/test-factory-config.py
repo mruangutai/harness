@@ -703,6 +703,23 @@ except Exception as e:
     _remote_ok, _remote_doc = False, f"{type(e).__name__}: {e}"
 check("product_config remote harness.json text is accepted by load_harness_json",
       _remote_ok, _remote_doc)
+# T-03: remote contents must take the canonical strict parser, not json.loads directly.
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fc.clear_product_config_memo()
+    _strict_remote = json.dumps(config_doc(board_dict(3)))[:-1] + ',"strict_probe":NaN}'
+    with patched_file_at_ref(lambda r, p, ref: _strict_remote):
+        try:
+            fc.product_config(fleet, "mruangutai/harness")
+            _strict_ok, _strict_detail = False, "did not raise"
+        except fc.FleetError as e:
+            _strict_detail = str(e)
+            _strict_ok = "mruangutai/harness" in _strict_detail
+        except Exception as e:
+            _strict_ok, _strict_detail = False, f"{type(e).__name__}: {e}"
+    check("product_config rejects non-finite remote harness.json through the strict accessor",
+          _strict_ok, _strict_detail)
+
 
 # (ii) a failing remote read raises FleetError naming repo, path and ref.
 with tempfile.TemporaryDirectory() as td:

@@ -248,12 +248,12 @@ as what" — a question with no destructive answer, and one this module cannot a
 import argparse
 import collections
 import glob
-import json
 import os
 import re
 import subprocess
 import sys
 
+import artifact_accessors
 import factory_cli
 import factory_config
 import factory_gh
@@ -287,11 +287,8 @@ def _own_repo(root):
     name, and this module needs both."""
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path, encoding="utf-8") as f:
-            cfg = json.load(f)
-    except (OSError, ValueError):
-        return None
-    if not isinstance(cfg, dict):
+        cfg = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError:
         return None
     github = cfg.get("github")
     if not isinstance(github, dict):
@@ -460,8 +457,8 @@ def _declared_stations(board):
 # old table folded both into a single `None` and so exempted a typo from the audit.
 def _plan_station(feat_dir):
     try:
-        doc = harness_yaml.load_file(os.path.join(feat_dir, "plan.yaml")) or {}
-    except Exception:
+        doc = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml")) or {}
+    except harness_yaml.YamlParseError:
         return ""
     if not isinstance(doc, dict):
         return ""
@@ -514,11 +511,9 @@ def _status_findings(root, board, stations):
     findings = []
     for feat_dir in _feature_dirs(root):
         try:
-            with open(os.path.join(feat_dir, "feature.json"), encoding="utf-8") as f:
-                fj = json.load(f)
-        except (OSError, ValueError):
-            continue
-        if not isinstance(fj, dict):
+            fj = artifact_accessors.load_feature_json(
+                os.path.join(feat_dir, "feature.json"))
+        except artifact_accessors.ArtifactAccessError:
             continue
 
         # THE STATION COMES FROM plan.yaml (FEAT-41 T-07), and `_STATUS_TO_STATION_KEY` is gone

@@ -23,6 +23,7 @@ import json
 import os
 import subprocess
 
+import artifact_accessors
 import factory_cli
 import gh_cost_log
 import gh_issues
@@ -168,7 +169,7 @@ def run_gh(args, json_out=False):
         raise GhError(args, r.returncode, r.stdout, r.stderr,
                       _what_from_argv(args), _value_from_argv(args), next_step)
     if json_out:
-        return json.loads(r.stdout)
+        return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
     return r.stdout.strip()
 
 
@@ -540,8 +541,9 @@ def _project_field_resolve(owner, number, field):
         parsed = None
         if e.stdout:
             try:
-                parsed = json.loads(e.stdout)
-            except ValueError:
+                parsed = artifact_accessors.parse_gh_json(
+                    e.stdout, "GitHub project field response")
+            except artifact_accessors.ArtifactAccessError:
                 parsed = None
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
@@ -641,8 +643,9 @@ def project_resolve(owner, number):
         parsed = None
         if e.stdout:
             try:
-                parsed = json.loads(e.stdout)
-            except ValueError:
+                parsed = artifact_accessors.parse_gh_json(
+                    e.stdout, "GitHub project response")
+            except artifact_accessors.ArtifactAccessError:
                 parsed = None
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
@@ -925,8 +928,9 @@ def issue_board_item_id(repo, number, board_number):
         parsed = None
         if e.stdout:
             try:
-                parsed = json.loads(e.stdout)
-            except ValueError:
+                parsed = artifact_accessors.parse_gh_json(
+                    e.stdout, "GitHub issue board response")
+            except artifact_accessors.ArtifactAccessError:
                 parsed = None
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
