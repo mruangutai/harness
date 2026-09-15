@@ -70,7 +70,10 @@ def _resolve_root():
 
 def _agent_from_stdin():
     try:
-        payload = json.load(_bootstrap_sys.stdin)
+        _bootstrap_sys.path.insert(0, _bootstrap_bin)
+        import artifact_accessors
+        payload = artifact_accessors.read_hook_payload(
+            _bootstrap_sys.stdin.read(), "inject-expertise hook payload")
         return payload.get("agent_type", "")
     except Exception:
         return ""

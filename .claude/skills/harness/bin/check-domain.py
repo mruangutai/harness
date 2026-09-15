@@ -115,7 +115,9 @@ def _root():
 # problem, not the agent's: fall back to the same empty-payload behaviour the four
 # separate launches had, each of which printed "" and let the caller decide.
 try:
-    d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
+    import artifact_accessors as _artifact_accessors
+    d = _artifact_accessors.read_hook_payload(
+        os.environ.get("HOOK_PAYLOAD") or "", "check-domain hook payload")
 except Exception:
     d = {}
 
@@ -168,7 +170,8 @@ if _resolve_target is not None:
         sys.exit(2)
 
     try:
-        parsed = harness_yaml.load_file(manifest)
+        _manifest_view = _artifact_accessors.manifest_domains(
+            manifest, view=True)
     except harness_yaml.DuplicateKeyError as e:
         print(f"check-domain: BLOCKED — the manifest has a duplicate key {e.key!r}.",
               file=sys.stderr)
@@ -209,37 +212,22 @@ if _resolve_target is not None:
     if _ck is not None and harness_boundary.real(_ck[0]) != harness_boundary.real(_base):
         _cands.append(_ck[1])
 
-    # Every agent carrying a `domain:` list, at EVERY nesting level — members sit
-    # under teams[].members[], leads under `leads:`, and harness-orchestrator is a
-    # bare top-level key. manifest_domains() already walks all three; this only needs
-    # the roster of names to ask it about.
-    _names = []
-    def _roster(node):
-        if isinstance(node, dict):
-            if isinstance(node.get("domain"), list) and node.get("name"):
-                _names.append(str(node["name"]))
-            for v in node.values():
-                _roster(v)
-        elif isinstance(node, list):
-            for i in node:
-                _roster(i)
-    _roster(parsed)
-
+    # Every named role and its writable globs come from one immutable manifest view.
+    # Keeping the association intact matters: flattening all globs would falsely name
+    # every role as an owner of every granted path.
     _granting = set()
-    _shared_hits = []
-    for _n in _names:
-        _globs, _shared = harness_yaml.manifest_domains(manifest, _n)
-        # The SAME two-sided rule the hook applies: filter the globs in the product
-        # base, test the target in the harness base. A resolver that skipped either
-        # half would name an owner for a path the build refuses.
+    for _role in _manifest_view.roles:
         if any(harness_boundary.matches(c, g) for c in _cands if _target_test(c)
-               for g in _globs if _glob_filter(g)):
-            _granting.add(_n)
-        for g in _shared:
-            if not _glob_filter(g):
-                continue
-            if any(harness_boundary.matches(c, g) for c in _cands if _target_test(c)) and g not in _shared_hits:
-                _shared_hits.append(g)
+               for g in _role.write_globs if _glob_filter(g)):
+            _granting.add(_role.name)
+
+    _shared_hits = []
+    for g in _manifest_view.shared_write_globs:
+        if not _glob_filter(g):
+            continue
+        if (any(harness_boundary.matches(c, g) for c in _cands if _target_test(c))
+                and g not in _shared_hits):
+            _shared_hits.append(g)
 
     # NOBODY is a LITERAL EMITTED TOKEN, never silence. Empty stdout is the fail-open
     # this branch exists to make impossible: a caller cannot tell "no agent grants
@@ -432,14 +420,14 @@ def _approval_entries(manifest_path):
     and the caller FAILS OPEN LOUDLY on it (DEC-127).
     """
     try:
-        doc = harness_yaml.load_file(manifest_path)
+        view = _artifact_accessors.manifest_domains(
+            manifest_path, view=True)
     except Exception as exc:
         return [], "could not parse %s (%r)" % (manifest_path, exc)
-    if not isinstance(doc, dict) or "main_session" not in doc:
+    if not view.main_session_present:
         return [], "no main_session key in %s" % (manifest_path,)
-    ms = doc.get("main_session") or {}
-    writes = ms.get("writes") if isinstance(ms, dict) else None
-    if not isinstance(writes, list) or not writes:
+    writes = view.main_session_writes
+    if not writes:
         return [], "main_session.writes is missing or empty in %s" % (manifest_path,)
     entries = []
     for raw in writes:

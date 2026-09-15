@@ -42,7 +42,6 @@ _bootstrap_sys.path[:] = [
     entry for entry in _bootstrap_sys.path
     if entry and _bootstrap_os.path.realpath(entry) not in _bootstrap_unsafe
 ]
-import json
 import os
 import subprocess
 import sys
@@ -55,6 +54,7 @@ import harness_boundary    # noqa: E402  (FEAT-42 T-09: the one root resolver)
 import worktree_terminal   # noqa: E402  (D-02: the one shared eligibility predicate)
 import factory_config      # noqa: E402
 import feature_schema       # noqa: E402
+import artifact_accessors    # noqa: E402
 
 
 # THE REPOSITORY ROOT COMES FROM harness_boundary.root_from_script(BIN_DIR), and main() below
@@ -213,11 +213,12 @@ def _ship_allows_removal(path, feat_dir):
 
 def _read_build_receipt(main_checkout_root, feat_dir):
     """Return mirror enablement and the feature receipt document."""
-    with open(os.path.join(
-            main_checkout_root, ".harness", "harness.json")) as stream:
-        sync_enabled = bool((json.load(stream).get("github") or {}).get("sync"))
-    with open(os.path.join(feat_dir, "feature.json")) as stream:
-        feature_doc = json.load(stream)
+    config_path = os.path.join(
+        main_checkout_root, ".harness", "harness.json")
+    sync_enabled = bool((
+        artifact_accessors.load_harness_json(config_path).get("github") or {}).get("sync"))
+    feature_doc = artifact_accessors.load_feature_json(
+        os.path.join(feat_dir, "feature.json"))
     return sync_enabled, feature_doc
 
 
@@ -226,7 +227,7 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
     try:
         sync_enabled, feature_doc = _read_build_receipt(
             main_checkout_root, feat_dir)
-    except (OSError, json.JSONDecodeError) as exc:
+    except Exception as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
     if not sync_enabled:

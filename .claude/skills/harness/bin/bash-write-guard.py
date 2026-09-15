@@ -66,7 +66,9 @@ def _root():
     return _hb_root.resolve_root(_bin_dir, strict=False)
 
 try:
-    d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
+    import artifact_accessors as _artifact_accessors
+    d = _artifact_accessors.read_hook_payload(
+        os.environ.get("HOOK_PAYLOAD") or "", "bash-write-guard hook payload")
 except Exception:
     sys.exit(0)
 

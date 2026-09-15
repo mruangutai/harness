@@ -56,6 +56,7 @@ if not ROOT or not _bootstrap_os.path.isdir(ROOT):
         file=_bootstrap_sys.stderr,
     )
     raise SystemExit(2)
+import artifact_accessors as _artifact_accessors
 _bootstrap_sys.path[:] = _bootstrap_original_path
 
 import json
@@ -77,14 +78,17 @@ REASON = (
 
 # ---- config gate: github.sync on -- else pass through instantly
 try:
-    g = json.load(open(os.path.join(ROOT, ".harness", "harness.json"))).get("github") or {}
+    config_path = os.path.join(ROOT, ".harness", "harness.json")
+    g = _artifact_accessors.load_harness_json(config_path).get("github") or {}
 except Exception:
     g = {}
 if not g.get("sync"):
     sys.exit(0)
 
 try:
-    cmd = (json.load(sys.stdin).get("tool_input") or {}).get("command") or ""
+    payload = _artifact_accessors.read_hook_payload(
+        sys.stdin.read(), "gh-close-gate hook payload")
+    cmd = (payload.get("tool_input") or {}).get("command") or ""
 except Exception:
     sys.exit(0)
 

@@ -11,6 +11,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import ast
 import base64
 import io
 import json
@@ -2237,11 +2238,78 @@ def verify_enforcement_bytes(path):
     return 0
 
 
+def _call_symbol(tree, call):
+    containers = [
+        node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.lineno <= call.lineno <= node.end_lineno
+    ]
+    if not containers:
+        return "<module>"
+    return min(containers, key=lambda node: node.end_lineno - node.lineno).name
+
+
+def _call_has_keywords(call, required):
+    values = {keyword.arg: keyword.value for keyword in call.keywords}
+    try:
+        return all(ast.literal_eval(values[name]) == value
+                   for name, value in required.items() if name in values) \
+            and required.keys() <= values.keys()
+    except (ValueError, TypeError):
+        return False
+
+
+def _required_keyword_finding(row, trees):
+    path = os.path.join(ROOT, row["file"])
+    if path not in trees:
+        with open(path) as f:
+            trees[path] = ast.parse(f.read(), filename=path)
+    tree = trees[path]
+    routes = cpr()
+    aliases = routes._ReaderAliasCollector()
+    aliases.visit(tree)
+    matching = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and routes._qualified_name(node.func, aliases.aliases) == row["remedy"]
+        and _call_symbol(tree, node) == row["symbol"]
+    ]
+    if any(_call_has_keywords(call, row["required_keywords"]) for call in matching):
+        return None
+    return f"{row['id']}: canonical call lacks required keyword arguments"
+
+
+def _required_keyword_findings(task_id, classification):
+    with open(classification) as f:
+        rows = [
+            row for row in json.load(f)["rows"]
+            if row.get("task") == task_id and row.get("required_keywords")
+        ]
+    findings = []
+    if task_id == "T-06":
+        expected = {
+            ".claude/skills/harness/bin/check-domain.py::<module>::harness_yaml_file#1",
+            ".claude/skills/harness/bin/check-domain.py::_approval_entries::harness_yaml_file#1",
+        }
+        actual = {row["id"] for row in rows}
+        if actual != expected:
+            findings.append(
+                f"T-06 required-keyword rows differ: expected {sorted(expected)!r}, "
+                f"got {sorted(actual)!r}")
+    trees = {}
+    for row in rows:
+        finding = _required_keyword_finding(row, trees)
+        if finding:
+            findings.append(finding)
+    return findings
+
+
 def verify_classification_task(task_id):
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
     findings = cpr().classification_task_findings(
         ROOT, classification, task_id)
+    findings.extend(_required_keyword_findings(task_id, classification))
     if findings:
         for finding in findings:
             print(f"CLASSIFICATION {finding}", file=sys.stderr)

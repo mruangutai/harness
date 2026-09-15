@@ -380,7 +380,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Every named source is a hook, gate, or post-merge enforcement program and DEC-174 includes each source and its test by category.
     depends_on: [T-05]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.py
       - .claude/skills/harness/bin/branch-create-gate.py

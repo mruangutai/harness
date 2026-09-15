@@ -81,9 +81,9 @@ if not ROOT or not _bootstrap_os.path.isdir(ROOT):
         file=_bootstrap_sys.stderr,
     )
     raise SystemExit(2)
+import artifact_accessors as _artifact_accessors
 _bootstrap_sys.path[:] = _bootstrap_original_path
 
-import json
 import os
 import re
 import shlex
@@ -160,7 +160,8 @@ def reason(tool, verbs):
 REASON = reason(TOOL, (VERB,))
 
 try:
-    payload = json.load(sys.stdin)
+    payload = _artifact_accessors.read_hook_payload(
+        sys.stdin.read(), "plan-sign-gate hook payload")
 except Exception:
     sys.exit(0)
 

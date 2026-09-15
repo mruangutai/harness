@@ -761,6 +761,9 @@ def _handoff_validator_exception_case(results, root, valid):
     os.makedirs(isolated_bin)
     isolated_hook = os.path.join(isolated_bin, "check-domain.py")
     shutil.copy2(HOOK, isolated_hook)
+    shutil.copy2(
+        os.path.join(_anchor_bin, "artifact_accessors.py"),
+        os.path.join(isolated_bin, "artifact_accessors.py"))
     with open(os.path.join(isolated_bin, "handoff_done_when.py"), "w") as f:
         f.write("def problems(*args, **kwargs):\n    raise RuntimeError('injected failure')\n")
     isolated_target = os.path.join(
@@ -812,6 +815,19 @@ def _handoff_line_cap_cases(results, root, target, valid):
         _invoke_handoff(root, target, sixty), 0)
 
 
+def _write_handoff_plan(feature_dir, task_id):
+    with open(os.path.join(feature_dir, "plan.yaml"), "w") as handle:
+        handle.write(
+            "tasks:\n"
+            f"  - id: {task_id}\n"
+            "    title: Handoff fixture\n"
+            "    change_type: test\n"
+            "    execution_mode: main-session-direct\n"
+            "    files: [fixture.py]\n"
+            "    verify: python3 test.py\n"
+            "    intent: Exercise handoff authority resolution.\n")
+
+
 def _handoff_worktree_cases(results, root):
     wt_path = os.path.join(
         root, ".claude", "worktrees", "harness", "BUG-1480-wt")
@@ -820,8 +836,7 @@ def _handoff_worktree_cases(results, root):
         wt_path, ".harness", "harness", "features", "BUG-1480-wt-fixture")
     notes = os.path.join(feat, "notes")
     os.makedirs(notes)
-    with open(os.path.join(feat, "plan.yaml"), "w") as f:
-        f.write("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    _write_handoff_plan(feat, "T-03")
     with open(os.path.join(feat, "BRIEF.md"), "w") as f:
         f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
     target = os.path.join(notes, "handoff-build.md")
@@ -866,6 +881,7 @@ def run_handoff_done_when():
     results = []
     with tempfile.TemporaryDirectory() as root:
         notes, target = _handoff_done_when_fixture(root)
+        _write_handoff_plan(os.path.dirname(notes), "T-03")
         valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
         missing = "\n".join(["## Next", "next", "## Trust", "trust",
                              "## Dead ends", "none", "## Working set", "set"]) + "\n"

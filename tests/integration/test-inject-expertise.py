@@ -214,6 +214,8 @@ def case4c():
     shutil.copyfile(SCRIPT, script)
     shutil.copyfile(os.path.join(HERE, "harness_boundary.py"),
                     os.path.join(os.path.dirname(script), "harness_boundary.py"))
+    shutil.copyfile(os.path.join(HERE, "artifact_accessors.py"),
+                    os.path.join(os.path.dirname(script), "artifact_accessors.py"))
     os.chmod(script, 0o755)
     r = run_hook(root, home, b'{"agent_type": "harness-qa"}', script=script,
                  create_marker=False)
@@ -267,6 +269,18 @@ def case5():
            f"exit={r1.returncode} stderr={r1.stderr!r}")
     report("case5b: invalid JSON payload -> exit 0, no traceback", ok2,
            f"exit={r2.returncode} stderr={r2.stderr!r}")
+
+
+def case5c():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "MUST NOT INJECT\n")
+    payload = b'{"agent_type":"other","agent_type":"harness-qa"}'
+    result = run_hook(root, home, payload)
+    output = result.stdout.decode("utf-8", errors="replace").strip()
+    if output:
+        report("case5c: duplicate hook-payload keys are rejected before expertise injection",
+               False, f"exit={result.returncode} out={output!r}")
 
 
 # --- Case 6: non-harness agent ------------------------------------------------
@@ -407,6 +421,7 @@ def main():
     case4c()
     case4d()
     case5()
+    case5c()
     case6()
     case7()
     case8()

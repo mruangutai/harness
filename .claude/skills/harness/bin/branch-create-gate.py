@@ -64,6 +64,8 @@ if not root or not _bootstrap_os.path.isdir(root):
     )
     raise SystemExit(2)
 
+import artifact_accessors as _artifact_accessors
+
 GH = _bootstrap_os.environ.get("GH_BIN") or "gh"
 input_text = _bootstrap_sys.stdin.read().rstrip("\n")
 
@@ -80,9 +82,10 @@ print(str(bool(g.get("sync"))).lower(),
 
 def _github_config():
     try:
-        with open(_bootstrap_os.path.join(
-                root, ".harness", "harness.json"), encoding="utf-8") as stream:
-            github = (json.load(stream).get("github") or {})
+        config_path = _bootstrap_os.path.join(
+            root, ".harness", "harness.json")
+        github = (
+            _artifact_accessors.load_harness_json(config_path).get("github") or {})
     except Exception:
         github = {}
     try:
@@ -109,16 +112,21 @@ _COMMAND_EXTRACTOR = (
 
 def _command():
     try:
-        document = json.loads(input_text)
+        document = _artifact_accessors.read_hook_payload(
+            input_text, "branch-create-gate hook payload")
         return str((document.get("tool_input") or {}).get("command") or "")
+    except _artifact_accessors.ArtifactAccessError as exc:
+        if not isinstance(exc.__cause__, json.JSONDecodeError):
+            return ""
+        # The shell gate ignored malformed JSON but exposed the helper's stderr.
+        # Duplicate keys are valid stdlib JSON yet invalid hook payloads, so they
+        # stop here rather than being reparsed by the compatibility helper.
     except Exception:
-        # The shell gate ignored this helper's failure but exposed its stderr. Replay
-        # only that malformed-input path so its established diagnostic stays exact;
-        # valid calls remain single-interpreter.
-        result = subprocess.run(
-            [_bootstrap_sys.executable, "-I", "-c", _COMMAND_EXTRACTOR],
-            input=input_text, stdout=subprocess.PIPE, text=True)
-        return result.stdout.rstrip("\n")
+        pass
+    result = subprocess.run(
+        [_bootstrap_sys.executable, "-I", "-c", _COMMAND_EXTRACTOR],
+        input=input_text, stdout=subprocess.PIPE, text=True)
+    return result.stdout.rstrip("\n")
 
 
 def _branch_name(command):

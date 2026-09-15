@@ -171,6 +171,9 @@ def run_worktree():
     os.makedirs(isobin)
     shutil.copy(HOOK, os.path.join(isobin, "check-domain.py"))
     shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
+    shutil.copy(
+        os.path.join(HERE, "artifact_accessors.py"),
+        os.path.join(isobin, "artifact_accessors.py"))
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
         f.write(FIXTURE_MANIFEST)
@@ -552,6 +555,8 @@ def run_sweep_clean_tracked():
                         os.path.join(d, "harness_boundary.py"))
             shutil.copy(os.path.join(HERE, "run_identity.py"),
                         os.path.join(d, "run_identity.py"))
+            shutil.copy(os.path.join(HERE, "artifact_accessors.py"),
+                        os.path.join(d, "artifact_accessors.py"))
             # Restore case A's exact state: the committed file clean again, nothing else
             # of FEAT-OLD's on disk changed.
             git(wt, ["checkout", "--", rel_state])

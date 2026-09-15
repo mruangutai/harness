@@ -255,6 +255,17 @@ def run_t14():
                 r.returncode == 2 and "duplicate key" in r.stderr,
                 f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
 
+    strict_payload = (
+        '{"agent_type":"","agent_type":"harness-backend-dev",'
+        '"tool_name":"Bash","tool_input":{"command":"echo hi > '
+        + os.path.join(root, "forbidden", "duplicate.json") + '"}}'
+    )
+    strict = subprocess.run(
+        [GUARD], input=strict_payload, capture_output=True, text=True, env=_env(root))
+    if strict.returncode != 0:
+        T14.append(("duplicate hook-payload keys are rejected before policy evaluation",
+                    False, f"exit {strict.returncode}: {strict.stderr.strip()[:160]}"))
+
     # DEC-151's carve-out is unchanged: an absent manifest still fails OPEN. Needs an
     # isolated copy, not merely an empty CLAUDE_PROJECT_DIR — root falls back to
     # _derived, so a guard running from the real bin/ finds the real manifest whatever
@@ -468,6 +479,9 @@ def run_worktree():
     os.makedirs(isobin)
     shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
     shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
+    shutil.copy(
+        os.path.join(HERE, "artifact_accessors.py"),
+        os.path.join(isobin, "artifact_accessors.py"))
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
         f.write(FIXTURE_MANIFEST)
@@ -501,8 +515,8 @@ def run_worktree():
     m_tmp = tempfile.mkdtemp()
     m_bin = os.path.join(m_tmp, "bin")
     os.makedirs(m_bin)
-    for fn in ("check-domain.py", "bash-write-guard.py", "harness_boundary.py",
-               "harness_yaml.py", "run_identity.py"):
+    for fn in ("artifact_accessors.py", "check-domain.py", "bash-write-guard.py",
+               "harness_boundary.py", "harness_yaml.py", "run_identity.py"):
         shutil.copy(os.path.join(HERE, fn), os.path.join(m_bin, fn))
     for fn in ("check-domain.py", "bash-write-guard.py"):
         os.chmod(os.path.join(m_bin, fn), 0o755)

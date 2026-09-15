@@ -216,6 +216,26 @@ check("github.sync false: the gate exits 0 with no output, even for gh issue clo
       "nothing where the mirror is off",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
 
+_duplicate_config_root = _root(sync=False)
+with open(os.path.join(_duplicate_config_root, ".harness", "harness.json"), "w") as _f:
+    _f.write('{"github":{"sync":false},"github":{"sync":true,"repo":"o/r"}}')
+_rc, _d, _ = gate("gh issue close 728", root=_duplicate_config_root)
+if _d is not None:
+    check("duplicate harness.json keys disable close policy rather than choosing one",
+          False, f"rc={_rc} decision={_d!r}")
+
+_duplicate_payload_root = _root()
+_duplicate_payload_env = dict(os.environ, HARNESS_PROJECT_DIR=_duplicate_payload_root)
+_duplicate_payload = (
+    '{"tool_input":{"command":"gh issue list"},'
+    '"tool_input":{"command":"gh issue close 728"}}')
+_duplicate_payload_result = subprocess.run(
+    [GATE], input=_duplicate_payload, capture_output=True, text=True,
+    env=_duplicate_payload_env)
+if _duplicate_payload_result.stdout.strip():
+    check("duplicate hook-payload keys are rejected before close policy evaluation",
+          False, f"stdout={_duplicate_payload_result.stdout!r}")
+
 # A HARNESS ROOT WITH NO CONFIG — which is what "no harness.json" now means (FEAT-42 T-15).
 # A bare tmpdir stood here, and under the MARKER rule a directory with no
 # .harness/team-config.yaml is not a root at all: resolve_root discards it and the gate falls

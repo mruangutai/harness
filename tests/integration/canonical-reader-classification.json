@@ -141,6 +141,9 @@
       "id": ".claude/skills/harness/bin/check-domain.py::<module>::harness_yaml_file#1",
       "reason": "",
       "remedy": "artifact_accessors.manifest_domains",
+      "required_keywords": {
+        "view": true
+      },
       "symbol": "<module>",
       "task": "T-06"
     },
@@ -167,6 +170,9 @@
       "id": ".claude/skills/harness/bin/check-domain.py::_approval_entries::harness_yaml_file#1",
       "reason": "",
       "remedy": "artifact_accessors.manifest_domains",
+      "required_keywords": {
+        "view": true
+      },
       "symbol": "_approval_entries",
       "task": "T-06"
     },

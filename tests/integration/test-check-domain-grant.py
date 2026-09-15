@@ -153,6 +153,9 @@ def run_t12():
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
     shutil.copy(HOOK, os.path.join(isobin, "check-domain.py"))
+    shutil.copy(
+        os.path.join(HERE, "artifact_accessors.py"),
+        os.path.join(isobin, "artifact_accessors.py"))
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(iso, "anything.md"), "content": "x"}}
     r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
@@ -831,13 +834,15 @@ teams:
 # MEASURED on the pre-change tree — an open pipe blocked indefinitely, and closed
 # stdin exited 0 printing nothing, which is a fail-open answer indistinguishable
 # from a clean resolve.
+# GRADE-2 REASON: run_resolve keeps the resolver's ordered owner/shared output and its
+# closed/open-stdin parity in one visible contract; splitting them would hide drift.
 def run_resolve():
     fails = 0
 
-    def resolve(path, stdin_mode="closed", timeout=10):
+    def resolve(path, stdin_mode="closed", timeout=10, root=ROOT):
         kw = {"stdin": subprocess.DEVNULL} if stdin_mode == "closed" else {"stdin": os.pipe()[0]}
         r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
-                           timeout=timeout, env=_env(ROOT), **kw)
+                           timeout=timeout, env=_env(root), **kw)
         return r
 
     def check(name, ok, detail=""):
@@ -858,6 +863,33 @@ def run_resolve():
     check("(b) --resolve: a doubly-granted path returns both grantees",
           sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
           f"got {r.stdout.split()!r}")
+
+    view_root = fixture("""schema_version: 1
+teams:
+  - name: fixture
+    members:
+      - name: harness-zeta
+        domain:
+          - { path: .harness/typed/**, upsert: true }
+      - name: harness-alpha
+        domain:
+          - { path: .harness/typed/**, upsert: true }
+      - name: harness-flattened-trap
+        domain:
+          - { path: .harness/elsewhere/**, upsert: true }
+shared:
+  - { path: .harness/typed/** }
+""")
+    r = resolve(".harness/typed/owned.txt", root=view_root)
+    expected_view = [
+        "harness-alpha",
+        "harness-zeta",
+        "SHARED .harness/typed/**",
+    ]
+    if r.stdout.splitlines() != expected_view:
+        check("(b2) --resolve: typed view preserves two owners, excludes an unrelated role, "
+              "then emits the shared glob", False,
+              f"got {r.stdout.splitlines()!r}")
 
     # (c) NOBODY is a LITERAL EMITTED TOKEN, not silence
     r_nobody = resolve(".agents/skills/harness-spec-driven/SKILL.md")
