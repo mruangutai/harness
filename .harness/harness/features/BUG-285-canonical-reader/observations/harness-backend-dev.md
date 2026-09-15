@@ -6,3 +6,4 @@
 - 2026-09-14: A T-03 row can be marked migrate/team while its remedy is only `documented source route`; this cannot satisfy a public-accessor seam cutover without an amendment naming an accessor.
 - 2026-09-14: A path-or-text accessor can retain one strict parser by letting the byte reader perform only I/O and decode, then routing both it and the text source to the same parsing helper.
 - 2026-09-14: Before a semantic-reader cutover, verify the assigned public accessor accepts the consumer payload shape; a mapping-only GitHub parser cannot preserve array-output consumers.
+- 2026-09-14: parse_gh_json needs a value-level strict parser separate from mapping-only consumers; feature_json path/text modes can share an internal parser and validation boundary.

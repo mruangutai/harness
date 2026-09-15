@@ -122,50 +122,49 @@ def _reject_duplicate_keys(pairs):
     return result
 
 
-def load_feature_json(path):
-    """Inward feature.json parsing implementation for artifact_accessors.load_feature_json.
+def load_feature_json(path=None, *, text=None, context=None):
+    """Load a feature mapping from exactly one path or in-memory JSON text source."""
+    if path is None and text is None:
+        raise FeatureJsonError(
+            "feature.json invalid", context or "feature.json", "supply exactly one source"
+        )
+    if path is not None and text is not None:
+        raise FeatureJsonError(
+            "feature.json invalid", context or str(path), "supply exactly one source"
+        )
+    source_context = context or ("in-memory feature.json" if text is not None else str(path))
+    if text is None:
+        if not os.path.exists(path):
+            return None
+        text = _read_feature_json_text(path, source_context)
+    doc = _parse_feature_json_text(text, source_context)
+    _validate_recorded_blocks(doc, source_context)
+    return doc
 
-    This body remains beside the locked writer until T-07. It parses with the stdlib `json`
-    module ONLY, never a YAML loader: a bare `github:\n  parent: 40` YAML document is input
-    neither JSON writer produces nor this reader accepts.
 
-    Returns None when `path` does not exist. That is a legitimate first-sync/first-publish
-    state for both callers, and this module already draws that same line at `parse_doc`
-    above: None means absent, {} means "present, parsed, and empty", and the two are never
-    interchangeable.
-
-    Raises FeatureJsonError, naming `path`, for every other way the file can fail a caller:
-    unreadable (`OSError`) or not UTF-8 (`UnicodeDecodeError`) -- the READ happens inside
-    this same `try`, so neither exception can escape uncaught the way a non-UTF-8
-    feature.json used to escape gh-sync.py's `except OSError` as a bare traceback; not valid
-    JSON (`json.JSONDecodeError`, itself a `ValueError`); a mapping key repeated at any
-    nesting depth (`_reject_duplicate_keys` above); or a document that parses but is not a
-    JSON mapping (a top-level list, string, or number).
-
-    A file that is PRESENT but cannot be read or parsed is corruption, not absence, and
-    every one of the cases above raises rather than returning an empty document -- collapsing
-    the two was the measured FEAT-14 incident this migration exists to close: a caller that
-    cannot tell "nothing recorded yet" from "something is recorded but I can no longer read
-    it" re-creates GitHub issues, milestones and parents that already exist.
-    """
-    if not os.path.exists(path):
-        return None
+def _read_feature_json_text(path, context):
     try:
-        with open(path, "rb") as f:
-            text = f.read().decode("utf-8")
-    except (OSError, UnicodeDecodeError) as e:
-        raise FeatureJsonError("feature.json unreadable", path, f"could not be read: {e}")
+        with open(path, "rb") as source:
+            return source.read().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as error:
+        raise FeatureJsonError(
+            "feature.json unreadable", context, f"could not be read: {error}"
+        ) from error
+
+
+def _parse_feature_json_text(text, context):
     try:
         doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
                          parse_constant=_reject_nonfinite_constant)
-    except ValueError as e:
-        raise FeatureJsonError("feature.json invalid", path, f"does not parse: {e}")
+    except (TypeError, ValueError) as error:
+        raise FeatureJsonError(
+            "feature.json invalid", context, f"does not parse: {error}"
+        ) from error
     if not isinstance(doc, dict):
         raise FeatureJsonError(
-            "feature.json invalid", path,
+            "feature.json invalid", context,
             f"parsed but is not a JSON mapping (got {type(doc).__name__})",
         )
-    _validate_recorded_blocks(doc, path)
     return doc
 
 

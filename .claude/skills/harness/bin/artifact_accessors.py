@@ -37,7 +37,7 @@ def _load_json_bytes(path, context):
             text = source.read().decode("utf-8")
     except (OSError, UnicodeDecodeError) as error:
         raise ArtifactAccessError(f"{context}: invalid JSON: {error}") from error
-    return _parse_json_text(text, context)
+    return _parse_json_mapping(text, context)
 
 
 def load_harness_json(path=None, *, text=None, context=None):
@@ -47,14 +47,14 @@ def load_harness_json(path=None, *, text=None, context=None):
     if path is not None and text is not None:
         raise ArtifactAccessError("harness.json: supply exactly one source")
     if text is not None:
-        return _parse_json_text(text, context or "in-memory harness.json")
+        return _parse_json_mapping(text, context or "in-memory harness.json")
     return _load_json_bytes(path, str(path))
 
 
-def load_feature_json(path):
+def load_feature_json(path=None, *, text=None, context=None):
     """Delegate feature.json parsing to its existing locked-writer implementation."""
     import feature_json_write
-    return feature_json_write.load_feature_json(path)
+    return feature_json_write.load_feature_json(path, text=text, context=context)
 
 
 def load_plan(path):
@@ -110,21 +110,25 @@ def load_omp_config(path):
 
 
 def read_hook_payload(text, context):
-    """Parse in-memory hook JSON without opening a file."""
-    return _parse_json_text(text, context)
+    """Parse an in-memory hook JSON mapping without opening a file."""
+    return _parse_json_mapping(text, context)
 
 
 def parse_gh_json(text, context):
-    """Parse in-memory GitHub JSON without opening a file."""
+    """Parse an in-memory strict GitHub JSON value without enforcing its shape."""
     return _parse_json_text(text, context)
 
 
 def _parse_json_text(text, context):
     try:
-        document = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
-                              parse_constant=_reject_constant)
+        return json.loads(text, object_pairs_hook=_reject_duplicate_keys,
+                          parse_constant=_reject_constant)
     except (TypeError, ValueError) as error:
         raise ArtifactAccessError(f"{context}: invalid JSON: {error}") from error
+
+
+def _parse_json_mapping(text, context):
+    document = _parse_json_text(text, context)
     if not isinstance(document, dict):
         raise ArtifactAccessError(f"{context}: JSON document is not a mapping")
     return document

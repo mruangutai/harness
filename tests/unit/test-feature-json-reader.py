@@ -157,6 +157,41 @@ class LoadFeatureJsonTest(unittest.TestCase):
                 with self.assertRaises(feature_json_write.FeatureJsonError):
                     accessors.load_feature_json(path)
 
+    def test_text_source_matches_path_validation(self):
+        document = {"feature_id": "F1", "github": {"issues": {"T-01": "8"}}}
+        self.assertEqual(
+            document,
+            accessors.load_feature_json(
+                text=json.dumps(document), context="git show main:feature.json"
+            ),
+        )
+        failures = (
+            ('{"outer": {"inner": {"key": 1, "key": 2}}}', "duplicate key"),
+            ("NaN", "non-finite JSON constant"),
+            ("Infinity", "non-finite JSON constant"),
+            ("-Infinity", "non-finite JSON constant"),
+            ("[1, 2]", "not a JSON mapping"),
+            ('{"github": {"issues": []}}', "issues"),
+        )
+        for text, expected in failures:
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(
+                    feature_json_write.FeatureJsonError, expected
+                ) as caught:
+                    accessors.load_feature_json(
+                        text=text, context="git show main:feature.json"
+                    )
+                self.assertIn("git show main:feature.json", str(caught.exception))
+
+    def test_exactly_one_source_is_required(self):
+        with self.assertRaises(feature_json_write.FeatureJsonError):
+            accessors.load_feature_json()
+        with self.assertRaises(feature_json_write.FeatureJsonError):
+            accessors.load_feature_json(
+                "feature.json", text='{"feature_id": "F1"}',
+                context="git show main:feature.json",
+            )
+
 
 class OptIntTest(unittest.TestCase):
     """opt_int now lives in feature_json_write.py, the one shared copy gh-sync.py's three

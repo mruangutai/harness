@@ -27,6 +27,37 @@ class JsonContracts(unittest.TestCase):
             accessors.parse_gh_json('{"value": NaN}', "gh issue view acme/widget")
         self.assertIn("gh issue view acme/widget", str(caught.exception))
 
+    def test_github_json_accepts_any_strict_json_value(self):
+        cases = (
+            ('{"nested": {"value": 7}}', {"nested": {"value": 7}}),
+            ('[{"value": 7}, 2]', [{"value": 7}, 2]),
+            ('"complete"', "complete"),
+            ("42", 42),
+            ("true", True),
+            ("null", None),
+        )
+        for text, expected in cases:
+            with self.subTest(text=text):
+                self.assertEqual(
+                    expected, accessors.parse_gh_json(text, "gh api result")
+                )
+
+    def test_github_json_strict_failures_preserve_context_and_type(self):
+        cases = (
+            ('{"outer": {"key": 1, "key": 2}}', "duplicate key"),
+            ("NaN", "non-finite JSON constant"),
+            ("Infinity", "non-finite JSON constant"),
+            ("-Infinity", "non-finite JSON constant"),
+        )
+        context = "gh api repos/acme/widget"
+        for text, expected in cases:
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(
+                    accessors.ArtifactAccessError, expected
+                ) as caught:
+                    accessors.parse_gh_json(text, context)
+                self.assertIn(context, str(caught.exception))
+
     def test_harness_json_accepts_explicit_text_source_with_context(self):
         document = accessors.load_harness_json(
             text='{"nested": {"value": 7}}',
