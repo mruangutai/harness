@@ -211,6 +211,15 @@
       "started_at": "2026-09-15T14:06:05+00:00",
       "ended_at": "2026-09-15T14:18:01+00:00",
       "tokens": null
+    },
+    {
+      "id": "2026-09-15-t02-pycompat-eng",
+      "squad": "build",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T14:29:36+00:00",
+      "ended_at": "2026-09-15T14:39:57+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -297,6 +306,20 @@
       "kind": "regate",
       "decision": "continue",
       "reason": "T-02 typed manifest view required one focused send-back to retain named roles without usable domains; revised implementation passed focused and exact signed gates"
+    },
+    {
+      "at": "2026-09-15T14:29:36+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-06 legacy receipt gate exposed T-02 artifact_accessors typed annotation import failure under supported pre-3.10 system Python"
+    },
+    {
+      "at": "2026-09-15T14:39:57+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-02 pycompat verification rebaselined one confirmed pre-existing T-06 test path and then proved all 31 protected paths stable"
     }
   ],
   "mission": "plan",

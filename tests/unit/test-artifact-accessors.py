@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import tempfile
+import subprocess
 import unittest
 from unittest import mock
 from pathlib import Path
@@ -12,6 +13,43 @@ ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
 import artifact_accessors as accessors  # noqa: E402
+
+
+class SystemPythonCompatibilityContracts(unittest.TestCase):
+    def test_macos_system_python_imports_typed_manifest_records(self):
+        if sys.platform != "darwin":
+            self.skipTest("macOS system Python is unavailable")
+        system_python = Path("/usr/bin/python3")
+        if not system_python.is_file():
+            self.skipTest("macOS system Python is unavailable")
+        version = subprocess.run(
+            [str(system_python), "-c", "import sys; print('%s.%s' % sys.version_info[:2])"],
+            capture_output=True,
+            text=True,
+        )
+        if version.returncode:
+            self.skipTest("macOS system Python is unavailable")
+        major, minor = (int(part) for part in version.stdout.strip().split("."))
+        if (major, minor) >= (3, 10):
+            self.skipTest("macOS system Python is not an affected pre-3.10 runtime")
+        environment = os.environ.copy()
+        environment["PYTHONPATH"] = str(BIN) + os.pathsep + environment.get("PYTHONPATH", "")
+        imported = subprocess.run(
+            [
+                str(system_python),
+                "-c",
+                "import artifact_accessors; "
+                "assert artifact_accessors.ManifestRoleDomains; "
+                "assert artifact_accessors.ManifestDomainsView",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            env=environment,
+        )
+        self.assertEqual("", imported.stdout)
+        self.assertEqual("", imported.stderr)
+        self.assertEqual(0, imported.returncode)
 
 
 class JsonContracts(unittest.TestCase):

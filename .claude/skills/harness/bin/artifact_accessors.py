@@ -6,6 +6,8 @@ load_omp_config; read_hook_payload; parse_gh_json; and write_harness_json.
 Sanctioned routes are write_feature_json, write_harness_json, plan-merge.py verbs,
 sync-agent-adapters.py, main-session-owned files, and the sole state.yaml reader trip-wire.
 """
+from __future__ import annotations
+
 import json
 import os
 import shutil
