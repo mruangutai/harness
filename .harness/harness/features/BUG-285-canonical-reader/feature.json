@@ -239,6 +239,13 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "T-05 strict feature reader requires the existing shared check-state fixture producer to emit valid JSON rather than duplicating test-local fixtures"
+    },
+    {
+      "at": "2026-09-15T12:35:17+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-02 full verification failed only against the intentionally partial T-03 tree; after T-03 completed, the unchanged eight-script T-02 gate passed in run 2026-09-15-t02-verify-eng"
     }
   ],
   "mission": "plan",
