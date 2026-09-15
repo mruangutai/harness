@@ -35,17 +35,19 @@ def _load_json_bytes(path, context):
     try:
         with open(path, "rb") as source:
             text = source.read().decode("utf-8")
-        document = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
-                              parse_constant=_reject_constant)
-    except (OSError, UnicodeDecodeError, ValueError) as error:
+    except (OSError, UnicodeDecodeError) as error:
         raise ArtifactAccessError(f"{context}: invalid JSON: {error}") from error
-    if not isinstance(document, dict):
-        raise ArtifactAccessError(f"{context}: JSON document is not a mapping")
-    return document
+    return _parse_json_text(text, context)
 
 
-def load_harness_json(path):
-    """Read a strict JSON mapping from a harness.json path."""
+def load_harness_json(path=None, *, text=None, context=None):
+    """Read a strict harness JSON mapping from exactly one path or in-memory text source."""
+    if path is None and text is None:
+        raise ArtifactAccessError("harness.json: supply exactly one source")
+    if path is not None and text is not None:
+        raise ArtifactAccessError("harness.json: supply exactly one source")
+    if text is not None:
+        return _parse_json_text(text, context or "in-memory harness.json")
     return _load_json_bytes(path, str(path))
 
 
@@ -121,7 +123,7 @@ def _parse_json_text(text, context):
     try:
         document = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
                               parse_constant=_reject_constant)
-    except ValueError as error:
+    except (TypeError, ValueError) as error:
         raise ArtifactAccessError(f"{context}: invalid JSON: {error}") from error
     if not isinstance(document, dict):
         raise ArtifactAccessError(f"{context}: JSON document is not a mapping")

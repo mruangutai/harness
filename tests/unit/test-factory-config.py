@@ -35,6 +35,7 @@ import yaml
 
 import factory_config as fc
 import harness_boundary as hb
+import artifact_accessors as accessors
 
 FAILS = 0
 RAN = 0
@@ -688,6 +689,20 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
         _ok = _no_checkout and _result["number"] == 3
     check("product_config reads the remote at default_branch with no checkout on disk",
           _ok, (_no_checkout, _result))
+
+# T-02 amendment: product_config's GitHub Contents response is decoded remote text. T-03 alone
+# repoints product_config, but its future consumer source must already be accepted through the
+# public harness.json accessor with the remote location retained for strict-parser errors.
+_remote_context = "mruangutai/harness@main:.harness/harness.json"
+try:
+    _remote_doc = accessors.load_harness_json(
+        text=json.dumps(config_doc(board_dict(3))), context=_remote_context
+    )
+    _remote_ok = _remote_doc["github"]["board"]["number"] == 3
+except Exception as e:
+    _remote_ok, _remote_doc = False, f"{type(e).__name__}: {e}"
+check("product_config remote harness.json text is accepted by load_harness_json",
+      _remote_ok, _remote_doc)
 
 # (ii) a failing remote read raises FleetError naming repo, path and ref.
 with tempfile.TemporaryDirectory() as td:

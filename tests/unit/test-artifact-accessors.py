@@ -27,6 +27,34 @@ class JsonContracts(unittest.TestCase):
             accessors.parse_gh_json('{"value": NaN}', "gh issue view acme/widget")
         self.assertIn("gh issue view acme/widget", str(caught.exception))
 
+    def test_harness_json_accepts_explicit_text_source_with_context(self):
+        document = accessors.load_harness_json(
+            text='{"nested": {"value": 7}}',
+            context="mruangutai/harness@main:.harness/harness.json",
+        )
+        self.assertEqual({"nested": {"value": 7}}, document)
+
+    def test_harness_json_text_source_has_path_contract(self):
+        cases = (
+            ('{"nested": {"key": 1, "key": 2}}', "duplicate key"),
+            ('{"value": NaN}', "non-finite JSON constant"),
+            ('[1, 2, 3]', "not a mapping"),
+        )
+        context = "remote harness.json"
+        for text, expected in cases:
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(accessors.ArtifactAccessError, expected) as caught:
+                    accessors.load_harness_json(text=text, context=context)
+                self.assertIn(context, str(caught.exception))
+
+    def test_harness_json_requires_exactly_one_source(self):
+        with self.assertRaises(accessors.ArtifactAccessError):
+            accessors.load_harness_json()
+        with self.assertRaises(accessors.ArtifactAccessError):
+            accessors.load_harness_json(
+                "harness.json", text="{}", context="remote harness.json"
+            )
+
 
 
     def test_feature_json_rejects_malformed_recorded_blocks(self):
