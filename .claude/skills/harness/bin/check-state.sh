@@ -248,12 +248,12 @@ for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
     _block_indent = None
     _quoted_scalar = None
     for _lineno, _line in enumerate(_txt.splitlines(), start=1):
-        _stripped = _line.strip()
-        _indent = len(_line) - len(_line.lstrip(" "))
         if _quoted_scalar is not None:
             if _quoted_scalar_closed(_line, _quoted_scalar, 0):
                 _quoted_scalar = None
             continue
+        _stripped = _line.strip()
+        _indent = len(_line) - len(_line.lstrip(" "))
         if _block_indent is not None:
             if _stripped == "" or _indent > _block_indent:
                 continue
