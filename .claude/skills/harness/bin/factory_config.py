@@ -1,8 +1,8 @@
-"""factory_config.py — the only reader of .harness/factory/fleet.yaml (SC-08), and the only reader
-of a fleet member's own product configuration (FEAT-24 T-02).
+"""Factory fleet paths, repository queries, product configuration, and board validation.
 
-Every other factory tool takes its repository and board from this module and never from the
-working directory. That matters most for factory_workspace.py and factory_land.py, which
+Fleet bytes and schema validation are owned by ``artifact_accessors.load_fleet``. Factory tools
+use that accessor and the domain helpers in this module rather than deriving configuration from
+the working directory. That matters most for factory_workspace.py and factory_land.py, which
 operate a CHECKOUT OF ANOTHER REPOSITORY: run from inside it, a relative fleet.yaml path would
 resolve against the target repo, not the factory's own — so FLEET_PATH here is always absolute,
 never derived from the current directory.
@@ -30,6 +30,7 @@ import json
 import os
 import sys
 
+import artifact_accessors
 import factory_cli
 import factory_gh
 import harness_boundary
@@ -59,21 +60,8 @@ FLEET_PATH = os.path.join(
 )
 
 
-class FleetError(Exception):
-    """str() is always built with factory_cli.body(what, value, next_step) — never by hand —
-    because factory_cli.run prints str(exc) verbatim behind "factory: {tool}: ". `value` is
-    always a path, a key name or a repository name the operator can act on, never a class name.
-    """
-
-    def __init__(self, what, value, next_step):
-        super().__init__(factory_cli.body(what, value, next_step))
 
 
-def _require_mapping(data, path):
-    if not isinstance(data, dict):
-        raise FleetError(
-            "fleet file invalid", path, "the file must parse to a YAML mapping"
-        )
 
 
 def validate_board(board, where, path):
@@ -99,17 +87,17 @@ def validate_board(board, where, path):
     """
     key_base = where
     if not isinstance(board, dict):
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "fleet key invalid", key_base, f"set {key_base}: {{...}} as a mapping in {path}"
         )
     if not board.get("owner"):
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "fleet key invalid", f"{key_base}.owner",
             f"set it to the GitHub owner or org in {path}",
         )
     number = board.get("number")
     if isinstance(number, bool):
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "fleet key invalid", f"{key_base}.number",
             f"set it to the Projects v2 board number in {path}",
         )
@@ -118,13 +106,13 @@ def validate_board(board, where, path):
     elif isinstance(number, str) and number.strip().isdigit():
         coerced = int(number.strip())
     else:
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "fleet key invalid", f"{key_base}.number",
             f"set it to the Projects v2 board number in {path}",
         )
     board["number"] = coerced
     if not board.get("station_field"):
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "fleet key invalid", f"{key_base}.station_field",
             f"set it to the Projects v2 field name that carries the station in {path}",
         )
@@ -144,7 +132,7 @@ def validate_board(board, where, path):
         not isinstance(stations, (list, tuple))
         or list(stations) != list(MANDATED_STATIONS)
     ):
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "fleet key invalid", f"{key_base}.stations",
             "set it to the ordered list "
             f"{list(MANDATED_STATIONS)} in {path} — these six names are FIXED and may not be "
@@ -157,100 +145,6 @@ def validate_board(board, where, path):
     return board
 
 
-def load_fleet(path=FLEET_PATH):
-    """Load and validate a fleet declaration. Raises FleetError naming the file and the
-    offending key on every one of the malformed-fleet shapes this loader rejects — including a
-    leftover top-level `board` key (the board is per-repository now, FEAT-16 T-08 — an unknown
-    top-level key would otherwise be accepted silently, which would recreate the very
-    inherit-a-board-nobody-chose silence this feature removes) and, after FEAT-24 T-02, a
-    repos[] entry that carries a `board` key of its own — the board no longer lives in fleet.yaml
-    at all; it lives in that repository's own .harness/harness.json under github.board, read
-    remotely by product_config()/board_for() below.
-
-    Issue #208: this is the ONE place every factory tool's fleet read runs through — the
-    module docstring's own claim. A malformed fleet.yaml raised harness_yaml.YamlParseError
-    past every caller's `expected=` tuple, none of which named it, so the CLI trap printed
-    the exception's CLASS NAME ("unexpected failure: YamlParseError: ...") instead of which
-    file failed to parse and where. Converting it to FleetError here — already expected by
-    every one of the six factory_cli.run() callers — fixes all of them without touching a
-    single tuple.
-    """
-    try:
-        data = harness_yaml.load_file(path)
-    except harness_yaml.YamlParseError as e:
-        raise FleetError("fleet file invalid", path, f"does not load: {e}")
-    _require_mapping(data, path)
-
-    if data.get("schema") != "factory-fleet/1":
-        raise FleetError(
-            "fleet schema invalid", "schema", f"set schema: factory-fleet/1 in {path}"
-        )
-
-    if "board" in data:
-        raise FleetError(
-            "fleet key invalid", "board",
-            f"a whole-fleet board key is no longer read from here — each repository declares "
-            f"its own board remotely, in its own .harness/harness.json under github.board; "
-            f"remove board from {path}",
-        )
-
-    repos = data.get("repos")
-    if not isinstance(repos, list) or not repos:
-        raise FleetError(
-            "fleet key invalid", "repos", f"set a non-empty list of repo entries in {path}"
-        )
-    for entry in repos:
-        name = entry.get("name") if isinstance(entry, dict) else None
-        if not isinstance(name, str) or "/" not in name:
-            raise FleetError(
-                "fleet repo entry invalid", "repos[].name",
-                f"each repo needs a name containing a slash (owner/repo) in {path}",
-            )
-        # default_branch is NOT removed and NOT moved: factory_workspace reads it to CREATE the
-        # checkout, so it cannot live inside a file that only exists once the checkout exists.
-        if not entry.get("default_branch"):
-            raise FleetError(
-                "fleet repo entry invalid", f"repos[{name}].default_branch",
-                f"set a non-empty default_branch for {name} in {path}",
-            )
-        if "board" in entry:
-            raise FleetError(
-                "fleet key invalid", f"repos[{name}].board",
-                f"the board is no longer declared in fleet.yaml — {name} declares its own board "
-                f"remotely, in its own .harness/harness.json under github.board. Remove "
-                f"repos[{name}].board from {path}",
-            )
-
-    workspace_root = data.get("workspace_root")
-    if not isinstance(workspace_root, str) or not os.path.isabs(workspace_root):
-        raise FleetError(
-            "fleet key invalid", "workspace_root",
-            f"set it to an absolute path in {path}",
-        )
-    # A FILESYSTEM ROOT PASSES `isabs` AND INVERTS THE WRITE GUARD (review panel,
-    # 2026-08-11). `check-domain.py` refuses any path under `workspace_root` that
-    # belongs to no declared repository. With `workspace_root: "/"` every path on the
-    # machine is under it, so that branch becomes a catch-all: `/tmp/scratch.py` flips
-    # from no-verdict to BLOCKED, inverting REQ-05 and the scratch-path behaviour
-    # DEC-189 preserves deliberately. Verified by live probe before this check existed.
-    #
-    # Rejected here rather than in the guard because this is a malformed DECLARATION,
-    # and `load_fleet` is the one place fleet shape is enforced — a check in the hook
-    # would leave every other reader accepting the value.
-    #
-    # It fails CLOSED, never toward a wrongful permit, which is why it is a low finding
-    # and not a high one. It is still wrong: a guard that refuses `/tmp` teaches agents
-    # that the guard is broken, and DEC-151 records what an agent does next.
-    if os.path.dirname(os.path.normpath(workspace_root)) == os.path.normpath(workspace_root):
-        raise FleetError(
-            "fleet key invalid", "workspace_root",
-            f"it is a filesystem root ({workspace_root!r}) in {path} — every path on "
-            f"the machine would resolve inside the factory workspace, so the write "
-            f"guard would refuse scratch paths it must ignore. Set it to a real "
-            f"directory that holds the checkouts.",
-        )
-
-    return data
 
 
 def repo_entry(fleet, name):
@@ -261,7 +155,7 @@ def repo_entry(fleet, name):
         if entry.get("name") == name:
             return entry
     known = ", ".join(e.get("name", "?") for e in fleet["repos"])
-    raise FleetError(
+    raise artifact_accessors.FleetError(
         "repository not in fleet", name, f"known repos: {known} — add it to repos in fleet.yaml"
     )
 
@@ -304,22 +198,17 @@ def product_config(fleet, repo_name):
     try:
         raw = factory_gh.file_at_ref(repo_name, _PRODUCT_CONFIG_PATH, ref)
     except factory_gh.GhError as e:
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "product config unreadable", human_path,
             f"could not read {repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref}: {e}",
         ) from e
     try:
-        doc = json.loads(raw)
-    except (ValueError, TypeError) as e:
-        raise FleetError(
+        doc = artifact_accessors.load_harness_json(text=raw, context=human_path)
+    except artifact_accessors.ArtifactAccessError as e:
+        raise artifact_accessors.FleetError(
             "product config invalid", human_path,
             f"{repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref} does not parse as JSON",
         ) from e
-    if not isinstance(doc, dict):
-        raise FleetError(
-            "product config invalid", human_path,
-            f"{repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref} must parse to a JSON mapping",
-        )
 
     _product_config_memo[memo_key] = doc
     return doc
@@ -345,7 +234,7 @@ def product_config_report(fleet):
         try:
             product_config(fleet, name)
             ok, detail = True, ""
-        except FleetError as e:
+        except artifact_accessors.FleetError as e:
             ok, detail = False, str(e)
         report.append(
             {"repo": name, "ref": ref, "path": _PRODUCT_CONFIG_PATH, "ok": ok, "detail": detail}
@@ -369,7 +258,7 @@ def board_for(fleet, repo_name):
     github = doc.get("github")
     board = github.get("board") if isinstance(github, dict) else None
     if board is None:
-        raise FleetError(
+        raise artifact_accessors.FleetError(
             "product config missing board", where,
             f"declare {where} in {path}",
         )
@@ -404,7 +293,7 @@ def station_column(name):
     to that grep from code depending on it."""
     if name not in MANDATED_STATIONS:
         known = ", ".join(MANDATED_STATIONS)
-        raise FleetError("unknown station", name, f"known stations: {known}")
+        raise artifact_accessors.FleetError("unknown station", name, f"known stations: {known}")
     return name.capitalize()
 
 
@@ -416,7 +305,7 @@ def board_station(fleet, repo_name, key):
     declaration no longer carries column names for it to read (FEAT-41 T-01)."""
     if key not in station_names(board_for(fleet, repo_name)):
         known = ", ".join(MANDATED_STATIONS)
-        raise FleetError("unknown station", key, f"known stations: {known}")
+        raise artifact_accessors.FleetError("unknown station", key, f"known stations: {known}")
     return station_column(key)
 
 
@@ -498,7 +387,7 @@ def _main():
     )
     args = parser.parse_args()
 
-    fleet = load_fleet(args.fleet) if args.fleet else load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(FLEET_PATH)
 
     # --check-product-configs and --show are independent flags, but when both are given
     # --check-product-configs wins and --show is not printed: factory_cli.payload writes the
@@ -513,4 +402,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run("config", _main, expected=(FleetError,))
+    factory_cli.run("config", _main, expected=(artifact_accessors.FleetError,))

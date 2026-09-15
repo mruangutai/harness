@@ -19,6 +19,7 @@ the agent sees.
 import os
 import re
 import sys
+import artifact_accessors
 from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 
 # THE LEGITIMATE WORKTREE LOCATION, named once. Every rule in this module that needs
@@ -486,7 +487,7 @@ def resolve_fleet(root, label):
         # at import time from resolve_root(factory_config's own bin dir) — always the LIVE
         # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
-        fleet = factory_config.load_fleet(fleet_path)
+        fleet = artifact_accessors.load_fleet(fleet_path)
         bases = [real(factory_config.workspace_path(fleet, e["name"]))
                  for e in fleet["repos"]]
         return fleet["workspace_root"], bases, fleet_path
@@ -815,42 +816,19 @@ def worktree_refusal_location(owner_root):
 # second edit (D-02).
 
 def run_dir_grant_globs(root):
-    """Every write-grant glob in `<root>/.harness/team-config.yaml` whose pattern
-    text contains the substring `/runs/`, sorted and de-duplicated.
+    """Return all declared write grants for run directories, or [] on manifest failure.
 
-    Walked GENERICALLY: any list whose members are ALL mappings carrying a `path`
-    key is a grant list, wherever it sits in the parsed document — not only under
-    `leads:` — so a run-dir grant declared under a new role is still found with no
-    change here. Parsed through harness_yaml (DEC-171): no hand-rolled YAML regex
-    reading of this manifest. Never raises: an absent, unreadable, unparseable
-    manifest, a missing `harness_yaml` module, or a missing PyYAML, all yield
-    `[]` — the caller decides what an empty
-    vocabulary means (dispatch-guard.py falls through rather than refusing on a
-    manifest it cannot read; D-04).
+    `manifest_domains(..., agent=None)` aggregates named-role write grants separately
+    from shared write grants. Both can authorize a dispatcher run directory. Manifest
+    access remains fail-open because dispatch-guard decides what an empty vocabulary
+    means when the manifest cannot be read.
     """
     manifest_path = os.path.join(root, ".harness", "team-config.yaml")
-    found = set()
-
-    def walk(node):
-        if isinstance(node, dict):
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            if node and all(isinstance(item, dict) and "path" in item for item in node):
-                for item in node:
-                    pat = str(item["path"])
-                    if "/runs/" in pat:
-                        found.add(pat)
-            for item in node:
-                walk(item)
-
     try:
-        import harness_yaml
-        walk(harness_yaml.load_file(manifest_path))
+        all_roles, shared = artifact_accessors.manifest_domains(manifest_path, agent=None)
     except Exception:
         return []
-
-    return sorted(found)
+    return sorted({glob for glob in (*all_roles, *shared) if "/runs/" in glob})
 
 
 # Anchored on the literal `.harness/` segment (not `checkout_relative()`): a dispatch

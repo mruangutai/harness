@@ -27,15 +27,13 @@ def _bootstrap_run_dir_globs():
     _bootstrap_sys.path.insert(0, _bootstrap_bin)
     try:
         _bootstrap_sys.stdout, _bootstrap_sys.stderr = captured_out, captured_err
+        import artifact_accessors as bootstrap_artifacts
         import harness_boundary as bootstrap_boundary
-        import harness_yaml as bootstrap_yaml
 
         bootstrap_root = bootstrap_boundary.resolve_root(_bootstrap_bin, strict=False)
         manifest_path = _bootstrap_os.path.join(
             bootstrap_root, ".harness", "team-config.yaml")
-        with open(manifest_path, encoding="utf-8") as stream:
-            manifest_text = stream.read()
-        bootstrap_yaml.load_str(manifest_text, manifest_path)
+        bootstrap_artifacts.manifest_domains(manifest_path, agent=None)
         for grant in bootstrap_boundary.run_dir_grant_globs(bootstrap_root):
             print(grant)
         status = "0"
@@ -91,9 +89,15 @@ _bootstrap_sys.stdin = _bootstrap_io.StringIO(_bootstrap_payload)
 import sys, json, os
 
 try:
-    d = json.load(sys.stdin)
+    sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
+    import artifact_accessors
+    d = artifact_accessors.read_hook_payload(
+        sys.stdin.read(), "dispatch-guard hook payload")
 except Exception as e:
-    print(f"dispatch-guard: unreadable hook payload ({e}) — passing through.", file=sys.stderr)
+    detail = e.__cause__ if isinstance(
+        e.__cause__, json.JSONDecodeError) else e
+    print(f"dispatch-guard: unreadable hook payload ({detail}) — passing through.",
+          file=sys.stderr)
     sys.exit(0)
 
 agent = d.get("agent_type") or ""
@@ -163,7 +167,6 @@ if not declared or not FEATURE_RE.fullmatch(declared):
     sys.exit(2)
 
 try:
-    sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
     import harness_boundary as hb
     import inflight_registry as reg
 except Exception as exc:

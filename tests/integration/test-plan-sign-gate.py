@@ -73,6 +73,13 @@ def gate(command, agent_type=None):
     return r.returncode, (r.stderr or "")
 
 
+def gate_raw(payload):
+    env = dict(os.environ, HARNESS_PROJECT_DIR=ROOT)
+    result = subprocess.run(
+        [GATE], input=payload, capture_output=True, text=True, env=env)
+    return result.returncode, result.stderr or ""
+
+
 SIGN = "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml"
 
 # ---------------------------------------------------------------------------------------
@@ -89,6 +96,13 @@ check("a payload with NO agent_type may sign — an absent agent_type is the mai
 rc, err = gate(SIGN, agent_type="")
 check("an EMPTY agent_type may sign too — empty and absent are the same author",
       rc == 0, f"rc={rc} stderr={err[:400]!r}")
+
+_duplicate_rc, _duplicate_err = gate_raw(
+    '{"agent_type":"","agent_type":"harness-orchestrator",'
+    '"tool_input":{"command":' + json.dumps(SIGN) + '}}')
+if _duplicate_rc != 0:
+    check("duplicate hook-payload keys are rejected before signature policy evaluation",
+          False, f"rc={_duplicate_rc} stderr={_duplicate_err[:400]!r}")
 
 # ---------------------------------------------------------------------------------------
 # THE DENIAL, AND ITS TEXT.

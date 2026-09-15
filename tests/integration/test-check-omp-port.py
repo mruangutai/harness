@@ -66,10 +66,48 @@ def case_symlink_topology():
     ]
 
 
+# GRADE-2 REASON: the strict-reader contract is one ordered integration scenario across
+# config, agent frontmatter, and provider YAML; each mutation requires a fresh fixture.
 def case_live_tree_passes():
     clean = run(ROOT)
-    # FEAT-56 T-14 (F4): EXPECTED TO FAIL until the main session regenerates
-    # .claude/commands/** via sync-command-adapters.py --apply (new banner text).
+    td, strict_root = fixture()
+    try:
+        config = strict_root / ".omp" / "config.yml"
+        config.write_text(
+            config.read_text(encoding="utf-8")
+            + "\nasync:\n  enabled: true\n",
+            encoding="utf-8",
+        )
+        duplicate_config = run(strict_root)
+        assert duplicate_config.returncode == 1 and "duplicate key" in (
+            duplicate_config.stderr), duplicate_config.stderr
+
+        td.cleanup()
+        td, strict_root = fixture()
+        agent = strict_root / ".omp" / "agents" / "harness-backend-dev.md"
+        text = agent.read_text(encoding="utf-8")
+        agent.write_text(
+            text.replace(
+                "name: harness-backend-dev",
+                "name: harness-backend-dev\nname: harness-backend-dev",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        duplicate_frontmatter = run(strict_root)
+        assert duplicate_frontmatter.returncode == 1 and "duplicate key" in (
+            duplicate_frontmatter.stderr), duplicate_frontmatter.stderr
+
+        td.cleanup()
+        td, strict_root = fixture()
+        provider = strict_root / ".omp" / "providers" / "openai.yml"
+        text = provider.read_text(encoding="utf-8")
+        provider.write_text(text + "\n" + text, encoding="utf-8")
+        duplicate_provider = run(strict_root)
+        assert duplicate_provider.returncode == 1 and "duplicate key" in (
+            duplicate_provider.stderr), duplicate_provider.stderr
+    finally:
+        td.cleanup()
     return [("live provider-neutral tree passes", clean.returncode == 0, clean.stderr)]
 
 

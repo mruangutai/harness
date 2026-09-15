@@ -153,6 +153,9 @@ def run_t12():
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
     os.makedirs(isobin)
     shutil.copy(HOOK, os.path.join(isobin, "check-domain.py"))
+    shutil.copy(
+        os.path.join(HERE, "artifact_accessors.py"),
+        os.path.join(isobin, "artifact_accessors.py"))
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(iso, "anything.md"), "content": "x"}}
     r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
@@ -826,11 +829,45 @@ teams:
     return fails
 
 
+def _assert_typed_view_resolution():
+    root = fixture("""schema_version: 1
+teams:
+  - name: fixture
+    members:
+      - name: harness-zeta
+        domain:
+          - { path: .harness/typed/**, upsert: true }
+      - name: harness-alpha
+        domain:
+          - { path: .harness/typed/**, upsert: true }
+      - name: harness-flattened-trap
+        domain:
+          - { path: .harness/elsewhere/**, upsert: true }
+shared:
+  - { path: .harness/typed/** }
+""")
+    result = subprocess.run(
+        [HOOK, "--resolve", ".harness/typed/owned.txt"],
+        capture_output=True, text=True, timeout=10, env=_env(root),
+        stdin=subprocess.DEVNULL)
+    expected = [
+        "harness-alpha",
+        "harness-zeta",
+        "SHARED .harness/typed/**",
+    ]
+    if result.stdout.splitlines() != expected:
+        raise AssertionError(
+            "typed view did not preserve owner association and shared order: "
+            f"{result.stdout.splitlines()!r}")
+
+
 # --- FEAT-09 / DEC-179: `--resolve <path>`. Eight cases, one per clause of T-01's
 # intent. The two stdin cases are the reason this mode exists at all: both were
 # MEASURED on the pre-change tree — an open pipe blocked indefinitely, and closed
 # stdin exited 0 printing nothing, which is a fail-open answer indistinguishable
 # from a clean resolve.
+# GRADE-2 REASON: run_resolve keeps the existing ordered resolver and stdin parity
+# contract together; the new typed-view assertion is isolated to avoid adding branches.
 def run_resolve():
     fails = 0
 
@@ -858,6 +895,8 @@ def run_resolve():
     check("(b) --resolve: a doubly-granted path returns both grantees",
           sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
           f"got {r.stdout.split()!r}")
+
+    _assert_typed_view_resolution()
 
     # (c) NOBODY is a LITERAL EMITTED TOKEN, not silence
     r_nobody = resolve(".agents/skills/harness-spec-driven/SKILL.md")

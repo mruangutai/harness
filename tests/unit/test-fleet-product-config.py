@@ -27,6 +27,7 @@ import sys
 import tempfile
 
 import yaml
+import artifact_accessors
 
 import factory_config as fc
 
@@ -140,7 +141,7 @@ def stub_first_unexpected_second_ok(repo, path, ref, _first=_FIRST_NAME):
 
 # --- (a) two declared repos, stub returns valid JSON for both -> every entry ok --------------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
     with patched_file_at_ref(stub_all_ok):
         report_a = fc.product_config_report(fleet)
     _a_all_ok = all(m["ok"] for m in report_a)
@@ -153,7 +154,7 @@ check("(a)/(d) len(report) equals len(fleet['repos'])",
 
 # --- (b) stub raises GhError for the FIRST name, valid JSON for the second -------------------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
     with patched_file_at_ref(stub_first_gherror_second_ok):
         report_b = fc.product_config_report(fleet)
     _b_entry0, _b_entry1 = report_b[0], report_b[1]
@@ -177,7 +178,7 @@ check("(b)/(d) len(report) equals len(fleet['repos'])",
 
 # --- (c) stub returns invalid JSON for one repo -> that entry not ok, names invalid-JSON -----
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
     with patched_file_at_ref(stub_first_not_json_second_ok):
         report_c = fc.product_config_report(fleet)
     _c_entry0 = report_c[0]
@@ -194,7 +195,7 @@ check("(c)/(d) len(report) equals len(fleet['repos'])",
 # ever raises factory_gh.GhError, which product_config already converts to FleetError before
 # product_config_report's except clause sees it, so none of them exercise its narrowness.
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
     with patched_file_at_ref(stub_first_unexpected_second_ok):
         try:
             fc.product_config_report(fleet)

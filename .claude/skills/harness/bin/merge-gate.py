@@ -66,6 +66,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
+import artifact_accessors
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
 
 
@@ -187,13 +188,13 @@ def head_branch(command, cwd, repo):
 # ignored; duplicate owners must be surfaced rather than allowing glob iteration to choose one.
 def feature_for(branch):
     owners = []
-    for path in glob.glob(os.path.join(ROOT, ".harness", "*", "features", "*", "feature.json")):
+    for path in glob.glob(os.path.join(
+            ROOT, ".harness", "*", "features", "*", "feature.json")):
         try:
-            with open(path) as f:
-                document = json.load(f)
-        except (OSError, json.JSONDecodeError):
+            document = artifact_accessors.load_feature_json(path)
+        except Exception:
             continue
-        if isinstance(document, dict) and document.get("branch") == branch:
+        if document.get("branch") == branch:
             owners.append((os.path.dirname(path), document))
     return owners
 
@@ -208,9 +209,11 @@ def repo_pinned(repo):
 def _read_request():
     """Read configuration and the hook payload, preserving silent parse failure."""
     try:
-        with open(os.path.join(ROOT, ".harness", "harness.json")) as f:
-            github = json.load(f).get("github") or {}
-        command = (json.load(sys.stdin).get("tool_input") or {}).get("command") or ""
+        config_path = os.path.join(ROOT, ".harness", "harness.json")
+        github = artifact_accessors.load_harness_json(config_path).get("github") or {}
+        payload = artifact_accessors.read_hook_payload(
+            sys.stdin.read(), "merge-gate hook payload")
+        command = (payload.get("tool_input") or {}).get("command") or ""
     except Exception:
         return None
     return github, command

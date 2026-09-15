@@ -4406,9 +4406,10 @@ work. The user considered stopping self-hosting entirely and chose the carve-out
 stays available and is a stage question, not a correctness one.
 
 **The enforcement layer, enumerated:** `check-domain.py`, `bash-write-guard.py`,
-`validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py`, **and the test
-file of each.** The category in the table above governs and the list only records it — a script joins
-on the day it becomes a gate, and this entry is updated when that happens.
+`validate-digest.py`, `check-state.py`, `check-plan-routes.py`, `dispatch-guard.py`,
+`branch-create-gate.py`, **and the test file of each.** The category in the table above governs and
+the list only records it — a script joins on the day it becomes a gate, and this entry is updated
+when that happens.
 `check-plan-routes.py` is a gate because DEC-183 made it a step of the required `integration` CI job;
 `dispatch-guard.py` is one because it refuses dispatches, having declined a `harness-orchestrator`
 dispatch over a `model` parameter.

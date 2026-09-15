@@ -43,6 +43,7 @@ import sys
 #
 # This file runs as a script, so its own directory is already sys.path[0]; no
 # PYTHONPATH is needed, unlike the hooks' heredocs.
+import artifact_accessors
 import harness_yaml
 
 # Keys whose value is per-project by nature. Never overwritten once set, even if the
@@ -61,8 +62,7 @@ TEMPLATE_ONLY = ("_template",)
 
 
 def load_json(path):
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return artifact_accessors.load_harness_json(path)
 
 
 def merge(project, template, path=(), added=None):
@@ -216,12 +216,7 @@ def main():
         for p in preserved:
             print(f"  = preserved {p}")
         if not check_only:
-            shutil.copyfile(p_json, p_json + ".harness-bak")
-            tmp = p_json + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(merged, f, indent=2)
-                f.write("\n")
-            os.replace(tmp, p_json)
+            artifact_accessors.write_harness_json(p_json, merged)
             print(f"  written (backup at {os.path.basename(p_json)}.harness-bak)")
     else:
         print(f"harness.json: up to date (schema_version {pv}).")

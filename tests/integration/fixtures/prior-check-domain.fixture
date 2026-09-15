@@ -191,6 +191,7 @@ if _resolve_target is not None:
         print(f"check-domain: no {manifest} — cannot resolve routes.", file=sys.stderr)
         sys.exit(2)
     import harness_yaml
+    import artifact_accessors
 
     # FAIL CLOSED, not defensive padding. Unhandled, an ImportError exits 1, and exit 1
     # is NON-BLOCKING (line 14): the write would land and enforcement would go silently
@@ -270,7 +271,7 @@ if _resolve_target is not None:
     _granting = set()
     _shared_hits = []
     for _n in _names:
-        _globs, _shared = harness_yaml.manifest_domains(manifest, _n)
+        _globs, _shared = artifact_accessors.manifest_domains(manifest, _n)
         # The SAME two-sided rule the hook applies: filter the globs in the product
         # base, test the target in the harness base. A resolver that skipped either
         # half would name an owner for a path the build refuses.
@@ -395,6 +396,7 @@ if _run_domain:
     # and exiting 0. Exit 1 is non-blocking, so the write proceeded either way; what was
     # lost was DEC-101's deliberate, loud fail-open becoming a silent crash.
     import harness_yaml
+    import artifact_accessors
 
     # FAIL CLOSED, not defensive padding. Unhandled, an ImportError exits 1, and exit 1
     # is NON-BLOCKING (line 14): the write would land and enforcement would go silently
@@ -817,7 +819,7 @@ def domain_check():
         sys.exit(2)
 
     try:
-        globs, shared = harness_yaml.manifest_domains(manifest, agent)
+        globs, shared = artifact_accessors.manifest_domains(manifest, agent)
     except harness_yaml.DuplicateKeyError as e:
         # A repeated key in the MANIFEST silently shadows the first (DEC-156's shape,
         # here in the rulebook itself). Which of two conflicting domain lists wins is

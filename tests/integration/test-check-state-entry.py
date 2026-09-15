@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import harness_yaml
 from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT,
     make_fixture, run, _run_with_gh, _run_with_gh_streams)
 
@@ -103,16 +104,21 @@ def case_d():
         return ok
 
 
-RUNS_WITH_TRAILING_COMMENTS = """feature_id: FEAT-TEST
-cycles_used: 0
-runs:
-  - id: 2026-08-03-01-validator   # panel run
-    squad: validator              # issue #11: a comment HERE dropped the whole entry
-    verdict: FAIL
-github:
-  parent: 40
-  issues:
-    T-01: 41
+RUNS_WITH_VALIDATOR_ENTRY = """{
+  "feature_id": "FEAT-TEST",
+  "cycles_used": 0,
+  "runs": [
+    {
+      "id": "2026-08-03-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    }
+  ],
+  "github": {
+    "parent": 40,
+    "issues": {"T-01": 41}
+  }
+}
 """
 
 
@@ -120,11 +126,9 @@ def case_e():
     """Issue #11, behavioural: a trailing `#` comment on a run's `id:` or `squad:`
     line must not make the run invisible.
 
-    The pre-T-07 block-form regex required `\\s*\\n` immediately after those two
-    captures, so a comment — legal YAML, and the house style on 45 lines of FEAT-03's
-    feature.json — matched nothing and dropped the ENTIRE entry. Three invariants then
-    failed OPEN at exit 0: INV-6 (no validator run seen, so an unpinned review_sha was
-    not reported), INV-7 (0 FAILs counted) and INV-8.
+    The historical label is retained in the printed byte baseline, but this fixture now
+    reaches the same invariant through strict JSON. The canonical reader must preserve the
+    observable run semantics: a validator run with no usable review_sha makes INV-6 fire.
 
     Asserted through the invariant rather than the parser: this fixture has a validator
     run and NO `review_sha`, so a correct parse MUST report INV-6. Pre-fix the run
@@ -137,7 +141,7 @@ def case_e():
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
         with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write(RUNS_WITH_TRAILING_COMMENTS)
+            f.write(RUNS_WITH_VALIDATOR_ENTRY)
         code, out = run(tmp)
         ok = "review_sha is not pinned" in out
         print(f"{'ok' if ok else 'FAIL'} - case (e): issue #11 — a commented squad:/id: "
@@ -194,7 +198,8 @@ def case_k():
             with open(os.path.join(h, "harness.json"), "w") as f:
                 f.write(HARNESS_JSON_SYNC_OFF)
             with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-                f.write("feature_id: FEAT-TEST\nreview_sha: none\nruns: []\n")
+                json.dump(
+                    {"feature_id": "FEAT-TEST", "review_sha": "none", "runs": []}, f)
             with open(os.path.join(rundir, "state.yaml"), "w") as f:
                 f.write("schema_version: 1\n"
                         "run_id: 2026-08-05-01-product\n"
@@ -424,14 +429,6 @@ def case_r():
 
 
 FLEET_YAML = """schema: factory-fleet/1
-board:
-  owner: acme
-  number: 3
-  station_field: Status
-  stations:
-    ready: Ready
-    building: Building
-    review: Review
 repos:
   - name: acme/widget
     default_branch: main
@@ -442,8 +439,9 @@ workspace_root: /tmp/acme-factories
 def _factory_tree(tmp, features, fleet=FLEET_YAML):
     """Build a fixture with N features, each optionally carrying a `factory` block.
 
-    `features` is {feature_id: factory_block_yaml_or_None}. A None block writes a
-    feature.json with no factory key at all, which INV-24 must ignore entirely.
+    `features` is {feature_id: factory_block_yaml_or_None}. The legacy case
+    vocabulary is converted to JSON here so every feature.json reaches the
+    canonical strict reader.
     """
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
@@ -456,125 +454,105 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
     for feat, block in features.items():
         d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
+        document = (
+            harness_yaml.load_str(block, f"{feat} factory fixture")
+            if block else {"branch": "none"}
+        )
         with open(os.path.join(d, "feature.json"), "w") as f:
-            f.write(block if block else "branch: none\n")
+            json.dump(document, f)
+            f.write("\n")
     return h
 
 
+def _inv24_output_lines(output, strict_rejection):
+    lines = [line for line in output.splitlines() if "INV-24" in line]
+    if strict_rejection:
+        subject = [
+            line for line in output.splitlines()
+            if "feature.json invalid" in line and "FEAT-CONTROL" not in line
+        ]
+    else:
+        subject = [line for line in lines if "FEAT-CONTROL" not in line]
+    return lines, subject
+
+
+def _inv24_case_passes(lines, subject, expect_hit, needles, require_control):
+    expected_subject = bool(subject) == expect_hit
+    required_text = all(
+        any(needle in line for line in subject) for needle in needles
+    )
+    control_found = (
+        not require_control
+        or any("FEAT-CONTROL" in line for line in lines)
+    )
+    return expected_subject and required_text and control_found
+
+
 def case_s():
-    """INV-24 (DEC-203): factory claims must resolve against the fleet, and no two
-    features may claim one issue.
-
-    The parent is folded into the SAME comparison list as the task issues rather than
-    checked separately. That is the operator's 2026-08-08 ruling on finding A-1, and it is
-    what makes D-12 visible: gh-sync.py's `open` also adopts or creates a container for the
-    same feature in the same repository, so a container published beside one the factory
-    created collides — and an issues-only comparison cannot see it.
-    """
+    """INV-24 factory claims, including strict-reader rejection at its input boundary."""
     results = []
+    control_block = "factory:\n  repo: acme/nope\n  issues:\n    T-99: 999\n"
 
-    CONTROL = "factory:\n  repo: acme/nope\n  issues:\n    T-99: 999\n"
-
-    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True):
-        """expect_hit False is VACUOUS on its own — it also passes when INV-24 is deleted.
-
-        panel2 C3: four of the eight original cases asserted only absence, so none of them
-        would go red if the branch they target were removed or inverted. Every no-hit case
-        now carries a POSITIVE CONTROL feature in the same tree — an unlisted repo, which
-        must always fire. Absence is only believed when the checker demonstrably ran.
-        """
+    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True,
+              strict_rejection=False):
         feats = dict(features)
-        if not expect_hit and control and fleet is not None:
-            feats["FEAT-CONTROL"] = CONTROL
+        require_control = not expect_hit and control and fleet is not None
+        if require_control:
+            feats["FEAT-CONTROL"] = control_block
         with tempfile.TemporaryDirectory() as tmp:
             _factory_tree(tmp, feats, fleet=fleet)
             _code, out = run(tmp)
-        lines = [l for l in out.splitlines() if "INV-24" in l]
-        subject = [l for l in lines if "FEAT-CONTROL" not in l]
-        hit = bool(subject)
-        ok = (hit == expect_hit) and all(
-            any(n in l for l in subject) for n in needles
-        )
-        if not expect_hit and control and fleet is not None:
-            # the control MUST have fired, or absence proves nothing
-            ok = ok and any("FEAT-CONTROL" in l for l in lines)
+        lines, subject = _inv24_output_lines(out, strict_rejection)
+        ok = _inv24_case_passes(
+            lines, subject, expect_hit, needles, require_control)
         print(f"{'ok' if ok else 'FAIL'} - case (s) INV-24: {label}")
         if not ok:
             print(f"       | INV-24 lines: {lines!r}")
         results.append(ok)
 
     listed = "factory:\n  repo: acme/widget\n  parent: 10\n  issues:\n    T-01: 11\n"
-
     check("a listed repository passes", {"FEAT-A": listed}, False)
-
     check("an UNLISTED repository is a violation naming the repo",
           {"FEAT-A": "factory:\n  repo: acme/nope\n  issues:\n    T-01: 11\n"},
           True, needles=("acme/nope",))
-
     check("two features recording one repo+issue names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: 11\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-
-    # A-1: the case an issues-only comparison could not see.
     check("one feature's PARENT equal to another's issue names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-09: 12\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-
     check("two features sharing one PARENT names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 10\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 10\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-
     check("a block with NO parent key is silent",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n"}, False)
-
     check("factory state with NO fleet file names the FLEET as the problem",
           {"FEAT-A": listed}, True, needles=("FEAT-A", "fleet.yaml", "is absent"), fleet=None)
-
     check("a null factory.repo is a violation, not a silent pass (C1)",
           {"FEAT-A": "factory:\n  repo: null\n  issues:\n    T-01: 11\n"},
           True, needles=("not a repository name",))
-
     check("a null issue number is named, not treated as a collision (C1)",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: null\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: null\n"},
-          True, needles=("not an integer",))
-
-    # The needle reaches PAST "twice within its own factory" deliberately. The message used
-    # to re-derive both labels from `n == fac.get("parent")`, so in this exact case — the
-    # only case it was written for — it rendered "(parent and parent)" and told the reader
-    # the container was recorded twice instead of that a task collides with it.
+          True, needles=("not a recorded issue number",), strict_rejection=True)
     check("a feature whose own parent equals its own task issue fires, and names BOTH sides (C2)",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-01: 11\n"},
           True, needles=("twice within its own factory", "task T-01", "the parent"))
-
-    # INV-21 thirty lines above accepts `parent: "40"` on purpose (gh-sync.py's reader was
-    # widened to it). If INV-24 rejected the same shape, one legal feature.json would pass
-    # one invariant and hard-block on its twin — the D-03 divergence, inside one file.
     check("a quoted issue number is a number here, as it is for INV-21 (D-03)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  parent: "40"\n  issues:\n    T-01: "41"\n'},
           False)
-
     check("a quoted number still collides across features (D-03 does not weaken the check)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  issues:\n    T-01: "41"\n',
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-02: 41\n"},
           True, needles=("both record acme/widget issue 41",))
-
-    # The CONTENTS were type-checked while the CONTAINER was assumed: `issues: 42` left the
-    # number list empty, so no collision check ran and nothing was reported at all.
     check("an issues block that is neither a mapping nor a list is reported, not skipped",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues: 42\n"},
-          True, needles=("neither a T-NN-to-number mapping nor a list",))
-
-    # control=False, and the reason is the case itself: injecting the control would put a
-    # factory block in the one tree whose entire premise is that none exists, so the
-    # `not isinstance(fac, dict): continue` branch would go untested. Absence is instead
-    # believed because every OTHER case above proves the checker runs on this fixture shape.
+          True, needles=("not a JSON object",), strict_rejection=True)
     check("a tree with no factory blocks at all is silent",
           {"FEAT-A": None, "FEAT-B": None}, False, control=False)
-
     return all(results)
 
 
@@ -733,7 +711,9 @@ def _inv28_fixture(tmp, sync_on, features):
             f.write(body)
         if plan_station is not None:
             with open(os.path.join(d, "plan.yaml"), "w") as f:
-                f.write(f"schema: plan/1\nfeature: {feat}\nstatus: {plan_station}\ntasks: []\n")
+                f.write(
+                    f"schema: plan/1\nfeature: {feat}\nstatus: {plan_station}\n"
+                    "station_only: true\ntasks: []\n")
     return h
 
 
@@ -843,7 +823,9 @@ def _inv30_fixture(tmp, features):
         # The station lands in plan.yaml, lowercase (FEAT-41 T-07). feature.json keeps the
         # milestone, which is what this invariant is actually about.
         with open(os.path.join(d, "plan.yaml"), "w") as f:
-            f.write(f"feature: {feat}\nstatus: {str(station).lower()}\ntasks: []\n")
+            f.write(
+                f"feature: {feat}\nstatus: {str(station).lower()}\n"
+                "station_only: true\ntasks: []\n")
     return h
 
 
@@ -986,6 +968,24 @@ def case_no_root_replays_resolver_stderr():
         return ok
 
 
+def case_canonical_reader_rejects_duplicate_harness_json():
+    """The enforcement reader must not inherit json.loads' last-key-wins behavior."""
+    duplicate = (
+        '{"github":{"sync":false,"repo":null},'
+        '"github":{"sync":true,"repo":"org/repo"}}\n')
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, duplicate, "  parent: 40")
+        code, out = run(tmp)
+        ok = (
+            code == 1
+            and "harness.json is not valid JSON" in out
+            and "duplicate key" in out
+        )
+        if not ok:
+            print("FAIL - canonical harness.json reader accepted duplicate keys")
+        return ok
+
+
 def main():
     results = []
     ok, code_a = case_a()
@@ -1019,6 +1019,7 @@ def main():
     results.append(case_inv30_silent_on_null_milestone())
     results.append(case_inv30_silent_on_nonterminal())
     results.append(case_no_root_replays_resolver_stderr())
+    results.append(case_canonical_reader_rejects_duplicate_harness_json())
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "

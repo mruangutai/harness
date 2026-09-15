@@ -1509,7 +1509,7 @@ with tempfile.TemporaryDirectory() as td:
     with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
         json.dump({"github": {"parent": 950, "issues": {"T-01": 951}}}, f)
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
-        f.write("feature: FEAT-STATUS\nstatus: done\ntasks: []\n")
+        f.write("schema: plan/1\nfeature: FEAT-STATUS\nstatus: done\nstation_only: true\ntasks: []\n")
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
         "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
     })

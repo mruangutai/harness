@@ -27,9 +27,12 @@ Repo comes from .harness/harness.json `github.repo`, pinned at init and never
 re-inferred (DEC-138). github.sync false, or gh missing/unauthenticated -> exit 1
 with the markdown-fallback instruction; wayfinding then runs in files-only mode.
 """
-import json, os, subprocess, sys
+import os
+import subprocess
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import artifact_accessors
 import gh_issues as ghi
 import harness_boundary
 
@@ -51,8 +54,8 @@ def cfg():
             "onboarded project.")
     p = os.path.join(r, ".harness", "harness.json")
     try:
-        gh = (json.load(open(p)).get("github") or {})
-    except Exception as e:
+        gh = artifact_accessors.load_harness_json(p).get("github") or {}
+    except artifact_accessors.ArtifactAccessError as e:
         die(f"cannot read {p} ({e})")
     if not gh.get("sync"):
         die("github.sync is off — wayfinding runs in local-markdown mode "
@@ -69,8 +72,8 @@ def gh_json(args, allow_fail=False):
             return None
         die(f"gh {' '.join(args[:3])}… failed: {(r.stderr or '').strip().splitlines()[-1:] or ''}")
     try:
-        return json.loads(r.stdout or "null")
-    except Exception:
+        return artifact_accessors.parse_gh_json(r.stdout or "null", "wayfind GitHub response")
+    except artifact_accessors.ArtifactAccessError:
         return r.stdout.strip()
 
 

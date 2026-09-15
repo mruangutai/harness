@@ -48,7 +48,7 @@ def tree():
     bin_dir.mkdir(parents=True)
     for name in (
             "run-unit-tests.py", "harness_boundary.py", "run_identity.py",
-            "suite_layout.py", "run_pool.py"):
+            "artifact_accessors.py", "suite_layout.py", "run_pool.py"):
         shutil.copy2(ROOT / ".claude/skills/harness/bin" / name, bin_dir / name)
     for kind in ("unit", "integration"):
         directory = root / "tests" / kind

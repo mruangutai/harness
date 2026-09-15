@@ -66,7 +66,9 @@ def _root():
     return _hb_root.resolve_root(_bin_dir, strict=False)
 
 try:
-    d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
+    import artifact_accessors as _artifact_accessors
+    d = _artifact_accessors.read_hook_payload(
+        os.environ.get("HOOK_PAYLOAD") or "", "bash-write-guard hook payload")
 except Exception:
     sys.exit(0)
 
@@ -260,6 +262,7 @@ if not os.access(manifest, os.R_OK):
     sys.exit(0)
 
 import harness_yaml
+import artifact_accessors
 
 # LAZY, HERE, AND FAIL-CLOSED — the same shape T-01 put in the sibling guard, for the
 # same reason. NOT at the top of the file: the isolated-copy case in this file's own
@@ -767,7 +770,7 @@ if _no_parser:
 # BECAUSE an agent routed around check-domain.py (DEC-151), so a divergence between
 # them is a bypass by construction. Both now call one function; they cannot drift.
 try:
-    mine, shared = harness_yaml.manifest_domains(manifest, agent)
+    mine, shared = artifact_accessors.manifest_domains(manifest, agent)
 except harness_yaml.DuplicateKeyError as e:
     print(f"bash-write-guard: BLOCKED — the manifest has a duplicate key {e.key!r}.",
           file=sys.stderr)

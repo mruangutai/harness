@@ -41,7 +41,7 @@ FIXTURE MECHANICS SHARED BY EVERY CASE THAT INVOKES A REAL `gh-sync.py ship` OR
     AND the MARKER `harness_boundary.resolve_root()` needs, independent of any environment
     variable), `.harness/harness/docs/SPEC.md` and `.harness/harness.json` (github.sync
     enabled, github.repo pinned, github.board an EXPLICIT null so `gh_board.load_board` never
-    raises `factory_config.FleetError`).
+    raises `artifact_accessors.FleetError`).
   - `_sweep_env` sets HARNESS_PROJECT_DIR to the fixture repo. `worktree_terminal.classify()`
     itself never needs this — a worktree's owner_root is parsed straight out of its own path by
     `_split_owner_segment_id`, and "harness"'s default_branch is the hardcoded literal "main" —
@@ -938,6 +938,58 @@ def case_t07_build_entry_receipt():
     return results
 
 
+def _write_duplicate_artifact(repo, feature, duplicate_feature):
+    if duplicate_feature:
+        path = os.path.join(
+            repo, ".harness", "harness", "features", feature, "feature.json")
+        content = (
+            '{"feature_id":"' + feature + '","branch":"other",'
+            '"branch":"feature/test","github":{"build_entry":"opened"}}')
+    else:
+        path = os.path.join(repo, ".harness", "harness.json")
+        content = (
+            '{"github":{"sync":false},"github":{"sync":true,'
+            '"repo":"acme/repo-x","board":null}}')
+    with open(path, "w") as stream:
+        stream.write(content)
+
+
+def _duplicate_receipt_failure(duplicate_feature):
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        feature = "FEAT-9001-fixture-non-era"
+        _commit_feature(repo, feature, "Done", milestone=9)
+        _write_duplicate_artifact(repo, feature, duplicate_feature)
+        subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "set duplicate"], cwd=repo,
+            capture_output=True)
+        dest = _add_wt(repo, feature)
+        _, gh_env = _stub_gh(tmp)
+        _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
+        run = subprocess.run(
+            [sweep], cwd=repo, capture_output=True, text=True,
+            env=_sweep_env(repo, gh_env))
+        if os.path.isdir(dest):
+            return None
+        artifact = "feature.json" if duplicate_feature else "harness.json"
+        return (
+            f"duplicate {artifact} keys keep the worktree",
+            False,
+            f"stdout={run.stdout!r} dest={dest}",
+        )
+
+
+def case_duplicate_receipt_inputs():
+    failures = []
+    for duplicate_feature in (False, True):
+        failure = _duplicate_receipt_failure(duplicate_feature)
+        if failure:
+            failures.append(failure)
+    return failures
+
+
 
 def main():
     results = (
@@ -953,6 +1005,7 @@ def main():
         + case_cwd_outside_repo()
         + case_t07_build_entry_receipt()
         + case_linked_worktree_main_checkout()
+        + case_duplicate_receipt_inputs()
     )
     ok = True
     for name, passed, detail in results:

@@ -2983,6 +2983,14 @@ def _write_plan_approval(plan_path, status):
     with open(plan_path, "w") as handle:
         handle.write(
             f"schema: plan/1\nfeature: FEAT-PLAN\napproval:\n  status: {status}\n"
+            "tasks:\n"
+            "  - id: T-01\n"
+            "    title: fixture task\n"
+            "    change_type: test\n"
+            "    execution_mode: main-session-direct\n"
+            "    files: [fixture.py]\n"
+            "    verify: \"true\"\n"
+            "    intent: exercise plan review validation\n"
         )
 
 
@@ -4980,24 +4988,101 @@ def run_dec156_worktree_red_case():
         shutil.rmtree(iso_root, ignore_errors=True)
 
 
+def _strict_validator_module():
+    spec = importlib.util.spec_from_file_location(
+        "_strict_validator_under_test", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    return validator
+
+
+def _duplicate_harness_config_failures(validator, td):
+    harness_json = os.path.join(td, ".harness", "harness.json")
+    os.makedirs(os.path.dirname(harness_json), exist_ok=True)
+    with open(harness_json, "w", encoding="utf-8") as handle:
+        handle.write(
+            '{"test_kinds": {"x": {}}, "test_kinds": {"x": {}}}')
+    kinds, error = validator._load_test_kinds(td)
+    if kinds is None and error and "duplicate key" in error:
+        return []
+    return ["duplicate harness.json keys were not refused"]
+
+
+def _duplicate_feature_json_failures(validator, td):
+    feature_dir = os.path.join(
+        td, ".harness", "harness", "features", "FEAT-STRICT")
+    os.makedirs(feature_dir, exist_ok=True)
+    with open(os.path.join(feature_dir, "feature.json"), "w",
+              encoding="utf-8") as handle:
+        handle.write(
+            '{"feature_id":"FEAT-STRICT","review_sha":"abc1234",'
+            '"review_sha":"abc1234","branch":"feat/strict",'
+            '"branch":"feat/strict"}')
+    review_sha, error = validator._read_review_sha(feature_dir)
+    pinned_error = validator._pinned_feature_review_error(feature_dir)
+    checks = (
+        (review_sha is None and error and "duplicate key" in error,
+         "duplicate feature.json keys did not refuse review_sha"),
+        (validator._read_feature_branch(feature_dir) is None,
+         "duplicate feature.json keys supplied a branch"),
+        (pinned_error and "duplicate key" in pinned_error,
+         "duplicate feature.json keys did not refuse plan review"),
+    )
+    return [message for ok, message in checks if not ok]
+
+
+def _duplicate_hook_payload_failures():
+    payload = (
+        '{"agent_type":"Explore","agent_type":"Explore",'
+        '"last_assistant_message":"not governed"}')
+    hook = subprocess.run(
+        [sys.executable, VALIDATE, "--hook"], input=payload,
+        capture_output=True, text=True)
+    refused = (
+        hook.returncode == 0
+        and "duplicate key" in hook.stderr
+        and "unreadable hook payload" in hook.stderr
+    )
+    return [] if refused else [
+        "duplicate hook payload did not take the typed fail-open path"]
+
+
+def run_canonical_reader_strictness_cases():
+    """Strict artifact seams reject duplicate keys without changing legacy cases."""
+    validator = _strict_validator_module()
+    with tempfile.TemporaryDirectory() as td:
+        failures = _duplicate_harness_config_failures(validator, td)
+        failures.extend(_duplicate_feature_json_failures(validator, td))
+    failures.extend(_duplicate_hook_payload_failures())
+    if not failures:
+        return 0
+    for failure in failures:
+        print(f"FAIL  [canonical-reader audit] {failure}")
+    return 1
+
+
 def main():
-    fails = run_cli_cases()
-    fails += run_empty_red_case()
-    fails += run_dec156_worktree_red_case()
-    fails += run_bug919_qa_matrix_cases()
-    fails += run_bug919_resolve_fallback_case()
-    fails += run_joint_hint_case()
-    fails += run_code_grade_cases()
-    fails += run_hook_cases()
-    fails += run_bug1305_artifact_resolution_cases()
-    fails += run_t09()
-    fails += run_t51_suspension_cases()
-    fails += run_template_cases()
-    fails += run_reviewer_severity_enum_cases()
-    fails += run_documented_contract_cases()
-    fails += run_t01_schema_cases()
-    fails += run_t04_unknown_key_cases()
-    fails += run_t08_revision_proof()
+    checks = (
+        run_canonical_reader_strictness_cases,
+        run_cli_cases,
+        run_empty_red_case,
+        run_dec156_worktree_red_case,
+        run_bug919_qa_matrix_cases,
+        run_bug919_resolve_fallback_case,
+        run_joint_hint_case,
+        run_code_grade_cases,
+        run_hook_cases,
+        run_bug1305_artifact_resolution_cases,
+        run_t09,
+        run_t51_suspension_cases,
+        run_template_cases,
+        run_reviewer_severity_enum_cases,
+        run_documented_contract_cases,
+        run_t01_schema_cases,
+        run_t04_unknown_key_cases,
+        run_t08_revision_proof,
+    )
+    fails = sum(check() for check in checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

@@ -14,6 +14,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import json
 import os
 import subprocess
 import sys
@@ -43,12 +44,25 @@ HARNESS_JSON_SYNC_OFF = """{
 """
 
 
-def feature_yaml(parent_line):
-    return f"""github:
-{parent_line}
-  issues:
-    T-01: 41
-"""
+def feature_json(parent_line, line_count=None):
+    raw_parent = parent_line.partition(":")[2].strip()
+    parent = int(raw_parent) if raw_parent.isdigit() else None
+    document = {
+        "feature_id": "FEAT-TEST",
+        "branch": "none",
+        "pr": None,
+        "review_sha": "none",
+        "cycles_used": 0,
+        "max_total_cycles": 10,
+        "runs": [],
+        "github": {"parent": parent, "issues": {"T-01": 41}},
+    }
+    lines = json.dumps(document, indent=2).splitlines()
+    if line_count is not None:
+        if line_count < len(lines):
+            raise ValueError("feature.json line_count is smaller than the fixture")
+        lines[-1:-1] = [""] * (line_count - len(lines))
+    return "\n".join(lines) + "\n"
 
 
 def _root_env(tmp, env=None, **extra):
@@ -89,7 +103,7 @@ def make_fixture(tmp, harness_json, parent_line):
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(harness_json)
     with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-        f.write(feature_yaml(parent_line))
+        f.write(feature_json(parent_line))
     return h
 
 

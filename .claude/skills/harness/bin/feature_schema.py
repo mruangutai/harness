@@ -325,9 +325,9 @@ def recovery_command_for(feat_dir):
     """The safe receipt command for a feature that has no Build-entry outcome."""
     if os.path.basename(feat_dir.rstrip("/")) in BUILD_ENTRY_ERA_EXEMPT:
         return "recover-terminal"
-    import harness_yaml
+    import artifact_accessors
     try:
-        plan = harness_yaml.load_file(os.path.join(feat_dir, "plan.yaml"))
+        plan = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml"))
     except Exception:
         return "recover-terminal"
     if plan.get("status") in {"review", "done"}:

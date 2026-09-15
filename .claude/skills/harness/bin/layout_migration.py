@@ -47,12 +47,12 @@ The feature-claiming tool's features row landed with the unit that fixed its roo
 """
 
 import glob
-import json
 import os
 import re
 import sys
 from collections import namedtuple
 
+import artifact_accessors
 import harness_yaml  # a missing PyYAML is a LOUD error (DEC-171); no fallback exists
 
 # THE SURFACES ARE A FIXED ENUM, declared INDEPENDENTLY of the reader table. Every
@@ -163,16 +163,16 @@ def _declared_segments(root):
     plus harness's own segment from harness.json github.repo when present. A parse
     failure raises — the fleet IS the applicability marker, so an unreadable fleet at
     an applicable root is a tree defect, reported loudly by the caller."""
-    fleet = harness_yaml.load_file(os.path.join(root, MARKER)) or {}
+    fleet = artifact_accessors.load_fleet(os.path.join(root, MARKER)) or {}
     segs = {str(r.get("name", "")).split("/", 1)[-1]
             for r in (fleet.get("repos") or []) if isinstance(r, dict) and r.get("name")}
     try:
-        hj = json.load(open(os.path.join(root, ".harness", "harness.json"),
-                            encoding="utf-8"))
+        hj = artifact_accessors.load_harness_json(
+            os.path.join(root, ".harness", "harness.json"))
         own = ((hj.get("github") or {}).get("repo") or "")
         if own:
             segs.add(own.split("/", 1)[-1])
-    except (OSError, ValueError):
+    except artifact_accessors.ArtifactAccessError:
         pass  # a product-shaped or minimal tree has no harness.json; the fleet rules
     return {s for s in segs if s}
 

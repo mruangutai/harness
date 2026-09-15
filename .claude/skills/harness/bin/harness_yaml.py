@@ -292,31 +292,6 @@ REQUIRED_TASK_FIELDS = ("id", "title", "change_type", "execution_mode", "files",
 LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
 
 
-def load_plan(path):
-    """Load a `plan.yaml` and validate the shape its consumers depend on.
-
-    WHY THIS EXISTS RATHER THAN load_file: PLAN.md was markdown that LOOKED like
-    YAML, so three scripts hand-rolled regexes against it and each invented its own
-    rule for what a value may contain. Measured before the change: `safe_load` fails
-    on 35 of the 36 task blocks in the four live plans — 26 because
-    `files:` began with a backtick, which is a reserved YAML indicator (one of
-    those is ALSO `execution_mode: **SPLIT`, which reads as an alias — the same
-    block, not a 27th), and 9 because `execution_mode: <mode> — reason: ...`
-    puts a second `": "` inside a plain scalar. Those are not style
-    problems; they are the format inviting decoration into data fields.
-
-    A FENCED ```yaml BLOCK INSIDE MARKDOWN WAS CONSIDERED AND REFUSED. It is the
-    same mixture with a border drawn round it: an author who decorates a value
-    today decorates it inside a fence tomorrow. The fence makes the mistake loud
-    instead of silent, which is worth something, but it is compensating code for a
-    problem the format invites. A plain `.yaml` file cannot tempt the author,
-    because nothing else in it is prose.
-
-    Raises YamlParseError if it is not YAML, PlanSchemaError if it is YAML that a
-    consumer could not act on. Never returns a partially-valid plan: a caller that
-    got a dict back can index every field named in REQUIRED_TASK_FIELDS.
-    """
-    return validate_plan_doc(load_file(path), path)
 
 
 def validate_plan_doc(doc, path):
@@ -463,60 +438,6 @@ def _validate_plan_depends_on(tasks, path):
 
 # --- Manifest domain walk (D-03) --------------------------------------------
 
-def manifest_domains(manifest_path, agent):
-    """Walk the parsed manifest and return (mine, shared) glob lists for
-    `agent`. Equivalent to check-domain.py's pre-change collect() for every
-    agent in this repo's manifest, at EVERY nesting level — not just
-    teams[].members[] (T-02 test 5: harness-eng-lead lives under `leads:`,
-    harness-orchestrator is a bare top-level key). Every returned glob is
-    str()-coerced (D-08)."""
-    parsed = load_file(manifest_path)
-
-    mine = []
-
-    def walk(node):
-        if isinstance(node, dict):
-            domain = node.get("domain")
-            if node.get("name") == agent and isinstance(domain, list):
-                for entry in domain:
-                    if isinstance(entry, dict) and "path" in entry and not entry.get("read"):
-                        mine.append(str(entry["path"]))
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
-
-    walk(parsed)
-
-    # M-02: `parsed.get("shared")` assumed a dict and sat OUTSIDE the widened try, so
-    # it raised AttributeError past every caller's `except YamlParseError`. Note the
-    # shape of the bug — `walk()` immediately above guards every branch with
-    # isinstance, and the very next statement did not.
-    #
-    # WHY THE F-01 FIX DID NOT COVER IT: an empty file, a bare scalar and a bare list
-    # all PARSE SUCCESSFULLY. They yield None / str / list, never an error, so the
-    # widened `except` never engages. F-01 was scoped to the two shapes cycle 0 named
-    # (bad UTF-8, manifest-as-directory) and this is a third route to the same
-    # exit-1 fail-open — which is non-blocking (DEC-100), so both write hooks let the
-    # write through. An EMPTY team-config.yaml was enough.
-    #
-    # Raised as YamlParseError rather than returning empty: callers already treat that
-    # as "cannot read the rulebook, block", and a manifest that is not a mapping is
-    # exactly that. Returning ([], []) would read as "this agent owns nothing" — a
-    # silent, total loss of enforcement dressed as a legitimate answer.
-    if not isinstance(parsed, dict):
-        raise YamlParseError(
-            manifest_path,
-            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
-            f"an empty or malformed file cannot declare any domain")
-
-    shared = []
-    for entry in (parsed.get("shared") or []):
-        if isinstance(entry, dict) and "path" in entry:
-            shared.append(str(entry["path"]))
-
-    return mine, shared
 
 
 # --- PyYAML-presence policy (D-06, D-07, D-08 install command; E3 escape) ---

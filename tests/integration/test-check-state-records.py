@@ -273,30 +273,33 @@ def _inv33_commit(tmp, message="c"):
 
 
 def _inv33_set_sha(feat_dir, sha, validator_run=True):
-    """Append the pin to the fixture's feature.json as TEXT.
-
-    make_fixture writes that file in YAML (harness_yaml is what check-state.py reads it with),
-    so a json.load round-trip raises — measured, not guessed. Appending keys is also the only
-    edit that leaves the builder's own shape untouched.
-
-    THE VALIDATOR RUN IS WHAT MAKES INV-6 SILENT HERE. INV-6 fires when a validator run exists
-    and the pin is missing; these cases carry a real pin, so INV-6 stays quiet either way — but
-    including the run keeps the fixture a realistic document rather than one that avoids INV-6
-    by having no runs at all.
-    """
+    """Set the pin and optional validator run in the strict JSON fixture."""
     fj = os.path.join(feat_dir, "feature.json")
-    extra = f"review_sha: {sha}\n"
+    with open(fj, encoding="utf-8") as source:
+        document = json.load(source)
+    document["review_sha"] = sha
     if validator_run:
-        extra += "runs:\n  - id: r1\n    squad: validator\n    verdict: PASS\n"
-    with open(fj, "a") as f:
-        f.write(extra)
+        document["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS"}]
+    with open(fj, "w", encoding="utf-8") as target:
+        json.dump(document, target)
+        target.write("\n")
 
 
 def _inv33_plan(feat_dir, body, station=None):
     lines = ["schema: plan/1", "feature: FEAT-TEST"]
     if station is not None:
         lines.append(f"status: {station}")
-    lines += ["tasks:", "  - id: T-01", f"    change_type: {body}"]
+    lines += [
+        "tasks:",
+        "  - id: T-01",
+        "    title: fixture task",
+        f"    change_type: {body}",
+        "    execution_mode: main-session-direct",
+        "    status: building",
+        "    files: [fixture.py]",
+        "    verify: run it",
+        "    intent: exercise INV-33",
+    ]
     with open(os.path.join(feat_dir, "plan.yaml"), "w") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -670,10 +673,18 @@ def _bug1305_invariant_feature(tmp, h, names):
     with open(os.path.join(fdir, "plan.yaml"), "w") as fh:
         fh.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: plan\n"
                  "station_only: true\ntasks: []\n")
+    document = {
+        "feature_id": "FEAT-TEST",
+        "review_sha": "none",
+        "cycles_used": 0,
+        "runs": [
+            {"id": name, "squad": "product", "verdict": "PASS"}
+            for name in names
+        ],
+    }
     with open(os.path.join(fdir, "feature.json"), "w") as fh:
-        fh.write("feature_id: FEAT-TEST\nreview_sha: none\ncycles_used: 0\nruns:\n")
-        for name in names:
-            fh.write(f"  - id: {name}\n    squad: product\n    verdict: PASS\n")
+        json.dump(document, fh)
+        fh.write("\n")
     settings_src = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "..", "..",
         ".claude", "settings.json")

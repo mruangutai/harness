@@ -676,6 +676,18 @@ def case_23_broken_derivation_distinguished_from_grant_less():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_24_duplicate_hook_keys_are_rejected():
+    payload = (
+        '{"agent_type":"main","agent_type":"harness-eng-lead",'
+        '"tool_input":{"model":"opus","subagent_type":"harness-backend-dev",'
+        '"prompt":"' + FEATURE_LINE + '"}}'
+    )
+    result = fire(payload)
+    if result.returncode != 0:
+        check("case 24: duplicate hook-payload keys are rejected before dispatch policy",
+              False, result.stderr)
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -727,6 +739,7 @@ def main():
     case_21_grant_less_manifest_fails_open_and_says_so()
     case_22_derived_vocabulary_matches_invented_squad()
     case_23_broken_derivation_distinguished_from_grant_less()
+    case_24_duplicate_hook_keys_are_rejected()
 
     failed = 0
     for name, ok, detail in RESULTS:

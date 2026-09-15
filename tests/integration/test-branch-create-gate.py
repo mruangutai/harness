@@ -58,6 +58,16 @@ def fire(cmd, root=REPO_ROOT, gh_bin=None):
                           text=True, env=env)
 
 
+def fire_raw(payload, root, gh_bin=None):
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
+    if gh_bin is not None:
+        env["GH_BIN"] = gh_bin
+    else:
+        env.pop("GH_BIN", None)
+    return subprocess.run([GATE], input=payload, capture_output=True,
+                          text=True, env=env)
+
+
 def out_json(r):
     return json.loads(r.stdout)
 
@@ -192,12 +202,35 @@ def run_assertion_5():
           f"decision={decision!r} reason={reason!r}")
 
 
+def run_assertion_6():
+    cmd = "git check" + "out -b feat/FEAT-99-nope"
+
+    config_root = _fixture(None)
+    with open(os.path.join(config_root, ".harness", "harness.json"), "w") as stream:
+        stream.write(
+            '{"github":{"sync":false},"github":{"sync":true,"repo":"acme/widgets"}}')
+    config_result = fire(cmd, root=config_root)
+    if config_result.stdout.strip():
+        check("duplicate harness.json keys disable branch policy rather than choosing one",
+              False, f"stdout={config_result.stdout!r} stderr={config_result.stderr!r}")
+
+    payload_root = _fixture({"sync": True, "repo": "acme/widgets"})
+    payload = (
+        '{"tool_input":{"command":"git status"},'
+        '"tool_input":{"command":"git checkout -b feat/FEAT-99-nope"}}')
+    payload_result = fire_raw(payload, payload_root)
+    if payload_result.stdout.strip():
+        check("duplicate hook-payload keys are rejected before branch policy evaluation",
+              False, f"stdout={payload_result.stdout!r} stderr={payload_result.stderr!r}")
+
+
 def main():
     run_assertion_1()
     run_assertion_2()
     run_assertion_3()
     run_assertion_4()
     run_assertion_5()
+    run_assertion_6()
 
     fails = 0
     for name, ok, detail in RESULTS:

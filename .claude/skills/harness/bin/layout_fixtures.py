@@ -20,6 +20,7 @@ import layout_migration as _lm
 # What the fleet-declaration marker holds in fixtures: one declared repository,
 # org/repoA, whose segment `repoA` is the migrated root the evidence stubs use.
 FLEET_TEXT = ("schema: factory-fleet/1\nrepos:\n  - name: org/repoA\n"
+              "    default_branch: main\n"
               "workspace_root: /tmp/harness-fixture-workspaces\n")
 
 # One stub body per (reader file, form): the FRAGMENT the row's pattern matches, in

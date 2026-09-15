@@ -7,6 +7,7 @@ import os as _os
 import re as _re
 import tempfile as _tempfile
 import uuid as _uuid
+import artifact_accessors as _accessors
 
 MARKER_NAME = ".run-identity.json"
 
@@ -27,14 +28,11 @@ def marker_path(run_dir):
 def read_marker(run_dir):
     path = marker_path(run_dir)
     try:
-        with open(path, encoding="utf-8") as fh:
-            marker = _json.load(fh)
-    except FileNotFoundError:
-        return None
-    except (OSError, UnicodeError, _json.JSONDecodeError) as exc:
+        marker = _accessors.load_harness_json(path)
+    except _accessors.ArtifactAccessError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            return None
         raise MarkerUnreadable(f"cannot read run identity marker {path}: {exc}") from exc
-    if not isinstance(marker, dict):
-        raise MarkerUnreadable(f"run identity marker {path} is not a JSON object")
     return marker
 
 

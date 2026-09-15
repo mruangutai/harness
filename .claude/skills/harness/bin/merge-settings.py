@@ -27,6 +27,7 @@ import os
 import re
 import shutil
 import sys
+import artifact_accessors
 
 # The hook prerequisites, each keyed by the (event, script basename) pair that identifies
 # it — check-domain.py appears on TWO events and they are two separate prerequisites.
@@ -241,7 +242,7 @@ def main():
     # snippet a human reads cannot silently stop describing what runs.
     if template and os.path.isfile(template):
         try:
-            t = json.load(open(template, encoding="utf-8"))
+            t = artifact_accessors.load_harness_json(template)
             t_depth = (t.get("env") or {}).get(DEPTH_KEY)
             if t_depth != DEPTH_VAL:
                 print(f"merge-settings: template says {DEPTH_KEY}={t_depth!r}, "
@@ -253,7 +254,7 @@ def main():
                     print(f"merge-settings: template is missing {spec['script']} on "
                           f"{spec['event']} — reconcile it with this script.")
                     return 1
-        except Exception as e:
+        except artifact_accessors.ArtifactAccessError as e:
             print(f"merge-settings: template {template} is unreadable ({e})")
             return 1
 
@@ -263,8 +264,8 @@ def main():
         raw = open(path, encoding="utf-8").read()
         if raw.strip():
             try:
-                settings = json.loads(raw)
-            except Exception as e:
+                settings = artifact_accessors.load_harness_json(text=raw, context=path)
+            except artifact_accessors.ArtifactAccessError as e:
                 # Never overwrite a file we cannot parse — that would destroy the
                 # project's own configuration to install ours.
                 print(f"merge-settings: {path} is not valid JSON ({e}). "

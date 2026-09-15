@@ -27,6 +27,7 @@ BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 HERE = BIN_DIR
 sys.path.insert(0, HERE)
 
+import artifact_accessors  # noqa: E402
 import gh_board  # noqa: E402
 import factory_gh  # noqa: E402
 import factory_config  # noqa: E402
@@ -87,7 +88,7 @@ def raised_exc(root):
     """Call load_board(root), returning the raised FleetError, or None if it did not raise."""
     try:
         gh_board.load_board(root)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         return exc
     return None
 
@@ -397,7 +398,7 @@ try:
         )
         check("set_station raises FleetError on a capitalised station and writes nothing",
               False, "did not raise")
-    except factory_config.FleetError:
+    except artifact_accessors.FleetError:
         check("set_station raises FleetError on a capitalised station and writes nothing",
               "value" not in _captured, _captured)
 finally:
@@ -486,7 +487,7 @@ for _bad in ("pending", "Building", "shipped"):
     _raised = None
     try:
         gh_board.project(_plan(_bad), _rec(issues={"T-01": 31}))
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         _raised = str(exc)
     check(f"project: task station {_bad!r} raises FleetError naming the task and the value",
           _raised is not None and "T-01" in _raised and _bad in _raised, repr(_raised))
