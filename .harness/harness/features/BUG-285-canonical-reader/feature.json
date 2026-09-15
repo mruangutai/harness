@@ -2,7 +2,7 @@
   "feature_id": "BUG-285-canonical-reader",
   "branch": "feat/BUG-285-canonical-reader",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "be6b75b056159d3a7c8db574620058d34cae2a9a",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
