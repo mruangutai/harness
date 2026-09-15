@@ -3,9 +3,9 @@
 ## Current
 
 - feature: BUG-285-canonical-reader
-- run: none
-- squad: none
-- status: idle
+- run: T-05-main-session-direct
+- squad: main-session
+- status: awaiting_signature
 
 ## Open Questions
 

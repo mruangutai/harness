@@ -3,7 +3,9 @@ feature: BUG-285-canonical-reader
 approval:
   date: '2026-09-14'
   approved_by: mruangutai
-  status: approved
+  status: pending
+  reset_at: '2026-09-15T03:31:40+00:00'
+  reset_reason: apply T-05
 status: building
 source_issues: [285, 1594]
 panel:
@@ -333,7 +335,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 classifies validators, gate scripts, and each changed gate test as enforcement-layer work regardless of file extension.
     depends_on: [T-04]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/check-omp-port.py
       - .claude/skills/harness/bin/check-plan-routes.py
@@ -342,6 +344,7 @@ tasks:
       - .claude/skills/harness/bin/code-grade.py
       - .claude/skills/harness/bin/validate-digest.py
       - tests/integration/canonical-reader-enforcement-baselines.json
+      - tests/integration/check_state_support.py
       - tests/integration/test-check-omp-port.py
       - tests/integration/test-check-plan-routes.py
       - tests/integration/test-check-skill-weight.py
@@ -363,6 +366,8 @@ tasks:
       Replace every semantic raw parse assigned T-05 with the correct artifact accessor. This includes frontmatter and OMP configuration reads in check-omp-port.py; frontmatter and harness.json reads in check-skill-weight.py; harness.json and feature.json reads in code-grade.py and validate-digest.py; hook payload parsing in validate-digest.py; check-plan-routes.py manifest and feature-record bypasses; and every harness.json, feature.json, fleet.yaml, plan.yaml, hook or validation payload row now AST-visible in check-state.py after PR 1688. Keep state.yaml's sole reader, JSON schema loads, settings merge validation, and already-canonical calls classified according to T-01 rather than forcing them through the wrong accessor. Remove silent broad-exception defaults for in-scope artifact corruption where SC-03 requires a typed refusal, but preserve the gate's externally documented violation text, ordering, stderr, and exit code.
 
       Update each named integration test in the same direct task. Demonstrate affected semantic cases failing before cutover, then require exact pre/post legacy output equality and the separate new strictness assertions. The T-05 classification check must prove every T-05 row reached its canonical remedy and no mechanical relocation assigned T-07 occurred.
+
+      Use the existing shared feature.json fixture producer in tests/integration/check_state_support.py and change that producer to emit schema-valid JSON rather than YAML-form content, so the strict load_feature_json cutover exercises the real artifact contract. Preserve every existing named check-state test's return code and normalized complete stdout and stderr, or any other established output contract for that test. Do not create duplicated test-local fixture wrappers, and do not change unrelated fixtures.
 
   - id: T-06
     title: Cut over Python hooks and policy gates
