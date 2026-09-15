@@ -69,7 +69,9 @@ def parse_doc(base, display):
     if base is None:
         return None
     try:
-        doc = feature_schema.json.loads(base.decode("utf-8"))
+        doc = feature_schema.json.loads(base.decode("utf-8"),
+                                        object_pairs_hook=_reject_duplicate_keys,
+                                        parse_constant=_reject_nonfinite_constant)
     except (UnicodeDecodeError, ValueError) as e:
         raise harness_merge.MergeRefusal(
             SCHEMA_REFUSAL_CODE, [f"{display}: not valid JSON: {e}"]
@@ -98,6 +100,11 @@ class FeatureJsonError(Exception):
         super().__init__(factory_cli.body(what, value, next_step))
 
 
+def _reject_nonfinite_constant(value):
+    """Refuse JSON's non-standard NaN and Infinity spellings."""
+    raise ValueError(f"non-finite JSON constant: {value}")
+
+
 def _reject_duplicate_keys(pairs):
     """`object_pairs_hook` for `json.load`/`json.loads`: raise on a mapping key repeated at
     ANY nesting depth, the same coverage harness_yaml.DuplicateKeyError already gives every
@@ -116,15 +123,11 @@ def _reject_duplicate_keys(pairs):
 
 
 def load_feature_json(path):
-    """The one canonical reader for feature.json (BUG-285), replacing the two independent
-    parsers gh-sync.py's `load_recorded` and factory_decompose.py's `load_factory` each used
-    to run for themselves -- one YAML-ish (`harness_yaml.load_file`), one JSON
-    (`json.loads`), disagreeing on 9 of 13 measured input classes
-    (`.harness/harness/features/BUG-285-yaml-loader-pin/notes/research-BUG-285-parity-survey.md`).
-    Parses with the stdlib `json` module ONLY, never a YAML loader: feature.json is written
-    exclusively by `write_feature_json` above and by factory_decompose's `write_factory`,
-    both of which emit JSON, and a reader that also accepts a YAML-only document (a bare
-    `github:\\n  parent: 40` block, no braces) accepts input neither writer ever produces.
+    """Inward feature.json parsing implementation for artifact_accessors.load_feature_json.
+
+    This body remains beside the locked writer until T-07. It parses with the stdlib `json`
+    module ONLY, never a YAML loader: a bare `github:\n  parent: 40` YAML document is input
+    neither JSON writer produces nor this reader accepts.
 
     Returns None when `path` does not exist. That is a legitimate first-sync/first-publish
     state for both callers, and this module already draws that same line at `parse_doc`
@@ -153,7 +156,8 @@ def load_feature_json(path):
     except (OSError, UnicodeDecodeError) as e:
         raise FeatureJsonError("feature.json unreadable", path, f"could not be read: {e}")
     try:
-        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys)
+        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
+                         parse_constant=_reject_nonfinite_constant)
     except ValueError as e:
         raise FeatureJsonError("feature.json invalid", path, f"does not parse: {e}")
     if not isinstance(doc, dict):
@@ -161,8 +165,45 @@ def load_feature_json(path):
             "feature.json invalid", path,
             f"parsed but is not a JSON mapping (got {type(doc).__name__})",
         )
+    _validate_recorded_blocks(doc, path)
     return doc
 
+
+
+
+def _validate_recorded_block(doc, path, block_name):
+    """Refuse malformed recorded issue fields in a present GitHub-style block."""
+    block = doc.get(block_name)
+    if not isinstance(block, dict):
+        return
+    if "parent" in block and block["parent"] is not None:
+        parent = opt_int(block["parent"])
+        if parent is None or parent < 1:
+            raise FeatureJsonError(
+                "feature.json invalid", path,
+                f"has a {block_name}.parent that is not a recorded issue number",
+            )
+    if "issues" not in block:
+        return
+    issues = block["issues"]
+    if not isinstance(issues, dict):
+        raise FeatureJsonError(
+            "feature.json invalid", path,
+            f"has a {block_name}.issues key that is not a JSON object",
+        )
+    for key, value in issues.items():
+        issue = opt_int(value)
+        if issue is None or issue < 1:
+            raise FeatureJsonError(
+                "feature.json invalid", path,
+                f"has a {block_name}.issues[{key!r}] value that is not a recorded issue number",
+            )
+
+
+def _validate_recorded_blocks(doc, path):
+    """Validate recorded GitHub and factory issue fields at the shared read boundary."""
+    for block_name in ("github", "factory"):
+        _validate_recorded_block(doc, path, block_name)
 
 def opt_int(value):
     """A recorded issue/milestone number as int, or None for `none`/absent/junk -- moved

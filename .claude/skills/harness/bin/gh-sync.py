@@ -104,6 +104,7 @@ from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
 import gh_issue_types
 
+import artifact_accessors
 import feature_json_write
 import feature_schema
 import harness_merge
@@ -510,17 +511,15 @@ def type_label(change_type):
 # as today. A `github` key that IS present but is not itself a mapping is treated as the
 # error case too — refusing to sync beats guessing what is mirrored.
 #
-# BUG-285: the parse/read layer above converged on feature_json_write.load_feature_json,
-# the one canonical reader shared with factory_decompose.py's load_factory — this file no
-# longer parses feature.json for itself. `_opt_int` moved to feature_json_write.opt_int,
-# alongside it, for the same reason.
+# BUG-285: the public feature.json read boundary is artifact_accessors.load_feature_json.
+# feature_json_write remains the inward locked writer and owns opt_int, the shared numeric
+# coercion used after the boundary validates recorded fields.
 
 
 def load_recorded(feat_dir):
     """Read the `github:` block from feature.json through
-    feature_json_write.load_feature_json (BUG-285: the one canonical reader, shared with
-    factory_decompose.py's load_factory — this function no longer parses feature.json for
-    itself).
+    artifact_accessors.load_feature_json. This function converts the validated record into
+    its caller-facing GitHub shape but no longer validates recorded parent or issue fields.
 
     Three states stay distinct on purpose (fix1 Part B) — collapsing either pair
     reproduces a real bug:
@@ -546,7 +545,7 @@ def load_recorded(feat_dir):
     rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
            "source_issues": [], "build_entry": None}
     try:
-        doc = feature_json_write.load_feature_json(path)
+        doc = artifact_accessors.load_feature_json(path)
     except feature_json_write.FeatureJsonError as e:
         # Absent (returned as None below, never raised) and malformed (this branch) stay
         # distinct on purpose — see the docstring above.
@@ -564,8 +563,9 @@ def load_recorded(feat_dir):
                          f"mirrored cannot be known. Refusing to sync rather than risk "
                          f"duplicate issues.")
 
+    parent = feature_json_write.opt_int(gh.get("parent"))
     rec["milestone"] = feature_json_write.opt_int(gh.get("milestone"))
-    rec["parent"] = feature_json_write.opt_int(gh.get("parent"))
+    rec["parent"] = parent
     # THE PARENT'S ORIGIN IS NOT RECORDED (DEC-203 item 4). A github block written before
     # this feature may still carry that key; it is read without complaint and never
     # surfaced, because the record has no such field any more. Where a parent came from is
@@ -581,7 +581,7 @@ def load_recorded(feat_dir):
     if isinstance(issues, dict):
         for k, v in issues.items():
             n = feature_json_write.opt_int(v)
-            if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
+            if re.fullmatch(r"T-\d+", str(k).strip()):
                 rec["issues"][str(k).strip()] = n
 
     # PROVENANCE READS THE SAME WAY "issues" DOES, AND ABSENCE MEANS UNKNOWN (D-20): a

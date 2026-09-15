@@ -40,6 +40,7 @@ import sys
 import factory_cli
 import factory_config
 import factory_gh
+import artifact_accessors
 import feature_json_write
 import gh_issue_types
 import harness_merge
@@ -111,15 +112,10 @@ def _empty_factory():
 def load_factory(feat_dir):
     path = os.path.join(feat_dir, "feature.json")
     factory = _empty_factory()
-    # BUG-285: converged onto feature_json_write.load_feature_json, the one canonical
-    # reader shared with gh-sync.py's load_recorded — this function no longer parses
-    # feature.json for itself. Was, before that, a raw call to harness_yaml's load_file
-    # (Issue #208): a malformed feature.json raised YamlParseError past the trap's
-    # `expected=` tuple, printing the class name instead of naming the file. refuse()
-    # exits via SystemExit, which factory_cli.run() propagates unchanged (never
-    # re-wrapped as "unexpected failure") — that refusal shape is unchanged here.
+    # BUG-285: artifact_accessors.load_feature_json is the public feature.json boundary.
+    # This reader only converts the validated factory record into its local output shape.
     try:
-        doc = feature_json_write.load_feature_json(path)
+        doc = artifact_accessors.load_feature_json(path)
     except feature_json_write.FeatureJsonError as e:
         factory_cli.refuse(TOOL, "feature.json invalid", path, e.next_step)
     if doc is None or "factory" not in doc:
@@ -139,10 +135,8 @@ def load_factory(feat_dir):
 
     issues = f.get("issues")
     if isinstance(issues, dict):
-        for k, v in issues.items():
-            issue = feature_json_write.opt_int(v)
-            if issue is not None:
-                factory["issues"][str(k)] = issue
+        for key, value in issues.items():
+            factory["issues"][str(key)] = feature_json_write.opt_int(value)
 
     items = f.get("items")
     if isinstance(items, dict):

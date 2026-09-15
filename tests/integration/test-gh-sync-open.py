@@ -885,6 +885,19 @@ def main():
               and "gh-sync: SKIP" in rR6.stdout,
               f"rc={rR6.returncode} github={ghR6!r} out={rR6.stdout!r}")
 
+    for _label, _github in (
+        ("wrong parent", {"parent": True, "issues": {}}),
+        ("wrong issues", {"parent": None, "issues": []}),
+    ):
+        with tempfile.TemporaryDirectory() as _bad_tmp:
+            install_gh(_bad_tmp)
+            _bad_feat = stage(_bad_tmp)
+            write_feature_json(os.path.join(_bad_feat, "feature.json"),
+                               feature_id="FEAT-05-export-fix", github=_github)
+            _bad_result = run(["open", _bad_feat], _bad_tmp)
+            check(f"BUG-285 {_label} refuses before parent or task issue creation",
+                  _bad_result.returncode != 0 and len(create_calls(calls(_bad_tmp))) == 0,
+                  f"rc={_bad_result.returncode} calls={calls(_bad_tmp)!r}")
     return report()
 
 

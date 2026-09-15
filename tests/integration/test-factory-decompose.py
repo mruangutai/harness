@@ -465,8 +465,11 @@ with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(
         td, feature_json_extra=json.dumps({"factory": {"repo": "acme/widget", "parent": True}})
     )
-    check("(1d) bool parent remains no value through load_factory",
-          fd.load_factory(feat_dir)["parent"] is None, fd.load_factory(feat_dir))
+    try:
+        fd.load_factory(feat_dir)
+        check("(1d) bool parent refuses rather than becoming absence", False, "returned")
+    except SystemExit:
+        check("(1d) bool parent refuses rather than becoming absence", True)
 
 with tempfile.TemporaryDirectory() as td:
     feat_dir, _ = make_feature(
@@ -1473,5 +1476,19 @@ with tempfile.TemporaryDirectory() as td:
           not os.path.exists(os.path.join(_bad_feat_dir, "feature.json")))
 
 
+# --- BUG-285: malformed-present factory receipts must never look like absence and trigger creates.
+for _label, _factory in (
+    ("wrong parent", {"repo": REPO, "parent": True, "issues": {}}),
+    ("wrong issues", {"repo": REPO, "parent": None, "issues": []}),
+):
+    with tempfile.TemporaryDirectory() as td:
+        feat_dir, fleet_path = make_feature(
+            td, feature_json_extra=json.dumps({"factory": _factory})
+        )
+        rec = Recorder()
+        code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
+        check(f"BUG-285 {_label} refuses before parent or task issue creation",
+              code == 2 and [c for c in rec.calls if c[0] == "create_issue"] == [],
+              f"code={code!r} calls={rec.calls!r} err={err!r}")
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)
