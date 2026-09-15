@@ -29,9 +29,9 @@ def read_marker(run_dir):
     path = marker_path(run_dir)
     try:
         marker = _accessors.load_harness_json(path)
-    except FileNotFoundError:
-        return None
     except _accessors.ArtifactAccessError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            return None
         raise MarkerUnreadable(f"cannot read run identity marker {path}: {exc}") from exc
     return marker
 
