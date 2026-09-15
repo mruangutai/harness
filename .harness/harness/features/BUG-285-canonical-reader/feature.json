@@ -245,7 +245,7 @@
   "rework": {
     "rounds": 3,
     "wall_clock_minutes": 135,
-    "decision": ".harness/harness/features/BUG-285-canonical-reader/notes/answers-2026-09-15-t03-final-eng.md"
+    "decision": ".harness/harness/features/BUG-285-canonical-reader/notes/research-t05-shared-json-fixture-amendment.md"
   },
   "github": {
     "milestone": 69,
