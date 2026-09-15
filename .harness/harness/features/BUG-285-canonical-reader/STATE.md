@@ -3,8 +3,8 @@
 ## Current
 
 - feature: BUG-285-canonical-reader
-- run: fix-c1
-- squad: mixed
+- run: none
+- squad: validation
 - status: in_review
 
 ## Open Questions

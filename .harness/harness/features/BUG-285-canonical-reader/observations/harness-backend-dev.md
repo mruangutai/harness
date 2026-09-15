@@ -10,3 +10,5 @@
 - 2026-09-14: artifact_accessors.load_plan delegates to schema-validating harness_yaml.load_plan, while handoff_done_when intentionally accepts partial plan task mappings; migrating its classified yaml.safe_load reader changes the caller contract and fails its targeted test.
 - 2026-09-14: A classified accessor remedy must preserve the consumer input shape; manifest_domains accepts one agent and cannot replace generic all-role grant discovery.
 - 2026-09-14: artifact_accessors.load_fleet requires an explicit path, so no-argument legacy factory_config.load_fleet callers must pass the same FLEET_PATH explicitly to preserve behavior.
+- 2026-09-15: artifact_accessors.load_harness_json wraps an absent path in ArtifactAccessError with FileNotFoundError as __cause__; consumers preserving an absence fallback must inspect this provenance without suppressing other accessor failures.
+- 2026-09-15: A current cutover assertion can be proved against a compatible pre-cutover tree by rebinding only its ROOT, TESTS_DIR, and SCRIPT globals; select a historical SHA after the checker API existed so failure is a named assertion, not an AttributeError.
