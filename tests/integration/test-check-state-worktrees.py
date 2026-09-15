@@ -217,7 +217,11 @@ def case_x():
         if marker:
             mp = os.path.join(tmp, lm.MARKER)
             os.makedirs(os.path.dirname(mp), exist_ok=True)
-            open(mp, "w").write(lf.FLEET_TEXT)
+            open(mp, "w").write(
+                lf.FLEET_TEXT.replace(
+                    "workspace_root:", "    default_branch: main\nworkspace_root:",
+                )
+            )
         overrides = overrides or {}
         for rel, text in STUBS.items():
             if rel == ".harness/team-config.yaml":

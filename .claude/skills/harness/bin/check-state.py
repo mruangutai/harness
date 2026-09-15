@@ -72,6 +72,7 @@ import sys, os, re, glob, json, subprocess
 
 sys.path.insert(0, sys.argv[2])
 import harness_yaml
+import artifact_accessors
 import run_identity
 try:
     import handoff_done_when
@@ -118,7 +119,7 @@ TERMINAL_MARKER = factory_config.TERMINAL_MARKER
 # alongside the migration.
 def station_of(feat_dir):
     try:
-        doc = harness_yaml.load_file(os.path.join(feat_dir, "plan.yaml")) or {}
+        doc = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml")) or {}
     except Exception:
         return ""
     if not isinstance(doc, dict):
@@ -415,7 +416,9 @@ if not _era_cfg:
     _era_start = None
 else:
     try:
-        _era_raw = json.loads(_era_cfg).get("panel_era_start", _MISSING)
+        _era_raw = artifact_accessors.load_harness_json(
+            text=_era_cfg, context=os.path.join(H, "harness.json")
+        ).get("panel_era_start", _MISSING)
     except Exception:
         # The JSON-validity violation is raised on its own merit further down (`cj`), so
         # this only decides what INV-32 does meanwhile. Unparseable config cannot exempt.
@@ -460,9 +463,10 @@ for feat, doc in plan_docs.items():
     # for the panel — so a patch record over a larger plan is graded as the mismatch it is
     # rather than exempted on the strength of a key.
     try:
-        with open(os.path.join(os.path.dirname(fpath(feat, "plan.yaml")), "feature.json"),
-                  encoding="utf-8") as _mf:
-            _mission = str((json.load(_mf) or {}).get("mission", "")).strip()
+        _mf_path = os.path.join(os.path.dirname(fpath(feat, "plan.yaml")), "feature.json")
+        _mission = str(
+            (artifact_accessors.load_feature_json(_mf_path) or {}).get("mission", "")
+        ).strip()
     except Exception:
         _mission = ""
     if _mission == "patch":
@@ -656,18 +660,11 @@ except Exception:
 run_verdicts = {}
 for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
-    # T-07 / issue #11 — a REAL parser, not a regex over two hand-listed shapes.
-    #
-    # What the regexes could not do: the block form required `\s*\n` after the `id:`
-    # and `squad:` captures, so a trailing `# comment` on either line — legal YAML,
-    # and the house style on 45 lines of FEAT-03's feature.json — silently dropped the
-    # ENTIRE run, failing INV-6, INV-7 and INV-8 open at exit 0. Reproduced before the
-    # fix. It had never fired only because those two lines happened to carry no
-    # comments, and one author who hit it wrote a warning into the data file
-    # (feature.json:63-64) instead of fixing the parser. Same defect class as DEC-123
-    # and DEC-129; DEC-171 reverses the no-dependency clause that forced it.
+    # One canonical strict JSON reader owns duplicate-key, non-finite-value and
+    # recorded-issue validation. A reader failure is loud below; it never reduces
+    # the run set and lets INV-6, INV-7 or INV-8 pass over partial data.
     try:
-        doc = harness_yaml.load_file(fy) or {}
+        doc = artifact_accessors.load_feature_json(fy) or {}
     except Exception as e:
         # A file that does not parse is a VIOLATION, never a silent skip — the whole
         # point of DEC-171 is that there is no quieter mode. Report and move on
@@ -676,19 +673,17 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                    f"cannot be checked for it: {e}")
         continue
     if not isinstance(doc, dict):
-        bad.append(f"{fpath(feat, 'feature.json')} is not a YAML mapping.")
+        bad.append(f"{fpath(feat, 'feature.json')} is not a JSON mapping.")
         continue
 
     def val(k):
-        """A scalar field as a string, or None. safe_load returns TYPED values, so
-        every consumer below would otherwise break on an int: `cycles_used: 6` is an
-        int and the old code called `.isdigit()` on it."""
+        """A scalar field as a string, or None. JSON returns typed values, so
+        consumers that compare textual placeholders normalize them here."""
         v = doc.get(k)
         return None if v is None else str(v)
 
-    # `runs:` entries, whatever YAML shape the author used — inline flow mapping,
-    # block mapping, comments anywhere. The parser handles all of it; we only assert
-    # the three fields the invariants need.
+    # `runs:` entries arrive as JSON mappings. We assert the three fields these
+    # invariants need rather than copying the accessor's document validation.
     #
     # `runs` stays a 3-tuple on purpose: INV-7 and the INV-22 loop below unpack it as
     # exactly three, so widening it here would break two invariants to serve one.
@@ -851,7 +846,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
 
     _budget, _why = None, "harness.json could not be read"
     try:
-        _hj = json.load(open(os.path.join(H, "harness.json"), encoding="utf-8"))
+        _hj = artifact_accessors.load_harness_json(os.path.join(H, "harness.json"))
         _budget, _why = _as_budget((_hj.get("budgets") or {}).get("max_total_runs"))
     except Exception as e:
         _budget, _why = None, f"harness.json could not be read ({type(e).__name__})"
@@ -904,7 +899,7 @@ for p in (".claude/settings.json", ".claude/settings.local.json"):
             # reported every OTHER hook as missing and blocked /harness entry on a
             # correctly configured project -- a false diagnosis sending the reader to
             # re-run merge-settings for hooks already present (review of PR #4).
-            nxt = json.loads(t)
+            nxt = artifact_accessors.load_harness_json(text=t, context=p)
             if sett is None:
                 sett = nxt
             else:
@@ -1051,10 +1046,11 @@ cj = {}
 cfg = read(os.path.join(H, "harness.json"))
 if cfg:
     try:
-        cj = json.loads(cfg)
-    except Exception:
+        cj = artifact_accessors.load_harness_json(
+            text=cfg, context=os.path.join(H, "harness.json"))
+    except Exception as e:
         cj = {}
-        bad.append(".harness/harness.json is not valid JSON.")
+        bad.append(f".harness/harness.json is not valid JSON: {e}")
 _handoff_baseline = set()
 for _entry in cj.get("handoff_done_when_baseline", []) if isinstance(cj, dict) else []:
     if not isinstance(_entry, str):
@@ -1180,7 +1176,7 @@ def _handoff_exempt(fdir):
     if not os.path.isfile(pp):
         return "", ""
     try:
-        pdoc = harness_yaml.load_file(pp) or {}
+        pdoc = artifact_accessors.load_plan(pp) or {}
     except Exception as e:
         return "", f" (its plan.yaml does not parse, so no exemption could be evaluated: {e})"
     if not isinstance(pdoc, dict):
@@ -1199,14 +1195,11 @@ def _handoff_exempt(fdir):
 
 for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
-    # F-02: parsed, not regex-scanned. `^status:\s*(\S+)` misses a quoted value and a
-    # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
-    # entirely by `continue`, so the invariant never runs and never says why.
-    #
-    # The feature.json read STAYS, because this loop still needs the document to report an
-    # unparseable one; only the STATION now comes from plan.yaml (FEAT-41 T-07).
+    # The feature.json read stays because an unreadable record must make the seam
+    # checks loud. The station itself comes from canonical plan.yaml
+    # (FEAT-41 T-07).
     try:
-        _doc = harness_yaml.load_file(fy) or {}
+        _doc = artifact_accessors.load_feature_json(fy) or {}
     except Exception as e:
         bad.append(f"{fpath(feat, 'feature.json')} does not parse, so its seam invariants "
                    f"cannot be checked: {e}")
@@ -1678,16 +1671,11 @@ if not os.path.isfile(os.path.join(H, "glossary.md")):
 if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))
-        # F-02: the last of the seven. This carried the SAME four defects gh-sync.py's
-        # reader did, and T-06 fixed them there while leaving the twin here — which is
-        # the divergence D-03 exists to prevent, in a second pair of files:
-        #   - `^\s{4}T-\d+:\s*\d+` hardcoded a four-space indent
-        #   - `parent:\s*\d+` accepted only bare digits, so `parent: "40"` read as absent
-        #   - `^github:\s*$(.*?)(?=^\S|\Z)` sliced by indentation, so a comment at
-        #     column 0 inside the block truncated the rest
-        # A miss here is silent by construction: `continue` skips the feature entirely.
+        # The canonical feature reader keeps this invariant aligned with every
+        # other consumer of recorded GitHub issue numbers. A rejected document is
+        # reported rather than reduced to an empty github block.
         try:
-            gdoc = harness_yaml.load_file(fy) or {}
+            gdoc = artifact_accessors.load_feature_json(fy) or {}
         except Exception as e:
             bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-21 cannot be "
                        f"checked for it: {e}")
@@ -1718,8 +1706,8 @@ _fac_pairs = {}
 for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     try:
-        fdoc = harness_yaml.load_file(fy) or {}
-    except harness_yaml.YamlParseError:
+        fdoc = artifact_accessors.load_feature_json(fy) or {}
+    except Exception:
         continue  # the parse failure is already a violation elsewhere; do not double-report
     fac = fdoc.get("factory")
     if not isinstance(fac, dict):
@@ -1731,17 +1719,14 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                    f"Write the fleet declaration, or clear the feature's factory block.")
         continue
     try:
-        fleet = harness_yaml.load_file(fleet_p) or {}
-    except harness_yaml.YamlParseError as _e:
+        fleet = artifact_accessors.load_fleet(fleet_p) or {}
+    except Exception as _e:
         bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
                    f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
         continue
-    # TYPES ARE VALIDATED, NOT ASSUMED (panel2 C1). Both halves of this used to read
-    # straight off the YAML: a `repos:` entry with no `name` put None in the allow-list,
-    # so `factory.repo: null` matched it and passed BOTH checks silently — a fail-open
-    # inside an invariant checker. The mirror defect pointed the other way: an issue
-    # number of null stringified to "None", so two unrelated features both keyed
-    # (repo, "None") and were reported as colliding when nothing collided.
+    # TYPES ARE VALIDATED, NOT ASSUMED (panel2 C1). A missing repository name must
+    # not enter the allow-list, and invalid issue numbers are refused at the shared
+    # feature reader before collision checks run.
     names = [r["name"] for r in (fleet.get("repos") or [])
              if isinstance(r, dict) and isinstance(r.get("name"), str) and r["name"]]
     repo = fac.get("repo")
@@ -1829,7 +1814,7 @@ if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))
         try:
-            pdoc = harness_yaml.load_file(fy) or {}
+            pdoc = artifact_accessors.load_feature_json(fy) or {}
         except Exception as e:
             bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-28 cannot be "
                        f"checked for it: {e}")
@@ -2119,8 +2104,8 @@ except Exception as _fs37e:
                "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
 
 try:
-    _sync37 = bool((json.loads(read(os.path.join(H, "harness.json")) or "{}")
-                    .get("github") or {}).get("sync"))
+    _sync37 = bool((artifact_accessors.load_harness_json(
+        os.path.join(H, "harness.json")).get("github") or {}).get("sync"))
 except Exception:
     _sync37 = False
 
@@ -2130,7 +2115,8 @@ if _fs37 is not None and _sync37:
         if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or _feat37 not in plan_docs:
             continue
         try:
-            _doc37 = json.load(open(os.path.join(_fp37, "feature.json"), encoding="utf-8"))
+            _doc37 = artifact_accessors.load_feature_json(
+                os.path.join(_fp37, "feature.json")) or {}
         except Exception:
             _doc37 = {}
         if ((_doc37.get("factory") or {}).get("issues")
@@ -2233,7 +2219,8 @@ if _inv26_board:
         if station_of(_fp26) in ("done", TERMINAL_MARKER):
             continue
         try:
-            _fj26 = json.load(open(os.path.join(_fp26, "feature.json"), encoding="utf-8"))
+            _fj26 = artifact_accessors.load_feature_json(
+                os.path.join(_fp26, "feature.json")) or {}
         except Exception:
             continue
         _gblk26 = _fj26.get("github") or {}
@@ -2288,7 +2275,8 @@ if _inv26_board:
             # THE FEATURE.JSON READ STAYS — this block reads `github.issues`, `github.parent`
             # and `factory.issues` off `_fj` further down. Only the STATION moved to plan.yaml.
             try:
-                _fj = json.load(open(os.path.join(_fp, "feature.json"), encoding="utf-8"))
+                _fj = artifact_accessors.load_feature_json(
+                    os.path.join(_fp, "feature.json")) or {}
             except Exception:
                 _fj = {}
 
@@ -2474,7 +2462,7 @@ if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
     for _fy30 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
         _feat30 = os.path.basename(os.path.dirname(_fy30))
         try:
-            _doc30 = harness_yaml.load_file(_fy30) or {}
+            _doc30 = artifact_accessors.load_feature_json(_fy30) or {}
         except Exception:
             # INV-28 above already reports an unparseable feature.json. Restating it here would
             # report one defect twice.
@@ -2890,7 +2878,7 @@ _default_cycles = (_int_field((cj.get("budgets") or {}).get("max_total_cycles"))
 for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
     _feat59 = os.path.basename(os.path.dirname(_fy59))
     try:
-        _doc59 = harness_yaml.load_file(_fy59) or {}
+        _doc59 = artifact_accessors.load_feature_json(_fy59) or {}
     except Exception:
         # INV-6..8 already reports an unparseable feature.json; restating it is noise.
         continue

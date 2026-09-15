@@ -333,7 +333,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 classifies validators, gate scripts, and each changed gate test as enforcement-layer work regardless of file extension.
     depends_on: [T-04]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-omp-port.py
       - .claude/skills/harness/bin/check-plan-routes.py

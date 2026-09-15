@@ -40,13 +40,7 @@ def case_g():
     NOTE = "## Next\n## Trust\n## Dead ends\n## Working set\n"
 
     def build(feat, status, notes=(), tasks="omit"):
-        """One INV-17 fixture. `tasks` is "omit" for no plan.yaml at all, otherwise a
-        YAML fragment written under a tasks: key — including the empty-list and the
-        absent-key shapes the plan-keyed exemption's condition 2 exists to refuse.
-
-        This helper is the reason cases 5-7 are writable: make_fixture writes a feature
-        file and nothing else, and the plan-keyed predicate reads plan.yaml.
-        """
+        """One INV-17 fixture with a strict feature record and canonical plan station."""
         tmp = tempfile.mkdtemp()
         h = os.path.join(tmp, ".harness")
         fd = os.path.join(h, "harness", "features", feat)
@@ -54,23 +48,31 @@ def case_g():
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
         with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(f"feature_id: {feat}\n")
+            json.dump({"feature_id": feat}, f)
         for n in notes:
             with open(os.path.join(fd, "notes", f"handoff-{n}.md"), "w") as f:
                 f.write(NOTE)
-        # THE STATION GOES IN plan.yaml, LOWERCASE (FEAT-41 T-07) — and it is written even when
-        # `tasks == "omit"`, because INV-17 reads the station from this file now. A fixture with
-        # no plan.yaml at all has no station and is skipped, which is a different case.
         with open(os.path.join(fd, "plan.yaml"), "w") as f:
-            f.write(f"feature_id: {feat}\nstatus: {str(status).lower()}\n"
-                    + ("" if tasks == "omit" else tasks))
+            f.write(
+                f"schema: plan/1\nfeature: {feat}\nstatus: {str(status).lower()}\n"
+                + ("station_only: true\ntasks: []\n" if tasks == "omit" else tasks))
         try:
             return run(tmp)[1]
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
-    MSD = "tasks:\n  - id: T-01\n    execution_mode: main-session-direct\n"
-    NO_MODE = "tasks:\n  - id: T-01\n    title: something\n"
+    MSD = (
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: something\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    status: done\n"
+        "    files: [fixture.py]\n"
+        "    verify: run it\n"
+        "    intent: exercise handoff exemption\n"
+    )
+    NO_MODE = MSD.replace("    execution_mode: main-session-direct\n", "")
     results = []
 
     def check(label, cond, out):
@@ -122,7 +124,7 @@ def case_g():
     # exists to detect.
     out = build("FEAT-TEST", "Done", tasks=NO_MODE)
     check("a plan with NO execution_mode keys still RAISES and reports no exemption",
-          "handoff-plan.md is missing" in out and "exempt" not in out, out)
+          "plan.yaml does not load" in out and "exempt" not in out, out)
 
     # 7 — condition 2, the vacuity guard, in both its shapes. "Every task is
     # main-session-direct" is VACUOUSLY TRUE over an empty list, so without condition 2 a
@@ -130,8 +132,8 @@ def case_g():
     out_empty = build("FEAT-TEST", "Done", tasks="tasks: []\n")
     out_absent = build("FEAT-TEST", "Done", tasks="approval: approved\n")
     check("an empty tasks: list and an absent tasks: key BOTH raise, never vacuously exempt",
-          ("handoff-plan.md is missing" in out_empty and "exempt" not in out_empty
-           and "handoff-plan.md is missing" in out_absent and "exempt" not in out_absent),
+          ("plan.yaml does not load" in out_empty and "exempt" not in out_empty
+           and "plan.yaml does not load" in out_absent and "exempt" not in out_absent),
           out_empty + "\n---\n" + out_absent)
 
     return all(results)
@@ -172,20 +174,18 @@ Authority: plan-task:T-03.verify
 
 
 def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
-    """A minimal tree INV-17 will walk: harness.json, one feature.json carrying a
-    status in STATUS_ORDER, and whatever notes the case names.
-
-    `notes` maps a BASENAME to its full text. Nothing here reads the real repo and
-    nothing is written outside tmp."""
+    """A minimal canonical tree INV-17 will walk."""
     h = os.path.join(tmp, ".harness")
     fdir = os.path.join(h, "harness", "features", feat)
     os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_OFF)
     with open(os.path.join(fdir, "feature.json"), "w") as f:
-        f.write(json.dumps({"feature_id": feat}))
+        json.dump({"feature_id": feat}, f)
     with open(os.path.join(fdir, "plan.yaml"), "w") as f:
-        f.write(f"feature_id: {feat}\nstatus: {str(status).lower()}\n")
+        f.write(
+            f"schema: plan/1\nfeature: {feat}\nstatus: {str(status).lower()}\n"
+            "station_only: true\ntasks: []\n")
     for name, text in notes.items():
         with open(os.path.join(fdir, "notes", name), "w") as f:
             f.write(text)

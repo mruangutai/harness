@@ -430,12 +430,13 @@ def case_19():
         copy = os.path.join(fake_bin, "check-plan-routes.py")
         with open(SCRIPT) as src, open(copy, "w") as dst:
             dst.write(src.read())
-        # THE RESOLVER AND ITS DIRECT DEPENDENCY GO WITH IT (FEAT-42 T-13,
-        # BUG-1305 T-02). This case neutralises both ROOT sources; it is not about
-        # a missing module. Without these modules beside the copy the script dies on
-        # ImportError at exit 1 before it can refuse, and both assertions go red for
-        # a reason that has nothing to do with an unresolvable root.
-        for module in ("harness_boundary.py", "run_identity.py"):
+        # THE RESOLVER AND ITS DIRECT DEPENDENCIES GO WITH IT (FEAT-42 T-13,
+        # BUG-1305 T-02, BUG-285 T-03). This case neutralises both ROOT sources;
+        # it is not about a missing module. Without these modules beside the copy
+        # the script dies on ImportError at exit 1 before it can refuse, and both
+        # assertions go red for a reason that has nothing to do with an
+        # unresolvable root.
+        for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py"):
             shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
@@ -1791,7 +1792,9 @@ def _shipped_probe(td, name, plan_station=None, plan_md=False):
         json.dump({"feature_id": name}, f)
     if plan_station is not None:
         with open(os.path.join(fd, "plan.yaml"), "w") as f:
-            f.write(f"feature: {name}\nstatus: {plan_station}\ntasks: []\n")
+            f.write(
+                f"feature: {name}\nstatus: {plan_station}\n"
+                "station_only: true\ntasks: []\n")
     if plan_md:
         with open(os.path.join(fd, "PLAN.md"), "w") as f:
             f.write("# PLAN\n\n### T-01 something\n")
@@ -1843,6 +1846,7 @@ def case_41_t07_is_shipped_reads_the_plan():
 # The tuple is read top to bottom, in the order the flat list ran.
 _T09_BASE_MANIFEST = ("agents:\n"
                       "  harness-pm:\n"
+                      "    name: harness-pm\n"
                       "    domain:\n"
                       "      - { path: .harness/x.md, upsert: true }\n")
 
@@ -2078,12 +2082,18 @@ def case_canonical_reader_live_baseline():
     """The checked-in inventory is complete while migration rows deliberately keep audit red."""
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
-    result = cpr().audit_canonical_readers(ROOT, classification)
+    mod = cpr()
+    result = mod.audit_canonical_readers(ROOT, classification)
+    migration_findings = [
+        finding
+        for task in ("T-03", "T-04", "T-05", "T-06", "T-07")
+        for finding in mod.classification_task_findings(
+            ROOT, classification, task)
+    ]
     check("canonical_reader_live_classification_consistent",
-          result["classification_findings"] == [],
-          repr(result["classification_findings"]))
+          migration_findings == [], repr(migration_findings))
     check("canonical_reader_live_baseline_is_nonempty_and_red",
-          result["unresolved"] > 0 and result["exit_code"] == 1, repr(result))
+          result["unresolved"] > 0 and result["exit_code"] in {1, 2}, repr(result))
     converted = {
         "bash-write-guard.py", "branch-create-gate.py", "check-domain.py",
         "check-state.py", "dispatch-guard.py", "inject-expertise.py",
@@ -2095,6 +2105,17 @@ def case_canonical_reader_live_baseline():
           repr(result["scanned_files"]))
 
 
+def case_canonical_reader_task_postconditions():
+    """Signed migration units are complete or wholly untouched, never partial."""
+    classification = os.path.join(
+        TESTS_DIR, "canonical-reader-classification.json")
+    mod = cpr()
+    for task in ("T-03", "T-04", "T-05"):
+        findings = mod.classification_task_findings(ROOT, classification, task)
+        check(f"canonical_reader_{task}_postcondition",
+              findings == [], repr(findings))
+
+
 CANONICAL_READER_CASES = (
     case_canonical_reader_detector,
     case_canonical_reader_exemption_guards,
@@ -2102,6 +2123,7 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_route_guards,
     case_canonical_reader_second_state_reader,
     case_canonical_reader_live_baseline,
+    case_canonical_reader_task_postconditions,
 )
 
 
@@ -2131,11 +2153,110 @@ CASES = (
     case_41_t07_is_shipped_reads_the_plan,
 )
 
-def main(argv=None):
-    argv = sys.argv[1:] if argv is None else argv
-    cases = CANONICAL_READER_CASES if argv == ["--canonical-reader-self-test"] else CASES
+def _normalized_enforcement_output(text):
+    text = text.replace("\r\n", "\n")
+    return re.sub(r"Ran (\d+) tests in [0-9.]+s",
+                  r"Ran \1 tests in <SECONDS>s", text)
+
+
+def verify_enforcement_bytes(path):
+    """Compare every legacy test program's complete normalized process result."""
+    try:
+        with open(path, encoding="utf-8") as stream:
+            baseline = json.load(stream)
+    except (OSError, UnicodeDecodeError, ValueError) as error:
+        print(f"enforcement baseline cannot be read: {error}", file=sys.stderr)
+        return 2
+    if not isinstance(baseline, dict) or baseline.get("schema") != (
+            "canonical-reader-enforcement-baselines/1"):
+        print("enforcement baseline has an unsupported schema", file=sys.stderr)
+        return 2
+    cases = baseline.get("cases")
+    if not isinstance(cases, list) or not cases:
+        print("enforcement baseline has no legacy cases", file=sys.stderr)
+        return 2
+
+    mismatches = []
+    seen = set()
     for case in cases:
-        case()
+        if not isinstance(case, dict) or case.get("partition") != "legacy":
+            mismatches.append("baseline contains a missing or non-legacy case")
+            continue
+        name = case.get("name")
+        command = case.get("command")
+        if not isinstance(name, str) or name in seen:
+            mismatches.append(f"baseline case name is missing or duplicate: {name!r}")
+            continue
+        seen.add(name)
+        if (not isinstance(command, list) or not command
+                or not all(isinstance(part, str) for part in command)):
+            mismatches.append(f"{name}: command must be a non-empty string list")
+            continue
+        result = subprocess.run(
+            command, cwd=ROOT, capture_output=True, text=True, timeout=300)
+        actual = {
+            "returncode": result.returncode,
+            "stdout": _normalized_enforcement_output(result.stdout),
+            "stderr": _normalized_enforcement_output(result.stderr),
+        }
+        expected = {
+            key: case.get(key) for key in ("returncode", "stdout", "stderr")
+        }
+        if actual != expected:
+            changed = [key for key in actual if actual[key] != expected[key]]
+            mismatches.append(f"{name}: changed {', '.join(changed)}")
+
+    if mismatches:
+        for mismatch in mismatches:
+            print(f"ENFORCEMENT BYTE MISMATCH {mismatch}", file=sys.stderr)
+        return 1
+    print(f"PASS {len(cases)} legacy enforcement baseline(s)")
+    return 0
+
+
+def verify_classification_task(task_id):
+    classification = os.path.join(
+        TESTS_DIR, "canonical-reader-classification.json")
+    findings = cpr().classification_task_findings(
+        ROOT, classification, task_id)
+    if findings:
+        for finding in findings:
+            print(f"CLASSIFICATION {finding}", file=sys.stderr)
+        return 1
+    print(f"PASS canonical reader classification {task_id}")
+    return 0
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv == ["--canonical-reader-self-test"]:
+        for case in CANONICAL_READER_CASES:
+            case()
+    elif "--verify-enforcement-bytes" in argv or "--classification-task" in argv:
+        status = 0
+        if "--classification-task" in argv:
+            index = argv.index("--classification-task")
+            if index + 1 >= len(argv):
+                print("--classification-task requires T-NN", file=sys.stderr)
+                sys.exit(2)
+            task_id = argv[index + 1]
+            del argv[index:index + 2]
+            status = verify_classification_task(task_id)
+        if status == 0 and "--verify-enforcement-bytes" in argv:
+            index = argv.index("--verify-enforcement-bytes")
+            if index + 1 >= len(argv):
+                print("--verify-enforcement-bytes requires a path", file=sys.stderr)
+                sys.exit(2)
+            path = argv[index + 1]
+            del argv[index:index + 2]
+            status = verify_enforcement_bytes(path)
+        if argv:
+            print(f"unsupported arguments: {' '.join(argv)}", file=sys.stderr)
+            sys.exit(2)
+        sys.exit(status)
+    else:
+        for case in CASES:
+            case()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

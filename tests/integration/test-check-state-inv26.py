@@ -561,7 +561,9 @@ def case_w():
         # The abandoned skip reads plan.yaml's station now (FEAT-41 T-07), so the fixture must
         # carry one — a feature.json status is no longer read by anything.
         with open(os.path.join(fd, "plan.yaml"), "w") as f:
-            f.write(f"feature: FEAT-Z\nstatus: {str(status).lower()}\ntasks: []\n")
+            f.write(
+                f"feature: FEAT-Z\nstatus: {str(status).lower()}\n"
+                "station_only: true\ntasks: []\n")
         with open(os.path.join(fd, "BRIEF.md"), "w") as f:
             f.write("# BRIEF\n\n## Approval\n\nstatus: pending\n")
         return tmp

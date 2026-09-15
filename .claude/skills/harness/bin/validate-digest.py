@@ -29,6 +29,7 @@ import sys, re, os, json, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
+import artifact_accessors
 from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
@@ -840,9 +841,8 @@ def _load_test_kinds(root):
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
-        with open(path, encoding="utf-8") as handle:
-            doc = json.load(handle)
-    except (OSError, ValueError) as exc:
+        doc = artifact_accessors.load_harness_json(path)
+    except artifact_accessors.ArtifactAccessError as exc:
         return None, (_GRADE_PREFIX + f"{path} could not be read ({exc}), so this "
                       f"checkout's grade bars are unknown — repair harness.json "
                       f"and rerun.")
@@ -1024,9 +1024,8 @@ def _read_review_sha(feature_dir):
     unpinned (DEC-121/INV-6 placeholder vocabulary)."""
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        with open(fj_path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError) as e:
+        doc = artifact_accessors.load_feature_json(fj_path)
+    except Exception as e:
         return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
                        f"could not be read ({e}), so the claim is not trusted.")
     sha = doc.get("review_sha") if isinstance(doc, dict) else None
@@ -1050,9 +1049,8 @@ def _read_feature_branch(feature_dir):
     """
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        with open(fj_path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
+        doc = artifact_accessors.load_feature_json(fj_path)
+    except Exception:
         return None
     branch = doc.get("branch") if isinstance(doc, dict) else None
     if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
@@ -1141,7 +1139,7 @@ def _resolve_plan_review_path(reviewed):
 
 def _pending_plan_status_error(plan_path):
     try:
-        plan = harness_yaml.load_file(plan_path)
+        plan = artifact_accessors.load_plan(plan_path)
     except Exception as exc:
         return f"reviewed plan target {plan_path!r} could not be read ({exc})."
     approval = plan.get("approval") if isinstance(plan, dict) else None
@@ -1157,9 +1155,8 @@ def _pinned_feature_review_error(feature_dir):
     if not os.path.exists(feature_json):
         return None
     try:
-        with open(feature_json, encoding="utf-8") as handle:
-            feature = json.load(handle)
-    except (OSError, ValueError) as exc:
+        feature = artifact_accessors.load_feature_json(feature_json)
+    except Exception as exc:
         return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
     review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
     if not isinstance(review_sha, str) \
@@ -1937,7 +1934,8 @@ def hook_mode():
        violation, never ours.
     """
     try:
-        d = json.load(sys.stdin)
+        d = artifact_accessors.read_hook_payload(
+            sys.stdin.read(), "SubagentStop hook payload")
     except Exception as e:
         print(f"check-digest: unreadable hook payload ({e}) — passing through.", file=sys.stderr)
         return 0
