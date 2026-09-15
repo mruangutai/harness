@@ -2,6 +2,48 @@
   "plan": ".harness/harness/features/BUG-285-canonical-reader/plan.yaml",
   "rows": [
     {
+      "artifact": "in-memory canonical JSON payload",
+      "category": "json_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/artifact_accessors.py",
+      "id": ".claude/skills/harness/bin/artifact_accessors.py::_parse_json_text::json_string#1",
+      "reason": "The canonical accessor module owns this strict JSON decoding primitive.",
+      "remedy": "none",
+      "symbol": "_parse_json_text",
+      "task": "none"
+    },
+    {
+      "artifact": "frontmatter supplied in memory",
+      "category": "harness_yaml_string",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "in_memory_validation",
+      "file": ".claude/skills/harness/bin/artifact_accessors.py",
+      "id": ".claude/skills/harness/bin/artifact_accessors.py::load_frontmatter::harness_yaml_string#1",
+      "reason": "The canonical accessor validates frontmatter text already supplied in memory.",
+      "remedy": "none",
+      "symbol": "load_frontmatter",
+      "task": "none"
+    },
+    {
+      "artifact": "OMP configuration",
+      "category": "harness_yaml_file",
+      "dec174_category": "none",
+      "disposition": "exempt",
+      "execution_route": "team",
+      "exemption": "module_internal_format",
+      "file": ".claude/skills/harness/bin/artifact_accessors.py",
+      "id": ".claude/skills/harness/bin/artifact_accessors.py::load_omp_config::harness_yaml_file#1",
+      "reason": "The canonical accessor module owns the strict OMP configuration format.",
+      "remedy": "none",
+      "symbol": "load_omp_config",
+      "task": "none"
+    },
+    {
       "artifact": "hook payload",
       "category": "json_string",
       "dec174_category": "hook_or_gate",

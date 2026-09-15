@@ -1281,12 +1281,6 @@ def _migration_row_state(row, live, candidates):
     return "missing"
 
 
-def _candidate_is_public_accessor(candidate):
-    return candidate.get("file") == (
-        ".claude/skills/harness/bin/artifact_accessors.py")
-
-
-
 
 def _candidate_matches_remedy(candidate, row):
     return (
@@ -1296,13 +1290,21 @@ def _candidate_matches_remedy(candidate, row):
     )
 
 
+def _candidate_matches_relocated_row(candidate, row):
+    relocated = T07_RELOCATED_IMPLEMENTATIONS.get(row.get("id"))
+    return (
+        relocated is not None
+        and _candidate_matches_relocated(candidate, relocated)
+    )
+
+
 def _candidate_is_accounted(candidate, rows):
     identities = {row.get("id") for row in rows if isinstance(row, dict)}
     return (
         candidate.get("id") in identities
-        or _candidate_is_public_accessor(candidate)
         or any(
             _candidate_matches_remedy(candidate, row)
+            or _candidate_matches_relocated_row(candidate, row)
             for row in rows if isinstance(row, dict)
         )
     )

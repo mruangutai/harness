@@ -2170,6 +2170,37 @@ def raw(stream, text, path):
         )
 
 
+
+def case_canonical_reader_unclassified_accessor_module_call():
+    """A raw parser in the canonical module still requires an explicit row."""
+    mod = cpr()
+    source = """import json
+
+def raw(stream):
+    return json.load(stream)
+"""
+    path = ".claude/skills/harness/bin/artifact_accessors.py"
+    candidates = mod.reader_candidates_from_source(source, path)
+    document = {
+        "schema": "canonical-reader-classification/1",
+        "scanned_files": [path],
+        "rows": [],
+    }
+    findings = mod.reader_classification_findings(
+        candidates, [path], document, {})
+    check(
+        "canonical_reader_unclassified_accessor_module_call_is_rejected",
+        any(
+            f"{path}::raw" in finding
+            and "json_file" in finding
+            and "remedy=artifact_accessors.load_harness_json" in finding
+            and "PLAN AMENDMENT REQUIRED" in finding
+            for finding in findings
+        ),
+        repr(findings),
+    )
+
+
 def _terminal_t07_fixture():
     mod = cpr()
     classification = os.path.join(
@@ -2321,6 +2352,7 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_live_baseline,
     case_canonical_reader_task_postconditions,
     case_canonical_reader_unclassified_remedies,
+    case_canonical_reader_unclassified_accessor_module_call,
     case_canonical_reader_t07_terminal_contract,
     case_canonical_reader_discovery_cannot_narrow,
 )
