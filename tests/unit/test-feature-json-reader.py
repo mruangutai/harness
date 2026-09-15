@@ -17,6 +17,7 @@ BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 sys.path.insert(0, str(BIN))
 import artifact_accessors as accessors  # noqa: E402
 import feature_json_write  # noqa: E402
+import harness_yaml  # noqa: E402
 
 
 def _write(dirpath, data_bytes):
@@ -122,12 +123,31 @@ class LoadFeatureJsonTest(unittest.TestCase):
             with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
-    def test_yaml_only_document_raises(self):
-        """Row 12: a document no JSON writer produces and no JSON reader accepts -- the
-        parser-choice divergence this migration closes by accepting ONLY JSON. Was, under
-        the old harness_yaml-based load_factory, RETURNED populated; must now raise."""
+    def test_issue_285_comment_bearing_yaml_document_is_rejected(self):
+        """Issue 285's prior feature document remains valid YAML, never feature JSON."""
+        text = (
+            b"feature_id: F1\n"
+            b"github:\n"
+            b"  parent: 40        # the container issue, adopted\n"
+            b'  milestone: "7"    # quoted on purpose\n'
+            b"  parent_origin: adopted\n"
+            b"  attached: [T-01]\n"
+            b"  issues:\n"
+            b"    T-01: 41   # trailing comment here too\n"
+        )
+        expected = {
+            "feature_id": "F1",
+            "github": {
+                "parent": 40,
+                "milestone": "7",
+                "parent_origin": "adopted",
+                "attached": ["T-01"],
+                "issues": {"T-01": 41},
+            },
+        }
         with tempfile.TemporaryDirectory() as td:
-            path = _write(td, b"github:\n  parent: 40\n  milestone: 7\n")
+            path = _write(td, text)
+            self.assertEqual(expected, harness_yaml.load_file(path))
             with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
