@@ -2,8 +2,8 @@
   "feature_id": "BUG-1563-inv35-multiline-quoted-scalar",
   "branch": "feat/BUG-1563-inv35-multiline-quoted-scalar",
   "pr": null,
-  "review_sha": "ff01348c3f8c350aa2658ae22b8fc265c68dfb8d",
-  "cycles_used": 2,
+  "review_sha": "dcea6b733e7ce5b37dba3da93fd1ce287c4d1672",
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -41,6 +41,15 @@
       "verdict": "PASS",
       "started_at": "2026-09-15T13:23:08+00:00",
       "ended_at": "2026-09-15T13:47:06+00:00",
+      "tokens": null
+    },
+    {
+      "id": "simplify-eng-final",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-15T13:58:03+00:00",
+      "ended_at": "2026-09-15T14:07:57+00:00",
       "tokens": null
     }
   ],
@@ -86,6 +95,20 @@
       "kind": "regate",
       "decision": "replan",
       "reason": "Validate finding V-01 is a scope change; operator approved the minimum plan upgrade before any fix run."
+    },
+    {
+      "at": "2026-09-15T14:08:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "finding_kind",
+      "decision": "product-defect",
+      "reason": "Simplify EFF-01 is a behavior-preserving reorder inside T-01's approved check-state.sh ownership, not a scope change."
+    },
+    {
+      "at": "2026-09-15T14:08:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "EFF-01 is low-risk, behavior-preserving, within the signed check-state.sh task, and remains inside the active one-round rework before the validation regate."
     }
   ],
   "mission": "plan",
