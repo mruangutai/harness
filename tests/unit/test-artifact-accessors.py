@@ -112,6 +112,43 @@ class JsonContracts(unittest.TestCase):
             path = Path(directory) / "feature.json"
             path.write_text(json.dumps(document), encoding="utf-8")
             self.assertEqual(document, accessors.load_feature_json(path))
+
+class ManifestDomainsContracts(unittest.TestCase):
+    def test_omitted_agent_aggregates_named_role_writes_only(self):
+        manifest = """\
+roles:
+  - name: alpha
+    domain:
+      - path: alpha-write
+      - path: alpha-read
+        read: true
+nested:
+  coordinator:
+    name: beta
+    domain:
+      - path: beta-write
+      - path: beta-read
+        read: true
+shared:
+  - path: shared-write
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "team-config.yaml"
+            path.write_text(manifest, encoding="utf-8")
+            self.assertEqual(
+                (["alpha-write", "beta-write"], ["shared-write"]),
+                accessors.manifest_domains(path),
+            )
+            self.assertEqual(
+                (["alpha-write", "beta-write"], ["shared-write"]),
+                accessors.manifest_domains(path, None),
+            )
+            self.assertEqual(
+                (["alpha-write"], ["shared-write"]),
+                accessors.manifest_domains(path, "alpha"),
+            )
+
+
 class YamlContracts(unittest.TestCase):
     def test_frontmatter_rejects_duplicate_yaml_keys(self):
         with self.assertRaises(accessors.ArtifactAccessError):

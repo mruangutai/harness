@@ -69,10 +69,41 @@ def load_fleet(path):
     return factory_config.load_fleet(path)
 
 
-def manifest_domains(manifest_path, agent):
-    """Delegate manifest domain walking to harness_yaml."""
+def manifest_domains(manifest_path, agent=None):
+    """Return one agent's domains, or all named-role write domains when omitted."""
     import harness_yaml
-    return harness_yaml.manifest_domains(manifest_path, agent)
+    if agent is not None:
+        return harness_yaml.manifest_domains(manifest_path, agent)
+
+    parsed = harness_yaml.load_file(manifest_path)
+    if not isinstance(parsed, dict):
+        raise harness_yaml.YamlParseError(
+            manifest_path,
+            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
+            "an empty or malformed file cannot declare any domain")
+
+    mine = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            domain = node.get("domain")
+            if node.get("name") is not None and isinstance(domain, list):
+                for entry in domain:
+                    if isinstance(entry, dict) and "path" in entry and not entry.get("read"):
+                        mine.append(str(entry["path"]))
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(parsed)
+    shared = [
+        str(entry["path"])
+        for entry in (parsed.get("shared") or [])
+        if isinstance(entry, dict) and "path" in entry and not entry.get("read")
+    ]
+    return mine, shared
 
 
 def load_frontmatter(text, context):
