@@ -3,15 +3,15 @@
 ## Current
 
 - feature: BUG-1563-inv35-multiline-quoted-scalar
-- run: `simplify-eng-confirm` PASS; canonical digest at `runs/simplify-eng-confirm/digest.md`
-- status: ready for final review pin and independent validation
-- landed product commits: T-01 `c1e85b64`, T-02 `dcea6b73`, EFF-01 cleanup `e1a5fe60`
-- simplify result: reuse, simplification, efficiency, and altitude all PASS; EFF-01 is resolved and no actionable finding remains
-- focused proof: integration, unit-kind, and canonical check-state commands exit 0
-- approved tasks: T-01 and T-02 done; plan and GitHub cards are at Review
-- next: commit this simplify evidence, pin that immutable SHA, and run the full validator squad against it
-- cycles_used: 3 of 10; signed one-round rework is spent
+- run: `validate-validator-final` PASS; canonical digest at `runs/validate-validator-final/digest.md`
+- status: awaiting operator ship decision
+- immutable review target: `9fd79689e24353ac81689bb5227b8aa752e536ea`
+- final gate: all five readers PASS; code and security found no substantive issue, UI self-scoped, QA's hard unit/integration matrix is green, V-01 is resolved, and goalcheck marks SC-01 through SC-03 met
+- briefing: `notes/ship-review-validate-validator-final.md` with rendered HTML beside it
+- proposed backlog: B-1, a non-gating fleet-policy chore to reconsider duplicate unit/integration proof for executable shell checkers; operator may strike it before accepting ship
+- GitHub: parent #1701 and task issues #1702/#1703 remain at Review until explicit ship acceptance
+- spend: 7 runs, 92 wall-clock minutes, 3 of 10 cycles; one signed rework round spent
 
 ## Open Questions
 
-- None.
+- Q1 (blocking): Ship BUG-1563 at review SHA `9fd79689e24353ac81689bb5227b8aa752e536ea`? Also state whether to keep or strike proposed backlog item B-1.
