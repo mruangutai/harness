@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-285 canonical artifact readers</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-285-canonical-artifact-readers">Ship review — BUG-285 canonical artifact readers</h1>
+<h2 id="decision">Decision</h2>
+<p>The signed feature is complete and the final fix-team panel is clean at review SHA <code>5be21a432b87ed648c0bed50fbf9a2642c84e0a9</code>. The permanent AST audit reports 120 canonical rows, 42 justified exemptions, zero migrations, and zero unresolved reader sites across 69 Python files. No PR was created, merged, or closed.</p>
+<h2 id="done-when-by-perspective">Done when — by perspective</h2>
+<div class="scroll"><table><thead><tr><th>Perspective</th><th>Signed outcome</th><th>Verdict</th><th>Criteria and evidence</th></tr></thead><tbody><tr><td>Operator</td><td>Every classified dispatchable and enforcement reader uses the canonical seam without behavior drift.</td><td>Met</td><td>SC-04: T-03/T-04 signed gates and historical red proof in <code>notes/receipt-harness-backend-dev-fix-c1.md</code>. SC-05: the 29-program normalized enforcement comparison passed byte-for-byte before retirement and its negative control failed as expected in <code>notes/receipt-main-session-fix-c1.md</code>; final T-07 gate passed.</td></tr><tr><td>Code maintainer</td><td>One dependency-light accessor module owns the readers, and one AST guard names bypasses and remedies.</td><td>Met</td><td>SC-01/02/03: final QA and two-stage code review pass in <code>notes/review-harness-qa-c1.md</code> and <code>notes/review-harness-code-reviewer-c1.md</code>; the accessor-module raw-parser mutant has genuine red evidence, the final audit is zero-drift, and strict JSON/YAML/error contracts pass targeted gates.</td></tr><tr><td>Reader / reviewer / QA</td><td>Semantic and mechanical work are separately inspectable with fail-first evidence and retained inverse coverage.</td><td>Met</td><td>SC-06: separate T-03 semantic, T-04 relocation, T-06 semantic, and T-07 ownership commits/receipts. SC-07: issue 285&#x27;s comment-bearing permissive-YAML/strict-JSON inverse and historical red proof are in <code>tests/unit/test-feature-json-reader.py</code> and <code>notes/receipt-harness-backend-dev-fix-c1.md</code>. Final fix-team digest has <code>matrix_ok: true</code>, no coverage gaps, and no must-fix findings.</td></tr></tbody></table></div>
+<p>The validation goal-check initially graded all three perspectives unmet because F-01 through F-04 were open. Fix round c1 resolved all four; QA re-ran the correct repository-policy matrix and the code reviewer completed both stages over tip <code>5be21a43</code>. Per the two-grade limit, PM goal-check was not run a third time.</p>
+<h2 id="what-landed">What landed</h2>
+<ul><li>Planning: the refreshed nine-task plan covered all Python surfaces exposed by PR #1688, retained issue #1682 hardening, and kept semantic migrations separate from mechanical relocation.</li><li>Accessor layer: <code>artifact_accessors.py</code> is the sole public owner of feature JSON, harness JSON, plan, fleet, manifest-domain, frontmatter, OMP-config, hook-payload, and GitHub JSON readers, plus the canonical harness JSON writer. Legacy reader/error definitions were removed without aliases, re-exports, or duplicate bodies.</li><li>Strictness: duplicate keys, non-standard JSON constants, malformed data, non-UTF-8 bytes, wrong nested GitHub record shapes, and caller-specific absence/error behavior have targeted unit and integration coverage.</li><li>Manifest handling: the existing <code>manifest_domains</code> seam supports all-role aggregation and an immutable typed view without exposing raw mappings or adding a second accessor; macOS system Python 3.9 import compatibility is pinned.</li><li>Enforcement: all PR #1688-converted hooks, gates, and validators use the accessor layer. The temporary 29-case byte-comparison harness was retired only after a 29/29 pass; the permanent AST audit includes discriminating raw-call, alias, discovery, routing, and state-reader mutants.</li><li>Documentation: DEC-174 now includes <code>branch-create-gate.py</code>; its generated index matches.</li><li>Simplify: four independent angles found one safe cleanup, the stale migration-history comment in <code>factory_decompose.py</code>; exact T-02 verification remained green.</li><li>Validation: the first panel found four substantive issues. Direct and backend fixes landed genuine fail-first evidence, restored the comment-bearing inverse fixture, and closed the AST fail-open shortcut. Final QA, code, security, and UI reviews all pass; UI correctly self-scoped out.</li></ul>
+<h2 id="verification">Verification</h2>
+<p>Targeted signed gates for T-01 through T-09 passed. The final fix-team panel reviewed repository-policy range <code>8c3143bd5668ce11186a2a1f8dbe784ff9639d88..5be21a432b87ed648c0bed50fbf9a2642c84e0a9</code> and reports:</p>
+<ul><li>test matrix: PASS; unit and integration satisfied; no coverage gaps;</li><li>code review: PASS, specification stage then quality stage;</li><li>security: PASS, with SEC-01 assessed and dismissed as outside the signed nested-field contract;</li><li>UI: not applicable after a 152-path census;</li><li>permanent audit: zero unresolved reader sites across 69 Python files;</li><li>project-wide suites, formatters, linters, and builds were intentionally not run.</li></ul>
+<p>UAT is not required: this feature changes internal reader, gate, validator, test, and decision-record surfaces, with no rendered or interactive user interface.</p>
+<h2 id="spend-and-limits">Spend and limits</h2>
+<ul><li>Runs: 28, against informational <code>max_total_runs: 20</code>. The eight-run overage earned its place: three live-interface gaps were stopped and signed rather than hidden, two downstream regressions were corrected at their owning task, and one validation round closed four findings.</li><li>Wall-clock across recorded runs: 492 minutes.</li><li>Rework: 1 of 3 approved rounds, 64 of 135 approved minutes.</li><li>Rework cycles: 10 of 10. The final permitted cycle ended clean; no further fix cycle is available without an operator-approved raise.</li><li>Tokens: unmeasured, not zero.</li><li>Judgements recorded: 18.</li></ul>
+<h2 id="questions-and-residuals">Questions and residuals</h2>
+<p>There are no blocking questions. These non-gating residuals are proposed backlog items; unselected rows may be struck by ID.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Make <code>observations-merge.py</code> create the per-feature observations parent directory before its first append.</td></tr><tr><td>B-2</td><td>bug</td><td>Repair the governed backend route to <code>xd://report_issue</code>; T-09 observed the required report path denied by check-domain.</td></tr><tr><td>B-3</td><td>bug</td><td>Let fix-team handoff validation recognize the run&#x27;s governed <code>head_sha</code>/<code>tip_sha</code> until the orchestrator performs the required post-return <code>review_sha</code> repin.</td></tr><tr><td>B-4</td><td>bug</td><td>Make governed product-run checkpoint writes reliably mint and preserve <code>run_uid</code> plus <code>.run-identity.json</code>; the T-07 amendment reproduced a silent missing side effect.</td></tr><tr><td>B-5</td><td>enhancement</td><td>Separately decide whether present top-level <code>github</code> or <code>factory</code> non-mapping values should be rejected. Validation&#x27;s SEC-01 was dismissed because the signed scope covered nested parent/issues fields only.</td></tr></tbody></table></div>
+<h2 id="branch-state-and-next-gate">Branch state and next gate</h2>
+<p>The branch has not integrated later <code>main</code> changes such as merged PR #1700; that PR changes only BUG-1507&#x27;s historical <code>STATE.md</code> and is unrelated to this feature. The feature branch remains intentionally unmerged. The next gate is the operator&#x27;s ship-review decision; this run will not merge or close a PR.</p>
+<h2 id="source-disclosure">Source disclosure</h2>
+<p>No report round was spawned. This briefing was assembled from every recorded run digest:</p>
+<ul><li><code>runs/2026-09-13-plan-product/digest.md</code></li><li><code>runs/2026-09-13-plan-apply-c1-product/digest.md</code></li><li><code>runs/2026-09-14-plan-refresh-product/digest.md</code></li><li><code>runs/2026-09-14-t09-eng/digest.md</code></li><li><code>runs/2026-09-14-t02-t04-eng/digest.md</code></li><li><code>runs/2026-09-14-t03-eng/digest.md</code></li><li><code>runs/2026-09-14-t03-amend-product/digest.md</code></li><li><code>runs/2026-09-15-t02-text-eng/digest.md</code></li><li><code>runs/2026-09-15-t03-eng/digest.md</code></li><li><code>runs/2026-09-15-t03-amend2-product/digest.md</code></li><li><code>runs/2026-09-15-t02-shapes-eng/digest.md</code></li><li><code>runs/2026-09-15-t03-final-eng/digest.md</code></li><li><code>runs/2026-09-15-t03-amend3-product/digest.md</code></li><li><code>runs/2026-09-15-t02-manifest-eng/digest.md</code></li><li><code>runs/2026-09-15-t03-resume2-eng/digest.md</code></li><li><code>runs/2026-09-15-t02-verify-eng/digest.md</code></li><li><code>runs/2026-09-15-t04-eng/digest.md</code></li><li><code>runs/2026-09-15-t05-amend-product/digest.md</code></li><li><code>runs/2026-09-15-t03-marker-fix-eng/digest.md</code></li><li><code>runs/2026-09-15-t06-contract-eng/digest.md</code></li><li><code>runs/2026-09-15-t06-contract-amend-product/digest.md</code></li><li><code>runs/2026-09-15-t02-manifest-view-eng/digest.md</code></li><li><code>runs/2026-09-15-t02-pycompat-eng/digest.md</code></li><li><code>runs/2026-09-15-t07-ownership-amend-product/digest.md</code></li><li><code>runs/2026-09-15-t08-product/digest.md</code></li><li><code>runs/2026-09-15-simplify-eng/digest.md</code></li><li><code>runs/2026-09-15-validate-validator/digest.md</code></li><li><code>runs/2026-09-15-fix-c1-validator/digest.md</code></li></ul><p class='derived'>Derived from <code>ship-review-2026-09-15-fix-c1-validator.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

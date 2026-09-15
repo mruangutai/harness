@@ -387,6 +387,13 @@
       "kind": "regate",
       "decision": "continue",
       "reason": "Validation at da8932a0 found one AST fail-open defect, one missing inverse fixture, and missing durable fail-first evidence for SC-01/04/05; route owned fixes inside approved rework"
+    },
+    {
+      "at": "2026-09-15T18:53:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Retrospective seam correction: final validator c1 closed all four findings, so continue from build/review handoff to operator ship review"
     }
   ],
   "mission": "plan",
