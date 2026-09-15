@@ -30,6 +30,7 @@ import os
 import re
 import subprocess
 import sys
+import artifact_accessors
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -76,7 +77,7 @@ def resolve_repo(repo):
 
     import factory_config
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
         entry = factory_config.repo_entry(fleet, repo)
     except factory_config.FleetError as exc:
         sys.stderr.write(f"feature-worktree: {exc}\n")

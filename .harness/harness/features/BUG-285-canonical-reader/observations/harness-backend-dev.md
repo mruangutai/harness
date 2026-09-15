@@ -9,3 +9,4 @@
 - 2026-09-14: parse_gh_json needs a value-level strict parser separate from mapping-only consumers; feature_json path/text modes can share an internal parser and validation boundary.
 - 2026-09-14: artifact_accessors.load_plan delegates to schema-validating harness_yaml.load_plan, while handoff_done_when intentionally accepts partial plan task mappings; migrating its classified yaml.safe_load reader changes the caller contract and fails its targeted test.
 - 2026-09-14: A classified accessor remedy must preserve the consumer input shape; manifest_domains accepts one agent and cannot replace generic all-role grant discovery.
+- 2026-09-14: artifact_accessors.load_fleet requires an explicit path, so no-argument legacy factory_config.load_fleet callers must pass the same FLEET_PATH explicitly to preserve behavior.

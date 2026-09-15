@@ -121,7 +121,7 @@ def _repo_arg_for_segment(repo_segment, factory_config):
     if repo_segment == "harness":
         return "harness"
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     except Exception:
         return None
     for entry in fleet.get("repos", []):
@@ -491,7 +491,7 @@ def classify_all(root):
     records = list(classify(root))
 
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     except Exception as exc:
         records.append({
             "path": factory_config.FLEET_PATH, "feature_id": None, "klass": "unresolved",

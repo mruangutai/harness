@@ -260,7 +260,7 @@ def _main():
     args = parser.parse_args()
 
     fleet_path = args.fleet if args.fleet else factory_config.FLEET_PATH
-    fleet = factory_config.load_fleet(args.fleet) if args.fleet else factory_config.load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(factory_config.FLEET_PATH)
 
     # 1. preflight — a missing or unauthenticated gh raises GhError, exits 2 via the wrapper.
     factory_gh.preflight()

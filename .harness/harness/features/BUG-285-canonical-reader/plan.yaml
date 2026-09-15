@@ -295,7 +295,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py#_resolve_board
       - .claude/skills/harness/bin/factory_claim.py

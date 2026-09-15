@@ -304,7 +304,7 @@ def _resolve_board(root, repo_arg):
     own_repo = _own_repo(root)
     if repo_arg is None or repo_arg == own_repo:
         return (own_repo or repo_arg), gh_board.load_board(root)
-    fleet = factory_config.load_fleet()
+    fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     names = [e.get("name") for e in fleet.get("repos", []) if isinstance(e, dict)]
     if repo_arg not in names:
         factory_cli.refuse(

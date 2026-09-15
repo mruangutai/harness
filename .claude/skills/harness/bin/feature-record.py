@@ -371,8 +371,7 @@ def cmd_propose_rework(args):
     doc = _read_doc(args.file)
     plan_path = os.path.join(os.path.dirname(os.path.abspath(args.file)), "plan.yaml")
     try:
-        import harness_yaml
-        tasks = harness_yaml.load_plan(plan_path).get("tasks") or []
+        tasks = artifact_accessors.load_plan(plan_path).get("tasks") or []
         proposal = propose_rework(doc, len(tasks), _budgets_for(args.file))
     except harness_merge.MergeRefusal as refusal:
         for line in refusal.lines:

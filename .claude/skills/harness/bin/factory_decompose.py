@@ -468,14 +468,14 @@ def _main():
     feat_dir = args.feature_dir
 
     # 1. fleet + repo.
-    fleet = factory_config.load_fleet(args.fleet) if args.fleet else factory_config.load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     factory_config.repo_entry(fleet, args.repo)
 
     # 2. the signed plan.
     plan_path = os.path.join(feat_dir, "plan.yaml")
     # Issue #208: same fix as load_factory above — was a raw harness_yaml.load_plan call.
     try:
-        plan = harness_yaml.load_plan(plan_path)
+        plan = artifact_accessors.load_plan(plan_path)
     except harness_yaml.YamlParseError as e:
         factory_cli.refuse(TOOL, "plan does not load", plan_path, f"does not load: {e}")
     approval = plan.get("approval") or {}

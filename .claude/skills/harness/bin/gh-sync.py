@@ -1318,7 +1318,7 @@ def _projected_for(feat_dir, rec):
     if not os.path.isfile(plan_path):
         return {}
     try:
-        plan_doc = harness_yaml.load_plan(plan_path)
+        plan_doc = artifact_accessors.load_plan(plan_path)
     except harness_yaml.YamlParseError as exc:
         # BUG-201 (D-05): a plan.yaml that PARSES but fails referential integrity (a dangling
         # depends_on) reached this except identically to an absent or unreadable file and was
@@ -1478,7 +1478,7 @@ def _status_plan_doc(feat_dir):
     if not os.path.isfile(path):
         return None
     try:
-        return harness_yaml.load_plan(path)
+        return artifact_accessors.load_plan(path)
     except harness_yaml.YamlParseError as exc:
         print(f"gh-sync: the plan at {path} failed to load — {exc}", file=sys.stderr)
         return None

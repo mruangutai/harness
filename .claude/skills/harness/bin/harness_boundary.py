@@ -487,7 +487,7 @@ def resolve_fleet(root, label):
         # at import time from resolve_root(factory_config's own bin dir) — always the LIVE
         # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
-        fleet = factory_config.load_fleet(fleet_path)
+        fleet = artifact_accessors.load_fleet(fleet_path)
         bases = [real(factory_config.workspace_path(fleet, e["name"]))
                  for e in fleet["repos"]]
         return fleet["workspace_root"], bases, fleet_path

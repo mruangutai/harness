@@ -494,7 +494,7 @@ def _main():
     )
     args = parser.parse_args()
 
-    fleet = load_fleet(args.fleet) if args.fleet else load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(FLEET_PATH)
 
     # --check-product-configs and --show are independent flags, but when both are given
     # --check-product-configs wins and --show is not printed: factory_cli.payload writes the

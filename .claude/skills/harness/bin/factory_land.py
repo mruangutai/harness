@@ -21,6 +21,7 @@ import sys
 
 import factory_cli
 import factory_config
+import artifact_accessors
 import factory_gh
 import factory_workspace
 
@@ -40,7 +41,7 @@ def _main():
     parser.add_argument("--fleet", default=None, help="path to fleet.yaml (default: FLEET_PATH)")
     args = parser.parse_args()
 
-    fleet = factory_config.load_fleet(args.fleet) if args.fleet else factory_config.load_fleet()
+    fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     entry = factory_config.repo_entry(fleet, args.repo)
     default_branch = entry["default_branch"]
 
