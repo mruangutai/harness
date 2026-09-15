@@ -3,9 +3,7 @@ feature: BUG-285-canonical-reader
 approval:
   date: '2026-09-14'
   approved_by: mruangutai
-  status: pending
-  reset_at: '2026-09-15T01:06:03+00:00'
-  reset_reason: amend T-02
+  status: approved
 status: building
 source_issues: [285, 1594]
 panel:
