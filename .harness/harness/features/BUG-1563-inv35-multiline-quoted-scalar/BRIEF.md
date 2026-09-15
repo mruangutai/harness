@@ -37,6 +37,6 @@ INV-35 tracks quote state only within each physical line, so operators reviewing
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-09-15

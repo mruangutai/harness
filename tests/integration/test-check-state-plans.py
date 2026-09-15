@@ -789,6 +789,50 @@ def case_inv35_quoted_is_silent():
         return ok
 
 
+def case_inv35_multiline_double_quoted_is_silent():
+    """(inv35.l) A `#<digit>` on a continuation line remains data inside a double-quoted
+    scalar, so INV-35 must preserve quote state across physical lines."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, 'notes: "close out the fix\n  tracked by #217"\n')
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.l) a multiline double-quoted "
+              f"`#217` is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_multiline_single_quoted_is_silent():
+    """(inv35.m) Single-quoted scalars have the same continuation behavior and must remain
+    exempt until their closing delimiter."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: 'close out the fix\n  tracked by #217'\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.m) a multiline single-quoted "
+              f"`#217` is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_exact_unquoted_positive_control_is_reported():
+    """(inv35.n) The multiline exemption must not weaken the exact unquoted positive control."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: close out #217\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#217" in line for line in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.n) unquoted `notes: close out #217` "
+              f"is reported")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
 def case_inv35_full_line_comment_is_silent():
     """(inv35.d) A line that is ENTIRELY a comment carries no data to lose -- flagging it
     would tell an operator to quote a comment, which YAML has no syntax for."""
@@ -947,6 +991,9 @@ def main():
     results.append(case_inv35_unquoted_hash_digit_is_reported())
     results.append(case_inv35_matches_real_truncation())
     results.append(case_inv35_quoted_is_silent())
+    results.append(case_inv35_multiline_double_quoted_is_silent())
+    results.append(case_inv35_multiline_single_quoted_is_silent())
+    results.append(case_inv35_exact_unquoted_positive_control_is_reported())
     results.append(case_inv35_full_line_comment_is_silent())
     results.append(case_inv35_block_scalar_is_exempt())
     results.append(case_inv35_hash_without_digit_is_silent())

@@ -26,5 +26,24 @@
       "reason": "The line-local quote-state defect is known, the checker and integration-test files are bounded, and no new public interface, schema, or enforcement surface is introduced."
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "BRIEF.md"
+  },
+  "github": {
+    "milestone": 70,
+    "parent": 1701,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1702
+    },
+    "source_issues": [
+      1563
+    ],
+    "build_entry": "opened"
+  }
 }

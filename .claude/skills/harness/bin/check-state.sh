@@ -190,14 +190,11 @@ for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
 # already comment text, so a second `#<digit>` deeper in an ordinary trailing comment
 # (`# see issue #217`) must not be mistaken for a second truncation point.
 #
-# A MULTI-LINE QUOTED SCALAR IS THE ONE KNOWN GAP: this tracks a quote's close only within its
-# own physical line, so a `'`/`"` scalar that legitimately wraps onto a following line could
-# misread that continuation. Not a false negative -- an unterminated quote returns None, the
-# same silence as a closed one -- and this repo's own corpus uses block scalars exclusively
-# for multi-line prose, never a multi-line flow-quoted one, so it is unreached here. Documented
-# rather than chased, per this invariant's own asymmetric design (a false deny is recoverable,
-# a false allow is not, so what remains unchecked here is a false ALLOW risk and is named as
-# such rather than left implicit).
+# MULTI-LINE QUOTED SCALARS KEEP THEIR QUOTE STATE ACROSS PHYSICAL LINES. YAML folds those
+# lines into one scalar, so a `#<digit>` on a continuation line is still quoted data. The
+# scanner therefore suppresses every continuation line through the closing delimiter, then
+# resumes ordinary line scanning. Single quotes escape a quote by doubling it; double quotes
+# escape with a backslash.
 #
 # THE KEY ITSELF CAN BE QUOTED OR HYPHENATED, and `_KEY_PREFIX` must recognise both or the
 # strip fails silently in the dangerous direction. A validator's second pass (cycle 2, PR
@@ -219,18 +216,22 @@ def _line_value(line):
     return line[_KEY_PREFIX.match(line).end():]
 
 
+def _quoted_scalar_closed(value, quote, start):
+    i = start
+    while i < len(value):
+        if quote == '"' and value[i] == "\\":
+            i += 2
+            continue
+        if value[i] == quote:
+            if quote == "'" and i + 1 < len(value) and value[i + 1] == quote:
+                i += 2
+                continue
+            return True
+        i += 1
+    return False
+
+
 def _unquoted_hash_digit(value):
-    if value[:1] in ("'", '"'):
-        q = value[0]
-        i = 1
-        while i < len(value):
-            if value[i] == q:
-                if i + 1 < len(value) and value[i + 1] == q:
-                    i += 2
-                    continue
-                return None
-            i += 1
-        return None
     for i, ch in enumerate(value):
         if ch == "#" and (i == 0 or value[i - 1].isspace()):
             if i + 1 < len(value) and value[i + 1].isdigit():
@@ -245,9 +246,14 @@ for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
     if _txt is None:
         continue
     _block_indent = None
+    _quoted_scalar = None
     for _lineno, _line in enumerate(_txt.splitlines(), start=1):
         _stripped = _line.strip()
         _indent = len(_line) - len(_line.lstrip(" "))
+        if _quoted_scalar is not None:
+            if _quoted_scalar_closed(_line, _quoted_scalar, 0):
+                _quoted_scalar = None
+            continue
         if _block_indent is not None:
             if _stripped == "" or _indent > _block_indent:
                 continue
@@ -257,6 +263,10 @@ for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
         _value = _line_value(_line)
         if _BLOCK_SCALAR_VALUE.fullmatch(_value.rstrip()):
             _block_indent = _indent
+            continue
+        if _value[:1] in ("'", '"'):
+            if not _quoted_scalar_closed(_value, _value[0], 1):
+                _quoted_scalar = _value[0]
             continue
         _hit = _unquoted_hash_digit(_value)
         if _hit is not None:

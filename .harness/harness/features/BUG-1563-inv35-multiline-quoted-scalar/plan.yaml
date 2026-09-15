@@ -1,8 +1,10 @@
 schema: plan/1
 feature: BUG-1563-inv35-multiline-quoted-scalar
 approval:
-  status: pending
-status: plan
+  date: '2026-09-15'
+  approved_by: operator
+  status: approved
+status: building
 source_issues: [1563]
 
 lanes:
@@ -25,7 +27,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps check-state.sh and its own integration test outside self-hosted execution; DEC-179 requires that carve-out to be declared main-session-direct at plan time.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - tests/integration/test-check-state-plans.py
