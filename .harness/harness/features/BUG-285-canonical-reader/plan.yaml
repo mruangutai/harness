@@ -3,7 +3,9 @@ feature: BUG-285-canonical-reader
 approval:
   date: '2026-09-15'
   approved_by: mruangutai
-  status: approved
+  status: pending
+  reset_at: '2026-09-15T15:12:49+00:00'
+  reset_reason: apply T-07
 status: building
 source_issues: [285, 1594]
 panel:
@@ -432,7 +434,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: This task changes enforcement sources, check-plan-routes.py, and their tests, all governed directly by DEC-174.
     depends_on: [T-06]
-    status: building
+    status: ready
     files:
       - .claude/skills/harness/bin/artifact_accessors.py
       - .claude/skills/harness/bin/bash-write-guard.py
@@ -452,16 +454,53 @@ tasks:
       - tests/integration/test-check-plan-routes.py
       - tests/integration/test-check-state-plans.py
       - tests/integration/test-post-merge-sweep.py
+      - .claude/skills/harness/bin/board-station.py
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/factory_land.py
+      - .claude/skills/harness/bin/factory_workspace.py
+      - .claude/skills/harness/bin/feature-worktree.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/gh_board.py
+      - .claude/skills/harness/bin/plan-merge.py
+      - tests/integration/test-board-station.py
+      - tests/integration/test-board-lifecycle.py
+      - tests/integration/test-check-state-inv26.py
+      - tests/integration/test-factory-decompose.py
+      - tests/integration/test-feature-worktree.py
+      - tests/integration/test-gh-sync-open.py
+      - tests/integration/test-gh-sync-record.py
+      - tests/integration/test-gh-sync-start-task.py
+      - tests/integration/test-harness-yaml.py
+      - tests/integration/test-plan-merge.py
+      - tests/integration/test-worktree-terminal.py
+      - tests/unit/test-factory-claim.py
+      - tests/unit/test-factory-config.py
+      - tests/unit/test-factory-land.py
+      - tests/unit/test-factory-workspace.py
+      - tests/unit/test-feature-json-reader.py
+      - tests/unit/test-fleet-product-config.py
+      - tests/unit/test-gh-board.py
+      - tests/unit/test-plan-depends-on.py
     verify: |
-      test ! -e tests/integration/canonical-reader-enforcement-baselines.json && ! grep -q -- '--verify-enforcement-bytes' tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-plan-routes.py --classification-task T-07 && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 tests/unit/test-artifact-accessors.py
+      test ! -e tests/integration/canonical-reader-enforcement-baselines.json && ! grep -q -- '--verify-enforcement-bytes' tests/integration/test-check-plan-routes.py && python3 tests/integration/test-check-plan-routes.py --classification-task T-07 && python3 tests/integration/test-check-plan-routes.py && python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit && python3 tests/unit/test-artifact-accessors.py && python3 tests/integration/test-board-station.py && python3 tests/integration/test-board-lifecycle.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-factory-decompose.py && python3 tests/integration/test-feature-worktree.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-harness-yaml.py && python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-worktree-terminal.py && python3 tests/unit/test-factory-claim.py && python3 tests/unit/test-factory-config.py && python3 tests/unit/test-factory-land.py && python3 tests/unit/test-factory-workspace.py && python3 tests/unit/test-feature-json-reader.py && python3 tests/unit/test-fleet-product-config.py && python3 tests/unit/test-gh-board.py && python3 tests/unit/test-plan-depends-on.py
     intent: |
-      Execute directly under DEC-174. Before editing, require T-01's T-07 classification check and run the complete temporary enforcement-byte comparison against canonical-reader-enforcement-baselines.json. In a mechanical-only diff, repoint every already-correct direct-lane accessor call to artifact_accessors. The current projection includes manifest_domains in bash-write-guard.py and check-domain.py, load_plan in check-plan-routes.py and check-state.py, and load_fleet in post-merge-sweep.py. Preserve imports, exception handling, diagnostics, order, and exit behavior; exact pre/post legacy return code, stdout, stderr, and violation membership must remain identical.
+      Execute directly under DEC-174 as one mechanical ownership cutover. Before editing, run the complete temporary enforcement-byte comparison against canonical-reader-enforcement-baselines.json. Repoint every live executable import, caller, patch target, exception catch, expected-exception tuple, type check, raise, and other reference from feature_json_write.load_feature_json and FeatureJsonError, harness_yaml.load_plan and manifest_domains, and factory_config.load_fleet and FleetError to artifact_accessors before deleting the legacy definitions. Do not treat detector literals, synthetic raw-call mutants, comments, docstrings, or historical fixture corpus as live ownership dependencies; retain the detector vocabulary and mutants that prove the permanent audit finds forbidden legacy and raw routes.
 
-      After every dispatchable and direct caller imports artifact_accessors, replace its four temporary inward delegations by physically moving the load_feature_json reader and error types from feature_json_write.py, load_plan and manifest_domains from harness_yaml.py, and load_fleet and its reader error and validation ownership from factory_config.py into artifact_accessors.py. Delete the legacy definitions in the same mechanical review unit. Do not create or retain compatibility forwarders, re-exports, aliases, or duplicate implementations. Retain feature_json_write.py as the canonical locked writer, harness_yaml.py as the low-level strict YAML and plan-validation primitive, and factory_config.py as the home of fleet-domain queries and board behavior. Update the classification artifact to final dispositions without deleting historical task attribution.
+      The complete live ownership inventory is binding. artifact_accessors currently delegates to feature_json_write.load_feature_json, harness_yaml.load_plan, harness_yaml.manifest_domains, and factory_config.load_fleet. feature_json_write owns load_feature_json and FeatureJsonError; factory_decompose and gh-sync catch feature_json_write.FeatureJsonError, and test-feature-json-reader asserts it. harness_yaml owns load_plan and manifest_domains; test-gh-sync-start-task, test-harness-yaml, test-plan-merge, test-factory-claim, and test-plan-depends-on call or patch harness_yaml.load_plan, while test-harness-yaml calls harness_yaml.manifest_domains. factory_config owns load_fleet and FleetError; test-factory-config and test-fleet-product-config call factory_config.load_fleet, and test-worktree-terminal contains an executed subprocess helper that calls it. factory_config defines, raises, catches, and routes FleetError through fleet validation, repository lookup, product configuration, board validation, station validation, reporting, and its CLI expected tuple. The live external FleetError sites are board-station catches; board_lifecycle, factory_claim, factory_decompose, factory_land, and factory_workspace expected-exception tuples; check-state's INV-26 type check; factory_decompose, feature-worktree, and gh-sync catches; gh_board raises; and plan-merge catches. Their direct tests are test-board-station, test-board-lifecycle, test-check-state-inv26, test-factory-decompose, test-feature-worktree, the three test-gh-sync files, test-plan-merge, test-factory-claim, test-factory-config, test-factory-land, test-factory-workspace, test-fleet-product-config, test-gh-board, and test-worktree-terminal. No other live external direct call, from-import alias, or string patch target names the six legacy owners; test-factory-claim's direct assignment of harness_yaml.load_plan is the one live patch seam and must move to artifact_accessors.load_plan.
 
-      Turn the T-01 inventory into the permanent live zero-drift audit. It must report zero unresolved in-scope rows while continuing to validate every classified exemption. A synthetic raw call in each parse category, an alias, a new unmatched Python file, a second state.yaml reader, and an enforcement file misrouted to team must fail with file, enclosing symbol, category, exact accessor remedy, and PLAN AMENDMENT REQUIRED. Removing a scanned PR 1688-converted file or narrowing discovery must also fail.
+      Physically move load_feature_json, FeatureJsonError, and their read, parse, recorded-field validation, and error construction from feature_json_write.py into artifact_accessors.py. Physically move load_plan into artifact_accessors.py while continuing to use harness_yaml's strict load_file and validate_plan_doc primitives. Physically move manifest_domains into artifact_accessors.py while retaining its omitted-agent, explicit None, explicit-agent, and view contracts. Physically move load_fleet, FleetError, and fleet-file validation and error construction from factory_config.py into artifact_accessors.py. Retained factory_config fleet-domain queries and board behavior must raise, catch, or route artifact_accessors.FleetError without owning or re-exporting that exception. Delete all six legacy-owned definitions and names in this same review unit. Leave no compatibility forwarder, alias, re-export, duplicate implementation, stale patch path, or stale exception catch. Retain feature_json_write.py only as the canonical locked writer, harness_yaml.py only as the strict low-level YAML and plan-validation primitive, and factory_config.py for fleet-domain queries and board behavior.
 
-      After the completed migration passes the final byte comparison, delete canonical-reader-enforcement-baselines.json and remove the --verify-enforcement-bytes CLI mode plus its one-shot support and tests from test-check-plan-routes.py. The baseline and comparison mode must not ship. Keep only the live zero-drift audit and its discriminating integration coverage as permanent enforcement. Run the final verify against this retired state.
+      Preserve behavior, dependency-light imports and bootstrap order, diagnostics, ordering, return values, defaults, mutation behavior, exception identity and handling, exit codes, and exact legacy enforcement output. The tests must exercise the artifact_accessors owner while retaining harness_yaml exception types where those low-level YAML types remain the contract. Keep the work mechanical: do not add semantic API changes, new policy, compatibility shims, or unrelated cleanup.
+
+      Preserve all eleven historical T-07 classification rows and their task attribution while making each terminally canonical with its exact remedy: bash-write-guard.py::<module>::manifest_domains#1, check-domain.py::<module>::manifest_domains#1, and check-domain.py::domain_check::manifest_domains#1 use artifact_accessors.manifest_domains; check-plan-routes.py::process_plan_yaml::load_plan#1, check-plan-routes.py::_task_files::load_plan#1, and check-state.py::<module>::load_plan#1 use artifact_accessors.load_plan; factory_config.py::load_fleet::harness_yaml_file#1 and post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1 use artifact_accessors.load_fleet; feature_json_write.py::load_feature_json::json_string#1 uses artifact_accessors.load_feature_json; and harness_yaml.py::load_plan::harness_yaml_file#1 and harness_yaml.py::manifest_domains::harness_yaml_file#1 use artifact_accessors.load_plan and artifact_accessors.manifest_domains respectively. For the four implementation-relocation rows, preserve the historical row ids and task T-07 while teaching canonical matching to require their corresponding implementation in artifact_accessors; do not delete, re-key, or reassign them merely because their bodies moved.
+
+      Make tests/integration/test-check-plan-routes.py --classification-task T-07 an independent terminal-state contract over that fixed eleven-row id-to-remedy map. It passes only when every expected row is present exactly once, remains task T-07, has disposition canonical, names its exact artifact_accessors remedy, and resolves to a canonical live implementation or call, with no additional T-07 row in raw, missing, unresolved, migrate, or remedy-drift state. It must fail a partial canonical and raw mixture, a missing expected row, task-attribution drift, disposition drift, remedy drift, and a newly discovered raw T-07 row. Each failure must name the row, observed state, expected task, disposition and remedy, and PLAN AMENDMENT REQUIRED. Do not derive the expected set from whichever rows still say T-07, because that would make deletion or attribution drift pass vacuously.
+
+      Keep the permanent live zero-drift audit after the terminal T-07 check. It must report zero unresolved in-scope rows and continue validating every classified exemption. Preserve mutant failures for a synthetic raw call in every parse category, aliases, a new unmatched Python file, a second state.yaml reader, enforcement routing drift, a removed scanned PR 1688-converted file, and narrowed discovery. Diagnostics must name file, enclosing symbol, category, exact accessor remedy, and PLAN AMENDMENT REQUIRED.
+
+      After every caller, patch, catch, error route, and implementation is canonical and the complete temporary enforcement-byte comparison passes, delete canonical-reader-enforcement-baselines.json and remove the --verify-enforcement-bytes CLI mode, its one-shot support, and its tests from test-check-plan-routes.py. The baseline and comparison mode must not ship. Run the final verify only against this retired state.
 
   - id: T-08
     title: Record the current branch gate carve-out
