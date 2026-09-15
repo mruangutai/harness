@@ -2159,53 +2159,76 @@ def _normalized_enforcement_output(text):
                   r"Ran \1 tests in <SECONDS>s", text)
 
 
-def verify_enforcement_bytes(path):
-    """Compare every legacy test program's complete normalized process result."""
+def _load_enforcement_cases(path):
     try:
         with open(path, encoding="utf-8") as stream:
             baseline = json.load(stream)
     except (OSError, UnicodeDecodeError, ValueError) as error:
         print(f"enforcement baseline cannot be read: {error}", file=sys.stderr)
-        return 2
+        return None
     if not isinstance(baseline, dict) or baseline.get("schema") != (
             "canonical-reader-enforcement-baselines/1"):
         print("enforcement baseline has an unsupported schema", file=sys.stderr)
-        return 2
+        return None
     cases = baseline.get("cases")
     if not isinstance(cases, list) or not cases:
         print("enforcement baseline has no legacy cases", file=sys.stderr)
+        return None
+    return cases
+
+
+def _enforcement_case_identity(case, seen):
+    if not isinstance(case, dict) or case.get("partition") != "legacy":
+        return None, "baseline contains a missing or non-legacy case"
+    name = case.get("name")
+    if not isinstance(name, str) or name in seen:
+        return None, f"baseline case name is missing or duplicate: {name!r}"
+    seen.add(name)
+    return name, None
+
+
+def _enforcement_case_command(case, name):
+    command = case.get("command")
+    if (not isinstance(command, list) or not command
+            or not all(isinstance(part, str) for part in command)):
+        return None, f"{name}: command must be a non-empty string list"
+    return command, None
+
+
+def _enforcement_case_mismatch(case, seen):
+    name, error = _enforcement_case_identity(case, seen)
+    if error:
+        return error
+    command, error = _enforcement_case_command(case, name)
+    if error:
+        return error
+    result = subprocess.run(
+        command, cwd=ROOT, capture_output=True, text=True, timeout=300)
+    actual = {
+        "returncode": result.returncode,
+        "stdout": _normalized_enforcement_output(result.stdout),
+        "stderr": _normalized_enforcement_output(result.stderr),
+    }
+    expected = {
+        key: case.get(key) for key in ("returncode", "stdout", "stderr")
+    }
+    if actual == expected:
+        return None
+    changed = [key for key in actual if actual[key] != expected[key]]
+    return f"{name}: changed {', '.join(changed)}"
+
+
+def verify_enforcement_bytes(path):
+    """Compare every legacy test program's complete normalized process result."""
+    cases = _load_enforcement_cases(path)
+    if cases is None:
         return 2
-
-    mismatches = []
     seen = set()
+    mismatches = []
     for case in cases:
-        if not isinstance(case, dict) or case.get("partition") != "legacy":
-            mismatches.append("baseline contains a missing or non-legacy case")
-            continue
-        name = case.get("name")
-        command = case.get("command")
-        if not isinstance(name, str) or name in seen:
-            mismatches.append(f"baseline case name is missing or duplicate: {name!r}")
-            continue
-        seen.add(name)
-        if (not isinstance(command, list) or not command
-                or not all(isinstance(part, str) for part in command)):
-            mismatches.append(f"{name}: command must be a non-empty string list")
-            continue
-        result = subprocess.run(
-            command, cwd=ROOT, capture_output=True, text=True, timeout=300)
-        actual = {
-            "returncode": result.returncode,
-            "stdout": _normalized_enforcement_output(result.stdout),
-            "stderr": _normalized_enforcement_output(result.stderr),
-        }
-        expected = {
-            key: case.get(key) for key in ("returncode", "stdout", "stderr")
-        }
-        if actual != expected:
-            changed = [key for key in actual if actual[key] != expected[key]]
-            mismatches.append(f"{name}: changed {', '.join(changed)}")
-
+        mismatch = _enforcement_case_mismatch(case, seen)
+        if mismatch:
+            mismatches.append(mismatch)
     if mismatches:
         for mismatch in mismatches:
             print(f"ENFORCEMENT BYTE MISMATCH {mismatch}", file=sys.stderr)
@@ -2227,6 +2250,8 @@ def verify_classification_task(task_id):
     return 0
 
 
+# GRADE-2 REASON: this CLI entry point intentionally keeps ordered dispatch visible because
+# classification must short-circuit before the optional byte-baseline verification runs.
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv == ["--canonical-reader-self-test"]:

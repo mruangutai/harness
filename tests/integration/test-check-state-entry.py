@@ -464,6 +464,30 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
     return h
 
 
+def _inv24_output_lines(output, strict_rejection):
+    lines = [line for line in output.splitlines() if "INV-24" in line]
+    if strict_rejection:
+        subject = [
+            line for line in output.splitlines()
+            if "feature.json invalid" in line and "FEAT-CONTROL" not in line
+        ]
+    else:
+        subject = [line for line in lines if "FEAT-CONTROL" not in line]
+    return lines, subject
+
+
+def _inv24_case_passes(lines, subject, expect_hit, needles, require_control):
+    expected_subject = bool(subject) == expect_hit
+    required_text = all(
+        any(needle in line for line in subject) for needle in needles
+    )
+    control_found = (
+        not require_control
+        or any("FEAT-CONTROL" in line for line in lines)
+    )
+    return expected_subject and required_text and control_found
+
+
 def case_s():
     """INV-24 factory claims, including strict-reader rejection at its input boundary."""
     results = []
@@ -472,25 +496,15 @@ def case_s():
     def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True,
               strict_rejection=False):
         feats = dict(features)
-        if not expect_hit and control and fleet is not None:
+        require_control = not expect_hit and control and fleet is not None
+        if require_control:
             feats["FEAT-CONTROL"] = control_block
         with tempfile.TemporaryDirectory() as tmp:
             _factory_tree(tmp, feats, fleet=fleet)
             _code, out = run(tmp)
-        lines = [line for line in out.splitlines() if "INV-24" in line]
-        if strict_rejection:
-            subject = [
-                line for line in out.splitlines()
-                if "feature.json invalid" in line and "FEAT-CONTROL" not in line
-            ]
-        else:
-            subject = [line for line in lines if "FEAT-CONTROL" not in line]
-        hit = bool(subject)
-        ok = (hit == expect_hit) and all(
-            any(needle in line for line in subject) for needle in needles
-        )
-        if not expect_hit and control and fleet is not None:
-            ok = ok and any("FEAT-CONTROL" in line for line in lines)
+        lines, subject = _inv24_output_lines(out, strict_rejection)
+        ok = _inv24_case_passes(
+            lines, subject, expect_hit, needles, require_control)
         print(f"{'ok' if ok else 'FAIL'} - case (s) INV-24: {label}")
         if not ok:
             print(f"       | INV-24 lines: {lines!r}")

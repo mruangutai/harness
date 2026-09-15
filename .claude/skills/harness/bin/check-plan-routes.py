@@ -1279,23 +1279,154 @@ def _migration_row_state(row, live, candidates):
     return "missing"
 
 
-def _candidate_is_accounted(candidate, rows):
-    if any(candidate.get("id") == row.get("id") for row in rows):
-        return True
-    if candidate.get("file") == (
-            ".claude/skills/harness/bin/artifact_accessors.py"):
-        return True
-    if (
-            candidate.get("file") == (
-                ".claude/skills/harness/bin/feature_json_write.py")
-            and candidate.get("symbol") == "_parse_feature_json_text"
-            and candidate.get("category") == "json_string"):
-        return True
-    return any(
+def _candidate_is_public_accessor(candidate):
+    return candidate.get("file") == (
+        ".claude/skills/harness/bin/artifact_accessors.py")
+
+
+def _candidate_is_feature_parser(candidate):
+    return (
+        candidate.get("file") == (
+            ".claude/skills/harness/bin/feature_json_write.py")
+        and candidate.get("symbol") == "_parse_feature_json_text"
+        and candidate.get("category") == "json_string"
+    )
+
+
+def _candidate_matches_remedy(candidate, row):
+    return (
         candidate.get("file") == row.get("file")
         and candidate.get("symbol") == row.get("symbol")
         and candidate.get("callee") == _row_remedy(row)
-        for row in rows
+    )
+
+
+def _candidate_is_accounted(candidate, rows):
+    identities = {row.get("id") for row in rows if isinstance(row, dict)}
+    return (
+        candidate.get("id") in identities
+        or _candidate_is_public_accessor(candidate)
+        or _candidate_is_feature_parser(candidate)
+        or any(
+            _candidate_matches_remedy(candidate, row)
+            for row in rows if isinstance(row, dict)
+        )
+    )
+
+
+def _scanned_manifest_findings(scanned, document):
+    expected = set(document.get("scanned_files", []))
+    expected.add(".claude/skills/harness/bin/artifact_accessors.py")
+    if set(scanned) == expected:
+        return []
+    return [
+        "scanned-file manifest differs beyond artifact_accessors.py. "
+        "PLAN AMENDMENT REQUIRED"
+    ]
+
+
+def _unaccounted_candidate_findings(candidates, rows):
+    return [
+        f"{candidate['file']}::{candidate['symbol']} "
+        f"{candidate['category']} remedy=unclassified: live AST row "
+        "absent from migration inventory. PLAN AMENDMENT REQUIRED"
+        for candidate in candidates
+        if not _candidate_is_accounted(candidate, rows)
+    ]
+
+
+def _migration_row_findings(row, live, candidates):
+    if _migration_row_state(row, live, candidates) != "missing":
+        return []
+    return [
+        f"{row.get('file')}::{row.get('symbol')} "
+        f"{row.get('category')} remedy={_row_remedy(row)}: "
+        "neither the classified reader nor its canonical remedy exists. "
+        "PLAN AMENDMENT REQUIRED"
+    ]
+
+
+def _unmigrated_row_findings(row, live):
+    if row.get("id") in live:
+        return []
+    return [
+        f"{row.get('file')}::{row.get('symbol')} "
+        f"{row.get('category')}: classified row disappeared. "
+        "PLAN AMENDMENT REQUIRED"
+    ]
+
+
+def _classified_disposition_findings(row, live, candidates):
+    disposition = row.get("disposition")
+    if disposition == "exempt":
+        exemption = _exemption_finding(row)
+        return [exemption] if exemption else []
+    if disposition in {"migrate", "canonical"}:
+        return _migration_row_findings(row, live, candidates)
+    return _unmigrated_row_findings(row, live)
+
+
+def _classified_row_finding(row, task_files, live, candidates):
+    if not isinstance(row, dict):
+        return []
+    route = _route_finding(row, task_files)
+    route_findings = [route] if route else []
+    return route_findings + _classified_disposition_findings(
+        row, live, candidates)
+
+
+def _selected_migration_rows(rows, task_id):
+    return [
+        row for row in rows
+        if isinstance(row, dict) and row.get("task") == task_id
+        and row.get("disposition") == "migrate"
+    ]
+
+
+def _task_migration_findings(rows, task_id, live, candidates):
+    selected = _selected_migration_rows(rows, task_id)
+    if not selected:
+        return [f"{task_id}: classification has no assigned rows"]
+    states = {
+        _migration_row_state(row, live, candidates) for row in selected
+    }
+    if "missing" not in states and len(states) == 1:
+        return []
+    return [
+        f"{task_id}: migration unit is partial ({', '.join(sorted(states))}). "
+        "PLAN AMENDMENT REQUIRED"
+    ]
+
+
+def _classified_rows_findings(rows, task_files, live, candidates):
+    findings = []
+    for row in rows:
+        findings.extend(
+            _classified_row_finding(row, task_files, live, candidates))
+    return findings
+
+
+def _classification_structure(root, document, scanned, rows):
+    task_files, task_findings = _classification_task_files(root, document)
+    _lookup, duplicate_findings = _row_lookup(rows)
+    findings = (
+        _scanned_manifest_findings(scanned, document)
+        + task_findings
+        + duplicate_findings
+    )
+    return task_files, findings
+
+
+def _valid_classification_findings(
+        root, document, candidates, scanned, rows, task_id):
+    task_files, findings = _classification_structure(
+        root, document, scanned, rows)
+    live = {candidate["id"]: candidate for candidate in candidates}
+    return (
+        findings
+        + _unaccounted_candidate_findings(candidates, rows)
+        + _classified_rows_findings(rows, task_files, live, candidates)
+        + _task_migration_findings(rows, task_id, live, candidates)
     )
 
 
@@ -1309,67 +1440,8 @@ def classification_task_findings(root, classification_path, task_id):
     rows = document.get("rows")
     if not isinstance(rows, list):
         return findings + ["classification rows must be a list"]
-
-    expected_scanned = set(document.get("scanned_files", []))
-    expected_scanned.add(
-        ".claude/skills/harness/bin/artifact_accessors.py")
-    if set(scanned) != expected_scanned:
-        findings.append(
-            "scanned-file manifest differs beyond artifact_accessors.py. "
-            "PLAN AMENDMENT REQUIRED")
-
-    task_files, task_findings = _classification_task_files(root, document)
-    findings.extend(task_findings)
-    lookup, duplicate_findings = _row_lookup(rows)
-    findings.extend(duplicate_findings)
-    live = {candidate["id"]: candidate for candidate in candidates}
-
-    for candidate in candidates:
-        if not _candidate_is_accounted(candidate, rows):
-            findings.append(
-                f"{candidate['file']}::{candidate['symbol']} "
-                f"{candidate['category']} remedy=unclassified: live AST row "
-                "absent from migration inventory. PLAN AMENDMENT REQUIRED")
-
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        route = _route_finding(row, task_files)
-        if route:
-            findings.append(route)
-        if row.get("disposition") == "exempt":
-            exemption = _exemption_finding(row)
-            if exemption:
-                findings.append(exemption)
-        elif row.get("disposition") in {"migrate", "canonical"}:
-            state = _migration_row_state(row, live, candidates)
-            if state == "missing":
-                findings.append(
-                    f"{row.get('file')}::{row.get('symbol')} "
-                    f"{row.get('category')} remedy={_row_remedy(row)}: "
-                    "neither the classified reader nor its canonical remedy exists. "
-                    "PLAN AMENDMENT REQUIRED")
-        elif row.get("id") not in live:
-            findings.append(
-                f"{row.get('file')}::{row.get('symbol')} "
-                f"{row.get('category')}: classified row disappeared. "
-                "PLAN AMENDMENT REQUIRED")
-
-    selected = [
-        row for row in rows
-        if isinstance(row, dict) and row.get("task") == task_id
-        and row.get("disposition") == "migrate"
-    ]
-    if not selected:
-        findings.append(f"{task_id}: classification has no assigned rows")
-    states = {
-        _migration_row_state(row, live, candidates) for row in selected
-    }
-    if "missing" in states or len(states) > 1:
-        findings.append(
-            f"{task_id}: migration unit is partial ({', '.join(sorted(states))}). "
-            "PLAN AMENDMENT REQUIRED")
-    return findings
+    return findings + _valid_classification_findings(
+        root, document, candidates, scanned, rows, task_id)
 
 
 def _audit_result(scanned, candidates, findings, violations):

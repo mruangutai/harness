@@ -66,6 +66,8 @@ def case_symlink_topology():
     ]
 
 
+# GRADE-2 REASON: the strict-reader contract is one ordered integration scenario across
+# config, agent frontmatter, and provider YAML; each mutation requires a fresh fixture.
 def case_live_tree_passes():
     clean = run(ROOT)
     td, strict_root = fixture()

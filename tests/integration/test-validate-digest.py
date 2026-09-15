@@ -4988,6 +4988,8 @@ def run_dec156_worktree_red_case():
         shutil.rmtree(iso_root, ignore_errors=True)
 
 
+# GRADE-2 REASON: one integration case verifies the same duplicate-key refusal contract at
+# all validator input seams: harness config, feature state, and hook payload.
 def run_canonical_reader_strictness_cases():
     """Strict artifact seams reject duplicate keys without changing legacy cases."""
     spec = importlib.util.spec_from_file_location(
@@ -5041,24 +5043,27 @@ def run_canonical_reader_strictness_cases():
 
 
 def main():
-    fails = run_canonical_reader_strictness_cases()
-    fails += run_cli_cases()
-    fails += run_empty_red_case()
-    fails += run_dec156_worktree_red_case()
-    fails += run_bug919_qa_matrix_cases()
-    fails += run_bug919_resolve_fallback_case()
-    fails += run_joint_hint_case()
-    fails += run_code_grade_cases()
-    fails += run_hook_cases()
-    fails += run_bug1305_artifact_resolution_cases()
-    fails += run_t09()
-    fails += run_t51_suspension_cases()
-    fails += run_template_cases()
-    fails += run_reviewer_severity_enum_cases()
-    fails += run_documented_contract_cases()
-    fails += run_t01_schema_cases()
-    fails += run_t04_unknown_key_cases()
-    fails += run_t08_revision_proof()
+    checks = (
+        run_canonical_reader_strictness_cases,
+        run_cli_cases,
+        run_empty_red_case,
+        run_dec156_worktree_red_case,
+        run_bug919_qa_matrix_cases,
+        run_bug919_resolve_fallback_case,
+        run_joint_hint_case,
+        run_code_grade_cases,
+        run_hook_cases,
+        run_bug1305_artifact_resolution_cases,
+        run_t09,
+        run_t51_suspension_cases,
+        run_template_cases,
+        run_reviewer_severity_enum_cases,
+        run_documented_contract_cases,
+        run_t01_schema_cases,
+        run_t04_unknown_key_cases,
+        run_t08_revision_proof,
+    )
+    fails = sum(check() for check in checks)
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
