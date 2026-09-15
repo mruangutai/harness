@@ -79,7 +79,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps every test that directly vouches for check-state.sh outside self-hosted execution; DEC-179 requires that carve-out to be declared main-session-direct at plan time.
     depends_on: [T-01]
-    status: building
+    status: done
     files:
       - tests/unit/test-check-state-inv35.py
     verify: |
