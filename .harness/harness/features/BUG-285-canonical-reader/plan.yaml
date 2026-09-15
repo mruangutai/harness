@@ -3,7 +3,9 @@ feature: BUG-285-canonical-reader
 approval:
   date: '2026-09-14'
   approved_by: mruangutai
-  status: approved
+  status: pending
+  reset_at: '2026-09-15T02:15:27+00:00'
+  reset_reason: apply T-02, T-03
 status: building
 source_issues: [285, 1594]
 panel:
@@ -191,7 +193,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: done
+    status: ready
     files:
       - .claude/skills/harness/bin/artifact_accessors.py
       - .claude/skills/harness/bin/feature_json_write.py#load_feature_json
@@ -223,6 +225,8 @@ tasks:
 
       The module docstring must name each public reader and the sanctioned write or source route: write_feature_json, write_harness_json, plan-merge.py verbs, sync-agent-adapters.py, main-session-owned files, and the sole state.yaml reader trip-wire. Do not expose a route-table mapping or test prose. Make the T-01 classification recognize the four inward delegations as canonical accessor implementations while leaving caller migration rows unresolved for later tasks.
 
+      Generalize the existing public manifest_domains(path, agent=None) mode. When agent is omitted or None, return in the first tuple all non-read write-domain globs aggregated dynamically from every named role in the manifest, and return the shared write-domain globs in the second tuple. Do not hard-code a role list. Explicit-agent callers and behavior remain unchanged. Add focused test-first coverage in the already-listed tests/unit/test-artifact-accessors.py for all named roles, exclusion of read-only entries from the first tuple, separation of shared globs into the second tuple, and unchanged explicit-agent behavior. Do not add a second accessor, raw parser, exemption, or unrelated scope.
+
   - id: T-03
     title: Cut over dispatchable semantic bypasses
     traces: [SC-01, SC-03, SC-04, SC-06]
@@ -242,7 +246,7 @@ tasks:
       - .claude/skills/harness/bin/gate_policy.py#_load_config
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/gh_board.py#load_board
-      - .claude/skills/harness/bin/gh_issue_types.py#classify_capability
+      - .claude/skills/harness/bin/gh_issue_types.py
       - .claude/skills/harness/bin/handoff_done_when.py
       - .claude/skills/harness/bin/harness_boundary.py#run_dir_grant_globs
       - .claude/skills/harness/bin/layout_migration.py#_declared_segments
@@ -282,7 +286,9 @@ tasks:
 
       For the classified factory_config.py::product_config::json_string#1 row, the concrete remedy is the existing public load_harness_json invoked with its explicit keyword-only in-memory text source. Do not exempt or reassign this row and do not add a second public accessor.
 
-      Preserve every caller's absent-file, malformed-input, non-mapping, diagnostic, exit-code, mutation, and fallback contract except where SC-03 deliberately makes corruption loud. Update existing consumer tests to exercise the public accessor seam and add assertions only for changed observable behavior. Do not relocate already-correct load_plan, load_fleet, or manifest_domains calls reserved for the separate T-04 and T-07 mechanical review units.
+      Preserve every caller's absent-file, malformed-input, non-mapping, diagnostic, exit-code, mutation, and fallback contract except where SC-03 deliberately makes corruption loud. Update existing consumer tests to exercise the public accessor seam and add assertions only for changed observable behavior. Do not relocate other already-correct load_plan, load_fleet, or manifest_domains calls reserved for the separate T-04 and T-07 mechanical review units.
+
+      For harness_boundary.run_dir_grant_globs, call the existing public manifest_domains(path, agent=None) mode, combine the returned all-role and shared write-domain glob tuples, and filter the combined values to run-directory grant globs. Preserve the function's established fail-open behavior on manifest-access failure. Do not add a second accessor, raw parser, exemption, hard-coded role list, or unrelated scope. Board-lifecycle fixture repairs discovered during T-03 remain T-03 implementation work and require no separate task or scope change; do not move them elsewhere.
 
   - id: T-04
     title: Relocate dispatchable correct-reader calls
