@@ -191,7 +191,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/artifact_accessors.py
       - .claude/skills/harness/bin/feature_json_write.py#load_feature_json

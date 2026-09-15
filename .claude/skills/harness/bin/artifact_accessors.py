@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import tempfile
+from dataclasses import dataclass
 
 
 class ArtifactAccessError(Exception):
@@ -69,8 +70,85 @@ def load_fleet(path):
     return factory_config.load_fleet(path)
 
 
-def manifest_domains(manifest_path, agent=None):
-    """Return one agent's domains, or all named-role write domains when omitted."""
+@dataclass(frozen=True)
+class ManifestRoleDomains:
+    """One named manifest role's writable domain globs."""
+
+    name: str
+    write_globs: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ManifestDomainsView:
+    """Immutable all-role manifest view returned by ``manifest_domains(view=True)``."""
+
+    roles: tuple[ManifestRoleDomains, ...]
+    shared_write_globs: tuple[str, ...]
+    main_session_present: bool
+    main_session_writes: tuple[str, ...] | None
+
+
+def _manifest_domains_view(manifest_path):
+    import harness_yaml
+    parsed = harness_yaml.load_file(manifest_path)
+    if not isinstance(parsed, dict):
+        raise harness_yaml.YamlParseError(
+            manifest_path,
+            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
+            "an empty or malformed file cannot declare any domain")
+
+    names = []
+    globs_by_name = {}
+
+    def walk(node):
+        if isinstance(node, dict):
+            domain = node.get("domain")
+            raw_name = node.get("name")
+            name = str(raw_name) if raw_name is not None else None
+            if name is not None:
+                if name not in globs_by_name:
+                    names.append(name)
+                    globs_by_name[name] = []
+                if isinstance(domain, list):
+                    for entry in domain:
+                        if isinstance(entry, dict) and "path" in entry and not entry.get("read"):
+                            globs_by_name[name].append(str(entry["path"]))
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(parsed)
+    shared = tuple(
+        str(entry["path"])
+        for entry in (parsed.get("shared") or [])
+        if isinstance(entry, dict) and "path" in entry and not entry.get("read")
+    )
+    main_session = parsed.get("main_session")
+    writes = main_session.get("writes") if isinstance(main_session, dict) else None
+    main_session_writes = (
+        tuple(entry for entry in writes if isinstance(entry, str) and entry.strip())
+        if isinstance(writes, list) and writes else None
+    )
+    return ManifestDomainsView(
+        tuple(ManifestRoleDomains(name, tuple(globs_by_name[name])) for name in names),
+        shared,
+        "main_session" in parsed,
+        main_session_writes,
+    )
+
+
+def manifest_domains(manifest_path, agent=None, *, view=False):
+    """Return one agent's domains, all role domains, or an immutable all-role view.
+
+    ``view=True`` requires ``agent=None`` and returns ``ManifestDomainsView``.
+    """
+    if view:
+        if agent is not None:
+            raise TypeError("manifest_domains(view=True) requires agent=None")
+        return _manifest_domains_view(manifest_path)
+
     import harness_yaml
     if agent is not None:
         return harness_yaml.manifest_domains(manifest_path, agent)

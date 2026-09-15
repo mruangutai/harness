@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +148,133 @@ shared:
                 (["alpha-write"], ["shared-write"]),
                 accessors.manifest_domains(path, "alpha"),
             )
+
+    def test_view_returns_immutable_ordered_role_records_and_reads_once(self):
+        manifest = """\
+teams:
+  - members:
+      - name: member
+        domain:
+          - path: member-write
+          - path: member-read
+            read: true
+    leads:
+      - name: lead
+        domain:
+          - path: 12
+  - members:
+      - name: member
+        domain:
+          - path: member-second
+harness-orchestrator:
+  name: top
+  domain:
+    - path: top-write
+shared:
+  - path: shared-write
+  - path: shared-read
+    read: true
+main_session:
+  writes: ["  keep  ", 7, "", "last"]
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "team-config.yaml"
+            path.write_text(manifest, encoding="utf-8")
+            with mock.patch("harness_yaml.load_file", wraps=__import__("harness_yaml").load_file) as load_file:
+                view = accessors.manifest_domains(path, view=True)
+            self.assertEqual(1, load_file.call_count)
+        self.assertEqual(
+            (
+                accessors.ManifestRoleDomains("member", ("member-write", "member-second")),
+                accessors.ManifestRoleDomains("lead", ("12",)),
+                accessors.ManifestRoleDomains("top", ("top-write",)),
+            ),
+            view.roles,
+        )
+        self.assertEqual(("shared-write",), view.shared_write_globs)
+        self.assertTrue(view.main_session_present)
+        self.assertEqual(("  keep  ", "last"), view.main_session_writes)
+        with self.assertRaises((AttributeError, TypeError)):
+            view.roles += ()
+        with self.assertRaises((AttributeError, TypeError)):
+            view.roles[0].name = "changed"
+
+    def test_view_coerces_role_names_to_its_public_string_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "team-config.yaml"
+            path.write_text("roles:\n  - name: 17\n    domain: []\n", encoding="utf-8")
+            view = accessors.manifest_domains(path, view=True)
+        self.assertEqual((accessors.ManifestRoleDomains("17", ()),), view.roles)
+    def test_view_keeps_named_roles_with_missing_or_invalid_domains(self):
+        manifest = """\
+roles:
+  - name: missing
+  - name: invalid
+    domain: not-a-list
+  - name: aggregate
+  - name: aggregate
+    domain:
+      - path: aggregate-first
+  - name: aggregate
+    domain:
+      - path: aggregate-read
+        read: true
+      - path: aggregate-second
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "team-config.yaml"
+            path.write_text(manifest, encoding="utf-8")
+            view = accessors.manifest_domains(path, view=True)
+        self.assertEqual(
+            (
+                accessors.ManifestRoleDomains("missing", ()),
+                accessors.ManifestRoleDomains("invalid", ()),
+                accessors.ManifestRoleDomains(
+                    "aggregate", ("aggregate-first", "aggregate-second")
+                ),
+            ),
+            view.roles,
+        )
+
+    def test_view_main_session_absence_and_invalid_write_states(self):
+        cases = (
+            ("roles: []\n", False, None),
+            ("main_session: {}\n", True, None),
+            ("main_session:\n  writes: wrong\n", True, None),
+            ("main_session:\n  writes: []\n", True, None),
+            ("main_session:\n  writes: [7, ' ', '']\n", True, ()),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for number, (manifest, present, writes) in enumerate(cases):
+                path = Path(directory) / f"{number}.yaml"
+                path.write_text(manifest, encoding="utf-8")
+                view = accessors.manifest_domains(path, view=True)
+                self.assertEqual(present, view.main_session_present)
+                self.assertEqual(writes, view.main_session_writes)
+
+    def test_view_preserves_strict_yaml_errors_and_rejects_agent(self):
+        harness_yaml = __import__("harness_yaml")
+        with tempfile.TemporaryDirectory() as directory:
+            duplicate = Path(directory) / "duplicate.yaml"
+            duplicate.write_text("shared: []\nshared: []\n", encoding="utf-8")
+            with self.assertRaises(harness_yaml.DuplicateKeyError):
+                accessors.manifest_domains(duplicate, view=True)
+            for name, manifest in (
+                ("malformed.yaml", "shared: [\n"),
+                ("nonmapping.yaml", "[]\n"),
+            ):
+                path = Path(directory) / name
+                path.write_text(manifest, encoding="utf-8")
+                with self.assertRaises(harness_yaml.YamlParseError):
+                    accessors.manifest_domains(path, view=True)
+            with self.assertRaises(harness_yaml.YamlParseError):
+                accessors.manifest_domains(Path(directory) / "missing.yaml", view=True)
+            non_utf8 = Path(directory) / "non-utf8.yaml"
+            non_utf8.write_bytes(b"\xff")
+            with self.assertRaises(harness_yaml.YamlParseError):
+                accessors.manifest_domains(non_utf8, view=True)
+        with self.assertRaisesRegex(TypeError, "view"):
+            accessors.manifest_domains("unused.yaml", "alpha", view=True)
 
 
 class YamlContracts(unittest.TestCase):
