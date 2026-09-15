@@ -320,6 +320,13 @@
       "kind": "regate",
       "decision": "continue",
       "reason": "T-02 pycompat verification rebaselined one confirmed pre-existing T-06 test path and then proved all 31 protected paths stable"
+    },
+    {
+      "at": "2026-09-15T14:55:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "continue",
+      "reason": "T-07 precondition exposed one T-06-updated check-domain classification row still marked migrate rather than canonical"
     }
   ],
   "mission": "plan",
