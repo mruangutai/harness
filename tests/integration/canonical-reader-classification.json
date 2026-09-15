@@ -151,7 +151,7 @@
       "artifact": "team-config.yaml",
       "category": "manifest_domains",
       "dec174_category": "enforcement_mechanical",
-      "disposition": "migrate",
+      "disposition": "canonical",
       "execution_route": "main-session-direct",
       "file": ".claude/skills/harness/bin/check-domain.py",
       "id": ".claude/skills/harness/bin/check-domain.py::<module>::manifest_domains#1",
