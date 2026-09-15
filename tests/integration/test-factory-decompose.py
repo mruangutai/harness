@@ -363,7 +363,7 @@ def run_publish(feat_dir, fleet_path, rec, extra_args=None):
             try:
                 fd.factory_cli.run(
                     fd.TOOL, fd._main,
-                    expected=(fd.factory_config.FleetError, fd.factory_gh.GhError),
+                    expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError),
                 )
             except SystemExit as e:
                 code = e.code
@@ -555,7 +555,7 @@ with tempfile.TemporaryDirectory() as td:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
                 fd.factory_cli.run(fd.TOOL, fd._main,
-                                    expected=(fd.factory_config.FleetError, fd.factory_gh.GhError))
+                                    expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
             except SystemExit as e:
                 code = e.code
     finally:
@@ -854,7 +854,7 @@ with tempfile.TemporaryDirectory() as td:
     try:
         try:
             fd.factory_cli.run(fd.TOOL, fd._main,
-                                expected=(fd.factory_config.FleetError, fd.factory_gh.GhError))
+                                expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
         except SystemExit:
             pass
         except RuntimeError:

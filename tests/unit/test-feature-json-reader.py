@@ -39,14 +39,14 @@ class LoadFeatureJsonTest(unittest.TestCase):
         the same answer."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_unparseable_json_raises(self):
         """Row 3."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"{ not: valid json [[[")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_non_utf8_bytes_raise_not_traceback(self):
@@ -55,28 +55,28 @@ class LoadFeatureJsonTest(unittest.TestCase):
         cannot happen here."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"\xff\xfe\x00\x01")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_top_level_list_raises(self):
         """Row 5."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"[1, 2]")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_top_level_scalar_string_raises(self):
         """Row 6."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b'"x"')
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_top_level_scalar_int_raises(self):
         """Row 7."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"3")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_block_key_absent_returns_the_mapping(self):
@@ -110,7 +110,7 @@ class LoadFeatureJsonTest(unittest.TestCase):
             text = ('{"github": {"parent": 1}, "feature_id": "F1", '
                     '"github": {"parent": 2}}').encode()
             path = _write(td, text)
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_duplicate_nested_keys_raise(self):
@@ -119,7 +119,7 @@ class LoadFeatureJsonTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             text = '{"github": {"parent": 1, "parent": 2}}'.encode()
             path = _write(td, text)
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_yaml_only_document_raises(self):
@@ -128,7 +128,7 @@ class LoadFeatureJsonTest(unittest.TestCase):
         the old harness_yaml-based load_factory, RETURNED populated; must now raise."""
         with tempfile.TemporaryDirectory() as td:
             path = _write(td, b"github:\n  parent: 40\n  milestone: 7\n")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(path)
 
     def test_valid_well_formed_document_returns_it(self):
@@ -147,14 +147,14 @@ class LoadFeatureJsonTest(unittest.TestCase):
             absent_path = os.path.join(td, "feature.json")
             self.assertIsNone(accessors.load_feature_json(absent_path))
             corrupt_path = _write(td, b"")
-            with self.assertRaises(feature_json_write.FeatureJsonError):
+            with self.assertRaises(accessors.FeatureJsonError):
                 accessors.load_feature_json(corrupt_path)
 
     def test_nonfinite_constants_raise(self):
         for constant in ("NaN", "Infinity", "-Infinity"):
             with self.subTest(constant=constant), tempfile.TemporaryDirectory() as td:
                 path = _write(td, f'{{"github": {{"parent": {constant}}}}}'.encode())
-                with self.assertRaises(feature_json_write.FeatureJsonError):
+                with self.assertRaises(accessors.FeatureJsonError):
                     accessors.load_feature_json(path)
 
     def test_text_source_matches_path_validation(self):
@@ -176,7 +176,7 @@ class LoadFeatureJsonTest(unittest.TestCase):
         for text, expected in failures:
             with self.subTest(text=text):
                 with self.assertRaisesRegex(
-                    feature_json_write.FeatureJsonError, expected
+                    accessors.FeatureJsonError, expected
                 ) as caught:
                     accessors.load_feature_json(
                         text=text, context="git show main:feature.json"
@@ -184,9 +184,9 @@ class LoadFeatureJsonTest(unittest.TestCase):
                 self.assertIn("git show main:feature.json", str(caught.exception))
 
     def test_exactly_one_source_is_required(self):
-        with self.assertRaises(feature_json_write.FeatureJsonError):
+        with self.assertRaises(accessors.FeatureJsonError):
             accessors.load_feature_json()
-        with self.assertRaises(feature_json_write.FeatureJsonError):
+        with self.assertRaises(accessors.FeatureJsonError):
             accessors.load_feature_json(
                 "feature.json", text='{"feature_id": "F1"}',
                 context="git show main:feature.json",

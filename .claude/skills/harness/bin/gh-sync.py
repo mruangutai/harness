@@ -278,7 +278,7 @@ def load_config(root):
     still runs; only station writes are skipped.
 
     Every OTHER unusable board shape — the `github` block absent, `board` key absent, or any
-    field `factory_config.validate_board` rejects — raises `factory_config.FleetError` from
+    field `factory_config.validate_board` rejects — raises `artifact_accessors.FleetError` from
     `gh_board.load_board`, and THIS FUNCTION does not catch it; `main()` does, exiting 2 with
     the error on stderr. That is a loud failure of the WHOLE invocation, not a skipped station
     write — an unusable declaration is a misconfiguration to fix, not an absence to tolerate."""
@@ -545,7 +545,7 @@ def load_recorded(feat_dir):
            "source_issues": [], "build_entry": None}
     try:
         doc = artifact_accessors.load_feature_json(path)
-    except feature_json_write.FeatureJsonError as e:
+    except artifact_accessors.FeatureJsonError as e:
         # Absent (returned as None below, never raised) and malformed (this branch) stay
         # distinct on purpose — see the docstring above.
         raise SystemExit(f"gh-sync: {e}. Refusing to sync rather than risk duplicate issues.")
@@ -770,7 +770,7 @@ def _record_pr(feat_dir, repo, pr_arg=None):
     path = os.path.join(feat_dir, "feature.json")
     try:
         doc = artifact_accessors.load_feature_json(path)
-    except feature_json_write.FeatureJsonError:
+    except artifact_accessors.FeatureJsonError:
         print(f"gh-sync: {path} could not be read — pr not recorded")
         return
     existing = doc.get("pr")
@@ -1329,7 +1329,7 @@ def _projected_for(feat_dir, rec):
         refuse(f"the plan at {plan_path} failed to load — {exc}", stream=sys.stderr)
     try:
         return gh_board.project(plan_doc, rec)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         # A VOCABULARY MISS REFUSES LOUDLY; IT NEVER TRACEBACKS (FEAT-41 T-16). project raises
         # FleetError naming the task and the value, and T-06 left that exception to escape —
         # measured, it crashed `status Ready` with a stack trace through main(). A stack trace is
@@ -2324,7 +2324,7 @@ def main():
         _BUILD_ENTRY["feat_dir"] = feat_dir
     try:
         repo, board, issue_types = load_config(root)
-    except factory_config.FleetError as e:
+    except artifact_accessors.FleetError as e:
         # An unusable board declaration is a LOUD failure of the whole invocation (D-01,
         # D-02, D-07) — never a printed note followed by business as usual. Exit code 2
         # matches board-station.py's pinned value and factory_cli.EXIT_REFUSED's wider

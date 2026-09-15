@@ -23,6 +23,7 @@ ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
+import artifact_accessors
 
 # Repo root: four levels above .agents/skills/harness/bin. CLAUDE_PROJECT_DIR
 # overrides when the caller has already resolved it (run-unit-tests.py does).
@@ -188,7 +189,7 @@ def test_manifest_domains_matches_the_regex_walk_on_the_real_manifest():
     import harness_yaml as hy
 
     for agent, (expected_mine, expected_shared) in COLLECT_FIXTURE.items():
-        mine, shared = hy.manifest_domains(MANIFEST_PATH, agent)
+        mine, shared = artifact_accessors.manifest_domains(MANIFEST_PATH, agent)
         assert list(mine) == expected_mine, (
             f"{agent}: mine mismatch\n  got:      {list(mine)!r}\n  expected: {expected_mine!r}"
         )
@@ -257,7 +258,7 @@ def _docs_domain_census(manifest_path):
 
     docs_grants = {}
     for name in personas:
-        mine, _shared = hy.manifest_domains(manifest_path, name)
+        mine, _shared = artifact_accessors.manifest_domains(manifest_path, name)
         docs_grants[name] = sorted(
             path for path in mine if "docs" in path.split("/")
         )
@@ -398,7 +399,7 @@ teams:
         manifest_path = os.path.join(tmp, "team-config.yaml")
         with open(manifest_path, "w", encoding="utf-8") as f:
             f.write(manifest)
-        mine, shared = hy.manifest_domains(manifest_path, "agentX")
+        mine, shared = artifact_accessors.manifest_domains(manifest_path, "agentX")
         assert "p-yes" not in mine, f"read: yes leaked into mine: {mine!r}"
         assert "p-true" not in mine, f"read: True leaked into mine: {mine!r}"
         assert "p-yes-off" in mine, f"read: no wrongly excluded: {mine!r}"
@@ -814,7 +815,7 @@ def test_load_plan_accepts_a_well_formed_plan():
     import harness_yaml as hy
 
     with tempfile.TemporaryDirectory() as tmp:
-        doc = hy.load_plan(_plan(tmp, GOOD_PLAN))
+        doc = artifact_accessors.load_plan(_plan(tmp, GOOD_PLAN))
         assert doc["tasks"][0]["files"] == ["src/a.py", "src/b.py"], doc["tasks"][0]["files"]
         assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
 
@@ -851,7 +852,7 @@ def test_every_required_task_field_is_actually_required():
         del doc["tasks"][0][field]
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                hy.load_plan(_plan(tmp, yaml.safe_dump(doc)))
+                artifact_accessors.load_plan(_plan(tmp, yaml.safe_dump(doc)))
             except hy.PlanSchemaError as e:
                 assert field in str(e), (
                     f"omitting {field!r} raised, but the message does not name it: {e}")
@@ -884,7 +885,7 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
     station_only = ("schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"
                     "station_only: true\ntasks: []\n")
     with tempfile.TemporaryDirectory() as tmp:
-        doc = hy.load_plan(_plan(tmp, station_only))
+        doc = artifact_accessors.load_plan(_plan(tmp, station_only))
         assert doc["tasks"] == [], doc["tasks"]
         assert doc["status"] == "review", doc["status"]
         assert doc["station_only"] is True, doc["station_only"]
@@ -925,7 +926,7 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
     ):
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                hy.load_plan(_plan(tmp, text))
+                artifact_accessors.load_plan(_plan(tmp, text))
             except hy.PlanSchemaError:
                 pass
             else:
@@ -969,7 +970,7 @@ def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     for label, text in cases.items():
         with tempfile.TemporaryDirectory() as tmp:
             try:
-                hy.load_plan(_plan(tmp, text))
+                artifact_accessors.load_plan(_plan(tmp, text))
             except hy.YamlParseError:
                 continue
             raise AssertionError(f"ACCEPTED what it must reject: {label}")
@@ -989,7 +990,7 @@ def test_load_plan_backticked_path_is_not_silently_cleaned():
 
     text = GOOD_PLAN.replace("      - src/a.py", "      - src/a.py (delete)")
     with tempfile.TemporaryDirectory() as tmp:
-        doc = hy.load_plan(_plan(tmp, text))
+        doc = artifact_accessors.load_plan(_plan(tmp, text))
         got = doc["tasks"][0]["files"][0]
         assert got == "src/a.py (delete)", f"loader altered the authored value: {got!r}"
 
@@ -1002,7 +1003,7 @@ def test_load_plan_reports_line_and_column_on_malformed_yaml():
 
     with tempfile.TemporaryDirectory() as tmp:
         try:
-            hy.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
+            artifact_accessors.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
         except hy.YamlParseError as e:
             assert "line" in str(e.original).lower(), f"no position in: {e.original}"
             return
@@ -1026,7 +1027,7 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
     import harness_yaml as hy
 
     tmpl = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "plan.yaml")
-    hy.load_plan(tmpl)  # raises on any drift
+    artifact_accessors.load_plan(tmpl)  # raises on any drift
 
     spec = open(os.path.join(ROOT, ".harness", "harness", "docs", "SPEC.md"),
                 encoding="utf-8").read()
@@ -1036,7 +1037,7 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
         path = os.path.join(tmp, "plan.yaml")
         with open(path, "w", encoding="utf-8") as f:
             f.write(m.group(1))
-        hy.load_plan(path)
+        artifact_accessors.load_plan(path)
 
 
 TESTS = [

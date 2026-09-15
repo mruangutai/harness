@@ -20,6 +20,7 @@ import sys
 import tempfile
 
 import yaml
+import artifact_accessors
 
 import factory_cli
 import factory_config as fc
@@ -249,7 +250,7 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
             try:
                 factory_cli.run(
                     "land", land._main,
-                    expected=(fc.FleetError, factory_gh.GhError),
+                    expected=(artifact_accessors.FleetError, factory_gh.GhError),
                 )
             except SystemExit as e:
                 code = e.code

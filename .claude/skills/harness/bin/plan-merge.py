@@ -116,6 +116,7 @@ import yaml
 
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BIN_DIR)
+import artifact_accessors  # noqa: E402
 import factory_config  # noqa: E402  (local import, after sys.path fix-up)
 import feature_json_write  # noqa: E402
 import gh_board  # noqa: E402
@@ -228,7 +229,7 @@ def _legal_stations(resolved):
             board = gh_board.load_board(root)
             if board is not None:
                 stations = factory_config.station_names(board)
-        except factory_config.FleetError:
+        except artifact_accessors.FleetError:
             # An unusable board declaration is not this tool's error to report — the state gate
             # and every board writer already name it loudly. Fall back to the mandate so a
             # station write is still validated rather than waved through.

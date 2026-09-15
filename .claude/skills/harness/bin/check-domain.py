@@ -814,7 +814,7 @@ def domain_check():
         sys.exit(2)
 
     try:
-        globs, shared = harness_yaml.manifest_domains(manifest, agent)
+        globs, shared = _artifact_accessors.manifest_domains(manifest, agent)
     except harness_yaml.DuplicateKeyError as e:
         # A repeated key in the MANIFEST silently shadows the first (DEC-156's shape,
         # here in the rulebook itself). Which of two conflicting domain lists wins is

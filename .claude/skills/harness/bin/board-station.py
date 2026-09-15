@@ -141,7 +141,7 @@ def main(argv):
 
     try:
         board = gh_board.load_board(root)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         # An unusable board declaration is a caller-mistake-class refusal (D-01, D-07),
         # not an environmental precondition — str(exc) is printed VERBATIM, not composed,
         # because it already carries the offending key and the next step from

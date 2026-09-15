@@ -51,12 +51,12 @@ def load_board(root):
     `github` not a mapping, the whole file not a mapping, and the file absent or unparseable.
     The last is arguably correct: a project with no `harness.json` genuinely has no board.
 
-    EXACTLY ONE unusable shape RAISES `factory_config.FleetError` naming the harness.json path
-    and the offending key: a `github` block that IS a mapping and carries no `board` key
+    EXACTLY ONE unusable shape RAISES `artifact_accessors.FleetError` naming the harness.json
+    path and the offending key: a `github` block that IS a mapping and carries no `board` key
     (indistinguishable from a typo — never treated the same as an explicit null). A `board`
     present but not a mapping, or carrying any field `factory_config.validate_board` rejects
-    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to catch this must import
-    `factory_config` and catch `factory_config.FleetError`.
+    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to
+    catch this must catch `artifact_accessors.FleetError`.
 
     Field validation itself — including the digit-string-to-int coercion for `number` — is
     delegated ENTIRELY to `factory_config.validate_board`, the one board validator in the tree
@@ -75,7 +75,7 @@ def load_board(root):
     if not isinstance(github, dict):
         return None
     if "board" not in github:
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             "board key missing", "github.board", f"declare github.board in {path}",
         )
     board = github["board"]
@@ -232,7 +232,7 @@ def _task_card(task_id, number, by_id, legal):
     if station not in legal:
         # NAMES THE TASK ID AND THE VALUE. `value` is what the operator can act on, so it
         # carries both — a station alone would not say which task to go fix.
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             f"task {task_id} station not in the vocabulary",
             f"{task_id}={station}",
             _station_remedy(f"set-task-station --task {task_id} "),
@@ -266,7 +266,7 @@ def _parent_station(plan_doc, legal):
     """
     top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
     if top is not None and top not in legal:
-        raise factory_config.FleetError(
+        raise artifact_accessors.FleetError(
             "the feature's top-level station is not in the vocabulary",
             str(top),
             _station_remedy(),

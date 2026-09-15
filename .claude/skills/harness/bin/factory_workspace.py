@@ -192,4 +192,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run("workspace", _main, expected=(factory_config.FleetError,))
+    factory_cli.run("workspace", _main, expected=(artifact_accessors.FleetError,))

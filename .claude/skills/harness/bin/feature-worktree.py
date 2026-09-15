@@ -11,7 +11,7 @@ cannot be asserted (D-01) — so the worktree lifecycle ships as one CLI here, w
                       The repository path segment is the literal "harness". The default branch
                       is "main".
   owner/repo         a repository declared in .harness/factory/fleet.yaml's repos list. The
-                      declaration is loaded with factory_config.load_fleet(), the entry found
+                      declaration is loaded with artifact_accessors.load_fleet(), the entry found
                       with factory_config.repo_entry(), owner_root taken from
                       factory_config.workspace_path(fleet, name), the repository path segment
                       from the part of the name after the slash, and the default branch from
@@ -79,7 +79,7 @@ def resolve_repo(repo):
     try:
         fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
         entry = factory_config.repo_entry(fleet, repo)
-    except factory_config.FleetError as exc:
+    except artifact_accessors.FleetError as exc:
         sys.stderr.write(f"feature-worktree: {exc}\n")
         sys.exit(2)
 

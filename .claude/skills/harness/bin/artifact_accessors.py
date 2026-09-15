@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Public artifact readers: load_feature_json via feature_json_write; load_harness_json;
-load_plan and manifest_domains via harness_yaml; load_fleet via factory_config; load_frontmatter;
-load_omp_config; read_hook_payload; parse_gh_json; and write_harness_json.
+"""Canonical artifact readers and their public read errors.
+
+This module owns feature.json, plan.yaml, manifest-domain, fleet.yaml, frontmatter,
+OMP-config, hook-payload, GitHub-JSON, and harness.json reads.
 
 Sanctioned routes are write_feature_json, write_harness_json, plan-merge.py verbs,
 sync-agent-adapters.py, main-session-owned files, and the sole state.yaml reader trip-wire.
@@ -54,22 +55,214 @@ def load_harness_json(path=None, *, text=None, context=None):
     return _load_json_bytes(path, str(path))
 
 
+class FeatureJsonError(Exception):
+    """A feature.json read failed with an actionable next step."""
+
+    def __init__(self, what, value, next_step):
+        import factory_cli
+        self.next_step = next_step
+        super().__init__(factory_cli.body(what, value, next_step))
+
+
+def _feature_json_source(path, text, context):
+    label = context or ("feature.json" if path is None else str(path))
+    if (path is None) == (text is None):
+        raise FeatureJsonError(
+            "feature.json invalid", label, "supply exactly one source")
+    source_context = context or (
+        "in-memory feature.json" if text is not None else str(path))
+    if text is not None:
+        return text, source_context
+    if not os.path.exists(path):
+        return None, source_context
+    return _read_feature_json_text(path, source_context), source_context
+
+
 def load_feature_json(path=None, *, text=None, context=None):
-    """Delegate feature.json parsing to its existing locked-writer implementation."""
+    """Load a feature mapping from exactly one path or in-memory JSON text source."""
+    source_text, source_context = _feature_json_source(path, text, context)
+    if source_text is None:
+        return None
+    doc = _parse_feature_json_text(source_text, source_context)
+    _validate_recorded_blocks(doc, source_context)
+    return doc
+
+
+def _read_feature_json_text(path, context):
+    try:
+        with open(path, "rb") as source:
+            return source.read().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as error:
+        raise FeatureJsonError(
+            "feature.json unreadable", context, f"could not be read: {error}"
+        ) from error
+
+
+def _parse_feature_json_text(text, context):
+    try:
+        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
+                         parse_constant=_reject_constant)
+    except (TypeError, ValueError) as error:
+        raise FeatureJsonError(
+            "feature.json invalid", context, f"does not parse: {error}"
+        ) from error
+    if not isinstance(doc, dict):
+        raise FeatureJsonError(
+            "feature.json invalid", context,
+            f"parsed but is not a JSON mapping (got {type(doc).__name__})",
+        )
+    return doc
+
+
+def _positive_issue_number(value):
     import feature_json_write
-    return feature_json_write.load_feature_json(path, text=text, context=context)
+    number = feature_json_write.opt_int(value)
+    return number if number is not None and number >= 1 else None
+
+
+def _validate_recorded_parent(block, path, block_name):
+    if "parent" not in block or block["parent"] is None:
+        return
+    if _positive_issue_number(block["parent"]) is not None:
+        return
+    raise FeatureJsonError(
+        "feature.json invalid", path,
+        f"has a {block_name}.parent that is not a recorded issue number",
+    )
+
+
+def _validate_recorded_issues(block, path, block_name):
+    if "issues" not in block:
+        return
+    issues = block["issues"]
+    if not isinstance(issues, dict):
+        raise FeatureJsonError(
+            "feature.json invalid", path,
+            f"has a {block_name}.issues key that is not a JSON object",
+        )
+    for key, value in issues.items():
+        if _positive_issue_number(value) is None:
+            raise FeatureJsonError(
+                "feature.json invalid", path,
+                f"has a {block_name}.issues[{key!r}] value that is not a recorded issue number",
+            )
+
+
+def _validate_recorded_block(doc, path, block_name):
+    """Refuse malformed recorded issue fields in a present GitHub-style block."""
+    block = doc.get(block_name)
+    if not isinstance(block, dict):
+        return
+    _validate_recorded_parent(block, path, block_name)
+    _validate_recorded_issues(block, path, block_name)
+
+
+def _validate_recorded_blocks(doc, path):
+    """Validate recorded GitHub and factory issue fields at the shared read boundary."""
+    for block_name in ("github", "factory"):
+        _validate_recorded_block(doc, path, block_name)
 
 
 def load_plan(path):
-    """Delegate validated plan loading to harness_yaml."""
+    """Load a plan through strict YAML parsing and the canonical plan validator."""
     import harness_yaml
-    return harness_yaml.load_plan(path)
+    return harness_yaml.validate_plan_doc(harness_yaml.load_file(path), path)
 
 
-def load_fleet(path):
-    """Delegate validated fleet loading to factory_config."""
-    import factory_config
-    return factory_config.load_fleet(path)
+class FleetError(Exception):
+    """A fleet declaration or fleet-derived value is unusable."""
+
+    def __init__(self, what, value, next_step):
+        import factory_cli
+        super().__init__(factory_cli.body(what, value, next_step))
+
+
+def _require_fleet_mapping(data, path):
+    if not isinstance(data, dict):
+        raise FleetError(
+            "fleet file invalid", path, "the file must parse to a YAML mapping"
+        )
+
+
+
+
+def _validate_fleet_header(data, path):
+    if data.get("schema") != "factory-fleet/1":
+        raise FleetError(
+            "fleet schema invalid", "schema", f"set schema: factory-fleet/1 in {path}"
+        )
+    if "board" in data:
+        raise FleetError(
+            "fleet key invalid", "board",
+            f"a whole-fleet board key is no longer read from here — each repository declares "
+            f"its own board remotely, in its own .harness/harness.json under github.board; "
+            f"remove board from {path}",
+        )
+
+
+def _validate_fleet_repo(entry, path):
+    name = entry.get("name") if isinstance(entry, dict) else None
+    if not isinstance(name, str) or "/" not in name:
+        raise FleetError(
+            "fleet repo entry invalid", "repos[].name",
+            f"each repo needs a name containing a slash (owner/repo) in {path}",
+        )
+    if not entry.get("default_branch"):
+        raise FleetError(
+            "fleet repo entry invalid", f"repos[{name}].default_branch",
+            f"set a non-empty default_branch for {name} in {path}",
+        )
+    if "board" in entry:
+        raise FleetError(
+            "fleet key invalid", f"repos[{name}].board",
+            f"the board is no longer declared in fleet.yaml — {name} declares its own board "
+            f"remotely, in its own .harness/harness.json under github.board. Remove "
+            f"repos[{name}].board from {path}",
+        )
+
+
+def _validate_fleet_repos(data, path):
+    repos = data.get("repos")
+    if not isinstance(repos, list) or not repos:
+        raise FleetError(
+            "fleet key invalid", "repos", f"set a non-empty list of repo entries in {path}"
+        )
+    for entry in repos:
+        _validate_fleet_repo(entry, path)
+
+
+def _validate_workspace_root(data, path):
+    workspace_root = data.get("workspace_root")
+    if not isinstance(workspace_root, str) or not os.path.isabs(workspace_root):
+        raise FleetError(
+            "fleet key invalid", "workspace_root",
+            f"set it to an absolute path in {path}",
+        )
+    if os.path.dirname(os.path.normpath(workspace_root)) == os.path.normpath(workspace_root):
+        raise FleetError(
+            "fleet key invalid", "workspace_root",
+            f"it is a filesystem root ({workspace_root!r}) in {path} — every path on "
+            f"the machine would resolve inside the factory workspace, so the write "
+            f"guard would refuse scratch paths it must ignore. Set it to a real "
+            f"directory that holds the checkouts.",
+        )
+
+
+def load_fleet(path=None):
+    """Load and validate a fleet declaration."""
+    import harness_yaml
+    if path is None:
+        import factory_config
+        path = factory_config.FLEET_PATH
+    try:
+        data = harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as error:
+        raise FleetError("fleet file invalid", path, f"does not load: {error}")
+    _require_fleet_mapping(data, path)
+    _validate_fleet_header(data, path)
+    _validate_fleet_repos(data, path)
+    _validate_workspace_root(data, path)
+    return data
 
 
 @dataclass(frozen=True)
@@ -90,99 +283,94 @@ class ManifestDomainsView:
     main_session_writes: tuple[str, ...] | None
 
 
-def _manifest_domains_view(manifest_path):
+def _require_manifest_mapping(parsed, manifest_path):
     import harness_yaml
-    parsed = harness_yaml.load_file(manifest_path)
-    if not isinstance(parsed, dict):
-        raise harness_yaml.YamlParseError(
-            manifest_path,
-            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
-            "an empty or malformed file cannot declare any domain")
+    if isinstance(parsed, dict):
+        return parsed
+    raise harness_yaml.YamlParseError(
+        manifest_path,
+        f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
+        "an empty or malformed file cannot declare any domain")
 
+
+def _manifest_nodes(root):
+    pending = [root]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            yield node
+            pending.extend(reversed(tuple(node.values())))
+        elif isinstance(node, list):
+            pending.extend(reversed(node))
+
+
+def _domain_paths(entries, *, include_read):
+    if not isinstance(entries, list):
+        return []
+    return [
+        str(entry["path"])
+        for entry in entries
+        if isinstance(entry, dict)
+        and "path" in entry
+        and (include_read or not entry.get("read"))
+    ]
+
+
+def _manifest_roles(parsed):
     names = []
     globs_by_name = {}
+    for node in _manifest_nodes(parsed):
+        raw_name = node.get("name")
+        if raw_name is None:
+            continue
+        name = str(raw_name)
+        if name not in globs_by_name:
+            names.append(name)
+            globs_by_name[name] = []
+        globs_by_name[name].extend(
+            _domain_paths(node.get("domain"), include_read=False))
+    return tuple(
+        ManifestRoleDomains(name, tuple(globs_by_name[name])) for name in names)
 
-    def walk(node):
-        if isinstance(node, dict):
-            domain = node.get("domain")
-            raw_name = node.get("name")
-            name = str(raw_name) if raw_name is not None else None
-            if name is not None:
-                if name not in globs_by_name:
-                    names.append(name)
-                    globs_by_name[name] = []
-                if isinstance(domain, list):
-                    for entry in domain:
-                        if isinstance(entry, dict) and "path" in entry and not entry.get("read"):
-                            globs_by_name[name].append(str(entry["path"]))
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
 
-    walk(parsed)
-    shared = tuple(
-        str(entry["path"])
-        for entry in (parsed.get("shared") or [])
-        if isinstance(entry, dict) and "path" in entry and not entry.get("read")
-    )
+def _matching_manifest_paths(parsed, agent):
+    paths = []
+    for node in _manifest_nodes(parsed):
+        name = node.get("name")
+        if name is None or (agent is not None and name != agent):
+            continue
+        paths.extend(_domain_paths(node.get("domain"), include_read=False))
+    return paths
+
+
+def _main_session_writes(parsed):
     main_session = parsed.get("main_session")
     writes = main_session.get("writes") if isinstance(main_session, dict) else None
-    main_session_writes = (
-        tuple(entry for entry in writes if isinstance(entry, str) and entry.strip())
-        if isinstance(writes, list) and writes else None
-    )
+    if not isinstance(writes, list) or not writes:
+        return None
+    return tuple(entry for entry in writes if isinstance(entry, str) and entry.strip())
+
+
+def _manifest_domains_view(parsed):
     return ManifestDomainsView(
-        tuple(ManifestRoleDomains(name, tuple(globs_by_name[name])) for name in names),
-        shared,
+        _manifest_roles(parsed),
+        tuple(_domain_paths(parsed.get("shared"), include_read=False)),
         "main_session" in parsed,
-        main_session_writes,
+        _main_session_writes(parsed),
     )
 
 
 def manifest_domains(manifest_path, agent=None, *, view=False):
-    """Return one agent's domains, all role domains, or an immutable all-role view.
-
-    ``view=True`` requires ``agent=None`` and returns ``ManifestDomainsView``.
-    """
-    if view:
-        if agent is not None:
-            raise TypeError("manifest_domains(view=True) requires agent=None")
-        return _manifest_domains_view(manifest_path)
-
+    """Return one agent's domains, all role domains, or an immutable all-role view."""
     import harness_yaml
-    if agent is not None:
-        return harness_yaml.manifest_domains(manifest_path, agent)
-
-    parsed = harness_yaml.load_file(manifest_path)
-    if not isinstance(parsed, dict):
-        raise harness_yaml.YamlParseError(
-            manifest_path,
-            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
-            "an empty or malformed file cannot declare any domain")
-
-    mine = []
-
-    def walk(node):
-        if isinstance(node, dict):
-            domain = node.get("domain")
-            if node.get("name") is not None and isinstance(domain, list):
-                for entry in domain:
-                    if isinstance(entry, dict) and "path" in entry and not entry.get("read"):
-                        mine.append(str(entry["path"]))
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
-
-    walk(parsed)
-    shared = [
-        str(entry["path"])
-        for entry in (parsed.get("shared") or [])
-        if isinstance(entry, dict) and "path" in entry and not entry.get("read")
-    ]
+    if view and agent is not None:
+        raise TypeError("manifest_domains(view=True) requires agent=None")
+    parsed = _require_manifest_mapping(
+        harness_yaml.load_file(manifest_path), manifest_path)
+    if view:
+        return _manifest_domains_view(parsed)
+    mine = _matching_manifest_paths(parsed, agent)
+    shared = _domain_paths(parsed.get("shared"), include_read=agent is not None)
     return mine, shared
 
 

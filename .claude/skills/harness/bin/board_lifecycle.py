@@ -1292,4 +1292,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run(_TOOL, _main, expected=(factory_gh.GhError, factory_config.FleetError))
+    factory_cli.run(_TOOL, _main, expected=(factory_gh.GhError, artifact_accessors.FleetError))

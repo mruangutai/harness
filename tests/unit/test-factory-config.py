@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Tests for factory_config.py, the only reader of .harness/factory/fleet.yaml (SC-08).
+"""Tests for the canonical fleet reader and factory configuration domain logic.
 
-WHY: every other factory tool takes its repository and board from this module and never from
-the working directory. The two collapse-to-cwd defects this module exists to close are: (1) a
-relative FLEET_PATH, which would resolve against whatever directory the tool happens to be run
-from — catastrophic for factory_workspace.py and factory_land.py, which run inside a CHECKOUT OF
+WHY: every factory tool takes its repository and board from the canonical accessor and the
+domain helpers in factory_config rather than from the working directory. The two
+collapse-to-cwd defects this closes are: (1) a relative FLEET_PATH, which would resolve against
+whatever directory the tool runs from — catastrophic for factory_workspace.py and
+factory_land.py, which run inside a CHECKOUT OF
 ANOTHER REPOSITORY; and (2) an unlisted repository read as though it were configured, because
 nothing rejects it. Both are asserted here directly, along with the C-3 stream contract on
 --show and the nine ways a fleet file can be malformed. Nothing here spawns a subprocess (this
@@ -142,7 +143,7 @@ def config_doc(board):
 with tempfile.TemporaryDirectory() as td:
     good = good_fleet_dict()
     path = write_fleet(td, good)
-    fleet = fc.load_fleet(path)
+    fleet = accessors.load_fleet(path)
     check("(1) load_fleet round-trips repos[0].name",
           fleet["repos"][0]["name"] == "mruangutai/harness")
     check("(1) load_fleet round-trips workspace_root",
@@ -154,7 +155,7 @@ with tempfile.TemporaryDirectory() as td:
 
 # --- (3) INVERTED: a repos entry with no board is now the CORRECT shape -------------------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     check("(3) a repos entry has no board — this is the correct shape now",
           "board" not in fleet["repos"][0])
     # Also folds old (25)'s "'board' is absent from the loaded fleet" assertion — there is no
@@ -223,9 +224,9 @@ for name, mutate in BAD_CASES:
         mutate(d)
         path = write_fleet(td, d)
         try:
-            fc.load_fleet(path)
+            accessors.load_fleet(path)
             check(name, False, "did not raise FleetError")
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             RAISED_MESSAGES.append(str(e))
             check(name, True)
         except Exception as e:
@@ -237,9 +238,9 @@ with tempfile.TemporaryDirectory() as td:
     mut_top_level_board_present(d)
     path = write_fleet(td, d)
     try:
-        fc.load_fleet(path)
+        accessors.load_fleet(path)
         check("(8b) a leftover top-level board key raises FleetError", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check("(8b) a leftover top-level board key raises FleetError", True)
         # Discriminating, not "board" / "repos" substrings (those appear in almost every
         # FleetError this loader raises). "invalid: board —" pins the key to exactly "board"
@@ -281,9 +282,9 @@ for name, mutate in [
         mutate(d)
         path = write_fleet(td, d)
         try:
-            fc.load_fleet(path)
+            accessors.load_fleet(path)
             check(name, False, "did not raise FleetError")
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             RAISED_MESSAGES.append(str(e))
             check(name, True)
         except Exception as e:
@@ -302,7 +303,7 @@ _bool_board["number"] = True
 try:
     fc.validate_board(_bool_board, "github.board", "test-path")
     check("(14c) repos[].board.number is a bool, not an int", False, "did not raise")
-except fc.FleetError:
+except accessors.FleetError:
     check("(14c) repos[].board.number is a bool, not an int", True)
 except Exception as e:
     check("(14c) repos[].board.number is a bool, not an int", False, f"{type(e).__name__}: {e}")
@@ -329,13 +330,13 @@ for m in RAISED_MESSAGES:
 
 # --- (16)/(17). repo_entry on a listed and an unlisted name ---------------------------------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     entry = fc.repo_entry(fleet, "mruangutai/harness")
     check("(16) repo_entry finds the listed repo", entry["default_branch"] == "main")
     try:
         fc.repo_entry(fleet, "someone/unlisted")
         check("(17) repo_entry raises FleetError for an unlisted name", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check("(17) repo_entry raises FleetError for an unlisted name", True)
         check("(17) the message names the unlisted name", "someone/unlisted" in str(e), str(e))
 
@@ -352,9 +353,9 @@ with tempfile.TemporaryDirectory() as td:
     d["repos"][0]["board"] = board_dict(3)
     path = write_fleet(td, d)
     try:
-        fc.load_fleet(path)
+        accessors.load_fleet(path)
         check("load_fleet rejects a repos entry carrying a board key", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         msg = str(e)
         check("load_fleet rejects a repos entry carrying a board key",
               "repos[mruangutai/harness].board" in msg and "github.board" in msg
@@ -372,9 +373,9 @@ def _raises_fleeterror(mutate_fn):
         mutate_fn(d)
         path = write_fleet(td, d)
         try:
-            fc.load_fleet(path)
+            accessors.load_fleet(path)
             return False
-        except fc.FleetError:
+        except accessors.FleetError:
             return True
         except Exception:
             return False
@@ -414,7 +415,7 @@ for _key in SIX_STATIONS:
     try:
         fc.validate_board(_board, "github.board", "test-path")
         check(f"validate_board rejects a station list missing {_key}", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check(f"validate_board rejects a station list missing {_key}",
               "github.board.stations" in str(e), str(e))
     except Exception as e:
@@ -431,7 +432,7 @@ for _key in SIX_STATIONS:
     try:
         fc.validate_board(_board, "github.board", "test-path")
         check(f"validate_board refuses a declaration that renames {_key}", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check(f"validate_board refuses a declaration that renames {_key}",
               "github.board.stations" in str(e), str(e))
     except Exception as e:
@@ -447,7 +448,7 @@ for _shift in range(1, 6):
     try:
         fc.validate_board(_board, "github.board", "test-path")
         check(f"validate_board refuses the six names rotated by {_shift}", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check(f"validate_board refuses the six names rotated by {_shift}",
               "github.board.stations" in str(e), str(e))
     except Exception as e:
@@ -460,7 +461,7 @@ _mapping_board = board_dict(3, replace={k: k.capitalize() for k in SIX_STATIONS}
 try:
     fc.validate_board(_mapping_board, "github.board", "test-path")
     check("validate_board refuses the pre-FEAT-41 six-key MAPPING", False, "did not raise")
-except fc.FleetError as e:
+except accessors.FleetError as e:
     check("validate_board refuses the pre-FEAT-41 six-key MAPPING",
           "github.board.stations" in str(e), str(e))
 except Exception as e:
@@ -471,7 +472,7 @@ except Exception as e:
 try:
     fc.validate_board(board_dict(3, drop="done"), "github.board", "test-path")
     _remedy_ok, _remedy = False, "did not raise"
-except fc.FleetError as e:
+except accessors.FleetError as e:
     _remedy = str(e)
     _remedy_ok = all(s in _remedy for s in SIX_STATIONS)
 check("validate_board's stations remedy names all six station names to write",
@@ -484,7 +485,7 @@ try:
     fc.validate_board(_five_pre_widening, "github.board", "test-path")
     check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
           False, "did not raise")
-except fc.FleetError as e:
+except accessors.FleetError as e:
     check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
           "github.board.stations" in str(e), str(e))
 except Exception as e:
@@ -498,7 +499,7 @@ try:
     fc.validate_board(_seven_board, "github.board", "test-path")
     check("(X) validate_board rejects a seventh station that adds abandoned", False,
           "did not raise")
-except fc.FleetError:
+except accessors.FleetError:
     check("(X) validate_board rejects a seventh station that adds abandoned", True)
 except Exception as e:
     check("(X) validate_board rejects a seventh station that adds abandoned", False,
@@ -564,7 +565,7 @@ for _bad in (fc.TERMINAL_MARKER, "Done", "Icebox", "", "DONE"):
     try:
         _got = fc.station_column(_bad)
         check(f"station_column({_bad!r}) raises FleetError", False, f"returned {_got!r}")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check(f"station_column({_bad!r}) raises FleetError",
               all(s in str(e) for s in SIX_STATIONS), str(e))
     except Exception as e:
@@ -588,12 +589,12 @@ check("station_names returns the six mandated stations as a tuple", _names_ok, _
 def board_for_raise_case(shape_name, doc, present, absent=None,
                           repo="mruangutai/harness", branch="main"):
     with tempfile.TemporaryDirectory() as td:
-        fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+        fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
         with patched_file_at_ref(lambda r, p, ref, _doc=doc: json.dumps(_doc)):
             try:
                 fc.board_for(fleet, repo)
                 ok, msg = False, "did not raise"
-            except fc.FleetError as e:
+            except accessors.FleetError as e:
                 msg = str(e)
                 ok = (f"{repo}@{branch}:.harness/harness.json" in msg) and (present in msg)
                 if absent is not None:
@@ -634,12 +635,12 @@ board_for_raise_case("a station value is empty", config_doc(_b_station_value_emp
 
 # --- board_for raises when the product config declares no board (github block absent) --------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     with patched_file_at_ref(lambda r, p, ref: json.dumps({})):
         try:
             fc.board_for(fleet, "mruangutai/harness")
             ok, msg = False, "did not raise"
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             ok, msg = True, str(e)
         except Exception as e:
             ok, msg = False, f"{type(e).__name__}: {e}"
@@ -655,7 +656,7 @@ with tempfile.TemporaryDirectory() as td:
         ],
         "workspace_root": "/tmp/does-not-need-to-exist/factories",
     }
-    fleet = fc.load_fleet(write_fleet(td, _two_repo_fleet))
+    fleet = accessors.load_fleet(write_fleet(td, _two_repo_fleet))
     # BOTH repos now declare the SAME six stations, because FEAT-41 T-01 removed the freedom to
     # name a column per repo. What still varies per repo — and is what this case actually proves
     # board_for resolves — is the board NUMBER and the owner.
@@ -680,7 +681,7 @@ with tempfile.TemporaryDirectory() as td:
 
 # (i) reads the remote at default_branch, with NO checkout present on disk.
 with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
     _repo = "mruangutai/harness"
     _board = board_dict(3)
     with patched_file_at_ref(lambda r, p, ref, _b=_board: json.dumps(config_doc(_b))):
@@ -705,14 +706,14 @@ check("product_config remote harness.json text is accepted by load_harness_json"
       _remote_ok, _remote_doc)
 # T-03: remote contents must take the canonical strict parser, not json.loads directly.
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     fc.clear_product_config_memo()
     _strict_remote = json.dumps(config_doc(board_dict(3)))[:-1] + ',"strict_probe":NaN}'
     with patched_file_at_ref(lambda r, p, ref: _strict_remote):
         try:
             fc.product_config(fleet, "mruangutai/harness")
             _strict_ok, _strict_detail = False, "did not raise"
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             _strict_detail = str(e)
             _strict_ok = "mruangutai/harness" in _strict_detail
         except Exception as e:
@@ -728,7 +729,7 @@ with tempfile.TemporaryDirectory() as td:
     # "main" is a 4-character token that could appear in ordinary next_step prose.
     _d = deep_copy(good_fleet_dict())
     _d["repos"][0]["default_branch"] = "trunk-xyzzy"
-    fleet = fc.load_fleet(write_fleet(td, _d))
+    fleet = accessors.load_fleet(write_fleet(td, _d))
 
     def _boom(repo, path, ref):
         raise fc.factory_gh.GhError(
@@ -740,7 +741,7 @@ with tempfile.TemporaryDirectory() as td:
         try:
             fc.product_config(fleet, "mruangutai/harness")
             _ok, _msg = False, "did not raise"
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             _msg = str(e)
             _ok = ("mruangutai/harness" in _msg and ".harness/harness.json" in _msg
                    and "trunk-xyzzy" in _msg)
@@ -753,14 +754,14 @@ with tempfile.TemporaryDirectory() as td:
 with tempfile.TemporaryDirectory() as td:
     _d = deep_copy(good_fleet_dict())
     _d["repos"][0]["default_branch"] = "trunk-not-json"
-    fleet = fc.load_fleet(write_fleet(td, _d))
+    fleet = accessors.load_fleet(write_fleet(td, _d))
 
     with patched_file_at_ref(lambda r, p, ref: "not { valid json at all"):
         try:
             fc.product_config(fleet, "mruangutai/harness")
             _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
             _msg = "did not raise"
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             _msg = str(e)
             _type_ok = True
             _repo_ok = "mruangutai/harness" in _msg
@@ -776,14 +777,14 @@ with tempfile.TemporaryDirectory() as td:
 with tempfile.TemporaryDirectory() as td:
     _d = deep_copy(good_fleet_dict())
     _d["repos"][0]["default_branch"] = "trunk-not-mapping"
-    fleet = fc.load_fleet(write_fleet(td, _d))
+    fleet = accessors.load_fleet(write_fleet(td, _d))
 
     with patched_file_at_ref(lambda r, p, ref: json.dumps([1, 2, 3])):
         try:
             fc.product_config(fleet, "mruangutai/harness")
             _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
             _msg = "did not raise"
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             _msg = str(e)
             _type_ok = True
             _repo_ok = "mruangutai/harness" in _msg
@@ -798,7 +799,7 @@ with tempfile.TemporaryDirectory() as td:
 
 # (iii) never falls back to a checkout, even when one exists on disk with a DIFFERENT board.
 with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
     _repo = "mruangutai/harness"
     _remote_board = board_dict(3)
     _checkout_board = board_dict(9)
@@ -817,7 +818,7 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
 # checkout's board number (777333) is a value used nowhere else in this file, so a fallback would
 # be caught either by the raise not happening or by the value leaking into the message.
 with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
     _repo = "mruangutai/harness"
     _stale_checkout_board = board_dict(777333)
     _checkout_dir = fc.workspace_path(fleet, _repo)
@@ -838,7 +839,7 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
         try:
             got = fc.board_for(fleet, _repo)
             _raised, _msg = False, "did not raise"
-        except fc.FleetError as e:
+        except accessors.FleetError as e:
             got, _raised, _msg = None, True, str(e)
     _ok = (_raised
            and len(_stub_calls) >= 1
@@ -849,7 +850,7 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
 # (iv) memoisation: a second board_for makes no second remote read; a failing read is never
 # cached (both required by THE MEMO TRAP).
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     _repo = "mruangutai/harness"
     _board = board_dict(3)
     _calls = []
@@ -880,7 +881,7 @@ with tempfile.TemporaryDirectory() as td:
         try:
             fc.board_for(fleet, _repo)
             _raised = False
-        except fc.FleetError:
+        except accessors.FleetError:
             _raised = True
         except Exception:
             _raised = False
@@ -894,7 +895,7 @@ with tempfile.TemporaryDirectory() as td:
 
 # --- (29)/(30)/(31): board_station and board_for, via product_config stub -------------------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, {
+    fleet = accessors.load_fleet(write_fleet(td, {
         "schema": "factory-fleet/1",
         "repos": [
             {"name": "mruangutai/harness", "default_branch": "main"},
@@ -918,21 +919,21 @@ with tempfile.TemporaryDirectory() as td:
           _val == fc.station_column("ready"), _val)
 
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     with patched_file_at_ref(
             lambda r, p, ref, _b=board_dict(3): json.dumps(config_doc(_b))):
         try:
             fc.board_station(fleet, "mruangutai/harness", "nonexistent")
             check("(30) board_station raises FleetError on an unknown key", False, "did not raise")
-        except fc.FleetError:
+        except accessors.FleetError:
             check("(30) board_station raises FleetError on an unknown key", True)
 
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict()))
     try:
         fc.board_for(fleet, "someone/unlisted")
         check("(31) board_for on an unlisted repository raises FleetError", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check("(31) board_for on an unlisted repository raises FleetError", True)
         check("(31) the message names the unlisted repository", "someone/unlisted" in str(e), str(e))
 
@@ -966,7 +967,7 @@ finally:
 
 # --- workspace_path -----------------------------------------------------------------------
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root="/srv/factories")))
+    fleet = accessors.load_fleet(write_fleet(td, good_fleet_dict(workspace_root="/srv/factories")))
     check("(22) workspace_path joins workspace_root with the name after the slash",
           fc.workspace_path(fleet, "owner/name") == os.path.join("/srv/factories", "name"),
           fc.workspace_path(fleet, "owner/name"))
@@ -983,7 +984,7 @@ with tempfile.TemporaryDirectory() as td:
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                fc.factory_cli.run("config", fc._main, expected=(fc.FleetError,))
+                fc.factory_cli.run("config", fc._main, expected=(accessors.FleetError,))
             except SystemExit as e:
                 code = e.code
     finally:
@@ -1009,7 +1010,7 @@ with tempfile.TemporaryDirectory() as td:
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                fc.factory_cli.run("config", fc._main, expected=(fc.FleetError,))
+                fc.factory_cli.run("config", fc._main, expected=(accessors.FleetError,))
             except SystemExit as e:
                 code = e.code
     finally:
@@ -1023,9 +1024,9 @@ with tempfile.TemporaryDirectory() as td:
 
 
 # ==========================================================================
-# X — SC-18: "one fleet loader is the only reader of the fleet file," asserted STATICALLY, the
-# same shape as SC-03's accepted evidence (a mechanical enumeration over factory_*.py), not by
-# reading seven files.
+# X — SC-18: the canonical fleet loader is the only reader of the fleet file, asserted
+# STATICALLY across artifact_accessors.py and every factory_*.py rather than by reading files
+# by hand.
 #
 # THE TRAP: "fleet.yaml" and "FLEET_PATH" are MENTIONED all over the codebase — in argparse
 # --help strings, in an error message that PRINTS the resolved path, as a docstring word. A
@@ -1037,9 +1038,9 @@ with tempfile.TemporaryDirectory() as td:
 # first argument as fleet-bearing two ways: (a) its source text names "fleet" (catches
 # `args.fleet`, the `--fleet` CLI destination, any literal fleet.yaml path — the realistic shape
 # a bypass would take), or (b) it is a parameter/local variable traced back, within the same
-# scope, to a default value of `FLEET_PATH` (catches factory_config.py's own
-# `load_fleet(path=FLEET_PATH)`, whose read call is `harness_yaml.load_file(path)` — the argument
-# NAME says nothing about "fleet" at all, so (a) alone would miss the genuine reader).
+# scope, to an assignment from `factory_config.FLEET_PATH` (catches
+# artifact_accessors.py's `load_fleet(path=None)`, whose read call is
+# `harness_yaml.load_file(path)` — the argument name says nothing about "fleet").
 # ==========================================================================
 
 def _factory_files(bin_dir):
@@ -1132,6 +1133,7 @@ def _find_fleet_reads(bin_dir, files):
 
 _BIN_DIR = os.path.dirname(os.path.abspath(fc.__file__))
 _FACTORY_FILES = _factory_files(_BIN_DIR)
+_SCANNED_FILES = ["artifact_accessors.py"] + _FACTORY_FILES
 
 # Self-test of _find_fleet_reads itself, against a throwaway fixture — not the real factory_*.py
 # files — carrying exactly the two shapes a prior cut of the scanner silently missed: (a) a
@@ -1179,16 +1181,16 @@ check(
     (_FACTORY_FILES, _selftest_hits),
 )
 
-_fleet_reads = _find_fleet_reads(_BIN_DIR, _FACTORY_FILES)
+_fleet_reads = _find_fleet_reads(_BIN_DIR, _SCANNED_FILES)
 check(
-    "(X) SC-18: exactly one scope, anywhere in factory_*.py (module scope or any function), "
+    "(X) SC-18: exactly one scope in artifact_accessors.py and factory_*.py "
     "opens/parses the fleet file",
     len(_fleet_reads) == 1,
     _fleet_reads,
 )
 check(
-    "(X) SC-18: that one reader is factory_config.py's load_fleet — no other tool bypasses it",
-    len(_fleet_reads) == 1 and _fleet_reads[0][0] == "factory_config.py"
+    "(X) SC-18: that one reader is artifact_accessors.py's load_fleet — no other tool bypasses it",
+    len(_fleet_reads) == 1 and _fleet_reads[0][0] == "artifact_accessors.py"
     and _fleet_reads[0][1] == "load_fleet",
     _fleet_reads,
 )
@@ -1201,9 +1203,9 @@ with tempfile.TemporaryDirectory() as td:
     _bad_path = os.path.join(td, "fleet.yaml")
     open(_bad_path, "w", encoding="utf-8").write("repos: [\n  bad: [[[")
     try:
-        fc.load_fleet(_bad_path)
+        accessors.load_fleet(_bad_path)
         check("(X) issue #208: unparseable fleet.yaml raises FleetError", False, "did not raise")
-    except fc.FleetError as e:
+    except accessors.FleetError as e:
         check("(X) issue #208: unparseable fleet.yaml raises FleetError", True)
         check("(X) issue #208: the FleetError names the file path", _bad_path in str(e), str(e))
     except Exception as e:

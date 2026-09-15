@@ -126,7 +126,7 @@ def _repo_arg_for_segment(segment):
     if segment == "harness":
         return "harness"
     try:
-        fleet = factory_config.load_fleet()
+        fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     except Exception:
         return None
     for entry in fleet.get("repos", []):

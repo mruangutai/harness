@@ -2080,7 +2080,7 @@ def case_canonical_reader_second_state_reader():
 
 
 def case_canonical_reader_live_baseline():
-    """The checked-in inventory is complete while migration rows deliberately keep audit red."""
+    """The checked-in inventory and permanent audit are terminally canonical."""
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
     mod = cpr()
@@ -2093,8 +2093,8 @@ def case_canonical_reader_live_baseline():
     ]
     check("canonical_reader_live_classification_consistent",
           migration_findings == [], repr(migration_findings))
-    check("canonical_reader_live_baseline_is_nonempty_and_red",
-          result["unresolved"] > 0 and result["exit_code"] in {1, 2}, repr(result))
+    check("canonical_reader_live_audit_is_zero",
+          result["unresolved"] == 0 and result["exit_code"] == 0, repr(result))
     converted = {
         "bash-write-guard.py", "branch-create-gate.py", "check-domain.py",
         "check-state.py", "dispatch-guard.py", "inject-expertise.py",
@@ -2111,10 +2111,205 @@ def case_canonical_reader_task_postconditions():
     classification = os.path.join(
         TESTS_DIR, "canonical-reader-classification.json")
     mod = cpr()
-    for task in ("T-03", "T-04", "T-05"):
+    for task in ("T-03", "T-04", "T-05", "T-06", "T-07"):
         findings = mod.classification_task_findings(ROOT, classification, task)
         check(f"canonical_reader_{task}_postcondition",
               findings == [], repr(findings))
+
+
+def case_canonical_reader_unclassified_remedies():
+    """Every raw parse category and an aliased call fail with an exact canonical remedy."""
+    mod = cpr()
+    source = """import json as j
+import yaml as y
+import harness_yaml as hy
+import factory_config as fc
+import feature_json_write as fw
+
+def raw(stream, text, path):
+    j.load(stream)
+    j.loads(text)
+    y.safe_load(text)
+    hy.load_file(path)
+    hy.load_str(text, path)
+    hy.load_plan(path)
+    fc.load_fleet(path)
+    hy.manifest_domains(path, "agent")
+    fw.load_feature_json(path)
+"""
+    candidates = mod.reader_candidates_from_source(source, "new-reader.py")
+    document = {
+        "schema": "canonical-reader-classification/1",
+        "scanned_files": ["new-reader.py"],
+        "rows": [],
+    }
+    findings = mod.reader_classification_findings(
+        candidates, ["new-reader.py"], document, {})
+    remedies = {
+        "json_file": "artifact_accessors.load_harness_json",
+        "json_string": "artifact_accessors.parse_gh_json",
+        "pyyaml": "artifact_accessors.load_frontmatter",
+        "harness_yaml_file": "artifact_accessors.load_plan",
+        "harness_yaml_string": "artifact_accessors.load_frontmatter",
+        "load_plan": "artifact_accessors.load_plan",
+        "load_fleet": "artifact_accessors.load_fleet",
+        "manifest_domains": "artifact_accessors.manifest_domains",
+        "load_feature_json": "artifact_accessors.load_feature_json",
+    }
+    for category, remedy in remedies.items():
+        check(
+            f"canonical_reader_unclassified_{category}_names_exact_remedy",
+            any(
+                "new-reader.py::raw" in finding
+                and category in finding
+                and f"remedy={remedy}" in finding
+                and "PLAN AMENDMENT REQUIRED" in finding
+                for finding in findings
+            ),
+            repr(findings),
+        )
+
+
+def _terminal_t07_fixture():
+    mod = cpr()
+    classification = os.path.join(
+        TESTS_DIR, "canonical-reader-classification.json")
+    with open(classification, encoding="utf-8") as source:
+        rows = json.load(source)["rows"]
+    candidates, _scanned, scan_findings = mod._scan_reader_tree(ROOT)
+    assert scan_findings == [], scan_findings
+    return mod, rows, candidates
+
+
+def _terminal_finding_matches(finding, row_id, state=None):
+    required = [
+        row_id,
+        "observed state=",
+        "expected task=T-07 disposition=canonical remedy=",
+        "PLAN AMENDMENT REQUIRED",
+    ]
+    if state is not None:
+        required.append(f"observed state={state}")
+    return all(token in finding for token in required)
+
+
+def _check_terminal_failure(label, findings, row_id, state=None):
+    check(
+        f"canonical_reader_T07_terminal_rejects_{label}",
+        any(
+            _terminal_finding_matches(finding, row_id, state)
+            for finding in findings
+        ),
+        repr(findings),
+    )
+
+
+def _check_t07_metadata_mutants(mod, original_rows, candidates, target):
+    mutations = (
+        ("missing", None, None),
+        ("task_drift", "task", "T-06"),
+        ("disposition_drift", "disposition", "exempt"),
+        ("remedy_drift", "remedy", "artifact_accessors.load_harness_json"),
+    )
+    for label, field, value in mutations:
+        rows = json.loads(json.dumps(original_rows))
+        row = next(item for item in rows if item["id"] == target["id"])
+        if field is None:
+            rows.remove(row)
+        else:
+            row[field] = value
+        findings = mod._t07_terminal_findings(rows, candidates)
+        _check_terminal_failure(label, findings, target["id"])
+
+
+def _check_t07_partial_raw(mod, original_rows, candidates, target):
+    canonical_call = next(
+        candidate for candidate in candidates
+        if candidate["file"] == target["file"]
+        and candidate["symbol"] == target["symbol"]
+        and candidate["callee"] == target["remedy"]
+    )
+    raw_candidate = dict(
+        canonical_call,
+        id=target["id"],
+        category=target["category"],
+        callee="harness_yaml.manifest_domains",
+    )
+    raw_candidates = [
+        candidate for candidate in candidates
+        if candidate is not canonical_call
+    ] + [raw_candidate]
+    findings = mod._t07_terminal_findings(original_rows, raw_candidates)
+    _check_terminal_failure(
+        "partial_canonical_and_raw", findings, target["id"], "raw")
+
+
+def _check_t07_extra_raw(mod, original_rows, candidates, target):
+    row_id = ".claude/skills/harness/bin/new-reader.py::raw::json_file#1"
+    extra_row = dict(
+        target,
+        id=row_id,
+        file=".claude/skills/harness/bin/new-reader.py",
+        symbol="raw",
+        category="json_file",
+        disposition="migrate",
+        remedy="artifact_accessors.load_harness_json",
+    )
+    extra_candidate = {
+        "id": row_id,
+        "file": extra_row["file"],
+        "symbol": extra_row["symbol"],
+        "category": extra_row["category"],
+        "callee": "json.load",
+        "line": 1,
+        "column": 0,
+    }
+    findings = mod._t07_terminal_findings(
+        original_rows + [extra_row], candidates + [extra_candidate])
+    _check_terminal_failure("new_raw_row", findings, row_id, "raw")
+
+
+def case_canonical_reader_t07_terminal_contract():
+    """The fixed eleven-row T-07 terminal contract cannot pass vacuously or partially."""
+    mod, original_rows, candidates = _terminal_t07_fixture()
+    target = next(
+        row for row in original_rows
+        if row.get("id") in mod.T07_TERMINAL_REMEDIES
+    )
+    _check_t07_metadata_mutants(
+        mod, original_rows, candidates, target)
+    _check_t07_partial_raw(
+        mod, original_rows, candidates, target)
+    _check_t07_extra_raw(
+        mod, original_rows, candidates, target)
+    findings = mod._t07_terminal_findings(original_rows, candidates)
+    check(
+        "canonical_reader_T07_terminal_accepts_exact_live_state",
+        findings == [],
+        repr(findings),
+    )
+
+
+def case_canonical_reader_discovery_cannot_narrow():
+    """Removing a converted file or narrowing discovery fails the checked-in census."""
+    mod = cpr()
+    expected = ["bash-write-guard.py", "check-state.py"]
+    document = {
+        "schema": "canonical-reader-classification/1",
+        "scanned_files": expected,
+        "rows": [],
+    }
+    for actual in (["check-state.py"], []):
+        findings = mod.reader_classification_findings([], actual, document, {})
+        check(
+            f"canonical_reader_discovery_rejects_{len(actual)}_of_{len(expected)}_files",
+            any(
+                "scanned-file manifest differs" in finding
+                and "PLAN AMENDMENT REQUIRED" in finding
+                for finding in findings
+            ),
+            repr(findings),
+        )
 
 
 CANONICAL_READER_CASES = (
@@ -2125,6 +2320,9 @@ CANONICAL_READER_CASES = (
     case_canonical_reader_second_state_reader,
     case_canonical_reader_live_baseline,
     case_canonical_reader_task_postconditions,
+    case_canonical_reader_unclassified_remedies,
+    case_canonical_reader_t07_terminal_contract,
+    case_canonical_reader_discovery_cannot_narrow,
 )
 
 
@@ -2154,88 +2352,6 @@ CASES = (
     case_41_t07_is_shipped_reads_the_plan,
 )
 
-def _normalized_enforcement_output(text):
-    text = text.replace("\r\n", "\n")
-    return re.sub(r"Ran (\d+) tests in [0-9.]+s",
-                  r"Ran \1 tests in <SECONDS>s", text)
-
-
-def _load_enforcement_cases(path):
-    try:
-        with open(path, encoding="utf-8") as stream:
-            baseline = json.load(stream)
-    except (OSError, UnicodeDecodeError, ValueError) as error:
-        print(f"enforcement baseline cannot be read: {error}", file=sys.stderr)
-        return None
-    if not isinstance(baseline, dict) or baseline.get("schema") != (
-            "canonical-reader-enforcement-baselines/1"):
-        print("enforcement baseline has an unsupported schema", file=sys.stderr)
-        return None
-    cases = baseline.get("cases")
-    if not isinstance(cases, list) or not cases:
-        print("enforcement baseline has no legacy cases", file=sys.stderr)
-        return None
-    return cases
-
-
-def _enforcement_case_identity(case, seen):
-    if not isinstance(case, dict) or case.get("partition") != "legacy":
-        return None, "baseline contains a missing or non-legacy case"
-    name = case.get("name")
-    if not isinstance(name, str) or name in seen:
-        return None, f"baseline case name is missing or duplicate: {name!r}"
-    seen.add(name)
-    return name, None
-
-
-def _enforcement_case_command(case, name):
-    command = case.get("command")
-    if (not isinstance(command, list) or not command
-            or not all(isinstance(part, str) for part in command)):
-        return None, f"{name}: command must be a non-empty string list"
-    return command, None
-
-
-def _enforcement_case_mismatch(case, seen):
-    name, error = _enforcement_case_identity(case, seen)
-    if error:
-        return error
-    command, error = _enforcement_case_command(case, name)
-    if error:
-        return error
-    result = subprocess.run(
-        command, cwd=ROOT, capture_output=True, text=True, timeout=300)
-    actual = {
-        "returncode": result.returncode,
-        "stdout": _normalized_enforcement_output(result.stdout),
-        "stderr": _normalized_enforcement_output(result.stderr),
-    }
-    expected = {
-        key: case.get(key) for key in ("returncode", "stdout", "stderr")
-    }
-    if actual == expected:
-        return None
-    changed = [key for key in actual if actual[key] != expected[key]]
-    return f"{name}: changed {', '.join(changed)}"
-
-
-def verify_enforcement_bytes(path):
-    """Compare every legacy test program's complete normalized process result."""
-    cases = _load_enforcement_cases(path)
-    if cases is None:
-        return 2
-    seen = set()
-    mismatches = []
-    for case in cases:
-        mismatch = _enforcement_case_mismatch(case, seen)
-        if mismatch:
-            mismatches.append(mismatch)
-    if mismatches:
-        for mismatch in mismatches:
-            print(f"ENFORCEMENT BYTE MISMATCH {mismatch}", file=sys.stderr)
-        return 1
-    print(f"PASS {len(cases)} legacy enforcement baseline(s)")
-    return 0
 
 
 def _call_symbol(tree, call):
@@ -2318,31 +2434,19 @@ def verify_classification_task(task_id):
     return 0
 
 
-# GRADE-2 REASON: this CLI entry point intentionally keeps ordered dispatch visible because
-# classification must short-circuit before the optional byte-baseline verification runs.
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv == ["--canonical-reader-self-test"]:
         for case in CANONICAL_READER_CASES:
             case()
-    elif "--verify-enforcement-bytes" in argv or "--classification-task" in argv:
-        status = 0
-        if "--classification-task" in argv:
-            index = argv.index("--classification-task")
-            if index + 1 >= len(argv):
-                print("--classification-task requires T-NN", file=sys.stderr)
-                sys.exit(2)
-            task_id = argv[index + 1]
-            del argv[index:index + 2]
-            status = verify_classification_task(task_id)
-        if status == 0 and "--verify-enforcement-bytes" in argv:
-            index = argv.index("--verify-enforcement-bytes")
-            if index + 1 >= len(argv):
-                print("--verify-enforcement-bytes requires a path", file=sys.stderr)
-                sys.exit(2)
-            path = argv[index + 1]
-            del argv[index:index + 2]
-            status = verify_enforcement_bytes(path)
+    elif "--classification-task" in argv:
+        index = argv.index("--classification-task")
+        if index + 1 >= len(argv):
+            print("--classification-task requires T-NN", file=sys.stderr)
+            sys.exit(2)
+        task_id = argv[index + 1]
+        del argv[index:index + 2]
+        status = verify_classification_task(task_id)
         if argv:
             print(f"unsupported arguments: {' '.join(argv)}", file=sys.stderr)
             sys.exit(2)

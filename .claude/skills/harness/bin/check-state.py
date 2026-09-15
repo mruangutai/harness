@@ -160,7 +160,7 @@ plan_docs = {}
 for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
     _feat = os.path.basename(os.path.dirname(_p))
     try:
-        plan_docs[_feat] = harness_yaml.load_plan(_p)
+        plan_docs[_feat] = artifact_accessors.load_plan(_p)
         plans.pop(_feat, None)
     except harness_yaml.YamlParseError as _e:
         # A plan that does not load is a VIOLATION, never a silent skip — the whole point
@@ -171,7 +171,7 @@ for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
 # --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately
 # followed by a digit truncates SILENTLY under YAML's plain-scalar comment rule -- `#217`
 # embedded in `title: close out the fix for #217` stops the scalar exactly at the `#` and the
-# loss is invisible: the file still parses, `harness_yaml.load_plan` returns cleanly, and
+# loss is invisible: the file still parses, `artifact_accessors.load_plan` returns cleanly, and
 # nothing downstream can tell a truncated value from one that never mentioned the number.
 #
 # THIS WALKS THE RAW SOURCE, NEVER THE PARSED DOC. The parsed doc is the wrong side of the
@@ -357,7 +357,7 @@ for feat in states:
 # field; that is the same shape as the B-7 fail-open the loader's own comment records.
 #
 # THE EXEMPTION CANNOT WIDEN SILENTLY, and the guarantee is that the MARKER IS NOT MINTABLE: a
-# plan carrying tasks cannot wear it, enforced at `harness_yaml.load_plan` because that is the one
+# plan carrying tasks cannot wear it, enforced at `artifact_accessors.load_plan` because that is
 # chokepoint every reader passes through -- a writer-side guard would leave the unmediated Bash
 # route open, which the BRIEF itself discloses.
 #
@@ -2153,14 +2153,10 @@ if _fs37 is not None and _sync37:
 # unconfigured environment must never become a red gate.
 try:
     import gh_board as _gb
-    # factory_config comes with it because load_board now RAISES FleetError rather than
-    # returning None on an unusable declaration (T-04), and a caller that wants to catch it
-    # must import the module that defines it. One try, not two: both ship with this
-    # repository, so either being unimportable is the same defect in the tree.
-    import factory_config as _fc26
+    # artifact_accessors owns FleetError, so INV-26 can classify the error without importing
+    # another domain module. gh_board still imports factory_config for board validation.
 except Exception as _gbe:
     _gb = None
-    _fc26 = None
     bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
                "disagrees with the plan would go unreported. The module ships with this "
                "repository — restore .agents/skills/harness/bin/gh_board.py."
@@ -2185,7 +2181,7 @@ if _gb is not None:
             _inv26_board = _gb.load_board(root)
         except Exception as _be26:
             _inv26_board = None
-            if _fc26 is not None and isinstance(_be26, _fc26.FleetError):
+            if isinstance(_be26, artifact_accessors.FleetError):
                 bad.append("INV-26 CANNOT RUN: %s — the board declaration is unusable, so a "
                            "card that disagrees with the plan would go unreported." % _be26)
             else:

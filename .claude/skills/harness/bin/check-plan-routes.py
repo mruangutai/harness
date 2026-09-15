@@ -381,7 +381,7 @@ def process_plan_yaml(path, findings, root, manifest_root):
     import harness_yaml
     import plan_anchors
     try:
-        doc = harness_yaml.load_plan(path)
+        doc = artifact_accessors.load_plan(path)
     except harness_yaml.YamlParseError as e:
         # Exit 2, not a violation. "The plan does not parse" is the checker being unable to
         # run, not the plan being wrong about routing — the same distinction B-7 turned on.
@@ -563,7 +563,7 @@ def _is_shipped(feature_dir):
     converted the whole checker into a liar.
 
     That is the same defect this change fixes in passing for check-state.py (`NameError:
-    cj`) and the same one harness_yaml.manifest_domains records as M-02. Three instances,
+    cj`) and the same one the manifest-domain accessor records as M-02. Three instances,
     one shape: a crash exits 1, and 1 is already spoken for. check-state.py:160-168 is the
     model — `isinstance(doc, dict)` is checked before anything reads a key off it.
     """
@@ -923,6 +923,51 @@ LEGAL_READER_EXEMPTIONS = {
 READER_CLASSIFICATION_SCHEMA = "canonical-reader-classification/1"
 READER_CLASSIFICATION_REL = os.path.join(
     "tests", "integration", "canonical-reader-classification.json")
+READER_CATEGORY_REMEDIES = {
+    "json_file": "artifact_accessors.load_harness_json",
+    "json_string": "artifact_accessors.parse_gh_json",
+    "pyyaml": "artifact_accessors.load_frontmatter",
+    "harness_yaml_file": "artifact_accessors.load_plan",
+    "harness_yaml_string": "artifact_accessors.load_frontmatter",
+    "load_plan": "artifact_accessors.load_plan",
+    "load_fleet": "artifact_accessors.load_fleet",
+    "manifest_domains": "artifact_accessors.manifest_domains",
+    "load_feature_json": "artifact_accessors.load_feature_json",
+}
+T07_TERMINAL_REMEDIES = {
+    ".claude/skills/harness/bin/bash-write-guard.py::<module>::manifest_domains#1":
+        "artifact_accessors.manifest_domains",
+    ".claude/skills/harness/bin/check-domain.py::<module>::manifest_domains#1":
+        "artifact_accessors.manifest_domains",
+    ".claude/skills/harness/bin/check-domain.py::domain_check::manifest_domains#1":
+        "artifact_accessors.manifest_domains",
+    ".claude/skills/harness/bin/check-plan-routes.py::process_plan_yaml::load_plan#1":
+        "artifact_accessors.load_plan",
+    ".claude/skills/harness/bin/check-plan-routes.py::_task_files::load_plan#1":
+        "artifact_accessors.load_plan",
+    ".claude/skills/harness/bin/check-state.py::<module>::load_plan#1":
+        "artifact_accessors.load_plan",
+    ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
+        "artifact_accessors.load_fleet",
+    ".claude/skills/harness/bin/post-merge-sweep.py::_repo_arg_for_segment::load_fleet#1":
+        "artifact_accessors.load_fleet",
+    ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
+        "artifact_accessors.load_feature_json",
+    ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
+        "artifact_accessors.load_plan",
+    ".claude/skills/harness/bin/harness_yaml.py::manifest_domains::harness_yaml_file#1":
+        "artifact_accessors.manifest_domains",
+}
+T07_RELOCATED_IMPLEMENTATIONS = {
+    ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
+        ("load_fleet", "harness_yaml_file", "harness_yaml.load_file"),
+    ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
+        ("_parse_feature_json_text", "json_string", "json.loads"),
+    ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
+        ("load_plan", "harness_yaml_file", "harness_yaml.load_file"),
+    ".claude/skills/harness/bin/harness_yaml.py::manifest_domains::harness_yaml_file#1":
+        ("manifest_domains", "harness_yaml_file", "harness_yaml.load_file"),
+}
 
 
 def _qualified_name(node, aliases):
@@ -1077,15 +1122,6 @@ def _row_lookup(rows):
     return lookup, findings
 
 
-def _candidate_mismatch(candidate, row):
-    for field in ("file", "symbol", "category"):
-        if row.get(field) != candidate[field]:
-            return (
-                f"{candidate['file']}::{candidate['symbol']} {candidate['category']} "
-                f"remedy={row.get('remedy', 'unknown')}: classification {field} "
-                f"is {row.get(field)!r}, expected {candidate[field]!r}. "
-                "PLAN AMENDMENT REQUIRED")
-    return None
 
 
 def _exemption_finding(row):
@@ -1137,51 +1173,6 @@ def _classification_shape_findings(document, scanned_files):
     return findings, rows
 
 
-def _live_row_findings(live, lookup):
-    findings = []
-    for candidate_id, candidate in live.items():
-        row = lookup.get(candidate_id)
-        if row is None:
-            findings.append(
-                f"{candidate['file']}::{candidate['symbol']} {candidate['category']} "
-                "remedy=unclassified: live AST row absent from artifact. "
-                "PLAN AMENDMENT REQUIRED")
-            continue
-        mismatch = _candidate_mismatch(candidate, row)
-        if mismatch:
-            findings.append(mismatch)
-    return findings
-
-
-def _classified_row_findings(row_id, row, live, task_files):
-    if row_id not in live:
-        return [
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy', 'unknown')}: artifact row absent from AST. "
-            "PLAN AMENDMENT REQUIRED"
-        ]
-    findings = []
-    disposition = row.get("disposition")
-    if disposition not in {"canonical", "migrate", "exempt"}:
-        findings.append(
-            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
-            f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
-            f"{disposition!r}. PLAN AMENDMENT REQUIRED")
-    if disposition == "exempt":
-        exemption = _exemption_finding(row)
-        if exemption:
-            findings.append(exemption)
-    route = _route_finding(row, task_files)
-    if route:
-        findings.append(route)
-    return findings
-
-
-def _artifact_row_findings(lookup, live, task_files):
-    findings = []
-    for row_id, row in lookup.items():
-        findings.extend(_classified_row_findings(row_id, row, live, task_files))
-    return findings
 
 
 def _state_reader_findings(rows):
@@ -1203,11 +1194,11 @@ def reader_classification_findings(candidates, scanned_files, document, task_fil
     findings, rows = _classification_shape_findings(document, scanned_files)
     if rows is None:
         return findings
-    lookup, duplicate_findings = _row_lookup(rows)
+    _lookup, duplicate_findings = _row_lookup(rows)
     findings.extend(duplicate_findings)
     live = {candidate["id"]: candidate for candidate in candidates}
-    findings.extend(_live_row_findings(live, lookup))
-    findings.extend(_artifact_row_findings(lookup, live, task_files))
+    findings.extend(_unaccounted_candidate_findings(candidates, rows))
+    findings.extend(_classified_rows_findings(rows, task_files, live, candidates))
     findings.extend(_state_reader_findings(rows))
     return findings
 
@@ -1224,8 +1215,7 @@ def _classification_document(path):
 
 
 def _task_files(root, plan_relative):
-    import harness_yaml
-    plan = harness_yaml.load_plan(os.path.join(root, plan_relative))
+    plan = artifact_accessors.load_plan(os.path.join(root, plan_relative))
     task_files = {}
     for task in plan["tasks"]:
         paths = []
@@ -1237,9 +1227,8 @@ def _task_files(root, plan_relative):
 
 
 _CLASSIFICATION_REMEDY_OVERRIDES = {
-    # Signed T-02/T-03 amendments made the concrete public accessors explicit
-    # after T-01 captured broader route labels. This temporary migration checker
-    # retires with the classification corpus in T-07.
+    # Signed T-02/T-03 amendments made the concrete public accessors explicit after T-01
+    # captured broader route labels. These overrides remain part of the permanent audit.
     ".claude/skills/harness/bin/factory_config.py::product_config::json_string#1":
         "artifact_accessors.load_harness_json",
     ".claude/skills/harness/bin/upgrade-config.py::load_json::json_file#1":
@@ -1252,21 +1241,34 @@ def _row_remedy(row):
         row.get("id"), row.get("remedy"))
 
 
+def _candidate_matches_canonical_row(candidate, row, remedy):
+    return (
+        candidate.get("file") == row.get("file")
+        and candidate.get("symbol") == row.get("symbol")
+        and candidate.get("callee") == remedy
+    )
+
+
+def _candidate_matches_relocated(candidate, relocated):
+    symbol, category, callee = relocated
+    return (
+        candidate.get("file") == ".claude/skills/harness/bin/artifact_accessors.py"
+        and candidate.get("symbol") == symbol
+        and candidate.get("category") == category
+        and candidate.get("callee") == callee
+    )
+
+
 def _row_is_canonical(row, candidates):
-    if row.get("id") == (
-            ".claude/skills/harness/bin/feature_json_write.py::"
-            "load_feature_json::json_string#1"):
+    relocated = T07_RELOCATED_IMPLEMENTATIONS.get(row.get("id"))
+    if relocated is not None:
         return any(
-            candidate.get("file") == row.get("file")
-            and candidate.get("symbol") == "_parse_feature_json_text"
-            and candidate.get("category") == "json_string"
+            _candidate_matches_relocated(candidate, relocated)
             for candidate in candidates
         )
     remedy = _row_remedy(row)
     return any(
-        candidate.get("file") == row.get("file")
-        and candidate.get("symbol") == row.get("symbol")
-        and candidate.get("callee") == remedy
+        _candidate_matches_canonical_row(candidate, row, remedy)
         for candidate in candidates
     )
 
@@ -1284,13 +1286,6 @@ def _candidate_is_public_accessor(candidate):
         ".claude/skills/harness/bin/artifact_accessors.py")
 
 
-def _candidate_is_feature_parser(candidate):
-    return (
-        candidate.get("file") == (
-            ".claude/skills/harness/bin/feature_json_write.py")
-        and candidate.get("symbol") == "_parse_feature_json_text"
-        and candidate.get("category") == "json_string"
-    )
 
 
 def _candidate_matches_remedy(candidate, row):
@@ -1306,7 +1301,6 @@ def _candidate_is_accounted(candidate, rows):
     return (
         candidate.get("id") in identities
         or _candidate_is_public_accessor(candidate)
-        or _candidate_is_feature_parser(candidate)
         or any(
             _candidate_matches_remedy(candidate, row)
             for row in rows if isinstance(row, dict)
@@ -1316,11 +1310,10 @@ def _candidate_is_accounted(candidate, rows):
 
 def _scanned_manifest_findings(scanned, document):
     expected = set(document.get("scanned_files", []))
-    expected.add(".claude/skills/harness/bin/artifact_accessors.py")
     if set(scanned) == expected:
         return []
     return [
-        "scanned-file manifest differs beyond artifact_accessors.py. "
+        "scanned-file manifest differs from the live Python tree. "
         "PLAN AMENDMENT REQUIRED"
     ]
 
@@ -1328,8 +1321,9 @@ def _scanned_manifest_findings(scanned, document):
 def _unaccounted_candidate_findings(candidates, rows):
     return [
         f"{candidate['file']}::{candidate['symbol']} "
-        f"{candidate['category']} remedy=unclassified: live AST row "
-        "absent from migration inventory. PLAN AMENDMENT REQUIRED"
+        f"{candidate['category']} "
+        f"remedy={READER_CATEGORY_REMEDIES.get(candidate['category'], 'artifact_accessors')}: "
+        "live AST row absent from migration inventory. PLAN AMENDMENT REQUIRED"
         for candidate in candidates
         if not _candidate_is_accounted(candidate, rows)
     ]
@@ -1341,29 +1335,48 @@ def _migration_row_findings(row, live, candidates):
     return [
         f"{row.get('file')}::{row.get('symbol')} "
         f"{row.get('category')} remedy={_row_remedy(row)}: "
-        "neither the classified reader nor its canonical remedy exists. "
+        "artifact row absent from AST and its canonical remedy does not exist. "
         "PLAN AMENDMENT REQUIRED"
     ]
 
 
-def _unmigrated_row_findings(row, live):
-    if row.get("id") in live:
+def _unmigrated_row_findings(row, live, candidates):
+    same_site = [
+        candidate for candidate in candidates
+        if candidate.get("file") == row.get("file")
+        and candidate.get("symbol") == row.get("symbol")
+        and candidate.get("category") == row.get("category")
+    ]
+    if row.get("id") in live or len(same_site) == 1:
         return []
     return [
         f"{row.get('file')}::{row.get('symbol')} "
-        f"{row.get('category')}: classified row disappeared. "
+        f"{row.get('category')}: artifact row absent from AST. "
         "PLAN AMENDMENT REQUIRED"
     ]
 
 
 def _classified_disposition_findings(row, live, candidates):
     disposition = row.get("disposition")
+    if disposition not in {"canonical", "migrate", "exempt"}:
+        return [
+            f"{row.get('file')}::{row.get('symbol')} {row.get('category')} "
+            f"remedy={row.get('remedy', 'unknown')}: illegal disposition "
+            f"{disposition!r}. PLAN AMENDMENT REQUIRED"
+        ]
     if disposition == "exempt":
+        findings = _unmigrated_row_findings(row, live, candidates)
         exemption = _exemption_finding(row)
-        return [exemption] if exemption else []
-    if disposition in {"migrate", "canonical"}:
-        return _migration_row_findings(row, live, candidates)
-    return _unmigrated_row_findings(row, live)
+        if exemption:
+            findings.append(exemption)
+        return findings
+    state = _migration_row_state(row, live, candidates)
+    if disposition == "canonical" and state != "canonical":
+        return [
+            f"{row.get('id')}: observed state={state}; expected disposition=canonical "
+            f"remedy={_row_remedy(row)}. PLAN AMENDMENT REQUIRED"
+        ]
+    return _migration_row_findings(row, live, candidates)
 
 
 def _classified_row_finding(row, task_files, live, candidates):
@@ -1375,11 +1388,81 @@ def _classified_row_finding(row, task_files, live, candidates):
         row, live, candidates)
 
 
+def _t07_terminal_observation(row_id, rows, live, candidates):
+    matches = [
+        row for row in rows
+        if isinstance(row, dict) and row.get("id") == row_id
+    ]
+    if not matches:
+        return "missing", None
+    if len(matches) != 1:
+        return f"duplicate({len(matches)})", matches[0]
+    row = matches[0]
+    return _migration_row_state(row, live, candidates), row
+
+
+def _t07_terminal_message(row_id, state, row, expected_remedy):
+    observed_task = row.get("task") if row else "<missing>"
+    observed_disposition = row.get("disposition") if row else "<missing>"
+    observed_remedy = row.get("remedy") if row else "<missing>"
+    return (
+        f"{row_id}: observed state={state} task={observed_task} "
+        f"disposition={observed_disposition} remedy={observed_remedy}; "
+        f"expected task=T-07 disposition=canonical remedy={expected_remedy}. "
+        "PLAN AMENDMENT REQUIRED"
+    )
+
+
+def _t07_row_matches_contract(state, row, expected_remedy):
+    return (
+        state == "canonical"
+        and row is not None
+        and row.get("task") == "T-07"
+        and row.get("disposition") == "canonical"
+        and row.get("remedy") == expected_remedy
+    )
+
+
+def _t07_expected_finding(row_id, expected_remedy, rows, live, candidates):
+    state, row = _t07_terminal_observation(
+        row_id, rows, live, candidates)
+    if _t07_row_matches_contract(state, row, expected_remedy):
+        return None
+    return _t07_terminal_message(row_id, state, row, expected_remedy)
+
+
+def _t07_extra_findings(rows, live, candidates):
+    findings = []
+    for row in rows:
+        if not isinstance(row, dict) or row.get("task") != "T-07":
+            continue
+        if row.get("id") in T07_TERMINAL_REMEDIES:
+            continue
+        state = _migration_row_state(row, live, candidates)
+        findings.append(_t07_terminal_message(
+            row.get("id", "<missing id>"), state, row,
+            "<no additional T-07 row>"))
+    return findings
+
+
+def _t07_terminal_findings(rows, candidates):
+    live = {candidate["id"]: candidate for candidate in candidates}
+    expected = [
+        _t07_expected_finding(
+            row_id, expected_remedy, rows, live, candidates)
+        for row_id, expected_remedy in T07_TERMINAL_REMEDIES.items()
+    ]
+    return (
+        [finding for finding in expected if finding]
+        + _t07_extra_findings(rows, live, candidates)
+    )
+
+
 def _selected_migration_rows(rows, task_id):
     return [
         row for row in rows
         if isinstance(row, dict) and row.get("task") == task_id
-        and row.get("disposition") == "migrate"
+        and row.get("disposition") in {"migrate", "canonical"}
     ]
 
 
@@ -1390,11 +1473,14 @@ def _task_migration_findings(rows, task_id, live, candidates):
     states = {
         _migration_row_state(row, live, candidates) for row in selected
     }
-    if "missing" not in states and len(states) == 1:
+    if (
+        states == {"canonical"}
+        and all(row.get("disposition") == "canonical" for row in selected)
+    ):
         return []
     return [
-        f"{task_id}: migration unit is partial ({', '.join(sorted(states))}). "
-        "PLAN AMENDMENT REQUIRED"
+        f"{task_id}: migration unit is not terminally canonical "
+        f"({', '.join(sorted(states))}). PLAN AMENDMENT REQUIRED"
     ]
 
 
@@ -1422,12 +1508,16 @@ def _valid_classification_findings(
     task_files, findings = _classification_structure(
         root, document, scanned, rows)
     live = {candidate["id"]: candidate for candidate in candidates}
-    return (
-        findings
-        + _unaccounted_candidate_findings(candidates, rows)
-        + _classified_rows_findings(rows, task_files, live, candidates)
-        + _task_migration_findings(rows, task_id, live, candidates)
-    )
+    findings.extend(_unaccounted_candidate_findings(candidates, rows))
+    findings.extend(
+        _classified_rows_findings(rows, task_files, live, candidates))
+    if task_id == "T-07":
+        findings.extend(_t07_terminal_findings(rows, candidates))
+    else:
+        findings.extend(
+            _task_migration_findings(
+                rows, task_id, live, candidates))
+    return findings
 
 
 def classification_task_findings(root, classification_path, task_id):

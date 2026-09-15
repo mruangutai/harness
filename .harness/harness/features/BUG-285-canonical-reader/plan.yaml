@@ -432,7 +432,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: This task changes enforcement sources, check-plan-routes.py, and their tests, all governed directly by DEC-174.
     depends_on: [T-06]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/artifact_accessors.py
       - .claude/skills/harness/bin/bash-write-guard.py

@@ -41,7 +41,7 @@ FIXTURE MECHANICS SHARED BY EVERY CASE THAT INVOKES A REAL `gh-sync.py ship` OR
     AND the MARKER `harness_boundary.resolve_root()` needs, independent of any environment
     variable), `.harness/harness/docs/SPEC.md` and `.harness/harness.json` (github.sync
     enabled, github.repo pinned, github.board an EXPLICIT null so `gh_board.load_board` never
-    raises `factory_config.FleetError`).
+    raises `artifact_accessors.FleetError`).
   - `_sweep_env` sets HARNESS_PROJECT_DIR to the fixture repo. `worktree_terminal.classify()`
     itself never needs this — a worktree's owner_root is parsed straight out of its own path by
     `_split_owner_segment_id`, and "harness"'s default_branch is the hardcoded literal "main" —

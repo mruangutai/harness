@@ -116,7 +116,7 @@ def load_factory(feat_dir):
     # This reader only converts the validated factory record into its local output shape.
     try:
         doc = artifact_accessors.load_feature_json(path)
-    except feature_json_write.FeatureJsonError as e:
+    except artifact_accessors.FeatureJsonError as e:
         factory_cli.refuse(TOOL, "feature.json invalid", path, e.next_step)
     if doc is None or "factory" not in doc:
         return factory
@@ -373,7 +373,7 @@ def _issue_type_overrides(fleet, repo):
     or invalid) yields {} so the defaults apply rather than aborting the run."""
     try:
         return gh_issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
-    except factory_config.FleetError:
+    except artifact_accessors.FleetError:
         return {}
 
 
@@ -473,7 +473,7 @@ def _main():
 
     # 2. the signed plan.
     plan_path = os.path.join(feat_dir, "plan.yaml")
-    # Issue #208: same fix as load_factory above — was a raw harness_yaml.load_plan call.
+    # Issue #208: same fix as load_factory above — this call once bypassed the plan accessor.
     try:
         plan = artifact_accessors.load_plan(plan_path)
     except harness_yaml.YamlParseError as e:
@@ -685,4 +685,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run(TOOL, _main, expected=(factory_config.FleetError, factory_gh.GhError))
+    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, factory_gh.GhError))

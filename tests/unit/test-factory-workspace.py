@@ -27,6 +27,7 @@ import sys
 import tempfile
 
 import yaml
+import artifact_accessors
 
 import factory_workspace as fw
 import factory_config as fc
@@ -135,7 +136,7 @@ def run_main(rec, extra_args, workspace_root):
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                fw.factory_cli.run("workspace", fw._main, expected=(fc.FleetError,))
+                fw.factory_cli.run("workspace", fw._main, expected=(artifact_accessors.FleetError,))
             except SystemExit as e:
                 code = e.code
     finally:

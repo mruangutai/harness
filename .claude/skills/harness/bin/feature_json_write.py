@@ -84,20 +84,6 @@ def parse_doc(base, display):
     return doc
 
 
-class FeatureJsonError(Exception):
-    """str() is always built with factory_cli.body(what, value, next_step) -- never by hand
-    -- the same precedent factory_config.FleetError set for fleet.yaml: `value` is always a
-    path or an offending detail the operator can act on, never a class name.
-
-    `next_step` also survives as its own attribute, so a caller that wants to build its own
-    factory_cli.refuse(...) call around a different `what`/`value` -- factory_decompose.py's
-    load_factory does, to keep its own established "feature.json invalid" wording -- can
-    reuse the underlying detail without nesting `body()` inside `body()`.
-    """
-
-    def __init__(self, what, value, next_step):
-        self.next_step = next_step
-        super().__init__(factory_cli.body(what, value, next_step))
 
 
 def _reject_nonfinite_constant(value):
@@ -122,87 +108,6 @@ def _reject_duplicate_keys(pairs):
     return result
 
 
-def load_feature_json(path=None, *, text=None, context=None):
-    """Load a feature mapping from exactly one path or in-memory JSON text source."""
-    if path is None and text is None:
-        raise FeatureJsonError(
-            "feature.json invalid", context or "feature.json", "supply exactly one source"
-        )
-    if path is not None and text is not None:
-        raise FeatureJsonError(
-            "feature.json invalid", context or str(path), "supply exactly one source"
-        )
-    source_context = context or ("in-memory feature.json" if text is not None else str(path))
-    if text is None:
-        if not os.path.exists(path):
-            return None
-        text = _read_feature_json_text(path, source_context)
-    doc = _parse_feature_json_text(text, source_context)
-    _validate_recorded_blocks(doc, source_context)
-    return doc
-
-
-def _read_feature_json_text(path, context):
-    try:
-        with open(path, "rb") as source:
-            return source.read().decode("utf-8")
-    except (OSError, UnicodeDecodeError) as error:
-        raise FeatureJsonError(
-            "feature.json unreadable", context, f"could not be read: {error}"
-        ) from error
-
-
-def _parse_feature_json_text(text, context):
-    try:
-        doc = json.loads(text, object_pairs_hook=_reject_duplicate_keys,
-                         parse_constant=_reject_nonfinite_constant)
-    except (TypeError, ValueError) as error:
-        raise FeatureJsonError(
-            "feature.json invalid", context, f"does not parse: {error}"
-        ) from error
-    if not isinstance(doc, dict):
-        raise FeatureJsonError(
-            "feature.json invalid", context,
-            f"parsed but is not a JSON mapping (got {type(doc).__name__})",
-        )
-    return doc
-
-
-
-
-def _validate_recorded_block(doc, path, block_name):
-    """Refuse malformed recorded issue fields in a present GitHub-style block."""
-    block = doc.get(block_name)
-    if not isinstance(block, dict):
-        return
-    if "parent" in block and block["parent"] is not None:
-        parent = opt_int(block["parent"])
-        if parent is None or parent < 1:
-            raise FeatureJsonError(
-                "feature.json invalid", path,
-                f"has a {block_name}.parent that is not a recorded issue number",
-            )
-    if "issues" not in block:
-        return
-    issues = block["issues"]
-    if not isinstance(issues, dict):
-        raise FeatureJsonError(
-            "feature.json invalid", path,
-            f"has a {block_name}.issues key that is not a JSON object",
-        )
-    for key, value in issues.items():
-        issue = opt_int(value)
-        if issue is None or issue < 1:
-            raise FeatureJsonError(
-                "feature.json invalid", path,
-                f"has a {block_name}.issues[{key!r}] value that is not a recorded issue number",
-            )
-
-
-def _validate_recorded_blocks(doc, path):
-    """Validate recorded GitHub and factory issue fields at the shared read boundary."""
-    for block_name in ("github", "factory"):
-        _validate_recorded_block(doc, path, block_name)
 
 def opt_int(value):
     """A recorded issue/milestone number as int, or None for `none`/absent/junk -- moved
