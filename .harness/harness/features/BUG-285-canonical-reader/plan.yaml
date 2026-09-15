@@ -3,7 +3,9 @@ feature: BUG-285-canonical-reader
 approval:
   date: '2026-09-15'
   approved_by: mruangutai
-  status: approved
+  status: pending
+  reset_at: '2026-09-15T13:57:08+00:00'
+  reset_reason: apply T-02, T-06
 status: building
 source_issues: [285, 1594]
 panel:
@@ -191,7 +193,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: done
+    status: ready
     files:
       - .claude/skills/harness/bin/artifact_accessors.py
       - .claude/skills/harness/bin/feature_json_write.py#load_feature_json
@@ -223,7 +225,13 @@ tasks:
 
       The module docstring must name each public reader and the sanctioned write or source route: write_feature_json, write_harness_json, plan-merge.py verbs, sync-agent-adapters.py, main-session-owned files, and the sole state.yaml reader trip-wire. Do not expose a route-table mapping or test prose. Make the T-01 classification recognize the four inward delegations as canonical accessor implementations while leaving caller migration rows unresolved for later tasks.
 
-      Generalize the existing public manifest_domains(path, agent=None) mode. When agent is omitted or None, return in the first tuple all non-read write-domain globs aggregated dynamically from every named role in the manifest, and return the shared write-domain globs in the second tuple. Do not hard-code a role list. Explicit-agent callers and behavior remain unchanged. Add focused test-first coverage in the already-listed tests/unit/test-artifact-accessors.py for all named roles, exclusion of read-only entries from the first tuple, separation of shared globs into the second tuple, and unchanged explicit-agent behavior. Do not add a second accessor, raw parser, exemption, or unrelated scope.
+      Generalize the existing public manifest_domains to the runtime signature manifest_domains(path, agent=None, *, view=False). With view=False, preserve the omitted-agent and explicit None aggregation contracts and the explicit-agent two-list contract byte-for-byte, including mutable list return types, ordering, and current error behavior. The omitted or None mode must still return in the first list all non-read write-domain globs aggregated dynamically from every named role in the manifest and the shared write-domain globs in the second list; do not hard-code a role list. Explicit-agent callers and behavior remain unchanged.
+
+      With view=True and agent None, the same public manifest_domains function returns immutable dependency-light records exactly shaped as ManifestRoleDomains(name: str, write_globs: tuple[str, ...]) and ManifestDomainsView(roles: tuple[ManifestRoleDomains, ...], shared_write_globs: tuple[str, ...], main_session_present: bool, main_session_writes: tuple[str, ...] | None). Preserve first-seen role order in roles, emit one record per role name, aggregate duplicate same-name nodes exactly like the existing explicit-agent walk, coerce paths with str(), exclude read-only entries, and keep shared write globs separate. Preserve nested member, lead, and top-level role names with their owner globs.
+
+      main_session_present distinguishes an absent main_session key. main_session_writes preserves original nonblank strings and their order; it is None when writes is absent, is not a list, or is an empty list, and it may be () when a nonempty list contains no valid nonblank strings. The view must perform one strict harness_yaml.load_file read and propagate DuplicateKeyError and YamlParseError unchanged for duplicate, malformed, unreadable or non-UTF-8, and non-mapping manifests; do not wrap these failures in ArtifactAccessError. Passing a non-None agent with view=True raises a documented TypeError.
+
+      Add focused test-first unit coverage in the already-owned tests/unit/test-artifact-accessors.py that pins unchanged omitted and explicit None aggregation and explicit-agent results; nested member, lead, and top-level role names with owner globs; duplicate same-name aggregation; read-only exclusion and shared separation; every main_session presence and writes state above, including ordered unmodified fragment strings; and unchanged DuplicateKeyError and YamlParseError types for duplicate, malformed, unreadable or non-UTF-8, and non-mapping manifests. Do not add a second accessor, expose a raw manifest mapping, add exemptions, callbacks, query enums, a general manifest model, or policy or approval-fragment grammar in the accessor. Do not change unrelated scope.
 
   - id: T-03
     title: Cut over dispatchable semantic bypasses
@@ -386,6 +394,7 @@ tasks:
       - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/post-merge-sweep.py
       - tests/integration/canonical-reader-enforcement-baselines.json
+      - tests/integration/canonical-reader-classification.json
       - tests/integration/test-bash-write-guard.py
       - tests/integration/test-branch-create-gate.py
       - tests/integration/test-check-domain.py
@@ -408,9 +417,15 @@ tasks:
     intent: |
       Execute directly under DEC-174 and require T-01's T-06 classification check before editing. Extend canonical-reader-enforcement-baselines.json with every existing named case for the listed hook and gate sources, capturing return code and normalized complete stdout and stderr before cutover. This file and the comparison mode remain temporary migration proof only until T-07's final successful comparison. A missing legacy case, a case moved into the new-audit partition, changed ordering, or changed violation membership must fail the comparison.
 
-      Migrate every semantic row assigned T-06. The current PR 1688-visible projection includes hook payload and manifest reads in bash-write-guard.py and check-domain.py; harness.json and hook payload reads in branch-create-gate.py, gh-close-gate.py, merge-gate.py, and post-merge-sweep.py; hook payload reads in dispatch-guard.py, inject-expertise.py, and plan-sign-gate.py; feature.json reads in merge-gate.py and post-merge-sweep.py; and check-domain.py's in-memory YAML and artifact bypasses. Preserve bootstrap path ordering and dependency-light imports. String-contained Python compatibility probes remain string data, not AST call sites. Keep already-correct manifest_domains and load_fleet calls for the mechanical T-07 review unit.
+      Migrate every semantic row assigned T-06. The current PR 1688-visible projection includes hook payload and manifest reads in bash-write-guard.py and check-domain.py; harness.json and hook payload reads in branch-create-gate.py, gh-close-gate.py, merge-gate.py, and post-merge-sweep.py; hook payload reads in dispatch-guard.py, inject-expertise.py, and plan-sign-gate.py; feature.json reads in merge-gate.py and post-merge-sweep.py; and check-domain.py's in-memory YAML and artifact bypasses. Preserve bootstrap path ordering and dependency-light imports. String-contained Python compatibility probes remain string data, not AST call sites. Except for the two named check-domain semantic rows below, keep already-correct manifest_domains and load_fleet calls for the mechanical T-07 review unit.
 
-      Update every listed integration test in this same direct task. Demonstrate new strictness assertions failing before implementation, then execute every changed test-check-domain family file plus all other named tests and require exact legacy output comparison to pass. The classification-task check must prove every semantic T-06 row reached its remedy without mechanically relocating T-07 rows.
+      Assign exactly and uniquely to T-06 the classification rows .claude/skills/harness/bin/check-domain.py::<module>::harness_yaml_file#1 and .claude/skills/harness/bin/check-domain.py::_approval_entries::harness_yaml_file#1. Their canonical remedy is artifact_accessors.manifest_domains(..., view=True), using the one public function whose runtime signature is manifest_domains(path, agent=None, *, view=False). For the module row, consume view.roles for owner-specific matching and view.shared_write_globs for SHARED output. Preserve NOBODY, owner, and shared ordering, diagnostics, and error output while replacing raw loading plus per-role reparsing with the single view read.
+
+      For the _approval_entries row, consume view.main_session_present and view.main_session_writes for the existing missing-main-session and missing-or-empty-writes diagnostics. Retain invalid-entry skipping, the first-space split, ## Approval classification, approval: classification, fragment-less handling, and all policy grammar in _approval_entries. Preserve its loud fail-open policy and consumer-owned exception handling. Do not move approval-fragment or policy grammar into the accessor.
+
+      Update every listed integration test in this same direct task. Demonstrate new strictness assertions failing before implementation, then execute every changed test-check-domain family file plus all other named tests and require exact legacy output comparison to pass. Retain the exact-output resolver pairs and approval cases. Add a multi-owner and shared resolver case that fails if owner association is flattened. Prove that dropped main_session, missing or empty main_session.writes, first-space ## Approval entries, approval: entries, and fragment-less entries retain their observable results. The classification-task check must prove both named rows call the same public manifest_domains seam with view=True and remain assigned to T-06, while the already-canonical manifest_domains row remains assigned to T-07. It must also prove every other semantic T-06 row reached its remedy without mechanically relocating any other T-07 row.
+
+      Do not add a second accessor, expose or consume a raw manifest mapping, add an exemption, move either named row or the typed manifest_domains seam to T-07, or change any other current T-06 scope.
 
   - id: T-07
     title: Finalize accessor ownership and relocate direct readers
