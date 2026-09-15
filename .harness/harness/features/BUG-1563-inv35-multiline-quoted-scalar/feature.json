@@ -1,0 +1,30 @@
+{
+  "feature_id": "BUG-1563-inv35-multiline-quoted-scalar",
+  "branch": "feat/BUG-1563-inv35-multiline-quoted-scalar",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-15T03:00:14+00:00",
+      "ended_at": "2026-09-15T03:11:10+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-15T03:00:14+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "The line-local quote-state defect is known, the checker and integration-test files are bounded, and no new public interface, schema, or enforcement surface is introduced."
+    }
+  ],
+  "mission": "patch"
+}

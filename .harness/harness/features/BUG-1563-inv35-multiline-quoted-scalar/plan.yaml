@@ -1,0 +1,35 @@
+schema: plan/1
+feature: BUG-1563-inv35-multiline-quoted-scalar
+approval:
+  status: pending
+status: plan
+source_issues: [1563]
+
+lanes:
+  resolved_at: f5ffdcf4fbfee2f2c044fcd046253df65bc40550
+  rows:
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 places the state gate outside self-hosted execution, declared at plan time under DEC-179.
+    - surface: tests/integration/test-check-state-plans.py
+      lane: main-session-direct
+      reason: DEC-174 places a gate's own test with the gate, declared at plan time under DEC-179.
+
+decisions: []
+
+tasks:
+  - id: T-01
+    title: Correct INV-35 multiline quoted scalar detection
+    traces: [SC-01, SC-02]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps check-state.sh and its own integration test outside self-hosted execution; DEC-179 requires that carve-out to be declared main-session-direct at plan time.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - tests/integration/test-check-state-plans.py
+    verify: |
+      python3 tests/integration/test-check-state-plans.py
+    intent: |
+      Work test-first: add regression cases that fail against the pre-change checker, then correct INV-35. Accept valid multiline single-quoted and double-quoted YAML scalars when #<digit> appears on a later physical line inside the quoted value. Retain INV-35 findings for genuinely unquoted values, including notes: close out #217. Keep all existing INV-35 cases passing, make no schema or public-interface change, and do not broaden plan parsing beyond the quote-state behavior required for these outcomes.
