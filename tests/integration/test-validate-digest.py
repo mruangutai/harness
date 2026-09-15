@@ -4988,58 +4988,77 @@ def run_dec156_worktree_red_case():
         shutil.rmtree(iso_root, ignore_errors=True)
 
 
-# GRADE-2 REASON: one integration case verifies the same duplicate-key refusal contract at
-# all validator input seams: harness config, feature state, and hook payload.
-def run_canonical_reader_strictness_cases():
-    """Strict artifact seams reject duplicate keys without changing legacy cases."""
+def _strict_validator_module():
     spec = importlib.util.spec_from_file_location(
         "_strict_validator_under_test", VALIDATE)
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
-    failures = []
-    with tempfile.TemporaryDirectory() as td:
-        harness_json = os.path.join(td, ".harness", "harness.json")
-        os.makedirs(os.path.dirname(harness_json), exist_ok=True)
-        with open(harness_json, "w", encoding="utf-8") as handle:
-            handle.write(
-                '{"test_kinds": {"x": {}}, "test_kinds": {"x": {}}}')
-        kinds, error = validator._load_test_kinds(td)
-        if kinds is not None or not error or "duplicate key" not in error:
-            failures.append("duplicate harness.json keys were not refused")
+    return validator
 
-        feature_dir = os.path.join(
-            td, ".harness", "harness", "features", "FEAT-STRICT")
-        os.makedirs(feature_dir, exist_ok=True)
-        with open(os.path.join(feature_dir, "feature.json"), "w",
-                  encoding="utf-8") as handle:
-            handle.write(
-                '{"feature_id":"FEAT-STRICT","review_sha":"abc1234",'
-                '"review_sha":"abc1234","branch":"feat/strict",'
-                '"branch":"feat/strict"}')
-        review_sha, error = validator._read_review_sha(feature_dir)
-        if review_sha is not None or not error or "duplicate key" not in error:
-            failures.append("duplicate feature.json keys did not refuse review_sha")
-        if validator._read_feature_branch(feature_dir) is not None:
-            failures.append("duplicate feature.json keys supplied a branch")
-        pinned_error = validator._pinned_feature_review_error(feature_dir)
-        if not pinned_error or "duplicate key" not in pinned_error:
-            failures.append("duplicate feature.json keys did not refuse plan review")
 
+def _duplicate_harness_config_failures(validator, td):
+    harness_json = os.path.join(td, ".harness", "harness.json")
+    os.makedirs(os.path.dirname(harness_json), exist_ok=True)
+    with open(harness_json, "w", encoding="utf-8") as handle:
+        handle.write(
+            '{"test_kinds": {"x": {}}, "test_kinds": {"x": {}}}')
+    kinds, error = validator._load_test_kinds(td)
+    if kinds is None and error and "duplicate key" in error:
+        return []
+    return ["duplicate harness.json keys were not refused"]
+
+
+def _duplicate_feature_json_failures(validator, td):
+    feature_dir = os.path.join(
+        td, ".harness", "harness", "features", "FEAT-STRICT")
+    os.makedirs(feature_dir, exist_ok=True)
+    with open(os.path.join(feature_dir, "feature.json"), "w",
+              encoding="utf-8") as handle:
+        handle.write(
+            '{"feature_id":"FEAT-STRICT","review_sha":"abc1234",'
+            '"review_sha":"abc1234","branch":"feat/strict",'
+            '"branch":"feat/strict"}')
+    review_sha, error = validator._read_review_sha(feature_dir)
+    pinned_error = validator._pinned_feature_review_error(feature_dir)
+    checks = (
+        (review_sha is None and error and "duplicate key" in error,
+         "duplicate feature.json keys did not refuse review_sha"),
+        (validator._read_feature_branch(feature_dir) is None,
+         "duplicate feature.json keys supplied a branch"),
+        (pinned_error and "duplicate key" in pinned_error,
+         "duplicate feature.json keys did not refuse plan review"),
+    )
+    return [message for ok, message in checks if not ok]
+
+
+def _duplicate_hook_payload_failures():
     payload = (
         '{"agent_type":"Explore","agent_type":"Explore",'
         '"last_assistant_message":"not governed"}')
     hook = subprocess.run(
         [sys.executable, VALIDATE, "--hook"], input=payload,
         capture_output=True, text=True)
-    if (hook.returncode != 0 or "duplicate key" not in hook.stderr
-            or "unreadable hook payload" not in hook.stderr):
-        failures.append("duplicate hook payload did not take the typed fail-open path")
+    refused = (
+        hook.returncode == 0
+        and "duplicate key" in hook.stderr
+        and "unreadable hook payload" in hook.stderr
+    )
+    return [] if refused else [
+        "duplicate hook payload did not take the typed fail-open path"]
 
-    if failures:
-        for failure in failures:
-            print(f"FAIL  [canonical-reader audit] {failure}")
-        return 1
-    return 0
+
+def run_canonical_reader_strictness_cases():
+    """Strict artifact seams reject duplicate keys without changing legacy cases."""
+    validator = _strict_validator_module()
+    with tempfile.TemporaryDirectory() as td:
+        failures = _duplicate_harness_config_failures(validator, td)
+        failures.extend(_duplicate_feature_json_failures(validator, td))
+    failures.extend(_duplicate_hook_payload_failures())
+    if not failures:
+        return 0
+    for failure in failures:
+        print(f"FAIL  [canonical-reader audit] {failure}")
+    return 1
 
 
 def main():
