@@ -122,7 +122,7 @@
   "rework": {
     "rounds": 3,
     "wall_clock_minutes": 135,
-    "decision": ".harness/harness/features/BUG-285-canonical-reader/notes/handoff-plan.md"
+    "decision": ".harness/harness/features/BUG-285-canonical-reader/notes/answers-2026-09-14-t03-eng.md"
   },
   "github": {
     "milestone": 69,
