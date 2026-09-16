@@ -1,0 +1,130 @@
+{
+  "feature_id": "BUG-1129-validate-handoff-sweep",
+  "branch": "feat/BUG-1129-validate-handoff-sweep",
+  "pr": null,
+  "review_sha": "499eaf0b9c1eb04e0f51dcfec47fab9ea50abd54",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T14:42:28+00:00",
+      "tokens": 103857,
+      "ended_at": "2026-09-16T14:57:21+00:00",
+      "cycles_used": 0,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T15:12:01+00:00",
+      "tokens": 101005,
+      "ended_at": "2026-09-16T15:27:33+00:00",
+      "cycles_used": 0
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T15:37:56+00:00",
+      "tokens": 96897,
+      "ended_at": "2026-09-16T15:52:34+00:00",
+      "cycles_used": 0
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T14:42:22+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "Cause known from #1129; bounded writer refusal, shared INV-17 predicate, and validated-feature fixtures."
+    },
+    {
+      "at": "2026-09-16T15:09:41+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "test-hooks-install.py's terminal fixture also needed the validate note; added to T-01 files (BUG-1716 D-04, signature kept)"
+    },
+    {
+      "at": "2026-09-16T15:12:01+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Build handoff is coherent, review_sha is an ancestor of the current tip, and validation has zero rework spend."
+    },
+    {
+      "at": "2026-09-16T15:28:24+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Plan-to-build succession continued through the approved main-session-direct T-01; its distinct seam entry was absent when validation began."
+    },
+    {
+      "at": "2026-09-16T15:36:15+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "validate c0 Q2: fail-closed predicate coverage lives in a new unit test tests/unit/test-handoff-policy.py; added to T-01 files (BUG-1716 D-04, signature kept)"
+    },
+    {
+      "at": "2026-09-16T15:36:15+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix-c1-validator",
+      "reason": "validate c0 FAIL Q1/Q2/Q3 fixed direct by Main (DEC-174): receipt-main-session-fix-c1.md; re-gate over the re-pinned sha"
+    },
+    {
+      "at": "2026-09-16T15:37:56+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Fix-c1 addresses the three c0 findings at the pinned review SHA with 15 of 45 rework minutes spent; proceed to the one allowed re-gate."
+    },
+    {
+      "at": "2026-09-16T15:52:34+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "The allowed rework round is spent and the mandatory integration matrix remains red on an unowned manifest-parity scope change."
+    },
+    {
+      "at": "2026-09-16T15:54:46+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "recorded late by Main: the c1 orchestrator's succession for the fix seam"
+    }
+  ],
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": ".harness/harness/features/BUG-1129-validate-handoff-sweep/notes/answers-2026-09-16-sign.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "8e8d39c52aad352d7c2780529b1251dd49da43222e9d5524981efb52a2f2bd5c"
+  },
+  "github": {
+    "milestone": 79,
+    "parent": 1781,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1782
+    },
+    "source_issues": [
+      1129
+    ],
+    "build_entry": "opened"
+  }
+}
