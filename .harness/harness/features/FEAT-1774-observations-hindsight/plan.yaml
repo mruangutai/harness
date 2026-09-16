@@ -1,0 +1,222 @@
+schema: plan/1
+feature: FEAT-1774-observations-hindsight
+approval:
+  status: pending
+status: plan
+source_issues: [1774]
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-9d84a9dafa37dec4a2b8983ff9d9f258
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: No task ships or verifies the selected local Docker Hindsight deployment.
+    disposition: open
+  - id: PF-3684d3f59e413cca938671fd69bfd144
+    severity: low
+    reader: code-reviewer
+    kind: proportionality
+    summary: The task DAG serializes three disjoint file-local changes without an
+      artifact dependency.
+    disposition: open
+    scope: task
+  - id: PF-cf1bfb0312fa2123bb424d0462328e6a
+    severity: info
+    reader: code-reviewer
+    kind: substance
+    summary: T-03's literal-presence script does not prove SC-05 recall-before-judgment
+      ordering.
+    disposition: open
+  - id: PF-0f923bd961878a9370c61d47244d05f1
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-01's independent HINDSIGHT_BANK_ID knob (default 'omp') should not
+      exist because it duplicates bank selection that OMP already owns via hindsight.bankId,
+      which T-02 neither commits nor checker-enforces.
+    disposition: open
+  - id: PF-fd00e8929a7ec55ea26d69666ecb0e6c
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: T-03's sentence making recall failure a blocking distillation failure
+      adds a hard runtime dependency on the local Docker server that the operator
+      never settled.
+    disposition: open
+  - id: PF-0138b886611045d8067bb6a91660235f
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: 'T-01''s independent HINDSIGHT_BANK_ID knob (default ''omp'') should not exist: it duplicates bank selection that omp already owns via hindsight.bankId, which T-02 neither commits nor checker-enforces.'
+    disposition: open
+lanes:
+  resolved_at: 142026456c64c80c3dd3aa776636dadbc0e21881
+  rows:
+    - surface: .claude/skills/harness/bin/observations-merge.py and its unit and integration tests
+      lane: team
+      agent: harness-backend-dev
+    - surface: .omp/config.yml, check-omp-port.py, and the checker integration test
+      lane: main-session-direct
+      reason: DEC-174 reserves enforcement and its coupled test, while no team domain grants the canonical OMP config
+    - surface: .claude/skills/harness-expertise/SKILL.md and harness-distill/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.py resolves canonical skill contract text to NOBODY at the pinned SHA
+
+decisions:
+  - id: D-01
+    choice: Retain each raw observation record as Hindsight content, keep provenance in string metadata, and derive its document ID from repo, feature, agent, and the existing normalized record key.
+    because: The disk bullet remains the semantic source while the stable provenance-qualified identity makes live retries and corpus backfills idempotent without contaminating content or adding tags.
+    dec: none
+  - id: D-02
+    choice: Use the single bank ID omp for the observation writer and OMP's untagged global Hindsight configuration, with automatic recall and automatic retain disabled, so only the observation writer retains and skill-directed calls recall.
+    because: One checker-enforced bank contract prevents successful writes from becoming invisible to recall, while disabled ambient memory and global untagged scope keep transcripts out and cross-repository experience visible.
+    dec: none
+  - id: D-03
+    choice: Perform synchronous Hindsight retention inside the locked merge transform before returning new disk bytes, and reserve exit 10 for retention failure.
+    because: The operator chose fail-closed disk writes and a dedicated exit that callers can distinguish from locking and destination refusals.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Dual-write observations and backfill the historical corpus
+    traces: [SC-01, SC-02, SC-03, SC-07]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/observations-merge.py#cmd_apply
+      - tests/unit/test-observations-merge.py
+      - tests/integration/test-observations-merge.py#main
+    verify: |
+      python3 tests/unit/test-observations-merge.py && python3 tests/integration/test-observations-merge.py && python3 - <<'PY'
+      import json
+      import subprocess
+      import urllib.request
+
+      ids = subprocess.check_output(
+          ['docker', 'ps', '--filter', 'publish=8888', '--format', '{{.ID}}'],
+          text=True,
+      ).splitlines()
+      assert ids, 'no running Docker container publishes port 8888'
+      container = json.loads(subprocess.check_output(['docker', 'inspect', ids[0]], text=True))[0]
+      mounts = [
+          mount for mount in container.get('Mounts', [])
+          if mount.get('Destination') == '/home/hindsight/.pg0'
+          and mount.get('Type') in {'bind', 'volume'}
+          and mount.get('RW') is True
+      ]
+      assert mounts, 'Hindsight lacks writable persistent storage at /home/hindsight/.pg0'
+      with urllib.request.urlopen('http://localhost:8888/health/ready', timeout=10) as response:
+          assert response.status == 200
+      payload = json.dumps({
+          'items': [{
+              'content': 'Harness operational readiness probe for fail-closed observation append.',
+              'context': 'Harness observation',
+              'timestamp': '2026-09-16T00:00:00Z',
+              'metadata': {
+                  'agent': 'harness-pm',
+                  'feature': 'FEAT-1774-observations-hindsight',
+                  'repo': 'harness',
+                  'date': '2026-09-16',
+              },
+              'document_id': 'harness-observations-readiness-v1',
+          }],
+      }).encode()
+      request = urllib.request.Request(
+          'http://localhost:8888/v1/default/banks/omp/memories?async=false',
+          data=payload,
+          headers={'Content-Type': 'application/json'},
+          method='POST',
+      )
+      with urllib.request.urlopen(request, timeout=20) as response:
+          result = json.load(response)
+          assert response.status // 100 == 2 and result.get('success') is True
+      PY
+    intent: |
+      Work test-first. Add focused unit coverage for provenance extraction, date validation, stable document IDs, and exact request items, then extend the existing subprocess integration suite with a standard-library HTTP fixture that records requests and can return success, a non-success response, malformed JSON, or no listener. Keep these permanent suites hermetic: they must not require Docker or a live Hindsight service.
+
+      Keep observations-merge.py Python-standard-library only and preserve its existing locked order-preserving union, normalized disk deduplication, destination guard, and exits 0, 6, and 9. Configure Hindsight from HINDSIGHT_API_URL with default http://localhost:8888 and optional HINDSIGHT_API_TOKEN as a Bearer header. Never print the token. The writer always POSTs to the checker-enforced shared bank ID omp; do not add HINDSIGHT_BANK_ID or another writer bank selector. POST JSON synchronously with async=false to /v1/default/banks/omp/memories, require a 2xx response whose JSON has success equal to true, and translate configuration, transport, HTTP, decoding, or unsuccessful-response failures into harness_merge.MergeRefusal exit 10 with a concise HINDSIGHT RETAIN FAILED diagnostic.
+
+      For every record newly added by apply_merge, build one item whose content is the raw bullet record verbatim, including multiline continuation text but excluding the observations title. Set context to Harness observation, timestamp to the bullet date at 00:00:00Z, metadata to string fields agent, feature, repo, and date, document_id to a lowercase SHA-256 over an explicitly versioned encoding of repo, feature, agent, and normalize(record), and no tags. Derive agent from the harness-*.md filename, feature from the FEAT-* or BUG-* directory, repo from the segment between .harness and features, and date from the leading '- YYYY-MM-DD:'; reject a newly added malformed record through exit 10 rather than retaining incomplete metadata. Let Hindsight perform its own fact classification; do not invent a world-versus-experience field.
+
+      Call the synchronous retain from inside locked_update's transform after the union identifies added records and before returning output bytes. With zero added records, make no HTTP request. Thus any exit-10 failure leaves an existing file byte-identical and does not create a missing file; a successful retain may be followed by the existing atomic disk write. Keep the ADDED, PRESERVED, and APPLIED receipt contract on success and document exit 10 in the module interface.
+
+      Add a backfill subcommand taking --root <control-plane-root>. It discovers sorted .harness/*/features/{FEAT,BUG}-*/observations/harness-*.md files beneath that explicit root, parses every record with the same functions used by apply, and submits bounded synchronous batches using exactly the same item builder and exit-10 behavior. It never edits source logs. Print deterministic per-file and total retained counts. Re-running sends the same document IDs, so Hindsight replaces the same documents instead of accumulating duplicates. Integration coverage must prove the exact omp endpoint, bearer behavior without leaking the secret, verbatim content, required metadata, absence of tags, successful disk-after-memory ordering, no request for a duplicate, unchanged or absent disk on each failure class, corpus discovery across FEAT and BUG paths, and stable backfill IDs across two runs.
+
+      Treat the already-operated local Docker Hindsight service as a present-machine prerequisite, not a repository deployment to invent. Before completing the task, identify the running container that publishes localhost port 8888, require a writable Docker volume or bind mount at /home/hindsight/.pg0, require database-backed GET /health/ready to return 200, and send the stable synchronous readiness probe in this task's verify block to bank omp. The probe, combined with the hermetic writer ordering and failure tests, must establish that the prerequisite can accept the same synchronous request needed before a fail-closed disk append. If any prerequisite check fails, return the actual failure rather than weakening exit 10, silently falling back to disk-only append, or provisioning a different service.
+
+  - id: T-02
+    title: Select and enforce the explicit Hindsight OMP configuration
+    traces: [SC-04, SC-07]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves check-omp-port.py and its regression test, and the coupled .omp/config.yml surface has no team owner.
+    depends_on: []
+    status: ready
+    files:
+      - .omp/config.yml
+      - .claude/skills/harness/bin/check-omp-port.py#check
+      - tests/integration/test-check-omp-port.py#case_live_tree_passes
+    verify: |
+      python3 tests/integration/test-check-omp-port.py
+    intent: |
+      Extend the committed .omp/config.yml without disturbing its provider-neutral, async, or task settings. Set memory.backend to hindsight, hindsight.apiUrl to http://localhost:8888, hindsight.bankId to omp, hindsight.scoping to global, hindsight.autoRecall to false, and hindsight.autoRetain to false. Do not add hindsight.apiToken or any credential value; HINDSIGHT_API_TOKEN remains environment-only, and HINDSIGHT_API_URL may override the committed local default at runtime. The committed bank ID is the shared writer-and-recall contract; do not add a second writer-only bank selector.
+
+      Extend check-omp-port.py's existing config check to require exactly those six values and to refuse any present hindsight.apiToken key, including an empty or interpolation-looking value. Extend its existing fixture-driven integration test with one focused mutation per contract dimension: wrong or missing backend, non-local URL, wrong or missing bank ID, project scoping, either automatic behavior enabled or missing, and any token field. Each mutation must exit 1 and name the precise config path; the unchanged live tree must still pass. Keep this enforcement and its tests in the existing checker rather than creating another config validator.
+    execution_agent: harness-dev-ops
+
+  - id: T-03
+    title: Recall shared observations during Expertise distillation
+    traces: [SC-05, SC-06, SC-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.py resolves both canonical skill contract files to NOBODY at the pinned SHA.
+    depends_on: []
+    status: ready
+    files:
+      - path: .claude/skills/harness-expertise/SKILL.md
+        quote: '## Mid-run: append an observation'
+      - path: .claude/skills/harness-distill/SKILL.md
+        quote: '1. Read your observations log(s) and your current Expertise (already in context).'
+    verify: |
+      python3 .agents/skills/harness/bin/check-skill-weight.py && python3 - <<'PY'
+      from pathlib import Path
+      expertise = Path('.claude/skills/harness-expertise/SKILL.md').read_text()
+      distill = Path('.claude/skills/harness-distill/SKILL.md').read_text()
+      required_expertise = [
+          'Mid-run recall is permitted when the current task resembles prior work; it is available, not prescribed.',
+          'Observations enter Hindsight only through observations-merge.py; do not use the retain tool to record observations.',
+      ]
+      recall_queries = [
+          'Recall observations recorded by agent <HARNESS_AGENT_ID> across all features and repositories that could change how this agent works.',
+          'Recall observations recorded by agent <HARNESS_AGENT_ID> for repository <repo-segment> that could change how this agent works in this repository.',
+      ]
+      headline_forms = ['cross-repository <recalled>/<accepted>', 'repository <recalled>/<accepted>']
+      assert all(expertise.count(text) == 1 for text in required_expertise)
+      assert all(distill.count(text) == 1 for text in recall_queries)
+      assert all(text in distill for text in headline_forms)
+      PY
+    intent: |
+      Keep harness-expertise concise and preserve disk logging as the only observation-authoring instruction. Add these two exact sentences in the relevant mid-run section: 'Mid-run recall is permitted when the current task resembles prior work; it is available, not prescribed.' and 'Observations enter Hindsight only through observations-merge.py; do not use the retain tool to record observations.' Do not prescribe task-start recall and do not weaken the rule that Expertise is written only during distillation.
+
+      In harness-distill's numbered procedure, replace the first read step with an ordered evidence-gathering step that first identifies the active persona from HARNESS_AGENT_ID and the current repo segment, then invokes OMP recall exactly twice with these exact query templates after substituting their placeholders: 'Recall observations recorded by agent <HARNESS_AGENT_ID> across all features and repositories that could change how this agent works.' and 'Recall observations recorded by agent <HARNESS_AGENT_ID> for repository <repo-segment> that could change how this agent works in this repository.' It then reads the current feature's authoritative on-disk observation log or logs and both injected Expertise layers before applying the existing six-spawns test. If either recall fails, never coerce it to a zero-result success or suppress the disk and Expertise evidence: identify the failed source in the canonical headline, expose it through the existing VERDICT and open_questions semantics so the caller can gate it, and continue the on-disk evidence reading and judgment. Do not prescribe one fixed blocking verdict; use the existing handoff meanings for the actual failure and its recoverability.
+
+      Recalled memories are evidence, not automatic Expertise entries: the distiller independently accepts or rejects each candidate, applies the existing craft-versus-repository test, and continues to write Expertise only through expertise-merge.py. Because the canonical role DIGEST has no recall-evidence field, require its headline to include the literal forms 'cross-repository <recalled>/<accepted>' and 'repository <recalled>/<accepted>', substituting integer counts from the two successful result sets. Preserve the existing per-section before/after counts and expertise_update receipt. The task-local text check proves only the exact contract strings and does not prove recall-before-judgment order. SC-05 is discharged by pinned-SHA inspection that cites the ordered harness-distill procedure from both recall calls through the first Expertise judgment and the canonical headline requirement. Do not add a bin recall script, repository filter, Hindsight write through the retain tool, or any Hindsight dependency to gates, tests, or CI readers.
+    execution_agent: harness-ai-dev
