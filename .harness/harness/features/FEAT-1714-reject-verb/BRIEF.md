@@ -43,3 +43,9 @@ When an orchestrator discovers from a source ticket that the work has been super
 - Rejecting work after build or another signed execution phase has started; issue #1716's amendment path or a DEC-32 operator decision owns that case.
 - Automatically planning or opening the superseding issue; the reject return names it and the operator decides what happens next.
 - Retrospectively changing BUG-285-yaml-loader-pin to `rejected`; its committed historical record remains unchanged.
+
+## Approval
+
+status: pending
+approved-by:
+date:
