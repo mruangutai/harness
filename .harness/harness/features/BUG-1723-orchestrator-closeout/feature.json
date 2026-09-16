@@ -34,6 +34,15 @@
       "started_at": "2026-09-16T05:50:08+00:00",
       "ended_at": "2026-09-16T06:10:32+00:00",
       "tokens": null
+    },
+    {
+      "id": "fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-16T06:19:29+00:00",
+      "ended_at": "2026-09-16T06:43:04+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -106,6 +115,20 @@
       "kind": "finding_kind",
       "decision": "substance",
       "reason": "C1-V03 is a public close-run spend-stage coverage omission owned by T-01"
+    },
+    {
+      "at": "2026-09-16T06:19:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Resumed validate after the main-session c2 fix at pinned review SHA 972d5c05 with the final operator-approved rework round available"
+    },
+    {
+      "at": "2026-09-16T06:19:07+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c2-validator",
+      "reason": "Re-gate c1 findings C1-V01, C1-V02, and C1-V03 after the main-session-direct c2 fix at 972d5c05"
     }
   ],
   "mission": "plan",
