@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-1563-inv35-multiline-quoted-scalar",
   "branch": "feat/BUG-1563-inv35-multiline-quoted-scalar",
-  "pr": null,
+  "pr": 1730,
   "review_sha": "9fd79689e24353ac81689bb5227b8aa752e536ea",
   "cycles_used": 3,
   "max_total_cycles": 10,
