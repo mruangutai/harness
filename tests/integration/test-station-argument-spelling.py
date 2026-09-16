@@ -42,7 +42,7 @@ def check(name, ok, detail=""):
 # accepts only the six MANDATED_STATIONS — its own docstring says the terminal marker
 # names no column and it validates against MANDATED_STATIONS alone.
 ACCEPTED_STATIONS = {
-    "gh-sync.py status": set(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER},
+    "gh-sync.py status": set(factory_config.MANDATED_STATIONS) | set(factory_config.TERMINAL_STATIONS),
     "board-station.py": set(factory_config.MANDATED_STATIONS),
 }
 

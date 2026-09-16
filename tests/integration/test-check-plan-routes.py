@@ -807,8 +807,8 @@ def case_41_t04_task_station_vocabulary():
     # A FUNCTION, not a module constant: the import it needs is lazy so cases 19b/19b2/21 can
     # still run this file as a lone copy in a temp dir. See its docstring.
     legal = tuple(cpr().legal_task_statuses())
-    check("case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_marker",
-          legal == ("backlog", "plan", "ready", "building", "review", "done", "abandoned"),
+    check("case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_stations",
+          legal == ("backlog", "plan", "ready", "building", "review", "done", "abandoned", "rejected"),
           f"got {legal!r}")
 
     for station in legal:
@@ -1042,7 +1042,7 @@ def case_24():
     and therefore still checked. That noise is why issue #133's gate could never be
     switched on.
 
-    THE FINISHED SET IS ("done", TERMINAL_MARKER) AND IS READ FROM plan.yaml (FEAT-41 T-07).
+    THE FINISHED SET IS ("done",) + TERMINAL_STATIONS AND IS READ FROM plan.yaml (FEAT-41 T-07).
     Every other station is checked; only those two skip. All six stations are asserted by name
     below, so a value drops out only if this loop is edited to drop it, never silently by a
     count changing. The CAPITALISED "Done" case is now the one that proves the case sensitivity
@@ -1080,7 +1080,7 @@ def case_24():
     # tied to factory_config instead, which is the source plan-merge.py validates writes
     # against: a station this checker calls finished is exactly a station that tool would write.
     import factory_config
-    vocabulary = set(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER}
+    vocabulary = set(factory_config.MANDATED_STATIONS) | set(factory_config.TERMINAL_STATIONS)
     finished = set(cpr().finished_stations())
     ok = finished.issubset(vocabulary)
     results.append(ok)

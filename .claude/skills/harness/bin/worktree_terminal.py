@@ -423,10 +423,14 @@ def _landed_station_record(path, dirty, resolved):
         }
 
     station = str((plan_doc or {}).get("status", "")).split()
-    if (station[0] if station else "") == "done":
+    landed = station[0] if station else ""
+    # `done` and every TERMINAL_STATIONS name are terminal on the default branch (FEAT-1714
+    # T-03): a rejected or abandoned feature whose record has landed will never build, so its
+    # worktree is exactly what INV-29 exists to reclaim.
+    if landed == "done" or landed in _import_factory_config().TERMINAL_STATIONS:
         return {
             "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-            "reason": f"landed station is done on {default_branch}",
+            "reason": f"landed station is {landed} on {default_branch}",
             "repo": repo_segment,
         }
     return None

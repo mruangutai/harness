@@ -15,6 +15,15 @@
       "ended_at": "2026-09-16T05:12:37+00:00",
       "tokens": null,
       "code_grade": "n_a"
+    },
+    {
+      "id": "build-eng-t02",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-16T05:31:55+00:00",
+      "ended_at": "2026-09-16T05:53:02+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -24,6 +33,20 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "new schema surfaces span digest validation, judgement and station gates, state invariants, and GitHub sync"
+    },
+    {
+      "at": "2026-09-16T06:10:27+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "plan\u2192build handoff (seq-1) taken up: T-01 direct, T-02 build team, T-03 direct; recorded late by Main"
+    },
+    {
+      "at": "2026-09-16T06:10:27+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "T-02 ESCALATE on T-02\u2192T-03 ordering: T-03 built direct in the same act; no plan correction, dependency order held at commit level"
     }
   ],
   "mission": "plan",

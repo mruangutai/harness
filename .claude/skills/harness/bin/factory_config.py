@@ -44,12 +44,11 @@ _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 # than a source of new names (FEAT-41 T-01).
 MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
-# NOT A SEVENTH STATION. `abandoned` names no board column, never reaches the board, and is
-# absent from MANDATED_STATIONS for that reason — station_column raises on it. It lives in this
-# module because plan-merge.py, check-plan-routes.py and check-domain.py each need the terminal
-# marker and each already imports factory_config; every one of those sites imports THIS NAME
-# rather than respelling the literal.
-TERMINAL_MARKER = "abandoned"
+# NOT BOARD STATIONS. These terminal names have no board column and must remain out of
+# MANDATED_STATIONS: `abandoned` (planned, never built — DEC-203) and `rejected` (refused at
+# first-run intake as wrong or superseded — FEAT-1714). Every generic terminal consumer reads
+# this ordered tuple; behaviour specific to one of them spells that one name where it acts.
+TERMINAL_STATIONS = ("abandoned", "rejected")
 
 # FLEET_PATH's root always resolves inside the LIVE checkout under any test fixture root,
 # because _BIN_DIR is this module's own on-disk location, and the live checkout always carries
@@ -284,7 +283,7 @@ def station_column(name):
     rename them.
 
     Raises FleetError on anything outside the six, and that INCLUDES an already-capitalised name
-    and TERMINAL_MARKER. Refusing a capitalised column name is deliberate: a caller holding one
+    and every TERMINAL_STATIONS name. Refusing a capitalised column name is deliberate: a caller holding one
     and passing it back in would otherwise have `.capitalize()` return it unchanged and silently
     work, and a case boundary that accepts its own output is not a boundary.
 

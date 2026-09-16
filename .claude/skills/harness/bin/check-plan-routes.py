@@ -522,7 +522,7 @@ def process_plan(path, findings, root, manifest_root):
 # 21 copy this file alone into a temp directory, where a module-scope import is a traceback.
 def finished_stations():
     import factory_config
-    return ("done", factory_config.TERMINAL_MARKER)
+    return ("done",) + factory_config.TERMINAL_STATIONS
 
 
 # ONE VOCABULARY NOW, WHICH IS THE WHOLE POINT OF FEAT-41. Until T-04 this file carried a
@@ -542,7 +542,7 @@ def finished_stations():
 # measured. `harness_yaml` is imported inside its own function for exactly this reason.
 def legal_task_statuses():
     import factory_config
-    return tuple(factory_config.MANDATED_STATIONS) + (factory_config.TERMINAL_MARKER,)
+    return tuple(factory_config.MANDATED_STATIONS) + factory_config.TERMINAL_STATIONS
 
 
 def _is_shipped(feature_dir):

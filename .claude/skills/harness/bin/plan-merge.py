@@ -52,7 +52,7 @@ each leaves the file byte-identical. The reason is NEVER written into the plan �
 the refusals can name why one was asked for, and so a caller cannot delete by reflex.
 
 `set-task-station` and `set-feature-station` validate the station against the vocabulary
-factory_config declares — MANDATED_STATIONS plus TERMINAL_MARKER, imported, never respelled —
+factory_config declares — MANDATED_STATIONS plus TERMINAL_STATIONS, imported, never respelled —
 resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
 BEFORE the lock is taken, so a refused value never opens the file.
 
@@ -207,7 +207,7 @@ def _legal_stations(resolved):
     marker, as an ordered tuple.
 
     IMPORTED, NEVER RESPELLED (FEAT-41 T-03). factory_config owns MANDATED_STATIONS and
-    TERMINAL_MARKER; declaring either here would be a second vocabulary, and since this module
+    TERMINAL_STATIONS; declaring either here would be a second vocabulary, and since this module
     is imported by nothing, check-plan-routes.py and check-domain.py would each respell it as a
     bare literal and D-05's claim that the marker is declared once in code would be false the
     day it landed.
@@ -238,7 +238,7 @@ def _legal_stations(resolved):
             stations = None
     if stations is None:
         stations = factory_config.MANDATED_STATIONS
-    return tuple(stations) + (factory_config.TERMINAL_MARKER,)
+    return tuple(stations) + factory_config.TERMINAL_STATIONS
 
 
 def _refuse_illegal_station(station, legal):

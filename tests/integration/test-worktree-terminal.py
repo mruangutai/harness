@@ -847,6 +847,12 @@ def case_plan_station_is_the_landed_authority():
                         plan_station="review")
         review_dest = _add_wt(repo, "FEAT-71-plan-review")
 
+        # FEAT-1714 T-03: a landed `rejected` plan is terminal too — the feature will never
+        # build, and its worktree is what INV-29 reclaims.
+        _commit_feature(repo, "FEAT-72-plan-rejected", {"feature_id": "FEAT-72-plan-rejected"},
+                        plan_station="rejected")
+        rejected_dest = _add_wt(repo, "FEAT-72-plan-rejected")
+
         recs = {r["path"]: r for r in w.classify(repo)}
 
         # REALPATH FALLBACK, as every other case in this file does: on macOS the tempdir is
@@ -867,6 +873,11 @@ def case_plan_station_is_the_landed_authority():
             "T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely",
             get(review_dest) is None,
             f"got {get(review_dest)!r}"))
+        results.append((
+            "FEAT-1714: plan.yaml station `rejected` -> terminal, reason naming the station",
+            (get(rejected_dest) or {}).get("klass") == "terminal"
+            and "rejected" in (get(rejected_dest) or {}).get("reason", ""),
+            f"got {get(rejected_dest)!r}"))
 
     return results
 

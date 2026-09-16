@@ -168,7 +168,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/bin/factory_config.py
         quote: 'TERMINAL_MARKER = "abandoned"'
@@ -199,7 +199,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 reserves plan mutation and state/domain/route gates; the worktree classifier and terminal constant removal are coupled to those enforcement changes.
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/bin/factory_config.py
         quote: 'TERMINAL_MARKER = "abandoned"'

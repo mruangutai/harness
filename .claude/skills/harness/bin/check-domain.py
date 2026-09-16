@@ -1317,7 +1317,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # MANDATED_STATIONS, not station_names(board): the declaration itself, with no
         # board to consult. This gate has no board and needs none — the vocabulary is
         # fixed (T-01), and station_names() exists for the COLUMN derivation.
-        _legal = set(_fc.MANDATED_STATIONS) | {_fc.TERMINAL_MARKER}
+        _legal = set(_fc.MANDATED_STATIONS) | set(_fc.TERMINAL_STATIONS)
         _bad = []
         try:
             import harness_yaml as _hy

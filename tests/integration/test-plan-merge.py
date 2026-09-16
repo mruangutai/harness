@@ -865,16 +865,21 @@ def case_illegal_station_exit_4():
                 r = run_verb(verb, "--file", plan, *extra, "--station", bad)
                 check(f"{verb} exits 4 on the illegal station {bad!r}", r.returncode == 4,
                       f"rc={r.returncode} {r.stderr!r}")
-                check(f"{verb}'s exit-4 line lists the legal stations for {bad!r}",
+                check(f"{verb}'s exit-4 line lists the legal stations for {bad!r}, rejected included",
                       all(st in r.stderr for st in
-                          ("backlog", "plan", "ready", "building", "review", "done")),
+                          ("backlog", "plan", "ready", "building", "review", "done", "abandoned",
+                           "rejected")),
                       r.stderr)
                 check(f"{verb} writes nothing when {bad!r} is refused", read(plan) == before)
-        # TERMINAL_MARKER is legal for both verbs even though it is NOT a board station.
-        r = run_verb("set-task-station", "--file", plan, "--task", "T-01",
-                     "--station", "abandoned")
-        check("set-task-station ACCEPTS abandoned, the terminal marker", r.returncode == 0,
-              f"rc={r.returncode} {r.stderr!r}")
+        # Every TERMINAL_STATIONS name is legal for both verbs even though none is a board station.
+        for station in ("abandoned", "rejected"):
+            r = run_verb("set-task-station", "--file", plan, "--task", "T-01", "--station", station)
+            check(f"set-task-station ACCEPTS {station}, a terminal station", r.returncode == 0,
+                  f"rc={r.returncode} {r.stderr!r}")
+            r = run_verb("set-feature-station", "--file", plan, "--station", station)
+            check(f"set-feature-station ACCEPTS {station} (FEAT-1714 T-03: reject's one station write)",
+                  r.returncode == 0 and yaml.safe_load(read(plan)).get("status") == station,
+                  f"rc={r.returncode} {r.stderr!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
