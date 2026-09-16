@@ -11,21 +11,33 @@ the cost: FEAT-08 D-06 recorded that a healthy 16-run feature and a healthy 4-ru
 same `cycles_used` and filed it unbuilt; `BUILD.md` item 11 ("batch human touchpoints to two") is
 recorded `pending` and was never instrumented, so the target has no measurement behind it.
 
+The same operator also has no fleet-wide view of work that needs attention. Feature and bug state,
+open grilling sessions, and linked worktrees are split across segment directories and checkouts;
+main-checkout reads miss live worktree-only state, while the GitHub board is intentionally only a
+write mirror. The result is a manual search across repositories precisely when the operator needs
+to find an approval, block, stalled run, budget edge, stale item, or abandoned worktree.
+
 ## Goal
 
-Any onboarded project gets a live, interactive dashboard that computes seven self-visibility KPIs from
-that project's own `.harness/` data, git history and code grader, and serves them in a browser the
-user can actually explore — feature by feature, and over time as it accrues. It is for the user's own
-visibility into their factory, not an investment gate and not a cross-project leaderboard. It ships
-as part of the Harness distribution; this repository is only its first consumer.
+Any onboarded project gets a live, interactive dashboard that computes seven self-visibility KPIs
+from that project's own `.harness/` data, git history and code grader, and the Harness control-plane
+operator gets an operational view of work across the fleet from the same server and client shell.
+The browser supports exploration of KPI history and an attention-ranked inventory of features,
+bugs, grilling sessions and worktrees. KPI values remain project-local; the operational inventory is
+fleet-wide. The dashboard is for visibility into the factory, not an investment gate or a
+cross-project leaderboard. It ships as part of the Harness distribution; this repository is only
+its first consumer.
 
 ## Requirements
 
 - REQ-01: A user can start the dashboard for a project and reach it through one documented entry
   point, with no hand-assembled URL, no manual build step and no per-project wiring.
-- REQ-02: The dashboard reports on whichever onboarded project it is run against, reading that
-  project's own `.harness/`, git history and code, with no code change per project and no value
-  derived from the Harness repository leaking into another project's numbers.
+- REQ-02: KPI values report on whichever onboarded project the dashboard is run against, reading
+  that project's own `.harness/`, git history and code with no code change per project and no value
+  derived from the Harness repository leaking into another project's numbers. The operational work
+  view separately covers every `.harness/<segment>/features/*` in the control plane and every
+  registered worktree entry of the control plane and each repository under the fleet's
+  `workspace_root`.
 - REQ-03: Throughput is visible per feature: elapsed time from BRIEF approval to ship, plus the run
   count and change size for that feature — the FEAT-08 D-06 gap.
 - REQ-04: Rework is visible per feature and in aggregate as cycles consumed against cycles allowed.
@@ -45,9 +57,12 @@ as part of the Harness distribution; this repository is only its first consumer.
 - REQ-11: Any KPI with no data for a feature or a period is shown as unavailable with the reason,
   never as zero, blank or an interpolation. Features shipped before this capability existed have no
   trend line and the UI says so.
-- REQ-12: The user can change what is shown from the browser — choose a feature, choose a time
-  window, drill from an aggregate to the features behind it — without editing a file, restarting the
-  server or re-running a command.
+- REQ-12: The browser has exactly three product routes: the single dashboard `/`, one KPI
+  `/kpi/$n`, and one feature or bug `/work/$id`. The separate `/work` route and header "Work"
+  toggle are retired. The shared header's window and Repository selections live in URL parameters,
+  default to `all`, apply on every route and filter both API requests. Tile and row drill-downs use
+  those routes while attention cards filter the work list in place on `/`, without a file edit or
+  server restart.
 - REQ-13: Viewing the dashboard does not mutate the project. It is read-only over `.harness/`, git
   and the grader; the only write anywhere in this feature is the append at ship (REQ-10).
 - REQ-14: On a machine missing the dashboard's runtime prerequisites, starting it fails loudly,
@@ -61,6 +76,36 @@ as part of the Harness distribution; this repository is only its first consumer.
   populated `pr` fields under-reports and is not an acceptable presentation. A week in which the
   record shows no ship is shown as unavailable with the reason naming that week, never as zero
   (REQ-11).
+- REQ-16: The operational view includes every FEAT and BUG feature directory in every control-plane
+  segment, every grilling note, and every registered worktree as its own row, including a worktree
+  whose feature is terminal or absent and each repository's primary checkout.
+- REQ-17: Every operational item derives an attention state from disk and is ranked in this exact
+  order: needs-you, blocked, stalled, over-budget, running, stale. A running item becomes stalled
+  after 45 minutes without a state write; a non-terminal item becomes stale after seven days without
+  any write; and the thresholds are declared in the control plane's `harness.json` `dashboard`
+  block rather than compiled into the collector.
+- REQ-18: Every grilling note carries YAML front-matter recording `status` as `open`, `handed-off`
+  or `abandoned` and `became` as the feature id when handed off. The grilling flow writes the
+  metadata, plan and patch intake complete the handoff, and the state invariant rejects missing or
+  inconsistent metadata. The 46 notes present on 2026-09-15 are migrated once and manually reviewed.
+- REQ-19: When a feature has both a main-checkout copy and live state in a worktree, the worktree
+  copy supplies the displayed state, the main copy is only the fallback, and both paths remain in
+  the item so the operator can tell which source won.
+- REQ-20: The operational view is disk-only and performs no GitHub read. A source that cannot be
+  read is shown with a specific error rather than silently omitted.
+- REQ-21: The single dashboard `/` puts the shared header first, then the attention strip,
+  Repository KPIs first, and the work list in a centred max-width container. The list switches only
+  between Kanban and Table, filters Station, Status and Kind without a Repository filter, and names
+  its table state column Status; Astryx icons carry status without text colour or coloured borders
+  or top-lines. `/kpi/$n` shows one KPI panel. `/work/$id` puts the operational header before the
+  per-feature KPI content; grilling and worktree items expand inline on `/` and never acquire a
+  detail route.
+- REQ-22: For each feature and bug, the operational payload and UI report elapsed total and elapsed
+  plan, build and validate phases from the DEC-159 seam handoff notes plus run `started_at` and
+  `ended_at`, with the active phase measured through now. The orchestrator measures run tokens from
+  the host transcript at run end and `feature-record.py run-end` records the value. Item and phase
+  totals remain null-aware: an absent measurement is reported as `unmeasured n of m runs`, never
+  zero. Historical runs are not backfilled and no dollar cost is computed or displayed.
 
 ## Constraints
 
@@ -123,6 +168,14 @@ decisions, not requirements — the requirements above survive changing every on
   no harness `bin/` script outside `bin/dashboard/` imports it, so it is deliberately **not** a
   ninth platform prerequisite beside PyYAML and `jsonschema`. SUPPLIES.
 - Code authority stays inside DEC-193's two locations; nothing here introduces a third checkout.
+- The operational view inherits plan D-03, D-04, D-05, D-06, D-07, D-17, D-19 and D-20 unchanged:
+  it uses the existing Flask server and committed React/TanStack/Astryx client, binds loopback only,
+  recomputes on request, uses the existing entry point, and applies the same explicit-unavailability
+  contract. These decisions SUPPLY the shared server and client rather than constrain the new lane.
+- The operational amendment is settled in
+  `.harness/notes/grilling-work-dashboard-2026-09-15.md`. Fleet state is read from disk only; GitHub
+  remains a write-only mirror. The uncommitted FEAT-61 `harness-observe.py` prototype supplies input
+  to the collector's data layer only; its fixed-width interface and Herdr plugin do not ship.
 
 ## Out of scope
 
@@ -133,6 +186,11 @@ decisions, not requirements — the requirements above survive changing every on
   reporting to one place.
 - Grading `.sh` and `.ts` code. The grader does not support them and teaching it is not this
   feature's job — REQ-08 exists to disclose that gap, not to close it.
+- GitHub reads, board-drift reporting and tracker-mode wayfinding rows in the operational view.
+  Neither board audit nor tracker-mode wayfinding persists a local receipt from which a disk-only
+  view could derive truthful state.
+- Network exposure, authentication and multi-user access. The existing loopback-only decision
+  remains unchanged.
 
 ## Verification gaps
 
@@ -140,9 +198,9 @@ Read against `test_kinds` in `.harness/harness.json`: `unit` and `integration` a
 with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, status `unresolved`.
 
 - `ui` has no runner: no browser-driver test can prove any rendered behaviour of this dashboard.
-  Every rendered-surface claim is therefore carried by SC-02, SC-08 and SC-11 (uat, executed by the
-  user) and by SC-15 (ui-reviewer inspection). Nothing about the browser experience is automatically
-  proven, and no SC below claims otherwise.
+  Every rendered-surface claim is therefore carried by SC-02, SC-08, SC-11 and SC-24 (uat, executed
+  by the user) and by SC-15 (ui-reviewer inspection). Nothing about the browser experience is
+  automatically proven, and no SC below claims otherwise.
 - `component` and `typecheck` have no runner, and this feature introduces the first `.tsx` and
   `.ts` application code in the repo. TypeScript type soundness is therefore unproven by any gate.
   React component behaviour is **partly** proven, and this line was corrected on 2026-09-01: plan
@@ -165,28 +223,57 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   therefore **not machine-checked**; they are carried by SC-15's ui-reviewer inspection at
   `review_sha`.
 
+## Done when — by perspective
+
+**operator (dashboard `/`)** — This route is done when its shared header controls window and
+Repository through URL parameters that default to `all`, and one centred desktop screen then shows
+the attention strip, Repository KPIs first, and the filterable work list. The same header selection
+follows me to each of the other two product routes. SC-26 verifies this perspective.
+
+**operator (KPI `/kpi/$n`)** — This route is done when a tile opens exactly one KPI panel and a row
+in that panel opens the corresponding `/work/$id`, without a modal, file edit or server restart.
+SC-11 verifies this perspective.
+
+**operator (work list on `/`)** — This surface is done when I can switch between Kanban and Table,
+filter by Station, Status and Kind, and read id, repository, station and phase, status and reasons,
+elapsed total and by phase, runs, cycles/max and honest token totals for every item. Repository
+scope remains in the shared header. SC-27 verifies this perspective.
+
+**operator (work item `/work/$id`)** — This feature-or-bug route is done when its operational header
+comes first and its former per-feature KPI content follows; grilling and worktree items instead
+expand inline from the work list on `/`. SC-28 verifies this perspective.
+
+**orchestrator** — Run completion is done when the host-transcript token measurement, or explicit
+absence of one, reaches `feature-record.py run-end`, and the dashboard preserves that distinction
+through item and phase aggregation without inventing zero or dollar cost. SC-29 verifies this
+perspective.
+
+**code maintainer** — Grilling lifecycle state is explicit, machine-readable and invariant-checked,
+and the pre-existing note corpus is migrated without inventing an open session. SC-23 verifies this
+perspective.
+
 ## Success Criteria
 
-- SC-01: Invoking the documented entry point on a clean checkout serves the KPI payload; with a
+- SC-01 (operator): Invoking the documented entry point on a clean checkout serves the KPI payload; with a
   runtime prerequisite absent, the same invocation exits non-zero naming that prerequisite and serves
   nothing. Both branches asserted separately.
   verify: automated        evidence: integration
-- SC-02: A user runs the documented command on this repository and reaches a working dashboard in a
+- SC-02 (operator): A user runs the documented command on this repository and reaches a working dashboard in a
   browser, without being told anything the documentation does not say.
   verify: uat
-- SC-03: Run against a fixture project directory carrying its own `.harness/` with features absent
+- SC-03 (operator): Run against a fixture project directory carrying its own `.harness/` with features absent
   from this repository, every KPI in the payload reflects the fixture, and no figure equals this
   repository's value for the same KPI.
   verify: automated        evidence: integration
-- SC-04: For a fixture with hand-labelled expected values, each of the six KPIs enumerated in this
+- SC-04 (operator): For a fixture with hand-labelled expected values, each of the six KPIs enumerated in this
   criterion — throughput, rework, escaped defects, touchpoints, grading distribution, agent/model
   usage — is asserted individually against the hand-labelled number, not against a second run of the
   same code. Six assertions, one per KPI named here, not one aggregate comparison.
   verify: automated        evidence: unit
-- SC-05: The grading KPI's payload carries both the at-or-above-bar share and the named grade-1 and
+- SC-05 (operator): The grading KPI's payload carries both the at-or-above-bar share and the named grade-1 and
   grade-2 outlier list; a payload carrying only a central tendency fails the assertion.
   verify: automated        evidence: unit
-- SC-06: The ungraded-share figure changes when the fixture project's file mix changes, proving it is
+- SC-06 (operator): The ungraded-share figure changes when the fixture project's file mix changes, proving it is
   computed per project at view time; and neither of the two grep-discriminating literals of this
   repository's measured file mix — `107` (its `.py` count) and `122` (its tracked-file total) —
   appears anywhere in the dashboard's own shipped source, asserted over every tracked path under
@@ -194,38 +281,39 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   demonstrated failing before it passes. See `## Verification gaps` for the two tokens no grep can
   discriminate.
   verify: automated        evidence: unit
-- SC-07: For a feature with no ship record, every trend KPI in the payload is marked unavailable with
+- SC-07 (operator): For a feature with no ship record, every trend KPI in the payload is marked unavailable with
   a reason; no field carries 0, null-as-zero or a value interpolated from neighbouring features.
   Asserted per trend KPI.
   verify: automated        evidence: unit
-- SC-08: A user viewing a feature that shipped before this capability existed sees stated absence of
+- SC-08 (operator): A user viewing a feature that shipped before this capability existed sees stated absence of
   trend data, and is not shown a chart that reads as zero or flat.
   verify: uat
-- SC-09: A ship appends exactly one record to the project's trend file with every prior byte
+- SC-09 (operator): A ship appends exactly one record to the project's trend file with every prior byte
   unchanged; and two records appended in two separate worktrees both survive a git merge of those
   branches, neither silently dropped.
   verify: automated        evidence: integration
-- SC-10: A simulated run in which two blocking human touchpoints occur reports two — the counter is
+- SC-10 (operator): A simulated run in which two blocking human touchpoints occur reports two — the counter is
   incremented at each event and the shipped record carries the final count. A run with zero reports
   zero. The two-touchpoint case must be demonstrated failing before the mechanism exists.
   verify: automated        evidence: integration
-- SC-11: From the browser the user selects a feature and a time window and drills from an aggregate
-  to the per-feature rows behind it, with no server restart and no file edit.
+- SC-11 (operator): From the browser the user selects a window and repository in the shared header,
+  opens `/kpi/$n` from an Overview tile, and opens `/work/$id` from one of that panel's rows. The
+  URL preserves both selections across every step, with no modal, server restart or file edit.
   verify: uat
-- SC-12: `git status` is byte-identical before and after serving every dashboard view against a clean
+- SC-12 (operator): `git status` is byte-identical before and after serving every dashboard view against a clean
   project checkout — no file created, modified or deleted under `.harness/` or anywhere else.
   verify: automated        evidence: integration
-- SC-13: The escaped-defect figure for a fixture git history equals the count a human labelled by the
+- SC-13 (operator): The escaped-defect figure for a fixture git history equals the count a human labelled by the
   documented sourcing rule, and that rule is stated in the UI beside the number.
   verify: automated        evidence: unit
-- SC-14: For a fixture whose commits carry step-ids resolving to agents pinned to two different model
+- SC-14 (operator): For a fixture whose commits carry step-ids resolving to agents pinned to two different model
   tiers, usage appears under both tiers; a commit whose step-id cannot be joined appears as
   explicitly unattributed rather than being dropped from the totals.
   verify: automated        evidence: unit
-- SC-15: The dashboard's surface conforms to the DESIGN.md contract and uses the Astryx substrate
+- SC-15 (operator): The dashboard's surface conforms to the DESIGN.md contract and uses the Astryx substrate
   rather than unstyled framework defaults; ui-reviewer cites `file:line` at `review_sha`.
   verify: inspection
-- SC-16: A full KPI computation for this repository at its current scale completes inside the budget
+- SC-16 (operator): A full KPI computation for this repository at its current scale completes inside the budget
   the plan pins, measured by the test rather than asserted, so the no-cache decision stays
   falsifiable. Baseline, re-measured per item on 2026-09-01 at 47 real feature branches, 106 tracked
   `.py` files and 978 commits: the honest per-request total is 4.3–5.3s
@@ -233,7 +321,7 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   projects ~3.6s once T-06's single-call `git diff` and T-09's memoised plan reads land. The
   grilling's ~1.1s figure predates the per-branch change-size work T-06 specifies and is superseded.
   verify: automated        evidence: integration
-- SC-17: The blocking-touchpoint count distinguishes tracked-and-genuinely-zero from never-tracked,
+- SC-17 (operator): The blocking-touchpoint count distinguishes tracked-and-genuinely-zero from never-tracked,
   asserted as two separate cases and never as one: for a fixture project carrying the
   instrumentation epoch, a feature whose start is **after** the epoch and whose `touchpoints.jsonl`
   is absent reports `0` with **no** entry in its `unavailable` map; a feature whose start is
@@ -242,7 +330,7 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   at all reports every feature as unavailable. The aggregate reports the not-tracked count by name,
   so no mean is taken over a fabricated zero.
   verify: automated        evidence: integration
-- SC-18: The two chart shapes are actually mounted inside the panels that ship them, proven by an
+- SC-18 (operator): The two chart shapes are actually mounted inside the panels that ship them, proven by an
   executing render rather than by source text: rendering the real grading panel, a real trend panel
   and the real merged-PR panel through `@testing-library/react` over a whole fixture payload puts
   each chart's element in the document, **and** that element's own subtree carries output only the
@@ -252,7 +340,7 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   failing first, against `charts.tsx` present-but-unimported and against a placeholder element
   carrying the testid alone.
   verify: automated        evidence: integration
-- SC-19: For a fixture ship record spanning several weeks, the payload's weekly merged-PR series
+- SC-19 (operator): For a fixture ship record spanning several weeks, the payload's weekly merged-PR series
   carries one bucket per week in the window in ascending order, matching the week count the payload
   itself returns; each bucket's value equals the hand-labelled count of shipped features whose ship
   date falls in that week; a fixture record carrying no `pr` is counted, so a series computed from
@@ -261,19 +349,83 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   assertions, not one aggregate comparison, and the empty-week case is demonstrated failing before
   it passes.
   verify: automated        evidence: integration
-- SC-20: The merged-PR tile states its sourcing rule as persistent inline text beneath the figure —
-  not a tooltip, not a footnote, not a link — naming that the count is of shipped features and that
-  one shipped feature is one merged PR; and KPI 7 carries no per-feature column on the `/features`
-  route and no presence on `/features/$featureId`. ui-reviewer cites `file:line` for each clause,
-  reading the shipped source at `review_sha` via `git show <review_sha>:<path>`.
+- SC-20 (operator): The merged-PR tile states its sourcing rule as persistent inline text beneath
+  the figure — not a tooltip, footnote or link — naming that the count is of shipped features and
+  that one shipped feature is one merged PR; and KPI 7 has no per-feature column in the work list
+  on `/` and no presence in `/work/$id`. ui-reviewer cites `file:line` for each clause, reading the
+  shipped source at `review_sha` via `git show <review_sha>:<path>`.
   verify: inspection
+
+- SC-21 (operator): Against a fixture control plane with two segments and a fleet repository, one
+  collection returns each FEAT, BUG and grilling item plus each registered worktree as its own row,
+  including a primary checkout, an orphaned worktree and a terminal-feature worktree. For a feature
+  whose main copy and worktree copy disagree, the returned state equals the worktree copy while
+  `main_path` and `worktree_path` name both; with every GitHub executable and client made
+  unavailable, the same collection returns the same rows. Each clause is asserted separately,
+  demonstrated failing before the collector exists, and passing afterward.
+  verify: automated        evidence: integration
+- SC-22 (operator): Table-driven boundary cases derive all six attention states and sort them in
+  this exact order: needs-you, blocked, stalled, over-budget, running, stale. A running state write
+  aged 44 minutes 59 seconds is running and one aged 45 minutes is stalled; a non-terminal item aged
+  six days 23 hours 59 minutes is not stale and one aged seven days is stale; one remaining cycle is
+  over-budget. The test reads 45 minutes, seven days and one remaining cycle from the
+  `harness.json` `dashboard` block and is demonstrated failing when any value or rank is changed.
+  verify: automated        evidence: unit
+- SC-23 (code maintainer): A newly written grilling note is `open` with no `became` value; intake by
+  plan or patch changes it to `handed-off` with the full feature id; abandonment records
+  `abandoned` with no `became` value. The state invariant rejects a missing front-matter block, an
+  unknown status, a handed-off note without an existing feature id and a non-handed-off note with a
+  feature id. At `review_sha`, every one of the 46 notes in the dated backfill manifest passes the
+  same invariant and the manifest has no unresolved review entry.
+  verify: automated        evidence: integration
+- SC-24 (operator): In the browser on `/`, the user sees the six attention cards in ranked order,
+  uses each card as a Status filter shortcut, finds feature, bug, grilling and worktree rows in the
+  work list, and opens the displayed source locations for a worktree-winning feature without
+  editing a file, restarting the server or enabling GitHub access.
+  verify: uat
+- SC-25 (operator): GET `/api/work` returns `harness-work/1` with effective thresholds, ranked
+  items and explicit source errors from a two-segment fixture. Both GET `/api/work` and GET
+  `/api/kpis` accept the shared `window` and `repo` URL parameters, default both to `all`, and return
+  only the selected slice. After a source file is mutated, a second request reflects the mutation
+  without restarting the process. Invalid dashboard configuration and repository enumeration
+  failures return a specific 500 response, while every pre-existing API and static route retains
+  its prior status and payload contract.
+  verify: automated        evidence: integration
+
+- SC-26 (operator): At 1440px and 1920px, the single dashboard `/` presents in order the shared
+  window-and-Repository header, the six-state attention strip, Repository KPIs first, and the work
+  list inside a centred max-width container. The Repository dropdown is the only repository
+  selector and there is no Work header toggle. Both header values are URL-backed, default to `all`,
+  survive a reload and are present unchanged after navigating to each of the other two product
+  routes.
+  verify: uat
+- SC-27 (operator): On `/`, a toggle switches the work list between Kanban and Table only. Both
+  layouts filter independently by Station, Status and Kind, with no Repository list filter; the
+  table names its state column Status. Astryx icons carry status without text colour, coloured
+  borders or coloured top-lines. The list renders id, repository, station and phase, status and
+  reasons, elapsed total and plan/build/validate phases, runs, cycles/max, and tokens. A current
+  phase advances through now; token gaps read `unmeasured n of m runs`, never zero. Feature and bug
+  rows open `/work/$id`; grilling and worktree rows expand inline.
+  verify: uat
+- SC-28 (operator): `/work/$id` accepts only a feature or bug id and renders the operational header
+  first — station, phase, run, status, both source paths, budget, phase elapsed values and tokens —
+  followed by the per-feature KPI content previously reached from the aggregate drill. A grilling
+  or worktree id has no detail route and its row expands inline on `/`.
+  verify: uat
+- SC-29 (orchestrator): A fixture host transcript carrying a known run-token total causes the
+  orchestrator's run-end path to record that exact integer through `feature-record.py run-end`; an
+  otherwise identical transcript without the measurement records null. The collector sums measured
+  tokens per item and plan/build/validate phase, reports `unmeasured 1 of 2 runs` for a mixed
+  fixture, never substitutes zero, and exposes no dollar-cost field.
+  verify: automated        evidence: integration
+
 
 ### Coverage — total in both directions
 
 | REQ | covered by | SC | traces |
 |---|---|---|---|
 | REQ-01 | SC-01, SC-02, SC-15 | SC-01 | REQ-01, REQ-14 |
-| REQ-02 | SC-03, SC-16 | SC-02 | REQ-01 |
+| REQ-02 | SC-03, SC-16, SC-21 | SC-02 | REQ-01 |
 | REQ-03 | SC-04 | SC-03 | REQ-02 |
 | REQ-04 | SC-04 | SC-04 | REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-09 |
 | REQ-05 | SC-04, SC-13 | SC-05 | REQ-07 |
@@ -282,8 +434,8 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
 | REQ-08 | SC-06 | SC-08 | REQ-11 |
 | REQ-09 | SC-04, SC-14 | SC-09 | REQ-10 |
 | REQ-10 | SC-09 | SC-10 | REQ-06 |
-| REQ-11 | SC-07, SC-08, SC-17, SC-19 | SC-11 | REQ-12 |
-| REQ-12 | SC-11, SC-15, SC-16, SC-18 | SC-12 | REQ-13 |
+| REQ-11 | SC-07, SC-08, SC-17, SC-19 | SC-11 | REQ-12, REQ-21 |
+| REQ-12 | SC-11, SC-15, SC-16, SC-18, SC-26, SC-27, SC-28 | SC-12 | REQ-13 |
 | REQ-13 | SC-12 | SC-13 | REQ-05 |
 | REQ-14 | SC-01 | SC-14 | REQ-09 |
 | REQ-15 | SC-19, SC-20 | SC-15 | REQ-01, REQ-12 |
@@ -292,6 +444,15 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
 |  |  | SC-18 | REQ-07, REQ-12 |
 |  |  | SC-19 | REQ-11, REQ-15 |
 |  |  | SC-20 | REQ-15 |
+| REQ-16 | SC-21, SC-24, SC-25, SC-27, SC-28 | SC-21 | REQ-02, REQ-16, REQ-19, REQ-20 |
+| REQ-17 | SC-22, SC-24, SC-27 | SC-22 | REQ-17 |
+| REQ-18 | SC-23 | SC-23 | REQ-18 |
+| REQ-19 | SC-21, SC-24, SC-28 | SC-24 | REQ-16, REQ-17, REQ-19, REQ-20 |
+| REQ-20 | SC-21, SC-24, SC-25 | SC-25 | REQ-16, REQ-17, REQ-19, REQ-20, REQ-21 |
+| REQ-21 | SC-11, SC-26, SC-27, SC-28 | SC-26 | REQ-12, REQ-21 |
+| REQ-22 | SC-27, SC-28, SC-29 | SC-27 | REQ-16, REQ-17, REQ-21, REQ-22 |
+|  |  | SC-28 | REQ-12, REQ-19, REQ-21, REQ-22 |
+|  |  | SC-29 | REQ-22 |
 
 ## Approval
 

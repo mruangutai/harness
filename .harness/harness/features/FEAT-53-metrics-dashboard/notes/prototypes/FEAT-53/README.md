@@ -1,116 +1,98 @@
-# FEAT-53 metrics dashboard — high-fidelity prototype
+# FEAT-53 metrics dashboard prototype
 
-**What this is for:** the four honest-gap states of `DESIGN.md` §C-4 are a visual judgement, and
-three of this feature's success criteria are `uat` with no automated runner behind them. This build
-exists so that judgement can be made **before** anything ships, on the same substrate the product
-will use.
+High-fidelity, dark-only Astryx prototype for the operator's three-route dashboard composition. It uses an invented fixture and never reads repository data.
 
-**The payload is a HAND-WRITTEN SYNTHETIC FIXTURE. It is never live data.** Every figure comes from
-`src/fixture.js`, the project is a fictional "Teapot Foundry", and its features are named after
-teapot parts so nobody can mistake them for a real measurement. There is no `fetch`, no filesystem
-read, no `git` and no code grader anywhere in this build. Nothing here measures this repository, and
-none of this repository's measured file-mix numbers appears anywhere in this directory (SC-06).
+## Run
 
-## Run it
-
-```
-npm install
-npm run dev        # http://localhost:5273
+```sh
+npm ci && npm run dev -- --host 127.0.0.1
 ```
 
-Then walk the drill: a tile → the feature rows → one feature. `npm run build` produces `dist/`;
-`npm run smoke` renders all three routes in node, asserts the gap-state contract (below), and prints
-KPI 3's sentences exactly as they render, so its wording can be read without a browser.
+Open <http://127.0.0.1:5273/?window=all&repo=all&station=all&status=all&kind=all&layout=table>.
 
-## What to look at, and where
+Production-build proof:
 
-| State | Where on screen | What makes it that state |
-|---|---|---|
-| **S-1** | the `30d` trend panel, and the `30d` tile sparklines | the region is **replaced**: a dashed card naming `.harness/metrics/trend.jsonl`. **No axes, no gridlines, no zero baseline, no `<svg>` mounted at all.** The five non-trend KPIs render beside it |
-| **S-2** | the `90d` and `all` trend panels, and the trend column of the feature table | axes **are** drawn. Pre-capability features are excluded from the line's path, the line **breaks** across a missing value rather than descending to zero, hatched trend cells carry an em-dash and "no trend — shipped before metrics", and "2 of 8 features in this window shipped before metrics" is persistent text |
-| **S-3** | directly beneath the histogram, inside the grading panel | persistent 13pt: "Grading covers Python only. 7 of 48 tracked files in this project are ungraded (15%)." with a disclosure naming the ungraded extensions. Never a tooltip, never a page-foot footnote |
-| **S-4** | the pair panel on the landing route, KPI 3's tile, and every unavailable cell in the table | a **tracked zero** and a **not-tracked** feature sit side by side on *identical* input: neither Bamboo Handle (`FIX-05`) nor Cast Iron Lid (`FIX-03`) has a `touchpoints.jsonl`, and only the instrumentation epoch — `2026-05-01` here, plan.yaml `D-21` — decides that one absence is a measured zero and the other is not a measurement at all. The two differ in **all four** of glyph (`0` vs `—`), typography (mono 700 `text` vs mono 400 `unavailable-stroke`), fill (normal surface vs 45° hatch) and badge (none vs "unavailable"), and the reason is always specific — the not-tracked cell carries D-21's own sentence, never "no data" |
-
-KPI 3's tile therefore carries **three** terms, never two: the per-feature mean **over tracked
-features only**, the count **at a tracked zero**, and the count **not tracked** (`2.8 · 6 features
-tracked · 1 at a tracked zero · 2 not tracked` on `all`). A not-tracked feature is never in the
-mean's denominator, and the feature-rows table repeats the split as persistent text beneath it.
-
-The window control exposes the literal tokens `30d`, `90d` and `all`; the window and the feature id
-live **only** in the URL, so every view is linkable, reloadable and back-button-safe. There is no
-modal at any depth and nothing is hover-only.
-
-## The Astryx version — and why DESIGN Q1 is still open
-
-`package.json` pins `@astryxdesign/core` at **`0.5.2`**, and that pin is a **measurement, not a
-guess**: the package is real, it was installed here, and its export surface was read from
-`node_modules` rather than assumed. Reproduce it with
-
-```
-npm view @astryxdesign/core version      # -> 0.5.2 (latest, 2026-09-01)
+```sh
+npm ci && npm run build
 ```
 
-**DESIGN Q1 remains open and this file does not close it.** Q1 asks what the *product* pins, which
-is T-04's job: an exact pin plus a committed `package-lock.json`, reported by dev-ops. A prototype's
-throwaway dependency set is not that decision. Every other version here is pinned exactly, at what
-the registry resolved on 2026-09-01.
+The prototype pins `@astryxdesign/core` and `@astryxdesign/theme-neutral` 0.5.2. `src/theme.js` adds feature semantic tokens; the application fixes `<Theme mode="dark">`. `InfoDisclosure` is the only popover pattern and uses the Astryx `Popover` and `IconButton` primitives.
 
-`@stylexjs/stylex` `0.19.0` is listed explicitly because Astryx declares it a peer.
+## Contract represented
 
-## Prototype vs product — three deliberate divergences
+The product routes are:
 
-1. **The trend section renders one panel per window token**, not one panel for the selected window.
-   S-1 and S-2 are told apart by *whether axes are drawn*, and a reviewer cannot compare two states
-   they have to navigate between. The product shows one region for the selected window.
-2. **Styling uses the `style` escape hatch every Astryx primitive accepts**, not `stylex.create`, so
-   no StyleX build step is needed. Values are unchanged — every one is a `var(--…)` token.
-3. **Charts are plain SVG driven by theme tokens.** No charting dependency was added: probing
-   TanStack Charts' alpha against `DESIGN.md` §C-2's capability list is build task T-15's job. SVG
-   *geometry* (viewBox coordinates, plot heights in the local coordinate space) is arithmetic, not a
-   design value; every colour, dash, font size and radius still resolves through a token.
+- `/` — the shared Window and Repository header, Repository KPIs, then the Work List; its six Status shortcuts appear first, before the filters and layout toggle.
+- `/kpi/$n` — one KPI panel; its FEAT/BUG rows open work detail.
+- `/work/$id` — operational header first, then the selected FEAT/BUG KPI content.
 
-## Contrast, re-measured
+There is no `/work` product route and no Work header toggle. The prototype-only `/__fixtures/gap-states` route makes S-1 through S-7 simultaneously judgeable without putting the honest-state gallery on the dashboard or in product navigation.
 
-`DESIGN.md` §Palette measures its nine tokens against named surface anchors, and says that where an
-Astryx theme value differs, **Astryx wins and the ratios are re-measured**. Astryx 0.5.2 ships
-`--color-background-surface` as `light-dark(#FFFFFF, #1F1F22)`, so the anchors are *not* overridden
-here and the ratios were recomputed against the real surface:
+The shared header owns `window=30d|90d|all` and `repo=<id>|all`; both default to `all`, remain in the URL, and survive product-route navigation. The Work List owns its six Status shortcuts plus `station`, `status`, `kind`, and `layout=kanban|table`; Table is the default. Repository is deliberately not repeated as a list filter.
 
-- all nine tokens clear 3:1 (the non-text-graphic floor);
-- the eight informational tokens clear 4.5:1, so each may be used as a label as well as a fill;
-- `unavailable-stroke` sits at 3.22 light / 3.67 dark — deliberately the only one below 4.5:1, so an
-  absence stays visible without reading as loud as a value.
+Status order is Needs You, Blocked, Stalled, Over Budget, Running, Stale. Each Status has an Astryx icon; work rows and cards keep neutral text and borders. Only the matching attention-card label uses the Status colour. Attention cards act as Status filter shortcuts without leaving `/`; the card matching the current `status` value carries the neutral selected treatment and `aria-current="true"`.
 
-`src/theme.js` is the **only** file that may contain a raw `#hex`, and one `defineTheme` call with
-`[light, dark]` tuples ships both themes. No component queries `prefers-color-scheme` and none
-branches on `isDark`; the theme toggle is an explicit control defaulting to the OS preference.
+Both Work List layouts carry ID, Repository, Station / Phase, Status with reason, Elapsed / Phases, Runs, Cycles / Max, and Tokens. Grilling and worktree items expand inline; FEAT and BUG items drill to `/work/$id`. Partial token coverage reads exactly `unmeasured n of m runs`; an absent measurement is never displayed as zero, and no dollar cost appears.
 
-## How this was verified
+At desktop widths the seven KPI tiles use a 4+3 split: tiles 1–4 are equal-width in row 1 and tiles 5–7 are equal-width in row 2, with no spanning tile or empty slot. This keeps the longest label, Usage by Agent / Model Tier, in the wider row while the narrower 339px tiles still hold the `display-1` figure, delta chip, and full-width sparkline without overflow. Below 1024px the existing two-column and single-column fallbacks remain. Every sparkline contains the latest fourteen daily points and spans the tile's inner width. Labels, dropdown items, and toggles use Title Case; supporting descriptions use sentence case.
 
-- `npx vite build` — 705 modules transformed, so every import `index.html` reaches resolves.
-- `npm run smoke` — 31 assertions over the SSR-rendered HTML of all three routes, including the two
-  that matter most: the `30d` region contains **no `<svg>`**, and the landing route mounts more
-  polylines than it has series (11 for 3), which is what a broken line looks like in the output.
-- `npm run dev` — served `/`, `/src/main.jsx` and `/features/FIX-02?window=all` at 200.
-- **Not verified: how it looks.** No browser was available in the authoring session. The visual
-  judgement this artifact exists for is the reviewer's, and it has not been made yet.
+## Browser observation
 
-**One caveat for whoever runs T-05's `verify`.** It concatenates *every* file under this directory
-and greps for `S-1 … S-4`, `30d` and `90d`. It passes on the committed tree, but it raises
-`UnicodeDecodeError` if `node_modules/`, `dist/` or `.smoke/` are present, because those hold binary
-files. Run it before `npm install`, or remove those three directories first — they are gitignored
-and rebuilt by `npm install` / `npm run build`.
+The current composition was observed in the running Vite application with Google Chrome over CDP on 2026-09-16. [observed-1440.png](./observed-1440.png) records the current 1440×1000 surface after selecting Needs You. [observed-1920.png](./observed-1920.png) is the earlier same-day KPI-width reference; card relocation was intentionally re-observed only at the 1440px design floor.
 
-## Files
+### Focus verification with real input
 
-```
-index.html          entry
-src/main.jsx        Theme + RouterProvider
-src/router.jsx      three routes; all view state in the URL
-src/theme.js        ONE defineTheme call — the only file with a raw #hex
-src/fixture.js      the synthetic payload
-src/lib/            series derivations (the "a gap breaks the line" rule lives here)
-src/components/     tiles, trend panels, grading panel, feature table, the S-4 pair
-src/routes/         aggregate → rows → feature
-src/smoke.jsx       the assertions above
-```
+Observed with Google Chrome pointer and keyboard input on 2026-09-16:
+
+1. **Fresh document load:** `document.activeElement` was `BODY`, the document contained zero
+   `:focus-visible` elements, and the measured body outline was
+   `rgb(255, 255, 255) none 3px` (`outline-style: none`).
+2. **Repository pointer selection:** mouse-opening Repository and mouse-picking Harness restored the
+   trigger as the active element with `:focus-visible = false` and
+   `outline: rgb(250, 250, 250) none 3px`. Mouse-opening it again and dismissing with Escape produced
+   that same no-ring value. Keyboard-opening and dismissing the same trigger preserved
+   `outline: rgb(250, 250, 250) solid 2px`.
+3. **Layout pointer selection:** mouse-clicking Table and then Kanban left each active segment with
+   `:focus-visible = false` and `outline: rgb(250, 250, 250) none 3px`. The selected segment measured
+   `background-color` and `border-color: rgba(255, 255, 255, 0.1)`, plus the neutral 1px inset edge
+   and 2px bottom indicator; Astryx's white pill was absent.
+4. **Keyboard entry:** after focus was placed on `BODY`, pressing Tab landed on the first control,
+   the selected `All` window segment, with `:focus-visible = true` and
+   `outline: rgb(250, 250, 250) solid 2px`.
+5. **Dashboard Tab order:** after the Window and Repository controls, focus traversed each KPI tile
+   and its InfoDisclosure in order 1…7, then Needs You → Blocked → Stalled → Over Budget → Running
+   → Stale, then the Station, Status and Kind Selectors and the Table layout control. The Status
+   cards therefore follow all KPI controls and precede every Work List filter.
+
+The title exception was also exercised through a mouse-opened KPI route transition: `Rework` became
+the active `<h1>` while retaining `outline: rgb(250, 250, 250) none 3px`; the same title received no
+focus on a fresh document load.
+
+### 1440×1000
+
+- `clientWidth = scrollWidth = 1440`: no page-level horizontal overflow.
+- The centred content frame measured 1440px including its 24px inline padding; the KPI grid's usable width was 1392px.
+- The dashboard rendered Repository KPIs first, then the Work List heading, six ordered Status shortcuts, and finally the Station / Status / Kind filters with Table as the default layout. Their measured top edges were 113.98px, 619.98px, 683.98px and 769.98px respectively. Row 1 held KPI tiles 1–4 at 339px each; row 2 held tiles 5–7 at 456px each. No Work header toggle, `/work` list link, or honest-state gallery was present.
+- No tile or text node overflowed and no label collided with its info control. The `display-1` figures and delta chips remained legible; row-1 sparklines measured 315px and row-2 sparklines 432px after card padding.
+- The Work List opened with the six cards; its filters were exactly Station, Status, and Kind.
+- Pointer interaction left the title, Repository selector, selected repository option, Kanban
+  toggle, and Table toggle without an outline; the measured values are recorded above.
+- Selecting Harness updated `repo=harness`; choosing Kanban and Table updated the URL in place. The
+  active layout used the neutral surface and border tokens with the inset mark, not a white pill.
+- Activating Needs You kept pathname `/`, set `status=needs-you`, reduced the table to two fixture rows, and marked only that shortcut `aria-current="true"` with the neutral selected treatment.
+- GRILL-208 expanded inline and focus remained on its row control.
+- Activating KPI 2 landed focus on the `Rework` `<h1>`; Browser Back restored focus to the exact KPI 2 tile.
+- The fixture-only route showed S-1 through S-7 simultaneously and exposed no product-navigation link to itself.
+
+### Earlier 1920×1080 KPI geometry reference
+
+- `clientWidth = scrollWidth = 1920`: no page-level horizontal overflow.
+- The centred content frame measured 1600px from x=160 to x=1760, proving the desktop max-width cap; the KPI grid's usable width was 1552px.
+- The same 4+3 rows measured 379px per tile and 509.33px per tile respectively. No tile or text node overflowed and no label collided with its info control; sparklines measured 355px and 485.33px after card padding.
+- The default table's `clientWidth` and `scrollWidth` both measured 1550px: no internal horizontal overflow.
+
+## Fixture boundary and deviations
+
+All names, counts, elapsed values, runs, cycles, tokens, repository ids, trend points, defect rows, and grading values in `src/fixture.js` are synthetic. They exist only to make every route, layout, drill, and honest state judgeable.
+
+There are no known deviations from the operator-set route, layout, column, filter, icon, colour, focus, URL-parameter, or dark-only contract. The prototype uses plain SVG for the compact daily sparklines rather than selecting the product chart package; chart-substrate selection remains an implementation probe, while the approved visual and interaction contract is unchanged.

@@ -1,4 +1,3 @@
 node_modules/
 dist/
 .smoke/
-package-lock.json
