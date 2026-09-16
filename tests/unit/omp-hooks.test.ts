@@ -101,6 +101,24 @@ describe("yieldContractText", () => {
     const input = { result: { data: { VERDICT: "PASS" } } };
     expect(normalizeYieldInput(input, "ignored")).toEqual(input);
   });
+
+  // #1676: the five "yield with null data" exits. The digest was complete in the assistant
+  // text; the envelope named `data` and carried nothing under it, and the repair keyed on the
+  // key rather than the value, so the host settled a finished run as failed.
+  test("repairs a yield whose data or error key is present but hollow", () => {
+    const repaired = { result: { data: { content: "VERDICT: PASS" } } };
+    for (const envelope of [{ data: null }, { data: "" }, { data: {} }, { data: [] },
+                            { error: null }, { data: null, error: "  " }]) {
+      expect(normalizeYieldInput({ result: envelope }, "VERDICT: PASS")).toEqual(repaired);
+    }
+  });
+
+  test("keeps a real error envelope, and leaves a hollow one alone with nothing to repair from", () => {
+    const failed = { result: { error: "tool crashed" } };
+    expect(normalizeYieldInput(failed, "VERDICT: PASS")).toEqual(failed);
+    const hollow = { result: { data: null } };
+    expect(normalizeYieldInput(hollow, "   ")).toEqual(hollow);
+  });
 });
 
 // B-1 (FEAT-42 review panel). runPolicy chose the gate executable with `join(cwd, BIN,
