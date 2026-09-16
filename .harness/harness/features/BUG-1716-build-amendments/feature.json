@@ -99,6 +99,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Continue with validate c1 at pinned f602c7ee: Main's fix receipt covers V-01 through V-08, spend is 2/10 cycles and 26/90 rework minutes, and the pin is an ancestor of tip."
+    },
+    {
+      "at": "2026-09-16T07:36:05+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix-c1-validator",
+      "reason": "validate c0 FAIL (V-01..V-08) fixed direct per DEC-174 (receipt-main-session-fix-c1.md); re-gated as fix-c1-validator \u2014 recorded late: the c1 orchestrator omitted it before its run"
     }
   ],
   "mission": "plan",
