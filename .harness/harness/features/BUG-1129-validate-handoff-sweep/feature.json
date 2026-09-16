@@ -2,7 +2,7 @@
   "feature_id": "BUG-1129-validate-handoff-sweep",
   "branch": "feat/BUG-1129-validate-handoff-sweep",
   "pr": null,
-  "review_sha": "96f37ebafcb508925ee05f9d6fa4e9a834cf507d",
+  "review_sha": "df871448f55bcb7cf5804e5ffc9cca187a364131",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "max_total_runs": 20,
