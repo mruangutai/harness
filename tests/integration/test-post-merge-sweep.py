@@ -179,7 +179,14 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
     prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
     with open(os.path.join(repo, prel), "w") as f:
         f.write(f"feature: {feature_id}\nstatus: {str(status).lower()}\ntasks: []\n")
-    subprocess.run(["git", "add", rel, prel], cwd=repo, capture_output=True)
+    # BUG-1129: ship refuses a feature with no validate handoff; these fixtures model
+    # VALIDATED features, so the note is part of the same commit.
+    nrel = os.path.join(".harness", repo_segment, "features", feature_id, "notes",
+                        "handoff-validate.md")
+    os.makedirs(os.path.dirname(os.path.join(repo, nrel)), exist_ok=True)
+    with open(os.path.join(repo, nrel), "w") as f:
+        f.write("## next\n## trust\n## dead ends\n## working set\n## done when\n")
+    subprocess.run(["git", "add", rel, prel, nrel], cwd=repo, capture_output=True)
     subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
     return abs_path
 
@@ -560,6 +567,45 @@ def case_unresolved_left_standing():
                          f"stdout={r.stdout!r}"))
         results.append(("(f) the unresolved record's worktree is left standing",
                          os.path.isdir(dest), f"dest={dest}"))
+    return results
+
+
+# ---------------------------------------------------------------------------------------------
+# BUG-1129: the sweep never ships an unvalidated feature, and keeps its worktree.
+# ---------------------------------------------------------------------------------------------
+
+def case_unvalidated_feature_is_not_shipped():
+    """The reported incident: `git pull` fired the sweep while BUG-1081's validate was still
+    running; the sweep shipped (cards to Done, parent closed) before handoff-validate.md
+    existed. ship now refuses before its first write (exit 1, no SKIP), and the sweep's
+    existing gate keeps the worktree on a non-zero ship. The fixture is the ordinary terminal
+    one with the note removed from the landed commit."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+        _commit_feature(repo, "FEAT-42-unvalidated", "Done", milestone=7)
+        note = os.path.join(repo, ".harness", "harness", "features", "FEAT-42-unvalidated",
+                            "notes", "handoff-validate.md")
+        subprocess.run(["git", "rm", "-q", os.path.relpath(note, repo)], cwd=repo,
+                       capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "validate still in flight"], cwd=repo,
+                       capture_output=True)
+        dest = _add_wt(repo, "FEAT-42-unvalidated")
+
+        r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
+        out = (r.stdout or "") + (r.stderr or "")
+        results.append(("BUG-1129: the sweep keeps the worktree of a feature whose validate "
+                        "handoff does not exist", os.path.isdir(dest),
+                        f"dest={dest} out={out[-600:]!r}"))
+        results.append(("BUG-1129: the refusal is named in the sweep's output",
+                        "handoff-validate.md" in out and "SKIP removal" in out,
+                        f"out={out[-600:]!r}"))
+        log_text = open(log).read() if os.path.exists(log) else ""
+        results.append(("BUG-1129: no milestone-close call was made — nothing on GitHub "
+                        "changed", "milestones/" not in log_text, f"log={log_text!r}"))
     return results
 
 
@@ -1001,6 +1047,7 @@ def main():
         + case_order_d04()
         + case_unresolved_left_standing()
         + case_skip_is_not_success()
+        + case_unvalidated_feature_is_not_shipped()
         + case_failed_is_not_success()
         + case_cwd_outside_repo()
         + case_t07_build_entry_receipt()

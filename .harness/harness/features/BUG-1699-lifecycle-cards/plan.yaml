@@ -1,0 +1,243 @@
+schema: plan/1
+feature: BUG-1699-lifecycle-cards
+approval:
+  date: '2026-09-16'
+  approved_by: mruangutai
+  status: approved
+status: review
+source_issues: [1699]
+
+panel:
+  last_run: 2026-09-15-01-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-0cc0ca4c9560b2af4b780b114d0fdf82
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: Separately requested lifecycle checkpoints are collapsed into untagged compound SCs.
+    disposition: resolved
+  - id: PF-f86a6aea3906de87f28cbca469678954
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-03 does not execute the receipt-to-lifecycle caller chain it changes.
+    disposition: resolved
+  - id: PF-43283b0ed9188e9c699dc6c98372ec4c
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: The new dev-ops phase-review DAG step in fix.yaml (D-04, T-03, SC-05's "before any independent reader begins" clause) is permanent orchestration machinery whose only job is advancing a best-effort mirror a few minutes earlier.
+    disposition: resolved
+    scope: task
+lanes:
+  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  rows:
+  - surface: .claude/skills/harness/bin/gh_board.py, .claude/skills/harness/bin/gh-sync.py,
+      and focused tests
+    lane: team
+    agent: harness-backend-dev
+  - surface: .claude/skills/harness/bin/plan-merge.py and its focused test
+    lane: main-session-direct
+    reason: DEC-174 keeps approval enforcement writers and their tests in the main
+      session
+  - surface: canonical commands, cross-phase orchestration skills, generated command
+      adapters, and the focused lifecycle caller-order test
+    lane: main-session-direct
+    reason: no single execution agent owns the cross-cutting command and orchestration
+      surfaces
+  - surface: .claude/skills/harness/bin/board_lifecycle.py and its focused test
+    lane: main-session-direct
+    reason: DEC-174 keeps control-plane audit and reconciliation enforcement with
+      the main session
+  - surface: .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md
+    lane: team
+    agent: harness-documentor
+decisions:
+  - id: D-01
+    choice: gh_board.project is the single projection policy, and each active top-level feature phase assigns the same station to every unique recorded source, parent, and non-abandoned task card.
+    because: phase cards must describe one feature lifecycle rather than expose unrelated task-local progress as competing board truth.
+    dec: DEC-203
+  - id: D-02
+    choice: An active signed-plan task mutation stores transient approval.resume_station metadata, resets the local feature station to plan, and leaves every GitHub mutation to an explicit caller.
+    because: atomic local reset preserves the interrupted phase without adding network failure to the plan writer or extending feature.json.
+    dec: DEC-229
+  - id: D-03
+    choice: Initial signature and reapproval both run idempotent mirror opening followed by the station emitted by sign-approval, with initial approval defaulting to ready.
+    because: one post-signature checkpoint handles new mirrors, newly added tasks, and phase resume while retaining the existing build_entry receipt schema.
+    dec: DEC-220
+  - id: D-04
+    choice: A must-fix cycle moves all cards to building before the fix team is dispatched, and after the fix run returns the orchestrator moves all cards to review at the next validation boundary while leaving the fix-team reader wave unchanged.
+    because: existing orchestrator-owned checkpoints preserve DEC-224 one-run fix-team independence and DEC-226 rework authority without another agent spawn, reader serialization, or user approval.
+    dec: DEC-224
+  - id: D-05
+    choice: The existing board_lifecycle reconcile --apply command is the one-time repair entry point for active features and reuses the shared projection and one bounded station snapshot.
+    because: extending the idempotent repair path avoids a second migration command and keeps drift detection, mutation, and repair on one policy.
+    dec: DEC-203
+  - id: D-06
+    choice: Done remains ship-only, abandonment remains unchanged, the exact six station vocabulary remains closed, and every outbound card write remains best effort.
+    because: the defect is incomplete active-phase projection, not terminal semantics, station schema, or synchronization authority.
+    dec: DEC-138
+
+tasks:
+  - id: T-01
+    title: Unify active card projection and lifecycle status writes
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-08
+    - SC-10
+    - SC-11
+    - SC-12
+    - SC-13
+    - SC-14
+    - SC-15
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/gh_board.py#project
+    - .claude/skills/harness/bin/gh-sync.py#cmd_status
+    - .claude/skills/harness/bin/check-state.py
+    - path: tests/unit/test-gh-board.py
+      quote: '# --- each task sub-issue gets ITS OWN task''s station, verbatim ---'
+    - path: tests/integration/test-gh-sync-record.py
+      quote: '# --- status Ready on a signed plan moves every recorded T-NN sub-issue
+        to the declared'
+    - tests/integration/test-check-state-inv26.py#case_v
+    - tests/integration/test-gh-sync-start-task.py
+    verify: |
+      python3 tests/unit/test-gh-board.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-gh-sync-ship.py && python3 tests/integration/test-gh-sync-abandon.py
+    intent: |
+      Write the failing focused projection and status scenarios first. Replace gh_board.project's per-task active policy with one feature-phase projection: for top-level plan, ready, building, or review, return the same lowercase phase for every unique recorded source issue, parent issue, and task issue whose plan task is not abandoned. Preserve terminal done projection, absent and abandoned handling, duplicate issue de-duplication, lowercase values, and the exact six configured station vocabulary. Make cmd_status keep its existing approval and completion guards, record the local station first, and for plan, ready, building, and review attempt every issue in the shared projection through the existing board adapter. Catch and report each BoardError so later cards are still attempted. When sync is disabled or board configuration is absent, retain the local station update and perform no remote call. Leave done to cmd_ship and abandoned to cmd_abandon. Keep start-task as an idempotent task-start receipt path, not a second feature-phase projection. Update INV-26 expectations to consume the same project result. Prove initial Ready, Plan, Building, and Review exact issue sets including source, parent, and tasks; duplicate de-duplication; abandoned exclusion; per-card partial failure continuation; and local-only behavior. Keep existing open, start-task, ship open-child, and abandon regression scripts green.
+
+  - id: T-02
+    title: Preserve lifecycle resume context across approval reset and reapproval
+    traces:
+    - SC-06
+    - SC-07
+    - SC-10
+    - SC-15
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps the approval enforcement writer and its focused enforcement test in the main session
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/plan-merge.py#_maybe_reset_approval
+      - tests/integration/test-plan-merge.py#case_f59_approval_auto_reset_on_every_task_changing_verb
+    verify: |
+      python3 tests/integration/test-plan-merge.py
+    intent: |
+      Add failing cases beside the existing approval auto-reset cases before implementation. For every task-changing verb that resets an approved active plan in plan, ready, building, or review, perform one locked update that writes approval.status pending, reset_at, reset_reason, and approval.resume_station, and sets the top-level feature status to plan. Classify resume_station from the pre-reset phase and the resulting task set: ready when the phase is plan or ready and no task shows started work; review only when the interrupted phase is review and every resulting task is done or abandoned; building when the interrupted phase is building or review with non-terminal resulting work, or whenever resulting task state proves work started. On another task mutation while approval is pending and resume metadata exists, recompute the target so added ready work cannot leave a stale review target. Do not reopen top-level done or abandoned features. Keep reset and status bytes verified after reload before printing APPROVAL-RESET. Make sign-approval remove reset_at, reset_reason, and resume_station, preserve rulings and rework ordering, and print one machine-readable RESUME line: ready for an initial signature and the stored classified station for reapproval. Do not call GitHub from plan-merge. Cover all three resume outcomes, repeated pending mutation, terminal non-reopening, receipt accuracy, metadata cleanup, byte-preserving splice behavior, and existing signature and rework cases.
+
+  - id: T-03
+    title: Wire explicit lifecycle checkpoints through planning, build, validation, and fix orchestration
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-05
+    - SC-06
+    - SC-07
+    - SC-10
+    - SC-15
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: no single agent domain owns the canonical commands, cross-phase orchestration skills, generated command adapters, and their focused lifecycle caller-order test
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+    - path: .omp/commands/harness-plan.md
+      quote: '**The signature is immediately followed by**'
+    - path: .omp/commands/harness-patch.md
+      quote: '**The signature is immediately followed by**'
+    - path: .claude/commands/harness-plan.md
+      quote: '**The signature is immediately followed by**'
+    - path: .claude/commands/harness-patch.md
+      quote: '**The signature is immediately followed by**'
+    - path: .claude/skills/harness/SKILL.md
+      quote: "- **Build** \u2014"
+    - path: .claude/skills/harness/references/build-phase.md
+      quote: 1. **Build entry.**
+    - path: .claude/skills/harness/references/github-mirror.md
+      quote: '## Every subcommand has one owner. Run only the ones that are yours'
+    - path: .claude/skills/harness-spec-driven/SKILL.md
+      quote: '## Approval is not yours'
+    - path: .claude/skills/harness/teams/plan.yaml
+      quote: '  - id: draft'
+    - path: tests/integration/test-station-argument-spelling.py
+      quote: EXPECTED_FILES = ("harness-plan.md", "github-mirror.md", "SKILL.md")
+    - tests/integration/test-sync-command-adapters.py#main
+    verify: |
+      python3 tests/integration/test-station-argument-spelling.py && python3 tests/integration/test-sync-command-adapters.py && python3 .claude/skills/harness/bin/sync-command-adapters.py --check
+    intent: |
+      Update canonical orchestration and generated command adapters as one cutover. In both plan and patch commands, immediately after sign-approval capture and validate its machine-readable RESUME station, invoke idempotent gh-sync open, then invoke gh-sync status with that emitted station rather than a literal; initial approval therefore opens every recorded issue and sends Ready, while reapproval restores Ready, Building, or Review. In the PM skill and the plan-team PM draft and apply dispatch prompts, capture plan-merge output and invoke gh-sync status for Plan only when it contains APPROVAL-RESET; perform no remote call without that receipt. At ordinary Build entry require the signature-created build_entry receipt and send Building for the complete card set before task dispatch; preserve recovery-required behavior and idempotent open as explicit recovery rather than routine Build creation. At ordinary validation entry send Review for the complete card set before the validation team is dispatched. Before launching each must-fix team run, send Building for the complete card set. Leave fix.yaml and its independent reader wave unchanged: add no lifecycle-only step, persona, dependency, role text, or extra agent spawn. When the fix run returns, repin its reviewed tip and send Review at the next validation boundary before any subsequent validation dispatch or result handling. Extend the focused station-orchestration integration test to load the canonical plan and patch commands, PM skill and plan-team prompts, and build-phase instructions; assert the receipt-driven event order and boundary ownership, and add discriminating fixture mutations that fail when RESUME is replaced by a literal or ignored, status precedes open, APPROVAL-RESET is ignored, ordinary Build or validation is placed after dispatch, must-fix Building is placed after fix dispatch, Review is inserted inside the fix DAG, or post-fix Review is placed after the next validation boundary. Keep station spelling coverage and command-adapter parity as separate regression checks, regenerate only command adapters from their canonical files, and never hand-diverge generated copies.
+
+  - id: T-04
+    title: Reconcile every recorded card for existing active features
+    traces:
+    - SC-09
+    - SC-10
+    - SC-11
+    - SC-12
+    - SC-15
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps control-plane audit and reconciliation enforcement and its focused test in the main session
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/board_lifecycle.py#_status_findings
+      - path: tests/integration/test-board-lifecycle.py
+        quote: "# T-06: board_lifecycle.py reconcile -- the write side of audit. Every case sets BOTH"
+    verify: |
+      python3 tests/integration/test-board-lifecycle.py
+    intent: |
+      Add the failing active-feature all-card reconciliation scenario first. Change _status_findings to load each eligible feature's plan and GitHub receipt, call the shared gh_board.project policy, and compare every unique expected source, parent, and non-abandoned task issue with the single station snapshot already supplied to the audit. Emit one STATUS finding per mismatch carrying issue_number, expected station, actual station, and feature path. Change _apply_fix to set the finding's issue_number rather than a parent-only field. In reconcile --apply, continue after a per-card BoardError and leave the failed mismatch in the residual report while attempting later cards. Keep one bounded board snapshot per invocation. Restrict automatic lifecycle repair to active plan, ready, building, and review features; Done remains ship-only, Abandoned remains exempt, factory issue records remain exempt, and foreign-repository self-skip remains unchanged. Prove source, parent, task, duplicate, abandoned-task, partial-failure, dry-run, apply, immediate second-run idempotence, terminal, factory, and foreign-repository cases. Do not add a migration CLI: one board_lifecycle.py reconcile --apply invocation is the bounded one-time fleet backfill and remains safe to repeat.
+
+  - id: T-05
+    title: Replace stale lifecycle authority text and regenerate its index
+    traces:
+    - SC-10
+    - SC-11
+    - SC-12
+    - SC-13
+    - SC-14
+    - SC-15
+    - SC-16
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02, T-03, T-04]
+    status: done
+    files:
+      - path: .harness/harness/docs/DECISIONS.md
+        quote: "## DEC-138 — GitHub Issues integration: asymmetric truth, orchestrator-executed, full loop (task 24)"
+      - path: .harness/harness/docs/DECISIONS-INDEX.md
+        quote: "- DEC-138 @2942"
+    verify: |
+      python3 .claude/skills/harness/bin/check-decision-anchors.py && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      After T-01 through T-04 establish executable truth, revise existing decisions in place under DEC-188 and DEC-205 rather than adding an amendment. Update DEC-138 to name complete-card active phase projection and explicit best-effort callers while preserving asymmetric local authority. Update DEC-203 to state that every recorded source, parent, and non-abandoned task card follows Plan, Ready, Building, Review, and ship-owned Done, while retaining exact six stations, no aliases, bounded readbacks, workflow-owned issue closure, open-child ship rules, and abandonment behavior. Update DEC-220 so mirror opening and its existing build_entry receipt occur immediately after signature, Build requires the receipt and sends Building, and recovery remains idempotent. Update DEC-224 to record orchestrator-owned Building before a must-fix run and Review at the next validation boundary after the run returns, while the existing fix-team DAG and parallel reader wave remain unchanged. Update DEC-229 to record atomic Plan reset, transient resume metadata, and the RESUME signature receipt while retaining sign-approval as the only approval writer. Leave DEC-146's uncapped projectItems discovery and best-effort station write contract substantively unchanged. Remove or rewrite any stale current-truth sentence that still says mirror creation begins at Build, Ready is task-only, Building is per-task only, Review omits sources, or reconciliation is parent-only. Regenerate DECISIONS-INDEX.md from the generator and keep every decision anchor valid.

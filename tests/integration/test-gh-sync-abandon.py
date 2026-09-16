@@ -24,7 +24,7 @@ import yaml
 from gh_sync_support import (
     FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, add_plan_station, calls, check, edits_to,
     install_gh, read_feature_json, read_plan_station, report, run, ship_env, stage, stage_ship,
-    stage_station, write_feature_json)
+    stage_station, write_feature_json, write_validate_handoff)
 
 
 def main():
@@ -257,6 +257,7 @@ def main():
         `plan-merge.py set-feature-station`, which needs a plan on disk to write to — a fixture with
         only a feature.json makes those paths print "absent" and record nothing, which is a
         different case from the one every caller here means."""
+        write_validate_handoff(os.path.dirname(path))
         with open(os.path.join(os.path.dirname(path), "plan.yaml"), "w", encoding="utf-8") as f:
             f.write(f"schema: plan/1\nfeature: {feat_name}\nstatus: {str(status).lower()}\n"
                     f"tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
@@ -349,6 +350,7 @@ def main():
         )
         reason = os.path.join(tmp, "reason.txt")
         open(reason, "w").write("the operator's signed reason")
+        write_validate_handoff(feat)
         return feat, reason
 
     # --- without --yes: it makes NO write at all ---------------------------------------------------

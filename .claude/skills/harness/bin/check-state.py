@@ -73,6 +73,7 @@ import sys, os, re, glob, json, subprocess
 sys.path.insert(0, sys.argv[2])
 import harness_yaml
 import artifact_accessors
+import handoff_policy
 import run_identity
 try:
     import handoff_done_when
@@ -1156,53 +1157,6 @@ HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
 # a two-element list that cannot grow has nothing to grant wrongly.
 HANDOFF_EXEMPT_LITERAL = ("FEAT-01", "FEAT-02")
 
-def _handoff_exempt(fdir):
-    """The plan-keyed exemption (DEC-174). Returns a reason string when the feature owes no
-    handoff notes, or "" when it does. The second value is a detail to append to the
-    violation when the plan could not be read.
-
-    A feature built entirely main-session-direct runs no squad, crosses no seam and is owed
-    no note. THREE CONJOINED CONDITIONS, all necessary: (1) a plan.yaml exists — a PLAN.md
-    does NOT qualify and is never read here; (2) its tasks: list is present and NON-EMPTY;
-    (3) EVERY task carries an explicit execution_mode of exactly main-session-direct.
-
-    KEYED ON THE PLAN'S EXECUTION MODES, NEVER ON THE NOTES' ABSENCE. Keyed on absence, the
-    invariant would be satisfied by the exact condition it exists to detect.
-
-    Condition 2 is a vacuity guard and excludes nobody in today's corpus — every plan.yaml
-    on disk has a non-empty tasks: list. It is kept because "every task is
-    main-session-direct" is VACUOUSLY TRUE over an empty list, so a stub plan, a
-    half-written one, or one whose tasks: key was mistyped would otherwise be silently
-    exempted from a seam invariant. What actually excludes FEAT-01 through FEAT-05 is
-    condition 1, in all five cases.
-
-    A DELIBERATE FALSE NEGATIVE: FEAT-06 and FEAT-07 are all-main-session-direct too, but on
-    PLAN.md, so condition 1 keeps them non-exempt and they keep owing their notes. That is
-    the safe direction and costs nothing — both already carry every note their status
-    demands. Do not widen condition 1 to reach PLAN.md.
-
-    FAIL CLOSED: any read error, parse error or non-mapping task entry is NOT exempt.
-    """
-    pp = os.path.join(fdir, "plan.yaml")
-    if not os.path.isfile(pp):
-        return "", ""
-    try:
-        pdoc = artifact_accessors.load_plan(pp) or {}
-    except Exception as e:
-        return "", f" (its plan.yaml does not parse, so no exemption could be evaluated: {e})"
-    if not isinstance(pdoc, dict):
-        return "", " (its plan.yaml is not a mapping, so no exemption could be evaluated)"
-    tasks = pdoc.get("tasks")
-    if not isinstance(tasks, list) or not tasks:
-        return "", ""
-    for t in tasks:
-        if not isinstance(t, dict):
-            return "", (" (its plan.yaml has a task that is not a mapping, so no "
-                        "exemption could be evaluated)")
-        if str(t.get("execution_mode", "")).strip() != "main-session-direct":
-            return "", ""
-    return (f"every task in its plan.yaml is execution_mode main-session-direct (DEC-174), "
-            f"so no squad ran and no seam was crossed"), ""
 
 for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
@@ -1240,7 +1194,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
             if _lit:
                 continue
             if _ex_why is None:
-                _ex_why, _ex_detail = _handoff_exempt(os.path.dirname(fy))
+                _ex_why, _ex_detail = handoff_policy.exempt_reason(os.path.dirname(fy))
             if _ex_why:
                 _ex_stems.append(prev)
                 continue
@@ -1272,7 +1226,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # FEAT-31's own handoff-build.md all landed after that reading.
     #
     # EXEMPTIONS DO NOT REACH HERE, deliberately. HANDOFF_EXEMPT_LITERAL and
-    # _handoff_exempt gate the missing-note branch above only: they answer whether a note is
+    # handoff_policy.exempt_reason gate the missing-note branch above only: they answer whether a note is
     # OWED. Once a file exists its shape is checked whoever wrote it and whatever the
     # feature's status.
     for hp in sorted(glob.glob(os.path.join(os.path.dirname(fy), "notes", "handoff-*.md"))):
@@ -2231,9 +2185,15 @@ if _inv26_board:
         except Exception:
             continue
         _gblk26 = _fj26.get("github") or {}
+        _issues26 = _gblk26.get("issues") or {}
+        if not _issues26:
+            continue
         if isinstance(_gblk26.get("parent"), int):
             _numbers26.add(_gblk26["parent"])
-        for _n26 in (_gblk26.get("issues") or {}).values():
+        for _n26 in _issues26.values():
+            if isinstance(_n26, int):
+                _numbers26.add(_n26)
+        for _n26 in (_gblk26.get("source_issues") or []):
             if isinstance(_n26, int):
                 _numbers26.add(_n26)
 
@@ -2296,54 +2256,12 @@ if _inv26_board:
             if station_of(_fp) in FINISHED_STATIONS:
                 continue
 
-            _derived = _gb.derive_station(_pdoc)
 
-            # A None derivation silences the PARENT claim ONLY. It used to `continue` here
-            # and skip the whole feature, which took the per-task comparison with it — and
-            # that comparison never needed the parent derivation, since project places each
-            # task's card from that task's own status. The cost was exact: a plan with one task
-            # `done` and
-            # the rest `pending` derives None, so the mis-columned `done` card SC-05 names
-            # went unreported. That is the ordinary window between two tasks, not a corner,
-            # and every INV-26 fixture was single-task so the suite could not see it.
-            # An absent status reads as the NOT-STARTED STATION (FEAT-41 T-04). The PLAN.md
-            # corpus predates the field, so absence still has to mean something, and what it
-            # means is `ready`.
-            _statuses = [(_t.get("status") or "ready")
-                         for _t in (_pdoc.get("tasks") or [])
-                         if isinstance(_t, dict) and _t.get("id")]
-            # THIS GUARD INVERTS UNDER THE RENAME IF IT IS COPIED LITERALLY (FEAT-41 T-04).
-            # It read `not any(_s != "pending")` — true only when every task is unstarted. The
-            # migration rewrote every such task to `ready`, so a literal rename would leave the
-            # test comparing against a word no file carries: `_s != "pending"` is true for
-            # EVERY task, `not any(...)` is false for every feature, and the skip would stop
-            # firing everywhere at once. Written against the not-started station instead.
-            if _derived is None and all(_s == "ready" for _s in _statuses):
-                # Nothing has started. No card can be wrong yet, so no claim is right.
-                continue
-
+            # INV-26 only compares cards recorded by the GitHub mirror. A feature with no
+            # mirrored task issue has no board projection to verify; mirror opening owns its
+            # separate lifecycle obligation.
             _issues = ((_fj.get("github") or {}).get("issues") or {})
-
-            # THE MIRROR-NEVER-RAN CLAUSE — the ticket's own third gap. A mirror that never
-            # ran and one that ran cleanly are otherwise indistinguishable from outside.
-            # INV-21 warns on a DIFFERENT shape (recorded issues, no parent); these stay
-            # two findings and neither restates the other.
             if not _issues:
-                # THE OTHER LANE (issue #349). A feature published by factory_decompose
-                # records its issues under `factory.issues` and nothing under
-                # `github.issues` — its cards live on the PRODUCT's board, which this
-                # invariant does not read. Without this, the clause below orders the
-                # operator to run `gh-sync.py open` on product work, mirroring it onto
-                # harness's own board. Keys on RECORDED issues, not the block's presence:
-                # a factory block with an empty map is still a feature nobody published.
-                if ((_fj.get("factory") or {}).get("issues")):
-                    continue
-                _claim = (f"plan derives {_derived}" if _derived is not None
-                          else "the plan has tasks under way")
-                bad.append(f"INV-26 {_feat}: tasks are in flight or finished ({_claim}"
-                           f") but feature.json records no mirrored issues, so the "
-                           f"board cannot be telling the truth about this feature. The mirror "
-                           f"never ran — run `gh-sync.py open` for it.")
                 continue
 
             _tstat = {}
@@ -2357,9 +2275,10 @@ if _inv26_board:
             # cards and the parent, and a source issue's card is the parent's station — already
             # covered by the parent claim above.
             try:
-                _projected = _gb.project(_pdoc, {"issues": _issues,
-                                                 "parent": (_fj.get("github") or {}).get("parent"),
-                                                 "source_issues": []})
+                _projected = _gb.project(
+                    _pdoc, {"issues": _issues,
+                            "parent": (_fj.get("github") or {}).get("parent"),
+                            "source_issues": (_fj.get("github") or {}).get("source_issues") or []})
             except Exception as _pe26:
                 # A VOCABULARY MISS IS A VIOLATION, NOT A SKIP. project raises FleetError
                 # naming the task and the value, which is the defect this feature exists to
@@ -2419,20 +2338,31 @@ if _inv26_board:
                                f"{_tstat.get(_tid, 'pending')}, so the card should read "
                                f"{_wanttxt} — the board reads {_found}.")
 
-            # THE PARENT. A derived station with no recorded parent is INV-21's finding,
-            # not this one.
-            # `_derived is None` reaches here now, and the parent is the ONE comparison it
-            # must still silence — there is no station to expect, so any read compares equal
-            # to nothing and would report a false violation.
+            # Parent and source cards are compared through the same projection as task cards.
             _parent = (_fj.get("github") or {}).get("parent")
-            if isinstance(_parent, int) and _derived is not None:
-                _pfound, _preason = _gb.read_station(_stations, _parent)
-                if _preason:
-                    bad.append(f"INV-26 CANNOT VERIFY {_feat} parent (issue #{_parent}): "
-                               f"{_preason}. The plan derives {_derived}.")
-                elif _pfound != _derived:
-                    bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan derives "
-                               f"{_derived} — the board reads {_pfound}.")
+            if isinstance(_parent, int):
+                _parent_want = _projected.get(_parent)
+                if _parent_want is not None:
+                    _pfound, _preason = _gb.read_station(_stations, _parent)
+                    if _preason:
+                        bad.append(f"INV-26 CANNOT VERIFY {_feat} parent (issue #{_parent}): "
+                                   f"{_preason}. The plan projects {_parent_want}.")
+                    elif _pfound != _parent_want:
+                        bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan projects "
+                                   f"{_parent_want} — the board reads {_pfound}.")
+            for _source in (_fj.get("github") or {}).get("source_issues") or []:
+                if not isinstance(_source, int):
+                    continue
+                _source_want = _projected.get(_source)
+                if _source_want is None:
+                    continue
+                _sfound, _sreason = _gb.read_station(_stations, _source)
+                if _sreason:
+                    bad.append(f"INV-26 CANNOT VERIFY {_feat} source (issue #{_source}): "
+                               f"{_sreason}. The plan projects {_source_want}.")
+                elif _sfound != _source_want:
+                    bad.append(f"INV-26 {_feat} source (issue #{_source}): the plan projects "
+                               f"{_source_want} — the board reads {_sfound}.")
 # --- INV-30 (FEAT-34 T-08, REQ-12): a feature recorded `Done` whose milestone is still OPEN.
 #
 # IT KEYS ON THE MILESTONE, NEVER ON THE STATUS AGREEING WITH ITSELF. `status: Done` has more

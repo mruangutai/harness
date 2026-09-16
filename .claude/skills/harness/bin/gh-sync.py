@@ -116,6 +116,7 @@ import gh_board
 import gh_cost_log
 import harness_yaml
 import harness_boundary
+import handoff_policy
 
 GH = os.environ.get("GH_SYNC_GH", "gh")
 
@@ -1456,12 +1457,7 @@ def cmd_start_task(feat_dir, tid, repo, board):
     issue_num = rec["issues"][tid]
     if _closed_task_guard(repo, board, issue_num, tid):
         return
-    station = _projected_for(feat_dir, rec).get(issue_num)
-    if station is None:
-        print(f"gh-sync: no station follows from the plan for #{issue_num} ({tid}) "
-              f"— card not moved", file=sys.stderr)
-    else:
-        _place(board, repo, issue_num, station, note=f" ({tid})")
+    _place(board, repo, issue_num, "building", note=f" ({tid})")
     _apply_parent_rule(feat_dir, repo, board)
 
 
@@ -1496,41 +1492,12 @@ def cmd_status(feat_dir, station, repo, board):
     refusal below (step 5) therefore runs BEFORE `_record_station`, since a refusal must leave
     NOTHING recorded.
 
-    STATION WRITES, exactly what step 2 specifies and nothing else:
-    - Ready: every recorded T-NN sub-issue (never the parent — D-18, THE PARENT MUST NEVER
-      REACH THE READY COLUMN) moves to the lowercase `"ready"`. Zero recorded sub-issues
-      prints one line and writes nothing — no fallback to the parent.
-    - Review: the PARENT and every recorded T-NN sub-issue move to
-      the lowercase `"review"` (operator ruling, D-23) — one `gh_board.set_station` call
-      each. A parent that is not recorded prints one stderr line and the sub-issue writes
-      still proceed; this does not raise and does not restate INV-21's finding.
-    - Building: `_record_station` records plan.yaml's own station as `building`, and the
-      early-return guard just below (unchanged) does not list `building`, so control falls
-      through it; neither the ready branch nor the review branch fires, so NO CARD IS WRITTEN
-      by this subcommand for building — the parent card reaches the board's Building column
-      by derivation from the task statuses `gh-sync.py start-task` writes. Nothing calls this
-      subcommand for building today: the orchestrator records the feature's building station
-      through `plan-merge.py set-feature-station --station building` (BUG-1507's addition to
-      SKILL.md's build phase, already landed on this branch), so this path is a stated
-      contract, not a live caller.
+    STATION WRITES use `gh_board.project`'s one policy. Plan, Ready, Building, and Review
+    attempt every projected source, parent, and non-abandoned task card after the local record
+    succeeds. Done remains ship-only and terminal abandonment has no status write here.
 
-      This is intentional (D-02), not a fallthrough left unstated: recording the station and
-      writing no card is the INTENDED behaviour for building, and building is deliberately not
-      added to the tuple below, because `load_recorded` — which the fallthrough reaches — raises
-      SystemExit on an unparseable or non-mapping feature.json, so short-circuiting building past
-      it would change observable behaviour in exactly the case the tuple is meant to be neutral
-      about (BUG-1507).
-    - Plan, Done, Abandoned: no station write at all (Plan is board-station.py's own write;
-      Done is written by `ship` alone, which is the only writer of the done station, so a
-      Done feature's cards are already there by the time this runs; Abandoned has no column
-      at all, D-03/DEC-203).
-
-    FAILURE POSTURE, unchanged from every other station write in this file: a `BoardError`
-    from one card prints one stderr line and the remaining cards still get written — a bulk
-    write must not stop at the first failure (step 4).
-
-    `board is None` (no github.board configured) skips every station write below — the
-    status is still recorded.
+    A `BoardError` from one card prints one stderr line and later cards still get attempted.
+    `board is None` skips remote writes while preserving the local station update.
     """
     if station not in STATION_VALUES:
         refuse(f"unknown station {station!r} — must be one of {', '.join(STATION_VALUES)}")
@@ -1555,48 +1522,12 @@ def cmd_status(feat_dir, station, repo, board):
 
     _record_station(feat_dir, station)
 
-    if board is None or station in ("plan", "done") + factory_config.TERMINAL_STATIONS:
+    if board is None or station not in ("plan", "ready", "building", "review"):
         return
 
     rec = load_recorded(feat_dir)
-
-    if station == "ready":
-        numbers = sorted(rec["issues"].values())
-        if not numbers:
-            print("gh-sync: station ready — no sub-issues recorded, nothing to move")
-            return
-        # PLACEMENT FROM project, SCOPE FROM THIS TRANSITION (FEAT-41 T-06). project says where
-        # each card belongs; `numbers` says which cards this transition touches — D-18 keeps the
-        # parent out of the ready column, and that scoping is the caller's, not project's.
-        _projected = _projected_for(feat_dir, rec)
-        for num in numbers:
-            _station = _projected.get(num)
-            if _station is None:
-                print(f"gh-sync: no station follows from the plan for #{num} — card not moved",
-                      file=sys.stderr)
-                continue
-            _place(board, repo, num, _station)
-    elif station == "review":
-        # A PHASE WRITE, NOT A project CONSULT (FEAT-41 T-06), and T-06's own text is what
-        # settles it. Under D-23 the parent AND every recorded sub-issue move to `review` when
-        # the feature enters its review phase — regardless of each task's own status. project
-        # answers a different question, "where does THIS task's status put its card", and at
-        # Review time every task is done, so a consult here would write `done` to each card and
-        # the review phase would stop being visible on the board at all.
-        #
-        # This is exactly the disagreement INV-26's Review widening exists to tolerate, and T-06
-        # KEEPS that widening, calling it "a PHASE-SCOPED TOLERANCE ... not a placement rule" and
-        # "the one piece of station policy left outside project". A tolerance for a state nothing
-        # can produce any more would be dead code; keeping this write is what keeps it honest.
-        review = "review"
-        if rec["parent"] is None:
-            print(f"gh-sync: no parent recorded for "
-                  f"{os.path.basename(os.path.abspath(feat_dir))} — parent station not "
-                  f"written", file=sys.stderr)
-        else:
-            _place(board, repo, rec["parent"], review, note=" (parent)")
-        for num in sorted(rec["issues"].values()):
-            _place(board, repo, num, review)
+    for num, projected_station in sorted(_projected_for(feat_dir, rec).items()):
+        _place(board, repo, num, projected_station)
 
 
 def _detach_from_parent(repo, parent, num):
@@ -2196,6 +2127,26 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             f"so a terminal station written here would not survive: {_resolved}.{_hint} "
             f"Run ship against the main checkout's copy.")
 
+    # BUG-1129: SHIP IS THE WRITER OF IRREVERSIBLE TERMINAL STATE, so the validate handoff is
+    # checked HERE, not only in the sweep that happens to call it. A `git pull` fires the
+    # post-merge sweep the moment a feature's PR merges — while its validate may still be in
+    # flight — and the cards it moves to Done and the milestone it closes cannot be unwritten.
+    # INV-17 demands notes/handoff-validate.md at done; refusing before the first write is the
+    # only ordering under which that invariant is preventive rather than forensic. The DEC-174
+    # exemption is the same predicate INV-17 applies, imported rather than restated.
+    #
+    # A REFUSAL (exit 1), NOT A SKIP, for the reason given above the worktree check: the sweep
+    # reads a SKIP as "nothing went wrong" and removes the worktree.
+    _handoff = os.path.join(feat_dir, "notes", "handoff-validate.md")
+    if not os.path.isfile(_handoff):
+        _why, _detail = handoff_policy.exempt_reason(feat_dir)
+        if not _why:
+            die(f"validation incomplete: {_handoff} does not exist{_detail}, so this feature "
+                f"has not reached the validate seam and ship would record a terminal station "
+                f"for work never validated. No GitHub state was changed. Land the validate "
+                f"handoff (or, for a plan built entirely main-session-direct, mark every task "
+                f"execution_mode: main-session-direct) and ship again.")
+
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
@@ -2465,6 +2416,19 @@ def main():
         _d = os.path.dirname(_d)
     root = _d if os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")) else (
         os.path.dirname(os.path.dirname(os.path.dirname(_abs))))
+    if cmd == "status":
+        try:
+            status_config = artifact_accessors.load_harness_json(
+                os.path.join(root, ".harness", "harness.json"))
+        except artifact_accessors.ArtifactAccessError:
+            status_config = None
+        status_github = status_config.get("github") if isinstance(status_config, dict) else None
+        if (not isinstance(status_github, dict) or not status_github.get("sync")
+                or not status_github.get("board")):
+            if len(argv) < 3:
+                die("status needs a Status value")
+            cmd_status(feat_dir, argv[2], None, None)
+            return
     if cmd == "open":
         _BUILD_ENTRY["feat_dir"] = feat_dir
     try:

@@ -2973,11 +2973,19 @@ unenforced write path around a guarded surface, and bidirectional conflict resol
 machinery here. Inbound edits re-enter only through a new plan cycle, and issue state is never read
 back into an approval-gated artifact.
 
-**Orchestrator-executed, at its existing checkpoints** — plan approved → create; task commit lands
-→ close; shipped → close milestone. Gated per project by `github.sync: true` in `harness.json`
-(the standing outward-facing consent, granted once by the user at init). **GitHub is a mirror,
-never a gate:** `gh` absent or unauthenticated → the flow succeeds and reports the sync skipped,
-per the SPEC §12 precedent for branch/PR operations.
+**Explicit best-effort callers, at their existing checkpoints.** For each active phase — `Plan`,
+`Ready`, `Building` and `Review` — one shared projection assigns that same phase to every unique
+recorded source, parent and non-abandoned task card. The initial signature and every reapproval are
+immediately followed by idempotent `gh-sync.py open` and then `gh-sync.py status` with the
+signature's emitted station; an approved task-set change resets the local phase to `Plan`, and its
+`APPROVAL-RESET` receipt gates the `Plan` projection. Ordinary Build sends `Building`; the
+validation boundary sends `Review`; a must-fix boundary sends `Building` before the fix run and
+`Review` at the next validation boundary after it returns; `start-task` reuses the shared active
+projection; Ship alone sends `Done`. Every caller records local authority before attempting the
+outbound card writes, catches a failed card write without suppressing later cards, and never lets
+GitHub gate the flow. The asymmetric boundary is unchanged: signed local artifacts decide the
+phase, and no board value writes back into them. The whole integration remains gated per project by
+`github.sync: true` in `harness.json`, the standing outward-facing consent granted once at init.
 
 **One source document per GitHub construct.** Milestone ← BRIEF (title `FEAT-NN-<slug>`; description
 = Problem + Goal + the SC checklist, so the milestone page IS the definition of done). Issue ← the
@@ -6178,6 +6186,17 @@ on 2026-08-25: probe issue #847 was moved to `Done` at 19:06:14Z and read `CLOSE
 **3. Which cards ship moves.** Every card the feature records — each task sub-issue, each entry of
 `source_issues`, and the parent.
 
+
+For every active feature phase, every unique recorded `source_issues` card, the parent card and
+every non-abandoned task card move together through `Plan`, `Ready`, `Building` and `Review`.
+`gh-sync.py ship` owns their transition to `Done`, still subject to the open-child rule below.
+Abandoned tasks leave this active projection and retain the separate close, detach and `Backlog`
+behavior in section 8.
+
+`board_lifecycle.py reconcile --apply` repairs the same complete-card projection for existing
+active features. It derives expected placements through the shared projection, compares every card
+against one bounded station snapshot per invocation, applies each finding to that finding's issue
+number, and continues after a per-card write failure so later mismatches are still attempted.
 **4. The parent rule.** A card is not moved to done while its ticket has an open child. Ship skips
 it and prints one line naming the child that held it open.
 
@@ -7076,16 +7095,19 @@ proposals that rewrite or remove.
 
 **Record:** documented at SPEC §5.3. Refs: DEC-66, DEC-95, DEC-145.
 
-## DEC-220 — Build entry opens the mirror and leaves a local receipt; Ship is post-merge terminal finalization only
+## DEC-220 — Signature opens the mirror and leaves a local receipt; Build requires it; Ship is post-merge terminal finalization only
 
-**Chose:** the mirror is opened at **Build entry** — the transition immediately after signed plan
-approval — and never at Ship, which keeps post-merge terminal finalization only. `gh-sync.py open`
-records `feature.json` `github.build_entry` as `opened`, `recovery-required` or `not-applicable`,
-and ABSENCE is the fifth state, meaning no Build entry completed. `gh-sync.py start-task` refuses on
-absence and proceeds on `recovery-required`, which instead gates the merge through the registered
-PreToolUse Bash gate `merge-gate.py` (`.claude/settings.json:48`). A partial remote write and a
-caller or contract error record nothing (`gh-sync.py:289`), so both leave the receipt absent and
-block Build.
+**Chose:** immediately after initial approval or reapproval, the signature caller runs idempotent
+`gh-sync.py open` and then projects the station emitted by `sign-approval`. Opening first creates
+every newly recorded task card before the complete-card projection. `gh-sync.py open` records the
+existing `feature.json` `github.build_entry` receipt as `opened`, `recovery-required` or
+`not-applicable`; ABSENCE is the fifth state and means the post-signature mirror transaction did
+not complete. Ordinary Build requires that receipt rather than opening the mirror routinely, sends
+`Building` to the complete card set before task dispatch, and uses idempotent `open` only as the
+explicit recovery path. `gh-sync.py start-task` refuses on absence and proceeds on
+`recovery-required`, which instead gates the merge through the registered PreToolUse Bash gate
+`merge-gate.py` (`.claude/settings.json:48`). A partial remote write and a caller or contract error
+record nothing (`gh-sync.py:289`), so both leave the receipt absent and block Build.
 
 **Recovery is explicit and never retroactive.** An already-merged sync-enabled feature whose mirror
 was never opened is recovered by `gh-sync.py recover-terminal <feat> --yes`, which creates the
@@ -7104,7 +7126,8 @@ which produces no behavior the state check does not already produce.
 **Because:** FEAT-55 (issue 1390) was approved, built, reviewed and merged with `github.sync` true
 and never opened its mirror; ship then exited 0 through its no-recorded-milestone skip with no
 terminal station write, and no gate saw it. The retired doctrine phrase "mission ship, right after
-the approval gate passes" named the terminal phase for a transition that belongs at Build entry.
+the approval gate passes" misnamed the terminal phase; mirror opening now belongs immediately after
+signature, and Build consumes the receipt that transaction leaves.
 
 **Record:** the signed BUG-1309 plan, 2026-09-06. Refs: DEC-138, DEC-146, DEC-174, DEC-179,
 DEC-191, DEC-203.
@@ -7252,6 +7275,13 @@ host lead owns the run dir and the consolidated digest, and the hosted persona's
 what `validate-digest.py` grades, unchanged. A `build` run stays eng-only, so a defect found at
 validate still crosses one boundary to reach its fix — accepted, because `build`'s serialization is
 `mutates_repo`, not independence, and the `fix` team closes that boundary in one run.
+
+**Lifecycle checkpoints leave the fix-team DAG unchanged.** On `must_fix`, the orchestrator sends
+`Building` to the complete card set before dispatching the fix run. After that run returns it
+re-pins the review SHA, then sends `Review` at the next validation boundary before it handles or
+dispatches the subsequent validation pass. The owning dev still fixes under validator-lead, and
+the independent reader wave still runs in parallel over the new SHA; no reader is serialized to
+perform either station write.
 
 **Record:** amends DEC-118, which now states the build-only bound. Refs: DEC-116, DEC-118, DEC-176,
 DEC-226, DEC-228.
@@ -7452,12 +7482,17 @@ re-rendered, every other byte and the approval mapping preserved — and appends
 judgement per entry to `feature.json`, all-or-nothing across both files (BUG-1716). At signature,
 `sign-approval` writes `signed_task_hashes` (lowercase SHA-256 over canonical JSON of each task's
 `{files, intent, verify}`) to `feature.json`, and no later verb revises them. Alongside: `apply`
-replaces a changed field on an existing id, `set-lanes` gives `lanes:` a write route, `set-panel`
-keeps the bytes of every unchanged finding. **A task-set change resets approval; a ledgered task-text
-amendment preserves it**: a verb that adds or deletes a task on an approved plan resets
-`approval.status` to `pending` with `reset_at` and `reset_reason`, while replacing text on an
-existing task leaves the signature standing and is INV-40's to grade against the signed hashes;
-`sign-approval` stays the only writer of `approved`. Origin: FEAT-59 SC-05, SC-08; BUG-1716.
+replaces a changed field on an existing id, `set-lanes` gives `lanes:` a write route, and
+`set-panel` keeps the bytes of every unchanged finding.
+`sign-approval` stays the only writer of `approved`. **A task-set change atomically pauses the
+active lifecycle at Plan and preserves what reapproval must restore:** the same locked plan update
+sets `approval.status` to `pending`, records `reset_at`, `reset_reason` and transient
+`approval.resume_station`, and writes the top-level feature phase as `plan`. The resume classifier
+retains `Ready`, `Building` or `Review` according to the interrupted phase and resulting task
+states. A receipt-gated caller projects the reset to `Plan`; a later `sign-approval` consumes the
+transient metadata, removes it from the signed approval, and emits `RESUME: ready|building|review`
+for the post-signature `open`-then-`status` transaction. Replacing text on an existing task still
+leaves the signature standing and is INV-40's to grade against the signed hashes.
 
 **Over:** a pm run whose only work is to copy the lead's findings into `plan.yaml`.
 

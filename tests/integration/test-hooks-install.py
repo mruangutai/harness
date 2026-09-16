@@ -194,7 +194,14 @@ def _commit_feature(repo, feature_id, status, milestone=None, build_entry=None, 
     prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
     with open(os.path.join(repo, prel), "w") as f:
         f.write(f"feature: {feature_id}\nstatus: {str(status).lower()}\ntasks: []\n")
-    _git(["add", rel, prel], cwd=repo)
+    # BUG-1129: ship refuses a feature with no validate handoff; this fixture models a VALIDATED
+    # terminal feature, so the note lands in the same commit.
+    nrel = os.path.join(".harness", repo_segment, "features", feature_id, "notes",
+                        "handoff-validate.md")
+    os.makedirs(os.path.dirname(os.path.join(repo, nrel)), exist_ok=True)
+    with open(os.path.join(repo, nrel), "w") as f:
+        f.write("## next\n## trust\n## dead ends\n## working set\n## done when\n")
+    _git(["add", rel, prel, nrel], cwd=repo)
     _git(["commit", "-qm", f"add {feature_id}"], cwd=repo)
     return abs_path
 

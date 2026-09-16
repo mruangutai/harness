@@ -53,9 +53,12 @@ steps:
       perspective it discharges and its `verify:`), then `plan.yaml` through `plan-merge.py`
       only — every task with `files:` anchored to `file:symbol` or `file` plus quoted content
       (a line number is refused at write), `traces:` citing SC ids, `execution_agent` routed
-      by consult-when, and `depends_on` in a topological order. Run `plan-merge.py check
-      --file <plan.yaml> --root <checkout root>` before you return; a plan that does not pass
-      it is not drafted. Do not write `panel:` or `approval:`.
+      by consult-when, and `depends_on` in a topological order. Capture and print stdout from
+      every task-changing `plan-merge.py` invocation. Only when the captured output contains its
+      exact `APPROVAL-RESET:` receipt, run `gh-sync.py status <feature-dir> plan` after the local
+      reset has landed. No `APPROVAL-RESET:` receipt means no remote call. Then run
+      `plan-merge.py check --file <plan.yaml> --root <checkout root>` before you return; a plan
+      that does not pass it is not drafted. Do not write `panel:` or `approval:`.
 
   # THE READER WAVE — three independent readers, one turn. Each writes only its own note
   # (fable-advisor has no write grant and reaches disk only through the lead's fan-in).
@@ -161,7 +164,10 @@ steps:
       existing task id; `add-tasks`; `set-lanes`), touching only the tasks it names. A
       `scope: task` proportionality finding is yours: trim the task it names as you would a
       substance finding against the plan text. A `scope: mission` finding is NOT yours to act
-      on: leave it open for the lead. Then run
+      on: leave it open for the lead. Capture and print stdout from every task-changing
+      `plan-merge.py` invocation. Only when the captured output contains its exact
+      `APPROVAL-RESET:` receipt, run `gh-sync.py status <feature-dir> plan` after the local reset
+      has landed. No `APPROVAL-RESET:` receipt means no remote call. Then run
       `plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c{{cycle}}.md
       --cycle {{cycle}}` and `plan-merge.py check --file <plan.yaml> --root <checkout root>`;
       both must exit 0 before you return. Do not write `approval:`.

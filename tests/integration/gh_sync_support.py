@@ -58,6 +58,17 @@ exit 0
 """
 
 
+def write_validate_handoff(feat_dir):
+    """The validate seam note `gh-sync ship` demands before its first terminal write (BUG-1129).
+    Every fixture that models a VALIDATED feature calls this; the one ship case that models
+    an unvalidated feature omits it and is the refusal's own test."""
+    notes = os.path.join(feat_dir, "notes")
+    os.makedirs(notes, exist_ok=True)
+    open(os.path.join(notes, "handoff-validate.md"), "w").write(
+        "## next\nship\n## trust\nfixture\n## dead ends\nnone\n## working set\nnone\n"
+        "## done when\nshipped\n")
+
+
 def stage(tmp, sync=True, repo="implentio/fake", phrase="reliable csv export",
           feat_name="FEAT-05-export-fix"):
     feat = os.path.join(tmp, ".harness", "features", feat_name)
@@ -105,6 +116,7 @@ status: approved
 - traces: SC-01
 """)
     write_feature_json(os.path.join(feat, "feature.json"), feature_id=feat_name)
+    write_validate_handoff(feat)
     return feat
 
 
@@ -774,7 +786,8 @@ def install_gh(tmp, script=FAKE_GH):
 # T-04's ship fixtures, defined HERE with the other helpers rather than beside the ship cases,
 # because T-11 retargeted an earlier block onto them: a helper used by two sections belongs
 # above both.
-def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=7):
+def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=7,
+               validated=True):
     """A ship fixture: a board-backed feature plus the SPEC.md probe and the
     team-config.yaml MARKER `harness_boundary.resolve_root()` needs, so the audit ship now
     schedules resolves THIS fixture's harness.json rather than climbing out to the real
@@ -796,6 +809,8 @@ def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=
     marker = os.path.join(tmp, ".harness", "team-config.yaml")
     if not os.path.isfile(marker):
         open(marker, "w").write("teams: []\n")
+    if validated:
+        write_validate_handoff(feat)
     return feat
 
 

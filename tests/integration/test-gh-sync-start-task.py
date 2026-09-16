@@ -617,9 +617,7 @@ def main():
         check("(f) stderr ALSO carries a line naming BOTH T-02 and T-99, additive to the above",
               any("T-02" in l and "T-99" in l for l in rDf.stderr.splitlines()), rDf.stderr)
 
-    # (g) THE PAIRED ALLOW for (f): the same guarded transition (status Ready) over the legal
-    # fixture, approval APPROVED, proceeds exactly as this file's own featSt2 case asserts — exits
-    # 0 and writes every recorded sub-issue's card to Ready.
+    # (g) The paired allow for (f): approved Ready writes the complete active projection.
     with tempfile.TemporaryDirectory() as tmpDg:
         install_gh(tmpDg, FAKE_GH_STATIONS)
         featDg = stage_depends_on(tmpDg, "FEAT-201-g", "T-01", issues={"T-01": 5801, "T-02": 5802},
@@ -627,10 +625,10 @@ def main():
         rDg = run(["status", featDg, "ready"], tmpDg, {"FACTORY_GH": os.path.join(tmpDg, "gh")})
         editsDg = [l for l in calls(tmpDg) if "project item-edit" in l]
         idsDg = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsDg}
-        check("(g) status Ready over the legal fixture: exits 0, exactly as today",
+        check("(g) status Ready over the legal fixture: exits 0",
               rDg.returncode == 0, rDg.stdout + rDg.stderr)
-        check("(g) status Ready over the legal fixture: both recorded sub-issues moved to Ready",
-              idsDg == {"ITEM_5801", "ITEM_5802"}
+        check("(g) status Ready over the legal fixture: parent and task cards move to Ready",
+              idsDg == {"ITEM_40", "ITEM_5801", "ITEM_5802"}
               and all("OPT_READY" in l for l in editsDg),
               str(editsDg))
 

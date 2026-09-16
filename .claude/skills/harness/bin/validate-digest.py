@@ -1039,7 +1039,8 @@ def _mechanical_code_grade(root, review_sha):
     return result, range_text, error
 
 
-def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None):
+def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None,
+                                 review_pin=None):
     """REQ-01: check a code reviewer's `code_grade` claim against the result this
     repository computes, and refuse the digest when they disagree.
 
@@ -1047,13 +1048,11 @@ def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None):
     `review_sha`, and grading is not invoked for them at all (REQ-06/D-06). Returns an
     error string, or None when the claim matches.
     """
-    feature_dir, error = _resolve_feature_dir(text, feature_dir)
+    _feature_dir, root, review_sha, error = _review_binding(text, feature_dir, review_pin)
     if error:
         return error
-    review_sha, error = _read_review_sha(feature_dir)
-    if error:
-        return error
-    root = _repo_root_for_feature(feature_dir)
+    if root is None:
+        return "code_grade cannot be recomputed: no checkout root resolves from this vantage."
     _discarded, shape_error = reviewed_python_change(root, reviewed)
     if shape_error:
         return shape_error
@@ -1169,6 +1168,46 @@ def _read_review_sha(feature_dir):
                        f"no pinned review_sha — an unpinned feature (INV-6) "
                        f"cannot anchor a code_grade claim.")
     return sha.strip(), None
+
+
+# #1677: THE PIN MAY COME FROM THE DISPATCH. INV-6's job is that no code review is unpinned —
+# that the head a reviewer claims to have read equals a SHA the reviewer did not choose.
+# feature.json's review_sha was the only source, which refused two correct reviews: a feature
+# whose planning was stopped and whose feature.json is deliberately frozen at
+# `review_sha: none`, and a DEC-174 direct patch with no feature at all. The pin a dispatcher
+# writes into the assignment (`HARNESS-REVIEW-PIN: <sha>`, forwarded by the host as
+# `harness_review_pin`) is equally outside the digest's control, so it is accepted as the pin
+# when feature.json has none, and it must AGREE with feature.json's when both exist — the
+# dispatch never overrides a recorded pin. `review_sha: none` alone stays a refusal.
+
+
+def _pins_agree(root, recorded, pinned):
+    recorded_oid = resolve_reviewed_commit(root, recorded)
+    pinned_oid = resolve_reviewed_commit(root, pinned)
+    return recorded_oid is not None and recorded_oid == pinned_oid
+
+
+def _review_binding(text, feature_dir, review_pin):
+    """(feature_dir, root, review_sha, error): the checkout and the pin a code review is
+    bound to. `feature_dir` is None for a pinned review with no feature (nothing to
+    corroborate a branch against); `error` is set when no trusted pin can be established."""
+    feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
+    if dir_error:
+        if review_pin:
+            return None, _root_or_none(), review_pin, None
+        return None, None, None, dir_error
+    root = _repo_root_for_feature(feature_dir)
+    recorded, sha_error = _read_review_sha(feature_dir)
+    if sha_error:
+        if review_pin:
+            return feature_dir, root, review_pin, None
+        return feature_dir, root, None, sha_error
+    if review_pin and not _pins_agree(root, recorded, review_pin):
+        return feature_dir, root, None, (
+            f"code_grade cannot be bound to review_sha: the dispatch pinned {review_pin!r} "
+            f"but this feature's feature.json records review_sha {recorded!r} — a recorded "
+            f"pin is never overridden; re-pin feature.json or dispatch against it.")
+    return feature_dir, root, recorded, None
 
 
 _BRANCH_UNSET = object()  # sentinel: no branch_override given -> derive from git
@@ -1344,7 +1383,7 @@ def _skipped_member_error(fields):
 
 
 def code_grade_bound_to_review(text, reviewed, code_grade, feature_dir=None,
-                               branch_override=_BRANCH_UNSET):
+                               branch_override=_BRANCH_UNSET, review_pin=None):
     """Bind a code review to review_sha, or a DEC-207 plan review to its pending plan.
 
     The code path runs unconditionally for pass, fail, grade_2, and n_a: a forged
@@ -1362,37 +1401,46 @@ def code_grade_bound_to_review(text, reviewed, code_grade, feature_dir=None,
     feature and reuse ITS pin. `_branch_corroboration_error` closes that with
     the one thing no digest controls: the checkout's actual current branch.
 
+    #1677: `review_pin` is the dispatcher's pin (`HARNESS-REVIEW-PIN:` in the assignment),
+    accepted when feature.json has none and required to agree with it otherwise; see
+    `_review_binding`.
+
     Returns an error string, or `None` when the binding holds.
     """
     if _is_plan_review(reviewed):
         return _pending_plan_review_error(
             text, reviewed, code_grade, feature_dir, branch_override
         )
-    feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
-    if dir_error:
-        return dir_error
-    review_sha, sha_error = _read_review_sha(feature_dir)
-    if sha_error:
-        return sha_error
+    feature_dir, root, review_sha, binding_error = _review_binding(text, feature_dir, review_pin)
+    if binding_error:
+        return binding_error
+    head_error = _head_is_pin_error(root, reviewed, review_sha)
+    if head_error or feature_dir is None:
+        return head_error
+    return _branch_corroboration_error(
+        feature_dir, _current_branch_or_none(branch_override, feature_dir)
+    )
+
+
+def _head_is_pin_error(root, reviewed, review_sha):
+    """The error when `reviewed`'s head is not the pinned commit, else None."""
     _base, head, range_error = _parse_reviewed_range(reviewed)
     if range_error:
         return range_error
-    root = _repo_root_for_feature(feature_dir)
+    if root is None:
+        return "reviewed range could not be resolved: no checkout root resolves from this vantage."
     head_oid = resolve_reviewed_commit(root, head)
     if head_oid is None:
         return "reviewed range could not be resolved to commit revisions."
     pin_oid = resolve_reviewed_commit(root, review_sha)
     if pin_oid is None:
-        return (f"code_grade cannot be bound to review_sha: this feature's "
-                f"recorded review_sha ({review_sha!r}) does not resolve to a "
-                f"commit.")
+        return (f"code_grade cannot be bound to review_sha: the pinned review_sha "
+                f"({review_sha!r}) does not resolve to a commit.")
     if head_oid != pin_oid:
-        return (f"reviewed head {head!r} does not resolve to this feature's "
-                f"pinned review_sha ({review_sha}) — write the range that ends "
-                f"at review_sha (feature.json), not a convenient no-op.")
-    return _branch_corroboration_error(
-        feature_dir, _current_branch_or_none(branch_override, feature_dir)
-    )
+        return (f"reviewed head {head!r} does not resolve to the pinned review_sha "
+                f"({review_sha}) — write the range that ends at the pin (feature.json's "
+                f"review_sha, or the dispatch's HARNESS-REVIEW-PIN), not a convenient no-op.")
+    return None
 
 
 def _missing_field_default_hint(field, allowed):
@@ -1414,7 +1462,8 @@ def _missing_field_default_hint(field, allowed):
     return "`[]` if there are none"
 
 
-def validate(persona, text, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET):
+def validate(persona, text, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET,
+             review_pin=None):
     err = []
     raw_persona = persona
     persona = norm(persona)
@@ -1691,7 +1740,7 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
         # SEC-01 still runs before branching on the grade. DEC-207 adds one
         # separately-bound target: plan:<path> for a pending pre-signature plan.
         binding_error = code_grade_bound_to_review(
-            text, reviewed, code_grade, feature_dir, branch_override
+            text, reviewed, code_grade, feature_dir, branch_override, review_pin
         )
         if binding_error:
             err.append(binding_error)
@@ -1701,7 +1750,7 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
             # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
             # the reviewer's word, so a skipped, crashed or misreported grader passed.
             grade_error = code_grade_enforcement_error(
-                text, reviewed, code_grade, feature_dir)
+                text, reviewed, code_grade, feature_dir, review_pin)
             if grade_error:
                 err.append(grade_error)
         if code_grade == "grade_2":
@@ -2279,9 +2328,10 @@ def hook_mode():
     # completely unvalidated with no signal at all. That is a worse outcome than
     # the "decline to govern" pass-throughs above, which at least say so.
     try:
+        _pin = d.get("harness_review_pin")
         errs = validate(agent, text, feature_dir=_hook_feature_dir(
             text, d.get("harness_feature")
-        ))
+        ), review_pin=_pin.strip() if isinstance(_pin, str) and _pin.strip() else None)
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2

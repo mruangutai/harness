@@ -33,10 +33,26 @@ Read `.omp/commands/harness.md` and follow it with **mission: patch**. The diffe
   `plan-merge.py sign-approval --file <plan.yaml> --by <you> --date <YYYY-MM-DD> --rework rounds=N,minutes=M --decision <path>`
   writes `approval.status: approved` and `feature.json` `rework` in one act (SC-15). Completing
   the intake is NOT a briefing (§10.3).
-  **The signature is immediately followed by**
-  `python3 .claude/skills/harness/bin/gh-sync.py status <feature-dir> ready`, which moves the
-  task sub-issue to `Ready` and never the parent. It **refuses unless `approval.status` is
-  `approved`**, so a card at Ready is proof of a signature rather than a claim about one.
+  **The signature is immediately followed by** this receipt-driven transaction:
+  ```bash
+  approval_receipt="$(
+    python3 .claude/skills/harness/bin/plan-merge.py sign-approval \
+      --file <plan.yaml> --by <you> --date <YYYY-MM-DD> \
+      --rework rounds=N,minutes=M --decision <path>
+  )"
+  printf '%s\n' "$approval_receipt"
+  resume_station="$(printf '%s\n' "$approval_receipt" | sed -n 's/^RESUME: //p')"
+  case "$resume_station" in
+    ready|building|review) ;;
+    *) printf 'invalid or missing RESUME station\n' >&2; exit 2 ;;
+  esac
+  python3 .claude/skills/harness/bin/gh-sync.py open <feature-dir>
+  python3 .claude/skills/harness/bin/gh-sync.py status <feature-dir> "$resume_station"
+  ```
+  `sign-approval` emits `RESUME: ready` for initial approval and the saved Ready, Building, or
+  Review station for reapproval. Validate that machine-readable value; never replace it with a
+  literal. `open` is idempotent and must precede `status`, so newly added task cards exist before
+  the complete card set is projected.
 - **After signature the flow is exactly build → validate → ship**: the `build` team for `T-01`,
   SIMPLIFY, one pinned `review_sha`, one `validate` run (qa with fail-first evidence, code,
   security, ui if the diff has one, pm's goal-check by perspective), `fix` rounds inside the
