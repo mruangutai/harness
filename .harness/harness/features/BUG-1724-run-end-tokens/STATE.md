@@ -3,15 +3,17 @@
 ## Current
 
 - feature: BUG-1724-run-end-tokens
-- run: validate-validator
+- run: fix-c1-validator
 - squad: validator
-- status: awaiting-user
-- review_sha: 77dbda525d1bede96071076e5b07cef40f3fbc06
-- verdict: FAIL
-- severity_max: high
+- status: ship-ready
+- review_sha: 3eb4c27525a17640c4b60a9b735d02eb911dc074
+- verdict: PASS
+- severity_max: none
+- matrix_ok: true
+- cycles_used: 1
 - tokens: null
+- artifact: .harness/harness/features/BUG-1724-run-end-tokens/runs/fix-c1-validator/digest.md
 
 ## Open Questions
 
-- Q1 (blocking): Because T-01 is main-session-direct, Main must directly supply V-01's durable QA fail-first proof for SC-01 through SC-04 before any regate; no dev team may be dispatched.
-- Q2 (blocking): The canonical merge-base range includes an unrelated high code-grade finding in `.claude/skills/harness/bin/check-state.py:_quoted_scalar_closed`, outside T-01's approved six-file surface. Main must choose whether to re-pin a clean task range or route that defect as separate work.
+- none

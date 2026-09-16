@@ -3,7 +3,7 @@
   "branch": "none",
   "pr": null,
   "review_sha": "3eb4c27525a17640c4b60a9b735d02eb911dc074",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -24,6 +24,15 @@
       "started_at": "2026-09-16T04:44:26+00:00",
       "ended_at": "2026-09-16T04:58:54+00:00",
       "tokens": null
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T05:04:15+00:00",
+      "ended_at": "2026-09-16T05:25:05+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -40,6 +49,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "Validation found a T-01 must-fix owned by the main-session-direct route and an unbindable high finding outside the approved task; stop for Main to repair or route before any regate."
+    },
+    {
+      "at": "2026-09-16T05:04:15+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c1-validator",
+      "reason": "The c0 FAIL is routed through the operator-authorized one-round regate after Main supplied fail-first proof and re-pinned T-01 alone."
     }
   ],
   "mission": "patch",
