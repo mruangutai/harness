@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Focused behavioral coverage for check-state.sh INV-35."""
+"""Focused behavioral coverage for check-state.py INV-35.
+
+Written against check-state.sh; #1674 converted the checker to Python while this branch was
+open, and a test aimed at a file that no longer exists passes its two "is silent" checks
+vacuously. So the checker's absence is a failure here, never an empty output."""
 
 import os
 from pathlib import Path
@@ -9,7 +13,7 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CHECKER_RELATIVE = Path(".claude/skills/harness/bin/check-state.sh")
+CHECKER_RELATIVE = Path(".claude/skills/harness/bin/check-state.py")
 FAILURES = []
 
 
@@ -33,6 +37,8 @@ def materialize_checker(directory):
 
 
 def run_checker(checker, notes):
+    if not checker.is_file():
+        raise SystemExit(f"FAIL - checker missing at {checker}; nothing was tested")
     with tempfile.TemporaryDirectory() as fixture_dir:
         root = Path(fixture_dir)
         feature = root / ".harness/harness/features/FEAT-TEST"
@@ -49,7 +55,7 @@ def run_checker(checker, notes):
         environment["CLAUDE_PROJECT_DIR"] = str(root)
         environment["HARNESS_PROJECT_DIR"] = str(root)
         result = subprocess.run(
-            ["bash", str(checker)], cwd=root, text=True, env=environment,
+            ["python3", str(checker)], cwd=root, text=True, env=environment,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         )
         return [line for line in result.stdout.splitlines() if "INV-35" in line]
