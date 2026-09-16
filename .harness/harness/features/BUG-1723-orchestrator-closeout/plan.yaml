@@ -7,29 +7,25 @@ approval:
 status: review
 source_issues: [1723]
 panel:
-  last_run: fix-c1-validator
-  cycle: 1
+  last_run: plan-product
+  cycle: 0
   readers:
-  - reader: qa
-    persona: harness-qa
-    status: ran
-    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-qa-c1.md
-  - reader: code
+  - reader: scope
     persona: harness-code-reviewer
     status: ran
-    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-code-reviewer-c1.md
-  - reader: security
-    persona: harness-security-reviewer
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-code-reviewer-plan-c0.md
+  - reader: should-not-exist
+    persona: fable-advisor
     status: ran
-    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-security-reviewer-c1.md
-  - reader: ui
+    artifact: none
+  - reader: design
     persona: harness-ui-reviewer
     status: ran
-    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-ui-reviewer-c1.md
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-ui-reviewer-plan-c0.md
   - reader: goalcheck
     persona: harness-pm
     status: ran
-    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/research-BUG-1723-orchestrator-closeout-goalcheck-validate-c1.md
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/research-BUG-1723-orchestrator-closeout-goalcheck-plan.md
   findings:
   - id: PF-4ac15e12075376274d487b02bbe8e1e7
     severity: med
@@ -72,19 +68,19 @@ panel:
     reader: '[''qa'', ''pm'']'
     kind: substance
     summary: Update ledger.md's terminal INV-43 guidance to match the all-stations violation contract.
-    disposition: open
+    disposition: resolved
   - id: PF-987e01a1779be1208122d7edfd615bed
     severity: med
     reader: '[''qa'', ''pm'']'
     kind: substance
     summary: Capture the judgement- and spend-stage refusal cases failing against the pre-change command before recording their passing c1 evidence.
-    disposition: open
+    disposition: resolved
   - id: PF-7a42eea4a69212fffd2d68cf7c7831c9
     severity: med
     reader: '[''code-reviewer'', ''pm'']'
     kind: substance
     summary: Exercise or discriminatingly bind the actual public close-run spend-stage wiring and required stage name.
-    disposition: open
+    disposition: resolved
 lanes:
   resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
   rows:
