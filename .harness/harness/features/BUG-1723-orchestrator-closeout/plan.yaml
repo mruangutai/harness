@@ -146,7 +146,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: At the resolved SHA no team persona is granted the three orchestrator playbook source files, so DEC-179 requires a declared main-session-direct task.
     depends_on: [T-01, T-02]
-    status: building
+    status: done
     files:
       - path: .claude/skills/harness/SKILL.md
         quote: Adjust and record
