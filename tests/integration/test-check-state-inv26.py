@@ -23,48 +23,26 @@ from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, _root_env, _run_
 _SENTINEL = object()
 
 
-def _inv26_fixture(root, feat, task_status, card_status, parent_status,
-                   issues=None, feature_status="Building", second_status=None,
-                   second_card=None, factory=None, board_override=_SENTINEL,
-                   source_issues=None, source_cards=None):
-    """One INV-26 fixture: harness.json with sync+repo+board, one feature with a plan,
-    a feature.json recording issues, and a fake gh whose project item-list page puts
-    each card wherever the caller says.
-
-    THE FAKE IS POINTED AT WITH FACTORY_GH, the same variable factory_gh honours, so one
-    fake serves both gh_board and the invariant. `gh auth status` must exit 0 through it
-    or INV-26 gates out and every assertion below passes vacuously.
-    """
+def _inv26_write_config(root, board_override):
     h = os.path.join(root, ".harness")
-    fd = os.path.join(h, "harness", "features", feat)
-    os.makedirs(fd, exist_ok=True)
+    os.makedirs(h, exist_ok=True)
+    board = {"owner": "org", "number": 3, "station_field": "status",
+             "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
+    if board_override is not _SENTINEL:
+        board = board_override
     with open(os.path.join(h, "harness.json"), "w") as f:
-        # THE FIVE STATIONS ARE REQUIRED NOW (FEAT-24 T-04/T-05). Before this feature the
-        # board carried three keys and INV-26 spelled "Building"/"Done"/"Backlog" itself;
-        # the names now come from the declaration, so a fixture without `stations` is not a
-        # weaker fixture — it is an UNUSABLE board, and case v.13 asserts that it is
-        # reported as one. `board_override` lets a case ship a deliberately broken board.
-        # The ordered lowercase declaration (FEAT-41 T-01); INV-26 compares stations, not
-        # columns, because gh_board.board_stations lowercases the board's answer on read.
-        _board = {"owner": "org", "number": 3, "station_field": "status",
-                  "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
-        if board_override is not _SENTINEL:
-            _board = board_override
-        json.dump({"github": {"sync": True, "repo": "org/repo",
-                              "board": _board}}, f)
+        json.dump({"github": {"sync": True, "repo": "org/repo", "board": board}}, f)
+    return h
+
+
+def _inv26_write_plan(fd, feat, task_status, feature_status, second_status, source_issues):
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
-        # THE FEATURE'S STATION IS A TOP-LEVEL KEY HERE NOW (FEAT-41 T-07), lowercased from the
-        # `feature_status` argument every caller already passes. The argument keeps its name so
-        # no call site changes; only the file it lands in moved.
         f.write("schema: plan/1\nfeature: %s\nstatus: %s\napproval:\n  status: approved\n"
                 "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
                 "    execution_mode: team\n    execution_agent: harness-backend-dev\n"
                 "    depends_on: []\n"
                 "    status: %s\n    files:\n      - a.py\n    verify: |\n      true\n"
                 "    intent: |\n      x\n" % (feat, str(feature_status).lower(), task_status))
-        # A SECOND TASK, so a fixture can sit BETWEEN two statuses. Every case before
-        # this parameter was single-task, which is exactly why the suite stayed green
-        # while a mixed plan silenced the whole invariant.
         if second_status is not None:
             f.write("  - id: T-02\n    title: t2\n    change_type: logic\n"
                     "    execution_mode: team\n    execution_agent: harness-backend-dev\n"
@@ -73,25 +51,24 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                     "    intent: |\n      x\n" % second_status)
         if source_issues:
             f.write("source_issues: [%s]\n" % ", ".join(str(n) for n in source_issues))
-    if issues is None:
-        issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
-    _doc = {"feature_id": feat, "branch": "b", "pr": None,
-            "review_sha": "abc1234",
-            "cycles_used": 0, "max_total_cycles": 10, "runs": [],
-            "github": {"milestone": 1, "parent": 40, "issues": issues,
-                       "source_issues": source_issues or []}}
+
+
+def _inv26_write_feature(fd, h, feat, issues, source_issues, factory):
+    doc = {"feature_id": feat, "branch": "b", "pr": None, "review_sha": "abc1234",
+           "cycles_used": 0, "max_total_cycles": 10, "runs": [],
+           "github": {"milestone": 1, "parent": 40, "issues": issues,
+                      "source_issues": source_issues or []}}
     if factory is not None:
-        # A factory-lane feature: published by factory_decompose, so its issues live
-        # under `factory`, in a repository fleet.yaml must declare or INV-24 fires
-        # instead of the clause under test.
-        _doc["factory"] = factory
+        doc["factory"] = factory
         os.makedirs(os.path.join(h, "factory"), exist_ok=True)
         with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
-            f.write("schema: factory-fleet/1\nrepos:\n  - name: %s\n"
-                    "workspace_root: %s\n" % (factory["repo"], root))
+            f.write("schema: factory-fleet/1\nrepos:\n  - name: %s\nworkspace_root: %s\n"
+                    % (factory["repo"], os.path.dirname(h)))
     with open(os.path.join(fd, "feature.json"), "w") as f:
-        json.dump(_doc, f)
+        json.dump(doc, f)
 
+
+def _inv26_items(card_status, parent_status, second_status, second_card, source_issues, source_cards):
     items = [{"content": {"repository": "org/repo", "number": 41}, "status": card_status},
              {"content": {"repository": "org/repo", "number": 40}, "status": parent_status}]
     if second_status is not None:
@@ -100,44 +77,35 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     for number in source_issues or []:
         items.append({"content": {"repository": "org/repo", "number": number},
                       "status": (source_cards or {}).get(number, "Building")})
+    return items
+
+
+def _inv26_gql_node(item):
+    return {"content": {"number": item["content"]["number"],
+                        "repository": {"nameWithOwner": item["content"]["repository"]}},
+            "fieldValueByName": ({"name": item["status"]} if item.get("status") is not None else None)}
+
+
+def _inv26_byissue_entry(item):
+    return {"number": item["content"]["number"],
+            "projectItems": {"pageInfo": {"hasNextPage": False},
+                             "nodes": [{"project": {"number": 3},
+                                        "fieldValueByName": ({"name": item["status"]}
+                                                             if item.get("status") is not None
+                                                             else None)}]}}
+
+
+def _inv26_responses(items):
     page = json.dumps({"totalCount": len(items), "items": items})
-    # TWO SHAPES, dispatched on the subcommand. FEAT-29 T-02 replaced INV-26's
-    # `gh project item-list` read with ONE targeted `gh api graphql` query
-    # (factory_gh.project_item_stations). A fake serving only the item-list shape makes that
-    # call raise, check-state.py's bare except swallows it, and INV-26 goes SILENT — every
-    # assertion here then passes vacuously, which is issue #588's shape inside the one
-    # invariant this fixture exists to test. Six named cases went red on exactly that.
-    # The item-list shape is KEPT: it costs nothing and any caller still on the old read
-    # keeps working rather than failing in a second, differently-confusing way.
     gql = json.dumps({"data": {"user": {"projectV2": {"items": {
-        "totalCount": len(items),
-        "nodes": [{"content": {"number": it["content"]["number"],
-                               "repository": {"nameWithOwner": it["content"]["repository"]}},
-                   "fieldValueByName": ({"name": it["status"]}
-                                        if it.get("status") is not None else None)}
-                  for it in items],
+        "totalCount": len(items), "nodes": [_inv26_gql_node(item) for item in items],
         "pageInfo": {"hasNextPage": False, "endCursor": None}}}}}})
-    # THREE SHAPES NOW, and the third arrived by repeating the lesson the paragraph above
-    # records. Issue #1541 replaced INV-26's whole-board read with a BY-ISSUE one
-    # (gh_board.board_stations_for -> factory_gh.issue_stations), whose response is keyed by
-    # `i<number>` alias under `repository`. A fake serving only the two older shapes answers
-    # that query with `repository: null`, the read raises, check-state.py's bare except
-    # swallows it, and every assertion here passes vacuously again — which is exactly how
-    # this was caught: fourteen named cases went red at once.
-    #
-    # Every known card is emitted as an alias. A card the query asks about that is NOT here
-    # comes back absent, which is the "not on the board" answer v.5 asserts on.
     byissue = json.dumps({"data": {"repository": {
-        "i%d" % it["content"]["number"]: {
-            "number": it["content"]["number"],
-            "projectItems": {
-                "pageInfo": {"hasNextPage": False},
-                "nodes": [{"project": {"number": 3},
-                           "fieldValueByName": ({"name": it["status"]}
-                                                if it.get("status") is not None else None)}],
-            },
-        }
-        for it in items}}})
+        "i%d" % item["content"]["number"]: _inv26_byissue_entry(item) for item in items}}})
+    return page, gql, byissue
+
+
+def _inv26_write_fake(root, page, gql, byissue):
     fake = os.path.join(root, "fake-gh")
     with open(fake, "w") as f:
         f.write("#!/bin/bash\ncase \"$1 $2\" in\n"
@@ -152,6 +120,23 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                 "cat <<'EOF'\n" + page + "\nEOF\n")
     os.chmod(fake, 0o755)
     return fake
+
+
+def _inv26_fixture(root, feat, task_status, card_status, parent_status,
+                   issues=None, feature_status="Building", second_status=None,
+                   second_card=None, factory=None, board_override=_SENTINEL,
+                   source_issues=None, source_cards=None):
+    """One INV-26 fixture with a complete board, feature, plan, and fake gh response."""
+    h = _inv26_write_config(root, board_override)
+    fd = os.path.join(h, "harness", "features", feat)
+    os.makedirs(fd, exist_ok=True)
+    _inv26_write_plan(fd, feat, task_status, feature_status, second_status, source_issues)
+    if issues is None:
+        issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
+    _inv26_write_feature(fd, h, feat, issues, source_issues, factory)
+    items = _inv26_items(card_status, parent_status, second_status, second_card,
+                         source_issues, source_cards)
+    return _inv26_write_fake(root, *_inv26_responses(items))
 
 
 def case_v():

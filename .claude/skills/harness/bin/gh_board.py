@@ -132,21 +132,30 @@ def project(plan_doc, rec):
     """
     legal = frozenset(factory_config.MANDATED_STATIONS) | frozenset(factory_config.TERMINAL_STATIONS)
     placed = _task_cards(plan_doc, rec, legal)
-    top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
     parent_station = _parent_station(plan_doc, legal)
+    active_station = _active_lifecycle_station(plan_doc)
+    if active_station is not None:
+        placed = {number: active_station for number in placed}
+        parent_station = active_station
+    return _place_parent_and_sources(placed, rec, parent_station)
 
-    if top in ("plan", "ready", "building", "review"):
-        placed = {number: top for number in placed}
-        parent_station = top
 
-    if parent_station is None:
+def _active_lifecycle_station(plan_doc):
+    """The active feature station shared by all recorded cards, or None."""
+    top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
+    return top if top in ("plan", "ready", "building", "review") else None
+
+
+def _place_parent_and_sources(placed, rec, station):
+    """Add the recorded parent and sources at station when that station needs a write."""
+    if station is None:
         return placed
-
-    parent = (rec or {}).get("parent")
+    record = rec or {}
+    parent = record.get("parent")
     if parent is not None:
-        placed[parent] = parent_station
-    for number in (rec or {}).get("source_issues") or []:
-        placed[number] = parent_station
+        placed[parent] = station
+    for number in record.get("source_issues") or []:
+        placed[number] = station
     return placed
 
 
