@@ -3622,7 +3622,7 @@ orchestrator summed them. So any feature with more than ~10 planned runs mechani
 BLOCKED with zero failures — the same protect-nothing stop DEC-134 removed from the cost bound,
 now caused by the retry bound counting the wrong unit.
 
-Two clarifications, no new machinery:
+The unit and its configured bound are:
 
 - **The unit: `cycles_used` counts REWORK ONLY.** It increments when a FAIL is routed back, when
   an unmet SC re-dispatches, or when a lead reports send-backs inside a run — never for a
@@ -3644,9 +3644,14 @@ Two clarifications, no new machinery:
   bound exists to kill. Raising it per-feature remains a user decision recorded in feature.yaml,
   as both kaya features already practiced.
 
-Not mechanized: nothing distinguishes a first-pass run from a rework run in state files, so a
-checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
-the floor. Revisit if run records gain a `rework_of:` marker.
+Accumulation is now mechanized; classification is not. `feature-record.py run-end` requires the
+lead-reported `--cycles-used`, stores it on that run, and adjusts the feature total by the delta
+from the run's prior value. Repeating the same cycle report leaves the feature total unchanged,
+correcting a report preserves legacy unattributed cycles, and historical or open runs may omit the
+optional per-run key. A checker still cannot determine whether a reported send-back was genuine
+rework, so INV-7 (`cycles_used` ≥ recorded FAIL runs) remains the independent floor. Revisit
+classification if run
+records gain a `rework_of:` marker.
 
 **Runs are counted too, informationally — INV-22.** Counting rework alone leaves a feature's length
 unmeasured, and that gap is not theoretical: with first-pass runs contributing zero, FEAT-03 ran
