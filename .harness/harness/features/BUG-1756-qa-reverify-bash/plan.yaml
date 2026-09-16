@@ -4,7 +4,7 @@ approval:
   date: '2026-09-16'
   approved_by: mruangutai
   status: approved
-status: ready
+status: review
 source_issues: [1756]
 lanes:
   resolved_at: af1c1d88a7e81010fd4902b2144b5cd5eb67f9ef
@@ -24,7 +24,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 reserves gate surfaces and their tests for direct execution
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - tests/integration/test-validate-digest.py
