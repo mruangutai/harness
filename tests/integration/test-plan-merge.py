@@ -3322,6 +3322,72 @@ def case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def revoke(plan, reason, by="mru", env=None):
+    return run_verb("revoke-approval", "--file", plan, "--by", by, "--reason", reason, env=env)
+
+
+def _is_revoked(approval, reason):
+    return (approval.get("status") == "pending" and "reset_at" in approval
+            and approval.get("reset_reason") == reason)
+
+
+def _outside_approval(text):
+    """The plan text minus the approval mapping: the head up to `approval:` and `tasks:` on."""
+    return text[:text.index("approval:\n")], text[text.index("tasks:\n"):]
+
+
+def case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word():
+    """#1675: a signature withdrawn WITHOUT a task-set change was unrepresentable — the only
+    way to stop claiming a stale signature was a new one. `revoke-approval` writes the same
+    record the automatic reset writes (pending, reset_at, reset_reason naming the operator and
+    why), keeps signer and date so the voided signature stays visible, touches nothing else,
+    and a fresh signature supersedes it."""
+    root, plan = fixture_root()
+    try:
+        ruling = "  rulings:\n    - finding: PF-1\n      who: X\n  # kept with the signature\n"
+        before = write(plan, _approved_plan().replace("tasks:\n", ruling + "tasks:\n", 1))
+        r = revoke(plan, "  scope amended:  four tasks under a one-task signature ")
+        approval = _approval_of(plan)
+        after = read(plan)
+        check("revoke-approval flips approved -> pending with the reset record", r.returncode == 0
+              and _is_revoked(approval, "revoke-approval mru: scope amended: four tasks under a "
+                                        "one-task signature"),
+              f"rc={r.returncode} {r.stderr!r} {approval!r}")
+        check("revoke-approval keeps the voided signer and date, the rulings, and every other byte",
+              approval.get("approved_by") == "X" and str(approval.get("date")) == "2026-01-01"
+              and ruling in after and _outside_approval(after) == _outside_approval(before), after)
+        r = run_verb("sign-approval", "--file", plan, "--by", "mru", "--date", "2026-09-16")
+        approval = _approval_of(plan)
+        check("a fresh signature supersedes a revocation's reset record", r.returncode == 0
+              and approval.get("status") == "approved" and "reset_at" not in approval,
+              f"rc={r.returncode} {approval!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1675_revoke_approval_refuses_nothing_to_revoke_and_governed_agents():
+    """Revoking nothing is a mistaken command, not a no-op; a reason is the record's point;
+    and the signature's downward verb is the main session's alone, exactly as its upward one
+    is. Every refusal writes nothing."""
+    root, plan = fixture_root()
+    try:
+        pending = write(plan, render_plan(ids(1, 2)))
+        r = revoke(plan, "again")
+        check("revoke-approval refuses a plan that is not approved (exit 5, names the status)",
+              r.returncode == 5 and "'pending'" in r.stderr and read(plan) == pending,
+              f"rc={r.returncode} {r.stderr!r}")
+        write(plan, _approved_plan())
+        r = revoke(plan, "   ")
+        check("revoke-approval refuses an empty reason (exit 2)", r.returncode == 2
+              and "reason" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        r = revoke(plan, "x", by="pm", env=dict(os.environ, HARNESS_AGENT_TYPE="harness-pm"))
+        check("revoke-approval refuses a governed agent (exit 10), as sign-approval does",
+              r.returncode == 10 and "harness-pm" in r.stderr, f"rc={r.returncode} {r.stderr!r}")
+        check("every refusal leaves the plan byte-identical", read(plan) == _approved_plan())
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_f59_sign_approval_rework_writes_feature_json():
     """SC-15 / C1: at signature the operator records ONE rework ruling. `sign-approval
     --rework rounds=N,minutes=M --decision PATH` sets `rework` on the sibling feature.json
@@ -4112,6 +4178,8 @@ CASES = (
     case_f59_set_panel_keeps_an_untouched_finding_byte_identical,
     case_f59_approval_auto_reset_on_every_task_changing_verb,
     case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone,
+    case_1675_revoke_approval_writes_the_reset_record_on_the_operators_word,
+    case_1675_revoke_approval_refuses_nothing_to_revoke_and_governed_agents,
     case_f59_sign_approval_rework_writes_feature_json,
     case_f59_review_f3_approval_reset_is_verified_not_reported,
     case_f59_review_f4_rework_is_recorded_before_the_signature,
