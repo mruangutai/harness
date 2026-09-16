@@ -32,5 +32,23 @@
     "rounds": 2,
     "wall_clock_minutes": 90,
     "decision": ".harness/harness/features/BUG-1723-orchestrator-closeout/notes/answers-2026-09-15-sign.md"
+  },
+  "github": {
+    "milestone": 74,
+    "parent": 1732,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1733,
+      "T-02": 1734,
+      "T-03": 1735
+    },
+    "source_issues": [
+      1723
+    ],
+    "build_entry": "opened"
   }
 }
