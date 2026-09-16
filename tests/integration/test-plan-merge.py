@@ -3930,6 +3930,33 @@ def case_b1716_record_amendments_is_all_or_nothing():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error():
+    """validate c1 V-01: the restore is not only for a MergeRefusal. An ORDINARY OSError from
+    the ledger write — here `feature.json.lock` unopenable (mode 000), so `acquire`'s os.open
+    raises PermissionError after the plan was already spliced — exits nonzero naming the error
+    and leaves BOTH files byte-identical."""
+    if os.geteuid() == 0:
+        return  # root ignores mode bits; the arm cannot be built
+    root, plan, fj = _amend_fixture()
+    try:
+        plan_bytes, fj_bytes = read(plan), read(fj)
+        lock = fj + ".lock"
+        write(lock, "")
+        os.chmod(lock, 0)
+        try:
+            r = _record(plan, _digest_with(_TWO_ENTRY_AMENDMENTS), root)
+        finally:
+            os.chmod(lock, 0o644)
+        check("b1716/io: a PermissionError on the ledger write exits nonzero naming it",
+              r.returncode != 0 and "PermissionError" in r.stderr and "Traceback" not in r.stderr,
+              f"rc={r.returncode} {r.stdout!r} {r.stderr!r}")
+        check("b1716/io: the refusal says the plan splice was restored",
+              "restored byte for byte" in r.stderr, r.stderr)
+        check("b1716/io: neither file changed", read(plan) == plan_bytes and read(fj) == fj_bytes,
+              read(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -4033,6 +4060,7 @@ CASES = (
     case_b1716_approval_survives_record_amendments_and_amend,
     case_b1716_approval_resets_only_on_task_set_change,
     case_b1716_record_amendments_is_all_or_nothing,
+    case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error,
 )
 
 

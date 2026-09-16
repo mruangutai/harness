@@ -2236,12 +2236,23 @@ def _record_amendment_judgements(feature_json, judgements):
     feature_json_write.write_feature_json(feature_json, transform)
 
 
+def _restore_plan(resolved, base_bytes):
+    """Put the pre-splice bytes back; a failed restore is its own loud line, never silent."""
+    try:
+        _replace_bytes(resolved, base_bytes)
+    except OSError as exc:
+        return [f"  AND the plan splice could NOT be restored in {resolved} ({exc}); the plan "
+                "carries the amendment with no judgement — restore it from git before anything "
+                "else."]
+    return [f"  the plan splice was restored byte for byte in {resolved}; nothing landed."]
+
+
 def _record_amendments_locked(resolved, feature_json, entries):
     """Both writes under the PLAN's lock, plan first, ledger second, and the plan RESTORED if
-    the ledger refuses (validate c0 V-01). Before this the ledger landed first, so a plan write
-    that failed afterwards left a judgement for an amendment that never reached the plan —
-    the audit trail lying in the direction nothing detects. Now the only window is the
-    restore itself failing, which raises loudly with both paths named."""
+    the ledger write fails for ANY reason — a refusal or an ordinary I/O error (validate c0
+    V-01, c1 V-01). Before this the ledger landed first, so a plan write that failed
+    afterwards left a judgement for an amendment that never reached the plan — the audit
+    trail lying in the direction nothing detects. The lock is held across the restore."""
     with harness_merge.acquire(resolved + ".lock"):
         with open(resolved, "rb") as fh:
             base_bytes = fh.read()
@@ -2252,10 +2263,12 @@ def _record_amendments_locked(resolved, feature_json, entries):
         try:
             _record_amendment_judgements(feature_json, judgements)
         except harness_merge.MergeRefusal as refusal:
-            _replace_bytes(resolved, base_bytes)
             raise harness_merge.MergeRefusal(
-                refusal.code, list(refusal.lines)
-                + [f"  the plan splice was restored byte for byte in {resolved}; nothing landed."])
+                refusal.code, list(refusal.lines) + _restore_plan(resolved, base_bytes))
+        except BaseException as exc:
+            raise harness_merge.MergeRefusal(
+                2, [f"plan-merge: the ledger write to {feature_json} failed: "
+                    f"{type(exc).__name__}: {exc}"] + _restore_plan(resolved, base_bytes)) from exc
 
 
 def _record_amendments_preflight(resolved, feature_json, entries):

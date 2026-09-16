@@ -1,0 +1,5 @@
+# Fix c2 — BUG-1716 (validate c1 FAIL: V-01) — by Main, main-session-direct (DEC-174)
+
+- The c1 restore caught only `MergeRefusal`; an ordinary I/O error from the ledger write (lock unopenable, disk full, permissions) left the spliced plan with no judgement. `_record_amendments_locked` now restores on ANY exception from the ledger write, under the plan lock, re-raising as a MergeRefusal(2) that names the error; `_restore_plan` reports a failed restore as its own loud line ("could NOT be restored … restore it from git") rather than silence.
+- Proof: `case_b1716_record_amendments_restores_the_plan_on_a_ledger_io_error` — `feature.json.lock` at mode 000 makes `acquire`'s `os.open` raise PermissionError after the plan was spliced; record-amendments exits nonzero naming PermissionError with no traceback, says the splice was restored, and both files are byte-identical.
+- `code-grade.py --base origin/main --head HEAD`: 0 FAIL. Matrix: unit OK; integration OK (test-plan-merge.py green with the new case).
