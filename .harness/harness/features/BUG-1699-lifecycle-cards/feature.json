@@ -98,6 +98,13 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Main authorized the narrow read-only digest-contract repair; resume the mandatory simplify pass in a new successor run."
+    },
+    {
+      "at": "2026-09-16T14:11:53+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "All signed build tasks and the successor simplify pass are complete; continue into one pinned independent validation run."
     }
   ],
   "mission": "plan",

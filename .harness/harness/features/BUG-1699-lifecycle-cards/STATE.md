@@ -4,7 +4,7 @@
 - feature: BUG-1699-lifecycle-cards
 - run: none
 - squad: none
-- status: building
+- status: review
 
 ## Open Questions
 - none
