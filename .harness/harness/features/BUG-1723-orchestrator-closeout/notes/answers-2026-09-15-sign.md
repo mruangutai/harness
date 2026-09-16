@@ -8,3 +8,7 @@ Validate c2 BLOCKED on two questions; both are Main's to answer, not the operato
 
 - **Q2 (DEC-159 scope).** The BUG-1723 mechanism clause in DEC-159 was written by Main during T-03 and still said "a note on one at a terminal station" after validate c0 struck that exemption from the code. Reconciling a sentence Main wrote with the contract Main fixed is the cutover, not new scope. T-03's `files` now declares DECISIONS.md and DECISIONS-INDEX.md (amended via `plan-merge.py amend`, which reset approval); re-signed here on the operator's blanket authorization for this session. Nothing about the SCs, the task set, or the decisions changed.
 - **Q1 (verifier checkout).** The qa verifier invoked `.agents/skills/harness/bin/run-unit-tests.py` as a shell script from the gitignored symlink path and read exit 2 as a matrix failure. Both matrices pass with `python3 .claude/skills/harness/bin/run-unit-tests.py --kind unit|integration` at the pin and at HEAD; the exact-pin contract is unchanged and the caller error is noted in the fix note.
+
+## Rework ruling: one further round (2026-09-16)
+
+`spend` reads rework_rounds 2 / 60 min of the 2 / 90 ruling after fix-c2. c2 was BLOCKED on questions, not FAILed on a gate, and both answers were facts already on disk. Main authorizes exactly one more validate round (fix-c3-validator) on the operator's blanket authorization for this session and records it as a `continue` judgement; a FAIL there returns `awaiting_user` for a real ruling.

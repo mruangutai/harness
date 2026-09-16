@@ -136,6 +136,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "Stop after the final operator-approved rework round: the unowned DEC-159 scope change and validator checkout mismatch require operator decisions"
+    },
+    {
+      "at": "2026-09-16T06:46:59+00:00",
+      "by": "main-session",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "c2 BLOCKED on two questions (stale DEC-159 sentence Main wrote; verifier ran the symlink as shell), both answered by fact not fix; one further validate round on the operator's standing authorization, recorded here"
     }
   ],
   "mission": "plan",
