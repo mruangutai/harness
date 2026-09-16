@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1725-task-file-overlap",
   "pr": null,
   "review_sha": "708dcc4c0776136fb0addecbf3d60af3dd56eca6",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -23,6 +23,15 @@
       "verdict": "FAIL",
       "started_at": "2026-09-16T04:48:45+00:00",
       "ended_at": "2026-09-16T05:08:26+00:00",
+      "tokens": null
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T05:18:47+00:00",
+      "ended_at": "2026-09-16T05:34:21+00:00",
       "tokens": null
     }
   ],
@@ -75,6 +84,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "Validation found three T-01 must-fix items; approved SC-02/03/04 wording needs operator action and the main-session-direct route owns all fixes"
+    },
+    {
+      "at": "2026-09-16T05:18:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix-c1-validator",
+      "reason": "Main's direct fix resolved validate-validator's three T-01 must-fix items and supplied re-pinned review_sha 708dcc4c0776136fb0addecbf3d60af3dd56eca6 for the one allowed rework round"
     }
   ],
   "mission": "patch",
