@@ -67,7 +67,7 @@ def _feature_item(root: Path, main_dir: Path, worktrees: list[Path]) -> WorkItem
     segment = main_dir.parent.parent.name
     name = main_dir.name
     worktree = _matching_worktree(main_dir, root, worktrees)
-    selected = _worktree_feature_dir(worktree, main_dir, root) if worktree else main_dir
+    selected = _selected_feature_dir(worktree, main_dir, root)
     main_path = str(main_dir.resolve())
     worktree_path = str(worktree) if worktree else None
     return _read_feature(selected, name, segment, main_path, worktree_path)
@@ -102,16 +102,26 @@ def _worktree_feature_dir(worktree: Path, main_dir: Path, root: Path) -> Path:
     return worktree / main_dir.relative_to(root)
 
 
+
+
+
+
+def _selected_feature_dir(worktree: Path | None, main_dir: Path, root: Path) -> Path:
+    candidate = _worktree_feature_dir(worktree, main_dir, root) if worktree else None
+    readable = candidate is not None and candidate.is_dir() and os.access(candidate, os.R_OK | os.X_OK)
+    return candidate if readable else main_dir
 def _read_feature(source: Path, name: str, segment: str, main_path: str,
                   worktree_path: str | None) -> WorkItem:
     try:
         document = artifact_accessors.load_feature_json(source / "feature.json")
         if document is None:
             raise ValueError("feature.json is missing")
+    except Exception as error:
+        return _feature_error(source, name, segment, main_path, worktree_path, "feature.json", error)
+    try:
         return _loaded_feature(source, name, segment, main_path, worktree_path, document)
     except Exception as error:
-        return _feature_error(source, name, segment, main_path, worktree_path, error)
-
+        return _feature_error(source, name, segment, main_path, worktree_path, "plan.yaml", error)
 
 def _loaded_feature(source: Path, name: str, segment: str, main_path: str,
                     worktree_path: str | None, document: dict) -> WorkItem:
@@ -129,13 +139,13 @@ def _loaded_feature(source: Path, name: str, segment: str, main_path: str,
 
 
 def _feature_error(source: Path, name: str, segment: str, main_path: str,
-                   worktree_path: str | None, error: Exception) -> WorkItem:
+                   worktree_path: str | None, source_name: str, error: Exception) -> WorkItem:
     return WorkItem(
         id=f"{_kind(name)}:{segment}:{name}", kind=_kind(name), segment=segment,
         display_name=name, station=None, grilling_status=None, run_status=None,
         run_started_at=None, run_ended_at=None, updated_at=None, cycles_used=None,
         max_total_cycles=None, main_path=main_path, worktree_path=worktree_path,
-        source_path=str(source.resolve()), error=f"feature.json: {error}",
+        source_path=str(source.resolve()), error=f"{source_name}: {error}",
     )
 
 
