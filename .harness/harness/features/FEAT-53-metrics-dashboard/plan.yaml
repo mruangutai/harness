@@ -443,13 +443,13 @@ tasks:
     depends_on: [T-02]
     status: ready
     files:
-    - .claude/skills/harness/bin/dashboard/client/package.json
-    - .claude/skills/harness/bin/dashboard/client/tsconfig.json
-    - .claude/skills/harness/bin/dashboard/client/vite.config.ts
-    - .claude/skills/harness/bin/dashboard/client/vitest.config.ts
-    - .claude/skills/harness/bin/dashboard/client/vitest.setup.ts
-    - .claude/skills/harness/bin/dashboard/client/index.html
-    - .claude/skills/harness/bin/dashboard/client/package-lock.json
+      - .claude/skills/harness/bin/dashboard/client/package.json
+      - .claude/skills/harness/bin/dashboard/client/tsconfig.json
+      - .claude/skills/harness/bin/dashboard/client/vite.config.ts
+      - .claude/skills/harness/bin/dashboard/client/vitest.config.ts
+      - .claude/skills/harness/bin/dashboard/client/vitest.setup.ts
+      - .claude/skills/harness/bin/dashboard/client/index.html
+      - .claude/skills/harness/bin/dashboard/client/package-lock.json
     verify: |
       python3 -c "import json,re;p=json.load(open('.claude/skills/harness/bin/dashboard/client/package.json'));d=dict(p.get('dependencies',{}),**p.get('devDependencies',{}));missing=[k for k in ['react','react-dom','@astryxdesign/core','@tanstack/react-router','@tanstack/react-query','@tanstack/charts','d3-scale','vite','typescript','vitest','jsdom','@testing-library/react'] if not re.match(r'^[0-9]+\.[0-9]+\.[0-9]+',str(d.get(k,'')))];assert not missing, missing;assert p.get('scripts',{}).get('test')=='vitest run', p.get('scripts')" && python3 -c "import pathlib;t=pathlib.Path('.claude/skills/harness/bin/dashboard/client/vitest.config.ts').read_text();assert 'jsdom' in t;assert 'vitest.setup.ts' in t;s=pathlib.Path('.claude/skills/harness/bin/dashboard/client/vitest.setup.ts').read_text();assert 'ResizeObserver' in s"
     intent: |
@@ -492,7 +492,7 @@ tasks:
       nothing downstream can name it until you do.
       If node or npm is absent on the machine, STOP and report it rather than working around it.
   - id: T-05
-    title: Rebuild the fixture-payload prototype against the final design contract
+    title: Record the accepted immutable fixture-payload prototype
     traces:
     - REQ-11
     - REQ-12
@@ -502,7 +502,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-visual-designer
     depends_on: []
-    status: ready
+    status: done
     files:
     - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/index.html
     - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/README.md
@@ -512,21 +512,9 @@ tasks:
     - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/.gitignore
     - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/src/
     verify: |
-      cd .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53 && npm ci && npm run build && python3 -c "import pathlib,sys;d=pathlib.Path('.');f=[p for p in d.rglob('*') if p.is_file() and 'node_modules' not in p.parts and p.suffix in {'.html','.md','.js','.jsx','.ts','.tsx','.json','.css'}];sys.exit('no prototype source files') if not f else None;t=''.join(p.read_text(errors='ignore') for p in f);[sys.exit('missing '+k) for k in ['S-1','S-2','S-3','S-4','S-5','TBL-1','TBL-2','TBL-3','30d','90d','3x3','/kpi/','/work/','Kanban','Table','Status','focus-visible','max-width','unmeasured 1 of 2 runs'] if k not in t];[sys.exit('retired route '+k) for k in ['/features','/kpis'] if k in t]"
+      MANUAL — completed evidence: confirm notes/prototypes/FEAT-53/README.md and DESIGN.md §The prototype gate record the accepted browser-observation result before consuming it; do not execute, rebuild or modify the immutable prototype.
     intent: |
-      Replace the committed, pre-contract prototype; it is evidence neither for this plan nor for the operator's approval. Build a high-fidelity Astryx and React prototype over a HAND-WRITTEN FIXTURE PAYLOAD, never live data, then record the exact local run command and browser-observation checklist in its README.md. This is the prototype required by DESIGN's gate, not a dispatch to restyle the product implementation.
-
-      Render the settled three-route product composition in one centred max-width content container. The single dashboard / shows, in order, the shared header with window control and Repository dropdown at top right, the six-state attention strip, the Repository KPIs section first, and the work list. Each attention card changes the work list's Status filter in place rather than navigating, uses a neutral border, and applies state colour to the label text only. Keep DESIGN C-1's fixed 3x3 grid of seven repository-level tiles, with tiles 1-6 filling rows 1 and 2 and tile 7, Merged PRs over time, last and full-width on row 3. Every tile sparkline keeps the 14-day daily horizon and spans the tile's full width. /kpi/$n shows exactly one KPI panel and its rows link to /work/$id. /work/$id shows the operational header before the former per-feature KPI content for a feature or bug. Grilling and worktree rows expand inline from the work list on / and have no detail route. The shared window and Repository selections are URL-backed, default to all, appear on all three product routes and survive the complete drill. Do not render /work as a product route, a Work header toggle, /features, /features/$featureId or any /kpis page.
-
-      Prototype exactly two work-list layouts over the same complete fixture: Kanban and Table. Present one toggle with the labels Kanban and Table, no letter prefixes and no white border on the active state. Each layout independently filters Station, Status and Kind; the redundant Repository filter is absent because repository scope belongs to the shared header. The table column is Status, not Attention + reasons. Astryx icons carry status in both layouts; status is never conveyed by text colour, a coloured border or a coloured top-line. Expose id, repository, station and phase, status and reasons, elapsed total and plan/build/validate, runs, cycles/max and null-aware tokens. Include one mixed token row reading unmeasured 1 of 2 runs, never 0, and no dollar cost. Use Title Case for titles, card labels, dropdown items and toggle labels, and sentence case for descriptions.
-
-      Render all three C-2 tables, labelled TBL-1, TBL-2 and TBL-3, with their pinned group and row semantics; the grading histogram and named grade-1/grade-2 outlier table; and the tile to KPI to work-item drill. Include the 30d, 90d and all window controls. Use one fixed dark Theme and one defineTheme call with single-value tokens; do not render a theme toggle, a light theme or OS-preference behaviour.
-
-      Remove the Honest-state gallery from every product surface. Meet C-4's simultaneous-visibility gate on a fixture-only prototype route that is absent from product navigation: show all five C-4 states there at once, labelled S-1 through S-5. S-1 has no axes; S-2 has axes, a broken line and hatched table cells; S-3 retains the Python-only caveat beneath the histogram; S-4 places unavailable and measured-zero values side by side with distinct glyph, typography, fill and badge; S-5 demonstrates unattributed commits as their named bucket treatment. Implement C-3's unchanged keyboard order and landing rules. Draw the 2px text-token ring with 2px offset only for :focus-visible keyboard focus, never after mouse interaction on the page title, dropdown selection, layout toggle or any other surface. Charts are aria-hidden and their adjacent real tables carry the values.
-
-      COMMIT the prototype's package-lock.json, and REMOVE the package-lock.json line from this prototype's own .gitignore, which ignores it today. This task's verify begins with npm ci, and npm ci refuses to run without a committed lockfile, so an ignored lockfile makes the verify unrunnable on any clean checkout of the very tree this task commits - the same pattern T-04 already follows for the client package. Keep the node_modules/, dist/ and .smoke/ rules.
-
-      Run the verification command. Then launch the prototype and inspect its fixed dark theme in a real browser at 1440x1000 and 1920x1080: operate both shared header controls; use attention cards as Status shortcuts; switch between Kanban and Table; sort and filter where applicable; drill tile to /kpi/$n to /work/$id and Back; exercise inline grilling and worktree rows; tab through the documented focus sequence and transitions; confirm mouse interaction leaves no visible focus ring; confirm the centred max-width container and full-width 14-day daily sparklines; and open the fixture-only route to distinguish S-1 through S-5 simultaneously. Capture the observed result and any divergence in README.md. If the artifact diverges from DESIGN.md or the settled composition, report a finding for the plan rather than silently amending either contract.
+      COMPLETED EVIDENCE ONLY. The operator accepted the committed prototype under notes/prototypes/FEAT-53/ before this amendment. Its files are immutable: no executor may rebuild, replace, restyle or otherwise edit them. The accepted artifact records the settled three product routes (/, /kpi/$n and /work/$id), the root order shared header then Repository KPIs then the Work List whose Status cards open that section, the desktop 4+3 tile geometry, full-width fourteen-point daily tile sparklines, the current dark Astryx theme roles, adjacent one-click InfoDisclosure sourcing rules, Kanban/Table work layouts, null-aware token display and tokens-only/no-dollar scope. T-13 and T-28 consume this completed artifact as evidence rather than treating it as implementation work.
   - id: T-18
     title: Probe the alpha charting API against CAP-01 through CAP-13 before any client UI exists
     traces: [REQ-07, REQ-10, REQ-11]
@@ -579,11 +567,11 @@ tasks:
     depends_on: []
     status: ready
     files:
-    - .claude/skills/harness/bin/dashboard/kpi.py
-    - .claude/skills/harness/bin/test-metrics-kpi.py
-    - .claude/skills/harness/bin/run-unit-tests.sh
-    - .claude/skills/harness/bin/dashboard/fixtures/project-a/
-    - .claude/skills/harness/bin/brief_approval.py
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/dashboard/fixtures/project-a/
+      - .claude/skills/harness/bin/brief_approval.py
     verify: |
       bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-kpi.py
     intent: |
@@ -1098,77 +1086,11 @@ tasks:
     verify: |
       bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-dashboard.py
     intent: |
-      Write the failing tests first. serve.py is the entry point (D-17) and is a FLASK application -
-      one WSGI app object built in serve.py, with Flask's own routing decorators and no hand-written
-      route table (D-03). Flask is the only new runtime import this feature adds; the KPI modules stay
-      pure python3 plus yaml.
-      CLI: python3 .agents/skills/harness/bin/dashboard/serve.py [--root <project>] [--port <n>]
-      [--check]. --root defaults to the git root of cwd, so the dashboard reports on whichever
-      onboarded project it is run against with no per-project wiring (REQ-02).
-      BINDING: 127.0.0.1 ONLY (D-05). There is no flag that binds another interface and no auth.
-      Default port 8971; on a port already in use, exit non-zero naming the port.
-      CONCURRENCY AND SERVER MODE, replacing what this task said while D-03 named the stdlib server:
-      run the app with app.run(host="127.0.0.1", port=<port>, threaded=True, debug=False,
-      use_reloader=False). threaded=True is werkzeug's one-thread-per-request server and its thread
-      count is UNBOUNDED - that is ACCEPTED, not overlooked, for exactly D-05's reason: the bind is
-      loopback-only for one operator, so the realistic concurrent load is one browser. Do not add a
-      thread cap, a queue or a semaphore, and do not put a production WSGI server in front of it.
-      debug=False and use_reloader=False are not optional: the debug console is an arbitrary-code
-      surface even on loopback, and the reloader re-execs the process, which would restart a one-shot
-      instrument mid-request.
-      PREREQUISITE GATE, before binding anything and before serving one byte (REQ-14): assert
-      python3 3.10 or newer, that yaml imports, THAT FLASK IMPORTS, that the project root carries
-      .harness/harness.json, and that the built bundle exists at client/dist/index.html. On any
-      failure print one line naming the MISSING prerequisite and the exact install or build command,
-      exit non-zero, and serve NOTHING. There is no degraded mode and no partial page. The exact
-      commands the gate prints are: for yaml, python3 -m pip install pyyaml; FOR FLASK, python3 -m
-      pip install flask; for the bundle, npm --prefix .claude/skills/harness/bin/dashboard/client run
-      build.
-      --check runs exactly that gate and exits, binding no port.
-      Do NOT assert jsonschema in that gate: no dashboard module imports it - schema validation
-      lives in validate-feature-json.py and check-domain.sh, which the dashboard never calls - so
-      gating on it would misrepresent what this feature is load-bearing on, which is yaml and Flask.
-      jsonschema is a harness-wide prerequisite already, declared in harness-init and installed in
-      CI, and this feature adds nothing there. Flask is the opposite case and is NOT a ninth platform
-      prerequisite: no script in .claude/skills/harness/bin/ outside dashboard/ imports it, so it is
-      gated HERE, in this one entry point, and nowhere else.
-      ROUTES, as Flask routes: GET /api/kpis with a window query parameter of 30d, 90d or all returns
-      kpi.compute(root, window) as JSON; GET / and every unknown non-api path serves
-      client/dist/index.html so the client's four routes survive a reload; GET /assets/<path> serves
-      from client/dist/assets through flask.send_from_directory, which does the traversal-safe join
-      against dist for you - assert in the tests that a traversal attempt is refused rather than
-      trusting it - AND a Content-Type set from mimetypes.guess_type with an explicit fallback table
-      covering .js, .mjs, .css, .html, .svg, .woff2 and .map. THE FALLBACK TABLE IS STILL REQUIRED
-      even though send_from_directory guesses: guess_type returns None for a type the host's mime
-      database does not know, and a browser enforcing strict MIME on a module script REFUSES an ES
-      module served as text/plain or as the wrong type, and the page then renders blank with no error
-      visible anywhere. An unknown api path is 404 with a JSON body - register a Flask errorhandler
-      so an unknown /api/ path never returns Flask's default HTML error page. An unsupported window
-      token is 400 naming the three legal tokens.
-      READ-ONLY (REQ-13): no handler creates, modifies or deletes any file anywhere. The append in
-      trend.py is not reachable from any route.
-      Create test-metrics-dashboard.py, register it in run-unit-tests.sh INTEGRATION_SCRIPTS (T-03
-      already declared its literal), and assert: the gate passes and the payload is served on a
-      clean checkout; with a prerequisite made absent the same invocation exits non-zero naming it
-      and serves nothing, asserted as its own case, AND with Flask made unimportable as one of those
-      cases so the new prerequisite is proven to gate rather than assumed to; run against fixture
-      project-a every KPI reflects the fixture and no figure equals this repository's value for the
-      same KPI; git status is
-      byte-identical before and after serving every route; that a GET of one /assets/ JavaScript
-      file returns a Content-Type naming a JavaScript type and never text/plain, asserted as its
-      own case against a temporary root carrying a stub dist with one .js asset, so this case does
-      not wait on T-16's real bundle; and that a full computation for this repository completes
-      inside 8.0 SECONDS, measured by the test with the elapsed time printed.
-      THE CEILING IS 8.0 SECONDS AND THE OLD 5.0 WAS NOT DEFENSIBLE. Measured per item on
-      2026-09-01 at 47 real feature branches, 106 tracked .py files and 978 commits, the honest
-      per-request total was 4.3 to 5.3 seconds - 86 to 106 percent of the old ceiling - so 5.0 sat
-      inside its own measurement spread and the gate would have passed or failed on which of two
-      equally plan-consistent implementations T-06 picked. With T-06's single-call git diff and
-      T-09's memoised plan reads the projection is about 3.6 seconds, so 8.0 keeps the gate
-      falsifiable with real headroom rather than flaky on machine load. The 1.1 second figure the
-      plan carried before is superseded: it predates the per-branch change-size work T-06
-      specifies. If the measured elapsed time exceeds 8.0 seconds, that is a real finding about
-      D-09's cache deferral and it goes up, not a number to raise again.
+      Write the failing tests first. serve.py is the Flask entry point (D-17): one WSGI app object with Flask routing decorators and no handwritten route table (D-03). CLI: python3 .agents/skills/harness/bin/dashboard/serve.py [--root <project>] [--port <n>] [--check]. Root defaults to cwd's git root; bind only 127.0.0.1 (D-05), default port 8971, and fail non-zero naming a busy port. Run app.run(host="127.0.0.1", port=<port>, threaded=True, debug=False, use_reloader=False); loopback-only unbounded one-thread-per-request concurrency is accepted and no cap, queue, semaphore or production WSGI server belongs here.
+
+      Before binding or serving, require Python 3.10+, importable yaml and Flask, .harness/harness.json, and client/dist/index.html. Every failure names the missing prerequisite and exact install/build command; --check runs only this gate. Do not gate jsonschema. GET /api/kpis validates window as 30d, 90d or all and returns kpi.compute(root, window); GET / and every unknown non-api client path serves the bundle so exactly the three product routes /, /kpi/$n and /work/$id survive reload. GET /assets/<path> uses flask.send_from_directory and a mimetypes fallback table for .js, .mjs, .css, .html, .svg, .woff2 and .map. Unknown /api/ paths return JSON 404. No handler writes; trend.py append is unreachable.
+
+      Create test-metrics-dashboard.py, register it in run-unit-tests.sh INTEGRATION_SCRIPTS, and prove the gate succeeds and independently fails for every prerequisite including Flask; fixture project-a values are served rather than this repository's values; every route leaves git status byte-identical; asset traversal is refused; JavaScript assets never use text/plain; and one full repository computation completes within 8.0 seconds with elapsed time printed. The 8.0-second ceiling is falsifiable and must not be raised to hide a regression.
   - id: T-13
     title: Build the client shell with all view state in the URL
     traces:
@@ -1180,27 +1102,21 @@ tasks:
     depends_on: [T-01, T-04, T-05, T-18]
     status: ready
     files:
-    - .claude/skills/harness/bin/dashboard/client/src/main.tsx
-    - .claude/skills/harness/bin/dashboard/client/src/routes.tsx
-    - .claude/skills/harness/bin/dashboard/client/src/routes.test.tsx
-    - .claude/skills/harness/bin/dashboard/client/src/theme.ts
-    - .claude/skills/harness/bin/dashboard/client/src/api.ts
+      - .claude/skills/harness/bin/dashboard/client/src/main.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/routes.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/routes.test.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/theme.ts
+      - .claude/skills/harness/bin/dashboard/client/src/api.ts
     verify: |
       npm --prefix .claude/skills/harness/bin/dashboard/client test -- --run src/routes.test.tsx && npm --prefix .claude/skills/harness/bin/dashboard/client run build
     intent: |
-      Build the shared shell DESIGN C-1 specifies, against the prototype from T-05 and the payloads T-12 and T-27 serve.
+      Build the shared shell DESIGN C-1 specifies against completed prototype evidence T-05 and the payloads T-12 and T-27 serve.
 
-      ROUTES, TanStack Router, exactly three product routes: the single dashboard /, one KPI /kpi/$n, and one feature or bug /work/$id. Retire /work as a route, the Work header toggle, /features, /features/$featureId and every /kpis page; no redirect, alias or hidden product route survives. A tile navigates to /kpi/$n and a KPI row or feature or bug work-list row navigates to /work/$id. Grilling and worktree rows remain inline in the work list on /.
+      ROUTES: TanStack Router registers exactly three product routes: /, /kpi/$n and /work/$id. Retire /work, the Work header toggle, /features, /features/$featureId and every /kpis page without redirects, aliases or hidden product routes. KPI tiles navigate to /kpi/$n; feature and bug rows navigate to /work/$id; grilling and worktree rows remain inline on /. The shared window and repo selections live only in URL search parameters, default independently to all, appear on every route, survive reload, Back and cross-route navigation, and are sent unchanged to both APIs. One centred max-width container wraps every route.
 
-      SHARED HEADER: window and repo live only in URL search parameters, default independently to all, appear on every route as the window control and Repository dropdown, survive reload, Back and cross-route navigation, and are sent unchanged to both GET /api/kpis and GET /api/work. The window accepts 30d, 90d or all. No component holds either selection or the selected work item in local state as the source of truth. The Work toggle is absent. Every route uses one centred max-width content container.
+      Use TanStack Query with keys containing window and repo, no polling or refetch interval. Define one fixed-dark theme by extending Astryx Neutral and adding only the single-value DESIGN Palette roles: metrics-text-tertiary; positive, negative and direction-neutral; kpi-1 through kpi-7; status-needs-you, status-blocked, status-stalled, status-over-budget, status-running and status-stale; grade-1 through grade-5; and unavailable-stroke. series-1 through series-3 do not exist: every trend uses its KPI identity hue. Raw hex appears only in the defineTheme call; there is no theme toggle, light theme, OS-preference lookup, prefers-color-scheme query or isDark branch.
 
-      Data uses TanStack Query against the two API endpoints, with query keys containing window and repo, no refetch interval and no polling; the server recomputes per request (D-06).
-
-      THEME: one defineTheme call extends the Astryx base with single dark values for the nine tokens DESIGN Palette names (grade-1 through grade-5, series-1 through series-3, unavailable-stroke). Fix Theme mode to dark. There is no theme toggle, no light theme, no OS-preference lookup, no prefers-color-scheme query and no isDark ternary anywhere (DESIGN C-3).
-
-      Every rendered element is an Astryx primitive or a composition of them. Raw hex appears in exactly one file, the defineTheme call. A region renders its skeleton until its data is whole and never a chart over a partial payload. No modal at any depth - every routed drill-down uses the three-route model. Labels, dropdown items and toggle labels use Title Case; descriptions use sentence case. Interactive controls draw their focus ring only for :focus-visible keyboard focus and never retain it after mouse interaction; every other C-3 keyboard rule remains unchanged.
-
-      Write the route test first. It must render all three product paths, assert /work and every other unrecognised or retired path is not registered, and demonstrate that changing window or repo updates both API requests and survives a route transition plus reload without component-local source-of-truth state.
+      Every rendered element is an Astryx primitive or composition. A region shows a skeleton until its payload is whole. There are no modals. Labels, dropdown items and toggle labels use Title Case; descriptions use sentence case. Controls show the focus ring only for :focus-visible keyboard focus and never retain it after mouse interaction. Write the route test first; it renders all three product routes, proves every retired path is unregistered, and proves changing window or repo updates both API requests and survives route transition plus reload without local-state ownership.
   - id: T-14
     title: Build the tiles, panels, tables and the four honest-gap states
     traces:
@@ -1225,21 +1141,13 @@ tasks:
     verify: |
       npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=''.join(p.read_text() for p in pathlib.Path('.claude/skills/harness/bin/dashboard/client/src').rglob('*.tsx'));[sys.exit('missing '+k) for k in ['NoShipRecords','PreCapability','GradingCaveat','UnavailableValue','/kpi/','/work/'] if k not in s];[sys.exit('forbidden '+k) for k in ['107','122','/features','/kpis'] if k in s]"
     intent: |
-      Build the surfaces DESIGN C-1 and C-4 specify, consuming the payload's unavailable maps (D-19) as the sole trigger for every gap treatment.
+      Build the surfaces DESIGN C-1 and C-4 specify, consuming the payload unavailable maps (D-19) as the sole trigger for every gap treatment.
 
-      LANDING: Overview / places the attention strip and needs-you rows ahead of a fixed 3x3 tile grid in DESIGN's order - Throughput, Rework, Blocking human touchpoints, Escaped defects, Code grading, Usage by agent/model tier, Merged PRs over time. Tiles 1-6 fill rows 1 and 2 three across; tile 7 is LAST and spans the full third row at every breakpoint - three columns at 1024 and above, two below it, one below 640 - so it is always alone on the last row and the reading order 1 to 7 never changes. Each tile is a 40pt headline figure, a one-line denominator or secondary, and for the four trend KPIs (1, 3, 5, 7) an 8-point sparkline or its S-1/S-2 treatment. A figure NEVER appears without its denominator or unit. A tile links to its one-panel route /kpi/$n, and a feature or bug row there links to /work/$id while preserving the shared window and repo parameters.
+      LANDING: / renders the shared header first, Repository KPIs second, and the Work List last; the Work List's Status cards open and filter that section rather than forming a separate block before KPIs. KPI tiles follow the accepted 4+3 geometry at 1024px and above: tiles 1–4 fill row 1, tiles 5–7 fill row 2, with no span or empty slot. Below 1024 use two columns with tile 7 spanning both; below 832 use one column. Reading order is Throughput, Rework, Blocking human touchpoints, Escaped defects, Code grading, Usage by agent/model tier and Merged PRs over time. Every tile has a 40pt headline, denominator or secondary line, and a full-width sparkline using the latest fourteen daily points or its S-1/S-2 treatment; no figure appears without its denominator or unit. Tiles link to /kpi/$n and rows link to /work/$id while preserving window and repo.
 
-      The grading tile's headline is the at-or-above-bar SHARE; rendering any central tendency is a violation. The usage tile names the unattributed count on the tile rather than dropping it. Escaped defects carries its payload sourcing_rule as persistent inline text beneath the figure - not a tooltip, not a footnote, not a link.
+      The grading headline is the at-or-above-bar share; usage names unattributed work. Escaped defects and merged PRs each put the complete payload sourcing_rule in an adjacent title InfoDisclosure reachable in one click and by keyboard. Neither rule appears as persistent inline text, a tooltip, footer, footnote or link. KPI 7's headline and weekly panel keep the payload's count, week bounds, empty-bucket count and unavailable semantics: no empty week is fabricated as zero or bridged. Its panel reuses Shape B and lists shipped features; KPI 7 has no work-list column, no /work/$id presence and no sort=7.
 
-      TILE 7, merged PRs over time: the 40pt headline is the merged-PR count for the window; the secondary line reads "n merged PRs over w weeks - k weeks with no ship record", taking w and k from the payload's week bounds and empty-bucket count (T-10) and recomputing neither; the sparkline's eight points are the window's LAST EIGHT weekly buckets. It carries its payload sourcing_rule as persistent inline text beneath the figure exactly as the escaped-defects tile does - not a tooltip, not a footnote, not a link - stating that the count is of shipped features read from the ship record, one point per feature, and that one shipped feature is one merged PR because DEC-200 holds exactly one merged PR per shipped feature. An empty weekly bucket takes S-4 through UnavailableValue with the payload's own specific reason naming that week, and the sparkline BREAKS there (CAP-09): never a 0, never the string "0", never a line interpolated across it - rendering a bucket as 0 is the fabrication D-19 forbids. KPI 7 has NO per-feature column on /work and NO presence in /work/$id: it is a weekly aggregate, not a per-feature value, sort=7 is not a valid token, and adding either is a violation.
-
-      PANEL 7: its primary artifact is the weekly merged-PR line, which is Shape B REUSED and is mounted by T-21 - add NO third chart shape and NO new chart capability here; CAP-01 to CAP-13 is closed at thirteen. Beside the line the panel carries a feature table of the ships in the window, one row per shipped feature: feature id linking to /work/$id, ship date, the week bucket it falls in, and pr where the record carries one with S-4's em dash where it does not, which changes no count. That table takes NO TBL-n id - TBL-1 to TBL-3 stay the three table panels' primary artifacts - and an empty week is not a row in it at all, because it lists ships rather than weeks.
-
-      PANELS: one level down per KPI at /kpi/$n - the chart, its caveats and its feature table. The grading panel puts the histogram and the NAMED grade-1/grade-2 outlier table side by side at 1024px and above, stacked below that. Each outlier row is qualname, path and line, grade, driver, bar, with the grade cell tinted grade-1 or grade-2. The names are never behind a hover, tooltip, disclosure or click. An empty list renders the words "no grade-1 or grade-2 functions in this window", which is a measured absence and therefore neither S-1 nor S-4. Export the per-feature KPI content so T-28 can reuse it below /work/$id's operational header; do not create a /features route.
-
-      FOUR GAP STATES, as four distinct components named NoShipRecords (S-1), PreCapability (S-2), GradingCaveat (S-3) and UnavailableValue (S-4), each exactly as DESIGN C-4 draws it: S-1 replaces the whole trend region with a dashed card and mounts NO chart and NO axes; S-2 draws axes, breaks the line, hatches the table cells with an em dash and the label "no trend - shipped before metrics", and prints the n-of-m line beneath; S-3 is the persistent caveat under the histogram whose counts and percentage come ONLY from the payload; S-4 differs from a genuine zero in all four of glyph, typography, fill and badge, and its second line is the payload's specific reason, never a generic "no data".
-
-      NO literal of this repository's file mix anywhere in this source - the verify greps for it. Nothing is hover-only: every fact a hover would reveal is also present as text.
+      Each /kpi/$n route renders one panel with chart, caveats and feature table. The grading panel places the histogram and named grade-1/grade-2 outlier table side by side at 1024px and stacked below; empty outliers read “no grade-1 or grade-2 functions in this window”. Export per-feature KPI content for T-28 and do not create /features. Implement NoShipRecords, PreCapability, GradingCaveat and UnavailableValue exactly as DESIGN C-4: no axes for S-1; broken line, hatched cells and n-of-m for S-2; persistent payload-derived Python caveat for S-3; and distinct glyph, typography, fill, badge and specific reason for S-4. No repository file-mix literal appears, and no fact is hover-only.
   - id: T-15
     title: Render the two chart shapes the probe cleared
     traces: [REQ-07, REQ-10, REQ-11]
@@ -1253,38 +1161,9 @@ tasks:
     verify: |
       npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=pathlib.Path('.claude/skills/harness/bin/dashboard/client/src/charts.tsx').read_text();[sys.exit('missing '+k) for k in ['strokeDasharray','keyboard'] if k not in s];sys.exit(0 if ('scaleUtc' in s or 'scaleTime' in s) else 'no temporal scale - scaleBand/scalePoint fabricates cadence, CAP-07')"
     intent: |
-      Build the two chart shapes DESIGN C-2 specifies, with the charting library T-18's probe cleared
-      (D-08). T-18 has already recorded VERDICT: PROCEED; if it recorded STOP this task is not yours
-      to run, because choosing what replaces the library is an operator decision.
-      SHAPE A, the grading histogram: pre-binned counts as a bar series over an ordinal axis of
-      exactly five grade categories, with a FIXED five-category domain so an empty grade renders as an
-      empty bar and is never dropped - an inferred domain drops it silently. Each bar takes its own
-      grade token from the datum; per-record bar membership is encoded as a datum-derived hatch on the
-      sub-portion and NEVER as one global reference line at 4; one bin label per bin so no legend is
-      needed. The chart is aria-hidden beside the real table T-14 supplies, AND it is passed keyboard
-      false explicitly: the React adapter defaults tabIndex 0, which would leave focusable content
-      inside an aria-hidden ancestor - an accessibility bug worse than the one the aria-hidden was for.
-      Zero graded functions hands over to NoShipRecords before the chart mounts.
-      SHAPE B, the time-series lines: the x scale is d3-scale's scaleUtc or scaleTime, NEVER the
-      compact scaleBand or scalePoint, which treat Date values as equally spaced categories and would
-      fabricate the cadence CAP-07 forbids while still rendering a plausible line.
-      The payload already arrives PRE-SEGMENTED into contiguous runs (T-10): render one line per run
-      and do no segmentation of your own. A missing point is already a break; there is no client-side
-      null handling to write and no server file for you to edit.
-      Per-series dash pattern (solid, 6-2 dash, 2-2 dot) through the strokeDasharray channel, and
-      marker shape (circle, square, triangle) set independently of colour, plus a direct end-of-line
-      label, so hue is never the only carrier. Square and triangle need a CUSTOM MARK via createMark -
-      the built-ins are dot and hexagon only - so budget for authoring one rather than looking for a
-      prop. Every colour, stroke and dash is a theme token passed in; no library default is used.
-      Histogram height 280px, time-series 320px, both filling container width.
-      CAP-08 is settled here, not left open: build THREE STACKED SINGLE-SERIES PLOTS sharing one x
-      axis, not one plot with three y axes. Cycle time in days, a touchpoint count and a grade share
-      are three incommensurable units; DESIGN C-3 records series-1 against series-2 at only 1.51 to 1
-      in light and 1.21 to 1 in dark, so on one shared canvas a reader must hold dash, marker, label
-      and hue together to separate three near-identical lines, while three single-series plots need no
-      series-to-series disambiguation at all. Faceted composition is also the library's most
-      documented path, which is less alpha surface than named multi-axis. Say in your DIGEST that you
-      built it this way.
+      Build the two chart shapes DESIGN C-2 specifies with T-18's charting-library probe cleared. Shape A is the grading histogram over a fixed five-grade ordinal domain, with datum-driven grade token and per-record bar membership hatch, one bin label, aria-hidden beside the real table and keyboard=false explicitly. Shape B uses a UTC/time scale, consumes the payload's pre-segmented contiguous runs, and never reconnects a missing point. Multi-series uses independently encoded dash, marker and direct end label, including custom square and triangle marks; all colour, stroke and dash values come from theme tokens. Histogram height is 280px and time-series height 320px, both full width.
+
+      CAP-08 is three stacked single-series plots sharing one x axis for cycle time, touchpoints and grade share. Each plot uses its KPI identity hue from T-13; series-1, series-2 and series-3 roles do not exist. This avoids presenting incommensurable units on one canvas and makes series-number contrast irrelevant. Report this composition in the DIGEST.
   - id: T-16
     title: Build and commit the client bundle so no project needs a build step
     traces: [REQ-01, REQ-02]
@@ -1352,44 +1231,11 @@ tasks:
       - .harness/harness/docs/METRICS.md
       - README.md
     verify: |
-      python3 -c "import pathlib,sys;t=pathlib.Path('.harness/harness/docs/METRICS.md').read_text();[sys.exit('missing '+k) for k in ['dashboard/serve.py','127.0.0.1','30d','trend.jsonl','BUG-','code-grade.py','Flask','PyYAML','python3 -m pip install flask','harness.json','client/dist/index.html','/work','needs-you','blocked','stalled','over-budget','running','stale','45','seven','worktree_path','no GitHub read'] if k not in t];sys.exit(0 if 'METRICS.md' in pathlib.Path('README.md').read_text() else 'README pointer missing')"
+      python3 -c "import pathlib,sys;t=pathlib.Path('.harness/harness/docs/METRICS.md').read_text();[sys.exit('missing '+k) for k in ['dashboard/serve.py','127.0.0.1','30d','trend.jsonl','BUG-','code-grade.py','Flask','PyYAML','python3 -m pip install flask','harness.json','client/dist/index.html','The work list lives on `/`.','Feature and bug detail lives at `/work/$id`.','No standalone `/work` route is registered.','needs-you','blocked','stalled','over-budget','running','stale','45','seven','worktree_path','no GitHub read'] if k not in t];sys.exit(0 if 'METRICS.md' in pathlib.Path('README.md').read_text() else 'README pointer missing')"
     intent: |
-      Write .harness/harness/docs/METRICS.md, one screen, for a user who has just onboarded a project
-      and wants to see their numbers and the control-plane operator who needs the fleet work view.
-      It must state: the single start command
-      python3 .agents/skills/harness/bin/dashboard/serve.py, that it binds 127.0.0.1 only and is
-      never network-exposed, the default port and the --port flag, --root for pointing it at another
-      project, and --check for testing prerequisites without starting it.
-      THE PREREQUISITES, and the exact failure line each produces when absent. They are exactly the
-      five serve.py's gate checks (T-12): python3 3.10 or newer, PyYAML, FLASK, an
-      onboarded .harness/harness.json, and the committed bundle at client/dist/index.html - list the
-      runtime installs with their exact commands, python3 -m pip install pyyaml and python3 -m pip
-      install flask. Spell the two library names Flask and PyYAML with those capitalisations, because
-      this task's verify pins those spellings VERBATIM.
-      DO NOT list jsonschema as a dashboard prerequisite. T-12's gate deliberately does not check it -
-      no dashboard module imports it - so documenting it here would tell a user to install something
-      this feature is not load-bearing on and would misstate what the gate does. It remains a
-      harness-wide prerequisite elsewhere, which is not this document's subject.
-      FLASK IS DASHBOARD-ONLY. Say that it is required by this entry point and by nothing else in
-      .agents/skills/harness/bin/, so no other harness command acquires a new dependency.
-      The seven KPIs, one line each, and for the three that carry a stated rule the rule verbatim as
-      the payload carries it: escaped defects (BUG-NN units plus Revert commits, fix excluded),
-      grading (code-grade.py whole-repo mode, Python only, per-record bar), and usage attribution
-      (the commit-prefix ladder and its named unattributed buckets).
-      That the trend starts at the first ship after this capability landed, that history is never
-      backfilled, and that a feature shipped earlier has no trend line and the UI says so.
-      That viewing never mutates the project, and that the one write in the whole feature is the
-      append at ship to .harness/metrics/trend.jsonl.
-      The KPI window tokens 30d, 90d and all.
-      Document /work as the fleet-wide operational route on the same loopback server. Define the six
-      attention labels and their exact rank, the 45-minute stalled and seven-day stale thresholds and
-      where the dashboard configuration lives, the one-remaining-cycle over-budget boundary, the
-      worktree-wins rule and all three source-path fields, and the manual Refresh behavior. State that
-      feature, bug, grilling and linked-worktree rows are read from local disk and git worktree metadata,
-      that malformed sources remain visible with a reason, and that the operational view performs no
-      GitHub read or network request.
-      Then add ONE line to README.md pointing at METRICS.md, in the existing list of docs, matching
-      its surrounding style. Change nothing else in README.md.
+      Write .harness/harness/docs/METRICS.md, one screen, for an onboarded-project user and the fleet operator. Document the start command, loopback-only bind, default port and --port, --root, and --check. List exactly the five T-12 gate prerequisites with exact PyYAML and Flask install commands; do not list jsonschema, and state Flask is dashboard-only. Name all seven KPIs and the payload's three stated sourcing rules verbatim, the post-capability trend boundary without backfill, read-only viewing and the sole ship-time trend append, and window tokens 30d, 90d and all.
+
+      Use these unambiguous route statements: “The work list lives on `/`.” “Feature and bug detail lives at `/work/$id`.” “No standalone `/work` route is registered.” Define the six Status labels and rank, 45-minute stalled and seven-day stale thresholds, configuration location, over-budget boundary, worktree-wins rule, source paths and manual Refresh. State that feature, bug, grilling and linked-worktree rows come from local disk and git worktree metadata, malformed sources remain visible with a reason, and the operational view performs no GitHub or network read. Add one style-matched README.md line pointing to METRICS.md and change nothing else there.
   - id: T-19
     title: Call the trend append at ship, so the trend file is ever written at all
     traces: [REQ-10]
@@ -1933,13 +1779,13 @@ tasks:
   - id: T-28
     title: Add the ranked work view to the existing client shell
     intent: |-
-      Implement the settled operational surfaces inside T-13's existing React and TanStack shell; do not introduce a second client, framework or server. The single dashboard / places the shared header first, then the D-25 attention strip, T-14's Repository KPIs section first, and the work list. Fetch /api/work through the shared API module on /; each attention card changes the Status filter in place instead of navigating, uses a neutral border, and applies state colour to its label text only.
+      Implement the settled operational surfaces inside T-13's React and TanStack shell. On /, render the shared header first, Repository KPIs second, and the Work List last; the Work List opens with D-25's six Status cards, each changing the Status filter in place with neutral border and label-only state colour. Fetch /api/work through the shared module.
 
-      The work list has exactly two switchable layouts, Kanban and Table, with those Title Case toggle labels, no letter prefixes and no white border on the active state. Both layouts filter independently by Station, Status and Kind. Do not add a Repository filter to the list; repository scope belongs only to the shared header dropdown. The Table layout names its state column Status, not Attention + reasons. Across both layouts, Astryx icons carry status; do not use text colour, coloured borders or top-lines as status carriers. Show id, repository, station and phase, status and reasons, elapsed total and plan/build/validate, runs, cycles/max and tokens. Mixed token coverage reads unmeasured n of m runs beside the measured total, never zero; no cost appears. All labels, dropdown items and toggle labels use Title Case and descriptions use sentence case.
+      Provide exactly Kanban and Table layouts, independently filterable by Station, Status and Kind, with no list Repository filter. The table state column is Status. Astryx icons plus printed label and reason carry status, never coloured list text, border or top-line. Show id, repository, station and phase, status/reasons, elapsed total and phases, runs, cycles/max and null-aware token totals; mixed coverage reads “unmeasured n of m runs”, never zero, and no dollar cost appears. Feature and bug rows navigate to /work/$id, whose operational header precedes reused per-feature KPI content. Grilling and worktree rows expand inline and have no detail route.
 
-      Feature and bug rows navigate to /work/$id. That route renders the operational header first - station, phase, current run, status and reasons, main and worktree paths with source_path identified, budget, elapsed total and phases, runs and tokens - then reuses the per-feature KPI content formerly reached through /features/$featureId. Grilling and worktree rows have no detail route and expand inline on / with their status, became, path and branch fields. Keep a persistent source-unavailable banner for response errors. A manual Refresh action repeats the request without restarting the server, and loading, empty, HTTP-failure and malformed-row states remain explicit.
+      Use the accepted immutable visual evidence recorded by completed T-05 without editing that artifact. Implement DESIGN's explicit work-list states: active filters with no matches show `0 of m items`, “No work matches these filters”, “Clear Station, Status, or Kind to see work.” and Clear Filters, which resets only Station, Status and Kind while preserving window, repo and layout, returns focus to the Work List heading and announces the new count. Successful payloads with source errors retain valid rows and show “Some sources could not be read” with every source_path and specific reason. A request failure before usable data shows “Work list unavailable”, the specific reason and Retry without losing URL state; a refresh failure after rows loaded preserves those rows as stale with the banner and Retry. Successful retry clears the failure and focuses the Work List heading. Malformed items surface as source errors, not broken rows or silent omission.
 
-      Use the existing Astryx tokens and the visual contract selected from T-05. The dashboard stays in T-13's centred max-width container. Controls show a focus ring only for :focus-visible keyboard interaction, never after mouse interaction; preserve every other DESIGN C-3 keyboard rule. Add component cases for all item kinds, all six ordered status states, both Kanban and Table layouts, the three independent filters, attention-card Status shortcuts, icon-carried status, selected-path disclosure, inline-only rows, operational-header-first detail, null-aware tokens, refresh, empty and error states. Assert that /work is not registered and that the Work toggle, Repository list filter, grouped-list layout, Attention + reasons column, letter-prefixed layout labels and coloured status borders or top-lines are absent. Do not restore /features, /features/$featureId or a /kpis page.
+      Keep manual Refresh, explicit loading treatment and DESIGN C-3 keyboard behavior. Add component cases for every item kind and status, both layouts, three filters, Status shortcuts, icon-carried status, source-path disclosure, inline rows, header-first detail, null-aware tokens, refresh, filtered-zero, source-error, initial request-failure and stale-refresh-failure states. Assert that /work and every retired route or control remain absent.
     files:
       - .claude/skills/harness/bin/dashboard/client/src/routes.tsx
       - .claude/skills/harness/bin/dashboard/client/src/api.ts
@@ -2016,525 +1862,528 @@ tasks:
   - id: T-31
     title: Derive phase elapsed and null-aware token aggregates
     intent: >-
-      Extend the fleet work collector's feature and bug records with current phase, elapsed total,
-      elapsed plan, build and validate, run count, and token measurement summary. Total elapsed starts
-      at the BRIEF approval and ends at ship or now. Derive phase boundaries once from DEC-159 seam
-      handoff notes and the run ledger's squad, started_at and ended_at timestamps: completed phases
-      stop at their handoff boundary, completed runs contribute their recorded interval, and the
-      current phase accrues through now. Never substitute station for phase. Sum only integer run
-      tokens per item and per phase, expose measured_runs, total_runs and unmeasured_runs, use null
-      when no run is measured, and never emit a dollar-cost field. Add deterministic-clock fixtures
-      for a shipped item, an in-progress phase, missing boundaries, all-measured, none-measured and a
-      mixed two-run item whose presentation source is 'unmeasured 1 of 2 runs'.
+      After T-26, extend the fleet work collector's feature and bug records with current phase, elapsed total, elapsed plan, build and validate, run count, and token measurement summary. Total elapsed starts at BRIEF approval and ends at ship or now. Derive phase boundaries once from DEC-159 seam handoff notes and the run ledger's squad, started_at and ended_at timestamps: completed phases stop at handoff, completed runs contribute their interval, and the current phase accrues through now. Never substitute station for phase. Sum only integer run tokens per item and phase, expose measured_runs, total_runs and unmeasured_runs, use null when no run is measured, and never emit a dollar-cost field. Preserve T-26's worktree identity, reconciliation and malformed-source behavior and rerun its worktree cases after the extension. Add deterministic-clock fixtures for shipped and in-progress items, missing boundaries, all-measured, none-measured and a mixed two-run item whose presentation source is “unmeasured 1 of 2 runs”.
     files:
       - .claude/skills/harness/bin/dashboard/work.py
       - .claude/skills/harness/bin/test-work-dashboard.py
     verify: >-
-      python3 .claude/skills/harness/bin/test-work-dashboard.py --case metrics
+      python3 .claude/skills/harness/bin/test-work-dashboard.py --case metrics && python3 .claude/skills/harness/bin/test-work-dashboard.py --case worktrees
     change_type: logic
     traces:
       - SC-27
       - SC-28
       - SC-29
     depends_on:
-      - T-23
-      - T-30
+    - T-23
+    - T-26
+    - T-30
     status: ready
     execution_mode: team
     execution_agent: harness-backend-dev
     execution_reason: >-
       Phase and token derivation are pure Python collector logic under the existing dashboard backend grant.
 panel:
-  last_run: 2026-09-03-c7-validator
-  cycle: 7
+  last_run: 2026-09-16-01-product
+  cycle: 8
   readers:
-  - reader: should-not-exist
-    persona: fable-advisor
-    status: ran
   - reader: scope
     persona: harness-code-reviewer
     status: ran
+    reason: Independently inspected the common bundle and operator intent.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Independently inspected the common bundle and operator intent.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: Independently inspected the common bundle and operator intent; prototype
+      gate satisfied.
   - reader: goalcheck
     persona: harness-pm
     status: ran
+    reason: Graded once after apply against operator intent and binding dispatch context.
   findings:
   - id: PF-328f8f3cf2485de796e819decb0475aa
     cycle: 1
     severity: high
     reader: should-not-exist
-    summary: KPI 4 absent-file-is-zero reports about 50 pre-instrument features as
-      measured-zero touchpoints, 41 of which carry a signed approval date, so the
-      launch-day autonomy tile is a fabricated record D-19 forbids
+    kind: substance
+    summary: KPI 4 absent-file-is-zero reports about 50 pre-instrument features as measured-zero touchpoints, 41 of which carry a signed approval date, so the launch-day autonomy tile is a fabricated record D-19 forbids
     disposition: resolved
     resolved_by: T-11
-    note: 'DEC-4 ruling: KPI 4 scoped by D-21''s post-instrumentation predicate; T-11
-      carries both branches, T-20 the call sites'
+    note: 'DEC-4 ruling: KPI 4 scoped by D-21''s post-instrumentation predicate; T-11 carries both branches, T-20 the call sites'
   - id: PF-6aa9faae67525aae35fe81805ee2e677
     cycle: 1
     severity: med
     reader: should-not-exist
-    summary: 'Shape B trend charts should not be built this increment: they render
-      only empty states for a month to a quarter at launch yet carry two of D-08''s
-      three live triggers'
+    kind: substance
+    summary: 'Shape B trend charts should not be built this increment: they render only empty states for a month to a quarter at launch yet carry two of D-08''s three live triggers'
     disposition: overruled
-    note: 'DEC-3 ruling: the alpha is accepted with a documented rollback, so Shape
-      B is built this increment'
+    note: 'DEC-3 ruling: the alpha is accepted with a documented rollback, so Shape B is built this increment'
   - id: PF-7408d83abbae66d18e98f0a349f00dbb
     cycle: 1
     severity: high
     reader: scope
-    summary: T-15 creates charts.tsx after T-14 creates panels.tsx and no later task
-      touches panels.tsx, so the grading panel ships with no chart wired and both
-      verifies stay green
+    kind: substance
+    summary: T-15 creates charts.tsx after T-14 creates panels.tsx and no later task touches panels.tsx, so the grading panel ships with no chart wired and both verifies stay green
     disposition: resolved
     resolved_by: T-21
-    note: 'DEC-4 ruling: T-21 mounts the charts and gates on a rendered getByTestId;
-      T-22 makes it a suite and CI gate'
+    note: 'DEC-4 ruling: T-21 mounts the charts and gates on a rendered getByTestId; T-22 makes it a suite and CI gate'
   - id: PF-04c95fd65a8f1eb7b575bfee58d2b71b
     cycle: 1
     severity: med
     reader: should-not-exist
-    summary: The committed dist bundle has no ongoing src-to-dist consistency guard
-      and is unmergeable across worktrees, so a later client edit ships a stale UI
-      with every verify green
+    kind: substance
+    summary: The committed dist bundle has no ongoing src-to-dist consistency guard and is unmergeable across worktrees, so a later client edit ships a stale UI with every verify green
     disposition: overruled
     note: 'Backlog ruling: accepted as backlog row B-1, filed at ship with label Dashboard'
   - id: PF-3713534d84c8a79f7c478fb122760829
     cycle: 1
     severity: med
     reader: should-not-exist
-    summary: D-15's escaped-defect rule counts about 8 items in 5 months while excluding
-      32 fix commits unexamined, and is gamed in one direction because a fix commit
-      instead of a BUG unit holds the number at zero
+    kind: substance
+    summary: D-15's escaped-defect rule counts about 8 items in 5 months while excluding 32 fix commits unexamined, and is gamed in one direction because a fix commit instead of a BUG unit holds the number at zero
     disposition: overruled
     note: 'Backlog ruling: accepted as backlog row B-2, filed at ship with label Dashboard'
   - id: PF-55e28a6ee5221c9d78c8d4eb9a06dd60
     cycle: 1
     severity: med
     reader: should-not-exist
-    summary: KPI 6's four-hop attribution join buys a tile that is about 77 percent
-      no_prefix with a roughly 6 percent resolvable remainder already knowable from
-      16 static agent files
+    kind: substance
+    summary: KPI 6's four-hop attribution join buys a tile that is about 77 percent no_prefix with a roughly 6 percent resolvable remainder already knowable from 16 static agent files
     disposition: overruled
     note: 'Backlog ruling: accepted as backlog row B-3, filed at ship with label Dashboard'
   - id: PF-d2fc95637db2222cfbec65f41fef202e
     cycle: 1
     severity: med
     reader: scope
-    summary: BRIEF declares SC-07 evidence unit, but its only asserting test test-metrics-trend.py
-      is registered in INTEGRATION_SCRIPTS, not UNIT_SCRIPTS
+    kind: substance
+    summary: BRIEF declares SC-07 evidence unit, but its only asserting test test-metrics-trend.py is registered in INTEGRATION_SCRIPTS, not UNIT_SCRIPTS
     disposition: overruled
     note: 'Backlog ruling: accepted as backlog row B-4, filed at ship with label Dashboard'
   - id: PF-ce8b018f5719dde6716225552ee32559
     cycle: 1
     severity: med
     reader: scope
-    summary: T-13's forbidden theme-token grep covers the 4 client files existing
-      at its dispatch while T-14 and T-15 add 5 more that are never re-checked, so
-      DESIGN C-3 is enforced over 4 of 9 files
+    kind: substance
+    summary: T-13's forbidden theme-token grep covers the 4 client files existing at its dispatch while T-14 and T-15 add 5 more that are never re-checked, so DESIGN C-3 is enforced over 4 of 9 files
     disposition: overruled
     note: 'Backlog ruling: accepted as backlog row B-5, filed at ship with label Dashboard'
   - id: PF-45518258bbae0f20d051abf3a4970419
     cycle: 2
     severity: high
     reader: scope
-    summary: T-16 (plan.yaml:909) builds and commits the production dist bundle but
-      depends only on T-12 and T-15, so the bundle can be committed before T-21 (plan.yaml:1066)
-      mounts the chart and no later task reruns npm run build
+    kind: substance
+    summary: T-16 (plan.yaml:909) builds and commits the production dist bundle but depends only on T-12 and T-15, so the bundle can be committed before T-21 (plan.yaml:1066) mounts the chart and no later task reruns npm run build
     disposition: resolved
     resolved_by: T-16
-    note: Operator ruling Q1 FIX (notes/answers-2026-09-01-plan-signature-c2.md);
-      T-16 depends_on now carries T-21, and both cycle-3 readers independently confirmed
-      closure, scope by a mechanical 22/22 acyclic graph check
+    note: Operator ruling Q1 FIX (notes/answers-2026-09-01-plan-signature-c2.md); T-16 depends_on now carries T-21, and both cycle-3 readers independently confirmed closure, scope by a mechanical 22/22 acyclic graph check
   - id: PF-3b85f18809cf5c4ad01b9008e1eace1c
     cycle: 2
     severity: med
     reader: should-not-exist
-    summary: 'D-21''s runtime instrumentation has no planned git disposition: neither
-      .harness/metrics/instrumented_at nor T-20''s touchpoints.jsonl lines are committed
-      by any task or covered by T-02''s ignore set (templates/gitignore.snippet:8-11),
-      so an untracked marker dirties the tree and a second clone writes a later epoch
-      and reports a fabricated zero'
+    kind: substance
+    summary: 'D-21''s runtime instrumentation has no planned git disposition: neither .harness/metrics/instrumented_at nor T-20''s touchpoints.jsonl lines are committed by any task or covered by T-02''s ignore set (templates/gitignore.snippet:8-11), so an untracked marker dirties the tree and a second clone writes a later epoch and reports a fabricated zero'
     disposition: resolved
     resolved_by: D-22
-    note: 'Operator ruling Q3 FIX B-11: D-22 with T-02 and T-20 closes this for its
-      two named paths only, .harness/metrics/instrumented_at and the per-feature touchpoints.jsonl;
-      the same defect shape survives at .harness/metrics/trend.jsonl and is carried
-      forward as cycle-3 finding V-1'
+    note: 'Operator ruling Q3 FIX B-11: D-22 with T-02 and T-20 closes this for its two named paths only, .harness/metrics/instrumented_at and the per-feature touchpoints.jsonl; the same defect shape survives at .harness/metrics/trend.jsonl and is carried forward as cycle-3 finding V-1'
   - id: PF-0f3f4101447923844b00515e7312ce0e
     cycle: 2
     severity: med
     reader: should-not-exist + scope
-    summary: 'The spliced trailing comment block contradicts the live YAML twice,
-      found independently by both readers: plan.yaml:1285-1286 says no task touches
-      tests.yml while T-22 lists it (plan.yaml:1168) and adds flask to that job (plan.yaml:1217-1221),
-      and plan.yaml:1339-1341 quotes T-21''s verify as the reporter=verbose grep form
-      while live T-21.verify (plan.yaml:1078-1080) is the reporter=json form'
+    kind: substance
+    summary: 'The spliced trailing comment block contradicts the live YAML twice, found independently by both readers: plan.yaml:1285-1286 says no task touches tests.yml while T-22 lists it (plan.yaml:1168) and adds flask to that job (plan.yaml:1217-1221), and plan.yaml:1339-1341 quotes T-21''s verify as the reporter=verbose grep form while live T-21.verify (plan.yaml:1078-1080) is the reporter=json form'
     disposition: backlog
-    note: Briefing row B-12 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted
-      it as backlog in the pass-2 ruling Q3, labeled Dashboard
+    note: Briefing row B-12 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted it as backlog in the pass-2 ruling Q3, labeled Dashboard
   - id: PF-aa9c41f6ef1f6c977d02645dc095d2d5
     cycle: 2
     severity: med
     reader: scope
-    summary: SC-17 declares verify automated evidence integration (BRIEF.md:216-224)
-      but its aggregate not-tracked-count clause is asserted only in test-metrics-kpi.py,
-      which T-06 registers in UNIT_SCRIPTS (plan.yaml:405) per T-11's intent (plan.yaml:695-699),
-      so that clause has no integration-kind assertion under CI's split (.github/workflows/tests.yml:83-92)
+    kind: substance
+    summary: SC-17 declares verify automated evidence integration (BRIEF.md:216-224) but its aggregate not-tracked-count clause is asserted only in test-metrics-kpi.py, which T-06 registers in UNIT_SCRIPTS (plan.yaml:405) per T-11's intent (plan.yaml:695-699), so that clause has no integration-kind assertion under CI's split (.github/workflows/tests.yml:83-92)
     disposition: backlog
-    note: Briefing row B-13 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted
-      it as backlog in the pass-2 ruling Q3, labeled Dashboard
+    note: Briefing row B-13 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted it as backlog in the pass-2 ruling Q3, labeled Dashboard
   - id: PF-ed0712ea279a7c0ba45f4acb3ce97f6e
     cycle: 2
     severity: low
     reader: should-not-exist
-    summary: T-12's 8.0s ceiling is vacuous in CI because tests.yml checks out with
-      bare actions/checkout@v4 (.github/workflows/tests.yml:50), so the timed permanent
-      integration case measures the fast unavailable-with-reason branches rather than
-      the real per-request cost D-09 stakes its no-cache deferral on
+    kind: substance
+    summary: T-12's 8.0s ceiling is vacuous in CI because tests.yml checks out with bare actions/checkout@v4 (.github/workflows/tests.yml:50), so the timed permanent integration case measures the fast unavailable-with-reason branches rather than the real per-request cost D-09 stakes its no-cache deferral on
     disposition: backlog
-    note: Briefing row B-14 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted
-      it as backlog in the pass-2 ruling Q3, labeled Dashboard
+    note: Briefing row B-14 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted it as backlog in the pass-2 ruling Q3, labeled Dashboard
   - id: V-1
     cycle: 3
     severity: high
     reader: should-not-exist
-    summary: No task, decision or lane names a committer for .harness/metrics/trend.jsonl;
-      D-22 scopes to the two touchpoints files and closes 'no other task owns it'.
+    kind: substance
+    summary: No task, decision or lane names a committer for .harness/metrics/trend.jsonl; D-22 scopes to the two touchpoints files and closes 'no other task owns it'.
     disposition: resolved
     resolved_by: D-22 + T-19
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
-      panel graded it CLOSED at source: D-22.choice (plan.yaml:130-138) names all
-      three runtime files and, for trend.jsonl, the record_ship call T-19 adds to
-      gh-sync.py''s cmd_ship; T-19.intent (plan.yaml:1199-1211) makes the append and
-      its commit one act; the lanes row (plan.yaml:42-45) routes .harness/metrics/trend.jsonl
-      to main-session-direct. The residual verification gap is carried forward as
-      cycle-4 finding C4-01'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4 panel graded it CLOSED at source: D-22.choice (plan.yaml:130-138) names all three runtime files and, for trend.jsonl, the record_ship call T-19 adds to gh-sync.py''s cmd_ship; T-19.intent (plan.yaml:1199-1211) makes the append and its commit one act; the lanes row (plan.yaml:42-45) routes .harness/metrics/trend.jsonl to main-session-direct. The residual verification gap is carried forward as cycle-4 finding C4-01'
   - id: V-2
     cycle: 3
     severity: med
     reader: scope + should-not-exist
-    summary: 'The BRIEF ## Approval date parse has two independent authors (kpi.py
-      T-06, touchpoints.py T-11) and no cited precedent that reads a date at all.'
+    kind: substance
+    summary: 'The BRIEF ## Approval date parse has two independent authors (kpi.py T-06, touchpoints.py T-11) and no cited precedent that reads a date at all.'
     disposition: resolved
     resolved_by: T-06 + T-11
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
-      panel graded it CLOSED at source: T-06 creates the single approval_date() authority
-      in .claude/skills/harness/bin/brief_approval.py; T-11.intent (plan.yaml:763-767)
-      calls it and is forbidden to restate the parse; D-14.choice (plan.yaml:96) records
-      one-authority/two-callers'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4 panel graded it CLOSED at source: T-06 creates the single approval_date() authority in .claude/skills/harness/bin/brief_approval.py; T-11.intent (plan.yaml:763-767) calls it and is forbidden to restate the parse; D-14.choice (plan.yaml:96) records one-authority/two-callers'
   - id: V-3
     cycle: 3
     severity: med
     reader: scope
-    summary: T-06 names four gap-state branches and fixtures only the empty-date one
-      (plan.yaml:451-454).
+    kind: substance
+    summary: T-06 names four gap-state branches and fixtures only the empty-date one (plan.yaml:451-454).
     disposition: resolved
     resolved_by: T-06
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
-      panel graded it CLOSED at source: T-06.intent (plan.yaml:477-495) fixtures four
-      gap features - no BRIEF, no Approval section, status not approved, approved-with-empty-date
-      - as four separate assertions, with the aggregate assertion and the unavailable-count
-      assertion both forbidden'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4 panel graded it CLOSED at source: T-06.intent (plan.yaml:477-495) fixtures four gap features - no BRIEF, no Approval section, status not approved, approved-with-empty-date - as four separate assertions, with the aggregate assertion and the unavailable-count assertion both forbidden'
   - id: V-4
     cycle: 3
     severity: med
     reader: should-not-exist
-    summary: T-11's mutating fixture cases (record() append, epoch creation) state
-      no copy-to-temp discipline while writing under the committed dashboard/fixtures/
-      tree.
+    kind: substance
+    summary: T-11's mutating fixture cases (record() append, epoch creation) state no copy-to-temp discipline while writing under the committed dashboard/fixtures/ tree.
     disposition: resolved
     resolved_by: T-11
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
-      panel graded it CLOSED at source: T-11.intent (plan.yaml:828-837) requires every
-      writing case to copy via TemporaryDirectory plus shutil.copytree, forbids the
-      read-only cases from copying, and asserts a recursive digest of dashboard/fixtures/
-      unchanged as its own case'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4 panel graded it CLOSED at source: T-11.intent (plan.yaml:828-837) requires every writing case to copy via TemporaryDirectory plus shutil.copytree, forbids the read-only cases from copying, and asserts a recursive digest of dashboard/fixtures/ unchanged as its own case'
   - id: V-5
     cycle: 3
     severity: low
     reader: should-not-exist
-    summary: D-21's at-or-after predicate compares a 00:00:00Z date-only start against
-      an intra-day epoch, so a same-calendar-day feature reads as pre-instrumentation.
+    kind: substance
+    summary: D-21's at-or-after predicate compares a 00:00:00Z date-only start against an intra-day epoch, so a same-calendar-day feature reads as pre-instrumentation.
     disposition: resolved
     resolved_by: D-21 + T-11
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
-      panel graded it CLOSED at source: D-21.choice (plan.yaml:125) and T-11.intent
-      (plan.yaml:778-786) state the same UTC-date rule; T-06.intent (plan.yaml:422-424)
-      names it as the sole scoped exception; the same-calendar-day fixture case is
-      at T-11.intent (plan.yaml:818-821)'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4 panel graded it CLOSED at source: D-21.choice (plan.yaml:125) and T-11.intent (plan.yaml:778-786) state the same UTC-date rule; T-06.intent (plan.yaml:422-424) names it as the sole scoped exception; the same-calendar-day fixture case is at T-11.intent (plan.yaml:818-821)'
   - id: C4-01
     cycle: 4
     severity: med
     reader: should-not-exist
-    summary: 'V-1''s commit path is structurally unobservable: T-19''s simulated-ship
-      test runs in a copytree temp dir that is not a git repo, so record_ship''s commit
-      only ever exercises its non-fatal failure branch and no gate sees it succeed'
-    remedy_size: single-clause - one T-19 case that git-inits the temp copy and asserts
-      the copy's tree is clean with trend.jsonl tracked
+    kind: substance
+    summary: 'V-1''s commit path is structurally unobservable: T-19''s simulated-ship test runs in a copytree temp dir that is not a git repo, so record_ship''s commit only ever exercises its non-fatal failure branch and no gate sees it succeed'
+    remedy_size: single-clause - one T-19 case that git-inits the temp copy and asserts the copy's tree is clean with trend.jsonl tracked
     disposition: resolved
     resolved_by: T-19
-    note: Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-19;
-      T-19.intent (plan.yaml:1279-1291) now requires the SUCCEEDING commit case to
-      git init the copytree copy of fixture project-a and set a local user.name and
-      user.email before the simulated ship, then assert git status --porcelain prints
-      nothing and .harness/metrics/trend.jsonl is tracked via ls-files --error-unmatch
-      rather than merely present on disk, and keeps the non-git case as the explicitly
-      labelled failure-branch case so both branches are covered
+    note: Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-19; T-19.intent (plan.yaml:1279-1291) now requires the SUCCEEDING commit case to git init the copytree copy of fixture project-a and set a local user.name and user.email before the simulated ship, then assert git status --porcelain prints nothing and .harness/metrics/trend.jsonl is tracked via ls-files --error-unmatch rather than merely present on disk, and keeps the non-git case as the explicitly labelled failure-branch case so both branches are covered
   - id: C4-02
     cycle: 4
     severity: med
     reader: should-not-exist
-    summary: 'Nothing defines what a week is: resolve_window is generated_at-relative
-      for 30d and 90d and returns no start for all, which is unfiltered (T-06.intent
-      :469-470), yet T-10.intent :698-702 says to walk the weeks from the start it
-      returns'
-    remedy_size: single-clause in T-10 pinning the week definition, for example UTC
-      ISO weeks with all anchored at the earliest record's week
+    kind: substance
+    summary: 'Nothing defines what a week is: resolve_window is generated_at-relative for 30d and 90d and returns no start for all, which is unfiltered (T-06.intent :469-470), yet T-10.intent :698-702 says to walk the weeks from the start it returns'
+    remedy_size: single-clause in T-10 pinning the week definition, for example UTC ISO weeks with all anchored at the earliest record's week
     disposition: resolved
     resolved_by: T-10
-    note: Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-20;
-      T-10.intent (plan.yaml:741-753) pins the week - UTC ISO-8601, Monday 00:00:00Z
-      to the next Monday exclusive, the bucket label its own Monday date, the 30d
-      and 90d first and last buckets the ISO weeks containing resolve_window's start
-      and end as a DERIVED value with the one-authority rule restated, all anchored
-      at the ISO week of the earliest record's shipped_at through the week containing
-      generated_at, and an empty series with its own reason when there are no records;
-      the all-anchor and bucket-boundary fixtures are at plan.yaml:774-781
+    note: Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-20; T-10.intent (plan.yaml:741-753) pins the week - UTC ISO-8601, Monday 00:00:00Z to the next Monday exclusive, the bucket label its own Monday date, the 30d and 90d first and last buckets the ISO weeks containing resolve_window's start and end as a DERIVED value with the one-authority rule restated, all anchored at the ISO week of the earliest record's shipped_at through the week containing generated_at, and an empty series with its own reason when there are no records; the all-anchor and bucket-boundary fixtures are at plan.yaml:774-781
   - id: C4-03
     cycle: 4
     severity: med
     reader: should-not-exist
-    summary: 'The record still presents two ruled decisions as open at signature -
-      D-08.choice calls the alpha fallback outstanding at signature, and D-20.because
-      with BRIEF ## Constraints :78-80 and :85-87 says the client build needs an explicit
-      yes or no - and DESIGN.md:250 still names dead React Charts as the second fallback'
-    remedy_size: larger than a single clause - four fields across three artifacts
-      (D-08, D-20, two BRIEF bullets, DESIGN C-2)
+    kind: substance
+    summary: 'The record still presents two ruled decisions as open at signature - D-08.choice calls the alpha fallback outstanding at signature, and D-20.because with BRIEF ## Constraints :78-80 and :85-87 says the client build needs an explicit yes or no - and DESIGN.md:250 still names dead React Charts as the second fallback'
+    remedy_size: larger than a single clause - four fields across three artifacts (D-08, D-20, two BRIEF bullets, DESIGN C-2)
     disposition: resolved
     resolved_by: D-08 + D-20
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-21,
-      recording the 2026-09-01 rulings (notes/answers-2026-09-01-plan-signature.md
-      DEC-2 and DEC-3) and changing nothing about the build: D-08.choice (plan.yaml:72)
-      states the alpha ACCEPTED with the capability trigger unchanged; D-08.because
-      (plan.yaml:73) names the three-part rollback - exact version pin plus committed
-      bundle, DESIGN C-2 If-absent workarounds applied in place for CAP-02, CAP-03,
-      CAP-04, CAP-06, CAP-09, CAP-10, CAP-12 and CAP-13, and T-18 VERDICT STOP for
-      the four hard-requirement rows CAP-01, CAP-05, CAP-07 and CAP-11; D-20.because
-      (plan.yaml:121) states the client build KEPT with the server-rendered alternative
-      weighed and rejected; BRIEF ## Constraints (BRIEF.md:77-82 and BRIEF.md:88-90)
-      carries both rulings. The DESIGN C-2 half is applied too: the C-2 preamble now
-      states that where a capability''s If absent cell names a server-side workaround
-      THAT workaround is the fallback, names no replacement charting library in advance,
-      and records that naming one would be an operator decision taken on T-18''s probe
-      evidence and needing its own plan Decision - DESIGN.md:249-252; the sibling
-      visual-designer''s sweep (notes/mockups/design-c5-fallback-fix.md) found and
-      removed the single React Charts occurrence and zero survive in DESIGN.md.'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-21, recording the 2026-09-01 rulings (notes/answers-2026-09-01-plan-signature.md DEC-2 and DEC-3) and changing nothing about the build: D-08.choice (plan.yaml:72) states the alpha ACCEPTED with the capability trigger unchanged; D-08.because (plan.yaml:73) names the three-part rollback - exact version pin plus committed bundle, DESIGN C-2 If-absent workarounds applied in place for CAP-02, CAP-03, CAP-04, CAP-06, CAP-09, CAP-10, CAP-12 and CAP-13, and T-18 VERDICT STOP for the four hard-requirement rows CAP-01, CAP-05, CAP-07 and CAP-11; D-20.because (plan.yaml:121) states the client build KEPT with the server-rendered alternative weighed and rejected; BRIEF ## Constraints (BRIEF.md:77-82 and BRIEF.md:88-90) carries both rulings. The DESIGN C-2 half is applied too: the C-2 preamble now states that where a capability''s If absent cell names a server-side workaround THAT workaround is the fallback, names no replacement charting library in advance, and records that naming one would be an operator decision taken on T-18''s probe evidence and needing its own plan Decision - DESIGN.md:249-252; the sibling visual-designer''s sweep (notes/mockups/design-c5-fallback-fix.md) found and removed the single React Charts occurrence and zero survive in DESIGN.md.'
   - id: C4-04
     cycle: 4
     severity: med
     reader: scope + should-not-exist
-    summary: 'Accepted backlog rows B-7..B-10 have no live carrier: they exist only
-      in the immutable cycle-1 briefing (notes/ship-review-2026-09-01-plan.md:126-129),
-      while B-1..B-5 and B-12..B-14 survive as panel dispositions with a filing instruction,
-      so these four are wired to nothing'
+    kind: substance
+    summary: 'Accepted backlog rows B-7..B-10 have no live carrier: they exist only in the immutable cycle-1 briefing (notes/ship-review-2026-09-01-plan.md:126-129), while B-1..B-5 and B-12..B-14 survive as panel dispositions with a filing instruction, so these four are wired to nothing'
     remedy_size: single-clause naming B-7..B-10 wherever the others are filed at ship
     disposition: resolved
     resolved_by: D-23
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-22;
-      D-23 (plan.yaml:163-201) is the single carrier for the accepted backlog, naming
-      all fourteen rows - B-1, B-2, B-3, B-4, B-5, B-7, B-8, B-9, B-10, B-12, B-13,
-      B-14, B-23 and B-25 - with a one-line subject for six of them (B-7..B-10, B-23
-      and B-25); only B-7..B-10 have no panel disposition of their own, while B-23
-      and B-25 carry C4-05 and C4-07 respectively, and D-23 lists them too so ONE
-      decision names the complete accepted set in one place, and recording that B-6
-      was struck and B-11, B-15..B-22 and B-24 were fixed, so the list is complete.
-      The filing mechanism is unchanged: one issue per row, label Dashboard, at ship'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-22; D-23 (plan.yaml:163-201) is the single carrier for the accepted backlog, naming all fourteen rows - B-1, B-2, B-3, B-4, B-5, B-7, B-8, B-9, B-10, B-12, B-13, B-14, B-23 and B-25 - with a one-line subject for six of them (B-7..B-10, B-23 and B-25); only B-7..B-10 have no panel disposition of their own, while B-23 and B-25 carry C4-05 and C4-07 respectively, and D-23 lists them too so ONE decision names the complete accepted set in one place, and recording that B-6 was struck and B-11, B-15..B-22 and B-24 were fixed, so the list is complete. The filing mechanism is unchanged: one issue per row, label Dashboard, at ship'
   - id: C4-05
     cycle: 4
     severity: low
     reader: scope
-    summary: SC-13 asserts two things - that the count equals the hand-label, and
-      that the rule is stated in the UI beside the number - under verify automated
-      with evidence unit, and the UI half has no gate, mechanical or inspection
-    remedy_size: single-clause - move the UI clause into SC-15's inspection scope,
-      or narrow SC-13 to the count
+    kind: substance
+    summary: SC-13 asserts two things - that the count equals the hand-label, and that the rule is stated in the UI beside the number - under verify automated with evidence unit, and the UI half has no gate, mechanical or inspection
+    remedy_size: single-clause - move the UI clause into SC-15's inspection scope, or narrow SC-13 to the count
     disposition: backlog
-    note: Briefing row B-23 (notes/ship-review-2026-09-02-plan-c4.md); operator accepted
-      it as backlog in the pass-4 ruling Q2, labeled Dashboard; carried by D-23
+    note: Briefing row B-23 (notes/ship-review-2026-09-02-plan-c4.md); operator accepted it as backlog in the pass-4 ruling Q2, labeled Dashboard; carried by D-23
   - id: C4-06
     cycle: 4
     severity: low
     reader: scope + should-not-exist
-    summary: 'BRIEF ## Verification gaps :154-158 and T-07.intent justify not grepping
-      the bare token 12 by claiming it occurs inside 1024, 3x3 and ES2022 - it occurs
-      in none of them; the true carriers are 127.0.0.1 and 122. This is the defective
-      part (e) of the operator Q3 order, pre-existing and not caused by the 3x2 to
-      3x3 grid change'
+    kind: substance
+    summary: 'BRIEF ## Verification gaps :154-158 and T-07.intent justify not grepping the bare token 12 by claiming it occurs inside 1024, 3x3 and ES2022 - it occurs in none of them; the true carriers are 127.0.0.1 and 122. This is the defective part (e) of the operator Q3 order, pre-existing and not caused by the 3x2 to 3x3 grid change'
     remedy_size: single-clause in each of the two artifacts, naming the true carriers
     disposition: resolved
     resolved_by: T-07
-    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-24;
-      the false evidence is deleted from both artifacts - 1024 and ES2022 no longer
-      appear in either clause - and the verified carriers are written: T-07.intent
-      (plan.yaml:578-585) and BRIEF ## Verification gaps (BRIEF.md:157-166) both give
-      12 as carried by 127.0.0.1 (D-05''s loopback bind, shipped by T-12 and required
-      in METRICS.md by T-17''s verify) and by 122 (a mix literal SC-06 greps in its
-      own right), and 3 as carried by the fixed 3x3 seven-tile grid (T-05, T-14) and
-      by python3 in the documented start command (T-17). The conclusion is unchanged
-      - 12 and 3 cannot be grepped bare and stay carried by SC-15''s ui-reviewer inspection'
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-24; the false evidence is deleted from both artifacts - 1024 and ES2022 no longer appear in either clause - and the verified carriers are written: T-07.intent (plan.yaml:578-585) and BRIEF ## Verification gaps (BRIEF.md:157-166) both give 12 as carried by 127.0.0.1 (D-05''s loopback bind, shipped by T-12 and required in METRICS.md by T-17''s verify) and by 122 (a mix literal SC-06 greps in its own right), and 3 as carried by the fixed 3x3 seven-tile grid (T-05, T-14) and by python3 in the documented start command (T-17). The conclusion is unchanged - 12 and 3 cannot be grepped bare and stay carried by SC-15''s ui-reviewer inspection'
   - id: C4-07
     cycle: 4
     severity: low
     reader: should-not-exist
-    summary: T-05.intent's cycle-4 amendment to 3x3 with seven tiles is known-unmet
-      by its own committed artifact (DESIGN.md:531-541 shows six tiles in a 3x2, never
-      rendered), and T-05's verify greps only S-1..S-4, 30d and 90d so cannot detect
-      the divergence, while T-05's intent says a diverging artifact is a finding for
-      the plan
-    remedy_size: single-clause in T-05 recording the six-tile artifact as accepted
-      under DEC-5's closure
+    kind: substance
+    summary: T-05.intent's cycle-4 amendment to 3x3 with seven tiles is known-unmet by its own committed artifact (DESIGN.md:531-541 shows six tiles in a 3x2, never rendered), and T-05's verify greps only S-1..S-4, 30d and 90d so cannot detect the divergence, while T-05's intent says a diverging artifact is a finding for the plan
+    remedy_size: single-clause in T-05 recording the six-tile artifact as accepted under DEC-5's closure
     disposition: backlog
-    note: Briefing row B-25 (notes/ship-review-2026-09-02-plan-c4.md); operator accepted
-      it as backlog in the pass-4 ruling Q2, labeled Dashboard; carried by D-23
+    note: Briefing row B-25 (notes/ship-review-2026-09-02-plan-c4.md); operator accepted it as backlog in the pass-4 ruling Q2, labeled Dashboard; carried by D-23
   - id: PF-0f13227f5dc23a9e7b0e987fda5dd493
     cycle: 5
     severity: med
     reader: should-not-exist
-    summary: "T-10 never pins whether a 30d/90d boundary bucket counts window-filtered\
-      \ ships or the whole ISO week; resolve_window's start is generated_at-relative\
-      \ so the first bucket is a partial week ~6 days in 7. Windowed reading yields\
-      \ a null bucket carrying D-19's verbatim 'no ship record in the week of <Monday>'\
-      \ \u2014 literally false in the KPI whose contract is never fabricating; whole-week\
-      \ reading makes the bucket sum exceed tile 7's own headline. Neither B-20 fixture\
-      \ probes a partial boundary week, so every gate stays green either way."
+    kind: substance
+    summary: T-10 never pins whether a 30d/90d boundary bucket counts window-filtered ships or the whole ISO week; resolve_window's start is generated_at-relative so the first bucket is a partial week ~6 days in 7. Windowed reading yields a null bucket carrying D-19's verbatim 'no ship record in the week of <Monday>' — literally false in the KPI whose contract is never fabricating; whole-week reading makes the bucket sum exceed tile 7's own headline. Neither B-20 fixture probes a partial boundary week, so every gate stays green either way.
     remedy_size: one sentence in T-10 pinning boundary-bucket semantics
     disposition: resolved
     resolved_by: T-10
-    note: 'Amended in the cycle-5 fix pass: T-10.intent (plan.yaml:751-766) pins that
-      a bucket counts ONLY ships falling inside BOTH its ISO week and the window -
-      the reading REQ-15 forces (BRIEF.md:56, ''as a count for the window broken into
-      weekly buckets'') - states the invariant that the bucket values sum EXACTLY
-      to tile 7''s own headline count for the window, requires the returned week bounds
-      to mark WHICH buckets are partial, and gives a partial bucket with no in-window
-      ship its own verbatim partial-span reason instead of the whole-week sentence,
-      which stays exactly as written for full buckets. The sum invariant is asserted
-      as a case in its own right (plan.yaml:791-794) and a window-start-mid-week fixture
-      with a same-ISO-week pre-window ship is added (plan.yaml:802-807). RECORDED,
-      not reconciled: the panel''s own lead considered high and settled on med deliberately,
-      and both ratings are on the record in runs/2026-09-02-08-validator/digest.md'
+    note: 'Amended in the cycle-5 fix pass: T-10.intent (plan.yaml:751-766) pins that a bucket counts ONLY ships falling inside BOTH its ISO week and the window - the reading REQ-15 forces (BRIEF.md:56, ''as a count for the window broken into weekly buckets'') - states the invariant that the bucket values sum EXACTLY to tile 7''s own headline count for the window, requires the returned week bounds to mark WHICH buckets are partial, and gives a partial bucket with no in-window ship its own verbatim partial-span reason instead of the whole-week sentence, which stays exactly as written for full buckets. The sum invariant is asserted as a case in its own right (plan.yaml:791-794) and a window-start-mid-week fixture with a same-ISO-week pre-window ship is added (plan.yaml:802-807). RECORDED, not reconciled: the panel''s own lead considered high and settled on med deliberately, and both ratings are on the record in runs/2026-09-02-08-validator/digest.md'
   - id: PF-1b818430804d209162381618314ec9f5
     cycle: 5
     severity: low
     reader: should-not-exist
-    summary: 'T-19''s new succeeding-commit case cannot pass as written: git init
-      on the copytree copy leaves the whole fixture tree untracked and record_ship
-      commits only trend.jsonl, so ''git status --porcelain prints nothing'' fails
-      on ?? lines for a reason unrelated to the commit under test. The setup names
-      no initial commit of the copied tree.'
+    kind: substance
+    summary: 'T-19''s new succeeding-commit case cannot pass as written: git init on the copytree copy leaves the whole fixture tree untracked and record_ship commits only trend.jsonl, so ''git status --porcelain prints nothing'' fails on ?? lines for a reason unrelated to the commit under test. The setup names no initial commit of the copied tree.'
     remedy_size: one clause adding git add -A && git commit to the case's setup
     disposition: resolved
     resolved_by: T-19
-    note: 'Amended in the cycle-5 fix pass: T-19.intent (plan.yaml:1306-1315) makes
-      the succeeding-commit case build a CLEAN repository before the ship - git init,
-      the local user.name/user.email, then one baseline commit of the whole copied
-      tree (add -A, then commit) - so the untracked fixture files cannot print ??
-      lines and the post-ship assertions turn on record_ship''s commit alone. The
-      assertions themselves are unchanged in meaning (status --porcelain prints nothing,
-      trend.jsonl TRACKED via ls-files --error-unmatch), and the non-git FAILURE-BRANCH
-      case is kept verbatim'
+    note: 'Amended in the cycle-5 fix pass: T-19.intent (plan.yaml:1306-1315) makes the succeeding-commit case build a CLEAN repository before the ship - git init, the local user.name/user.email, then one baseline commit of the whole copied tree (add -A, then commit) - so the untracked fixture files cannot print ?? lines and the post-ship assertions turn on record_ship''s commit alone. The assertions themselves are unchanged in meaning (status --porcelain prints nothing, trend.jsonl TRACKED via ls-files --error-unmatch), and the non-git FAILURE-BRANCH case is kept verbatim'
   - id: PF-804ec98d2f26bd12285a095a8809e659
     cycle: 5
     severity: low
     reader: scope
-    summary: 'D-23.choice (plan.yaml:164-165) states ''B-7..B-10, B-23 and B-25 have
-      no panel disposition of their own'', but C4-05 (:2026) and C4-07 (:2059) are
-      exactly that for B-23 and B-25. Lead extension: the identical false clause also
-      appears in C4-04''s own note (:2020-2026), so the remedy is two clauses, not
-      one. Only B-7..B-10 are genuinely carrier-less.'
+    kind: substance
+    summary: 'D-23.choice (plan.yaml:164-165) states ''B-7..B-10, B-23 and B-25 have no panel disposition of their own'', but C4-05 (:2026) and C4-07 (:2059) are exactly that for B-23 and B-25. Lead extension: the identical false clause also appears in C4-04''s own note (:2020-2026), so the remedy is two clauses, not one. Only B-7..B-10 are genuinely carrier-less.'
     remedy_size: one clause in each of D-23 and C4-04's note
     disposition: resolved
     resolved_by: D-23 + C4-04
-    note: Amended in the cycle-5 fix pass at BOTH sites the lead identified. D-23.choice
-      (plan.yaml:168-173) now records that B-23's disposition is C4-05 and B-25's
-      is C4-07, both reading backlog, that only B-7..B-10 have no panel disposition
-      of their own, and that every row's subject is recorded in D-23 regardless of
-      carrier so one decision names the complete accepted set in one place. C4-04's
-      own note above carries the same corrected statement. The fourteen-row set and
-      every per-row subject are unchanged
+    note: Amended in the cycle-5 fix pass at BOTH sites the lead identified. D-23.choice (plan.yaml:168-173) now records that B-23's disposition is C4-05 and B-25's is C4-07, both reading backlog, that only B-7..B-10 have no panel disposition of their own, and that every row's subject is recorded in D-23 regardless of carrier so one decision names the complete accepted set in one place. C4-04's own note above carries the same corrected statement. The fourteen-row set and every per-row subject are unchanged
   - id: PF-d7fee939145e583a9c6a5a479043ca2b
     cycle: 7
     severity: high
     reader: scope
-    summary: 'T-05''s verify begins with npm ci but package-lock.json was neither
-      in T-05''s files: nor committed, and the prototype''s own .gitignore ignores
-      it, so the task''s literal verify cannot run on a clean checkout of the tree
-      it commits. Carry-forward of c6''s F-1, still live at e6b93643.'
+    kind: substance
+    summary: 'T-05''s verify begins with npm ci but package-lock.json was neither in T-05''s files: nor committed, and the prototype''s own .gitignore ignores it, so the task''s literal verify cannot run on a clean checkout of the tree it commits. Carry-forward of c6''s F-1, still live at e6b93643.'
     remedy_size: 'one files: entry plus one intent clause, matching T-04''s pattern'
     disposition: resolved
     resolved_by: T-05
-    note: T-05.files now lists notes/prototypes/FEAT-53/package-lock.json, and T-05.intent
-      instructs the task to COMMIT the lockfile and REMOVE the package-lock.json line
-      from the prototype's own .gitignore while keeping node_modules/, dist/ and .smoke/.
-      The verify is unchanged.
+    note: T-05.files now lists notes/prototypes/FEAT-53/package-lock.json, and T-05.intent instructs the task to COMMIT the lockfile and REMOVE the package-lock.json line from the prototype's own .gitignore while keeping node_modules/, dist/ and .smoke/. The verify is unchanged.
   - id: PF-acd2ba13e2d3735209dd617f9ceff8c2
     cycle: 7
     severity: high
     reader: scope
-    summary: 'harness.json test_matrix.frontend.always requires the component kind
-      as a floor, but test_kinds.component carries cmd: null / status unresolved and
-      a detect glob matching nothing this plan creates, with no _matrix_provenance.frontend
-      exclusion. qa_gate is blocking, so T-13 - the first of T-13/T-14/T-15/T-21 declaring
-      change_type: frontend - would return BLOCKED on both the null cmd and the zero
-      matched files. Routing the render gate through the integration kind (T-21/T-22)
-      closes the evidentiary gap and not this one. Missed by all six prior cycles.'
-    remedy_size: one added clause in T-03, whose files already include harness.json,
-      plus one verify assertion
+    kind: substance
+    summary: 'harness.json test_matrix.frontend.always requires the component kind as a floor, but test_kinds.component carries cmd: null / status unresolved and a detect glob matching nothing this plan creates, with no _matrix_provenance.frontend exclusion. qa_gate is blocking, so T-13 - the first of T-13/T-14/T-15/T-21 declaring change_type: frontend - would return BLOCKED on both the null cmd and the zero matched files. Routing the render gate through the integration kind (T-21/T-22) closes the evidentiary gap and not this one. Missed by all six prior cycles.'
+    remedy_size: one added clause in T-03, whose files already include harness.json, plus one verify assertion
     disposition: resolved
     resolved_by: T-03
-    note: 'T-03 is retitled and now resolves the kind in the same edit: component.cmd
-      set to npm --prefix .claude/skills/harness/bin/dashboard/client run test, detect
-      set to that client''s src/**/*.test.tsx, status set to resolved with a _reason
-      naming the vitest + jsdom + @testing-library/react gate T-04 installs and T-21/T-22
-      stand up; exclude untouched, and status is deliberately NOT excluded because
-      the project genuinely has the runner once T-04 lands. T-03.verify gained an
-      assertion on all three fields. The half is inert until T-04, exactly like the
-      third integration detect literal.'
+    note: 'T-03 is retitled and now resolves the kind in the same edit: component.cmd set to npm --prefix .claude/skills/harness/bin/dashboard/client run test, detect set to that client''s src/**/*.test.tsx, status set to resolved with a _reason naming the vitest + jsdom + @testing-library/react gate T-04 installs and T-21/T-22 stand up; exclude untouched, and status is deliberately NOT excluded because the project genuinely has the runner once T-04 lands. T-03.verify gained an assertion on all three fields. The half is inert until T-04, exactly like the third integration detect literal.'
   - id: PF-088cd1e2e8fcb9481d41367db196a47e
     cycle: 7
     severity: medium
     reader: should-not-exist
-    summary: T-11 count() branch 3 returned the verbatim reason 'touchpoints were
-      never tracked for it' on feature_start < epoch-day alone, without checking whether
-      that feature's touchpoints.jsonl exists. Every feature in flight when this ships
-      has a pre-epoch BRIEF approval date and will accrue real lines from T-20's instructions,
-      so the UI would render a sentence the file beside it disproves - and D-19's
-      premise is that the reason is specific and TRUE.
-    remedy_size: one branch-3 clause plus one test case; no schema change and no branch
-      reordering
+    kind: substance
+    summary: T-11 count() branch 3 returned the verbatim reason 'touchpoints were never tracked for it' on feature_start < epoch-day alone, without checking whether that feature's touchpoints.jsonl exists. Every feature in flight when this ships has a pre-epoch BRIEF approval date and will accrue real lines from T-20's instructions, so the UI would render a sentence the file beside it disproves - and D-19's premise is that the reason is specific and TRUE.
+    remedy_size: one branch-3 clause plus one test case; no schema change and no branch reordering
     disposition: resolved
     resolved_by: T-11
-    note: 'Branch 3 now returns two sentences off one predicate: the ''never tracked''
-      sentence when no touchpoints.jsonl exists, and an incomplete-count sentence
-      naming N when the file exists with N >= 1 lines. The value stays null in both,
-      so no consumer changes. T-11 also gained a transition-window test case asserting
-      the incomplete-count sentence names the recorded count and does not claim the
-      touchpoints were never tracked.'
+    note: 'Branch 3 now returns two sentences off one predicate: the ''never tracked'' sentence when no touchpoints.jsonl exists, and an incomplete-count sentence naming N when the file exists with N >= 1 lines. The value stays null in both, so no consumer changes. T-11 also gained a transition-window test case asserting the incomplete-count sentence names the recorded count and does not claim the touchpoints were never tracked.'
   - id: PF-06c538fbbfa37f49d1545926fda4ad52
     cycle: 7
     severity: medium
     reader: should-not-exist
-    summary: 'Sequencing risk the DAG permits but the plan never stated: the instrumentation
-      and payload chain depends on no client task, yet a T-18 STOP - a possibility
-      the plan itself designs for - would stall it while the charting fallback is
-      deliberated. Under D-10 history is never recomputed, so every ship and touchpoint
-      passing during that stall is unmeasured forever, which makes execution order
-      a correctness matter rather than a scheduling preference.'
+    kind: substance
+    summary: 'Sequencing risk the DAG permits but the plan never stated: the instrumentation and payload chain depends on no client task, yet a T-18 STOP - a possibility the plan itself designs for - would stall it while the charting fallback is deliberated. Under D-10 history is never recomputed, so every ship and touchpoint passing during that stall is unmeasured forever, which makes execution order a correctness matter rather than a scheduling preference.'
     remedy_size: two sentences on D-08; no task changes
     disposition: resolved
     resolved_by: D-08
-    note: 'D-08.choice now records that a STOP verdict does not hold the Python half:
-      T-03, T-06..T-12, T-19 and T-20 build first because they depend on no client
-      task, a STOP stalls only the client, and the candidates weighed on STOP include
-      the server-rendered surface D-20 recorded as weighed-and-rejected rather than
-      only a second React charting library.'
+    note: 'D-08.choice now records that a STOP verdict does not hold the Python half: T-03, T-06..T-12, T-19 and T-20 build first because they depend on no client task, a STOP stalls only the client, and the candidates weighed on STOP include the server-rendered surface D-20 recorded as weighed-and-rejected rather than only a second React charting library.'
+  - id: PF-93b8982166be3d19e700255d6de9eb4d
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-05 remains ready to replace the accepted immutable prototype with superseded geometry.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-c11f2b5d4150bf9e65eb33fc0ee60075
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-14 and T-28 specify mutually exclusive landing order and KPI geometry.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-8ecc962fc386f12b5d4afbea56fba5de
+    severity: high
+    reader: scope
+    kind: substance
+    summary: SC-13/SC-20 and T-14 require inline sourcing copy while DESIGN and the accepted prototype require InfoDisclosure.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-50583d381a368d90a4c70915466f5ec0
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-17 documents retired route /work and verifies it with an ambiguous substring.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-bf8b479d952753be01580fd6a8793c5e
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-26 and T-31 can concurrently edit and verify the same collector and test files.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-be372282b8d22fcc20870f2f207c9441
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-14 still mandates the retired pre-prototype-review composition and T-05 verifies a 3x3 string absent from the accepted prototype.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-62003bc99c90e29dec0805399544c530
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-13 mandates nine stale theme tokens while DESIGN and the accepted prototype require the replacement KPI, status, direction, and text roles.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-6158d7db2feea793923af26bcbf2f2a4
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: The SC-13/SC-20 versus DESIGN conflict over persistent sourcing text and InfoDisclosure remains unresolved.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-cb3c3560b3e55e727fffd0d1c1f7cb12
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: The bundle carries two contradictory section orders for the root dashboard.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-e271854a0795718979a24c02e4b669bb
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: Residual stale-composition strings still claim four client routes and a fixed 3x3 grid.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-5ab3f25b2122dea817de4ea191d8b440
+    severity: high
+    reader: design
+    kind: substance
+    summary: The plan client tasks contradict DESIGN and the accepted prototype on hierarchy, 4+3 geometry, theme tokens, and sourcing disclosures.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-2b7877982ba2fe37047964950afbb65d
+    severity: med
+    reader: design
+    kind: substance
+    summary: DESIGN does not define zero-result or request/source-error states for the work list.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Applied in BRIEF.md, DESIGN.md and plan.yaml; finding-specific anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-ee4a04c383928ad054682ca64f3147db
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-05 remained ready to replace the accepted immutable prototype with superseded geometry.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-5aa3dd1ad9eab63d0b5831e6c1454dd3
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-14 and T-28 specified mutually exclusive landing order and KPI geometry.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-88836b3a7580933de27cf5fb81529c22
+    severity: high
+    reader: scope
+    kind: substance
+    summary: SC-13/SC-20 and T-14 required inline sourcing copy while DESIGN and the accepted prototype required InfoDisclosure.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-04a37a10374ef7249413fc5e01368730
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-17 documented retired route /work and verified it with an ambiguous substring.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-c6ac8493b44e1c610e94bcdf45bd0809
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-26 and T-31 could concurrently edit and verify the same collector and test files.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-999c69ef848a69feed487cc9e1db51c1
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: T-14 mandated the retired composition and T-05 verified a 3x3 string absent from the accepted prototype.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-04216e65544f5b8bb67a01dcecb7362a
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: T-13 mandated stale theme tokens instead of the current KPI, status, direction, and text roles.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-bcdfbcde4df93601648aa2c0b91932e6
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: The persistent-sourcing-text versus InfoDisclosure conflict remained unresolved.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-694e2b0c600097cac84983d7aae9ac54
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: The bundle carried contradictory root-dashboard section orders.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-d348633d2836ab5fa447cfe1a180a695
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: Residual text still claimed four routes and a fixed 3x3 grid.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-a54eca1ace24934ae285e01c0de9838a
+    severity: high
+    reader: design
+    kind: substance
+    summary: Client tasks contradicted DESIGN and the accepted prototype on hierarchy, geometry, tokens, and disclosures.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.
+  - id: PF-e930bbb8025a318e390a9eeaeae01662
+    severity: med
+    reader: design
+    kind: substance
+    summary: DESIGN omitted zero-result and request/source-error states for the work list.
+    disposition: resolved
+    resolved_by: cycle-8 correction bundle
+    note: Semantically duplicate cycle-8 finding; applied anchors and rationale are recorded in notes/research-FEAT-53-plan-c8-apply.md.

@@ -42,7 +42,7 @@ its first consumer.
   count and change size for that feature — the FEAT-08 D-06 gap.
 - REQ-04: Rework is visible per feature and in aggregate as cycles consumed against cycles allowed.
 - REQ-05: Escaped defects are visible as an ongoing measurement — post-ship defects attributable to
-  shipped work — with the sourcing rule stated where the number is shown.
+  shipped work — with the sourcing rule available one click from the number in its InfoDisclosure.
 - REQ-06: Blocking human touchpoints are counted per feature. This obliges the counter to be
   incremented when a touchpoint happens; a count reconstructed later from prose is not a measurement.
 - REQ-07: Code grading is reported as a distribution — the share of graded functions at or above bar,
@@ -69,13 +69,13 @@ its first consumer.
   naming the missing prerequisite and how to install it. It never renders a partial page or a
   substitute number.
 - REQ-15: Merged pull requests are visible over time, as a count for the window broken into weekly
-  buckets, with the sourcing rule stated where the number is shown: that the count is of shipped
-  features read from the durable ship record REQ-10 writes, and that one shipped feature is one
-  merged PR because DEC-200 holds exactly one merged PR per shipped feature. A shipped feature whose
-  record carries no `pr` still counts as one shipped feature and therefore one merged PR; a count of
-  populated `pr` fields under-reports and is not an acceptable presentation. A week in which the
-  record shows no ship is shown as unavailable with the reason naming that week, never as zero
-  (REQ-11).
+  buckets, with the sourcing rule available one click from the number in its InfoDisclosure: the
+  count is of shipped features read from the durable ship record REQ-10 writes, and one shipped
+  feature is one merged PR because DEC-200 holds exactly one merged PR per shipped feature. A
+  shipped feature whose record carries no `pr` still counts as one shipped feature and therefore one
+  merged PR; a count of populated `pr` fields under-reports and is not an acceptable presentation. A
+  week in which the record shows no ship is shown as unavailable with the reason naming that week,
+  never as zero (REQ-11).
 - REQ-16: The operational view includes every FEAT and BUG feature directory in every control-plane
   segment, every grilling note, and every registered worktree as its own row, including a worktree
   whose feature is terminal or absent and each repository's primary checkout.
@@ -93,13 +93,14 @@ its first consumer.
   the item so the operator can tell which source won.
 - REQ-20: The operational view is disk-only and performs no GitHub read. A source that cannot be
   read is shown with a specific error rather than silently omitted.
-- REQ-21: The single dashboard `/` puts the shared header first, then the attention strip,
-  Repository KPIs first, and the work list in a centred max-width container. The list switches only
-  between Kanban and Table, filters Station, Status and Kind without a Repository filter, and names
-  its table state column Status; Astryx icons carry status without text colour or coloured borders
-  or top-lines. `/kpi/$n` shows one KPI panel. `/work/$id` puts the operational header before the
-  per-feature KPI content; grilling and worktree items expand inline on `/` and never acquire a
-  detail route.
+- REQ-21: The single dashboard `/` puts the shared header first, Repository KPIs second in the
+  accepted 4+3 desktop geometry, and the work list last with its Status cards opening the section,
+  all in a centred max-width container. Every tile carries a full-width fourteen-point daily
+  sparkline. The list switches only between Kanban and Table, filters Station, Status and Kind
+  without a Repository filter, and names its table state column Status; Astryx icons carry status
+  without text colour or coloured borders or top-lines. `/kpi/$n` shows one KPI panel. `/work/$id`
+  puts the operational header before the per-feature KPI content; grilling and worktree items
+  expand inline on `/` and never acquire a detail route.
 - REQ-22: For each feature and bug, the operational payload and UI report elapsed total and elapsed
   plan, build and validate phases from the DEC-159 seam handoff notes plus run `started_at` and
   `ended_at`, with the active phase measured through now. The orchestrator measures run tokens from
@@ -217,8 +218,8 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   `127.0.0.1` — `D-05`'s loopback-only bind, shipped in `serve.py` by `T-12` and required in
   `METRICS.md` by `T-17`'s verify — and in `122` itself, one of the mix literals the sweep hunts
   in its own right, so a bare-`12` sweep cannot tell a legitimate hit from the literal it is
-  looking for. `3` occurs in the tile grid's own dimensions, the fixed `3x3` seven-tile grid
-  (`T-05`, `T-14`), and in `python3`, the documented start command (`T-17`). So a literal grep
+  looking for. `3` occurs in the accepted `4+3` seven-tile geometry (`T-14`) and in `python3`, the
+  documented start command (`T-17`). So a literal grep
   for either cannot discriminate a seeded mix figure from an unrelated number. Those two are
   therefore **not machine-checked**; they are carried by SC-15's ui-reviewer inspection at
   `review_sha`.
@@ -227,8 +228,9 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
 
 **operator (dashboard `/`)** — This route is done when its shared header controls window and
 Repository through URL parameters that default to `all`, and one centred desktop screen then shows
-the attention strip, Repository KPIs first, and the filterable work list. The same header selection
-follows me to each of the other two product routes. SC-26 verifies this perspective.
+Repository KPIs in the accepted 4+3 geometry before the work list whose Status cards open the
+section. The same header selection follows me to each of the other two product routes. SC-26
+verifies this perspective.
 
 **operator (KPI `/kpi/$n`)** — This route is done when a tile opens exactly one KPI panel and a row
 in that panel opens the corresponding `/work/$id`, without a modal, file edit or server restart.
@@ -303,8 +305,8 @@ perspective.
 - SC-12 (operator): `git status` is byte-identical before and after serving every dashboard view against a clean
   project checkout — no file created, modified or deleted under `.harness/` or anywhere else.
   verify: automated        evidence: integration
-- SC-13 (operator): The escaped-defect figure for a fixture git history equals the count a human labelled by the
-  documented sourcing rule, and that rule is stated in the UI beside the number.
+- SC-13 (operator): The escaped-defect figure for a fixture git history equals the count a human
+  labelled by the documented sourcing rule, and the payload carries that complete rule for the UI.
   verify: automated        evidence: unit
 - SC-14 (operator): For a fixture whose commits carry step-ids resolving to agents pinned to two different model
   tiers, usage appears under both tiers; a commit whose step-id cannot be joined appears as
@@ -349,11 +351,12 @@ perspective.
   assertions, not one aggregate comparison, and the empty-week case is demonstrated failing before
   it passes.
   verify: automated        evidence: integration
-- SC-20 (operator): The merged-PR tile states its sourcing rule as persistent inline text beneath
-  the figure — not a tooltip, footnote or link — naming that the count is of shipped features and
-  that one shipped feature is one merged PR; and KPI 7 has no per-feature column in the work list
-  on `/` and no presence in `/work/$id`. ui-reviewer cites `file:line` for each clause, reading the
-  shipped source at `review_sha` via `git show <review_sha>:<path>`.
+- SC-20 (operator): The escaped-defect and merged-PR tiles and panels each make their complete
+  sourcing rule available one click from the number through the adjacent, keyboard-operable
+  InfoDisclosure — never persistent surface text, a tooltip, footnote or link — and KPI 7 has no
+  per-feature column in the work list on `/` and no presence in `/work/$id`. ui-reviewer cites
+  `file:line` for each clause, reading the shipped source at `review_sha` via
+  `git show <review_sha>:<path>`.
   verify: inspection
 
 - SC-21 (operator): Against a fixture control plane with two segments and a fleet repository, one
@@ -393,11 +396,12 @@ perspective.
   verify: automated        evidence: integration
 
 - SC-26 (operator): At 1440px and 1920px, the single dashboard `/` presents in order the shared
-  window-and-Repository header, the six-state attention strip, Repository KPIs first, and the work
-  list inside a centred max-width container. The Repository dropdown is the only repository
-  selector and there is no Work header toggle. Both header values are URL-backed, default to `all`,
-  survive a reload and are present unchanged after navigating to each of the other two product
-  routes.
+  window-and-Repository header, Repository KPIs in the accepted 4+3 desktop geometry, and the work
+  list opened by its six Status cards inside a centred max-width container. Every KPI tile shows
+  fourteen daily sparkline points across its full inner width. The Repository dropdown is the only
+  repository selector and there is no Work header toggle. Both header values are URL-backed,
+  default to `all`, survive a reload and are present unchanged after navigating to each of the other
+  two product routes.
   verify: uat
 - SC-27 (operator): On `/`, a toggle switches the work list between Kanban and Table only. Both
   layouts filter independently by Station, Status and Kind, with no Repository list filter; the

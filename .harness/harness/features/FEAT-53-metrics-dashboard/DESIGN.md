@@ -234,7 +234,7 @@ a `<Text>` cannot go.
 | panel title, section heading, empty-state heading | `large` as `h2` / `h3` |
 | tile label, table header cell, table group/subtotal label | `label` |
 | table cell value, a sentence carrying a measurement | `body`, `weight="semibold"` on the value |
-| a caveat, a denominator sentence, a sourcing rule under a table | `body`, `color="secondary"` |
+| a visible caveat or denominator sentence under a table | `body`, `color="secondary"` |
 | delta chip glyph, number and "vs prior *w*" | `supporting` |
 | a secondary line under a cell, breadcrumb, provenance, meta | `supporting` |
 | axis tick, gridline label, y title, end-of-line label | the SVG text style — Astryx's body family at `--text-supporting-size` |
@@ -301,17 +301,11 @@ preset rather than a heading one. No other element overrides a preset's size.
   surface and behind an info icon (below); what a card shows is what was measured.
 - **A figure never appears without its denominator or its unit.** "4" is not a measurement; "4 of 12
   features" and "4.2 days" are. A reviewer may call any bare figure a violation.
-- **The sourcing rule is ONE CLICK from the number it justifies, in that card's InfoDisclosure**
-  (REQ-05, SC-13, operator rulings 2026-09-04 and 2026-09-05). Escaped defects (KPI 4) and
-  merged PRs (KPI 7) each carry theirs in the disclosure of the tile and panel that shows the figure —
-  never a tooltip, never a page-footer footnote, never a link, and never as surface text under the
-  figure. S-3's Python-only caveat is the **one** exception and stays visible (below).
-  **This is a known conflict with SC-13 ("stated in the UI beside the number") and SC-20
-  ("persistent inline text beneath the figure — not a tooltip"), and the conflict is recorded rather
-  than papered over**: the operator ruled the surface too busy, an icon-opened popover is not a
-  tooltip (it is click-opened, keyboard-operable, focus-managed and dismissible), but the criteria
-  as signed say *inline* and this contract no longer is. **Amending SC-13/SC-20, or exempting KPI 4
-  and KPI 7 from the ruling, is the operator's call** — finding raised to the BRIEF, not decided here.
+- **KPI 4 and KPI 7 put their complete sourcing rule in an adjacent, one-click,
+  keyboard-operable InfoDisclosure.** The trigger sits with the figure it justifies in both the tile
+  and panel; click, Enter or Space opens the complete rule. The rule is never persistent inline
+  text, a tooltip, a page-footer footnote or a link. S-3's Python-only caveat is different: it
+  remains visible beside the affected figure because the visible value is partial without it.
 - **A navigable name is never identified by colour alone, because Neutral's accent is monochrome.**
   `--color-text-accent` resolves to `#EBEBEB` — near-identical to `text` — so a link
   rendered in the accent is indistinguishable from a value and the affordance survives only as a
@@ -443,6 +437,31 @@ The drill is tile → `/kpi/$n` → row → `/work/$id`, with no modal.
   itself, showing `source_path`, and for a worktree also branch, primary/linked status and mapped
   feature. Activating it again collapses it. Expansion never changes route and never opens a modal.
 
+#### Work-list empty and failure states
+
+- **Filtered zero is not an unavailable list.** When active Station, Status or Kind filters match no
+  valid rows, the result summary reads **“0 of m items”** and the list region renders **“No work
+  matches these filters”**, **“Clear Station, Status, or Kind to see work.”** and **Clear Filters**.
+  Clear Filters resets only `station`, `status` and `kind` to `all`; it preserves `window`, `repo`
+  and `layout`, returns focus to the programmatically focusable **Work List** heading, and announces
+  the resulting count through the list's one polite live region.
+- **A successful payload with source errors remains useful.** Valid rows stay visible, filterable
+  and operable. A neutral warning banner reads **“Some sources could not be read”** and lists every
+  failed `source_path` with its specific reason. A malformed item becomes one of these source-error
+  entries; it never renders as a broken row and is never silently omitted.
+- **An initial request failure replaces only the list result region.** Before any usable rows have
+  loaded, it renders **“Work list unavailable”**, the specific failure reason and **Retry**. The
+  current URL state is untouched. Appearance of the failure does not steal focus; Retry retains
+  focus while its request is pending and the polite live region announces the failure once.
+- **A refresh failure never erases good rows.** The last usable rows remain visible and are marked
+  stale; a failure banner gives the specific reason and offers **Retry**. The URL and current
+  control focus remain unchanged, and the polite live region announces that previous results
+  remain on screen.
+- **Retry has one completion rule.** A failed retry leaves focus on Retry and updates the announced
+  specific reason. A successful retry clears the failure or stale banner, focuses the **Work List**
+  heading and announces the new result count. Manual Refresh follows the same focus, stale-row and
+  live-announcement rules.
+
 **Status icon vocabulary — one Astryx semantic icon per state, everywhere the state appears:**
 
 | Rank | Status | Astryx icon |
@@ -561,7 +580,7 @@ unavailable cell takes S-4's treatment, and no table shows a total the payload d
 | ID | Panel | One row is | Columns, in order | Row order | Beneath the table |
 |---|---|---|---|---|---|
 | TBL-1 | 2 Rework | one feature in the window | feature id, linking to `/work/$id` · `cycles_used` · `max_total_cycles` · the two-term ratio | `cycles_used`/`max_total_cycles` descending, ties by feature id ascending | the aggregate as **both terms summed** and never as a lone ratio (T-06) |
-| TBL-2 | 4 Escaped defects | one escaped-defect item | kind (`bug_unit` or `revert`) · id · date · subject | date descending | nothing. The window count is the panel's figure; **the sourcing rule and the denominator are in the header's InfoDisclosure** — never a tooltip and never on the tile (REQ-05, SC-13, and see §Component direction on the SC-13/SC-20 conflict) |
+| TBL-2 | 4 Escaped defects | one escaped-defect item | kind (`bug_unit` or `revert`) · id · date · subject | date descending | nothing. The window count is the panel's figure; **the complete sourcing rule and denominator are in the adjacent InfoDisclosure on both tile and panel** — never persistent inline text, a tooltip, a page-footer footnote or a link (REQ-05, SC-13, SC-20) |
 | TBL-3 | 6 Usage by agent / model tier | one attribution bucket | bucket — a model-tier name, or one of the four named unattributed buckets · commit count · share of `total_commits` | attributed tiers first, count descending; then the four unattributed buckets in the fixed order `no_prefix`, `human`, `feature_only`, `unresolvable_step_id` | `total_commits` and `attributable_share`; **the two groups are separated by a rule and each is subtotalled**, so attributed and unattributed can never be read as one list |
 
 **KPI 7's shipped-feature table is unnumbered.** One row is one shipped feature in the selected
