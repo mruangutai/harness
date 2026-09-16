@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1129-validate-handoff-sweep",
   "pr": null,
   "review_sha": "499eaf0b9c1eb04e0f51dcfec47fab9ea50abd54",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -95,6 +95,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "The allowed rework round is spent and the mandatory integration matrix remains red on an unowned manifest-parity scope change."
+    },
+    {
+      "at": "2026-09-16T15:54:46+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "recorded late by Main: the c1 orchestrator's succession for the fix seam"
     }
   ],
   "mission": "patch",
