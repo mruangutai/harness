@@ -231,7 +231,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02, T-03, T-04]
-    status: ready
+    status: done
     files:
       - path: .harness/harness/docs/DECISIONS.md
         quote: "## DEC-138 — GitHub Issues integration: asymmetric truth, orchestrator-executed, full loop (task 24)"
