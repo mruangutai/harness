@@ -1,0 +1,31 @@
+{
+  "feature_id": "BUG-1723-orchestrator-closeout",
+  "branch": "feat/BUG-1723-orchestrator-closeout",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T04:28:00+00:00",
+      "ended_at": "2026-09-16T05:02:58+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T04:27:51+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new verb composing four existing writers plus a new check-state.py invariant \u2014 a new enforcement surface; cause and files are known"
+    }
+  ],
+  "mission": "plan"
+}

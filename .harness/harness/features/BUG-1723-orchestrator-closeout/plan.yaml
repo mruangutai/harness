@@ -1,0 +1,158 @@
+schema: plan/1
+feature: BUG-1723-orchestrator-closeout
+approval:
+  status: pending
+status: plan
+source_issues: [1723]
+panel:
+  last_run: plan-product
+  cycle: 0
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-code-reviewer-plan-c0.md
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    artifact: none
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/review-harness-ui-reviewer-plan-c0.md
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    artifact: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1723-orchestrator-closeout/.harness/harness/features/BUG-1723-orchestrator-closeout/notes/research-BUG-1723-orchestrator-closeout-goalcheck-plan.md
+  findings:
+  - id: PF-4ac15e12075376274d487b02bbe8e1e7
+    severity: med
+    reader: scope
+    kind: substance
+    summary: The lane table omits validate-digest.py despite the settled main-session-direct ruling and T-01 naming it as a source surface.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-3a69351254edc15b6f5c55871384d535
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03's concatenated token probe can pass while an individual playbook file omits or contradicts SC-04's separate-write and wake-time requirements.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-372bf493eb3d1cf4a91541c6148738d8
+    severity: high
+    reader: should-not-exist
+    kind: form
+    summary: T-02 instructs building the seam invariant as INV-42, but INV-42 already exists — the plan directs a numbering collision on the enforcement surface it is adding
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-d66b00bef1d98244f2a4bd01c195b52a
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    scope: task
+    summary: T-03's instruction to document the SC-05 measurement procedure in the permanent orchestrator playbook should not be built
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-efa084ecfa5095e4d71eca0c297d3a59
+    severity: low
+    reader: should-not-exist
+    kind: form
+    summary: T-01 lists validate-digest.py#validate as a touched surface although the intent requires using its existing contract unchanged
+    disposition: resolved
+    resolved_by: T-01
+lanes:
+  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  rows:
+  - surface: .claude/skills/harness/bin/feature-record.py
+    lane: main-session-direct
+    reason: DEC-174 places the enforcement writer outside self-hosted execution and
+      DEC-179 requires the route at plan time.
+  - surface: .claude/skills/harness/bin/validate-digest.py
+    lane: main-session-direct
+    reason: T-01 uses this existing contract unchanged as a dependency; DEC-174 retains
+      its main-session-direct ownership if that dependency requires change.
+  - surface: .claude/skills/harness/bin/check-state.py
+    lane: main-session-direct
+    reason: DEC-174 places the state gate outside self-hosted execution and DEC-179
+      requires the route at plan time.
+  - surface: tests/unit/test-feature-record.py
+    lane: main-session-direct
+    reason: DEC-174 places an enforcement writer's own test with the writer.
+  - surface: tests/integration/test-check-state-feat59.py
+    lane: main-session-direct
+    reason: DEC-174 places a state gate's own test with the gate.
+  - surface: .claude/skills/harness/SKILL.md
+    lane: main-session-direct
+    reason: No team persona is granted this source surface at the resolved SHA, so
+      DEC-179 requires a declared direct step.
+  - surface: .claude/skills/harness/references/build-phase.md
+    lane: main-session-direct
+    reason: No team persona is granted this source surface at the resolved SHA, so
+      DEC-179 requires a declared direct step.
+  - surface: .claude/skills/harness/references/ledger.md
+    lane: main-session-direct
+    reason: No team persona is granted this source surface at the resolved SHA, so
+      DEC-179 requires a declared direct step.
+decisions:
+  - id: D-01
+    choice: close-run composes the existing digest, run-end, plan-station, judgement, and spend authorities in that order, retains any earlier completed stage, and stops at the first refusal.
+    because: An all-or-nothing rewrite would duplicate authority and hide which durable stage actually refused.
+    dec: none
+  - id: D-02
+    choice: The phase-seam invariant detects a retrospective succession judgement by comparing its timestamp with the first run after the corresponding handoff, without adding feature.json identity state.
+    because: Product run identity is unresolved in issue 1708, while the postdated succession shape is already observable and preserves the feature schema.
+    dec: none
+tasks:
+  - id: T-01
+    title: Add the composed close-run feature-record command
+    traces: [SC-01, SC-02]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps feature-record.py and the focused test that vouches for this enforcement writer outside self-hosted execution; DEC-179 requires the route to be declared now.
+    depends_on: []
+    status: ready
+    files:
+    - .claude/skills/harness/bin/feature-record.py#main
+    - tests/unit/test-feature-record.py#FeatureRecordCase
+    verify: |
+      python3 tests/unit/test-feature-record.py
+    intent: |
+      Work test-first and demonstrate the new success and refusal cases failing against the pre-change command. Add feature-record.py close-run with the exact interface --file FEATURE_JSON --id RUN_ID --digest DIGEST_MD --verdict VERDICT, optional paired --task TASK_ID and --station STATION, optional --judgement kind=KIND,decision=DECISION,reason=REASON, and optional --code-grade n_a. Reject an unpaired task or station, any other code-grade value, a malformed judgement, an unknown run, or an unreadable digest before invoking a later stage. Resolve the run's recorded agent and use the existing validate-digest.py contract to validate that persona's digest before mutation. Then invoke the existing run-end authority, invoke plan-merge.py set-task-station when the paired task inputs are present, invoke the existing judgement authority as harness-orchestrator when the judgement input is present, and calculate spend through the existing spend authority. Do not accept or stamp a token argument because the existing hook owns token capture. Preserve each composed authority's validation, locking, diagnostics, and durable write behavior rather than copying its mutation logic. Do not roll back an earlier successful stage. On the first refusal, stop, exit nonzero, name the failing stage, and prove later stages were not invoked. On complete success, emit exactly one transcript line that identifies the closed run and includes spend plus any completed optional station and judgement summary. Do not read or write STATE.md, write a handoff note, perform git operations, or run quarantine checks.
+  - id: T-02
+    title: Detect retrospective succession at the phase seam
+    traces: [SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps check-state.py and the integration test that directly vouches for the state gate outside self-hosted execution; DEC-179 requires the route to be declared now.
+    depends_on: []
+    status: ready
+    files:
+      - path: .claude/skills/harness/bin/check-state.py
+        quote: INV-40
+      - path: tests/integration/test-check-state-feat59.py
+        quote: INV-40 judgement-ledger
+    verify: |
+      python3 tests/integration/test-check-state-feat59.py
+    intent: |
+      Work test-first and demonstrate the retrospective and unusable-chronology cases failing against the pre-change checker. Add the next available invariant as INV-43 without changing INV-40 or the existing INV-42. Use the existing phase handoff notes, run ledger timestamps, and succession judgement records to find the first run in the later phase for a handoff. Report an INV-43 violation when the applicable succession judgement's at timestamp is later than that run's started_at timestamp, because that is a retrospective correction after work crossed the seam. Emit no INV-43 finding when succession is present no later than the first later-phase run. When a relevant handoff, run, or succession timestamp is present but cannot be parsed or related, report an INV-43 CANNOT VERIFY finding that names the unusable field rather than silently passing. Do not add a feature.json field, depend on run_uid, alter the existing missing-succession invariant, or infer a phase from orchestrator prose. Add isolated integration fixtures for the postdated violation, the prior or equal timestamp control, and each chronology shape whose unreadability must fail closed; retain every existing invariant case.
+  - id: T-03
+    title: Replace manual run close-out with close-run in the orchestrator playbook
+    traces:
+    - SC-04
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: At the resolved SHA no team persona is granted the three orchestrator playbook source files, so DEC-179 requires a declared main-session-direct task.
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - path: .claude/skills/harness/SKILL.md
+        quote: Adjust and record
+      - path: .claude/skills/harness/references/build-phase.md
+        quote: Build entry.
+      - path: .claude/skills/harness/references/ledger.md
+        quote: Runs
+    verify: |
+      python3 -c "from pathlib import Path; paths=[Path('.claude/skills/harness/SKILL.md'),Path('.claude/skills/harness/references/build-phase.md'),Path('.claude/skills/harness/references/ledger.md')]; required=('close-run','STATE.md','handoff','commit','separate','quarantine','wake'); missing={str(path):[token for token in required if token not in path.read_text()] for path in paths}; missing={path:tokens for path,tokens in missing.items() if tokens}; assert not missing, missing"
+    intent: |
+      Replace the repeated digest validation, run-end, optional task-station, optional judgement, and spend command sequence with the exact close-run interface in the orchestrator skill and the build-phase and ledger references. State the stage order, the first-refusal stop, and the one-line successful result so an orchestrator issues one command and does not retry later stages after a named refusal. In each of the three named playbook files, keep STATE.md current-truth authorship, the phase handoff note, and the git commit as explicit separate orchestrator writes after close-run, and keep quarantine inspection at wake time only. At a phase boundary, instruct the outgoing orchestrator to write the handoff before any later-phase run and the successor to append its succession judgement no later than its first run; explain that INV-43 reports a judgement recorded after that run. Preserve the existing per-phase orchestrator model and existing build and ledger vocabulary. Do not add the SC-05 first-post-shipment measurement procedure or its thresholds to these permanently preloaded playbook files; SC-05 remains operator UAT defined only by the brief.
