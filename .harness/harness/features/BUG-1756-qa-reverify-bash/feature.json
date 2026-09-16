@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-1756-qa-reverify-bash",
   "branch": "none",
-  "pr": null,
+  "pr": 1773,
   "review_sha": "c1f9601fe87660b732aac0bf5e5f72dd17fac0d7",
   "cycles_used": 1,
   "max_total_cycles": 10,
