@@ -16,6 +16,7 @@ lock stays the one shared with every other write route in this feature.
     plan-merge.py set-panel         --file <plan.yaml> --value-file <panel.yaml>
     plan-merge.py record-panel      --file <plan.yaml> --digest <lead digest.md> --cycle N [--last-run <run-dir>]
     plan-merge.py set-lanes         --file <plan.yaml> --value-file <lanes.yaml>
+    plan-merge.py set-key           --file <plan.yaml> --key <top-level key> --value-file <value.yaml>
     plan-merge.py check             --file <plan.yaml> --root <checkout root>
     plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]... [--rework rounds=N,minutes=M --decision <path>]
     plan-merge.py delete-items      --file <plan.yaml> --task T-NN [--task T-NN]... [--decision D-NN]... --reason "<text>"
@@ -34,6 +35,13 @@ every `execution_agent` route and every `traces:` id before a plan is signed (SC
 line-number anchor `path:NN` is refused at write (plan_anchors.py). Any verb that changes the
 task set or a task field on an APPROVED plan resets approval to `pending` with `reset_at` and
 `reset_reason: <verb> <ids>` — `sign-approval` stays the only writer of `approved`.
+
+PER-DOCUMENT COVERAGE, NOT PER-KEY (#1683). `set-lanes` closed "`lanes:` has no writer" for one
+key, and the next stale key (`source_issues`, BUG-285) had no route again. `set-key` writes ANY
+top-level key — replaced through its own bytes or inserted in template order — except the four
+another verb owns for a reason: `approval` (sign-approval, DEC-120), `tasks` and `decisions`
+(the union verbs, which reset a signature when the task set changes), and `status`
+(set-feature-station). `panel` and `lanes` go through their own validators either way.
 
 CONTROLLED VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every mutating verb goes through
 harness_merge.locked_update and a text splice, and require_destination (exit 9) guards every
@@ -81,16 +89,17 @@ Exit codes are the interface:
     1  `check` only: at least one anchor, route or trace did not resolve — one FAIL line each
     2  a command line is unusable: `delete-items` with no --task and no --decision, the same id
        twice, or an empty --reason; `sign-approval --rework` without --decision, malformed, or
-       with no sibling feature.json; `check --root` without a manifest; or a `files:` entry in
-       the line-number form `path:NN`, named (argparse's code, and `amend`'s missing-hash precedent)
+       with no sibling feature.json; `check --root` without a manifest; `set-key` naming a key
+       another verb owns or one that is not a legal key name; or a `files:` entry in the
+       line-number form `path:NN`, named (argparse's code, and `amend`'s missing-hash precedent)
     3  an id named by --task or --decision is absent from the plan, or the plan file itself is
        (the message names the ids present, scoped to the list the id was asked for)
     4  the value given to --station is not a legal station (the message lists the legal ones),
        or a requested deletion is not legal: a SURVIVING task's `depends_on` names a task being
        deleted, named pair by pair
-    5  a side (base, proposal, panel value, lanes value, lead digest) failed to parse or failed
-       its shape check, or a splice does not reload as the edit that was computed — for a
-       deletion, that includes a survivor whose own fields moved
+    5  a side (base, proposal, key/panel/lanes value, lead digest) failed to parse or failed
+       its shape check, or a splice does not reload as the edit that was computed or would make
+       a legal plan illegal — for a deletion, that includes a survivor whose own fields moved
     6  the lock could not be acquired within the retry budget (harness_merge)
     7  the same top-level key carries two different loaded values (items no longer conflict:
        a proposal's fields replace the base's)
@@ -1589,13 +1598,22 @@ def _insert_top_mapping(lines, ranges, replacement, before):
 
 def _write_top_mapping(resolved, key, value, splice):
     """Run `splice(base_text) -> new_text` under the lock and refuse unless `key` reloads as
-    `value`. The shared tail of set-panel, record-panel and set-lanes."""
+    `value` and a legal base stays legal. The shared tail of set-key, set-panel, record-panel
+    and set-lanes."""
     def transform(base_bytes):
-        spliced = splice(base_bytes.decode("utf-8")).encode("utf-8")
+        base_text = base_bytes.decode("utf-8")
+        spliced = splice(base_text).encode("utf-8")
         reloaded = _reload_or_refuse(spliced)
         if reloaded.get(key) != value:
             raise harness_merge.MergeRefusal(
                 5, [f"plan-merge: {key} does not reload as the value supplied"])
+        # Valid before, invalid after is the test — the same do-no-harm rule apply, amend and
+        # delete-items hold to, so a key write cannot turn a legal plan illegal.
+        if _schema_error(_load_base_doc(base_text)) is None:
+            err = _schema_error(reloaded)
+            if err is not None:
+                raise harness_merge.MergeRefusal(
+                    5, [f"plan-merge: writing {key} would make a legal plan illegal — {err}"])
         return spliced
 
     try:
@@ -1606,36 +1624,119 @@ def _write_top_mapping(resolved, key, value, splice):
         sys.exit(refusal.code)
 
 
-def cmd_set_panel(args):
-    resolved = _resolve_plan(args.file)
+# ---------------------------------------------------------------------------
+# `set-key` — ONE route for every top-level key (#1683).
+#
+# FEAT-59 closed "`lanes:` has no writer" (#1595, #1636) with `set-lanes`, a verb for that one
+# key. The next key to go stale was `source_issues` (BUG-285-canonical-reader, 2026-09-13):
+# `apply` exits 7 on a differing top-level key by design, `amend --key` names tasks|decisions
+# only, and the shape gate denies every editor write of a plan.yaml to every author. Three
+# instances, each an agent blocked mid-run over a route that should already have existed. The
+# defect was never "<key> has no writer" — it is that coverage was PER KEY, so every top-level
+# key was unwritable until someone hit it in production and filed a ticket. This verb makes
+# coverage per DOCUMENT: `--key <name> --value-file <yaml>` replaces the key's own bytes, or
+# inserts the key in template order when the plan does not carry it.
+#
+# THREE KEYS ARE REFUSED BY NAME, WITH THE VERB THAT OWNS THEM. Each has a rule that a whole-
+# value write would step around: `approval` is the main session's alone and `sign-approval` its
+# only writer (DEC-120) — writing the mapping whole here would be the second way to claim a
+# signature; `tasks` and `decisions` are the union verbs' (`apply`, `amend`, `delete-items`),
+# which are the ones that reset an approval when the task set changes (#1675) — a task set laid
+# over whole would keep a signature it no longer has; `status` is `set-feature-station`'s, which
+# validates the station vocabulary. `panel` and `lanes` STAY reachable here, through the same
+# validators and splices their named verbs use, so choosing the general verb never skips a shape
+# rule. Every other key — `source_issues`, `feature`, `schema`, one a future template adds — is
+# checked by the plan schema after the splice, as every other verb's result is.
+OWNED_KEYS = {
+    "approval": "sign-approval — the main session's alone (DEC-120)",
+    "tasks": "apply, add-tasks, amend --key tasks, or delete-items --task",
+    "decisions": "apply, amend --key decisions, or delete-items --decision",
+    "status": "set-feature-station",
+}
+# templates/plan.yaml's key order; an absent key is inserted before the first later key present.
+TEMPLATE_KEY_ORDER = ("schema", "feature", "status", "source_issues", "approval", "panel",
+                      "lanes", "decisions", "tasks")
+# Keys whose value has a shape of its own. Each validator refuses a non-mapping and every
+# shape fault before the lock is taken.
+KEY_VALIDATORS = {"panel": _validate_panel, "lanes": _validate_lanes}
+
+
+def _load_key_value(path, key):
+    """The value for `key` from a YAML file: any YAML value for a plain key, a validated
+    mapping for a key in KEY_VALIDATORS. Refuses (5) on a parse or shape fault."""
+    validator = KEY_VALIDATORS.get(key)
+    if validator is not None:
+        return validator(_load_mapping_value(path, key), key)
     try:
-        panel = _validate_panel(_load_mapping_value(args.value_file, "panel"), "panel")
+        return harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as exc:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: cannot load {key} value from {path}: {exc}"])
+
+
+def _insert_before(key):
+    """The template keys that follow `key`; an unknown key lands before the union keys."""
+    if key in TEMPLATE_KEY_ORDER:
+        return TEMPLATE_KEY_ORDER[TEMPLATE_KEY_ORDER.index(key) + 1:]
+    return ("decisions", "tasks")
+
+
+def _key_splice(key, value):
+    """`splice(text) -> text` for one top-level key: `panel` keeps its finding-wise splice;
+    every other key is replaced through ITS OWN bytes only — trailing blank and comment lines
+    inside its top-key range introduce the next key and are kept — or inserted in template
+    order when absent."""
+    if key == "panel":
+        return lambda text: _panel_spliced(text, value)
+    replacement = yaml.safe_dump({key: value}, sort_keys=False, allow_unicode=True,
+                                 width=10 ** 9).splitlines(keepends=True)
+
+    def splice(text):
+        lines, _order, ranges, _preamble = _index_top_keys(text)
+        if key not in ranges:
+            return _insert_top_mapping(lines, ranges, replacement, _insert_before(key))
+        start, end = ranges[key]
+        own_end = _before_trailing_comments(lines[:end], floor=start + 1)
+        return "".join(lines[:start] + replacement + lines[own_end:])
+
+    return splice
+
+
+def _set_top_key(file_path, key, value_file):
+    """The whole of set-key, set-panel and set-lanes: resolve, refuse an owned key, load and
+    validate, splice under the lock. Returns (resolved, value) for the receipt."""
+    resolved = _resolve_plan(file_path)
+    if key in OWNED_KEYS:
+        _die(2, f"plan-merge: {key} is not set-key's to write; its route is {OWNED_KEYS[key]}.")
+    if not TOP_KEY_RE.fullmatch(key + ":"):
+        # A key the top-key indexer cannot find again would be inserted a second time on the
+        # next write; refuse it before the lock rather than write an unreachable key.
+        _die(2, f"plan-merge: {key!r} is not a legal top-level key name ([A-Za-z_][\\w-]*).")
+    try:
+        value = _load_key_value(value_file, key)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
-    _write_top_mapping(resolved, "panel", panel, lambda text: _panel_spliced(text, panel))
+    _write_top_mapping(resolved, key, value, _key_splice(key, value))
+    return resolved, value
+
+
+def cmd_set_key(args):
+    resolved, _value = _set_top_key(args.file, args.key, args.value_file)
+    print(f"KEY {args.key} -> {resolved}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+def cmd_set_panel(args):
+    resolved, panel = _set_top_key(args.file, "panel", args.value_file)
     print(f"PANEL cycle {panel['cycle']} -> {resolved}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
 
 
 def cmd_set_lanes(args):
-    """`lanes:` gets the write route it never had (FEAT-59 SC-08). Same shape as set-panel:
-    validate before the lock, replace the whole top-level mapping, refuse unless it reloads."""
-    resolved = _resolve_plan(args.file)
-    try:
-        lanes = _validate_lanes(_load_mapping_value(args.value_file, "lanes"), "lanes")
-    except harness_merge.MergeRefusal as refusal:
-        _die(refusal.code, *refusal.lines)
-    replacement = yaml.safe_dump({"lanes": lanes}, sort_keys=False).splitlines(keepends=True)
-
-    def splice(text):
-        lines, _order, ranges, _preamble = _index_top_keys(text)
-        if "lanes" in ranges:
-            start, end = ranges["lanes"]
-            return "".join(lines[:start] + replacement + lines[end:])
-        return _insert_top_mapping(lines, ranges, replacement, ("decisions", "tasks"))
-
-    _write_top_mapping(resolved, "lanes", lanes, splice)
+    """`lanes:` gets the write route it never had (FEAT-59 SC-08): set-key with the key fixed."""
+    resolved, lanes = _set_top_key(args.file, "lanes", args.value_file)
     print(f"LANES {len(lanes['rows'])} row(s) resolved at {lanes['resolved_at']} -> {resolved}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
@@ -3336,6 +3437,10 @@ VERBS = (
      (_FILE, ("--value-file", "YAML file holding the replacement panel mapping")), cmd_set_panel),
     ("set-lanes", "replace the top-level lanes mapping with a validated value",
      (_FILE, ("--value-file", "YAML file holding the replacement lanes mapping")), cmd_set_lanes),
+    ("set-key", "set or insert ANY top-level key from a YAML value file — except approval, "
+                "tasks, decisions and status, which name their own verb",
+     (_FILE, ("--key", "the top-level key name"),
+      ("--value-file", "YAML file holding the key's replacement value")), cmd_set_key),
     ("check", "resolve every files: anchor, execution_agent route and traces: id; writes nothing",
      (_FILE, ("--root", "the checkout root anchors and routes resolve against")), cmd_check),
     ("record-amendments", "splice an engineering lead's digest amendments into the named task "
