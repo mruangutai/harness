@@ -1,7 +1,7 @@
 # The ledger — feature.json is the record of judgement, not a summary of it
 
 Read this on your first cycle, and again before any raise, stop or succession. The playbook
-carries the verbs and the six kinds; this is what each means and why. Evidence and history:
+carries the verbs and the seven kinds; this is what each means and why. Evidence and history:
 DEC-227, DEC-229, DEC-230, DEC-157.
 
 Every write goes through `feature-record.py`; you never edit `feature.json` by hand.
@@ -44,6 +44,7 @@ Every autonomous judgement is one line in `judgements[]`:
 | `continue` | you decide to keep going or to stop — `--decision continue` or `--decision stop` — at a budget line, a new finding class, or exhaustion |
 | `succession` | your first act on waking as a successor — `continue`, `downgrade` or `stop` — and **no later than your first run** |
 | `amendment` | the engineering lead changed a signed task's `intent`, `files` or `verify` inside the same build run (DEC-32/DEC-229) — written FOR you by `plan-merge.py record-amendments`, one entry per changed field, never by hand |
+| `reject` | the source ticket was wrong at first-run intake — already fixed, superseded, or refused by a later ruling; `--decision <superseding issue number \| none>`, one run, zero cycles, then `gh-sync.py reject` (FEAT-1714) |
 
 **An amendment's identity is its `decision`: `T-NN.intent`, `T-NN.files` or `T-NN.verify`** — the
 task and the field, nothing added, so a field amended twice is two entries told apart by `at`.
