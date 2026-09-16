@@ -214,6 +214,9 @@ def _expire(claims, now):
         if not isinstance(claim, dict):
             expired += 1
             continue
+        if claim.get("released_at") is not None:
+            expired += 1
+            continue
         started = claim.get("started_at")
         if not isinstance(started, (int, float)) or isinstance(started, bool):
             expired += 1
@@ -372,6 +375,8 @@ def claim_with_receipt(
     now=None,
     feature=LEGACY_FEATURE,
     supervisor_pid=None,
+    repository=None,
+    dispatch_correlation=None,
 ):
     """Record a claim owned by `supervisor_pid` — the OMP process that holds the dispatching
     `task` call (DEC-204). Absent, the claiming process is the supervisor: that is what a
@@ -406,6 +411,10 @@ def claim_with_receipt(
         started_at = _process_start_time(supervisor_pid)
         if started_at is not None:
             entry["supervisor_started_at"] = started_at
+        if repository is not None:
+            entry["repository"] = repository
+        if dispatch_correlation is not None:
+            entry["dispatch_correlation"] = dict(dispatch_correlation)
         live.append(entry)
         retained.append(entry)
         data["claims"] = retained
@@ -414,7 +423,8 @@ def claim_with_receipt(
     return _update_registry(root, mutator)
 
 
-def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE, supervisor_pid=None):
+def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE,
+          supervisor_pid=None, repository=None, dispatch_correlation=None):
     return claim_with_receipt(
         root,
         agent,
@@ -423,15 +433,17 @@ def claim(root, agent, dispatcher, cwd, now=None, feature=LEGACY_FEATURE, superv
         now=now,
         feature=feature,
         supervisor_pid=supervisor_pid,
+        repository=repository,
+        dispatch_correlation=dispatch_correlation,
     ) is not None
 
 
 def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None,
-                            parent_agent_id=None):
+                            parent_agent_id=None, repository=None):
     """Attach stable OMP runtime lineage to one live claim.
 
-    Repeating the same attachment is idempotent. A conflicting child, job, or
-    parent identity is refused rather than moving the claim to another runtime.
+    Repeating the same attachment is idempotent. A conflicting child, job, parent,
+    or repository identity is refused rather than moving the claim to another runtime.
     """
     path = _registry_path(root)
     if not os.path.exists(path) or not (agent_id or job_id or parent_agent_id):
@@ -447,7 +459,7 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
                 claim, agent=agent, feature=feature, claim_id=claim_id
             ),
         )
-        matches = [
+        candidates = [
             claim for claim in live
             if _matches(claim, agent=agent, feature=feature, claim_id=claim_id)
             and (not agent_id or claim.get("agent_id") in (None, "", agent_id))
@@ -455,15 +467,20 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
             and (not parent_agent_id
                  or claim.get("parent_agent_id") in (None, "", parent_agent_id))
         ]
-        if len(matches) != 1:
+        if repository is None:
+            candidates = [c for c in candidates if c.get("repository") is None]
+        else:
+            candidates = [c for c in candidates if c.get("repository") == repository]
+        if len(candidates) != 1:
             data["claims"] = retained
             return data, False
+        target = candidates[0]
         if agent_id:
-            matches[0]["agent_id"] = agent_id
+            target["agent_id"] = agent_id
         if job_id:
-            matches[0]["job_id"] = job_id
+            target["job_id"] = job_id
         if parent_agent_id:
-            matches[0]["parent_agent_id"] = parent_agent_id
+            target["parent_agent_id"] = parent_agent_id
         data["claims"] = retained
         return data, True
 
@@ -513,6 +530,37 @@ def authorize_runtime_identity(root, agent, feature, agent_id, parent_agent_id):
 
     return _update_registry(root, mutator)
 
+def repository_binding(root, agent, feature, repository, agent_id, now=None):
+    """Return the fail-closed state of one exact factory repository binding."""
+    if not agent_id:
+        return "missing"
+    path = _registry_path(root)
+    try:
+        with open(path, "r", encoding="utf-8", errors="strict") as handle:
+            raw = json.load(handle)
+        if not isinstance(raw, dict) or not isinstance(raw.get("claims"), list):
+            return "unreadable"
+    except FileNotFoundError:
+        return "missing"
+    except (OSError, UnicodeError, ValueError):
+        return "unreadable"
+    claims = [
+        claim for claim in raw["claims"]
+        if _matches(claim, agent=agent, feature=feature, agent_id=agent_id)
+    ]
+    exact = [claim for claim in claims if claim.get("repository") == repository]
+    if any(claim.get("released_at") is not None for claim in exact):
+        return "released"
+    current = time.time() if now is None else now
+    live, _expired = _expire(exact, current)
+    if live:
+        return "allow"
+    if exact:
+        return "stale"
+    if claims:
+        return "mismatched"
+    return "missing"
+
 
 def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
     path = _registry_path(root)
@@ -544,7 +592,12 @@ def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id
             )
             data["claims"] = retained
             return data, 0
-        target_id = matches[0].get("claim_id")
+        target = matches[0]
+        if target.get("repository") is not None:
+            target["released_at"] = time.time()
+            data["claims"] = retained
+            return data, True
+        target_id = target.get("claim_id")
         data["claims"] = [
             claim for claim in retained if claim.get("claim_id") != target_id
         ]

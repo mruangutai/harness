@@ -1123,6 +1123,37 @@ def case_run_dir_forms():
 
 
 
+# ============================== target_repository ==============================
+
+
+def case_target_repository_metadata():
+    """The shared classifier reports the exact base and its repository identity."""
+    mod = hb()
+    root = tempfile.mkdtemp()
+    workspace = tempfile.mkdtemp()
+    product = os.path.join(workspace, "product-a")
+    os.makedirs(os.path.join(product, "src"))
+    original = mod.resolve_fleet
+    try:
+        product_root = mod.real(product)
+        bases = mod.RepositoryBases([product_root], {product_root: "product-a"})
+        mod.resolve_fleet = lambda _root, _label: (workspace, bases, "/fleet.yaml")
+        harness = mod.target_repository(
+            os.path.join(root, ".harness", "team-config.yaml"), root, "test")
+        target = mod.target_repository(
+            os.path.join(product, "src", "main.py"), root, "test")
+        check("target_repository: harness target keeps harness identity",
+              harness == {"base": mod.real(root), "repository": "harness"},
+              harness)
+        check("target_repository: product target keeps its declared identity",
+              target == {"base": mod.real(product), "repository": "product-a"},
+              target)
+    finally:
+        mod.resolve_fleet = original
+        shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(workspace, ignore_errors=True)
+
+
 # THE REGISTRATION IS DATA, NOT CONTROL FLOW (FEAT-64): a flat list of calls cost main a grade
 # point per case; iterating a tuple costs one however long it grows.
 CASES = (
@@ -1148,6 +1179,7 @@ CASES = (
     case_run_dir_refs,
     case_run_dir_slug_ok,
     case_run_dir_forms,
+    case_target_repository_metadata,
     case_hook_guard_contract,
     case_feat64_lib_boundaries_are_typed,
 )

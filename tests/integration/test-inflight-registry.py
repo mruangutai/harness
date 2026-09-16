@@ -1182,6 +1182,59 @@ def case_37_live_claims_refuses_unreadable_registry():
 
 
 
+def case_38_repository_bound_attachment():
+    """Factory claims bind a child id only to one exact repository."""
+    root = tempfile.mkdtemp()
+    now = time.time()
+    first = inflight_registry.claim_with_receipt(
+        root, "harness-backend-dev", "harness-eng-lead", root, now=now,
+        feature="FEAT-495", supervisor_pid=os.getpid(),
+        repository="product-a", dispatch_correlation={
+            "agent": "harness-backend-dev", "feature": "FEAT-495",
+            "repository": "product-a"})
+    second = inflight_registry.claim_with_receipt(
+        root, "harness-backend-dev", "harness-eng-lead", root, now=now + 1,
+        feature="FEAT-495", supervisor_pid=os.getpid(),
+        repository="product-a")
+    foreign = inflight_registry.claim_with_receipt(
+        root, "harness-backend-dev", "harness-eng-lead", root, now=now + 2,
+        feature="FEAT-495", supervisor_pid=os.getpid(),
+        repository="product-b")
+    missing_repository = inflight_registry.attach_runtime_identity(
+        root, "harness-backend-dev", "FEAT-495", agent_id="child-1")
+    attached = inflight_registry.attach_runtime_identity(
+        root, "harness-backend-dev", "FEAT-495", agent_id="child-1",
+        claim_id=first["claim_id"], repository="product-a")
+    idempotent = inflight_registry.attach_runtime_identity(
+        root, "harness-backend-dev", "FEAT-495", agent_id="child-1",
+        claim_id=first["claim_id"], repository="product-a")
+    second_child = inflight_registry.attach_runtime_identity(
+        root, "harness-backend-dev", "FEAT-495", agent_id="child-2",
+        claim_id=second["claim_id"], repository="product-a")
+    data = _read_raw(root)["claims"]
+    check("case38: factory receipt keeps optional repository and correlation",
+          first["repository"] == "product-a"
+          and first["dispatch_correlation"]["repository"] == "product-a", first)
+    allowed = inflight_registry.repository_binding(
+        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1")
+    mismatch = inflight_registry.repository_binding(
+        root, "harness-backend-dev", "FEAT-495", "product-b", "child-1")
+    released = inflight_registry.release(root, agent_id="child-1")
+    release_state = inflight_registry.repository_binding(
+        root, "harness-backend-dev", "FEAT-495", "product-a", "child-1")
+    check("case38: exact active id is the sole allowed repository binding",
+          allowed == "allow" and mismatch == "mismatched", (allowed, mismatch))
+    check("case38: released repository binding remains explicitly denied",
+          released is True and release_state == "released", release_state)
+    check("case38: identical product children attach independently",
+          attached is True and idempotent is True and second_child is True, data)
+    check("case38: repository-less attachment refuses cross-product candidates",
+          missing_repository is False, data)
+    check("case38: foreign product remains pending",
+          foreign["claim_id"] in [c["claim_id"] for c in data if not c.get("agent_id")],
+          data)
+
+
 CASES = (
     case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
     case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
@@ -1204,6 +1257,7 @@ CASES = (
     case_34_children_refusal_names_suspension, case_35_feature_root_cli,
     case_36_live_claims_read_only_and_binding_horizon,
     case_37_live_claims_refuses_unreadable_registry,
+    case_38_repository_bound_attachment,
 )
 
 

@@ -57,6 +57,16 @@ MARKER = os.path.join(".harness", "team-config.yaml")
 PROJECT_DIR_ENV = "HARNESS_PROJECT_DIR"
 
 
+class RepositoryBases(list):
+    """Workspace bases with their factory repository identity kept beside the classifier."""
+
+    def __init__(self, bases, identities):
+        super().__init__(bases)
+        self._identities = identities
+
+    def identity_for(self, base):
+        return self._identities.get(real(base))
+
 def root_from_script(bin_dir):
     """The root implied by `bin_dir`'s location, by pure arithmetic. ZERO filesystem
     access and ZERO environment reads — for callers that must not touch cwd or disk.
@@ -748,9 +758,15 @@ def resolve_fleet(root, label):
         # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
         fleet = artifact_accessors.load_fleet(fleet_path)
-        bases = [real(factory_config.workspace_path(fleet, e["name"]))
-                 for e in fleet["repos"]]
-        return fleet["workspace_root"], bases, fleet_path
+        bases = [
+            real(factory_config.workspace_path(fleet, entry["name"]))
+            for entry in fleet["repos"]
+        ]
+        identities = {
+            base: factory_config.segment_of(entry["name"])
+            for base, entry in zip(bases, fleet["repos"])
+        }
+        return fleet["workspace_root"], RepositoryBases(bases, identities), fleet_path
     except (artifact_accessors.FleetError, KeyError, TypeError, ValueError) as e:
         print(f"{label}: BLOCKED — the fleet declaration does not load, so no "
               "product path can be identified.", file=sys.stderr)
@@ -805,6 +821,19 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
               file=sys.stderr)
         sys.exit(2)
     return None, None, None
+
+def target_repository(abs_target, root, label):
+    """Return the exact repository identity selected by the shared two-base classifier."""
+    workspace_root, workspace_bases, fleet_path = resolve_fleet(root, label)
+    base, _glob_filter, _target_side_test = select_base(
+        real(abs_target), root, workspace_root, workspace_bases, fleet_path, label)
+    if base is None:
+        return None
+    if real(base) == real(root):
+        return {"base": real(base), "repository": "harness"}
+    identity_for = getattr(workspace_bases, "identity_for", None)
+    repository = identity_for(base) if identity_for else None
+    return {"base": real(base), "repository": repository}
 
 
 def is_control_plane_target(rel):
