@@ -265,7 +265,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The code-review skill resolves to no team grant in the scoped plan route check.
     depends_on: [T-02, T-04]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness-code-review/SKILL.md
         quote: "## Stage 1 — spec compliance"
