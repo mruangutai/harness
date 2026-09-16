@@ -134,7 +134,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The canonical and generated engineering-lead role files have no team grant and must remain synchronized.
     depends_on: []
-    status: ready
+    status: done
     files:
       - path: .omp/agents/harness-eng-lead.md
         quote: "## Conducting build and debug teams"
