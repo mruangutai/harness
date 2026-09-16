@@ -1,0 +1,69 @@
+{
+  "feature_id": "BUG-1716-build-amendments",
+  "branch": "feat/BUG-1716-build-amendments",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T04:27:53+00:00",
+      "ended_at": "2026-09-16T05:12:29+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-product-correction",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-09-16T05:19:19+00:00",
+      "ended_at": "2026-09-16T05:21:23+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-correction-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-09-16T05:21:23+00:00",
+      "ended_at": "2026-09-16T05:30:25+00:00",
+      "tokens": null,
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-09-16T04:27:48+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "new schema surface (a digest field, a sixth judgement kind, a plan-merge verb, per-task text hashes) and a new INV-40 trigger \u2014 fails rule 3 of the patch test; cause and files are known."
+    },
+    {
+      "at": "2026-09-16T05:19:19+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "Operator authorized the bounded targeted PM correction in /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1716-build-amendments/.harness/harness/features/BUG-1716-build-amendments/notes/answers-plan-product.md"
+    },
+    {
+      "at": "2026-09-16T05:21:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "plan-correction-product",
+      "reason": "Dispatch guard rejected the first run slug before any lead or PM started; retry with the required squad-suffixed run slug."
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1716-build-amendments/notes/answers-2026-09-15-sign.md"
+  }
+}

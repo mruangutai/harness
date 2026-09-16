@@ -1,0 +1,294 @@
+schema: plan/1
+feature: BUG-1716-build-amendments
+approval:
+  date: '2026-09-15'
+  approved_by: mruangutai
+  status: approved
+status: plan
+source_issues: [1716]
+panel:
+  last_run: plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: Scope and architecture review found complete coverage, valid routing, and
+      no findings.
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: Independent scope challenge found three task-level additions that PM removed
+      during apply.
+  - reader: design
+    persona: harness-ui-reviewer
+    status: ran
+    reason: No user-facing visual surface; DESIGN.md and a high-fidelity prototype are
+      not required.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: Exactly one grade per declared perspective passed against the original grilling
+      artifact.
+  findings:
+  - id: PF-ac6288f9cf74893a075aa2e0e5b7d13f
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-01's requirement to embed the three BUG-285 T-03 specimens as named acceptance examples in the permanent engineering-lead role file should not be built; the specimens belong only in the test fixtures T-02 and T-04 already carry.
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-15492c981a92060f4f805839386f4b19
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-04's idempotent-replay success mode for record-amendments (replay idempotent only when both the task field and matching judgement already equal the requested amendment) should not be built.
+    disposition: resolved
+    scope: task
+    resolved_by: T-04
+  - id: PF-001fc3bd029e454a9d9872fd73275493
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-03's unit test deriving total, overruled count, and overruled/total rate directly from judgements tests no shipped code and should not be written as a rate test.
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+lanes:
+  resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40
+  rows:
+  - surface: .omp/agents/harness-eng-lead.md
+    lane: main-session-direct
+    reason: The canonical role file has no team grant and must stay synchronized with
+      its generated adapter.
+  - surface: .claude/agents/harness-eng-lead.md
+    lane: main-session-direct
+    reason: The generated role adapter has no team grant and must land with its canonical
+      source.
+  - surface: .claude/skills/harness/bin/validate-digest.py and tests/integration/test-validate-digest.py
+    lane: main-session-direct
+    reason: DEC-174 reserves the digest validator and its tests to the main session.
+  - surface: .claude/skills/harness/bin/feature-record.py, feature-schema.json, and
+      their tests
+    lane: main-session-direct
+    reason: DEC-174 reserves the feature ledger gate and its tests to the main session.
+  - surface: .claude/skills/harness/bin/plan-merge.py and tests/integration/test-plan-merge.py
+    lane: main-session-direct
+    reason: DEC-174 reserves the plan writer and its tests to the main session.
+  - surface: .claude/skills/harness/bin/check-state.py and tests/integration/test-check-state-feat59.py
+    lane: main-session-direct
+    reason: DEC-174 reserves the state gate and its tests to the main session.
+  - surface: .claude/skills/harness/SKILL.md and .claude/skills/harness/references/briefing.md
+    lane: main-session-direct
+    reason: The orchestrator playbook and ship briefing have no team grant.
+  - surface: .claude/skills/harness/references/ledger.md
+    lane: main-session-direct
+    reason: The ledger reference resolves to no team grant in the scoped plan route
+      check.
+  - surface: .claude/skills/harness-code-review/SKILL.md
+    lane: main-session-direct
+    reason: The code-review skill resolves to no team grant in the scoped plan route
+      check.
+  - surface: .harness/harness/docs/DECISIONS.md and DECISIONS-INDEX.md
+    lane: main-session-direct
+    reason: The decision authority and generated index have no team grant.
+decisions:
+  - id: D-01
+    choice: An engineering lead autonomously applies an eligible signed-task how amendment inside the active build run and asks only when success criteria, the task set, a recorded decision, or a file grant would change.
+    because: The signed outcomes and decisions remain the authority while the builder can act on better implementation knowledge.
+    dec: DEC-32
+  - id: D-02
+    choice: The engineering-lead digest carries amendments as an optional list whose entries have exactly task, field, was, now, and reason, with task limited to T-NN and field limited to intent, files, or verify.
+    because: DEC-223 requires the new handoff contract to be closed and machine-validated.
+    dec: DEC-223
+  - id: D-03
+    choice: A signed task-text hash is lowercase SHA-256 over canonical UTF-8 JSON of intent, files, and verify, and the signed hash remains unchanged when later amendments are recorded.
+    because: One deterministic representation lets signature and state gates distinguish signed text from ledgered departures.
+    dec: DEC-229
+  - id: D-04
+    choice: record-amendments compare-and-splices every digest now value into existing task fields, appends one amendment judgement per field, and preserves approved approval bytes while task-set changes still reset approval.
+    because: The one-command transcript must be auditable without turning an eligible text improvement into a new signature round.
+    dec: DEC-229
+  - id: D-05
+    choice: An amendment judgement names task and field as decision T-NN.field, and feature-record selects an entry for overrule by its exact at timestamp before setting overruled true.
+    because: The existing five-key ledger shape stays deep while repeated amendments remain individually selectable.
+    dec: DEC-230
+  - id: D-06
+    choice: QA remains anchored on BRIEF success criteria, code-review Stage 1 on the BRIEF plus decisions, and Stage 2 plus code-grade on the reviewed diff, never on amended task text.
+    because: Independence from the builder-authored how is the safety case for builder-side amendment authority.
+    dec: DEC-226
+  - id: D-07
+    choice: Continuing an eligible amended task in the same build run consumes no rework cycle.
+    because: No gate failed and no work was routed back.
+    dec: DEC-157
+  - id: D-08
+    choice: All four enforcement scripts and each test that changes with them execute main-session-direct, while separately granted prose tasks may use team lanes.
+    because: DEC-174 governs by enforcement category and forbids mixed-route tasks.
+    dec: DEC-174
+tasks:
+  - id: T-01
+    title: Teach the engineering lead to apply eligible amendments
+    traces: [SC-01, SC-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The canonical and generated engineering-lead role files have no team grant and must remain synchronized.
+    depends_on: []
+    status: ready
+    files:
+      - path: .omp/agents/harness-eng-lead.md
+        quote: "## Conducting build and debug teams"
+      - path: .claude/agents/harness-eng-lead.md
+        quote: "## Conducting build and debug teams"
+    verify: |
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check
+    intent: |
+      Update the canonical engineering-lead role, then regenerate its Claude adapter through sync-agent-adapters.py; do not hand-maintain divergent copies. In build mode, when learned implementation facts show that a signed task's how is incomplete or worse, require all three eligibility conditions before proceeding: the change is limited to that existing task's intent, files, or verify; every BRIEF success criterion and the complete task set remain byte-unchanged; and every plan.yaml decisions entry is honored. The lead keeps an eligible correction in the active build run, routes its application to the already owning specialist rather than ending the run or creating a fresh task dispatch, and reports each changed field in an optional amendments list with exactly task, field, was, now, and a non-empty reason of at most 240 characters. The old and new values must retain the task field's type: strings for intent and verify, and the anchored files list for files.
+
+      Require BLOCKED with a blocking open question and the lead's concrete recommendation when an SC must be added, removed, or reworded, a task must be added or deleted, a recorded decision would change, or the required file is outside the specialist's grant. Do not give the lead authority to edit BRIEF success criteria or decisions. Amend the documented lead digest output so an empty or absent amendments list is legal and a populated list uses the exact closed shape.
+  - id: T-02
+    title: Validate the closed amendment digest shape
+    traces: [SC-01, SC-06]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves validate-digest.py and its integration test to the main session.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/validate-digest.py#DOCUMENTED_OPTIONAL
+      - tests/integration/test-validate-digest.py#run_documented_contract_cases
+    verify: |
+      python3 tests/integration/test-validate-digest.py
+    intent: |
+      Declare amendments only for the harness-eng-lead persona in the validator's documented optional contract, not as a generic lead passthrough. Accept an absent field or a list; every list member must be a mapping with exactly task, field, was, now, and reason. Require task to match T-NN, field to be one of intent, files, or verify, reason to be a non-empty string of at most 240 characters, intent and verify old/new values to be strings, and files old/new values to be lists of legal anchored plan file entries. Reject the whole digest with one diagnostic naming the amendment index and bad key or value if any member fails. A task value such as SC-01 or D-01 is therefore refused rather than interpreted as an amendment target.
+
+      Extend the integration contract with valid inline and block mappings for all three fields, absent and empty-list cases, unknown and missing keys, wrong container and value types, overlong and empty reasons, invalid task ids including SC and decision ids, invalid field names, and multiple entries. Include the three BUG-285 recommendations as accepted harness-eng-lead digest fixtures so the exact new output shape can carry every settled specimen. Keep all existing lead aggregation and closed-key failures intact and prove the canonical and generated lead instructions document the optional field.
+  - id: T-03
+    title: Add amendment judgements and the ship overrule route
+    traces: [SC-04]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves feature-record.py, the feature schema, and their tests to the main session.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/feature-record.py#JUDGEMENT_KINDS
+      - path: .claude/skills/harness/bin/feature-schema.json
+        quote: '"judgements": {'
+      - tests/unit/test-feature-record.py#JudgementTest
+      - tests/unit/test-feature-record.py#SchemaTest
+      - tests/integration/test-validate-feature-json.py#case_accepted_all_ten_keys
+    verify: |
+      python3 tests/unit/test-feature-record.py && python3 tests/integration/test-validate-feature-json.py
+    intent: |
+      Add amendment as the sixth JUDGEMENT_KINDS value so the existing judgement command accepts it. Extend the strict feature schema with an optional signed_task_hashes object keyed by T-NN whose values are exactly 64 lowercase hexadecimal characters. Permit an optional overruled property with the sole value true only on a kind amendment judgement; keep it absent on a live amendment and reject it on every other kind. Preserve the existing five required judgement keys and represent amendment identity in decision as T-NN.field rather than adding duplicate task or field properties.
+
+      Add one mutating feature-record route, overrule-amendment --file <feature.json> --at <ISO timestamp>. Under the existing locked writer, select exactly one judgement whose at value matches and whose kind is amendment, refuse zero matches, duplicate matches, or an already overruled entry without changing the file, and otherwise add overruled: true to that entry while preserving all other parsed values and entry order. Print the selected decision on success. Unit-test the sixth kind, schema conditions, exact selection, each refusal's byte identity, multiple amendments on one task field, and preservation of all parsed values and entry order. Update the standalone feature-schema integration fixtures for both the optional hash mapping and conditional overruled property.
+  - id: T-04
+    title: Record task amendments and signed text hashes
+    traces: [SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves plan-merge.py and its integration test to the main session.
+    depends_on: [T-02, T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/plan-merge.py#cmd_record_panel
+      - .claude/skills/harness/bin/plan-merge.py#cmd_sign_approval
+      - tests/integration/test-plan-merge.py#case_approval_byte_identity
+    verify: |
+      python3 tests/integration/test-plan-merge.py
+    intent: |
+      Add the orchestrator-runnable command record-amendments --file <plan.yaml> --digest <engineering-lead digest.md>. Parse the digest's fenced YAML DIGEST mapping with the same fail-closed discipline as record-panel and validate the closed amendment contract before taking locks. Reject duplicate task-field targets, a task absent from the plan, any target outside intent/files/verify, a was value that does not equal the currently loaded field value, a now value of the wrong field type, malformed file anchors, and any SC or decision id target. Preflight every entry and both destination documents before mutation; any refusal must leave plan.yaml and sibling feature.json byte-identical.
+
+      In one successful invocation, compare-and-splice each now value into only the named existing task field, preserving the digest value's string bytes and list item bytes rather than round-tripping the plan through a YAML dumper. Append one feature.json amendment judgement per entry in digest order with by harness-orchestrator, kind amendment, decision T-NN.field, and the digest reason. Do not add or delete a task, change a decision or SC, or mutate any other plan field. Preserve the existing approval mapping byte-for-byte even when approved. Make the cross-file operation all-or-nothing under the established locked write primitives. Refuse every rerun explicitly because its was value no longer equals the current task field, including when both that field and a matching judgement already equal the requested amendment.
+
+      Change approval reset semantics so adding or deleting a task still resets approved to pending, while replacing text on an existing task does not; an unledgered generic task-text edit is left for INV-40 to reject rather than being silently authorized. Extend sign-approval so the same invocation that signs computes signed_task_hashes for every current task and writes them to sibling feature.json. For each task, hash the UTF-8 encoding of canonical JSON for the object with keys files, intent, and verify, using recursively sorted keys, separators comma and colon, and ensure_ascii false; store lowercase SHA-256 hex and do not revise these signed hashes when record-amendments runs.
+
+      Test deterministic hashing across YAML presentation differences, complete task coverage, sign refusal byte identity, an approved amendment whose approval bytes survive, all-or-nothing multi-entry updates, exact plan-field byte preservation, judgement order and identity, rerun and stale-value refusal byte identity, all validation refusals, task-set reset behavior, and no mutation of decisions or unrelated task bytes. Exercise all three BUG-285 amendment fixtures through the command without a new plan proposal or task dispatch.
+  - id: T-05
+    title: Detect unrecorded signed task text changes
+    traces: [SC-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 reserves check-state.py and its integration test to the main session.
+    depends_on: [T-04]
+    status: ready
+    files:
+      - path: .claude/skills/harness/bin/check-state.py
+        quote: "# INV-40 (SC-21, SC-20):"
+      - tests/integration/test-check-state-feat59.py#case_inv40
+    verify: |
+      python3 tests/integration/test-check-state-feat59.py
+    intent: |
+      Extend INV-40 without allocating a new invariant number. For an approved plan whose sibling feature.json carries signed_task_hashes, recompute each current task hash with the exact canonical algorithm owned by plan-merge and compare it with the stored signed value. A difference is covered when judgements contains at least one kind amendment entry whose decision names that task as T-NN.field; otherwise emit one INV-40 violation naming the task, the signed and current hashes, and the remedy to use plan-merge.py record-amendments with an engineering-lead digest. Do not accept another judgement kind or an amendment for another task. An amendment remains the required historical record when later marked overruled, so overruled: true does not erase INV-40 coverage. Do not grade legacy records with no signed_task_hashes, and do not run this trigger on a pending approval.
+
+      Add a focused fixture that signs a task baseline, changes intent without a ledger entry and observes the new violation, then adds the matching amendment judgement and observes silence. Cover files and verify changes, a mismatched task id, an overruled matching entry retaining coverage, deterministic hash agreement with sign-approval, multiple independent changed tasks, malformed hash data remaining the schema gate's concern, and independence from the existing mission, regate, and succession INV-40 triggers.
+  - id: T-06
+    title: Route amendments through build and ship
+    traces: [SC-02, SC-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The orchestrator playbook and ship briefing resolve to no team grant and must be updated together as one operating flow.
+    depends_on: [T-03, T-04]
+    status: ready
+    files:
+      - path: .claude/skills/harness/SKILL.md
+        quote: "**Authority boundary:**"
+      - path: .claude/skills/harness/references/briefing.md
+        quote: "3. **Assemble one document, and open it with the definition of done graded.**"
+    verify: |
+      git diff --check -- .claude/skills/harness/SKILL.md .claude/skills/harness/references/briefing.md
+    intent: |
+      Amend the build phase and return-routing rules so a successful engineering-lead return with amendments is recorded immediately through plan-merge.py record-amendments before the orchestrator advances task or feature station. State that this is transcription inside the existing build run: do not dispatch product, do not create a separate transcript run, do not re-dispatch the task, and do not increment cycles_used. Keep BLOCKED routing for an SC change, task addition or deletion, decision change, or file outside grants, with the lead's open question and recommendation. Narrow the authority-boundary sentence so plan-level scope and decisions remain pm-owned while the new controlled verb is the only builder-learned task-text amendment path.
+
+      Extend the ship briefing procedure to enumerate amendment judgements, show each task-field departure and whether it was overruled, and print a one-line overrule rate as overruled amendment count over total amendment count, defining zero amendments as 0/0 rather than dividing. When the operator overrules one, direct the main session to call feature-record.py overrule-amendment with the entry's exact at timestamp before the ship record is finalized. Do not add a build advisor seat or a fresh approval question.
+  - id: T-07
+    title: Document amendment ledger and cycle semantics
+    traces: [SC-03, SC-04, SC-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The ledger reference resolves to no team grant in the scoped plan route check.
+    depends_on: [T-03, T-04, T-05]
+    status: ready
+    files:
+      - path: .claude/skills/harness/references/ledger.md
+        quote: "## Judgements"
+    verify: |
+      git diff --check -- .claude/skills/harness/references/ledger.md
+    intent: |
+      Update the judgement table from five kinds to six and define amendment as the orchestrator's record that signed task how changed in the same build run. Document decision identity T-NN.field, the exact-timestamp overrule route, absent versus true overruled state, and the overruled/total trust rate derived from judgements. Extend the INV-40 explanation with signed_task_hashes and the unrecorded task-text remedy. In the cycle section state explicitly that continuation after an eligible amendment is part of the current run and consumes no cycle because no gate failed; preserve the existing definitions for real rework, run accounting, and main-session-direct segments.
+  - id: T-08
+    title: Review amendments against outcomes and decisions
+    traces: [SC-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The code-review skill resolves to no team grant in the scoped plan route check.
+    depends_on: [T-02, T-04]
+    status: ready
+    files:
+      - path: .claude/skills/harness-code-review/SKILL.md
+        quote: "## Stage 1 — spec compliance"
+    verify: |
+      git diff --check -- .claude/skills/harness-code-review/SKILL.md
+    intent: |
+      In Stage 1, require the reviewer to read the build lead's amendments list as the explicit map of departures from signed task how. For each entry, compare the resulting diff only with BRIEF success criteria and plan.yaml decisions: a departure that serves both passes, while one that weakens, contradicts, or escapes them is a substance finding with a concrete failure scenario. State explicitly that Stage 1 never uses signed or amended task intent, files, or verify as its compliance anchor. Preserve Stage 2's independence and order: it examines the pinned diff and recomputes code quality, including code-grade.py for changed Python, without inheriting an efficiency claim from the amendment reason.
+  - id: T-09
+    title: Reconcile amendment authority decisions
+    traces: [SC-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The decision authority and generated index resolve to no team grant.
+    depends_on: [T-05, T-06, T-07, T-08]
+    status: ready
+    files:
+      - path: .harness/harness/docs/DECISIONS.md
+        quote: "## DEC-23 — Hard boundary between a decision and an observation"
+      - path: .harness/harness/docs/DECISIONS-INDEX.md
+        quote: "- DEC-230 @7414"
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && python3 tests/integration/test-gen-decisions-index.py
+    intent: |
+      Rewrite current truth in the existing decisions rather than adding amendment history. DEC-23 must say approval gates the signed plan and eligible task-text departures are later governed by the ledger, without granting changes to success criteria, the task set, or decisions. DEC-32 must make the three-condition build amendment a recorded autonomous action while all ineligible changes remain one blocking question with a recommendation. DEC-157 must state that same-run continuation after an eligible amendment is a run, not a cycle. DEC-229 must add record-amendments as the byte-preserving record-panel precedent and state that task-set changes reset approval while ledgered task-text amendments preserve it. DEC-230 must enumerate amendment as the sixth judgement kind, define the signed-hash INV-40 trigger, exact-entry ship overrule, and overrule-rate trust KPI.
+
+      Cite DEC-226 as the precedent for replacing repeated operator authorization with one later auditable ruling. Record the complete safety case in current truth: QA coverage is derived from the BRIEF without source access; code-review Stage 1 is anchored only on BRIEF success criteria and plan decisions; Stage 2 plus code-grade.py is recomputed from the reviewed diff by validate-digest.py; and validate must never be re-anchored on task text. Preserve DEC-174's routing boundary and DEC-223's closed-contract rule. Regenerate DECISIONS-INDEX.md with the canonical generator so summaries, refs, and line anchors match the edited authority.
