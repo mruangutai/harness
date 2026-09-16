@@ -2,7 +2,7 @@
   "feature_id": "FEAT-1714-reject-verb",
   "branch": "feat/FEAT-1714-reject-verb",
   "pr": null,
-  "review_sha": "ecb7d6c380b05adfc80ff1da8109133f06bace28",
+  "review_sha": "82bdef1a6f7cd89005f661a06296725f5b1ad9b1",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
