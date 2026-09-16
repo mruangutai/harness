@@ -280,7 +280,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The decision authority and generated index resolve to no team grant.
     depends_on: [T-05, T-06, T-07, T-08]
-    status: ready
+    status: done
     files:
       - path: .harness/harness/docs/DECISIONS.md
         quote: "## DEC-23 — Hard boundary between a decision and an observation"

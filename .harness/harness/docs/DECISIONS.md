@@ -254,12 +254,18 @@ per-section caps and `max-lines`.
 
 ## DEC-23 — Hard boundary between a decision and an observation
 
-**Chose:** a *choice* goes to `PLAN.md ## Decisions` (approval-gated); an *observation about how the
-codebase behaves* goes to the mental model.
+**Chose:** a *choice* goes to `plan.yaml`'s `decisions:` (approval-gated); an *observation about how
+the codebase behaves* goes to the mental model. Your approval gates the SIGNED plan — its success
+criteria, its task set, its decisions. An eligible departure from a signed task's HOW (`intent`,
+`files`, `verify`) made during the build is governed afterwards by the ledger — one `amendment`
+judgement per changed field, written by `plan-merge.py record-amendments` and audited at ship
+(DEC-229, DEC-230) — and never by a fresh signature; that governance grants no change to a success
+criterion, the task set, or a decision, each of which stays approval-gated.
 **Over:** letting agents record whatever they learned wherever it fits.
 **Because:** without the boundary, mental models become a **shadow decision log that bypasses your
 approval**. "We decided on Postgres" is yours to sign; "migrations fail if run before the seed
-script" is not.
+script" is not. And a task's HOW is the builder's: an implementation fact that improves it is an
+observation acted on and ledgered, not a decision re-signed.
 **Tradeoff accepted:** agents must classify, and misclassification is possible.
 
 ## DEC-24 — Expertise write discipline is advisory, in three layers
@@ -354,7 +360,15 @@ to `must_fix`.
 ## DEC-32 — Autonomy is scoped by reversibility, not switched on or off
 
 **Chose:** cheap and reversible → decide autonomously and record it; expensive or hard to reverse →
-ask via `open_questions`; scope/goal/decision changes → always ask.
+ask via `open_questions`; scope/goal/decision changes → always ask. One recorded autonomous action
+sits on the reversible side by construction: an engineering lead's **build amendment** to a signed
+task's `intent`, `files` or `verify`, when all three conditions hold — the change is limited to
+that existing task's HOW; every success criterion and the whole task set stay byte-unchanged;
+every recorded decision is honoured. The lead applies it in the same run through the owning
+specialist and reports it in its digest's `amendments:`; the orchestrator ledgers it (DEC-229).
+Every ineligible change — an SC added, removed or reworded; a task added or deleted; a decision
+that would change; a file outside the specialist's grant — is ONE `BLOCKED` question carrying the
+lead's recommendation, never an edit.
 **Over:** (a) the reference config's blanket `high-autonomy: "act autonomously, zero questions"`;
 (b) rejecting autonomy wholesale.
 **Because:** adopting the blanket version would invert this design — the orchestrator exists to brief
@@ -3613,7 +3627,10 @@ Two clarifications, no new machinery:
 - **The unit: `cycles_used` counts REWORK ONLY.** It increments when a FAIL is routed back, when
   an unmet SC re-dispatches, or when a lead reports send-backs inside a run — never for a
   first-pass run. A clean run reports and contributes **zero** cycles (a lead's digest
-  `cycles_used` is its send-back count, not its step count). First-pass work is already bounded
+  `cycles_used` is its send-back count, not its step count). **Same-run continuation after an
+  eligible amendment is a run, not a cycle** (DEC-32, DEC-229): no gate failed and nothing was
+  routed back — the lead corrected the task's HOW and the owning specialist carried on, and the
+  orchestrator's `record-amendments` is transcription. First-pass work is already bounded
   by the PLAN's task list, which has a natural end; the cycle budget exists solely for the loop
   that does not — consecutive rework. Inflating the number instead (30–50 while counting runs)
   was rejected: it defeats the bound's one job, killing a genuine runaway loop early.
@@ -7417,17 +7434,25 @@ entry now holds. Refs: DEC-176, DEC-188, DEC-207, DEC-209, DEC-216, DEC-225, DEC
 
 **One reader rule stated here (moved from `harness-brief` under FEAT-60).** An orphan SC — a criterion no task traces to — is a `substance` finding, because a criterion nothing builds toward is a promise nothing will keep.
 
-## DEC-229 — `record-panel` is an orchestrator-runnable verb; pm still authors the plan
+## DEC-229 — `record-panel` and `record-amendments` are orchestrator-runnable verbs; pm still authors the plan
 
 **Chose:** `plan-merge.py record-panel --digest <path>` writes the top-level `panel:` mapping from a
 lead digest's `findings` and `readers` lists, carrying every finding already present byte for byte,
 and the orchestrator may run it — as it already runs `set-task-station`. FEAT-45 plan D-03 (a
 reader's findings reach disk only by the lead transcribing them, and pm alone writes `plan.yaml`) is
-amended by that one key. Alongside it: `apply` replaces a changed field on an existing id, `set-lanes`
-gives `lanes:` a write route, `set-panel` keeps the bytes of every unchanged finding, and any verb
-that changes the task set or a task field on an approved plan resets `approval.status` to `pending`
-with `reset_at` and `reset_reason`; `sign-approval` stays the only writer of `approved`. Origin:
-FEAT-59 SC-05, SC-08.
+amended by that one key. On the same precedent, `plan-merge.py record-amendments --file <plan.yaml>
+--digest <engineering-lead digest>` splices each `amendments:` entry's `now` over the named task's
+`intent`, `files` or `verify` — compare-and-splice on `was`, only the named field's bytes
+re-rendered, every other byte and the approval mapping preserved — and appends one `amendment`
+judgement per entry to `feature.json`, all-or-nothing across both files (BUG-1716). At signature,
+`sign-approval` writes `signed_task_hashes` (lowercase SHA-256 over canonical JSON of each task's
+`{files, intent, verify}`) to `feature.json`, and no later verb revises them. Alongside: `apply`
+replaces a changed field on an existing id, `set-lanes` gives `lanes:` a write route, `set-panel`
+keeps the bytes of every unchanged finding. **A task-set change resets approval; a ledgered task-text
+amendment preserves it**: a verb that adds or deletes a task on an approved plan resets
+`approval.status` to `pending` with `reset_at` and `reset_reason`, while replacing text on an
+existing task leaves the signature standing and is INV-40's to grade against the signed hashes;
+`sign-approval` stays the only writer of `approved`. Origin: FEAT-59 SC-05, SC-08; BUG-1716.
 
 **Over:** a pm run whose only work is to copy the lead's findings into `plan.yaml`.
 
@@ -7438,20 +7463,34 @@ route, `set-panel` re-wrapping findings — so pm needed a `/tmp` driver to use 
 Authorship is a judgement; transcription is not. The signature (DEC-120) and the approval reset are
 what protect the plan, not the identity of the hand that copies a finding into it.
 
-**Tradeoff accepted:** two writers of `plan.yaml`'s non-task keys. The task set stays pm's, every
-write goes through `plan-merge.py`, and the approval reset makes a changed task set unsignable by
-accident.
+**Tradeoff accepted:** two writers of `plan.yaml`'s non-task keys, and one builder-learned write to
+a task's HOW. The task set stays pm's, every write goes through `plan-merge.py`, the approval reset
+makes a changed task set unsignable by accident, and the signed hashes make an unledgered task-text
+edit visible (INV-40). The safety case for builder-side amendments is independence from the HOW:
+QA derives its coverage from the BRIEF with no source access; code-review Stage 1 is anchored on the
+BRIEF's success criteria and the plan's decisions only; Stage 2 with `code-grade.py` is recomputed
+from the reviewed diff by `validate-digest.py`; validate is never re-anchored on task text. DEC-174's
+routing boundary and DEC-223's closed-contract rule are unchanged — `amendments` is a closed
+five-key shape on the engineering lead's digest alone.
 
-**Record:** amends FEAT-45 plan D-03. Refs: DEC-120, DEC-182, DEC-228.
+**Record:** amends FEAT-45 plan D-03. Refs: DEC-32, DEC-120, DEC-174, DEC-182, DEC-223, DEC-226, DEC-228, DEC-230.
 
 ## DEC-230 — The judgement ledger: every autonomous judgement is a `judgements[]` entry, and uncertainty asks once with a recommendation
 
 **Chose:** every autonomous judgement the harness makes on a feature — the mission choice, a
 finding's `kind`, re-gate or not, continue or stop, succession — is appended to `feature.json`
 `judgements[]` as `{at, by, kind, decision, reason}` by `feature-record.py judgement`, with a
-one-line reason of at most 240 characters. The five kinds are exhaustive. INV-40 refuses a `mission`
-with no `mission` entry, a FAIL run followed by another run with no `regate` entry, and a handoff
-with runs after it and no `succession` entry. A successor's first act after reading the handoff is
+one-line reason of at most 240 characters. The six kinds are exhaustive: `mission`, `finding_kind`,
+`regate`, `continue`, `succession`, and `amendment` — the engineering lead's in-build change to a
+signed task's `intent`, `files` or `verify`, written by `plan-merge.py record-amendments` with
+`decision: T-NN.<field>` (DEC-229). INV-40 refuses a `mission` with no `mission` entry, a FAIL run
+followed by another run with no `regate` entry, a handoff with runs after it and no `succession`
+entry, and a signed task whose current `{files, intent, verify}` no longer hash to
+`signed_task_hashes` with no `amendment` entry naming that task. At ship the briefing tables every
+amendment; the operator overrules one by its exact `at` — `feature-record.py overrule-amendment
+--file <feature.json> --at <instant>` adds `overruled: true` to that entry alone, absent otherwise
+and legal on no other kind — and `overruled / total` over `amendment` entries (`0/0` when none) is
+the trust KPI for builder-side amendments, derived from the ledger, never recorded beside it. A successor's first act after reading the handoff is
 a `succession` judgement — continue, downgrade or stop, from the feature's cumulative spend and the
 handoff's `## Next` — reported in its first return; it does not ask. When a reader or the
 orchestrator cannot classify — a finding's kind, a mission's proportionality, whether a finding is a
@@ -7473,11 +7512,13 @@ runs per feature from 10–16 to 40 with shipped diffs unchanged.
 
 **Tradeoff accepted:** a judgement is recorded after it is made, so the ledger catches a wrong one
 only after its cost is spent, and the KPI needs five features of volume before it says anything.
-INV-40's three triggers are the ones that leave a trace in `feature.json`; a `finding_kind` or
+INV-40's four triggers are the ones that leave a trace in `feature.json`; a `finding_kind` or
 `continue` judgement that was never recorded is caught by no invariant, only by the operator's
-reading. Stated so nobody claims the ledger is complete by construction.
+reading. Stated so nobody claims the ledger is complete by construction. DEC-226 is the precedent
+this extends: one later, auditable ruling in place of repeated in-flight authorization — there for
+rework rounds, here for a builder's amendment of its own task text.
 
-**Record:** refs DEC-134, DEC-157, DEC-225, DEC-226, DEC-227, DEC-228.
+**Record:** refs DEC-32, DEC-134, DEC-157, DEC-225, DEC-226, DEC-227, DEC-228, DEC-229.
 
 ## DEC-231 — One statement of done: `## Done when — by perspective` replaces Goal and REQ, and every SC discharges a perspective
 
