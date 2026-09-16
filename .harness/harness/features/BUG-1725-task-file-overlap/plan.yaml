@@ -6,7 +6,7 @@ approval:
   status: pending
   reset_at: '2026-09-16T05:16:23+00:00'
   reset_reason: amend T-01
-status: review
+status: done
 source_issues: [1725]
 lanes:
   resolved_at: 1a1c1925171803db8ac7f7464560a3767fa902a8
