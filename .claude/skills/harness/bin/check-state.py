@@ -2880,18 +2880,25 @@ def _iso_instant(v):
 # the unrecorded decision this refuses. An entry recording an earlier value covers only that
 # raise; the current one is still undecided.
 #
-# INV-40 (SC-21, SC-20): every autonomous judgement leaves a judgements[] entry. Three
-# INDEPENDENT checks, each on its own trigger, so one record can fail all three and each line
+# INV-40 (SC-21, SC-20): every autonomous judgement leaves a judgements[] entry. Four
+# INDEPENDENT checks, each on its own trigger, so one record can fail all four and each line
 # names its own remedy: (a) a `mission` whose LAST entry of kind mission is absent or decided
 # a different value -- set-mission ran without the ledger hearing of it; (b) a run with verdict
 # FAIL that a later run follows -- a re-gate happened -- with no entry of kind regate; (c) a
 # handoff note with at least one run recorded after its `seq-N` -- a successor woke -- with no
-# entry of kind succession. Entries are appended in order and the ledger is one flat list, so
-# (b) and (c) match by COUNT: k re-gates need k regate entries and the first uncovered run or
-# note is the one named. `seq-N` is the note's own first-line marker (templates/HANDOFF.md),
-# read as the ordinal of the run that wrote it; run N+1 onward is the successor's. An in-era
-# note with no marker is refused rather than skipped, because a note that cannot be placed
-# cannot be matched -- the same posture INV-32 takes on an undated approval.
+# entry of kind succession; (d) BUG-1716: a task whose current {files, intent, verify} hash
+# differs from the hash `sign-approval` recorded in `signed_task_hashes` -- the signed text
+# changed -- with no entry of kind amendment whose decision is that task's `T-NN.<field>`.
+# Entries are appended in order and the ledger is one flat list, so (b) and (c) match by
+# COUNT: k re-gates need k regate entries and the first uncovered run or note is the one
+# named. `seq-N` is the note's own first-line marker (templates/HANDOFF.md), read as the
+# ordinal of the run that wrote it; run N+1 onward is the successor's. An in-era note with no
+# marker is refused rather than skipped, because a note that cannot be placed cannot be
+# matched -- the same posture INV-32 takes on an undated approval. (d) recomputes with the
+# hash plan-merge.py owns (`signed_task_hash`), never a re-spelling of it; an overruled
+# amendment still covers -- the ledger is the historical record whatever the operator ruled;
+# a record with no `signed_task_hashes` (signed before BUG-1716) and a pending approval are
+# not graded; malformed hash data is the schema gate's finding, not this one's.
 #
 # INV-43 (BUG-1723 SC-03, D-02): the succession judgement for a handoff at seq-N is recorded
 # NO LATER than run N+1 started. INV-40(c) asks whether it exists; this asks WHEN. A
@@ -2904,6 +2911,47 @@ def _iso_instant(v):
 # Chronology is compared on ISO-8601 instants, so `Z` and `+00:00` agree.
 _default_cycles = (_int_field((cj.get("budgets") or {}).get("max_total_cycles"))
                    if isinstance(cj, dict) else None)
+try:
+    import importlib.util as _ilu40
+    _spec40 = _ilu40.spec_from_file_location(
+        "harness_plan_merge", os.path.join(sys.argv[2], "plan-merge.py"))
+    _pm40 = _ilu40.module_from_spec(_spec40)
+    _spec40.loader.exec_module(_pm40)
+    _signed_task_hash = _pm40.signed_task_hash
+except Exception as _pme40:
+    _signed_task_hash = None
+    bad.append("INV-40 CANNOT RUN its signed-text check: plan-merge.py did not import "
+               f"({type(_pme40).__name__}: {_pme40}), so an unledgered task-text change would go "
+               "unreported. The module ships with this repository.")
+
+
+def _unledgered_task_edits(doc, plan_doc):
+    """INV-40 (d): one (short, full) hit per task whose current hash differs from its signed
+    hash with no amendment judgement naming that task."""
+    signed = doc.get("signed_task_hashes")
+    approval = plan_doc.get("approval") if isinstance(plan_doc, dict) else None
+    approved = isinstance(approval, dict) and str(approval.get("status", "")).strip() == "approved"
+    if _signed_task_hash is None or not isinstance(signed, dict) or not approved:
+        return []
+    covered = {str(e.get("decision", "")).split(".", 1)[0]
+               for e in (doc.get("judgements") or [])
+               if isinstance(e, dict) and str(e.get("kind", "")).strip() == "amendment"}
+    hits = []
+    for task in (plan_doc.get("tasks") or []):
+        tid = str(task.get("id", "")) if isinstance(task, dict) else ""
+        if tid not in signed or tid in covered:
+            continue
+        current = _signed_task_hash(task)
+        if current != signed[tid]:
+            hits.append(("INV-40", f"{tid}'s signed text changed with no amendment judgement",
+                         f"{tid}'s intent/files/verify hash to {current[:12]}… but were signed "
+                         f"as {str(signed[tid])[:12]}…, and judgements[] carries no entry of "
+                         f"kind amendment for {tid} — the signed text was edited outside the "
+                         f"ledger (SC-21, DEC-229); record it with plan-merge.py "
+                         f"record-amendments --file plan.yaml --digest <engineering-lead "
+                         f"digest>, or restore the signed text"))
+    return hits
+
 
 for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
     _feat59 = os.path.basename(os.path.dirname(_fy59))
@@ -2988,6 +3036,7 @@ for _fy59 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.jso
                                 f"mission decided '{_last59}' — the mission was changed with no "
                                 f"judgement recording the change (SC-21); record it with "
                                 f"feature-record.py set-mission --by <persona> --reason <why>"))
+    _hits59.extend(_unledgered_task_edits(_doc59, plan_docs.get(_feat59) or {}))
     _runs59 = [e for e in (_doc59.get("runs") or []) if isinstance(e, dict)]
     _regates59 = _kinds59.count("regate")
     _need_regate = [str(e.get("id", "")).strip() for e in _runs59[:-1]

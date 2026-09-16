@@ -368,6 +368,129 @@ def case_inv40():
     return results
 
 
+# ------------------------------------------------------------------ INV-40 (d), BUG-1716 ---
+
+_SIGNED_PLAN = ("schema: plan/1\nfeature: FEAT-TEST\n"
+                "approval:\n  status: approved\n  approved_by: X\n  date: 2026-09-15\n"
+                "status: building\n"
+                "tasks:\n"
+                "  - id: T-01\n    title: a\n    traces: [SC-01]\n    change_type: logic\n"
+                "    execution_mode: main-session-direct\n    depends_on: []\n    status: building\n"
+                "    intent: one\n    files: [a.py]\n    verify: python3 a.py\n"
+                "  - id: T-02\n    title: b\n    traces: [SC-01]\n    change_type: logic\n"
+                "    execution_mode: main-session-direct\n    depends_on: []\n    status: ready\n"
+                "    intent: two\n    files: [b.py#f]\n    verify: python3 b.py\n")
+_PLAN_MERGE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                           ".claude", "skills", "harness", "bin", "plan-merge.py")
+
+
+def _amend_j(decision, **extra):
+    entry = {"at": "2026-09-15T12:00:00+00:00", "by": "harness-orchestrator", "kind": "amendment",
+             "decision": decision, "reason": "fixture"}
+    entry.update(extra)
+    return entry
+
+
+def _signed(plan_text=_SIGNED_PLAN, mutate=None, judgements=(), sign=True):
+    """A feature signed THROUGH plan-merge.py sign-approval (so the hashes are the real
+    ones), then `mutate(plan_text) -> plan_text` applied and `judgements` appended."""
+    import subprocess
+    with tempfile.TemporaryDirectory() as tmp:
+        fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
+        plan = os.path.join(fdir, "plan.yaml")
+        with open(plan, "w") as f:
+            f.write(plan_text.replace("status: approved", "status: pending") if sign else plan_text)
+        if sign:
+            env = dict(os.environ)
+            env.pop("HARNESS_AGENT_TYPE", None)
+            r = subprocess.run([sys.executable, _PLAN_MERGE, "sign-approval", "--file", plan,
+                                "--by", "X", "--date", "2026-09-15"],
+                               capture_output=True, text=True, env=env)
+            assert r.returncode == 0, r.stderr
+        if mutate is not None:
+            with open(plan) as f:
+                text = f.read()
+            with open(plan, "w") as f:
+                f.write(mutate(text))
+        fj = os.path.join(fdir, "feature.json")
+        with open(fj) as f:
+            doc = json.load(f)
+        doc["judgements"] = list(judgements)
+        with open(fj, "w") as f:
+            f.write(json.dumps(doc, indent=1) + "\n")
+        return run(tmp)
+
+
+def case_inv40_signed_text():
+    """BUG-1716 T-05: an edit to a signed task's intent/files/verify with no amendment
+    judgement naming that task is an INV-40 violation; the matching amendment silences it."""
+    results = []
+    _, out = _signed()
+    results.append(("(40d.a) a freshly signed plan is silent — the hashes agree with sign-approval",
+                    not _lines(out, "INV-40") and "plan.yaml does not load" not in out, out[:400]))
+
+    change_intent = lambda t: t.replace("intent: one", "intent: one, revised")
+    _, out = _signed(mutate=change_intent)
+    v = _violations(out, "INV-40")
+    results.append(("(40d.b) an unledgered intent change is ONE violation naming the task and the remedy",
+                    len(v) == 1 and "T-01" in v[0] and "record-amendments" in v[0] and "T-02" not in v[0],
+                    out[:500]))
+
+    _, out = _signed(mutate=change_intent, judgements=[_amend_j("T-01.intent")])
+    results.append(("(40d.c) the matching amendment judgement silences it",
+                    not _lines(out, "INV-40"), out[:400]))
+
+    _, out = _signed(mutate=change_intent, judgements=[_amend_j("T-01.intent", overruled=True)])
+    results.append(("(40d.d) an OVERRULED matching amendment still covers — the ledger is the record",
+                    not _lines(out, "INV-40"), out[:400]))
+
+    _, out = _signed(mutate=change_intent, judgements=[_amend_j("T-02.intent")])
+    v = _violations(out, "INV-40")
+    results.append(("(40d.e) an amendment for ANOTHER task does not cover",
+                    len(v) == 1 and "T-01" in v[0], out[:400]))
+
+    _, out = _signed(mutate=change_intent,
+                     judgements=[dict(_amend_j("T-01.intent"), kind="regate")])
+    v = _violations(out, "INV-40")
+    results.append(("(40d.f) another judgement kind naming the task does not cover",
+                    len(v) == 1 and "T-01" in v[0], out[:400]))
+
+    _, out = _signed(mutate=lambda t: t.replace("files: [a.py]", "files: [a.py, c.py]"))
+    results.append(("(40d.g) a files change is caught", len(_violations(out, "INV-40")) == 1, out[:400]))
+    _, out = _signed(mutate=lambda t: t.replace("verify: python3 b.py", "verify: python3 b.py -v"))
+    v = _violations(out, "INV-40")
+    results.append(("(40d.h) a verify change is caught, on the task it belongs to",
+                    len(v) == 1 and "T-02" in v[0], out[:400]))
+
+    _, out = _signed(mutate=lambda t: change_intent(t).replace("intent: two", "intent: two, revised"))
+    v = _violations(out, "INV-40")
+    results.append(("(40d.i) two independently changed tasks are two violations",
+                    len(v) == 2 and any("T-01" in x for x in v) and any("T-02" in x for x in v),
+                    out[:500]))
+
+    _, out = _signed(mutate=lambda t: t.replace("intent: one\n", "intent: 'one'\n")
+                     .replace("files: [a.py]", "files:\n      - a.py"))
+    results.append(("(40d.j) a presentation-only rewrite (quoting, list form) hashes the same — silent",
+                    not _lines(out, "INV-40"), out[:400]))
+
+    _, out = _signed(mutate=change_intent, sign=False)
+    results.append(("(40d.k) a plan with no signed_task_hashes (signed before BUG-1716) is not graded",
+                    not _lines(out, "INV-40"), out[:400]))
+
+    _, out = _signed(mutate=lambda t: change_intent(t).replace("status: approved", "status: pending"))
+    results.append(("(40d.l) a pending approval is not graded by this trigger",
+                    not _lines(out, "INV-40"), out[:400]))
+
+    # Independence from (a)/(b)/(c): a mission with no mission judgement still reports on its
+    # own line beside the text violation.
+    _, out = _signed(mutate=change_intent)
+    results.append(("(40d.m) the text trigger reports beside, not instead of, the other triggers",
+                    len(_violations(out, "INV-40")) == 1, out[:400]))
+    return results
+
+
+
+
 # ----------------------------------------------------------------------------- INV-43 ---
 
 def _timed(rid, started, verdict="PASS"):
@@ -570,8 +693,8 @@ def _report(results):
 
 
 def main():
-    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv41()
-                        + case_inv43_chronology() + case_inv43_unreadable()
+    return 0 if _report(case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
+                        + case_inv41() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv43_era_config()) else 1
 

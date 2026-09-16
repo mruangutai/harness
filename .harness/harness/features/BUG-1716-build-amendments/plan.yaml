@@ -213,7 +213,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 reserves check-state.py and its integration test to the main session.
     depends_on: [T-04]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/bin/check-state.py
         quote: "# INV-40 (SC-21, SC-20):"
