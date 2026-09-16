@@ -3,11 +3,11 @@
 ## Current
 
 - feature: BUG-1723-orchestrator-closeout
-- run: .harness/harness/features/BUG-1723-orchestrator-closeout/runs/fix-c2-validator/state.yaml
+- run: .harness/harness/features/BUG-1723-orchestrator-closeout/runs/fix-c3-validator/state.yaml
 - squad: none
 - status: awaiting-user
+- review_sha: 6999227750f68b3ec9c8f77a3ae4f281310742a9
 
 ## Open Questions
 
-- C1-V01 (blocking, unowned scope change, high): Approve adding the BUG-1723 DEC-159 clause in `.harness/harness/docs/DECISIONS.md` (and regenerated index if required) to scope, then reconcile its terminal-note exemption with the approved all-stations INV-43 contract.
-- C2-QA01 (blocking, validator infrastructure): Decide whether return validation must execute at pinned `review_sha` or whether the later-checkout `run-unit-tests.py` failure must be repaired outside this feature gate.
+- Q1 (blocking, validator process): Why does the return validator re-run a later checkout by shell-invoking `.claude/skills/harness/bin/run-unit-tests.py`, contrary to the exact-pin `python3` invocation resolved in the signed c2 Q1 answer?

@@ -43,6 +43,15 @@
       "started_at": "2026-09-16T06:19:29+00:00",
       "ended_at": "2026-09-16T06:43:04+00:00",
       "tokens": null
+    },
+    {
+      "id": "fix-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "started_at": "2026-09-16T06:48:43+00:00",
+      "ended_at": "2026-09-16T07:04:25+00:00",
+      "tokens": null
     }
   ],
   "judgements": [
@@ -143,6 +152,20 @@
       "kind": "continue",
       "decision": "continue",
       "reason": "c2 BLOCKED on two questions (stale DEC-159 sentence Main wrote; verifier ran the symlink as shell), both answered by fact not fix; one further validate round on the operator's standing authorization, recorded here"
+    },
+    {
+      "at": "2026-09-16T06:48:35+00:00",
+      "by": "harness-orchestrator",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "Resume validate for the one authorized c3 round after Main answered c2 Q1 and Q2; review SHA 69992277 is pinned and ancestry-verified"
+    },
+    {
+      "at": "2026-09-16T07:04:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Stop after the one authorized c3 round: QA's return validator repeated the ruled-out later-checkout shell invocation, leaving one blocking process question"
     }
   ],
   "mission": "plan",
