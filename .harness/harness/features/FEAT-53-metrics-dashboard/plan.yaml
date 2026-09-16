@@ -1,12 +1,12 @@
 schema: plan/1
 feature: FEAT-53-metrics-dashboard
-status: plan
+status: ready
 source_issues: []
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
+  status: approved
+  approved_by: operator
+  date: '2026-09-16'
 
 lanes:
   resolved_at: bb39d5c46e109ea020739fb9d7cea3b175b09b7a
@@ -336,7 +336,7 @@ tasks:
     files:
       - .harness/team-config.yaml
     verify: |
-      bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/dashboard/client/src/App.tsx | grep -qx harness-frontend-dev
+      python3 .claude/skills/harness/bin/check-domain.py --resolve .claude/skills/harness/bin/dashboard/client/src/App.tsx | grep -qx harness-frontend-dev
     intent: |
       In .harness/team-config.yaml, under teams -> Engineering -> members -> harness-frontend-dev ->
       domain, add one entry immediately after the existing web/src/** entry:

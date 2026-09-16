@@ -462,4 +462,5 @@ perspective.
 
 status: approved
 approved-by: operator (Mike Ruangutai), via main session
-date: 2026-09-02
+date: 2026-09-16
+scope: re-signed as one DEC-75 bundle (BRIEF + plan.yaml + prototype) after the 2026-09-15/16 operational-view amendments; supersedes the 2026-09-02 signature. Rework ruling rounds=10, minutes=450.
