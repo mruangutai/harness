@@ -129,6 +129,13 @@
       "kind": "regate",
       "decision": "fix-c2-validator",
       "reason": "Re-gate c1 findings C1-V01, C1-V02, and C1-V03 after the main-session-direct c2 fix at 972d5c05"
+    },
+    {
+      "at": "2026-09-16T06:44:18+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "Stop after the final operator-approved rework round: the unowned DEC-159 scope change and validator checkout mismatch require operator decisions"
     }
   ],
   "mission": "plan",
