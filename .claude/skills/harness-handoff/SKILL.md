@@ -41,6 +41,10 @@ on them; every field present, "nothing" as an explicit `[]` or `none`, never an 
 
 **Never invent a verdict** — undeterminable is `BLOCKED`, with why.
 
+**`status: rejected` judges the ticket, not work (FEAT-1714):** the orchestrator alone returns it
+at first-run intake, with one inline `judgement: { kind: reject, superseded_by: <issue | none>,
+reason }` and `cycles_used: 0`.
+
 **Dispatchers** (orchestrator, lead) read
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/runtime-handoff.md` before the run's
 first dispatch — wakes, verification before accepting a verdict, never waiting.
@@ -56,7 +60,7 @@ first dispatch — wakes, verification before accepting a verdict, never waiting
 - **BLUF.** The conclusion first, never "I explored X, then Y."
 - **Claims plus pointers, never payloads.** "Auth is JWT (`auth/mw.ts:42`)" — they have the path.
 - **Open questions, explicitly** — the next agent's to-do list.
-- **Bounded — one screen.** Length is the enemy of signal.
+- **Bounded — one screen.**
 
 Routing reads only VERDICT and DIGEST; put what it depends on there.
 
@@ -65,7 +69,7 @@ Routing reads only VERDICT and DIGEST; put what it depends on there.
 feature-directory write: your path, the root-resolve command, the no-shell rule. The five engineers
 and the documentor own no path and write the receipt
 `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`
-— **not your observations log**, which no spawn ever injects.
+— **not your observations log**.
 
 ## Decide or ask — scoped by reversibility
 
@@ -75,13 +79,12 @@ and the documentor own no path and write the receipt
 
 **Never yours: removing a worktree** — `git worktree remove` exits 0 from inside the tree it deletes;
 the main session or `post-merge` hook does it from outside. **Out of scope is out of scope**: note
-it in the DIGEST, never fix it while you are there. **An open question does not block you**: raise
-it, do what you can, return; a member never waits on a human.
+it in the DIGEST, never fix it. **An open question does not block you**: raise it, do what you can,
+return; a member never waits on a human.
 
 ## Consulting decisions — cited is a floor, never a ceiling
 
 Cited decisions are the **minimum**, not the set: the dispatcher's framing is a hypothesis.
 **Never read an authority file whole**: index first, then only the entries that bear on your task.
 **Go broader** when a citation references an uncited decision, when the citations do not cover what
-you judge, when your Expertise implies an omitted rule, or when "surely this was decided already"
-fires.
+you judge, or when your Expertise implies an omitted rule.

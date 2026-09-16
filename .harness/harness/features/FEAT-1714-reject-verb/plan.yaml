@@ -232,7 +232,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-03]
-    status: ready
+    status: done
     files:
       - path: .harness/harness/docs/DECISIONS.md
         quote: '## DEC-230 — The judgement ledger: every autonomous judgement is a `judgements[]` entry, and uncertainty asks once with a recommendation'
@@ -250,7 +250,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: The canonical harness and handoff skills plus plan template resolve to no team domain and must remain coupled to the enforcement contract they instruct.
     depends_on: [T-01, T-02, T-03, T-04]
-    status: ready
+    status: done
     files:
       - path: .claude/skills/harness/SKILL.md
         quote: '## The loop'

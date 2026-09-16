@@ -35,8 +35,10 @@ schema: plan/1
 feature: FEAT-NN-<slug>          # must match the directory name
 
 # THE FEATURE'S STATION, and the only record of it (FEAT-41). One of the six names
-# harness.json declares — backlog, plan, ready, building, review, done — or `abandoned`, which
-# names no board column. WRITTEN ONLY BY `plan-merge.py set-feature-station`; no agent and no
+# harness.json declares — backlog, plan, ready, building, review, done — or one of the two
+# terminal stations that name no board column: `abandoned` (planned, never built) or `rejected`
+# (refused at first-run intake as wrong or superseded, FEAT-1714). WRITTEN ONLY BY
+# `plan-merge.py set-feature-station` (or `gh-sync.py reject`, which calls it); no agent and no
 # human edits this line, and check-domain.py denies the write.
 status: <station>
 
@@ -125,8 +127,8 @@ tasks:
     depends_on: []               # [T-NN, ...] — the build runner orders on this.
                                  # File order is NOT a topological order.
 
-    # backlog | plan | ready | building | review | done | abandoned
-    # The SAME six names harness.json declares, plus the terminal marker. `pending` is not one
+    # backlog | plan | ready | building | review | done | abandoned | rejected
+    # The SAME six names harness.json declares, plus the two terminal stations. `pending` is not one
     # of them and is not a value anywhere any more (FEAT-41 T-04). An absent status reads as
     # `ready`, the not-started station.
     status: ready
