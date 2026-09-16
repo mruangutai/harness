@@ -149,11 +149,25 @@ export function yieldContractText(result: unknown, fallback = ""): string {
   return text(result) || fallback;
 }
 
+// A yield envelope that names `data` or `error` but carries nothing under it (#1676). The
+// host finalizer reads such a yield as "null data" and settles the job exit 1 — while the
+// complete digest sits in the assistant text the model wrote just before yielding. The
+// repair below used to key on the KEY being present (`"data" in envelope`), so `data: null`,
+// `data: ""`, `data: {}` and `data: []` all passed through unrepaired: a well-formed return,
+// verified on disk, recorded as a failed run. Measured five times across BUG-285 and BUG-380.
+export function hollowYieldValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return !value.trim();
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value as Dict).length === 0;
+  return false;
+}
+
 export function normalizeYieldInput(input: Dict, fallback: string): Dict {
   const result = input.result;
   if (result && typeof result === "object" && !Array.isArray(result)) {
     const envelope = result as Dict;
-    if ("data" in envelope || "error" in envelope) return input;
+    if (!hollowYieldValue(envelope.data) || !hollowYieldValue(envelope.error)) return input;
   }
   if (!fallback.trim()) return input;
   return { ...input, result: { data: { content: fallback } } };
@@ -896,8 +910,15 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!reason && toolName === "yield") {
       const normalized = normalizeYieldInput(input, lastAssistantMessage);
       const contract = yieldContractText(normalized.result, lastAssistantMessage);
+      // The two outcomes #1676 asks to tell apart. No fallback and no payload: nothing
+      // was produced, and the block below says so. A payload repaired from the assistant
+      // text: a digest WAS produced and the envelope dropped it — repaired here, named
+      // under HARNESS_HOOK_DEBUG, so the host never sees the null-data yield at all.
+      if (normalized !== input) {
+        debug(`yield agent=${currentAgent} envelope carried no data; repaired from the last assistant message`);
+      }
       if (!contract.trim()) {
-        reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; an empty structured result is not a return.";
+        reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; no digest was produced — neither the yield payload nor the last assistant message carries one.";
       } else {
         const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
           ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
