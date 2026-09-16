@@ -21,37 +21,37 @@ The governing decisions and generated decision index state the current lifecycle
 
 ## Success criteria
 
-- SC-01 (operator) — On initial signed approval, one focused integration scenario proves that the signature's RESUME receipt drives idempotent mirror opening before status and places the source issue, parent issue, and every recorded non-abandoned task issue in Ready; the scenario is demonstrated failing against the pre-change task-only and no-signature-open behavior before it passes.
+- SC-01 (operator): On initial signed approval, one focused integration scenario proves that the signature's RESUME receipt drives idempotent mirror opening before status and places the source issue, parent issue, and every recorded non-abandoned task issue in Ready; the scenario is demonstrated failing against the pre-change task-only and no-signature-open behavior before it passes.
   verify: automated        evidence: integration
-- SC-02 (operator) — At ordinary Build entry, one focused integration scenario proves that the complete recorded card set moves to Building before any task dispatch; the scenario is demonstrated failing against the pre-change missing phase transition before it passes.
+- SC-02 (operator): At ordinary Build entry, one focused integration scenario proves that the complete recorded card set moves to Building before any task dispatch; the scenario is demonstrated failing against the pre-change missing phase transition before it passes.
   verify: automated        evidence: integration
-- SC-03 (operator) — At ordinary validation entry, one focused integration scenario proves that the complete recorded card set moves to Review before the validation team is dispatched; the scenario is demonstrated failing against source-card omission or a transition placed after dispatch before it passes.
+- SC-03 (operator): At ordinary validation entry, one focused integration scenario proves that the complete recorded card set moves to Review before the validation team is dispatched; the scenario is demonstrated failing against source-card omission or a transition placed after dispatch before it passes.
   verify: automated        evidence: integration
-- SC-04 (orchestrator) — Before each must-fix team run is dispatched, one focused integration scenario proves that the complete recorded card set moves to Building without adding a fix-team step or agent spawn; the scenario is demonstrated failing when the transition is absent or occurs after dispatch before it passes.
+- SC-04 (orchestrator): Before each must-fix team run is dispatched, one focused integration scenario proves that the complete recorded card set moves to Building without adding a fix-team step or agent spawn; the scenario is demonstrated failing when the transition is absent or occurs after dispatch before it passes.
   verify: automated        evidence: integration
-- SC-05 (orchestrator) — After a must-fix run returns, one focused integration scenario proves that the complete recorded card set moves to Review at the next validation boundary, without serializing the fix team's independent readers behind a lifecycle-only step; the scenario is demonstrated failing when Review is placed inside the fix-team DAG or after the next validation dispatch before it passes.
+- SC-05 (orchestrator): After a must-fix run returns, one focused integration scenario proves that the complete recorded card set moves to Review at the next validation boundary, without serializing the fix team's independent readers behind a lifecycle-only step; the scenario is demonstrated failing when Review is placed inside the fix-team DAG or after the next validation dispatch before it passes.
   verify: automated        evidence: integration
-- SC-06 (operator) — When a task-changing verb resets an active signed plan, one focused integration scenario proves that approval becomes pending, the interrupted phase is recorded, the local feature and complete recorded card set move to Plan, and no remote status call occurs without an APPROVAL-RESET receipt; the scenario is demonstrated failing against the pre-change local-only reset before it passes.
+- SC-06 (operator): When a task-changing verb resets an active signed plan, one focused integration scenario proves that approval becomes pending, the interrupted phase is recorded, the local feature and complete recorded card set move to Plan, and no remote status call occurs without an APPROVAL-RESET receipt; the scenario is demonstrated failing against the pre-change local-only reset before it passes.
   verify: automated        evidence: integration
-- SC-07 (operator) — On reapproval, focused integration scenarios prove that the recorded progress restores the complete card set to Ready for unstarted work, Building for started or interrupted non-terminal work, and Review only when validation was interrupted and every resulting task is terminal; each outcome is demonstrated failing before it passes.
+- SC-07 (operator): On reapproval, focused integration scenarios prove that the recorded progress restores the complete card set to Ready for unstarted work, Building for started or interrupted non-terminal work, and Review only when validation was interrupted and every resulting task is terminal; each outcome is demonstrated failing before it passes.
   verify: automated        evidence: integration
-- SC-08 (operator) — On ship, one focused integration scenario proves that every eligible recorded source, parent, and non-abandoned task card moves to Done; the all-card assertion is demonstrated failing against a task-only or parent-only mutation before it passes.
+- SC-08 (operator): On ship, one focused integration scenario proves that every eligible recorded source, parent, and non-abandoned task card moves to Done; the all-card assertion is demonstrated failing against a task-only or parent-only mutation before it passes.
   verify: automated        evidence: integration
-- SC-09 (operator) — One focused integration scenario proves that a single board-lifecycle reconcile apply invocation repairs source, parent, and task cards for existing active features from one bounded board snapshot, continues after a card failure, skips terminal, abandoned, factory, and foreign-repository records, and performs no mutations on an immediate second invocation; the scenario is demonstrated failing against the current parent-only repair before it passes.
+- SC-09 (operator): One focused integration scenario proves that a single board-lifecycle reconcile apply invocation repairs source, parent, and task cards for existing active features from one bounded board snapshot, continues after a card failure, skips terminal, abandoned, factory, and foreign-repository records, and performs no mutations on an immediate second invocation; the scenario is demonstrated failing against the current parent-only repair before it passes.
   verify: automated        evidence: integration
-- SC-10 (orchestrator) — Focused integration scenarios prove that lifecycle synchronization is outbound-only and best effort: local progress is recorded before each remote write, an individual card failure does not prevent later cards or local workflow progress, and plan mutation performs no hidden GitHub network write; the failure-continuation and no-network assertions are demonstrated failing before they pass.
+- SC-10 (orchestrator): Focused integration scenarios prove that lifecycle synchronization is outbound-only and best effort: local progress is recorded before each remote write, an individual card failure does not prevent later cards or local workflow progress, and plan mutation performs no hidden GitHub network write; the failure-continuation and no-network assertions are demonstrated failing before they pass.
   verify: automated        evidence: integration
-- SC-11 (code maintainer) — A focused unit scenario proves that the projection exposes exactly the six configured stations and assigns each active top-level phase's exact lowercase station to every unique recorded source, parent, and non-abandoned task issue; the scenario is demonstrated failing against the current per-task projection before it passes.
+- SC-11 (code maintainer): A focused unit scenario proves that the projection exposes exactly the six configured stations and assigns each active top-level phase's exact lowercase station to every unique recorded source, parent, and non-abandoned task issue; the scenario is demonstrated failing against the current per-task projection before it passes.
   verify: automated        evidence: unit
-- SC-12 (code maintainer) — Focused integration scenarios prove that abandoned tasks remain excluded from active and terminal lifecycle projection and that feature abandonment retains its existing detach, backlog, and close behavior; the scenarios are demonstrated failing if active projection includes an abandoned task or abandonment semantics change before they pass.
+- SC-12 (code maintainer): Focused integration scenarios prove that abandoned tasks remain excluded from active and terminal lifecycle projection and that feature abandonment retains its existing detach, backlog, and close behavior; the scenarios are demonstrated failing if active projection includes an abandoned task or abandonment semantics change before they pass.
   verify: automated        evidence: integration
-- SC-13 (code maintainer) — Focused integration scenarios prove that lifecycle status and ship transitions do not directly close ordinary source, parent, or task issues and that existing workflow-owned issue closure remains unchanged; the scenarios are demonstrated failing if a new direct close is introduced before they pass.
+- SC-13 (code maintainer): Focused integration scenarios prove that lifecycle status and ship transitions do not directly close ordinary source, parent, or task issues and that existing workflow-owned issue closure remains unchanged; the scenarios are demonstrated failing if a new direct close is introduced before they pass.
   verify: automated        evidence: integration
-- SC-14 (code maintainer) — Focused integration scenarios prove that ship retains the existing open-child hold behavior for every eligible recorded card; the scenarios are demonstrated failing if a card with an open child is moved to Done before they pass.
+- SC-14 (code maintainer): Focused integration scenarios prove that ship retains the existing open-child hold behavior for every eligible recorded card; the scenarios are demonstrated failing if a card with an open child is moved to Done before they pass.
   verify: automated        evidence: integration
-- SC-15 (code maintainer) — At the pinned review SHA, an inspector can trace one active lifecycle projection policy through status writes, INV-26 drift checks, and reconciliation, while approval reset and resume metadata remain local and every lifecycle checkpoint has exactly one documented caller.
+- SC-15 (code maintainer): At the pinned review SHA, an inspector can trace one active lifecycle projection policy through status writes, INV-26 drift checks, and reconciliation, while approval reset and resume metadata remain local and every lifecycle checkpoint has exactly one documented caller.
   verify: inspection       evidence: code-review
-- SC-16 (code maintainer) — At the pinned review SHA, an inspector can verify that DEC-138, DEC-203, DEC-220, DEC-224, and DEC-229 state the new current truth in place, DEC-146's project-item discovery contract remains preserved, and the generated decision index contains no stale lifecycle summary.
+- SC-16 (code maintainer): At the pinned review SHA, an inspector can verify that DEC-138, DEC-203, DEC-220, DEC-224, and DEC-229 state the new current truth in place, DEC-146's project-item discovery contract remains preserved, and the generated decision index contains no stale lifecycle summary.
   verify: inspection       evidence: code-review
 
 ## Verification gaps
@@ -85,6 +85,6 @@ The governing decisions and generated decision index state the current lifecycle
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: mruangutai
+date: 2026-09-16

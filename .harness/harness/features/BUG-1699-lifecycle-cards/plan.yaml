@@ -1,8 +1,10 @@
 schema: plan/1
 feature: BUG-1699-lifecycle-cards
 approval:
-  status: pending
-status: plan
+  date: '2026-09-16'
+  approved_by: mruangutai
+  status: approved
+status: ready
 source_issues: [1699]
 
 panel:
@@ -26,23 +28,20 @@ panel:
     severity: high
     reader: code-reviewer
     kind: substance
-    summary: Separately requested lifecycle checkpoints are collapsed into untagged
-      compound SCs.
-    disposition: open
+    summary: Separately requested lifecycle checkpoints are collapsed into untagged compound SCs.
+    disposition: resolved
   - id: PF-f86a6aea3906de87f28cbca469678954
     severity: high
     reader: code-reviewer
     kind: substance
     summary: T-03 does not execute the receipt-to-lifecycle caller chain it changes.
-    disposition: open
+    disposition: resolved
   - id: PF-43283b0ed9188e9c699dc6c98372ec4c
     severity: med
     reader: should-not-exist
     kind: proportionality
-    summary: The new dev-ops phase-review DAG step in fix.yaml (D-04, T-03, SC-05's
-      "before any independent reader begins" clause) is permanent orchestration machinery
-      whose only job is advancing a best-effort mirror a few minutes earlier.
-    disposition: open
+    summary: The new dev-ops phase-review DAG step in fix.yaml (D-04, T-03, SC-05's "before any independent reader begins" clause) is permanent orchestration machinery whose only job is advancing a best-effort mirror a few minutes earlier.
+    disposition: resolved
     scope: task
 lanes:
   resolved_at: c280792f2719145a1a41fb3df12075fdb3eebd40

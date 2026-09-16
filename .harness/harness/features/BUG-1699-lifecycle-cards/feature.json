@@ -27,5 +27,32 @@
       "reason": "The change rewrites the public lifecycle contract across signature, build, validation, rework, amendment, ship, and one-time reconciliation."
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": ".harness/harness/features/BUG-1699-lifecycle-cards/notes/answers-plan-approval-2026-09-16.md"
+  },
+  "github": {
+    "milestone": 77,
+    "parent": 1763,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1764,
+      "T-02": 1765,
+      "T-03": 1766,
+      "T-04": 1767,
+      "T-05": 1768
+    },
+    "source_issues": [
+      1699
+    ],
+    "build_entry": "opened"
+  }
 }
