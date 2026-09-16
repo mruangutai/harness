@@ -33,16 +33,29 @@ def exempt_reason(fdir):
 
     FAIL CLOSED: any read error, parse error or non-mapping task entry is NOT exempt.
     """
-    pp = os.path.join(fdir, "plan.yaml")
+    pdoc, detail = _plan_mapping(os.path.join(fdir, "plan.yaml"))
+    if pdoc is None:
+        return "", detail
+    return _all_direct(pdoc.get("tasks"))
+
+
+def _plan_mapping(pp):
+    """(mapping, "") when plan.yaml exists and parses to a mapping; (None, detail) otherwise,
+    where detail is the parenthetical INV-17 appends — empty when the plan simply is not there."""
     if not os.path.isfile(pp):
-        return "", ""
+        return None, ""
     try:
         pdoc = artifact_accessors.load_plan(pp) or {}
     except Exception as e:
-        return "", f" (its plan.yaml does not parse, so no exemption could be evaluated: {e})"
+        return None, f" (its plan.yaml does not parse, so no exemption could be evaluated: {e})"
     if not isinstance(pdoc, dict):
-        return "", " (its plan.yaml is not a mapping, so no exemption could be evaluated)"
-    tasks = pdoc.get("tasks")
+        return None, " (its plan.yaml is not a mapping, so no exemption could be evaluated)"
+    return pdoc, ""
+
+
+def _all_direct(tasks):
+    """The exemption over a parsed tasks: list — non-empty, every entry a mapping with an
+    explicit execution_mode of exactly main-session-direct."""
     if not isinstance(tasks, list) or not tasks:
         return "", ""
     for t in tasks:
