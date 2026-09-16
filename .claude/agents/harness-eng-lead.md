@@ -73,7 +73,7 @@ design. The compensating control is the user's PLAN approval. Be harder on yours
 exactly:
 
 ```
-HARNESS-FEATURE: FEAT-42-one-root-resolver
+HARNESS-FEATURE: <FEAT-NN-slug>
 ```
 
 with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch

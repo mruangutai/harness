@@ -26,8 +26,30 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/validate-digest.py
-      - tests/integration/test-validate-digest.py
+    - .claude/skills/harness/bin/validate-digest.py
+    - tests/integration/test-validate-digest.py
+    - path: .omp/agents/harness-orchestrator.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/agents/harness-product-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/agents/harness-validator-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/agents/harness-eng-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/skills/harness-zero-micro-management/SKILL.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .omp/commands/harness.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>'
+    - path: .claude/agents/harness-orchestrator.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/agents/harness-product-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/agents/harness-validator-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/agents/harness-eng-lead.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug>'
+    - path: .claude/commands/harness.md
+      quote: 'HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>'
     verify: |
       python3 tests/integration/test-validate-digest.py
     intent: |

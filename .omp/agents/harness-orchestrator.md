@@ -54,7 +54,7 @@ the DAG algorithm itself, read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harn
 exactly:
 
 ```
-HARNESS-FEATURE: FEAT-42-one-root-resolver
+HARNESS-FEATURE: <FEAT-NN-slug>
 ```
 
 with the id of the feature you are working. `dispatch-guard.py` refuses a governed dispatch

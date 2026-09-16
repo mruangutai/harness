@@ -42,6 +42,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Build handoff directs the approved validate run; rework spend is 0/45 minutes and the cycle ledger is 1/10."
+    },
+    {
+      "at": "2026-09-16T13:13:23+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "validate c0 root-caused #1771 (agent-file marker example matched the hook regex; tokens never stamped): the five source files + adapters + harness.md \\u00a73 added to T-01 via plan-merge amend; signature kept (BUG-1716 D-04)"
+    },
+    {
+      "at": "2026-09-16T13:13:24+00:00",
+      "by": "main-session",
+      "kind": "succession",
+      "decision": "continue",
+      "reason": "recorded late by Main: the validate c0 orchestrator omitted its succession for handoff-build.md (seq-1) before its run"
     }
   ],
   "mission": "patch",

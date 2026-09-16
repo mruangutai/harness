@@ -2315,15 +2315,58 @@ def _bug1756_default_set_case(green):
             ok, f"exit={r.returncode} argv={argv!r} stderr={r.stderr!r}")
 
 
-def _bug1756_spawn_error_case(tmp):
-    """SC-04: a runner that cannot be spawned at all (a directory where the file should be)
-    still fails OPEN with the 'could not independently re-run' line, never a block."""
-    not_a_file = os.path.join(tmp, "runner-is-a-directory.py")
-    os.makedirs(not_a_file, exist_ok=True)
-    r = _bug919_fire(not_a_file, text=QA_PASS_WITH_KINDS)
-    ok = r.returncode == 0 and "could not independently re-run" in r.stderr.lower()
-    return ("BUG-1756 SC-04: an unspawnable runner fails OPEN, loudly",
-            ok, f"exit={r.returncode} stderr={r.stderr!r}")
+def _bug1756_in_process_reverify(green, raising):
+    """SC-04 at the exact seam: load the validator, make `subprocess.run` raise `raising`
+    when it is handed the runner, and call `check_qa_matrix_claim` directly. The directory
+    fixture the c0 review struck never reached `subprocess.run` (os.path.isfile refused it
+    first); this does. Returns (exit_code, stderr_text)."""
+    import importlib.util
+    import io
+    import contextlib
+    spec = importlib.util.spec_from_file_location("_bug1756_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    real_run = validator.subprocess.run
+
+    def run_or_raise(argv, **kw):
+        if len(argv) > 1 and argv[1] == green:
+            raise raising
+        return real_run(argv, **kw)
+
+    validator.subprocess.run = run_or_raise
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        try:
+            code = validator.check_qa_matrix_claim(
+                "harness-qa", QA_PASS_WITH_KINDS, {"harness_feature": None})
+        except Exception as exc:  # the fail-open contract broken: a crash, not a verdict
+            return None, f"{err.getvalue()}RAISED {type(exc).__name__}: {exc}"
+    return code, err.getvalue()
+
+
+def _bug1756_spawn_error_case(green):
+    """SC-04: an OSError raised BY the spawn (not by a missing file) fails OPEN with the
+    'could not independently re-run' line and exit 0, never a block or a traceback."""
+    os.environ["RUN_UNIT_TESTS_BIN"] = green
+    try:
+        code, err = _bug1756_in_process_reverify(green, OSError(8, "Exec format error"))
+    finally:
+        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    ok = code == 0 and "could not independently re-run" in err.lower()
+    return ("BUG-1756 SC-04: a spawn OSError fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
+
+
+def _bug1756_timeout_case(green):
+    """SC-04: a runner that exceeds the re-run timeout (subprocess.TimeoutExpired) fails
+    OPEN the same way — the gate never hangs the return and never blocks on its own gap."""
+    os.environ["RUN_UNIT_TESTS_BIN"] = green
+    try:
+        code, err = _bug1756_in_process_reverify(
+            green, subprocess.TimeoutExpired([sys.executable, green], 1800))
+    finally:
+        os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    ok = code == 0 and "could not independently re-run" in err.lower()
+    return ("BUG-1756 SC-04: a re-run timeout fails OPEN, loudly", ok, f"exit={code} stderr={err!r}")
 
 
 def _report_bug919_results(cases):
@@ -2355,7 +2398,8 @@ def run_bug919_qa_matrix_cases():
         _bug1756_default_set_case(green),
         _bug1756_kinds_forwarded_case(_bug919_stub_script(os.path.join(tmp, "k"), 0)),
         _bug1756_first_failure_stops_case(tmp),
-        _bug1756_spawn_error_case(tmp),
+        _bug1756_spawn_error_case(green),
+        _bug1756_timeout_case(green),
     ]
     return _report_bug919_results(cases)
 
