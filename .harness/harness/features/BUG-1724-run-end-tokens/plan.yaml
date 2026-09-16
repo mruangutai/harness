@@ -36,7 +36,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires main-session-direct because the hook and feature-record.py are what spend and advisories read, and their tests lie inside that enforcement line.
     depends_on: []
-    status: building
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts
       - .claude/skills/harness/bin/feature-record.py
