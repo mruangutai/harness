@@ -463,22 +463,67 @@ def main():
         install_gh(tmpH, FAKE_GH_STATIONS)
         featH = stage_ship(tmpH, "FEAT-56-unvalidated", {"T-01": 41}, parent=40,
                            validated=False)
-        rH = run(["ship", featH], tmpH, ship_env(tmpH, "40=Review 41=Review",
-                                                  children={40: [41]}))
+        check("BUG-1129 fixture: validated=False writes NO note (the case below is about "
+              "its absence)",
+              not os.path.isfile(os.path.join(featH, "notes", "handoff-validate.md")))
+        stationH_before = read_plan_station(featH)
+        planH_before = open(os.path.join(featH, "plan.yaml")).read()
+        bodyH = os.path.join(tmpH, "body.md")
+        open(bodyH, "w").write("a ship comment that must never be posted")
+        rH = run(["ship", featH, "--body-file", bodyH], tmpH,
+                 ship_env(tmpH, "40=Review 41=Review", children={40: [41]}))
         outH = rH.stdout + rH.stderr
         check("BUG-1129: ship REFUSES (exit 1) a feature with no notes/handoff-validate.md, "
-              "naming the missing note",
-              rH.returncode == 1 and "handoff-validate.md" in outH,
+              "saying `validation incomplete` and naming the missing note",
+              rH.returncode == 1 and "validation incomplete" in outH
+              and "handoff-validate.md" in outH,
               f"exit {rH.returncode}; out={outH[-500:]!r}")
-        check("BUG-1129: the refusal moved no card and closed no milestone",
-              not moved_to_done(calls(tmpH))
-              and not any("milestones/" in l for l in calls(tmpH)),
-              repr(calls(tmpH)))
+        # THE WHOLE WRITE BOUNDARY: load_config's `gh auth status` is the only call ship makes
+        # before the refusal, so every other gh invocation — card edit, milestone PATCH,
+        # comment, issue close — is a write that leaked past it.
+        writesH = [l for l in calls(tmpH) if l and not l.startswith("auth")]
+        check("BUG-1129: the refusal made NO GitHub write of any kind — no card, milestone, "
+              "comment or close", writesH == [], repr(writesH))
         check("BUG-1129: it is a REFUSAL, not a SKIP — the sweep must not read it as permission "
               "to remove the worktree",
               "gh-sync: SKIP" not in outH, f"out={outH[-300:]!r}")
-        check("BUG-1129: the plan.yaml station is untouched by the refusal",
-              read_plan_station(featH) != "done", read_plan_station(featH))
+        check("BUG-1129: plan.yaml is byte-identical after the refusal (station "
+              f"{stationH_before!r} preserved, nothing else written)",
+              open(os.path.join(featH, "plan.yaml")).read() == planH_before
+              and read_plan_station(featH) == stationH_before,
+              f"before={stationH_before!r} after={read_plan_station(featH)!r}")
+
+    # AN UNREADABLE PLAN IS NOT EXEMPT (fail-closed through the verb, not only the predicate):
+    # the note is absent AND the plan cannot be evaluated, so ship must refuse and say both.
+    with tempfile.TemporaryDirectory() as tmpU:
+        install_gh(tmpU, FAKE_GH_STATIONS)
+        featU = stage_ship(tmpU, "FEAT-58-unparsable", {"T-01": 41}, parent=40,
+                           validated=False)
+        planU = os.path.join(featU, "plan.yaml")
+        open(planU, "a").write("tasks: [\n  - broken\n")
+        rU = run(["ship", featU], tmpU, ship_env(tmpU, "40=Review 41=Review",
+                                                  children={40: [41]}))
+        outU = rU.stdout + rU.stderr
+        writesU = [l for l in calls(tmpU) if l and not l.startswith("auth")]
+        check("BUG-1129: a plan that cannot be evaluated grants no exemption — ship refuses "
+              "(exit 1) naming the note and the parse failure, with no GitHub write",
+              rU.returncode == 1 and "handoff-validate.md" in outU
+              and "does not parse" in outU and writesU == [],
+              f"exit {rU.returncode}; writes={writesU!r}; out={outU[-500:]!r}")
+
+    # SC-04, the fixture contract itself: the default `stage_ship` models a VALIDATED feature
+    # and therefore carries the note ship now demands. Before the fixture migration this
+    # assertion is red; it is what keeps every other ship case honest rather than incidentally
+    # green.
+    with tempfile.TemporaryDirectory() as tmpV:
+        featV = stage_ship(tmpV, "FEAT-59-validated", {"T-01": 41}, parent=40)
+        noteV = os.path.join(featV, "notes", "handoff-validate.md")
+        check("BUG-1129 fixture: the default ship fixture writes notes/handoff-validate.md with "
+              "every handoff section",
+              os.path.isfile(noteV) and all(h in open(noteV).read() for h in
+                                            ("## next", "## trust", "## dead ends",
+                                             "## working set", "## done when")),
+              f"exists={os.path.isfile(noteV)}")
 
     # A plan built entirely main-session-direct crossed no squad seam (DEC-174) and owes no
     # note: the same exemption INV-17 applies, so ship must not demand what INV-17 does not.

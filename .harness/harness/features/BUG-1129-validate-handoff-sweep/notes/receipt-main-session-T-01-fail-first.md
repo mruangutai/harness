@@ -16,3 +16,33 @@ On the parent the unvalidated feature SHIPS: the station is written to done, a c
 milestone is PATCHed, and the sweep removes the worktree — the #1129 incident reproduced. The two
 `ok` lines are properties the old code already had (no SKIP wording; the DEC-174 exemption). With
 the fix, all eight are green.
+
+## Arm 4 — SC-04 pre-migration (validate c0 Q3)
+
+The fixture-contract assertion (`tests/integration/test-gh-sync-ship.py`, "the default ship fixture
+writes notes/handoff-validate.md") evaluated against origin/main's `gh_sync_support.stage_ship`
+in a throwaway worktree:
+
+    FAIL  BUG-1129 fixture: the default ship fixture writes notes/handoff-validate.md — exists=False
+
+## Arm 5 — SC-03 mutation (validate c0 Q2)
+
+Mutant `handoff_policy.py`: `_plan_mapping` returns an all-direct mapping on any read/parse
+failure and `_all_direct` returns "vacuous" for an empty/non-list `tasks` (fail-OPEN). Unit
+(`tests/unit/test-handoff-policy.py`) and the verb (`test-gh-sync-ship.py`, unparsable-plan
+case) both go red; with the real predicate all are green:
+
+    FAIL unparsable plan.yaml -> no exemption ('every task in its plan.yaml is execution_mode main-session-direct (DEC-174),
+    FAIL unparsable plan.yaml -> the detail says why it could not be evaluated ''
+    FAIL plan.yaml that is not a mapping -> no exemption ('every task in its plan.yaml is execution_mode main-session-direct
+    FAIL plan.yaml that is not a mapping -> the detail says why it could not be evaluated ''
+    FAIL empty tasks list (vacuous truth is refused) -> no exemption ('every task in its plan.yaml is execution_mode main-se
+    FAIL empty tasks list (vacuous truth is refused) -> the detail says why it could not be evaluated ''
+    FAIL tasks key that is not a list -> no exemption ('every task in its plan.yaml is execution_mode main-session-direct (D
+    FAIL tasks key that is not a list -> the detail says why it could not be evaluated ''
+    FAIL a task that is not a mapping -> no exemption ('every task in its plan.yaml is execution_mode main-session-direct (D
+    FAIL a task that is not a mapping -> the detail says why it could not be evaluated ''
+    FAIL a task with no execution_mode -> no exemption ('every task in its plan.yaml is execution_mode main-session-direct (
+    FAIL a task with no execution_mode -> the detail says why it could not be evaluated ''
+    FAIL unreadable plan.yaml -> no exemption, detail names the read failure ('every task in its plan.yaml is execution_mode
+    FAIL  BUG-1129: a plan that cannot be evaluated grants no exemption — ship refuses (exit 1) naming the note and the parse failure, with no GitHub write

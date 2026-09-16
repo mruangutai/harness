@@ -57,6 +57,8 @@ tasks:
       quote: write_validate_handoff
     - path: tests/integration/test-hooks-install.py
       quote: 'BUG-1129: ship refuses a feature with no validate handoff'
+    - path: tests/unit/test-handoff-policy.py
+      quote: import handoff_policy
     verify: |
       python3 tests/integration/test-gh-sync-ship.py &&
       python3 tests/integration/test-post-merge-sweep.py &&

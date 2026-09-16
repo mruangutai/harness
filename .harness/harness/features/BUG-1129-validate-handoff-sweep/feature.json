@@ -57,6 +57,20 @@
       "kind": "succession",
       "decision": "continue",
       "reason": "Plan-to-build succession continued through the approved main-session-direct T-01; its distinct seam entry was absent when validation began."
+    },
+    {
+      "at": "2026-09-16T15:36:15+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "validate c0 Q2: fail-closed predicate coverage lives in a new unit test tests/unit/test-handoff-policy.py; added to T-01 files (BUG-1716 D-04, signature kept)"
+    },
+    {
+      "at": "2026-09-16T15:36:15+00:00",
+      "by": "main-session",
+      "kind": "regate",
+      "decision": "fix-c1-validator",
+      "reason": "validate c0 FAIL Q1/Q2/Q3 fixed direct by Main (DEC-174): receipt-main-session-fix-c1.md; re-gate over the re-pinned sha"
     }
   ],
   "mission": "patch",
