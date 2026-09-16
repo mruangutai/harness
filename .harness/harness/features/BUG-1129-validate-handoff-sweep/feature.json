@@ -26,6 +26,13 @@
       "kind": "mission",
       "decision": "patch",
       "reason": "Cause known from #1129; bounded writer refusal, shared INV-17 predicate, and validated-feature fixtures."
+    },
+    {
+      "at": "2026-09-16T15:09:41+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.files",
+      "reason": "test-hooks-install.py's terminal fixture also needed the validate note; added to T-01 files (BUG-1716 D-04, signature kept)"
     }
   ],
   "mission": "patch",

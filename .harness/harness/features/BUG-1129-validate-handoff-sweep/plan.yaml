@@ -4,7 +4,7 @@ approval:
   date: '2026-09-16'
   approved_by: mruangutai
   status: approved
-status: plan
+status: review
 source_issues: [1129]
 lanes:
   resolved_at: 142026456c64c80c3dd3aa776636dadbc0e21881
@@ -39,22 +39,24 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 requires direct execution because this task changes check-state enforcement, its shared predicate, the terminal lifecycle writer, and their gate-facing tests
     depends_on: []
-    status: ready
+    status: done
     files:
-      - path: .claude/skills/harness/bin/gh-sync.py
-        quote: 'validation incomplete'
-      - path: .claude/skills/harness/bin/handoff_policy.py
-        quote: 'def exempt_reason(fdir):'
-      - path: .claude/skills/harness/bin/check-state.py
-        quote: 'handoff_policy.exempt_reason'
-      - path: tests/integration/gh_sync_support.py
-        quote: 'def write_validate_handoff(feat_dir):'
-      - path: tests/integration/test-gh-sync-ship.py
-        quote: 'BUG-1129: ship REFUSES'
-      - path: tests/integration/test-post-merge-sweep.py
-        quote: 'case_unvalidated_feature_is_not_shipped'
-      - path: tests/integration/test-gh-sync-abandon.py
-        quote: 'write_validate_handoff'
+    - path: .claude/skills/harness/bin/gh-sync.py
+      quote: validation incomplete
+    - path: .claude/skills/harness/bin/handoff_policy.py
+      quote: 'def exempt_reason(fdir):'
+    - path: .claude/skills/harness/bin/check-state.py
+      quote: handoff_policy.exempt_reason
+    - path: tests/integration/gh_sync_support.py
+      quote: 'def write_validate_handoff(feat_dir):'
+    - path: tests/integration/test-gh-sync-ship.py
+      quote: 'BUG-1129: ship REFUSES'
+    - path: tests/integration/test-post-merge-sweep.py
+      quote: case_unvalidated_feature_is_not_shipped
+    - path: tests/integration/test-gh-sync-abandon.py
+      quote: write_validate_handoff
+    - path: tests/integration/test-hooks-install.py
+      quote: 'BUG-1129: ship refuses a feature with no validate handoff'
     verify: |
       python3 tests/integration/test-gh-sync-ship.py &&
       python3 tests/integration/test-post-merge-sweep.py &&
