@@ -4,7 +4,7 @@ approval:
   date: '2026-09-16'
   approved_by: mruangutai
   status: approved
-status: review
+status: done
 source_issues: [1756]
 lanes:
   resolved_at: af1c1d88a7e81010fd4902b2144b5cd5eb67f9ef

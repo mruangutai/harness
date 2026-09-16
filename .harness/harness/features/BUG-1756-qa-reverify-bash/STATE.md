@@ -5,7 +5,7 @@
 - feature: BUG-1756-qa-reverify-bash
 - run: fix-c1-validator
 - squad: validator
-- status: in_review
+- status: shipped
 - verdict: PASS
 - mission: patch
 - approval: approved
@@ -19,3 +19,4 @@
 ## Open Questions
 
 - none
+- landed: PR #1773 squash-merged as 806a8558 on 2026-09-16
