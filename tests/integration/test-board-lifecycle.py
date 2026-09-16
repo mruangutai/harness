@@ -73,14 +73,9 @@ def write_root(root, github, fleet=None):
 
 
 def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None,
-                   factory_issues=None, plan_station=None):
-    """A `feature.json` fixture at `<root>/.harness/<repo_slug>/features/<feat>/feature.json` —
-    the SAME `.harness/*/features/*/feature.json` glob shape `board_lifecycle.py`'s own
-    `_feature_dirs` reads, and check-state.py's INV-24/INV-26 already read (T-15).
-
-    `status=None` omits the legacy feature.json key. `plan_station` writes a
-    schema-valid sibling plan.yaml whose lower-case top-level status is the audit source.
-    """
+                   factory_issues=None, plan_station=None, source_issues=None,
+                   task_statuses=None):
+    """Write the feature receipt and optional plan consumed by lifecycle audit fixtures."""
     fdir = os.path.join(root, ".harness", repo_slug, "features", feat)
     os.makedirs(fdir, exist_ok=True)
     doc = {} if status is None else {"status": status}
@@ -89,20 +84,33 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
         github["parent"] = parent
     if github_issues is not None:
         github["issues"] = github_issues
+    if source_issues is not None:
+        github["source_issues"] = source_issues
     if github:
         doc["github"] = github
     if factory_issues is not None:
         doc["factory"] = {"issues": factory_issues}
     with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
         json.dump(doc, f)
-    if plan_station is not None:
-        with open(os.path.join(fdir, "plan.yaml"), "w", encoding="utf-8") as f:
-            f.write(
-                f"feature: {feat}\nstatus: {plan_station}\ntasks:\n"
-                "  - id: T-01\n    title: fixture task\n    change_type: bugfix\n"
-                "    execution_mode: team\n    files: [fixture.py]\n"
-                "    verify: python3 test.py\n    intent: fixture\n"
-            )
+    if plan_station is None:
+        return
+    statuses = task_statuses if task_statuses is not None else [None]
+    tasks = []
+    for index, task_status in enumerate(statuses, start=1):
+        task = (
+            f"  - id: T-{index:02d}\n"
+            "    title: fixture task\n"
+            "    change_type: bugfix\n"
+            "    execution_mode: team\n"
+            "    files: [fixture.py]\n"
+            "    verify: python3 test.py\n"
+            "    intent: fixture\n"
+        )
+        if task_status is not None:
+            task += f"    status: {task_status}\n"
+        tasks.append(task)
+    with open(os.path.join(fdir, "plan.yaml"), "w", encoding="utf-8") as f:
+        f.write(f"feature: {feat}\nstatus: {plan_station}\ntasks:\n" + "".join(tasks))
 
 
 _BOARD = {
@@ -1004,7 +1012,7 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github())
     write_feature(root, "widget", "FEAT-32-fixture", None, plan_station="review", parent=700,
                   github_issues={"T-01": 701})
-    r, log = run(root, ["audit"], stations=_stations_json({700: "Building"}))
+    r, log = run(root, ["audit"], stations=_stations_json({700: "Building", 701: "Review"}))
     check("audit STATUS (FEAT-32 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
     # The recorded station is lowercase and the message names its derived column separately.
     check("audit STATUS (FEAT-32 shape): names the feature dir, recorded station, column, "
@@ -1014,32 +1022,15 @@ with tempfile.TemporaryDirectory() as base:
           and "'building'" in r.stdout and "'Building'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
-    # FEAT-08 shape, re-derived at 46ee87c: status Done, parent #85 still OPEN, board reads
-    # Backlog. THERE IS NO Done EXEMPTION (D-22) -- this is a finding regardless of the parent
-    # issue's open/closed state.
+    # Done is ship-only: the ship transition owns its card movement, while lifecycle
+    # reconciliation is intentionally restricted to active feature phases.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-08", None, plan_station="done", parent=85, github_issues={"T-01": 86})
-    r, log = run(root, ["audit"], stations=_stations_json({85: "Backlog"}))
-    check("audit STATUS (FEAT-08 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    check("audit STATUS (FEAT-08 shape): names the feature dir, expected done, column, "
-          "actual backlog -- no Done exemption",
-          "STATUS" in r.stdout and "FEAT-08" in r.stdout
-          and "'done'" in r.stdout and "'Done'" in r.stdout
-          and "'backlog'" in r.stdout and "'Backlog'" not in r.stdout, repr(r.stdout))
-
-with tempfile.TemporaryDirectory() as base:
-    # FEAT-09 shape, its own assertion (T-15 intent: "each its own assertion").
-    root = os.path.join(base, "root")
-    write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-09", None, plan_station="done", parent=98, github_issues={"T-01": 99})
-    r, log = run(root, ["audit"], stations=_stations_json({98: "Backlog"}))
-    check("audit STATUS (FEAT-09 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    check("audit STATUS (FEAT-09 shape): names the feature dir, expected done, column, "
-          "actual backlog",
-          "STATUS" in r.stdout and "FEAT-09" in r.stdout
-          and "'done'" in r.stdout and "'Done'" in r.stdout
-          and "'backlog'" in r.stdout and "'Backlog'" not in r.stdout, repr(r.stdout))
+    write_feature(root, "widget", "FEAT-08", None, plan_station="done", parent=85,
+                  github_issues={"T-01": 86})
+    r, log = run(root, ["audit"], stations=_stations_json({85: "Backlog", 86: "Backlog"}))
+    check("audit STATUS: Done remains ship-only and is outside active reconciliation",
+          r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
     # A matching status and card -- no finding.
@@ -1047,7 +1038,7 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github())
     write_feature(root, "widget", "FEAT-CLEAN", None, plan_station="building", parent=500,
                   github_issues={"T-01": 501})
-    r, log = run(root, ["audit"], stations=_stations_json({500: "Building"}))
+    r, log = run(root, ["audit"], stations=_stations_json({500: "Building", 501: "Building"}))
     check("audit STATUS: a matching status and card is NOT a finding",
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
@@ -1153,6 +1144,92 @@ with tempfile.TemporaryDirectory() as base:
 # T-06: board_lifecycle.py reconcile -- the write side of audit. Every case sets BOTH
 # FACTORY_GH and GH_SYNC_GH to the same fake (D-11), via run()'s own defaults.
 # ============================================================================
+
+# ---------------- BUG-1699: active feature reconciliation covers every unique live card -----
+
+_ALL_CARD_STATIONS_BEFORE = _stations_json({
+    100: "Ready", 101: "Plan", 103: "Review", 104: "Ready", 105: "Backlog",
+})
+_ALL_CARD_STATIONS_AFTER = _stations_json({
+    100: "Building", 101: "Building", 103: "Building", 104: "Ready", 105: "Building",
+})
+
+
+def _write_all_card_fixture(base):
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    write_feature(
+        root, "widget", "BUG-1699-CARDS", None, plan_station="building", parent=100,
+        source_issues=[101, 100, 101],
+        github_issues={"T-01": 103, "T-02": 104, "T-03": 105},
+        task_statuses=["ready", "abandoned", "building"],
+    )
+    return root
+
+
+with tempfile.TemporaryDirectory() as base:
+    root = _write_all_card_fixture(base)
+    r, log = run(root, ["reconcile"], stations=_ALL_CARD_STATIONS_BEFORE)
+    check("BUG-1699 reconcile dry-run: source, parent, and live task mismatches are previewed",
+          r.returncode == 0
+          and all(f"#{number}" in r.stdout for number in (100, 101, 103, 105)),
+          f"rc={r.returncode} stdout={r.stdout!r}")
+    check("BUG-1699 reconcile dry-run: duplicate source/parent cards yield one finding each",
+          all(r.stdout.count(f"#{number}") == 1 for number in (100, 101, 103, 105)),
+          repr(r.stdout))
+    check("BUG-1699 reconcile dry-run: an abandoned task card is exempt",
+          "#104" not in r.stdout, repr(r.stdout))
+    check("BUG-1699 reconcile dry-run: one bounded board snapshot feeds every card comparison",
+          sum("fieldValueByName" in line for line in log) == 1, repr(log))
+    check("BUG-1699 reconcile dry-run: previews but performs zero mutations",
+          not mutation_calls(log), repr(log))
+
+with tempfile.TemporaryDirectory() as base:
+    root = _write_all_card_fixture(base)
+    fake_state = os.path.join(base, "fixed-marker")
+    r, log = run(
+        root, ["reconcile", "--apply"], stations=_ALL_CARD_STATIONS_BEFORE,
+        fake_state=fake_state, stations_after=_ALL_CARD_STATIONS_AFTER,
+    )
+    check("BUG-1699 reconcile apply: writes every unique source, parent, and live task card",
+          r.returncode == 0
+          and all(any(f"number={number}" in line for line in log)
+                  for number in (100, 101, 103, 105)),
+          f"rc={r.returncode} stdout={r.stdout!r} log={log!r}")
+    check("BUG-1699 reconcile apply: never writes an abandoned task card",
+          not any("number=104" in line for line in log), repr(log))
+    check("BUG-1699 reconcile apply: one bounded board snapshot covers the invocation",
+          sum("fieldValueByName" in line for line in log) == 1, repr(log))
+    r2, log2 = run(
+        root, ["reconcile", "--apply"], stations=_ALL_CARD_STATIONS_BEFORE,
+        fake_state=fake_state, stations_after=_ALL_CARD_STATIONS_AFTER,
+    )
+    second_log = log2[len(log):]
+    check("BUG-1699 reconcile apply: an immediate second run is idempotent",
+          r2.returncode == 0 and not mutation_calls(second_log)
+          and sum("fieldValueByName" in line for line in second_log) == 1,
+          f"rc={r2.returncode} stdout={r2.stdout!r} log={second_log!r}")
+
+with tempfile.TemporaryDirectory() as base:
+    root = _write_all_card_fixture(base)
+    fake_state = os.path.join(base, "fixed-marker")
+    partial_after = _stations_json({
+        100: "Building", 101: "Building", 103: "Review", 104: "Ready", 105: "Building",
+    })
+    r, log = run(
+        root, ["reconcile", "--apply"], stations=_ALL_CARD_STATIONS_BEFORE,
+        fail_match="number=103", fake_state=fake_state, stations_after=partial_after,
+    )
+    check("BUG-1699 reconcile partial failure: later cards are still attempted",
+          all(any(f"number={number}" in line for line in log)
+                  for number in (100, 101, 105)),
+          repr(log))
+    check("BUG-1699 reconcile partial failure: only the failed card remains fixable",
+          r.returncode == 1 and "#103" in r.stdout
+          and all(f"#{number}" not in r.stdout for number in (100, 101, 105)),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("BUG-1699 reconcile partial failure: one bounded board snapshot covers the invocation",
+          sum("fieldValueByName" in line for line in log) == 1, repr(log))
 
 # ---------------- reconcile case 1: a GhError propagates as exit 4 -----------------------
 
@@ -1297,27 +1374,19 @@ with tempfile.TemporaryDirectory() as base:
           "write this tool can make",
           not mutation_calls(log), repr(log))
 
-# ---------------- reconcile case 6: a Done-status STATUS finding is never auto-fixed -----
-# T-15's own exemption (Done and Abandoned have no automated write here) applied to the WRITE
-# side: a Done-status mismatch is a genuine finding (D-22, no Done exemption in DETECTION) but
-# reconcile does not move a card to the done station on its own say -- it is left for a human
-# exactly like DECLARATION and WORKFLOW.
+# ---------------- reconcile case 6: Done remains ship-only -------------------------------
 
 with tempfile.TemporaryDirectory() as base:
     root = os.path.join(base, "root")
     write_root(root, default_github())
     write_feature(root, "widget", "FEAT-DONE-MISMATCH", None, plan_station="done", parent=85,
                   github_issues={"T-01": 86})
-    r, log = run(root, ["reconcile", "--apply"], stations=_stations_json({85: "Backlog"}))
-    check("reconcile (Done exemption): the STATUS finding survives --apply untouched",
-          "STATUS" in r.stdout and "FEAT-DONE-MISMATCH" in r.stdout, repr(r.stdout))
-    check("reconcile (Done exemption): exits 0 anyway -- Done is excluded from the exit-code "
-          "count the SAME way DECLARATION and WORKFLOW are (never attempted, never counted); "
-          "counting it would permanently gate exit 0 on a class this tool never fixes by "
-          "design, the identical reasoning the module docstring gives for excluding WORKFLOW",
-          r.returncode == 0, f"rc={r.returncode}")
-    check("reconcile (Done exemption): never calls set_station for issue #85",
-          not any("number=85" in l for l in log), repr(log))
+    r, log = run(
+        root, ["reconcile", "--apply"], stations=_stations_json({85: "Backlog", 86: "Backlog"}))
+    check("reconcile (Done exemption): emits no automatic STATUS repair",
+          r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
+    check("reconcile (Done exemption): never calls set_station for Done feature cards",
+          not any(f"number={number}" in line for line in log for number in (85, 86)), repr(log))
 
 # ---------------- reconcile case 6b: #783 regression guard -- reconcile shares audit's
 # STATUS scoping, since both run `_audit_findings`. A "Building" (non-Done, otherwise
@@ -1621,7 +1690,7 @@ with tempfile.TemporaryDirectory() as base:
     # NO feature.json status — the post-migration shape. The station lives in plan.yaml.
     write_feature(root, "widget", "FEAT-72-plan-station", None, parent=720,
                   github_issues={"T-01": 721}, plan_station="review")
-    r, log = run(root, ["audit"], stations=_stations_json({720: "Building"}))
+    r, log = run(root, ["audit"], stations=_stations_json({720: "Building", 721: "Review"}))
     check("T-07 audit STATUS: a feature with NO feature.json status still yields a finding "
           "from its plan.yaml station -- the class does not go vacuous",
           r.returncode == 1 and "STATUS" in r.stdout and "FEAT-72-plan-station" in r.stdout,
@@ -1645,7 +1714,7 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github())
     write_feature(root, "widget", "FEAT-73-agrees", None, parent=730,
                   github_issues={"T-01": 731}, plan_station="building")
-    r, log = run(root, ["audit"], stations=_stations_json({730: "Building"}))
+    r, log = run(root, ["audit"], stations=_stations_json({730: "Building", 731: "Building"}))
     check("T-07 NEGATIVE CONTROL: plan station agreeing with the board is NOT a STATUS finding",
           "STATUS" not in r.stdout, f"rc={r.returncode} stdout={r.stdout!r}")
 

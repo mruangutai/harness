@@ -207,7 +207,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps control-plane audit and reconciliation enforcement and its focused test in the main session
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py#_status_findings
       - path: tests/integration/test-board-lifecycle.py
