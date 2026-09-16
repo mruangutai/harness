@@ -75,6 +75,9 @@ steps:
       feature actually need to ship? Hunt orphan SC ids with no task tracing to them, tasks
       whose traces cite an SC that does not exist, a dependency shape that is not a
       topological order, and a verify block asserting something a predecessor task deletes.
+      Ask which tasks share files — `plan-merge.py check` prints an `OVERLAP` line per shared
+      path — and whose gate the later task will break; an answer is a `substance` finding, since
+      a task gated against a tree its successor moves costs a cycle per collision (BUG-1725).
       Then grade the architecture per `harness-codebase-design`: deep modules, seams, adapters,
       locality — this is the plan's only architecture review. Write findings to your output
       path. Every finding carries `kind`: `substance` (would change shipped code), `form`

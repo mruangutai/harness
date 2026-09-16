@@ -39,6 +39,12 @@ A task missing any of them is **not written**: return the gap rather than guess.
    `path#symbol`; or `{path: <p>, quote: <q>}`. **Never `path:NN`** — a line number points at
    different code the moment `main` moves; `apply` refuses it (DEC-232). Not a comma string, not
    backticked, **no trailing annotation** like `(delete)` — the resolver takes the value verbatim.
+   **A task owns its files.** Slice work across many files by file ownership — each file in
+   exactly one task — or keep it as one task with a per-file checklist; never as layers over
+   shared files, because each layer's gate then runs against a tree the next layer will move.
+   A whole-tree `verify:` belongs to the LAST task that touches those files, or to validate.
+   `plan-merge.py check` prints one `OVERLAP <path>: T-a, T-b` line per shared file; treat
+   each as a question to answer, not a line to ignore (BUG-1725).
 2. **Complete intent.** Not "implement X" — the actual logic, types, structure, values. `intent:` is
    the LITERAL DISPATCH PROMPT: the doer receives it and nothing else about the task. Detail that
    only JUSTIFIES the instruction belongs in `notes/`.
