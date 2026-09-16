@@ -25,7 +25,8 @@ _SENTINEL = object()
 
 def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                    issues=None, feature_status="Building", second_status=None,
-                   second_card=None, factory=None, board_override=_SENTINEL):
+                   second_card=None, factory=None, board_override=_SENTINEL,
+                   source_issues=None, source_cards=None):
     """One INV-26 fixture: harness.json with sync+repo+board, one feature with a plan,
     a feature.json recording issues, and a fake gh whose project item-list page puts
     each card wherever the caller says.
@@ -70,12 +71,15 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                     "    depends_on: []\n"
                     "    status: %s\n    files:\n      - b.py\n    verify: |\n      true\n"
                     "    intent: |\n      x\n" % second_status)
+        if source_issues:
+            f.write("source_issues: [%s]\n" % ", ".join(str(n) for n in source_issues))
     if issues is None:
         issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
     _doc = {"feature_id": feat, "branch": "b", "pr": None,
             "review_sha": "abc1234",
             "cycles_used": 0, "max_total_cycles": 10, "runs": [],
-            "github": {"milestone": 1, "parent": 40, "issues": issues}}
+            "github": {"milestone": 1, "parent": 40, "issues": issues,
+                       "source_issues": source_issues or []}}
     if factory is not None:
         # A factory-lane feature: published by factory_decompose, so its issues live
         # under `factory`, in a repository fleet.yaml must declare or INV-24 fires
@@ -93,6 +97,9 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     if second_status is not None:
         items.append({"content": {"repository": "org/repo", "number": 42},
                       "status": second_card if second_card is not None else "Backlog"})
+    for number in source_issues or []:
+        items.append({"content": {"repository": "org/repo", "number": number},
+                      "status": (source_cards or {}).get(number, "Building")})
     page = json.dumps({"totalCount": len(items), "items": items})
     # TWO SHAPES, dispatched on the subcommand. FEAT-29 T-02 replaced INV-26's
     # `gh project item-list` read with ONE targeted `gh api graphql` query
@@ -172,9 +179,9 @@ def case_v():
         results.append(("(v.1) a mis-columned card is a VIOLATION naming feature, task, "
                         "plan status and column found", ok, "\n".join(ls) or "(no INV-26 line)"))
 
-    # --- v.2 THE CORRECTED TWIN: the SAME fixture, that one card reading Done.
+    # --- v.2 THE CORRECTED TWIN: the SAME fixture with every projected card at Building.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Building", "Building")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
         results.append(("(v.2) the corrected twin reports NOTHING", not ls,
@@ -189,14 +196,15 @@ def case_v():
         results.append(("(v.3) a feature whose status is Done is exempt even with every "
                         "card wrong", not ls, "\n".join(ls)))
 
-    # --- v.4 the mirror-never-ran clause: a task building, sync on, empty issues map.
+    # --- v.4 an active feature whose mirror never ran is outside INV-26.
+    # The projection compares recorded cards; it cannot require cards that feature.json does
+    # not record. Mirror opening owns that separate lifecycle obligation.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building", issues={})
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("no mirrored issues" in l for l in ls)
-        results.append(("(v.4) tasks in flight with an EMPTY issues map is a violation",
-                        ok, "\n".join(ls) or "(no INV-26 line)"))
+        results.append(("(v.4) tasks in flight with an EMPTY issues map are ineligible for "
+                        "INV-26", not ls, "\n".join(ls)))
 
     # --- v.5 CANNOT VERIFY: the recorded issue is absent from the board page.
     with tempfile.TemporaryDirectory() as tmp:
@@ -209,15 +217,25 @@ def case_v():
         results.append(("(v.5) a recorded issue absent from the board is CANNOT VERIFY, "
                         "not a clean pass", ok, "\n".join(ls) or "(no INV-26 line)"))
 
-    # --- v.6 the parent mismatch is its own finding.
+    # --- v.6 the parent uses the same feature-phase projection as task cards.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Building", "Backlog")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("parent" in l and "#40" in l and "review" in l and "backlog" in l
+        ok = any("parent" in l and "#40" in l and "building" in l and "backlog" in l
                  for l in ls)
-        results.append(("(v.6) the parent card disagreeing with the derivation is a "
-                        "violation", ok, "\n".join(ls) or "(no INV-26 line)"))
+        results.append(("(v.6) the parent card disagreeing with feature phase is a violation",
+                        ok, "\n".join(ls) or "(no INV-26 line)"))
+
+    # --- v.6b source cards consume the same shared projection as parents and tasks.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Building", "Building",
+                              source_issues=[90], source_cards={90: "Backlog"})
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        results.append(("(v.6b) a source card outside the active phase is a violation",
+                        any("source" in l and "#90" in l and "building" in l and "backlog" in l
+                            for l in ls), "\n".join(ls) or "(no INV-26 line)"))
 
     # --- v.7 gh absent contributes NOTHING. The environment is not the tree.
     with tempfile.TemporaryDirectory() as tmp:
@@ -248,42 +266,35 @@ def case_v():
                         "derives NO parent station", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
 
-    # --- v.9 THE NON-VACUITY TWIN FOR v.8, and the parent-silence proof in one fixture.
-    # Same mixed plan, T-01's card corrected to Done. Nothing must be reported — in
-    # particular NOT a parent finding, because a None derivation still has no station to
-    # expect and the parent card sits in Backlog here.
+    # --- v.9 THE NON-VACUITY TWIN FOR v.8: every active card follows Building.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog",
-                              second_status="ready", second_card="Ready")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Building", "Building",
+                              second_status="ready", second_card="Building")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        results.append(("(v.9) the corrected twin of v.8 reports NOTHING, and a None "
-                        "derivation raises no parent finding", not ls, "\n".join(ls)))
+        results.append(("(v.9) the corrected twin of v.8 reports NOTHING",
+                        not ls, "\n".join(ls)))
 
-    # --- v.10 a plan where NOTHING HAS STARTED still claims nothing. The silence that was
-    # correct must survive the fix: no task has started, so no card can be wrong yet.
-    # The word is `ready` rather than `pending` (FEAT-41 T-04) — the not-started station.
+    # --- v.10 an active phase claims every card even before task-local work starts.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Building", "Review",
                               second_status="ready", second_card="Done")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        results.append(("(v.10) a plan where nothing has started reports NOTHING even with "
-                        "every card wrong", not ls, "\n".join(ls)))
-
-    # --- v.11/v.12 THE LANE PAIR (issue #349's caveat). The mirror-never-ran clause read
-    # only `github.issues`, so a feature published by factory_decompose — issues recorded
-    # under `factory.issues`, nothing under `github.issues` — fired a FALSE violation
-    # instructing the operator to mirror product work onto harness's board. The pair
-    # differs in the factory block alone: v.11 must stay silent, v.12 keeps the teeth.
+        results.append(("(v.10) an all-ready plan still reports cards outside Building",
+                        any("T-02" in line and "building" in line for line in ls),
+                        "\n".join(ls)))
+    # --- v.11/v.12 no-mirror records are outside the card-comparison invariant. Factory
+    # records are already outside this board; an empty factory map cannot make a no-mirror
+    # feature eligible either.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building",
                               issues={},
                               factory={"repo": "org/prod", "issues": {"T-01": 7}})
         _c, out = _run_with_gh(tmp, fake)
-        ls = [l for l in _lines(out) if "no mirrored issues" in l]
-        results.append(("(v.11) a factory-published feature (factory.issues recorded, "
-                        "github.issues empty) raises NO mirror-never-ran violation",
+        ls = _lines(out)
+        results.append(("(v.11) a factory-published feature with no GitHub mirror is "
+                        "ineligible for INV-26",
                         not ls, "\n".join(ls)))
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -291,10 +302,10 @@ def case_v():
                               issues={},
                               factory={"repo": "org/prod", "issues": {}})
         _c, out = _run_with_gh(tmp, fake)
-        ls = [l for l in _lines(out) if "no mirrored issues" in l]
-        results.append(("(v.12) the same fixture with an EMPTY factory.issues still "
-                        "fires — the exemption keys on recorded issues, not the block",
-                        bool(ls), "(no INV-26 line)"))
+        ls = _lines(out)
+        results.append(("(v.12) an empty factory map does not make a no-mirror feature "
+                        "eligible for INV-26",
+                        not ls, "\n".join(ls)))
 
     # THE OK-LINE TEXT IS THE CONTRACT. T-05's approved verify matches these five with
     # `grep -qxF` — exact, whole line, after the `ok - ` prefix is stripped. Rewording one
@@ -428,20 +439,22 @@ def case_v():
     # guard, so the ready card can only be judged beside a started one — which is also the
     # regression the guard rewrite in this task protects: were it still spelled against
     # `pending`, this fixture would stop being skipped and every all-ready feature with it.
+    # ready: every card follows the feature phase, regardless of mixed task state.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
-                              second_status="ready", second_card="Ready")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Ready", "Ready",
+                              feature_status="Ready", second_status="ready",
+                              second_card="Ready")
         c, out = _run_with_gh(tmp, fake)
-        _t04.append(("(v.T04-ready) a ready task whose card reads Ready is CLEAN",
+        _t04.append(("(v.T04-ready) active Ready cards are CLEAN",
                      _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
-                              second_status="ready", second_card="Building")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Ready", "Ready",
+                              feature_status="Ready", second_status="ready",
+                              second_card="Building")
         c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        _t04.append(("(v.T04-ready-neg) a ready task whose card reads Building is a VIOLATION "
-                     "naming ready",
+        _t04.append(("(v.T04-ready-neg) a card outside the Ready phase is a VIOLATION",
                      any("T-02" in l and "ready" in l for l in ls),
                      "\n".join(ls) or "(no INV-26 line)"))
 
@@ -461,18 +474,19 @@ def case_v():
                      "\n".join(ls) or "(no INV-26 line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Plan", "Plan",
+                              feature_status="Plan")
         c, out = _run_with_gh(tmp, fake)
-        _t04.append(("(v.T04-done) a done task whose card reads Done is CLEAN",
+        _t04.append(("(v.T04-plan) active Plan cards are CLEAN",
                      _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review")
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Plan",
+                              feature_status="Plan")
         c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        _t04.append(("(v.T04-done-neg) a done task whose card reads Backlog is a VIOLATION "
-                     "naming done",
-                     any("T-01" in l and "done" in l for l in ls),
+        _t04.append(("(v.T04-plan-neg) a card outside the Plan phase is a VIOLATION",
+                     any("T-01" in l and "plan" in l for l in ls),
                      "\n".join(ls) or "(no INV-26 line)"))
 
     # `pending` IS NOT A VALUE ANY MORE, AND A PLAN STILL CARRYING ONE IS NOW REPORTED.
@@ -498,7 +512,8 @@ def case_v():
     # THE NEGATIVE CONTROL FOR THE CASE ABOVE. Without it, "a line mentioning pending appears"
     # could be satisfied by any unrelated chatter; this proves the legal twin is silent.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Ready", "Review")
+        fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Ready", "Ready",
+                              feature_status="Ready")
         c, out = _run_with_gh(tmp, fake)
         _t04.append(("(v.T06-pending-neg) the same fixture at a LEGAL station reports nothing",
                      _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))

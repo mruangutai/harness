@@ -4,7 +4,7 @@ approval:
   date: '2026-09-16'
   approved_by: mruangutai
   status: approved
-status: ready
+status: building
 source_issues: [1699]
 
 panel:
@@ -114,15 +114,18 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/gh_board.py#project
-      - .claude/skills/harness/bin/gh-sync.py#cmd_status
-      - path: tests/unit/test-gh-board.py
-        quote: "# --- each task sub-issue gets ITS OWN task's station, verbatim ---"
-      - path: tests/integration/test-gh-sync-record.py
-        quote: "# --- status Ready on a signed plan moves every recorded T-NN sub-issue to the declared"
-      - tests/integration/test-check-state-inv26.py#case_v
+    - .claude/skills/harness/bin/gh_board.py#project
+    - .claude/skills/harness/bin/gh-sync.py#cmd_status
+    - .claude/skills/harness/bin/check-state.py
+    - path: tests/unit/test-gh-board.py
+      quote: '# --- each task sub-issue gets ITS OWN task''s station, verbatim ---'
+    - path: tests/integration/test-gh-sync-record.py
+      quote: '# --- status Ready on a signed plan moves every recorded T-NN sub-issue
+        to the declared'
+    - tests/integration/test-check-state-inv26.py#case_v
+    - tests/integration/test-gh-sync-start-task.py
     verify: |
       python3 tests/unit/test-gh-board.py && python3 tests/integration/test-gh-sync-record.py && python3 tests/integration/test-check-state-inv26.py && python3 tests/integration/test-gh-sync-open.py && python3 tests/integration/test-gh-sync-start-task.py && python3 tests/integration/test-gh-sync-ship.py && python3 tests/integration/test-gh-sync-abandon.py
     intent: |
