@@ -113,7 +113,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps feature-record.py and the focused test that vouches for this enforcement writer outside self-hosted execution; DEC-179 requires the route to be declared now.
     depends_on: []
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/feature-record.py#main
     - tests/unit/test-feature-record.py#FeatureRecordCase
@@ -128,7 +128,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps check-state.py and the integration test that directly vouches for the state gate outside self-hosted execution; DEC-179 requires the route to be declared now.
     depends_on: []
-    status: building
+    status: done
     files:
       - path: .claude/skills/harness/bin/check-state.py
         quote: INV-40
